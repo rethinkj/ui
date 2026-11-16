@@ -31,9 +31,9 @@ import java.util.Objects;
  * <p>Labels stand {@link Labels#BESIDE} their fields, in a column as wide as the widest of them,
  * for wide panels, or {@link Labels#ABOVE} them, for narrow ones. A label beside its field is
  * centred on the field's first line. A required field has a {@code *} after its label in the
- * danger colour. Help text is muted and wraps below the field; an error replaces it, in the danger
- * colour, and gives a text field the invalid look ({@link TextField#invalid}). A warning, for a
- * valid value worth a second thought, takes the same place in the warning colour after a warning
+ * danger color. Help text is muted and wraps below the field; an error replaces it, in the danger
+ * color, and gives a text field the invalid look ({@link TextField#invalid}). A warning, for a
+ * valid value worth a second thought, takes the same place in the warning color after a warning
  * symbol and leaves the field valid; an error wins over it. The fields are
  * {@link Theme.Spacing#m} apart beside their labels and {@link Theme.Spacing#l} apart below them.
  *
@@ -90,9 +90,9 @@ public final class Form {
    * @param label the text before or above the control, also the control's label
    * @param control a text field or any other control, with the width it should have
    * @param help muted text below the control; null for none
-   * @param error text in the danger colour below the control, in place of the help, while the
+   * @param error text in the danger color below the control, in place of the help, while the
    *     value is not accepted; null for none
-   * @param warning text in the warning colour after a warning symbol below the control, in place
+   * @param warning text in the warning color after a warning symbol below the control, in place
    *     of the help, while the value is valid but worth a second thought; null for none, and not
    *     shown while there is an error
    * @param isRequired whether the label is followed by a {@code *}
@@ -453,7 +453,7 @@ public final class Form {
     return error;
   }
 
-  /** Text below a control that wraps: muted, or an error in the danger colour; null for none. */
+  /** Text below a control that wraps: muted, or an error in the danger color; null for none. */
   private static El said(Theme theme, String text, boolean error) {
     return text == null
         ? null

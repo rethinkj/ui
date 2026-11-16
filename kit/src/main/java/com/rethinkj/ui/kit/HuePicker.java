@@ -10,10 +10,10 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * A choice of one of the theme's {@link Theme.Hue}s, such as the colour that marks a connection:
+ * A choice of one of the theme's {@link Theme.Hue}s, such as the color that marks a connection:
  * a round swatch per hue in {@link Radio#swatches}, filled with the hue's {@link
- * Theme.Accent#edge} of the theme, the colour a tab's mark has ({@link Tabs.Tab#hue}), which
- * holds 3:1 on the surfaces in both default themes. A choice of no colour, when the app allows
+ * Theme.Accent#edge} of the theme, the color a tab's mark has ({@link Tabs.Tab#hue}), which
+ * holds 3:1 on the surfaces in both default themes. A choice of no color, when the app allows
  * it, comes first: {@link Symbol#PROHIBITED} in muted text. In a tree dump it is {@code
  * role=radiogroup}, each swatch {@code role=radio} labelled by the hue's name as a person reads
  * it ({@code Red}, {@code Violet}) and {@code checked} or {@code checked=false}.
@@ -38,12 +38,12 @@ public final class HuePicker {
   }
 
   /**
-   * The ten hues after a choice of no colour.
+   * The ten hues after a choice of no color.
    *
-   * @param selected the chosen hue; null for the choice of no colour, or for none where there is
+   * @param selected the chosen hue; null for the choice of no color, or for none where there is
    *     none
-   * @param none the name of the choice of no colour, such as {@code None}; null for no such choice
-   * @param onSelect told the hue the user chooses, null for no colour, only when it changes; null
+   * @param none the name of the choice of no color, such as {@code None}; null for no such choice
+   * @param onSelect told the hue the user chooses, null for no color, only when it changes; null
    *     disables the picker
    */
   public static El huePicker(

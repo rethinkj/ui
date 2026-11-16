@@ -53,7 +53,7 @@ public final class Lights {
         .size(56, 56)
         .radius(28)
         .fill(state.on ? Colors.rgb(0xFACC15) : theme.surface().raised())
-        .motion(theme.motion().move()); // the colour springs to its new value
+        .motion(theme.motion().move()); // the color springs to its new value
     return col()
         .wFull()
         .hFull()

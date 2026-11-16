@@ -3,4 +3,4 @@ size 560 240
 frame
 move #row-5            # the pointer over row 5, which looks hovered
 frame
-snap top               # the grid has no focus: the selection in its quiet colour
+snap top               # the grid has no focus: the selection in its quiet color

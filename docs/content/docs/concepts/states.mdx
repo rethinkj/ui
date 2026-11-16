@@ -3,7 +3,7 @@ title: States and roles
 description: Roles, labels and states say in words what an element is and what the app's state is, for the tree dump, scripts and assistive tools.
 ---
 
-An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `treeitem`), its **label** what it is called, and its **states** what condition it is in: `checked`, `selected`, `expanded`, `disabled` and more, named as in WAI-ARIA. They do not change how the element looks or takes input. A [tree dump](/docs/testing/tree-dump) shows them and [selectors](/docs/testing/selectors) match them, so a script presses `role=switch label="Lamp"` and checks `checked` without reading colours.
+An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `treeitem`), its **label** what it is called, and its **states** what condition it is in: `checked`, `selected`, `expanded`, `disabled` and more, named as in WAI-ARIA. They do not change how the element looks or takes input. A [tree dump](/docs/testing/tree-dump) shows them and [selectors](/docs/testing/selectors) match them, so a script presses `role=switch label="Lamp"` and checks `checked` without reading colors.
 
 ```java snippet="states"
 ```
@@ -37,6 +37,6 @@ A text field sets `disabled`, `readonly`, `password` and `revealed` (a password 
 
 ## Rules
 
-- **Every state shown by colour should also be a state.** If a tint shows a row is selected, also set `selected(true)`. The kit's components do; do the same in your own.
+- **Every state shown by color should also be a state.** If a tint shows a row is selected, also set `selected(true)`. The kit's components do; do the same in your own.
 - **Label what has no text.** An icon button needs a label on the element that takes the press.
 - **Mark the cursor.** A component with a cursor marks it `current` (or `selected` where only one item can be selected): the Menu key opens the context menu there.

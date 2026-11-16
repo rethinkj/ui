@@ -1,15 +1,15 @@
 package com.rethinkj.ui.kit;
 
 /**
- * The colours the default themes are made of, named for what they are: a hue and a step, as {@code
- * BLUE_496}. The step is the colour's CIELAB lightness L* times ten ({@link
+ * The colors the default themes are made of, named for what they are: a hue and a step, as {@code
+ * BLUE_496}. The step is the color's CIELAB lightness L* times ten ({@link
  * com.rethinkj.ui.Colors#lightness}), from 0 for black to 1000 for white, so that two names say how
- * far apart two colours are: text and its background want about 40 steps for 4.5:1 near the middle
- * of the scale, and a dark theme's surfaces lie below 130, a light theme's above 900. What a colour
- * is for is named by the tokens of {@link Theme}, whose source shows which tokens share a colour
+ * far apart two colors are: text and its background want about 40 steps for 4.5:1 near the middle
+ * of the scale, and a dark theme's surfaces lie below 130, a light theme's above 900. What a color
+ * is for is named by the tokens of {@link Theme}, whose source shows which tokens share a color
  * and which are made from another.
  *
- * <p>The greys are a little blue, as the themes' surfaces are; every colour is opaque, and the
+ * <p>The greys are a little blue, as the themes' surfaces are; every color is opaque, and the
  * themes write translucent ones as one of these at an alpha ({@link
  * com.rethinkj.ui.Colors#alpha(int, float)}). Black and white are {@link
  * com.rethinkj.ui.Colors#BLACK} and {@link com.rethinkj.ui.Colors#WHITE}.
@@ -20,7 +20,7 @@ package com.rethinkj.ui.kit;
  * surfaces (a {@link Theme.Hue}'s edge there).
  *
  * <p>The palette has no rules of its own: the rules are the themes', which {@code ThemeTest} holds
- * them to. This file is the only one in the kit with colour literals.
+ * them to. This file is the only one in the kit with color literals.
  */
 public final class Palette {
 

@@ -98,7 +98,7 @@ class WindowIconTest {
     assertEquals(40 + w * h * 4 + 8 * h, resource.length);
     assertEquals(40, b.getInt(0));
     assertEquals(w, b.getInt(4));
-    assertEquals(2 * h, b.getInt(8)); // colours and mask
+    assertEquals(2 * h, b.getInt(8)); // colors and mask
     assertEquals(32, b.getShort(14));
     // The bottom row comes first: the image's top left pixel starts the second row.
     int topLeft = 40 + w * 4;

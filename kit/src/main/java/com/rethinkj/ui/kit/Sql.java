@@ -6,14 +6,14 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A {@link Highlighter} of SQL in the colours of {@link Theme.Code}: keywords, strings with doubled
+ * A {@link Highlighter} of SQL in the colors of {@link Theme.Code}: keywords, strings with doubled
  * quotes ({@code 'it''s'}), PostgreSQL's dollar-quoted strings ({@code $$...$$}, {@code
  * $fn$...$fn$}), numbers and parameters ({@code $1}), line comments ({@code --}), block comments, nested as in PostgreSQL,
- * and operators, brackets and punctuation. Identifiers in double quotes keep the text's colour, and
+ * and operators, brackets and punctuation. Identifiers in double quotes keep the text's color, and
  * a keyword inside them is none. Strings, quoted identifiers, dollar-quoted strings and block
  * comments go on across lines, which the state of a line carries.
  *
- * <p>A record, so that two highlighters of the same colours are equal and a field keeps what it
+ * <p>A record, so that two highlighters of the same colors are equal and a field keeps what it
  * asked of one while the view passes it again: {@code field.highlight(sql, sql)}. It scans each
  * line once, character by character, without regular expressions.
  *
@@ -34,7 +34,7 @@ public record Sql(Theme.Code colors, Dialect dialect)
      * only where a space, a tab or another control character or the line's end follows it ({@code
      * 5--2} is 5 minus -2), block comments that do not nest, and no dollar quotes. MySQL runs what
      * stands in {@code /*! ... *}{@code /} and reads {@code /*+ ... *}{@code /} as optimizer
-     * hints; both are coloured as comments.
+     * hints; both are colored as comments.
      */
     MYSQL
   }
@@ -43,17 +43,17 @@ public record Sql(Theme.Code colors, Dialect dialect)
     java.util.Objects.requireNonNull(dialect, "dialect");
   }
 
-  /** PostgreSQL's highlighter in these colours. */
+  /** PostgreSQL's highlighter in these colors. */
   public Sql(Theme.Code colors) {
     this(colors, Dialect.POSTGRES);
   }
 
-  /** The highlighter in the theme's colours for code, as PostgreSQL writes SQL. */
+  /** The highlighter in the theme's colors for code, as PostgreSQL writes SQL. */
   public static Sql of(Theme theme) {
     return new Sql(theme.code());
   }
 
-  /** The highlighter in the theme's colours for code, as {@code dialect} writes SQL. */
+  /** The highlighter in the theme's colors for code, as {@code dialect} writes SQL. */
   public static Sql of(Theme theme, Dialect dialect) {
     return new Sql(theme.code(), dialect);
   }
@@ -228,7 +228,7 @@ public record Sql(Theme.Code colors, Dialect dialect)
 
   private static final int LONGEST = 12; // MATERIALIZED
 
-  /** The keywords this highlighter colours, in upper case, such as for completions. */
+  /** The keywords this highlighter colors, in upper case, such as for completions. */
   public static Set<String> keywords() {
     return KEYWORDS;
   }

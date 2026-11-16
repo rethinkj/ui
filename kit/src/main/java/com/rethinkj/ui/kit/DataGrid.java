@@ -189,7 +189,7 @@ public final class DataGrid {
    *     that shows its icon alone.
    * @param icon shown in the header before the title, such as the kind of data or a key; null for
    *     none
-   * @param iconVariant the colour of {@code icon}
+   * @param iconVariant the color of {@code icon}
    * @param typeName shown in the header after the title in muted text, such as {@code bigint};
    *     null for none. It gives way first where the column is narrow.
    * @param cellIcon the icon of the cell in the row with this index, or null for none: called as
@@ -909,17 +909,17 @@ public final class DataGrid {
   }
 
   /**
-   * The icon of a cell: before its text, or alone in its place, in one of {@link Icon}'s colours,
+   * The icon of a cell: before its text, or alone in its place, in one of {@link Icon}'s colors,
    * with a tooltip of its own if it needs one. It stands where the column puts its text, at the
    * left or the right, and keeps its size where the text gives way. A cell whose icon stands alone
    * keeps its text as its label, which a tree dump shows ({@code label="true"}), its tooltip when
    * it has none of its own, and what a copy takes.
    *
-   * <p>The colours stand out 3:1 from the rows, the stripes and the selection in the default
+   * <p>The colors stand out 3:1 from the rows, the stripes and the selection in the default
    * themes, except {@link Icon.Variant#DISABLED}, which looks unavailable on purpose.
    *
    * @param symbol what it shows
-   * @param variant its colour
+   * @param variant its color
    * @param alone whether it stands in place of the text
    * @param tooltip shown after the theme's delay with the pointer on the cell, before the text if
    *     that is cut short; null for none
@@ -931,7 +931,7 @@ public final class DataGrid {
       Objects.requireNonNull(variant, "variant");
     }
 
-    /** The icon before the text, such as a coloured mark before a status or a link before a key. */
+    /** The icon before the text, such as a colored mark before a status or a link before a key. */
     public static CellIcon before(Symbol symbol, Icon.Variant variant) {
       return new CellIcon(symbol, variant, false, null);
     }
@@ -2818,7 +2818,7 @@ public final class DataGrid {
     }
     if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
       r.child(pinRow(
-          b, el().key("mark").w(theme.size().indicator()).fill(markColour(theme, status)), 0));
+          b, el().key("mark").w(theme.size().indicator()).fill(markColor(theme, status)), 0));
     }
     if (rowSelected) {
       return r;
@@ -2867,7 +2867,7 @@ public final class DataGrid {
       }
       if (status == Status.ERROR) {
         box.invalid(true);
-        if (!ring) { // a line of the danger colour inside the cell, where the cursor's would be
+        if (!ring) { // a line of the danger color inside the cell, where the cursor's would be
           float w = theme.size().stroke();
           box.border(w, theme.status().danger())
               .radius(theme.radius().small())
@@ -2995,8 +2995,8 @@ public final class DataGrid {
     return status.name().toLowerCase(java.util.Locale.ROOT);
   }
 
-  /** The colour of the mark at the start of a row in this status. */
-  private static int markColour(Theme theme, Status status) {
+  /** The color of the mark at the start of a row in this status. */
+  private static int markColor(Theme theme, Status status) {
     return switch (status) {
       case CHANGED -> theme.accent().edge();
       case NEW -> theme.status().success();
@@ -3495,12 +3495,12 @@ public final class DataGrid {
         .replace("\t", TAB);
   }
 
-  static El text(Theme theme, boolean mono, String text, int colour) {
+  static El text(Theme theme, boolean mono, String text, int color) {
     Theme.TextStyle style = mono ? theme.type().mono() : theme.type().body();
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
-        .color(colour)
+        .color(color)
         .ellipsis()
         .minSize(0, 0);
   }

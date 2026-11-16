@@ -145,7 +145,7 @@ public final class Menu {
     }
 
     /**
-     * This item with an element before its text, in place of an icon, such as a colour's swatch
+     * This item with an element before its text, in place of an icon, such as a color's swatch
      * ({@link HuePicker#swatch}): built for each place it shows, for the theme there, at most
      * {@link Theme.Sizes#icon} square, in the column the icons have, which keeps its width. While
      * the item is checked, the check mark stands at its end and the element before the text.
@@ -664,7 +664,7 @@ public final class Menu {
         .fill(fill)
         .onHoverFor(0, () -> state.highlight(level, i))
         .disabled(!enabled)
-        .current(lit) // the highlight, which a dump would otherwise show only as a colour
+        .current(lit) // the highlight, which a dump would otherwise show only as a color
         .child(content);
     if (item.checked()) {
       el.checked(true);

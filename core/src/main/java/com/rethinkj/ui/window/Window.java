@@ -1822,7 +1822,7 @@ public final class Window implements AutoCloseable {
   }
 
   /**
-   * The colour, 0xAARRGGBB with the alpha ignored, that the system shows where a resize uncovers
+   * The color, 0xAARRGGBB with the alpha ignored, that the system shows where a resize uncovers
    * the window before the app has drawn the new size: on X11 the window's background, with what
    * it showed kept at its top left; without it the uncovered parts show what lay there, other
    * windows' content included. {@link WindowLoop} sets it to the fill of the app's root after
@@ -1957,8 +1957,8 @@ public final class Window implements AutoCloseable {
 
   /**
    * How the system looks now: light or dark ({@code SDL_GetSystemTheme}), and on Windows the
-   * accent colour (the {@code AccentColor} of {@code HKCU\Software\Microsoft\Windows\DWM}, which
-   * is the colour chosen in Settings, else {@code DwmGetColorizationColor}) and high contrast
+   * accent color (the {@code AccentColor} of {@code HKCU\Software\Microsoft\Windows\DWM}, which
+   * is the color chosen in Settings, else {@code DwmGetColorizationColor}) and high contrast
    * ({@code SPI_GETHIGHCONTRAST}). Each change comes to every window as a {@link
    * WindowEvent.AppearanceChanged}: light and dark through SDL's {@code
    * SDL_EVENT_SYSTEM_THEME_CHANGED}, and on Windows the accent and high contrast when the window
@@ -1977,7 +1977,7 @@ public final class Window implements AutoCloseable {
         scheme, windows ? Win32Shell.accent() : 0, windows && Win32Shell.highContrast());
   }
 
-  /** A message said that the system's colours may have changed: tells the windows if they did. */
+  /** A message said that the system's colors may have changed: tells the windows if they did. */
   static void appearanceMayHaveChanged() {
     SystemAppearance now = systemAppearance();
     if (!now.equals(appearance)) {

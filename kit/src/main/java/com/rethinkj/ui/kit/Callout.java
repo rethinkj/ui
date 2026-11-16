@@ -12,15 +12,15 @@ import com.rethinkj.ui.Style;
 
 /**
  * A note inside a view, such as "Restart to apply" below the settings it concerns: an icon, a
- * title, a text that wraps and optional actions at the right, on a tint of the kind's colour with a
- * bar in that colour along its leading edge ({@link Theme#callout}). The actions stand beside the
+ * title, a text that wraps and optional actions at the right, on a tint of the kind's color with a
+ * bar in that color along its leading edge ({@link Theme#callout}). The actions stand beside the
  * text while that leaves the text at least {@link Theme.Sizes#field} wide, and below it at the right
  * otherwise, as in a narrow dialog. In a tree dump it is {@code role=note} with the title as its
  * label; the bar has no role.
  */
 public final class Callout {
 
-  /** What the note is about, which sets its icon and colour. */
+  /** What the note is about, which sets its icon and color. */
   public enum Kind {
     /** Something to know, in the theme's blue. */
     INFO,

@@ -1,9 +1,9 @@
 ---
 title: Themes and tokens
-description: The kit's Theme record of colour, space, type, size and motion tokens, the dark and light themes, and how to change them.
+description: The kit's Theme record of color, space, type, size and motion tokens, the dark and light themes, and how to change them.
 ---
 
-The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, elevation, the grid's and code colours, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
+The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a record of token groups: surfaces, text colors, borders, accent, status colors, spacing, radii, type, sizes, motion, elevation, the grid's and code colors, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
 
 ```java snippet="theme"
 ```
@@ -25,7 +25,7 @@ Keep what the user chose in the state and build the theme from it in the view. T
 
 - A handler that changes `mode` or `accent` rebuilds the view, and every component gets the new theme.
 - `WindowLoop.appearance(handler)` calls the handler at the start and whenever the system's setting changes, as a task of the app, so the view is built again. The app above keeps the system's choice in `systemDark` and uses it only in System mode. Nothing follows the system by itself.
-- The [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) it passes holds `scheme()`: `DARK`, `LIGHT`, or `UNKNOWN` where the system does not say, as on a Linux desktop without the portal; `dark()` is false then. `accent()` is the system's accent colour as `0xFFRRGGBB` on Windows and 0 on Linux. `highContrast()` says whether high contrast is on; the kit has no theme for it.
+- The [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) it passes holds `scheme()`: `DARK`, `LIGHT`, or `UNKNOWN` where the system does not say, as on a Linux desktop without the portal; `dark()` is false then. `accent()` is the system's accent color as `0xFFRRGGBB` on Windows and 0 on Linux. `highContrast()` says whether high contrast is on; the kit has no theme for it.
 - `window.frameDark(dark)` makes a framed window's title bar follow the app's theme on Windows ([Windows, icons and dialogs](/docs/concepts/platform#the-systems-appearance)).
 
 ## The groups
@@ -49,32 +49,32 @@ Each group's `with` method returns a changed copy: `withSurface`, `withText`, `w
 
 ## Accents
 
-`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GREY`, for example a colour per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
+`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GREY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
 
-Your own accent is a `Theme.Accent` of a colour and its hover and pressed tones. The selection is then the colour at 40 % and the edge (focus rings, the grid's cursor) the colour itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
+Your own accent is a `Theme.Accent` of a color and its hover and pressed tones. The selection is then the color at 40 % and the edge (focus rings, the grid's cursor) the color itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
 
 ```java snippet="own-accent"
 ```
 
-## Colours
+## Colors
 
-A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. [`com.rethinkj.ui.Colors`](/api/com/rethinkj/ui/Colors.html) creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
+A color is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. [`com.rethinkj.ui.Colors`](/api/com/rethinkj/ui/Colors.html) creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
 
-```java snippet="colours"
+```java snippet="colors"
 ```
 
 | Method | What it does |
 | --- | --- |
-| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | An opaque colour from 24 bits or from channels of 0 to 255 |
-| `alpha(colour, 0.4f)` | The colour at that alpha, `round(share * 255)`: 0.4 is `0x66` |
-| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(colour)` | Parse from text and format back; a parse error shows the expected form |
-| `alpha(colour)`, `red(colour)`, `green(colour)`, `blue(colour)` | The channels, 0 to 255 |
-| `over(base, overlay)` | A translucent colour over an opaque one, mixed in linear light as the renderer does |
-| `mix(from, to, amount)` | `amount` of the way from `from` to `to`, in linear light; `mix(colour, BLACK, 0.2)` is `colour` with 20 % less light |
-| `luminance(colour)`, `contrast(first, second)`, `lightness(colour)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
+| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | An opaque color from 24 bits or from channels of 0 to 255 |
+| `alpha(color, 0.4f)` | The color at that alpha, `round(share * 255)`: 0.4 is `0x66` |
+| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(color)` | Parse from text and format back; a parse error shows the expected form |
+| `alpha(color)`, `red(color)`, `green(color)`, `blue(color)` | The channels, 0 to 255 |
+| `over(base, overlay)` | A translucent color over an opaque one, mixed in linear light as the renderer does |
+| `mix(from, to, amount)` | `amount` of the way from `from` to `to`, in linear light; `mix(color, BLACK, 0.2)` is `color` with 20 % less light |
+| `luminance(color)`, `contrast(first, second)`, `lightness(color)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
 | `BLACK`, `WHITE`, `TRANSPARENT` | |
 
-The default themes use the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `theme.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
+The default themes use the colors of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `theme.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
 
 ## Contrast
 

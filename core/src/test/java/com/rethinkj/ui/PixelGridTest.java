@@ -78,7 +78,7 @@ class PixelGridTest {
 
   /**
    * A border of 1 and a hairline of 1 at every position from 10 to 13: whole pixels, as many as
-   * {@link #stroke} says, of their colour and nothing between.
+   * {@link #stroke} says, of their color and nothing between.
    */
   @ParameterizedTest
   @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
@@ -109,12 +109,12 @@ class PixelGridTest {
     }
   }
 
-  /** From y - 1 to y + run: the outside, {@code run} pixels of {@code colour}, the inside. */
+  /** From y - 1 to y + run: the outside, {@code run} pixels of {@code color}, the inside. */
   private static void assertColumn(
-      Pixels pixels, int x, int y, int run, int colour, int around, String what) {
+      Pixels pixels, int x, int y, int run, int color, int around, String what) {
     for (int i = -1; i <= run; i++) {
       assertEquals(
-          Integer.toHexString(i >= 0 && i < run ? colour : around),
+          Integer.toHexString(i >= 0 && i < run ? color : around),
           Integer.toHexString(pixels.argb(x, y + i)),
           what + ", pixel " + i);
     }
@@ -158,7 +158,7 @@ class PixelGridTest {
 
   /**
    * A scroll area scrolled by the wheel by 1 and by 0.3 logical pixels, fractions of a physical
-   * pixel at these scales: the borders inside it are still whole pixels of their colour, at the
+   * pixel at these scales: the borders inside it are still whole pixels of their color, at the
    * edges the scrolled position snaps to.
    */
   @ParameterizedTest

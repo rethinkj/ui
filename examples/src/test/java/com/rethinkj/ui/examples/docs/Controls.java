@@ -52,7 +52,7 @@ final class Controls {
   final ComboBox.State productBox = new ComboBox.State();
   int fetchSize = 4;
   int kind = -1;
-  Theme.Hue colour = Theme.Hue.TEAL;
+  Theme.Hue color = Theme.Hue.TEAL;
   int fontSize = 13;
   String filter = "";
   String table = "";
@@ -246,8 +246,8 @@ final class Controls {
     kind = value;
   }
 
-  void colour(Theme.Hue value) {
-    colour = value;
+  void color(Theme.Hue value) {
+    color = value;
   }
 
   static El swatches(Controls state) {
@@ -264,9 +264,9 @@ final class Controls {
         .label("Kind");
     // docs:end swatches
     // docs:start hue-picker
-    El colour = HuePicker.huePicker(theme, state.colour, "None", state::colour).label("Colour");
+    El color = HuePicker.huePicker(theme, state.color, "None", state::color).label("Color");
     // docs:end hue-picker
-    return Frame.of(theme, kind, colour);
+    return Frame.of(theme, kind, color);
   }
 
   // docs:start choice-types

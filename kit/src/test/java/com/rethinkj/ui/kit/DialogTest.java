@@ -181,7 +181,7 @@ class DialogTest {
         () -> Dialog.dialog(t, "Ask", El.col(), List.of(ok), other, () -> {}));
   }
 
-  /** A connection's dialog with every option: a colour mark, a badge and Close, Test at the start. */
+  /** A connection's dialog with every option: a color mark, a badge and Close, Test at the start. */
   private static El head(Theme t, List<String> log, String title) {
     El save =
         Button.button(t, Button.Variant.PRIMARY, "Save", () -> log.add("save")).key("save");

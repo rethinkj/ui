@@ -61,7 +61,7 @@ import java.util.Map;
  * on the pixel's side of the centre ({@code x > 0} right, {@code y > 0} below) standing for all
  * four. The fill shows inside the rectangle moved in by each side's border; a side of width 0 moves
  * it out by one physical pixel instead, so that the smoothed edge of a side without a border shows
- * no border colour. That inner rectangle's corners have a radius across of {@code max(0, r -
+ * no border color. That inner rectangle's corners have a radius across of {@code max(0, r -
  * left or right)} and one from top to bottom of {@code max(0, r - top or bottom)}, with the
  * borders' widths, 0 for a side without one, as CSS has it, each at most half the inner
  * rectangle's side; a corner whose two differ is a quarter of an
@@ -81,7 +81,7 @@ import java.util.Map;
  * 20  atlasSize    u32   the bitmap's size in texels: width | height &lt;&lt; 16
  * 24  clip         u32   as for a rectangle
  * 28  kind         u32   1, GLYPH
- * 32  colour       f32 x 4   r, g, b, a of the text
+ * 32  color       f32 x 4   r, g, b, a of the text
  * 48  page         u32   index into {@link #pages}
  * 52  lightShare   f32   0 to 1, how the coverage is corrected, see below
  * 56  darkGamma    f32   the exponent for text darker than its background, 1 or more
@@ -89,7 +89,7 @@ import java.util.Map;
  * </pre>
  *
  * <p>As WGSL: {@code struct Glyph { rect: vec4f, atlas: u32, atlas_size: u32, clip: u32, kind:
- * u32, colour: vec4f, page: u32, light_share: f32, dark_gamma: f32, light_gamma: f32 }}, also 64
+ * u32, color: vec4f, page: u32, light_share: f32, dark_gamma: f32, light_gamma: f32 }}, also 64
  * bytes; one shader can read both kinds from one buffer as {@code Instance} and {@code bitcast} the
  * slots that differ. {@code scale} is the physical pixels per logical pixel the renderer draws at.
  * The text was shaped and placed for it, so {@code x * scale} and {@code y * scale} round to the
@@ -107,7 +107,7 @@ import java.util.Map;
  * dark     = 1 - pow(1 - a, darkGamma)
  * light    = pow(a, lightGamma)
  * coverage = mix(dark, light, lightShare) * clip coverage
- * output   = colour * coverage, blended as a rectangle's fill
+ * output   = color * coverage, blended as a rectangle's fill
  * </pre>
  *
  * <p>A shadow ({@link El#shadow}): a rounded rectangle blurred with a Gaussian, as one layer of
@@ -125,7 +125,7 @@ import java.util.Map;
  * 20  sigma        f32   the Gaussian's standard deviation, half the blur radius, 0 or more
  * 24  clip         u32   as for a rectangle
  * 28  kind         u32   2, SHADOW
- * 32  colour       f32 x 4   r, g, b, a
+ * 32  color       f32 x 4   r, g, b, a
  * 48  unused       f32 x 4   0
  * 64  radii        f32 x 3   the other corners' radii, as for a rectangle
  * 76  unused       f32 x 5   0
@@ -158,7 +158,7 @@ import java.util.Map;
  * x}: within 3e-7 of it, and with nothing but arithmetic, so that the renderers need no {@code
  * exp}. Square corners are exact; the slices put rounded ones within 0.006 of the true blur in the
  * cases {@code ShadowTest} measures. Renderers draw a shadow over its shape grown by {@code 3 s} on
- * every side and leave out the rest, at most 0.14 % of its colour.
+ * every side and leave out the rest, at most 0.14 % of its color.
  *
  * <p>A shape whose corners have different radii is the whole box with each rounded corner's square
  * of side {@code r} taken away and its quarter disc added back, in the order top left, top right,
@@ -179,16 +179,16 @@ import java.util.Map;
  * 20  levels       u32   the number of levels, {@link Image#levels}
  * 24  clip         u32   as for a rectangle
  * 28  kind         u32   3, IMAGE
- * 32  colour       f32 x 4   the opacity, o, o, o, o, that multiplies every texel
+ * 32  color       f32 x 4   the opacity, o, o, o, o, that multiplies every texel
  * 48  image        u32   index into {@link #images}
  * 52  unused       f32 x 11  0
  * </pre>
  *
  * <p>As WGSL it is read as an {@code Instance} too, with the size and the levels in the slots of
- * a glyph's atlas and atlas size. A texel is premultiplied linear colour, as {@link Image} stores
+ * a glyph's atlas and atlas size. A texel is premultiplied linear color, as {@link Image} stores
  * it: red, green and blue decoded from sRGB, alpha divided by 255. The image is drawn where the
  * rectangle and its clip are, with the coverage of the rectangle with square corners and of its
- * clip, as a rectangle's: {@code output = sample * colour * coverage}, blended as a fill. A
+ * clip, as a rectangle's: {@code output = sample * color * coverage}, blended as a fill. A
  * rounded element gets a clip entry of its own for that, its content box with its corners, and so
  * does one whose image, {@link Image.Fit#COVER covering} it, reaches beyond its content box.
  *
@@ -218,7 +218,7 @@ import java.util.Map;
  * photo shown at a fraction of its size samples the levels near its texels' size, and so neither
  * flickers as it moves nor frays at its edges.
  *
- * <p>Colours are linear and premultiplied by alpha, the opacity of the element and its ancestors
+ * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
  * * (1 - source.a)}.
@@ -270,10 +270,10 @@ import java.util.Map;
  * in a box at a fractional position, moving or scrolled, is drawn from the same bitmaps as at a
  * whole one.
  *
- * <p>Which correction a glyph gets depends on the background behind its text: the colour set
+ * <p>Which correction a glyph gets depends on the background behind its text: the color set
  * with {@link El#textBackground}, or else the fills of the text element and its ancestors, each
  * over the ones before, as far as they reach an opaque one. With the background known, text with
- * a higher luminance than it is light, otherwise dark. Without it, the text colour decides, biased
+ * a higher luminance than it is light, otherwise dark. Without it, the text color decides, biased
  * towards thickening: dark up to a CIE lightness L* of 60, light from 80, and a blend between.
  *
  * <p>A text field ({@link El#editable}) draws its text moved left by its {@link Text#scroll} and
@@ -356,7 +356,7 @@ public final class Scene {
   // The slots of a glyph that differ from a rectangle's.
   public static final int ATLAS = 16;
   public static final int ATLAS_SIZE = 20;
-  public static final int COLOUR = 32;
+  public static final int COLOR = 32;
   public static final int PAGE = 48;
   public static final int LIGHT_SHARE = 52;
   public static final int DARK_GAMMA = 56;
@@ -398,7 +398,7 @@ public final class Scene {
   private MemorySegment clips = Arena.ofAuto().allocate(8L * CLIP_STRIDE, Float.BYTES);
   private int clipCount;
   private El ring;
-  private int ringColour;
+  private int ringColor;
   private float windowWidth = NO_CLIP; // the root's box, which the window shows
   private float windowHeight = NO_CLIP;
   private final Atlas atlas;
@@ -443,11 +443,11 @@ public final class Scene {
    * its own and the platform's {@link TextRendering}.
    *
    * @param ring the element with the ring, or null for none
-   * @param ringColour the colour of the ring as 0xAARRGGBB, unless the element sets its own ({@link
+   * @param ringColor the color of the ring as 0xAARRGGBB, unless the element sets its own ({@link
    *     El#focusRing(int)})
    */
-  public static Scene of(El root, El ring, int ringColour) {
-    return of(root, ring, ringColour, new Atlas(), TextRendering.platform());
+  public static Scene of(El root, El ring, int ringColor) {
+    return of(root, ring, ringColor, new Atlas(), TextRendering.platform());
   }
 
   /**
@@ -456,11 +456,11 @@ public final class Scene {
    * the same atlas may be gone.
    *
    * @param ring the element with the ring, or null for none
-   * @param ringColour the colour of the ring as 0xAARRGGBB, unless the element sets its own ({@link
+   * @param ringColor the color of the ring as 0xAARRGGBB, unless the element sets its own ({@link
    *     El#focusRing(int)})
    */
-  public static Scene of(El root, El ring, int ringColour, Atlas atlas, TextRendering rendering) {
-    return of(root, ring, ringColour, atlas, rendering, Float.NaN);
+  public static Scene of(El root, El ring, int ringColor, Atlas atlas, TextRendering rendering) {
+    return of(root, ring, ringColor, atlas, rendering, Float.NaN);
   }
 
   /**
@@ -469,11 +469,11 @@ public final class Scene {
    * box is drawn where layout put it.
    */
   public static Scene of(
-      El root, El ring, int ringColour, Atlas atlas, TextRendering rendering, float scale) {
+      El root, El ring, int ringColor, Atlas atlas, TextRendering rendering, float scale) {
     Scene scene = new Scene(atlas, rendering);
     scene.scale = scale > 0 && Float.isFinite(scale) ? scale : Float.NaN;
     scene.ring = ring;
-    scene.ringColour = ringColour;
+    scene.ringColor = ringColor;
     scene.windowWidth = root.x() + root.width();
     scene.windowHeight = root.y() + root.height();
     atlas.nextFrame();
@@ -593,7 +593,7 @@ public final class Scene {
         thumb(el.verticalBar(), true, el.scrollbars().radius(), opacity, inner, free);
       }
     }
-    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
+    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColor;
     if (ringed >>> 24 != 0) {
       float ringWidth = stroke(RING);
       float out = ringWidth + stroke(el.focusRingGap());
@@ -730,7 +730,7 @@ public final class Scene {
     data.set(ValueLayout.JAVA_INT, offset + LEVELS, image.levels());
     data.set(ValueLayout.JAVA_INT, offset + CLIP, own);
     data.set(ValueLayout.JAVA_INT, offset + KIND, IMAGE);
-    colour(offset + FILL, Colors.WHITE, opacity);
+    color(offset + FILL, Colors.WHITE, opacity);
     data.set(ValueLayout.JAVA_INT, offset + IMAGE_INDEX, index);
     for (int slot = IMAGE_INDEX + 4; slot < STRIDE; slot += 4) {
       put(offset + slot, 0);
@@ -759,7 +759,7 @@ public final class Scene {
     float x = parentX + el.x();
     float y = parentY + el.y();
     boolean free = moving || el.isMoving();
-    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
+    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColor;
     float ringWidth = stroke(RING);
     for (Text.Box row : el.rangeBoxes()) {
       float left = x + row.x();
@@ -924,8 +924,8 @@ public final class Scene {
     put(offset + SIGMA, sigma);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, SHADOW);
-    colour(offset + FILL, shadow.color(), opacity);
-    colour(offset + BORDER, 0, opacity);
+    color(offset + FILL, shadow.color(), opacity);
+    color(offset + BORDER, 0, opacity);
     count++;
   }
 
@@ -962,12 +962,12 @@ public final class Scene {
     }
     // shortcut: only the fill of the element itself and its ancestors count; text over an earlier
     // sibling, an absolutely placed box, a border or outside a rounded corner gets the background
-    // further up, or none. Paint the scene into a coarse grid of colours when that shows.
+    // further up, or none. Paint the scene into a coarse grid of colors when that shows.
     float luminance = luminance(fill);
     return alpha == 1 ? luminance : luminance * alpha + behind * (1 - alpha);
   }
 
-  /** Relative luminance of an sRGB colour, ignoring its alpha: 0 for black, 1 for white. */
+  /** Relative luminance of an sRGB color, ignoring its alpha: 0 for black, 1 for white. */
   private static float luminance(int argb) {
     return 0.2126f * SRGB_TO_LINEAR[argb >> 16 & 0xFF]
         + 0.7152f * SRGB_TO_LINEAR[argb >> 8 & 0xFF]
@@ -975,11 +975,11 @@ public final class Scene {
   }
 
   /**
-   * How far text of this colour is corrected as light text: by its luminance against the
+   * How far text of this color is corrected as light text: by its luminance against the
    * background's where that is known, else by its CIE lightness, biased towards thickening.
    */
-  private static float lightShare(int colour, float behind) {
-    float luminance = luminance(colour);
+  private static float lightShare(int color, float behind) {
+    float luminance = luminance(color);
     if (!Float.isNaN(behind)) {
       return luminance > behind ? 1 : 0;
     }
@@ -995,8 +995,8 @@ public final class Scene {
    */
   private void text(El el, float x, float y, float opacity, int clip, float behind) {
     Text text = el.text();
-    int colour = text.isField() && text.placeholderShown() ? text.placeholderColor() : text.color();
-    if (colour >>> 24 == 0 && !text.isField() && !text.highlighted()) {
+    int color = text.isField() && text.placeholderShown() ? text.placeholderColor() : text.color();
+    if (color >>> 24 == 0 && !text.isField() && !text.highlighted()) {
       return;
     }
     double scale = text.scale();
@@ -1009,7 +1009,7 @@ public final class Scene {
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
     float background = text.background() != 0 ? luminance(text.background()) : behind;
-    float share = lightShare(colour, background);
+    float share = lightShare(color, background);
     double scroll = 0;
     if (text.isField()) {
       clip = fieldClip(el, x, y, clip);
@@ -1028,19 +1028,19 @@ public final class Scene {
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
-    boolean drawn = colour >>> 24 != 0 || text.highlighted();
-    int shareOf = colour; // the colour `share` is for: a highlighter colours glyphs one by one
+    boolean drawn = color >>> 24 != 0 || text.highlighted();
+    int shareOf = color; // the color `share` is for: a highlighter colors glyphs one by one
     for (Text.Line line : drawn ? text.lines() : List.<Text.Line>of()) {
       GlyphRun run = line.glyphs();
-      int[] colours = text.placeholderShown() ? null : line.colors();
+      int[] colors = text.placeholderShown() ? null : line.colors();
       for (int i = 0; i < run.count(); i++) {
-        int glyphColour = colours == null ? colour : colours[i];
-        if (glyphColour >>> 24 == 0) {
+        int glyphColor = colors == null ? color : colors[i];
+        if (glyphColor >>> 24 == 0) {
           continue;
         }
-        if (glyphColour != shareOf) {
-          shareOf = glyphColour;
-          share = lightShare(glyphColour, background);
+        if (glyphColor != shareOf) {
+          shareOf = glyphColor;
+          share = lightShare(glyphColor, background);
         }
         // On the quarter grid, or whole below 1.5, as the line's start is.
         double origin = left + line.x() + run.x(i) - scroll;
@@ -1060,7 +1060,7 @@ public final class Scene {
             && glyphX + width > clipX
             && glyphY < clipBottom
             && glyphY + height > clipY) {
-          glyph(glyphX, glyphY, width, height, slot, glyphColour, opacity, clip, share);
+          glyph(glyphX, glyphY, width, height, slot, glyphColor, opacity, clip, share);
         }
       }
     }
@@ -1136,7 +1136,7 @@ public final class Scene {
       float width,
       float height,
       Atlas.Slot slot,
-      int colour,
+      int color,
       float opacity,
       int clip,
       float lightShare) {
@@ -1149,7 +1149,7 @@ public final class Scene {
     data.set(ValueLayout.JAVA_INT, offset + ATLAS_SIZE, slot.width() | slot.height() << 16);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, GLYPH);
-    colour(offset + COLOUR, colour, opacity);
+    color(offset + COLOR, color, opacity);
     data.set(ValueLayout.JAVA_INT, offset + PAGE, slot.page());
     put(offset + LIGHT_SHARE, lightShare);
     put(offset + DARK_GAMMA, rendering.darkGamma());
@@ -1302,8 +1302,8 @@ public final class Scene {
   /**
    * Appends a rounded rectangle.
    *
-   * @param fill the fill colour as 0xAARRGGBB
-   * @param border the border colour as 0xAARRGGBB
+   * @param fill the fill color as 0xAARRGGBB
+   * @param border the border color as 0xAARRGGBB
    */
   public void rect(
       float x,
@@ -1322,8 +1322,8 @@ public final class Scene {
    *
    * @param radii top left, top right, bottom right, bottom left
    * @param borders top, right, bottom, left
-   * @param fill the fill colour as 0xAARRGGBB
-   * @param border the border colour as 0xAARRGGBB
+   * @param fill the fill color as 0xAARRGGBB
+   * @param border the border color as 0xAARRGGBB
    */
   public void rect(
       float x,
@@ -1384,8 +1384,8 @@ public final class Scene {
     put(offset + BORDER_LEFT, borders[3]);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, RECT);
-    colour(offset + FILL, fill, opacity);
-    colour(offset + BORDER, border, opacity);
+    color(offset + FILL, fill, opacity);
+    color(offset + BORDER, border, opacity);
     count++;
   }
 
@@ -1397,7 +1397,7 @@ public final class Scene {
     put(offset + RADIUS_BOTTOM_LEFT, radii[3]);
   }
 
-  private void colour(long offset, int argb, float opacity) {
+  private void color(long offset, int argb, float opacity) {
     float alpha = (argb >>> 24) / 255f * opacity;
     put(offset, SRGB_TO_LINEAR[argb >> 16 & 0xFF] * alpha);
     put(offset + 4, SRGB_TO_LINEAR[argb >> 8 & 0xFF] * alpha);
@@ -1405,7 +1405,7 @@ public final class Scene {
     put(offset + 12, alpha);
   }
 
-  /** An 8-bit sRGB value in linear light, as the colours of a scene are converted. */
+  /** An 8-bit sRGB value in linear light, as the colors of a scene are converted. */
   static float linear(int srgb) {
     return SRGB_TO_LINEAR[srgb];
   }

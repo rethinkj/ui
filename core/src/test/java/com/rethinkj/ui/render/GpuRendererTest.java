@@ -172,7 +172,7 @@ class GpuRendererTest {
     cases.add(overlay("overlay-scrim", s, "press #delete\n"));
     // Text in both fonts at 9 to 25 pixels at quarter positions, both renderings, grey on light,
     // under opacity, cut by rounded clips, overlapping translucent boxes, over several pages of a
-    // small atlas, and in colours and fonts of a highlighter.
+    // small atlas, and in colors and fonts of a highlighter.
     cases.add(scattered(1.25f));
     cases.add(text("text-sizes", Examples.textSizes(), 720, 176, s));
     cases.add(text(
@@ -293,18 +293,18 @@ class GpuRendererTest {
     assertEquals(1, gpu.atlasWrites() - writes, "the new page");
     assertEquals((long) Atlas.PAGE_SIZE * Atlas.PAGE_SIZE, gpu.atlasTexels() - texels, "whole");
 
-    // The same glyphs in another colour and place, twice: nothing to write.
+    // The same glyphs in another color and place, twice: nothing to write.
     writes = gpu.atlasWrites();
-    Case recoloured = text(
-        "upload-recoloured",
+    Case recolored = text(
+        "upload-recolored",
         label("Kunde Müller", 0xFF2563EB, 13),
         200,
         40,
         1,
         TextRendering.LINUX,
         atlas);
-    assertEquals(0, compare(gpu, recoloured).beyond());
-    gpu.render(recoloured.scene(), 200, 40, 1);
+    assertEquals(0, compare(gpu, recolored).beyond());
+    gpu.render(recolored.scene(), 200, 40, 1);
     assertEquals(writes, gpu.atlasWrites(), "no change, no upload");
 
     // New glyphs: only the region they went to.
@@ -424,7 +424,7 @@ class GpuRendererTest {
 
   /**
    * The steps of 8 bits that a channel's value, in light, moves when it moves by {@code slack}
-   * either way: in sRGB for a colour, linearly for alpha. Rounded to the nearest step, so that the
+   * either way: in sRGB for a color, linearly for alpha. Rounded to the nearest step, so that the
    * slack a blend over a dark pixel adds, a fraction of a step, adds nothing; the {@link
    * #ALPHA_STEP} of a whole step, nearly twice what was measured, leaves room for that.
    */
@@ -447,8 +447,8 @@ class GpuRendererTest {
   }
 
   /**
-   * Compares in what the GPU stores: premultiplied colour encoded to sRGB, and alpha. The CPU's
-   * image has straight alpha, rounded to 8 bits before the colour is divided by it; premultiplying
+   * Compares in what the GPU stores: premultiplied color encoded to sRGB, and alpha. The CPU's
+   * image has straight alpha, rounded to 8 bits before the color is divided by it; premultiplying
    * that again would lose too much where alpha is small. So the CPU's frame before it is encoded
    * is encoded here as an sRGB target stores it, channel by channel. Where the CPU's image is
    * opaque, that is the CPU's image.
@@ -768,7 +768,7 @@ class GpuRendererTest {
   private static final String LOWER = "abcdefghijklmnopqrstuvwxyz äöüß ()[]{}<>/|+-*=?!;:,.";
 
   /**
-   * Glyphs of one run in several colours, as a highlighter colours code: dark on light and light
+   * Glyphs of one run in several colors, as a highlighter colors code: dark on light and light
    * on dark, so that each glyph gets its own correction, with a bold range shaped on its own.
    */
   private static El highlighted() {
@@ -850,11 +850,11 @@ class GpuRendererTest {
   }
 
   /** One line of text on white, at {@code x} in a window of 200 by 40. */
-  private static El label(String text, int colour, float x) {
+  private static El label(String text, int color, float x) {
     return el().wFull()
         .hFull()
         .fill(0xFFFFFFFF)
-        .child(El.text(text).color(colour).absolute(x, 10));
+        .child(El.text(text).color(color).absolute(x, 10));
   }
 
   /** A text in Inter at 14 and JetBrains Mono at 12 pixels, wrapped, dark on white. */
@@ -1021,9 +1021,9 @@ class GpuRendererTest {
   /** Translucent rectangles over each other, up to six deep. */
   private static Scene overlaps() {
     Scene scene = background();
-    int[] colours = {0x803B82F6, 0x60EF4444, 0xA022C55E, 0x40FACC15, 0xC0A855F7, 0x30FFFFFF};
-    for (int i = 0; i < colours.length; i++) {
-      scene.rect(8 + i * 11.5f, 6 + i * 7.25f, 60, 40, 9, 0, colours[i], 0);
+    int[] colors = {0x803B82F6, 0x60EF4444, 0xA022C55E, 0x40FACC15, 0xC0A855F7, 0x30FFFFFF};
+    for (int i = 0; i < colors.length; i++) {
+      scene.rect(8 + i * 11.5f, 6 + i * 7.25f, 60, 40, 9, 0, colors[i], 0);
     }
     for (int i = 0; i < 6; i++) {
       scene.rect(100.5f, 10, 50, 80, 25, 0, 0x33FFFFFF, 0);
@@ -1072,7 +1072,7 @@ class GpuRendererTest {
   /**
    * A rounded scroll area with both bars, scrolled to fractional offsets so that the thumbs lie
    * between pixels, translucent over boxes that pass under them and cut by the rounded clip at the
-   * corners, and the vertical thumb under the pointer in its other colour.
+   * corners, and the vertical thumb under the pointer in its other color.
    */
   private static Case bars(String name, float scale) {
     Scrollbars look = new Scrollbars(7, 2.5f, 3.5f, 20, 0xB0A1A1AA, 0xE0D4D4D8, 0xFFFFFFFF);
@@ -1105,7 +1105,7 @@ class GpuRendererTest {
    * Shadows, on light at the left and on dark at the right: a card lifted by a tight and a wide
    * shadow, text over a shadow, translucent boxes over a shadow and with one of their own, a panel
    * whose rounded clip cuts the shadows of its children, a card at half opacity with a third,
-   * sharp shadow, two cards whose shadows overlap, a wide blur, a sharp one, a coloured glow and a
+   * sharp shadow, two cards whose shadows overlap, a wide blur, a sharp one, a colored glow and a
    * pill.
    */
   private static El shadows() {

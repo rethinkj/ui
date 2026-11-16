@@ -39,19 +39,19 @@ The button's handler calls `state.options.toggle()`; `Menu.dropdown(theme, butto
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
-| `.danger()` | The text and icon in the theme's danger colour, for an action that destroys something, such as Delete |
-| `.leading(theme -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a colour's swatch, an avatar |
+| `.danger()` | The text and icon in the theme's danger color, for an action that destroys something, such as Delete |
+| `.leading(theme -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a color's swatch, an avatar |
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
 An [`Item`](/api/com/rethinkj/ui/kit/Menu.Item.html) is a record, so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
 
-A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
+A submenu of colors with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
 
 ```java snippet="menu-leading"
 ```
 
-<Shot src="kit/menu-swatches-{theme}-2x" alt="A menu with a submenu Colour that shows a round swatch before each hue's name and a check mark after Red" />
+<Shot src="kit/menu-swatches-{theme}-2x" alt="A menu with a submenu Color that shows a round swatch before each hue's name and a check mark after Red" />
 
 `Menu.shortcuts(items)` is a key handler for the root. It runs the enabled item of a key combination, in submenus too, when no element on the focus path took the key, whether the menu is open or not. Two items with one combination throw an exception when the view is built.
 

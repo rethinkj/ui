@@ -271,7 +271,7 @@ public final class DataBrowser {
     };
   }
 
-  // A coloured mark before each status, in the order of STATUS: constants, allocated once.
+  // A colored mark before each status, in the order of STATUS: constants, allocated once.
   private static final CellIcon[] MARKS = {
     CellIcon.before(Symbol.RECORD, Variant.SUCCESS),
         CellIcon.before(Symbol.RECORD, Variant.WARNING),

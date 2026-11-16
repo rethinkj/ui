@@ -36,7 +36,7 @@ Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col
 
 | Call | |
 | --- | --- |
-| `fill(argb)` | Background colour, `0xAARRGGBB` |
+| `fill(argb)` | Background color, `0xAARRGGBB` |
 | `radius(px)`, `radius(tl, tr, br, bl)` | Rounded corners, each its own |
 | `border(width, argb)`, `border(top, right, bottom, left, argb)` | A border, each side its own width |
 | `shadow(Shadow...)` | Shadows, as CSS's `box-shadow` |
@@ -45,7 +45,7 @@ Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col
 | `scroll()`, `scrollBoth()`, `scrollbars(look)` | A scroll area, up and down or both ways, with bars |
 | `fixedX()` | Does not scroll sideways with the nearest horizontal scroll area, but scrolls up and down with it: frozen table columns. Put it after what it covers in the tree and give it a fill |
 
-Colours are `int`s in ARGB. Prefer the theme's tokens (`theme.surface().panel()`, `theme.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
+Colors are `int`s in ARGB. Prefer the theme's tokens (`theme.surface().panel()`, `theme.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
 
 ## Scrollbars
 
@@ -56,11 +56,11 @@ Colours are `int`s in ARGB. Prefer the theme's tokens (`theme.surface().panel()`
 | `thickness` | The width of a vertical bar and the height of a horizontal one, above 0 |
 | `margin` | The space between a bar and the area's edges, and between the two bars; presses land on the strip of `thickness + 2 * margin` along the edge |
 | `radius`, `minThumb` | The thumb's corner radius, and the shortest it gets however long the content |
-| `thumb`, `thumbHovered`, `thumbDragged` | The thumb's colours at rest, under the pointer and while dragged |
+| `thumb`, `thumbHovered`, `thumbDragged` | The thumb's colors at rest, under the pointer and while dragged |
 
 `look.strip()` is that strip's width in logical pixels; use it to leave room beside a bar for controls or an overlay.
 
-After a frame, `el.horizontalBar()` and `el.verticalBar()` return each bar as shown, or null: a `Scrollbars.Bar` with the track's and the thumb's rectangles in window coordinates (`trackX`, `trackY`, `trackWidth`, `trackHeight`, `thumbX`, …) and the thumb's current colour. A tree dump writes the thumbs as `thumb-x` and `thumb-y`.
+After a frame, `el.horizontalBar()` and `el.verticalBar()` return each bar as shown, or null: a `Scrollbars.Bar` with the track's and the thumb's rectangles in window coordinates (`trackX`, `trackY`, `trackWidth`, `trackHeight`, `thumbX`, …) and the thumb's current color. A tree dump writes the thumbs as `thumb-x` and `thumb-y`.
 
 ## Set style fields directly
 

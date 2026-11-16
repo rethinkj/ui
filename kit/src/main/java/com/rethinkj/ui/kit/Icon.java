@@ -5,7 +5,7 @@ import com.rethinkj.ui.text.Font;
 import java.util.Locale;
 
 /**
- * A symbol from the icon font in one of the theme's text or status colours, as a text element of
+ * A symbol from the icon font in one of the theme's text or status colors, as a text element of
  * one glyph that is exactly as wide and as high as its size and does not shrink. In a row it lines
  * up with the text beside it when the row centres its children:
  *
@@ -22,7 +22,7 @@ import java.util.Locale;
  */
 public final class Icon {
 
-  /** The colour of an icon. */
+  /** The color of an icon. */
   public enum Variant {
     /** As the text of the interface. */
     NORMAL,
@@ -49,22 +49,22 @@ public final class Icon {
 
   private Icon() {}
 
-  /** The symbol in the text colour, {@link Theme.Sizes#icon} high. */
+  /** The symbol in the text color, {@link Theme.Sizes#icon} high. */
   public static El icon(Theme theme, Symbol symbol) {
     return icon(theme, symbol, Variant.NORMAL);
   }
 
-  /** The symbol in the variant's colour, {@link Theme.Sizes#icon} high. */
+  /** The symbol in the variant's color, {@link Theme.Sizes#icon} high. */
   public static El icon(Theme theme, Symbol symbol, Variant variant) {
     return icon(theme, symbol, variant, theme.size().icon());
   }
 
   /**
-   * The symbol in the variant's colour, {@code size} logical pixels wide and high, in the drawing
+   * The symbol in the variant's color, {@code size} logical pixels wide and high, in the drawing
    * {@link Symbol#codePoint} picks for that size.
    */
   public static El icon(Theme theme, Symbol symbol, Variant variant, float size) {
-    int colour = switch (variant) {
+    int color = switch (variant) {
       case NORMAL -> theme.text().primary();
       case MUTED -> theme.text().muted();
       case DISABLED -> theme.text().disabled();
@@ -76,7 +76,7 @@ public final class Icon {
         .label(LABELS[symbol.ordinal()])
         .font(Font.icons())
         .fontSize(size)
-        .color(colour)
+        .color(color)
         .shrink(0);
   }
 }

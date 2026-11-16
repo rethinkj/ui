@@ -157,7 +157,7 @@ class TabsTest {
   }
 
   @Test
-  void aTabWithAHueHasALineInItsColourAndSaysItInTheDump() throws IOException {
+  void aTabWithAHueHasALineInItsColorAndSaysItInTheDump() throws IOException {
     List<Tab> tabs = List.of(new Tab("orders").hue(Theme.Hue.RED), new Tab("users"));
     App<Object> app =
         new App<>(new Object(), s -> Tabs.tabs(T, tabs, 1, i -> {}, i -> {}, El.el()));

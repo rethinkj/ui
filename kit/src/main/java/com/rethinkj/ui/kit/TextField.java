@@ -126,7 +126,7 @@ public final class TextField {
         .scrollbars(theme.scrollbars());
   }
 
-  /** The look a field and an area share: type, colours, frame and the looks of their states. */
+  /** The look a field and an area share: type, colors, frame and the looks of their states. */
   private static El frame(
       Theme theme, El field, Theme.TextStyle style, String placeholder, Consumer<String> onChange) {
     boolean enabled = onChange != null;
@@ -178,7 +178,7 @@ public final class TextField {
 
   /**
    * Gives a field of this class the look of a value that is not accepted, such as a form's field
-   * with an error: its whole frame in the danger colour, also under the pointer and while it has
+   * with an error: its whole frame in the danger color, also under the pointer and while it has
    * the focus, and {@code invalid} in a tree dump ({@link El#invalid}).
    *
    * @return the field
@@ -215,8 +215,8 @@ public final class TextField {
    * <p>The button ({@code role=button}, {@code label="Show password"} or {@code "Hide password"},
    * the eye or the crossed eye) leaves the focus in the field when it is pressed ({@link
    * El#keepFocus}), so typing goes on where it was. Tab reaches it after the field, and Enter and
-   * Space press it there; meanwhile the field's frame keeps the accent colour of the focus ({@link
-   * El#whenFocusWithin}), as the button is part of it, or the danger colour of an {@link #invalid}
+   * Space press it there; meanwhile the field's frame keeps the accent color of the focus ({@link
+   * El#whenFocusWithin}), as the button is part of it, or the danger color of an {@link #invalid}
    * field. It is disabled with the field and without a
    * handler; a read-only field shows its password too.
    *

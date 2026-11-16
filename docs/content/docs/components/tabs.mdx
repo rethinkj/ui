@@ -23,7 +23,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | --- | --- |
 | `new Tabs.Tab(title, closable, modified)` | A title, whether it can be closed, and whether it is modified (a dot before the title) |
 | `.icon(Symbol)` | An icon before the title |
-| `.hue(Theme.Hue.RED)` | A line in that colour along the tab's top, to mark the tabs of a group, such as those of a connection to production. The tab says `value="red"` in a tree dump |
+| `.hue(Theme.Hue.RED)` | A line in that color along the tab's top, to mark the tabs of a group, such as those of a connection to production. The tab says `value="red"` in a tree dump |
 | `.busy(true)` | A spinner in place of the icon while the tab's content works, such as a running query; it shows while another tab is active too |
 
 `onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one.

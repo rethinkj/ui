@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 /** Every focusable component draws its focus ring in its own theme, whatever the app's is. */
 class FocusRingTest {
 
-  /** The focusable components of the kit in one theme, on that theme's window colour. */
+  /** The focusable components of the kit in one theme, on that theme's window color. */
   private static El panel(Theme t) {
     List<Column> columns = List.of(new Column("id", 60, Align.RIGHT, true, String::valueOf));
     return col()
@@ -52,7 +52,7 @@ class FocusRingTest {
     App<Object> app = new App<>(
         new Object(), s -> row().wFull().hFull().children(panel(Theme.DARK), panel(Theme.LIGHT)));
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(0xFFFF00FF); // the app's colour, which no component may show
+    app.focusRing(0xFFFF00FF); // the app's color, which no component may show
     app.resize(640, 420, 1);
     app.frame();
     for (int i = 0; i < 10; i++) {

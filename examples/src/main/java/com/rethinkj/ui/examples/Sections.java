@@ -76,7 +76,7 @@ final class Sections {
       case DETAILS -> details(state, theme);
       case PROGRESS -> progress(state, theme);
       case TYPE -> type(theme);
-      case COLOUR -> colour(theme);
+      case COLOR -> color(theme);
       case CONTRAST -> contrast(theme);
       case ICONS -> icons(theme);
     };
@@ -380,7 +380,7 @@ final class Sections {
         Card.header(
                 theme,
                 "Code editor",
-                "Line numbers, colours and brackets; a word's second letter, or"
+                "Line numbers, colors and brackets; a word's second letter, or"
                     + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces.")
             .padding(theme.space().l()),
         CodeEditor.embedded(
@@ -1393,7 +1393,7 @@ final class Sections {
   }
 
   private static El style(
-      Theme theme, String name, Theme.TextStyle style, int colour, String sample) {
+      Theme theme, String name, Theme.TextStyle style, int color, String sample) {
     Font font = style.font().get();
     int line = Math.round((font.ascent() + font.descent() + font.lineGap()) * style.size());
     String spec =
@@ -1402,7 +1402,7 @@ final class Sections {
         .gap(theme.space().l())
         .align(Style.Align.CENTER)
         .child(col().w(300).shrink(0).child(label(theme, name)).child(label(theme, MUTED, spec)))
-        .child(El.text(sample).font(font).fontSize(style.size()).color(colour));
+        .child(El.text(sample).font(font).fontSize(style.size()).color(color));
   }
 
   private static El figures(
@@ -1438,7 +1438,7 @@ final class Sections {
     return value == Math.rint(value) ? String.valueOf((int) value) : String.valueOf(value);
   }
 
-  // Colour
+  // Color
 
   private record Swatch(String name, int argb, int base) {}
 
@@ -1492,7 +1492,7 @@ final class Sections {
     "surface", "text", "border", "accent", "status", "grid", "scrollbars", "caption"
   };
 
-  private static El colour(Theme theme) {
+  private static El color(Theme theme) {
     List<List<Swatch>> groups = swatches(theme);
     El sheet = col().gap(theme.space().m());
     int columns = groups.stream().mapToInt(List::size).max().orElse(0);
@@ -1517,7 +1517,7 @@ final class Sections {
         .radius(theme.radius().small())
         .clip()
         .border(theme.size().stroke(), theme.border().subtle());
-    if (swatch.base() != 0) { // a translucent colour, over the surface it lies on
+    if (swatch.base() != 0) { // a translucent color, over the surface it lies on
       chip.fill(swatch.base()).child(el().wFull().hFull().fill(swatch.argb()));
     } else {
       chip.fill(swatch.argb());
@@ -1565,8 +1565,8 @@ final class Sections {
       }
       matrix.child(line);
     }
-    Theme.Accent accentColours = theme.accent();
-    int[] fills = {accentColours.color(), accentColours.hover(), accentColours.pressed()};
+    Theme.Accent accentColors = theme.accent();
+    int[] fills = {accentColors.color(), accentColors.hover(), accentColors.pressed()};
     El accent = row()
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
@@ -1596,7 +1596,7 @@ final class Sections {
         .child(ratio(
             theme,
             theme.text().primary(),
-            Theme.over(theme.surface().raised(), accentColours.selection()),
+            Theme.over(theme.surface().raised(), accentColors.selection()),
             Contrast.TEXT))
         .child(el().w(theme.space().l() + CELL * 2 + theme.space().xs() * 2))
         .child(label(theme, MUTED, "cursor on the selection").w(150))
@@ -1612,7 +1612,7 @@ final class Sections {
                     theme,
                     MUTED,
                     "Each cell is the pair itself: the ratio in the foreground on "
-                        + "the background. An edge marks a pair the kit draws, in the danger colour when"
+                        + "the background. An edge marks a pair the kit draws, in the danger color when"
                         + " it is below its minimum.")
                 .wrapText())
             .child(label(
@@ -1627,7 +1627,7 @@ final class Sections {
 
   /**
    * A cell of the matrix: the ratio, written in the foreground on the background, with an edge
-   * where the pair has a minimum ({@code needs} of 0 or more) and in the danger colour where it
+   * where the pair has a minimum ({@code needs} of 0 or more) and in the danger color where it
    * misses it.
    */
   private static El ratio(Theme theme, int front, int back, double needs) {
@@ -1680,7 +1680,7 @@ final class Sections {
         .child(label(
             theme,
             MUTED,
-            "Size " + trim(theme.size().icon()) + ", in the text colour, " + symbols.length
+            "Size " + trim(theme.size().icon()) + ", in the text color, " + symbols.length
                 + " symbols"))
         .child(sheet);
   }

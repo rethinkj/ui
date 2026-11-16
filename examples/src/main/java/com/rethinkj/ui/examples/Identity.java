@@ -10,13 +10,13 @@ import com.rethinkj.ui.window.WindowIcon;
 
 /**
  * Who an example is to the system: its app id, {@code com.rethinkj.ui.examples.<class>}, under
- * which the taskbar gives it a button of its own, and its icon, a rounded square of its colour with
+ * which the taskbar gives it a button of its own, and its icon, a rounded square of its color with
  * a symbol.
  */
 final class Identity {
 
-  // The examples' own colours, for their icons and marks. They are not the kit's: an app has a
-  // colour of its own, and the themes do not use these.
+  // The examples' own colors, for their icons and marks. They are not the kit's: an app has a
+  // color of its own, and the themes do not use these.
 
   /** Notes and Showcase. */
   static final int VIOLET = Colors.rgb(0x7C3AED);
@@ -42,13 +42,13 @@ final class Identity {
   private Identity() {}
 
   /** Sets the example's identity and returns window options with its icon. */
-  static Window.Options options(Class<?> example, String name, int colour, Symbol symbol) {
+  static Window.Options options(Class<?> example, String name, int color, Symbol symbol) {
     Window.identity("com.rethinkj.ui.examples." + example.getSimpleName(), name);
-    return Window.options().icon(icon(colour, symbol));
+    return Window.options().icon(icon(color, symbol));
   }
 
-  static WindowIcon icon(int colour, Symbol symbol) {
-    return WindowIcon.of(size -> AppIcon.appIcon(Theme.DARK, size, colour, symbol));
+  static WindowIcon icon(int color, Symbol symbol) {
+    return WindowIcon.of(size -> AppIcon.appIcon(Theme.DARK, size, color, symbol));
   }
 
   /** Whether the window that runs {@code app} is maximized, for its title bar's Restore. */

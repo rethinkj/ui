@@ -134,7 +134,7 @@ class SqlTest {
   }
 
   @Test
-  void lineByLineAfterEachEditColoursAsOnePassOverTheWholeText() {
+  void lineByLineAfterEachEditColorsAsOnePassOverTheWholeText() {
     String[] sources = {
       "SELECT 'a\nb''c' AS x",
       "SELECT $tag$a\nb$tag$ FROM x",
@@ -156,14 +156,14 @@ class SqlTest {
   private static void sameAsOnePass(String source) {
     Spans whole = new Spans(source.length());
     Object wholeState = SQL.line(source, null, whole);
-    int[] expected = colours(whole, source.length());
+    int[] expected = colors(whole, source.length());
     int[] actual = new int[source.length()];
     Object state = null;
     int start = 0;
     for (String line : source.split("\n", -1)) {
       Spans spans = new Spans(line.length());
       state = SQL.line(line, state, spans);
-      System.arraycopy(colours(spans, line.length()), 0, actual, start, line.length());
+      System.arraycopy(colors(spans, line.length()), 0, actual, start, line.length());
       start += line.length() + 1;
     }
     for (int i = 0; i < source.length(); i++) {
@@ -175,8 +175,8 @@ class SqlTest {
     assertEquals(wholeState, state, source);
   }
 
-  /** The colour of each character, from the text of {@link Spans#toString}. */
-  private static int[] colours(Spans spans, int length) {
+  /** The color of each character, from the text of {@link Spans#toString}. */
+  private static int[] colors(Spans spans, int length) {
     int[] out = new int[length];
     for (String line : spans.toString().split("\n")) {
       if (line.isEmpty()) {

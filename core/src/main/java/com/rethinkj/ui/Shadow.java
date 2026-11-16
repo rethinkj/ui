@@ -9,7 +9,7 @@ package com.rethinkj.ui;
  * @param y the offset down
  * @param blur the blur radius, 0 or more; 0 for a sharp edge
  * @param spread how far the shape grows on every side before the blur, or shrinks if negative
- * @param color the colour as 0xAARRGGBB, usually black with an alpha well below 1
+ * @param color the color as 0xAARRGGBB, usually black with an alpha well below 1
  */
 public record Shadow(float x, float y, float blur, float spread, int color) {
 

@@ -65,7 +65,7 @@ import java.util.function.Predicate;
  * {@code invalid}, with the message as its label and as {@code error="<message>"}, and its action
  * is {@code role=button} with its text as the label. A label, a loading text or a message longer
  * than its row ends in an ellipsis, and a tooltip after the theme's delay shows it whole. A muted
- * row ({@link Model#muted}) says nothing more in a dump: only its label's colour differs.
+ * row ({@link Model#muted}) says nothing more in a dump: only its label's color differs.
  */
 public final class Tree {
 
@@ -358,10 +358,10 @@ public final class Tree {
   }
 
   /**
-   * The row of a failure: an icon in the danger colour, the message, which ends in an ellipsis
+   * The row of a failure: an icon in the danger color, the message, which ends in an ellipsis
    * where the row is narrow, and the action at the end. It is a tree item that is {@code invalid}
    * with the message as its label and error, at the level of the children it stands for and the
-   * only one there. The action is a quiet button in the link colour, as high as the row less a
+   * only one there. The action is a quiet button in the link color, as high as the row less a
    * gap and clear of the scrollbar, which keeps its width and is a stop for Tab of its own after
    * the tree, since the row is
    * not a node the selection can be on; Enter and Space run it, as a press does, and a press

@@ -35,7 +35,7 @@ frame
 snap connection-shown
 
 press role=switch label="Dark theme"
-key Tab                          # on to Reset, with the ring in the light theme's colour
+key Tab                          # on to Reset, with the ring in the light theme's color
 frame
 advance 1
 frame

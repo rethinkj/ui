@@ -30,14 +30,14 @@ import java.util.function.Consumer;
  * }</pre>
  *
  * <p>A button is off when its handler is null or {@link Options#enabled} is false, both alike: it
- * takes no focus, shows no pointer cursor, draws in the disabled colours, a press on it goes to
+ * takes no focus, shows no pointer cursor, draws in the disabled colors, a press on it goes to
  * its ancestors, and a tree dump says {@code disabled}. {@link El#disabled(boolean)} on the element
  * a button returns changes only the dump, not what it does.
  */
 public final class Button {
 
   public enum Variant {
-    /** The main action of a view, in the accent colour. */
+    /** The main action of a view, in the accent color. */
     PRIMARY,
     /** Any other action, on a raised surface with an edge. */
     SECONDARY,
@@ -45,13 +45,13 @@ public final class Button {
     GHOST
   }
 
-  /** What a button's action does to what it acts on, which picks its colours with the variant. */
+  /** What a button's action does to what it acts on, which picks its colors with the variant. */
   public enum Tone {
-    /** Any action, in the accent's and the surfaces' colours. */
+    /** Any action, in the accent's and the surfaces' colors. */
     NEUTRAL,
     /**
      * An action that destroys something, as Drop table or Discard, in {@link Theme.Danger}'s
-     * colours: a primary button filled red with white text, for the confirmation in a dialog; a
+     * colors: a primary button filled red with white text, for the confirmation in a dialog; a
      * secondary one with red text and a red edge on the raised surface, beside other actions; a
      * ghost one with red text alone, in a toolbar or a row. Its focus ring is {@link
      * Theme.Danger#ring}. Off, it looks as any button that is off.
@@ -59,7 +59,7 @@ public final class Button {
     DANGER
   }
 
-  /** The colours of a button: its fill at rest, hovered and pressed, its edge, text and ring. */
+  /** The colors of a button: its fill at rest, hovered and pressed, its edge, text and ring. */
   private record Look(int fill, int hover, int pressed, int edge, int text, int ring) {}
 
   private Button() {}
@@ -74,7 +74,7 @@ public final class Button {
     private Options() {}
 
     /**
-     * An icon before the text, in the text's colour; null for none. Not for {@link #icon(Theme,
+     * An icon before the text, in the text's color; null for none. Not for {@link #icon(Theme,
      * Variant, Symbol, String, Runnable, Options)}, whose symbol is a parameter of its own.
      */
     public Options icon(Symbol icon) {
@@ -83,10 +83,10 @@ public final class Button {
     }
 
     /**
-     * Whether its action runs. A busy button shows a {@link Progress#spinner} in the text's colour
+     * Whether its action runs. A busy button shows a {@link Progress#spinner} in the text's color
      * in place of its icon, or, without one, over the middle of its text, which keeps its place
      * unseen so that the button keeps its width; an icon button shows it in place of its icon. It
-     * takes no press, but keeps its colours, its place in the order of Tab and the focus, so that
+     * takes no press, but keeps its colors, its place in the order of Tab and the focus, so that
      * nothing jumps when the work ends; Enter and Space on it do nothing and reach no other
      * handler. A tree dump says {@code busy}, WAI-ARIA's {@code aria-busy}, which a script selects
      * as {@code role=button busy}. A button that is off is not busy.
@@ -124,7 +124,7 @@ public final class Button {
   }
 
   /**
-   * A button with an icon before its text, in the text's colour.
+   * A button with an icon before its text, in the text's color.
    *
    * @param icon before the text; null for none
    * @param text what the button says, also its label
@@ -203,7 +203,7 @@ public final class Button {
 
   /**
    * A square button with an icon alone and its options: busy, a spinner stands in place of the
-   * icon; with {@link Tone#DANGER} the icon has the tone's colour, else it is muted unless the
+   * icon; with {@link Tone#DANGER} the icon has the tone's color, else it is muted unless the
    * button is primary.
    *
    * @param label what the button does, such as "Add connection"
@@ -231,7 +231,7 @@ public final class Button {
     return Tooltip.tooltip(theme, enable(theme, variant, look, button, press), label);
   }
 
-  /** The spinner of a busy button, in its text's colour. */
+  /** The spinner of a busy button, in its text's color. */
   private static El spinner(Theme theme, Variant variant, Look look) {
     return Progress.spinner(
         theme,
@@ -267,7 +267,7 @@ public final class Button {
   /**
    * A quiet square button with the copy icon, the label in a dump and in a tooltip, that writes
    * {@code text} to the clipboard. With {@code copied}, the button then shows a check mark in the
-   * success colour and a tooltip that says Copied, for {@code motion().confirm()} seconds of the
+   * success color and a tooltip that says Copied, for {@code motion().confirm()} seconds of the
    * app's clock; null for no confirmation.
    */
   public static El copy(
@@ -398,7 +398,7 @@ public final class Button {
    * A split button with its options. Busy, the main half is busy as a {@link #button} is, and the
    * chevron still opens the menu, whose items the app enables as it sees fit (a Cancel, say). Off
    * ({@link Options#enabled}), both halves are off and there is no menu: one that was open closes.
-   * The tone colours both halves.
+   * The tone colors both halves.
    *
    * @param options the main half's icon, whether it is busy, whether the split button is off, its
    *     tone

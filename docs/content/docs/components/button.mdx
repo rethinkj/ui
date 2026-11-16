@@ -26,9 +26,9 @@ Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/a
 
 | Option | |
 | --- | --- |
-| `icon(symbol)` | An icon before the text, in the text's colour. Not for `Button.icon`, whose symbol is a parameter |
-| `busy(boolean)` | While its action runs. A spinner replaces the icon, or covers the text where there is no icon, so the button keeps its width. It ignores presses, Enter and Space, but keeps its colours, its Tab stop and the focus |
-| `enabled(boolean)` | `false` disables the button and keeps its handler, exactly as a null handler does: no focus, the disabled colours, `disabled` in the tree. `El.disabled(true)` on the result changes only the tree, not the button |
+| `icon(symbol)` | An icon before the text, in the text's color. Not for `Button.icon`, whose symbol is a parameter |
+| `busy(boolean)` | While its action runs. A spinner replaces the icon, or covers the text where there is no icon, so the button keeps its width. It ignores presses, Enter and Space, but keeps its colors, its Tab stop and the focus |
+| `enabled(boolean)` | `false` disables the button and keeps its handler, exactly as a null handler does: no focus, the disabled colors, `disabled` in the tree. `El.disabled(true)` on the result changes only the tree, not the button |
 | `tone(Tone.DANGER)` | For an action that destroys something. `PRIMARY` is filled red, for the confirmation in a dialog; `SECONDARY` has red text and a red edge; `GHOST` red text alone, for a toolbar or a row |
 
 The options go to `button(theme, variant, text, onPress, options)`, `icon(theme, variant, symbol, label, onPress, options)` and `split(theme, variant, text, onPress, menuState, items, options)`. The forms below are these with plain options.

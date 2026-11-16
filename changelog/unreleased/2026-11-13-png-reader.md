@@ -1,1 +1,1 @@
-- Added: `Png.decode` reads PNG files of every colour type, 1 to 16 bits per sample, with transparency and all row filters; interlaced images are refused with a message.
+- Added: `Png.decode` reads PNG files of every color type, 1 to 16 bits per sample, with transparency and all row filters; interlaced images are refused with a message.

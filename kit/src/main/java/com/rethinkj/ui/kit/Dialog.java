@@ -34,7 +34,7 @@ import java.util.function.Predicate;
  * role=heading} at {@code level=2}
  * with the title as its label.
  *
- * <p>{@link #options()} add an element before the title (a colour mark, an icon), elements at the
+ * <p>{@link #options()} add an element before the title (a color mark, an icon), elements at the
  * head's end (a badge, a help or close button) and at the start of the row of buttons (a secondary
  * action, a status). The title ends in an ellipsis where the head has no room for it, with the
  * whole in a tooltip. The head comes last in the tree, drawn at the top: Tab goes through the
@@ -103,7 +103,7 @@ public final class Dialog {
     private Options() {}
 
     /**
-     * An element before the title, such as a colour mark, an icon or an avatar of what the dialog
+     * An element before the title, such as a color mark, an icon or an avatar of what the dialog
      * edits, centred on the title's line and {@code space().m()} before it; it keeps its size.
      * Null for none.
      */

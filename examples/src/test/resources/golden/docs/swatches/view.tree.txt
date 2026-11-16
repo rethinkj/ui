@@ -9,7 +9,7 @@ el 0,0 460x140
     el role=radio label="Folder" 84,12 32x32 checked=false
       el 88,16 24x24
         text label="folder" "\u{E643}" 92,20 16x16
-  el role=radiogroup label="Colour" 12,52 392x32
+  el role=radiogroup label="Color" 12,52 392x32
     el role=radio label="None" 12,52 32x32 checked=false
       el 16,56 24x24
         text label="prohibited" "\u{F705}" 20,60 16x16

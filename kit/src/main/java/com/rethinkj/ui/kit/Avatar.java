@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * A round mark with initials or an icon, in a colour that comes from a name, so that the user
- * knows a server or a connection again by its colour wherever it shows: the same name gets the
- * same colour of {@link Theme.Badges#avatars} on every run and in both default themes. In a tree
+ * A round mark with initials or an icon, in a color that comes from a name, so that the user
+ * knows a server or a connection again by its color wherever it shows: the same name gets the
+ * same color of {@link Theme.Badges#avatars} on every run and in both default themes. In a tree
  * dump it is {@code role=img} with the name as its label.
  *
  * <pre>{@code
- * Avatar.avatar(theme, "prod-eu")                      // "PE" on a colour of its own
+ * Avatar.avatar(theme, "prod-eu")                      // "PE" on a color of its own
  * Avatar.avatar(theme, "localhost", Symbol.SERVER, 20) // an icon instead of initials
  * }</pre>
  */
@@ -51,7 +51,7 @@ public final class Avatar {
         .color(b.onAvatar()));
   }
 
-  /** The colour of a name: the same for the same name, from its characters alone. */
+  /** The color of a name: the same for the same name, from its characters alone. */
   static int color(List<Integer> palette, String name) {
     return palette.get(Math.floorMod(name.hashCode(), palette.size()));
   }

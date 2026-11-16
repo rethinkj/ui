@@ -92,7 +92,7 @@ class IconTest {
   }
 
   /**
-   * The colour variants of one symbol, then every symbol at the theme's size and at 20 with its
+   * The color variants of one symbol, then every symbol at the theme's size and at 20 with its
    * name, row by row.
    */
   private static El sheet(Theme t) {

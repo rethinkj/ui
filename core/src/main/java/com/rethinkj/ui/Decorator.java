@@ -16,7 +16,7 @@ public interface Decorator {
    * @param start where the line starts in the field's string, so that a position of the string,
    *     such as the caret's, is {@code start + i} in the line
    * @param text the line's string, without its line feed
-   * @param out takes backgrounds and underlines; colours and fonts are a highlighter's
+   * @param out takes backgrounds and underlines; colors and fonts are a highlighter's
    */
   void line(int line, int start, String text, Spans out);
 }

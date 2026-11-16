@@ -32,7 +32,7 @@ class AppDrivingTest {
     app.keyDown(new Key("Space", 0, false));
     app.keyUp(new Key("Space", 0, false));
     app.frame();
-    app.advance(1); // the lamp's colour springs on the app's clock
+    app.advance(1); // the lamp's color springs on the app's clock
     app.frame();
 
     assertTrue(app.state().on);

@@ -32,9 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * family, style and characters of each of its faces. That index stays for the process; a file
  * stays mapped only while it is read, and while a face of it is used as a {@link Font}.
  *
- * <p>Faces without outlines are left out, as are colour fonts whose glyphs have none (CBDT
- * bitmaps, COLR version 1): text draws coverage of outlines, in one colour. A colour font with
- * outlines for its base glyphs, as COLR version 0 has, draws those, in the text colour.
+ * <p>Faces without outlines are left out, as are color fonts whose glyphs have none (CBDT
+ * bitmaps, COLR version 1): text draws coverage of outlines, in one color. A color font with
+ * outlines for its base glyphs, as COLR version 0 has, draws those, in the text color.
  *
  * <p>For a cluster of characters, the first face that has all of them wins, in this order: the
  * families the platform prefers for the cluster's script, in order, then other families (on Linux

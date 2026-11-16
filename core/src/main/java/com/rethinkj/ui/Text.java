@@ -63,14 +63,14 @@ public final class Text implements Measure {
    * @param width the width the line takes, without the spaces at the end of a wrapped line
    * @param baseline the distance from the top of the content box down to the line's baseline; in
    *     a multi-line field after its vertical scroll, so negative for a line above the box
-   * @param colors the colour of each glyph as 0xAARRGGBB, where a {@link Highlighter} coloured
-   *     the line; null when every glyph has the text's colour
+   * @param colors the color of each glyph as 0xAARRGGBB, where a {@link Highlighter} colored
+   *     the line; null when every glyph has the text's color
    * @param x where the pen starts, from the left edge of the content box: 0, or further right in
    *     text {@link El#textAlign aligned} to the centre or the end, on the grid of glyph positions
    */
   public record Line(GlyphRun glyphs, float width, float baseline, int[] colors, float x) {
 
-    /** A line at the left edge whose glyphs all have the text's colour. */
+    /** A line at the left edge whose glyphs all have the text's color. */
     public Line(GlyphRun glyphs, float width, float baseline) {
       this(glyphs, width, baseline, null, 0);
     }
@@ -98,7 +98,7 @@ public final class Text implements Measure {
   /** What a {@link El#masked} field shows for each grapheme of its string: a bullet, U+2022. */
   public static final int MASK = 0x2022;
 
-  /** The colour of the selection until {@link El#selectionColor} changes it, as 0xAARRGGBB. */
+  /** The color of the selection until {@link El#selectionColor} changes it, as 0xAARRGGBB. */
   public static final int SELECTION = Colors.alpha(Colors.rgb(0x3B82F6), 0.4f);
 
   // A width a line may exceed its box by: layout converts what it measured back and forth, and
@@ -147,7 +147,7 @@ public final class Text implements Measure {
   private Font font;
   private float size = 14;
   private int color = Colors.BLACK;
-  // The colour the view gave, which a highlighter's glyphs without a colour of their own are
+  // The color the view gave, which a highlighter's glyphs without a color of their own are
   // shaped with; `color` is the one shown, which motion moves towards it.
   private int viewColor = Colors.BLACK;
   private int background;
@@ -298,7 +298,7 @@ public final class Text implements Measure {
     return size;
   }
 
-  /** The colour as 0xAARRGGBB. */
+  /** The color as 0xAARRGGBB. */
   public int color() {
     return color;
   }
@@ -338,7 +338,7 @@ public final class Text implements Measure {
     return lines;
   }
 
-  /** Whether a {@link Highlighter} colours the text; see {@link El#highlight}. */
+  /** Whether a {@link Highlighter} colors the text; see {@link El#highlight}. */
   public boolean highlighted() {
     return highlighter != null;
   }
@@ -362,17 +362,17 @@ public final class Text implements Measure {
     return placeholderShown;
   }
 
-  /** The colour of the placeholder, as 0xAARRGGBB. */
+  /** The color of the placeholder, as 0xAARRGGBB. */
   public int placeholderColor() {
     return placeholderColor;
   }
 
-  /** The caret's colour, as 0xAARRGGBB: the text colour unless {@link El#caretColor} set one. */
+  /** The caret's color, as 0xAARRGGBB: the text color unless {@link El#caretColor} set one. */
   public int caretColor() {
     return caretColor != 0 ? caretColor : color;
   }
 
-  /** The colour of the selection, drawn behind the text, as 0xAARRGGBB. */
+  /** The color of the selection, drawn behind the text, as 0xAARRGGBB. */
   public int selectionColor() {
     return selectionColor;
   }
@@ -414,7 +414,7 @@ public final class Text implements Measure {
   }
 
   /**
-   * The line under the composition of an input method in progress, drawn in the text colour, or
+   * The line under the composition of an input method in progress, drawn in the text color, or
    * null when there is none.
    */
   public Box composition() {
@@ -620,7 +620,7 @@ public final class Text implements Measure {
     this.viewColor = argb;
   }
 
-  /** The colour shown while motion moves it towards the view's; see {@link #viewColor}. */
+  /** The color shown while motion moves it towards the view's; see {@link #viewColor}. */
   void shownColor(int argb) {
     this.color = argb;
   }
@@ -777,7 +777,7 @@ public final class Text implements Measure {
     }
     for (int i = fits.size() - 1; ; i--) {
       String kept = text.substring(span.from, fits.get(i)).stripTrailing();
-      // The ranges of the kept part stay; the ellipsis has the text's colour and font.
+      // The ranges of the kept part stay; the ellipsis has the text's color and font.
       Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
       GlyphRun run = shortened.run;
       if (run.width() <= placedWidth + SLACK || i == 0) {
@@ -871,7 +871,7 @@ public final class Text implements Measure {
   }
 
   /**
-   * Shapes a paragraph, with tab stops in a multi-line field, and with the colours and fonts of
+   * Shapes a paragraph, with tab stops in a multi-line field, and with the colors and fonts of
    * {@code spans}, whose position {@code offset} is the paragraph's start, as far as {@code limit}
    * in the paragraph: what lies after it, an ellipsis, has the text's.
    */
@@ -962,7 +962,7 @@ public final class Text implements Measure {
   private static final class Para {
     final String text;
     final GlyphRun run;
-    final int[] colors; // per glyph, or null for the text's colour
+    final int[] colors; // per glyph, or null for the text's color
     final Spans spans; // what the highlighter said about it, or null
     final int offset; // where the paragraph starts in the positions of spans
     final int[] glyphAt;
@@ -1086,7 +1086,7 @@ public final class Text implements Measure {
       return run.slice(glyphAt[from], glyphAt[to]);
     }
 
-    /** The colours of the glyphs of characters {@code from} to {@code to}, or null. */
+    /** The colors of the glyphs of characters {@code from} to {@code to}, or null. */
     int[] colors(int from, int to) {
       return colors == null ? null : Arrays.copyOfRange(colors, glyphAt[from], glyphAt[to]);
     }

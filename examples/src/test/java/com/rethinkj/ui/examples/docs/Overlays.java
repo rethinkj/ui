@@ -172,18 +172,18 @@ final class Overlays {
   }
 
   /** Items with a swatch before their text; shown on the page, not run as an example. */
-  static List<Menu.Item> colours(Overlays state) {
+  static List<Menu.Item> colors(Overlays state) {
     // docs:start menu-leading
-    List<Menu.Item> colours = new ArrayList<>();
+    List<Menu.Item> colors = new ArrayList<>();
     for (Theme.Hue each : Theme.Hue.values()) {
-      colours.add(Menu.item(HuePicker.name(each), () -> state.hue(each))
+      colors.add(Menu.item(HuePicker.name(each), () -> state.hue(each))
           .leading(
               itemTheme -> HuePicker.swatch(itemTheme, each)) // built for each place the item shows
           .checked(each == state.hue)); // the check mark goes to the item's end
     }
-    Menu.Item colour = Menu.submenu("Colour", colours);
+    Menu.Item color = Menu.submenu("Color", colors);
     // docs:end menu-leading
-    return List.of(colour);
+    return List.of(color);
   }
 
   static El menuBar(Overlays state) {
@@ -279,7 +279,7 @@ final class Overlays {
         List.of(Button.button(theme, SECONDARY, "Cancel", state::cancel), save),
         state::cancel,
         Dialog.options()
-            .leading(HuePicker.swatch(theme, Theme.Hue.RED)) // the connection's colour
+            .leading(HuePicker.swatch(theme, Theme.Hue.RED)) // the connection's color
             .trailing(
                 Badge.badge(theme, "Read only"),
                 Button.icon(theme, GHOST, Symbol.DISMISS, "Close", state::cancel))

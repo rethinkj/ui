@@ -21,8 +21,8 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 | `Form.form(theme, Labels.BESIDE \| ABOVE, fields...)` | The form |
 | `Form.field(label, control)` | A field. The label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
 | `.help(text)` | Muted text below that wraps |
-| `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
-| `.warning(text)` | Replaces the help in the warning colour after a warning symbol and leaves the control valid, for a value worth a second thought; null for none. An error wins over it |
+| `.error(text)` | Replaces the help in the danger color and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
+| `.warning(text)` | Replaces the help in the warning color after a warning symbol and leaves the control valid, for a value worth a second thought; null for none. An error wins over it |
 | `.required()` | A `*` after the label |
 | `.grow()` | In a row, the field takes the room the others leave; its control's width is the least it has |
 | `Form.row(fields...)` | Fields side by side, each with its own label, help, error and mark; a row of one field is that field |

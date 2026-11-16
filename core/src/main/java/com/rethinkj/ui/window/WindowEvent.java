@@ -104,7 +104,7 @@ public sealed interface WindowEvent {
   record CloseRequested() implements WindowEvent {}
 
   /**
-   * The system's appearance changed: light or dark, the accent colour or high contrast. Every
+   * The system's appearance changed: light or dark, the accent color or high contrast. Every
    * open window gets it. See {@link Window#systemAppearance()}.
    */
   record AppearanceChanged(SystemAppearance appearance) implements WindowEvent {}

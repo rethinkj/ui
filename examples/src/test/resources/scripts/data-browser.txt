@@ -6,7 +6,7 @@ frame
 press #filter
 type "ada paid"                  # each word in some text column: every twentieth order
 frame
-advance 1                        # the field's border turns to the accent colour
+advance 1                        # the field's border turns to the accent color
 frame
 snap browser-filtered
 

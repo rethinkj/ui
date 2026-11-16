@@ -36,8 +36,8 @@ import java.util.Set;
  * <p>The instances and the clip table go to the GPU as they are, as two read-only storage
  * buffers that the shader reads as {@code array<Instance>} and {@code array<Clip>} in the layout
  * {@link Scene} documents; one instanced draw call draws all instances in order, rectangles,
- * glyphs and shadows alike, one quad each. The colours stay linear and premultiplied: the shader
- * returns premultiplied linear colour, the pipeline blends with {@code one, one-minus-src-alpha},
+ * glyphs and shadows alike, one quad each. The colors stay linear and premultiplied: the shader
+ * returns premultiplied linear color, the pipeline blends with {@code one, one-minus-src-alpha},
  * and the target has an sRGB format, so the GPU blends in linear light and encodes to sRGB as it
  * stores.
  *
@@ -107,9 +107,9 @@ public final class GpuRenderer implements AutoCloseable {
         shape: vec2u,
         clip: u32,
         kind: u32,
-        // A rectangle's fill; a glyph's or a shadow's colour.
+        // A rectangle's fill; a glyph's or a shadow's color.
         fill: vec4f,
-        // A rectangle's border colour, f32; a glyph's page, and as f32 its light_share,
+        // A rectangle's border color, f32; a glyph's page, and as f32 its light_share,
         // dark_gamma and light_gamma.
         more: vec4u,
         // A rectangle's and a shadow's radii at the top right, bottom right and bottom left.
@@ -135,7 +135,7 @@ public final class GpuRenderer implements AutoCloseable {
       @group(0) @binding(2) var<storage, read> clips: array<Clip>;
       // The atlas pages, one layer each: 8-bit coverage, read texel by texel, never filtered.
       @group(0) @binding(3) var atlas: texture_2d_array<f32>;
-      // The image of the image instances drawn now: its levels, premultiplied colour encoded to
+      // The image of the image instances drawn now: its levels, premultiplied color encoded to
       // sRGB and linear alpha (rgba8unorm), read texel by texel, decoded and filtered here, as on
       // the CPU.
       @group(1) @binding(0) var image: texture_2d<f32>;
@@ -363,7 +363,7 @@ public final class GpuRenderer implements AutoCloseable {
         return min(cover, 1.0);
       }
 
-      // A texel of the image in linear light: its colour decoded from sRGB, its alpha as it is.
+      // A texel of the image in linear light: its color decoded from sRGB, its alpha as it is.
       fn image_texel(texel: vec2i, level: i32) -> vec4f {
         let t = textureLoad(image, texel, level);
         return vec4f(select(t.rgb / 12.92, pow((t.rgb + 0.055) / 1.055, vec3f(2.4)),
@@ -508,7 +508,7 @@ public final class GpuRenderer implements AutoCloseable {
   private static final TextureFormat ATLAS_FORMAT = TextureFormat.R8_UNORM;
 
   /**
-   * An image texture's format: the bytes of {@link Image}'s levels, premultiplied colour encoded
+   * An image texture's format: the bytes of {@link Image}'s levels, premultiplied color encoded
    * to sRGB and linear alpha, which the shader decodes with sRGB's formula. Not {@code
    * rgba8unorm-srgb}: a GPU may decode that with an error of up to half a step, which filtering
    * then shows; on an NVIDIA GTX 1070 with Vulkan, halving each of the 256 values after the GPU's
@@ -619,8 +619,8 @@ public final class GpuRenderer implements AutoCloseable {
   /**
    * Draws {@code scene} into a new image, as {@link CpuRenderer#render} does: the image starts
    * fully transparent, and comes back in sRGB with straight alpha. Where the image is translucent,
-   * the colour is divided by alpha after reading back, so a pixel with little alpha has coarse
-   * colour; an opaque pixel is exactly what the GPU stored.
+   * the color is divided by alpha after reading back, so a pixel with little alpha has coarse
+   * color; an opaque pixel is exactly what the GPU stored.
    *
    * @param width the width of the image in physical pixels
    * @param height the height of the image in physical pixels
@@ -655,7 +655,7 @@ public final class GpuRenderer implements AutoCloseable {
 
   /**
    * Draws {@code scene} into the renderer's texture and returns the bytes as the GPU stored them:
-   * sRGB-encoded premultiplied colour and linear alpha, {@link #bytesPerRow} bytes a row.
+   * sRGB-encoded premultiplied color and linear alpha, {@link #bytesPerRow} bytes a row.
    */
   byte[] renderStored(Scene scene, int width, int height, float scale) {
     checkOpen();

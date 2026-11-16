@@ -1,7 +1,7 @@
 package com.rethinkj.ui.gpu;
 
 /**
- * A colour as wgpu takes it for clearing: four components, usually from 0 to 1. For a render
+ * A color as wgpu takes it for clearing: four components, usually from 0 to 1. For a render
  * target with an sRGB format these are linear values.
  */
 public record Color(double r, double g, double b, double a) {

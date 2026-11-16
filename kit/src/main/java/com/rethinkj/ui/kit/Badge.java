@@ -12,7 +12,7 @@ import java.util.Objects;
 /**
  * A short word in a small rounded fill: the type of a column ({@code bigint}), a property ({@code
  * PK}, {@code NOT NULL}, {@code read only}) or a count. A badge is quiet by default, its kind's
- * colour as text on a tint of it, and strong on request, filled with its kind's colour. It may
+ * color as text on a tint of it, and strong on request, filled with its kind's color. It may
  * have an icon before its text, a cross after it that removes it, as a filter that the user takes
  * away, and it may be pressable. Two heights: {@link Theme.Badges#row} fits a row of a grid, a
  * tree or a list without making it higher, {@link Theme.Badges#toolbar} stands beside the
@@ -32,7 +32,7 @@ import java.util.Objects;
  */
 public final class Badge {
 
-  /** What a badge says about its subject, which picks its colours from {@link Theme.Badges}. */
+  /** What a badge says about its subject, which picks its colors from {@link Theme.Badges}. */
   public enum Kind {
     NEUTRAL,
     ACCENT,
@@ -59,13 +59,13 @@ public final class Badge {
       return this;
     }
 
-    /** Filled with the kind's colour instead of a tint of it. */
+    /** Filled with the kind's color instead of a tint of it. */
     public Options strong() {
       this.strong = true;
       return this;
     }
 
-    /** An icon before the text, in the text's colour. */
+    /** An icon before the text, in the text's color. */
     public Options icon(Symbol icon) {
       this.icon = icon;
       return this;
@@ -178,7 +178,7 @@ public final class Badge {
   static final double HOVER = 1.4;
   static final double PRESSED = 1.8;
 
-  /** A translucent colour with its alpha times {@code factor}, at most opaque. */
+  /** A translucent color with its alpha times {@code factor}, at most opaque. */
   static int deeper(int argb, double factor) {
     int alpha = (int) Math.min(255, Math.round((argb >>> 24) * factor));
     return alpha << 24 | argb & 0xFFFFFF;

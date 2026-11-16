@@ -110,7 +110,7 @@ import java.util.function.Predicate;
  * the pointer: a press on one is the bar's, never a press, drag or selection of what lies under it
  * or around it, and it leaves the focus alone. Dragging a thumb scrolls from the first pixel, with
  * no threshold, and the area counts as the one under the pointer meanwhile; a press on the track
- * beside the thumb scrolls a page. The thumb under the pointer and the dragged one change colour,
+ * beside the thumb scrolls a page. The thumb under the pointer and the dragged one change color,
  * which draws a frame but rebuilds nothing.
  *
  * <p>A text field ({@link El#editable}) keeps its caret, selection, scroll, undo history and
@@ -140,7 +140,7 @@ import java.util.function.Predicate;
  */
 public final class App<S> {
 
-  /** The colour of the focus ring until {@link #focusRing} changes it, as 0xAARRGGBB. */
+  /** The color of the focus ring until {@link #focusRing} changes it, as 0xAARRGGBB. */
   public static final int FOCUS_RING = Colors.rgb(0x93C5FD);
 
   /** How long the caret of a focused field is on, and then off, in seconds of the app's clock. */
@@ -266,7 +266,7 @@ public final class App<S> {
   private final Set<Object> rowLists = new HashSet<>(); // those it found, while it walks
   // The sizes the El#onResize handlers were told, by identity, of the elements of the last build.
   private Map<Object, Long> toldSizes = new HashMap<>();
-  private int ringColour = FOCUS_RING;
+  private int ringColor = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
@@ -866,8 +866,8 @@ public final class App<S> {
    */
   private record Grab(Object id, boolean vertical, float grip) {}
 
-  /** A bar that shows another colour than at rest. */
-  private record Hot(El area, boolean vertical, int colour) {}
+  /** A bar that shows another color than at rest. */
+  private record Hot(El area, boolean vertical, int color) {}
 
   /** Whether the point lies across the strip of a bar at the place of its thumb. */
   private static boolean onThumb(Scrollbars.Bar bar, boolean vertical, float x, float y) {
@@ -1764,14 +1764,14 @@ public final class App<S> {
   }
 
   /**
-   * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
+   * Sets the color of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
    * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
    * element's border box, or its {@link El#focusRingGap} beyond it, with its corners, or just
    * inside it where the clips around the element or the window's edge would cut it ({@link
    * Scene}).
    */
   public void focusRing(int argb) {
-    ringColour = argb;
+    ringColor = argb;
     stale = true;
   }
 
@@ -2985,7 +2985,7 @@ public final class App<S> {
    *       moment, lists that moved build the rows they show now, and the overlays follow.
    *   <li>The caret and selection of each field are placed, the caret blinks while the window is
    *       active ({@link #windowActive}), the bars are placed and the thumb under the pointer
-   *       gets its colour.
+   *       gets its color.
    * </ol>
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
@@ -4103,9 +4103,9 @@ public final class App<S> {
 
   /**
    * Finds what is under the pointer in the tree of this frame, for the getters and the dump, and
-   * gives the thumb under it or dragged its colour.
+   * gives the thumb under it or dragged its color.
    *
-   * @return whether a thumb changed its colour
+   * @return whether a thumb changed its color
    */
   private boolean hover() {
     under = pointed();
@@ -4137,10 +4137,10 @@ public final class App<S> {
       }
     }
     if (hot != null && !hot.equals(now) && hot.area().scrollbars() != null) {
-      hot.area().barColour(hot.vertical(), hot.area().scrollbars().thumb());
+      hot.area().barColor(hot.vertical(), hot.area().scrollbars().thumb());
     }
     if (now != null) {
-      now.area().barColour(now.vertical(), now.colour());
+      now.area().barColor(now.vertical(), now.color());
     }
     boolean changed = !Objects.equals(now, hot);
     hot = now;
@@ -4259,7 +4259,7 @@ public final class App<S> {
    * next call.
    */
   public Scene scene() {
-    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering, scale)
+    return Scene.of(root, ring ? focused : null, ringColor, atlas, textRendering, scale)
         .imageMemory(imageMemory);
   }
 

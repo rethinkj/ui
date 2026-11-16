@@ -13,7 +13,7 @@ import java.nio.ByteOrder;
 /**
  * What every window needs on Windows beyond SDL, framed or not: its icons in the sizes the system
  * asks for, the badge and the progress on its taskbar button, and the messages that say that the
- * system's colours changed. A subclass of the window procedure of its own, beside {@link
+ * system's colors changed. A subclass of the window procedure of its own, beside {@link
  * Win32Frame}'s, sees those messages after SDL has handled them.
  *
  * <p>SDL's {@code SDL_SetWindowIcon} makes one icon of the surface's base image and gives it to
@@ -340,12 +340,12 @@ final class Win32Shell {
     }
   }
 
-  // ---- The system's colours
+  // ---- The system's colors
 
-  /** The accent colour as 0xFFRRGGBB, or 0 if Windows has none. */
+  /** The accent color as 0xFFRRGGBB, or 0 if Windows has none. */
   static int accent() {
-    // The colour chosen in Settings, as 0xAABBGGRR. DwmGetColorizationColor gives the frame's
-    // colorization colour, the same blue with an alpha of its own, and is only the fallback.
+    // The color chosen in Settings, as 0xAABBGGRR. DwmGetColorizationColor gives the frame's
+    // colorization color, the same blue with an alpha of its own, and is only the fallback.
     Integer abgr = Win32.userDword("Software\\Microsoft\\Windows\\DWM", "AccentColor");
     if (abgr != null) {
       int c = abgr;
@@ -377,7 +377,7 @@ final class Win32Shell {
 
   /**
    * The image as the resource of an icon, as an .ico file holds one: a {@code BITMAPINFOHEADER}
-   * of twice the height, the colours as BGRA with straight alpha from the bottom row up, and the
+   * of twice the height, the colors as BGRA with straight alpha from the bottom row up, and the
    * AND mask, one bit per pixel in rows of whole DWORDs, set where the image is transparent.
    */
   static byte[] iconResource(Pixels image) {
@@ -392,7 +392,7 @@ final class Win32Shell {
         .putShort((short) 1)
         .putShort((short) 32) // planes, bits per pixel
         .putInt(0)
-        .putInt(w * h * 4) // BI_RGB, the size of the colours
+        .putInt(w * h * 4) // BI_RGB, the size of the colors
         .putInt(0)
         .putInt(0)
         .putInt(0)

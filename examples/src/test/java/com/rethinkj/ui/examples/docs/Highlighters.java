@@ -29,7 +29,7 @@ final class Highlighters {
   }
 
   // docs:start highlighter
-  /** Colours INI files: sections, keys and comments; a value goes on after a backslash. */
+  /** Colors INI files: sections, keys and comments; a value goes on after a backslash. */
   record Ini(int section, int key, int comment) implements Highlighter, CodeEditor.LineComments {
 
     static Ini of(Theme theme) {

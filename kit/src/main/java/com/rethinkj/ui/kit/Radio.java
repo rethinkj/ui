@@ -27,7 +27,7 @@ import java.util.function.IntConsumer;
  * disabled}.
  *
  * <p>{@link #swatches} is the same group for choices that show an element rather than a text,
- * such as colours ({@link HuePicker}).
+ * such as colors ({@link HuePicker}).
  */
 public final class Radio {
 
@@ -49,7 +49,7 @@ public final class Radio {
 
   /**
    * Choices among values that show an element each, as {@link #swatches(Theme, List, int,
-   * IntConsumer)} among options; null is a value like any other, such as a choice of no colour.
+   * IntConsumer)} among options; null is a value like any other, such as a choice of no color.
    *
    * @param selected the chosen value, found by {@code equals}; a value not among them for none
    * @param option the name and the look of a value
@@ -79,13 +79,13 @@ public final class Radio {
   }
 
   /**
-   * Choices that show an element each, such as colours, in a row that wraps, {@link
+   * Choices that show an element each, such as colors, in a row that wraps, {@link
    * Theme.Spacing#s} apart, each with its name in a tooltip. It is a radio group in every other
    * way: the same roles, states and keys, one stop for Tab.
    *
    * <p>The chosen option has a round ring in {@link Theme.Accent#edge} around its element, {@link
    * Theme.Sizes#ringGap} away, with the surface between. The keyboard's focus is not the core's
-   * ring around the whole group, as with texts, but a rounded square in the same colour around
+   * ring around the whole group, as with texts, but a rounded square in the same color around
    * the option the arrow keys go on from: the chosen one, or the first while none is. So the two
    * differ by their shape, a circle for the choice and a square around it for the focus, and
    * both show around a focused choice. Each option is that square, {@link Theme.Sizes#checkbox}

@@ -68,7 +68,7 @@ class KeyPressTest {
     assertTrue(app.frame(), "the look ends, which draws a frame");
     assertFalse(pressed(app));
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "then the window is idle");
-    app.advance(1); // the switch's colour springs back
+    app.advance(1); // the switch's color springs back
     app.frame();
     assertFalse(app.frame());
   }

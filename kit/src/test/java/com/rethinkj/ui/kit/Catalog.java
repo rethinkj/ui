@@ -283,7 +283,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   @Override
   public El icon(Node node) {
     return switch (node.kind) {
-      // The colour says whether the server is connected.
+      // The color says whether the server is connected.
       case SERVER ->
         Icon.icon(
             theme,

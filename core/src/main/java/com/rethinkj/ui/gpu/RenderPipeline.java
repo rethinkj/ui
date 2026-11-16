@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * How to draw: a vertex and a fragment shader, the vertex buffers they read, the bind group
- * layouts of their uniforms and the colour targets they write, with blending.
+ * layouts of their uniforms and the color targets they write, with blending.
  */
 public final class RenderPipeline extends GpuObject {
 
@@ -53,7 +53,7 @@ public final class RenderPipeline extends GpuObject {
       targets = List.copyOf(targets);
       Objects.requireNonNull(topology, "topology");
       if (targets.isEmpty()) {
-        throw new IllegalArgumentException("Render pipeline '" + label + "' has no colour target.");
+        throw new IllegalArgumentException("Render pipeline '" + label + "' has no color target.");
       }
     }
   }
@@ -110,7 +110,7 @@ public final class RenderPipeline extends GpuObject {
     }
   }
 
-  /** A colour target: its format and how to blend into it, or null to replace. */
+  /** A color target: its format and how to blend into it, or null to replace. */
   public record ColorTarget(TextureFormat format, Blend blend) {
     public ColorTarget {
       Objects.requireNonNull(format, "format");
@@ -120,7 +120,7 @@ public final class RenderPipeline extends GpuObject {
   /** {@code WGPUBlendState}. */
   public record Blend(BlendComponent color, BlendComponent alpha) {
 
-    /** Source over destination for colours premultiplied by alpha. */
+    /** Source over destination for colors premultiplied by alpha. */
     public static final Blend PREMULTIPLIED_ALPHA = new Blend(
         new BlendComponent(BlendOperation.ADD, BlendFactor.ONE, BlendFactor.ONE_MINUS_SRC_ALPHA),
         new BlendComponent(BlendOperation.ADD, BlendFactor.ONE, BlendFactor.ONE_MINUS_SRC_ALPHA));

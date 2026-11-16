@@ -12,7 +12,7 @@ class ConnectionDialogTest {
   @Test
   void theScriptShowsTheStoredFrames() throws IOException {
     Snaps.check("connection-dialog", ConnectionDialog::main);
-    // What the images show by colour, the trees say in words.
+    // What the images show by color, the trees say in words.
     assertTrue(Snaps.line("connection-dialog", "connection-empty", "label=\"Connect\"")
         .endsWith(" disabled"));
     assertFalse(Snaps.line("connection-dialog", "connection-filled", "label=\"Connect\"")

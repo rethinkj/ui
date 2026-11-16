@@ -44,7 +44,7 @@ Check the states first, in the tree:
 ```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
 ```
 
-The dialog is open and modal, the focus is in its field with the caret after the name, and both buttons are enabled. Then look at the PNG for what a tree cannot show: alignment, spacing, colours, cut-off text, overlaps. Check both themes, and scale 2.
+The dialog is open and modal, the focus is in its field with the caret after the name, and both buttons are enabled. Then look at the PNG for what a tree cannot show: alignment, spacing, colors, cut-off text, overlaps. Check both themes, and scale 2.
 
 ## 6. Keep it as a test
 
@@ -53,6 +53,6 @@ Turn the script into a JUnit test that compares the snaps with stored ones ([Sto
 ## Tips
 
 - Prefer selectors by role and label (`press role=button label="Save"`) to positions: they survive layout changes, and when they fail they list what is there.
-- Make every state visible in the tree: what a component shows only by colour should also be a state (`selected`, `invalid`, `busy`, `value`). The kit's components do this.
+- Make every state visible in the tree: what a component shows only by color should also be a state (`selected`, `invalid`, `busy`, `value`). The kit's components do this.
 - Keep windows small in scripts (`size 420 260`): smaller images are faster to read and compare.
 - For this site's pages as Markdown, see [/llms.txt](/llms.txt).

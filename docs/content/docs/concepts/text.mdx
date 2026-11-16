@@ -18,7 +18,7 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 | `maxLines(n)` | Show at most `n` lines of a wrapped text; with `ellipsis()` the last ends in `…` where the text goes on |
 | `textAlign(Style.Align.CENTER)` | Each line centred (or `END`) in its box |
 | `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
-| `textBackground(argb)` | The colour behind the text when it is not the fill of the element or an ancestor, such as an image or a sibling below; glyph edges are drawn for that colour |
+| `textBackground(argb)` | The color behind the text when it is not the fill of the element or an ancestor, such as an image or a sibling below; glyph edges are drawn for that color |
 
 A line feed always starts a new line. Wrapped text breaks between words; a word wider than the whole box, such as a file path or a URL, starts its own line and breaks between characters, as with CSS's `overflow-wrap: break-word`. In a row, layout still gives a text room for its longest word; only a narrower box breaks it.
 
@@ -39,7 +39,7 @@ The default fonts come in `rethinkj-ui-fonts`, the icons in `rethinkj-ui-icons`.
 
 `font.withFallback(other...)` falls back to other fonts in order, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, all text falls back to the system's fonts; under a script it does not, so images are the same on every machine. `app.systemFonts(boolean)` switches it; `WindowLoop` turns it on unless `loop.systemFonts(false)`.
 
-Right-to-left text is shaped right to left, but mixed-direction lines are not reordered (no full bidirectional algorithm). Colour emoji show as outlines in the text colour where the font has them.
+Right-to-left text is shaped right to left, but mixed-direction lines are not reordered (no full bidirectional algorithm). Color emoji show as outlines in the text color where the font has them.
 
 ## Text rendering
 

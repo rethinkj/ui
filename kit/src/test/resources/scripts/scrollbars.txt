@@ -10,4 +10,4 @@ snap hovered
 down 222,30            # the thumb follows the pointer from the first pixel
 move 120,100           # 70 down and onto the rows: they follow in proportion
 frame
-snap dragged           # the thumb in its dragged colour, and no row hovered
+snap dragged           # the thumb in its dragged color, and no row hovered

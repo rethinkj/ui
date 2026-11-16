@@ -88,7 +88,7 @@ advance 6
 frame
 drop over #tabs
 frame
-advance 0.25            # the card's edge springs to its colour
+advance 0.25            # the card's edge springs to its color
 frame
 drop #tabs "src/test/resources/documents/notes ü.md"
 frame

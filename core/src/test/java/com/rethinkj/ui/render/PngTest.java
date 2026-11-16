@@ -42,8 +42,8 @@ class PngTest {
   }
 
   /**
-   * Images that Pillow wrote, of every colour type and of 1, 4, 8 and 16 bits, filtered as it
-   * chose and with transparency by palette and by colour key, against the pixels Pillow reads.
+   * Images that Pillow wrote, of every color type and of 1, 4, 8 and 16 bits, filtered as it
+   * chose and with transparency by palette and by color key, against the pixels Pillow reads.
    */
   @ParameterizedTest
   @ValueSource(

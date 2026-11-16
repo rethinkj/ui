@@ -88,15 +88,15 @@ class SystemIntegrationTest {
       MemorySegment info = arena.allocate(32, 8);
       assertNotEquals(0, (int) getIconInfo.invokeExact(MemorySegment.ofAddress(icon), info));
       MemorySegment mask = info.get(ADDRESS, 16);
-      MemorySegment colour = info.get(ADDRESS, 24);
+      MemorySegment color = info.get(ADDRESS, 24);
       try {
         // BITMAP: LONG bmType, bmWidth, ...
         MemorySegment bitmap = arena.allocate(32, 8);
-        assertNotEquals(0, (int) getObject.invokeExact(colour, 32, bitmap));
+        assertNotEquals(0, (int) getObject.invokeExact(color, 32, bitmap));
         return bitmap.get(JAVA_INT, 4);
       } finally {
         int ignored = (int) deleteObject.invokeExact(mask);
-        ignored = (int) deleteObject.invokeExact(colour);
+        ignored = (int) deleteObject.invokeExact(color);
       }
     }
   }

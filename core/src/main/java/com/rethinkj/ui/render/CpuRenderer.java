@@ -140,8 +140,8 @@ public final class CpuRenderer {
       return;
     }
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
-    double[] fill = colour(scene, i, Scene.FILL);
-    double[] edge = colour(scene, i, Scene.BORDER);
+    double[] fill = color(scene, i, Scene.FILL);
+    double[] edge = color(scene, i, Scene.BORDER);
     // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
     // of 0, in the border, or 1.
     double[][] whole = new double[2][4];
@@ -158,7 +158,7 @@ public final class CpuRenderer {
     for (int py = top; py < bottom; py++) {
       double y = (py + 0.5) / scale;
       // A row that the fill reaches nowhere, as along a border at the top or the bottom, has
-      // runs of pixels in the border colour; any other its runs in the fill.
+      // runs of pixels in the border color; any other its runs in the fill.
       int share = border && (inner == null || inner.missesRow(y, left, right, scale)) ? 0 : 1;
       // Measures from the left until a pixel is covered whole, by the shape and the clip, with
       // that fill share, then from the right until one is: the pixels between are covered whole
@@ -273,7 +273,7 @@ public final class CpuRenderer {
         null);
   }
 
-  /** Blends the rectangle's colour over a pixel it covers this much of. */
+  /** Blends the rectangle's color over a pixel it covers this much of. */
   private static void blend(
       float[] frame,
       int at,
@@ -345,7 +345,7 @@ public final class CpuRenderer {
     int left = Math.clamp(Math.round(scene.get(i, Scene.X) * scale), -0x10000, width);
     int top = Math.clamp(Math.round(scene.get(i, Scene.Y) * scale), -0x10000, height);
     double[] corrected = corrections(scene, i, scratch);
-    double[] colour = colour(scene, i, Scene.COLOUR);
+    double[] color = color(scene, i, Scene.COLOR);
     Box clip = Box.clip(scene, scene.getInt(i, Scene.CLIP));
     // The pixels the loop below draws into; left + tx never wraps into the image.
     boolean clipWhole = clip != null
@@ -376,10 +376,10 @@ public final class CpuRenderer {
         blend(
             frame,
             (py * width + px) * 4,
-            colour[0] * coverage,
-            colour[1] * coverage,
-            colour[2] * coverage,
-            colour[3] * coverage,
+            color[0] * coverage,
+            color[1] * coverage,
+            color[2] * coverage,
+            color[3] * coverage,
             blends);
       }
     }
@@ -459,7 +459,7 @@ public final class CpuRenderer {
       return;
     }
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
-    double[] colour = colour(scene, i, Scene.FILL);
+    double[] color = color(scene, i, Scene.FILL);
     Sampler sampler = new Sampler(scene, i, scale);
     double[] coverages = scratch.coverage;
     double[] fillShares = scratch.fillShare;
@@ -488,10 +488,10 @@ public final class CpuRenderer {
         blend(
             frame,
             (row + px) * 4,
-            colour[0] * sample[0] * coverage,
-            colour[1] * sample[1] * coverage,
-            colour[2] * sample[2] * coverage,
-            colour[3] * sample[3] * coverage,
+            color[0] * sample[0] * coverage,
+            color[1] * sample[1] * coverage,
+            color[2] * sample[2] * coverage,
+            color[3] * sample[3] * coverage,
             blends);
       }
     }
@@ -597,7 +597,7 @@ public final class CpuRenderer {
       }
     }
 
-    /** A texel's channel: colour decoded from sRGB, alpha divided by 255. */
+    /** A texel's channel: color decoded from sRGB, alpha divided by 255. */
     private static double value(byte[] texels, int at, int channel) {
       int b = texels[at] & 0xFF;
       return channel == 3 ? b / 255.0 : Scene.linear(b);
@@ -627,7 +627,7 @@ public final class CpuRenderer {
     double radius = radii[0];
     double sigma = deviation(scene.get(i, Scene.SIGMA), scale);
     // The blur reaches three deviations beyond the shape, and one pixel more as for a rectangle.
-    // shortcut: what lies beyond, at most 0.14 % of the colour, is cut off, which a light glow on
+    // shortcut: what lies beyond, at most 0.14 % of the color, is cut off, which a light glow on
     // black shows as a faint edge; reach four deviations if glows need it.
     double reachW = halfW + 3 * sigma;
     double reachH = halfH + 3 * sigma;
@@ -649,11 +649,11 @@ public final class CpuRenderer {
     }
     Box clip = Box.clip(scene, clipIndex);
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
-    double[] colour = colour(scene, i, Scene.FILL);
+    double[] color = color(scene, i, Scene.FILL);
     if (!(radii[1] == radius && radii[2] == radius && radii[3] == radius)) {
       corners(
           centerX, centerY, halfW, halfH, radii, sigma, left, top, right, bottom, clip, clipWhole,
-          colour, frame, width, scale, blends, scratch);
+          color, frame, width, scale, blends, scratch);
       return;
     }
     double straightW = halfW - radius;
@@ -685,10 +685,10 @@ public final class CpuRenderer {
         blend(
             frame,
             (py * width + px) * 4,
-            colour[0] * coverage,
-            colour[1] * coverage,
-            colour[2] * coverage,
-            colour[3] * coverage,
+            color[0] * coverage,
+            color[1] * coverage,
+            color[2] * coverage,
+            color[3] * coverage,
             blends);
       }
     }
@@ -712,7 +712,7 @@ public final class CpuRenderer {
       int bottom,
       Box clip,
       boolean clipWhole,
-      double[] colour,
+      double[] color,
       float[] frame,
       int width,
       double scale,
@@ -759,10 +759,10 @@ public final class CpuRenderer {
         blend(
             frame,
             (py * width + px) * 4,
-            colour[0] * coverage,
-            colour[1] * coverage,
-            colour[2] * coverage,
-            colour[3] * coverage,
+            color[0] * coverage,
+            color[1] * coverage,
+            color[2] * coverage,
+            color[3] * coverage,
             blends);
       }
     }
@@ -1060,16 +1060,16 @@ public final class CpuRenderer {
     }
   }
 
-  /** The four channels of the colour at {@code field} of instance {@code i}. */
-  private static double[] colour(Scene scene, int i, int field) {
-    double[] colour = new double[4];
+  /** The four channels of the color at {@code field} of instance {@code i}. */
+  private static double[] color(Scene scene, int i, int field) {
+    double[] color = new double[4];
     for (int c = 0; c < 4; c++) {
-      colour[c] = scene.get(i, field + c * 4);
+      color[c] = scene.get(i, field + c * 4);
     }
-    return colour;
+    return color;
   }
 
-  /** One channel of the instance's colour: the border colour, or the fill where the fill shows. */
+  /** One channel of the instance's color: the border color, or the fill where the fill shows. */
   private static double mix(double fill, double edge, double fillShare) {
     return edge + (fill - edge) * fillShare;
   }
@@ -1080,7 +1080,7 @@ public final class CpuRenderer {
    */
   private static void blend(
       float[] frame, int at, double red, double green, double blue, double alpha, Blends blends) {
-    // Alpha is the last channel, so it is still the old value while the colours are blended.
+    // Alpha is the last channel, so it is still the old value while the colors are blended.
     if (blends != null) {
       blends.blend(frame, at, alpha);
     }

@@ -331,7 +331,7 @@ class ScrollbarTest {
   }
 
   @Test
-  void aThumbChangesColourUnderThePointerAndWhileDraggedWithoutARebuild() {
+  void aThumbChangesColorUnderThePointerAndWhileDraggedWithoutARebuild() {
     int[] views = {0};
     App<Object> app = new App<>(new Object(), s -> {
       views[0]++;
@@ -358,7 +358,7 @@ class ScrollbarTest {
         "a press would go to the area's bar");
 
     app.pointerMove(195, 10);
-    assertTrue(app.frame(), "a new colour to draw");
+    assertTrue(app.frame(), "a new color to draw");
     assertEquals(HOVERED, app.tree().verticalBar().color());
     assertFalse(app.frame(), "idle");
 
@@ -375,7 +375,7 @@ class ScrollbarTest {
     assertTrue(app.frame());
     assertEquals(REST, app.tree().verticalBar().color());
     assertEquals(Cursor.POINTER, app.cursor());
-    assertEquals(1, views[0], "colours and offsets rebuild nothing");
+    assertEquals(1, views[0], "colors and offsets rebuild nothing");
   }
 
   @Test

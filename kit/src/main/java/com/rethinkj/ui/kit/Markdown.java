@@ -56,7 +56,7 @@ import java.util.function.Function;
  * ({@link MarkdownDocument.Heading#id}), so that the app finds one to scroll to for a link {@code
  * #id}.
  *
- * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are coloured by
+ * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are colored by
  * the highlighter {@link Options#languages} gives for their language, {@link Sql} for {@code
  * sql}; with {@link Options#copy} a copy button shows in the corner under the pointer. Task list
  * items show the kit's checkbox, which takes no input.
@@ -336,7 +336,7 @@ public final class Markdown {
     }
   }
 
-  /** A range of a piece's text that a highlighter gives: a font, a colour or a line. */
+  /** A range of a piece's text that a highlighter gives: a font, a color or a line. */
   private record Span(int kind, int from, int to, int color, Font font) {}
 
   private static final int COLOR = 0;
@@ -477,7 +477,7 @@ public final class Markdown {
 
   // ---- Blocks
 
-  /** What building a document needs, and the colour of its text where it is now. */
+  /** What building a document needs, and the color of its text where it is now. */
   private record Context(Theme theme, Options options, Prepared prepared, int color, int depth) {
     Context muted() {
       return new Context(theme, options, prepared, theme.text().muted(), depth);

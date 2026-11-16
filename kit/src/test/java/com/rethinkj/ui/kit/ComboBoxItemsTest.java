@@ -28,7 +28,7 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class ComboBoxItemsTest {
 
-  /** A logo for the test: a square of one colour with a lighter corner, at scale 2. */
+  /** A logo for the test: a square of one color with a lighter corner, at scale 2. */
   private static com.rethinkj.ui.Image logo(int argb) {
     int side = 32;
     byte[] rgba = new byte[side * side * 4];

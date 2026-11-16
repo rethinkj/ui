@@ -210,7 +210,7 @@ class MarkdownTest {
     assertTrue(tree.contains("#heading-part-1500"), tree);
   }
 
-  /** An image of one colour, of this size in pixels. */
+  /** An image of one color, of this size in pixels. */
   private static com.rethinkj.ui.Image picture(int width, int height) {
     byte[] rgba = new byte[width * height * 4];
     for (int i = 0; i < rgba.length; i += 4) {

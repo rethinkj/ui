@@ -119,7 +119,7 @@ public final class FilterList {
 
     /**
      * What stands before the text in place of an icon, built for each row that shows: an image, an
-     * {@link Avatar}, a coloured mark. It should be no higher than a row, {@link
+     * {@link Avatar}, a colored mark. It should be no higher than a row, {@link
      * Theme.Sizes#control}; the column before the texts is as wide as it, at least an icon's width.
      */
     public Entry leading(Function<Theme, El> leading) {

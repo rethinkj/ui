@@ -409,7 +409,7 @@ public final class Settings {
             "Appearance",
             section(
                 theme,
-                "Colours",
+                "Colors",
                 null,
                 group(
                     theme,
@@ -427,7 +427,7 @@ public final class Settings {
                             look -> state.theme = look)),
                     Group.row(
                         theme,
-                        "Accent colour",
+                        "Accent color",
                         "Buttons, switches and selections",
                         select(
                                 theme,

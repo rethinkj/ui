@@ -49,7 +49,7 @@ public final class FreeType {
   // ---- constants ---------------------------------------------------------------------------
 
   public static final long FACE_FLAG_SCALABLE = 1L << 0;
-  /** {@code FT_FACE_FLAG_COLOR}: the face has colour glyphs (COLR, CBDT, sbix or SVG tables). */
+  /** {@code FT_FACE_FLAG_COLOR}: the face has color glyphs (COLR, CBDT, sbix or SVG tables). */
   public static final long FACE_FLAG_COLOR = 1L << 14;
 
   public static final long STYLE_FLAG_ITALIC = 1L << 0;

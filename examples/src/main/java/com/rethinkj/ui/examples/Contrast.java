@@ -4,7 +4,7 @@ import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.kit.Theme;
 import java.util.List;
 
-/** WCAG 2's contrast ratio between colours, as the showcase's colour section shows it. */
+/** WCAG 2's contrast ratio between colors, as the showcase's color section shows it. */
 final class Contrast {
 
   /** Text and its background: 4.5:1 (WCAG AA for text below 18.66 px bold or 24 px). */
@@ -29,7 +29,7 @@ final class Contrast {
       "inactive");
 
   /**
-   * The colours of {@link #BACKGROUNDS}: the hover over raised (buttons, fields, selects) and over
+   * The colors of {@link #BACKGROUNDS}: the hover over raised (buttons, fields, selects) and over
    * panel (ghost buttons, tabs, the tree's rows).
    */
   static List<Integer> backgrounds(Theme t) {
@@ -49,7 +49,7 @@ final class Contrast {
   }
 
   /**
-   * A colour drawn on the backgrounds, and on which of them the kit draws it, one character per
+   * A color drawn on the backgrounds, and on which of them the kit draws it, one character per
    * background of {@link #BACKGROUNDS}: {@code x} where it needs {@code needs}, {@code .} where
    * the kit does not draw it there.
    */
@@ -81,7 +81,7 @@ final class Contrast {
   }
 
   /**
-   * The ratio from 1 to 21 between two colours, 0xAARRGGBB. A translucent foreground is laid over
+   * The ratio from 1 to 21 between two colors, 0xAARRGGBB. A translucent foreground is laid over
    * the background first, as {@link Colors#over}; the background must be opaque.
    */
   static double ratio(int foreground, int background) {

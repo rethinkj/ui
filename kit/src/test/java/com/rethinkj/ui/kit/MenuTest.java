@@ -300,29 +300,29 @@ class MenuTest {
     assertEquals(-1, state.active(), "the pointer highlights nothing");
   }
 
-  /** A menu whose submenu Colour shows a swatch before each hue's name, the chosen one checked. */
-  static final class Colours {
+  /** A menu whose submenu Color shows a swatch before each hue's name, the chosen one checked. */
+  static final class Colors {
     final Theme t;
     final Menu.State menu = new Menu.State();
     Theme.Hue hue = Theme.Hue.RED;
 
-    Colours(Theme t) {
+    Colors(Theme t) {
       this.t = t;
     }
 
     List<Menu.Item> items() {
-      List<Menu.Item> colours = new ArrayList<>();
-      colours.add(Menu.item("None", () -> hue = null)
+      List<Menu.Item> colors = new ArrayList<>();
+      colors.add(Menu.item("None", () -> hue = null)
           .leading(t -> Icon.icon(t, Symbol.PROHIBITED, Icon.Variant.MUTED))
           .checked(hue == null));
       for (Theme.Hue each : Theme.Hue.values()) {
-        colours.add(Menu.item(HuePicker.name(each), () -> hue = each)
+        colors.add(Menu.item(HuePicker.name(each), () -> hue = each)
             .leading(t -> HuePicker.swatch(t, each))
             .checked(each == hue));
       }
       return List.of(
           Menu.item("Rename…", () -> {}).icon(Symbol.EDIT),
-          Menu.submenu("Colour", colours),
+          Menu.submenu("Color", colors),
           Menu.item("Pinned", () -> {}).checked(true));
     }
 
@@ -346,14 +346,14 @@ class MenuTest {
   @CsvSource({"dark", "light"})
   void aSubmenuShowsASwatchBeforeEachHueAndTheCheckAtTheChosenOnesEnd(String theme)
       throws IOException {
-    Colours s = new Colours(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
-    App<Colours> app = new App<>(s, Colours::view);
+    Colors s = new Colors(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
+    App<Colors> app = new App<>(s, Colors::view);
     app.focusRing(s.t.accent().edge());
     app.textRendering(com.rethinkj.ui.text.TextRendering.LINUX);
     String image = "menu-swatches-" + theme + "-2x";
     Script.run(
         "size 400 400 scale 2\nframe\npress #open\nframe\nadvance 1\nframe\n"
-            + "press label=\"Colour\"\nframe\nadvance 1\nframe\nsnap "
+            + "press label=\"Color\"\nframe\nadvance 1\nframe\nsnap "
             + image,
         app,
         out);
@@ -381,12 +381,10 @@ class MenuTest {
 
   @Test
   void theCommandPaletteCarriesALeadingElementOverWithItsCheck() {
-    Colours s = new Colours(Theme.DARK);
+    Colors s = new Colors(Theme.DARK);
     List<FilterList.Entry> commands = CommandPalette.commands(s.items());
-    FilterList.Entry red = commands.stream()
-        .filter(e -> e.text().equals("Colour: Red"))
-        .findFirst()
-        .orElseThrow();
+    FilterList.Entry red =
+        commands.stream().filter(e -> e.text().equals("Color: Red")).findFirst().orElseThrow();
     assertTrue(red.leading() != null && red.checked() && red.symbol() == null, red.toString());
     FilterList.Entry pinned =
         commands.stream().filter(e -> e.text().equals("Pinned")).findFirst().orElseThrow();

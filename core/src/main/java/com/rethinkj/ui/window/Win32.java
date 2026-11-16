@@ -81,7 +81,7 @@ final class Win32 {
   static final FunctionDescriptor DEF_SUBCLASS_PROC =
       FunctionDescriptor.of(JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
 
-  // ---- Icons, the taskbar and the system's colours (Win32Shell)
+  // ---- Icons, the taskbar and the system's colors (Win32Shell)
 
   static final int WM_SETTINGCHANGE = 0x001A;
   static final int WM_CHAR = 0x0102;
@@ -428,13 +428,13 @@ final class Win32 {
     }
   }
 
-  /** DWM's colorization colour as 0xAARRGGBB, or null if DWM gives none. */
+  /** DWM's colorization color as 0xAARRGGBB, or null if DWM gives none. */
   static Integer dwmColorizationColor() {
     try (Arena arena = Arena.ofConfined()) {
-      MemorySegment colour = arena.allocate(JAVA_INT);
+      MemorySegment color = arena.allocate(JAVA_INT);
       MemorySegment opaque = arena.allocate(JAVA_INT);
-      int hr = (int) Shell.DWM_GET_COLORIZATION_COLOR_H.invokeExact(colour, opaque);
-      return hr == S_OK ? colour.get(JAVA_INT, 0) : null;
+      int hr = (int) Shell.DWM_GET_COLORIZATION_COLOR_H.invokeExact(color, opaque);
+      return hr == S_OK ? color.get(JAVA_INT, 0) : null;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

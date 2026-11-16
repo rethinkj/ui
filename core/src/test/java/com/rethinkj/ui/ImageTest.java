@@ -41,7 +41,7 @@ class ImageTest {
         Image.of(new Pixels(1, 1, new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 128}));
     assertEquals(188, white.level(0)[0] & 0xFF);
     assertEquals(128, white.level(0)[3] & 0xFF);
-    // A transparent pixel has no colour.
+    // A transparent pixel has no color.
     Image clear = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, 0}));
     assertArrayEquals(new byte[4], clear.level(0));
   }

@@ -43,7 +43,7 @@ class PixelGridTest {
   private static final float WIDTH = 520;
   private static final float HEIGHT = 420;
 
-  /** The kit's components on the window's colour, moved right and down by {@code shift}. */
+  /** The kit's components on the window's color, moved right and down by {@code shift}. */
   private static El sheet(float shift) {
     List<Column> columns = List.of(
         new Column("id", 60, Align.RIGHT, true, String::valueOf),
@@ -285,19 +285,19 @@ class PixelGridTest {
       Pixels pixels = app.render().pixels();
       int x = edge(at[0] + focused.width() / 2, scale);
       int top = edge(at[1], scale);
-      int colour = focused.focusRing();
+      int color = focused.focusRing();
       // A primary button's ring lies a gap away, which shows the surface behind it.
       int gap = focused.focusRingGap() > 0 ? stroke(focused.focusRingGap(), scale) : 0;
       for (int y = top - gap; y < top; y++) {
-        assertTrue(pixels.argb(x, y) != colour, "the gap of " + focused.key() + " row " + y);
+        assertTrue(pixels.argb(x, y) != color, "the gap of " + focused.key() + " row " + y);
       }
       top -= gap;
       for (int y = top - ring; y < top; y++) {
-        assertEquals(hex(colour), hex(pixels.argb(x, y)), "ring of " + focused.key() + " row " + y);
+        assertEquals(hex(color), hex(pixels.argb(x, y)), "ring of " + focused.key() + " row " + y);
       }
-      assertTrue(pixels.argb(x, top - ring - 1) != colour, "ring no wider at " + scale);
+      assertTrue(pixels.argb(x, top - ring - 1) != color, "ring no wider at " + scale);
       Edges edges = new Edges(pixels, scale);
-      edges.side(focused.key() + " ring", x, top - ring, ring, false, colour, gap > 0);
+      edges.side(focused.key() + " ring", x, top - ring, ring, false, color, gap > 0);
       assertEquals(List.of(), edges.failures);
     }
   }
@@ -328,8 +328,8 @@ class PixelGridTest {
   /**
    * Checks the straight edges of every element whose border or fill is opaque, at the middle of
    * each side where it is straight and its clips leave it: a border or a hairline is a run of
-   * exactly {@link #stroke} pixels of its colour from where {@code round(edge * scale)} puts it,
-   * and the pixels next to an edge are no blend of the colours on either side, as an edge between
+   * exactly {@link #stroke} pixels of its color from where {@code round(edge * scale)} puts it,
+   * and the pixels next to an edge are no blend of the colors on either side, as an edge between
    * two physical pixels would draw them. A fill whose edge pixel a child covers is left out.
    */
   static final class Edges {
@@ -356,20 +356,20 @@ class PixelGridTest {
       float h = el.height();
       String name = el.key() != null ? "#" + el.key() : el.role() != null ? el.role() : "el";
       Style st = el.style();
-      // Per side, top, right, bottom, left: a border's run of pixels in its colour, else the fill's
+      // Per side, top, right, bottom, left: a border's run of pixels in its color, else the fill's
       // edge.
       float[] widths = {px(st.borderTop), px(st.borderRight), px(st.borderBottom), px(st.borderLeft)
       };
-      boolean coloured = el.borderColor() >>> 24 == 0xFF;
+      boolean colored = el.borderColor() >>> 24 == 0xFF;
       boolean filled = el.fill() >>> 24 == 0xFF;
       int[] runs = new int[4];
-      int[] colours = new int[4];
+      int[] colors = new int[4];
       boolean any = false;
       for (int side = 0; side < 4; side++) {
-        boolean bordered = coloured && widths[side] > 0;
+        boolean bordered = colored && widths[side] > 0;
         runs[side] = bordered ? stroke(widths[side], scale) : 0;
-        colours[side] = bordered ? el.borderColor() : filled ? el.fill() : 0;
-        any |= colours[side] != 0;
+        colors[side] = bordered ? el.borderColor() : filled ? el.fill() : 0;
+        any |= colors[side] != 0;
       }
       shadowed = !el.shadows().isEmpty(); // a gradient outside, which is no edge's blend
       if (any) {
@@ -394,18 +394,17 @@ class PixelGridTest {
                   true);
             }
           } else {
-            if (y >= clip[1] + 1 && colours[0] != 0) {
-              side(
-                  name + " top", edge(cx, scale), edge(y, scale), runs[0], false, colours[0], true);
+            if (y >= clip[1] + 1 && colors[0] != 0) {
+              side(name + " top", edge(cx, scale), edge(y, scale), runs[0], false, colors[0], true);
             }
-            if (y + h <= clip[3] - 1 && colours[2] != 0) {
+            if (y + h <= clip[3] - 1 && colors[2] != 0) {
               side(
                   name + " bottom",
                   edge(cx, scale),
                   edge(y + h, scale) - runs[2],
                   runs[2],
                   false,
-                  colours[2],
+                  colors[2],
                   true);
             }
           }
@@ -423,18 +422,17 @@ class PixelGridTest {
                   true);
             }
           } else {
-            if (x >= clip[0] + 1 && colours[3] != 0) {
-              side(
-                  name + " left", edge(x, scale), edge(cy, scale), runs[3], true, colours[3], true);
+            if (x >= clip[0] + 1 && colors[3] != 0) {
+              side(name + " left", edge(x, scale), edge(cy, scale), runs[3], true, colors[3], true);
             }
-            if (x + w <= clip[2] - 1 && colours[1] != 0) {
+            if (x + w <= clip[2] - 1 && colors[1] != 0) {
               side(
                   name + " right",
                   edge(x + w, scale) - runs[1],
                   edge(cy, scale),
                   runs[1],
                   true,
-                  colours[1],
+                  colors[1],
                   true);
             }
           }
@@ -457,11 +455,11 @@ class PixelGridTest {
 
     /**
      * The edge across {@code x, y} at {@code start}, which is {@code x} when {@code across}, else
-     * {@code y}: {@code run} pixels of {@code colour} from there, or for a run of 0 a fill of that
-     * colour from there, with no blend of it in the pixel before and, if {@code inside}, in the
+     * {@code y}: {@code run} pixels of {@code color} from there, or for a run of 0 a fill of that
+     * color from there, with no blend of it in the pixel before and, if {@code inside}, in the
      * pixel after the run.
      */
-    void side(String name, int x, int y, int run, boolean across, int colour, boolean inside) {
+    void side(String name, int x, int y, int run, boolean across, int color, boolean inside) {
       int start = across ? x : y;
       int limit = across ? pixels.width() : pixels.height();
       int other = across ? y : x;
@@ -476,25 +474,25 @@ class PixelGridTest {
         int at = start - 2 + i;
         p[i] = across ? pixels.argb(at, y) : pixels.argb(x, at);
       }
-      if (run == 0 && p[2] != colour) {
+      if (run == 0 && p[2] != color) {
         return; // a child covers the edge
       }
       checked++;
       for (int i = 2; i < 2 + run; i++) {
-        if (p[i] != colour) {
-          failures.add(name + ": not " + run + " pixels of " + hex(colour).substring(2) + " from "
+        if (p[i] != color) {
+          failures.add(name + ": not " + run + " pixels of " + hex(color).substring(2) + " from "
               + start + ":" + hexes(p));
           return;
         }
       }
-      // a neighbour's hairline or an ancestor's border is a whole pixel of its colour, no blend
-      if (!shadowed && !line(p[1]) && blend(p[0], p[1], colour)) {
+      // a neighbour's hairline or an ancestor's border is a whole pixel of its color, no blend
+      if (!shadowed && !line(p[1]) && blend(p[0], p[1], color)) {
         failures.add(name + ": the pixel before " + start + " is a blend:" + hexes(p));
       } else if (!shadowed
           && inside
           && run > 0
           && !line(p[2 + run])
-          && blend(colour, p[2 + run], p[3 + run])) {
+          && blend(color, p[2 + run], p[3 + run])) {
         failures.add(name + ": the pixel after the run is a blend:" + hexes(p));
       }
     }

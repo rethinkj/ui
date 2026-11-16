@@ -19,7 +19,7 @@ public final class AppIcon {
   private AppIcon() {}
 
   /**
-   * A rounded square in {@code fill}, the app's own colour, with {@code symbol} in the theme's
+   * A rounded square in {@code fill}, the app's own color, with {@code symbol} in the theme's
    * {@link Theme.TextColors#onAccent} in its middle, as the icons of Windows 11's own apps are:
    * the square leaves a margin of a sixteenth of the size, at least a pixel, its corners are
    * rounded by a fifth of it, and the symbol is the drawing of the icon font nearest to five

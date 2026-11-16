@@ -50,7 +50,7 @@ final class Wgpu {
   static final int MIP_LEVEL_COUNT_UNDEFINED = 0xFFFFFFFF;
   static final int ARRAY_LAYER_COUNT_UNDEFINED = 0xFFFFFFFF;
   static final int COPY_STRIDE_UNDEFINED = 0xFFFFFFFF;
-  /** {@code WGPU_DEPTH_SLICE_UNDEFINED}, which a colour attachment needs if its view is not 3D. */
+  /** {@code WGPU_DEPTH_SLICE_UNDEFINED}, which a color attachment needs if its view is not 3D. */
   static final int DEPTH_SLICE_UNDEFINED = 0xFFFFFFFF;
 
   // ---- enums -------------------------------------------------------------------------------

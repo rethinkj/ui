@@ -11,9 +11,9 @@ package com.rethinkj.ui;
  *     and the other; the strip of {@code thickness + 2 * margin} along the edge takes the presses
  * @param radius the corner radius of the thumb
  * @param minThumb the shortest a thumb gets, however long the content, unless the track is shorter
- * @param thumb the colour of the thumb at rest, as 0xAARRGGBB
- * @param thumbHovered its colour while the pointer is over it
- * @param thumbDragged its colour while it is dragged
+ * @param thumb the color of the thumb at rest, as 0xAARRGGBB
+ * @param thumbHovered its color while the pointer is over it
+ * @param thumbDragged its color while it is dragged
  */
 public record Scrollbars(
     float thickness,
@@ -46,7 +46,7 @@ public record Scrollbars(
    * thumb moves, and the thumb, whose length is the share of the content in view and whose place
    * is the offset. {@link El#horizontalBar} and {@link El#verticalBar} give it.
    *
-   * @param color the thumb's colour of the moment: at rest, hovered or dragged
+   * @param color the thumb's color of the moment: at rest, hovered or dragged
    */
   public record Bar(
       float trackX,

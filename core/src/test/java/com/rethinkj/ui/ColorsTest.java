@@ -77,7 +77,7 @@ class ColorsTest {
     assertEquals(50, Colors.lightness(0xFF777777), 0.5);
   }
 
-  /** A translucent fill over a colour, and a mix, end at both ends where they should. */
+  /** A translucent fill over a color, and a mix, end at both ends where they should. */
   @Test
   void overAndMix() {
     int a = 0xFF17181C;

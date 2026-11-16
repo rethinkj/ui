@@ -290,7 +290,7 @@ class PartsTest {
   }
 
   @Test
-  void anAvatarHasTheInitialsAndTheColourOfItsName() throws IOException {
+  void anAvatarHasTheInitialsAndTheColorOfItsName() throws IOException {
     assertEquals("PE", Avatar.initials("prod-eu"));
     assertEquals("L", Avatar.initials("localhost"));
     assertEquals("R2", Avatar.initials("replica 2"));

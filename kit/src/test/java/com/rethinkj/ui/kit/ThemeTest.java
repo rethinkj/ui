@@ -119,7 +119,7 @@ class ThemeTest {
           check(failures, "spinner ring", ring, Map.of(on, background), 1.3);
           check(failures, "spinner arc", t.accent().edge(), Map.of("its ring on " + on, ring), 3);
         });
-    // A busy primary button's spinner: its ring shows on the fill, the arc in the text's colour
+    // A busy primary button's spinner: its ring shows on the fill, the arc in the text's color
     // stands out from it, on the accent's fills and a dangerous button's.
     Theme.Danger danger = t.danger();
     Map.of(
@@ -137,7 +137,7 @@ class ThemeTest {
         });
     // Code in an editor: on the field's raised surface, hovered, on the caret's line and in a
     // marked block, with the caret's line over it; the brackets at the caret on their background
-    // too, and every colour 3:1 under the selection.
+    // too, and every color 3:1 under the selection.
     Theme.Code code = t.code();
     int line = over(s.raised(), code.line());
     int block = over(s.raised(), code.block());
@@ -148,7 +148,7 @@ class ThemeTest {
         "caret line hovered", over(over(s.raised(), s.hover()), code.line()),
         "block", block,
         "caret line in block", over(block, code.line()));
-    Map<String, Integer> codeColours = Map.of(
+    Map<String, Integer> codeColors = Map.of(
         "keyword",
         code.keyword(),
         "string",
@@ -159,12 +159,12 @@ class ThemeTest {
         code.comment(),
         "operator",
         code.operator());
-    codeColours.forEach((token, colour) -> {
-      check(failures, token, colour, field, 4.5);
+    codeColors.forEach((token, color) -> {
+      check(failures, token, color, field, 4.5);
       check(
           failures,
           token,
-          colour,
+          color,
           Map.of(
               "selection",
               over(s.raised(), t.accent().selection()),
@@ -197,11 +197,11 @@ class ThemeTest {
               "selected current match" + where,
               over(over(under, code.current()), t.accent().selection()));
         });
-    Map<String, Integer> text = new java.util.HashMap<>(codeColours);
+    Map<String, Integer> text = new java.util.HashMap<>(codeColors);
     text.put("text", t.text().primary());
-    text.forEach((token, colour) -> {
-      check(failures, token, colour, marked, 4.5);
-      check(failures, token, colour, selectedMatch, 3);
+    text.forEach((token, color) -> {
+      check(failures, token, color, marked, 4.5);
+      check(failures, token, color, selectedMatch, 3);
     });
     check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
     // A document on a card: text, quotes, links and inline code on the panel, under the pointer
@@ -260,7 +260,7 @@ class ThemeTest {
         t.text().disabled(),
         Map.of("popup hovered", over(s.popup(), s.hover())),
         2);
-    // Selected text keeps its colour over the translucent selection.
+    // Selected text keeps its color over the translucent selection.
     check(
         failures,
         "selected text",
@@ -285,7 +285,7 @@ class ThemeTest {
     check(failures, "primary text", t.text().primary(), grid, 4.5);
     check(failures, "muted text", t.text().muted(), grid, 4.5);
     // Icons in the header and the cells, graphics that say something (WCAG 1.4.11), in the
-    // colours a column gives them, also on the selection and under the pointer.
+    // colors a column gives them, also on the selection and under the pointer.
     Map.of(
             "normal icon",
             t.text().primary(),
@@ -297,7 +297,7 @@ class ThemeTest {
             t.status().warning(),
             "success icon",
             t.status().success())
-        .forEach((what, colour) -> check(failures, what, colour, grid, 3));
+        .forEach((what, color) -> check(failures, what, color, grid, 3));
     // The cursor's outline on the rows, under the pointer, and on the selection, which fills
     // selected cells as it fills selected rows.
     check(
@@ -358,8 +358,8 @@ class ThemeTest {
         "tree selected inactive", t.grid().selectedInactive());
     check(failures, "primary text", t.text().primary(), tree, 4.5);
     check(failures, "muted text", t.text().muted(), tree, 4.5);
-    // A row whose children could not be read: its icon in the danger colour, on the same rows
-    // and on the surfaces a tree lies on, and its action in the link colour, also under the
+    // A row whose children could not be read: its icon in the danger color, on the same rows
+    // and on the surfaces a tree lies on, and its action in the link color, also under the
     // pointer.
     Map<String, Integer> trees = new java.util.HashMap<>(tree);
     trees.putAll(Map.of("panel", s.panel(), "window", s.window()));
@@ -374,13 +374,13 @@ class ThemeTest {
             "panel hovered", over(s.panel(), s.hover()),
             "window hovered", over(s.window(), s.hover())),
         4.5);
-    // Scrollbar thumbs lie over the surfaces and the grid's rows, in each of their colours.
+    // Scrollbar thumbs lie over the surfaces and the grid's rows, in each of their colors.
     Scrollbars b = t.scrollbars();
     Map<String, Integer> thumbs = Map.of(
         "thumb", b.thumb(), "thumb hovered", b.thumbHovered(), "thumb dragged", b.thumbDragged());
-    thumbs.forEach((what, colour) -> {
-      check(failures, what, colour, surfaces, 3);
-      check(failures, what, colour, grid, 3);
+    thumbs.forEach((what, color) -> {
+      check(failures, what, color, surfaces, 3);
+      check(failures, what, color, grid, 3);
     });
     // Tabs on their band: another tab in muted text, in primary under the pointer and pressed,
     // where its cross can be hovered and pressed too; the active one's line in the accent's edge.
@@ -444,18 +444,18 @@ class ThemeTest {
     for (Theme.Tone tone : List.of(
         badges.neutral(), badges.accent(), badges.success(), badges.warning(), badges.danger())) {
       Map<String, Integer> tinted = new java.util.HashMap<>();
-      under.forEach((what, colour) -> tinted.put(what, over(colour, tone.soft())));
+      under.forEach((what, color) -> tinted.put(what, over(color, tone.soft())));
       // The fill is a quiet step off the surface, but one that shows.
-      surfaces.forEach((what, colour) -> {
-        double step = contrast(over(colour, tone.soft()), colour);
+      surfaces.forEach((what, color) -> {
+        double step = contrast(over(color, tone.soft()), color);
         if (step < 1.08) {
           failures.add(String.format(
               "badge fill %s on %s: %.3f:1, needs 1.08:1", Colors.toHex(tone.soft()), what, step));
         }
       });
-      surfaces.forEach((what, colour) -> { // a pressable badge lies on a surface
-        tinted.put(what + " hovered", over(colour, Badge.deeper(tone.soft(), Badge.HOVER)));
-        tinted.put(what + " pressed", over(colour, Badge.deeper(tone.soft(), Badge.PRESSED)));
+      surfaces.forEach((what, color) -> { // a pressable badge lies on a surface
+        tinted.put(what + " hovered", over(color, Badge.deeper(tone.soft(), Badge.HOVER)));
+        tinted.put(what + " pressed", over(color, Badge.deeper(tone.soft(), Badge.PRESSED)));
       });
       check(
           failures,
@@ -624,7 +624,7 @@ class ThemeTest {
   }
 
   /**
-   * The colours of a button that destroys something ({@link Button.Tone#DANGER}): its text on
+   * The colors of a button that destroys something ({@link Button.Tone#DANGER}): its text on
    * each fill of a primary one, its red text on the surfaces and the controls' hover and pressed
    * of a secondary or ghost one, its edge and focus ring on the surfaces; hover and pressed darker
    * as an accent's.
@@ -663,9 +663,9 @@ class ThemeTest {
     assertTrue(lightness(d.hover()) - lightness(d.pressed()) >= 2, at);
   }
 
-  /** A theme made without danger colours takes those of its lightness. */
+  /** A theme made without danger colors takes those of its lightness. */
   @Test
-  void aThemeWithoutDangerColoursTakesThoseOfItsLightness() {
+  void aThemeWithoutDangerColorsTakesThoseOfItsLightness() {
     for (Theme t : List.of(Theme.DARK, Theme.LIGHT)) {
       Theme older = new Theme(
           t.surface(),
@@ -745,16 +745,16 @@ class ThemeTest {
   }
 
   private static void check(
-      List<String> failures, String what, int colour, Map<String, Integer> on, double minimum) {
+      List<String> failures, String what, int color, Map<String, Integer> on, double minimum) {
     on.forEach((name, background) -> {
-      double ratio = contrast(colour, background);
+      double ratio = contrast(color, background);
       if (ratio < minimum) {
         failures.add(String.format("%s on %s: %.2f:1, needs %.1f:1", what, name, ratio, minimum));
       }
     });
   }
 
-  /** CIELAB L* of an opaque colour. */
+  /** CIELAB L* of an opaque color. */
   static double lightness(int argb) {
     return Colors.lightness(argb);
   }

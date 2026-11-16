@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers in
  * a gutter, the caret's line highlighted, the bracket at the caret and its partner marked, the
- * other occurrences of the word at the caret marked, the tokens coloured by a highlighter ({@link
+ * other occurrences of the word at the caret marked, the tokens colored by a highlighter ({@link
  * Sql}) and an error underlined. Given the app, it also finds and replaces ({@link Find}), goes to
  * a line, and has the commands of {@link Command}.
  *
@@ -180,7 +180,7 @@ public final class CodeEditor {
     }
 
     /**
-     * Underlines characters {@code from} to {@code to} of the string in the danger colour; a tree
+     * Underlines characters {@code from} to {@code to} of the string in the danger color; a tree
      * dump shows it on the editor as {@code underline <from>-<to>} while its lines are in view.
      */
     public State error(int from, int to) {
@@ -213,8 +213,8 @@ public final class CodeEditor {
    *
    * @param value the code, from the app's state
    * @param state the app's state of this editor
-   * @param highlighter colours the tokens, or null for none; it is also the key the field keeps
-   *     its colours by ({@link El#highlight}), so pass the same object again, or one equal to it,
+   * @param highlighter colors the tokens, or null for none; it is also the key the field keeps
+   *     its colors by ({@link El#highlight}), so pass the same object again, or one equal to it,
    *     such as {@link Sql#of} of the same theme
    * @param onChange receives the new string after each edit; null disables the editor
    */
@@ -306,7 +306,7 @@ public final class CodeEditor {
    * Gives an editor of this class the look of the body of a framed card or panel, such as a {@link
    * Card#flush} card under its {@link Card#toolbar}: as wide as the card, without corners or a
    * frame of its own, and with a hairline along its top ({@link Theme.Borders#divider}) in place of
-   * a {@link Divider}, which takes the accent's edge colour while the editor has the focus. The
+   * a {@link Divider}, which takes the accent's edge color while the editor has the focus. The
    * ring of the keyboard's focus lies just inside it, where the card clips it.
    *
    * <pre>{@code

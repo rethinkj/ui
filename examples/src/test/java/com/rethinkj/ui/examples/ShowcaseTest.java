@@ -42,7 +42,7 @@ class ShowcaseTest {
         Files.readString(out.resolve("find.tree.txt")).contains("role=search"),
         "the code editor's find bar");
     // Notes longer than their card's width wrap inside it instead of running out of it.
-    assertWraps(out.resolve("fields.tree.txt"), "\"Line numbers, colours");
+    assertWraps(out.resolve("fields.tree.txt"), "\"Line numbers, colors");
     assertWraps(out.resolve("contrast.tree.txt"), "\"Each cell is the pair itself");
   }
 

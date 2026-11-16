@@ -784,7 +784,7 @@ class FocusTest {
   }
 
   @Test
-  void anElementsOwnRingColourWinsOverTheAppsAndZeroDrawsNone() {
+  void anElementsOwnRingColorWinsOverTheAppsAndZeroDrawsNone() {
     App<Object> app = start(
         new App<>(
             new Object(),

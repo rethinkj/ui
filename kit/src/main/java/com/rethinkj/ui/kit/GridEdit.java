@@ -677,7 +677,7 @@ final class GridEdit {
    * The editor over the cell, absolute in its row: a field in the cell's font, its text where the
    * cell's is, growing up to the grid's edge for a long value; the app's editor; or, while the
    * list of an enumeration or the field of several lines edits, what they hold. Its edge is the
-   * accent's, or the danger colour's with the message below it when the value was refused.
+   * accent's, or the danger color's with the message below it when the value was refused.
    */
   static El editor(Build b, int row, int column) {
     Theme theme = b.theme;

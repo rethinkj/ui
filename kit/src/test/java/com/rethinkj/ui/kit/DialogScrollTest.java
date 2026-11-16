@@ -170,7 +170,7 @@ class DialogScrollTest {
 
   /**
    * The physical pixels just outside a focused field's border box at its left, top or bottom,
-   * where its ring lies: the ring's colour, not the surface's, so the area's clip cut nothing.
+   * where its ring lies: the ring's color, not the surface's, so the area's clip cut nothing.
    */
   private static void assertRing(
       Pixels image, Theme t, float[] field, double scale, String where, String name) {

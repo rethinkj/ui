@@ -39,7 +39,7 @@
   font-display: swap;
 }
 
-/* The colours of the kit's Theme.LIGHT and Theme.DARK (kit/.../Theme.java). */
+/* The colors of the kit's Theme.LIGHT and Theme.DARK (kit/.../Theme.java). */
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;

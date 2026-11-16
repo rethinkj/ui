@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Colours and fonts of ranges ({@link El#highlight}): they reach the glyphs, change no position
+ * Colors and fonts of ranges ({@link El#highlight}): they reach the glyphs, change no position
  * unless a font changes, follow wraps, tabs and fallback fonts, and a multi-line field asks the
  * highlighter only about the lines it needs, keeping line states across edits. {@link Areas} makes
  * the field: five lines of 18 pixels of JetBrains Mono, whose characters advance 8 pixels.
@@ -73,8 +73,8 @@ class HighlightTest {
     return field(app).editor().lineIndex();
   }
 
-  /** The colour of each glyph of the rows laid out, row by row. */
-  private static List<int[]> colours(App<?> app) {
+  /** The color of each glyph of the rows laid out, row by row. */
+  private static List<int[]> colors(App<?> app) {
     List<int[]> rows = new ArrayList<>();
     for (Text.Line line : field(app).text().lines()) {
       int[] c = line.colors();
@@ -88,20 +88,20 @@ class HighlightTest {
   }
 
   @Test
-  void coloursReachTheGlyphsAndMoveNothing() {
+  void colorsReachTheGlyphsAndMoveNothing() {
     App<Model> plain = area("ab 12\ncd", f -> f);
-    App<Model> coloured = area("ab 12\ncd", f -> f.highlight("digits", COMMENTS));
+    App<Model> colored = area("ab 12\ncd", f -> f.highlight("digits", COMMENTS));
     Text p = field(plain).text();
-    Text c = field(coloured).text();
-    assertArrayEquals(new int[] {TEXT, TEXT, TEXT, RED, RED}, colours(coloured).get(0));
-    assertNull(c.lines().get(1).colors(), "a line without ranges has the text's colour");
+    Text c = field(colored).text();
+    assertArrayEquals(new int[] {TEXT, TEXT, TEXT, RED, RED}, colors(colored).get(0));
+    assertNull(c.lines().get(1).colors(), "a line without ranges has the text's color");
     for (int i = 0; i <= 8; i++) {
       assertEquals(p.x(i), c.x(i), "the caret at " + i);
     }
     assertEquals(p.lines().get(0).glyphs().width(), c.lines().get(0).glyphs().width());
-    key(coloured, "End", Key.SHIFT);
-    assertEquals("^ab 12|\ncd", show(coloured));
-    assertEquals(1, field(coloured).text().selection().size());
+    key(colored, "End", Key.SHIFT);
+    assertEquals("^ab 12|\ncd", show(colored));
+    assertEquals(1, field(colored).text().selection().size());
   }
 
   @Test
@@ -135,17 +135,17 @@ class HighlightTest {
         }));
     List<Text.Line> rows = field(app).text().lines();
     assertEquals(2, rows.size());
-    int[] first = colours(app).get(0);
+    int[] first = colors(app).get(0);
     assertEquals(RED, first[15]);
     assertEquals(TEXT, first[14]);
-    assertArrayEquals(new int[] {RED, RED, RED, RED}, colours(app).get(1));
+    assertArrayEquals(new int[] {RED, RED, RED, RED}, colors(app).get(1));
     App<Model> tabbed = area("a\tb1", f -> f.highlight(1, COMMENTS));
-    assertArrayEquals(new int[] {TEXT, TEXT, TEXT, RED}, colours(tabbed).get(0));
+    assertArrayEquals(new int[] {TEXT, TEXT, TEXT, RED}, colors(tabbed).get(0));
     assertEquals(4 * 8 + 8, field(tabbed).text().x(3), "the tab still reaches the next stop");
   }
 
   @Test
-  void fallbackFontsKeepTheirColours() {
+  void fallbackFontsKeepTheirColors() {
     App<Model> app = Areas.start(
         "ab שלום 1",
         f -> f.font(Examples.fallbackChain()).highlight(1, (line, state, out) -> {
@@ -162,20 +162,20 @@ class HighlightTest {
   }
 
   @Test
-  void glyphsWithoutAColourTakeTheTextsNewColourWhenItMoves() {
+  void glyphsWithoutAColorTakeTheTextsNewColorWhenItMoves() {
     int white = 0xFFFFFFFF;
-    int[] colour = {TEXT};
+    int[] color = {TEXT};
     App<Model> app = area(
         "a 1",
-        f -> f.highlight(1, COMMENTS).color(colour[0]).motion(com.rethinkj.ui.motion.Spring.SNAP));
-    app.post(() -> colour[0] = white); // as a switch of the theme
+        f -> f.highlight(1, COMMENTS).color(color[0]).motion(com.rethinkj.ui.motion.Spring.SNAP));
+    app.post(() -> color[0] = white); // as a switch of the theme
     app.frame();
     app.advance(1);
     app.frame();
     assertArrayEquals(
         new int[] {white, white, RED},
-        colours(app).get(0),
-        "not the colour of the first frame of the motion");
+        colors(app).get(0),
+        "not the color of the first frame of the motion");
   }
 
   @Test
@@ -208,7 +208,7 @@ class HighlightTest {
     type(app, "/*");
     int afterOpen = ls.highlighted - first;
     assertTrue(afterOpen <= 12, "the lines from the edit to the view, not 2000: " + afterOpen);
-    for (int[] row : colours(app)) {
+    for (int[] row : colors(app)) {
       for (int c : row) {
         assertEquals(GREY, c, "everything in view is inside the comment now");
       }
@@ -218,7 +218,7 @@ class HighlightTest {
     key(app, "Backspace");
     assertEquals("|line 0\nline 1", show(app).substring(0, 14));
     assertTrue(ls.highlighted - before <= 24, "again only the lines in view");
-    assertEquals(RED, colours(app).get(0)[5], "the digit is red again");
+    assertEquals(RED, colors(app).get(0)[5], "the digit is red again");
   }
 
   @Test
@@ -251,7 +251,7 @@ class HighlightTest {
     } else if (line == 0) {
       out.background(2, 5, BLUE);
     } else if (line == 2) {
-      out.underline(0, 3, RED).color(0, 3, RED); // the colour is a highlighter's: ignored
+      out.underline(0, 3, RED).color(0, 3, RED); // the color is a highlighter's: ignored
     }
   };
 
@@ -275,7 +275,7 @@ class HighlightTest {
             new Text.Mark(new Text.Box(0, 36 + under(t), 24, 1), RED)),
         marks,
         "the lines first, from the bottom up, then the range, then the underline");
-    assertNull(t.lines().get(2).colors(), "a decorator's colours are ignored");
+    assertNull(t.lines().get(2).colors(), "a decorator's colors are ignored");
   }
 
   @Test

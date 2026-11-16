@@ -20,7 +20,7 @@ import java.util.Objects;
  * level half as large on each side, rounded down and at least 1, down to 1 by 1, as GPUs count mip
  * levels. A texel is four bytes: red, green and blue premultiplied by alpha in linear light and
  * encoded to 8-bit sRGB, and alpha, linear, from 0 to 255. That is how an sRGB render target
- * stores colour: 8 bits keep dark colours apart, renderers filter the texels decoded, in linear
+ * stores color: 8 bits keep dark colors apart, renderers filter the texels decoded, in linear
  * light, and an opaque pixel's bytes are the image's own. Each level is the one
  * before it averaged over the area each texel covers, in linear light with premultiplied alpha,
  * so that translucent edges do not darken. They are computed when the image is made.

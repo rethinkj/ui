@@ -33,11 +33,11 @@ import java.util.Set;
 final class Animator {
 
   // The animated numbers: x, y, width, height and the four corners' radii in pixels, then the
-  // fill, the border and the text colour as alpha, red, green and blue, then the opacity.
+  // fill, the border and the text color as alpha, red, green and blue, then the opacity.
   private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, COUNT = 21;
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
-  // quarter of a colour step, which rounds to the target; for opacity, a quarter of 1/255.
+  // quarter of a color step, which rounds to the target; for opacity, a quarter of 1/255.
   private static final double PIXELS = 0.01, CHANNELS = 0.25;
 
   /**
@@ -745,10 +745,10 @@ final class Animator {
           && tracks[2].isAtRest(now)
           && tracks[3].isAtRest(now)));
       el.radius(at(RADIUS, now), at(RADIUS + 1, now), at(RADIUS + 2, now), at(RADIUS + 3, now));
-      el.fill(colour(FILL, now));
-      el.borderColor(colour(BORDER, now));
+      el.fill(color(FILL, now));
+      el.borderColor(color(BORDER, now));
       if (el.text() != null) {
-        el.text().shownColor(colour(TEXT, now));
+        el.text().shownColor(color(TEXT, now));
       }
       el.shownOpacity(
           (float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
@@ -759,10 +759,10 @@ final class Animator {
     }
 
     // shortcut: each channel of 0xAARRGGBB springs on its own and is clamped to 0..255, so a
-    // bounce cannot leave the colour range, but it still overshoots inside it and tints the colour,
-    // and a fade from or to a transparent colour passes through a darker one. Spring premultiplied
-    // colours in a perceptual space such as Oklab when that shows.
-    private int colour(int first, double now) {
+    // bounce cannot leave the color range, but it still overshoots inside it and tints the color,
+    // and a fade from or to a transparent color passes through a darker one. Spring premultiplied
+    // colors in a perceptual space such as Oklab when that shows.
+    private int color(int first, double now) {
       int argb = 0;
       for (int i = first; i < first + 4; i++) {
         argb = argb << 8 | Math.clamp(Math.round(tracks[i].value(now)), 0, 255);

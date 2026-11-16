@@ -1,7 +1,7 @@
 package com.rethinkj.ui;
 
 /**
- * Colours a text line by line, as a tokenizer does for code: given with {@link El#highlight}.
+ * Colors a text line by line, as a tokenizer does for code: given with {@link El#highlight}.
  *
  * <p>A {@link El#multiline multi-line} field asks it about the lines it shapes, those in view and
  * a few around them, and keeps the answers per line, with the state each line ended in, until the
@@ -23,7 +23,7 @@ public interface Highlighter {
    *
    * @param line the line's string, without its line feed
    * @param state what this function returned for the line before; null for the first line
-   * @param out takes the colours and fonts of the line's ranges, and also backgrounds and
+   * @param out takes the colors and fonts of the line's ranges, and also backgrounds and
    *     underlines, which are kept with them
    * @return the state at the end of the line, such as "inside a block comment", compared with
    *     {@link Object#equals}; null when nothing goes on to the next line

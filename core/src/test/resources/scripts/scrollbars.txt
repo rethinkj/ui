@@ -7,7 +7,7 @@ snap bars-top          # the line of #rows ends in thumb-y 256,46 6x24
 down 259,58            # on the thumb, which follows the pointer from the first pixel
 move 259,400           # beyond the bottom of the window: the thumb at the end of its track
 frame
-snap bars-end          # the last row, 999999, at the bottom; the thumb in its dragged colour
+snap bars-end          # the last row, 999999, at the bottom; the thumb in its dragged color
 up 259,400
 
 press 259,120          # on the track above the thumb: one page, the list's height, up

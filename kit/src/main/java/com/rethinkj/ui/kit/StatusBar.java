@@ -13,7 +13,7 @@ import java.util.List;
  * place, the encoding. It lies on the window's own surface, as a title bar does, so it frames the
  * cards above it without being one. Its parts are quiet, in muted text: {@link #text} for a
  * text, {@link #item} for one with an icon that may be pressed, as the encoding that opens a menu
- * is, and {@link #status} for one with a coloured dot before it, as a connection's.
+ * is, and {@link #status} for one with a colored dot before it, as a connection's.
  *
  * <p>In a tree dump the bar is {@code role=status} with the label {@code Status bar}; a part
  * that can be pressed is {@code role=button} with its text as the label, and a {@link #status}
@@ -23,13 +23,13 @@ public final class StatusBar {
 
   private StatusBar() {}
 
-  /** How the thing a {@link #status} part stands for is doing, shown as the colour of its dot. */
+  /** How the thing a {@link #status} part stands for is doing, shown as the color of its dot. */
   public enum State {
     /** Up and usable: {@link Theme.Status#success}. */
     CONNECTED,
     /** On its way, or working: a {@link Progress#spinner} in place of the dot. */
     BUSY,
-    /** Not in use: the disabled text's colour. */
+    /** Not in use: the disabled text's color. */
     IDLE,
     /** Failed: {@link Theme.Status#danger}. */
     ERROR
@@ -98,14 +98,14 @@ public final class StatusBar {
   }
 
   /**
-   * A part with a dot in the colour of {@code state} before its text, such as a connection's
+   * A part with a dot in the color of {@code state} before its text, such as a connection's
    * name.
    *
    * @param onPress runs when the part is pressed; null for a part that only shows
    */
   public static El status(Theme theme, State state, String text, Runnable onPress) {
     float side = theme.space().m();
-    int colour = switch (state) {
+    int color = switch (state) {
       case CONNECTED -> theme.status().success();
       case BUSY -> 0; // a spinner instead
       case IDLE -> theme.text().disabled();
@@ -118,7 +118,7 @@ public final class StatusBar {
         : el().size(theme.size().icon(), theme.size().icon())
             .center()
             .shrink(0)
-            .child(el().size(side, side).radius(side / 2).fill(colour));
+            .child(el().size(side, side).radius(side / 2).fill(color));
     return part(theme, dot, text, onPress).value(state.name().toLowerCase(java.util.Locale.ROOT));
   }
 

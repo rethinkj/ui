@@ -257,11 +257,11 @@ public final class Jpeg {
       }
       if (count == 4) {
         throw new IllegalArgumentException("The JPEG file has four components, CMYK or YCCK,"
-            + " which are not supported; greyscale and colour (YCbCr or RGB) files are.");
+            + " which are not supported; greyscale and color (YCbCr or RGB) files are.");
       }
       if (count != 1 && count != 3) {
         throw new IllegalArgumentException("The JPEG file has " + count + " components; one"
-            + " (greyscale) or three (colour) are supported.");
+            + " (greyscale) or three (color) are supported.");
       }
       if (end - pos < 6 + 3 * count) {
         throw truncated();

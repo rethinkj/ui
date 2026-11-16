@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * A small instanced-quad renderer for the tests: rectangles in pixels with a premultiplied
- * colour each, drawn as triangle strips of four vertices, one instance per rectangle.
+ * color each, drawn as triangle strips of four vertices, one instance per rectangle.
  */
 final class Quads implements AutoCloseable {
 

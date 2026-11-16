@@ -3,7 +3,7 @@ package com.rethinkj.ui.gpu;
 import java.lang.foreign.MemorySegment;
 
 /**
- * A render pass into one colour target. Commands are checked when the encoder is finished;
+ * A render pass into one color target. Commands are checked when the encoder is finished;
  * the checks here only keep wgpu-native from ending the process, for example for a vertex buffer
  * range of size 0. {@link #close} ends the pass if {@link #end} was not called.
  */

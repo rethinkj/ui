@@ -207,7 +207,7 @@ public final class ComboBox {
 
     /**
      * Any element before the text, built for each place it shows, such as an {@link Avatar} or a
-     * coloured mark. The closed box gives it an icon's square; a row of the list is as high as a
+     * colored mark. The closed box gives it an icon's square; a row of the list is as high as a
      * control.
      */
     public Item leading(Function<Theme, El> leading) {

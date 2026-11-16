@@ -92,7 +92,7 @@ A press selects. A press on the chevron selects and opens or closes. A double pr
 
 ## In a tree dump
 
-The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`. The selected row is `selected`. The detail's text also shows as a text after the label. Marks have the key `mark-<index>`. A muted row looks the same in a dump: only its label's colour differs.
+The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`. The selected row is `selected`. The detail's text also shows as a text after the label. Marks have the key `mark-<index>`. A muted row looks the same in a dump: only its label's color differs.
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```

@@ -183,11 +183,11 @@ advance 1
 frame
 snap type
 
-press role=option label="Colour"
+press role=option label="Color"
 frame
 advance 1
 frame
-snap colour
+snap color
 
 press role=option label="Contrast"
 frame

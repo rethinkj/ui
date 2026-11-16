@@ -80,7 +80,7 @@ class GpuPresenterTest {
         assertTrue(animated > 3, "the knob moved over several frames: " + animated);
         assertFalse(gpu.pending());
         // The page once, then at most the glyph that "Lights on" has and "Lights off" lacks; the
-        // label's colour springs in the other frames, which upload nothing.
+        // label's color springs in the other frames, which upload nothing.
         long uploads = gpu.atlasUploads();
         assertTrue(uploads >= 1 && uploads <= 2, uploads + " uploads in " + animated + " frames");
 

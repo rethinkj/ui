@@ -190,7 +190,7 @@ final class Concepts {
         .h(40)
         .radius(theme.radius().medium())
         .fill(state.open ? theme.accent().color() : theme.surface().raised())
-        .motion(Spring.SETTLE); // size and colour spring to their new values
+        .motion(Spring.SETTLE); // size and color spring to their new values
     El toggle = Button.button(theme, SECONDARY, state.open ? "Close" : "Open", state::toggleOpen);
     // docs:end motion
     // docs:start cycle
@@ -600,14 +600,14 @@ final class Concepts {
     return theme;
   }
 
-  static int colours(Theme theme) {
-    // docs:start colours
+  static int colors(Theme theme) {
+    // docs:start colors
     int lamp = Colors.hex("#FACC15"); // from a setting, 0xFFFACC15
     int shade = Colors.alpha(Colors.BLACK, 0.4f); // black at 40 %, 0x66000000
     int hovered = Colors.over(theme.surface().panel(), theme.surface().hover()); // as drawn, opaque
     double ratio = Colors.contrast(theme.text().primary(), hovered); // WCAG's, 1 to 21
     boolean readable = ratio >= 4.5;
-    // docs:end colours
+    // docs:end colors
     return readable ? lamp : shade;
   }
 

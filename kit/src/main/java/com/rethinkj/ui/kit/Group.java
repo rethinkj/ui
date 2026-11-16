@@ -69,7 +69,7 @@ public final class Group {
    */
   public static El row(Theme theme, Symbol icon, String title, String description, El control) {
     // A control that says what is wrong with its value ({@link El#errorMessage}) has that in
-    // place of the description, in the danger colour, as a form's field has.
+    // place of the description, in the danger color, as a form's field has.
     El target = control == null ? null : Form.target(control);
     String error = target == null ? null : target.errorMessage();
     El row = base(theme, icon, title, error != null ? error : description, true);

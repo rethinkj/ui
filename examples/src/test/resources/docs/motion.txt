@@ -3,6 +3,6 @@ frame
 snap view
 press role=button label="Open"
 frame
-advance 0.06                # the panel on its way to its new size and colour
+advance 0.06                # the panel on its way to its new size and color
 frame
 snap opening

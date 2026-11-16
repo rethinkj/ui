@@ -6,13 +6,13 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * What a {@link Highlighter} or a {@link Decorator} says about one line of a text: colours and
+ * What a {@link Highlighter} or a {@link Decorator} says about one line of a text: colors and
  * fonts of ranges, backgrounds behind ranges and behind the whole line, and lines under ranges.
  * Positions are indexes into the line's string, from 0; a range runs from {@code from} to {@code
  * to}, exclusive, is clamped to the line and left out when empty. Where ranges of one kind
  * overlap, the later one wins.
  *
- * <p>Colours ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
+ * <p>Colors ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
  * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines and
  * the line's background and struck-out ranges are drawn in a {@link El#multiline multi-line} field only, before its
@@ -35,7 +35,7 @@ public final class Spans {
   int[] colors = new int[4];
   Font[] fonts = new Font[4];
   int[] lineBackgrounds = new int[0]; // from the bottom up
-  private boolean styled; // a colour or a font, which the glyphs need
+  private boolean styled; // a color or a font, which the glyphs need
 
   // For Lines: the state the line was highlighted from and the one it ended in.
   Object startState;
@@ -83,7 +83,7 @@ public final class Spans {
     return out.toString();
   }
 
-  /** The text of the range in colour {@code argb}, as 0xAARRGGBB, instead of the text's own. */
+  /** The text of the range in color {@code argb}, as 0xAARRGGBB, instead of the text's own. */
   public Spans color(int from, int to, int argb) {
     return add(COLOR, from, to, argb, null);
   }
@@ -98,7 +98,7 @@ public final class Spans {
   }
 
   /**
-   * A rectangle of colour {@code argb} behind the range, a line high, as behind a match of a
+   * A rectangle of color {@code argb} behind the range, a line high, as behind a match of a
    * search or a matching bracket; a range that ends at the end of the line ends there.
    */
   public Spans background(int from, int to, int argb) {
@@ -106,7 +106,7 @@ public final class Spans {
   }
 
   /**
-   * A straight line under the range, in colour {@code argb}, as under an error; it lies where the
+   * A straight line under the range, in color {@code argb}, as under an error; it lies where the
    * line under an input method's composition does, and is as thick.
    */
   public Spans underline(int from, int to, int argb) {
@@ -114,7 +114,7 @@ public final class Spans {
   }
 
   /**
-   * A straight line through the middle of the range's lower-case letters, in colour {@code argb},
+   * A straight line through the middle of the range's lower-case letters, in color {@code argb},
    * as thick as an {@link #underline}: struck-out text. It lies behind the glyphs.
    */
   public Spans strike(int from, int to, int argb) {
@@ -123,7 +123,7 @@ public final class Spans {
 
   /**
    * A background across the whole width of the field behind this line, all of its rows when it
-   * wraps, in colour {@code argb}: the line of the caret, or a line with an error. Drawn before
+   * wraps, in color {@code argb}: the line of the caret, or a line with an error. Drawn before
    * the backgrounds of ranges; a second one is laid over the first, so that the caret's line
    * inside a marked block shows both.
    */
@@ -159,7 +159,7 @@ public final class Spans {
     return this;
   }
 
-  /** Whether a colour or a font is set on a range: the glyphs depend on it. */
+  /** Whether a color or a font is set on a range: the glyphs depend on it. */
   boolean styled() {
     return styled;
   }

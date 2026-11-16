@@ -51,7 +51,7 @@ class SharedGpuTest {
     throw new AssertionError("unreachable");
   }
 
-  /** What the three windows show: a colour that a count picks. */
+  /** What the three windows show: a color that a count picks. */
   static final class Shared {
     int count;
   }

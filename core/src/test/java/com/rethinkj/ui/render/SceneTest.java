@@ -42,7 +42,7 @@ class SceneTest {
   }
 
   @Test
-  void multipliesTheOpacityOfAnElementAndItsAncestorsIntoItsColours() {
+  void multipliesTheOpacityOfAnElementAndItsAncestorsIntoItsColors() {
     El inner = el().fill(0x80FFFFFF).border(1, 0xFF000000).opacity(0.5f);
     El hidden = el().opacity(0).child(el().fill(0xFFFFFFFF));
     El outer = el().fill(0xFFFFFFFF).opacity(0.5f).child(inner).child(hidden);

@@ -26,7 +26,7 @@ An app is a state object and a function from that state to a tree of elements. T
 
 - `el()`, `row()` and `col()` make boxes; `text(...)` makes text. Calls chain: size, padding, fill, radius, children. See [Elements and layout](/docs/concepts/layout).
 - `.key("lamp")` gives the element an identity. Identity is what animations, focus and scroll offsets hang on, and what a script finds with `#lamp`.
-- `.motion(theme.motion().move())` makes the lamp's colour spring to its new value instead of jumping. See [Motion](/docs/concepts/motion).
+- `.motion(theme.motion().move())` makes the lamp's color spring to its new value instead of jumping. See [Motion](/docs/concepts/motion).
 - `Card.card` and `toggle` come from the kit. Each kit component is a static function whose first parameter is the theme and which returns an `El` that you may chain further. See [Components](/docs/components).
 - `toggleLamp` is the handler, a method of the state that the view passes as `state::toggleLamp`. It changes the state; the app builds the view again and the switch and the lamp follow.
 

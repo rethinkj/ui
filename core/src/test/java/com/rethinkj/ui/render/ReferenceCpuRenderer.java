@@ -142,7 +142,7 @@ final class ReferenceCpuRenderer {
           }
         }
         int at = (py * width + px) * 4;
-        // Alpha is the last channel, so it is still the old value while the colours are blended.
+        // Alpha is the last channel, so it is still the old value while the colors are blended.
         double alpha = mix(scene, i, 3, fillShare) * coverage;
         if (blends != null) {
           blends.blend(frame, at, alpha);
@@ -188,12 +188,12 @@ final class ReferenceCpuRenderer {
           continue;
         }
         int at = (py * width + px) * 4;
-        double alpha = scene.get(i, Scene.COLOUR + 12) * coverage;
+        double alpha = scene.get(i, Scene.COLOR + 12) * coverage;
         if (blends != null) {
           blends.blend(frame, at, alpha);
         }
         for (int c = 0; c < 4; c++) {
-          double source = scene.get(i, Scene.COLOUR + c * 4) * coverage;
+          double source = scene.get(i, Scene.COLOR + c * 4) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
         }
       }
@@ -322,7 +322,7 @@ final class ReferenceCpuRenderer {
     }
   }
 
-  /** A texel's channel in linear light: colour decoded from sRGB, alpha divided by 255. */
+  /** A texel's channel in linear light: color decoded from sRGB, alpha divided by 255. */
   private static double value(byte texel, int channel) {
     return channel == 3 ? (texel & 0xFF) / 255.0 : Scene.linear(texel & 0xFF);
   }
@@ -342,7 +342,7 @@ final class ReferenceCpuRenderer {
     double[] radii = radii(scene, i, halfW, halfH);
     double sigma = deviation(scene.get(i, Scene.SIGMA), scale);
     // The blur reaches three deviations beyond the shape, and one pixel more as for a rectangle.
-    // shortcut: what lies beyond, at most 0.14 % of the colour, is cut off, which a light glow on
+    // shortcut: what lies beyond, at most 0.14 % of the color, is cut off, which a light glow on
     // black shows as a faint edge; reach four deviations if glows need it.
     double reachW = halfW + 3 * sigma;
     double reachH = halfH + 3 * sigma;
@@ -568,7 +568,7 @@ final class ReferenceCpuRenderer {
         + StrictMath.sqrt(outsideX * outsideX + outsideY * outsideY);
   }
 
-  /** One channel of the instance's colour: the border colour, or the fill where the fill shows. */
+  /** One channel of the instance's color: the border color, or the fill where the fill shows. */
   private static double mix(Scene scene, int i, int channel, double fillShare) {
     double fill = scene.get(i, Scene.FILL + channel * 4);
     double edge = scene.get(i, Scene.BORDER + channel * 4);

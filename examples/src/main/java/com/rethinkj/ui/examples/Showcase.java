@@ -46,7 +46,7 @@ import java.util.Set;
  * Every component of the kit in the arrangements a database tool has them in, one section at a
  * time, in the kit's two themes: the sections at the left, the chosen one at the right, and below
  * the sections a select that switches the theme, or follows the system's light or dark setting
- * ("System", where the window starts; the title bar's mark then shows the system's accent colour).
+ * ("System", where the window starts; the title bar's mark then shows the system's accent color).
  */
 public final class Showcase {
 
@@ -98,8 +98,8 @@ public final class Showcase {
         "Bars, a running bar, a line on a card's edge and spinners.",
         Symbol.ARROW_DOWNLOAD),
     TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_CASE_TITLE),
-    COLOUR("Colour", "Every colour of the theme, by group.", Symbol.SQUARE_MULTIPLE),
-    CONTRAST("Contrast", "WCAG contrast of each colour on each background.", Symbol.EYE),
+    COLOR("Color", "Every color of the theme, by group.", Symbol.SQUARE_MULTIPLE),
+    CONTRAST("Contrast", "WCAG contrast of each color on each background.", Symbol.EYE),
     ICONS("Icons", "The named symbols of the icon font at the theme's size.", Symbol.STAR);
 
     final String title;
@@ -116,7 +116,7 @@ public final class Showcase {
   Look look;
   /** Whether the system is set to dark, as the window loop says; for {@link Look#SYSTEM}. */
   boolean systemDark;
-  /** The system's accent colour, 0 where it has none: the title bar's mark in the system look. */
+  /** The system's accent color, 0 where it has none: the title bar's mark in the system look. */
   int systemAccent;
 
   Section section = Section.BUTTONS;

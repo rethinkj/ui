@@ -113,7 +113,7 @@ class ButtonTest {
   }
 
   @Test
-  void theDangerToneColoursEachVariant() throws IOException {
+  void theDangerToneColorsEachVariant() throws IOException {
     Theme.Danger d = T.danger();
     Theme.Surfaces s = T.surface();
     App<Clicks> app = app(c -> row()

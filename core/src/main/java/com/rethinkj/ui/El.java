@@ -200,7 +200,7 @@ public final class El {
    * Told how a press came about, as {@link PressHandler} is, and where: {@code x} and {@code y}
    * are where the pointer was in the element's content, in logical pixels from the left and the
    * top of its border box as the last frame shows it, plus its own scroll offset, as {@link
-   * Drag#x} and {@link Drag#y} are; a slider puts its knob there, a colour field reads its colour
+   * Drag#x} and {@link Drag#y} are; a slider puts its knob there, a color field reads its color
    * there. Enter and Space give the middle of the border box.
    */
   @FunctionalInterface
@@ -658,7 +658,7 @@ public final class El {
 
   // Look
 
-  /** @param argb the colour as 0xAARRGGBB */
+  /** @param argb the color as 0xAARRGGBB */
   public El fill(int argb) {
     this.fill = argb;
     return this;
@@ -682,18 +682,18 @@ public final class El {
     return this;
   }
 
-  /** A border as wide on every side. @param argb the colour as 0xAARRGGBB */
+  /** A border as wide on every side. @param argb the color as 0xAARRGGBB */
   public El border(float width, int argb) {
     return border(width, width, width, width, argb);
   }
 
   /**
-   * A border of its own width on each side, in one colour, in the order of CSS's {@code
+   * A border of its own width on each side, in one color, in the order of CSS's {@code
    * border-width}; a side of width 0 has none, so {@code border(0, 0, 1, 0, c)} is a line along the
    * bottom. The widths take room in the layout as CSS's do. Where a rounded corner joins two sides
    * of different widths, its inner edge is the outer one moved in by each side's width, as in CSS.
    *
-   * @param argb the colour as 0xAARRGGBB
+   * @param argb the color as 0xAARRGGBB
    */
   public El border(float top, float right, float bottom, float left, int argb) {
     style.borderTop = Len.px(top);
@@ -831,7 +831,7 @@ public final class El {
    * element under the pointer. The wheel scrolls as before. In a {@link #dump tree dump} the
    * area's line shows each thumb's rectangle.
    *
-   * @param look the size and colours of the bars, or null for none, the default
+   * @param look the size and colors of the bars, or null for none, the default
    */
   public El scrollbars(Scrollbars look) {
     this.scrollbars = look;
@@ -1079,20 +1079,20 @@ public final class El {
     return this;
   }
 
-  /** @param argb the text colour as 0xAARRGGBB */
+  /** @param argb the text color as 0xAARRGGBB */
   public El color(int argb) {
     textOnly("color").color(argb);
     return this;
   }
 
   /**
-   * States the colour behind this text, for when the scene cannot tell. Glyph edges are
+   * States the color behind this text, for when the scene cannot tell. Glyph edges are
    * corrected differently for text darker and lighter than its background (see {@link
    * com.rethinkj.ui.text.TextRendering}); the scene takes the background from the fills of the
    * text element and its ancestors, and misses what lies behind it otherwise, such as an earlier
    * sibling, an absolutely placed box or an image.
    *
-   * @param argb the colour as 0xAARRGGBB, taken as opaque; 0, the default, lets the scene decide
+   * @param argb the color as 0xAARRGGBB, taken as opaque; 0, the default, lets the scene decide
    */
   public El textBackground(int argb) {
     textOnly("textBackground").background(argb);
@@ -1114,7 +1114,7 @@ public final class El {
   }
 
   /**
-   * Underlines characters {@code from} to {@code to} of the text, in the text's colour, as a menu
+   * Underlines characters {@code from} to {@code to} of the text, in the text's color, as a menu
    * marks the letter that opens it with Alt. The line lies where an input method's composition is
    * underlined. Not for a text field, whose composition has the line.
    */
@@ -1276,8 +1276,8 @@ public final class El {
   }
 
   /**
-   * Colours parts of this text element's string, and sets them in other fonts of its size, as a
-   * highlighter of code does: {@code highlighter} says per line which ranges have which colour or
+   * Colors parts of this text element's string, and sets them in other fonts of its size, as a
+   * highlighter of code does: {@code highlighter} says per line which ranges have which color or
    * font ({@link Spans}). A {@link #multiline} field asks only about the lines it shapes and keeps
    * the answers across rebuilds while {@code key} stays equal, so a view that passes the same key
    * with the same highlighter costs nothing; another key asks again. Each line gets the state the
@@ -1285,7 +1285,7 @@ public final class El {
    * Highlighter} for what that costs. Other text, a single-line field among them, is one line, asked
    * whenever the view is built. A {@link #masked} field and a placeholder are not highlighted.
    *
-   * <p>Colours need no shaping, and carets, selection and wrapping do not change with them; a
+   * <p>Colors need no shaping, and carets, selection and wrapping do not change with them; a
    * range in another font is shaped on its own, and they follow its glyphs.
    *
    * @param key compared with {@link Object#equals}: a new key when the highlighting changes, such
@@ -1301,7 +1301,7 @@ public final class El {
    * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
    * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
    * error. The decorator is asked about each line in view and a few around it whenever the field
-   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colours and
+   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colors and
    * fonts are ignored, which are a {@link #highlight highlighter}'s.
    *
    * @param decorator the function, or null for none
@@ -1701,9 +1701,9 @@ public final class El {
   }
 
   /**
-   * The text an {@link #editable} field shows while its string is empty, in its own colour.
+   * The text an {@link #editable} field shows while its string is empty, in its own color.
    *
-   * @param argb the colour as 0xAARRGGBB
+   * @param argb the color as 0xAARRGGBB
    */
   public El placeholder(String text, int argb) {
     editableOnly("placeholder").placeholder(text, argb);
@@ -1711,7 +1711,7 @@ public final class El {
   }
 
   /**
-   * @param argb the colour of an {@link #editable} field's caret as 0xAARRGGBB; 0 for the text's
+   * @param argb the color of an {@link #editable} field's caret as 0xAARRGGBB; 0 for the text's
    */
   public El caretColor(int argb) {
     editableOnly("caretColor").caretColor(argb);
@@ -1719,7 +1719,7 @@ public final class El {
   }
 
   /**
-   * @param argb the colour drawn behind the selected text of an {@link #editable} field, as
+   * @param argb the color drawn behind the selected text of an {@link #editable} field, as
    *     0xAARRGGBB, usually translucent; {@link Text#SELECTION} unless set
    */
   public El selectionColor(int argb) {
@@ -1948,7 +1948,7 @@ public final class El {
   }
 
   /**
-   * Sets the colour of the ring drawn around this element while it has the focus from the
+   * Sets the color of the ring drawn around this element while it has the focus from the
    * keyboard or the app, as 0xAARRGGBB; 0 draws none. An element that sets none gets the app's
    * ({@link App#focusRing}). A view that draws parts of itself in different themes gives each of
    * its focusable elements the ring of its theme here.
@@ -2013,7 +2013,7 @@ public final class El {
 
   /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
-   * already there a new rectangle, fill, border colour, radius, opacity or text colour, {@link App}
+   * already there a new rectangle, fill, border color, radius, opacity or text color, {@link App}
    * moves it there with {@code spring} instead of at once. Children are placed relative to their
    * parent and move with it.
    *
@@ -2445,7 +2445,7 @@ public final class El {
    * Fills the whole window under this overlay, over everything drawn before it, as under a modal
    * dialog. It fades with the overlay's opacity.
    *
-   * @param argb the colour as 0xAARRGGBB, usually translucent; 0, the default, for none
+   * @param argb the color as 0xAARRGGBB, usually translucent; 0, the default, for none
    */
   public El scrim(int argb) {
     layer().scrim = argb;
@@ -2890,7 +2890,7 @@ public final class El {
     return opacity() == 0 || style().display == Style.Display.NONE;
   }
 
-  /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
+  /** The color set with {@link #focusRing(int)}, or null if none was and the app's applies. */
   public Integer focusRing() {
     return focusRing;
   }
@@ -3322,7 +3322,7 @@ public final class El {
 
   /**
    * Places the bars of the scroll areas with {@link #scrollbars} below {@code root}, which layout
-   * and scrolling have placed, in window coordinates and in their colour at rest. Each lies along
+   * and scrolling have placed, in window coordinates and in their color at rest. Each lies along
    * the edges of its area's padding box, within the clips of its ancestors and out of the strips
    * of their bars.
    */
@@ -3395,10 +3395,10 @@ public final class El {
         (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()), track);
     float at = start + (float) ((track - thumb) * (offset / max));
     float t = scrollbars.thickness();
-    int colour = scrollbars.thumb();
+    int color = scrollbars.thumb();
     return vertical
-        ? new Scrollbars.Bar(across, start, t, track, across, at, t, thumb, colour)
-        : new Scrollbars.Bar(start, across, track, t, at, across, thumb, t, colour);
+        ? new Scrollbars.Bar(across, start, t, track, across, at, t, thumb, color)
+        : new Scrollbars.Bar(start, across, track, t, at, across, thumb, t, color);
   }
 
   /**
@@ -3419,8 +3419,8 @@ public final class El {
     return null;
   }
 
-  /** For {@link App}, which shows a bar hovered or dragged in another colour. */
-  void barColour(boolean vertical, int argb) {
+  /** For {@link App}, which shows a bar hovered or dragged in another color. */
+  void barColor(boolean vertical, int argb) {
     if (vertical && barY != null) {
       barY = barY.color(argb);
     } else if (!vertical && barX != null) {
@@ -3815,7 +3815,7 @@ public final class El {
     }
   }
 
-  /** For {@link App}, which shows the border colour of the moment. */
+  /** For {@link App}, which shows the border color of the moment. */
   void borderColor(int argb) {
     this.borderColor = argb;
   }

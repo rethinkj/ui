@@ -757,7 +757,7 @@ public final class Font implements AutoCloseable {
 
   /**
    * For {@link SystemFonts}: the faces of a font file that draw outlines, each with its family,
-   * style and characters. A colour face counts only if its glyph for a sample character, an emoji
+   * style and characters. A color face counts only if its glyph for a sample character, an emoji
    * where it has one, renders as an outline.
    */
   static List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
@@ -830,7 +830,7 @@ public final class Font implements AutoCloseable {
     return Arrays.copyOf(ranges, n);
   }
 
-  /** Whether a colour face has an outline for U+1F600, or else its first character from U+2000. */
+  /** Whether a color face has an outline for U+1F600, or else its first character from U+2000. */
   private static boolean outlined(MemorySegment face, int[] ranges) {
     int sample = ranges[0];
     for (int r = 0; r < ranges.length; r += 2) {

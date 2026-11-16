@@ -9,7 +9,7 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
 
 /**
- * The title bar of a frameless window ({@code Window.options().frameless()}): a coloured mark or
+ * The title bar of a frameless window ({@code Window.options().frameless()}): a colored mark or
  * the app's icon, the title, a menu bar if the app has one ({@link MenuBar#menuBar}), the app's
  * own controls, and minimize, maximize and close buttons, on the window's background. The system
  * moves the window by the bar, double-clicks maximize it, and acts on the buttons ({@link
@@ -39,9 +39,9 @@ public final class TitleBar {
   private TitleBar() {}
 
   /**
-   * A title bar with a coloured mark before the title.
+   * A title bar with a colored mark before the title.
    *
-   * @param mark the mark's colour, 0xAARRGGBB, usually the app's
+   * @param mark the mark's color, 0xAARRGGBB, usually the app's
    * @param controls the app's own, before the window's buttons
    */
   public static El titleBar(Theme theme, String title, int mark, El... controls) {
@@ -120,7 +120,7 @@ public final class TitleBar {
         .child(Tooltip.tooltip(theme, close(theme), "Close"));
   }
 
-  /** A small rounded square in the app's colour, before the title. */
+  /** A small rounded square in the app's color, before the title. */
   private static El mark(int argb) {
     return el().size(10, 10).radius(3).fill(argb);
   }

@@ -1,1 +1,1 @@
-- `Window.systemAppearance()` says whether the system is light or dark, its accent colour and whether high contrast is on; `WindowEvent.AppearanceChanged` and `WindowLoop.appearance(handler)` pass each change to the app, which chooses its theme from it.
+- `Window.systemAppearance()` says whether the system is light or dark, its accent color and whether high contrast is on; `WindowEvent.AppearanceChanged` and `WindowLoop.appearance(handler)` pass each change to the app, which chooses its theme from it.

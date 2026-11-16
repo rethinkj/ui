@@ -147,7 +147,7 @@ class TextRenderTest {
    * Blending in linear light makes dark text on a light background thinner and light text on a
    * dark one heavier than blending the sRGB values, which is what text is designed for and what
    * platforms do. The correction pulls the ink back towards gamma space. Ink is the sum over the
-   * pixels of how far each moved from the background towards the text colour, in sRGB values: in
+   * pixels of how far each moved from the background towards the text color, in sRGB values: in
    * gamma space that is exactly the summed coverage. Eight lines of Inter and JetBrains Mono at 11
    * to 14 pixels, scale 1.
    *
@@ -156,7 +156,7 @@ class TextRenderTest {
    * on light 0.983, light on dark 0.990, against 0.736 and 1.232 without it), so 5 % is allowed.
    * As the contrast falls, the two ways of blending draw closer while the correction stays, so
    * grey text ends up heavier than in gamma space: #999999 on white 1.149 (#6B6B6B 1.10, #AAAAAA
-   * 1.16). That is the side the rule prefers; corrected by the text colour alone, as light text,
+   * 1.16). That is the side the rule prefers; corrected by the text color alone, as light text,
    * it would lose 29 % (0.709). So grey on light may be up to 20 % heavier, not lighter, and has
    * to be nearer than that wrong correction.
    */
@@ -255,8 +255,8 @@ class TextRenderTest {
     assertTrue(x >= label.x() - 1 && x < label.x() + 2, "H starts at the label: " + x);
     assertEquals(0, scene.getInt(h, Scene.PAGE));
     assertEquals(1, scene.pages().size());
-    assertEquals(128 / 255f, scene.get(h, Scene.COLOUR), "white, premultiplied by its alpha");
-    assertEquals(128 / 255f, scene.get(h, Scene.COLOUR + 12));
+    assertEquals(128 / 255f, scene.get(h, Scene.COLOR), "white, premultiplied by its alpha");
+    assertEquals(128 / 255f, scene.get(h, Scene.COLOR + 12));
     assertEquals(1, scene.get(h, Scene.LIGHT_SHARE), "lighter than the black around it");
     assertEquals(1.8f, scene.get(h, Scene.DARK_GAMMA));
     assertEquals(1.8f, scene.get(h, Scene.LIGHT_GAMMA));
@@ -286,8 +286,8 @@ class TextRenderTest {
     assertEquals(0, share(told, El.text("Hi").color(0xFFDCDCDC).textBackground(0xFFFFFFFF)));
   }
 
-  private static float share(El parent, int colour) {
-    return share(parent, El.text("Hi").color(colour));
+  private static float share(El parent, int color) {
+    return share(parent, El.text("Hi").color(color));
   }
 
   private static float share(El parent, El text) {
@@ -343,7 +343,7 @@ class TextRenderTest {
   // ---- motion --------------------------------------------------------------------------------
 
   @Test
-  void theColourOfTextSpringsAndLeavingTextFadesOut() {
+  void theColorOfTextSpringsAndLeavingTextFadesOut() {
     boolean[] on = {false};
     App<boolean[]> app = new App<>(on, s -> {
       El root = col()
@@ -374,7 +374,7 @@ class TextRenderTest {
     float alpha = 0;
     for (int i = 0; i < scene.count(); i++) {
       if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
-        alpha = scene.get(i, Scene.COLOUR + 12); // the last glyph is one of "Bye"
+        alpha = scene.get(i, Scene.COLOR + 12); // the last glyph is one of "Bye"
       }
     }
     assertTrue(alpha > 0 && alpha < 1, "fading: " + alpha);

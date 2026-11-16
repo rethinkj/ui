@@ -103,9 +103,9 @@ public final class Tabs {
    * @param closable whether it has a cross that closes it
    * @param modified whether a dot before the title says that its content has unsaved changes; a
    *     tree dump says {@code modified}
-   * @param icon before the title, in the title's colour, such as a table's; null for none
-   * @param hue a colour that marks the tab as one of a group, as the tabs of a connection to
-   *     production: a line along its top in the hue's edge colour of the theme; null for none
+   * @param icon before the title, in the title's color, such as a table's; null for none
+   * @param hue a color that marks the tab as one of a group, as the tabs of a connection to
+   *     production: a line along its top in the hue's edge color of the theme; null for none
    * @param busy whether its content works, as a query that runs: a {@link Progress#spinner} in
    *     place of the icon, or before the title without one, so that it shows while another tab is
    *     active; a tree dump says {@code busy}
@@ -122,7 +122,7 @@ public final class Tabs {
       this(title, closable, modified, icon, hue, false);
     }
 
-    /** A tab without a colour mark. */
+    /** A tab without a color mark. */
     public Tab(String title, boolean closable, boolean modified, Symbol icon) {
       this(title, closable, modified, icon, null);
     }
@@ -143,7 +143,7 @@ public final class Tabs {
     }
 
     /**
-     * This tab with a colour mark, which a tree dump says as its value, the hue's name in lower
+     * This tab with a color mark, which a tree dump says as its value, the hue's name in lower
      * case ({@code value="red"}).
      */
     public Tab hue(Theme.Hue hue) {

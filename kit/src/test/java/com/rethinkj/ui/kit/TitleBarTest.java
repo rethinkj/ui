@@ -47,7 +47,7 @@ class TitleBarTest {
     return app;
   }
 
-  /** The colour of the pixel at x, y of a snap, 0xAARRGGBB. */
+  /** The color of the pixel at x, y of a snap, 0xAARRGGBB. */
   private int pixel(String snap, int x, int y) throws IOException {
     Pixels p = Png.decode(Files.readAllBytes(out.resolve(snap + ".png")));
     int i = (y * p.width() + x) * 4;

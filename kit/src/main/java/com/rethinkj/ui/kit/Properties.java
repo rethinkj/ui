@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /**
  * Names and values in two columns, the details of a table, a column or a connection: the names
- * muted, the values in the text's colour or in the mono font. The names' column is as wide as the
+ * muted, the values in the text's color or in the mono font. The names' column is as wide as the
  * widest name, measured as {@link Form} measures its labels, up to {@link Theme.Sizes#field}, and
  * a longer name ends in an ellipsis. Each value is a read-only field that a press and a drag
  * select and Control+C copies, which Tab passes by; a value too long for its column wraps onto up

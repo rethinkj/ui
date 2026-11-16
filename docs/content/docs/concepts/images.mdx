@@ -21,7 +21,7 @@ An image is made for a scale, the physical pixels per logical pixel: 200 by 100 
 
 Decoding a large image takes noticeable time, so decode with `app.background` and keep the `Image` in the state. Do not create it in the view: the renderer knows an image by its identity and uploads it to the GPU once.
 
-PNG of every colour type and bit depth and baseline and progressive JPEG (with EXIF orientation) are supported; interlaced PNG and CMYK JPEG fail with a message.
+PNG of every color type and bit depth and baseline and progressive JPEG (with EXIF orientation) are supported; interlaced PNG and CMYK JPEG fail with a message.
 
 ## Size and fit
 

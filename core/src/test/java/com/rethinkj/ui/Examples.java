@@ -512,15 +512,15 @@ public final class Examples {
         .children(textSheet(0xFF1A1A1A, 0xFFFFFFFF), textSheet(0xFFDCDCDC, 0xFF1E1F22));
   }
 
-  /** Eight lines, 11 to 14 pixels in Inter and in JetBrains Mono, in a colour on a background. */
-  public static El textSheet(int colour, int background) {
+  /** Eight lines, 11 to 14 pixels in Inter and in JetBrains Mono, in a color on a background. */
+  public static El textSheet(int color, int background) {
     El sheet = col().padding(8).gap(2).fill(background).grow(1);
     for (Font font : new Font[] {Font.sans(), Font.mono()}) {
       for (int size = 11; size <= 14; size++) {
         sheet.child(El.text(size + "  " + (font == Font.sans() ? SANS_SAMPLE : MONO_SAMPLE))
             .font(font)
             .fontSize(size)
-            .color(colour));
+            .color(color));
       }
     }
     return sheet;
@@ -906,7 +906,7 @@ public final class Examples {
   // ---- images ----------------------------------------------------------------------------------
 
   /**
-   * A made-up photo: smooth colours with fine diagonal stripes, which alias where an image is
+   * A made-up photo: smooth colors with fine diagonal stripes, which alias where an image is
    * sampled badly, and a dark frame of one pixel, which a sampler that reads one texel off shows.
    */
   public static Pixels photo(int width, int height) {
@@ -931,7 +931,7 @@ public final class Examples {
   }
 
   /**
-   * A disc in two colours on transparency, with an edge that fades over a quarter of its radius
+   * A disc in two colors on transparency, with an edge that fades over a quarter of its radius
    * and a translucent ring: alpha at every level from 0 to 255.
    */
   public static Pixels disc(int size) {

@@ -73,7 +73,7 @@ final class Orders {
       new Column("status", 80, Align.LEFT, false, i -> STATUS[i * 7 % STATUS.length]),
       new Column("note", 240, Align.LEFT, false, i -> i % 3 != 1 ? null : NOTE));
 
-  // Paid, not paid, and NULL as a marker; a status as a coloured mark before its text.
+  // Paid, not paid, and NULL as a marker; a status as a colored mark before its text.
   static final CellIcon PAID = CellIcon.instead(Symbol.CHECKMARK, Icon.Variant.SUCCESS);
   static final CellIcon UNPAID = CellIcon.instead(Symbol.SUBTRACT, Icon.Variant.MUTED);
   static final CellIcon UNKNOWN = CellIcon.instead(Symbol.PROHIBITED, Icon.Variant.MUTED);
@@ -89,7 +89,7 @@ final class Orders {
   /**
    * Orders as a database tool shows a table: a type icon and the type's name in each header, a
    * key on the id, a link before the customer's id, paid as a check, a dash or the NULL marker
-   * alone, and the status after a coloured mark. Repeated beyond eight as {@link #BASE} is.
+   * alone, and the status after a colored mark. Repeated beyond eight as {@link #BASE} is.
    */
   private static final List<Column> TYPED = List.of(
       new Column("id", 64, DataType.INTEGER, i -> String.valueOf(i + 1))
