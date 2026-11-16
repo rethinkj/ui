@@ -18,8 +18,8 @@ class ImageTest {
     for (Theme t : List.of(Theme.DARK, Theme.LIGHT)) {
       com.rethinkj.ui.Image picture =
           com.rethinkj.ui.Image.of(new Pixels(80, 40, new byte[80 * 40 * 4]), 2);
-      El image = Image.image(t, picture, "A chart");
-      El placeholder = Image.image(t, null, "A chart").w(200);
+      El image = Theme.CURRENT.with(t, () -> Image.image(picture, "A chart"));
+      El placeholder = Theme.CURRENT.with(t, () -> Image.image(null, "A chart").w(200));
       El root = col()
           .size(300, 200)
           .align(com.rethinkj.ui.Style.Align.START)

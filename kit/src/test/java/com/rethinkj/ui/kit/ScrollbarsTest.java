@@ -67,7 +67,7 @@ class ScrollbarsTest {
               .radius(t.radius().medium())
               .fill(fill)
               .onPress(() -> selected[0] = i)
-              .child(Label.label(t, TABLES[i % TABLES.length] + "_" + i));
+              .child(Label.label(TABLES[i % TABLES.length] + "_" + i));
           return r.whenHovered(e -> e.fill(Theme.over(fill, t.surface().hover())));
         })
         .scrollbars(t.scrollbars());

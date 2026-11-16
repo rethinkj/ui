@@ -32,15 +32,13 @@ class StatusBarTest {
         .fill(t.surface().window())
         .child(el().grow(1))
         .child(StatusBar.statusBar(
-                t,
                 Arrays.asList(
                     StatusBar.status(
-                        t, StatusBar.State.CONNECTED, "localhost / shop", () -> presses[0]++),
+                        StatusBar.State.CONNECTED, "localhost / shop", () -> presses[0]++),
                     null, // left out, so that a view writes `connected ? part : null`
-                    StatusBar.text(t, "PostgreSQL 17.2 on a host with a long name")),
+                    StatusBar.text("PostgreSQL 17.2 on a host with a long name")),
                 List.of(
-                    StatusBar.text(t, "Ln 4, Col 12"),
-                    StatusBar.item(t, Symbol.DATABASE, "UTF-8", null)))
+                    StatusBar.text("Ln 4, Col 12"), StatusBar.item(Symbol.DATABASE, "UTF-8", null)))
             .key("bar"));
   }
 

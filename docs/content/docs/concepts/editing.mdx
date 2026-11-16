@@ -61,13 +61,13 @@ Each has an overload that takes a `Prop` in place of the value and its handler. 
 
 | Component | With a prop |
 | --- | --- |
-| [TextField](/docs/components/text-field) | `textField(theme, prop[, placeholder])`, `passwordField(theme, prop, placeholder)` |
-| [ValueField](/docs/components/format) | `valueField(theme, format, prop[, placeholder])`: the draft is the editing's |
-| [Checkbox](/docs/components/checkbox), [Toggle](/docs/components/toggle) | `checkbox(theme, prop, text)`, `toggle(theme, prop, text)` |
-| [Select](/docs/components/select), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) | `select(theme, values, prop, text, menuState)`, `radioGroup(theme, values, prop, text)`, `segmented(theme, values, prop, text)` |
-| [ComboBox](/docs/components/combo-box) | `comboBox(theme, values, prop, text, comboBoxState)`, `items(theme, values, prop, item, comboBoxState)`, `free(theme, prop, suggestions, comboBoxState)` |
-| [NumberField](/docs/components/number-field) | `numberField(theme, prop, min, max, step)`: the draft is the editing's |
-| [Slider](/docs/components/slider) | `slider(theme, prop, min, max, step)` |
+| [TextField](/docs/components/text-field) | `textField(prop[, placeholder])`, `passwordField(prop, placeholder)` |
+| [ValueField](/docs/components/format) | `valueField(format, prop[, placeholder])`: the draft is the editing's |
+| [Checkbox](/docs/components/checkbox), [Toggle](/docs/components/toggle) | `checkbox(prop, text)`, `toggle(prop, text)` |
+| [Select](/docs/components/select), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) | `select(values, prop, text, menuState)`, `radioGroup(values, prop, text)`, `segmented(values, prop, text)` |
+| [ComboBox](/docs/components/combo-box) | `comboBox(values, prop, text, comboBoxState)`, `items(values, prop, item, comboBoxState)`, `free(prop, suggestions, comboBoxState)` |
+| [NumberField](/docs/components/number-field) | `numberField(prop, min, max, step)`: the draft is the editing's |
+| [Slider](/docs/components/slider) | `slider(prop, min, max, step)` |
 
 `Prop.of(() -> state.dark, value -> state.dark = value)` is a prop over the state, without an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` is the prop of one field; writing it writes back the whole value, a new record through the wither.
 

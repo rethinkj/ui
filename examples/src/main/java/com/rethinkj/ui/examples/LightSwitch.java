@@ -25,7 +25,6 @@ import java.io.IOException;
  */
 public final class LightSwitch {
 
-  private static final Theme THEME = Theme.DARK;
   private static final int LAMP = Identity.YELLOW;
 
   boolean on;
@@ -54,7 +53,7 @@ public final class LightSwitch {
 
   // docs:start light-switch-view
   static El view(LightSwitch state) {
-    Theme theme = THEME;
+    Theme theme = Theme.CURRENT.get();
     El lamp = el().key("lamp")
         .size(56, 56)
         .radius(28)
@@ -64,11 +63,11 @@ public final class LightSwitch {
         .wFull()
         .hFull()
         .fill(theme.surface().window())
-        .child(titleBar(theme, "Lights", LAMP, Identity.maximized(state.app)))
+        .child(titleBar("Lights", LAMP, Identity.maximized(state.app)))
         .child(col()
             .grow(1)
             .center()
-            .child(Card.card(theme, lamp, toggle(theme, state.on, "Lamp", state::toggleLamp))
+            .child(Card.card(lamp, toggle(state.on, "Lamp", state::toggleLamp))
                 .padding(theme.space().xxl())
                 .gap(theme.space().xl())
                 .align(Style.Align.CENTER)));

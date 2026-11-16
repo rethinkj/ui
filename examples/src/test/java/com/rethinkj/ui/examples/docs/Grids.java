@@ -37,7 +37,6 @@ final class Grids {
   static final String[] STATUSES = {"paid", "pending", "shipped", "refunded"};
   static final int COUNT = 1000;
 
-  Theme theme = Theme.DARK;
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
@@ -94,7 +93,6 @@ final class Grids {
   }
 
   static El basic(Grids state) {
-    Theme theme = state.theme;
     // docs:start grid
     List<Column> columns = List.of(
         new Column("id", 80, DataType.INTEGER, row -> value(row, 0))
@@ -104,7 +102,6 @@ final class Grids {
         new Column("amount", 100, DataType.DECIMAL, row -> value(row, 2)).typeName("numeric"),
         new Column("status", 100, DataType.TEXT, row -> value(row, 3)));
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             COUNT,
             DataGrid.options()
@@ -117,7 +114,7 @@ final class Grids {
         .label("Orders")
         .grow(1);
     // docs:end grid
-    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
+    return Frame.of(Card.flush(grid).wFull().grow(1));
   }
 
   static Menu.Item gridCopy(DataGrid.Commands commands) {
@@ -130,7 +127,6 @@ final class Grids {
   }
 
   static El fitted(Grids state) {
-    Theme theme = state.theme;
     // docs:start grid-fit
     List<Column> columns = List.of(
         new Column("id", state.fitted[0], DataType.INTEGER, row -> value(row, 0)),
@@ -140,7 +136,6 @@ final class Grids {
             .detail(row -> "EUR"), // before the number, which stays at the right
         new Column("status", state.fitted[3], DataType.TEXT, row -> value(row, 3)));
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             COUNT,
             DataGrid.options()
@@ -151,11 +146,10 @@ final class Grids {
         .label("Orders")
         .grow(1);
     // docs:end grid-fit
-    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
+    return Frame.of(Card.flush(grid).wFull().grow(1));
   }
 
   static El sorted(Grids state) {
-    Theme theme = state.theme;
     // docs:start grid-sort
     int[] order = state.order();
     List<Column> all = new ArrayList<>();
@@ -168,7 +162,6 @@ final class Grids {
           row -> value(order[row], column)));
     }
     El grid = DataGrid.dataGrid(
-            theme,
             all,
             COUNT,
             DataGrid.options()
@@ -180,10 +173,9 @@ final class Grids {
         .key("orders")
         .label("Orders")
         .grow(1);
-    El toolbar =
-        Card.toolbar(theme, "orders", COUNT + " rows", DataGrid.columnsButton(theme, state.layout));
+    El toolbar = Card.toolbar("orders", COUNT + " rows", DataGrid.columnsButton(state.layout));
     // docs:end grid-sort
-    return Frame.of(theme, Card.flush(theme, toolbar, grid).wFull().grow(1));
+    return Frame.of(Card.flush(toolbar, grid).wFull().grow(1));
   }
 
   private static String title(int column) {
@@ -206,7 +198,6 @@ final class Grids {
   // docs:end grid-order
 
   static El edited(Grids state) {
-    Theme theme = state.theme;
     // docs:start grid-edit
     List<Column> columns = List.of(
         new Column("id", 80, DataType.INTEGER, state.changes.cell(0)),
@@ -218,7 +209,6 @@ final class Grids {
             .editable()
             .choices(List.of(STATUSES)));
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             state.changes.rowCount(),
             DataGrid.options()
@@ -229,17 +219,13 @@ final class Grids {
         .grow(1);
     int count = state.changes.count();
     El commit = Button.button(
-        theme,
         PRIMARY,
         count == 0 ? "Commit" : "Commit (" + count + ")",
         count == 0 ? null : state::commit);
-    El revert = Button.button(theme, SECONDARY, "Revert", count == 0 ? null : state.changes::clear);
+    El revert = Button.button(SECONDARY, "Revert", count == 0 ? null : state.changes::clear);
     // docs:end grid-edit
     return Frame.of(
-        theme,
-        Card.flush(theme, Card.toolbar(theme, "orders", null, revert, commit), grid)
-            .wFull()
-            .grow(1));
+        Card.flush(Card.toolbar("orders", null, revert, commit), grid).wFull().grow(1));
   }
 
   // docs:start grid-edit-commit
@@ -327,7 +313,6 @@ final class Grids {
   // docs:end grid-typed-commit
 
   static El typed(Grids state) {
-    Theme theme = state.theme;
     // docs:start grid-typed
     // The rows in the order of the grid's sort keys, by their typed values.
     List<Order> rows = state.orders;
@@ -339,7 +324,6 @@ final class Grids {
         table.column("due", 110, Format.DATE.optional(), Order::due, Order::withDue),
         table.column("status", 90, STATUS, Order::status, Order::withStatus));
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             rows.size(),
             DataGrid.options()
@@ -350,7 +334,7 @@ final class Grids {
         .label("Orders")
         .grow(1);
     // docs:end grid-typed
-    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
+    return Frame.of(Card.flush(grid).wFull().grow(1));
   }
 
   // docs:start grid-pojo
@@ -407,7 +391,7 @@ final class Grids {
   // docs:end grid-typed-changes
 
   static El filtered(Grids state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start grid-filter
     int[] rows = IntStream.range(0, COUNT)
         .filter(row ->
@@ -423,7 +407,6 @@ final class Grids {
           row -> value(rows[row], column)));
     }
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             rows.length,
             DataGrid.options()
@@ -432,25 +415,19 @@ final class Grids {
         .key("orders")
         .label("Orders")
         .grow(1);
-    El bar = DataGrid.filterBar(theme, columns, state.filters, state::filters); // null without any
+    El bar = DataGrid.filterBar(columns, state.filters, state::filters); // null without any
     // docs:end grid-filter
-    return Frame.of(
-        theme,
-        Card.flush(
-                theme,
-                Card.toolbar(theme, "orders", rows.length + " rows"),
-                bar == null
-                    ? null
-                    : row()
-                        .padding(
-                            0,
-                            theme.space().l(),
-                            theme.space().m(),
-                            theme.space().l())
-                        .child(bar),
-                grid)
-            .wFull()
-            .grow(1));
+    return Frame.of(Card.flush(
+            Card.toolbar("orders", rows.length + " rows"),
+            bar == null
+                ? null
+                : row()
+                    .padding(
+                        0, theme.space().l(), theme.space().m(), theme.space().l())
+                    .child(bar),
+            grid)
+        .wFull()
+        .grow(1));
   }
 
   // docs:start tree-model
@@ -471,7 +448,7 @@ final class Grids {
           new Node("audit", Symbol.FOLDER, List.of(new Node("events", Symbol.TABLE)))));
 
   /** What the tree asks of the app's nodes. */
-  static Tree.Model<Node> model(Theme theme) {
+  static Tree.Model<Node> model() {
     return new Tree.Model<>() {
       @Override
       public List<Node> roots() {
@@ -495,7 +472,7 @@ final class Grids {
 
       @Override
       public El icon(Node node) {
-        return Icon.icon(theme, node.icon(), Icon.Variant.MUTED);
+        return Icon.icon(node.icon(), Icon.Variant.MUTED);
       }
 
       @Override
@@ -541,11 +518,9 @@ final class Grids {
   // docs:end tree-handlers
 
   static El tree(Grids state) {
-    Theme theme = state.theme;
     // docs:start tree
     El tree = Tree.tree(
-            theme,
-            model(theme),
+            model(),
             node -> state.open.contains(node.name()), // which nodes are open
             state.selected,
             state::selected, // the selection
@@ -555,6 +530,6 @@ final class Grids {
         .label("Schema")
         .grow(1);
     // docs:end tree
-    return Frame.of(theme, Card.inset(theme, tree).w(260).grow(1));
+    return Frame.of(Card.inset(tree).w(260).grow(1));
   }
 }

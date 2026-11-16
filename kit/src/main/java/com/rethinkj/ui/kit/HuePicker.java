@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  *
  * <pre>{@code
  * // None first, then the ten hues
- * HuePicker.huePicker(theme, state.hue, "None", hue -> state.hue = hue)
+ * HuePicker.huePicker(state.hue, "None", hue -> state.hue = hue)
  * }</pre>
  */
 public final class HuePicker {
@@ -33,8 +33,8 @@ public final class HuePicker {
    * @param selected the chosen hue; null for none
    * @param onSelect told the hue the user chooses, only when it changes; null disables the picker
    */
-  public static El huePicker(Theme theme, Theme.Hue selected, Consumer<Theme.Hue> onSelect) {
-    return huePicker(theme, selected, null, onSelect);
+  public static El huePicker(Theme.Hue selected, Consumer<Theme.Hue> onSelect) {
+    return huePicker(selected, null, onSelect);
   }
 
   /**
@@ -46,19 +46,19 @@ public final class HuePicker {
    * @param onSelect told the hue the user chooses, null for no color, only when it changes; null
    *     disables the picker
    */
-  public static El huePicker(
-      Theme theme, Theme.Hue selected, String none, Consumer<Theme.Hue> onSelect) {
+  public static El huePicker(Theme.Hue selected, String none, Consumer<Theme.Hue> onSelect) {
     List<Theme.Hue> hues = new ArrayList<>();
     if (none != null) {
       hues.add(null);
     }
     hues.addAll(Arrays.asList(Theme.Hue.values()));
-    return Radio.swatches(theme, hues, selected, hue -> option(hue, none), onSelect);
+    return Radio.swatches(hues, selected, hue -> option(hue, none), onSelect);
   }
 
   /** A picker of the value of a {@link Prop}; a prop that cannot be written disables it. */
-  public static El huePicker(Theme theme, Prop<Theme.Hue> selected, String none) {
-    return Prop.shown(theme, huePicker(theme, selected.get(), none, selected.onChange()), selected);
+  public static El huePicker(Prop<Theme.Hue> selected, String none) {
+    Theme theme = Theme.CURRENT.get();
+    return Prop.shown(theme, huePicker(selected.get(), none, selected.onChange()), selected);
   }
 
   /** The hue's name as a person reads it: {@code Red} for {@link Theme.Hue#RED}. */
@@ -68,7 +68,8 @@ public final class HuePicker {
   }
 
   /** A swatch of the hue, as large as a checkbox's box, for a menu or a list too. */
-  public static El swatch(Theme theme, Theme.Hue hue) {
+  public static El swatch(Theme.Hue hue) {
+    Theme theme = Theme.CURRENT.get();
     float side = theme.size().checkbox();
     return el().size(side, side)
         .shrink(0)
@@ -80,8 +81,10 @@ public final class HuePicker {
     return hue == null
         ? Radio.option(
             none,
-            theme -> Icon.icon(
-                theme, Symbol.PROHIBITED, Icon.Variant.MUTED, theme.size().checkbox()))
-        : Radio.option(name(hue), theme -> swatch(theme, hue));
+            () -> Icon.icon(
+                Symbol.PROHIBITED,
+                Icon.Variant.MUTED,
+                Theme.CURRENT.get().size().checkbox()))
+        : Radio.option(name(hue), () -> swatch(hue));
   }
 }

@@ -28,8 +28,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 /** What every component does with input: roles and labels, presses and keys, focus, disabling. */
 class ComponentTest {
 
-  private static final Theme T = Theme.DARK;
-
   @TempDir
   Path out;
 
@@ -41,61 +39,60 @@ class ComponentTest {
     return Stream.of(
         Arguments.of(
             "button",
-            (Function<Runnable, El>) h -> button(T, Variant.SECONDARY, "Save", h),
+            (Function<Runnable, El>) h -> button(Variant.SECONDARY, "Save", h),
             "role=button label=\"Save\"",
             true),
         Arguments.of(
             "toggle",
-            (Function<Runnable, El>) h -> toggle(T, false, "Autocommit", h),
+            (Function<Runnable, El>) h -> toggle(false, "Autocommit", h),
             "role=switch label=\"Autocommit\"",
             true),
         Arguments.of(
             "toggle without text",
-            (Function<Runnable, El>) h -> toggle(T, true, h).label("Wi-Fi"),
+            (Function<Runnable, El>) h -> toggle(true, h).label("Wi-Fi"),
             "role=switch label=\"Wi-Fi\"",
             false),
         Arguments.of(
             "checkbox",
-            (Function<Runnable, El>) h -> checkbox(T, false, "Read only", h),
+            (Function<Runnable, El>) h -> checkbox(false, "Read only", h),
             "role=checkbox label=\"Read only\"",
             true),
         Arguments.of(
             "switch row",
-            (Function<Runnable, El>) h -> Group.switchRow(T, "Word wrap", "At the edge", true, h),
+            (Function<Runnable, El>) h -> Group.switchRow("Word wrap", "At the edge", true, h),
             "role=switch label=\"Word wrap\"",
             true),
         Arguments.of(
             "link row",
-            (Function<Runnable, El>)
-                h -> Group.linkRow(T, Symbol.KEY, "Keymap", null, "Default", h),
+            (Function<Runnable, El>) h -> Group.linkRow(Symbol.KEY, "Keymap", null, "Default", h),
             "role=button label=\"Keymap\"",
             true),
         Arguments.of(
             "expander",
-            (Function<Runnable, El>) h -> Group.expander(T, "Advanced", null, false, h),
+            (Function<Runnable, El>) h -> Group.expander("Advanced", null, false, h),
             "role=button label=\"Advanced\"",
             true),
         Arguments.of(
             "pressable card",
-            (Function<Runnable, El>) h ->
-                Card.pressable(T, Card.card(T, Label.label(T, "staging")), "staging", false, h),
+            (Function<Runnable, El>)
+                h -> Card.pressable(Card.card(Label.label("staging")), "staging", false, h),
             "role=button label=\"staging\"",
             true),
         Arguments.of(
             "status bar item",
-            (Function<Runnable, El>) h -> StatusBar.item(T, Symbol.PLUG_CONNECTED, "localhost", h),
+            (Function<Runnable, El>) h -> StatusBar.item(Symbol.PLUG_CONNECTED, "localhost", h),
             "text=\"localhost\"",
             true),
         Arguments.of(
             "badge",
             (Function<Runnable, El>)
-                h -> Badge.badge(T, "Add filter", Badge.options().onPress(h)),
+                h -> Badge.badge("Add filter", Badge.options().onPress(h)),
             "label=\"Add filter\"",
             true), // without a handler it only shows, without a role
         Arguments.of(
             "toggle button",
             (Function<Runnable, El>)
-                h -> Button.toggle(T, Symbol.PIN, "Pin", false, h == null ? null : on -> h.run()),
+                h -> Button.toggle(Symbol.PIN, "Pin", false, h == null ? null : on -> h.run()),
             "role=button label=\"Pin\"",
             true));
   }
@@ -150,7 +147,7 @@ class ComponentTest {
     String[] value = {""};
     App<Object> app = new App<>(
         new Object(),
-        s -> row().child(textField(T, value[0], "Search", v -> value[0] = v).key("q")));
+        s -> row().child(textField(value[0], "Search", v -> value[0] = v).key("q")));
     app.textRendering(TextRendering.LINUX);
     run(app, "move #q\npress #q\nframe\ntype \"orders\"\nframe\nkey Backspace");
     assertEquals("order", value[0]);
@@ -162,7 +159,7 @@ class ComponentTest {
   @Test
   void aDisabledTextFieldTakesNoFocusAndAReadOnlyOneTakesNoEdits() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Object> disabled = app(row().child(textField(T, "x", "Search", null)));
+    App<Object> disabled = app(row().child(textField("x", "Search", null)));
     run(
         disabled,
         "move role=textbox disabled\npress role=textbox\nframe\nkey Tab\nframe\ntype \"y\"");
@@ -171,7 +168,7 @@ class ComponentTest {
 
     String[] value = {"fixed"};
     App<Object> readOnly = app(row()
-        .child(textField(T, value[0], "Search", v -> value[0] = v).readOnly().maxLength(10)));
+        .child(textField(value[0], "Search", v -> value[0] = v).readOnly().maxLength(10)));
     run(readOnly, "key Tab\nframe\ntype \"y\"\nframe\nkey C control");
     assertEquals("textbox", readOnly.focused().role());
     assertEquals("fixed", value[0]);

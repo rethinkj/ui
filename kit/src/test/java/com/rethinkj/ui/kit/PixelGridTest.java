@@ -53,58 +53,58 @@ class PixelGridTest {
     selection.select(1, 0);
     Menu.State menu = new Menu.State();
     menu.open();
-    return row()
-        .wFull()
-        .hFull()
-        .fill(T.surface().window())
-        .padding(12 + shift, 0, 0, 12 + shift)
-        .gap(16)
-        .children(
-            col()
-                .gap(12)
-                .w(220)
-                .children(
-                    textField(T, "Orders", v -> {}).key("field").w(220),
-                    row()
-                        .gap(8)
-                        .children(
-                            button(T, Variant.PRIMARY, "Run", () -> {}).key("run"),
-                            button(T, Variant.SECONDARY, "Cancel", () -> {}).key("cancel"),
-                            checkbox(T, true, "Wrap", () -> {}).key("wrap")),
-                    Tabs.tabs(
-                            T,
-                            List.of(
-                                new Tabs.Tab("orders", true, false),
-                                new Tabs.Tab("customers", true, true)),
-                            0,
-                            i -> {},
-                            i -> {},
-                            label(T, "Rows").key("tab-content"))
-                        .key("tabs")
-                        .h(64),
-                    // not in a card of its own: the group's shadow would tint that card's border
-                    Group.group(
-                            T,
-                            Group.switchRow(T, "Autocommit", null, true, () -> {}),
-                            Group.row(T, "Timeout", "Seconds", label(T, "30")),
-                            Group.linkRow(T, "Driver", null, "PostgreSQL", () -> {}))
-                        .key("card")),
-            col()
-                .gap(12)
-                .children(
-                    dataGrid(T, columns, 40, DataGrid.options().select(selection))
-                        .key("grid")
-                        .label("Orders")
-                        .w(260)
-                        .h(170),
-                    Menu.menu(
-                            T,
-                            menu,
-                            List.of(
-                                Menu.item("Open", () -> {}),
-                                Menu.separator(),
-                                Menu.item("Copy name", () -> {})))
-                        .key("menu")));
+    return Theme.CURRENT.with(
+        T,
+        () -> row()
+            .wFull()
+            .hFull()
+            .fill(T.surface().window())
+            .padding(12 + shift, 0, 0, 12 + shift)
+            .gap(16)
+            .children(
+                col()
+                    .gap(12)
+                    .w(220)
+                    .children(
+                        textField("Orders", v -> {}).key("field").w(220),
+                        row()
+                            .gap(8)
+                            .children(
+                                button(Variant.PRIMARY, "Run", () -> {}).key("run"),
+                                button(Variant.SECONDARY, "Cancel", () -> {}).key("cancel"),
+                                checkbox(true, "Wrap", () -> {}).key("wrap")),
+                        Tabs.tabs(
+                                List.of(
+                                    new Tabs.Tab("orders", true, false),
+                                    new Tabs.Tab("customers", true, true)),
+                                0,
+                                i -> {},
+                                i -> {},
+                                label("Rows").key("tab-content"))
+                            .key("tabs")
+                            .h(64),
+                        // not in a card of its own: the group's shadow would tint that card's
+                        // border
+                        Group.group(
+                                Group.switchRow("Autocommit", null, true, () -> {}),
+                                Group.row("Timeout", "Seconds", label("30")),
+                                Group.linkRow("Driver", null, "PostgreSQL", () -> {}))
+                            .key("card")),
+                col()
+                    .gap(12)
+                    .children(
+                        dataGrid(columns, 40, DataGrid.options().select(selection))
+                            .key("grid")
+                            .label("Orders")
+                            .w(260)
+                            .h(170),
+                        Menu.menu(
+                                menu,
+                                List.of(
+                                    Menu.item("Open", () -> {}),
+                                    Menu.separator(),
+                                    Menu.item("Copy name", () -> {})))
+                            .key("menu"))));
   }
 
   private static Headless.Frame render(float shift, float scale) {

@@ -16,11 +16,11 @@ Javadoc: [`Group`](/api/com/rethinkj/ui/kit/Group.html).
 
 | Row | |
 | --- | --- |
-| `row(theme, [icon,] title, description, control)` | Any control at the right. The row labels it with its title when it is a text field or has no label yet, and shows the control's error in place of the description |
-| `switchRow(theme, [icon,] title, description, on, onToggle)` | The whole row is a switch |
-| `linkRow(theme, [icon,] title, description, value, onPress)` | The whole row is a button, with a muted value and a chevron |
-| `expander(theme, [icon,] title, description, open, onToggle, content...)` | Opens rows below it, indented |
-| `box(theme, content...)` | Anything else, with a row's padding |
+| `row([icon,] title, description, control)` | Any control at the right. The row labels it with its title when it is a text field or has no label yet, and shows the control's error in place of the description |
+| `switchRow([icon,] title, description, on, onToggle)` | The whole row is a switch |
+| `linkRow([icon,] title, description, value, onPress)` | The whole row is a button, with a muted value and a chevron |
+| `expander([icon,] title, description, open, onToggle, content...)` | Opens rows below it, indented |
+| `box(content...)` | Anything else, with a row's padding |
 
 A description wraps and makes the row higher; the control keeps its width.
 

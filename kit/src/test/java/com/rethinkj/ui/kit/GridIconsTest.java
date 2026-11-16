@@ -90,7 +90,7 @@ class GridIconsTest {
     Column column = new Column(heading, 40, DataGrid.Align.LEFT, false, i -> "").typeName("");
     App<Column> app = new App<>(
         column,
-        c -> DataGrid.dataGrid(T, List.of(c), 1, DataGrid.options()).wFull().hFull());
+        c -> DataGrid.dataGrid(List.of(c), 1, DataGrid.options()).wFull().hFull());
     run(app, "frame");
     El header = find(app, "column-0");
     assertNull(name(header), "the empty type gives way");

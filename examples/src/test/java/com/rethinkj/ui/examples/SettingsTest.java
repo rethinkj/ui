@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Theme;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,8 @@ class SettingsTest {
   void enterInAFieldOfTheNewConnectionAddsItOnceTheFormIsValid(@TempDir Path out)
       throws IOException {
     Snaps.assumeText();
-    App<Settings> app = new App<>(new Settings(), Settings::view);
+    App<Settings> app =
+        new App<>(new Settings(), Settings::view).provide(Theme.CURRENT, Settings::theme);
     Script.run("""
         size 880 600
         frame
@@ -80,7 +82,8 @@ class SettingsTest {
   void aZeroPortCannotBeAddedAndANewDialogForgetsItsInvalidDraft(@TempDir Path out)
       throws IOException {
     Snaps.assumeText();
-    App<Settings> app = new App<>(new Settings(), Settings::view);
+    App<Settings> app =
+        new App<>(new Settings(), Settings::view).provide(Theme.CURRENT, Settings::theme);
     Script.run("""
         size 880 600
         frame

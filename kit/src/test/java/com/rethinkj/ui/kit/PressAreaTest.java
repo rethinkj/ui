@@ -22,12 +22,10 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 class PressAreaTest {
 
-  private static final Theme T = Theme.DARK;
-
   static Stream<Arguments> controls() {
     return Stream.of(
-        Arguments.of("toggle", (Function<Runnable, El>) h -> toggle(T, false, "Autocommit", h)),
-        Arguments.of("checkbox", (Function<Runnable, El>) h -> checkbox(T, false, "SSL", h)));
+        Arguments.of("toggle", (Function<Runnable, El>) h -> toggle(false, "Autocommit", h)),
+        Arguments.of("checkbox", (Function<Runnable, El>) h -> checkbox(false, "SSL", h)));
   }
 
   @ParameterizedTest(name = "{0}")

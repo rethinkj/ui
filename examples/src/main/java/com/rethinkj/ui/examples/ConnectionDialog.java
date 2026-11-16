@@ -157,7 +157,8 @@ public final class ConnectionDialog {
   }
 
   public static void main(String[] args) throws IOException {
-    App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view);
+    App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view)
+        .provide(Theme.CURRENT, ConnectionDialog::theme);
     app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
@@ -178,16 +179,14 @@ public final class ConnectionDialog {
   }
 
   static El view(ConnectionDialog state) {
-    Theme theme = state.theme();
+    Theme theme = Theme.CURRENT.get();
     Editing<Profile> editing = state.editing;
     // A null handler disables the button.
     // docs:start connection-dialog-form
-    El connect = button(theme, PRIMARY, "Connect", state.ready() ? state::connect : null);
-    El form = Card.card(theme)
-        .child(Card.header(
-            theme, "Connect to PostgreSQL", "The server and the account to log in with."))
+    El connect = button(PRIMARY, "Connect", state.ready() ? state::connect : null);
+    El form = Card.card()
+        .child(Card.header("Connect to PostgreSQL", "The server and the account to log in with."))
         .child(form(
-                theme,
                 Form.Labels.BESIDE,
                 Form.group(
                     "Server",
@@ -195,22 +194,21 @@ public final class ConnectionDialog {
                     Form.row(
                         field(
                                 "Host",
-                                textField(theme, editing.at(Profile.HOST), "Name or address")
+                                textField(editing.at(Profile.HOST), "Name or address")
                                     .key("host")
                                     .w(160))
                             .required()
                             .grow(),
                         field(
                                 "Port",
-                                valueField(theme, PORT, editing.at(Profile.PORT), "5432")
+                                valueField(PORT, editing.at(Profile.PORT), "5432")
                                     .key("port")
                                     .maxLength(5)
                                     .w(72))
                             .required()),
                     field(
                             "Database",
-                            ComboBox.free(
-                                    theme, editing.at(Profile.DATABASE), DATABASES, state.databases)
+                            ComboBox.free(editing.at(Profile.DATABASE), DATABASES, state.databases)
                                 .key("database")
                                 .wFull())
                         .required()),
@@ -218,26 +216,25 @@ public final class ConnectionDialog {
                     "Login",
                     field(
                             "User",
-                            textField(theme, editing.at(Profile.USER), "Role")
+                            textField(editing.at(Profile.USER), "Role")
                                 .key("user")
                                 .wFull())
                         .required(),
                     field(
                         "Password",
                         revealable(
-                                theme,
-                                passwordField(theme, editing.at(Profile.PASSWORD), null)
+                                passwordField(editing.at(Profile.PASSWORD), null)
                                     .key("password")
                                     .wFull(),
                                 state.revealed,
                                 state::toggleRevealed)
                             .wFull())))
             .margin(theme.space().s(), 0, theme.space().s(), 0))
-        .child(checkbox(theme, editing.at(Profile.SSL), "Require SSL"))
-        .child(toggle(theme, Prop.of(() -> state.dark, dark -> state.dark = dark), "Dark theme"))
+        .child(checkbox(editing.at(Profile.SSL), "Require SSL"))
+        .child(toggle(Prop.of(() -> state.dark, dark -> state.dark = dark), "Dark theme"))
         .child(el().grow(1))
-        .child(label(theme, MUTED, state.status))
-        .child(Form.buttons(theme, button(theme, SECONDARY, "Reset", state::reset), connect));
+        .child(label(MUTED, state.status))
+        .child(Form.buttons(button(SECONDARY, "Reset", state::reset), connect));
     // docs:end connection-dialog-form
     // docs:start connection-dialog-enter
     return col()
@@ -246,8 +243,7 @@ public final class ConnectionDialog {
         .fill(theme.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
         .onKey(Dialog.enterPresses(connect))
-        .child(titleBar(
-            theme, "New connection", theme.accent().color(), Identity.maximized(state.app)))
+        .child(titleBar("New connection", theme.accent().color(), Identity.maximized(state.app)))
         .child(col()
             .grow(1)
             .padding(0, theme.space().m(), theme.space().m(), theme.space().m())

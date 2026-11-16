@@ -36,7 +36,7 @@ class FindTest {
   }
 
   static App<Query> app(Theme t) {
-    Sql sql = Sql.of(t);
+    Sql sql = new Sql(t.code());
     App<Query>[] app = new App[1];
     app[0] = new App<>(
         new Query(),
@@ -45,10 +45,11 @@ class FindTest {
             .hFull()
             .padding(12)
             .fill(t.surface().window())
-            .child(codeEditor(t, app[0], s.sql, s.editor, sql, v -> s.sql = v)
+            .child(codeEditor(app[0], s.sql, s.editor, sql, v -> s.sql = v)
                 .key("query")
                 .lines(11)
                 .wFull()));
+    app[0].provide(Theme.CURRENT, query -> t);
     app[0].textRendering(TextRendering.LINUX);
     return app[0];
   }

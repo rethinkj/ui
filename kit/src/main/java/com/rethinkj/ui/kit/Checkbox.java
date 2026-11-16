@@ -20,24 +20,24 @@ public final class Checkbox {
    *
    * @param text shown beside it, also its label; null for none
    */
-  public static El checkbox(Theme theme, Prop<Boolean> checked, String text) {
+  public static El checkbox(Prop<Boolean> checked, String text) {
+    Theme theme = Theme.CURRENT.get();
     boolean now = Boolean.TRUE.equals(checked.get());
     return Prop.shown(
-        theme,
-        checkbox(theme, now, text, checked.writes() ? () -> checked.set(!now) : null),
-        checked);
+        theme, checkbox(now, text, checked.writes() ? () -> checked.set(!now) : null), checked);
   }
 
   /** A checkbox without text; give it a label with {@code .label("...")}. */
-  public static El checkbox(Theme theme, boolean checked, Runnable onToggle) {
-    return checkbox(theme, checked, null, onToggle);
+  public static El checkbox(boolean checked, Runnable onToggle) {
+    return checkbox(checked, null, onToggle);
   }
 
   /**
    * @param text shown beside the box, also its label; null for none
    * @param onToggle runs when the checkbox is pressed; null disables it
    */
-  public static El checkbox(Theme theme, boolean checked, String text, Runnable onToggle) {
+  public static El checkbox(boolean checked, String text, Runnable onToggle) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     Theme.Surfaces s = theme.surface();
     int fill = checked ? (enabled ? theme.accent().color() : theme.border().divider()) : s.raised();
@@ -52,8 +52,8 @@ public final class Checkbox {
         .border(theme.size().stroke(), edge)
         .motion(theme.motion().feedback());
     if (checked) {
-      box.child(label(theme, "✓")
-          .color(enabled ? theme.text().onAccent() : theme.text().disabled()));
+      box.child(
+          label("✓").color(enabled ? theme.text().onAccent() : theme.text().disabled()));
     }
     return ControlRow.controlRow(
         theme, "checkbox", checked, text, onToggle, box, theme.radius().medium(), fill);

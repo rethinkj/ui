@@ -18,13 +18,13 @@ import java.util.Objects;
  * Fields with their labels, help and errors, as a dialog or a page of settings asks for values:
  *
  * <pre>{@code
- * form(theme, Labels.BESIDE,
- *     field("Host", textField(theme, state.host, "Name or address", value -> state.host = value))
+ * form(Labels.BESIDE,
+ *     field("Host", textField(state.host, "Name or address", value -> state.host = value))
  *         .required(),
- *     field("Port", textField(theme, state.port, "5432", state::port).w(72))
+ *     field("Port", textField(state.port, "5432", state::port).w(72))
  *         .help("1 to 65535").error(state.portError()),           // null while it is right
- *     field("Password", revealable(theme,
- *         passwordField(theme, state.password, null, value -> state.password = value),
+ *     field("Password", revealable(
+ *         passwordField(state.password, null, value -> state.password = value),
  *         state.revealed, state::flipRevealed)))
  * }</pre>
  *
@@ -50,7 +50,7 @@ import java.util.Objects;
  * row:
  *
  * <pre>{@code
- * form(theme, Labels.BESIDE,
+ * form(Labels.BESIDE,
  *     group("Server",
  *         row(field("Host", host).required().grow(), field("Port", port.w(72))),
  *         field("Database", database)),
@@ -215,15 +215,16 @@ public final class Form {
    * left out, so that {@code active ? field(...) : null} shows a field under a condition, and so
    * is a group or a row whose entries are all null.
    */
-  public static El form(Theme theme, Labels labels, Entry... entries) {
-    return form(theme, labels, 0, entries);
+  public static El form(Labels labels, Entry... entries) {
+    return form(labels, 0, entries);
   }
 
   /**
    * The form with its label column at least {@code labelWidth} wide ({@link Labels#BESIDE}), so
    * that forms in separate cards or pages line up: give each the {@link #labelWidth} of all.
    */
-  public static El form(Theme theme, Labels labels, float labelWidth, Entry... entries) {
+  public static El form(Labels labels, float labelWidth, Entry... entries) {
+    Theme theme = Theme.CURRENT.get();
     List<Entry> present = present(entries, true);
     float column = (float) Math.ceil(Math.max(labelWidth, column(theme, present)));
     boolean beside = labels == Labels.BESIDE;
@@ -236,7 +237,7 @@ public final class Form {
       boolean group = entry instanceof Group;
       float above = before != null && (group || before instanceof Group) ? apart - gap : 0;
       if (group && before != null && ((Group) entry).isDivided()) {
-        form.child(Divider.divider(theme).margin(above, 0, 0, 0));
+        form.child(Divider.divider().margin(above, 0, 0, 0));
       }
       El el = group
           ? group(theme, labels, column, gap, (Group) entry)
@@ -254,7 +255,8 @@ public final class Form {
    * The width of the label column of a form of these entries with {@link Labels#BESIDE}: of the
    * widest label of a field or of a row's first field, in any group, with its marker.
    */
-  public static float labelWidth(Theme theme, Entry... entries) {
+  public static float labelWidth(Entry... entries) {
+    Theme theme = Theme.CURRENT.get();
     return (float) Math.ceil(column(theme, present(entries, true)));
   }
 
@@ -310,10 +312,9 @@ public final class Form {
   private static El group(Theme theme, Labels labels, float column, float gap, Group group) {
     El head = col()
         .gap(theme.space().xs())
-        .child(
-            label(theme, Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
+        .child(label(Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
     if (group.description() != null) {
-      head.child(label(theme, Label.Variant.MUTED, group.description()).wrapText());
+      head.child(label(Label.Variant.MUTED, group.description()).wrapText());
     }
     El fields = col().gap(gap);
     for (Entry entry : group.entries()) {
@@ -427,7 +428,7 @@ public final class Form {
     return El.row()
         .gap(theme.space().xs())
         .align(Style.Align.START)
-        .children(icon(theme, Symbol.WARNING, Icon.Variant.WARNING), words);
+        .children(icon(Symbol.WARNING, Icon.Variant.WARNING), words);
   }
 
   /** A field's control with {@code below} under it; null for nothing. */
@@ -457,7 +458,7 @@ public final class Form {
   private static El said(Theme theme, String text, boolean error) {
     return text == null
         ? null
-        : label(theme, Label.Variant.MUTED, text)
+        : label(Label.Variant.MUTED, text)
             .wrapText()
             .color(error ? theme.status().danger() : theme.text().muted());
   }
@@ -466,7 +467,8 @@ public final class Form {
    * Buttons at the end of a form, a card or a page: a row at the right, {@link Theme.Spacing#m}
    * apart, the main action usually last, as a dialog has them.
    */
-  public static El buttons(Theme theme, El... buttons) {
+  public static El buttons(El... buttons) {
+    Theme theme = Theme.CURRENT.get();
     return El.row()
         .gap(theme.space().m())
         .justify(Style.Content.END)
@@ -480,19 +482,17 @@ public final class Form {
       return;
     }
     if (target.isEditable()) {
-      TextField.invalid(theme, target);
+      TextField.invalid(target);
     }
     target.invalid(true).errorMessage(error);
   }
 
   /** The label of a field, with the marker of a required one. */
   private static El head(Theme theme, Field field) {
-    El head = El.row()
-        .gap(theme.space().xs())
-        .align(Style.Align.CENTER)
-        .child(label(theme, field.label()));
+    El head =
+        El.row().gap(theme.space().xs()).align(Style.Align.CENTER).child(label(field.label()));
     if (field.isRequired()) {
-      head.child(label(theme, "*").color(theme.status().danger()));
+      head.child(label("*").color(theme.status().danger()));
     }
     return head;
   }

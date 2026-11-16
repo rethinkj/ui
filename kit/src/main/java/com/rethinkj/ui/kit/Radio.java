@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * Choices of which one is chosen, one below the other, each a round mark and its text. A press on
@@ -37,18 +38,17 @@ public final class Radio {
    * A choice of {@link #swatches}: its name, the label of its radio and its tooltip, and what it
    * shows.
    *
-   * @param look builds the element shown, at most {@link Theme.Sizes#checkbox} square, for the
-   *     theme of the group
+   * @param look builds the element shown, at most {@link Theme.Sizes#checkbox} square
    */
-  public record Option(String label, Function<Theme, El> look) {}
+  public record Option(String label, Supplier<El> look) {}
 
   /** A choice of {@link #swatches} named {@code label} that shows what {@code look} builds. */
-  public static Option option(String label, Function<Theme, El> look) {
+  public static Option option(String label, Supplier<El> look) {
     return new Option(label, look);
   }
 
   /**
-   * Choices among values that show an element each, as {@link #swatches(Theme, List, int,
+   * Choices among values that show an element each, as {@link #swatches(List, int,
    * IntConsumer)} among options; null is a value like any other, such as a choice of no color.
    *
    * @param selected the chosen value, found by {@code equals}; a value not among them for none
@@ -57,7 +57,6 @@ public final class Radio {
    *     group
    */
   public static <T> El swatches(
-      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Option> option,
@@ -67,15 +66,15 @@ public final class Radio {
     for (T v : values) {
       options.add(option.apply(v));
     }
-    return swatches(
-        theme, options, Choices.index(values, selected), Choices.handler(values, onSelect));
+    return swatches(options, Choices.index(values, selected), Choices.handler(values, onSelect));
   }
 
   /** Swatches of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El swatches(
-      Theme theme, List<T> values, Prop<T> selected, Function<? super T, Option> option) {
+      List<T> values, Prop<T> selected, Function<? super T, Option> option) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, swatches(theme, values, selected.get(), option, selected.onChange()), selected);
+        theme, swatches(values, selected.get(), option, selected.onChange()), selected);
   }
 
   /**
@@ -97,7 +96,8 @@ public final class Radio {
    * @param onSelect told the index of the option the user chooses, only when it changes; null
    *     disables the group
    */
-  public static El swatches(Theme theme, List<Option> options, int selected, IntConsumer onSelect) {
+  public static El swatches(List<Option> options, int selected, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     float gap = theme.size().ringGap();
     float side = theme.size().checkbox() + 2 * (gap + Scene.RING);
@@ -116,7 +116,7 @@ public final class Radio {
           .border(
               Scene.RING,
               !on ? 0 : enabled ? theme.accent().edge() : theme.text().disabled())
-          .child(o.look().apply(theme).shrink(0));
+          .child(o.look().get().shrink(0));
       El option = el().role("radio")
           .label(o.label())
           .checked(on)
@@ -136,7 +136,7 @@ public final class Radio {
             .whenHovered(e -> e.fill(theme.surface().hover()))
             .whenPressed(e -> e.fill(theme.surface().pressed()));
       }
-      group.child(Tooltip.tooltip(theme, option, o.label()));
+      group.child(Tooltip.tooltip(option, o.label()));
     }
     keys(theme, group, options.size(), selected, onSelect);
     if (enabled && frames.length > 0) {
@@ -150,7 +150,7 @@ public final class Radio {
 
   /**
    * Choices among values of any type, such as the constants of an enum, as {@link
-   * #radioGroup(Theme, List, int, IntConsumer)} is among texts.
+   * #radioGroup(List, int, IntConsumer)} is among texts.
    *
    * @param selected the chosen value, found by {@code equals}; null, or a value not among them,
    *     for none
@@ -159,14 +159,9 @@ public final class Radio {
    *     group
    */
   public static <T> El radioGroup(
-      Theme theme,
-      List<T> values,
-      T selected,
-      Function<? super T, String> text,
-      Consumer<? super T> onSelect) {
+      List<T> values, T selected, Function<? super T, String> text, Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return radioGroup(
-        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         Choices.handler(values, onSelect));
@@ -174,9 +169,10 @@ public final class Radio {
 
   /** Choices of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El radioGroup(
-      Theme theme, List<T> values, Prop<T> selected, Function<? super T, String> text) {
+      List<T> values, Prop<T> selected, Function<? super T, String> text) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, radioGroup(theme, values, selected.get(), text, selected.onChange()), selected);
+        theme, radioGroup(values, selected.get(), text, selected.onChange()), selected);
   }
 
   /**
@@ -184,8 +180,8 @@ public final class Radio {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the group
    */
-  public static El radioGroup(
-      Theme theme, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El radioGroup(List<String> choices, int selected, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     El group = col()
         .role("radiogroup")
@@ -235,8 +231,7 @@ public final class Radio {
         .align(Style.Align.CENTER)
         .children(
             mark,
-            label(theme, text)
-                .color(enabled ? theme.text().primary() : theme.text().disabled()));
+            label(text).color(enabled ? theme.text().primary() : theme.text().disabled()));
     if (!enabled) {
       return radio;
     }

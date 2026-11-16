@@ -51,7 +51,7 @@ final class Sheets {
   }
 
   App<Sheets> app(java.util.function.Function<Sheets, El> view) {
-    App<Sheets> app = new App<>(this, view);
+    App<Sheets> app = new App<>(this, view).provide(Theme.CURRENT, sheets -> sheets.t);
     app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
@@ -64,11 +64,9 @@ final class Sheets {
     for (int i = 0; i < names.length; i++) {
       int at = i;
       tiles.child(Card.pressable(
-          t,
           card(
-                  t,
-                  label(t, Label.Variant.STRONG, names[i]),
-                  label(t, Label.Variant.MUTED, names[i] + ".example.com"))
+                  label(Label.Variant.STRONG, names[i]),
+                  label(Label.Variant.MUTED, names[i] + ".example.com"))
               .key("tile-" + i)
               .grow(1),
           names[i],
@@ -83,33 +81,27 @@ final class Sheets {
         .fill(t.surface().window())
         .children(
             card(
-                t,
                 Card.header(
-                    t,
                     "Query history",
                     "The last fifty statements run in this window",
-                    button(t, Variant.GHOST, "Clear", () -> presses++)),
-                label(t, "SELECT * FROM orders WHERE id = 42"),
+                    button(Variant.GHOST, "Clear", () -> presses++)),
+                label("SELECT * FROM orders WHERE id = 42"),
                 card(
-                    t,
                     Card.Variant.OUTLINED,
-                    label(t, Label.Variant.MUTED, "A card in a card shares its surface")),
-                Form.buttons(t, button(t, Variant.SECONDARY, "Export…", () -> presses++))),
+                    label(Label.Variant.MUTED, "A card in a card shares its surface")),
+                Form.buttons(button(Variant.SECONDARY, "Export…", () -> presses++))),
             row()
                 .gap(t.space().m())
                 .children(
-                    card(t, Card.Variant.FILLED, label(t, "Filled")).grow(1),
-                    card(t, Card.Variant.ELEVATED, label(t, "Elevated")).grow(1),
-                    card(
-                            t,
-                            NavList.navList(
-                                t,
-                                List.of(
-                                    NavList.item("orders"),
-                                    NavList.item("customers"),
-                                    NavList.item("invoices")),
-                                1,
-                                i -> {}))
+                    card(Card.Variant.FILLED, label("Filled")).grow(1),
+                    card(Card.Variant.ELEVATED, label("Elevated")).grow(1),
+                    card(NavList.navList(
+                            List.of(
+                                NavList.item("orders"),
+                                NavList.item("customers"),
+                                NavList.item("invoices")),
+                            1,
+                            i -> {}))
                         .padding(0)
                         .gap(0)
                         .grow(1)),
@@ -126,57 +118,49 @@ final class Sheets {
         .fill(t.surface().window())
         .children(
             section(
-                t,
                 "Editor",
                 "How text looks and behaves while you type",
                 group(
-                    t,
                     switchRow(
-                        t,
                         Symbol.TEXT_T,
                         "Word wrap",
                         "Wrap long lines at the edge of the editor instead of scrolling sideways",
                         wrap,
                         () -> wrap = !wrap),
-                    switchRow(t, "Line numbers", null, numbers, () -> numbers = !numbers),
+                    switchRow("Line numbers", null, numbers, () -> numbers = !numbers),
                     Group.row(
-                        t,
                         "Font",
                         null,
                         Select.select(
-                                t, List.of("JetBrains Mono", "Inter"), font, fonts, i -> font = i)
+                                List.of("JetBrains Mono", "Inter"), font, fonts, i -> font = i)
                             .key("font")
                             .w(160)),
                     Group.row(
-                        t,
                         "Tab size",
                         "Columns per tab stop",
-                        NumberField.numberField(t, tabSize, 1, 16, 1, v -> tabSize = v)),
-                    linkRow(t, Symbol.KEY, "Keymap", null, "Default", () -> presses++),
+                        NumberField.numberField(tabSize, 1, 16, 1, v -> tabSize = v)),
+                    linkRow(Symbol.KEY, "Keymap", null, "Default", () -> presses++),
                     expander(
-                        t,
                         "Advanced",
                         "Options most people never change",
                         advanced,
                         () -> advanced = !advanced,
-                        switchRow(t, "Insert spaces", null, spaces, () -> spaces = !spaces),
+                        switchRow("Insert spaces", null, spaces, () -> spaces = !spaces),
                         Group.box(
-                            t,
-                            label(t, "Line endings"),
+                            label("Line endings"),
                             Radio.radioGroup(
-                                    t,
                                     List.of("LF", "CRLF", "As in the file"),
                                     endings,
                                     i -> endings = i)
                                 .label("Line endings"))),
-                    switchRow(t, "Telemetry", "Managed by your organization", false, null))),
-            divider(t),
-            divider(t, "or"),
+                    switchRow("Telemetry", "Managed by your organization", false, null))),
+            divider(),
+            divider("or"),
             row()
                 .gap(t.space().m())
                 .align(Style.Align.CENTER)
                 .h(24)
-                .children(label(t, "Left"), Divider.vertical(t), label(t, "Right")));
+                .children(label("Left"), Divider.vertical(), label("Right")));
   }
 
   /** The same form with labels beside and above, with help, an error and required fields. */
@@ -196,25 +180,19 @@ final class Sheets {
         .gap(t.space().l())
         .children(
             Form.form(
-                t,
                 labels,
-                field(
-                        "Host",
-                        textField(t, host, "Name or address", v -> host = v).w(180))
+                field("Host", textField(host, "Name or address", v -> host = v).w(180))
                     .required(),
                 field(
                         "Port",
-                        textField(t, port, "5432", v -> port = v)
-                            .key(at + "port")
-                            .w(72))
+                        textField(port, "5432", v -> port = v).key(at + "port").w(72))
                     .help("From 1 to 65535")
                     .error(port.matches("\\d+") ? null : "Digits only"),
-                field("Database", textField(t, "", "Name", v -> {}).w(180))
+                field("Database", textField("", "Name", v -> {}).w(180))
                     .help("Leave empty for the user's own")),
             Form.buttons(
-                t,
-                button(t, Variant.SECONDARY, "Cancel", () -> {}),
-                button(t, Variant.PRIMARY, "Save", () -> {})));
+                button(Variant.SECONDARY, "Cancel", () -> {}),
+                button(Variant.PRIMARY, "Save", () -> {})));
   }
 
   /**
@@ -246,30 +224,28 @@ final class Sheets {
   El formGroups(Form.Labels labels) {
     String at = labels.name().toLowerCase(java.util.Locale.ROOT) + "-";
     return Form.form(
-        t,
         labels,
         Form.group(
                 "Server",
                 Form.row(
                     field(
                             "Host",
-                            textField(t, host, "Name or address", v -> host = v).key(at + "host"))
+                            textField(host, "Name or address", v -> host = v).key(at + "host"))
                         .required()
                         .help("A name or an address the server answers on")
                         .grow(),
                     field(
                             "Port",
-                            textField(t, port, "5432", v -> port = v)
+                            textField(port, "5432", v -> port = v)
                                 .key(at + "port")
                                 .w(72))
                         .error(port.matches("\\d+") ? null : "Digits only")),
-                field("Database", textField(t, "", "Name", v -> {}).key(at + "database")))
+                field("Database", textField("", "Name", v -> {}).key(at + "database")))
             .description("Where the database runs"),
         Form.group(
                 "Login",
-                field("User", textField(t, "", "Role", v -> {}).key(at + "user")),
-                field(
-                    "Password", TextField.passwordField(t, "", null, v -> {}).key(at + "password")))
+                field("User", textField("", "Role", v -> {}).key(at + "user")),
+                field("Password", TextField.passwordField("", null, v -> {}).key(at + "password")))
             .divided());
   }
 
@@ -284,22 +260,19 @@ final class Sheets {
         .padding(t.space().xl())
         .fill(t.surface().window())
         .child(Form.form(
-            t,
             Form.Labels.BESIDE,
             field(
                     "Driver",
-                    Select.select(t, List.of("42.7.15", "42.7.14"), 0, fonts, i -> {})
+                    Select.select(List.of("42.7.15", "42.7.14"), 0, fonts, i -> {})
                         .key("driver")
                         .w(180))
                 .help("The version the connection loads")
                 .warning("42.7.15 is 1 day old; 42.7.14 has been out for a month"),
             Form.row(
-                field("Host", textField(t, "10.8.0.4", null, v -> {}).key("host"))
+                field("Host", textField("10.8.0.4", null, v -> {}).key("host"))
                     .warning("Outside the local network: the connection is not encrypted")
                     .grow(),
-                field(
-                        "Port",
-                        textField(t, port, "5432", v -> port = v).key("port").w(72))
+                field("Port", textField(port, "5432", v -> port = v).key("port").w(72))
                     .error("Digits only")
                     .warning("Ports below 1024 need rights"))));
   }
@@ -313,24 +286,22 @@ final class Sheets {
         .gap(t.space().l())
         .fill(t.surface().window())
         .children(
-            Segmented.segmented(t, List.of("Light", "Dark", "System"), theme, i -> theme = i)
+            Segmented.segmented(List.of("Light", "Dark", "System"), theme, i -> theme = i)
                 .label("Theme"),
-            Radio.radioGroup(t, List.of("LF", "CRLF", "As in the file"), endings, i -> endings = i)
+            Radio.radioGroup(List.of("LF", "CRLF", "As in the file"), endings, i -> endings = i)
                 .label("Line endings"),
-            NumberField.numberField(t, tabSize, 1, 16, 1, v -> tabSize = v).key("tabs"),
-            Slider.slider(t, fontSize, 11, 16, 1, v -> fontSize = v).label("Font size"),
+            NumberField.numberField(tabSize, 1, 16, 1, v -> tabSize = v).key("tabs"),
+            Slider.slider(fontSize, 11, 16, 1, v -> fontSize = v).label("Font size"),
             Callout.callout(
-                t,
                 Callout.Kind.WARNING,
                 "Restart to apply",
                 "The interface font changes after the next start.",
-                button(t, Variant.SECONDARY, "Restart", () -> presses++)),
+                button(Variant.SECONDARY, "Restart", () -> presses++)),
             EmptyState.emptyState(
-                t,
                 Symbol.SEARCH,
                 "No connections match",
                 "Try another name or host.",
-                button(t, Variant.SECONDARY, "Clear filter", () -> presses++)));
+                button(Variant.SECONDARY, "Clear filter", () -> presses++)));
   }
   /**
    * Callouts: of every kind with room for their actions beside the text, and one with a longer
@@ -345,29 +316,24 @@ final class Sheets {
         .fill(t.surface().window())
         .children(
             Callout.callout(
-                t,
                 Callout.Kind.SUCCESS,
                 "Connected",
                 "The server answered in 12 ms.",
-                button(t, Variant.SECONDARY, "Open", () -> presses++)),
-            Callout.callout(t, Callout.Kind.INFO, "Read only", "This connection writes nothing."),
+                button(Variant.SECONDARY, "Open", () -> presses++)),
+            Callout.callout(Callout.Kind.INFO, "Read only", "This connection writes nothing."),
             Callout.callout(
-                t,
                 Callout.Kind.DANGER,
                 "Connection lost",
                 null,
-                button(t, Variant.SECONDARY, "Retry", () -> presses++)),
-            card(
-                    t,
-                    Callout.callout(
-                            t,
-                            Callout.Kind.WARNING,
-                            "Unsaved changes",
-                            "Three rows of orders have changes that are not committed yet. Closing"
-                                + " the tab discards them.",
-                            button(t, Variant.SECONDARY, "Discard", () -> presses++),
-                            button(t, Variant.PRIMARY, "Commit", () -> presses++))
-                        .key("narrow"))
+                button(Variant.SECONDARY, "Retry", () -> presses++)),
+            card(Callout.callout(
+                        Callout.Kind.WARNING,
+                        "Unsaved changes",
+                        "Three rows of orders have changes that are not committed yet. Closing"
+                            + " the tab discards them.",
+                        button(Variant.SECONDARY, "Discard", () -> presses++),
+                        button(Variant.PRIMARY, "Commit", () -> presses++))
+                    .key("narrow"))
                 .w(400));
   }
 }

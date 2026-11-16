@@ -36,7 +36,8 @@ public final class StatusBar {
   }
 
   /** The height of the bar, for what has to stay clear of it, as a {@link Toast}. */
-  public static float height(Theme theme) {
+  public static float height() {
+    Theme theme = Theme.CURRENT.get();
     return theme.size().control() + theme.space().s();
   }
 
@@ -48,7 +49,8 @@ public final class StatusBar {
    * @param start the parts at the left, in the order shown; null parts are left out
    * @param end the parts at the right, in the order shown; null parts are left out
    */
-  public static El statusBar(Theme theme, List<El> start, List<El> end) {
+  public static El statusBar(List<El> start, List<El> end) {
+    Theme theme = Theme.CURRENT.get();
     El left = row()
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
@@ -66,7 +68,7 @@ public final class StatusBar {
         .label("Status bar")
         .wFull()
         .shrink(0)
-        .h(height(theme))
+        .h(height())
         .padding(0, theme.space().m())
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
@@ -81,7 +83,8 @@ public final class StatusBar {
   }
 
   /** A text of the bar, such as "1,000,000 rows". */
-  public static El text(Theme theme, String text) {
+  public static El text(String text) {
+    Theme theme = Theme.CURRENT.get();
     return part(theme, null, text, null);
   }
 
@@ -92,9 +95,9 @@ public final class StatusBar {
    * @param onPress runs when the part is pressed, as a part that opens a menu or a dialog; null
    *     for a part that only shows
    */
-  public static El item(Theme theme, Symbol icon, String text, Runnable onPress) {
-    return part(
-        theme, icon == null ? null : Icon.icon(theme, icon, Icon.Variant.MUTED), text, onPress);
+  public static El item(Symbol icon, String text, Runnable onPress) {
+    Theme theme = Theme.CURRENT.get();
+    return part(theme, icon == null ? null : Icon.icon(icon, Icon.Variant.MUTED), text, onPress);
   }
 
   /**
@@ -103,7 +106,8 @@ public final class StatusBar {
    *
    * @param onPress runs when the part is pressed; null for a part that only shows
    */
-  public static El status(Theme theme, State state, String text, Runnable onPress) {
+  public static El status(State state, String text, Runnable onPress) {
+    Theme theme = Theme.CURRENT.get();
     float side = theme.space().m();
     int color = switch (state) {
       case CONNECTED -> theme.status().success();
@@ -114,7 +118,7 @@ public final class StatusBar {
     // In a box as wide as an icon, so that texts after dots and after icons line up; what is on
     // its way turns, as everything that waits does.
     El dot = state == State.BUSY
-        ? Progress.spinner(theme)
+        ? Progress.spinner()
         : el().size(theme.size().icon(), theme.size().icon())
             .center()
             .shrink(0)
@@ -134,7 +138,7 @@ public final class StatusBar {
     if (before != null) {
       part.child(before);
     }
-    part.child(Label.label(theme, Label.Variant.SMALL, text).ellipsis().minSize(0, 0));
+    part.child(Label.label(Label.Variant.SMALL, text).ellipsis().minSize(0, 0));
     if (onPress == null) {
       return part;
     }

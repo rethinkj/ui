@@ -39,13 +39,13 @@ public final class Callout {
    * @param actions buttons at the right, in the order shown: beside the text, or below it where
    *     beside it the text would be narrower than {@link Theme.Sizes#field}
    */
-  public static El callout(Theme theme, Kind kind, String title, String text, El... actions) {
+  public static El callout(Kind kind, String title, String text, El... actions) {
+    Theme theme = Theme.CURRENT.get();
     Theme.CalloutTone tone = theme.callout().of(kind);
-    El words = col().grow(1).gap(theme.space().xs()).child(label(theme, title).wrapText());
+    El words = col().grow(1).gap(theme.space().xs()).child(label(title).wrapText());
     words.style().minWidth = Len.ZERO;
     if (text != null) {
-      words.child(
-          label(theme, Label.Variant.MUTED, text).color(theme.callout().text()).wrapText());
+      words.child(label(Label.Variant.MUTED, text).color(theme.callout().text()).wrapText());
     }
     float bar = theme.callout().bar();
     El callout = row()
@@ -62,14 +62,12 @@ public final class Callout {
         .fill(tone.fill())
         .child(
             el().w(bar).shrink(0).alignSelf(Style.Align.STRETCH).radius(bar / 2).fill(tone.mark()))
-        .child(icon(
-                theme,
-                switch (kind) {
-                  case INFO -> Symbol.INFO;
-                  case WARNING -> Symbol.WARNING;
-                  case DANGER -> Symbol.ERROR_CIRCLE;
-                  case SUCCESS -> Symbol.CHECKMARK_CIRCLE;
-                })
+        .child(icon(switch (kind) {
+              case INFO -> Symbol.INFO;
+              case WARNING -> Symbol.WARNING;
+              case DANGER -> Symbol.ERROR_CIRCLE;
+              case SUCCESS -> Symbol.CHECKMARK_CIRCLE;
+            })
             .color(tone.mark()));
     if (actions.length == 0) {
       return callout.child(words);

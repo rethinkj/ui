@@ -116,7 +116,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Commits state = new Commits();
-              state.theme = t;
               return new App<>(state, Commits::view);
             },
             520,
@@ -128,7 +127,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Highlighters state = new Highlighters();
-              state.theme = t;
               App<Highlighters> app = new App<>(state, Highlighters::view);
               state.app = app;
               return app;
@@ -143,7 +141,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Styles state = new Styles();
-              state.theme = t;
               return new App<>(state, Styles::view);
             },
             360,
@@ -159,7 +156,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Messages state = new Messages();
-              state.theme = t;
               return new App<>(state, Messages::view);
             },
             320,
@@ -170,7 +166,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Paragraphs state = new Paragraphs();
-              state.theme = t;
               return new App<>(state, Paragraphs::view);
             },
             300,
@@ -182,7 +177,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Concepts state = new Concepts();
-              state.theme = t;
               App<Concepts> app = new App<>(state, Concepts::lanes);
               state.app = app;
               state.connection = app.lane("staging");
@@ -205,14 +199,13 @@ class DocsExamplesTest {
             260));
     editings(all, "editing", Editings::record, 380, 260);
     editings(all, "editing-pojo", Editings::pojo, 360, 160);
-    all.put("tags", new Example(t -> tags(t, Tags::view), 320, 140));
-    all.put("tags-form", new Example(t -> tags(t, Tags::form), 400, 160));
+    all.put("tags", new Example(t -> tags(Tags::view), 320, 140));
+    all.put("tags-form", new Example(t -> tags(Tags::form), 400, 160));
     all.put(
         "resize",
         new Example(
             t -> {
               Bars state = new Bars();
-              state.theme = t;
               return new App<>(state, Bars::view);
             },
             420,
@@ -223,7 +216,7 @@ class DocsExamplesTest {
             t -> {
               Themes state = new Themes();
               state.systemDark = t == Theme.DARK; // System mode: the system's choice
-              return new App<>(state, Themes::view);
+              return new App<>(state, Themes::view).provide(Theme.CURRENT, Themes::theme);
             },
             420,
             200));
@@ -232,7 +225,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               App<Customers> app = Customers.app();
-              app.state().theme = t;
               return app;
             },
             760,
@@ -247,7 +239,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Controls state = new Controls();
-              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -261,7 +252,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Layouts state = new Layouts();
-              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -275,7 +265,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Overlays state = new Overlays();
-              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -289,7 +278,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Grids state = new Grids();
-              state.theme = t;
               App<Grids> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -305,7 +293,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Editors state = new Editors();
-              state.theme = t;
               App<Editors> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -321,7 +308,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Concepts state = new Concepts();
-              state.theme = t;
               App<Concepts> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -330,9 +316,8 @@ class DocsExamplesTest {
             height));
   }
 
-  private static App<Tags> tags(Theme t, Function<Tags, El> view) {
+  private static App<Tags> tags(Function<Tags, El> view) {
     Tags state = new Tags();
-    state.theme = t;
     return new App<>(state, view);
   }
 
@@ -343,7 +328,6 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Editings state = new Editings();
-              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -369,7 +353,7 @@ class DocsExamplesTest {
           String script = Files.exists(file)
               ? Files.readString(file)
               : "size " + example.width() + " " + example.height() + "\nframe\nsnap view\n";
-          App<?> app = example.app().apply(Theme.DARK);
+          App<?> app = example.app().apply(Theme.DARK).provide(Theme.CURRENT, state -> Theme.DARK);
           app.textRendering(TextRendering.LINUX); // the same trees on every platform
           Script.run(script, app, out.resolve("trees"));
           compare(out.resolve("trees"), STORED.resolve(e.getKey()));
@@ -378,7 +362,8 @@ class DocsExamplesTest {
           String scaled = script.replaceAll("(?m)^(size \\d+ \\d+)(?=\\s*(#|$))", "$1 scale 2");
           for (String theme :
               IMAGES.containsKey(e.getKey()) ? List.of("dark", "light") : List.<String>of()) {
-            App<?> themed = example.app().apply(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
+            Theme look = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
+            App<?> themed = example.app().apply(look).provide(Theme.CURRENT, state -> look);
             themed.textRendering(TextRendering.LINUX); // the same pixels on every platform
             Snaps.clear(out.resolve(theme));
             Script.run(scaled, themed, out.resolve(theme));

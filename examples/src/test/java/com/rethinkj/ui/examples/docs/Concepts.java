@@ -35,7 +35,6 @@ import java.util.concurrent.Semaphore;
 /** The examples of the concept pages, built from core's elements where they can be. */
 final class Concepts {
 
-  Theme theme = Theme.DARK;
   App<?> app; // set by whoever makes the app
   int presses;
   boolean open;
@@ -58,7 +57,7 @@ final class Concepts {
   String opened = "";
 
   static El layout(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start layout
     El sidebar = col()
         .w(160)
@@ -90,7 +89,7 @@ final class Concepts {
   }
 
   static El texts(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start text
     El title =
         text("Orders").font(Font.sansSemibold()).fontSize(20).color(theme.text().primary());
@@ -108,11 +107,11 @@ final class Concepts {
         .fontFeatures("+calt")
         .color(theme.text().primary());
     // docs:end text
-    return Frame.of(theme, title, body, cut, code);
+    return Frame.of(title, body, cut, code);
   }
 
   static El input(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start input
     El counter = el().key("counter")
         .role("button")
@@ -140,7 +139,7 @@ final class Concepts {
         .onDrag(state::dragKnob);
     El track = el().w(200).h(24).child(knob);
     // docs:end drag
-    return Frame.of(theme, counter, track);
+    return Frame.of(counter, track);
   }
 
   // docs:start input-handlers
@@ -167,7 +166,7 @@ final class Concepts {
   // docs:end drag-handlers
 
   static El states(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start states
     El row = row()
         .key("row-3")
@@ -179,11 +178,11 @@ final class Concepts {
         .position(1, 3)
         .child(text("orders").color(theme.text().primary()));
     // docs:end states
-    return Frame.of(theme, row);
+    return Frame.of(row);
   }
 
   static El motion(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start motion
     El panel = el().key("panel")
         .w(state.open ? 240 : 120)
@@ -191,7 +190,7 @@ final class Concepts {
         .radius(theme.radius().medium())
         .fill(state.open ? theme.accent().color() : theme.surface().raised())
         .motion(Spring.SETTLE); // size and color spring to their new values
-    El toggle = Button.button(theme, SECONDARY, state.open ? "Close" : "Open", state::toggleOpen);
+    El toggle = Button.button(SECONDARY, state.open ? "Close" : "Open", state::toggleOpen);
     // docs:end motion
     // docs:start cycle
     El pulse = el().key("pulse")
@@ -202,7 +201,7 @@ final class Concepts {
             1.2,
             (element, phase) -> element.opacity((float) (0.4 + 0.6 * Math.sin(phase * Math.PI))));
     // docs:end cycle
-    return Frame.of(theme, panel, toggle, pulse);
+    return Frame.of(panel, toggle, pulse);
   }
 
   // docs:start motion-handlers
@@ -212,7 +211,7 @@ final class Concepts {
   // docs:end motion-handlers
 
   static El overlay(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start overlay
     El menu = col()
         .key("menu")
@@ -225,12 +224,12 @@ final class Concepts {
         .side(Side.BOTTOM, Style.Align.START, 4) // below the button
         .onDismiss(state::closeMenu) // a press outside
         .onKey(state::closeOnEscape)
-        .child(Button.button(theme, SECONDARY, "Open", state::closeMenu).key("open"));
-    El button = Button.button(theme, SECONDARY, "Actions", state::toggleMenu)
+        .child(Button.button(SECONDARY, "Open", state::closeMenu).key("open"));
+    El button = Button.button(SECONDARY, "Actions", state::toggleMenu)
         .key("actions")
         .overlay(state.menu ? menu : null); // open is the app's state
     // docs:end overlay
-    return Frame.of(theme, button);
+    return Frame.of(button);
   }
 
   // docs:start overlay-handlers
@@ -252,7 +251,7 @@ final class Concepts {
   // docs:end overlay-handlers
 
   static El rows(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start rows
     El list = col()
         .key("rows")
@@ -272,11 +271,11 @@ final class Concepts {
                 .align(Style.Align.CENTER)
                 .child(text("Row " + index).color(theme.text().primary())));
     // docs:end rows
-    return Frame.of(theme, list);
+    return Frame.of(list);
   }
 
   static El fields(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start field
     El name = text(state.name)
         .editable(state::name) // every edit hands on the string
@@ -303,7 +302,7 @@ final class Concepts {
         .fill(theme.surface().raised())
         .color(theme.text().primary());
     // docs:end field
-    return Frame.of(theme, name, query);
+    return Frame.of(name, query);
   }
 
   // docs:start field-handlers
@@ -317,21 +316,18 @@ final class Concepts {
   // docs:end field-handlers
 
   static El background(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start background
-    El count =
-        Button.button(theme, PRIMARY, null, "Count rows", state.count != null, state::countRows);
-    El cancel =
-        Button.button(theme, SECONDARY, "Cancel", state.count == null ? null : state::cancelCount);
+    El count = Button.button(PRIMARY, null, "Count rows", state.count != null, state::countRows);
+    El cancel = Button.button(SECONDARY, "Cancel", state.count == null ? null : state::cancelCount);
     // docs:end background
     // docs:start after
-    El save = Button.button(theme, SECONDARY, "Save", state::save);
+    El save = Button.button(SECONDARY, "Save", state::save);
     // docs:end after
     return Frame.of(
-        theme,
         row().gap(theme.space().s()).children(count, cancel, save),
-        Label.label(theme, state.rows).key("rows"),
-        Label.label(theme, state.message).key("message"));
+        Label.label(state.rows).key("rows"),
+        Label.label(state.message).key("message"));
   }
 
   // docs:start background-handlers
@@ -378,20 +374,18 @@ final class Concepts {
   }
 
   static El lanes(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start lane
-    El report =
-        Button.button(theme, PRIMARY, null, "Run report", state.report != null, state::runReport);
-    El cancel = Button.button(
-        theme, SECONDARY, "Cancel", state.report == null ? null : state::cancelReport);
-    El count = Button.button(theme, SECONDARY, "Count orders", state::countOrders);
-    El waiting = Label.label(theme, state.connection.pending().size() + " on the connection");
+    El report = Button.button(PRIMARY, null, "Run report", state.report != null, state::runReport);
+    El cancel =
+        Button.button(SECONDARY, "Cancel", state.report == null ? null : state::cancelReport);
+    El count = Button.button(SECONDARY, "Count orders", state::countOrders);
+    El waiting = Label.label(state.connection.pending().size() + " on the connection");
     // docs:end lane
     return Frame.of(
-        theme,
         row().gap(theme.space().s()).children(report, cancel, count),
-        Label.label(theme, state.reportStatus).key("report"),
-        Label.label(theme, state.counted).key("count"),
+        Label.label(state.reportStatus).key("report"),
+        Label.label(state.counted).key("count"),
         waiting.key("waiting"));
   }
 
@@ -467,13 +461,11 @@ final class Concepts {
   }
 
   static El progress(Concepts state) {
-    Theme theme = state.theme;
     // docs:start reporting
-    El download =
-        Button.button(theme, PRIMARY, null, "Download", state.download != null, state::download);
-    El bar = Progress.labeled(theme, "Driver", state.received / 8.0, state.received + " of 8 MB");
+    El download = Button.button(PRIMARY, null, "Download", state.download != null, state::download);
+    El bar = Progress.labeled("Driver", state.received / 8.0, state.received + " of 8 MB");
     // docs:end reporting
-    return Frame.of(theme, download, bar.w(240));
+    return Frame.of(download, bar.w(240));
   }
 
   // docs:start reporting-handlers
@@ -539,14 +531,14 @@ final class Concepts {
   }
 
   static El images(Concepts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start images
-    El open = Button.button(theme, SECONDARY, "Open image…", state::openImage);
+    El open = Button.button(SECONDARY, "Open image…", state::openImage);
     El photo = state.photo == null
-        ? Label.label(theme, Label.Variant.MUTED, "No image")
+        ? Label.label(Label.Variant.MUTED, "No image")
         : El.image(state.photo).label("The chosen image").radius(theme.radius().medium());
     // docs:end images
-    return Frame.of(theme, open, photo);
+    return Frame.of(open, photo);
   }
 
   // docs:start images-handlers
@@ -586,9 +578,9 @@ final class Concepts {
     // docs:start theme
     // a named accent, made for the light theme
     Theme theme = Theme.LIGHT.withAccent(Theme.Hue.TEAL);
-    El save = Button.button(theme, PRIMARY, "Save", state::save);
+    // the components built inside read it from Theme.CURRENT
+    return Theme.CURRENT.with(theme, () -> Frame.of(Button.button(PRIMARY, "Save", state::save)));
     // docs:end theme
-    return Frame.of(theme, save);
   }
 
   static Theme ownAccent() {
@@ -600,7 +592,8 @@ final class Concepts {
     return theme;
   }
 
-  static int colors(Theme theme) {
+  static int colors() {
+    Theme theme = Theme.CURRENT.get();
     // docs:start colors
     int lamp = Colors.hex("#FACC15"); // from a setting, 0xFFFACC15
     int shade = Colors.alpha(Colors.BLACK, 0.4f); // black at 40 %, 0x66000000

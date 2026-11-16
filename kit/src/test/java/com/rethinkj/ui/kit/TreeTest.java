@@ -183,7 +183,6 @@ class TreeTest {
             .wFull()
             .hFull()
             .child(Menu.contextMenu(
-                T,
                 c.tree().key("schema").grow(1),
                 menu,
                 List.of(Menu.item("Copy name", () -> chosen.add("copy " + c.selected))))));
@@ -361,9 +360,9 @@ class TreeTest {
             .wFull()
             .hFull()
             .children(
-                button(T, Variant.SECONDARY, "Before", () -> {}),
+                button(Variant.SECONDARY, "Before", () -> {}),
                 c.tree().key("schema").grow(1),
-                button(T, Variant.SECONDARY, "After", () -> {})));
+                button(Variant.SECONDARY, "After", () -> {})));
     run(app, "frame\nkey Tab\nframe\nkey Tab\nframe");
     assertEquals("schema", app.focused().key());
     run(app, "key Tab\nframe");
@@ -614,7 +613,7 @@ class TreeTest {
         m -> col()
             .wFull()
             .hFull()
-            .child(Tree.tree(T, m, m.open::contains, null, s -> {}, null, null)
+            .child(Tree.tree(m, m.open::contains, null, s -> {}, null, null)
                 .key("tree")
                 .grow(1)));
     run(app, "size " + width + " 300\nframe");
@@ -661,7 +660,7 @@ class TreeTest {
         c -> col()
             .wFull()
             .hFull()
-            .child(Tree.tree(T, c, c.open::contains, c.node("localhost/shop"), null, null, null)
+            .child(Tree.tree(c, c.open::contains, c.node("localhost/shop"), null, null, null)
                 .key("schema")
                 .grow(1)));
     run(app, "frame\nmove #row-1\npress #row-1\npress #mark-0\nkey Tab\nframe");
@@ -698,7 +697,7 @@ class TreeTest {
       }
     };
     App<Tree.Model<String>> app = new App<>(
-        model, m -> Tree.tree(T, m, n -> false, null, null, null, null).wFull().hFull());
+        model, m -> Tree.tree(m, n -> false, null, null, null, null).wFull().hFull());
     run(app, "frame\nmove #row-0\nframe\nadvance 1\nframe");
     assertTrue(dumpLine(app, "row-0").contains("value=\"\""));
     assertFalse(textOf(find(app, "row-0"), "name").text().shortened());
@@ -806,7 +805,6 @@ class TreeTest {
 
     El view() {
       return Tree.tree(
-              T,
               this,
               open::contains,
               selected,

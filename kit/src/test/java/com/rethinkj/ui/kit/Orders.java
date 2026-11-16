@@ -230,7 +230,6 @@ final class Orders {
 
   El grid() {
     return dataGrid(
-        theme,
         columns(),
         count,
         more.apply(DataGrid.options()
@@ -288,7 +287,7 @@ final class Orders {
   }
 
   App<Orders> app() {
-    app = new App<>(this, Orders::view);
+    app = new App<>(this, Orders::view).provide(Theme.CURRENT, orders -> orders.theme);
     app.textRendering(TextRendering.LINUX);
     return app;
   }

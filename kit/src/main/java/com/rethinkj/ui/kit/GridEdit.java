@@ -334,7 +334,7 @@ final class GridEdit {
         .fill(theme.surface().raised())
         .border(theme.size().stroke(), theme.status().danger())
         .shadow(theme.elevation().popup())
-        .child(Label.label(theme, message));
+        .child(Label.label(message));
   }
 
   /** The keys of the editor, which reach it from its field or the app's own editor. */
@@ -725,7 +725,7 @@ final class GridEdit {
       box.gap(theme.space().xs())
           .dismissGroup(sel.search)
           .child(field)
-          .child(Icon.icon(theme, Select.OPENS, Icon.Variant.MUTED));
+          .child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
     } else if (c.editing().editor() != null) {
       box.child(c.editing()
           .editor()
@@ -743,7 +743,7 @@ final class GridEdit {
           sel.draft == null ? theme.text().muted() : theme.text().primary());
       box.child(right ? shown : shown.grow(1));
       if (choosing(c)) {
-        box.gap(theme.space().xs()).child(Icon.icon(theme, Select.OPENS, Icon.Variant.MUTED));
+        box.gap(theme.space().xs()).child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
       }
     } else {
       String text = sel.draft == null ? "" : sel.draft;
@@ -814,7 +814,7 @@ final class GridEdit {
                 .keepFocus() // the caret stays in the field
                 .onPress(() -> sel.multiline = true)
                 .whenHovered(e -> e.fill(hover))
-                .child(Icon.icon(theme, Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
+                .child(Icon.icon(Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
       }
     }
     box.absolute(right ? b.xs[column + 1] - stroke - width : b.xs[column], 0).w(width);
@@ -993,7 +993,7 @@ final class GridEdit {
   private static El choices(Build b, Column c) {
     Selection sel = b.sel;
     List<Menu.Item> items = choiceItems(b, c);
-    El menu = Menu.menu(b.theme, sel.choices, items).side(Side.BOTTOM, Style.Align.STRETCH, 0);
+    El menu = Menu.menu(sel.choices, items).side(Side.BOTTOM, Style.Align.STRETCH, 0);
     Predicate<Key> own = menu.onKey();
     return menu.onDismiss(sel::cancelEdit).onKey(k -> {
       int mods = k.modifiers();
@@ -1030,7 +1030,6 @@ final class GridEdit {
     Theme.TextStyle style = c.mono() ? theme.type().mono() : theme.type().body();
     String label = "Edit " + c.title();
     El area = TextField.textArea(
-            theme,
             sel.draft == null ? "" : sel.draft,
             sel.draft == null && c.editing().nullable() ? "NULL" : null,
             v -> edit(c, sel, v))
@@ -1046,7 +1045,7 @@ final class GridEdit {
       area.value("NULL");
     }
     if (sel.error != null) {
-      TextField.invalid(theme, area);
+      TextField.invalid(area);
     }
     El panel = Popup.frame(theme, col())
         .key("multiline")
@@ -1059,7 +1058,7 @@ final class GridEdit {
         .gap(theme.space().s())
         .child(area);
     if (sel.error != null) {
-      panel.child(Label.label(theme, sel.error)
+      panel.child(Label.label(sel.error)
           .key("error")
           .role("alert")
           .label(sel.error)
@@ -1070,9 +1069,9 @@ final class GridEdit {
             .align(Style.Align.CENTER)
             .gap(theme.space().s())
             .children(
-                Label.label(theme, Label.Variant.MUTED, "Ctrl+Enter to save").grow(1),
-                Button.button(theme, Button.Variant.SECONDARY, "Cancel", sel::cancelEdit),
-                Button.button(theme, Button.Variant.PRIMARY, "Save", () -> commit(b, Move.NONE))))
+                Label.label(Label.Variant.MUTED, "Ctrl+Enter to save").grow(1),
+                Button.button(Button.Variant.SECONDARY, "Cancel", sel::cancelEdit),
+                Button.button(Button.Variant.PRIMARY, "Save", () -> commit(b, Move.NONE))))
         .side(Side.BOTTOM, Style.Align.START, -height);
   }
 }

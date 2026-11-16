@@ -43,20 +43,19 @@ class DialogScrollTest {
   }
 
   /** The smallest case: a content 800 high, a Save button that is the default. */
-  private static El tall(Theme t, Saving s) {
-    El save = Button.button(t, Button.Variant.PRIMARY, "Save", () -> s.log.add("save"))
-        .key("save");
+  private static El tall(Saving s) {
+    El save =
+        Button.button(Button.Variant.PRIMARY, "Save", () -> s.log.add("save")).key("save");
     return El.col()
         .wFull()
         .hFull()
         .overlay(Dialog.dialog(
-            t,
             "x",
             El.col()
                 .children(
-                    TextField.textField(t, "", "Top", v -> {}).key("top"),
+                    TextField.textField("", "Top", v -> {}).key("top"),
                     El.col().h(800),
-                    TextField.textField(t, "", "Bottom", v -> {}).key("bottom")),
+                    TextField.textField("", "Bottom", v -> {}).key("bottom")),
             List.of(save),
             () -> s.log.add("dismiss"),
             Dialog.options().defaultButton(save)));
@@ -78,7 +77,7 @@ class DialogScrollTest {
   void theHeadAndTheButtonsStayInViewWhileTheContentScrolls(int height) throws IOException {
     Theme t = Theme.DARK;
     Saving s = new Saving();
-    App<Saving> app = new App<>(s, v -> tall(t, v));
+    App<Saving> app = new App<>(s, v -> tall(v));
     Script.run("size 480 " + height + "\nframe\nadvance 0.25\nframe\n", app, out);
     String dump = app.tree().dump();
     float[] dialog = rect(dump, "dialog");
@@ -126,15 +125,13 @@ class DialogScrollTest {
             .wFull()
             .hFull()
             .overlay(Dialog.dialog(
-                t,
                 "Note",
                 // A checkbox last: its row reaches past the column's end, within the area's room.
                 El.col()
                     .key("body")
                     .w(120)
                     .gap(t.space().m())
-                    .children(
-                        Label.label(t, "First"), Checkbox.checkbox(t, false, "Second", () -> {})),
+                    .children(Label.label("First"), Checkbox.checkbox(false, "Second", () -> {})),
                 List.of(),
                 () -> {})));
     Script.run("size 360 240\nframe\nadvance 0.25\nframe\nwheel #body 0 50\nframe\n", app, out);
@@ -153,17 +150,16 @@ class DialogScrollTest {
   private static El fields(Theme t) {
     El form = El.col().gap(t.space().m());
     for (int i = 0; i < 12; i++) {
-      form.child(TextField.textField(t, "", "Field " + i, v -> {}).key("f" + i));
+      form.child(TextField.textField("", "Field " + i, v -> {}).key("f" + i));
     }
-    El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {}).key("ok");
+    El ok = Button.button(Button.Variant.PRIMARY, "OK", () -> {}).key("ok");
     return El.col()
         .wFull()
         .hFull()
         .overlay(Dialog.dialog(
-            t,
             "Columns",
             form,
-            List.of(Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> {}), ok),
+            List.of(Button.button(Button.Variant.SECONDARY, "Cancel", () -> {}), ok),
             () -> {},
             Dialog.options().defaultButton(ok)));
   }
@@ -203,7 +199,7 @@ class DialogScrollTest {
   @CsvSource({"dark, 1", "dark, 1.5", "dark, 2", "light, 2"})
   void ringsAtTheContentsEdgesShowWhole(String theme, double scale) throws IOException {
     Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
-    App<Object> app = new App<>(new Object(), s -> fields(t));
+    App<Object> app = new App<>(new Object(), s -> fields(t)).provide(Theme.CURRENT, s -> t);
     app.textRendering(TextRendering.LINUX);
     String name = "dialog-scroll-" + theme + "-" + (scale == 1.5 ? "1_5" : (int) scale) + "x";
     Script.run(
@@ -247,7 +243,6 @@ class DialogScrollTest {
 
   @Test
   void aPopoversFormScrollsItsContentToo() throws IOException {
-    Theme t = Theme.DARK;
     Popover.State state = new Popover.State();
     state.open();
     App<Popover.State> app = new App<>(
@@ -256,13 +251,11 @@ class DialogScrollTest {
             .wFull()
             .hFull()
             .child(Popover.form(
-                t,
-                Button.button(t, Button.Variant.SECONDARY, "Filter", st::toggle).key("anchor"),
+                Button.button(Button.Variant.SECONDARY, "Filter", st::toggle).key("anchor"),
                 st,
                 "Filter",
                 El.col().h(800).key("tall"),
-                List.of(
-                    Button.button(t, Button.Variant.PRIMARY, "Apply", () -> {}).key("apply")))));
+                List.of(Button.button(Button.Variant.PRIMARY, "Apply", () -> {}).key("apply")))));
     Script.run("size 480 300\nframe\nadvance 0.25\nframe\n", app, out);
     String dump = app.tree().dump();
     float[] apply = rect(dump, "apply");

@@ -36,8 +36,6 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class TabGroupsTest {
 
-  private static final Theme T = Theme.DARK;
-
   @TempDir
   Path out;
 
@@ -66,8 +64,7 @@ class TabGroupsTest {
           .wFull()
           .hFull()
           .child(groups
-              .tabs(
-                  T, group, Tab::new, s -> s == null ? null : Label.label(T, s).key("text"))
+              .tabs(group, Tab::new, s -> s == null ? null : Label.label(s).key("text"))
               .grow(1));
     }
   }
@@ -368,7 +365,6 @@ class TabGroupsTest {
                 El.el().key("tree").focusable().size(10, 10),
                 groups
                     .tabs(
-                        T,
                         groups.main(),
                         Tab::new,
                         x -> col()

@@ -16,8 +16,8 @@ Javadoc: [`Checkbox`](/api/com/rethinkj/ui/kit/Checkbox.html).
 
 | Call | |
 | --- | --- |
-| `checkbox(theme, checked, text, onToggle)` | The box and its text |
-| `checkbox(theme, checked, onToggle)` | The box alone; give it a `.label(...)` |
+| `checkbox(checked, text, onToggle)` | The box and its text |
+| `checkbox(checked, onToggle)` | The box alone; give it a `.label(...)` |
 
 A null handler disables it.
 
@@ -27,7 +27,7 @@ Tab reaches it; Space and Enter check or uncheck it. A press leaves the focus wh
 
 ## With a Prop
 
-`checkbox(theme, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`checkbox(prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

@@ -410,21 +410,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   @Override
   public El icon(Node node) {
-    Theme theme = theme();
     if (connecting.contains(node)) {
-      return Progress.spinner(theme).label("Connecting");
+      return Progress.spinner().label("Connecting");
     }
     return switch (node.kind) {
       case SERVER ->
         Icon.icon(
-            theme,
             Symbol.SERVER,
             node.children == null ? Variant.DISABLED : Variant.SUCCESS); // connected or not
-      case DATABASE -> Icon.icon(theme, Symbol.DATABASE, Variant.MUTED);
-      case SCHEMA -> Icon.icon(theme, Symbol.FOLDER, Variant.MUTED);
-      case TABLE -> Icon.icon(theme, Symbol.TABLE, Variant.MUTED);
+      case DATABASE -> Icon.icon(Symbol.DATABASE, Variant.MUTED);
+      case SCHEMA -> Icon.icon(Symbol.FOLDER, Variant.MUTED);
+      case TABLE -> Icon.icon(Symbol.TABLE, Variant.MUTED);
       case COLUMN ->
-        Icon.icon(theme, node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE, Variant.MUTED);
+        Icon.icon(node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE, Variant.MUTED);
     };
   }
   // docs:end workbench-model
@@ -698,7 +696,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * @} the tables and columns of the connected servers, and after {@code :} a line of the active
    * tab's query.
    */
-  El palette(Theme theme, TabGroups.Group<Opened> group) {
+  El commandPalette(TabGroups.Group<Opened> group) {
+    Theme theme = Theme.CURRENT.get();
     CommandPalette.State palette = palette(group);
     if (!palette.isOpen()) {
       return null;
@@ -706,7 +705,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(group)));
     commands.add(FilterList.entry("Change theme…", () -> changeTheme(palette)));
     return CommandPalette.palette(
-        theme,
         palette,
         commands,
         List.of(
@@ -968,7 +966,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    */
   // docs:start workbench-window
   Windows.Handle openWindow(TabGroups.Group<Opened> group, Window.Options options) {
-    App<Workbench> window = new App<>(this, state -> state.windowView(group));
+    App<Workbench> window =
+        new App<>(this, state -> state.windowView(group)).provide(Theme.CURRENT, Workbench::theme);
     window.textRendering(app.textRendering());
     Windows windows = app.windows();
     windows.of(app).onCloseRequest(this::exit); // closing the first window closes them all
@@ -1092,8 +1091,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     int count = running();
     Theme theme = theme();
-    WindowIcon badge =
-        WindowIcon.of(size -> AppIcon.count(theme, size, theme.accent().color(), count));
+    WindowIcon badge = WindowIcon.of(size -> AppIcon.count(size, theme.accent().color(), count));
     window.badge(
         count == 0 ? null : badge,
         count == 1 ? "1 question running" : count + " questions running");
@@ -1126,7 +1124,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   public static void main(String[] args) throws IOException {
     Workbench state = new Workbench();
-    App<Workbench> app = new App<>(state, Workbench::view);
+    App<Workbench> app = new App<>(state, Workbench::view).provide(Theme.CURRENT, Workbench::theme);
     state.app = app;
     // A script's images are stored, so they must not depend on the platform; its await waits for
     // the answers, which need not take long.
@@ -1157,11 +1155,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /** The first window's view: the catalog beside the tabs of the main group. */
   static El view(Workbench state) {
-    Theme theme = state.theme();
-    El right = state.tabs(theme, state.groups.main());
+    Theme theme = Theme.CURRENT.get();
+    El right = state.tabs(state.groups.main());
     // docs:start workbench-tree
     El tree = tree(
-            theme,
             state,
             state.open::contains,
             state.selected,
@@ -1172,18 +1169,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .label("Catalog");
     // docs:end workbench-tree
     El catalog = Card.flush(
-        theme,
         Card.toolbar(
-            theme,
             "Connections",
             null,
             Button.icon(
-                theme,
                 GHOST,
                 Symbol.ADD,
                 "Add connection",
                 () -> state.tell("Adding a connection is not part of this example"))),
-        Card.inset(theme, Menu.contextMenu(theme, tree, state.menu, state.menuItems())));
+        Card.inset(Menu.contextMenu(tree, state.menu, state.menuItems())));
     List<Menu.Item> menus = state.menus(state.groups.main());
     El root = col()
         .wFull()
@@ -1195,16 +1189,14 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 .or(CommandPalette.keys(state.palette(state.groups.main()))),
             right.onKey()))
         .onKeyUp(MenuBar.keysUp(state.bar, menus))
-        .overlay(state.palette(theme, state.groups.main()))
+        .overlay(state.commandPalette(state.groups.main()))
         .child(withMenus(
-            theme,
             "Workbench",
             theme.accent().color(),
-            MenuBar.menuBar(theme, state.bar, menus),
+            MenuBar.menuBar(state.bar, menus),
             Identity.maximized(state.app),
-            toggle(theme, state.dark, "Dark", () -> state.dark = !state.dark)))
+            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
         .child(Split.cards(
-                theme,
                 Direction.ROW,
                 state.sidebar,
                 SIDEBAR,
@@ -1215,29 +1207,26 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 320)
             .grow(1)
             .padding(0, theme.space().m(), 0, theme.space().m()))
-        .child(state.statusBar(theme));
+        .child(state.statusBar());
     if (state.dropping != null) {
       String name = state.dropping.name;
       El drop = button(
-              theme,
               PRIMARY,
               "Drop",
               state::drop,
               Button.options().enabled(state.confirm.equals(name)).tone(Button.Tone.DANGER))
           .key("drop");
       root.overlay(Dialog.dialog(
-          theme,
           "Drop table",
           col()
               .gap(theme.space().m())
               .children(
-                  Label.label(theme, "Drop " + state.dropping.path() + " and all its rows?"),
-                  Label.label(theme, Label.Variant.MUTED, "Type the table's name to confirm."),
-                  textField(theme, state.confirm, name, value -> state.confirm = value)
+                  Label.label("Drop " + state.dropping.path() + " and all its rows?"),
+                  Label.label(Label.Variant.MUTED, "Type the table's name to confirm."),
+                  textField(state.confirm, name, value -> state.confirm = value)
                       .key("confirm")
                       .label("Table name")),
-          List.of(
-              button(theme, SECONDARY, "Cancel", () -> state.dropping = null).key("cancel"), drop),
+          List.of(button(SECONDARY, "Cancel", () -> state.dropping = null).key("cancel"), drop),
           drop, // Enter in the field drops once the name is typed
           () -> state.dropping = null));
     }
@@ -1246,12 +1235,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (first != null) {
       first.onCloseRequest(state::exit);
     }
-    return root.overlay(state.question(theme, state.groups.main()))
-        .overlay(state.preview(theme, state.groups.main()));
+    return root.overlay(state.question(state.groups.main()))
+        .overlay(state.preview(state.groups.main()));
   }
 
   /** The dialog that asks about changes not committed, in its window, or null. */
-  El question(Theme theme, TabGroups.Group<Opened> group) {
+  El question(TabGroups.Group<Opened> group) {
+    Theme theme = Theme.CURRENT.get();
     Question asked = question;
     if (asked == null || asked.group() != group) {
       return null;
@@ -1264,21 +1254,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 .map(opened -> opened.table.name + " (" + opened.changes.count() + ")")
                 .collect(java.util.stream.Collectors.joining(", "))
             + " have changes";
-    El commit = button(theme, PRIMARY, "Commit", this::commitAsked).key("commit-changes");
+    El commit = button(PRIMARY, "Commit", this::commitAsked).key("commit-changes");
     return Dialog.dialog(
-        theme,
         "Changes not committed",
         col()
             .gap(theme.space().m())
             .children(
-                Label.label(theme, what + " that the server does not have yet.").key("unsaved"),
+                Label.label(what + " that the server does not have yet.").key("unsaved"),
                 Label.label(
-                    theme,
                     Label.Variant.MUTED,
                     "Commit them before you " + asked.doing() + ", or discard them?")),
         List.of(
-            button(theme, SECONDARY, "Cancel", () -> question = null).key("keep"),
-            button(theme, SECONDARY, "Discard", this::discard, Button.options().tone(DANGER))
+            button(SECONDARY, "Cancel", () -> question = null).key("keep"),
+            button(SECONDARY, "Discard", this::discard, Button.options().tone(DANGER))
                 .key("discard"),
             commit),
         commit,
@@ -1286,7 +1274,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The statements that Commit sends for a tab's changes, in a dialog of its window, or null. */
-  El preview(Theme theme, TabGroups.Group<Opened> group) {
+  El preview(TabGroups.Group<Opened> group) {
     Opened opened = previewing;
     if (opened == null || groups.groupOf(opened) != group) {
       return null;
@@ -1296,7 +1284,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         schema.parent.name + "." + schema.name + "." + opened.table.name,
         opened.changes.changes(),
         key -> opened.data.stored.value(key, 0));
-    El editor = codeEditor(theme, sql, preview, Sql.of(theme), value -> {})
+    El editor = codeEditor(sql, preview, Sql.of(), value -> {})
         .readOnly()
         .key("statements")
         .label("Statements")
@@ -1304,7 +1292,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .lines(8);
     boolean free = !opened.changes.isEmpty() && opened.committing == null;
     El commit = button(
-            theme,
             PRIMARY,
             Symbol.SAVE,
             "Commit",
@@ -1317,12 +1304,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 })
         .key("commit-preview");
     return Dialog.dialog(
-        theme,
         "Changes to " + opened.table.name,
         editor,
         List.of(
-            button(theme, SECONDARY, "Close", () -> previewing = null).key("close-preview"),
-            button(theme, SECONDARY, Symbol.COPY, "Copy", false, () -> {
+            button(SECONDARY, "Close", () -> previewing = null).key("close-preview"),
+            button(SECONDARY, Symbol.COPY, "Copy", false, () -> {
                   appOf(group).clipboard().write(sql);
                   tell("Copied the statements");
                 })
@@ -1336,7 +1322,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * The bar along the bottom of the first window: each server with how its connection stands (a
    * press selects it in the catalog), and the questions on their way.
    */
-  private El statusBar(Theme theme) {
+  private El statusBar() {
     List<El> servers = new ArrayList<>();
     for (Node server : roots()) {
       StatusBar.State state = connecting.contains(server)
@@ -1344,7 +1330,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           : refused.contains(server)
               ? StatusBar.State.ERROR
               : server.children == null ? StatusBar.State.IDLE : StatusBar.State.CONNECTED;
-      servers.add(StatusBar.status(theme, state, server.name, () -> selected = server)
+      servers.add(StatusBar.status(state, server.name, () -> selected = server)
           .key("server-" + server.name));
     }
     int running = running();
@@ -1353,18 +1339,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     El changes = changed == 0
         ? null
         : StatusBar.item(
-                theme,
-                Symbol.EDIT,
-                changed == 1 ? "1 change" : changed + " changes",
-                this::nextChanged)
+                Symbol.EDIT, changed == 1 ? "1 change" : changed + " changes", this::nextChanged)
             .key("changes");
     return StatusBar.statusBar(
-        theme,
         servers,
         java.util.Arrays.asList(
             changes,
             StatusBar.text(
-                    theme,
                     running == 0
                         ? "Idle"
                         : running == 1 ? "1 question running" : running + " questions running")
@@ -1377,8 +1358,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * whose key combinations work here too, for this window's tabs.
    */
   El windowView(TabGroups.Group<Opened> group) {
-    Theme theme = theme();
-    El tabs = tabs(theme, group);
+    Theme theme = Theme.CURRENT.get();
+    El tabs = tabs(group);
     Opened active = group.activeTab();
     return col()
         .wFull()
@@ -1386,11 +1367,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .fill(theme.surface().window())
         .onKey(
             or(Menu.shortcuts(menus(group)).or(CommandPalette.keys(palette(group))), tabs.onKey()))
-        .overlay(palette(theme, group))
-        .overlay(question(theme, group))
-        .overlay(preview(theme, group))
+        .overlay(commandPalette(group))
+        .overlay(question(group))
+        .overlay(preview(group))
         .child(titleBar(
-            theme,
             active == null ? "Workbench" : active.title(),
             theme.accent().color(),
             Identity.maximized(group.window() == null ? null : group.window().app())))
@@ -1408,10 +1388,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The tabs of a window, each the tab's content over a footer with its status. */
-  private El tabs(Theme theme, TabGroups.Group<Opened> group) {
+  private El tabs(TabGroups.Group<Opened> group) {
     boolean main = group == groups.main();
     return groups.tabs(
-        theme,
         group,
         opened -> opened.table == null
             ? new Tab("Start", false, false)
@@ -1422,16 +1401,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           Opened shown = opened == null || opened.table == null ? null : opened;
           return col()
               .grow(1)
-              .child(shown == null ? start(theme) : table(theme, this, shown, appOf(group)))
+              .child(shown == null ? start() : table(this, shown, appOf(group)))
               .child(Card.footer(
-                  theme,
-                  Label.label(theme, Label.Variant.MUTED, status(shown, main))
+                  Label.label(Label.Variant.MUTED, status(shown, main))
                       .key("status")
                       .ellipsis(),
                   shown == null
                       ? new El[0]
                       : new El[] {
-                        Label.label(theme, Label.Variant.MUTED, position(shown)).key("position")
+                        Label.label(Label.Variant.MUTED, position(shown)).key("position")
                       }));
         });
   }
@@ -1680,26 +1658,24 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 : String.format(Locale.ROOT, " · %,d rows selected", chosen));
   }
 
-  private static El start(Theme theme) {
+  private static El start() {
+    Theme theme = Theme.CURRENT.get();
     return col()
         .grow(1)
         .padding(theme.space().xxl())
         .gap(theme.space().m())
-        .child(Label.label(theme, Label.Variant.HEADING, "The frame of a database manager"))
+        .child(Label.label(Label.Variant.HEADING, "The frame of a database manager"))
         .child(Label.label(
-            theme,
             Label.Variant.MUTED,
             "Open a table from the catalog: double-click it, or select it and press Enter."))
         .child(Label.label(
-            theme,
             Label.Variant.MUTED,
             "Control+Tab and Control+Shift+Tab go through the tabs; Control+W closes one."))
         .child(Label.label(
-            theme, Label.Variant.MUTED, "staging answers slowly, and prod-eu refuses to connect."))
+            Label.Variant.MUTED, "staging answers slowly, and prod-eu refuses to connect."))
+        .child(
+            Label.label(Label.Variant.MUTED, "Edits of a table's rows wait for Commit, Control+S."))
         .child(Label.label(
-            theme, Label.Variant.MUTED, "Edits of a table's rows wait for Commit, Control+S."))
-        .child(Label.label(
-            theme,
             Label.Variant.MUTED,
             "The servers refuse an amount below zero, and a paid order going back to pending."));
   }
@@ -1721,15 +1697,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
   // docs:end workbench-editor-handlers
 
-  private static El table(Theme theme, Workbench state, Opened opened, App<Workbench> app) {
+  private static El table(Workbench state, Opened opened, App<Workbench> app) {
+    Theme theme = Theme.CURRENT.get();
     // docs:start workbench-editor
     El area = codeEditor(
-            theme,
-            app,
-            opened.query,
-            opened.editor,
-            Sql.of(theme),
-            text -> state.editQuery(opened, text))
+            app, opened.query, opened.editor, Sql.of(), text -> state.editQuery(opened, text))
         .key("query-" + opened.table.path())
         .label("Query")
         .wFull()
@@ -1737,12 +1709,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Predicate<Key> run = key -> state.runKey(opened, key);
     area.onKey(run.or(area.onKey())); // and the editor's own keys
     Completion.complete(
-        theme,
-        app,
-        area,
-        opened.editor.caret(),
-        opened.completion,
-        word -> state.suggest(opened, word));
+        app, area, opened.editor.caret(), opened.completion, word -> state.suggest(opened, word));
     // docs:end workbench-editor
     El query = col()
         .padding(theme.space().m(), theme.space().l())
@@ -1752,23 +1719,21 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (opened.asking != null
         || opened.committing
             != null) { // a line runs over the toolbar's hairline while the server answers
-      query.child(Progress.line(theme).absolute(0, -theme.size().stroke()).key("running"));
+      query.child(Progress.line().absolute(0, -theme.size().stroke()).key("running"));
     }
     if (opened.rows < 0) {
       return col()
           .grow(1)
           .minSize(0, 0)
           .children(
-              toolbar(theme, state, opened),
-              Divider.divider(theme),
+              toolbar(state, opened),
+              Divider.divider(),
               query,
-              Divider.divider(theme),
+              Divider.divider(),
               col()
                   .padding(theme.space().xxl())
                   .child(Label.label(
-                      theme,
-                      Label.Variant.MUTED,
-                      "Loading the rows of " + opened.table.path() + "…")));
+                      Label.Variant.MUTED, "Loading the rows of " + opened.table.path() + "…")));
     }
     // The columns edit by their type, but the key; while the server writes, none edits.
     boolean edits = opened.committing == null;
@@ -1818,68 +1783,48 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     } else { // what the rows hold, without editing them
       options.status(changes::rowStatus, changes::cellStatus).errors(changes::errorText);
     }
-    El grid = dataGrid(theme, columns, changes.rowCount(), options)
+    El grid = dataGrid(columns, changes.rowCount(), options)
         .key("grid-" + opened.table.path())
         .label(opened.table.name)
         .whenFocusWithin(element -> opened.inGrid = true);
-    El bar = DataGrid.filterBar(theme, columns, opened.filters, opened::filter);
-    El tab = col()
-        .grow(1)
-        .minSize(0, 0)
-        .child(toolbar(theme, state, opened))
-        .child(Card.filters(theme, bar));
+    El bar = DataGrid.filterBar(columns, opened.filters, opened::filter);
+    El tab = col().grow(1).minSize(0, 0).child(toolbar(state, opened)).child(Card.filters(bar));
     return tab.children(
-        Divider.divider(theme), query, Divider.divider(theme), grid.grow(1).minSize(0, 0));
+        Divider.divider(), query, Divider.divider(), grid.grow(1).minSize(0, 0));
   }
 
   /** The table's name, its number of rows and the button that runs the query. */
-  private static El toolbar(Theme theme, Workbench state, Opened opened) {
+  private static El toolbar(Workbench state, Opened opened) {
     String rows = opened.rows < 0
         ? "counting the rows"
         : String.format(Locale.ROOT, "%,d rows", opened.changes.rowCount());
     int changed = opened.changes.count();
     if (changed == 0) {
       return Card.toolbar(
-          theme,
           opened.table.name,
           rows,
-          Button.button(
-                  theme,
-                  PRIMARY,
-                  Symbol.PLAY,
-                  "Run",
-                  opened.asking != null,
-                  () -> state.run(opened))
+          Button.button(PRIMARY, Symbol.PLAY, "Run", opened.asking != null, () -> state.run(opened))
               .key("run"));
     }
     // With changes, Commit is the primary action, and Run a secondary one.
     boolean writing = opened.committing != null;
     return Card.toolbar(
-        theme,
         opened.table.name,
         rows,
         button(
-                theme,
                 GHOST,
                 "Revert",
                 opened.changes::clear,
                 Button.options().icon(Symbol.ARROW_UNDO).enabled(!writing).tone(DANGER))
             .key("revert"),
         Button.button(
-                theme,
                 PRIMARY,
                 Symbol.SAVE,
                 "Commit (" + changed + ")",
                 writing,
                 () -> state.commit(opened, null))
             .key("commit"),
-        Button.button(
-                theme,
-                SECONDARY,
-                Symbol.PLAY,
-                "Run",
-                opened.asking != null,
-                () -> state.run(opened))
+        Button.button(SECONDARY, Symbol.PLAY, "Run", opened.asking != null, () -> state.run(opened))
             .key("run"));
   }
 

@@ -17,7 +17,7 @@ import com.rethinkj.ui.Style;
  * state.app.background("cover", () -> com.rethinkj.ui.Image.decode(Files.readAllBytes(file)),
  *     image -> state.cover = image, error -> state.cover = null);
  * // The view shows the placeholder until it is there:
- * Image.image(theme, state.cover, "The cover of the report").w(240);
+ * Image.image(state.cover, "The cover of the report").w(240);
  * }</pre>
  *
  * <p>The image is as large as its pixels at its scale in logical pixels unless the view sizes it;
@@ -34,7 +34,8 @@ public final class Image {
    * @param image what to show; null for the placeholder
    * @param alt the text that stands for the image: the label of both, and the placeholder's text
    */
-  public static El image(Theme theme, com.rethinkj.ui.Image image, String alt) {
+  public static El image(com.rethinkj.ui.Image image, String alt) {
+    Theme theme = Theme.CURRENT.get();
     if (image != null) {
       return El.image(image).label(alt).radius(theme.radius().medium());
     }
@@ -49,7 +50,7 @@ public final class Image {
         .border(theme.size().stroke(), theme.border().subtle())
         .fill(theme.surface().band())
         .children(
-            Icon.icon(theme, Symbol.IMAGE, Icon.Variant.MUTED),
-            Label.label(theme, Label.Variant.MUTED, alt).wrapText().shrink(1).minSize(0, 0));
+            Icon.icon(Symbol.IMAGE, Icon.Variant.MUTED),
+            Label.label(Label.Variant.MUTED, alt).wrapText().shrink(1).minSize(0, 0));
   }
 }

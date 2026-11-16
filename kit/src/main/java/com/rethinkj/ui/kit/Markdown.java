@@ -37,9 +37,9 @@ import java.util.function.Function;
  * MarkdownDocument manual = Markdown.parse(text);
  * Markdown.State selection = new Markdown.State();
  * // In the view:
- * El doc = Markdown.markdown(theme, manual,
+ * El doc = Markdown.markdown(manual,
  *     Markdown.options().onLink(url -> state.open(url)).copy(app.clipboard()).state(selection));
- * El page = Card.flush(theme, doc.grow(1)).grow(1);
+ * El page = Card.flush(doc.grow(1)).grow(1);
  * }</pre>
  *
  * <p>Every block of text is a read-only multi-line field ({@link El#fitLines}), as high as its
@@ -156,8 +156,8 @@ public final class Markdown {
   }
 
   /** The document with links that go to {@code onLink}, nothing else. */
-  public static El markdown(Theme theme, MarkdownDocument document, Consumer<String> onLink) {
-    return markdown(theme, document, options().onLink(onLink));
+  public static El markdown(MarkdownDocument document, Consumer<String> onLink) {
+    return markdown(document, options().onLink(onLink));
   }
 
   /**
@@ -168,7 +168,8 @@ public final class Markdown {
    * the blocks in view and a few around them are built and laid out, however long the document.
    * Give it a height, or let it {@link El#grow} in a column, as any scroll area.
    */
-  public static El markdown(Theme theme, MarkdownDocument document, Options options) {
+  public static El markdown(MarkdownDocument document, Options options) {
+    Theme theme = Theme.CURRENT.get();
     Prepared prepared = prepared(theme, document);
     Context c = new Context(theme, options, prepared, theme.text().primary(), 0);
     List<Unit> units = prepared.units;
@@ -535,7 +536,7 @@ public final class Markdown {
       }
       case MarkdownDocument.ListBlock l -> list(c, l);
       case MarkdownDocument.ThematicBreak x ->
-        Divider.divider(theme).margin(theme.space().m(), 0, theme.space().m(), 0);
+        Divider.divider().margin(theme.space().m(), 0, theme.space().m(), 0);
       case MarkdownDocument.Table table -> table(c, table);
     };
   }
@@ -626,7 +627,7 @@ public final class Markdown {
     }
     // The two top levels stand over a hairline, as on a page of documentation.
     field.padding(0, 0, theme.space().s(), 0);
-    return col().children(field, Divider.divider(theme));
+    return col().children(field, Divider.divider());
   }
 
   private static El paragraph(Context c, MarkdownDocument.Paragraph p) {
@@ -693,14 +694,14 @@ public final class Markdown {
     String alt = image.alt().isEmpty() ? image.source() : image.alt();
     com.rethinkj.ui.Image picture =
         c.options.images == null ? null : c.options.images.apply(image.source());
-    El el = Image.image(theme, picture, alt);
+    El el = Image.image(picture, alt);
     if (picture == null) {
       el.justify(Style.Content.START);
       el.children().getLast().grow(1);
       return el;
     }
     if (!image.title().isEmpty()) {
-      Tooltip.tooltip(theme, el, image.title());
+      Tooltip.tooltip(el, image.title());
     }
     // In a column of its own, which the page stretches, so that a small image keeps its size and
     // a large one is as wide as the page (El.image takes no more than the width there is).
@@ -715,7 +716,7 @@ public final class Markdown {
     String language = block.language();
     Highlighter highlighter = c.options.languages.apply(language);
     if (highlighter == null && language.toLowerCase(Locale.ROOT).matches("sql|pgsql|postgresql")) {
-      highlighter = Sql.of(theme);
+      highlighter = Sql.of();
     }
     Theme.TextStyle mono = theme.type().mono();
     El field = El.text(code)
@@ -760,9 +761,8 @@ public final class Markdown {
       Button.Copied copied = c.options.state == null ? null : c.options.state.copied;
       boolean shown =
           copied != null && copied.shows("Copy code", code); // confirming: seen till it ends
-      El copy = Button.copy(theme, clipboard, code, "Copy code", copied)
-          .key("copy")
-          .opacity(shown ? 1 : 0);
+      El copy =
+          Button.copy(clipboard, code, "Copy code", copied).key("copy").opacity(shown ? 1 : 0);
       copy.style().position = Style.Position.ABSOLUTE;
       copy.style().top = Len.px(theme.space().s());
       copy.style().right = Len.px(theme.space().s());
@@ -815,7 +815,7 @@ public final class Markdown {
           .w(theme.size().checkbox() + theme.space().xs())
           .shrink(0)
           .padding(Math.max(0, (line - theme.size().checkbox()) / 2), 0, 0, 0)
-          .child(Checkbox.checkbox(theme, item.task(), null));
+          .child(Checkbox.checkbox(item.task(), null));
     } else {
       // The bullet goes by how deep the list is in other lists.
       String text = list.ordered() ? (list.start() + i) + "." : BULLETS[c.depth % BULLETS.length];
@@ -920,7 +920,7 @@ public final class Markdown {
             .child(field));
       }
       if (r > 0) {
-        grid.child(Divider.divider(theme));
+        grid.child(Divider.divider());
       }
       grid.child(line);
     }

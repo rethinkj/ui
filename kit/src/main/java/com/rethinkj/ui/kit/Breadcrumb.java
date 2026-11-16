@@ -47,7 +47,8 @@ public final class Breadcrumb {
    * @param onSelect told the index of the part the user goes to, never the last; null for a
    *     path that only shows
    */
-  public static El breadcrumb(Theme theme, State state, List<String> parts, IntConsumer onSelect) {
+  public static El breadcrumb(State state, List<String> parts, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     if (parts.isEmpty()) {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
@@ -73,7 +74,7 @@ public final class Breadcrumb {
           .label("Hidden parts")
           .onResize(state.fitting.measure("more"));
       stops.add(more);
-      bar.child(Menu.dropdown(theme, more, state.hidden, items));
+      bar.child(Menu.dropdown(more, state.hidden, items));
     }
     for (int i = first; i < parts.size(); i++) {
       int at = i;
@@ -86,10 +87,7 @@ public final class Breadcrumb {
           .onResize(state.fitting.measure(id(parts, at)));
       if (i > 0) {
         unit.child(Icon.icon(
-            theme,
-            Symbol.CHEVRON_RIGHT,
-            Icon.Variant.MUTED,
-            theme.badge().text().size()));
+            Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, theme.badge().text().size()));
       }
       if (current) {
         Theme.TextStyle style = theme.type().strong();

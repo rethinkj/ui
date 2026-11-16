@@ -63,7 +63,7 @@ class CodeEditorTest {
   }
 
   static App<Query> app(Theme t) {
-    Sql sql = Sql.of(t);
+    Sql sql = new Sql(t.code());
     App<Query> app = new App<>(
         new Query(),
         s -> col()
@@ -71,10 +71,11 @@ class CodeEditorTest {
             .hFull()
             .padding(12)
             .fill(t.surface().window())
-            .child(codeEditor(t, s.sql, s.editor, sql, v -> s.sql = v)
+            .child(codeEditor(s.sql, s.editor, sql, v -> s.sql = v)
                 .key("query")
                 .lines(9)
                 .wFull()));
+    app.provide(Theme.CURRENT, query -> t);
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -103,7 +104,6 @@ class CodeEditorTest {
 
   @Test
   void aSelectionSetWhileTheEditorIsAwayHoldsWhenItComesBack() throws IOException {
-    Theme t = Theme.DARK;
     boolean[] shown = {false};
     App<Query> app = new App<>(
         new Query(),
@@ -111,7 +111,7 @@ class CodeEditorTest {
             .wFull()
             .child(
                 shown[0]
-                    ? codeEditor(t, s.sql, s.editor, null, v -> s.sql = v)
+                    ? codeEditor(s.sql, s.editor, null, v -> s.sql = v)
                         .key("query")
                         .lines(3)
                         .wFull()
@@ -130,7 +130,7 @@ class CodeEditorTest {
   @Test
   void embeddedLooksAsStored() throws IOException {
     Theme t = Theme.DARK;
-    Sql sql = Sql.of(t);
+    Sql sql = new Sql(t.code());
     App<Query> app = new App<>(
         new Query(),
         s -> col()
@@ -139,13 +139,10 @@ class CodeEditorTest {
             .padding(12)
             .fill(t.surface().window())
             .child(Card.flush(
-                t,
-                Card.toolbar(t, "orders.sql", null),
-                CodeEditor.embedded(
-                    t,
-                    codeEditor(t, s.sql, s.editor, sql, v -> s.sql = v)
-                        .key("query")
-                        .lines(6)))));
+                Card.toolbar("orders.sql", null),
+                CodeEditor.embedded(codeEditor(s.sql, s.editor, sql, v -> s.sql = v)
+                    .key("query")
+                    .lines(6)))));
     app.textRendering(TextRendering.LINUX);
     // The pointer gives it the focus: no ring, the hairline along its top in the accent's edge.
     String script =

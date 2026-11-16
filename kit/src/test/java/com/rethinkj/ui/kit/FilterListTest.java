@@ -35,7 +35,7 @@ class FilterListTest {
     Theme t = Theme.DARK;
     FilterList.Entries entries = FilterList.Entries.of(List.of(FilterList.entry(
             "A connection with a long descriptive name", () -> {})
-        .leading(th -> el().key("lead").size(3 * th.size().icon(), th.size().icon()))
+        .leading(() -> el().key("lead").size(3 * t.size().icon(), t.size().icon()))
         .detail("driver")
         .shortcut("F1")
         .checked(true)));
@@ -111,7 +111,6 @@ class FilterListTest {
         f,
         x -> col()
             .overlay(CommandPalette.palette(
-                Theme.DARK,
                 x.palette,
                 List.of(),
                 List.of(new CommandPalette.Source(

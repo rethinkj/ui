@@ -36,7 +36,7 @@ public final class Lights {
   // docs:start lights-view
   // The view: a function from the state to a tree of elements, built again after each input.
   static El view(Lights state) {
-    Theme theme = Theme.DARK;
+    Theme theme = Theme.CURRENT.get(); // the dark theme, unless the app provides another
     El lamp = el().key("lamp")
         .size(56, 56)
         .radius(28)
@@ -47,7 +47,7 @@ public final class Lights {
         .hFull()
         .fill(theme.surface().window())
         .center()
-        .child(Card.card(theme, lamp, toggle(theme, state.on, "Lamp", state::toggleLamp))
+        .child(Card.card(lamp, toggle(state.on, "Lamp", state::toggleLamp))
             .padding(theme.space().xxl())
             .gap(theme.space().xl())
             .align(Style.Align.CENTER));

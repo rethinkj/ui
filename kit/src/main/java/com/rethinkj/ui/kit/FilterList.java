@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
@@ -65,7 +66,7 @@ public final class FilterList {
       String shortcut,
       String group,
       Runnable onChoose,
-      Function<Theme, El> leading,
+      Supplier<El> leading,
       boolean checked,
       String key,
       boolean keepsOpen) {
@@ -81,7 +82,7 @@ public final class FilterList {
         String shortcut,
         String group,
         Runnable onChoose,
-        Function<Theme, El> leading,
+        Supplier<El> leading,
         boolean checked) {
       this(text, symbol, detail, shortcut, group, onChoose, leading, checked, null, false);
     }
@@ -122,7 +123,7 @@ public final class FilterList {
      * {@link Avatar}, a colored mark. It should be no higher than a row, {@link
      * Theme.Sizes#control}; the column before the texts is as wide as it, at least an icon's width.
      */
-    public Entry leading(Function<Theme, El> leading) {
+    public Entry leading(Supplier<El> leading) {
       return new Entry(
           text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
@@ -130,9 +131,10 @@ public final class FilterList {
     /** An image before the text, fitted into an icon's square, such as a product's logo. */
     public Entry image(com.rethinkj.ui.Image image) {
       Objects.requireNonNull(image, "image");
-      return leading(theme -> El.image(image)
-          .size(theme.size().icon(), theme.size().icon())
-          .fit(com.rethinkj.ui.Image.Fit.CONTAIN));
+      return leading(() -> {
+        float side = Theme.CURRENT.get().size().icon();
+        return El.image(image).size(side, side).fit(com.rethinkj.ui.Image.Fit.CONTAIN);
+      });
     }
 
     /** A check mark at the right end of the row, as the current choice of a list has. */
@@ -633,7 +635,7 @@ public final class FilterList {
               .h(rowHeight)
               .padding(0, theme.space().m())
               .align(Style.Align.CENTER)
-              .child(label(theme, Label.Variant.MUTED, text).key("note")));
+              .child(label(Label.Variant.MUTED, text).key("note")));
     }
     // While new entries are on their way, the old ones show with a last row that says so.
     int rows = count + (shown.loading() ? 1 : 0);
@@ -666,19 +668,18 @@ public final class FilterList {
           .label(group)
           .padding(theme.space().s(), theme.space().m(), 0, theme.space().m())
           .align(Style.Align.CENTER)
-          .child(label(theme, Label.Variant.MUTED, group)
-              .fontSize(theme.type().body().size()));
+          .child(label(Label.Variant.MUTED, group).fontSize(theme.type().body().size()));
     }
     boolean enabled = entry.isEnabled();
     int text = PassiveContent.text(theme, enabled);
     int quiet = PassiveContent.muted(theme, enabled);
     El leading = null;
     if (entry.leading() != null) {
-      leading = entry.leading().apply(theme).shrink(0);
+      leading = entry.leading().get().shrink(0);
     } else if (entry.symbol() != null) {
-      leading = icon(theme, entry.symbol()).color(quiet);
+      leading = icon(entry.symbol()).color(quiet);
     }
-    El name = label(theme, entry.text()).color(text).minSize(0, 0).ellipsis();
+    El name = label(entry.text()).color(text).minSize(0, 0).ellipsis();
     int[] at = shown.query().isEmpty() ? null : Fuzzy.positions(shown.query(), entry.text());
     if (at != null && at.length > 0) {
       name.highlight(shown.query(), (line, before, spans) -> {
@@ -698,15 +699,15 @@ public final class FilterList {
         PassiveContent.flexibleLeading(theme, leading),
         name,
         entry.detail() != null
-            ? label(theme, entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis()
+            ? label(entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis()
             : null,
         entry.shortcut() != null
-            ? label(theme, entry.shortcut())
+            ? label(entry.shortcut())
                 .color(quiet)
                 .shrink(0)
                 .margin(0, 0, 0, theme.space().s())
             : null,
-        entry.checked() ? icon(theme, Menu.CHECKED).color(quiet) : null);
+        entry.checked() ? icon(Menu.CHECKED).color(quiet) : null);
     return PassiveList.option(
             theme, i, s.highlight, s::light, enabled ? () -> choose.accept(entry) : null)
         .label(entry.text())

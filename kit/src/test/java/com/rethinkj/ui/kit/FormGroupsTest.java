@@ -11,7 +11,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,11 +31,11 @@ class FormGroupsTest {
     return app.tree().dump();
   }
 
-  private static String dump(int width, Function<Theme, El> view) throws IOException {
+  private static String dump(int width, Supplier<El> view) throws IOException {
     Theme t = Theme.DARK;
     App<Object> app = new App<>(
         new Object(),
-        s -> col().wFull().hFull().padding(16).fill(t.surface().window()).child(view.apply(t)));
+        s -> col().wFull().hFull().padding(16).fill(t.surface().window()).child(view.get()));
     return dump(app, width, "");
   }
 
@@ -81,15 +81,13 @@ class FormGroupsTest {
   void nullsAreLeftOutAlsoAGroupOfNullsAndARowOfOneIsThatField() throws IOException {
     String dump = dump(
         400,
-        t -> Form.form(
-            t,
+        () -> Form.form(
             Form.Labels.BESIDE,
             null,
             Form.group("Empty", null, Form.row(null, null)).divided(),
             Form.group(
                 "Server",
-                Form.row(
-                    field("Host", TextField.textField(t, "", null, v -> {}).key("host")), null)),
+                Form.row(field("Host", TextField.textField("", null, v -> {}).key("host")), null)),
             Form.row()));
     assertFalse(dump.contains("Empty"), dump);
     assertFalse(dump.contains("role=separator"), "the first group has nothing before it");
@@ -139,12 +137,11 @@ class FormGroupsTest {
   void withLabelsAboveEachFieldOfARowHasItsLabelAboveItsControl() throws IOException {
     String dump = dump(
         560,
-        t -> Form.form(
-            t,
+        () -> Form.form(
             Form.Labels.ABOVE,
             Form.row(
-                field("First name", TextField.textField(t, "", null, v -> {}).key("first")),
-                field("Last name", TextField.textField(t, "", null, v -> {}).key("last"))
+                field("First name", TextField.textField("", null, v -> {}).key("first")),
+                field("Last name", TextField.textField("", null, v -> {}).key("last"))
                     .required())));
     float[] first = rect(dump, "#first");
     float[] last = rect(dump, "#last");
@@ -160,16 +157,16 @@ class FormGroupsTest {
 
   @Test
   void formsInSeparateCardsShareALabelColumnWhenGivenTheWidthOfAll() throws IOException {
-    String dump = dump(560, t -> {
-      Form.Field host = field("Host", TextField.textField(t, "", null, v -> {}).key("host"));
+    String dump = dump(560, () -> {
+      Form.Field host = field("Host", TextField.textField("", null, v -> {}).key("host"));
       Form.Field database =
-          field("Database", TextField.textField(t, "", null, v -> {}).key("database"));
-      float column = Form.labelWidth(t, host, Form.group("Login", database));
+          field("Database", TextField.textField("", null, v -> {}).key("database"));
+      float column = Form.labelWidth(host, Form.group("Login", database));
       return col()
           .gap(16)
           .children(
-              Card.card(t, Form.form(t, Form.Labels.BESIDE, column, host)),
-              Card.card(t, Form.form(t, Form.Labels.BESIDE, column, database)));
+              Card.card(Form.form(Form.Labels.BESIDE, column, host)),
+              Card.card(Form.form(Form.Labels.BESIDE, column, database)));
     });
     assertEquals(rect(dump, "#host")[0], rect(dump, "#database")[0], dump);
   }
@@ -182,7 +179,6 @@ class FormGroupsTest {
 
   @Test
   void aRowOfValueFieldsOverAnEditingShowsADraftsErrorAndARulesError() throws IOException {
-    Theme t = Theme.DARK;
     Format<Integer> ports = Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535");
     Editing<Server> e = Editing.of(new Server("db", 5432))
         .rule(Server.HOST, s -> !s.host().isBlank(), "A host is required");
@@ -193,14 +189,13 @@ class FormGroupsTest {
             .hFull()
             .padding(16)
             .child(Form.form(
-                t,
                 Form.Labels.BESIDE,
                 Form.row(
-                    field("Host", TextField.textField(t, e.at(Server.HOST)).key("host"))
+                    field("Host", TextField.textField(e.at(Server.HOST)).key("host"))
                         .grow(),
                     field(
                             "Port",
-                            ValueField.valueField(t, ports, e.at(Server.PORT))
+                            ValueField.valueField(ports, e.at(Server.PORT))
                                 .key("port")
                                 .w(72))
                         .required()))));

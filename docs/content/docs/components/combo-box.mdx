@@ -21,9 +21,9 @@ Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`
 
 | Call | |
 | --- | --- |
-| `comboBox(theme, choices, selected, comboBoxState, onSelect)` | One of the choices, by index |
-| `free(theme, value, suggestions, comboBoxState, onChange)` | Any text. Suggestions open as the user types, none highlighted, so Enter keeps what was typed |
-| `items(theme, items, selected, comboBoxState, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(theme -> element)`, `.detail(text)` |
+| `comboBox(choices, selected, comboBoxState, onSelect)` | One of the choices, by index |
+| `free(value, suggestions, comboBoxState, onChange)` | Any text. Suggestions open as the user types, none highlighted, so Enter keeps what was typed |
+| `items(items, selected, comboBoxState, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(() -> element)`, `.detail(text)` |
 
 A null handler disables it. It is the control height unless the view sets one, so it fits a grid's cell. Pass the same list on every build, so that the box keeps what its filter found.
 
@@ -31,7 +31,7 @@ A null handler disables it. It is the control height unless the view sets one, s
 
 ## Values instead of indexes
 
-`comboBox(theme, values, selected, text, comboBoxState, onSelect)` and `items(theme, values, selected, value -> item, comboBoxState, onSelect)` choose among values of any type, such as records, and hand the value to the handler. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`comboBox(values, selected, text, comboBoxState, onSelect)` and `items(values, selected, value -> item, comboBoxState, onSelect)` choose among values of any type, such as records, and hand the value to the handler. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="combo-box-typed"
 ```
@@ -52,7 +52,7 @@ The texts or items may be made anew on every build. While they come out equal to
 
 ## With a Prop
 
-`comboBox(theme, values, prop, text, comboBoxState)`, `items(theme, values, prop, item, comboBoxState)` and `free(theme, prop, suggestions, comboBoxState)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`comboBox(values, prop, text, comboBoxState)`, `items(values, prop, item, comboBoxState)` and `free(prop, suggestions, comboBoxState)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

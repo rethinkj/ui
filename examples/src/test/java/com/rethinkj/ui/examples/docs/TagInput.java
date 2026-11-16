@@ -43,11 +43,8 @@ final class TagInput {
    * @param onChange receives the new list when a tag is added or removed; null disables the input
    */
   static El tagInput(
-      Theme theme,
-      List<String> tags,
-      String placeholder,
-      State state,
-      Consumer<List<String>> onChange) {
+      List<String> tags, String placeholder, State state, Consumer<List<String>> onChange) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onChange != null;
     El input = row()
         .role("group")
@@ -58,28 +55,28 @@ final class TagInput {
         .gap(theme.space().xs())
         .w(theme.size().field());
     for (int index = 0; index < tags.size(); index++) {
-      input.child(chip(theme, tags, index, onChange));
+      input.child(chip(tags, index, onChange));
     }
-    input.child(field(theme, tags, placeholder, state, onChange));
-    return looks(theme, input, enabled);
+    input.child(field(tags, placeholder, state, onChange));
+    return looks(input, enabled);
   }
 
   // docs:end tag-input
 
   // docs:start tag-looks
   /** A tag, with a cross that removes it while the input is enabled. */
-  private static El chip(
-      Theme theme, List<String> tags, int index, Consumer<List<String>> onChange) {
+  private static El chip(List<String> tags, int index, Consumer<List<String>> onChange) {
     Badge.Options options = Badge.options();
     if (onChange != null) {
       options.onRemove(() -> onChange.accept(without(tags, index)));
     }
-    return Badge.badge(theme, tags.get(index), options)
+    return Badge.badge(tags.get(index), options)
         .key("tag-" + tags.get(index)); // by text: it keeps its identity
   }
 
   /** The frame around tags and field, in the look of the kit's text fields. */
-  private static El looks(Theme theme, El input, boolean enabled) {
+  private static El looks(El input, boolean enabled) {
+    Theme theme = Theme.CURRENT.get();
     float xs = theme.space().xs();
     int fill = theme.surface().raised();
     input
@@ -89,17 +86,18 @@ final class TagInput {
         .fill(fill)
         .motion(theme.motion().feedback());
     if (!enabled) {
-      return edge(theme, input, theme.border().divider(), theme.border().divider());
+      return edge(input, theme.border().divider(), theme.border().divider());
     }
     int hover = Colors.over(fill, theme.surface().hover());
-    return edge(theme, input, theme.border().control(), theme.border().strong())
+    return edge(input, theme.border().control(), theme.border().strong())
         .whenHovered(element -> element.fill(hover))
-        .whenFocusWithin(element ->
-            edge(theme, element, theme.accent().color(), theme.accent().color()));
+        .whenFocusWithin(
+            element -> edge(element, theme.accent().color(), theme.accent().color()));
   }
 
   /** A border at the top and sides, and a line along the bottom, as a text field has. */
-  private static El edge(Theme theme, El input, int frame, int bottom) {
+  private static El edge(El input, int frame, int bottom) {
+    Theme theme = Theme.CURRENT.get();
     float stroke = theme.size().stroke();
     return input
         .border(stroke, stroke, 0, stroke, frame)
@@ -111,11 +109,8 @@ final class TagInput {
   // docs:start tag-keys
   /** The field for the next tag: Enter adds it, Backspace on an empty field removes the last. */
   private static El field(
-      Theme theme,
-      List<String> tags,
-      String placeholder,
-      State state,
-      Consumer<List<String>> onChange) {
+      List<String> tags, String placeholder, State state, Consumer<List<String>> onChange) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onChange != null;
     Theme.TextStyle body = theme.type().body();
     return El.text(state.draft)
@@ -168,16 +163,16 @@ final class TagInput {
    * A tag input of a {@link Prop}, such as a field of an editing: its tags, written back on each
    * change, with the field's error. A prop that cannot be written disables it.
    */
-  static El tagInput(Theme theme, Prop<List<String>> tags, String placeholder, State state) {
+  static El tagInput(Prop<List<String>> tags, String placeholder, State state) {
+    Theme theme = Theme.CURRENT.get();
     List<String> now = tags.get() == null ? List.of() : tags.get();
-    El input = tagInput(theme, now, placeholder, state, tags.onChange());
+    El input = tagInput(now, placeholder, state, tags.onChange());
     String error = tags.error();
     if (error == null) {
       return input;
     }
     int danger = theme.status().danger();
-    return edge(theme, input.invalid(true).errorMessage(error), danger, danger)
-        .whenFocusWithin(null);
+    return edge(input.invalid(true).errorMessage(error), danger, danger).whenFocusWithin(null);
   }
   // docs:end tag-prop
 }

@@ -28,7 +28,7 @@ public final class Segmented {
 
   /**
    * Choices among values of any type, such as the constants of an enum, as {@link
-   * #segmented(Theme, List, int, IntConsumer)} is among texts.
+   * #segmented(List, int, IntConsumer)} is among texts.
    *
    * @param selected the chosen value, found by {@code equals}; null, or a value not among them,
    *     for none
@@ -37,14 +37,9 @@ public final class Segmented {
    *     control
    */
   public static <T> El segmented(
-      Theme theme,
-      List<T> values,
-      T selected,
-      Function<? super T, String> text,
-      Consumer<? super T> onSelect) {
+      List<T> values, T selected, Function<? super T, String> text, Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return segmented(
-        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         Choices.handler(values, onSelect));
@@ -52,9 +47,10 @@ public final class Segmented {
 
   /** Choices of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El segmented(
-      Theme theme, List<T> values, Prop<T> selected, Function<? super T, String> text) {
+      List<T> values, Prop<T> selected, Function<? super T, String> text) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, segmented(theme, values, selected.get(), text, selected.onChange()), selected);
+        theme, segmented(values, selected.get(), text, selected.onChange()), selected);
   }
 
   /**
@@ -62,8 +58,8 @@ public final class Segmented {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the control
    */
-  public static El segmented(
-      Theme theme, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El segmented(List<String> choices, int selected, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     int fill = theme.surface().panel();
     El group = row()
@@ -93,7 +89,7 @@ public final class Segmented {
           .radius(theme.radius().small())
           .fill(back)
           .motion(theme.motion().feedback())
-          .child(label(theme, choices.get(i)).color(text));
+          .child(label(choices.get(i)).color(text));
       if (enabled) {
         int hover = on ? theme.accent().hover() : over(fill, theme.surface().hover());
         int pressed = on ? theme.accent().pressed() : over(fill, theme.surface().pressed());

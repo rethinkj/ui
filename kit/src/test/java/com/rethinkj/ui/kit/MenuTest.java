@@ -261,7 +261,7 @@ class MenuTest {
     }
 
     El view() {
-      return col().wFull().hFull().overlay(Menu.menu(Theme.DARK, menu, items)).onKey(k -> {
+      return col().wFull().hFull().overlay(Menu.menu(menu, items)).onKey(k -> {
         if (!k.name().equals("F2")) {
           return false;
         }
@@ -282,11 +282,7 @@ class MenuTest {
             .wFull()
             .hFull()
             .child(Menu.dropdown(
-                Theme.DARK,
-                Button.button(Theme.DARK, Button.Variant.SECONDARY, "Open", s::toggle)
-                    .key("open"),
-                s,
-                items)));
+                Button.button(Button.Variant.SECONDARY, "Open", s::toggle).key("open"), s, items)));
     run(app, "frame\nfocus #open\nkey Enter\nframe\n");
     assertEquals(1, state.active(), "the first enabled item");
     run(app, "key Escape\nframe\nkey Space\nframe\n");
@@ -313,11 +309,11 @@ class MenuTest {
     List<Menu.Item> items() {
       List<Menu.Item> colors = new ArrayList<>();
       colors.add(Menu.item("None", () -> hue = null)
-          .leading(t -> Icon.icon(t, Symbol.PROHIBITED, Icon.Variant.MUTED))
+          .leading(() -> Icon.icon(Symbol.PROHIBITED, Icon.Variant.MUTED))
           .checked(hue == null));
       for (Theme.Hue each : Theme.Hue.values()) {
         colors.add(Menu.item(HuePicker.name(each), () -> hue = each)
-            .leading(t -> HuePicker.swatch(t, each))
+            .leading(() -> HuePicker.swatch(each))
             .checked(each == hue));
       }
       return List.of(
@@ -334,8 +330,7 @@ class MenuTest {
           .align(com.rethinkj.ui.Style.Align.START)
           .fill(t.surface().window())
           .child(Menu.dropdown(
-              t,
-              Button.button(t, Button.Variant.SECONDARY, "Connection", menu::toggle)
+              Button.button(Button.Variant.SECONDARY, "Connection", menu::toggle)
                   .key("open"),
               menu,
               items()));
@@ -347,7 +342,7 @@ class MenuTest {
   void aSubmenuShowsASwatchBeforeEachHueAndTheCheckAtTheChosenOnesEnd(String theme)
       throws IOException {
     Colors s = new Colors(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
-    App<Colors> app = new App<>(s, Colors::view);
+    App<Colors> app = new App<>(s, Colors::view).provide(Theme.CURRENT, colors -> colors.t);
     app.focusRing(s.t.accent().edge());
     app.textRendering(com.rethinkj.ui.text.TextRendering.LINUX);
     String image = "menu-swatches-" + theme + "-2x";

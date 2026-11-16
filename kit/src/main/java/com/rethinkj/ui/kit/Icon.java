@@ -11,7 +11,7 @@ import java.util.Locale;
  *
  * <pre>{@code
  * row().gap(theme.space().s()).align(Style.Align.CENTER).children(
- *     icon(theme, Symbol.TABLE, Icon.Variant.MUTED), label(theme, "orders"));
+ *     icon(Symbol.TABLE, Icon.Variant.MUTED), label("orders"));
  * }</pre>
  *
  * <p>The font is {@link Font#icons()}, which needs the artifact {@code rethinkj-ui-icons}; it is
@@ -50,20 +50,22 @@ public final class Icon {
   private Icon() {}
 
   /** The symbol in the text color, {@link Theme.Sizes#icon} high. */
-  public static El icon(Theme theme, Symbol symbol) {
-    return icon(theme, symbol, Variant.NORMAL);
+  public static El icon(Symbol symbol) {
+    return icon(symbol, Variant.NORMAL);
   }
 
   /** The symbol in the variant's color, {@link Theme.Sizes#icon} high. */
-  public static El icon(Theme theme, Symbol symbol, Variant variant) {
-    return icon(theme, symbol, variant, theme.size().icon());
+  public static El icon(Symbol symbol, Variant variant) {
+    Theme theme = Theme.CURRENT.get();
+    return icon(symbol, variant, theme.size().icon());
   }
 
   /**
    * The symbol in the variant's color, {@code size} logical pixels wide and high, in the drawing
    * {@link Symbol#codePoint} picks for that size.
    */
-  public static El icon(Theme theme, Symbol symbol, Variant variant, float size) {
+  public static El icon(Symbol symbol, Variant variant, float size) {
+    Theme theme = Theme.CURRENT.get();
     int color = switch (variant) {
       case NORMAL -> theme.text().primary();
       case MUTED -> theme.text().muted();

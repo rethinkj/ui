@@ -86,7 +86,6 @@ class SplitTest {
               .wFull()
               .hFull()
               .child(split(
-                      T,
                       direction,
                       Position.first(100),
                       null,
@@ -274,7 +273,6 @@ class SplitTest {
             .wFull()
             .hFull()
             .child(split(
-                    T,
                     Direction.ROW,
                     Position.first(200),
                     Position.first(100),

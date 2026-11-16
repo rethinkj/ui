@@ -22,7 +22,7 @@ Javadoc: [`Tree`](/api/com/rethinkj/ui/kit/Tree.html), [`Tree.Model`](/api/com/r
 
 `state.open` is a set of the open nodes' names and `state.selected` the selected node, both in the app's state.
 
-`Tree.tree(theme, model, isOpen, selected, onSelect, onToggle, onActivate)`:
+`Tree.tree(model, isOpen, selected, onSelect, onToggle, onActivate)`:
 
 | Parameter | |
 | --- | --- |
@@ -31,7 +31,7 @@ Javadoc: [`Tree`](/api/com/rethinkj/ui/kit/Tree.html), [`Tree.Model`](/api/com/r
 | `onToggle` | `(node, open) -> …`: the user opens or closes a node. Start loading its children here, off the app's thread, and change the state when they arrive |
 | `onActivate` | Enter or a double press on a node, such as opening a table |
 
-A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(theme, tree, menuState, items)` acts on the row it opened on. The tree's rows are rounded; in a card, wrap it in `Card.inset(theme, tree)`. The tree scrolls to keep the selection in view, and scrolls the children of a node that opens into view. The marks are icons and need `rethinkj-ui-icons`.
+A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(tree, menuState, items)` acts on the row it opened on. The tree's rows are rounded; in a card, wrap it in `Card.inset(tree)`. The tree scrolls to keep the selection in view, and scrolls the children of a node that opens into view. The marks are icons and need `rethinkj-ui-icons`.
 
 ## The model
 

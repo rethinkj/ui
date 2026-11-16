@@ -17,9 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A menu of items in an overlay: each with its text, an optional icon before it, an optional
@@ -38,9 +38,8 @@ import java.util.function.Predicate;
  *         List.of(Menu.item("CSV", state::csv), Menu.item("JSON", state::json))),
  *     Menu.item("Word wrap", state::toggleWrap).checked(state.wrap),
  *     Menu.item("Close", null));                             // disabled
- * El file = Menu.dropdown(
- *     theme, button(theme, SECONDARY, "File", state.file::toggle), state.file, fileItems);
- * El tables = Menu.contextMenu(theme, list, state.tableMenu, items); // opens at a right press
+ * El file = Menu.dropdown(button(SECONDARY, "File", state.file::toggle), state.file, fileItems);
+ * El tables = Menu.contextMenu(list, state.tableMenu, items); // opens at a right press
  * root.onKey(Menu.shortcuts(fileItems));                     // Ctrl+N runs New query
  * }</pre>
  *
@@ -97,7 +96,7 @@ public final class Menu {
    * @param onChoose runs when the item is chosen; null disables an item without a submenu
    * @param submenu the items of the submenu the item opens, or null for none
    * @param leading builds what stands before the text in place of the icon, or null; see {@link
-   *     #leading(Function)}
+   *     #leading(Supplier)}
    * @param dangerous whether the item destroys something; see {@link #danger()}
    * @param moreKeys further key combinations that choose the item as {@code keys} does, not
    *     shown; see {@link #alsoShortcut(int, String)}
@@ -110,7 +109,7 @@ public final class Menu {
       Symbol icon,
       Runnable onChoose,
       List<Item> submenu,
-      Function<Theme, El> leading,
+      Supplier<El> leading,
       boolean dangerous,
       List<Key> moreKeys) {
 
@@ -127,7 +126,7 @@ public final class Menu {
         Symbol icon,
         Runnable onChoose,
         List<Item> submenu,
-        Function<Theme, El> leading,
+        Supplier<El> leading,
         boolean dangerous) {
       this(label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, null);
     }
@@ -146,11 +145,11 @@ public final class Menu {
 
     /**
      * This item with an element before its text, in place of an icon, such as a color's swatch
-     * ({@link HuePicker#swatch}): built for each place it shows, for the theme there, at most
+     * ({@link HuePicker#swatch}): built for each place it shows, at most
      * {@link Theme.Sizes#icon} square, in the column the icons have, which keeps its width. While
      * the item is checked, the check mark stands at its end and the element before the text.
      */
-    public Item leading(Function<Theme, El> leading) {
+    public Item leading(Supplier<El> leading) {
       return new Item(
           label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
@@ -501,7 +500,8 @@ public final class Menu {
    *
    * @return the anchor
    */
-  public static El dropdown(Theme theme, El anchor, State state, List<Item> items) {
+  public static El dropdown(El anchor, State state, List<Item> items) {
+    Theme theme = Theme.CURRENT.get();
     El.PressAtHandler press = anchor.onPress();
     if (press != null) {
       anchor.onKey(opener(
@@ -515,7 +515,7 @@ public final class Menu {
     state.opening = 0;
     return anchor.overlay(
         state.isOpen()
-            ? menu(theme, state, items)
+            ? menu(state, items)
                 .side(Side.BOTTOM, Style.Align.START, theme.space().xs())
             : null);
   }
@@ -569,19 +569,19 @@ public final class Menu {
    *
    * @return the target
    */
-  public static El contextMenu(Theme theme, El target, State state, List<Item> items) {
+  public static El contextMenu(El target, State state, List<Item> items) {
     if (target.onSecondaryPress() == null) {
       target.onSecondaryPress(state::openAt);
     }
-    return target.overlay(
-        state.isOpen() ? menu(theme, state, items).atPoint(state.x, state.y) : null);
+    return target.overlay(state.isOpen() ? menu(state, items).atPoint(state.x, state.y) : null);
   }
 
   /**
    * The menu's panel, an overlay to attach to an element with {@link El#overlay} and place, as
    * {@link #dropdown} and {@link #contextMenu} do; it is dismissed with {@link State#close}.
    */
-  public static El menu(Theme theme, State state, List<Item> items) {
+  public static El menu(State state, List<Item> items) {
+    Theme theme = Theme.CURRENT.get();
     return panel(theme, state, items, 0, null).onDismiss(state::close);
   }
 
@@ -627,24 +627,22 @@ public final class Menu {
     El leading = null;
     boolean checkAtEnd = item.checked() && item.leading() != null;
     if (item.leading() != null) {
-      leading = item.leading().apply(theme).shrink(0);
+      leading = item.leading().get().shrink(0);
     } else if (item.checked()) {
-      leading = icon(theme, CHECKED).color(text);
+      leading = icon(CHECKED).color(text);
     } else if (item.icon() != null) {
-      leading = icon(theme, item.icon()).color(text);
+      leading = icon(item.icon()).color(text);
     }
     boolean opens = item.opens();
     El content = PassiveContent.row(
         theme,
         PassiveContent.leading(theme, leading),
-        label(theme, item.label()).color(text),
+        label(item.label()).color(text),
         !opens && item.shortcut() != null
-            ? label(theme, item.shortcut())
-                .color(quiet)
-                .margin(0, 0, 0, theme.space().l())
+            ? label(item.shortcut()).color(quiet).margin(0, 0, 0, theme.space().l())
             : null,
-        checkAtEnd ? icon(theme, CHECKED).color(text) : null,
-        opens ? icon(theme, SUBMENU).color(quiet) : null);
+        checkAtEnd ? icon(CHECKED).color(text) : null,
+        opens ? icon(SUBMENU).color(quiet) : null);
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(
         theme.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));

@@ -381,7 +381,8 @@ public final class Showcase {
 
   /** The app in a look, as {@link #main} runs it and the tests drive it. */
   static App<Showcase> app(Look look) {
-    App<Showcase> app = new App<>(new Showcase(look), Showcase::view);
+    App<Showcase> app =
+        new App<>(new Showcase(look), Showcase::view).provide(Theme.CURRENT, Showcase::theme);
     app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
@@ -412,10 +413,9 @@ public final class Showcase {
   }
 
   static El view(Showcase state) {
-    Theme theme = state.theme();
+    Theme theme = Theme.CURRENT.get();
     // docs:start showcase-sidebar
     El nav = NavList.navList(
-            theme,
             List.of(Section.values()),
             state.section,
             section -> NavList.item(section.symbol, section.title),
@@ -424,14 +424,12 @@ public final class Showcase {
         .label("Sections")
         .grow(1);
     El sidebar = Card.flush(
-            theme,
-            Card.inset(theme, nav),
+            Card.inset(nav),
             col()
                 .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
                 .gap(theme.space().s())
-                .child(label(theme, MUTED, "Theme"))
+                .child(label(MUTED, "Theme"))
                 .child(Select.select(
-                        theme,
                         List.of(Look.values()),
                         state.look,
                         look -> look.title,
@@ -448,7 +446,6 @@ public final class Showcase {
         .hFull()
         .fill(theme.surface().window())
         .child(titleBar(
-            theme,
             "Showcase · " + state.lookTitle(),
             state.look == Look.SYSTEM && state.systemAccent != 0
                 ? state.systemAccent
@@ -460,9 +457,9 @@ public final class Showcase {
             .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
             .gap(theme.space().m())
             .child(sidebar)
-            .child(Sections.section(state, theme)));
+            .child(Sections.section(state)));
     return root.onKey(CommandPalette.keys(state.palette))
-        .overlay(Sections.dialog(state, theme))
-        .overlay(Sections.palette(state, theme));
+        .overlay(Sections.dialog(state))
+        .overlay(Sections.palette(state));
   }
 }

@@ -205,7 +205,6 @@ class GridEditTest {
             .wFull()
             .hFull()
             .child(DataGrid.dataGrid(
-                    T,
                     List.of(new DataGrid.Column(
                             "n", 80, DataGrid.DataType.TEXT, r -> String.valueOf(o[r]))
                         .editable()),
@@ -815,8 +814,8 @@ class GridEditTest {
   @Test
   void anEditorOfTheAppsOwnTakesTheFocusAndTheGridsKeysEndIt() throws IOException {
     Ledger ledger = new Ledger(T, 40);
-    ledger.custom = (value, onChange) ->
-        TextField.textField(T, value, onChange).key("mine").label("Own editor");
+    ledger.custom =
+        (value, onChange) -> TextField.textField(value, onChange).key("mine").label("Own editor");
     App<Ledger> app = start(ledger);
     run(app, "key F2\nframe\nframe");
     assertEquals("mine", app.focused().key(), app.tree().dump());
@@ -850,7 +849,6 @@ class GridEditTest {
     return new App<>(
         new Object(),
         x -> DataGrid.dataGrid(
-                T,
                 List.of(column.cell(changes.cell(0))),
                 changes.rowCount(),
                 DataGrid.options().select(selection).changes(changes))

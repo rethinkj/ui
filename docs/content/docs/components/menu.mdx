@@ -16,7 +16,7 @@ Javadoc: [`Menu`](/api/com/rethinkj/ui/kit/Menu.html), [`Menu.Item`](/api/com/re
 
 `state.options` is a `Menu.State` and `state.autocommit` a boolean, both in the app's state.
 
-The button's handler calls `state.options.toggle()`; `Menu.dropdown(theme, button, menuState, items)` shows the menu below it. Choosing an item closes the menu and then runs its handler. A press outside closes it and does nothing else.
+The button's handler calls `state.options.toggle()`; `Menu.dropdown(button, menuState, items)` shows the menu below it. Choosing an item closes the menu and then runs its handler. A press outside closes it and does nothing else.
 
 ## A context menu
 
@@ -25,7 +25,7 @@ The button's handler calls `state.options.toggle()`; `Menu.dropdown(theme, butto
 
 `state.context` is a `Menu.State` in the app's state.
 
-`Menu.contextMenu(theme, target, menuState, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.context.openAt(x, y)` there.
+`Menu.contextMenu(target, menuState, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.context.openAt(x, y)` there.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 
@@ -40,7 +40,7 @@ The button's handler calls `state.options.toggle()`; `Menu.dropdown(theme, butto
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
 | `.danger()` | The text and icon in the theme's danger color, for an action that destroys something, such as Delete |
-| `.leading(theme -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a color's swatch, an avatar |
+| `.leading(() -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a color's swatch, an avatar |
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 

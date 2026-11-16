@@ -80,7 +80,6 @@ class MarkdownTest {
             .hFull()
             .fill(t.surface().panel())
             .child(Markdown.markdown(
-                    t,
                     d.document,
                     Markdown.options()
                         .onLink(d.links::add)

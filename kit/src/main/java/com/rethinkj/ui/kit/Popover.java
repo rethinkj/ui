@@ -16,8 +16,8 @@ import java.util.List;
  * attaches the panel while it is open:
  *
  * <pre>{@code
- * El filter = Button.button(theme, SECONDARY, Symbol.FILTER, "Filter", state.filter::toggle);
- * Popover.popover(theme, filter, state.filter, "Filter", content)
+ * El filter = Button.button(SECONDARY, Symbol.FILTER, "Filter", state.filter::toggle);
+ * Popover.popover(filter, state.filter, "Filter", content)
  * }</pre>
  *
  * <p>As it opens, the focus goes to its first {@link El#autofocus} or focusable element, or to
@@ -61,8 +61,8 @@ public final class Popover {
    * @param label what the popover is, its label in a tree dump
    * @return the anchor
    */
-  public static El popover(Theme theme, El anchor, State state, String label, El content) {
-    return popover(theme, anchor, state, Side.BOTTOM, Style.Align.START, label, content);
+  public static El popover(El anchor, State state, String label, El content) {
+    return popover(anchor, state, Side.BOTTOM, Style.Align.START, label, content);
   }
 
   /**
@@ -72,11 +72,11 @@ public final class Popover {
    * @return the anchor
    */
   public static El popover(
-      Theme theme, El anchor, State state, Side side, Style.Align align, String label, El content) {
+      El anchor, State state, Side side, Style.Align align, String label, El content) {
+    Theme theme = Theme.CURRENT.get();
     return anchor.overlay(
         state.isOpen()
-            ? panel(theme, state, label, content)
-                .side(side, align, theme.space().xs())
+            ? panel(state, label, content).side(side, align, theme.space().xs())
             : null);
   }
 
@@ -89,10 +89,9 @@ public final class Popover {
    * @param buttons the actions, in the order shown, the main one usually last
    * @return the anchor
    */
-  public static El form(
-      Theme theme, El anchor, State state, String title, El content, List<El> buttons) {
+  public static El form(El anchor, State state, String title, El content, List<El> buttons) {
+    Theme theme = Theme.CURRENT.get();
     return popover(
-        theme,
         anchor,
         state,
         title,
@@ -100,10 +99,7 @@ public final class Popover {
             .gap(theme.space().l())
             .minSize(0, 0)
             .children(
-                label(theme, Label.Variant.STRONG, title)
-                    .role("heading")
-                    .level(3)
-                    .shrink(0),
+                label(Label.Variant.STRONG, title).role("heading").level(3).shrink(0),
                 Dialog.scrolling(theme, content), // scrolls where the window is too low for it
                 row()
                     .gap(theme.space().m())
@@ -118,7 +114,8 @@ public final class Popover {
    * in the content takes the focus ({@link El#hasFocusable}: disabled, invisible and fields
    * without an edit handler do not), the panel takes it, so that Escape reaches it.
    */
-  public static El panel(Theme theme, State state, String label, El content) {
+  public static El panel(State state, String label, El content) {
+    Theme theme = Theme.CURRENT.get();
     El panel = Popup.frame(theme, col())
         .key("popover")
         .role("dialog")

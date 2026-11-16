@@ -56,7 +56,7 @@ class CompletionTest {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
-      El editor = codeEditor(t, s.sql, s.editor, Sql.of(t), v -> s.sql = v)
+      El editor = codeEditor(s.sql, s.editor, Sql.of(), v -> s.sql = v)
           .key("query")
           .lines(4)
           .wFull();
@@ -68,8 +68,8 @@ class CompletionTest {
           .child(
               background
                   ? Completion.completeInBackground(
-                      t, s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
-                  : Completion.complete(t, s.app, editor, s.editor.caret(), s.completion, suggest));
+                      s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
+                  : Completion.complete(s.app, editor, s.editor.caret(), s.completion, suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);

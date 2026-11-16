@@ -18,16 +18,16 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
 | | |
 | --- | --- |
-| `navList(theme, items, selected, onSelect)` | A list of `NavList.Item`s |
-| `navList(theme, count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
+| `navList(items, selected, onSelect)` | A list of `NavList.Item`s |
+| `navList(count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
 | `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
 | `NavList.heading(label)` | A heading, skipped by the keys |
 
-In a card, wrap it in `Card.inset(theme, list)`.
+In a card, wrap it in `Card.inset(list)`.
 
 ## Values instead of indexes
 
-`navList(theme, values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(theme, values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`navList(values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="nav-list-types"
 ```

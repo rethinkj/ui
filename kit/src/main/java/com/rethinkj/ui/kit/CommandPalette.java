@@ -30,7 +30,7 @@ import java.util.function.Predicate;
  * <pre>{@code
  * List<Menu.Item> menus = state.menus();
  * root.onKey(MenuBar.keys(state.bar, menus).or(CommandPalette.keys(state.palette)))
- *     .overlay(CommandPalette.palette(theme, state.palette, CommandPalette.commands(menus),
+ *     .overlay(CommandPalette.palette(state.palette, CommandPalette.commands(menus),
  *         List.of(new CommandPalette.Source(
  *             "@", "to open a table", Entries.of(state.tables())))));
  * }</pre>
@@ -328,8 +328,8 @@ public final class CommandPalette {
    *     menus and commands of its own
    * @param sources the kinds found after their prefixes
    */
-  public static El palette(
-      Theme theme, State state, List<FilterList.Entry> commands, List<Source> sources) {
+  public static El palette(State state, List<FilterList.Entry> commands, List<Source> sources) {
+    Theme theme = Theme.CURRENT.get();
     if (!state.open) {
       return null;
     }
@@ -362,7 +362,7 @@ public final class CommandPalette {
       }
     };
     String placeholder = stage != null ? stage.placeholder() : placeholder(sources);
-    El field = TextField.textField(theme, state.text, placeholder, v -> {
+    El field = TextField.textField(state.text, placeholder, v -> {
           state.text = v;
           state.list.typed(stage != null ? v : query(v, sources), true);
           if (entries != null && state.list.onHighlight != null) {
@@ -389,8 +389,7 @@ public final class CommandPalette {
         .atWindowEdge(Side.TOP, Style.Align.CENTER, theme.size().paletteTop())
         .margin(0, 0, theme.space().m(), 0) // above the bottom of a short window
         .onDismiss(state::close)
-        .child(
-            TextField.withIcon(theme, field, stage == null ? Symbol.SEARCH : Symbol.CHEVRON_RIGHT));
+        .child(TextField.withIcon(field, stage == null ? Symbol.SEARCH : Symbol.CHEVRON_RIGHT));
     // Not as wide as the field's own width, but the panel's.
     panel.children().getFirst().wFull();
     if (entries != null) {

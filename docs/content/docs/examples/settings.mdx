@@ -34,7 +34,7 @@ Each page is one expression: a `page` of `section`s, each with a `group` of rows
 
 ### Theme and accent
 
-The theme comes from the state on every build of the view: the light or dark theme, System as the window loop reports the system's appearance, and `withAccent` for an accent other than blue ([Themes](/docs/concepts/themes)).
+The app provides the theme from the state, `app.provide(Theme.CURRENT, Settings::theme)`, so every build of the view has the one the state chooses: the light or dark theme, System as the window loop reports the system's appearance, and `withAccent` for an accent other than blue ([Themes](/docs/concepts/themes)).
 
 ```java snippet="settings-theme"
 ```

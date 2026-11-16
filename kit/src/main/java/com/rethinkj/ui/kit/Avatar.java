@@ -13,8 +13,8 @@ import java.util.Locale;
  * dump it is {@code role=img} with the name as its label.
  *
  * <pre>{@code
- * Avatar.avatar(theme, "prod-eu")                      // "PE" on a color of its own
- * Avatar.avatar(theme, "localhost", Symbol.SERVER, 20) // an icon instead of initials
+ * Avatar.avatar("prod-eu")                      // "PE" on a color of its own
+ * Avatar.avatar("localhost", Symbol.SERVER, 20) // an icon instead of initials
  * }</pre>
  */
 public final class Avatar {
@@ -22,15 +22,17 @@ public final class Avatar {
   private Avatar() {}
 
   /** A mark with the name's initials, as high as a control. */
-  public static El avatar(Theme theme, String name) {
-    return avatar(theme, name, null, theme.size().control());
+  public static El avatar(String name) {
+    Theme theme = Theme.CURRENT.get();
+    return avatar(name, null, theme.size().control());
   }
 
   /**
    * @param symbol in place of the initials; null for the initials
    * @param size the diameter in logical pixels
    */
-  public static El avatar(Theme theme, String name, Symbol symbol, float size) {
+  public static El avatar(String name, Symbol symbol, float size) {
+    Theme theme = Theme.CURRENT.get();
     Theme.Badges b = theme.badge();
     El mark = row()
         .role("img")
@@ -41,8 +43,8 @@ public final class Avatar {
         .radius(size / 2)
         .fill(color(b.avatars(), name));
     if (symbol != null) {
-      return mark.child(Icon.icon(theme, symbol, Icon.Variant.NORMAL, Math.round(size * 0.6f))
-          .color(b.onAvatar()));
+      return mark.child(
+          Icon.icon(symbol, Icon.Variant.NORMAL, Math.round(size * 0.6f)).color(b.onAvatar()));
     }
     Theme.TextStyle style = theme.type().heading();
     return mark.child(El.text(initials(name))

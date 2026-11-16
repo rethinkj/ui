@@ -16,27 +16,27 @@ Javadoc: [`Radio`](/api/com/rethinkj/ui/kit/Radio.html).
 
 `state.indent` is the index of the chosen choice, in the app's state.
 
-`Radio.radioGroup(theme, choices, selected, onSelect)`. A null handler disables it. Give the group a `.label(...)`.
+`Radio.radioGroup(choices, selected, onSelect)`. A null handler disables it. Give the group a `.label(...)`.
 
 ## Values instead of indexes
 
-`Radio.radioGroup(theme, values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`Radio.radioGroup(values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="radio-typed"
 ```
 
 ## Swatches
 
-`Radio.swatches` is the same group for choices that show an element instead of a text, such as colors or icons. Each `Radio.option(name, theme -> element)` is a square in a row that wraps, with the name in a tooltip and as the radio's label. [HuePicker](/docs/components/hue-picker) is one made of the theme's hues.
+`Radio.swatches` is the same group for choices that show an element instead of a text, such as colors or icons. Each `Radio.option(name, () -> element)` is a square in a row that wraps, with the name in a tooltip and as the radio's label. [HuePicker](/docs/components/hue-picker) is one made of the theme's hues.
 
 ```java snippet="swatches"
 ```
 
 | Call | |
 | --- | --- |
-| `swatches(theme, options, selected, onSelect)` | By index |
-| `swatches(theme, values, selected, value -> option, onSelect)` | By value; null among the values is a choice like any other, such as no color |
-| `swatches(theme, values, prop, value -> option)` | A `Prop` |
+| `swatches(options, selected, onSelect)` | By index |
+| `swatches(values, selected, value -> option, onSelect)` | By value; null among the values is a choice like any other, such as no color |
+| `swatches(values, prop, value -> option)` | A `Prop` |
 
 Keep the element at most 16 pixels square, the size of a checkbox. The chosen option has a round ring around it. The keyboard's focus is a rounded square around the chosen option, or the first while none is chosen.
 
@@ -46,7 +46,7 @@ The group is one stop for Tab. The arrows choose the next and the previous choic
 
 ## With a Prop
 
-`radioGroup(theme, values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`radioGroup(values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

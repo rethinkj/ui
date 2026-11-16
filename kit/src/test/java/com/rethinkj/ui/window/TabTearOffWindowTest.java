@@ -14,7 +14,6 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Tabs.Tab;
-import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.text.Font;
 import java.lang.foreign.Arena;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.Test;
  */
 class TabTearOffWindowTest {
 
-  private static final Theme T = Theme.DARK;
   private static final long TIMEOUT_MILLIS = 10_000;
 
   /** The groups of the tabs a to d; each window shows its group's tabs alone. */
@@ -54,7 +52,7 @@ class TabTearOffWindowTest {
           .wFull()
           .hFull()
           .child(groups
-              .tabs(T, group, Tab::new, s -> s == null ? null : Label.label(T, s))
+              .tabs(group, Tab::new, s -> s == null ? null : Label.label(s))
               .grow(1));
     }
   }

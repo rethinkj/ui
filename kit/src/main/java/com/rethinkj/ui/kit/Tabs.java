@@ -29,7 +29,7 @@ import java.util.function.IntConsumer;
  * reports a choice or a close:
  *
  * <pre>{@code
- * tabs(theme,
+ * tabs(
  *         state.tabs.stream()
  *             .map(query -> new Tab(query.title(), true, query.isModified()))
  *             .toList(),
@@ -65,7 +65,7 @@ import java.util.function.IntConsumer;
  * which the tabs reach first when they have the focus:
  *
  * <pre>{@code
- * El queries = tabs(theme, ...);
+ * El queries = tabs(...);
  * return col().wFull().hFull().onKey(queries.onKey()).children(toolbar, queries.grow(1));
  * }</pre>
  *
@@ -522,24 +522,19 @@ public final class Tabs {
    * @param content the content of the active tab, which fills the rest; null for none
    */
   public static El tabs(
-      Theme theme,
-      List<Tab> tabs,
-      int active,
-      IntConsumer onSelect,
-      IntConsumer onClose,
-      El content) {
-    return tabs(theme, tabs, active, onSelect, onClose, content, options());
+      List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose, El content) {
+    return tabs(tabs, active, onSelect, onClose, content, options());
   }
 
   /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu. */
   public static El tabs(
-      Theme theme,
       List<Tab> tabs,
       int active,
       IntConsumer onSelect,
       IntConsumer onClose,
       El content,
       Options options) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     Dragging dragging = options.dragging;
     boolean drags =
@@ -630,7 +625,7 @@ public final class Tabs {
       }
     }
     if (enabled && options.menu != null) { // a press beside the tabs opens the active one's menu
-      Menu.contextMenu(theme, bar, options.menu, options.menuItems);
+      Menu.contextMenu(bar, options.menu, options.menuItems);
     }
     El panel = col()
         .key("panel")
@@ -765,13 +760,13 @@ public final class Tabs {
       dot = el().size(side, side).shrink(0).radius(side / 2).fill(ink);
       el.child(dot);
     }
-    El spinner = tab.busy() ? Progress.spinner(theme) : null;
+    El spinner = tab.busy() ? Progress.spinner() : null;
     if (spinner != null) {
       el.child(spinner);
     } else if (tab.icon() != null) {
-      el.child(Icon.icon(theme, tab.icon()).color(ink));
+      el.child(Icon.icon(tab.icon()).color(ink));
     }
-    el.child(label(theme, tab.title()).color(ink));
+    el.child(label(tab.title()).color(ink));
     if (!enabled) {
       return el;
     }
@@ -790,7 +785,7 @@ public final class Tabs {
           .onPress(() -> onClose.accept(index))
           .whenHovered(e -> e.fill(s.hover()))
           .whenPressed(e -> e.fill(s.pressed()))
-          .child(Icon.icon(theme, Symbol.DISMISS, Icon.Variant.NORMAL, side).color(ink));
+          .child(Icon.icon(Symbol.DISMISS, Icon.Variant.NORMAL, side).color(ink));
       el.child(close);
     }
     el.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(index));

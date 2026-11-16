@@ -62,8 +62,8 @@ class ButtonTest {
     String text = "Export public.customer_addresses as CSV";
     App<Clicks> app = app(s -> row()
         .children(
-            button(T, SECONDARY, text, s::press).key("narrow").w(120),
-            button(T, SECONDARY, "Save", s::press).key("fits").w(120)));
+            button(SECONDARY, text, s::press).key("narrow").w(120),
+            button(SECONDARY, "Save", s::press).key("fits").w(120)));
     run(app, "move #narrow\nframe\nadvance 1\nframe");
     String dump = app.tree().dump();
     float[] button = StructureTest.rect(dumpLine(app, "narrow"));
@@ -82,8 +82,8 @@ class ButtonTest {
   @Test
   void aButtonThatIsOffIsAsOneWithoutAHandler() throws IOException {
     App<Clicks> off = app(s ->
-        button(T, SECONDARY, "Save", s::press, Button.options().enabled(false)).key("b"));
-    App<Clicks> none = app(s -> button(T, SECONDARY, "Save", null).key("b"));
+        button(SECONDARY, "Save", s::press, Button.options().enabled(false)).key("b"));
+    App<Clicks> none = app(s -> button(SECONDARY, "Save", null).key("b"));
     run(off, "key Tab\nframe\npress #b\nkey Enter");
     run(none, "key Tab\nframe\npress #b\nkey Enter");
     assertEquals(none.tree().dump(), off.tree().dump());
@@ -95,12 +95,7 @@ class ButtonTest {
   @Test
   void aBusyIconButtonShowsASpinnerAndTakesNoPress() throws IOException {
     App<Clicks> app = app(s -> Button.icon(
-            T,
-            GHOST,
-            Symbol.ARROW_CLOCKWISE,
-            "Refresh",
-            s::press,
-            Button.options().busy(true))
+            GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", s::press, Button.options().busy(true))
         .key("b"));
     run(app, "key Tab\nframe\nkey Enter\nkey Space\npress #b");
     String line = dumpLine(app, "b");
@@ -117,10 +112,10 @@ class ButtonTest {
     Theme.Danger d = T.danger();
     Theme.Surfaces s = T.surface();
     App<Clicks> app = app(c -> row()
-        .child(button(T, PRIMARY, "Drop", c::press, danger()).key("p"))
-        .child(button(T, SECONDARY, "Discard", c::press, danger()).key("s"))
-        .child(button(T, GHOST, "Delete", c::press, danger()).key("g"))
-        .child(button(T, PRIMARY, "Off", c::press, danger().enabled(false)).key("o")));
+        .child(button(PRIMARY, "Drop", c::press, danger()).key("p"))
+        .child(button(SECONDARY, "Discard", c::press, danger()).key("s"))
+        .child(button(GHOST, "Delete", c::press, danger()).key("g"))
+        .child(button(PRIMARY, "Off", c::press, danger().enabled(false)).key("o")));
     run(app, "");
     El primary = find(app, "p");
     assertEquals(d.color(), primary.fill());
@@ -140,7 +135,7 @@ class ButtonTest {
 
   @Test
   void enterAndSpaceShowTheButtonPressedWhileHeld() throws IOException {
-    App<Clicks> app = app(c -> button(T, SECONDARY, "Save", c::press).key("b"));
+    App<Clicks> app = app(c -> button(SECONDARY, "Save", c::press).key("b"));
     run(app, "key Tab\nframe\nkey Space down\nframe\nadvance 1");
     Theme.Surfaces s = T.surface();
     assertEquals(over(s.raised(), s.pressed()), find(app, "b").fill());
@@ -151,7 +146,6 @@ class ButtonTest {
 
   private static App<Clicks> split(Button.Options o) {
     return app(c -> Button.split(
-        T,
         SECONDARY,
         "Run",
         c::press,
@@ -198,7 +192,6 @@ class ButtonTest {
   void aSplitButtonTurnedOffWhileItsMenuIsOpenClosesItAndChoosesNothing() throws IOException {
     boolean[] off = {false};
     App<Clicks> app = app(c -> Button.split(
-        T,
         SECONDARY,
         "Run",
         c::press,

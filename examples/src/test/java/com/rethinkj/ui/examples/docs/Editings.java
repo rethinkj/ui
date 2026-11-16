@@ -13,7 +13,6 @@ import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.NumberField;
 import com.rethinkj.ui.kit.Part;
 import com.rethinkj.ui.kit.TextField;
-import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toggle;
 import com.rethinkj.ui.kit.ValueField;
 import java.math.BigDecimal;
@@ -23,8 +22,6 @@ import java.util.Objects;
 
 /** The examples of the page Editing records: a form over a record, and one over a POJO. */
 final class Editings {
-
-  Theme theme = Theme.DARK;
 
   // docs:start editing-record
   record Order(String customer, BigDecimal amount, LocalDate ordered, LocalDate due, boolean paid) {
@@ -63,36 +60,28 @@ final class Editings {
   // docs:end editing-state
 
   static El record(Editings state) {
-    Theme theme = state.theme;
     // docs:start editing-view
     Editing<Order> editing = state.editing;
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
-        Form.field(
-            "Customer", TextField.textField(theme, editing.at(Order.CUSTOMER)).key("customer")),
+        Form.field("Customer", TextField.textField(editing.at(Order.CUSTOMER)).key("customer")),
         Form.field(
             "Amount",
-            ValueField.valueField(theme, Format.DECIMAL, editing.at(Order.AMOUNT))
+            ValueField.valueField(Format.DECIMAL, editing.at(Order.AMOUNT))
                 .key("amount")
                 .w(120)),
         Form.field(
             "Due",
-            ValueField.valueField(
-                    theme, Format.DATE.optional(), editing.at(Order.DUE), "2026-11-30")
+            ValueField.valueField(Format.DATE.optional(), editing.at(Order.DUE), "2026-11-30")
                 .key("due")
                 .w(120)),
-        Form.field("Paid", Checkbox.checkbox(theme, editing.at(Order.PAID), null)));
-    El save = Button.button(
-        theme, PRIMARY, "Save", editing.valid() && editing.changed() ? state::save : null);
-    El revert =
-        Button.button(theme, SECONDARY, "Revert", editing.changed() ? editing::reset : null);
+        Form.field("Paid", Checkbox.checkbox(editing.at(Order.PAID), null)));
+    El save =
+        Button.button(PRIMARY, "Save", editing.valid() && editing.changed() ? state::save : null);
+    El revert = Button.button(SECONDARY, "Revert", editing.changed() ? editing::reset : null);
     // docs:end editing-view
     return Frame.of(
-        theme,
-        form,
-        Form.buttons(theme, revert, save),
-        Label.label(theme, Label.Variant.MUTED, state.status));
+        form, Form.buttons(revert, save), Label.label(Label.Variant.MUTED, state.status));
   }
 
   // docs:start editing-save
@@ -165,19 +154,15 @@ final class Editings {
   // docs:end editing-pojo
 
   static El pojo(Editings state) {
-    Theme theme = state.theme;
     // docs:start editing-pojo-view
     Editing<Settings> editing = state.editingSettings;
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
-        Form.field(
-            "Fetch size", NumberField.numberField(theme, editing.at(Settings.FETCH), 10, 1000, 10)),
-        Form.field(
-            "Commit", Toggle.toggle(theme, editing.at(Settings.AUTO_COMMIT), "Auto-commit")));
-    El apply = Button.button(theme, PRIMARY, "Apply", editing.changed() ? state::apply : null);
+        Form.field("Fetch size", NumberField.numberField(editing.at(Settings.FETCH), 10, 1000, 10)),
+        Form.field("Commit", Toggle.toggle(editing.at(Settings.AUTO_COMMIT), "Auto-commit")));
+    El apply = Button.button(PRIMARY, "Apply", editing.changed() ? state::apply : null);
     // docs:end editing-pojo-view
-    return Frame.of(theme, form, Form.buttons(theme, apply));
+    return Frame.of(form, Form.buttons(apply));
   }
 
   /** Formats of times with a fixed precision; shown on the page Format. */

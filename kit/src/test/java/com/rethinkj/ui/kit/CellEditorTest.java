@@ -67,7 +67,6 @@ class CellEditorTest {
           new Column("id", widths[0], Align.RIGHT, true, i -> String.valueOf(i + 1)),
           new Column("name", widths[1], Align.LEFT, false, i -> names[i]));
       El grid = dataGrid(
-              T,
               columns,
               names.length,
               DataGrid.options()
@@ -90,7 +89,7 @@ class CellEditorTest {
       if (editing >= 0) {
         // Over the name's cell: the rows begin below the header and its line; no scrolling here.
         float rowHeight = T.grid().rowHeight();
-        area.child(textField(T, draft, v -> draft = v)
+        area.child(textField(draft, v -> draft = v)
             .key("editor")
             .label("Name")
             .absolute(widths[0], rowHeight + T.size().stroke() + editing * rowHeight)
@@ -105,7 +104,7 @@ class CellEditorTest {
           .padding(T.space().m())
           .gap(T.space().m())
           .fill(T.surface().panel())
-          .children(textField(T, filter, "Filter", v -> filter = v).key("filter"), area);
+          .children(textField(filter, "Filter", v -> filter = v).key("filter"), area);
     }
 
     /** The field's own handler sees its keys first: Enter commits, Escape cancels. */

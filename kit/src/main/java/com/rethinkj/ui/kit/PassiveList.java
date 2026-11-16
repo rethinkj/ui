@@ -41,7 +41,7 @@ final class PassiveList {
         .key("loading")
         .padding(0, theme.space().m())
         .align(Style.Align.CENTER)
-        .child(Label.label(theme, Label.Variant.MUTED, "Loading…"));
+        .child(Label.label(Label.Variant.MUTED, "Loading…"));
   }
 
   static float gutter(Theme theme, int count, int most) {

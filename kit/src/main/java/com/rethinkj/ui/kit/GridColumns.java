@@ -63,7 +63,7 @@ final class GridColumns {
       sel.headerMenu.close();
     } else {
       header.onSecondaryPress((x, y) -> {}); // beside the cells it opens nothing
-      Menu.contextMenu(b.theme, header, sel.headerMenu, items(b, sel.headerColumn));
+      Menu.contextMenu(header, sel.headerMenu, items(b, sel.headerColumn));
     }
     Layout l = b.o.layout;
     int at = l == null || !l.chooser.isOpen() || l.from < 0 ? -1 : l.shownNear(l.from, b.o.full);
@@ -177,7 +177,7 @@ final class GridColumns {
   /** {@link DataGrid#columnsButton}. */
   static El button(Theme theme, Layout l) {
     El button = Button.button(
-            theme, Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
+            Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
         .key("columns-button")
         .expanded(l.chooser.isOpen() && l.from < 0);
     return button.overlay(
@@ -211,7 +211,6 @@ final class GridColumns {
       }
       boolean shown = !l.isHidden(full);
       list.child(Checkbox.checkbox(
-              theme,
               shown,
               title,
               !shown || l.shownCount() > 1
@@ -235,12 +234,10 @@ final class GridColumns {
     }
     El content = col()
         .gap(theme.space().s())
-        .child(
-            Label.label(theme, Label.Variant.STRONG, "Columns").role("heading").level(3));
+        .child(Label.label(Label.Variant.STRONG, "Columns").role("heading").level(3));
     if (l.titles.size() > 8) {
       content.child(TextField.withIcon(
-          theme,
-          textField(theme, l.search, "Search columns", v -> l.search = v)
+          textField(l.search, "Search columns", v -> l.search = v)
               .key("search")
               .w(theme.size().field())
               .autofocus(),
@@ -248,17 +245,16 @@ final class GridColumns {
     }
     content
         .child(list)
-        .child(Label.label(theme, Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
+        .child(Label.label(Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
         .child(row()
             .gap(theme.space().s())
             .justify(Style.Content.END)
             .children(
                 Button.button(
-                    theme,
                     Button.Variant.GHOST,
                     "Show all",
                     l.shownCount() == l.titles.size() ? null : l::showAll),
-                Button.button(theme, Button.Variant.SECONDARY, "Reset", l::reset)));
-    return Popover.panel(theme, l.chooser, "Columns", content).key("chooser");
+                Button.button(Button.Variant.SECONDARY, "Reset", l::reset)));
+    return Popover.panel(l.chooser, "Columns", content).key("chooser");
   }
 }

@@ -27,11 +27,12 @@ public final class Label {
 
   private Label() {}
 
-  public static El label(Theme theme, String text) {
-    return label(theme, Variant.NORMAL, text);
+  public static El label(String text) {
+    return label(Variant.NORMAL, text);
   }
 
-  public static El label(Theme theme, Variant variant, String text) {
+  public static El label(Variant variant, String text) {
+    Theme theme = Theme.CURRENT.get();
     Theme.TextStyle style = switch (variant) {
       case NORMAL, MUTED -> theme.type().body();
       case MONO -> theme.type().mono();

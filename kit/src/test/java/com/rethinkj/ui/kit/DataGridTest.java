@@ -180,9 +180,9 @@ class DataGridTest {
             .wFull()
             .hFull()
             .children(
-                button(T, Variant.SECONDARY, "Before", () -> {}),
+                button(Variant.SECONDARY, "Before", () -> {}),
                 o.grid().key("orders").grow(1),
-                button(T, Variant.SECONDARY, "After", () -> {})));
+                button(Variant.SECONDARY, "After", () -> {})));
     run(app, "frame\nkey Tab\nframe\nkey Tab\nframe");
     assertEquals("orders", app.focused().key());
     run(app, "key Tab\nframe");

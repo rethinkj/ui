@@ -93,33 +93,29 @@ class EditingFormTest {
         .hFull()
         .padding(t.space().l())
         .child(Form.form(
-            t,
             Form.Labels.BESIDE,
-            Form.field("Name", TextField.textField(t, e.at(Job.NAME)).key("name")),
-            Form.field("Active", Checkbox.checkbox(t, e.at(Job.ACTIVE), null).key("active")),
+            Form.field("Name", TextField.textField(e.at(Job.NAME)).key("name")),
+            Form.field("Active", Checkbox.checkbox(e.at(Job.ACTIVE), null).key("active")),
             // Shows only while the job is active.
             e.value().active()
-                ? Form.field("Retries", ValueField.valueField(t, RETRIES, e.at(Job.RETRIES)))
+                ? Form.field("Retries", ValueField.valueField(RETRIES, e.at(Job.RETRIES)))
                 : null,
-            Form.field("Alert", Toggle.toggle(t, e.at(Job.ALERT), null)),
+            Form.field("Alert", Toggle.toggle(e.at(Job.ALERT), null)),
             Form.field(
                 "Level",
-                Select.select(t, LEVELS, e.at(Job.LEVEL), Level::name, s.levelMenu)
-                    .key("level")),
+                Select.select(LEVELS, e.at(Job.LEVEL), Level::name, s.levelMenu).key("level")),
             Form.field(
-                "Mode", Radio.radioGroup(t, LEVELS, e.at(Job.MODE), Level::name).key("mode")),
+                "Mode", Radio.radioGroup(LEVELS, e.at(Job.MODE), Level::name).key("mode")),
             Form.field(
-                "Unit",
-                Segmented.segmented(t, LEVELS, e.at(Job.UNIT), Level::name).key("unit")),
-            Form.field("Workers", NumberField.numberField(t, e.at(Job.WORKERS), 1, 8, 1)),
-            Form.field("Load", Slider.slider(t, e.at(Job.LOAD), 0, 100, 10)),
+                "Unit", Segmented.segmented(LEVELS, e.at(Job.UNIT), Level::name).key("unit")),
+            Form.field("Workers", NumberField.numberField(e.at(Job.WORKERS), 1, 8, 1)),
+            Form.field("Load", Slider.slider(e.at(Job.LOAD), 0, 100, 10)),
             Form.field(
                 "Host",
-                ComboBox.free(t, e.at(Job.HOST), List.of("db", "dc"), s.hosts).key("host")),
+                ComboBox.free(e.at(Job.HOST), List.of("db", "dc"), s.hosts).key("host")),
             Form.field(
-                "Region", ComboBox.comboBox(t, LEVELS, e.at(Job.REGION), Level::name, s.regions)),
-            Form.field(
-                "Owner", TextField.textField(t, Prop.of(() -> "ops", null)).key("owner"))));
+                "Region", ComboBox.comboBox(LEVELS, e.at(Job.REGION), Level::name, s.regions)),
+            Form.field("Owner", TextField.textField(Prop.of(() -> "ops", null)).key("owner"))));
   }
 
   private static App<State> app(State s) {
@@ -218,40 +214,36 @@ class EditingFormTest {
 
   @Test
   void aPropThatCannotBeWrittenDisablesEveryComponent() throws IOException {
-    Theme t = Theme.DARK;
     Part<String, String> whole = Part.of(v -> v, (v, w) -> w);
     Editing<String> nothing = Editing.of(null);
     App<Object> app = new App<>(
         new Object(),
         x -> col()
             .children(
-                TextField.textField(t, Prop.of(() -> "text", null)).key("text"),
-                TextField.passwordField(t, Prop.of(() -> "secret", null), "Password")
+                TextField.textField(Prop.of(() -> "text", null)).key("text"),
+                TextField.passwordField(Prop.of(() -> "secret", null), "Password")
                     .key("password"),
-                ValueField.valueField(t, Format.TEXT.optional(), nothing.at(whole))
-                    .key("value"),
-                Checkbox.checkbox(t, Prop.of(() -> true, null), "Check").key("check"),
-                Toggle.toggle(t, Prop.of(() -> true, null), "Toggle").key("toggle"),
-                Radio.radioGroup(t, List.of("A"), Prop.of(() -> "A", null), v -> v)
-                    .key("radio"),
-                Segmented.segmented(t, List.of("A"), Prop.of(() -> "A", null), v -> v)
+                ValueField.valueField(Format.TEXT.optional(), nothing.at(whole)).key("value"),
+                Checkbox.checkbox(Prop.of(() -> true, null), "Check").key("check"),
+                Toggle.toggle(Prop.of(() -> true, null), "Toggle").key("toggle"),
+                Radio.radioGroup(List.of("A"), Prop.of(() -> "A", null), v -> v).key("radio"),
+                Segmented.segmented(List.of("A"), Prop.of(() -> "A", null), v -> v)
                     .key("segment"),
-                Select.select(t, List.of("A"), Prop.of(() -> "A", null), v -> v, new Menu.State())
+                Select.select(List.of("A"), Prop.of(() -> "A", null), v -> v, new Menu.State())
                     .key("select"),
                 ComboBox.comboBox(
-                        t, List.of("A"), Prop.of(() -> "A", null), v -> v, new ComboBox.State())
+                        List.of("A"), Prop.of(() -> "A", null), v -> v, new ComboBox.State())
                     .key("combo"),
                 ComboBox.items(
-                        t,
                         List.of("A"),
                         Prop.of(() -> "A", null),
                         ComboBox::item,
                         new ComboBox.State())
                     .key("items"),
-                ComboBox.free(t, Prop.of(() -> "A", null), List.of("A"), new ComboBox.State())
+                ComboBox.free(Prop.of(() -> "A", null), List.of("A"), new ComboBox.State())
                     .key("free"),
-                NumberField.numberField(t, Prop.of(() -> 5, null), 0, 10, 1).key("number"),
-                Slider.slider(t, Prop.of(() -> 5, null), 0, 10, 1).key("slider")));
+                NumberField.numberField(Prop.of(() -> 5, null), 0, 10, 1).key("number"),
+                Slider.slider(Prop.of(() -> 5, null), 0, 10, 1).key("slider")));
     run(app, "key Tab\nkey Enter\nkey Space\nmove #combo\npress #combo");
     assertEquals(null, app.focused(), "nothing takes the focus");
     assertEquals(Cursor.DEFAULT, app.cursor());

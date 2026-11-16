@@ -19,9 +19,9 @@ import java.util.Objects;
  * controls of a toolbar or a header.
  *
  * <pre>{@code
- * Badge.badge(theme, "bigint")
- * Badge.badge(theme, Badge.Kind.ACCENT, "PK")
- * Badge.badge(theme, "status = paid",
+ * Badge.badge("bigint")
+ * Badge.badge(Badge.Kind.ACCENT, "PK")
+ * Badge.badge("status = paid",
  *     Badge.options().toolbar().onRemove(() -> state.filters.remove(filter)))
  * }</pre>
  *
@@ -95,20 +95,21 @@ public final class Badge {
   }
 
   /** A quiet neutral badge for a row. */
-  public static El badge(Theme theme, String text) {
-    return badge(theme, text, options());
+  public static El badge(String text) {
+    return badge(text, options());
   }
 
   /** A quiet badge of a kind for a row. */
-  public static El badge(Theme theme, Kind kind, String text) {
-    return badge(theme, text, options().kind(kind));
+  public static El badge(Kind kind, String text) {
+    return badge(text, options().kind(kind));
   }
 
   /**
    * @param text what the badge says, also its label
    * @param options its kind, look, height and handlers
    */
-  public static El badge(Theme theme, String text, Options options) {
+  public static El badge(String text, Options options) {
+    Theme theme = Theme.CURRENT.get();
     Theme.Badges b = theme.badge();
     Theme.Tone tone = switch (options.kind) {
       case NEUTRAL -> b.neutral();
@@ -133,8 +134,7 @@ public final class Badge {
         .fill(fill)
         .motion(theme.motion().feedback());
     if (options.icon != null) {
-      badge.child(
-          Icon.icon(theme, options.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
+      badge.child(Icon.icon(options.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
     }
     badge.child(
         El.text(text).font(b.text().font().get()).fontSize(b.text().size()).color(ink));
@@ -154,8 +154,7 @@ public final class Badge {
           .onPress(options.onRemove)
           .whenHovered(e -> e.fill(theme.surface().hover()))
           .whenPressed(e -> e.fill(theme.surface().pressed()))
-          .child(Icon.icon(theme, Symbol.DISMISS, Icon.Variant.MUTED, b.text().size())
-              .color(ink)));
+          .child(Icon.icon(Symbol.DISMISS, Icon.Variant.MUTED, b.text().size()).color(ink)));
     }
     if (options.onPress != null) {
       int hover = options.strong ? over(fill, theme.surface().hover()) : deeper(fill, HOVER);

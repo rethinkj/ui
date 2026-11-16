@@ -47,9 +47,8 @@ class PasswordFieldTest {
         s -> col()
             .padding(16)
             .child(revealable(
-                T,
-                field.apply(passwordField(T, s.password, "Password", v -> s.password = v)
-                    .key("pw")),
+                field.apply(
+                    passwordField(s.password, "Password", v -> s.password = v).key("pw")),
                 s.revealed,
                 () -> s.revealed = !s.revealed)));
     app.textRendering(TextRendering.LINUX);
@@ -138,8 +137,7 @@ class PasswordFieldTest {
         s -> col()
             .padding(16)
             .child(revealable(
-                T,
-                passwordField(T, "hunter2", "Password", null).key("pw"),
+                passwordField("hunter2", "Password", null).key("pw"),
                 s.revealed,
                 () -> s.revealed = true)));
     disabled.textRendering(TextRendering.LINUX);
@@ -169,21 +167,18 @@ class PasswordFieldTest {
   /** Invalid before {@code revealable} or made so by a form after it: the danger border stays. */
   @Test
   void anInvalidFieldKeepsItsDangerBorderWhileItOrItsButtonHasTheFocus() throws IOException {
-    App<Login> before = app(f -> TextField.invalid(T, f));
+    App<Login> before = app(f -> TextField.invalid(f));
     Login login = new Login();
     App<Login> after = new App<>(
         login,
         s -> col()
             .padding(16)
             .child(Form.form(
-                T,
                 Form.Labels.ABOVE,
                 Form.field(
                         "Password",
                         revealable(
-                            T,
-                            passwordField(T, s.password, null, v -> s.password = v)
-                                .key("pw"),
+                            passwordField(s.password, null, v -> s.password = v).key("pw"),
                             s.revealed,
                             () -> s.revealed = !s.revealed))
                     .error("Rejected"))));

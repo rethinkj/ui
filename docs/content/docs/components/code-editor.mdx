@@ -16,13 +16,13 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 - `state.sql` is the text, which every edit hands to `onChange`.
 - `state.editor` is a `CodeEditor.State` in the app's state, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
-- `Sql.of(theme)` colors SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(theme, Sql.Dialect.MYSQL)` colors SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space, and the backslash as the escape in strings. Pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colors every line again.
-- `state.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(theme, value, editorState, highlighter, onChange)`) the editor has neither.
+- `Sql.of()` colors SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(Sql.Dialect.MYSQL)` colors SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space, and the backslash as the escape in strings. Call it in the view, where it takes the code colors of the theme the app provides, and pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colors every line again. Outside the view, `new Sql(theme.code())` takes them from the theme you give it.
+- `state.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(value, editorState, highlighter, onChange)`) the editor has neither.
 - `.lines(n)` makes it `n` lines high; give it a width or let it grow.
 
 ## In a card
 
-The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(theme, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's color while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
+The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's color while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
 
 <Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 

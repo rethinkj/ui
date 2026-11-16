@@ -3,6 +3,7 @@ package com.rethinkj.ui.examples;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.util.List;
 import java.util.Map;
@@ -15,17 +16,19 @@ class TitleBarsTest {
     LightSwitch lights = new LightSwitch();
     lights.app = new App<>(lights, LightSwitch::view);
     ConnectionDialog dialog = new ConnectionDialog();
-    dialog.app = new App<>(dialog, ConnectionDialog::view);
+    dialog.app =
+        new App<>(dialog, ConnectionDialog::view).provide(Theme.CURRENT, ConnectionDialog::theme);
     Settings settings = new Settings();
-    settings.app = new App<>(settings, Settings::view);
+    settings.app = new App<>(settings, Settings::view).provide(Theme.CURRENT, Settings::theme);
     DataBrowser browser = new DataBrowser();
-    browser.app = new App<>(browser, DataBrowser::view);
+    browser.app = new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
     Manual manual = new Manual(List.of());
-    manual.app = new App<>(manual, Manual::view);
+    manual.app = new App<>(manual, Manual::view).provide(Theme.CURRENT, Manual::theme);
     Workbench workbench = new Workbench();
-    workbench.app = new App<>(workbench, Workbench::view);
+    workbench.app = new App<>(workbench, Workbench::view).provide(Theme.CURRENT, Workbench::theme);
     Documents documents = new Documents();
-    documents.app = new App<>(documents, d -> d.view(d.groups.main(), d.app));
+    documents.app = new App<>(documents, d -> d.view(d.groups.main(), d.app))
+        .provide(Theme.CURRENT, Documents::theme);
     return Map.of(
         "LightSwitch",
         lights.app,

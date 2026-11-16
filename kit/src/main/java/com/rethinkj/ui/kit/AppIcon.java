@@ -11,8 +11,11 @@ import com.rethinkj.ui.text.Font;
  * {@code size} logical pixels at scale 1.
  *
  * <pre>{@code
- * WindowIcon icon = WindowIcon.of(size -> AppIcon.appIcon(theme, size, brand, Symbol.DATABASE));
+ * WindowIcon icon = WindowIcon.of(size -> AppIcon.appIcon(size, brand, Symbol.DATABASE));
  * }</pre>
+ *
+ * <p>The window draws them outside the view, where {@link Theme#CURRENT} is the app's only if
+ * the call gives it: {@code Theme.CURRENT.with(theme, () -> AppIcon.appIcon(...))}.
  */
 public final class AppIcon {
 
@@ -27,7 +30,8 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El appIcon(Theme theme, int size, int fill, Symbol symbol) {
+  public static El appIcon(int size, int fill, Symbol symbol) {
+    Theme theme = Theme.CURRENT.get();
     int margin = Math.max(1, Math.round(size / 16f));
     int inner = size - 2 * margin;
     float glyph = Math.round(size * 0.625f);
@@ -52,7 +56,8 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El dot(Theme theme, int size, int fill) {
+  public static El dot(int size, int fill) {
+    Theme theme = Theme.CURRENT.get();
     float ring = Math.max(1, Math.round(size / 8f));
     return el().wFull()
         .hFull()
@@ -68,7 +73,8 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El count(Theme theme, int size, int fill, int count) {
+  public static El count(int size, int fill, int count) {
+    Theme theme = Theme.CURRENT.get();
     String text = count > 99 ? "99+" : Integer.toString(Math.max(0, count));
     float fontSize =
         Math.round(size * (text.length() == 1 ? 0.75f : text.length() == 2 ? 0.6f : 0.45f));

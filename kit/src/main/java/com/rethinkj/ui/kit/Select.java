@@ -34,7 +34,7 @@ public final class Select {
    * A select of values of any type, such as the constants of an enum:
    *
    * <pre>{@code
-   * select(theme, List.of(Level.values()), state.level, Level::label, state.levelMenu,
+   * select(List.of(Level.values()), state.level, Level::label, state.levelMenu,
    *     value -> state.level = value)
    * }</pre>
    *
@@ -46,7 +46,6 @@ public final class Select {
    * @param onSelect told the value chosen; null disables the select
    */
   public static <T> El select(
-      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, String> text,
@@ -54,7 +53,6 @@ public final class Select {
       Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return select(
-        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         state,
@@ -62,17 +60,14 @@ public final class Select {
   }
 
   /**
-   * A select of the value of a {@link Prop}, as {@link #select(Theme, List, Object, Function,
+   * A select of the value of a {@link Prop}, as {@link #select(List, Object, Function,
    * Menu.State, Consumer)}; a prop that cannot be written disables it.
    */
   public static <T> El select(
-      Theme theme,
-      List<T> values,
-      Prop<T> selected,
-      Function<? super T, String> text,
-      Menu.State state) {
+      List<T> values, Prop<T> selected, Function<? super T, String> text, Menu.State state) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, select(theme, values, selected.get(), text, state, selected.onChange()), selected);
+        theme, select(values, selected.get(), text, state, selected.onChange()), selected);
   }
 
   /**
@@ -82,7 +77,8 @@ public final class Select {
    * @param onSelect told the index of the choice made; null disables the select
    */
   public static El select(
-      Theme theme, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
+      List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
     El select = SelectionFrame.frame(theme, text, null, enabled).expanded(state.isOpen());
@@ -140,7 +136,7 @@ public final class Select {
         .whenHovered(e -> SelectionFrame.hovered(theme, e))
         .overlay(
             state.isOpen()
-                ? Menu.menu(theme, state, items)
+                ? Menu.menu(state, items)
                     .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
                 : null);
   }

@@ -134,7 +134,6 @@ class GridTableTest {
         .hFull()
         .padding(8)
         .child(DataGrid.dataGrid(
-                Theme.DARK,
                 columns,
                 s.items.size(),
                 DataGrid.options()
@@ -371,7 +370,6 @@ class GridTableTest {
           .wFull()
           .hFull()
           .child(DataGrid.dataGrid(
-                  Theme.DARK,
                   List.of(table.column("Name", 180, Format.TEXT, Named::name, Named::withName)),
                   rows.size(),
                   DataGrid.options()

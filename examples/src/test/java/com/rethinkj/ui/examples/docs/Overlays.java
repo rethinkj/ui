@@ -31,7 +31,6 @@ import java.util.List;
 /** The examples of the pages about menus, dialogs and other overlays. */
 final class Overlays {
 
-  Theme theme = Theme.DARK;
   final Menu.State options = new Menu.State();
   final Menu.State context = new Menu.State();
   final MenuBar.State bar = new MenuBar.State();
@@ -136,7 +135,6 @@ final class Overlays {
   }
 
   static El menus(Overlays state) {
-    Theme theme = state.theme;
     // docs:start menu
     List<Menu.Item> items = List.of(
         Menu.item("Run selection", state::run).shortcut(Key.CONTROL, "Enter"),
@@ -145,24 +143,22 @@ final class Overlays {
         Menu.submenu(
             "Export",
             List.of(Menu.item("CSV", state::csv), Menu.item("JSON", null)))); // null: disabled
-    El button =
-        Button.button(theme, SECONDARY, "Options", state.options::toggle).key("options");
-    El dropdown = Menu.dropdown(theme, button, state.options, items);
+    El button = Button.button(SECONDARY, "Options", state.options::toggle).key("options");
+    El dropdown = Menu.dropdown(button, state.options, items);
     // docs:end menu
     // docs:start context-menu
     El row = row()
         .key("row")
         .padding(8)
-        .child(Label.label(theme, "orders"))
+        .child(Label.label("orders"))
         .role("listitem")
         .label("orders");
     El withMenu = Menu.contextMenu(
-        theme,
         row,
         state.context,
         List.of(Menu.item("Open", state::open), Menu.item("Copy name", state::copy)));
     // docs:end context-menu
-    return Frame.of(theme, dropdown, withMenu).onKey(Menu.shortcuts(items));
+    return Frame.of(dropdown, withMenu).onKey(Menu.shortcuts(items));
   }
 
   Theme.Hue hue = Theme.Hue.RED;
@@ -177,8 +173,7 @@ final class Overlays {
     List<Menu.Item> colors = new ArrayList<>();
     for (Theme.Hue each : Theme.Hue.values()) {
       colors.add(Menu.item(HuePicker.name(each), () -> state.hue(each))
-          .leading(
-              itemTheme -> HuePicker.swatch(itemTheme, each)) // built for each place the item shows
+          .leading(() -> HuePicker.swatch(each)) // built for each place the item shows
           .checked(each == state.hue)); // the check mark goes to the item's end
     }
     Menu.Item color = Menu.submenu("Color", colors);
@@ -187,7 +182,7 @@ final class Overlays {
   }
 
   static El menuBar(Overlays state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start menu-bar
     List<Menu.Item> menus = List.of(
         Menu.submenu(
@@ -200,7 +195,7 @@ final class Overlays {
         .wFull()
         .hFull()
         .fill(theme.surface().window())
-        .child(row().padding(4).child(MenuBar.menuBar(theme, state.bar, menus)))
+        .child(row().padding(4).child(MenuBar.menuBar(state.bar, menus)))
         .child(el().grow(1))
         .onKey(MenuBar.keys(state.bar, menus)) // Alt, F10, Alt+F, and Ctrl+N
         .onKeyUp(MenuBar.keysUp(state.bar, menus)); // Alt alone gives the bar the keys
@@ -209,50 +204,41 @@ final class Overlays {
   }
 
   static El popover(Overlays state) {
-    Theme theme = state.theme;
     // docs:start popover
-    El button =
-        Button.button(theme, SECONDARY, Symbol.FILTER, "Filter", state.filterPopover::toggle);
+    El button = Button.button(SECONDARY, Symbol.FILTER, "Filter", state.filterPopover::toggle);
     El filter = Popover.form(
-        theme,
         button,
         state.filterPopover,
         "Add a filter",
-        TextField.textField(theme, state.filter, "status = 'paid'", state::filter)
-            .label("Condition"),
+        TextField.textField(state.filter, "status = 'paid'", state::filter).label("Condition"),
         List.of(
-            Button.button(theme, SECONDARY, "Cancel", state.filterPopover::close),
-            Button.button(theme, PRIMARY, "Add", state.filterPopover::close)));
+            Button.button(SECONDARY, "Cancel", state.filterPopover::close),
+            Button.button(PRIMARY, "Add", state.filterPopover::close)));
     // docs:end popover
-    return Frame.of(theme, filter);
+    return Frame.of(filter);
   }
 
   static El tooltip(Overlays state) {
-    Theme theme = state.theme;
     // docs:start tooltip
     El refresh = Tooltip.tooltip(
-        theme,
-        Button.button(theme, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh)
-            .key("refresh"),
+        Button.button(GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh).key("refresh"),
         "Refresh the schema (F5)");
     // docs:end tooltip
-    return Frame.of(theme, refresh);
+    return Frame.of(refresh);
   }
 
   static El dialog(Overlays state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start dialog
-    El open = Button.button(theme, SECONDARY, "Rename…", state::startRename);
+    El open = Button.button(SECONDARY, "Rename…", state::startRename);
     El dialog = !state.renaming
         ? null
         : Dialog.dialog(
-            theme,
             "Rename table",
-            TextField.textField(theme, state.newName, "Name", state::newName).label("Name"),
+            TextField.textField(state.newName, "Name", state::newName).label("Name"),
             List.of(
-                Button.button(theme, SECONDARY, "Cancel", state::cancel),
-                Button.button(
-                    theme, PRIMARY, "Rename", state.newName.isBlank() ? null : state::rename)),
+                Button.button(SECONDARY, "Cancel", state::cancel),
+                Button.button(PRIMARY, "Rename", state.newName.isBlank() ? null : state::rename)),
             state::cancel);
     El root = col() // the window: its background, some room, and the dialog over it
         .wFull()
@@ -261,7 +247,7 @@ final class Overlays {
         .padding(theme.space().l())
         .gap(theme.space().m())
         .align(Style.Align.START)
-        .children(Label.label(theme, state.name), open)
+        .children(Label.label(state.name), open)
         .overlay(dialog);
     // docs:end dialog
     return root;
@@ -269,30 +255,28 @@ final class Overlays {
 
   /** A dialog with what its options add; on the Dialog page, not run on a script. */
   static El dialogOptions(Overlays state) {
-    Theme theme = state.theme;
     // docs:start dialog-options
-    El save = Button.button(theme, PRIMARY, "Save", state::save);
+    El save = Button.button(PRIMARY, "Save", state::save);
     El dialog = Dialog.dialog(
-        theme,
         "Edit connection",
-        TextField.textField(theme, state.newName, "Name", state::newName).label("Name"),
-        List.of(Button.button(theme, SECONDARY, "Cancel", state::cancel), save),
+        TextField.textField(state.newName, "Name", state::newName).label("Name"),
+        List.of(Button.button(SECONDARY, "Cancel", state::cancel), save),
         state::cancel,
         Dialog.options()
-            .leading(HuePicker.swatch(theme, Theme.Hue.RED)) // the connection's color
+            .leading(HuePicker.swatch(Theme.Hue.RED)) // the connection's color
             .trailing(
-                Badge.badge(theme, "Read only"),
-                Button.icon(theme, GHOST, Symbol.DISMISS, "Close", state::cancel))
-            .start(Button.button(theme, SECONDARY, "Test connection", state::test))
+                Badge.badge("Read only"),
+                Button.icon(GHOST, Symbol.DISMISS, "Close", state::cancel))
+            .start(Button.button(SECONDARY, "Test connection", state::test))
             .defaultButton(save));
     // docs:end dialog-options
-    return Frame.of(theme, Label.label(theme, state.name)).overlay(dialog);
+    return Frame.of(Label.label(state.name)).overlay(dialog);
   }
 
   static El toast(Overlays state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start toast
-    El drop = Button.button(theme, SECONDARY, "Drop orders", state::drop);
+    El drop = Button.button(SECONDARY, "Drop orders", state::drop);
     El root = col()
         .wFull()
         .hFull()
@@ -303,14 +287,13 @@ final class Overlays {
         .overlay(
             state.dropped == null
                 ? null
-                : Toast.toast(
-                    theme, "Dropped " + state.dropped, "Undo", state::restore, state::dismiss));
+                : Toast.toast("Dropped " + state.dropped, "Undo", state::restore, state::dismiss));
     // docs:end toast
     return root;
   }
 
   static El palette(Overlays state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start command-palette
     List<Menu.Item> menus = List.of(Menu.submenu(
         "Query",
@@ -325,10 +308,9 @@ final class Overlays {
         .hFull()
         .fill(theme.surface().window())
         .padding(theme.space().l())
-        .child(Label.label(theme, "Control+Shift+P opens the palette."))
+        .child(Label.label("Control+Shift+P opens the palette."))
         .onKey(Menu.shortcuts(menus).or(CommandPalette.keys(state.palette)))
         .overlay(CommandPalette.palette(
-            theme,
             state.palette,
             CommandPalette.commands(menus),
             List.of(

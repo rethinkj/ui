@@ -23,7 +23,7 @@ import java.util.Objects;
  * with what is above and below them; their hover fill reaches a little past it.
  *
  * <pre>{@code
- * Properties.properties(theme, List.of(
+ * Properties.properties(List.of(
  *     Properties.property("Rows", "1,000,000"),
  *     Properties.property("Owner", "shop_admin"),
  *     Properties.property("Created", "2024-03-01 09:12").mono()), app.clipboard())
@@ -72,8 +72,8 @@ public final class Properties {
   /**
    * @param clipboard where the copy buttons copy to; null for none
    */
-  public static El properties(Theme theme, List<Property> properties, Clipboard clipboard) {
-    return properties(theme, properties, clipboard, null);
+  public static El properties(List<Property> properties, Clipboard clipboard) {
+    return properties(properties, clipboard, null);
   }
 
   /**
@@ -82,7 +82,8 @@ public final class Properties {
    *     for no confirmation
    */
   public static El properties(
-      Theme theme, List<Property> properties, Clipboard clipboard, Button.Copied copied) {
+      List<Property> properties, Clipboard clipboard, Button.Copied copied) {
+    Theme theme = Theme.CURRENT.get();
     return list(theme, properties, column(theme, properties), clipboard, copied);
   }
 
@@ -91,8 +92,8 @@ public final class Properties {
    *
    * @param clipboard where the copy buttons copy to; null for none
    */
-  public static El groups(Theme theme, List<Group> groups, Clipboard clipboard) {
-    return groups(theme, groups, clipboard, null);
+  public static El groups(List<Group> groups, Clipboard clipboard) {
+    return groups(groups, clipboard, null);
   }
 
   /**
@@ -100,8 +101,8 @@ public final class Properties {
    *
    * @param copied the app's state of the copy buttons; null for no confirmation
    */
-  public static El groups(
-      Theme theme, List<Group> groups, Clipboard clipboard, Button.Copied copied) {
+  public static El groups(List<Group> groups, Clipboard clipboard, Button.Copied copied) {
+    Theme theme = Theme.CURRENT.get();
     float column = 0;
     for (Group group : groups) {
       column = Math.max(column, column(theme, group.properties()));
@@ -111,7 +112,7 @@ public final class Properties {
       out.child(col()
           .gap(theme.space().xs())
           .children(
-              label(theme, Label.Variant.STRONG, group.title()).role("heading").level(3),
+              label(Label.Variant.STRONG, group.title()).role("heading").level(3),
               list(theme, group.properties(), column, clipboard, copied).label(group.title())));
     }
     return out;
@@ -139,7 +140,7 @@ public final class Properties {
         .h(theme.size().control())
         .shrink(0)
         .align(Style.Align.CENTER)
-        .child(label(theme, Label.Variant.MUTED, p.name()).ellipsis().w(column).minSize(0, 0));
+        .child(label(Label.Variant.MUTED, p.name()).ellipsis().w(column).minSize(0, 0));
     // The padding leaves a line's room in a control's height: one line sits where a field of that
     // height centers it, more lines grow the field downwards, the first beside the name.
     El value = El.text(p.value())
@@ -156,7 +157,7 @@ public final class Properties {
         .grow(1)
         .minSize(0, theme.size().control())
         .padding(theme.space().s(), 0);
-    Tooltip.whenShortened(theme, value, p.value());
+    Tooltip.whenShortened(value, p.value());
     El entry = row()
         .role("listitem")
         .label(p.name())
@@ -169,7 +170,7 @@ public final class Properties {
     if (clipboard != null) {
       boolean shown =
           copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
-      El copy = Button.copy(theme, clipboard, p.value(), "Copy " + p.name(), copied)
+      El copy = Button.copy(clipboard, p.value(), "Copy " + p.name(), copied)
           .key("copy")
           .opacity(shown ? 1 : 0);
       entry
@@ -187,7 +188,7 @@ public final class Properties {
   private static float column(Theme theme, List<Property> properties) {
     float widest = 0;
     for (Property p : properties) {
-      widest = Math.max(widest, width(label(theme, Label.Variant.MUTED, p.name())));
+      widest = Math.max(widest, width(label(Label.Variant.MUTED, p.name())));
     }
     // A pixel to spare: text shaped at another scale may come out a fraction wider.
     return (float) Math.ceil(Math.min(widest, theme.size().field())) + 1;

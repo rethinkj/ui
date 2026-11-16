@@ -34,7 +34,6 @@ final class FieldActions {
         .radius(theme.radius().small())
         .motion(theme.motion().feedback())
         .child(icon(
-            theme,
             symbol,
             !enabled ? Icon.Variant.DISABLED : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
     if (checked != null) {

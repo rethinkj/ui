@@ -9,13 +9,10 @@ import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Part;
 import com.rethinkj.ui.kit.TextField;
-import com.rethinkj.ui.kit.Theme;
 import java.util.List;
 
 /** The app around {@link TagInput}: the guide "Write your own component". */
 final class Tags {
-
-  Theme theme = Theme.DARK;
 
   // docs:start tags-state
   List<String> tags = List.of("orders", "daily");
@@ -27,14 +24,12 @@ final class Tags {
   // docs:end tags-state
 
   static El view(Tags state) {
-    Theme theme = state.theme;
     // docs:start tags-view
-    El tags = TagInput.tagInput(theme, state.tags, "Add tag", state.tagDraft, state::tags)
+    El tags = TagInput.tagInput(state.tags, "Add tag", state.tagDraft, state::tags)
         .key("tags")
         .label("Tags");
     // docs:end tags-view
-    return Frame.of(
-        theme, tags, Label.label(theme, Label.Variant.MUTED, String.join(" · ", state.tags)));
+    return Frame.of(tags, Label.label(Label.Variant.MUTED, String.join(" · ", state.tags)));
   }
 
   // docs:start tags-record
@@ -58,20 +53,18 @@ final class Tags {
   // docs:end tags-record
 
   static El form(Tags state) {
-    Theme theme = state.theme;
     // docs:start tags-form
     Editing<Dataset> editing = state.dataset;
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
-        Form.field("Name", TextField.textField(theme, editing.at(Dataset.NAME)).key("name")),
+        Form.field("Name", TextField.textField(editing.at(Dataset.NAME)).key("name")),
         Form.field(
             "Tags",
-            TagInput.tagInput(theme, editing.at(Dataset.TAGS), "Add tag", state.datasetDraft)
+            TagInput.tagInput(editing.at(Dataset.TAGS), "Add tag", state.datasetDraft)
                 .key("tags")));
     El save = Button.button(
-        theme, PRIMARY, "Save", editing.valid() && editing.changed() ? editing::saved : null);
+        PRIMARY, "Save", editing.valid() && editing.changed() ? editing::saved : null);
     // docs:end tags-form
-    return Frame.of(theme, form, Form.buttons(theme, save));
+    return Frame.of(form, Form.buttons(save));
   }
 }

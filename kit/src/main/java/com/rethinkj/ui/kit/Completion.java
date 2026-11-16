@@ -30,8 +30,8 @@ import java.util.function.Predicate;
  *
  * <pre>{@code
  * El editor =
- *     codeEditor(theme, state.sql, state.editor, Sql.of(theme), value -> state.sql = value);
- * Completion.complete(theme, app, editor, state.editor.caret(), state.completion,
+ *     codeEditor(state.sql, state.editor, Sql.of(), value -> state.sql = value);
+ * Completion.complete(app, editor, state.editor.caret(), state.completion,
  *     word -> state.suggest(word));
  * }</pre>
  *
@@ -149,12 +149,8 @@ public final class Completion {
    * @return the field
    */
   public static El complete(
-      Theme theme,
-      App<?> app,
-      El field,
-      int caret,
-      State state,
-      Function<String, List<Entry>> suggest) {
+      App<?> app, El field, int caret, State state, Function<String, List<Entry>> suggest) {
+    Theme theme = Theme.CURRENT.get();
     return complete(theme, app, field, caret, state, null, suggest);
   }
 
@@ -169,13 +165,13 @@ public final class Completion {
    * @param name what the work is called, which {@link App#await} names
    */
   public static El completeInBackground(
-      Theme theme,
       App<?> app,
       El field,
       int caret,
       State state,
       String name,
       Function<String, List<Entry>> suggest) {
+    Theme theme = Theme.CURRENT.get();
     return complete(theme, app, field, caret, state, Objects.requireNonNull(name, "name"), suggest);
   }
 
@@ -313,13 +309,13 @@ public final class Completion {
   }
 
   private static El text(Theme theme, Entry entry) {
-    return label(theme, entry.text())
+    return label(entry.text())
         .font(theme.type().mono().font().get())
         .fontSize(theme.type().mono().size());
   }
 
   private static El kind(Theme theme, Entry entry) {
-    return label(theme, Label.Variant.SMALL, entry.kind());
+    return label(Label.Variant.SMALL, entry.kind());
   }
 
   private static El option(Theme theme, Entry entry, int i, State state, Consumer<Integer> take) {
@@ -336,7 +332,7 @@ public final class Completion {
     El content = PassiveContent.row(
         theme,
         PassiveContent.leading(
-            theme, entry.symbol() != null ? icon(theme, entry.symbol(), Icon.Variant.MUTED) : null),
+            theme, entry.symbol() != null ? icon(entry.symbol(), Icon.Variant.MUTED) : null),
         text(theme, entry).ellipsis().minSize(0, 0),
         kind);
     return PassiveList.option(

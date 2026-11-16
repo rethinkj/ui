@@ -63,7 +63,6 @@ class TabsTest {
             .wFull()
             .hFull()
             .child(tabs(
-                    T,
                     List.of(new Tab("rows")),
                     0,
                     i -> {},
@@ -159,8 +158,7 @@ class TabsTest {
   @Test
   void aTabWithAHueHasALineInItsColorAndSaysItInTheDump() throws IOException {
     List<Tab> tabs = List.of(new Tab("orders").hue(Theme.Hue.RED), new Tab("users"));
-    App<Object> app =
-        new App<>(new Object(), s -> Tabs.tabs(T, tabs, 1, i -> {}, i -> {}, El.el()));
+    App<Object> app = new App<>(new Object(), s -> Tabs.tabs(tabs, 1, i -> {}, i -> {}, El.el()));
     run(app, "frame");
     El marked = find(app, "tab-0");
     String dump = app.tree().dump();
@@ -233,20 +231,18 @@ class TabsTest {
             .wFull()
             .hFull()
             .child(tabs(
-                    T,
                     List.of(new Tab("query 1"), new Tab("query 2")),
                     a[0],
                     i -> a[0] = i,
                     null,
                     tabs(
-                            T,
                             List.of(
                                 new Tab("Result 1", false, false),
                                 new Tab("Messages", false, false)),
                             a[1],
                             i -> a[1] = i,
                             null,
-                            textField(T, "", v -> {}).key("field"),
+                            textField("", v -> {}).key("field"),
                             Tabs.options().switchKeys(false))
                         .key("inner"))
                 .grow(1)));
@@ -277,12 +273,11 @@ class TabsTest {
             .wFull()
             .hFull()
             .child(tabs(
-                    T,
                     List.of(new Tab("one"), new Tab("two")),
                     a[0],
                     i -> a[0] = i,
                     null,
-                    a[0] == 0 ? textField(T, "", v -> {}).key("field") : null)
+                    a[0] == 0 ? textField("", v -> {}).key("field") : null)
                 .grow(1)));
     run(bare, "frame\npress #field\nkey Tab control\nframe");
     assertEquals(1, active[0]);
@@ -317,7 +312,6 @@ class TabsTest {
           .wFull()
           .hFull()
           .child(tabs(
-                  T,
                   tabs.stream().map(Tab::new).toList(),
                   active,
                   i -> active = i,
@@ -383,7 +377,7 @@ class TabsTest {
         s -> col()
             .wFull()
             .hFull()
-            .child(tabs(T, List.of(new Tab("one"), new Tab("two")), 0, null, i -> {}, null)
+            .child(tabs(List.of(new Tab("one"), new Tab("two")), 0, null, i -> {}, null)
                 .grow(1)));
     run(app, "frame\nkey Tab\nframe");
     assertNull(app.focused());

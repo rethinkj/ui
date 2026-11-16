@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 /** A navigation list with headings, and the same list as a virtual list of many items. */
 class NavListTest {
 
-  private static final Theme T = Theme.DARK;
   private static final List<NavList.Item> PAGES = List.of(
       NavList.heading("Workbench"),
       NavList.item(Symbol.SETTINGS, "General"),
@@ -40,7 +39,6 @@ class NavListTest {
             .child(
                 virtual
                     ? NavList.navList(
-                            T,
                             100_000,
                             i -> i % 10 == 0
                                 ? NavList.heading("Group " + i / 10)
@@ -49,7 +47,7 @@ class NavListTest {
                             i -> selected = i)
                         .key("list")
                         .grow(1)
-                    : NavList.navList(T, PAGES, selected, i -> selected = i).key("list")));
+                    : NavList.navList(PAGES, selected, i -> selected = i).key("list")));
     app.textRendering(TextRendering.LINUX);
     return app;
   }

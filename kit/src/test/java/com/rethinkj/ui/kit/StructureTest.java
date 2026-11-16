@@ -117,8 +117,8 @@ class StructureTest {
     String text = "Cannot read the connections in"
         + " /a/very/long/path/without/any/space/connections.json: it is not valid JSON.";
     for (El view : new El[] {
-      Callout.callout(Theme.DARK, Callout.Kind.DANGER, "Cannot read the connections", text),
-      EmptyState.emptyState(Theme.DARK, Symbol.DATABASE, "No connections", text, null)
+      Callout.callout(Callout.Kind.DANGER, "Cannot read the connections", text),
+      EmptyState.emptyState(Symbol.DATABASE, "No connections", text, null)
     }) {
       App<Object> app = new App<>(new Object(), s -> El.col().size(260, 400).child(view));
       Script.run("size 260 400\nframe\nsnap path", app, out);

@@ -18,12 +18,12 @@ import java.util.function.UnaryOperator;
  * }
  *
  * Editing<Profile> editing = state.editing;
- * form(theme, Labels.BESIDE,
- *     field("Host", textField(theme, editing.at(Profile.HOST))),
- *     field("Port", valueField(theme, PORT, editing.at(Profile.PORT))),
- *     field("Mode", select(theme, MODES, editing.at(Profile.TLS).at(Tls.MODE), Mode::label,
+ * form(Labels.BESIDE,
+ *     field("Host", textField(editing.at(Profile.HOST))),
+ *     field("Port", valueField(PORT, editing.at(Profile.PORT))),
+ *     field("Mode", select(MODES, editing.at(Profile.TLS).at(Tls.MODE), Mode::label,
  *         state.modeMenu)))
- * button(theme, PRIMARY, "Save",
+ * button(PRIMARY, "Save",
  *     editing.valid() && editing.changed() ? () -> save(editing.value()) : null)
  * }</pre>
  *

@@ -54,22 +54,21 @@ final class Themes {
   }
 
   static El view(Themes state) {
-    Theme theme = state.theme(); // every component of the view gets this one
+    Theme theme = Theme.CURRENT.get(); // the one the app provides
     El settings = Card.card(
-            theme,
-            Label.label(theme, "Appearance"),
-            Segmented.segmented(
-                    theme, List.of(Mode.values()), state.mode, mode -> mode.text, state::mode)
+            Label.label("Appearance"),
+            Segmented.segmented(List.of(Mode.values()), state.mode, mode -> mode.text, state::mode)
                 .key("mode"),
-            Label.label(theme, "Accent"),
-            HuePicker.huePicker(theme, state.accent, state::accent).key("accent"))
+            Label.label("Accent"),
+            HuePicker.huePicker(state.accent, state::accent).key("accent"))
         .gap(theme.space().m());
-    return Frame.of(theme, settings);
+    return Frame.of(settings);
   }
 
   public static void main(String[] args) throws Exception {
     Themes state = new Themes();
-    App<Themes> app = new App<>(state, Themes::view);
+    // Each build of the view reads the theme the state chooses, so a new choice shows at once.
+    App<Themes> app = new App<>(state, Themes::view).provide(Theme.CURRENT, Themes::theme);
     try (Window window = Window.open("Themes", 420, 260, Window.options());
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter).appearance(state::appearance).run();

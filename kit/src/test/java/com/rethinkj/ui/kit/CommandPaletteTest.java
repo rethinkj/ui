@@ -209,7 +209,6 @@ class CommandPaletteTest {
         l,
         x -> col()
             .overlay(CommandPalette.palette(
-                Theme.DARK,
                 x.palette,
                 List.of(),
                 List.of(

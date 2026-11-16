@@ -37,12 +37,12 @@ final class SelectionFrame {
       box.child(leading(theme, lead));
     }
     return box.children(
-        label(theme, text)
+        label(text)
             .color(enabled ? theme.text().primary() : theme.text().disabled())
             .grow(1)
             .minSize(0, 0)
             .ellipsis(),
-        Icon.icon(theme, Select.OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        Icon.icon(Select.OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
   }
 
   /** The look under the pointer of an enabled frame: the hover fill and the whole frame strong. */

@@ -23,7 +23,7 @@ Each input is handled against the view the previous input produced. Two Down key
 - **Read, never write.** The view reads the state and returns elements. Only handlers change the state.
 - **Build everything.** The view runs after every input, so build the whole tree from the state each time. Long lists build only their visible rows (see [Lists of many rows](/docs/concepts/rows)).
 - **Give identity with keys.** `.key("lamp")` identifies an element among its siblings. Animations, focus, scroll offsets and a text field's caret belong to that identity, and scripts find elements by key.
-- **Pass the theme.** Kit components take the theme as their first parameter; the view gets it from the state or a constant.
+- **Provide the theme.** Kit components read the theme from `Theme.CURRENT`, which is `Theme.DARK` unless the app provides another from its state with `app.provide(Theme.CURRENT, ...)` ([Themes](/docs/concepts/themes)).
 
 ## What the app keeps for you
 

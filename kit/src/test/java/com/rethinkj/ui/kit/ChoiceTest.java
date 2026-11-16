@@ -98,16 +98,15 @@ class ChoiceTest {
 
   @Test
   void aDisabledChoiceTakesNoFocusAndSaysSo() throws IOException {
-    Theme t = Theme.DARK;
     App<Object> app = new App<>(
         new Object(),
         x -> col()
             .children(
-                Radio.radioGroup(t, List.of("A", "B"), 0, null),
-                Segmented.segmented(t, List.of("C", "D"), 0, null),
-                NumberField.numberField(t, 1, 0, 2, 1, null),
-                Slider.slider(t, 1, 0, 2, 1, null),
-                NavList.navList(t, List.of(NavList.item("E")), 0, null)));
+                Radio.radioGroup(List.of("A", "B"), 0, null),
+                Segmented.segmented(List.of("C", "D"), 0, null),
+                NumberField.numberField(1, 0, 2, 1, null),
+                Slider.slider(1, 0, 2, 1, null),
+                NavList.navList(List.of(NavList.item("E")), 0, null)));
     run(app, "key Tab");
     assertEquals(null, app.focused());
     String dump = app.tree().dump();
@@ -124,7 +123,7 @@ class ChoiceTest {
         new Object(),
         x -> col()
             .child(NumberField.numberField(
-                Theme.DARK, value[0], Integer.MIN_VALUE, Integer.MAX_VALUE, 1, v -> value[0] = v)));
+                value[0], Integer.MIN_VALUE, Integer.MAX_VALUE, 1, v -> value[0] = v)));
     for (int typed : new int[] {Integer.MAX_VALUE, Integer.MIN_VALUE}) {
       // Pasted: typed one character at a time, a lone "-" is no number and refused.
       run(app, "focus role=spinbutton\nkey A control\nclipboard \"" + typed + "\"\nkey V control");
@@ -143,8 +142,7 @@ class ChoiceTest {
     App<Object> app = new App<>(
         new Object(),
         x -> col()
-            .child(NumberField.numberField(
-                Theme.DARK, null, value[0], -20, 20, 1, draft, v -> value[0] = v)));
+            .child(NumberField.numberField(null, value[0], -20, 20, 1, draft, v -> value[0] = v)));
     run(app, "focus role=spinbutton\nkey A control\ntype \"-\"");
     String field = StructureTest.line(app.tree().dump(), "role=spinbutton");
     assertTrue(field.contains("\"-\" ") && field.contains(" invalid"), field);
@@ -163,7 +161,7 @@ class ChoiceTest {
     App<Object> app = new App<>(
         new Object(),
         x -> col()
-            .child(Slider.slider(Theme.DARK, value[0], 0, 100, 10, v -> {
+            .child(Slider.slider(value[0], 0, 100, 10, v -> {
                   value[0] = v;
                   told.add(v);
                 })
@@ -188,8 +186,8 @@ class ChoiceTest {
         return col()
             .child(
                 segmented
-                    ? Segmented.segmented(Theme.DARK, choices, selected[0], choose)
-                    : Radio.radioGroup(Theme.DARK, choices, selected[0], choose));
+                    ? Segmented.segmented(choices, selected[0], choose)
+                    : Radio.radioGroup(choices, selected[0], choose));
       });
       run(app, "key Tab\nkey Space\nframe\nkey Space");
       assertEquals(List.of(0), told, segmented ? "segmented" : "radio");

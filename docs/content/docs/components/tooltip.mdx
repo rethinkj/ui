@@ -14,11 +14,11 @@ Javadoc: [`Tooltip`](/api/com/rethinkj/ui/kit/Tooltip.html).
 ```java snippet="tooltip"
 ```
 
-`Tooltip.tooltip(theme, anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label.
+`Tooltip.tooltip(anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label.
 
 ## Only where the text is cut
 
-`Tooltip.whenShortened(theme, anchor, text)` shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it does not fit (`El.ellipsis()`): the whole name of a column, a tab or a button in a narrow window. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor replaces it.
+`Tooltip.whenShortened(anchor, text)` shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it does not fit (`El.ellipsis()`): the whole name of a column, a tab or a button in a narrow window. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor replaces it.
 
 For a panel of your own, `El.whenShortened()` on an overlay shows it only while a text of its anchor is shortened. `Text.shortened()` says whether one text element was shortened, after layout ([Text](/docs/concepts/text)).
 

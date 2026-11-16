@@ -85,22 +85,21 @@ class DialogTest {
     El view() {
       Theme t = Theme.DARK;
       El ok = Button.button(
-              t, Button.Variant.PRIMARY, "OK", name.isBlank() ? null : () -> log.add("ok"))
+              Button.Variant.PRIMARY, "OK", name.isBlank() ? null : () -> log.add("ok"))
           .key("ok");
       return El.col()
           .wFull()
           .hFull()
           .overlay(Dialog.dialog(
-              t,
               "Ask",
               El.col()
                   .children(
-                      TextField.textField(t, name, "Name", v -> name = v).key("name"),
-                      TextField.textArea(t, note, "Note", v -> note = v)
+                      TextField.textField(name, "Name", v -> name = v).key("name"),
+                      TextField.textArea(note, "Note", v -> note = v)
                           .key("note")
                           .h(60)),
               List.of(
-                  Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
+                  Button.button(Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
                       .key("cancel"),
                   ok),
               ok,
@@ -137,20 +136,18 @@ class DialogTest {
   private static El stacked(List<String> log, String secondKey) {
     Theme t = Theme.DARK;
     El question = Dialog.dialog(
-        t,
         "Discard changes?",
         El.col(),
-        List.of(Button.button(t, Button.Variant.PRIMARY, "Discard", () -> log.add("discard"))
+        List.of(Button.button(Button.Variant.PRIMARY, "Discard", () -> log.add("discard"))
             .key("discard-button")),
         () -> log.add("keep"));
     return El.col()
         .wFull()
         .hFull()
         .overlay(Dialog.dialog(
-            t,
             "Edit",
             El.col(),
-            List.of(Button.button(t, Button.Variant.SECONDARY, "Close", () -> log.add("close"))
+            List.of(Button.button(Button.Variant.SECONDARY, "Close", () -> log.add("close"))
                 .key("close")),
             () -> log.add("dismiss")))
         .overlay(secondKey == null ? question : question.key(secondKey));
@@ -174,46 +171,41 @@ class DialogTest {
   @Test
   void theDefaultButtonIsOneOfTheButtons() {
     Theme t = Theme.DARK;
-    El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
-    El other = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
+    El ok = Button.button(Button.Variant.PRIMARY, "OK", () -> {});
+    El other = Button.button(Button.Variant.PRIMARY, "OK", () -> {});
     assertThrows(
         IllegalArgumentException.class,
-        () -> Dialog.dialog(t, "Ask", El.col(), List.of(ok), other, () -> {}));
+        () -> Dialog.dialog("Ask", El.col(), List.of(ok), other, () -> {}));
   }
 
   /** A connection's dialog with every option: a color mark, a badge and Close, Test at the start. */
   private static El head(Theme t, List<String> log, String title) {
     El save =
-        Button.button(t, Button.Variant.PRIMARY, "Save", () -> log.add("save")).key("save");
+        Button.button(Button.Variant.PRIMARY, "Save", () -> log.add("save")).key("save");
     return El.col()
         .wFull()
         .hFull()
         .overlay(Dialog.dialog(
-            t,
             title,
             El.col()
                 .gap(t.space().m())
                 .children(
-                    TextField.textField(t, "prod-eu", "Name", v -> {}).key("name"),
-                    TextField.textField(t, "db.example.com", "Host", v -> {}).key("host")),
+                    TextField.textField("prod-eu", "Name", v -> {}).key("name"),
+                    TextField.textField("db.example.com", "Host", v -> {}).key("host")),
             List.of(
-                Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
+                Button.button(Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
                     .key("cancel"),
                 save),
             () -> log.add("dismiss"),
             Dialog.options()
-                .leading(HuePicker.swatch(t, Theme.Hue.RED).key("mark"))
+                .leading(HuePicker.swatch(Theme.Hue.RED).key("mark"))
                 .trailing(
-                    Badge.badge(t, "Read only").key("badge"),
+                    Badge.badge("Read only").key("badge"),
                     Button.icon(
-                            t,
-                            Button.Variant.GHOST,
-                            Symbol.DISMISS,
-                            "Close",
-                            () -> log.add("close"))
+                            Button.Variant.GHOST, Symbol.DISMISS, "Close", () -> log.add("close"))
                         .key("close"))
                 .start(Button.button(
-                        t, Button.Variant.SECONDARY, "Test connection", () -> log.add("test"))
+                        Button.Variant.SECONDARY, "Test connection", () -> log.add("test"))
                     .key("test"))
                 .defaultButton(save)));
   }
@@ -224,7 +216,8 @@ class DialogTest {
       throws IOException {
     Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> head(t, l, "Edit connection"));
+    App<List<String>> app =
+        new App<>(log, l -> head(t, l, "Edit connection")).provide(Theme.CURRENT, l -> t);
     app.textRendering(TextRendering.LINUX);
     String name = "dialog-head-" + theme + "-" + scale + "x";
     Script.run(
@@ -272,23 +265,19 @@ class DialogTest {
 
   @Test
   void aDialogWithNothingToFocusInItsContentOpensOnItsFirstButton() throws IOException {
-    Theme t = Theme.DARK;
     App<Object> app = new App<>(
         new Object(),
         s -> El.col()
             .wFull()
             .hFull()
             .overlay(Dialog.dialog(
-                t,
                 "Note",
-                Label.label(t, "Nothing to type here."),
-                List.of(
-                    Button.button(t, Button.Variant.SECONDARY, "OK", () -> {}).key("ok")),
+                Label.label("Nothing to type here."),
+                List.of(Button.button(Button.Variant.SECONDARY, "OK", () -> {}).key("ok")),
                 () -> {},
                 Dialog.options()
-                    .trailing(
-                        Button.icon(t, Button.Variant.GHOST, Symbol.DISMISS, "Close", () -> {})
-                            .key("close")))));
+                    .trailing(Button.icon(Button.Variant.GHOST, Symbol.DISMISS, "Close", () -> {})
+                        .key("close")))));
     run(app, "frame\nadvance 0.25\nframe\n");
     assertEquals("ok", app.focused().key());
   }

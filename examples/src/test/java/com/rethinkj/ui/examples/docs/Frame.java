@@ -11,7 +11,8 @@ final class Frame {
 
   private Frame() {}
 
-  static El of(Theme theme, El... content) {
+  static El of(El... content) {
+    Theme theme = Theme.CURRENT.get();
     return col()
         .wFull()
         .hFull()

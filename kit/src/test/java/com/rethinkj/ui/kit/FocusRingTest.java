@@ -27,23 +27,24 @@ class FocusRingTest {
   /** The focusable components of the kit in one theme, on that theme's window color. */
   private static El panel(Theme t) {
     List<Column> columns = List.of(new Column("id", 60, Align.RIGHT, true, String::valueOf));
-    return col()
-        .grow(1)
-        .padding(t.space().xl())
-        .gap(t.space().xl())
-        .fill(t.surface().window())
-        .children(
-            button(t, Variant.SECONDARY, "Save", () -> {}),
-            checkbox(t, false, "Read only", () -> {}),
-            toggle(t, false, "Autocommit", () -> {}),
-            textField(t, "", v -> {}).label("Name"),
-            dataGrid(
-                    t,
-                    columns,
-                    3,
-                    DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
-                .label("Rows")
-                .h(80));
+    return Theme.CURRENT.with(
+        t,
+        () -> col()
+            .grow(1)
+            .padding(t.space().xl())
+            .gap(t.space().xl())
+            .fill(t.surface().window())
+            .children(
+                button(Variant.SECONDARY, "Save", () -> {}),
+                checkbox(false, "Read only", () -> {}),
+                toggle(false, "Autocommit", () -> {}),
+                textField("", v -> {}).label("Name"),
+                dataGrid(
+                        columns,
+                        3,
+                        DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
+                    .label("Rows")
+                    .h(80)));
   }
 
   @Test

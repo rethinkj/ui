@@ -16,7 +16,7 @@ import com.rethinkj.ui.Style;
  *
  * <pre>{@code
  * root.overlay(state.dropped == null ? null
- *     : Toast.toast(theme, "Dropped " + state.dropped, "Undo", state::restore,
+ *     : Toast.toast("Dropped " + state.dropped, "Undo", state::restore,
  *         () -> state.dropped = null));
  * }</pre>
  *
@@ -36,9 +36,8 @@ public final class Toast {
    * @param onAction runs when the action is pressed, before {@code onClose}
    * @param onClose runs when the time is up, the action was pressed or Escape closes it
    */
-  public static El toast(
-      Theme theme, String message, String action, Runnable onAction, Runnable onClose) {
-    return toast(theme, message, action, onAction, onClose, 0);
+  public static El toast(String message, String action, Runnable onAction, Runnable onClose) {
+    return toast(message, action, onAction, onClose, 0);
   }
 
   /**
@@ -50,12 +49,8 @@ public final class Toast {
    * @param above how high, in logical pixels, what it must not cover reaches up from the bottom
    */
   public static El toast(
-      Theme theme,
-      String message,
-      String action,
-      Runnable onAction,
-      Runnable onClose,
-      float above) {
+      String message, String action, Runnable onAction, Runnable onClose, float above) {
+    Theme theme = Theme.CURRENT.get();
     El toast = Popup.frame(theme, row())
         .key("toast")
         .role("status")
@@ -77,9 +72,9 @@ public final class Toast {
             theme.space().l())
         .gap(theme.space().m())
         .align(Style.Align.CENTER)
-        .child(label(theme, message));
+        .child(label(message));
     if (action != null) {
-      toast.child(button(theme, Button.Variant.GHOST, action, () -> {
+      toast.child(button(Button.Variant.GHOST, action, () -> {
             onAction.run();
             onClose.run();
           })

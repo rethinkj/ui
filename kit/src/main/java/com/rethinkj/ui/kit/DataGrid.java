@@ -38,7 +38,7 @@ import java.util.function.ObjLongConsumer;
  *     new Column("id", state.widths[0], DataType.INTEGER, row -> String.valueOf(state.ids[row]))
  *         .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING),
  *     new Column("name", state.widths[1], Align.LEFT, false, row -> state.names[row]));
- * dataGrid(theme, columns, state.count, DataGrid.options()
+ * dataGrid(columns, state.count, DataGrid.options()
  *         .select(state.selection)                   // a Selection the app keeps
  *         .sort(state.sort, keys -> state.sort = keys)
  *         .onResize((column, width) -> state.widths[column] = width)
@@ -2199,7 +2199,8 @@ public final class DataGrid {
    * @param rowCount the number of rows, 0 or more
    * @param options what the grid does; {@link #options()} for a grid that only shows
    */
-  public static El dataGrid(Theme theme, List<Column> columns, int rowCount, Options options) {
+  public static El dataGrid(List<Column> columns, int rowCount, Options options) {
+    Theme theme = Theme.CURRENT.get();
     if (options.table != null) { // with all the columns, before a layout counts them its way
       options.table.accept(columns, rowCount);
       options.table = null;
@@ -2290,7 +2291,7 @@ public final class DataGrid {
     }
     reveal(b);
     if (options.menu != null) {
-      Menu.contextMenu(theme, grid, options.menu, menuItems(b));
+      Menu.contextMenu(grid, options.menu, menuItems(b));
     }
     if (sel == null) {
       return grid;
@@ -2380,9 +2381,7 @@ public final class DataGrid {
           .clip()
           .children(
               title,
-              Label.label(theme, Label.Variant.MUTED, column.typeName())
-                  .ellipsis()
-                  .minSize(0, 0));
+              Label.label(Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0));
     }
     El cell = cellBox(theme, column.align(), column.width())
         .key("column-" + index)
@@ -2393,7 +2392,7 @@ public final class DataGrid {
     // Apart from the title by the gap of an icon in a cell, as the cell's gap is the mark's.
     El icon = column.icon() == null
         ? null
-        : Icon.icon(theme, column.icon(), column.iconVariant())
+        : Icon.icon(column.icon(), column.iconVariant())
             .margin(0, theme.space().s() - theme.space().xs(), 0, 0);
     int at = -1;
     for (int k = 0; k < b.o.sort.size(); k++) {
@@ -2409,12 +2408,9 @@ public final class DataGrid {
           .align(Style.Align.CENTER)
           .shrink(0)
           .child(Icon.icon(
-              theme,
-              descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP,
-              Icon.Variant.MUTED,
-              b.g.mark()));
+              descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP, Icon.Variant.MUTED, b.g.mark()));
       if (b.o.sort.size() > 1) {
-        mark.child(Label.label(theme, Label.Variant.MUTED, String.valueOf(at + 1)));
+        mark.child(Label.label(Label.Variant.MUTED, String.valueOf(at + 1)));
         if (column.align() == Align.RIGHT) { // the number apart from the title after it
           mark.margin(0, theme.space().xs(), 0, 0);
         }
@@ -2720,13 +2716,13 @@ public final class DataGrid {
     String type = b.columns.get(c).typeName();
     float room =
         b.columns.get(c).width() - theme.size().stroke() - 2 * theme.space().s();
-    float whole = natural(Label.label(theme, Label.Variant.MUTED, type));
+    float whole = natural(Label.label(Label.Variant.MUTED, type));
     float left = room - (headerWidth(b, c) - whole);
     if (left >= whole) {
       return true;
     }
     String least = TextSizing.least(type);
-    return !least.equals(type) && left >= natural(Label.label(theme, Label.Variant.MUTED, least));
+    return !least.equals(type) && left >= natural(Label.label(Label.Variant.MUTED, least));
   }
 
   /** The width a text element takes on one line, in logical pixels. */
@@ -2926,7 +2922,7 @@ public final class DataGrid {
         }
       }
       if (icon != null) {
-        box.gap(pad).child(Icon.icon(theme, icon.symbol(), icon.variant()));
+        box.gap(pad).child(Icon.icon(icon.symbol(), icon.variant()));
       }
       if (!alone) {
         El text = text(
@@ -3345,7 +3341,8 @@ public final class DataGrid {
    * for the focused one, a field that narrows the list where there are many, Show all and Reset.
    * The header's context menu opens the same chooser at the column it opened on.
    */
-  public static El columnsButton(Theme theme, Layout layout) {
+  public static El columnsButton(Layout layout) {
+    Theme theme = Theme.CURRENT.get();
     return GridColumns.button(theme, layout);
   }
 
@@ -3358,7 +3355,8 @@ public final class DataGrid {
    * @param onFilter told the filters left
    */
   public static El filterBar(
-      Theme theme, List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
+      List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
+    Theme theme = Theme.CURRENT.get();
     return GridFilter.bar(theme, columns, filters, onFilter);
   }
 

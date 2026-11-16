@@ -16,11 +16,11 @@ Javadoc: [`NumberField`](/api/com/rethinkj/ui/kit/NumberField.html).
 
 `state.fetchSize` is an `int` in the app's state.
 
-`NumberField.numberField(theme, label, value, min, max, step, onChange)`. Leave out the label in a [Form](/docs/components/form) field or a [Group](/docs/components/group) row, which label the field. Typing hands on every whole number, also one outside the range, which then shows as `invalid`. The buttons keep the focus in the field and are disabled at the ends of the range.
+`NumberField.numberField(label, value, min, max, step, onChange)`. Leave out the label in a [Form](/docs/components/form) field or a [Group](/docs/components/group) row, which label the field. Typing hands on every whole number, also one outside the range, which then shows as `invalid`. The buttons keep the focus in the field and are disabled at the ends of the range.
 
 ## Text between two numbers
 
-On the way to `-5` the field holds a lone `-`, and an emptied field holds no number at all. To keep such a text, pass a `ValueField.Draft` from the app's state, as for a [ValueField](/docs/components/format): `numberField(theme, label, value, min, max, step, draft, onChange)`. The field then shows the text as `invalid` with the message of `Format.INTEGER`, and the app keeps its last number until the text is one again. Without a draft, an edit that leaves no number is refused, so a new number is typed over the old one selected, and a negative one by typing the minus sign before it.
+On the way to `-5` the field holds a lone `-`, and an emptied field holds no number at all. To keep such a text, pass a `ValueField.Draft` from the app's state, as for a [ValueField](/docs/components/format): `numberField(label, value, min, max, step, draft, onChange)`. The field then shows the text as `invalid` with the message of `Format.INTEGER`, and the app keeps its last number until the text is one again. Without a draft, an edit that leaves no number is refused, so a new number is typed over the old one selected, and a negative one by typing the minus sign before it.
 
 ## Keyboard
 
@@ -28,7 +28,7 @@ Up and Down step; Page Up and Page Down step by ten, within the range.
 
 ## With a Prop
 
-`numberField(theme, prop, min, max, step)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler. A prop of an `Editing` keeps the field's draft there, so the field takes `-` and the empty text without a draft of the app's, and `Editing.valid()` stays false while it holds one.
+`numberField(prop, min, max, step)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler. A prop of an `Editing` keeps the field's draft there, so the field takes `-` and the empty text without a draft of the app's, and `Editing.valid()` stays false while it holds one.
 
 ## In a tree dump
 

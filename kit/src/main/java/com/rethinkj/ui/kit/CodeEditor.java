@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * a line, and has the commands of {@link Command}.
  *
  * <pre>{@code
- * codeEditor(theme, app, state.sql, state.editor, Sql.of(theme), value -> state.sql = value)
+ * codeEditor(app, state.sql, state.editor, Sql.of(), value -> state.sql = value)
  *     .key("query").lines(12).wFull()
  * }</pre>
  *
@@ -219,8 +219,8 @@ public final class CodeEditor {
    * @param onChange receives the new string after each edit; null disables the editor
    */
   public static El codeEditor(
-      Theme theme, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
-    return codeEditor(theme, null, value, state, highlighter, onChange);
+      String value, State state, Highlighter highlighter, Consumer<String> onChange) {
+    return codeEditor(null, value, state, highlighter, onChange);
   }
 
   /**
@@ -230,12 +230,8 @@ public final class CodeEditor {
    * @param app the app the editor is in; null for an editor without find and commands
    */
   public static El codeEditor(
-      Theme theme,
-      App<?> app,
-      String value,
-      State state,
-      Highlighter highlighter,
-      Consumer<String> onChange) {
+      App<?> app, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     Theme.Code code = theme.code();
     int[] pair = matching(value, state.caret);
     String word =
@@ -247,7 +243,7 @@ public final class CodeEditor {
             ? CodeWords.start(value, Math.min(state.caret, value.length()))
             : Math.min(state.caret, state.anchor);
     Theme.TextStyle mono = theme.type().mono();
-    El editor = TextField.codeArea(theme, value, null, onChange)
+    El editor = TextField.codeArea(value, null, onChange)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
           state.caret = caret;
@@ -299,7 +295,7 @@ public final class CodeEditor {
       run(app, state, command);
       return true;
     });
-    return state.findBar ? Find.find(theme, app, editor, state.find) : editor;
+    return state.findBar ? Find.find(app, editor, state.find) : editor;
   }
 
   /**
@@ -310,14 +306,15 @@ public final class CodeEditor {
    * ring of the keyboard's focus lies just inside it, where the card clips it.
    *
    * <pre>{@code
-   * Card.flush(theme, Card.toolbar(theme, "orders.sql", null, run),
-   *     embedded(theme, editor).grow(1))
+   * Card.flush(Card.toolbar("orders.sql", null, run),
+   *     embedded(editor).grow(1))
    * }</pre>
    *
    * @param editor an editor of {@link #codeEditor}
    * @return the editor
    */
-  public static El embedded(Theme theme, El editor) {
+  public static El embedded(El editor) {
+    Theme theme = Theme.CURRENT.get();
     float stroke = theme.size().stroke();
     editor.radius(0).border(stroke, 0, 0, 0, theme.border().divider()).shadow().wFull();
     // The gutter lines up with the card's title, inside the card's padding.

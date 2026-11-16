@@ -97,7 +97,7 @@ final class GridFilter {
     Column c = b.columns.get(column);
     Filter set = filterOf(b, column);
     boolean open = sel.filterColumn == column && sel.filtering.isOpen();
-    El icon = Icon.icon(theme, Symbol.FILTER, Icon.Variant.MUTED);
+    El icon = Icon.icon(Symbol.FILTER, Icon.Variant.MUTED);
     if (set != null) {
       icon.color(theme.accent().edge());
     }
@@ -228,7 +228,6 @@ final class GridFilter {
     El content = col()
         .gap(theme.space().s())
         .child(Select.select(
-                theme,
                 kinds.stream().map(GridFilter::name).toList(),
                 kinds.indexOf(sel.filterKind),
                 sel.filterKinds,
@@ -237,27 +236,27 @@ final class GridFilter {
             .w(width));
     switch (sel.filterKind) {
       case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
-        El field = textField(theme, sel.filterValue, "Value", v -> sel.filterValue = v)
+        El field = textField(sel.filterValue, "Value", v -> sel.filterValue = v)
             .key("value")
             .w(width)
             .autofocus();
-        content.child(error == null ? field : TextField.invalid(theme, field));
+        content.child(error == null ? field : TextField.invalid(field));
       }
       case BETWEEN ->
         content.child(row()
             .gap(theme.space().s())
             .children(
-                textField(theme, sel.filterValue, "From", v -> sel.filterValue = v)
+                textField(sel.filterValue, "From", v -> sel.filterValue = v)
                     .key("from")
                     .w((width - theme.space().s()) / 2)
                     .autofocus(),
-                textField(theme, sel.filterTo, "To", v -> sel.filterTo = v)
+                textField(sel.filterTo, "To", v -> sel.filterTo = v)
                     .key("to")
                     .w((width - theme.space().s()) / 2)));
       case ONE_OF -> {
         El list = col().key("values").gap(theme.space().xs());
         for (String value : values(c)) {
-          list.child(Checkbox.checkbox(theme, sel.filterValues.contains(value), value, () -> {
+          list.child(Checkbox.checkbox(sel.filterValues.contains(value), value, () -> {
                 if (!sel.filterValues.remove(value)) {
                   sel.filterValues.add(value);
                 }
@@ -269,7 +268,7 @@ final class GridFilter {
       default -> {}
     }
     if (error != null) {
-      content.child(Label.label(theme, error)
+      content.child(Label.label(error)
           .key("error")
           .role("alert")
           .label(error)
@@ -281,19 +280,17 @@ final class GridFilter {
         .justify(Style.Content.END)
         .children(
             button(
-                theme,
                 Button.Variant.SECONDARY,
                 "Clear",
                 filterOf(b, column) == null ? null : () -> apply(b, column, null)),
-            button(theme, Button.Variant.PRIMARY, "Apply", apply)));
+            button(Button.Variant.PRIMARY, "Apply", apply)));
     El panel = Popover.panel(
-        theme,
         sel.filtering,
         "Filter " + c.title(),
         col()
             .gap(theme.space().m())
             .children(
-                Label.label(theme, Label.Variant.STRONG, "Filter " + c.title())
+                Label.label(Label.Variant.STRONG, "Filter " + c.title())
                     .role("heading")
                     .level(3),
                 content));
@@ -331,9 +328,7 @@ final class GridFilter {
           ? columns.get(f.column()).title()
           : "column " + (f.column() + 1);
       bar.child(Badge.badge(
-              theme,
-              f.describe(title),
-              Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> {
+              f.describe(title), Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> {
                 List<Filter> left = new ArrayList<>(filters);
                 left.remove(f);
                 onFilter.accept(List.copyOf(left));
@@ -341,7 +336,7 @@ final class GridFilter {
           .role("listitem"));
     }
     if (filters.size() > 1) {
-      bar.child(button(theme, Button.Variant.GHOST, "Clear all", () -> onFilter.accept(List.of()))
+      bar.child(button(Button.Variant.GHOST, "Clear all", () -> onFilter.accept(List.of()))
           .key("clear-filters"));
     }
     return bar;

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.TabGroups;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -52,7 +53,7 @@ class WorkbenchTest {
     Snaps.assumeText();
     Workbench s = new Workbench();
     s.latency = Duration.ZERO;
-    App<Workbench> app = new App<>(s, Workbench::view);
+    App<Workbench> app = new App<>(s, Workbench::view).provide(Theme.CURRENT, Workbench::theme);
     s.app = app;
     app.textRendering(TextRendering.LINUX);
     return app;

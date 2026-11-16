@@ -26,7 +26,7 @@ import java.util.function.IntFunction;
  * is one stop for Tab and follows the selection ({@link El#revealRow}).
  *
  * <pre>{@code
- * navList(theme, List.of(
+ * navList(List.of(
  *     NavList.item(Symbol.SETTINGS, "General"),
  *     NavList.item(Symbol.DATABASE, "Connections").count("3"),
  *     NavList.heading("Help"),
@@ -85,7 +85,8 @@ public final class NavList {
    * @param onSelect told the index of the item the user selects, only when it changes; null
    *     disables the list
    */
-  public static El navList(Theme theme, List<Item> items, int selected, IntConsumer onSelect) {
+  public static El navList(List<Item> items, int selected, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     Rows rows = new Rows(theme, items.size(), items::get, selected, onSelect);
     El list = col().scroll();
     for (int i = 0; i < items.size(); i++) {
@@ -104,12 +105,8 @@ public final class NavList {
    * @param onSelect told the value the user selects, only when it changes; null disables the list
    */
   public static <T> El navList(
-      Theme theme,
-      List<T> values,
-      T selected,
-      Function<? super T, Item> item,
-      Consumer<? super T> onSelect) {
-    return navList(theme, values, selected, item, v -> null, onSelect);
+      List<T> values, T selected, Function<? super T, Item> item, Consumer<? super T> onSelect) {
+    return navList(values, selected, item, v -> null, onSelect);
   }
 
   /**
@@ -117,7 +114,7 @@ public final class NavList {
    * before it, none for a null group. The headings count as rows, as in the form with indexes.
    *
    * <pre>{@code
-   * navList(theme, List.of(Page.values()), state.page,
+   * navList(List.of(Page.values()), state.page,
    *     page -> NavList.item(page.icon, page.title), Page::group,
    *     page -> state.page = page)
    * }</pre>
@@ -126,7 +123,6 @@ public final class NavList {
    * @param group the heading over a value and those after it with an equal group, or null
    */
   public static <T> El navList(
-      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Item> item,
@@ -152,10 +148,7 @@ public final class NavList {
       items.add(item.apply(once.get(i)));
     }
     return navList(
-        theme,
-        items,
-        selectedRow,
-        onSelect == null ? null : r -> onSelect.accept(once.get(value[r])));
+        items, selectedRow, onSelect == null ? null : r -> onSelect.accept(once.get(value[r])));
   }
 
   /**
@@ -164,8 +157,8 @@ public final class NavList {
    * @param item the entry at an index; asked for the rows in view and, by the keys, for those
    *     beside the selection
    */
-  public static El navList(
-      Theme theme, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+  public static El navList(int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     Rows rows = new Rows(theme, count, item, selected, onSelect);
     return rows.list(col().rows(count, rows.height, rows::build));
   }
@@ -219,7 +212,7 @@ public final class NavList {
             .align(Style.Align.CENTER)
             .padding(
                 0, theme.space().m(), 0, 2 * theme.space().xs() + theme.space().s())
-            .child(label(theme, Label.Variant.MUTED, entry.label()));
+            .child(label(Label.Variant.MUTED, entry.label()));
       }
       boolean on = i == selected;
       float mark = theme.size().icon();
@@ -238,15 +231,15 @@ public final class NavList {
         selectedPill = pill;
       }
       if (entry.icon() != null) {
-        pill.child(icon(theme, entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        pill.child(icon(entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
       }
-      pill.child(label(theme, entry.label())
+      pill.child(label(entry.label())
           .color(enabled ? theme.text().primary() : theme.text().disabled())
           .grow(1)
           .ellipsis()
           .minSize(0, 0));
       if (entry.count() != null) {
-        pill.child(label(theme, Label.Variant.MUTED, entry.count())
+        pill.child(label(Label.Variant.MUTED, entry.count())
             .color(enabled ? theme.text().muted() : theme.text().disabled()));
       }
       El r = row()

@@ -25,7 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 /**
@@ -62,27 +62,26 @@ final class Gallery {
   }
 
   /** A row of the sheet, {@link #HEIGHT} high unless it says otherwise. */
-  record Row(String name, BiFunction<Theme, Runnable, El> component, String steps, int height) {
+  record Row(String name, Function<Runnable, El> component, String steps, int height) {
 
-    Row(String name, BiFunction<Theme, Runnable, El> component) {
+    Row(String name, Function<Runnable, El> component) {
       this(name, component, "");
     }
 
-    Row(String name, BiFunction<Theme, Runnable, El> component, String steps) {
+    Row(String name, Function<Runnable, El> component, String steps) {
       this(name, component, steps, HEIGHT);
     }
   }
 
   /** A text field as wide as a cell allows, enabled when the handler is. */
-  private static El field(Theme t, String value, Runnable handler) {
-    return textField(t, value, "Search tables", handler == null ? null : s -> handler.run())
+  private static El field(String value, Runnable handler) {
+    return textField(value, "Search tables", handler == null ? null : s -> handler.run())
         .w(WIDTH - 20);
   }
 
   /** A text area three lines high, as wide as {@link #field}. */
-  private static El area(Theme t, Runnable handler) {
+  private static El area(Runnable handler) {
     return textArea(
-            t,
             "Ship by Friday,\nfrom the north\nwarehouse.",
             "Notes",
             handler == null ? null : s -> handler.run())
@@ -91,17 +90,17 @@ final class Gallery {
   }
 
   /** A code area three lines high, with a line a tab indents. */
-  private static El code(Theme t, Runnable handler) {
+  private static El code(Runnable handler) {
     return codeArea(
-            t, "SELECT id,\n\tname\nFROM t;", "SQL", handler == null ? null : s -> handler.run())
+            "SELECT id,\n\tname\nFROM t;", "SQL", handler == null ? null : s -> handler.run())
         .w(WIDTH - 20)
         .lines(3);
   }
 
   /** A password field with its button, as wide as {@link #field}. */
-  private static El password(Theme t, boolean revealed, Runnable handler) {
-    El field = passwordField(t, "hunter2", "Password", handler == null ? null : s -> handler.run());
-    return revealable(t, field.w(WIDTH - 20), revealed, handler);
+  private static El password(boolean revealed, Runnable handler) {
+    El field = passwordField("hunter2", "Password", handler == null ? null : s -> handler.run());
+    return revealable(field.w(WIDTH - 20), revealed, handler);
   }
 
   private static Button.Options danger() {
@@ -109,35 +108,34 @@ final class Gallery {
   }
 
   static final List<Row> ROWS = List.of(
-      new Row("primary", (t, h) -> button(t, Variant.PRIMARY, "Run query", h)),
-      new Row("secondary", (t, h) -> button(t, Variant.SECONDARY, "Cancel", h)),
-      new Row("busy", (t, h) -> button(t, Variant.PRIMARY, null, "Running", true, h)),
-      new Row("ghost", (t, h) -> button(t, Variant.GHOST, "Format", h)),
-      new Row("danger", (t, h) -> button(t, Variant.PRIMARY, "Drop table", h, danger())),
-      new Row("danger secondary", (t, h) -> button(t, Variant.SECONDARY, "Discard", h, danger())),
-      new Row("danger ghost", (t, h) -> button(t, Variant.GHOST, "Delete", h, danger())),
+      new Row("primary", h -> button(Variant.PRIMARY, "Run query", h)),
+      new Row("secondary", h -> button(Variant.SECONDARY, "Cancel", h)),
+      new Row("busy", h -> button(Variant.PRIMARY, null, "Running", true, h)),
+      new Row("ghost", h -> button(Variant.GHOST, "Format", h)),
+      new Row("danger", h -> button(Variant.PRIMARY, "Drop table", h, danger())),
+      new Row("danger secondary", h -> button(Variant.SECONDARY, "Discard", h, danger())),
+      new Row("danger ghost", h -> button(Variant.GHOST, "Delete", h, danger())),
       new Row(
           "busy icon",
-          (t, h) -> Button.icon(
-              t,
+          h -> Button.icon(
               Variant.GHOST,
               Symbol.ARROW_CLOCKWISE,
               "Refresh",
               h,
               Button.options().busy(true))),
-      new Row("toggle off", (t, h) -> toggle(t, false, "Autocommit", h)),
-      new Row("toggle on", (t, h) -> toggle(t, true, "Autocommit", h)),
-      new Row("checkbox off", (t, h) -> checkbox(t, false, "Read only", h)),
-      new Row("checkbox on", (t, h) -> checkbox(t, true, "Read only", h)),
-      new Row("field empty", (t, h) -> field(t, "", h)),
-      new Row("field filled", (t, h) -> field(t, "orders 2024", h)),
+      new Row("toggle off", h -> toggle(false, "Autocommit", h)),
+      new Row("toggle on", h -> toggle(true, "Autocommit", h)),
+      new Row("checkbox off", h -> checkbox(false, "Read only", h)),
+      new Row("checkbox on", h -> checkbox(true, "Read only", h)),
+      new Row("field empty", h -> field("", h)),
+      new Row("field filled", h -> field("orders 2024", h)),
       // The last word selected from the caret, wherever the state left it.
       new Row(
           "field selected",
-          (t, h) -> field(t, "orders 2024", h),
+          h -> field("orders 2024", h),
           "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"),
-      new Row("password", (t, h) -> password(t, false, h)),
-      new Row("password shown", (t, h) -> password(t, true, h)),
+      new Row("password", h -> password(false, h)),
+      new Row("password shown", h -> password(true, h)),
       new Row("area", Gallery::area, "", AREA),
       // From the third character to the third of the last line: the line feeds shown.
       new Row(
@@ -147,53 +145,46 @@ final class Gallery {
               + "key ArrowRight\nkey ArrowDown shift\nkey ArrowDown shift\nframe",
           AREA),
       new Row("code area", Gallery::code, "", AREA),
-      new Row("switch row", (t, h) -> Group.switchRow(t, "Wrap", null, true, h).w(WIDTH - 20)),
-      new Row("link row", (t, h) -> Group.linkRow(t, "Keymap", null, null, h).w(WIDTH - 20)),
-      new Row("expander", (t, h) -> Group.expander(t, "More", null, false, h).w(WIDTH - 20)),
-      new Row("radio", (t, h) -> Radio.radioGroup(t, List.of("Spaces"), 0, choose(h))),
+      new Row("switch row", h -> Group.switchRow("Wrap", null, true, h).w(WIDTH - 20)),
+      new Row("link row", h -> Group.linkRow("Keymap", null, null, h).w(WIDTH - 20)),
+      new Row("expander", h -> Group.expander("More", null, false, h).w(WIDTH - 20)),
+      new Row("radio", h -> Radio.radioGroup(List.of("Spaces"), 0, choose(h))),
       new Row(
           "segmented",
-          (t, h) ->
-              Segmented.segmented(t, List.of("Rows", "Cells"), 0, choose(h)).label("Mode")),
+          h -> Segmented.segmented(List.of("Rows", "Cells"), 0, choose(h)).label("Mode")),
       new Row(
           "combo box",
-          (t, h) -> ComboBox.comboBox(
-                  t, List.of("analytics", "shop"), 1, new ComboBox.State(), choose(h))
+          h -> ComboBox.comboBox(List.of("analytics", "shop"), 1, new ComboBox.State(), choose(h))
               .w(WIDTH - 20)),
       new Row(
           "combo free",
-          (t, h) -> ComboBox.free(
-                  t,
+          h -> ComboBox.free(
                   "localhost",
                   List.of("localhost"),
                   new ComboBox.State(),
                   h == null ? null : v -> h.run())
               .w(WIDTH - 20)),
+      new Row("number", h -> NumberField.numberField(4, 1, 16, 1, choose(h)).w(WIDTH - 40)),
       new Row(
-          "number", (t, h) -> NumberField.numberField(t, 4, 1, 16, 1, choose(h)).w(WIDTH - 40)),
-      new Row(
-          "slider",
-          (t, h) -> Slider.slider(t, 13, 11, 16, 1, choose(h)).w(WIDTH - 20).label("Size")),
+          "slider", h -> Slider.slider(13, 11, 16, 1, choose(h)).w(WIDTH - 20).label("Size")),
       new Row(
           "nav list",
-          (t, h) -> NavList.navList(
-                  t, List.of(NavList.item(Symbol.TABLE, "orders").count("12")), 0, choose(h))
+          h -> NavList.navList(
+                  List.of(NavList.item(Symbol.TABLE, "orders").count("12")), 0, choose(h))
               .w(WIDTH - 20)
               .label("Tables")),
-      new Row(
-          "status item", (t, h) -> StatusBar.status(t, StatusBar.State.CONNECTED, "localhost", h)),
+      new Row("status item", h -> StatusBar.status(StatusBar.State.CONNECTED, "localhost", h)),
       new Row(
           "badge",
-          (t, h) -> Badge.badge(
-              t,
+          h -> Badge.badge(
               "Add filter",
               Badge.options().toolbar().kind(Badge.Kind.ACCENT).icon(Symbol.ADD).onPress(h))),
       new Row(
           "toggle button",
-          (t, h) -> Button.toggle(t, Symbol.PIN, "Pin", false, h == null ? null : on -> h.run())),
+          h -> Button.toggle(Symbol.PIN, "Pin", false, h == null ? null : on -> h.run())),
       new Row(
           "toggle on",
-          (t, h) -> Button.toggle(t, Symbol.PIN, "Pin", true, h == null ? null : on -> h.run())));
+          h -> Button.toggle(Symbol.PIN, "Pin", true, h == null ? null : on -> h.run())));
 
   /** A handler of a choice that runs {@code h}, or none when {@code h} is. */
   private static IntConsumer choose(Runnable h) {
@@ -228,37 +219,36 @@ final class Gallery {
       gallery.put(1 + state.ordinal(), 0, HEIGHT, gallery.name(state.name()), "");
     }
     // The label's styles have no states.
-    Theme t = theme;
     gallery.put(0, cell, HEIGHT, gallery.name("label"), "");
-    gallery.put(1, cell, HEIGHT, label(t, "Normal"), "");
-    gallery.put(2, cell, HEIGHT, label(t, Label.Variant.MUTED, "Muted"), "");
-    gallery.put(3, cell, HEIGHT, label(t, Label.Variant.MONO, "mono_0123"), "");
-    gallery.put(4, cell, HEIGHT, label(t, Label.Variant.HEADING, "Heading"), "");
-    gallery.put(5, cell, HEIGHT, label(t, Label.Variant.STRONG, "Strong"), "");
+    gallery.put(1, cell, HEIGHT, label("Normal"), "");
+    gallery.put(2, cell, HEIGHT, label(Label.Variant.MUTED, "Muted"), "");
+    gallery.put(3, cell, HEIGHT, label(Label.Variant.MONO, "mono_0123"), "");
+    gallery.put(4, cell, HEIGHT, label(Label.Variant.HEADING, "Heading"), "");
+    gallery.put(5, cell, HEIGHT, label(Label.Variant.STRONG, "Strong"), "");
     // Progress takes no input: its rows show its forms, the running ones at two times.
     float w = WIDTH - 20;
     String[] names = {"progress", "running", "labeled"};
     El[][] forms = {
       {
-        Progress.bar(t, 0).w(w),
-        Progress.bar(t, 0.42).w(w),
-        Progress.bar(t, 1).w(w),
-        Progress.bar(t, 0.64, Progress.State.ERROR).w(w),
-        Progress.bar(t, 1, Progress.State.DONE).w(w)
+        Progress.bar(0).w(w),
+        Progress.bar(0.42).w(w),
+        Progress.bar(1).w(w),
+        Progress.bar(0.64, Progress.State.ERROR).w(w),
+        Progress.bar(1, Progress.State.DONE).w(w)
       },
       {
-        Progress.bar(t, 0.42, Progress.State.PAUSED).w(w),
-        Progress.indeterminate(t).w(w),
-        Progress.indeterminate(t).w(w),
-        Progress.spinner(t),
-        Progress.spinner(t)
+        Progress.bar(0.42, Progress.State.PAUSED).w(w),
+        Progress.indeterminate().w(w),
+        Progress.indeterminate().w(w),
+        Progress.spinner(),
+        Progress.spinner()
       },
       {
-        Progress.labeled(t, "orders.csv", 0.42, null).w(w),
-        Progress.labeled(t, "orders.csv", 0.64, "Failed", Progress.State.ERROR).w(w),
-        Progress.labeled(t, "orders.csv", 1, "Done", Progress.State.DONE).w(w),
-        Progress.line(t, 0.42).w(w),
-        Progress.line(t).w(w)
+        Progress.labeled("orders.csv", 0.42, null).w(w),
+        Progress.labeled("orders.csv", 0.64, "Failed", Progress.State.ERROR).w(w),
+        Progress.labeled("orders.csv", 1, "Done", Progress.State.DONE).w(w),
+        Progress.line(0.42).w(w),
+        Progress.line().w(w)
       }
     };
     String[][] times = {
@@ -285,7 +275,7 @@ final class Gallery {
     for (Row row : ROWS) {
       gallery.put(0, top, row.height(), gallery.name(row.name()), "");
       for (State state : State.values()) {
-        El component = row.component().apply(t, state == State.DISABLED ? null : () -> {});
+        El component = row.component().apply(state == State.DISABLED ? null : () -> {});
         String steps = state.steps + (row.steps().isEmpty() ? "" : "\n" + row.steps());
         String tree =
             gallery.put(1 + state.ordinal(), top, row.height(), component.key("c"), steps);
@@ -304,7 +294,7 @@ final class Gallery {
   }
 
   private El name(String text) {
-    return label(theme, Label.Variant.MUTED, text.toLowerCase(Locale.ROOT));
+    return label(Label.Variant.MUTED, text.toLowerCase(Locale.ROOT));
   }
 
   /**

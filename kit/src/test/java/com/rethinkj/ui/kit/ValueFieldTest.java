@@ -44,33 +44,32 @@ class ValueFieldTest {
 
   private static App<State> app(State s, Theme t) {
     return new App<>(
-        s,
-        x -> col()
-            .fill(t.surface().window())
-            .wFull()
-            .hFull()
-            .padding(t.space().l())
-            .child(Form.form(
-                t,
-                Form.Labels.ABOVE,
-                Form.field(
-                    "Amount",
-                    ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> {
-                          s.amount = v;
-                          s.handed++;
-                        })
-                        .key("amount")),
-                Form.field(
-                        "Due",
-                        ValueField.valueField(
-                                t,
-                                Format.DATE.optional(),
-                                s.due,
-                                "2026-11-13",
-                                s.dueDraft,
-                                v -> s.due = v)
-                            .key("due"))
-                    .error(s.appError))));
+            s,
+            x -> col()
+                .fill(t.surface().window())
+                .wFull()
+                .hFull()
+                .padding(t.space().l())
+                .child(Form.form(
+                    Form.Labels.ABOVE,
+                    Form.field(
+                        "Amount",
+                        ValueField.valueField(Format.DECIMAL, s.amount, s.amountDraft, v -> {
+                              s.amount = v;
+                              s.handed++;
+                            })
+                            .key("amount")),
+                    Form.field(
+                            "Due",
+                            ValueField.valueField(
+                                    Format.DATE.optional(),
+                                    s.due,
+                                    "2026-11-13",
+                                    s.dueDraft,
+                                    v -> s.due = v)
+                                .key("due"))
+                        .error(s.appError))))
+        .provide(Theme.CURRENT, state -> t);
   }
 
   private static void run(App<?> app, String steps) throws IOException {
@@ -160,16 +159,12 @@ class ValueFieldTest {
         editing,
         e -> col()
             .child(Form.form(
-                Theme.DARK,
                 Form.Labels.ABOVE,
                 Form.field(
                         "Count",
-                        ValueField.valueField(Theme.DARK, Format.INTEGER, e.at(Row.COUNT))
-                            .key("count"))
+                        ValueField.valueField(Format.INTEGER, e.at(Row.COUNT)).key("count"))
                     .required(),
-                Form.field(
-                    "Name",
-                    TextField.textField(Theme.DARK, e.at(Row.NAME), "Name").key("name")))));
+                Form.field("Name", TextField.textField(e.at(Row.NAME), "Name").key("name")))));
     run(app, "focus #name\ntype \"d\"");
     assertEquals("originald", editing.value().name());
     assertFalse(editing.valid(), "an empty required field cannot be saved as null");
@@ -193,7 +188,7 @@ class ValueFieldTest {
     App<Object> app = new App<>(
         new Object(),
         x -> col()
-            .child(ValueField.valueField(Theme.DARK, Format.INTEGER, value[0], draft, v -> {
+            .child(ValueField.valueField(Format.INTEGER, value[0], draft, v -> {
                   value[0] = Math.min(v, 10); // at most 10
                 })
                 .key("n")));

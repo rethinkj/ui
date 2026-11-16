@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 /** The examples of a highlighter and a decorator of one's own, for the code editor's page. */
 final class Highlighters {
 
-  Theme theme = Theme.DARK;
   App<?> app;
   String ini = "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n";
   final CodeEditor.State editor = new CodeEditor.State();
@@ -22,17 +21,16 @@ final class Highlighters {
   }
 
   static El view(Highlighters state) {
-    Theme theme = state.theme;
     return Frame.of(
-        theme,
-        editor(theme, state.app, state.ini, state.editor, state::ini).lines(6).wFull());
+        editor(state.app, state.ini, state.editor, state::ini).lines(6).wFull());
   }
 
   // docs:start highlighter
   /** Colors INI files: sections, keys and comments; a value goes on after a backslash. */
   record Ini(int section, int key, int comment) implements Highlighter, CodeEditor.LineComments {
 
-    static Ini of(Theme theme) {
+    static Ini of() {
+      Theme theme = Theme.CURRENT.get();
       return new Ini(
           theme.code().keyword(), theme.code().operator(), theme.code().comment());
     }
@@ -60,10 +58,10 @@ final class Highlighters {
   }
   // docs:end highlighter
 
-  static El editor(
-      Theme theme, App<?> app, String value, CodeEditor.State state, Consumer<String> onChange) {
+  static El editor(App<?> app, String value, CodeEditor.State state, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     // docs:start decorator
-    El editor = CodeEditor.codeEditor(theme, app, value, state, Ini.of(theme), onChange);
+    El editor = CodeEditor.codeEditor(app, value, state, Ini.of(), onChange);
     Decorator own = editor.decorator(); // the caret's line, brackets, occurrences, matches
     editor.decorate((line, start, text, out) -> {
       own.line(line, start, text, out);

@@ -83,25 +83,24 @@ class ComboBoxTest {
                   .gap(t.space().m())
                   .align(Style.Align.CENTER)
                   .children(
-                      Select.select(t, Bench.ENCODINGS, encoding, encodings, i -> encoding = i)
+                      Select.select(Bench.ENCODINGS, encoding, encodings, i -> encoding = i)
                           .key("encoding")
                           .w(140),
                       ComboBox.comboBox(
-                              t, DATABASES, chosen, database, disabled ? null : i -> chosen = i)
+                              DATABASES, chosen, database, disabled ? null : i -> chosen = i)
                           .key("database")
                           .w(180)),
-              ComboBox.free(t, hostName, HOSTS, host, v -> hostName = v)
+              ComboBox.free(hostName, HOSTS, host, v -> hostName = v)
                   .key("host")
                   .w(240),
               label(
-                      t,
                       Label.Variant.MUTED,
                       DATABASES.get(chosen) + " on " + (hostName.isEmpty() ? "no host" : hostName))
                   .key("status"));
     }
 
     App<Form> app() {
-      App<Form> app = new App<>(this, Form::view);
+      App<Form> app = new App<>(this, Form::view).provide(Theme.CURRENT, form -> form.t);
       app.focusRing(t.accent().edge());
       app.textRendering(TextRendering.LINUX);
       return app;
@@ -130,9 +129,9 @@ class ComboBoxTest {
       El root = col()
           .gap(t.space().s())
           .children(
-              Select.select(t, choices, 0, new Menu.State(), choose).w(140),
-              ComboBox.comboBox(t, choices, 0, new ComboBox.State(), choose).w(140),
-              ComboBox.items(t, items, 0, new ComboBox.State(), choose).w(140));
+              Select.select(choices, 0, new Menu.State(), choose).w(140),
+              ComboBox.comboBox(choices, 0, new ComboBox.State(), choose).w(140),
+              ComboBox.items(items, 0, new ComboBox.State(), choose).w(140));
       Headless.render(root, 180, 160, 1, TextRendering.LINUX);
       for (El box : root.children()) {
         List<El> parts = box.children();
@@ -234,17 +233,16 @@ class ComboBoxTest {
     List<String> values = List.of("A", "B");
     List<ComboBox.Item> items = List.of(ComboBox.item("A"), ComboBox.item("B"));
     List<Function<ComboBox.State, El>> kinds = List.of(
-        box -> ComboBox.comboBox(Theme.DARK, values, 0, box, i -> {}),
-        box -> ComboBox.items(Theme.DARK, items, 0, box, i -> {}),
-        box -> ComboBox.free(Theme.DARK, "", values, box, v -> {}));
+        box -> ComboBox.comboBox(values, 0, box, i -> {}),
+        box -> ComboBox.items(items, 0, box, i -> {}),
+        box -> ComboBox.free("", values, box, v -> {}));
     for (Function<ComboBox.State, El> kind : kinds) {
       ComboBox.State box = new ComboBox.State();
       App<Object> other = new App<>(
           new Object(),
           x -> col()
               .children(
-                  Button.button(Theme.DARK, Button.Variant.SECONDARY, "Before", () -> {})
-                      .key("before"),
+                  Button.button(Button.Variant.SECONDARY, "Before", () -> {}).key("before"),
                   kind.apply(box).key("box")));
       Script.run(
           "size 320 200\nframe\nfocus #box\nkey ArrowDown alt\nframe\nkey Tab shift\nframe",

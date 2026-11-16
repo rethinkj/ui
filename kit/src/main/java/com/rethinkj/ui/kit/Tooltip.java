@@ -29,7 +29,8 @@ public final class Tooltip {
    *
    * @return the anchor
    */
-  public static El tooltip(Theme theme, El anchor, String text) {
+  public static El tooltip(El anchor, String text) {
+    Theme theme = Theme.CURRENT.get();
     return tooltip(theme, anchor, text, false);
   }
 
@@ -37,7 +38,8 @@ public final class Tooltip {
    * A tooltip with the whole text of an anchor whose text may be cut short ({@link El#ellipsis}):
    * as {@link #tooltip}, but it shows only while a text of the anchor ends in an ellipsis.
    */
-  public static El whenShortened(Theme theme, El anchor, String text) {
+  public static El whenShortened(El anchor, String text) {
+    Theme theme = Theme.CURRENT.get();
     return tooltip(theme, anchor, text, true);
   }
 
@@ -92,6 +94,6 @@ public final class Tooltip {
         .shadow(theme.elevation().popup())
         .motion(theme.motion().fade())
         .side(Side.BOTTOM, Style.Align.CENTER, theme.space().xs())
-        .child(label(theme, text));
+        .child(label(text));
   }
 }

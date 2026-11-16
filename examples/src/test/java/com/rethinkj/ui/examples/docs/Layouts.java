@@ -38,7 +38,6 @@ import java.util.List;
 /** The examples of the pages about cards, structure, navigation and status. */
 final class Layouts {
 
-  Theme theme = Theme.DARK;
   final Clipboard clipboard = Clipboard.inMemory();
   boolean wrap = true;
   boolean advanced;
@@ -154,163 +153,131 @@ final class Layouts {
   }
 
   static El cards(Layouts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start card
     El connection = Card.card(
-        theme,
         Card.header(
-            theme,
             "Connection",
             "Where the workbench connects at start.",
-            Button.button(theme, SECONDARY, "Edit", state::edit)),
-        Label.label(theme, Label.Variant.MONO, "postgres://localhost:5432/shop"));
+            Button.button(SECONDARY, "Edit", state::edit)),
+        Label.label(Label.Variant.MONO, "postgres://localhost:5432/shop"));
     // docs:end card
     // docs:start card-flush
     El results = Card.flush(
-        theme,
         Card.toolbar(
-            theme,
-            "orders",
-            "1 000 000 rows",
-            Button.button(theme, PRIMARY, Symbol.PLAY, "Run", state::run)),
-        col().padding(theme.space().l()).grow(1).child(Label.label(theme, "The grid goes here.")),
-        Card.footer(theme, Label.label(theme, Label.Variant.MUTED, "23 ms")));
+            "orders", "1 000 000 rows", Button.button(PRIMARY, Symbol.PLAY, "Run", state::run)),
+        col().padding(theme.space().l()).grow(1).child(Label.label("The grid goes here.")),
+        Card.footer(Label.label(Label.Variant.MUTED, "23 ms")));
     // docs:end card-flush
-    return Frame.of(theme, connection.w(380), results.w(380).h(180));
+    return Frame.of(connection.w(380), results.w(380).h(180));
   }
 
   static El groups(Layouts state) {
-    Theme theme = state.theme;
     // docs:start group
     El editor = Group.group(
-        theme,
         Group.switchRow(
-            theme, "Wrap lines", "Long lines break at the edge.", state.wrap, state::toggleWrap),
-        Group.linkRow(theme, Symbol.KEY, "Keymap", null, "Default", state::keymap),
+            "Wrap lines", "Long lines break at the edge.", state.wrap, state::toggleWrap),
+        Group.linkRow(Symbol.KEY, "Keymap", null, "Default", state::keymap),
         Group.expander(
-            theme,
             "Advanced",
             null,
             state.advanced,
             state::toggleAdvanced,
-            Group.row(theme, "Tab size", null, Label.label(theme, "4"))));
+            Group.row("Tab size", null, Label.label("4"))));
     // docs:end group
-    return Frame.of(theme, editor.w(420));
+    return Frame.of(editor.w(420));
   }
 
   static El sections(Layouts state) {
-    Theme theme = state.theme;
     // docs:start section
     El settings = Section.page(
-        theme,
         "Editor",
         Section.section(
-            theme,
             "Text",
             "How the query editor shows text.",
-            Group.group(
-                theme, Group.switchRow(theme, "Wrap lines", null, state.wrap, state::toggleWrap))),
+            Group.group(Group.switchRow("Wrap lines", null, state.wrap, state::toggleWrap))),
         Section.section(
-            theme,
             "Saving",
             null,
             Group.group(
-                theme,
-                Group.switchRow(
-                    theme, "Save on close", null, state.autoSave, state::toggleAutoSave))));
+                Group.switchRow("Save on close", null, state.autoSave, state::toggleAutoSave))));
     // docs:end section
-    return Frame.of(theme, settings.w(480).h(360));
+    return Frame.of(settings.w(480).h(360));
   }
 
   static El form(Layouts state) {
-    Theme theme = state.theme;
     // docs:start form
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
-        Form.field("Host", TextField.textField(theme, state.host, "localhost", state::host))
+        Form.field("Host", TextField.textField(state.host, "localhost", state::host))
             .required(),
-        Form.field(
-                "Port",
-                TextField.textField(theme, state.port, "5432", state::port).w(80))
+        Form.field("Port", TextField.textField(state.port, "5432", state::port).w(80))
             .help("The server's TCP port."),
-        Form.field("User", TextField.textField(theme, state.user, "Role", state::user))
+        Form.field("User", TextField.textField(state.user, "Role", state::user))
             .error(state.user.isBlank() ? "A user is required." : null));
     El buttons = Form.buttons(
-        theme,
-        Button.button(theme, SECONDARY, "Cancel", state::cancel),
-        Button.button(theme, PRIMARY, "Connect", state.user.isBlank() ? null : state::connect));
+        Button.button(SECONDARY, "Cancel", state::cancel),
+        Button.button(PRIMARY, "Connect", state.user.isBlank() ? null : state::connect));
     // docs:end form
-    return Frame.of(theme, Card.card(theme, form, buttons).w(440));
+    return Frame.of(Card.card(form, buttons).w(440));
   }
 
   static El formGroups(Layouts state) {
-    Theme theme = state.theme;
     // docs:start form-groups
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
         Form.group(
                 "Server",
                 // Each field of the row keeps its label, help and error; the host grows.
                 Form.row(
-                    Form.field(
-                            "Host",
-                            TextField.textField(theme, state.host, "localhost", state::host))
+                    Form.field("Host", TextField.textField(state.host, "localhost", state::host))
                         .required()
                         .grow(),
                     Form.field(
                             "Port",
-                            TextField.textField(theme, state.port, "5432", state::port)
-                                .w(72))
+                            TextField.textField(state.port, "5432", state::port).w(72))
                         .error(state.port.matches("\\d+") ? null : "Digits only")))
             .description("Where the database runs."),
         Form.group(
                 "Login",
-                Form.field("User", TextField.textField(theme, state.user, "Role", state::user)),
-                Form.field("Password", TextField.passwordField(theme, "", null, value -> {})))
+                Form.field("User", TextField.textField(state.user, "Role", state::user)),
+                Form.field("Password", TextField.passwordField("", null, value -> {})))
             .divided());
     // docs:end form-groups
-    return Frame.of(theme, Card.card(theme, form).w(440));
+    return Frame.of(Card.card(form).w(440));
   }
 
   static El formCards(Layouts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start form-cards
-    Form.Field host = Form.field("Host", TextField.textField(theme, state.host, null, state::host));
-    Form.Field user =
-        Form.field("User name", TextField.textField(theme, state.user, null, state::user));
+    Form.Field host = Form.field("Host", TextField.textField(state.host, null, state::host));
+    Form.Field user = Form.field("User name", TextField.textField(state.user, null, state::user));
     // One label column for forms in separate cards: the width of all their labels.
-    float column = Form.labelWidth(theme, host, user);
-    El server = Card.card(
-        theme, Card.header(theme, "Server", null), Form.form(theme, BESIDE, column, host));
-    El login =
-        Card.card(theme, Card.header(theme, "Login", null), Form.form(theme, BESIDE, column, user));
+    float column = Form.labelWidth(host, user);
+    El server = Card.card(Card.header("Server", null), Form.form(BESIDE, column, host));
+    El login = Card.card(Card.header("Login", null), Form.form(BESIDE, column, user));
     // docs:end form-cards
-    return Frame.of(theme, col().w(400).gap(theme.space().m()).children(server, login));
+    return Frame.of(col().w(400).gap(theme.space().m()).children(server, login));
   }
 
   static El dividers(Layouts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start divider
-    El across = Divider.divider(theme);
-    El labeled = Divider.divider(theme, "or");
-    El upright = Divider.vertical(theme);
+    El across = Divider.divider();
+    El labeled = Divider.divider("or");
+    El upright = Divider.vertical();
     // docs:end divider
     return Frame.of(
-        theme,
         col().w(240).gap(theme.space().m()).children(across, labeled),
         row()
             .h(24)
             .gap(theme.space().m())
-            .children(Label.label(theme, "Run"), upright, Label.label(theme, "Stop")));
+            .children(Label.label("Run"), upright, Label.label("Stop")));
   }
 
   static El navigation(Layouts state) {
-    Theme theme = state.theme;
     // docs:start nav-list
     El pages = NavList.navList(
-            theme,
             List.of(
                 NavList.heading("Database"),
                 NavList.item(Symbol.TABLE, "Tables").count("12"),
@@ -321,7 +288,7 @@ final class Layouts {
             state::page)
         .label("Sections");
     // docs:end nav-list
-    return Frame.of(theme, Card.inset(theme, pages).w(220));
+    return Frame.of(Card.inset(pages).w(220));
   }
 
   // docs:start nav-list-types
@@ -349,10 +316,8 @@ final class Layouts {
   }
 
   static El typedNavigation(Layouts state) {
-    Theme theme = state.theme;
     // docs:start nav-list-typed
     El sections = NavList.navList(
-            theme,
             List.of(Area.values()),
             state.area,
             area -> NavList.item(area.icon, area.title),
@@ -360,16 +325,14 @@ final class Layouts {
             state::area)
         .label("Sections");
     // docs:end nav-list-typed
-    return Frame.of(theme, Card.inset(theme, sections).w(220));
+    return Frame.of(Card.inset(sections).w(220));
   }
 
   static El split(Layouts state) {
-    Theme theme = state.theme;
-    El tree = Card.card(theme, Label.label(theme, "Schema")).grow(1);
-    El editor = Card.card(theme, Label.label(theme, "Query")).grow(1);
+    El tree = Card.card(Label.label("Schema")).grow(1);
+    El editor = Card.card(Label.label("Query")).grow(1);
     // docs:start split
     El frame = Split.cards(
-        theme,
         Split.Direction.ROW,
         state.sidebar,
         Split.Position.first(160),
@@ -379,22 +342,21 @@ final class Layouts {
         editor,
         200);
     // docs:end split
-    return Frame.of(theme, frame.wFull().grow(1));
+    return Frame.of(frame.wFull().grow(1));
   }
 
   static El tabs(Layouts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start tabs
     El content = state.tab < 0 // the user closed every tab
-        ? EmptyState.emptyState(theme, Symbol.TABLE, "No open tables", null, null)
+        ? EmptyState.emptyState(Symbol.TABLE, "No open tables", null, null)
         : col()
             .padding(theme.space().l())
             .grow(1)
-            .child(Label.label(theme, "The rows of " + state.tabs.get(state.tab).title()));
-    El tabs =
-        Tabs.tabs(theme, state.tabs, state.tab, state::tab, index -> close(state, index), content);
+            .child(Label.label("The rows of " + state.tabs.get(state.tab).title()));
+    El tabs = Tabs.tabs(state.tabs, state.tab, state::tab, index -> close(state, index), content);
     // docs:end tabs
-    return Frame.of(theme, tabs.wFull().grow(1));
+    return Frame.of(tabs.wFull().grow(1));
   }
 
   // docs:start tabs-close
@@ -407,51 +369,43 @@ final class Layouts {
   // docs:end tabs-close
 
   static El status(Layouts state) {
-    Theme theme = state.theme;
     // docs:start callout
     El restart = Callout.callout(
-        theme,
         Callout.Kind.WARNING,
         "Restart needed",
         "The new font size applies after a restart.",
-        Button.button(theme, SECONDARY, "Restart", state::restart));
+        Button.button(SECONDARY, "Restart", state::restart));
     // docs:end callout
     // docs:start empty-state
     El empty = EmptyState.emptyState(
-        theme,
         Symbol.SEARCH,
         "No tables match",
         "Try another filter.",
-        Button.button(theme, SECONDARY, "Clear filter", state::clearFilter));
+        Button.button(SECONDARY, "Clear filter", state::clearFilter));
     // docs:end empty-state
     // docs:start progress
-    El download = Progress.labeled(theme, "orders.csv", 0.42, null);
-    El failed = Progress.bar(theme, 0.64, Progress.State.ERROR);
-    El running = Progress.indeterminate(theme);
-    El spinner = Progress.spinner(theme);
+    El download = Progress.labeled("orders.csv", 0.42, null);
+    El failed = Progress.bar(0.64, Progress.State.ERROR);
+    El running = Progress.indeterminate();
+    El spinner = Progress.spinner();
     // docs:end progress
-    return Frame.of(
-        theme, restart.w(420), empty, download.w(240), failed.w(240), running.w(240), spinner);
+    return Frame.of(restart.w(420), empty, download.w(240), failed.w(240), running.w(240), spinner);
   }
 
   static El bars(Layouts state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start title-bar
     El title = TitleBar.titleBar(
-        theme,
         "Workbench",
         theme.accent().color(),
-        Toggle.toggle(theme, state.dark, state::toggleDark).label("Dark theme"));
+        Toggle.toggle(state.dark, state::toggleDark).label("Dark theme"));
     // docs:end title-bar
     // docs:start status-bar
     El status = StatusBar.statusBar(
-        theme,
         List.of(
-            StatusBar.status(theme, StatusBar.State.CONNECTED, "localhost", null),
-            StatusBar.text(theme, "shop · public")),
-        List.of(
-            StatusBar.item(theme, null, "UTF-8", state::encoding),
-            StatusBar.text(theme, "Ln 3, Col 9")));
+            StatusBar.status(StatusBar.State.CONNECTED, "localhost", null),
+            StatusBar.text("shop · public")),
+        List.of(StatusBar.item(null, "UTF-8", state::encoding), StatusBar.text("Ln 3, Col 9")));
     // docs:end status-bar
     return col()
         .wFull()
@@ -463,14 +417,12 @@ final class Layouts {
   }
 
   static El details(Layouts state) {
-    Theme theme = state.theme;
     // docs:start breadcrumb
     El path = Breadcrumb.breadcrumb(
-        theme, state.crumbs, List.of("localhost", "shop", "public", "orders"), state::part);
+        state.crumbs, List.of("localhost", "shop", "public", "orders"), state::part);
     // docs:end breadcrumb
     // docs:start toolbar
     El tools = Toolbar.toolbar(
-        theme,
         state.tools,
         "Table",
         List.of(
@@ -489,13 +441,12 @@ final class Layouts {
     // docs:end toolbar
     // docs:start properties
     El table = Properties.properties(
-        theme,
         List.of(
             Properties.property("Name", "orders"),
             Properties.property("Rows", "1 000 000"),
             Properties.property("OID", "16384").mono()),
         state.clipboard);
     // docs:end properties
-    return Frame.of(theme, path.wFull(), tools.wFull(), table.w(320));
+    return Frame.of(path.wFull(), tools.wFull(), table.w(320));
   }
 }

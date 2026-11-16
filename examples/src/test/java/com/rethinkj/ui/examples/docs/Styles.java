@@ -14,10 +14,8 @@ import com.rethinkj.ui.kit.Theme;
 /** The example of the layout page's Style and Len, beyond the chained calls. */
 final class Styles {
 
-  Theme theme = Theme.DARK;
-
   static El view(Styles state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start style
     El bar = el().key("bar").h(8).fill(theme.accent().color());
     bar.style().width = Len.percent(0.4f); // 40 % of the parent's content box: 1 is all of it
@@ -48,17 +46,17 @@ final class Styles {
         .child(text("Rows").fontSize(20).color(theme.text().primary()))
         .child(text("1 000 000").color(theme.text().muted()));
     return Frame.of(
-        theme,
         col().wFull().h(16).child(bar),
         thumb,
         tags,
         latest,
         baseline,
         inset.fill(theme.surface().raised()),
-        sparkline(theme));
+        sparkline());
   }
 
-  static El sparkline(Theme theme) {
+  static El sparkline() {
+    Theme theme = Theme.CURRENT.get();
     // docs:start measure
     // A leaf that sizes itself: as wide as there is room for, at most 200, and 24 high.
     return el().key("sparkline")

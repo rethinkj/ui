@@ -16,11 +16,11 @@ Javadoc: [`Segmented`](/api/com/rethinkj/ui/kit/Segmented.html).
 
 `state.mode` is the index of the chosen choice, in the app's state.
 
-`Segmented.segmented(theme, choices, selected, onSelect)`. A null handler disables it.
+`Segmented.segmented(choices, selected, onSelect)`. A null handler disables it.
 
 ## Values instead of indexes
 
-`Segmented.segmented(theme, values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`Segmented.segmented(values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="segmented-typed"
 ```
@@ -31,7 +31,7 @@ One stop for Tab. The arrows choose the next and the previous choice, around the
 
 ## With a Prop
 
-`segmented(theme, values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`segmented(values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

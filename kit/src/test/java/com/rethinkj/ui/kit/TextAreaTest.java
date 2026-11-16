@@ -60,11 +60,8 @@ class TextAreaTest {
             .gap(8)
             .fill(t.surface().window())
             .children(
-                codeArea(t, s.query, "SQL", v -> s.query = v)
-                    .key("query")
-                    .lines(6)
-                    .wFull(),
-                textArea(t, s.notes, "Notes", v -> s.notes = v)
+                codeArea(s.query, "SQL", v -> s.query = v).key("query").lines(6).wFull(),
+                textArea(s.notes, "Notes", v -> s.notes = v)
                     .key("notes")
                     .lines(2)
                     .wFull()));

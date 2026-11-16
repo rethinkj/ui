@@ -11,7 +11,6 @@ import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Label;
-import com.rethinkj.ui.kit.Theme;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,7 +21,6 @@ final class Commits {
 
   static final String[] CUSTOMERS = {"Ada", "Brendan", "Chen", "Dagny"};
 
-  Theme theme = Theme.DARK;
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   // The rows of the grid, which saving writes the changes into.
   final List<String[]> rows = new ArrayList<>(IntStream.range(0, 100)
@@ -81,13 +79,11 @@ final class Commits {
   // docs:end grid-commit
 
   static El view(Commits state) {
-    Theme theme = state.theme;
     List<Column> columns = List.of(
         new Column("id", 80, DataType.INTEGER, state.changes.cell(0)),
         new Column("customer", 120, DataType.TEXT, state.changes.cell(1)).editable(),
         new Column("shipped", 120, DataType.DATE, state.changes.cell(2)).editable());
     El grid = DataGrid.dataGrid(
-            theme,
             columns,
             state.changes.rowCount(),
             DataGrid.options().select(state.selection).changes(state.changes))
@@ -96,18 +92,14 @@ final class Commits {
         .grow(1);
     // docs:start grid-commit-button
     boolean pending = state.changes.count() > 0 || state.selection.isEditing();
-    El save =
-        Button.button(theme, PRIMARY, "Save", pending ? state::save : null).key("save");
+    El save = Button.button(PRIMARY, "Save", pending ? state::save : null).key("save");
     // docs:end grid-commit-button
-    return Frame.of(
-            theme,
-            Card.flush(
-                    theme,
-                    Card.toolbar(theme, "orders", null, save),
-                    grid,
-                    Card.footer(theme, Label.label(theme, state.status).key("status")))
-                .wFull()
-                .grow(1))
+    return Frame.of(Card.flush(
+                Card.toolbar("orders", null, save),
+                grid,
+                Card.footer(Label.label(state.status).key("status")))
+            .wFull()
+            .grow(1))
         .onKey(state::key);
   }
 

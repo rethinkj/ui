@@ -50,7 +50,7 @@ final class Bench {
   }
 
   App<Bench> app() {
-    App<Bench> app = new App<>(this, Bench::view);
+    App<Bench> app = new App<>(this, Bench::view).provide(Theme.CURRENT, bench -> bench.t);
     app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
@@ -63,8 +63,7 @@ final class Bench {
 
   El view() {
     El fileMenu = Menu.dropdown(
-        t,
-        button(t, SECONDARY, "File", file::toggle).key("file"),
+        button(SECONDARY, "File", file::toggle).key("file"),
         file,
         List.of(
             Menu.item("New query", () -> status = "New query").shortcut("Ctrl+N"),
@@ -80,15 +79,15 @@ final class Bench {
             Menu.item("Word wrap", () -> wrap = !wrap).checked(wrap),
             Menu.item("Close", null)));
     El help = Tooltip.tooltip(
-        t, button(t, GHOST, "?", () -> status = "Help").key("help"), "Keyboard shortcuts");
+        button(GHOST, "?", () -> status = "Help").key("help"), "Keyboard shortcuts");
     El toolbar = row()
         .gap(t.space().s())
         .align(Style.Align.CENTER)
         .children(
             fileMenu,
-            button(t, SECONDARY, "Rename…", this::startRename).key("rename"),
+            button(SECONDARY, "Rename…", this::startRename).key("rename"),
             help,
-            Select.select(t, ENCODINGS, encoding, encodings, i -> encoding = i)
+            Select.select(ENCODINGS, encoding, encodings, i -> encoding = i)
                 .key("encoding")
                 .w(120));
 
@@ -120,10 +119,9 @@ final class Bench {
             selected = at;
             tables.openAt(x, y);
           })
-          .child(label(t, TABLES[i])));
+          .child(label(TABLES[i])));
     }
     Menu.contextMenu(
-        t,
         list,
         tables,
         List.of(
@@ -150,13 +148,12 @@ final class Bench {
         .fill(t.surface().panel())
         .border(t.size().stroke(), t.border().subtle())
         .children(
-            button(t, GHOST, "Refresh", () -> status = "Refreshed"),
-            button(t, GHOST, "Analyze", () -> status = "Analyzed"),
-            button(t, GHOST, "Vacuum", () -> status = "Vacuumed"),
-            button(t, GHOST, "Reindex", () -> status = "Reindexed"),
+            button(GHOST, "Refresh", () -> status = "Refreshed"),
+            button(GHOST, "Analyze", () -> status = "Analyzed"),
+            button(GHOST, "Vacuum", () -> status = "Vacuumed"),
+            button(GHOST, "Reindex", () -> status = "Reindexed"),
             Menu.dropdown(
-                t,
-                button(t, GHOST, "More…", more::toggle).key("more"),
+                button(GHOST, "More…", more::toggle).key("more"),
                 more,
                 List.of(
                     Menu.item("Properties", () -> status = "Properties"),
@@ -174,19 +171,17 @@ final class Bench {
             toolbar,
             row().grow(1).minSize(0, 0).gap(t.space().m()).children(list, actions),
             label(
-                    t,
                     Label.Variant.MUTED,
                     status + " · " + name + " · " + ENCODINGS.get(encoding)
                         + (wrap ? " · wrap" : ""))
                 .key("status"));
     if (renaming) {
       root.overlay(Dialog.dialog(
-          t,
           "Rename table",
-          textField(t, draft, "Table name", v -> draft = v).key("name"),
+          textField(draft, "Table name", v -> draft = v).key("name"),
           List.of(
-              button(t, SECONDARY, "Cancel", () -> renaming = false).key("cancel"),
-              button(t, PRIMARY, "Rename", () -> {
+              button(SECONDARY, "Cancel", () -> renaming = false).key("cancel"),
+              button(PRIMARY, "Rename", () -> {
                     name = draft;
                     renaming = false;
                     status = "Renamed";

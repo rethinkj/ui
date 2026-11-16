@@ -17,7 +17,7 @@ Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html).
 ```
 
 - The opener opens the window of a new group with an `App` of the same state, so that a change in one window shows in all. The options it gets say where the window opens; add your own (`frameless()`, an icon) and pass them on.
-- `groups.tabs(theme, group, tab, content)` builds a window's tabs: a function from your tab to a `Tabs.Tab`, and one from your tab to its content (called with null for an empty group).
+- `groups.tabs(group, tab, content)` builds a window's tabs: a function from your tab to a `Tabs.Tab`, and one from your tab to its content (called with null for an empty group).
 - `groups.main()` is the group of the first window.
 
 A script moves a tab to a window of its own through its menu:

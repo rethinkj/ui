@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Theme;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,7 +35,7 @@ class ManualTest {
   void linksScrollToHeadingsOrShowTheirAddress(@TempDir Path out) throws IOException {
     Snaps.assumeText();
     Manual manual = new Manual(List.of());
-    manual.app = new App<>(manual, Manual::view);
+    manual.app = new App<>(manual, Manual::view).provide(Theme.CURRENT, Manual::theme);
     Script.run("size 960 640\nframe\npress role=link label=\"inline\"\nframe", manual.app, out);
     assertEquals("Opens https://commonmark.org", manual.toast);
     Script.run("size 960 640\npress role=link label=\"tables\"\nframe", manual.app, out);

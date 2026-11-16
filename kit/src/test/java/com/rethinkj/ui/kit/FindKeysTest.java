@@ -59,15 +59,14 @@ class FindKeysTest {
       El field;
       if (s.area) {
         field = Find.find(
-            t,
             s.app,
-            TextField.textArea(t, s.text, "Notes", v -> s.text = v)
+            TextField.textArea(s.text, "Notes", v -> s.text = v)
                 .key("query")
                 .lines(6)
                 .wFull(),
             s.find);
       } else {
-        field = codeEditor(t, s.app, s.text, s.editor, Sql.of(t), v -> s.text = v)
+        field = codeEditor(s.app, s.text, s.editor, Sql.of(), v -> s.text = v)
             .key("query")
             .lines(6)
             .wFull();

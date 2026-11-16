@@ -17,7 +17,7 @@ import java.util.function.Consumer;
  * its width changes.
  *
  * <pre>{@code
- * Toolbar.toolbar(theme, state.toolbar, "Query", List.of(
+ * Toolbar.toolbar(state.toolbar, "Query", List.of(
  *     Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh),
  *     Toolbar.split(
  *         Button.Variant.PRIMARY, Symbol.PLAY, "Run", state::run, state.runMenu, runItems),
@@ -168,7 +168,8 @@ public final class Toolbar {
   /**
    * @param label what the toolbar is for, its label in a tree dump
    */
-  public static El toolbar(Theme theme, State state, String label, List<Item> items) {
+  public static El toolbar(State state, String label, List<Item> items) {
+    Theme theme = Theme.CURRENT.get();
     int shown = state.fitting.fit(
         theme, items.size(), Fitting.Direction.PREFIX, 0, i -> switch (items.get(i).kind) {
           case SPACER -> null; // takes what is left, nothing when nothing is
@@ -203,11 +204,11 @@ public final class Toolbar {
         hidden.removeLast();
       }
       El more = Button.icon(
-              theme, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
+              Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
           .key("more")
           .onResize(state.fitting.measure("more"));
       stops.add(more);
-      bar.child(Menu.dropdown(theme, more, state.more, hidden));
+      bar.child(Menu.dropdown(more, state.more, hidden));
     }
     state.keys.apply(bar, stops);
     return bar;
@@ -225,21 +226,21 @@ public final class Toolbar {
       case BUTTON ->
         stop(
             stops,
-            Button.icon(theme, item.variant, item.icon, item.label, item.onPress),
+            Button.icon(item.variant, item.icon, item.label, item.onPress),
             item.onPress != null);
       case TEXT ->
         stop(
             stops,
-            Button.button(theme, item.variant, item.icon, item.label, item.onPress),
+            Button.button(item.variant, item.icon, item.label, item.onPress),
             item.onPress != null);
       case TOGGLE ->
         stop(
             stops,
-            Button.toggleIcon(theme, item.icon, item.label, item.on, item.onToggle),
+            Button.toggleIcon(item.icon, item.label, item.on, item.onToggle),
             item.onToggle != null);
       case SPLIT -> {
-        El split = Button.split(
-            theme, item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
+        El split =
+            Button.split(item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
         stop(stops, split.children().getFirst(), item.onPress != null);
         El more = split.children().getLast();
         stop(stops, more, more.onPress() != null);

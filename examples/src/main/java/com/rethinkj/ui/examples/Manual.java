@@ -255,7 +255,7 @@ public final class Manual {
         .toList();
     String[] rest = script < 0 ? new String[0] : Arrays.copyOfRange(args, script, args.length);
     Manual manual = new Manual(files);
-    App<Manual> app = new App<>(manual, Manual::view);
+    App<Manual> app = new App<>(manual, Manual::view).provide(Theme.CURRENT, Manual::theme);
     manual.app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
@@ -274,7 +274,7 @@ public final class Manual {
   }
 
   static El view(Manual state) {
-    Theme theme = state.theme();
+    Theme theme = Theme.CURRENT.get();
     Doc doc = state.docs.get(state.doc);
     List<NavList.Item> documents = state.docs.stream()
         .map(entry -> NavList.item(entry.icon(), entry.title()))
@@ -290,21 +290,21 @@ public final class Manual {
         .grow(1)
         .minSize(0, 0)
         .children(
-            NavList.navList(theme, documents, state.doc, index -> {
+            NavList.navList(documents, state.doc, index -> {
                   state.doc = index;
                   state.heading = -1;
                   state.scrollTo(null);
                 })
                 .key("documents")
                 .label("Documents"),
-            Divider.divider(theme).margin(theme.space().s(), 0, theme.space().s(), 0),
-            Label.label(theme, Label.Variant.MUTED, "On this page")
+            Divider.divider().margin(theme.space().s(), 0, theme.space().s(), 0),
+            Label.label(Label.Variant.MUTED, "On this page")
                 .margin(
                     theme.space().xs(),
                     theme.space().m(),
                     theme.space().s(),
                     theme.space().m()),
-            NavList.navList(theme, outline, state.heading, index -> {
+            NavList.navList(outline, state.heading, index -> {
                   state.heading = index;
                   state.scrollTo(headings.get(index).id());
                 })
@@ -314,7 +314,6 @@ public final class Manual {
                 .minSize(0, 0));
     // docs:start manual-markdown
     El document = Markdown.markdown(
-            theme,
             doc.document(),
             Markdown.options()
                 .onLink(state::link)
@@ -330,22 +329,21 @@ public final class Manual {
         .hFull()
         .fill(theme.surface().window())
         .child(titleBar(
-            theme,
             "Manual",
             theme.accent().color(),
             Identity.maximized(state.app),
-            toggle(theme, state.dark, "Dark", () -> state.dark = !state.dark)))
+            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
         .child(row()
             .grow(1)
             .minSize(0, 0)
             .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
             .gap(theme.space().m())
             .children(
-                Card.flush(theme, Card.inset(theme, side)).w(240).shrink(0),
-                Card.flush(theme, document).grow(1).minSize(0, 0)));
+                Card.flush(Card.inset(side)).w(240).shrink(0),
+                Card.flush(document).grow(1).minSize(0, 0)));
     return root.overlay(
         state.toast == null
             ? null
-            : Toast.toast(theme, state.toast, null, null, () -> state.toast = null));
+            : Toast.toast(state.toast, null, null, () -> state.toast = null));
   }
 }

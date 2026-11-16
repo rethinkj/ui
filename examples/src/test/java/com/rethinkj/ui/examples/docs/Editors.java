@@ -13,7 +13,6 @@ import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
-import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Pixels;
 import java.util.List;
 import java.util.Locale;
@@ -23,7 +22,6 @@ final class Editors {
 
   static final List<String> TABLES = List.of("orders", "order_items", "customers");
 
-  Theme theme = Theme.DARK;
   App<?> app; // set by whoever makes the app: the editor edits and selects through it
   String sql = "SELECT id, total\nFROM orders\nWHERE status = 'paid';";
   final CodeEditor.State editor = new CodeEditor.State();
@@ -63,10 +61,8 @@ final class Editors {
   }
 
   static El codeEditor(Editors state) {
-    Theme theme = state.theme;
     // docs:start code-editor
-    El editor = CodeEditor.codeEditor(
-            theme, state.app, state.sql, state.editor, Sql.of(theme), state::sql)
+    El editor = CodeEditor.codeEditor(state.app, state.sql, state.editor, Sql.of(), state::sql)
         .key("query")
         .label("Query")
         .lines(8)
@@ -74,7 +70,6 @@ final class Editors {
     // docs:end code-editor
     // docs:start completion
     El withCompletions = Completion.complete(
-        theme,
         state.app,
         editor,
         state.editor.caret(),
@@ -85,46 +80,39 @@ final class Editors {
             .toList());
     // docs:end completion
     // docs:start code-editor-embedded
-    El card = Card.flush(
-        theme,
-        Card.toolbar(theme, "orders.sql", null),
-        CodeEditor.embedded(theme, withCompletions));
+    El card = Card.flush(Card.toolbar("orders.sql", null), CodeEditor.embedded(withCompletions));
     // docs:end code-editor-embedded
-    return Frame.of(theme, card.wFull());
+    return Frame.of(card.wFull());
   }
 
   static El find(Editors state) {
-    Theme theme = state.theme;
     // docs:start find
-    El notes = TextField.textArea(theme, state.notes, "Notes", state::notes)
+    El notes = TextField.textArea(state.notes, "Notes", state::notes)
         .key("notes")
         .lines(6)
         .w(360);
     // Control+F, Control+H, F3, Control+G
-    El withFind = Find.find(theme, state.app, notes, state.find);
+    El withFind = Find.find(state.app, notes, state.find);
     // docs:end find
-    return Frame.of(theme, withFind);
+    return Frame.of(withFind);
   }
 
   static El markdown(Editors state) {
-    Theme theme = state.theme;
     // docs:start markdown
     El document = Markdown.markdown(
-            theme, state.readme, Markdown.options().onLink(state::link).copy(state.app.clipboard()))
+            state.readme, Markdown.options().onLink(state::link).copy(state.app.clipboard()))
         .key("readme")
         .grow(1);
     // docs:end markdown
-    return Frame.of(theme, Card.flush(theme, document).wFull().grow(1));
+    return Frame.of(Card.flush(document).wFull().grow(1));
   }
 
   static El image(Editors state) {
-    Theme theme = state.theme;
     // docs:start image
-    El shown = com.rethinkj.ui.kit.Image.image(theme, state.swatch, "A swatch of the accent");
-    El waiting =
-        com.rethinkj.ui.kit.Image.image(theme, null, "Still being read").size(120, 60);
+    El shown = com.rethinkj.ui.kit.Image.image(state.swatch, "A swatch of the accent");
+    El waiting = com.rethinkj.ui.kit.Image.image(null, "Still being read").size(120, 60);
     // docs:end image
-    return Frame.of(theme, shown, waiting);
+    return Frame.of(shown, waiting);
   }
 
   /** A gradient of 64 by 40 pixels. */

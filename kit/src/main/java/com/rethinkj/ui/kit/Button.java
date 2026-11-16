@@ -21,11 +21,11 @@ import java.util.function.Consumer;
  * <p>What a button is beyond its variant, text and handler goes into {@link #options()}:
  *
  * <pre>{@code
- * Button.button(theme, PRIMARY, "Run", state::run,
+ * Button.button(PRIMARY, "Run", state::run,
  *     Button.options().icon(Symbol.PLAY).busy(state.running))
- * Button.button(theme, PRIMARY, "Drop table", state::drop,
+ * Button.button(PRIMARY, "Drop table", state::drop,
  *     Button.options().tone(Button.Tone.DANGER))
- * Button.button(theme, SECONDARY, "Save", state::save,
+ * Button.button(SECONDARY, "Save", state::save,
  *     Button.options().enabled(state.changed()))
  * }</pre>
  *
@@ -74,8 +74,8 @@ public final class Button {
     private Options() {}
 
     /**
-     * An icon before the text, in the text's color; null for none. Not for {@link #icon(Theme,
-     * Variant, Symbol, String, Runnable, Options)}, whose symbol is a parameter of its own.
+     * An icon before the text, in the text's color; null for none. Not for {@link #icon(Variant,
+     * Symbol, String, Runnable, Options)}, whose symbol is a parameter of its own.
      */
     public Options icon(Symbol icon) {
       this.icon = icon;
@@ -119,8 +119,8 @@ public final class Button {
    * @param text what the button says, also its label
    * @param onPress runs when the button is pressed; null disables the button
    */
-  public static El button(Theme theme, Variant variant, String text, Runnable onPress) {
-    return button(theme, variant, text, onPress, options());
+  public static El button(Variant variant, String text, Runnable onPress) {
+    return button(variant, text, onPress, options());
   }
 
   /**
@@ -130,9 +130,8 @@ public final class Button {
    * @param text what the button says, also its label
    * @param onPress runs when the button is pressed; null disables the button
    */
-  public static El button(
-      Theme theme, Variant variant, Symbol icon, String text, Runnable onPress) {
-    return button(theme, variant, text, onPress, options().icon(icon));
+  public static El button(Variant variant, Symbol icon, String text, Runnable onPress) {
+    return button(variant, text, onPress, options().icon(icon));
   }
 
   /**
@@ -143,8 +142,8 @@ public final class Button {
    * @param onPress runs when the button is pressed; null disables the button, busy or not
    */
   public static El button(
-      Theme theme, Variant variant, Symbol icon, String text, boolean busy, Runnable onPress) {
-    return button(theme, variant, text, onPress, options().icon(icon).busy(busy));
+      Variant variant, Symbol icon, String text, boolean busy, Runnable onPress) {
+    return button(variant, text, onPress, options().icon(icon).busy(busy));
   }
 
   /**
@@ -154,8 +153,8 @@ public final class Button {
    * @param onPress runs when the button is pressed; null disables the button
    * @param options its icon, whether it is busy or off, and its tone
    */
-  public static El button(
-      Theme theme, Variant variant, String text, Runnable onPress, Options options) {
+  public static El button(Variant variant, String text, Runnable onPress, Options options) {
+    Theme theme = Theme.CURRENT.get();
     Runnable press = options.enabled ? onPress : null;
     Look look = look(theme, variant, options.tone, press != null);
     El button = frame(theme, look, text, press)
@@ -180,13 +179,12 @@ public final class Button {
         spinner.style().position = Style.Position.ABSOLUTE;
         button.child(label.opacity(0)).child(spinner);
       }
-      return Tooltip.whenShortened(theme, busy(theme, variant, look, button), text);
+      return Tooltip.whenShortened(busy(theme, variant, look, button), text);
     }
     if (options.icon != null) {
-      button.child(Icon.icon(theme, options.icon).color(look.text()));
+      button.child(Icon.icon(options.icon).color(look.text()));
     }
-    return Tooltip.whenShortened(
-        theme, enable(theme, variant, look, button.child(label), press), text);
+    return Tooltip.whenShortened(enable(theme, variant, look, button.child(label), press), text);
   }
 
   /**
@@ -197,8 +195,8 @@ public final class Button {
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button
    */
-  public static El icon(Theme theme, Variant variant, Symbol icon, String label, Runnable onPress) {
-    return icon(theme, variant, icon, label, onPress, options());
+  public static El icon(Variant variant, Symbol icon, String label, Runnable onPress) {
+    return icon(variant, icon, label, onPress, options());
   }
 
   /**
@@ -211,7 +209,8 @@ public final class Button {
    * @param options whether it is busy or off, and its tone; no icon, which is {@code icon}
    */
   public static El icon(
-      Theme theme, Variant variant, Symbol icon, String label, Runnable onPress, Options options) {
+      Variant variant, Symbol icon, String label, Runnable onPress, Options options) {
+    Theme theme = Theme.CURRENT.get();
     if (options.icon != null) {
       throw new IllegalArgumentException(
           "an icon button's symbol is its parameter, not an option: " + options.icon);
@@ -221,14 +220,14 @@ public final class Button {
     El button = frame(theme, look, label, press).w(theme.size().control());
     if (options.busy && press != null) {
       return Tooltip.tooltip(
-          theme, busy(theme, variant, look, button.child(spinner(theme, variant, look))), label);
+          busy(theme, variant, look, button.child(spinner(theme, variant, look))), label);
     }
-    button.child(Icon.icon(theme, icon)
+    button.child(Icon.icon(icon)
         .color(
             variant == Variant.PRIMARY || press == null || options.tone == Tone.DANGER
                 ? look.text()
                 : theme.text().muted()));
-    return Tooltip.tooltip(theme, enable(theme, variant, look, button, press), label);
+    return Tooltip.tooltip(enable(theme, variant, look, button, press), label);
   }
 
   /** The spinner of a busy button, in its text's color. */
@@ -270,8 +269,8 @@ public final class Button {
    * success color and a tooltip that says Copied, for {@code motion().confirm()} seconds of the
    * app's clock; null for no confirmation.
    */
-  public static El copy(
-      Theme theme, Clipboard clipboard, String text, String label, Copied copied) {
+  public static El copy(Clipboard clipboard, String text, String label, Copied copied) {
+    Theme theme = Theme.CURRENT.get();
     boolean done = copied != null && copied.shows(label, text);
     String what = label + '\n' + text;
     Look look = look(theme, Variant.GHOST, Tone.NEUTRAL, true);
@@ -288,12 +287,11 @@ public final class Button {
         frame(theme, look, label, press)
             .w(theme.size().control())
             .child(Icon.icon(
-                theme,
                 done ? Symbol.CHECKMARK : Symbol.COPY,
                 done ? Icon.Variant.SUCCESS : Icon.Variant.MUTED)),
         press);
     if (!done) {
-      return Tooltip.tooltip(theme, button, label);
+      return Tooltip.tooltip(button, label);
     }
     // The confirmation is an overlay, whose time on the app's clock ends it.
     return button.overlay(Tooltip.panel(theme, "Copied")
@@ -333,10 +331,10 @@ public final class Button {
    * @param label what it turns on, such as "Wrap lines"
    * @param onToggle told the new state; null disables the button
    */
-  public static El toggleIcon(
-      Theme theme, Symbol icon, String label, boolean on, Consumer<Boolean> onToggle) {
+  public static El toggleIcon(Symbol icon, String label, boolean on, Consumer<Boolean> onToggle) {
+    Theme theme = Theme.CURRENT.get();
     El button = icon(
-            theme, Variant.GHOST, icon, label, onToggle == null ? null : () -> onToggle.accept(!on))
+            Variant.GHOST, icon, label, onToggle == null ? null : () -> onToggle.accept(!on))
         .checked(on);
     return on ? pressedIn(theme, button, onToggle != null) : button;
   }
@@ -347,10 +345,10 @@ public final class Button {
    * @param icon before the text; null for none
    * @param onToggle told the new state; null disables the button
    */
-  public static El toggle(
-      Theme theme, Symbol icon, String text, boolean on, Consumer<Boolean> onToggle) {
+  public static El toggle(Symbol icon, String text, boolean on, Consumer<Boolean> onToggle) {
+    Theme theme = Theme.CURRENT.get();
     El button = button(
-            theme, Variant.GHOST, icon, text, onToggle == null ? null : () -> onToggle.accept(!on))
+            Variant.GHOST, icon, text, onToggle == null ? null : () -> onToggle.accept(!on))
         .checked(on);
     return on ? pressedIn(theme, button, onToggle != null) : button;
   }
@@ -384,14 +382,13 @@ public final class Button {
    * @param items the menu's items
    */
   public static El split(
-      Theme theme,
       Variant variant,
       Symbol icon,
       String text,
       Runnable onPress,
       Menu.State state,
       List<Menu.Item> items) {
-    return split(theme, variant, text, onPress, state, items, options().icon(icon));
+    return split(variant, text, onPress, state, items, options().icon(icon));
   }
 
   /**
@@ -404,15 +401,15 @@ public final class Button {
    *     tone
    */
   public static El split(
-      Theme theme,
       Variant variant,
       String text,
       Runnable onPress,
       Menu.State state,
       List<Menu.Item> items,
       Options options) {
+    Theme theme = Theme.CURRENT.get();
     boolean any = options.enabled && items.stream().anyMatch(Menu.Item::isEnabled);
-    El main = button(theme, variant, text, onPress, options)
+    El main = button(variant, text, onPress, options)
         .key("main")
         .radius(theme.radius().medium(), 0, 0, theme.radius().medium());
     Look look = look(theme, variant, options.tone, any);
@@ -421,7 +418,7 @@ public final class Button {
         .key("arrow")
         .w(theme.size().control() - theme.space().xs())
         .radius(0, theme.radius().medium(), theme.radius().medium(), 0)
-        .child(Icon.icon(theme, Select.OPENS).color(look.text()));
+        .child(Icon.icon(Select.OPENS).color(look.text()));
     if (variant == Variant.SECONDARY) { // the main half's right edge lies between the two
       more.border(
           theme.size().stroke(), theme.size().stroke(), theme.size().stroke(), 0, look.edge());
@@ -445,7 +442,7 @@ public final class Button {
       state.close();
       return whole;
     }
-    return Menu.dropdown(theme, whole, state, items);
+    return Menu.dropdown(whole, state, items);
   }
 
   /** A button's box: role, label, height, corners, fill and edge. */

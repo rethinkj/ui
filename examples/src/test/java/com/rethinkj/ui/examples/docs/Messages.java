@@ -12,7 +12,6 @@ import java.util.stream.IntStream;
 /** The example of rows as high as their content, for the page about lists of many rows. */
 final class Messages {
 
-  Theme theme = Theme.DARK;
   final List<String> log = IntStream.range(0, 10_000)
       .mapToObj(number -> number % 7 == 0
           ? "Query " + number + " took 4.2 s: the planner chose a sequential scan of orders, which"
@@ -27,7 +26,7 @@ final class Messages {
   // docs:end row-heights
 
   static El view(Messages state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start row-heights-list
     El list = col()
         .key("log")
@@ -44,8 +43,8 @@ final class Messages {
                 .role("listitem")
                 .wFull()
                 .padding(theme.space().xs(), theme.space().m())
-                .child(Label.label(theme, state.log.get(row)).wrapText()));
+                .child(Label.label(state.log.get(row)).wrapText()));
     // docs:end row-heights-list
-    return Frame.of(theme, list);
+    return Frame.of(list);
   }
 }

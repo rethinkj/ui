@@ -48,13 +48,18 @@ public record Sql(Theme.Code colors, Dialect dialect)
     this(colors, Dialect.POSTGRES);
   }
 
-  /** The highlighter in the theme's colors for code, as PostgreSQL writes SQL. */
-  public static Sql of(Theme theme) {
+  /**
+   * The highlighter in the colors for code of {@link Theme#CURRENT}, as PostgreSQL writes SQL; in
+   * the view, where the app provides its theme.
+   */
+  public static Sql of() {
+    Theme theme = Theme.CURRENT.get();
     return new Sql(theme.code());
   }
 
   /** The highlighter in the theme's colors for code, as {@code dialect} writes SQL. */
-  public static Sql of(Theme theme, Dialect dialect) {
+  public static Sql of(Dialect dialect) {
+    Theme theme = Theme.CURRENT.get();
     return new Sql(theme.code(), dialect);
   }
 

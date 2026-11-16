@@ -9,17 +9,17 @@ import java.util.function.Supplier;
 
 /**
  * A value and where to write it back, which a component shows and edits in place of a value and
- * a handler: {@code textField(theme, prop)} for {@code textField(theme, prop.get(), null,
+ * a handler: {@code textField(prop)} for {@code textField(prop.get(), null,
  * value -> ...)}.
  *
  * <pre>{@code
  * // over the app's state
  * Prop<Boolean> dark = Prop.of(() -> state.dark, value -> state.dark = value);
- * toggle(theme, dark, "Dark theme")
+ * toggle(dark, "Dark theme")
  *
  * Prop<Profile> profile = Prop.of(() -> state.profile, value -> state.profile = value);
- * textField(theme, profile.at(Profile.HOST))              // writes a new Profile back
- * select(theme, MODES, profile.at(Profile.TLS).at(Tls.MODE), Mode::label, state.modeMenu)
+ * textField(profile.at(Profile.HOST))              // writes a new Profile back
+ * select(MODES, profile.at(Profile.TLS).at(Tls.MODE), Mode::label, state.modeMenu)
  * }</pre>
  *
  * <p>{@link #at} goes into a {@link Part} of the value: writing the part writes the whole back

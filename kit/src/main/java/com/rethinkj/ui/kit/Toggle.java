@@ -19,21 +19,23 @@ public final class Toggle {
    *
    * @param text shown beside it, also its label; null for none
    */
-  public static El toggle(Theme theme, Prop<Boolean> on, String text) {
+  public static El toggle(Prop<Boolean> on, String text) {
+    Theme theme = Theme.CURRENT.get();
     boolean now = Boolean.TRUE.equals(on.get());
-    return Prop.shown(theme, toggle(theme, now, text, on.writes() ? () -> on.set(!now) : null), on);
+    return Prop.shown(theme, toggle(now, text, on.writes() ? () -> on.set(!now) : null), on);
   }
 
   /** A switch without text; give it a label with {@code .label("...")}. */
-  public static El toggle(Theme theme, boolean on, Runnable onToggle) {
-    return toggle(theme, on, null, onToggle);
+  public static El toggle(boolean on, Runnable onToggle) {
+    return toggle(on, null, onToggle);
   }
 
   /**
    * @param text shown beside the switch, also its label; null for none
    * @param onToggle runs when the switch is pressed; null disables it
    */
-  public static El toggle(Theme theme, boolean on, String text, Runnable onToggle) {
+  public static El toggle(boolean on, String text, Runnable onToggle) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     float height = theme.size().switchHeight();
     int fill = fill(theme, on, enabled);

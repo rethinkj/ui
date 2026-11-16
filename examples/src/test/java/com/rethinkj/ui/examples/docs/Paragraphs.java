@@ -13,7 +13,6 @@ final class Paragraphs {
   static final String NOTE =
       "The orders table has no index on customer_id. See the query plan" + " before you add one.";
 
-  Theme theme = Theme.DARK;
   String opened = "";
 
   // docs:start range-handlers
@@ -23,7 +22,7 @@ final class Paragraphs {
   // docs:end range-handlers
 
   static El view(Paragraphs state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start range
     int from = NOTE.indexOf("the query plan");
     El paragraph = text(NOTE)
@@ -45,6 +44,6 @@ final class Paragraphs {
             .onPress(state::openPlan)
             .whenHovered(element -> element.fill(theme.surface().hover())));
     // docs:end range
-    return Frame.of(theme, paragraph.w(260));
+    return Frame.of(paragraph.w(260));
   }
 }

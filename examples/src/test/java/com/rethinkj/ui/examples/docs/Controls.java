@@ -34,7 +34,6 @@ import java.util.List;
 /** The examples of the pages about buttons, choices, fields and small parts. */
 final class Controls {
 
-  Theme theme = Theme.DARK;
   int runs;
   boolean running = true;
   boolean pinned;
@@ -97,18 +96,17 @@ final class Controls {
   }
 
   static El buttons(Controls state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start button
-    El run = Button.button(theme, PRIMARY, Symbol.PLAY, "Run", state::run);
-    El cancel = Button.button(theme, SECONDARY, "Cancel", state::cancel);
-    El format = Button.button(theme, GHOST, "Format", null); // null: disabled
-    El refresh = Button.icon(theme, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh);
-    El busy = Button.button(theme, PRIMARY, null, "Running", state.running, state::start);
+    El run = Button.button(PRIMARY, Symbol.PLAY, "Run", state::run);
+    El cancel = Button.button(SECONDARY, "Cancel", state::cancel);
+    El format = Button.button(GHOST, "Format", null); // null: disabled
+    El refresh = Button.icon(GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh);
+    El busy = Button.button(PRIMARY, null, "Running", state.running, state::start);
     // docs:end button
     // docs:start button-toggle
-    El pin = Button.toggle(theme, Symbol.PIN, "Pin", state.pinned, state::pinned);
+    El pin = Button.toggle(Symbol.PIN, "Pin", state.pinned, state::pinned);
     El split = Button.split(
-        theme,
         PRIMARY,
         Symbol.PLAY,
         "Run",
@@ -119,7 +117,6 @@ final class Controls {
             Menu.item("Explain plan", state::explainPlan)));
     // docs:end button-toggle
     return Frame.of(
-        theme,
         row().gap(theme.space().s()).children(run, cancel, format, refresh, busy),
         row().gap(theme.space().s()).children(pin, split));
   }
@@ -141,26 +138,24 @@ final class Controls {
   }
 
   static El buttonOptions(Controls state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start button-options
     // A red confirmation, a red secondary action and a quiet red one for a toolbar.
     Button.Options danger = Button.options().tone(Button.Tone.DANGER);
-    El drop = Button.button(theme, PRIMARY, "Drop table", state::drop, danger);
-    El discard = Button.button(theme, SECONDARY, "Discard", state::discard, danger);
-    El delete = Button.icon(theme, GHOST, Symbol.DELETE, "Delete row", state::deleteRow, danger);
+    El drop = Button.button(PRIMARY, "Drop table", state::drop, danger);
+    El discard = Button.button(SECONDARY, "Discard", state::discard, danger);
+    El delete = Button.icon(GHOST, Symbol.DELETE, "Delete row", state::deleteRow, danger);
     // Off while nothing changed, with its handler kept: as a null handler, Tab passes it by.
-    El save = Button.button(
-        theme, SECONDARY, "Save", state::save, Button.options().enabled(state.runs > 0));
+    El save =
+        Button.button(SECONDARY, "Save", state::save, Button.options().enabled(state.runs > 0));
     // Busy: a spinner in place of the icon; it takes no press and keeps the focus.
     El refresh = Button.icon(
-        theme,
         GHOST,
         Symbol.ARROW_CLOCKWISE,
         "Refresh",
         state::start,
         Button.options().busy(state.running));
     El run = Button.split(
-        theme,
         PRIMARY,
         "Run",
         state::start,
@@ -169,7 +164,6 @@ final class Controls {
         Button.options().icon(Symbol.PLAY).busy(state.running));
     // docs:end button-options
     return Frame.of(
-        theme,
         row().gap(theme.space().s()).children(drop, discard, delete),
         row().gap(theme.space().s()).children(save, refresh, run));
   }
@@ -183,14 +177,13 @@ final class Controls {
   }
 
   static El toggles(Controls state) {
-    Theme theme = state.theme;
     // docs:start toggle
-    El autocommit = Toggle.toggle(theme, state.autocommit, "Autocommit", state::toggleAutocommit);
+    El autocommit = Toggle.toggle(state.autocommit, "Autocommit", state::toggleAutocommit);
     // docs:end toggle
     // docs:start checkbox
-    El readOnly = Checkbox.checkbox(theme, state.readOnly, "Read only", state::toggleReadOnly);
+    El readOnly = Checkbox.checkbox(state.readOnly, "Read only", state::toggleReadOnly);
     // docs:end checkbox
-    return Frame.of(theme, autocommit, readOnly);
+    return Frame.of(autocommit, readOnly);
   }
 
   void indent(int value) {
@@ -214,32 +207,26 @@ final class Controls {
   }
 
   static El choices(Controls state) {
-    Theme theme = state.theme;
     // docs:start radio
-    El indent = Radio.radioGroup(theme, List.of("Spaces", "Tabs"), state.indent, state::indent)
+    El indent = Radio.radioGroup(List.of("Spaces", "Tabs"), state.indent, state::indent)
         .label("Indent with");
     // docs:end radio
     // docs:start segmented
-    El mode = Segmented.segmented(theme, List.of("Rows", "Cells"), state.mode, state::mode)
-        .label("Select");
+    El mode =
+        Segmented.segmented(List.of("Rows", "Cells"), state.mode, state::mode).label("Select");
     // docs:end segmented
     // docs:start select
     El driver = Select.select(
-            theme,
-            List.of("PostgreSQL", "MySQL", "SQLite"),
-            state.driver,
-            state.driverMenu,
-            state::driver)
+            List.of("PostgreSQL", "MySQL", "SQLite"), state.driver, state.driverMenu, state::driver)
         .label("Driver");
     // docs:end select
     // docs:start number-field
-    El fetch =
-        NumberField.numberField(theme, "Fetch size", state.fetchSize, 1, 16, 1, state::fetchSize);
+    El fetch = NumberField.numberField("Fetch size", state.fetchSize, 1, 16, 1, state::fetchSize);
     // docs:end number-field
     // docs:start slider
-    El size = Slider.slider(theme, state.fontSize, 11, 16, 1, state::fontSize).label("Font size");
+    El size = Slider.slider(state.fontSize, 11, 16, 1, state::fontSize).label("Font size");
     // docs:end slider
-    return Frame.of(theme, indent, mode, driver, fetch, size);
+    return Frame.of(indent, mode, driver, fetch, size);
   }
 
   void kind(int value) {
@@ -251,22 +238,20 @@ final class Controls {
   }
 
   static El swatches(Controls state) {
-    Theme theme = state.theme;
     // docs:start swatches
     El kind = Radio.swatches(
-            theme,
             List.of(
-                Radio.option("Table", itemTheme -> Icon.icon(itemTheme, Symbol.TABLE)),
-                Radio.option("View", itemTheme -> Icon.icon(itemTheme, Symbol.TABLE_SIMPLE)),
-                Radio.option("Folder", itemTheme -> Icon.icon(itemTheme, Symbol.FOLDER))),
+                Radio.option("Table", () -> Icon.icon(Symbol.TABLE)),
+                Radio.option("View", () -> Icon.icon(Symbol.TABLE_SIMPLE)),
+                Radio.option("Folder", () -> Icon.icon(Symbol.FOLDER))),
             state.kind, // -1: none chosen yet
             state::kind)
         .label("Kind");
     // docs:end swatches
     // docs:start hue-picker
-    El color = HuePicker.huePicker(theme, state.color, "None", state::color).label("Color");
+    El color = HuePicker.huePicker(state.color, "None", state::color).label("Color");
     // docs:end hue-picker
-    return Frame.of(theme, kind, color);
+    return Frame.of(kind, color);
   }
 
   // docs:start choice-types
@@ -315,14 +300,12 @@ final class Controls {
   }
 
   static El typed(Controls state) {
-    Theme theme = state.theme;
     List<Schema> schemas = List.of(
         new Schema("accounting", "finance"),
         new Schema("public", "postgres"),
         new Schema("sales", "shop"));
     // docs:start select-typed
     El isolation = Select.select(
-            theme,
             List.of(Isolation.values()),
             state.isolation,
             choice -> choice.title,
@@ -332,27 +315,21 @@ final class Controls {
     // docs:end select-typed
     // docs:start radio-typed
     El level = Radio.radioGroup(
-            theme, List.of(Isolation.values()), state.level, choice -> choice.title, state::level)
+            List.of(Isolation.values()), state.level, choice -> choice.title, state::level)
         .label("Level");
     // docs:end radio-typed
     // docs:start segmented-typed
     El shown = Segmented.segmented( // null: none chosen yet
-            theme, List.of(Isolation.values()), state.shown, choice -> choice.title, state::shown)
+            List.of(Isolation.values()), state.shown, choice -> choice.title, state::shown)
         .label("Show");
     // docs:end segmented-typed
     // docs:start combo-box-typed
     El schema = ComboBox.comboBox(
-            theme,
-            schemas,
-            state.schemaValue,
-            Schema::name,
-            state.schemaValueBox,
-            state::schemaValue)
+            schemas, state.schemaValue, Schema::name, state.schemaValueBox, state::schemaValue)
         .label("Schema");
     // docs:end combo-box-typed
     // docs:start combo-items-typed
     El owned = ComboBox.items(
-            theme,
             schemas,
             state.owned,
             option -> ComboBox.item(option.name()).icon(Symbol.DATABASE).detail(option.owner()),
@@ -360,7 +337,7 @@ final class Controls {
             state::owned)
         .label("Owned schema");
     // docs:end combo-items-typed
-    return Frame.of(theme, isolation, level, shown, schema, owned);
+    return Frame.of(isolation, level, shown, schema, owned);
   }
 
   void schema(int value) {
@@ -376,27 +353,22 @@ final class Controls {
   }
 
   static El combos(Controls state) {
-    Theme theme = state.theme;
     // docs:start combo-box
     List<String> schemas = List.of("accounting", "public", "sales", "staging");
-    El schema = ComboBox.comboBox(theme, schemas, state.schema, state.schemaBox, state::schema)
-        .label("Schema");
+    El schema =
+        ComboBox.comboBox(schemas, state.schema, state.schemaBox, state::schema).label("Schema");
     El host = ComboBox.free(
-            theme,
-            state.host,
-            List.of("localhost", "db.staging.internal"),
-            state.hostBox,
-            state::host)
+            state.host, List.of("localhost", "db.staging.internal"), state.hostBox, state::host)
         .label("Host");
     // docs:end combo-box
     // docs:start combo-items
     List<ComboBox.Item> products = List.of(
         ComboBox.item("PostgreSQL").icon(Symbol.DATABASE).detail("9.6 or later"),
         ComboBox.item("SQLite").icon(Symbol.DOCUMENT).detail("a file"));
-    El product = ComboBox.items(theme, products, state.product, state.productBox, state::product)
+    El product = ComboBox.items(products, state.product, state.productBox, state::product)
         .label("Database");
     // docs:end combo-items
-    return Frame.of(theme, schema, host, product);
+    return Frame.of(schema, host, product);
   }
 
   void filter(String value) {
@@ -424,32 +396,25 @@ final class Controls {
   }
 
   static El fields(Controls state) {
-    Theme theme = state.theme;
     // docs:start text-field
     El filter = TextField.withIcon(
-        theme,
-        TextField.textField(theme, state.filter, "Filter tables", state::filter),
-        Symbol.SEARCH);
-    El name = TextField.textField(theme, state.table, "Table name", state::table)
+        TextField.textField(state.filter, "Filter tables", state::filter), Symbol.SEARCH);
+    El name = TextField.textField(state.table, "Table name", state::table)
         .key("table")
         .maxLength(63);
-    El invalid =
-        TextField.invalid(theme, TextField.textField(theme, "2 orders", "Name", value -> {}));
+    El invalid = TextField.invalid(TextField.textField("2 orders", "Name", value -> {}));
     // docs:end text-field
     // docs:start password-field
     El password = TextField.revealable(
-        theme,
-        TextField.passwordField(theme, state.password, "Password", state::password)
-            .key("password"),
+        TextField.passwordField(state.password, "Password", state::password).key("password"),
         state.revealed,
         state::toggleRevealed);
     // docs:end password-field
     // docs:start text-area
-    El note =
-        TextField.textArea(theme, state.note, "Note", state::note).lines(3).w(280);
-    El code = TextField.codeArea(theme, state.sql, "SQL", state::sql).lines(3).w(280);
+    El note = TextField.textArea(state.note, "Note", state::note).lines(3).w(280);
+    El code = TextField.codeArea(state.sql, "SQL", state::sql).lines(3).w(280);
     // docs:end text-area
-    return Frame.of(theme, filter, name, invalid, password, note, code);
+    return Frame.of(filter, name, invalid, password, note, code);
   }
 
   void amount(BigDecimal value) {
@@ -465,32 +430,24 @@ final class Controls {
   }
 
   static El values(Controls state) {
-    Theme theme = state.theme;
     // docs:start value-field
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
         Form.field(
                 "Amount",
                 ValueField.valueField(
-                        theme, Format.DECIMAL, state.amount, state.amountDraft, state::amount)
+                        Format.DECIMAL, state.amount, state.amountDraft, state::amount)
                     .key("amount")
                     .w(120))
             .required(),
         Form.field(
                 "Due",
                 ValueField.valueField(
-                        theme,
-                        Format.DATE.optional(),
-                        state.due,
-                        "2026-11-13",
-                        state.dueDraft,
-                        state::due)
+                        Format.DATE.optional(), state.due, "2026-11-13", state.dueDraft, state::due)
                     .key("due")
                     .w(120))
             .help("Empty for none"));
     El save = Button.button(
-        theme,
         PRIMARY,
         "Save",
         // A text that is no value leaves the last valid one in the state: save only without one.
@@ -498,7 +455,7 @@ final class Controls {
             ? state::saveForm
             : null);
     // docs:end value-field
-    return Frame.of(theme, form, save);
+    return Frame.of(form, save);
   }
 
   void removeFilter() {
@@ -506,31 +463,28 @@ final class Controls {
   }
 
   static El parts(Controls state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     // docs:start label
-    El title = Label.label(theme, Label.Variant.HEADING, "Orders");
-    El hint = Label.label(theme, Label.Variant.MUTED, "1 000 000 rows");
-    El id = Label.label(theme, Label.Variant.MONO, "a3f9c2e1");
+    El title = Label.label(Label.Variant.HEADING, "Orders");
+    El hint = Label.label(Label.Variant.MUTED, "1 000 000 rows");
+    El id = Label.label(Label.Variant.MONO, "a3f9c2e1");
     // docs:end label
     // docs:start icon
-    El table = Icon.icon(theme, Symbol.TABLE);
-    El key = Icon.icon(theme, Symbol.KEY, Icon.Variant.WARNING);
-    El error = Icon.icon(theme, Symbol.ERROR_CIRCLE, Icon.Variant.DANGER, 20);
+    El table = Icon.icon(Symbol.TABLE);
+    El key = Icon.icon(Symbol.KEY, Icon.Variant.WARNING);
+    El error = Icon.icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER, 20);
     // docs:end icon
     // docs:start badge
-    El type = Badge.badge(theme, "bigint");
-    El primary = Badge.badge(theme, Badge.Kind.ACCENT, "PK");
+    El type = Badge.badge("bigint");
+    El primary = Badge.badge(Badge.Kind.ACCENT, "PK");
     El filter = Badge.badge(
-        theme,
-        "status = paid",
-        Badge.options().kind(Badge.Kind.ACCENT).onRemove(state::removeFilter));
+        "status = paid", Badge.options().kind(Badge.Kind.ACCENT).onRemove(state::removeFilter));
     // docs:end badge
     // docs:start avatar
-    El server = Avatar.avatar(theme, "prod-eu");
-    El local = Avatar.avatar(theme, "localhost", Symbol.SERVER, 24);
+    El server = Avatar.avatar("prod-eu");
+    El local = Avatar.avatar("localhost", Symbol.SERVER, 24);
     // docs:end avatar
     return Frame.of(
-        theme,
         row().gap(theme.space().m()).children(title, hint, id),
         row().gap(theme.space().m()).children(table, key, error),
         row().gap(theme.space().s()).children(type, primary, filter),

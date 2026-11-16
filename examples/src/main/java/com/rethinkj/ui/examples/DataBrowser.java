@@ -548,7 +548,8 @@ public final class DataBrowser {
 
   public static void main(String[] args) throws IOException {
     DataBrowser browser = new DataBrowser();
-    App<DataBrowser> app = new App<>(browser, DataBrowser::view);
+    App<DataBrowser> app =
+        new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
     browser.app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
@@ -566,8 +567,12 @@ public final class DataBrowser {
     }
   }
 
+  Theme theme() {
+    return dark ? Theme.DARK : Theme.LIGHT;
+  }
+
   static El view(DataBrowser state) {
-    Theme theme = state.dark ? Theme.DARK : Theme.LIGHT;
+    Theme theme = Theme.CURRENT.get();
     List<Column> columns = new ArrayList<>();
     List<Column> typed = columns(state.table, state.widths);
     for (int index = 0; index < typed.size(); index++) {
@@ -604,29 +609,25 @@ public final class DataBrowser {
     // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
     options.onLargeCopy((copy, limit) -> state.toast = String.format(
         Locale.ROOT, "%,d cells are too many to copy at once: at most %,d", copy.cells(), limit));
-    El grid = dataGrid(theme, columns, state.changes.rowCount(), options);
+    El grid = dataGrid(columns, state.changes.rowCount(), options);
     El filter = TextField.withIcon(
-        theme,
-        textField(theme, state.filter, "Filter", state::filter).key("filter").w(280),
-        Symbol.SEARCH);
+        textField(state.filter, "Filter", state::filter).key("filter").w(280), Symbol.SEARCH);
     filter = Tooltip.tooltip(
-        theme, filter, "Words in customer, email, city, country, product," + " status or note");
+        filter, "Words in customer, email, city, country, product," + " status or note");
     int changed = state.changes.count();
     El revert = button(
-            theme,
             Button.Variant.GHOST,
             "Revert",
             state.changes::clear,
             Button.options().icon(Symbol.ARROW_UNDO).enabled(changed != 0).tone(Button.Tone.DANGER))
         .key("revert");
     El commit = button(
-            theme,
             Button.Variant.PRIMARY,
             Symbol.SAVE,
             changed == 0 ? "Commit" : "Commit (" + changed + ")",
             changed == 0 && !state.selection.isEditing() ? null : state::commit)
         .key("commit");
-    El bar = DataGrid.filterBar(theme, columns, state.filters, state::filters);
+    El bar = DataGrid.filterBar(columns, state.filters, state::filters);
     return col()
         .wFull()
         .hFull()
@@ -644,39 +645,32 @@ public final class DataBrowser {
             state.toast == null
                 ? null
                 : Toast.toast(
-                    theme,
                     state.toast,
                     null,
                     null,
                     () -> state.toast = null,
-                    Card.footerHeight(theme)
-                        + theme.size().stroke()
-                        + theme.space().m()))
+                    Card.footerHeight() + theme.size().stroke() + theme.space().m()))
         .child(titleBar(
-            theme,
             "Orders",
             theme.accent().color(),
             Identity.maximized(state.app),
-            toggle(theme, state.dark, "Dark", () -> state.dark = !state.dark)))
+            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
         .child(col()
             .grow(1)
             .minSize(0, 0)
             .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
             .child(Card.flush(
-                    theme,
                     Card.toolbar(
-                        theme,
                         "orders",
                         String.format(Locale.ROOT, "%,d rows", state.changes.rowCount()),
                         filter,
-                        DataGrid.columnsButton(theme, state.layout),
+                        DataGrid.columnsButton(state.layout),
                         revert,
                         commit),
-                    Card.filters(theme, bar),
-                    Divider.divider(theme),
+                    Card.filters(bar),
+                    Divider.divider(),
                     grid.key("orders").label("Orders").grow(1),
-                    Card.footer(
-                        theme, label(theme, MUTED, state.status()).key("status").ellipsis()))
+                    Card.footer(label(MUTED, state.status()).key("status").ellipsis()))
                 .grow(1)));
   }
 }

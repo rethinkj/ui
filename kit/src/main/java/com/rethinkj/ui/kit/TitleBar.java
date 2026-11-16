@@ -21,7 +21,7 @@ import com.rethinkj.ui.WindowPart;
  *
  * <pre>{@code
  * col().wFull().hFull().children(
- *     TitleBar.titleBar(theme, "Workbench", theme.accent().color()), content)
+ *     TitleBar.titleBar("Workbench", theme.accent().color()), content)
  * }</pre>
  *
  * <p>The bar is 32 high and each button 46 wide, Windows 11's own measures. In a tree dump the
@@ -44,34 +44,32 @@ public final class TitleBar {
    * @param mark the mark's color, 0xAARRGGBB, usually the app's
    * @param controls the app's own, before the window's buttons
    */
-  public static El titleBar(Theme theme, String title, int mark, El... controls) {
-    return titleBar(theme, title, mark(mark), null, false, controls);
+  public static El titleBar(String title, int mark, El... controls) {
+    return titleBar(title, mark(mark), null, false, controls);
   }
 
   /**
-   * As {@link #titleBar(Theme, String, int, El...)}, for a window that may be maximized: the
+   * As {@link #titleBar(String, int, El...)}, for a window that may be maximized: the
    * maximize button shows Restore while {@code maximized}, usually {@code app.windowMaximized()}.
    */
-  public static El titleBar(
-      Theme theme, String title, int mark, boolean maximized, El... controls) {
-    return titleBar(theme, title, mark(mark), null, maximized, controls);
+  public static El titleBar(String title, int mark, boolean maximized, El... controls) {
+    return titleBar(title, mark(mark), null, maximized, controls);
   }
 
   /**
    * A title bar with a menu bar after the title; the gaps between its titles move the window as
    * the rest of the bar does.
    */
-  public static El withMenus(Theme theme, String title, int mark, El menus, El... controls) {
-    return titleBar(theme, title, mark(mark), menus, false, controls);
+  public static El withMenus(String title, int mark, El menus, El... controls) {
+    return titleBar(title, mark(mark), menus, false, controls);
   }
 
   /**
-   * As {@link #withMenus(Theme, String, int, El, El...)}, with Restore in place of Maximize while
+   * As {@link #withMenus(String, int, El, El...)}, with Restore in place of Maximize while
    * {@code maximized}, usually {@code app.windowMaximized()}.
    */
-  public static El withMenus(
-      Theme theme, String title, int mark, El menus, boolean maximized, El... controls) {
-    return titleBar(theme, title, mark(mark), menus, maximized, controls);
+  public static El withMenus(String title, int mark, El menus, boolean maximized, El... controls) {
+    return titleBar(title, mark(mark), menus, maximized, controls);
   }
 
   /**
@@ -83,8 +81,8 @@ public final class TitleBar {
    *     show as Restore
    * @param controls the app's own, before the window's buttons
    */
-  public static El titleBar(
-      Theme theme, String title, El icon, El menus, boolean maximized, El... controls) {
+  public static El titleBar(String title, El icon, El menus, boolean maximized, El... controls) {
+    Theme theme = Theme.CURRENT.get();
     int glyph = theme.text().primary();
     El bar = row()
         .wFull()
@@ -96,8 +94,7 @@ public final class TitleBar {
     if (icon != null) {
       bar.child(icon.margin(0, 0, 0, theme.space().l()));
     }
-    bar.child(
-        label(theme, Label.Variant.STRONG, title).margin(0, 0, 0, theme.space().m()));
+    bar.child(label(Label.Variant.STRONG, title).margin(0, 0, 0, theme.space().m()));
     if (menus != null) {
       bar.child(menus.margin(0, 0, 0, theme.space().m()));
     }
@@ -110,14 +107,13 @@ public final class TitleBar {
           .children(controls));
     }
     El restore = maximized
-        ? Icon.icon(theme, Symbol.SQUARE_MULTIPLE, Icon.Variant.NORMAL, 12)
+        ? Icon.icon(Symbol.SQUARE_MULTIPLE, Icon.Variant.NORMAL, 12)
         : el().size(10, 10).border(1, glyph);
     return bar.child(Tooltip.tooltip(
-            theme,
             button(theme, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)),
             "Minimize"))
         .child(button(theme, WindowPart.MAXIMIZE, maximized ? "Restore" : "Maximize", restore))
-        .child(Tooltip.tooltip(theme, close(theme), "Close"));
+        .child(Tooltip.tooltip(close(theme), "Close"));
   }
 
   /** A small rounded square in the app's color, before the title. */
@@ -144,7 +140,7 @@ public final class TitleBar {
 
   /** The close button, red with a white cross under the pointer, as the system's is. */
   private static El close(Theme theme) {
-    El cross = Icon.icon(theme, Symbol.DISMISS, Icon.Variant.NORMAL, 12);
+    El cross = Icon.icon(Symbol.DISMISS, Icon.Variant.NORMAL, 12);
     return button(theme, WindowPart.CLOSE, "Close", cross)
         .whenHovered(b -> {
           b.fill(theme.caption().closeHover());

@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Colors.mix;
 import static com.rethinkj.ui.kit.Palette.*;
 
 import com.rethinkj.ui.Colors;
+import com.rethinkj.ui.Context;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.motion.Spring;
@@ -36,8 +37,8 @@ import java.util.function.Supplier;
  * The full accent fills primary buttons and what is on; its lighter {@link Accent#edge} draws
  * outlines, the focus ring and the active tab's line.
  *
- * <p>Components get the theme as their first parameter, and the view gets it from the app's state
- * or a constant. Focusable components draw their focus ring in {@code accent().edge()} of their
+ * <p>Components read the theme of {@link #CURRENT}, which the app provides from its state ({@link
+ * com.rethinkj.ui.App#provide}). Focusable components draw their focus ring in {@code accent().edge()} of their
  * theme ({@link com.rethinkj.ui.El#focusRing(int)}); a primary button, whose fill is the accent,
  * draws it {@link Sizes#ringGap} away ({@link com.rethinkj.ui.El#focusRingGap}), so that the
  * surface behind the button lies between the two.
@@ -1375,6 +1376,14 @@ public record Theme(
               new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f)))),
       Code.LIGHT,
       CAPTION);
+
+  /**
+   * The theme the kit's components read, {@link #DARK} unless the app gives another: {@code
+   * app.provide(Theme.CURRENT, Settings::theme)} for the whole view, or {@code
+   * Theme.CURRENT.with(() -> part)} for a part of it. The view's own code reads it with
+   * {@code Theme.CURRENT.get()}.
+   */
+  public static final Context<Theme> CURRENT = new Context<>(DARK);
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(

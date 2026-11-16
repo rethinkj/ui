@@ -45,8 +45,8 @@ final class ControlRow {
     // stretches neither the press area nor the ring; one that centers them still centers it.
     row.style().width = Len.FIT_CONTENT;
     if (text != null) {
-      row.child(label(theme, text)
-          .color(enabled ? theme.text().primary() : theme.text().disabled()));
+      row.child(
+          label(text).color(enabled ? theme.text().primary() : theme.text().disabled()));
     }
     if (!enabled) {
       return row;

@@ -170,7 +170,6 @@ class GridDetailTest {
     App<float[]> app = new App<>(
         width,
         w -> DataGrid.dataGrid(
-                T,
                 List.of(new Column("name", w[0], DataGrid.Align.LEFT, false, i -> value)
                     .detail(i -> detail)),
                 1,

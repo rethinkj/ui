@@ -217,7 +217,7 @@ class PartsTest {
         state,
         s -> col()
             .w(width[0])
-            .child(Breadcrumb.breadcrumb(t, s, List.of("first", "middle", "current"), i -> {})));
+            .child(Breadcrumb.breadcrumb(s, List.of("first", "middle", "current"), i -> {})));
     Script.run("size 400 100\nframe\nframe", app, out);
     width[0] = 1;
     app.invalidate();
@@ -320,8 +320,8 @@ class PartsTest {
             .wFull()
             .hFull()
             .children(
-                Toolbar.toolbar(Theme.DARK, toolbar, "Tools", items),
-                TextField.textField(Theme.DARK, "", "Editor", v -> {}).key("editor"))
+                Toolbar.toolbar(toolbar, "Tools", items),
+                TextField.textField("", "Editor", v -> {}).key("editor"))
             .onKey(k -> {
               if (!k.name().equals("F2")) {
                 return false;
@@ -349,12 +349,10 @@ class PartsTest {
             .wFull()
             .hFull()
             .child(Popover.popover(
-                Theme.DARK,
-                Button.button(Theme.DARK, Button.Variant.SECONDARY, "Details", s::toggle)
-                    .key("details"),
+                Button.button(Button.Variant.SECONDARY, "Details", s::toggle).key("details"),
                 s,
                 "Details",
-                Label.label(Theme.DARK, "Read-only information"))));
+                Label.label("Read-only information"))));
     Script.run("size 400 200\nframe\nfocus #details\nkey Enter\nframe\n", app, out);
     assertEquals("popover", app.focused().key(), "the popover itself took the focus");
     Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);

@@ -85,7 +85,6 @@ public final class Customers {
     }
   }
 
-  Theme theme = Theme.DARK;
   App<Customers> app; // set by app(), which makes it
   final Repository repository = new Repository();
   View view = View.CUSTOMERS;
@@ -109,9 +108,8 @@ public final class Customers {
 
   // docs:start customers-view
   static El view(Customers state) {
-    Theme theme = state.theme;
+    Theme theme = Theme.CURRENT.get();
     El views = NavList.navList(
-            theme,
             List.of(View.values()),
             state.view,
             view -> NavList.item(view.icon, view.title),
@@ -126,29 +124,27 @@ public final class Customers {
         .padding(theme.space().m())
         .gap(theme.space().m())
         .children(
-            Card.flush(theme, Card.inset(theme, views)).w(180).shrink(0),
+            Card.flush(Card.inset(views)).w(180).shrink(0),
             switch (state.view) {
-              case CUSTOMERS -> customers(theme, state);
-              case NOTES -> notes(theme, state);
+              case CUSTOMERS -> customers(state);
+              case NOTES -> notes(state);
             });
-    return root.overlay(state.editing == null ? null : dialog(theme, state))
+    return root.overlay(state.editing == null ? null : dialog(state))
         .overlay(
-            state.toast == null
-                ? null
-                : Toast.toast(theme, state.toast, null, null, state::dismissToast));
+            state.toast == null ? null : Toast.toast(state.toast, null, null, state::dismissToast));
   }
 
   void dismissToast() {
     toast = null;
   }
 
-  static El notes(Theme theme, Customers state) {
-    El area = TextField.textArea(theme, state.notes, "Notes for the team", state::setNotes)
+  static El notes(Customers state) {
+    El area = TextField.textArea(state.notes, "Notes for the team", state::setNotes)
         .fieldState(state.notesField) // the caret and undo come back with the view
         .key("notes")
         .wFull()
         .grow(1);
-    return Card.card(theme, area).grow(1);
+    return Card.card(area).grow(1);
   }
 
   void setNotes(String value) {
@@ -197,36 +193,30 @@ public final class Customers {
   // docs:end customers-load
 
   // docs:start customers-list
-  static El customers(Theme theme, Customers state) {
+  static El customers(Customers state) {
     List<Customer> rows = state.customers;
     int row = state.selection.row();
     Customer selected = rows != null && row >= 0 && row < rows.size() ? rows.get(row) : null;
-    El reload = Button.button(theme, SECONDARY, Symbol.ARROW_CLOCKWISE, "Reload", state::load);
+    El reload = Button.button(SECONDARY, Symbol.ARROW_CLOCKWISE, "Reload", state::load);
     El edit = Button.button(
-        theme,
-        SECONDARY,
-        Symbol.EDIT,
-        "Edit",
-        selected == null ? null : () -> state.edit(selected));
+        SECONDARY, Symbol.EDIT, "Edit", selected == null ? null : () -> state.edit(selected));
     El add = Button.button(
-        theme, PRIMARY, Symbol.ADD, "New customer", rows == null ? null : state::newCustomer);
+        PRIMARY, Symbol.ADD, "New customer", rows == null ? null : state::newCustomer);
     El body;
     if (rows == null && state.loadError != null) {
       body = EmptyState.emptyState(
-          theme,
           Symbol.ERROR_CIRCLE,
           "The customers did not load",
           state.loadError,
-          Button.button(theme, SECONDARY, "Try again", state::load));
+          Button.button(SECONDARY, "Try again", state::load));
     } else if (rows == null) {
-      body = EmptyState.emptyState(theme, Symbol.PEOPLE, "Loading the customers…", null, null);
+      body = EmptyState.emptyState(Symbol.PEOPLE, "Loading the customers…", null, null);
     } else if (rows.isEmpty()) {
       body = EmptyState.emptyState(
-          theme, Symbol.PEOPLE, "No customers yet", "New customer adds the first.", null);
+          Symbol.PEOPLE, "No customers yet", "New customer adds the first.", null);
     } else {
       GridTable<Customer> table = DataGrid.table(rows::get);
       body = DataGrid.dataGrid(
-              theme,
               List.of(
                   table.column("Name", 180, Format.TEXT, Customer.NAME),
                   table.column("Email", 200, Format.TEXT, Customer.EMAIL),
@@ -238,12 +228,8 @@ public final class Customers {
           .grow(1);
     }
     String count = rows == null ? null : rows.size() + " customers";
-    El loading = state.loading == null ? null : Progress.line(theme).label("Loading customers");
-    return Card.flush(
-            theme,
-            Card.toolbar(theme, "Customers", count, reload, edit, add),
-            loading,
-            body.grow(1))
+    El loading = state.loading == null ? null : Progress.line().label("Loading customers");
+    return Card.flush(Card.toolbar("Customers", count, reload, edit, add), loading, body.grow(1))
         .grow(1);
   }
 
@@ -274,38 +260,33 @@ public final class Customers {
     }
   }
 
-  static El dialog(Theme theme, Customers state) {
+  static El dialog(Customers state) {
     Editing<Customer> editing = state.editing;
     El form = Form.form(
-        theme,
         Form.Labels.BESIDE,
         Form.field(
                 "Name",
-                ValueField.valueField(theme, NAME, editing.at(Customer.NAME))
+                ValueField.valueField(NAME, editing.at(Customer.NAME))
                     .key("name")
                     .w(240))
             .required(),
         Form.field(
             "Email",
-            TextField.textField(theme, editing.at(Customer.EMAIL)).key("email").w(240)),
+            TextField.textField(editing.at(Customer.EMAIL)).key("email").w(240)),
         Form.field(
-            "Company",
-            Checkbox.checkbox(theme, editing.at(Customer.COMPANY), null).key("company")),
+            "Company", Checkbox.checkbox(editing.at(Customer.COMPANY), null).key("company")),
         editing.value().company() // only for a company; a null field is left out
             ? Form.field(
                 "VAT ID",
-                TextField.textField(theme, editing.at(Customer.VAT_ID))
-                    .key("vat")
-                    .w(160))
+                TextField.textField(editing.at(Customer.VAT_ID)).key("vat").w(160))
             : null);
     boolean busy = state.saving != null;
-    El save =
-        Button.button(theme, PRIMARY, null, "Save", busy, editing.changed() ? state::save : null);
-    El cancel = Button.button(theme, SECONDARY, "Cancel", busy ? null : state::close);
+    El save = Button.button(PRIMARY, null, "Save", busy, editing.changed() ? state::save : null);
+    El cancel = Button.button(SECONDARY, "Cancel", busy ? null : state::close);
     String title = editing.original().id() == 0
         ? "New customer"
         : "Edit " + editing.original().name();
-    return Dialog.dialog(theme, title, form, List.of(cancel, save), save, state::close);
+    return Dialog.dialog(title, form, List.of(cancel, save), save, state::close);
   }
 
   // docs:end customers-edit

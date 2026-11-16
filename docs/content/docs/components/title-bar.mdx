@@ -16,9 +16,9 @@ Javadoc: [`TitleBar`](/api/com/rethinkj/ui/kit/TitleBar.html).
 
 | Call | |
 | --- | --- |
-| `titleBar(theme, title, mark, controls...)` | A colored square as the mark |
-| `withMenus(theme, title, mark, menus, controls...)` | With a [MenuBar](/docs/components/menu-bar) after the title |
-| `titleBar(theme, title, icon, menus, maximized, controls...)` | Any icon element, and Restore in place of Maximize while `maximized` |
+| `titleBar(title, mark, controls...)` | A colored square as the mark |
+| `withMenus(title, mark, menus, controls...)` | With a [MenuBar](/docs/components/menu-bar) after the title |
+| `titleBar(title, icon, menus, maximized, controls...)` | Any icon element, and Restore in place of Maximize while `maximized` |
 
 `TitleBar.HEIGHT` (32) and `BUTTON` (46) are Windows 11's sizes. For a title bar of your own, mark its drag area and buttons with `El.windowPart`; see [Windows, icons and dialogs](/docs/concepts/platform).
 

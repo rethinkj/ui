@@ -31,7 +31,7 @@ import com.rethinkj.ui.Style;
  * State#ERROR} is {@code invalid}. The part done is the child {@code #fill}.
  *
  * <pre>{@code
- * labeled(theme, "orders.csv", state.done / state.size,
+ * labeled("orders.csv", state.done / state.size,
  *         mb(state.done) + " of " + mb(state.size) + " · " + left)
  *     .key("export")
  * }</pre>
@@ -57,19 +57,21 @@ public final class Progress {
    *
    * @param fraction how much is done, from 0 to 1, clamped; NaN is 0
    */
-  public static El bar(Theme theme, double fraction) {
-    return bar(theme, fraction, State.NORMAL);
+  public static El bar(double fraction) {
+    return bar(fraction, State.NORMAL);
   }
 
   /** A bar with a value, colored by what became of the work. */
-  public static El bar(Theme theme, double fraction, State state) {
+  public static El bar(double fraction, State state) {
+    Theme theme = Theme.CURRENT.get();
     return states(
             track(theme, theme.size().progress(), true, clamp(fraction), state), fraction, state)
         .w(theme.size().field());
   }
 
   /** A bar that runs while the length of the work is not known. */
-  public static El indeterminate(Theme theme) {
+  public static El indeterminate() {
+    Theme theme = Theme.CURRENT.get();
     return track(theme, theme.size().progress(), true, Double.NaN, State.NORMAL)
         .role("progressbar")
         .w(theme.size().field());
@@ -80,7 +82,8 @@ public final class Progress {
    * it lies flush along a card's edge, under a tab bar or a card's header, where it shows that
    * something loads without taking room from what is around it.
    */
-  public static El line(Theme theme, double fraction) {
+  public static El line(double fraction) {
+    Theme theme = Theme.CURRENT.get();
     return states(
             track(theme, theme.size().indicator(), false, clamp(fraction), State.NORMAL),
             fraction,
@@ -89,7 +92,8 @@ public final class Progress {
   }
 
   /** A {@link #line} that runs while the length of the work is not known. */
-  public static El line(Theme theme) {
+  public static El line() {
+    Theme theme = Theme.CURRENT.get();
     return track(theme, theme.size().indicator(), false, Double.NaN, State.NORMAL)
         .role("progressbar")
         .wFull();
@@ -102,12 +106,13 @@ public final class Progress {
    *
    * @param detail such as "12.4 MB of 80 MB · 20 s left"; null for the percentage
    */
-  public static El labeled(Theme theme, String label, double fraction, String detail) {
-    return labeled(theme, label, fraction, detail, State.NORMAL);
+  public static El labeled(String label, double fraction, String detail) {
+    return labeled(label, fraction, detail, State.NORMAL);
   }
 
-  /** As {@link #labeled(Theme, String, double, String)}, colored by what became of the work. */
-  public static El labeled(Theme theme, String label, double fraction, String detail, State state) {
+  /** As {@link #labeled(String, double, String)}, colored by what became of the work. */
+  public static El labeled(String label, double fraction, String detail, State state) {
+    Theme theme = Theme.CURRENT.get();
     Theme.TextStyle body = theme.type().body();
     El name = El.text(label)
         .font(body.font().get())
@@ -133,8 +138,9 @@ public final class Progress {
   }
 
   /** A spinner of {@link Theme.Sizes#icon}, labeled "Loading". */
-  public static El spinner(Theme theme) {
-    return spinner(theme, theme.size().icon());
+  public static El spinner() {
+    Theme theme = Theme.CURRENT.get();
+    return spinner(theme.size().icon());
   }
 
   /**
@@ -148,7 +154,8 @@ public final class Progress {
    *
    * @param size the side, such as {@code size().icon()} for a button or a row
    */
-  public static El spinner(Theme theme, float size) {
+  public static El spinner(float size) {
+    Theme theme = Theme.CURRENT.get();
     return spinner(theme, size, theme.accent().edge(), theme.border().track());
   }
 

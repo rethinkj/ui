@@ -78,18 +78,18 @@ final class Workbench {
 
   /** The schema and an editor side by side, the schema at least 120 wide, the editor 160. */
   El splitView() {
-    return window(split(
-            theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 120, editorPane(), 160)
-        .key("split")
-        .grow(1));
+    return window(
+        split(Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 120, editorPane(), 160)
+            .key("split")
+            .grow(1));
   }
 
   /** The editor over its results, at least 40 high each. */
   El columnView() {
-    return window(split(
-            theme, Direction.COLUMN, editor, EDITOR, this::editor, editorPane(), 40, results(), 40)
-        .key("split")
-        .grow(1));
+    return window(
+        split(Direction.COLUMN, editor, EDITOR, this::editor, editorPane(), 40, results(), 40)
+            .key("split")
+            .grow(1));
   }
 
   /** The queries in tabs, the active one with a field for a filter. */
@@ -103,8 +103,7 @@ final class Workbench {
    */
   El frameView() {
     El queries = queries();
-    return window(split(
-                theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 160, queries, 320)
+    return window(split(Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 160, queries, 320)
             .key("frame")
             .grow(1))
         .onKey(queries.onKey());
@@ -122,25 +121,16 @@ final class Workbench {
     El content = active < 0 || active >= queries.size()
         ? null
         : queries.get(active).title().startsWith("orders")
-            ? split(
-                    theme,
-                    Direction.COLUMN,
-                    editor,
-                    EDITOR,
-                    this::editor,
-                    editorPane(),
-                    80,
-                    results(),
-                    80)
+            ? split(Direction.COLUMN, editor, EDITOR, this::editor, editorPane(), 80, results(), 80)
                 .key("work")
             : col()
                 .key("work")
                 .padding(theme.space().m())
                 .gap(theme.space().s())
                 .children(
-                    label(theme, Variant.MUTED, queries.get(active).title().replace("*", "")),
-                    textField(theme, filter, "Filter", f -> filter = f).key("filter"));
-    return tabs(theme, tabs, active, this::select, this::close, content);
+                    label(Variant.MUTED, queries.get(active).title().replace("*", "")),
+                    textField(filter, "Filter", f -> filter = f).key("filter"));
+    return tabs(tabs, active, this::select, this::close, content);
   }
 
   private El schema() {
@@ -150,9 +140,9 @@ final class Workbench {
         .fill(theme.surface().panel())
         .padding(theme.space().m())
         .gap(theme.space().s())
-        .child(label(theme, Variant.HEADING, "public"));
+        .child(label(Variant.HEADING, "public"));
     for (String table : List.of("customers", "orders", "order_items", "products", "invoices")) {
-      schema.child(label(theme, table));
+      schema.child(label(table));
     }
     return schema;
   }
@@ -169,7 +159,7 @@ final class Workbench {
         "FROM orders o",
         "GROUP BY 1",
         "ORDER BY 1 DESC;")) {
-      editor.child(label(theme, Variant.MONO, line));
+      editor.child(label(Variant.MONO, line));
     }
     return editor;
   }
@@ -180,7 +170,7 @@ final class Workbench {
         .label("Results")
         .fill(theme.surface().panel())
         .padding(theme.space().m())
-        .child(label(theme, Variant.MUTED, "12 rows in 18 ms"));
+        .child(label(Variant.MUTED, "12 rows in 18 ms"));
   }
 
   // Handlers
@@ -209,7 +199,7 @@ final class Workbench {
   }
 
   App<Workbench> app(Function<Workbench, El> view) {
-    App<Workbench> app = new App<>(this, view);
+    App<Workbench> app = new App<>(this, view).provide(Theme.CURRENT, bench -> bench.theme);
     app.textRendering(TextRendering.LINUX);
     app.focusRing(theme.accent().edge());
     return app;

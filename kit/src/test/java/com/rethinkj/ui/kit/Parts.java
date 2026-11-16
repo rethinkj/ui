@@ -39,7 +39,7 @@ final class Parts {
   }
 
   App<Parts> app(java.util.function.Function<Parts, El> view) {
-    App<Parts> app = new App<>(this, view);
+    App<Parts> app = new App<>(this, view).provide(Theme.CURRENT, parts -> parts.t);
     app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
@@ -64,12 +64,12 @@ final class Parts {
           .gap(t.space().s())
           .align(Style.Align.CENTER)
           .children(
-              Badge.badge(t, kind, name),
-              Badge.badge(t, name, Badge.options().kind(kind).strong()),
-              Badge.badge(t, name, Badge.options().kind(kind).icon(Symbol.KEY)),
-              Badge.badge(t, name, Badge.options().kind(kind).toolbar()),
+              Badge.badge(kind, name),
+              Badge.badge(name, Badge.options().kind(kind).strong()),
+              Badge.badge(name, Badge.options().kind(kind).icon(Symbol.KEY)),
+              Badge.badge(name, Badge.options().kind(kind).toolbar()),
               Badge.badge(
-                  t, name, Badge.options().kind(kind).toolbar().strong().icon(Symbol.CHECKMARK))));
+                  name, Badge.options().kind(kind).toolbar().strong().icon(Symbol.CHECKMARK))));
     }
     // Rows of a grid at its height, at rest and selected, with badges in them.
     Theme.Grid g = t.grid();
@@ -81,13 +81,11 @@ final class Parts {
     El filters = row().gap(t.space().s()).align(Style.Align.CENTER);
     for (String f : this.filters) {
       filters.child(Badge.badge(
-              t,
               f,
               Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> this.filters.remove(f)))
           .key("filter-" + f));
     }
     filters.child(Badge.badge(
-            t,
             "Add filter",
             Badge.options()
                 .toolbar()
@@ -97,12 +95,12 @@ final class Parts {
         .key("add"));
     El avatars = row().gap(t.space().s()).align(Style.Align.CENTER);
     for (String server : List.of("localhost", "staging", "prod-eu", "analytics", "replica 2")) {
-      avatars.child(Avatar.avatar(t, server));
+      avatars.child(Avatar.avatar(server));
     }
     avatars
-        .child(Avatar.avatar(t, "localhost", Symbol.SERVER, 20))
-        .child(Avatar.avatar(t, "prod-eu", null, 32));
-    return page(Card.card(t, sheet), Card.card(t, grid, filters, avatars));
+        .child(Avatar.avatar("localhost", Symbol.SERVER, 20))
+        .child(Avatar.avatar("prod-eu", null, 32));
+    return page(Card.card(sheet), Card.card(grid, filters, avatars));
   }
 
   private El gridRow(int fill, String name) {
@@ -113,34 +111,32 @@ final class Parts {
         .gap(t.space().s())
         .align(Style.Align.CENTER)
         .children(
-            label(t, Label.Variant.MONO, name).w(110),
-            Badge.badge(t, "bigint"),
-            Badge.badge(t, Kind.ACCENT, "PK"),
-            Badge.badge(t, Kind.WARNING, "NOT NULL"),
-            Badge.badge(t, "12", Badge.options().strong()));
+            label(Label.Variant.MONO, name).w(110),
+            Badge.badge("bigint"),
+            Badge.badge(Kind.ACCENT, "PK"),
+            Badge.badge(Kind.WARNING, "NOT NULL"),
+            Badge.badge("12", Badge.options().strong()));
   }
 
   /** A breadcrumb and a toolbar in a card's head, over properties, with a popover's form. */
   El detail() {
     El filterButton = Button.button(
-            t, Button.Variant.SECONDARY, Symbol.FILTER, "Filter", filter::toggle)
+            Button.Variant.SECONDARY, Symbol.FILTER, "Filter", filter::toggle)
         .key("filter");
     El form = Popover.form(
-        t,
         filterButton,
         filter,
         "Filter rows",
         col()
             .gap(t.space().m())
             .children(Form.form(
-                t,
                 Form.Labels.ABOVE,
                 Form.field(
                     "Column",
-                    TextField.textField(t, column, "Column", v -> column = v).key("column")))),
+                    TextField.textField(column, "Column", v -> column = v).key("column")))),
         List.of(
-            Button.button(t, Button.Variant.SECONDARY, "Cancel", filter::close),
-            Button.button(t, Button.Variant.PRIMARY, "Apply", () -> {
+            Button.button(Button.Variant.SECONDARY, "Cancel", filter::close),
+            Button.button(Button.Variant.PRIMARY, "Apply", () -> {
                   log.add("apply " + column);
                   filter.close();
                 })
@@ -148,7 +144,7 @@ final class Parts {
     El head = col()
         .gap(t.space().s())
         .children(
-            Breadcrumb.breadcrumb(t, crumbs, path, i -> {
+            Breadcrumb.breadcrumb(crumbs, path, i -> {
                   log.add("crumb " + path.get(i));
                   path.subList(i + 1, path.size()).clear();
                 })
@@ -158,7 +154,6 @@ final class Parts {
                 .align(Style.Align.CENTER)
                 .children(
                     Toolbar.toolbar(
-                            t,
                             tools,
                             "Table",
                             List.of(
@@ -182,7 +177,6 @@ final class Parts {
                         .key("tools"),
                     form));
     El props = Properties.groups(
-        t,
         List.of(
             Properties.group(
                 "Table",
@@ -200,6 +194,6 @@ final class Parts {
                     Properties.property("Tablespace", "pg_default").mono()))),
         clipboard,
         copied);
-    return page(Card.card(t, head), Card.card(t, props).grow(1));
+    return page(Card.card(head), Card.card(props).grow(1));
   }
 }

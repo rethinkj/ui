@@ -17,8 +17,6 @@ import org.junit.jupiter.api.Test;
  */
 class TypedChoicesTest {
 
-  private static final Theme T = Theme.DARK;
-
   enum Level {
     LOW("Low"),
     MEDIUM("Medium"),
@@ -64,52 +62,52 @@ class TypedChoicesTest {
     for (Level selected : new Level[] {Level.MEDIUM, null}) {
       int index = selected == null ? -1 : selected.ordinal();
       assertEquals(
-          Select.select(T, TEXTS, index, new Menu.State(), i -> {}).dump(),
-          Select.select(T, LEVELS, selected, l -> l.label, new Menu.State(), told::add)
+          Select.select(TEXTS, index, new Menu.State(), i -> {}).dump(),
+          Select.select(LEVELS, selected, l -> l.label, new Menu.State(), told::add)
               .dump());
     }
-    El select = Select.select(T, LEVELS, Level.MEDIUM, l -> l.label, new Menu.State(), told::add);
+    El select = Select.select(LEVELS, Level.MEDIUM, l -> l.label, new Menu.State(), told::add);
     assertEquals("Medium", select.label());
     assertTrue(key(select, "ArrowDown"));
     assertTrue(key(select, "End"));
     assertTrue(key(select, "L"), "a letter goes to the choice that starts with it");
     assertEquals(List.of(Level.HIGH, Level.HIGH, Level.LOW), told);
 
-    El none = Select.select(T, LEVELS, null, l -> l.label, new Menu.State(), told::add);
+    El none = Select.select(LEVELS, null, l -> l.label, new Menu.State(), told::add);
     assertEquals("", none.label(), "null selects nothing");
     El missing = Select.select(
-        T, List.of(Level.LOW, Level.HIGH), Level.MEDIUM, l -> l.label, new Menu.State(), told::add);
+        List.of(Level.LOW, Level.HIGH), Level.MEDIUM, l -> l.label, new Menu.State(), told::add);
     assertEquals("", missing.label(), "nor does a value that is not among the values");
 
-    El disabled = Select.select(T, LEVELS, Level.LOW, l -> l.label, new Menu.State(), null);
-    assertEquals(Select.select(T, TEXTS, 0, new Menu.State(), null).dump(), disabled.dump());
+    El disabled = Select.select(LEVELS, Level.LOW, l -> l.label, new Menu.State(), null);
+    assertEquals(Select.select(TEXTS, 0, new Menu.State(), null).dump(), disabled.dump());
     assertNull(disabled.onKey());
   }
 
   @Test
   void aRadioGroupAndASegmentedControlOfValuesTellTheValue() {
     assertEquals(
-        Radio.radioGroup(T, TEXTS, 2, i -> {}).dump(),
-        Radio.radioGroup(T, LEVELS, Level.HIGH, l -> l.label, told::add).dump());
+        Radio.radioGroup(TEXTS, 2, i -> {}).dump(),
+        Radio.radioGroup(LEVELS, Level.HIGH, l -> l.label, told::add).dump());
     assertEquals(
-        Segmented.segmented(T, TEXTS, -1, i -> {}).dump(),
-        Segmented.segmented(T, LEVELS, null, l -> l.label, told::add).dump());
+        Segmented.segmented(TEXTS, -1, i -> {}).dump(),
+        Segmented.segmented(LEVELS, null, l -> l.label, told::add).dump());
     assertEquals(
-        Radio.radioGroup(T, TEXTS, 0, null).dump(),
-        Radio.radioGroup(T, LEVELS, Level.LOW, l -> l.label, null).dump());
+        Radio.radioGroup(TEXTS, 0, null).dump(),
+        Radio.radioGroup(LEVELS, Level.LOW, l -> l.label, null).dump());
 
-    El radio = Radio.radioGroup(T, LEVELS, Level.HIGH, l -> l.label, told::add);
+    El radio = Radio.radioGroup(LEVELS, Level.HIGH, l -> l.label, told::add);
     assertTrue(radio.dump().contains("role=radio label=\"High\" checked\n"), radio.dump());
     assertTrue(key(radio, "ArrowDown"), "around from the last to the first");
     press(radio, "Medium");
     press(radio, "High"); // chosen already: not told
-    El segmented = Segmented.segmented(T, LEVELS, null, l -> l.label, told::add);
+    El segmented = Segmented.segmented(LEVELS, null, l -> l.label, told::add);
     assertTrue(key(segmented, "End"));
     press(segmented, "Low");
     assertEquals(List.of(Level.LOW, Level.MEDIUM, Level.HIGH, Level.LOW), told);
 
-    assertNull(Radio.radioGroup(T, LEVELS, Level.LOW, l -> l.label, null).onKey());
-    assertNull(Segmented.segmented(T, LEVELS, Level.LOW, l -> l.label, null).onKey());
+    assertNull(Radio.radioGroup(LEVELS, Level.LOW, l -> l.label, null).onKey());
+    assertNull(Segmented.segmented(LEVELS, Level.LOW, l -> l.label, null).onKey());
   }
 
   /** The entries the combo box keeps in its state, which its list knows by their identity. */
@@ -148,13 +146,12 @@ class TypedChoicesTest {
         Page.KEYMAP.item(),
         NavList.heading("Help"),
         Page.ABOUT.item());
-    El list = NavList.navList(T, pages, Page.ABOUT, Page::item, p -> p.group, told::add);
-    assertEquals(NavList.navList(T, rows, 5, i -> {}).dump(), list.dump());
+    El list = NavList.navList(pages, Page.ABOUT, Page::item, p -> p.group, told::add);
+    assertEquals(NavList.navList(rows, 5, i -> {}).dump(), list.dump());
     assertEquals(
-        NavList.navList(T, pages.subList(0, 2).stream().map(Page::item).toList(), -1, i -> {})
+        NavList.navList(pages.subList(0, 2).stream().map(Page::item).toList(), -1, i -> {})
             .dump(),
-        NavList.navList(T, pages.subList(0, 2), Page.ABOUT, Page::item, told::add)
-            .dump(),
+        NavList.navList(pages.subList(0, 2), Page.ABOUT, Page::item, told::add).dump(),
         "without headings, and a value not among them");
 
     assertTrue(key(list, "ArrowUp"), "from About past the heading to Keymap");
@@ -163,8 +160,8 @@ class TypedChoicesTest {
     press(list, "About"); // selected already: not told
     assertEquals(List.of(Page.KEYMAP, Page.GENERAL, Page.KEYMAP), told);
 
-    assertTrue(key(NavList.navList(T, pages, null, Page::item, p -> p.group, told::add), "End"));
+    assertTrue(key(NavList.navList(pages, null, Page::item, p -> p.group, told::add), "End"));
     assertEquals(Page.ABOUT, told.getLast(), "from none, End selects the last");
-    assertNull(NavList.navList(T, pages, Page.ABOUT, Page::item, null).onKey());
+    assertNull(NavList.navList(pages, Page.ABOUT, Page::item, null).onKey());
   }
 }

@@ -18,10 +18,10 @@ Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
 
 | Call | |
 | --- | --- |
-| `textField(theme, value, placeholder, onChange)` | A field of the theme's control height and field width. The placeholder is also its label, unless `.label(...)` sets one |
-| `textField(theme, value, onChange)` | Without a placeholder |
-| `withIcon(theme, field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
-| `invalid(theme, field)` | The whole frame in the danger color, also under the pointer and while focused, and the `invalid` state |
+| `textField(value, placeholder, onChange)` | A field of the theme's control height and field width. The placeholder is also its label, unless `.label(...)` sets one |
+| `textField(value, onChange)` | Without a placeholder |
+| `withIcon(field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
+| `invalid(field)` | The whole frame in the danger color, also under the pointer and while focused, and the `invalid` state |
 
 The result is the field itself, so core's field methods chain onto it:
 
@@ -36,14 +36,14 @@ A null handler disables the field. The handler may refuse an edit (store nothing
 
 ## Typed values
 
-For a number, a date or an enum, `ValueField.valueField(theme, Format.DECIMAL, state.amount, state.amountDraft, state::amount)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
+For a number, a date or an enum, `ValueField.valueField(Format.DECIMAL, state.amount, state.amountDraft, state::amount)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
 
 ## Passwords
 
 ```java snippet="password-field"
 ```
 
-`passwordField` masks the string: one `•` per character. Copy and cut do nothing, and the tree dump and every selector see only the mask. `revealable(theme, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides the text; `revealed` is a boolean in the app's state. The button leaves the focus in the field. A shown password can be copied and moves by words as in an ordinary field. The tree dump still shows only the mask, and the field says `password revealed`.
+`passwordField` masks the string: one `•` per character. Copy and cut do nothing, and the tree dump and every selector see only the mask. `revealable(field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides the text; `revealed` is a boolean in the app's state. The button leaves the focus in the field. A shown password can be copied and moves by words as in an ordinary field. The tree dump still shows only the mask, and the field says `password revealed`.
 
 <Shot src="kit/gallery-{theme}-2x" rows="password,password shown" alt="A password field masked and shown" />
 
@@ -62,7 +62,7 @@ Arrows, Home and End move the caret, with Shift to select and with Control by wo
 
 ## With a Prop
 
-`textField(theme, prop[, placeholder])` and `passwordField(theme, prop, placeholder)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`textField(prop[, placeholder])` and `passwordField(prop, placeholder)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

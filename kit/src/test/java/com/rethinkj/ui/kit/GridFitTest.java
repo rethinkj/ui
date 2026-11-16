@@ -206,7 +206,7 @@ class GridFitTest {
     List<Column> columns = List.of(new Column("id", 64, DataGrid.Align.RIGHT, true, i -> "1"));
     IllegalStateException e = assertThrows(
         IllegalStateException.class,
-        () -> DataGrid.dataGrid(T, columns, 3, DataGrid.options().fitColumns(new Fit())));
+        () -> DataGrid.dataGrid(columns, 3, DataGrid.options().fitColumns(new Fit())));
     assertTrue(e.getMessage().contains("onResize"), e.getMessage());
   }
 

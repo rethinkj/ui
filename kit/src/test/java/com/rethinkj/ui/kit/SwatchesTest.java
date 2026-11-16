@@ -50,7 +50,7 @@ class SwatchesTest {
     }
 
     App<State> app() {
-      App<State> app = new App<>(this, State::view);
+      App<State> app = new App<>(this, State::view).provide(Theme.CURRENT, state -> state.t);
       app.focusRing(t.accent().edge());
       app.textRendering(TextRendering.LINUX);
       return app;
@@ -58,29 +58,28 @@ class SwatchesTest {
 
     El view() {
       List<Radio.Option> shapes = List.of(
-          Radio.option("Table", t -> Icon.icon(t, Symbol.TABLE)),
-          Radio.option("Database", t -> Icon.icon(t, Symbol.DATABASE)),
-          Radio.option("Server", t -> Icon.icon(t, Symbol.SERVER)),
-          Radio.option("Folder", t -> Icon.icon(t, Symbol.FOLDER)));
+          Radio.option("Table", () -> Icon.icon(Symbol.TABLE)),
+          Radio.option("Database", () -> Icon.icon(Symbol.DATABASE)),
+          Radio.option("Server", () -> Icon.icon(Symbol.SERVER)),
+          Radio.option("Folder", () -> Icon.icon(Symbol.FOLDER)));
       return col()
           .wFull()
           .hFull()
           .padding(t.space().l())
           .fill(t.surface().window())
           .child(Card.card(
-              t,
-              label(t, "Icons, none chosen"),
-              Radio.swatches(t, shapes, shape, i -> shape = i).key("shapes"),
-              label(t, "A hue chosen, none first"),
-              HuePicker.huePicker(t, chosen, "None", h -> chosen = h).key("chosen"),
-              label(t, "The keyboard's focus, none chosen"),
-              HuePicker.huePicker(t, focus, h -> focus = h).key("focus"),
-              label(t, "Disabled"),
-              HuePicker.huePicker(t, Theme.Hue.TEAL, "None", null).key("disabled"),
-              label(t, "In a narrow box"),
+              label("Icons, none chosen"),
+              Radio.swatches(shapes, shape, i -> shape = i).key("shapes"),
+              label("A hue chosen, none first"),
+              HuePicker.huePicker(chosen, "None", h -> chosen = h).key("chosen"),
+              label("The keyboard's focus, none chosen"),
+              HuePicker.huePicker(focus, h -> focus = h).key("focus"),
+              label("Disabled"),
+              HuePicker.huePicker(Theme.Hue.TEAL, "None", null).key("disabled"),
+              label("In a narrow box"),
               col()
                   .w(160)
-                  .child(HuePicker.huePicker(t, narrow, "None", h -> narrow = h).key("narrow"))));
+                  .child(HuePicker.huePicker(narrow, "None", h -> narrow = h).key("narrow"))));
     }
   }
 

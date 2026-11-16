@@ -38,7 +38,7 @@ import java.util.function.Predicate;
  *     table.column("amount", 100, Format.DECIMAL, Order::amount, Order::withAmount),
  *     table.column("due", 110, Format.DATE.optional(), Order::due, Order::withDue),
  *     table.column("status", 100, STATUS, Order::status, Order::withStatus));
- * dataGrid(theme, columns, state.orders.size(), DataGrid.options().select(state.selection)
+ * dataGrid(columns, state.orders.size(), DataGrid.options().select(state.selection)
  *     .onCommit(table, (row, order) -> { state.orders.set(row, order); return null; }))
  * }</pre>
  *

@@ -16,8 +16,6 @@ import org.junit.jupiter.api.Test;
 /** Bars, running bars, lines, spinners and a busy button: what a dump says and how they move. */
 class ProgressTest {
 
-  private static final Theme T = Theme.DARK;
-
   /** What the views show. */
   static final class Shown {
     double fraction = Double.NaN; // running
@@ -47,11 +45,11 @@ class ProgressTest {
         s -> col()
             .gap(8)
             .children(
-                Progress.bar(T, 0.42).key("bar").label("Export"),
-                Progress.bar(T, 0.5, Progress.State.ERROR).key("failed"),
-                Progress.indeterminate(T).key("running"),
-                Progress.labeled(T, "orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
-                Progress.spinner(T).key("spinner")));
+                Progress.bar(0.42).key("bar").label("Export"),
+                Progress.bar(0.5, Progress.State.ERROR).key("failed"),
+                Progress.indeterminate().key("running"),
+                Progress.labeled("orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
+                Progress.spinner().key("spinner")));
     run(app, "key Tab");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#bar").contains("role=progressbar label=\"Export\""));
@@ -75,7 +73,7 @@ class ProgressTest {
         s,
         st -> col()
             .child(Button.button(
-                    T, Button.Variant.PRIMARY, Symbol.PLAY, "Run", st.busy, () -> st.pressed++)
+                    Button.Variant.PRIMARY, Symbol.PLAY, "Run", st.busy, () -> st.pressed++)
                 .key("run")));
     run(app, "key Tab\nframe\nkey Enter\nframe\npress role=button busy");
     assertEquals(0, s.pressed);
@@ -97,13 +95,13 @@ class ProgressTest {
     TextLibraries.assumeLoaded();
     int[] saved = {0};
     App<Object> app = new App<>(new Object(), x -> {
-      El refresh = Button.button(T, Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
+      El refresh = Button.button(Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
           .key("refresh");
-      El save = Button.button(T, Button.Variant.PRIMARY, "Save", () -> saved[0]++);
+      El save = Button.button(Button.Variant.PRIMARY, "Save", () -> saved[0]++);
       return col()
           .wFull()
           .hFull()
-          .overlay(Dialog.dialog(T, "Edit", refresh, java.util.List.of(save), save, () -> {}));
+          .overlay(Dialog.dialog("Edit", refresh, java.util.List.of(save), save, () -> {}));
     });
     run(app, "focus #refresh\nframe\nkey Enter\nkey Space\nframe");
     assertEquals("refresh", app.focused().key());

@@ -21,7 +21,7 @@ import java.util.function.Predicate;
  * which one is selected; the tree shows them and reports what the user does:
  *
  * <pre>{@code
- * tree(theme, state.catalog, state.open::contains, state.selected,
+ * tree(state.catalog, state.open::contains, state.selected,
  *     node -> state.selected = node,
  *     (node, open) -> {
  *       if (open) {
@@ -180,13 +180,13 @@ public final class Tree {
    * @param onActivate told the node the user activates with a double press or Enter; null for none
    */
   public static <N> El tree(
-      Theme theme,
       Model<N> model,
       Predicate<? super N> isOpen,
       N selected,
       Consumer<? super N> onSelect,
       Toggle<? super N> onToggle,
       Consumer<? super N> onActivate) {
+    Theme theme = Theme.CURRENT.get();
     Rows<N> rows = new Rows<>(model, isOpen, selected);
     float height = theme.grid().rowHeight();
     float indent = theme.space().xl();
@@ -210,7 +210,7 @@ public final class Tree {
               theme, r.child(el().w(indent).shrink(0)), failure, rows.depth(i) + 1, height);
         }
         String text = model.loading(parent);
-        El loading = Label.label(theme, Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
+        El loading = Label.label(Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
         return whole(
             theme, r.children(el().w(indent).shrink(0), loading), loading, null, text, height);
       }
@@ -224,7 +224,7 @@ public final class Tree {
       };
       El mark = el().size(indent, height).shrink(0).center(); // the whole height takes presses
       if (!leaf) {
-        mark.key("mark-" + i).child(Icon.icon(theme, open ? OPEN : CLOSED, Icon.Variant.MUTED));
+        mark.key("mark-" + i).child(Icon.icon(open ? OPEN : CLOSED, Icon.Variant.MUTED));
         if (onToggle != null) {
           mark.onPress(() -> {
             select.run();
@@ -249,7 +249,7 @@ public final class Tree {
       Label.Variant variant = model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
       String detail = model.detail(node);
       if (detail == null) {
-        El name = Label.label(theme, variant, label).ellipsis().minSize(0, 0);
+        El name = Label.label(variant, label).ellipsis().minSize(0, 0);
         whole(theme, r.child(name), name, null, label, height);
       } else {
         detail(theme, r.value(detail), variant, label, detail, height);
@@ -318,14 +318,13 @@ public final class Tree {
    */
   private static void detail(
       Theme theme, El row, Label.Variant variant, String label, String detail, float height) {
-    El name = Label.label(theme, variant, label).ellipsis().minSize(0, 0).shrink(0);
+    El name = Label.label(variant, label).ellipsis().minSize(0, 0).shrink(0);
     name.style().maxWidth = Len.percent(1);
-    El more = Label.label(theme, Label.Variant.MUTED, detail)
+    El more = Label.label(Label.Variant.MUTED, detail)
         .ellipsis()
         .minSize(0, 0)
         .grow(1)
-        .basis(
-            TextSizing.natural(Label.label(theme, Label.Variant.MUTED, TextSizing.least(detail))))
+        .basis(TextSizing.natural(Label.label(Label.Variant.MUTED, TextSizing.least(detail))))
         .margin(0, 0, 0, theme.space().s());
     El box = row()
         .wrap()
@@ -368,14 +367,14 @@ public final class Tree {
    * leaves the focus where it is.
    */
   private static El failed(Theme theme, El row, Failure failure, int level, float height) {
-    El text = Label.label(theme, failure.text()).ellipsis().minSize(0, 0).grow(1);
+    El text = Label.label(failure.text()).ellipsis().minSize(0, 0).grow(1);
     row.role("treeitem")
         .label(failure.text())
         .invalid(true)
         .errorMessage(failure.text())
         .level(level)
         .position(1, 1)
-        .children(Icon.icon(theme, Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
+        .children(Icon.icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
     whole(theme, row, text, null, failure.text(), height);
     Runnable run = failure.onAction();
     if (failure.action() == null || run == null) {
@@ -410,7 +409,7 @@ public final class Tree {
         })
         .whenHovered(
             e -> e.fill(theme.surface().hover())) // as a link: no darker look while pressed
-        .child(Label.label(theme, failure.action()).color(theme.prose().link())));
+        .child(Label.label(failure.action()).color(theme.prose().link())));
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */

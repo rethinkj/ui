@@ -22,7 +22,8 @@ public final class EmptyState {
    * @param text below the title; null for none
    * @param action a button below the text; null for none
    */
-  public static El emptyState(Theme theme, Symbol symbol, String title, String text, El action) {
+  public static El emptyState(Symbol symbol, String title, String text, El action) {
+    Theme theme = Theme.CURRENT.get();
     El empty = col()
         .role("status")
         .label(title)
@@ -30,10 +31,10 @@ public final class EmptyState {
         .center()
         .padding(theme.space().xxl())
         .gap(theme.space().m())
-        .child(icon(theme, symbol, Icon.Variant.MUTED, 2 * theme.size().control()))
-        .child(lines(label(theme, Label.Variant.STRONG, title)));
+        .child(icon(symbol, Icon.Variant.MUTED, 2 * theme.size().control()))
+        .child(lines(label(Label.Variant.STRONG, title)));
     if (text != null) {
-      empty.child(lines(label(theme, Label.Variant.MUTED, text)));
+      empty.child(lines(label(Label.Variant.MUTED, text)));
     }
     if (action != null) {
       empty.child(action.margin(theme.space().s(), 0, 0, 0));

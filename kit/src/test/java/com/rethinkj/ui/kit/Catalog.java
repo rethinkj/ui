@@ -286,15 +286,14 @@ final class Catalog implements Tree.Model<Catalog.Node> {
       // The color says whether the server is connected.
       case SERVER ->
         Icon.icon(
-            theme,
             Symbol.SERVER,
             failures.containsKey(node)
                 ? Variant.DANGER
                 : node.children == null ? Variant.DISABLED : Variant.SUCCESS);
-      case DATABASE -> Icon.icon(theme, Symbol.DATABASE, Variant.MUTED);
-      case SCHEMA -> Icon.icon(theme, Symbol.FOLDER, Variant.MUTED);
-      case TABLE -> Icon.icon(theme, Symbol.TABLE, Variant.MUTED);
-      case COLUMN -> Icon.icon(theme, Symbol.COLUMN_SINGLE, Variant.MUTED);
+      case DATABASE -> Icon.icon(Symbol.DATABASE, Variant.MUTED);
+      case SCHEMA -> Icon.icon(Symbol.FOLDER, Variant.MUTED);
+      case TABLE -> Icon.icon(Symbol.TABLE, Variant.MUTED);
+      case COLUMN -> Icon.icon(Symbol.COLUMN_SINGLE, Variant.MUTED);
     };
   }
 
@@ -311,7 +310,6 @@ final class Catalog implements Tree.Model<Catalog.Node> {
 
   El tree() {
     return Tree.tree(
-        theme,
         this,
         open::contains,
         selected,
@@ -334,7 +332,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   }
 
   App<Catalog> app() {
-    app = new App<>(this, Catalog::view);
+    app = new App<>(this, Catalog::view).provide(Theme.CURRENT, catalog -> catalog.theme);
     app.textRendering(TextRendering.LINUX);
     app.focusRing(theme.accent().edge());
     return app;

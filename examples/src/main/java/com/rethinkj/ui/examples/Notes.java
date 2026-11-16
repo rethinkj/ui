@@ -114,16 +114,12 @@ public final class Notes {
         Note note = state.row.get(index);
         El card = note.window != null
             ? card(
-                theme,
                 Card.Variant.FILLED, // in its own window: shown, not edited, here
-                label(theme, Label.Variant.MUTED, note.title),
-                label(theme, Label.Variant.MUTED, note.text)
-                    .key("text-" + note.title)
-                    .wrapText())
+                label(Label.Variant.MUTED, note.title),
+                label(Label.Variant.MUTED, note.text).key("text-" + note.title).wrapText())
             : card(
-                theme,
-                handle(theme, note, state),
-                textArea(theme, note.text, "Empty", text -> note.text = text)
+                handle(note, state),
+                textArea(note.text, "Empty", text -> note.text = text)
                     .key("text-" + note.title)
                     .wFull()
                     .grow(1));
@@ -136,17 +132,17 @@ public final class Notes {
         .fill(theme.surface().window())
         .child(row()
             .padding(theme.space().l(), theme.space().l(), 0, theme.space().l())
-            .child(label(theme, Label.Variant.HEADING, "Notes")))
+            .child(label(Label.Variant.HEADING, "Notes")))
         .child(cards);
   }
 
   /** A note's title, which drags the note: along the row, out of the window, back. */
   // docs:start notes-handle
-  static El handle(Theme theme, Note note, Notes state) {
+  static El handle(Note note, Notes state) {
     return row()
         .key("handle-" + note.title)
         .cursor(Cursor.POINTER)
-        .child(label(theme, Label.Variant.STRONG, note.title))
+        .child(label(Label.Variant.STRONG, note.title))
         .dragPayload(note)
         .onDrag(drag -> state.drag(note, drag));
   }
@@ -261,8 +257,8 @@ public final class Notes {
         .fill(theme.surface().window())
         .padding(theme.space().l())
         .gap(theme.space().l())
-        .child(label(theme, Label.Variant.STRONG, note.title).key("title"))
-        .child(textArea(theme, note.text, "Empty", text -> note.text = text)
+        .child(label(Label.Variant.STRONG, note.title).key("title"))
+        .child(textArea(note.text, "Empty", text -> note.text = text)
             .key("text")
             .wFull()
             .grow(1));

@@ -65,10 +65,10 @@ class IconTest {
   @CsvSource({"1", "1.25", "1.5", "2"})
   void anIconIsItsSizeOnWholePixelsAndLinesUpWithTheTextBesideIt(float scale) {
     TextLibraries.assumeLoaded();
-    El before = label(T, "orders_2024");
-    El small = icon(T, Symbol.TABLE);
-    El large = icon(T, Symbol.TABLE, Variant.NORMAL, 20);
-    El after = label(T, "orders");
+    El before = label("orders_2024");
+    El small = icon(Symbol.TABLE);
+    El large = icon(Symbol.TABLE, Variant.NORMAL, 20);
+    El after = label("orders");
     El line =
         row().gap(T.space().s()).align(Style.Align.CENTER).children(before, small, large, after);
     Headless.render(col().padding(3.25f).child(line), 300, 60, scale, TextRendering.LINUX);
@@ -86,8 +86,12 @@ class IconTest {
     TextLibraries.assumeLoaded();
     Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     int rows = 1 + (Symbol.values().length + COLUMNS - 1) / COLUMNS;
-    Headless.Frame frame =
-        Headless.render(sheet(t), CELL * COLUMNS, rows * ROW, scale, TextRendering.LINUX);
+    Headless.Frame frame = Headless.render(
+        Theme.CURRENT.with(t, () -> sheet(t)),
+        CELL * COLUMNS,
+        rows * ROW,
+        scale,
+        TextRendering.LINUX);
     Golden.assertMatches("icons-" + name + "-" + scale + "x", frame.pixels(), frame.tree());
   }
 
@@ -96,18 +100,18 @@ class IconTest {
    * name, row by row.
    */
   private static El sheet(Theme t) {
-    El variants = cell(t).w(CELL * COLUMNS).child(label(t, Label.Variant.MUTED, "variants"));
+    El variants = cell(t).w(CELL * COLUMNS).child(label(Label.Variant.MUTED, "variants"));
     for (Variant variant : Variant.values()) {
       variants.children(
-          icon(t, Symbol.WARNING, variant), label(t, variant.name().toLowerCase(Locale.ROOT)));
+          icon(Symbol.WARNING, variant), label(variant.name().toLowerCase(Locale.ROOT)));
     }
     El sheet = row().wrap().wFull().hFull().fill(t.surface().window()).child(variants);
     for (Symbol symbol : Symbol.values()) {
       sheet.child(cell(t)
           .children(
-              icon(t, symbol),
-              icon(t, symbol, Variant.NORMAL, 20),
-              label(t, symbol.name().toLowerCase(Locale.ROOT))));
+              icon(symbol),
+              icon(symbol, Variant.NORMAL, 20),
+              label(symbol.name().toLowerCase(Locale.ROOT))));
     }
     return sheet;
   }

@@ -294,7 +294,7 @@ class MenuBarTest {
             .hFull()
             .onKey(MenuBar.keys(bar, menus))
             .onKeyUp(MenuBar.keysUp(bar, menus))
-            .child(MenuBar.menuBar(Theme.DARK, bar, menus))
+            .child(MenuBar.menuBar(bar, menus))
             .child(el().key("finder")
                 .size(100, 30)
                 .focusable()
@@ -389,8 +389,7 @@ class MenuBarTest {
     List<Menu.Item> menus =
         List.of(Menu.submenu("&File", List.of(Menu.item("Find", () -> {}).shortcut(Key.ALT, "F"))));
     e = assertThrows(
-        IllegalArgumentException.class,
-        () -> MenuBar.menuBar(Theme.DARK, new MenuBar.State(), menus));
+        IllegalArgumentException.class, () -> MenuBar.menuBar(new MenuBar.State(), menus));
     assertTrue(
         e.getMessage().contains("\"Find\"") && e.getMessage().contains("\"File\""), e.getMessage());
   }

@@ -109,8 +109,9 @@ public final class Documents {
 
   public static void main(String[] args) throws IOException {
     Documents state = new Documents();
-    state.app =
-        new App<>(state, documents -> documents.view(documents.groups.main(), documents.app));
+    state.app = new App<>(
+            state, documents -> documents.view(documents.groups.main(), documents.app))
+        .provide(Theme.CURRENT, Documents::theme);
     // A script's images are stored, so they must not depend on the platform.
     state.app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, state.app)) {
@@ -141,7 +142,8 @@ public final class Documents {
   Windows.Handle open(TabGroups.Group<Doc> group, Window.Options options) {
     @SuppressWarnings("unchecked")
     App<Documents>[] window = new App[1];
-    window[0] = new App<>(this, state -> state.view(group, window[0]));
+    window[0] = new App<>(this, state -> state.view(group, window[0]))
+        .provide(Theme.CURRENT, Documents::theme);
     window[0].textRendering(app.textRendering());
     return app.windows()
         .open(
@@ -160,25 +162,20 @@ public final class Documents {
    * @param window the window's app, which a document's find bar selects in
    */
   El view(TabGroups.Group<Doc> group, App<Documents> window) {
-    Theme theme = theme();
+    Theme theme = Theme.CURRENT.get();
     // docs:start documents-tabs
     El tabs = groups.tabs(
-        theme,
         group,
         document -> new Tab(document.title).icon(Symbol.DOCUMENT),
         document -> document == null
             ? EmptyState.emptyState(
-                theme,
-                Symbol.DOCUMENT,
-                "No documents",
-                "Drag a tab here from another window.",
-                null)
-            : editor(theme, document, window));
+                Symbol.DOCUMENT, "No documents", "Drag a tab here from another window.", null)
+            : editor(document, window));
     // docs:end documents-tabs
     if (dropping == group) { // the card's edge in the accent, as wide as before
       tabs.border(theme.size().stroke(), theme.accent().edge());
     }
-    El dark = toggle(theme, this.dark, "Dark", () -> this.dark = !this.dark);
+    El dark = toggle(this.dark, "Dark", () -> this.dark = !this.dark);
     El root = col()
         .wFull()
         .hFull()
@@ -191,15 +188,9 @@ public final class Documents {
       root.onKey(tabs.onKey() == null ? keys : keys.or(tabs.onKey()))
           .onKeyUp(MenuBar.keysUp(bar, menus))
           .child(withMenus(
-              theme,
-              "Documents",
-              MARK,
-              MenuBar.menuBar(theme, bar, menus),
-              Identity.maximized(window),
-              dark));
+              "Documents", MARK, MenuBar.menuBar(bar, menus), Identity.maximized(window), dark));
     } else {
-      root.onKey(tabs.onKey())
-          .child(titleBar(theme, "Documents", MARK, Identity.maximized(window), dark));
+      root.onKey(tabs.onKey()).child(titleBar("Documents", MARK, Identity.maximized(window), dark));
     }
     root.child(col()
         .key("tabs")
@@ -207,9 +198,9 @@ public final class Documents {
         .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
         .child(tabs.grow(1)));
     if (dropping == group) {
-      root.overlay(hint(theme));
+      root.overlay(hint());
     } else if (toast != null && group == groups.main()) {
-      root.overlay(Toast.toast(theme, toast, null, null, () -> toast = null));
+      root.overlay(Toast.toast(toast, null, null, () -> toast = null));
     }
     return root;
   }
@@ -352,7 +343,8 @@ public final class Documents {
   }
 
   /** What a window shows while a file manager's drag is over it. */
-  static El hint(Theme theme) {
+  static El hint() {
+    Theme theme = Theme.CURRENT.get();
     return row()
         .key("drop-hint")
         .role("status")
@@ -370,20 +362,21 @@ public final class Documents {
         .fill(theme.surface().raised())
         .border(theme.size().stroke(), theme.accent().edge())
         .shadow(theme.elevation().popup())
-        .child(Icon.icon(theme, Symbol.DOCUMENT))
-        .child(label(theme, "Drop to open in a new tab"));
+        .child(Icon.icon(Symbol.DOCUMENT))
+        .child(label("Drop to open in a new tab"));
   }
 
-  static El editor(Theme theme, Doc document, App<Documents> app) {
+  static El editor(Doc document, App<Documents> app) {
+    Theme theme = Theme.CURRENT.get();
     El area = document.title.equals("Query")
             || document.title.toLowerCase(Locale.ROOT).endsWith(".sql")
-        ? TextField.codeArea(theme, document.text, "Empty", text -> document.text = text)
-        : TextField.textArea(theme, document.text, "Empty", text -> document.text = text);
+        ? TextField.codeArea(document.text, "Empty", text -> document.text = text)
+        : TextField.textArea(document.text, "Empty", text -> document.text = text);
     area.fieldState(document.field);
     return col()
         .grow(1)
         .padding(theme.space().l())
-        .child(Find.find(
-            theme, app, area.key("text").label(document.title).wFull().grow(1), document.find));
+        .child(
+            Find.find(app, area.key("text").label(document.title).wFull().grow(1), document.find));
   }
 }

@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  *         Menu.item("Undo", state::undo).shortcut(Key.CONTROL, "Z"),
  *         Menu.item("Copy", state::copy).shortcut(Key.CONTROL, "C"))));
  * El root = col().children(
- *         titleBar.child(MenuBar.menuBar(theme, state.bar, menus)),
+ *         titleBar.child(MenuBar.menuBar(state.bar, menus)),
  *         editor)
  *     .onKey(MenuBar.keys(state.bar, menus))       // Alt, F10, Alt+F and Ctrl+N, Ctrl+S, ...
  *     .onKeyUp(MenuBar.keysUp(state.bar, menus));  // Alt alone gives the bar the keys
@@ -165,7 +165,8 @@ public final class MenuBar {
    * @throws IllegalArgumentException if two items have one key combination, or one is Alt with a
    *     title's mnemonic
    */
-  public static El menuBar(Theme theme, State state, List<Menu.Item> menus) {
+  public static El menuBar(State state, List<Menu.Item> menus) {
+    Theme theme = Theme.CURRENT.get();
     table(menus); // refuses conflicts when the view is built
     state.fit(menus);
     boolean marks = state.alt || state.title >= 0;
@@ -199,8 +200,7 @@ public final class MenuBar {
     boolean enabled = menu.isEnabled();
     boolean open = state.open() == i;
     boolean lit = open || state.title == i && !state.menu.isOpen();
-    El label =
-        label(theme, text).color(enabled ? theme.text().primary() : theme.text().disabled());
+    El label = label(text).color(enabled ? theme.text().primary() : theme.text().disabled());
     if (marks && mnemonic >= 0) {
       label.underline(mnemonic, text.offsetByCodePoints(mnemonic, 1));
     }

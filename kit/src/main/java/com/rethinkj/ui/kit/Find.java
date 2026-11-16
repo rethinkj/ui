@@ -25,9 +25,9 @@ import java.util.regex.PatternSyntaxException;
  * selection, and below it the replacement; or a field for the line to go to.
  *
  * <pre>{@code
- * El area = TextField.textArea(theme, state.text, "Notes", value -> state.text = value)
+ * El area = TextField.textArea(state.text, "Notes", value -> state.text = value)
  *     .key("notes");
- * Find.find(theme, app, area, state.find);
+ * Find.find(app, area, state.find);
  * }</pre>
  *
  * <p>Control+F opens it with the selected text, or the word at the caret, as the text to find,
@@ -209,7 +209,8 @@ public final class Find {
    * @param field a {@link El#multiline} field
    * @return the field
    */
-  public static El find(Theme theme, App<?> app, El field, State state) {
+  public static El find(App<?> app, El field, State state) {
+    Theme theme = Theme.CURRENT.get();
     String text = field.text().string();
     // A view may make the field read-only after this call, as after CodeEditor's: the last build's
     // field says so too, and the bar only shows after a handler that ran on that build.
@@ -817,7 +818,7 @@ public final class Find {
         : null;
     El query = queryField(theme, state);
     String said = count(state, text);
-    El count = label(theme, Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
+    El count = label(Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
     count.style().minWidth = Len.px(2 * theme.size().control());
     // The rows' gap is xs; the field stands a step m apart from what follows it.
     float apart = theme.space().m() - theme.space().xs();
@@ -864,7 +865,7 @@ public final class Find {
     panel.child(findRow);
     state.replaceField = null;
     if (state.mode == Mode.REPLACE) {
-      El replace = TextField.textField(theme, state.replacement, "Replace", v -> {
+      El replace = TextField.textField(state.replacement, "Replace", v -> {
             state.replacement = v;
             state.replaceError = null;
           })
@@ -884,7 +885,7 @@ public final class Find {
           });
       state.replaceField = replace;
       if (state.replaceError != null) {
-        replace = Tooltip.tooltip(theme, TextField.invalid(theme, replace), state.replaceError);
+        replace = Tooltip.tooltip(TextField.invalid(replace), state.replaceError);
       }
       panel.child(row()
           .gap(theme.space().xs())
@@ -892,14 +893,12 @@ public final class Find {
           .padding(0, 0, 0, lead + theme.space().xs())
           .child(replace)
           .child(Button.button(
-                  theme,
                   Button.Variant.SECONDARY,
                   "Replace",
                   searchable ? () -> replace(app, state) : null)
               .key("replace-one")
               .margin(0, 0, 0, apart))
           .child(Button.button(
-                  theme,
                   Button.Variant.SECONDARY,
                   "Replace all",
                   searchable ? () -> replaceAll(app, state) : null)
@@ -918,7 +917,7 @@ public final class Find {
 
   /** The field to find, with the switches of case, words and regular expressions inside. */
   private static El queryField(Theme theme, State state) {
-    El field = TextField.textField(theme, state.query, "Find", v -> {
+    El field = TextField.textField(state.query, "Find", v -> {
           state.query = v;
           changed(state);
         })
@@ -949,7 +948,7 @@ public final class Find {
     float inset = theme.space().xs();
     float size = FieldActions.size(theme);
     if (state.error != null) {
-      TextField.invalid(theme, field);
+      TextField.invalid(field);
     }
     El switches = row()
         .gap(0)
@@ -993,12 +992,12 @@ public final class Find {
       int c = state.error != null ? theme.status().danger() : theme.accent().color();
       TextField.edge(theme, field, c, c);
     });
-    return state.error != null ? Tooltip.tooltip(theme, box, state.error) : box;
+    return state.error != null ? Tooltip.tooltip(box, state.error) : box;
   }
 
   /** The field of the line to go to and the lines there are. */
   private static El lineRow(Theme theme, State state, String text) {
-    El field = TextField.textField(theme, state.line, "Line or line:column", v -> state.line = v)
+    El field = TextField.textField(state.line, "Line or line:column", v -> state.line = v)
         .key("line-field")
         .label("Go to line")
         .autofocus(state.opened)
@@ -1018,7 +1017,7 @@ public final class Find {
         });
     state.lineField = field;
     if (!state.line.isBlank() && parseLine(state.line) == null) {
-      TextField.invalid(theme, field);
+      TextField.invalid(field);
     }
     int lines = 1;
     for (int i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) {
@@ -1028,7 +1027,7 @@ public final class Find {
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(field)
-        .child(label(theme, Label.Variant.MUTED, "1 to " + lines)
+        .child(label(Label.Variant.MUTED, "1 to " + lines)
             .key("count")
             .shrink(0)
             .fontFeatures("+tnum")
@@ -1050,7 +1049,7 @@ public final class Find {
       return button;
     }
     button.focusable().focusRing(theme.accent().edge());
-    return Tooltip.tooltip(theme, button, tip);
+    return Tooltip.tooltip(button, tip);
   }
 
   /** The text as a regular expression that finds it. */

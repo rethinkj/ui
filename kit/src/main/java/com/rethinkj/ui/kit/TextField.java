@@ -22,8 +22,8 @@ import java.util.function.Consumer;
  * inside its frame that shows and hides the password:
  *
  * <pre>{@code
- * revealable(theme,
- *     passwordField(theme, state.password, null, value -> state.password = value)
+ * revealable(
+ *     passwordField(state.password, null, value -> state.password = value)
  *         .label("Password"),
  *     state.revealed, () -> state.revealed = !state.revealed)
  * }</pre>
@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * <p>A text area for a query, six lines high and as wide as its column:
  *
  * <pre>{@code
- * codeArea(theme, state.query, "SQL", value -> state.query = value)
+ * codeArea(state.query, "SQL", value -> state.query = value)
  *     .key("query").lines(6).wFull()
  * }</pre>
  */
@@ -40,8 +40,8 @@ public final class TextField {
   private TextField() {}
 
   /** A field without placeholder; give it a label with {@code .label("...")}. */
-  public static El textField(Theme theme, String value, Consumer<String> onChange) {
-    return textField(theme, value, null, onChange);
+  public static El textField(String value, Consumer<String> onChange) {
+    return textField(value, null, onChange);
   }
 
   /**
@@ -50,8 +50,8 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the field
    */
-  public static El textField(
-      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+  public static El textField(String value, String placeholder, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     float m = theme.space().m();
     return frame(
             theme, El.text(value).editable(onChange), theme.type().body(), placeholder, onChange)
@@ -63,15 +63,16 @@ public final class TextField {
    * A field of a {@link Prop}: its string, written back on each edit, with the error of its field
    * when the prop comes from an {@link Editing}. A prop that cannot be written disables it.
    */
-  public static El textField(Theme theme, Prop<String> value) {
-    return textField(theme, value, null);
+  public static El textField(Prop<String> value) {
+    return textField(value, null);
   }
 
-  /** A field of a {@link Prop} with a placeholder, as {@link #textField(Theme, Prop)}. */
-  public static El textField(Theme theme, Prop<String> value, String placeholder) {
+  /** A field of a {@link Prop} with a placeholder, as {@link #textField(Prop)}. */
+  public static El textField(Prop<String> value, String placeholder) {
+    Theme theme = Theme.CURRENT.get();
     String text = value.get();
     return Prop.shown(
-        theme, textField(theme, text == null ? "" : text, placeholder, value.onChange()), value);
+        theme, textField(text == null ? "" : text, placeholder, value.onChange()), value);
   }
 
   /**
@@ -86,8 +87,8 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the area
    */
-  public static El textArea(
-      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+  public static El textArea(String value, String placeholder, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     return area(theme, theme.type().body(), value, placeholder, onChange).wrapText();
   }
 
@@ -98,8 +99,8 @@ public final class TextField {
    * focus. Words are those of code ({@link El#codeWords}): a double press on {@code orders} in
    * {@code shop.public.orders} selects that name alone.
    */
-  public static El codeArea(
-      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+  public static El codeArea(String value, String placeholder, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     El area = area(theme, theme.type().mono(), value, placeholder, onChange)
         .tabIndents(true)
         .codeWords();
@@ -183,7 +184,8 @@ public final class TextField {
    *
    * @return the field
    */
-  public static El invalid(Theme theme, El field) {
+  public static El invalid(El field) {
+    Theme theme = Theme.CURRENT.get();
     int danger = theme.status().danger();
     return edge(theme, field.invalid(true), danger, danger).whenFocused(null);
   }
@@ -193,14 +195,13 @@ public final class TextField {
    * for each character and copies nothing. The result is the field itself, as of {@code
    * textField}; {@link #revealable} adds a button that shows the password.
    */
-  public static El passwordField(
-      Theme theme, String value, String placeholder, Consumer<String> onChange) {
-    return textField(theme, value, placeholder, onChange).masked();
+  public static El passwordField(String value, String placeholder, Consumer<String> onChange) {
+    return textField(value, placeholder, onChange).masked();
   }
 
-  /** A password field of a {@link Prop}, as {@link #textField(Theme, Prop, String)}. */
-  public static El passwordField(Theme theme, Prop<String> value, String placeholder) {
-    return textField(theme, value, placeholder).masked();
+  /** A password field of a {@link Prop}, as {@link #textField(Prop, String)}. */
+  public static El passwordField(Prop<String> value, String placeholder) {
+    return textField(value, placeholder).masked();
   }
 
   /**
@@ -224,7 +225,8 @@ public final class TextField {
    * @param revealed whether the string shows, from the app's state
    * @param onToggle runs on a press of the button; the app flips its state. Null disables it
    */
-  public static El revealable(Theme theme, El field, boolean revealed, Runnable onToggle) {
+  public static El revealable(El field, boolean revealed, Runnable onToggle) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null && (field.onEdit() != null || field.isReadOnly());
     field.masked().revealed(revealed);
     El button = FieldActions.button(
@@ -255,12 +257,12 @@ public final class TextField {
    *
    * @param field a field of {@link #textField}
    */
-  public static El withIcon(Theme theme, El field, Symbol symbol) {
+  public static El withIcon(El field, Symbol symbol) {
+    Theme theme = Theme.CURRENT.get();
     Len height = field.style().height; // the icon in a square as high as the field
     float side = height.kind() == Len.Kind.PX ? height.value() : theme.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
-    El mark =
-        icon(theme, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+    El mark = icon(symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
     at.left = Len.px((side - theme.size().icon()) / 2);

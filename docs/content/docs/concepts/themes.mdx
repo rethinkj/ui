@@ -10,20 +10,20 @@ The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a reco
 
 <Shot src="examples/docs/theme/view-{theme}" alt="A Save button in the teal accent of the light theme" />
 
-## Passing the theme
+## Providing the theme
 
-Every component takes the theme as its first parameter. There is no global theme: the view gets it from the state or a constant, so two themes can be on screen at once.
+Components read the theme from `Theme.CURRENT`, and so does the view's own code, with `Theme.CURRENT.get()`. It is `Theme.DARK` until the app provides another: `app.provide(Theme.CURRENT, state -> theme)` gives the theme to every build of the view and to the rows of its lists, and `Theme.CURRENT.with(theme, () -> part)` to a part of the view, as above, so two themes can be on screen at once. Handlers run outside the view: one that needs the theme reads it from the state.
 
 ## Switching themes
 
-Keep what the user chose in the state and build the theme from it in the view. This app offers Dark, Light and System, and an accent:
+Keep what the user chose in the state and provide the theme from it. This app offers Dark, Light and System, and an accent:
 
 ```java snippet="theming"
 ```
 
 <Shot src="examples/docs/theming/system-{theme}" alt="A card with the choices Dark, Light and System, System chosen, above ten round accent swatches, blue chosen" />
 
-- A handler that changes `mode` or `accent` rebuilds the view, and every component gets the new theme.
+- A handler that changes `mode` or `accent` rebuilds the view, and every component reads the new theme.
 - `WindowLoop.appearance(handler)` calls the handler at the start and whenever the system's setting changes, as a task of the app, so the view is built again. The app above keeps the system's choice in `systemDark` and uses it only in System mode. Nothing follows the system by itself.
 - The [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) it passes holds `scheme()`: `DARK`, `LIGHT`, or `UNKNOWN` where the system does not say, as on a Linux desktop without the portal; `dark()` is false then. `accent()` is the system's accent color as `0xFFRRGGBB` on Windows and 0 on Linux. `highContrast()` says whether high contrast is on; the kit has no theme for it.
 - `window.frameDark(dark)` makes a framed window's title bar follow the app's theme on Windows ([Windows, icons and dialogs](/docs/concepts/platform#the-systems-appearance)).

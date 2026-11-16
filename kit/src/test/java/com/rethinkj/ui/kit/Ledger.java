@@ -102,7 +102,7 @@ final class Ledger {
 
   El view() {
     El bar = filtering
-        ? DataGrid.filterBar(theme, columns(), filters, f -> {
+        ? DataGrid.filterBar(columns(), filters, f -> {
           log.add("filters " + f.size());
           filters = f;
         })
@@ -147,11 +147,11 @@ final class Ledger {
         filters = f;
       });
     }
-    return dataGrid(theme, columns(), changes.rowCount(), more.apply(options));
+    return dataGrid(columns(), changes.rowCount(), more.apply(options));
   }
 
   App<Ledger> app() {
-    app = new App<>(this, Ledger::view);
+    app = new App<>(this, Ledger::view).provide(Theme.CURRENT, ledger -> ledger.theme);
     app.textRendering(TextRendering.LINUX);
     return app;
   }

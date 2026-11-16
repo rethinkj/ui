@@ -16,11 +16,11 @@ Javadoc: [`Select`](/api/com/rethinkj/ui/kit/Select.html).
 
 `state.driver` is the index of the current choice and `state.driverMenu` a `Menu.State`, both in the app's state.
 
-`Select.select(theme, choices, selected, menuState, onSelect)` takes the choices as texts, the index of the current one, the `Menu.State` and a handler that gets the new index. A null handler disables it. It has the width and frame of a text field. A long choice ends in an ellipsis; the control's label keeps the whole text.
+`Select.select(choices, selected, menuState, onSelect)` takes the choices as texts, the index of the current one, the `Menu.State` and a handler that gets the new index. A null handler disables it. It has the width and frame of a text field. A long choice ends in an ellipsis; the control's label keeps the whole text.
 
 ## Values instead of indexes
 
-`Select.select(theme, values, selected, text, menuState, onSelect)` chooses among values of any type, such as an enum's constants or records. The function `text` gives each value its text:
+`Select.select(values, selected, text, menuState, onSelect)` chooses among values of any type, such as an enum's constants or records. The function `text` gives each value its text:
 
 ```java snippet="choice-types"
 ```
@@ -49,7 +49,7 @@ The tree dump is the same as with indexes.
 
 ## With a Prop
 
-`select(theme, values, prop, text, menuState)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`select(values, prop, text, menuState)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

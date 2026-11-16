@@ -18,9 +18,9 @@ import java.util.function.Predicate;
  * it is open, usually to the root, and closes it in its handlers:
  *
  * <pre>{@code
- * El rename = button(theme, PRIMARY, "Rename", state.name.isBlank() ? null : state::rename);
- * root.overlay(state.renaming ? Dialog.dialog(theme, "Rename table", field,
- *     List.of(button(theme, SECONDARY, "Cancel", state::cancel), rename), rename, state::cancel)
+ * El rename = button(PRIMARY, "Rename", state.name.isBlank() ? null : state::rename);
+ * root.overlay(state.renaming ? Dialog.dialog("Rename table", field,
+ *     List.of(button(SECONDARY, "Cancel", state::cancel), rename), rename, state::cancel)
  *     : null);
  * }</pre>
  *
@@ -65,9 +65,8 @@ public final class Dialog {
    * @param buttons the actions, in the order shown, the main one usually last
    * @param onDismiss runs on Escape and on a press outside the dialog
    */
-  public static El dialog(
-      Theme theme, String title, El content, List<El> buttons, Runnable onDismiss) {
-    return dialog(theme, title, content, buttons, onDismiss, options());
+  public static El dialog(String title, El content, List<El> buttons, Runnable onDismiss) {
+    return dialog(title, content, buttons, onDismiss, options());
   }
 
   /**
@@ -83,14 +82,8 @@ public final class Dialog {
    * @throws IllegalArgumentException if {@code defaultButton} is not one of {@code buttons}
    */
   public static El dialog(
-      Theme theme,
-      String title,
-      El content,
-      List<El> buttons,
-      El defaultButton,
-      Runnable onDismiss) {
-    return dialog(
-        theme, title, content, buttons, onDismiss, options().defaultButton(defaultButton));
+      String title, El content, List<El> buttons, El defaultButton, Runnable onDismiss) {
+    return dialog(title, content, buttons, onDismiss, options().defaultButton(defaultButton));
   }
 
   /** What a dialog has beyond its title, content and buttons; {@link #options()} is a plain one. */
@@ -159,12 +152,8 @@ public final class Dialog {
    * @throws IllegalArgumentException if the default button is not one of {@code buttons}
    */
   public static El dialog(
-      Theme theme,
-      String title,
-      El content,
-      List<El> buttons,
-      Runnable onDismiss,
-      Options options) {
+      String title, El content, List<El> buttons, Runnable onDismiss, Options options) {
+    Theme theme = Theme.CURRENT.get();
     El defaultButton = options.defaultButton;
     if (defaultButton != null && buttons.stream().noneMatch(b -> b == defaultButton)) {
       throw new IllegalArgumentException(
@@ -176,7 +165,6 @@ public final class Dialog {
       head.child(options.leading.shrink(0));
     }
     head.child(Tooltip.whenShortened(
-        theme,
         El.text(title)
             .font(theme.type().dialog().font().get())
             .fontSize(theme.type().dialog().size())

@@ -25,7 +25,7 @@ final class Desktop {
     Window.identity("com.example.Lights", "Lights"); // the taskbar groups by it
     WindowIcon icon = WindowIcon.of(
         size -> // drawn for each size asked
-        AppIcon.appIcon(Theme.DARK, size, Colors.rgb(0xD97706), Symbol.FLASH));
+        AppIcon.appIcon(size, Colors.rgb(0xD97706), Symbol.FLASH));
     Window.Options options = Window.options().frameless().minimumSize(240, 160).icon(icon);
     App<Lights> app = new App<>(new Lights(), Lights::view);
     try (Window window = Window.open("Lights", 360, 240, options);
@@ -61,7 +61,7 @@ final class Desktop {
   static void taskbar(Window window, Theme theme) {
     // docs:start taskbar
     window.badge(
-        WindowIcon.of(size -> AppIcon.count(theme, size, theme.accent().color(), 3)),
+        WindowIcon.of(size -> AppIcon.count(size, theme.accent().color(), 3)),
         "3 queries running"); // Windows only
     window.attention(Window.Attention.BRIEFLY); // flash the taskbar button
     window.progress(Window.Progress.NORMAL, 0.4f); // a bar 40 % full in the button; Windows only

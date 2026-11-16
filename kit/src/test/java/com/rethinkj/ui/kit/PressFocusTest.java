@@ -58,7 +58,7 @@ class PressFocusTest {
     El view() {
       List<Column> columns = List.of(new Column("id", 60, Align.RIGHT, true, String::valueOf));
       El grid = dataGrid(
-              T, columns, 5, DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
+              columns, 5, DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
           .key("grid")
           .label("Rows");
       return col()
@@ -71,18 +71,17 @@ class PressFocusTest {
                   .gap(T.space().s())
                   .padding(T.space().s())
                   .children(
-                      button(T, Variant.PRIMARY, "Run", () -> runs++).key("run"),
-                      toggle(T, on, "Auto", () -> on = !on).key("auto"),
-                      checkbox(T, checked, "Wrap", () -> checked = !checked).key("wrap"),
-                      Select.select(T, List.of("one", "two"), choice, select, i -> choice = i)
+                      button(Variant.PRIMARY, "Run", () -> runs++).key("run"),
+                      toggle(on, "Auto", () -> on = !on).key("auto"),
+                      checkbox(checked, "Wrap", () -> checked = !checked).key("wrap"),
+                      Select.select(List.of("one", "two"), choice, select, i -> choice = i)
                           .key("select")),
               split(
-                      T,
                       Direction.ROW,
                       split,
                       null,
                       p -> split = p,
-                      textField(T, query, "Query", v -> query = v).key("query"),
+                      textField(query, "Query", v -> query = v).key("query"),
                       100,
                       grid,
                       100)

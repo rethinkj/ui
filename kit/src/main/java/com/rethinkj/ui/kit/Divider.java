@@ -19,25 +19,26 @@ public final class Divider {
   private Divider() {}
 
   /** A line across a column. */
-  public static El divider(Theme theme) {
+  public static El divider() {
+    Theme theme = Theme.CURRENT.get();
     return line(theme).role("separator");
   }
 
   /** A line across a column with a label in muted text in its middle. */
-  public static El divider(Theme theme, String label) {
+  public static El divider(String label) {
+    Theme theme = Theme.CURRENT.get();
     return row()
         .role("separator")
         .label(label)
         .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .children(
-            line(theme).grow(1),
-            label(theme, Label.Variant.MUTED, label),
-            line(theme).grow(1));
+            line(theme).grow(1), label(Label.Variant.MUTED, label), line(theme).grow(1));
   }
 
   /** An upright line in a row, as high as the row. */
-  public static El vertical(Theme theme) {
+  public static El vertical() {
+    Theme theme = Theme.CURRENT.get();
     return el().role("separator")
         .w(theme.size().stroke())
         .shrink(0)

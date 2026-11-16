@@ -18,15 +18,15 @@ import com.rethinkj.ui.render.Scene;
  * stop for Tab; a row with any other control leaves the presses to the control.
  *
  * <pre>{@code
- * group(theme,
- *     switchRow(theme, "Word wrap", "Wrap long lines at the edge of the editor",
+ * group(
+ *     switchRow("Word wrap", "Wrap long lines at the edge of the editor",
  *         state.wrap, state::flipWrap),
- *     row(theme, "Tab size", null,
- *         numberField(theme, state.tabSize, 1, 16, 1, value -> state.tabSize = value)),
- *     linkRow(theme, Symbol.KEY, "Keymap", null, "Default", state::showKeymap),
- *     expander(theme, "Advanced", "Options most people never change",
+ *     row("Tab size", null,
+ *         numberField(state.tabSize, 1, 16, 1, value -> state.tabSize = value)),
+ *     linkRow(Symbol.KEY, "Keymap", null, "Default", state::showKeymap),
+ *     expander("Advanced", "Options most people never change",
  *         state.advanced, state::flipAdvanced,
- *         switchRow(theme, "Insert spaces", null, state.spaces, state::flipSpaces)))
+ *         switchRow("Insert spaces", null, state.spaces, state::flipSpaces)))
  * }</pre>
  *
  * <p>The rows share one height rule, so that a column of them lines up: the text starts {@link
@@ -51,15 +51,16 @@ public final class Group {
    * A card with these rows, or any elements of this class, and a hairline between each two; null
    * rows are left out, so that a view can write {@code advanced ? row(...) : null}.
    */
-  public static El group(Theme theme, El... rows) {
-    El group = Card.card(theme).padding(Scene.RING).gap(0);
+  public static El group(El... rows) {
+    Theme theme = Theme.CURRENT.get();
+    El group = Card.card().padding(Scene.RING).gap(0);
     lines(theme, group, Section.present(rows));
     return group;
   }
 
   /** A row with a title, an optional description and an optional control at the right. */
-  public static El row(Theme theme, String title, String description, El control) {
-    return row(theme, null, title, description, control);
+  public static El row(String title, String description, El control) {
+    return row(null, title, description, control);
   }
 
   /**
@@ -67,7 +68,8 @@ public final class Group {
    * @param description below the title in muted text, wrapping; null for none
    * @param control at the right, such as a select, a text field or a button; null for none
    */
-  public static El row(Theme theme, Symbol icon, String title, String description, El control) {
+  public static El row(Symbol icon, String title, String description, El control) {
+    Theme theme = Theme.CURRENT.get();
     // A control that says what is wrong with its value ({@link El#errorMessage}) has that in
     // place of the description, in the danger color, as a form's field has.
     El target = control == null ? null : Form.target(control);
@@ -83,9 +85,8 @@ public final class Group {
   }
 
   /** A row that is a switch, with the switch at the right. */
-  public static El switchRow(
-      Theme theme, String title, String description, boolean on, Runnable onToggle) {
-    return switchRow(theme, null, title, description, on, onToggle);
+  public static El switchRow(String title, String description, boolean on, Runnable onToggle) {
+    return switchRow(null, title, description, on, onToggle);
   }
 
   /**
@@ -95,7 +96,8 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El switchRow(
-      Theme theme, Symbol icon, String title, String description, boolean on, Runnable onToggle) {
+      Symbol icon, String title, String description, boolean on, Runnable onToggle) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     El row = base(theme, icon, title, description, enabled)
         .role("switch")
@@ -107,9 +109,8 @@ public final class Group {
   }
 
   /** A row that leads somewhere, with its current value and a chevron at the right. */
-  public static El linkRow(
-      Theme theme, String title, String description, String value, Runnable onPress) {
-    return linkRow(theme, null, title, description, value, onPress);
+  public static El linkRow(String title, String description, String value, Runnable onPress) {
+    return linkRow(null, title, description, value, onPress);
   }
 
   /**
@@ -120,7 +121,8 @@ public final class Group {
    * @param onPress runs when the row is pressed; null disables it
    */
   public static El linkRow(
-      Theme theme, Symbol icon, String title, String description, String value, Runnable onPress) {
+      Symbol icon, String title, String description, String value, Runnable onPress) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onPress != null;
     El row = base(theme, icon, title, description, enabled)
         .role("button")
@@ -128,24 +130,18 @@ public final class Group {
         .value(value)
         .disabled(!enabled);
     if (value != null) {
-      row.child(label(theme, Label.Variant.MUTED, value)
+      row.child(label(Label.Variant.MUTED, value)
           .color(enabled ? theme.text().muted() : theme.text().disabled())
           .shrink(0));
     }
-    row.child(
-        icon(theme, Symbol.CHEVRON_RIGHT, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    row.child(icon(Symbol.CHEVRON_RIGHT, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     return press(theme, row, onPress);
   }
 
   /** A row that opens to show more rows below it. */
   public static El expander(
-      Theme theme,
-      String title,
-      String description,
-      boolean open,
-      Runnable onToggle,
-      El... content) {
-    return expander(theme, null, title, description, open, onToggle, content);
+      String title, String description, boolean open, Runnable onToggle, El... content) {
+    return expander(null, title, description, open, onToggle, content);
   }
 
   /**
@@ -157,13 +153,13 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El expander(
-      Theme theme,
       Symbol icon,
       String title,
       String description,
       boolean open,
       Runnable onToggle,
       El... content) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     El head = base(theme, icon, title, description, enabled)
         .role("button")
@@ -171,7 +167,6 @@ public final class Group {
         .expanded(open)
         .disabled(!enabled)
         .child(icon(
-            theme,
             open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
             enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     El expander = col().child(press(theme, head, onToggle));
@@ -188,7 +183,8 @@ public final class Group {
    * Anything in a group or an expander, as wide as a row and with a row's padding, such as a
    * radio group or a paragraph: its children stacked {@link Theme.Spacing#m} apart.
    */
-  public static El box(Theme theme, El... content) {
+  public static El box(El... content) {
+    Theme theme = Theme.CURRENT.get();
     return col()
         .padding(theme.space().m() - Scene.RING, theme.space().l() - Scene.RING)
         .gap(theme.space().m())
@@ -201,12 +197,12 @@ public final class Group {
     El text = col()
         .grow(1)
         .gap(theme.space().xs())
-        .child(label(theme, title)
+        .child(label(title)
             .color(enabled ? theme.text().primary() : theme.text().disabled())
             .wrapText());
     text.style().minWidth = Len.ZERO;
     if (description != null) {
-      text.child(label(theme, Label.Variant.MUTED, description)
+      text.child(label(Label.Variant.MUTED, description)
           .color(enabled ? theme.text().muted() : theme.text().disabled())
           .wrapText());
     }
@@ -219,7 +215,7 @@ public final class Group {
         .motion(theme.motion().feedback());
     row.style().minHeight = Len.px(theme.size().control() + 2 * (theme.space().m() - Scene.RING));
     if (icon != null) {
-      row.child(icon(theme, icon, enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED));
+      row.child(icon(icon, enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED));
     }
     return row.child(text);
   }

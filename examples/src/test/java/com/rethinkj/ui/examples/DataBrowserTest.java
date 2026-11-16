@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Theme;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,7 +29,8 @@ class DataBrowserTest {
   void commitTakesTheValueBeingEditedFirst(@TempDir Path out) throws IOException {
     Snaps.assumeText();
     DataBrowser browser = new DataBrowser();
-    App<DataBrowser> app = new App<>(browser, DataBrowser::view);
+    App<DataBrowser> app =
+        new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
     browser.app = app;
     Script.run(
         "size 1000 600\nframe\npress #cell-0-1\nkey Enter\nframe\nkey A control\n"
@@ -56,7 +58,8 @@ class DataBrowserTest {
   void aCopyBeyondTheGridsLimitSaysSoInAToast(@TempDir Path out) throws IOException {
     Snaps.assumeText();
     DataBrowser browser = new DataBrowser();
-    App<DataBrowser> app = new App<>(browser, DataBrowser::view);
+    App<DataBrowser> app =
+        new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
     browser.app = app;
     Script.run(
         "size 1000 600\nframe\nfocus #orders\nkey A control\nkey C control\nframe", app, out);

@@ -21,10 +21,10 @@ import java.util.function.DoubleConsumer;
  * reports a move:
  *
  * <pre>{@code
- * split(theme, Direction.ROW, state.sidebar, Position.first(240),
+ * split(Direction.ROW, state.sidebar, Position.first(240),
  *         position -> state.sidebar = position,
  *         schema.label("Schema"), 160,
- *         split(theme, Direction.COLUMN, state.editor, Position.share(0.5f),
+ *         split(Direction.COLUMN, state.editor, Position.share(0.5f),
  *             position -> state.editor = position,
  *             editor.label("Query"), 80, results, 80),
  *         320)
@@ -128,7 +128,6 @@ public final class Split {
    * @param minSecond the least width or height of the second part
    */
   public static El split(
-      Theme theme,
       Direction direction,
       Position position,
       Position reset,
@@ -137,6 +136,7 @@ public final class Split {
       float minFirst,
       El second,
       float minSecond) {
+    Theme theme = Theme.CURRENT.get();
     return split(
         theme, direction, position, reset, onMove, first, minFirst, second, minSecond, false);
   }
@@ -147,7 +147,6 @@ public final class Split {
    * dragged, and their boxes do not clip them, so that the cards' lifts show.
    */
   public static El cards(
-      Theme theme,
       Direction direction,
       Position position,
       Position reset,
@@ -156,6 +155,7 @@ public final class Split {
       float minFirst,
       El second,
       float minSecond) {
+    Theme theme = Theme.CURRENT.get();
     return split(
         theme, direction, position, reset, onMove, first, minFirst, second, minSecond, true);
   }

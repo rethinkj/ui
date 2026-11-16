@@ -18,7 +18,7 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 
 | | |
 | --- | --- |
-| `Form.form(theme, Labels.BESIDE \| ABOVE, fields...)` | The form |
+| `Form.form(Labels.BESIDE \| ABOVE, fields...)` | The form |
 | `Form.field(label, control)` | A field. The label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
 | `.help(text)` | Muted text below that wraps |
 | `.error(text)` | Replaces the help in the danger color and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
@@ -30,9 +30,9 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 | `.description(text)` | Muted text under the group's heading that wraps |
 | `.divided()` | A line between the group and what comes before it; without it, space alone sets groups apart |
 | `.level(n)` | The heading's level, 4 unless set (below a card's title, which is 3) |
-| `Form.labelWidth(theme, entries...)` | The width of the label column the entries need |
-| `Form.form(theme, labels, labelWidth, entries...)` | A form whose label column is at least that wide |
-| `Form.buttons(theme, buttons...)` | Buttons at the end, at the right |
+| `Form.labelWidth(entries...)` | The width of the label column the entries need |
+| `Form.form(labels, labelWidth, entries...)` | A form whose label column is at least that wide |
+| `Form.buttons(buttons...)` | Buttons at the end, at the right |
 
 `form` takes fields, rows and groups in any order (`Form.Entry` is their common type). It leaves out a null entry, a null field in a row or a group, and a row or group whose entries are all null, so `shown ? field(...) : null` shows a field under a condition.
 

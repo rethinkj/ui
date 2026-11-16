@@ -48,7 +48,7 @@ class GridColumnsTest {
         .sort(ledger.sort, keys -> ledger.sort = keys)
         .onResize((c, w) -> ledger.log.add("resize " + c))
         .onFreeze(n -> frozen[0] = n);
-    ledger.top = () -> DataGrid.columnsButton(ledger.theme, layout);
+    ledger.top = () -> DataGrid.columnsButton(layout);
     ledger.layout = layout;
     App<Ledger> app = ledger.app();
     Script.run("size 640 260\nframe\nfocus #ledger\nframe\nframe", app, out);

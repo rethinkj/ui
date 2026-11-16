@@ -25,7 +25,7 @@ import java.util.function.IntConsumer;
  * field and the buttons, half as wide as a text field unless the view sets a width with {@code
  * .w(...)} on it. In a tree dump the field is {@code role=spinbutton} with its number as its
  * string, and the buttons are {@code role=button} labeled {@code Decrease} and {@code Increase}.
- * The field's label is the one {@link #numberField(Theme, String, int, int, int, int,
+ * The field's label is the one {@link #numberField(String, int, int, int, int,
  * IntConsumer)} gives it, or the title of the {@link Form} field or {@link Group} row it is in;
  * {@code .label(...)} on the result would label the box, not the field.
  */
@@ -43,21 +43,20 @@ public final class NumberField {
    * @param step how far a key or a button moves the number
    * @param onChange told each new number; null disables the field
    */
-  public static El numberField(
-      Theme theme, int value, int min, int max, int step, IntConsumer onChange) {
-    return numberField(theme, null, value, min, max, step, onChange);
+  public static El numberField(int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(null, value, min, max, step, onChange);
   }
 
   /**
    * A number field of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
    * written disables it. A prop of an {@link Editing} keeps the field's draft there.
    */
-  public static El numberField(Theme theme, Prop<Integer> value, int min, int max, int step) {
+  public static El numberField(Prop<Integer> value, int min, int max, int step) {
+    Theme theme = Theme.CURRENT.get();
     Integer now = value.get();
     return Prop.shown(
         theme,
         numberField(
-            theme,
             null,
             now == null ? min : now,
             min,
@@ -78,8 +77,8 @@ public final class NumberField {
    * @param onChange told each new number; null disables the field
    */
   public static El numberField(
-      Theme theme, String label, int value, int min, int max, int step, IntConsumer onChange) {
-    return numberField(theme, label, value, min, max, step, null, onChange);
+      String label, int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(label, value, min, max, step, null, onChange);
   }
 
   /**
@@ -95,7 +94,6 @@ public final class NumberField {
    * @param onChange told each new number; null disables the field
    */
   public static El numberField(
-      Theme theme,
       String label,
       int value,
       int min,
@@ -103,6 +101,7 @@ public final class NumberField {
       int step,
       ValueField.Draft draft,
       IntConsumer onChange) {
+    Theme theme = Theme.CURRENT.get();
     if (min > max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min <= max and a step of 1 or more, was " + min + ", " + max + ", " + step);
@@ -113,15 +112,14 @@ public final class NumberField {
       draft.show(Format.INTEGER, value);
       text = draft.text();
     }
-    El field = TextField.textField(
-            theme, text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
+    El field = TextField.textField(text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
         .role("spinbutton")
         .label(label);
     if (draft != null && draft.error() != null && draft.showsError()) {
-      TextField.invalid(theme, field).errorMessage(draft.error());
+      TextField.invalid(field).errorMessage(draft.error());
     } else if (value < min || value > max) {
       // The message a form or a group's row shows below it, and a dump as error="...".
-      TextField.invalid(theme, field).errorMessage(min + " to " + max);
+      TextField.invalid(field).errorMessage(min + " to " + max);
     }
     float inset = theme.space().xs();
     float size = FieldActions.size(theme);

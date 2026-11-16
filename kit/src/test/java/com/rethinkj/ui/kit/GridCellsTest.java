@@ -74,7 +74,6 @@ class GridCellsTest {
         s -> El.col()
             .size(560, 240)
             .child(DataGrid.dataGrid(
-                    T,
                     List.of(
                         new DataGrid.Column("note", 400, DataGrid.Align.LEFT, false, i -> note)),
                     3,

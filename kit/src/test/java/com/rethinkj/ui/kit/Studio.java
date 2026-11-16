@@ -49,7 +49,7 @@ final class Studio {
   }
 
   App<Studio> app() {
-    App<Studio> app = new App<>(this, Studio::view);
+    App<Studio> app = new App<>(this, Studio::view).provide(Theme.CURRENT, studio -> studio.t);
     this.app = app;
     app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
@@ -174,8 +174,8 @@ final class Studio {
         .fill(t.surface().panel())
         .windowPart(WindowPart.DRAG)
         .children(
-            icon(t, Symbol.DATABASE, Icon.Variant.MUTED),
-            MenuBar.menuBar(t, bar, menus),
+            icon(Symbol.DATABASE, Icon.Variant.MUTED),
+            MenuBar.menuBar(bar, menus),
             el().grow(1),
             frameButton(WindowPart.MINIMIZE, "Minimize", Symbol.SUBTRACT),
             frameButton(WindowPart.CLOSE, "Close", Symbol.DISMISS));
@@ -190,20 +190,18 @@ final class Studio {
                 .padding(t.space().l())
                 .gap(t.space().m())
                 .children(
-                    textField(t, query, "Query", v -> query = v).key("query").wFull(),
+                    textField(query, "Query", v -> query = v).key("query").wFull(),
                     label(
-                            t,
                             Label.Variant.MUTED,
                             status + (wrap ? " · wrap" : "") + (numbers ? " · numbers" : ""))
                         .key("status")))
         .onKey(MenuBar.keys(bar, menus).or(CommandPalette.keys(palette)))
         .onKeyUp(MenuBar.keysUp(bar, menus))
-        .overlay(CommandPalette.palette(t, palette, commands(menus), sources()))
+        .overlay(CommandPalette.palette(palette, commands(menus), sources()))
         .overlay(
             cleared == null
                 ? null
                 : Toast.toast(
-                    t,
                     "Query cleared",
                     "Undo",
                     () -> {
@@ -221,7 +219,7 @@ final class Studio {
         .size(40, 32)
         .center()
         .windowPart(part)
-        .child(icon(t, symbol));
+        .child(icon(symbol));
   }
 
   /**

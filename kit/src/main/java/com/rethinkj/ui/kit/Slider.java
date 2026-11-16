@@ -31,11 +31,12 @@ public final class Slider {
    * A slider of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
    * written disables it.
    */
-  public static El slider(Theme theme, Prop<Integer> value, int min, int max, int step) {
+  public static El slider(Prop<Integer> value, int min, int max, int step) {
+    Theme theme = Theme.CURRENT.get();
     Integer now = value.get();
     return Prop.shown(
         theme,
-        slider(theme, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
+        slider(now == null ? min : now, min, max, step, value.writes() ? value::set : null),
         value);
   }
 
@@ -44,8 +45,8 @@ public final class Slider {
    * @param step the distance between two numbers the slider stops at, from {@code min}
    * @param onChange told each new number; null disables the slider
    */
-  public static El slider(
-      Theme theme, int value, int min, int max, int step, IntConsumer onChange) {
+  public static El slider(int value, int min, int max, int step, IntConsumer onChange) {
+    Theme theme = Theme.CURRENT.get();
     if (min >= max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min < max and a step of 1 or more, was " + min + ", " + max + ", " + step);

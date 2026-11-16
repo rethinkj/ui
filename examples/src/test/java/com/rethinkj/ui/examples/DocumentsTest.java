@@ -8,6 +8,7 @@ import com.rethinkj.ui.Dialogs;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.MessageBox;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Theme;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +54,8 @@ class DocumentsTest {
     Path big = folder.resolve("big.txt");
     Files.write(big, new byte[(int) Documents.LIMIT + 1]);
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app =
+        new App<>(s, d -> d.view(d.groups.main(), d.app)).provide(Theme.CURRENT, Documents::theme);
     Script.run("""
         size 640 360
         frame
@@ -86,7 +88,8 @@ class DocumentsTest {
   void theFirstWindowStaysOpenWithEveryTabClosed(@TempDir Path folder) throws IOException {
     Snaps.assumeText();
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app =
+        new App<>(s, d -> d.view(d.groups.main(), d.app)).provide(Theme.CURRENT, Documents::theme);
     Script.run("""
         size 640 360
         frame
@@ -120,7 +123,8 @@ class DocumentsTest {
     Path small = Files.writeString(folder.resolve("zwei.sql"), "SELECT 2;");
     Path tiny = Files.writeString(folder.resolve("drei.md"), "# 3");
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app =
+        new App<>(s, d -> d.view(d.groups.main(), d.app)).provide(Theme.CURRENT, Documents::theme);
     String quoted = String.join(
         " ",
         java.util.stream.Stream.of(large, small, tiny)
@@ -146,7 +150,8 @@ class DocumentsTest {
   void eachDocumentKeepsItsCaretAndHistory(@TempDir Path folder) throws IOException {
     Snaps.assumeText();
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app =
+        new App<>(s, d -> d.view(d.groups.main(), d.app)).provide(Theme.CURRENT, Documents::theme);
     Script.run("""
         size 640 360
         frame
@@ -177,7 +182,8 @@ class DocumentsTest {
   @Test
   void saveAsOffersTheDocumentsOwnKindFirst() {
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app =
+        new App<>(s, d -> d.view(d.groups.main(), d.app)).provide(Theme.CURRENT, Documents::theme);
     List<FileDialog> asked = new ArrayList<>();
     s.app.dialogs(new Dialogs() {
       @Override

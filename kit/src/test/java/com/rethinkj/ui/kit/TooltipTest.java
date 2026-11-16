@@ -38,7 +38,7 @@ class TooltipTest {
     App<int[]> app = new App<>(
         reads,
         r -> El.col().wFull().hFull().rows(1, t.grid().rowHeight(), i -> {
-          El text = Label.label(t, whole).ellipsis().minSize(0, 0).grow(1);
+          El text = Label.label(whole).ellipsis().minSize(0, 0).grow(1);
           return Tooltip.whenHovered(t, El.row().key("anchor").child(text), () -> {
             r[0]++;
             assertTrue(text.width() > 0, "the row's layout is available");

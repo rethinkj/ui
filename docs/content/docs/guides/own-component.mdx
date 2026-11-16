@@ -9,7 +9,7 @@ The kit covers the common controls, but an app soon needs one of its own. This g
 
 ## 1. The shape
 
-A component is a static function. Its first parameter is the theme, then the value it shows, then a handler for the new value. It returns an `El`, so the caller can chain `.key(...)`, `.label(...)` or `.w(...)`. The value belongs to the app: the component shows the list it gets and hands each new list to `onChange`, which stores it. A null handler disables the component.
+A component is a static function. It takes the value it shows, then a handler for the new value, and reads the theme from `Theme.CURRENT`. It returns an `El`, so the caller can chain `.key(...)`, `.label(...)` or `.w(...)`. The value belongs to the app: the component shows the list it gets and hands each new list to `onChange`, which stores it. A null handler disables the component.
 
 ```java snippet="tag-input"
 ```

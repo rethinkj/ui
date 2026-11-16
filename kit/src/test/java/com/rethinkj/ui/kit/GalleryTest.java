@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.Headless;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -15,7 +16,14 @@ class GalleryTest {
     TextLibraries.assumeLoaded();
     Theme theme = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     String image = "gallery-" + name + "-" + scale + "x";
-    Headless.Frame frame = Gallery.draw(theme, scale, Path.of("target/gallery", image));
+    Path out = Path.of("target/gallery", image);
+    Headless.Frame frame = Theme.CURRENT.with(theme, () -> {
+      try {
+        return Gallery.draw(theme, scale, out);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
     Golden.assertMatches(image, frame.pixels(), frame.tree());
   }
 }

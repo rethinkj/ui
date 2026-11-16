@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * A choice that is typed: closed it looks like a {@link Select}, the current choice and a chevron
@@ -110,8 +111,8 @@ public final class ComboBox {
    * @param state whether the list is open and what was typed; the app keeps it
    * @param onSelect told the index of the choice made; null disables the combo box
    */
-  public static El comboBox(
-      Theme theme, List<String> choices, int selected, State state, IntConsumer onSelect) {
+  public static El comboBox(List<String> choices, int selected, State state, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
     if (!enabled || !state.open) {
@@ -126,17 +127,17 @@ public final class ComboBox {
       state.close();
       onSelect.accept(i);
     });
-    El field = TextField.textField(theme, state.list.query, text, v -> state.list.typed(v, true))
+    El field = TextField.textField(state.list.query, text, v -> state.list.typed(v, true))
         .label(text);
     return open(theme, text, field, null, FilterList.Entries.of(entries), state, true);
   }
 
   /**
    * A combo box of values of any type, of which the user chooses one, as {@link
-   * #comboBox(Theme, List, int, State, IntConsumer)} is of texts:
+   * #comboBox(List, int, State, IntConsumer)} is of texts:
    *
    * <pre>{@code
-   * comboBox(theme, schemas, state.schema, Schema::name, state.schemaBox,
+   * comboBox(schemas, state.schema, Schema::name, state.schemaBox,
    *     value -> state.schema = value)
    * }</pre>
    *
@@ -151,7 +152,6 @@ public final class ComboBox {
    */
   @SuppressWarnings("unchecked")
   public static <T> El comboBox(
-      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, String> text,
@@ -166,18 +166,15 @@ public final class ComboBox {
       state.typedValues = null;
     }
     return comboBox(
-        theme, texts, Choices.index(values, selected), state, Choices.handler(values, onSelect));
+        texts, Choices.index(values, selected), state, Choices.handler(values, onSelect));
   }
 
   /** A combo box of the value of a {@link Prop}; a prop that cannot be written disables it. */
   public static <T> El comboBox(
-      Theme theme,
-      List<T> values,
-      Prop<T> selected,
-      Function<? super T, String> text,
-      State state) {
+      List<T> values, Prop<T> selected, Function<? super T, String> text, State state) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, comboBox(theme, values, selected.get(), text, state, selected.onChange()), selected);
+        theme, comboBox(values, selected.get(), text, state, selected.onChange()), selected);
   }
 
   /**
@@ -187,22 +184,23 @@ public final class ComboBox {
    * @param leading builds what stands before the text, or null; see {@link #icon}, {@link #image}
    * @param detail a muted text at the right of the row, such as a version, or null
    */
-  public record Item(String text, Function<Theme, El> leading, String detail) {
+  public record Item(String text, Supplier<El> leading, String detail) {
     public Item {
       Objects.requireNonNull(text, "text");
     }
 
     /** An icon of the icon font before the text. */
     public Item icon(Symbol symbol) {
-      return leading(theme -> Icon.icon(theme, symbol, Icon.Variant.MUTED));
+      return leading(() -> Icon.icon(symbol, Icon.Variant.MUTED));
     }
 
     /** An image before the text, fitted into an icon's square, such as a database's logo. */
     public Item image(com.rethinkj.ui.Image image) {
       Objects.requireNonNull(image, "image");
-      return leading(theme -> El.image(image)
-          .size(theme.size().icon(), theme.size().icon())
-          .fit(com.rethinkj.ui.Image.Fit.CONTAIN));
+      return leading(() -> {
+        float side = Theme.CURRENT.get().size().icon();
+        return El.image(image).size(side, side).fit(com.rethinkj.ui.Image.Fit.CONTAIN);
+      });
     }
 
     /**
@@ -210,7 +208,7 @@ public final class ComboBox {
      * colored mark. The closed box gives it an icon's square; a row of the list is as high as a
      * control.
      */
-    public Item leading(Function<Theme, El> leading) {
+    public Item leading(Supplier<El> leading) {
       return new Item(text, leading, detail);
     }
 
@@ -235,13 +233,13 @@ public final class ComboBox {
    * @param state whether the list is open and what was typed; the app keeps it
    * @param onSelect told the index of the choice made; null disables the combo box
    */
-  public static El items(
-      Theme theme, List<Item> items, int selected, State state, IntConsumer onSelect) {
+  public static El items(List<Item> items, int selected, State state, IntConsumer onSelect) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     Item current = selected >= 0 && selected < items.size() ? items.get(selected) : null;
     String text = current == null ? "" : current.text();
     El lead =
-        current == null || current.leading() == null ? null : current.leading().apply(theme);
+        current == null || current.leading() == null ? null : current.leading().get();
     if (!enabled || !state.open) {
       if (state.open) {
         state.close();
@@ -269,17 +267,17 @@ public final class ComboBox {
       state.chosen = selected;
       state.entries = List.copyOf(entries);
     }
-    El field = TextField.textField(theme, state.list.query, text, v -> state.list.typed(v, true))
+    El field = TextField.textField(state.list.query, text, v -> state.list.typed(v, true))
         .label(text);
     return open(theme, text, field, lead, FilterList.Entries.of(state.entries), state, true);
   }
 
   /**
-   * A combo box of values of any type with more than their texts, as {@link #items(Theme, List,
+   * A combo box of values of any type with more than their texts, as {@link #items(List,
    * int, State, IntConsumer)} is of {@link Item}s:
    *
    * <pre>{@code
-   * items(theme, products, state.product,
+   * items(products, state.product,
    *     product -> ComboBox.item(product.name()).image(product.logo()).detail(product.versions()),
    *     state.productBox, value -> state.product = value)
    * }</pre>
@@ -297,7 +295,6 @@ public final class ComboBox {
    */
   @SuppressWarnings("unchecked")
   public static <T> El items(
-      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Item> item,
@@ -314,15 +311,15 @@ public final class ComboBox {
       state.typedValues = new ArrayList<>(values); // a copy, which a change in place does not reach
       state.typed = items;
     }
-    return items(
-        theme, items, Choices.index(values, selected), state, Choices.handler(values, onSelect));
+    return items(items, Choices.index(values, selected), state, Choices.handler(values, onSelect));
   }
 
-  /** A combo box of items of the value of a {@link Prop}, as {@link #comboBox(Theme, List, Prop, Function, State)}. */
+  /** A combo box of items of the value of a {@link Prop}, as {@link #comboBox(List, Prop, Function, State)}. */
   public static <T> El items(
-      Theme theme, List<T> values, Prop<T> selected, Function<? super T, Item> item, State state) {
+      List<T> values, Prop<T> selected, Function<? super T, Item> item, State state) {
+    Theme theme = Theme.CURRENT.get();
     return Prop.shown(
-        theme, items(theme, values, selected.get(), item, state, selected.onChange()), selected);
+        theme, items(values, selected.get(), item, state, selected.onChange()), selected);
   }
 
   /** Whether the items have the same texts and details, and leading elements in the same places. */
@@ -343,10 +340,11 @@ public final class ComboBox {
   }
 
   /** A free combo box of the text of a {@link Prop}; a prop that cannot be written disables it. */
-  public static El free(Theme theme, Prop<String> value, List<String> suggestions, State state) {
+  public static El free(Prop<String> value, List<String> suggestions, State state) {
+    Theme theme = Theme.CURRENT.get();
     String text = value.get();
     return Prop.shown(
-        theme, free(theme, text == null ? "" : text, suggestions, state, value.onChange()), value);
+        theme, free(text == null ? "" : text, suggestions, state, value.onChange()), value);
   }
 
   /**
@@ -360,14 +358,14 @@ public final class ComboBox {
    *     disables the combo box
    */
   public static El free(
-      Theme theme, String value, List<String> suggestions, State state, Consumer<String> onChange) {
+      String value, List<String> suggestions, State state, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
     boolean enabled = onChange != null;
     state.free = true;
     if (!enabled) {
       state.open = false;
     }
     El field = TextField.textField(
-        theme,
         value,
         null,
         !enabled
@@ -460,7 +458,7 @@ public final class ComboBox {
         .label(state.open ? "Close" : "Open")
         .size(side, side)
         .center()
-        .child(Icon.icon(theme, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        .child(Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(0);

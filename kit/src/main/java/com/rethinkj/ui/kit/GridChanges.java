@@ -32,9 +32,9 @@ import java.util.function.IntFunction;
  * GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
  *
  * columns.add(new Column("name", 160, DataType.TEXT, changes.cell(1)).editable().nullable());
- * dataGrid(theme, columns, changes.rowCount(), DataGrid.options().select(state.selection)
+ * dataGrid(columns, changes.rowCount(), DataGrid.options().select(state.selection)
  *     .changes(changes))
- * button(theme, PRIMARY, "Commit (" + changes.count() + ")", () -> {
+ * button(PRIMARY, "Commit (" + changes.count() + ")", () -> {
  *   database.write(changes.changes()); // UPDATE, INSERT and DELETE
  *   changes.clear();                   // the rows hold them now
  * })

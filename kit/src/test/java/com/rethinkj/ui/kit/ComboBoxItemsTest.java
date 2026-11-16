@@ -69,7 +69,8 @@ class ComboBoxItemsTest {
           ComboBox.item("MySQL").image(MYSQL).detail("8.0"),
           ComboBox.item("SQLite").icon(Symbol.DATABASE).detail("a file"),
           ComboBox.item("Custom driver")
-              .leading(th -> Avatar.avatar(th, "Custom driver", null, th.size().icon())),
+              .leading(() -> Avatar.avatar(
+                  "Custom driver", null, Theme.CURRENT.get().size().icon())),
           ComboBox.item("Plain"));
     }
 
@@ -84,14 +85,14 @@ class ComboBoxItemsTest {
           .gap(t.space().m())
           .fill(t.surface().window())
           .children(
-              ComboBox.items(t, items, chosen, state, disabled ? null : i -> chosen = i)
+              ComboBox.items(items, chosen, state, disabled ? null : i -> chosen = i)
                   .key("provider")
                   .w(240),
-              label(t, Label.Variant.MUTED, items.get(chosen).text()).key("status"));
+              label(Label.Variant.MUTED, items.get(chosen).text()).key("status"));
     }
 
     App<Form> app() {
-      App<Form> app = new App<>(this, Form::view);
+      App<Form> app = new App<>(this, Form::view).provide(Theme.CURRENT, form -> form.t);
       app.focusRing(t.accent().edge());
       app.textRendering(TextRendering.LINUX);
       return app;

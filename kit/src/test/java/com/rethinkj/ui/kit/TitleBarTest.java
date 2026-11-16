@@ -37,12 +37,11 @@ class TitleBarTest {
             .hFull()
             .fill(t.surface().window())
             .child(TitleBar.titleBar(
-                t,
                 "Orders",
                 null,
                 null,
                 maximized,
-                Button.button(t, Button.Variant.GHOST, "Run", () -> {}))));
+                Button.button(Button.Variant.GHOST, "Run", () -> {}))));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
