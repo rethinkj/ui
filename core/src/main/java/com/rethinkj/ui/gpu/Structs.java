@@ -102,7 +102,7 @@ final class Structs {
         JAVA_LONG.withName("flags"),
         JAVA_INT.withName("dx12ShaderCompiler"),
         JAVA_INT.withName("gles3MinorVersion"),
-        JAVA_INT.withName("glFenceBehavior"),
+        JAVA_INT.withName("glFenceBehaviour"), // the header's spelling, which LayoutCheck compares
         STRING_VIEW.withName("dxcPath"),
         JAVA_INT.withName("dxcMaxShaderModel"),
         JAVA_INT.withName("dx12PresentationSystem"),

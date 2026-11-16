@@ -65,7 +65,7 @@ A color is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied
 
 | Method | What it does |
 | --- | --- |
-| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | An opaque color from 24 bits or from channels of 0 to 255 |
+| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | A color from 24 bits or from channels of 0 to 255; `rgb` makes it opaque, `argb` takes its alpha too |
 | `alpha(color, 0.4f)` | The color at that alpha, `round(share * 255)`: 0.4 is `0x66` |
 | `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(color)` | Parse from text and format back; a parse error shows the expected form |
 | `alpha(color)`, `red(color)`, `green(color)`, `blue(color)` | The channels, 0 to 255 |
