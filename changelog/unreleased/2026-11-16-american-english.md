@@ -1,0 +1,1 @@
+- The library, its messages and its documentation are written in American English. `Theme.Hue.GREY` is now `Theme.Hue.GRAY`, and `Palette`'s `GREY_*` colors are `GRAY_*`.

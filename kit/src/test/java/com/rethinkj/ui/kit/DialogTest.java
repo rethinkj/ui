@@ -243,7 +243,7 @@ class DialogTest {
     float[] dialog = StructureTest.rect(StructureTest.line(tree, "#dialog "));
     assertEquals(title[0], mark[0] + mark[2] + t.space().m(), 0.01, "the mark before the title");
     assertEquals(
-        title[1] + title[3] / 2, mark[1] + mark[3] / 2, 0.5, "centred on the title's line");
+        title[1] + title[3] / 2, mark[1] + mark[3] / 2, 0.5, "centered on the title's line");
     float end = dialog[0] + dialog[2] - t.space().xl() - t.size().stroke();
     assertEquals(end, close[0] + close[2], 0.01, "Close at the head's end: " + tree);
     float[] test = StructureTest.rect(StructureTest.line(tree, "#test "));

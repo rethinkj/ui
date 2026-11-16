@@ -249,7 +249,7 @@ final class Workbench {
   }
 
   /** The first element with this label in tree order, or null. */
-  static El labelled(App<?> app, String label) {
+  static El labeled(App<?> app, String label) {
     return find(app.tree(), e -> label.equals(e.label()));
   }
 

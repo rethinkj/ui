@@ -70,7 +70,7 @@ class FlexTest {
     column.align(Style.Align.CENTER);
     Flex.layout(column, 300, 300);
     assertEquals(58, fits.width());
-    assertEquals(71, fits.x(), "centred like any other child");
+    assertEquals(71, fits.x(), "centered like any other child");
 
     column.align(Style.Align.STRETCH);
     fits.alignSelf(Style.Align.END);

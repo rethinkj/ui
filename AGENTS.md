@@ -1,6 +1,6 @@
 # rethinkj UI
 
-A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT): its own renderer, text, layout and animation, plus a headless mode in which an agent renders to PNG, dumps the element tree and drives an app with scripted input.
+A native, GPU-rendered UI framework for Java, modeled on [rune](https://github.com/anomalyco/rune) (Rust, MIT): its own renderer, text, layout and animation, plus a headless mode in which an agent renders to PNG, dumps the element tree and drives an app with scripted input.
 
 - Repository: https://github.com/rethinkj/ui
 - Documentation for users: https://ui.rethinkj.com, its source in `docs/`
@@ -15,7 +15,7 @@ This file holds the rules for working on the repository, and nothing else. What 
   - `core` and `kit` depend on `java.base` only. No `java.desktop`: no AWT, no ImageIO, no `java.awt.Font`.
   - No reflection, dynamic proxies or classes generated at run time, in this code or in anything it depends on at run time.
   - Native code is called through the Foreign Function & Memory API only, not JNI or JNA. Every native function's descriptor is a `static final` constant, so it can be registered for native image.
-- Rendering without a window must not need the native libraries: never call `Natives` from a static initialiser that the headless path can reach.
+- Rendering without a window must not need the native libraries: never call `Natives` from a static initializer that the headless path can reach.
 
 ## Modules
 
@@ -45,7 +45,7 @@ The site, with Node 24 in `docs/`: `npm ci`, then `npm run build`.
 
 ## Tests
 
-- Keep tests few and fast. A test earns its place by failing when behaviour a user can notice breaks. No benchmarks and no timing printouts in the test suite, no tests of tests, and no second test for what another already covers.
+- Keep tests few and fast. A test earns its place by failing when behavior a user can notice breaks. No benchmarks and no timing printouts in the test suite, no tests of tests, and no second test for what another already covers.
 - Image tests compare a script's snaps with the PNG and tree files under `<module>/src/test/resources/golden`. Store an image at one theme and one scale unless the theme or the scale is what the test is about. Images of the docs examples are stored in both themes, since the site shows the one of its own theme.
 - After a deliberate change of the output, rewrite the stored images with `mvn -pl <module> -am test -Dgolden.update=true` and look at them before committing. A failing image test leaves the expected image, the actual one and their difference in `<module>/target/golden`.
 - Tests that open real windows run only with `-Dwindows.tests=true`. Do not add such a test to the default build, and do not run them on a machine somebody works at unless asked.
@@ -53,6 +53,7 @@ The site, with Node 24 in `docs/`: `npm ci`, then `npm run build`.
 
 ## Rules the code does not show
 
+- Code, comments, messages and docs are in American English: color, gray, center, behavior, initialize.
 - `GpuRenderer.WGSL` and `CpuRenderer` draw the same pixels by the same formulas. Change them together.
 - Renderer code uses only the safe layer of `com.rethinkj.ui.gpu`: wgpu-native ends the process where WebGPU would report an error. After adding or changing a struct, function or callback of the raw layer, run `scripts/LayoutCheck.java`.
 - A kit component is a static function whose first parameter is the theme, and it reads only tokens: no color, size or spring of its own. Color literals live in `Palette.java`, color arithmetic in core's `Colors`.
@@ -72,7 +73,7 @@ The site, with Node 24 in `docs/`: `npm ci`, then `npm run build`.
 - Nobody pushes to `main`. Work on a branch from `origin/main`, push it and open a pull request on GitHub. It is merged by squash once its checks pass.
 - One pull request per topic, small enough to review. Its description says what changed and why, in a few sentences.
 - Commit messages and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <summary>`, for example `feat(core): add text shaping`. The scope is the module when the change stays in one. A breaking change gets `!` before the colon. The subject has at most 72 characters; a body only when the diff does not show why.
-- A change that users of the library can notice (new or changed API, changed behaviour, a fix, a raised requirement) adds `changelog/unreleased/<YYYY-MM-DD>-<slug>.md` with one top-level bullet written for those users. These files are folded into `CHANGELOG.md` at release.
+- A change that users of the library can notice (new or changed API, changed behavior, a fix, a raised requirement) adds `changelog/unreleased/<YYYY-MM-DD>-<slug>.md` with one top-level bullet written for those users. These files are folded into `CHANGELOG.md` at release.
 
 ## This repo is public
 

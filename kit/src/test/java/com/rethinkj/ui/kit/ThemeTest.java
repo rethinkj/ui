@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 /**
  * The default themes against the rules their comment in {@link Theme} states. Contrast by WCAG 2:
  * at least 4.5:1 for text on every background it is used on, and 3:1 for the parts a control is
- * recognised by and for the focus ring. Disabled text is exempt (WCAG 1.4.3) but has to stay
+ * recognized by and for the focus ring. Disabled text is exempt (WCAG 1.4.3) but has to stay
  * readable, between 2.5:1 and 3.5:1, below muted text.
  */
 class ThemeTest {

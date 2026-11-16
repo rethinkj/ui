@@ -122,7 +122,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     COLUMN
   }
 
-  /** A node of the catalogue, told apart by identity. */
+  /** A node of the catalog, told apart by identity. */
   static final class Node {
     final Kind kind;
     final String name;
@@ -289,9 +289,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   // The command palette of each window, and what it finds after @, made anew when a server
   // connects.
   final Map<TabGroups.Group<Opened>, CommandPalette.State> palettes = new IdentityHashMap<>();
-  private List<FilterList.Entry> catalogue;
-  private int connected; // servers that answered so far, which the catalogue is made for
-  private int catalogued = -1;
+  private List<FilterList.Entry> catalog;
+  private int connected; // servers that answered so far, which the catalog is made for
+  private int cataloged = -1;
   // What the made-up servers have written to their tables, by path, which every tab of a table
   // shows.
   final Map<String, TableRows.Stored> stored = new HashMap<>();
@@ -710,7 +710,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         palette,
         commands,
         List.of(
-            new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalogue())),
+            new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalog())),
             new CommandPalette.Source(
                 ":", "to go to a line", FilterList.Entries.by(text -> line(shown(group), text)))));
   }
@@ -732,25 +732,25 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The tables and columns of the connected servers, made anew when another one connects. */
-  List<FilterList.Entry> catalogue() {
-    if (catalogued != connected) {
+  List<FilterList.Entry> catalog() {
+    if (cataloged != connected) {
       List<FilterList.Entry> entries = new ArrayList<>();
       for (Node server : servers) {
-        catalogue(server, entries);
+        catalog(server, entries);
       }
-      catalogue = List.copyOf(entries);
-      catalogued = connected;
+      catalog = List.copyOf(entries);
+      cataloged = connected;
     }
-    return catalogue;
+    return catalog;
   }
 
-  private void catalogue(Node node, List<FilterList.Entry> into) {
+  private void catalog(Node node, List<FilterList.Entry> into) {
     if (node.children == null) {
       return; // not connected
     }
     for (Node child : node.children) {
       if (child.kind != Kind.TABLE) {
-        catalogue(child, into);
+        catalog(child, into);
         continue;
       }
       String path = node.path().replace('/', '.');
@@ -1155,7 +1155,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   // The view
 
-  /** The first window's view: the catalogue beside the tabs of the main group. */
+  /** The first window's view: the catalog beside the tabs of the main group. */
   static El view(Workbench state) {
     Theme theme = state.theme();
     El right = state.tabs(theme, state.groups.main());
@@ -1168,10 +1168,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             state::selected,
             state::openOrClose,
             state::activate)
-        .key("catalogue")
-        .label("Catalogue");
+        .key("catalog")
+        .label("Catalog");
     // docs:end workbench-tree
-    El catalogue = Card.flush(
+    El catalog = Card.flush(
         theme,
         Card.toolbar(
             theme,
@@ -1209,7 +1209,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 state.sidebar,
                 SIDEBAR,
                 position -> state.sidebar = position,
-                catalogue,
+                catalog,
                 160,
                 right.key("tabs"),
                 320)
@@ -1334,7 +1334,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /**
    * The bar along the bottom of the first window: each server with how its connection stands (a
-   * press selects it in the catalogue), and the questions on their way.
+   * press selects it in the catalog), and the questions on their way.
    */
   private El statusBar(Theme theme) {
     List<El> servers = new ArrayList<>();
@@ -1373,7 +1373,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /**
    * The view of a tab's window, the workbench in small: the title bar with the active tab's
-   * title over the group's tabs, without the catalogue, the theme's switch and the menu bar,
+   * title over the group's tabs, without the catalog, the theme's switch and the menu bar,
    * whose key combinations work here too, for this window's tabs.
    */
   El windowView(TabGroups.Group<Opened> group) {
@@ -1689,7 +1689,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .child(Label.label(
             theme,
             Label.Variant.MUTED,
-            "Open a table from the catalogue: double-click it, or select it and press Enter."))
+            "Open a table from the catalog: double-click it, or select it and press Enter."))
         .child(Label.label(
             theme,
             Label.Variant.MUTED,

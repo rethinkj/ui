@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 /** The pointer's position: what it hovers, the looks of hovered, focused and pressed elements. */
 class PointerTest {
 
-  private static final int GREY = 0xFF808080;
+  private static final int GRAY = 0xFF808080;
   private static final int LIGHT = 0xFFC0C0C0;
   private static final int DARK = 0xFF404040;
   private static final int BLUE = 0xFF3B82F6;
@@ -33,12 +33,12 @@ class PointerTest {
       state.builds++;
       return row()
           .children(
-              el().key("plain").size(50, 50).fill(GREY),
+              el().key("plain").size(50, 50).fill(GRAY),
               el().key("card")
                   .size(100, 100)
-                  .fill(GREY)
+                  .fill(GRAY)
                   .whenHovered(e -> e.fill(LIGHT).radius(8))
-                  .child(el().key("inner").size(40, 40).fill(GREY)));
+                  .child(el().key("inner").size(40, 40).fill(GRAY)));
     });
     app.resize(200, 100, 1);
     app.frame();
@@ -73,7 +73,7 @@ class PointerTest {
     app.pointerLeave();
     assertTrue(app.frame());
     assertEquals(3, app.state().builds);
-    assertEquals(GREY, find(app, "card").fill());
+    assertEquals(GRAY, find(app, "card").fill());
     assertEquals(0, find(app, "card").radius());
     assertNull(app.hovered());
     app.pointerMove(10, 10);
@@ -114,7 +114,7 @@ class PointerTest {
             .children(
                 el().key("button")
                     .size(50, 50)
-                    .fill(GREY)
+                    .fill(GRAY)
                     .focusable()
                     .onPress(() -> l.add("press"))
                     .whenHovered(e -> e.fill(LIGHT).radius(4))
@@ -151,7 +151,7 @@ class PointerTest {
 
     app.focus(find(app, "other"));
     app.frame();
-    assertEquals(GREY, find(app, "button").fill());
+    assertEquals(GRAY, find(app, "button").fill());
     assertEquals(0, find(app, "button").style().borderTop.value(), "the border went with focus");
   }
 
@@ -184,7 +184,7 @@ class PointerTest {
         new Object(),
         s -> el().key("box")
             .size(50, 50)
-            .fill(GREY)
+            .fill(GRAY)
             .motion(Spring.SNAP)
             .whenHovered(e -> e.fill(LIGHT).w(70)));
     app.resize(100, 50, 1);
@@ -192,12 +192,12 @@ class PointerTest {
 
     app.pointerMove(10, 10);
     assertTrue(app.frame());
-    assertEquals(GREY, app.tree().fill(), "springs from where it was");
+    assertEquals(GRAY, app.tree().fill(), "springs from where it was");
     assertTrue(app.isMoving());
     app.advance(0.05);
     app.frame();
     int halfway = app.tree().fill();
-    assertNotEquals(GREY, halfway);
+    assertNotEquals(GRAY, halfway);
     assertNotEquals(LIGHT, halfway);
     assertTrue(
         app.tree().width() > 50 && app.tree().width() < 70, "" + app.tree().width());
@@ -213,7 +213,7 @@ class PointerTest {
     assertTrue(app.tree().width() > 50 && app.tree().width() < 70, "and back");
     app.advance(1);
     app.frame();
-    assertEquals(GREY, app.tree().fill());
+    assertEquals(GRAY, app.tree().fill());
   }
 
   @Test
@@ -344,8 +344,8 @@ class PointerTest {
             .onKey(k -> pushed[0] = true)
             .children(
                 el().key("spacer").h(pushed[0] ? 40 : 0).shrink(0),
-                el().key("a").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE)),
-                el().key("b").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE))));
+                el().key("a").h(40).shrink(0).fill(GRAY).whenHovered(e -> e.fill(BLUE)),
+                el().key("b").h(40).shrink(0).fill(GRAY).whenHovered(e -> e.fill(BLUE))));
     app.resize(100, 200, 1);
     app.frame();
     app.pointerMove(50, 60);
@@ -355,7 +355,7 @@ class PointerTest {
     app.keyDown(new Key("Space")); // a key, not the pointer, moves a under it
     assertTrue(app.frame());
     assertEquals(BLUE, find(app, "a").fill(), "the look is where the pointer is now");
-    assertEquals(GREY, find(app, "b").fill());
+    assertEquals(GRAY, find(app, "b").fill());
     assertEquals("a", app.hovered().key());
     assertFalse(app.frame(), "and nothing is left to do: an idle window would show this");
   }

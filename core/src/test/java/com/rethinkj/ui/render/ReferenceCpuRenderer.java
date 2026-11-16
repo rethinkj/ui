@@ -117,7 +117,7 @@ final class ReferenceCpuRenderer {
 
     for (int py = top; py < bottom; py++) {
       for (int px = left; px < right; px++) {
-        // Distances are measured from the pixel's centre, in logical pixels.
+        // Distances are measured from the pixel's center, in logical pixels.
         double x = (px + 0.5) / scale - centerX;
         double y = (py + 0.5) / scale - centerY;
         double radius = radii[corner(x, y)];
@@ -391,13 +391,13 @@ final class ReferenceCpuRenderer {
     return StrictMath.sqrt(sigma * sigma + 1 / (12 * scale * scale));
   }
 
-  /** Slices of a quarter disc in {@link #quarter}. */
+  /** Slices of a quarter disk in {@link #quarter}. */
   private static final int SLICES = 8;
 
   /**
    * How much of a Gaussian of deviation {@code sigma} around the point {@code x, y} lies in a
-   * rounded rectangle centred on the origin: two crossed boxes, whose blur is exact, and the
-   * quarter discs at their corners.
+   * rounded rectangle centered on the origin: two crossed boxes, whose blur is exact, and the
+   * quarter disks at their corners.
    */
   static double shadow(
       double x, double y, double halfW, double halfH, double radius, double sigma) {
@@ -418,7 +418,7 @@ final class ReferenceCpuRenderer {
   }
 
   /**
-   * With a radius per corner: the box, less each rounded corner's square, plus its quarter disc;
+   * With a radius per corner: the box, less each rounded corner's square, plus its quarter disk;
    * as the crossed boxes where all four are equal.
    */
   static double shadow(
@@ -447,9 +447,9 @@ final class ReferenceCpuRenderer {
   }
 
   /**
-   * The blur of the quarter disc of radius {@code r} at the origin towards {@code +x, +y}, seen
+   * The blur of the quarter disk of radius {@code r} at the origin towards {@code +x, +y}, seen
    * from {@code u, v}: within three deviations of {@code v}, in slices of equal height, each the
-   * Gaussian's exact mass across the slice times its mass along the disc at the slice's middle.
+   * Gaussian's exact mass across the slice times its mass along the disk at the slice's middle.
    */
   private static double quarter(double u, double v, double r, double sigma) {
     double reach = 3 * sigma;
@@ -500,7 +500,7 @@ final class ReferenceCpuRenderer {
   }
 
   /**
-   * How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through: the
+   * How much of the pixel centered at {@code x, y}, in logical pixels, the clip lets through: the
    * least that it and each of its parents does by itself, as long as a parent comes before its
    * entry.
    */
@@ -542,7 +542,7 @@ final class ReferenceCpuRenderer {
   }
 
   /**
-   * Signed distance to a rounded rectangle centred on the origin whose corner on the point's side
+   * Signed distance to a rounded rectangle centered on the origin whose corner on the point's side
    * has the radius {@code rx} across and {@code ry} from top to bottom; negative inside.
    */
   private static double distance(
@@ -575,7 +575,7 @@ final class ReferenceCpuRenderer {
     return edge + (fill - edge) * fillShare;
   }
 
-  /** Signed distance to a rounded rectangle centred on the origin; negative inside. */
+  /** Signed distance to a rounded rectangle centered on the origin; negative inside. */
   private static double distance(double x, double y, double halfW, double halfH, double radius) {
     double qx = Math.abs(x) - halfW + radius;
     double qy = Math.abs(y) - halfH + radius;

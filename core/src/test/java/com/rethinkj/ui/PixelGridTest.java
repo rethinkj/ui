@@ -30,7 +30,7 @@ class PixelGridTest {
   private static final int RED = 0xFFFF0000;
   private static final int BLACK = 0xFF000000;
   private static final int WHITE = 0xFFFFFFFF;
-  private static final int GREY = 0xFF808080;
+  private static final int GRAY = 0xFF808080;
   private static final int BLUE = 0xFF2040C0;
 
   private static int edge(float v, float scale) {
@@ -44,7 +44,7 @@ class PixelGridTest {
   /** Boxes of 7 logical pixels side by side on red, from x = 3: no red shows between them. */
   @ParameterizedTest
   @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
-  void neighboursShareTheirEdges(float scale) {
+  void neighborsShareTheirEdges(float scale) {
     El strip = row().padding(3, 0, 0, 3).fill(RED).wFull().hFull();
     for (int i = 0; i < 9; i++) {
       strip.child(el().size(7, 9).fill(i % 2 == 0 ? BLACK : WHITE));
@@ -88,15 +88,15 @@ class PixelGridTest {
           .hFull()
           .fill(WHITE)
           .children(
-              el().absolute(at, at).size(40, 20).fill(WHITE).border(1, GREY),
+              el().absolute(at, at).size(40, 20).fill(WHITE).border(1, GRAY),
               el().absolute(at, at + 30).size(40, 1).fill(BLACK),
               el().absolute(at + 50, at).size(1, 40).fill(BLACK));
       Pixels pixels = Headless.render(root, 100, 80, scale).pixels();
       int ring = stroke(1, scale);
       int x = edge(at + 20, scale);
       // The border's top edge, from the white outside to the white inside.
-      assertColumn(pixels, x, edge(at, scale), ring, GREY, WHITE, "border at " + at);
-      assertColumn(pixels, x, edge(at + 20, scale) - ring, ring, GREY, WHITE, "bottom at " + at);
+      assertColumn(pixels, x, edge(at, scale), ring, GRAY, WHITE, "border at " + at);
+      assertColumn(pixels, x, edge(at + 20, scale) - ring, ring, GRAY, WHITE, "bottom at " + at);
       assertColumn(pixels, x, edge(at + 30, scale), ring, BLACK, WHITE, "hairline at " + at);
       int y = edge(at + 20, scale);
       int line = edge(at + 50, scale);
@@ -134,7 +134,7 @@ class PixelGridTest {
           .child(el().absolute(at, at)
               .size(41, 23)
               .radius(8)
-              .border(1, GREY)
+              .border(1, GRAY)
               .clip()
               .child(el().wFull().hFull().fill(BLUE)));
       Pixels pixels = Headless.render(root, 80, 60, scale).pixels();
@@ -146,7 +146,7 @@ class PixelGridTest {
       int left = edge(at, scale);
       int right = edge(at + 41, scale);
       for (int i = -1; i <= ring; i++) {
-        int expected = i < 0 ? WHITE : i < ring ? GREY : BLUE;
+        int expected = i < 0 ? WHITE : i < ring ? GRAY : BLUE;
         String what = "at " + at + ", pixel " + i + " of the ";
         assertEquals(hex(expected), hex(pixels.argb(middleX, top + i)), what + "top");
         assertEquals(hex(expected), hex(pixels.argb(middleX, bottom - 1 - i)), what + "bottom");
@@ -167,7 +167,7 @@ class PixelGridTest {
     App<Object> app = new App<>(new Object(), s -> {
       El list = El.col().key("list").scroll().absolute(10, 10).size(60, 50).fill(WHITE);
       for (int i = 0; i < 10; i++) {
-        list.child(el().h(11).shrink(0).fill(WHITE).border(1, GREY));
+        list.child(el().h(11).shrink(0).fill(WHITE).border(1, GRAY));
       }
       return el().wFull().hFull().fill(WHITE).child(list);
     });
@@ -188,7 +188,7 @@ class PixelGridTest {
             x,
             top - ring,
             2 * ring,
-            GREY,
+            GRAY,
             WHITE,
             "rows " + (i - 1) + " and " + i + " scrolled by " + offset);
       }
@@ -214,7 +214,7 @@ class PixelGridTest {
       El root = el().wFull()
           .hFull()
           .fill(WHITE)
-          .child(row().absolute(at, 10).padding(3, 7).fill(GREY).gap(5).children(text, icon));
+          .child(row().absolute(at, 10).padding(3, 7).fill(GRAY).gap(5).children(text, icon));
       Pixels pixels = Headless.render(root, 100, 40, scale, TextRendering.LINUX).pixels();
       List<int[]> crops = new ArrayList<>();
       for (El el : List.of(text, icon)) {
@@ -250,14 +250,14 @@ class PixelGridTest {
           .absolute(16, 16)
           .size(120, 90)
           .radius(8)
-          .border(1, GREY)
+          .border(1, GRAY)
           .clip()
           .scroll()
           .shadow(new Shadow(0, 2, 6, 0, 0x40000000));
       for (int i = 0; i < 9; i++) {
         list.children(
             el().h(21).shrink(0).fill(i % 2 == 0 ? WHITE : BLUE),
-            el().h(1).shrink(0).fill(GREY));
+            el().h(1).shrink(0).fill(GRAY));
       }
       El root = el().wFull().hFull().fill(WHITE).child(list);
       Flex.layout(root, 240, 200);

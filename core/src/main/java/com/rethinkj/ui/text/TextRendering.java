@@ -3,10 +3,10 @@ package com.rethinkj.ui.text;
 import java.util.Objects;
 
 /**
- * How glyphs are rasterised and blended: the hinting, and the exponents of the coverage correction
+ * How glyphs are rasterized and blended: the hinting, and the exponents of the coverage correction
  * that makes text blended in linear light look as heavy as the platform's own text.
  *
- * <p>Glyphs are greyscale bitmaps of coverage {@code a} from 0 to 1, blended in linear light.
+ * <p>Glyphs are grayscale bitmaps of coverage {@code a} from 0 to 1, blended in linear light.
  * Before blending, the coverage of text darker than its background becomes {@code 1 - (1 -
  * a)^darkGamma}, which thickens it, and that of text lighter than its background {@code
  * a^lightGamma}, which thins it. Without the correction, dark text on a light background looks too
@@ -22,7 +22,7 @@ import java.util.Objects;
  */
 public record TextRendering(Hinting hinting, float darkGamma, float lightGamma) {
 
-  /** How outlines are fitted to the pixel grid before they are rasterised. */
+  /** How outlines are fitted to the pixel grid before they are rasterized. */
   public enum Hinting {
     /**
      * FreeType's auto-hinter, vertically only: stems and heights snap to whole pixels, widths and

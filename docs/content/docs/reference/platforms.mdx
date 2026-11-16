@@ -11,13 +11,13 @@ rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with JDK 25.
 | --- | --- | --- |
 | SDL | 3.4.20 | Windows, input, clipboard, dialogs |
 | wgpu-native | 29.0.1.1 | The GPU renderer |
-| FreeType | 2.15.0 | Rasterising glyphs |
+| FreeType | 2.15.0 | Rasterizing glyphs |
 | HarfBuzz | 15.1.0 | Shaping text |
 | DirectX Shader Compiler | 1.9.2609 | Compiling shaders on Direct3D 12, Windows only |
 
 FreeType and HarfBuzz are built from source and need nothing beyond the C runtime.
 
-On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) compiles the shaders, so the first frame appears sooner; it adds about 10 MB to the Windows JAR. A folder given with `rethinkj.ui.natives.dir` may leave it out of its `manifest.txt`; then the compiler built into Windows (FXC) is used. The licence texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
+On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) compiles the shaders, so the first frame appears sooner; it adds about 10 MB to the Windows JAR. A folder given with `rethinkj.ui.natives.dir` may leave it out of its `manifest.txt`; then the compiler built into Windows (FXC) is used. The license texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
 
 ## What a build needs
 

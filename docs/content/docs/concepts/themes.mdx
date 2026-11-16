@@ -49,7 +49,7 @@ Each group's `with` method returns a changed copy: `withSurface`, `withText`, `w
 
 ## Accents
 
-`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GREY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
+`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GRAY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
 
 Your own accent is a `Theme.Accent` of a color and its hover and pressed tones. The selection is then the color at 40 % and the edge (focus rings, the grid's cursor) the color itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
 

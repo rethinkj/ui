@@ -106,14 +106,14 @@ class TreeTest {
     Catalog catalog = hundredThousand();
     App<Catalog> app = start(catalog);
     assertRowsInDump(app, 0);
-    assertLabelledOnce(catalog, app);
+    assertLabeledOnce(catalog, app);
 
-    catalog.labelled.clear();
+    catalog.labeled.clear();
     catalog.detailed.clear();
     catalog.mutedAsked.clear();
     run(app, "scroll #schema row 76543\nframe");
     assertRowsInDump(app, 76_543 - El.OVERSCAN);
-    assertLabelledOnce(catalog, app);
+    assertLabeledOnce(catalog, app);
     // Six rows above the tables, a hundred for each: row 76543 is column 36 of table 765.
     El row = find(app, "row-76543");
     assertEquals("treeitem", row.role());
@@ -140,9 +140,9 @@ class TreeTest {
   }
 
   /** The labels and details of the rows that exist were asked for once each, and no others. */
-  private static void assertLabelledOnce(Catalog catalog, App<Catalog> app) {
+  private static void assertLabeledOnce(Catalog catalog, App<Catalog> app) {
     List<String> rows = find(app, "schema").children().stream().map(El::label).toList();
-    assertEquals(rows, catalog.labelled.stream().map(n -> n.name).toList());
+    assertEquals(rows, catalog.labeled.stream().map(n -> n.name).toList());
     assertEquals(rows, catalog.detailed.stream().map(n -> n.name).toList());
     assertEquals(rows, catalog.mutedAsked.stream().map(n -> n.name).toList());
   }

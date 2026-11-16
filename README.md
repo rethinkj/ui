@@ -6,7 +6,7 @@
 
 A native, GPU-rendered UI framework for Java. It draws everything itself (text, layout, animation, controls) with wgpu in SDL windows, and it can run without a window: a script drives the app, and images and element trees come out, so that an agent or a test can see and use what it builds.
 
-It is modelled on [rune](https://github.com/anomalyco/rune), which does the same for Rust.
+It is modeled on [rune](https://github.com/anomalyco/rune), which does the same for Rust.
 
 ![The Workbench example: a schema tree, a query editor with completions and a result grid](examples/src/test/resources/golden/workbench-completion.png)
 
@@ -16,7 +16,7 @@ Early. The version is `0.1.0-SNAPSHOT`, published as SNAPSHOTs only (see [Using 
 
 ## What is in it
 
-- **`core`**: an element tree with flexbox layout, text shaped with HarfBuzz and rasterised with FreeType, springs, shadows, clipping, scrolling, lists that build only the rows in view, overlays, focus, pointer and keyboard input, text fields and multi-line editors for texts of 100 000 lines, images, several windows with drags between them, work off the app's thread, and a GPU renderer that is checked pixel by pixel against a CPU reference.
+- **`core`**: an element tree with flexbox layout, text shaped with HarfBuzz and rasterized with FreeType, springs, shadows, clipping, scrolling, lists that build only the rows in view, overlays, focus, pointer and keyboard input, text fields and multi-line editors for texts of 100 000 lines, images, several windows with drags between them, work off the app's thread, and a GPU renderer that is checked pixel by pixel against a CPU reference.
 - **`kit`**: a theme and components built on `core`: buttons, fields, selects and combo boxes, menus and a menu bar, dialogs, a data grid for a million rows with editing, filters and frozen columns, a tree, tabs that tear off into windows, split panes, a code editor with highlighting, completion and find, a command palette, Markdown, progress, status bar, toolbar and more, in a dark and a light theme.
 - **`examples`**: runnable apps written the way a user of the library writes them.
 
@@ -200,4 +200,4 @@ An app that ships to both platforms from one build lists both natives JARs witho
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The fonts, the icon font and the native libraries come under their own licences, which their modules include.
+MIT, see [LICENSE](LICENSE). The fonts, the icon font and the native libraries come under their own licenses, which their modules include.

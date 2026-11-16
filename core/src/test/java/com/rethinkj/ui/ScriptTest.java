@@ -281,7 +281,7 @@ class ScriptTest {
   }
 
   @Test
-  void aSelectorPressesTheCentreOfItsElement() throws IOException {
+  void aSelectorPressesTheCenterOfItsElement() throws IOException {
     List<String> log = new ArrayList<>();
     App<List<String>> app = new App<>(
         log,
@@ -290,9 +290,9 @@ class ScriptTest {
             .child(el().absolute(40, 40)
                 .size(20, 20)
                 .label("Say \"hi\" \\ bye")
-                .onPress(() -> l.add("centre"))));
+                .onPress(() -> l.add("center"))));
     Script.run("size 100 100\nframe\npress label=\"Say \\\"hi\\\" \\\\ bye\"\nframe\n", app, out);
-    assertEquals(List.of("centre"), log);
+    assertEquals(List.of("center"), log);
   }
 
   @Test

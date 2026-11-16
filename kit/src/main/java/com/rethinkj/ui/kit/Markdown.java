@@ -163,7 +163,7 @@ public final class Markdown {
   /**
    * The document as a scroll area of its blocks, {@code role=document}, with the theme's spaces
    * between them and {@link Theme.Spacing#xxl} around them, each as wide as the area up to {@link
-   * Theme.Prose#measure} and centred in it: a virtual list ({@link El#rows(int, RowHeights,
+   * Theme.Prose#measure} and centered in it: a virtual list ({@link El#rows(int, RowHeights,
    * java.util.function.IntFunction)}) whose rows are the document's top-level blocks, so that only
    * the blocks in view and a few around them are built and laid out, however long the document.
    * Give it a height, or let it {@link El#grow} in a column, as any scroll area.

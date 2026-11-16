@@ -15,7 +15,7 @@
   <name>rethinkj UI :: Fonts</name>
   <description>Inter and JetBrains Mono, the default fonts of rethinkj-ui-core.</description>
 
-  <!-- The licence of the fonts; the texts are in the JAR beside them. -->
+  <!-- The license of the fonts; the texts are in the JAR beside them. -->
   <licenses>
     <license>
       <name>SIL Open Font License 1.1 (Inter, JetBrains Mono)</name>
@@ -27,7 +27,7 @@
     <plugins>
       <plugin>
         <!-- No Java code: the JAR holds the fonts under META-INF/rethinkj-ui/fonts/, which
-             com.rethinkj.ui.text.Font reads, and their licences. -->
+             com.rethinkj.ui.text.Font reads, and their licenses. -->
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>

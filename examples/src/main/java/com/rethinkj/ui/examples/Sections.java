@@ -813,7 +813,7 @@ final class Sections {
                 "Database",
                 null,
                 iconButton(theme, Symbol.ADD, "Add a connection", () -> state.say("add")),
-                iconButton(theme, Symbol.ARROW_SYNC, "Synchronise", () -> state.say("sync")),
+                iconButton(theme, Symbol.ARROW_SYNC, "Synchronize", () -> state.say("sync")),
                 iconButton(theme, Symbol.FILTER, "Filter", () -> state.say("filter"))),
             Card.inset(theme, tree))
         .w(300)

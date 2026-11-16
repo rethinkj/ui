@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * Theme.Accent#edge} of the theme, the color a tab's mark has ({@link Tabs.Tab#hue}), which
  * holds 3:1 on the surfaces in both default themes. A choice of no color, when the app allows
  * it, comes first: {@link Symbol#PROHIBITED} in muted text. In a tree dump it is {@code
- * role=radiogroup}, each swatch {@code role=radio} labelled by the hue's name as a person reads
+ * role=radiogroup}, each swatch {@code role=radio} labeled by the hue's name as a person reads
  * it ({@code Red}, {@code Violet}) and {@code checked} or {@code checked=false}.
  *
  * <pre>{@code

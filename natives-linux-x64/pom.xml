@@ -16,11 +16,11 @@
   <description>SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64, loaded by
     rethinkj-ui-core.</description>
 
-  <!-- The licences of the libraries; their texts are in the JAR beside them. wgpu-native is
+  <!-- The licenses of the libraries; their texts are in the JAR beside them. wgpu-native is
        available under either MIT or Apache-2.0. FreeType is available under either the FreeType
        License or the GPL 2.0; this module takes the FreeType License, which asks a product that
        ships FreeType to credit the FreeType Project in its documentation. FreeType's BDF and PCF
-       drivers and HarfBuzz's USE tables come with MIT licences of their own, also in the JAR. -->
+       drivers and HarfBuzz's USE tables come with MIT licenses of their own, also in the JAR. -->
   <licenses>
     <license>
       <name>zlib License (SDL)</name>
@@ -45,7 +45,7 @@
   </licenses>
 
   <build>
-    <!-- No Java code: the JAR holds the libraries, their manifest and their licences. -->
+    <!-- No Java code: the JAR holds the libraries, their manifest and their licenses. -->
     <resources>
       <resource>
         <directory>src/main/resources</directory>

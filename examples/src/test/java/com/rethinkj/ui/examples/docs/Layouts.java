@@ -294,12 +294,12 @@ final class Layouts {
     Theme theme = state.theme;
     // docs:start divider
     El across = Divider.divider(theme);
-    El labelled = Divider.divider(theme, "or");
+    El labeled = Divider.divider(theme, "or");
     El upright = Divider.vertical(theme);
     // docs:end divider
     return Frame.of(
         theme,
-        col().w(240).gap(theme.space().m()).children(across, labelled),
+        col().w(240).gap(theme.space().m()).children(across, labeled),
         row()
             .h(24)
             .gap(theme.space().m())

@@ -40,6 +40,6 @@ el 0,0 460x140
     el role=radio label="Teal" 336,52 32x32 checked
       el 340,56 24x24
         el 344,60 16x16
-    el role=radio label="Grey" 372,52 32x32 checked=false
+    el role=radio label="Gray" 372,52 32x32 checked=false
       el 376,56 24x24
         el 380,60 16x16

@@ -33,7 +33,7 @@ public record Spring(double duration, double bounce) {
   /** Layout moving out of the way: siblings sliding into a gap, containers resizing. */
   public static final Spring REFLOW = new Spring(0.4, 0);
 
-  /** Big surfaces travelling: drawers, sheets, pages. */
+  /** Big surfaces traveling: drawers, sheets, pages. */
   public static final Spring GLIDE = new Spring(0.32, 0);
 
   /** One shape becoming another, such as a menu opening out of its button. */

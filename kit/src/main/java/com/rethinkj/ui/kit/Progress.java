@@ -98,7 +98,7 @@ public final class Progress {
   /**
    * A bar under its name, with a text at the right beside the name, in muted text with tabular
    * figures, so that numbers that change do not shake. The whole is the progress bar of a dump,
-   * labelled by the name.
+   * labeled by the name.
    *
    * @param detail such as "12.4 MB of 80 MB · 20 s left"; null for the percentage
    */
@@ -132,7 +132,7 @@ public final class Progress {
         .label(label);
   }
 
-  /** A spinner of {@link Theme.Sizes#icon}, labelled "Loading". */
+  /** A spinner of {@link Theme.Sizes#icon}, labeled "Loading". */
   public static El spinner(Theme theme) {
     return spinner(theme, theme.size().icon());
   }
@@ -143,7 +143,7 @@ public final class Progress {
    * edge runs once per {@link Theme.Motion#spin} seconds. The core has no rotation and no arcs, so
    * the arc is four crescents, each the ring's box with a border on one side alone, which tapers
    * to nothing a quarter of a turn either way; their opacities follow the light round, each fading
-   * into the next, so it moves smoothly rather than from one spoke to the next. Labelled "Loading" unless the view sets
+   * into the next, so it moves smoothly rather than from one spoke to the next. Labeled "Loading" unless the view sets
    * another label.
    *
    * @param size the side, such as {@code size().icon()} for a button or a row

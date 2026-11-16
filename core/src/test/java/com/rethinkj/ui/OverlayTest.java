@@ -121,7 +121,7 @@ class OverlayTest {
     assertRect(
         new float[] {130, 34, 60, 50},
         placed(150, 10, o -> o.side(Side.BOTTOM, Style.Align.START, 4)));
-    // Centred along the side, and moved into the window where it sticks out.
+    // Centered along the side, and moved into the window where it sticks out.
     assertRect(
         new float[] {0, 34, 60, 50},
         placed(0, 10, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));

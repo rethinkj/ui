@@ -194,7 +194,7 @@ final class X11 {
       try {
         counter = (long) Sync.CREATE_COUNTER_H.invokeExact(display, arena.allocate(SYNC_VALUE));
       } catch (LinkageError e) {
-        return 0; // no libXext; resizes stay unsynchronised
+        return 0; // no libXext; resizes stay unsynchronized
       }
       if (counter == 0) {
         return 0;

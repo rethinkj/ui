@@ -46,7 +46,7 @@ el 0,0 480x520
       el role=radio label="Teal" 353,128 32x32 checked=false
         el 357,132 24x24
           el 361,136 16x16
-      el role=radio label="Grey" 389,128 32x32 checked=false
+      el role=radio label="Gray" 389,128 32x32 checked=false
         el 393,132 24x24
           el 397,136 16x16
     text "The keyboard's focus, none chosen" 29,172 422x16
@@ -78,7 +78,7 @@ el 0,0 480x520
       el role=radio label="Teal" 317,200 32x32 checked=false
         el 321,204 24x24
           el 325,208 16x16
-      el role=radio label="Grey" 353,200 32x32 checked=false
+      el role=radio label="Gray" 353,200 32x32 checked=false
         el 357,204 24x24
           el 361,208 16x16
     text "Disabled" 29,244 422x15
@@ -113,7 +113,7 @@ el 0,0 480x520
       el role=radio label="Teal" 353,271 32x32 checked
         el 357,275 24x24
           el 361,279 16x16
-      el role=radio label="Grey" 389,271 32x32 checked=false
+      el role=radio label="Gray" 389,271 32x32 checked=false
         el 393,275 24x24
           el 397,279 16x16
     text "In a narrow box" 29,315 422x16
@@ -149,6 +149,6 @@ el 0,0 480x520
         el role=radio label="Teal" 65,415 32x32 checked=false
           el 69,419 24x24
             el 73,423 16x16
-        el role=radio label="Grey" 101,415 32x32 checked=false
+        el role=radio label="Gray" 101,415 32x32 checked=false
           el 105,419 24x24
             el 109,423 16x16

@@ -26,7 +26,7 @@ import java.util.List;
  * {@code {NULL, WGPU_STRLEN}}, "no string", and an entry point of "" names no function at all.
  *
  * <p>{@code allocate} takes an {@link Arena} because an arena hands out zeroed memory, which the
- * initialisation relies on.
+ * initialization relies on.
  */
 final class Structs {
 
@@ -102,7 +102,7 @@ final class Structs {
         JAVA_LONG.withName("flags"),
         JAVA_INT.withName("dx12ShaderCompiler"),
         JAVA_INT.withName("gles3MinorVersion"),
-        JAVA_INT.withName("glFenceBehaviour"),
+        JAVA_INT.withName("glFenceBehavior"),
         STRING_VIEW.withName("dxcPath"),
         JAVA_INT.withName("dxcMaxShaderModel"),
         JAVA_INT.withName("dx12PresentationSystem"),

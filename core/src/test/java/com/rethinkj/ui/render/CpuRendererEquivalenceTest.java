@@ -54,7 +54,7 @@ class CpuRendererEquivalenceTest {
   @Test
   void drawsImagesAsBefore() {
     Image photo = Image.of(Examples.photo(37, 23));
-    Image disc = Image.of(Examples.disc(20));
+    Image disk = Image.of(Examples.disk(20));
     for (float scale : new float[] {1.25f, 2}) {
       for (float size : new float[] {37, 9.25f, 1.5f, 120}) {
         for (float at : new float[] {3, 3.25f}) {
@@ -67,12 +67,12 @@ class CpuRendererEquivalenceTest {
                       .size(size, 20)
                       .radius(3, 0, 6, 1)
                       .fit(Image.Fit.COVER),
-                  El.image(disc)
+                  El.image(disk)
                       .absolute(at + 70, 30)
                       .size(size, size / 2)
                       .fit(Image.Fit.CONTAIN)
                       .opacity(0.6f),
-                  El.image(disc).absolute(at + 100, at).size(size / 2, size).radius(5));
+                  El.image(disk).absolute(at + 100, at).size(size / 2, size).radius(5));
           Flex.layout(root, 140, 60);
           assertSame(
               "images " + size + " at " + at + " @" + scale,
@@ -259,9 +259,9 @@ class CpuRendererEquivalenceTest {
     return scene;
   }
 
-  /** Images for the random scenes: a photo with levels down to 1 by 1, and a disc with alpha. */
+  /** Images for the random scenes: a photo with levels down to 1 by 1, and a disk with alpha. */
   private static final Image[] BASE_IMAGES = {
-    Image.of(Examples.photo(29, 11)), Image.of(Examples.disc(12))
+    Image.of(Examples.photo(29, 11)), Image.of(Examples.disk(12))
   };
 
   /**

@@ -102,7 +102,7 @@ public final class Surface extends GpuObject {
       if (width <= 0 || height <= 0) {
         // wgpu-native ends the process for a width or height of 0.
         throw new IllegalArgumentException("A surface cannot be configured to " + width + "x"
-            + height + ". A minimised window has no size: skip drawing until it has one.");
+            + height + ". A minimized window has no size: skip drawing until it has one.");
       }
     }
   }

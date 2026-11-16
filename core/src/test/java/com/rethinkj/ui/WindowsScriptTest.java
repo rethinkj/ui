@@ -26,7 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 class WindowsScriptTest {
 
   private static final int RED = 0xFFDC2626;
-  private static final int GREY = 0xFF808080;
+  private static final int GRAY = 0xFF808080;
 
   @TempDir
   Path out;
@@ -65,7 +65,7 @@ class WindowsScriptTest {
     }
 
     El chip() {
-      return el().key("chip").size(40, 40).fill(GREY).dragPayload("chip").onDrag(this::drag);
+      return el().key("chip").size(40, 40).fill(GRAY).dragPayload("chip").onDrag(this::drag);
     }
 
     El torn() {
@@ -186,7 +186,7 @@ class WindowsScriptTest {
     Script.run("""
         size 300 100 at 100,100 scale 2
         frame
-        down #chip           # at its centre, 20,20 in the chip
+        down #chip           # at its center, 20,20 in the chip
         move 30,60
         move 30,-80          # above: the window opens with its top left at the chip's
         frame

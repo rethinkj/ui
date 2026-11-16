@@ -8,7 +8,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 
-/** The shared frame of a select and a closed combo box; each keeps its own input behaviour. */
+/** The shared frame of a select and a closed combo box; each keeps its own input behavior. */
 final class SelectionFrame {
 
   private SelectionFrame() {}

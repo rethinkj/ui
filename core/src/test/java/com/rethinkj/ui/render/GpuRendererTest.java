@@ -55,7 +55,7 @@ class GpuRendererTest {
    * <p>Both compute the same formulas, but the GPU in 32-bit floats where the CPU computes in
    * doubles, and it may fuse a multiply and an add or take a square root, a power or a logarithm a
    * last bit apart. That moves a value by far less than a step, but now and then across the middle
-   * between two steps, so that both round to neighbours: 1 step. A glyph's texel is read exactly,
+   * between two steps, so that both round to neighbors: 1 step. A glyph's texel is read exactly,
    * as its byte divided by 255. Then, the GPU stores every draw into the 8-bit target, rounding it
    * by up to half a step, and the next draw that overlaps blends with that rounded value, where
    * the CPU keeps floats to the end. A layer above attenuates the error beneath it, in steps as
@@ -170,7 +170,7 @@ class GpuRendererTest {
     // scrolled list with its submenu, and a dialog over a scrim.
     cases.add(overlay("overlay-nested", s, "press #export\n"));
     cases.add(overlay("overlay-scrim", s, "press #delete\n"));
-    // Text in both fonts at 9 to 25 pixels at quarter positions, both renderings, grey on light,
+    // Text in both fonts at 9 to 25 pixels at quarter positions, both renderings, gray on light,
     // under opacity, cut by rounded clips, overlapping translucent boxes, over several pages of a
     // small atlas, and in colors and fonts of a highlighter.
     cases.add(scattered(1.25f));
@@ -183,7 +183,7 @@ class GpuRendererTest {
         1,
         TextRendering.WINDOWS,
         new Atlas()));
-    cases.add(text("text-grey-on-light", Examples.greyOnLight(), 480, 104, 1));
+    cases.add(text("text-gray-on-light", Examples.grayOnLight(), 480, 104, 1));
     cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, s));
     cases.add(text("text-clipped", clippedText(), 240, 120, 2));
     cases.add(text("text-overlaps", overlappingText(), 240, 120, s));
@@ -240,7 +240,7 @@ class GpuRendererTest {
   void anImageGoesToTheGpuOnceAndIsGivenUpBeyondTheMemory() {
     Image a = Image.of(Examples.photo(64, 48));
     Image b = Image.of(Examples.photo(48, 64));
-    Image c = Image.of(Examples.disc(40));
+    Image c = Image.of(Examples.disk(40));
     long uploads = gpu.imageUploads();
     Scene first = scene(
         El.image(a).absolute(0, 0),
@@ -517,7 +517,7 @@ class GpuRendererTest {
                 tolerance);
           }
         }
-        // Black where equal, grey to light grey within the tolerance, red beyond it.
+        // Black where equal, gray to light gray within the tolerance, red beyond it.
         int shade =
             worst == 0 ? 0 : out ? -1 : 0x50 + 0x50 * Math.min(worst, tolerance) / tolerance;
         diff[at] = (byte) (shade < 0 ? 0xFF : shade);
@@ -948,7 +948,7 @@ class GpuRendererTest {
                 .color(0xFFE4E4E7)
                 .absolute(166, 26),
             el().absolute(150, 30).size(90, 12).fill(0x60FFFFFF),
-            // Grey text under its translucent white background box, light text fading out.
+            // Gray text under its translucent white background box, light text fading out.
             El.text("Zeile 2").fontSize(12).color(0xFF999999).absolute(170, 60).opacity(0.5f),
             el().absolute(166, 58).size(60, 20).radius(4).fill(0x40FFFFFF));
   }
@@ -973,7 +973,7 @@ class GpuRendererTest {
       scene.rect(10 + i * 19, 18 + shift, 9, 0.2f + i * 0.2f, 0, 0, 0xFF60A5FA, 0);
       scene.rect(4 + i * 19.37f, 54 + i * 0.37f, 15.5f, 15.5f, 3.3f, 0, 0xFFF97316, 0);
     }
-    // A shape whose edges lie on pixel centres at every scale tested, and a huge one.
+    // A shape whose edges lie on pixel centers at every scale tested, and a huge one.
     scene.rect(4.5f, 76.5f, 40, 20, 0, 0, 0xFF22C55E, 0);
     scene.rect(52.25f, 76.75f, 1e4f, 1e4f, 0, 0, 0xFFA855F7, 0);
     return scene;

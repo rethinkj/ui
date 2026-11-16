@@ -30,7 +30,7 @@ import java.util.Objects;
  *
  * <p>The text of an {@link El#editable} element is a field. A single-line field is one line,
  * whatever the string holds, unless it wraps, measured as 0 wide so that the field's width comes
- * from its style, its lines centred vertically in its content box, and shown with its composition
+ * from its style, its lines centered vertically in its content box, and shown with its composition
  * and placeholder. Its caret, selection and horizontal scroll come from {@link App}, which keeps
  * them per element; the methods below that return them are what a renderer draws.
  *
@@ -66,7 +66,7 @@ public final class Text implements Measure {
    * @param colors the color of each glyph as 0xAARRGGBB, where a {@link Highlighter} colored
    *     the line; null when every glyph has the text's color
    * @param x where the pen starts, from the left edge of the content box: 0, or further right in
-   *     text {@link El#textAlign aligned} to the centre or the end, on the grid of glyph positions
+   *     text {@link El#textAlign aligned} to the center or the end, on the grid of glyph positions
    */
   public record Line(GlyphRun glyphs, float width, float baseline, int[] colors, float x) {
 
@@ -172,7 +172,7 @@ public final class Text implements Measure {
   private float lineHeight;
   private float firstBaseline;
   // From the last placed(): the lines, the content size in physical pixels and how far a field's
-  // lines are moved down to centre them.
+  // lines are moved down to center them.
   private List<Span> placedSpans = List.of();
   private boolean laidOut;
   private float placedWidth;
@@ -657,7 +657,7 @@ public final class Text implements Measure {
   public Size measure(
       float knownWidth, float knownHeight, float availableWidth, float availableHeight) {
     if (field) {
-      // shortcut: the baseline is that of a line at the top; a field's line is centred in its
+      // shortcut: the baseline is that of a line at the top; a field's line is centered in its
       // content box, which measure does not know yet. Pass the box's height when a field has to
       // line up with text beside it by baseline.
       prepare();

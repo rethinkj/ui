@@ -32,7 +32,7 @@ el 0,0 1000x600
           el role=button label="Add connection" 227,41 24x24
             text label="add" "\u{F108}" 231,45 16x16
         el 9,73 258x498
-          el #catalogue role=tree label="Catalogue" 13,77 250x490 rows 2-28/267 scroll 0,134 thumb-y 255,89.16 6x37.16
+          el #catalog role=tree label="Catalog" 13,77 250x490 rows 2-28/267 scroll 0,134 thumb-y 255,89.16 6x37.16
             el #row-2 role=treeitem label="shop" 13,-9 250x24 expanded level=2 pos=2/3
               el #mark-2 33,-9 16x24
                 text label="chevron_down" "\u{F2A2}" 33,-5 16x16

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A short text that shows below an element, centred on it, once the pointer has rested on the
+ * A short text that shows below an element, centered on it, once the pointer has rested on the
  * element for {@link Theme.Motion#tooltipDelay}, and goes when the pointer leaves or presses; and
  * likewise once the keyboard has given the element the focus, with its ring, for as long, until
  * the focus leaves or a key goes down. It needs no state: the app's clock carries the delay

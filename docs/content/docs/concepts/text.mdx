@@ -3,7 +3,7 @@ title: Text and fonts
 description: Text elements, the default fonts Inter and JetBrains Mono, wrapping, ellipses and fallback fonts.
 ---
 
-`El.text("…")` makes a text element, sized by its text. Text is shaped with HarfBuzz (kerning, ligatures, joining scripts) and rasterised with FreeType, so it looks the same on Windows and Linux. The kit's `Label` applies the theme's text styles; use `El.text` for anything else.
+`El.text("…")` makes a text element, sized by its text. Text is shaped with HarfBuzz (kerning, ligatures, joining scripts) and rasterized with FreeType, so it looks the same on Windows and Linux. The kit's `Label` applies the theme's text styles; use `El.text` for anything else.
 
 ```java snippet="text"
 ```
@@ -16,7 +16,7 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 | `wrapText()` | Break lines at the element's width; a word, path or URL wider than the whole width breaks inside |
 | `ellipsis()` | End a line that does not fit in `…`; give the element a width or `minSize(0, 0)` |
 | `maxLines(n)` | Show at most `n` lines of a wrapped text; with `ellipsis()` the last ends in `…` where the text goes on |
-| `textAlign(Style.Align.CENTER)` | Each line centred (or `END`) in its box |
+| `textAlign(Style.Align.CENTER)` | Each line centered (or `END`) in its box |
 | `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
 | `textBackground(argb)` | The color behind the text when it is not the fill of the element or an ancestor, such as an image or a sibling below; glyph edges are drawn for that color |
 

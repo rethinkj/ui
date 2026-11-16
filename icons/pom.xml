@@ -15,7 +15,7 @@
   <name>rethinkj UI :: Icons</name>
   <description>Fluent UI System Icons, the default icon font of rethinkj-ui-core.</description>
 
-  <!-- The licence of the font; the text is in the JAR beside it. The font is
+  <!-- The license of the font; the text is in the JAR beside it. The font is
        fonts/FluentSystemIcons-Regular.ttf of github.com/microsoft/fluentui-system-icons at the
        tag 1.1.345, unchanged. -->
   <licenses>
@@ -29,7 +29,7 @@
     <plugins>
       <plugin>
         <!-- No Java code: the JAR holds the font under META-INF/rethinkj-ui/icons/, which
-             com.rethinkj.ui.text.Font reads, and its licence. -->
+             com.rethinkj.ui.text.Font reads, and its license. -->
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>

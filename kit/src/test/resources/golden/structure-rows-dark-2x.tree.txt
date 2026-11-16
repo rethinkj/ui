@@ -75,7 +75,7 @@ el 0,0 520x640
       el role=switch label="Telemetry" 19,488 482x45 disabled checked=false
         el 29,494 422x33
           text "Telemetry" 29,494 422x15
-          text "Managed by your organisation" 29,511 422x16
+          text "Managed by your organization" 29,511 422x16
         el 463,502 28x16
           el 465,504 12x12
   el role=separator 16,548 488x1

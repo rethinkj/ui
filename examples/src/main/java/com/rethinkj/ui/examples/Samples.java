@@ -51,7 +51,7 @@ final class Samples {
   private static final String[] STATUS = {"paid", "pending", "shipped", "refunded", "shipped"};
   private static final String[] NOTE = {
     null,
-    "Leave the parcel with the neighbour at number 12 if nobody answers the door",
+    "Leave the parcel with the neighbor at number 12 if nobody answers the door",
     null,
     "Gift wrap",
     null,

@@ -8,7 +8,7 @@ package com.rethinkj.ui.window;
  *
  * <p>High contrast, on Windows a setting of its own under Accessibility, asks for the system's few
  * colors instead of an app's: the text, window, highlight, link, disabled text and button
- * colors that {@code GetSysColor} gives, which the user chose for legibility. An app that honours
+ * colors that {@code GetSysColor} gives, which the user chose for legibility. An app that honors
  * it draws every surface, text and edge in those colors, gives every control an edge, keeps
  * focus and selection visible by those colors rather than by shade, and leaves out shadows,
  * translucency and images behind text. The kit has no theme for that yet.

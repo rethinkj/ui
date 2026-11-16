@@ -187,7 +187,7 @@ class WindowTest {
           new KeyDown(new Key("A", shiftControl, true)),
           new KeyUp(new Key("A", shiftControl, false)),
           new TextInput("ü€"),
-          // The pointer at the centre of the pixel it is on (Window.position).
+          // The pointer at the center of the pixel it is on (Window.position).
           new PointerMove(at(window, 40), at(window, 30)),
           new PointerDown(at(window, 40), at(window, 30), PointerButton.RIGHT, 2),
           new PointerUp(at(window, 41), at(window, 31), PointerButton.RIGHT),
@@ -534,7 +534,7 @@ class WindowTest {
 
   /**
    * Where the window reports the pointer that a test put at a position in logical pixels, as
-   * Desktop does: at the centre of the physical pixel it falls on, at any scale.
+   * Desktop does: at the center of the physical pixel it falls on, at any scale.
    */
   private static float at(Window window, float logical) {
     return window.logical(logical * window.unitsPerLogical());

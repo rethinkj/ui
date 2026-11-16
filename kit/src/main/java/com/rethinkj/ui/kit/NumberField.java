@@ -24,7 +24,7 @@ import java.util.function.IntConsumer;
  * El#keepFocus}), also where they are disabled at the ends of the range. The result is a box with the
  * field and the buttons, half as wide as a text field unless the view sets a width with {@code
  * .w(...)} on it. In a tree dump the field is {@code role=spinbutton} with its number as its
- * string, and the buttons are {@code role=button} labelled {@code Decrease} and {@code Increase}.
+ * string, and the buttons are {@code role=button} labeled {@code Decrease} and {@code Increase}.
  * The field's label is the one {@link #numberField(Theme, String, int, int, int, int,
  * IntConsumer)} gives it, or the title of the {@link Form} field or {@link Group} row it is in;
  * {@code .label(...)} on the result would label the box, not the field.

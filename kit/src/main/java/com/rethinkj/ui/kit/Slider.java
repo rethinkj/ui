@@ -56,7 +56,7 @@ public final class Slider {
     float share = (float) ((double) ((long) at - min) / range);
     float knob = theme.size().checkbox();
     float track = 2 * theme.space().xs();
-    // The rail runs between the knob's centre at either end, so that shares of it place the knob
+    // The rail runs between the knob's center at either end, so that shares of it place the knob
     // at any width.
     El done = el().h(track)
         .radius(track / 2)

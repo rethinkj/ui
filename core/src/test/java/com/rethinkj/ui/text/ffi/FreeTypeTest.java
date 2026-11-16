@@ -18,7 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The bindings that rasterising will use, on a real face: the struct layouts have to put the
+ * The bindings that rasterizing will use, on a real face: the struct layouts have to put the
  * bitmap where FreeType does. Skipped without FreeType and HarfBuzz.
  */
 class FreeTypeTest {

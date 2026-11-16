@@ -58,7 +58,7 @@ import java.util.Map;
  * meaning, so a glyph has nothing after them.
  *
  * <p>A rectangle's coverage of a pixel is that of its rounded rectangle, the radius of the corner
- * on the pixel's side of the centre ({@code x > 0} right, {@code y > 0} below) standing for all
+ * on the pixel's side of the center ({@code x > 0} right, {@code y > 0} below) standing for all
  * four. The fill shows inside the rectangle moved in by each side's border; a side of width 0 moves
  * it out by one physical pixel instead, so that the smoothed edge of a side without a border shows
  * no border color. That inner rectangle's corners have a radius across of {@code max(0, r -
@@ -66,7 +66,7 @@ import java.util.Map;
  * borders' widths, 0 for a side without one, as CSS has it, each at most half the inner
  * rectangle's side; a corner whose two differ is a quarter of an
  * ellipse, whose distance renderers take as {@code (k - 1) k / |q / r|} with {@code q} the point
- * from the ellipse's centre over its radii and {@code k = |q|}, the first-order distance. With
+ * from the ellipse's center over its radii and {@code k = |q|}, the first-order distance. With
  * every border as wide, the inner rectangle is the outer one moved in by that width and its corners
  * are circles.
  *
@@ -131,15 +131,15 @@ import java.util.Map;
  * 76  unused       f32 x 5   0
  * </pre>
  *
- * <p>Its coverage of a pixel is the Gaussian around the pixel's centre integrated over the shape,
+ * <p>Its coverage of a pixel is the Gaussian around the pixel's center integrated over the shape,
  * with the pixel's own extent added to the blur: a box one physical pixel wide has the variance
  * 1/12 of a Gaussian, so the deviation is {@code s = sqrt(sigma^2 + 1 / (12 scale^2))}, and a
  * shadow without blur gets an edge about as soft as a rectangle's. With {@code P(t) = (1 + erf(t /
  * (s sqrt 2))) / 2}, the Gaussian's mass below {@code t}, the mass of a band of half width {@code
- * a} around the shape's centre seen from {@code t} is {@code M(t, a) = P(t + a) - P(t - a)}. For a
- * pixel at {@code x, y} from the centre of a shape of half size {@code w, h} and radius {@code r},
+ * a} around the shape's center seen from {@code t} is {@code M(t, a) = P(t + a) - P(t - a)}. For a
+ * pixel at {@code x, y} from the center of a shape of half size {@code w, h} and radius {@code r},
  * the shape is two boxes crossed, of half sizes {@code w, h - r} and {@code w - r, h}, whose blur
- * is exact, and four quarter discs at their corners:
+ * is exact, and four quarter disks at their corners:
  *
  * <pre>
  * coverage = M(x, w) M(y, h - r) + M(x, w - r) M(y, h) - M(x, w - r) M(y, h - r)
@@ -147,11 +147,11 @@ import java.util.Map;
  *          + Q(x - (w - r), -y - (h - r)) + Q(-x - (w - r), -y - (h - r)),  at most 1
  * </pre>
  *
- * <p>{@code Q(u, v)} is the blur of the quarter disc of radius {@code r} at the origin towards
+ * <p>{@code Q(u, v)} is the blur of the quarter disk of radius {@code r} at the origin towards
  * {@code +x, +y}, from the point {@code u, v}: 0 when the point is more than {@code 3 s} from the
- * disc's square, else the part of its height from {@code max(v - 3 s, 0)} to {@code min(v + 3 s,
+ * disk's square, else the part of its height from {@code max(v - 3 s, 0)} to {@code min(v + 3 s,
  * r)} cut into eight slices of equal height, each the Gaussian's exact mass across the slice times
- * its mass along the disc's extent at the slice's middle height {@code m}: {@code (P(top - v) -
+ * its mass along the disk's extent at the slice's middle height {@code m}: {@code (P(top - v) -
  * P(bottom - v)) (P(sqrt(r^2 - m^2) - u) - P(-u))}. {@code erf} is Abramowitz and Stegun's 7.1.28,
  * {@code 1 - (1 + 0.0705230784 a + 0.0422820123 a^2 + 0.0092705272 a^3 + 0.0001520143 a^4 +
  * 0.0002765672 a^5 + 0.0000430638 a^6)^-16} for {@code a = min(|x|, 4)}, with the sign of {@code
@@ -161,7 +161,7 @@ import java.util.Map;
  * every side and leave out the rest, at most 0.14 % of its color.
  *
  * <p>A shape whose corners have different radii is the whole box with each rounded corner's square
- * of side {@code r} taken away and its quarter disc added back, in the order top left, top right,
+ * of side {@code r} taken away and its quarter disk added back, in the order top left, top right,
  * bottom right, bottom left: {@code M(x, w) M(y, h) + sum over the corners with r > 0 of (Q(u, v) -
  * (P(w - x') - P(w - r - x')) (P(h - y') - P(h - r - y')))}, where {@code x', y'} is the point
  * mirrored into the corner's quadrant ({@code x' = -x} at the left, {@code y' = -y} at the top),
@@ -192,7 +192,7 @@ import java.util.Map;
  * rounded element gets a clip entry of its own for that, its content box with its corners, and so
  * does one whose image, {@link Image.Fit#COVER covering} it, reaches beyond its content box.
  *
- * <p>The sample at a pixel, with {@code (px, py)} its centre in physical pixels, {@code s} the
+ * <p>The sample at a pixel, with {@code (px, py)} its center in physical pixels, {@code s} the
  * scale, {@code (w0, h0)} level 0's size and {@code (W, H) = (width s, height s)} the rectangle's
  * size in physical pixels:
  *
@@ -244,7 +244,7 @@ import java.util.Map;
  * skip it or not.
  *
  * <p>A renderer computes how much of a pixel a rectangle covers, from 0 to 1, as the signed
- * distance from the pixel's centre to the rectangle turned into a ramp one physical pixel wide
+ * distance from the pixel's center to the rectangle turned into a ramp one physical pixel wide
  * across the edge, and multiplies that by the same coverage of its clip; see {@link CpuRenderer}.
  * So the edge of a clip is smoothed like any other. A clip's coverage is that of its own rounded
  * rectangle, and then, as long as an entry has a parent other than 0 that comes before it, the
@@ -451,7 +451,7 @@ public final class Scene {
   }
 
   /**
-   * The scene of a tree, with its glyphs in {@code atlas}, rasterised as {@code rendering} says.
+   * The scene of a tree, with its glyphs in {@code atlas}, rasterized as {@code rendering} says.
    * This starts a {@link Atlas#nextFrame frame} of the atlas, so the glyphs of an older scene of
    * the same atlas may be gone.
    *

@@ -47,7 +47,7 @@ public final class Png {
   }
 
   /**
-   * Reads a PNG file into straight RGBA: grey, grey with alpha, RGB, RGBA and palette images, of
+   * Reads a PNG file into straight RGBA: gray, gray with alpha, RGB, RGBA and palette images, of
    * 1, 2, 4, 8 or 16 bits per sample as the format allows them, with the transparency of a {@code
    * tRNS} chunk, all five row filters and the CRC of every chunk checked. Sixteen bits keep their
    * high byte. Interlaced images are refused, as are images of more than 2^28 pixels.
@@ -233,8 +233,8 @@ public final class Png {
             transparency != null && index < transparency.length ? transparency[index] : (byte) 0xFF;
       }
       case 0, 4 -> {
-        int grey = sample(row, x * (color == 4 ? 2 : 1), depth);
-        byte value = (byte) eight(grey, depth);
+        int gray = sample(row, x * (color == 4 ? 2 : 1), depth);
+        byte value = (byte) eight(gray, depth);
         out[at] = value;
         out[at + 1] = value;
         out[at + 2] = value;
@@ -243,7 +243,7 @@ public final class Png {
         } else {
           boolean keyed = transparency != null
               && transparency.length >= 2
-              && grey == ((transparency[0] & 0xFF) << 8 | transparency[1] & 0xFF);
+              && gray == ((transparency[0] & 0xFF) << 8 | transparency[1] & 0xFF);
           out[at + 3] = keyed ? 0 : (byte) 0xFF;
         }
       }

@@ -99,7 +99,7 @@ import java.util.function.ObjLongConsumer;
  * role=separator} with the key {@code resize-<index>}, its rows {@code role=row} with the key
  * {@code row-<index>}, and its cells {@code role=gridcell} with the key {@code
  * cell-<row>-<column>} and their column's position, all counted from 0. An icon is a text
- * element labelled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
+ * element labeled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
  * its text as its label: {@code el #cell-4-3 role=gridcell label="true" ...} over {@code text
  * label="checkmark" ...}. A cell with a {@link Column#detail} says it as its value, {@code
  * value="82 B"}, unless it says a change there. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code

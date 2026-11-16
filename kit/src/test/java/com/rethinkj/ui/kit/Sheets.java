@@ -169,7 +169,7 @@ final class Sheets {
                                     endings,
                                     i -> endings = i)
                                 .label("Line endings"))),
-                    switchRow(t, "Telemetry", "Managed by your organisation", false, null))),
+                    switchRow(t, "Telemetry", "Managed by your organization", false, null))),
             divider(t),
             divider(t, "or"),
             row()

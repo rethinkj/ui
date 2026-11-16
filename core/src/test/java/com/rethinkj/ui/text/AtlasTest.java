@@ -11,7 +11,7 @@ import com.rethinkj.ui.text.TextRendering.Hinting;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
-/** Rasterising and the atlas. Skipped without FreeType and HarfBuzz. */
+/** Rasterizing and the atlas. Skipped without FreeType and HarfBuzz. */
 class AtlasTest {
 
   private static final Hinting LIGHT = Hinting.LIGHT;

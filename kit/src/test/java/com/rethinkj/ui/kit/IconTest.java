@@ -58,7 +58,7 @@ class IconTest {
 
   /**
    * An icon is as wide and high as its size at every scale, also where the text before it ends
-   * between two pixels, and centred on the line of the text beside it. Core's tests check that
+   * between two pixels, and centered on the line of the text beside it. Core's tests check that
    * the scene draws it on whole pixels.
    */
   @ParameterizedTest
@@ -77,7 +77,7 @@ class IconTest {
     assertEquals(20, large.width());
     assertEquals(20, large.height());
     // Within the half pixel by which layout may round the text's box.
-    assertEquals(small.y() + 8, after.y() + after.height() / 2, 0.5f, "centred");
+    assertEquals(small.y() + 8, after.y() + after.height() / 2, 0.5f, "centered");
   }
 
   @ParameterizedTest

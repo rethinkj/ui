@@ -9,7 +9,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 
-/** The labelled, focusable row shared by checkboxes and switches. */
+/** The labeled, focusable row shared by checkboxes and switches. */
 final class ControlRow {
 
   private ControlRow() {}
@@ -42,7 +42,7 @@ final class ControlRow {
         .radius(radius)
         .child(control);
     // Only as wide as the control and its text, so that a column that stretches its children
-    // stretches neither the press area nor the ring; one that centres them still centres it.
+    // stretches neither the press area nor the ring; one that centers them still centers it.
     row.style().width = Len.FIT_CONTENT;
     if (text != null) {
       row.child(label(theme, text)

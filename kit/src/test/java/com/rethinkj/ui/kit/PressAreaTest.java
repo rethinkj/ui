@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * A toggle or checkbox in a column takes presses, and draws its ring, only as far as the control
- * and its text reach, whether the column stretches its children or centres them.
+ * and its text reach, whether the column stretches its children or centers them.
  */
 class PressAreaTest {
 
@@ -62,7 +62,7 @@ class PressAreaTest {
     app.frame();
     c = app.tree().children().getFirst();
     assertEquals(content, c.width());
-    assertEquals(200, c.x() + c.width() / 2, 0.5f, "centred in a column that centres");
+    assertEquals(200, c.x() + c.width() / 2, 0.5f, "centered in a column that centers");
   }
 
   private static void press(App<?> app, float x, float y) {

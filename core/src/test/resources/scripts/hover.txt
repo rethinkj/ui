@@ -1,7 +1,7 @@
 # The light switch of core's tests (Examples) under the pointer: hovered, pressed, on, left.
 size 200 120 scale 2
 frame
-move #switch           # the pointer over the switch, which springs to a lighter grey
+move #switch           # the pointer over the switch, which springs to a lighter gray
 frame
 advance 1
 frame

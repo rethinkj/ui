@@ -104,7 +104,7 @@ public final class Dialog {
 
     /**
      * An element before the title, such as a color mark, an icon or an avatar of what the dialog
-     * edits, centred on the title's line and {@code space().m()} before it; it keeps its size.
+     * edits, centered on the title's line and {@code space().m()} before it; it keeps its size.
      * Null for none.
      */
     public Options leading(El leading) {

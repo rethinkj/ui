@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A TrueType or OpenType font, shaped with HarfBuzz and rasterised with FreeType. The
+ * A TrueType or OpenType font, shaped with HarfBuzz and rasterized with FreeType. The
  * font's bytes are copied into native memory and stay there, with the native objects made from
  * them, until {@link #close}; using a closed font throws {@link IllegalStateException}.
  *
@@ -105,7 +105,7 @@ public final class Font implements AutoCloseable {
   private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
 
   /**
-   * A rasterised glyph: its coverage, one byte per pixel from 0 (none) to 255 (all), rows from the
+   * A rasterized glyph: its coverage, one byte per pixel from 0 (none) to 255 (all), rows from the
    * top, and where the bitmap lies relative to the glyph's origin on the baseline.
    *
    * @param left how far the left edge lies right of the origin, in pixels
@@ -566,7 +566,7 @@ public final class Font implements AutoCloseable {
   private static final int ICON_HINTING = FreeType.LOAD_FORCE_AUTOHINT;
 
   /**
-   * Rasterises a glyph with FreeType into greyscale coverage, moved right by {@code quarter}
+   * Rasterizes a glyph with FreeType into grayscale coverage, moved right by {@code quarter}
    * quarter pixels after hinting, so that a glyph on a quarter-pixel position is drawn from a
    * bitmap at a whole one. The glyphs of {@link #icons()} are hinted alike for every {@code
    * hinting} ({@link #ICON_HINTING}).

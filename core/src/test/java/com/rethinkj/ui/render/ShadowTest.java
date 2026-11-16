@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * The shadow's formula ({@link CpuRenderer#shadow}) against a brute-force Gaussian blur of the
  * rounded rectangle: a sum over cells of a fine grid, which needs no {@code erf}. Square corners
- * are exact; the slices of the quarter discs are what is approximate.
+ * are exact; the slices of the quarter disks are what is approximate.
  */
 class ShadowTest {
 
@@ -69,7 +69,7 @@ class ShadowTest {
   }
 
   /**
-   * The blur of the shape at {@code x, y} by brute force: the Gaussian's density at the centre of
+   * The blur of the shape at {@code x, y} by brute force: the Gaussian's density at the center of
    * each cell inside the shape, times the cell's area, over cells of a sixty-fourth of the
    * deviation whose edges lie on the shape's straight edges, within five deviations of the point.
    */

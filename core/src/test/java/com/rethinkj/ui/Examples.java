@@ -91,7 +91,7 @@ public final class Examples {
     return rows(null);
   }
 
-  /** The look of the scrollbars of {@link #bars}: thin grey thumbs that lighten under use. */
+  /** The look of the scrollbars of {@link #bars}: thin gray thumbs that lighten under use. */
   public static final Scrollbars BARS =
       new Scrollbars(6, 2, 3, 24, 0xFF5A5A66, 0xFF7A7A88, 0xFFA1A1AA);
 
@@ -527,13 +527,13 @@ public final class Examples {
   }
 
   /**
-   * Grey text on white, in three columns, for a window of 480 by 104: the stored image
-   * text-grey-on-light. On a parent's white fill, which the scene sees, so the text is thickened;
+   * Gray text on white, in three columns, for a window of 480 by 104: the stored image
+   * text-gray-on-light. On a parent's white fill, which the scene sees, so the text is thickened;
    * on a white box behind it that is not its ancestor, which the scene misses, so the biased rule
-   * decides by the grey alone; and there again, but told with {@code textBackground}, which draws
+   * decides by the gray alone; and there again, but told with {@code textBackground}, which draws
    * it as the first column.
    */
-  public static El greyOnLight() {
+  public static El grayOnLight() {
     El root = el().size(480, 104);
     root.child(el().absolute(0, 0).size(480, 104).fill(0xFFFFFFFF)); // not an ancestor of the text
     String[] titles = {"parent fill", "a box behind", "textBackground"};
@@ -543,10 +543,10 @@ public final class Examples {
         texts.fill(0xFFFFFFFF);
       }
       texts.child(El.text(titles[column]).fontSize(11).color(0xFF1A1A1A));
-      for (int grey : new int[] {0xFF6B6B6B, 0xFF808080, 0xFF999999, 0xFFAAAAAA}) {
-        El text = El.text(String.format("#%06X Kunde Müller", grey & 0xFFFFFF))
+      for (int gray : new int[] {0xFF6B6B6B, 0xFF808080, 0xFF999999, 0xFFAAAAAA}) {
+        El text = El.text(String.format("#%06X Kunde Müller", gray & 0xFFFFFF))
             .fontSize(13)
-            .color(grey);
+            .color(gray);
         texts.child(column == 2 ? text.textBackground(0xFFFFFFFF) : text);
       }
       root.child(texts);
@@ -574,7 +574,7 @@ public final class Examples {
    * fills a card rounded at one corner only.
    */
   public static El nestedClips() {
-    Image disc = Image.of(disc(32));
+    Image disk = Image.of(disk(32));
     El list = col().key("nested-list").scroll().wFull().hFull().gap(2).fill(0xFFDBEAFE);
     for (int i = 1; i <= 12; i++) {
       list.child(row()
@@ -584,7 +584,7 @@ public final class Examples {
           .align(Style.Align.CENTER)
           .fill(i % 2 == 0 ? 0xFF3B82F6 : 0xFF1E3A8A)
           .children(
-              El.image(disc).size(16, 16),
+              El.image(disk).size(16, 16),
               El.text("Zeile " + i + ": Größe").fontSize(12).color(0xFFFFFFFF)));
     }
     El card = el().key("card")
@@ -749,7 +749,7 @@ public final class Examples {
   }
 
   /**
-   * Text aligned in its box ({@link El#textAlign}): a wrapped paragraph at the start, in the centre
+   * Text aligned in its box ({@link El#textAlign}): a wrapped paragraph at the start, in the center
    * and at the end, and numbers in cells aligned at the end, the narrow ones shortened with an
    * ellipsis, in both fonts, for a window of 360 by 172: the stored images text-align-1x and -2x.
    */
@@ -826,7 +826,7 @@ public final class Examples {
 
   /**
    * Lines in fallback fonts, dark on white, for a window of 360 by 156: the stored images
-   * fallback-1x and -2x. JetBrains Mono's box drawing and maths after Inter, and Inter's stars
+   * fallback-1x and -2x. JetBrains Mono's box drawing and math after Inter, and Inter's stars
    * and circled digits after JetBrains Mono; Hebrew, right to left within its run, around a
    * number, whose digits stay in order; Thai, with marks above and below its letters; and Chinese,
    * which no font of the chain has, as Inter's "not defined" glyph.
@@ -931,10 +931,10 @@ public final class Examples {
   }
 
   /**
-   * A disc in two colors on transparency, with an edge that fades over a quarter of its radius
+   * A disk in two colors on transparency, with an edge that fades over a quarter of its radius
    * and a translucent ring: alpha at every level from 0 to 255.
    */
-  public static Pixels disc(int size) {
+  public static Pixels disk(int size) {
     byte[] rgba = new byte[size * size * 4];
     double radius = size / 2.0;
     for (int y = 0; y < size; y++) {
@@ -973,7 +973,7 @@ public final class Examples {
     Image tiny = image("tiny", photo(10, 8), 1);
     Image medium = image("medium", photo(400, 300), 1);
     Image huge = image("huge", photo(4000, 2000), 1);
-    Image disc = image("disc", disc(48), 1);
+    Image disk = image("disk", disk(48), 1);
     El light = el().absolute(0, 0)
         .size(160, 220)
         .fill(0xFFF5F5F4)
@@ -983,8 +983,8 @@ public final class Examples {
             El.image(medium).absolute(8, 80).size(80, 60).key("smaller"),
             El.image(huge).absolute(92, 80).size(60, 30).key("huge"),
             El.text("Unter dem Bild").fontSize(13).color(0xFF1F2937).absolute(8, 150),
-            El.image(disc).absolute(20, 140).size(36, 36).key("over-text"),
-            El.image(disc).absolute(92, 120).key("disc"),
+            El.image(disk).absolute(20, 140).size(36, 36).key("over-text"),
+            El.image(disk).absolute(92, 120).key("disk"),
             El.text("Über dem Bild").fontSize(13).color(0xFF111827).absolute(84, 136),
             El.image(medium)
                 .absolute(8, 186)
@@ -1003,8 +1003,8 @@ public final class Examples {
         .size(160, 220)
         .fill(0xFF1B1C1F)
         .children(
-            El.image(disc).absolute(8, 8).key("disc-dark"),
-            El.image(disc).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
+            El.image(disk).absolute(8, 8).key("disk-dark"),
+            El.image(disk).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
             El.image(medium)
                 .absolute(8.5f, 90.25f)
                 .size(70.5f, 52.3f)
@@ -1016,7 +1016,7 @@ public final class Examples {
                 .clip()
                 .child(El.image(huge).absolute(-16, 0).size(100, 50).key("clipped")),
             El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(10, 154),
-            El.image(disc).absolute(40, 146).size(30, 30).key("over-mono"),
+            El.image(disk).absolute(40, 146).size(30, 30).key("over-mono"),
             El.image(tiny)
                 .absolute(90, 150)
                 .size(62, 62)

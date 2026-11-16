@@ -175,7 +175,7 @@ public final class Button {
       if (options.icon != null) { // in the icon's place
         button.child(spinner).child(label);
       } else { // over the middle of the text, which keeps its place unseen: the width stays
-        // Out of the flow and without a place of its own, it lies where the button centres its
+        // Out of the flow and without a place of its own, it lies where the button centers its
         // content, whatever size the view gives the button.
         spinner.style().position = Style.Position.ABSOLUTE;
         button.child(label.opacity(0)).child(spinner);

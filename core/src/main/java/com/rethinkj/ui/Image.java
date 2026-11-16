@@ -38,9 +38,9 @@ public final class Image {
   public enum Fit {
     /** Stretched to the box, both ways. */
     FILL,
-    /** As large as fits whole in the box, centred, keeping its aspect ratio. */
+    /** As large as fits whole in the box, centered, keeping its aspect ratio. */
     CONTAIN,
-    /** As small as covers the box, centred and cut by it, keeping its aspect ratio. */
+    /** As small as covers the box, centered and cut by it, keeping its aspect ratio. */
     COVER
   }
 

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>The main window is 400 by 160 at 100,100 on the script's screen and shows the tabs alone,
  * a, b, c and d; a window torn off is 300 by 160 and shows its group the same way. In both the
  * bar's tabs are 32 high from y 1, a from x 3, b from 48, c from 94 and d from 139; the scripts
- * press them 5 pixels inside their left edge, since a tab's centre is on its cross.
+ * press them 5 pixels inside their left edge, since a tab's center is on its cross.
  */
 class TabGroupsTest {
 

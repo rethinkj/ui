@@ -37,6 +37,6 @@ el 0,0 420x200
       el role=radio label="Teal" 317,109 32x32 checked
         el 321,113 24x24
           el 325,117 16x16
-      el role=radio label="Grey" 353,109 32x32 checked=false
+      el role=radio label="Gray" 353,109 32x32 checked=false
         el 357,113 24x24
           el 361,117 16x16

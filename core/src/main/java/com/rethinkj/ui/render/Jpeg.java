@@ -4,7 +4,7 @@ import java.util.Objects;
 
 /**
  * Reads JPEG files, because {@code javax.imageio} lives in {@code java.desktop}: baseline and
- * extended sequential and progressive files with Huffman coding, 8 bits per sample, greyscale
+ * extended sequential and progressive files with Huffman coding, 8 bits per sample, grayscale
  * (one component) and YCbCr or RGB (three), with any whole sampling factors from 1 to 4, among
  * them 4:4:4, 4:2:2, 4:2:0 and 4:4:0, restart markers, and the orientation of an EXIF block,
  * which it applies, so that a photo taken upright comes out upright.
@@ -13,7 +13,7 @@ import java.util.Objects;
  * integer inverse DCT of libjpeg ({@code jidctint.c}), libjpeg's smooth ("fancy") upsampling of
  * chroma halved across, down or both, and its fixed-point conversion from YCbCr to RGB. A file
  * whose data ends early, or whose scan breaks off at a marker, decodes as far as it goes, the rest
- * of its blocks left at their mean grey or at what earlier progressive scans gave them, as
+ * of its blocks left at their mean gray or at what earlier progressive scans gave them, as
  * libjpeg does.
  *
  * <p>Refused with an {@link IllegalArgumentException} that says why: four components (CMYK and
@@ -257,11 +257,11 @@ public final class Jpeg {
       }
       if (count == 4) {
         throw new IllegalArgumentException("The JPEG file has four components, CMYK or YCCK,"
-            + " which are not supported; greyscale and color (YCbCr or RGB) files are.");
+            + " which are not supported; grayscale and color (YCbCr or RGB) files are.");
       }
       if (count != 1 && count != 3) {
         throw new IllegalArgumentException("The JPEG file has " + count + " components; one"
-            + " (greyscale) or three (color) are supported.");
+            + " (grayscale) or three (color) are supported.");
       }
       if (end - pos < 6 + 3 * count) {
         throw truncated();

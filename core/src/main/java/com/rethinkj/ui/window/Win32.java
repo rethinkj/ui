@@ -441,7 +441,7 @@ final class Win32 {
   }
 
   /**
-   * Creates an in-process COM object on this thread, which COM has to be initialised on (SDL
+   * Creates an in-process COM object on this thread, which COM has to be initialized on (SDL
    * does that on the windows' thread).
    *
    * @return the interface, or NULL with the HRESULT in {@code hresult[0]}

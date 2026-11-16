@@ -167,7 +167,7 @@ public final class TextField {
 
   /**
    * The frame of a field: {@code frame} on top and at the sides, and {@code edge} along the
-   * bottom, the line a field is recognised by. The edge is a sharp shadow one stroke below the
+   * bottom, the line a field is recognized by. The edge is a sharp shadow one stroke below the
    * box, so that it follows the lower corners; a field has no bottom border and pads its bottom
    * by a stroke instead, which keeps its content where a frame all round would.
    */

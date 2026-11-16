@@ -22,7 +22,7 @@ import com.rethinkj.ui.Style;
  *
  * <p>The image is as large as its pixels at its scale in logical pixels unless the view sizes it;
  * a width or a height alone keeps its aspect ratio. The placeholder is as large as its icon and
- * text with the theme's padding, or as the view sizes it, its content centred.
+ * text with the theme's padding, or as the view sizes it, its content centered.
  */
 public final class Image {
 

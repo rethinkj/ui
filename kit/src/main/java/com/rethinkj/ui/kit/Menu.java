@@ -23,7 +23,7 @@ import java.util.function.Predicate;
 
 /**
  * A menu of items in an overlay: each with its text, an optional icon before it, an optional
- * shortcut at the right, a check mark when it is checked, greyed out when it is disabled, and
+ * shortcut at the right, a check mark when it is checked, grayed out when it is disabled, and
  * separators between groups. An item may open a submenu beside it, and the items of a submenu
  * submenus of their own, to any depth, after the pointer rests on it ({@link
  * Theme.Motion#submenuDelay}) or with Arrow Right. As a dropdown it hangs below a button, as a
@@ -223,7 +223,7 @@ public final class Menu {
 
     /**
      * This item in the theme's danger tone ({@link Theme.Danger#text}), its icon too, highlighted
-     * or not, for an action that destroys something, such as Delete; disabled, it is greyed out
+     * or not, for an action that destroys something, such as Delete; disabled, it is grayed out
      * as any other item.
      */
     public Item danger() {

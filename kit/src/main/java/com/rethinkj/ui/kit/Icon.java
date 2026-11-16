@@ -7,7 +7,7 @@ import java.util.Locale;
 /**
  * A symbol from the icon font in one of the theme's text or status colors, as a text element of
  * one glyph that is exactly as wide and as high as its size and does not shrink. In a row it lines
- * up with the text beside it when the row centres its children:
+ * up with the text beside it when the row centers its children:
  *
  * <pre>{@code
  * row().gap(theme.space().s()).align(Style.Align.CENTER).children(

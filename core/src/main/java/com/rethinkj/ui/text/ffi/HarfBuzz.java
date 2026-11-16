@@ -139,7 +139,7 @@ public final class HarfBuzz {
   /** {@code void hb_*_destroy(hb_*_t *)} and {@code hb_buffer_guess_segment_properties}. */
   public static final FunctionDescriptor VOID_HANDLE = FunctionDescriptor.ofVoid(ADDRESS);
 
-  /** The method handles; initialising this class loads the library. */
+  /** The method handles; initializing this class loads the library. */
   private static final class Fn {
     private static final SymbolLookup LIBRARY = Natives.lookup("harfbuzz");
 

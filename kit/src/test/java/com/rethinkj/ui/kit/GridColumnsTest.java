@@ -166,7 +166,7 @@ class GridColumnsTest {
     run(app, "await\nframe");
     assertFalse(ledger.selection.isEditing(), "its column is gone, and so is the editor");
     assertEquals(-1, ledger.selection.row(), "and the cursor, which was on it");
-    assertEquals(1, ledger.changes.count(), "nothing written to a neighbour");
+    assertEquals(1, ledger.changes.count(), "nothing written to a neighbor");
     assertEquals(1, ledger.changes.changes().getFirst().values().size());
   }
 

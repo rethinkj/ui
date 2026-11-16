@@ -485,7 +485,7 @@ class PixelGridTest {
           return;
         }
       }
-      // a neighbour's hairline or an ancestor's border is a whole pixel of its color, no blend
+      // a neighbor's hairline or an ancestor's border is a whole pixel of its color, no blend
       if (!shadowed && !line(p[1]) && blend(p[0], p[1], color)) {
         failures.add(name + ": the pixel before " + start + " is a blend:" + hexes(p));
       } else if (!shadowed

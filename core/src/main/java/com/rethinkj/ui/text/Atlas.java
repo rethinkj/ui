@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Glyph bitmaps for drawing, rasterised once and kept in square pages of 8-bit coverage, which a
+ * Glyph bitmaps for drawing, rasterized once and kept in square pages of 8-bit coverage, which a
  * GPU renderer uploads as textures. A glyph is identified by everything that changes its bitmap:
  * font, size in physical pixels, hinting, glyph id and quarter-pixel offset.
  *
@@ -264,7 +264,7 @@ public final class Atlas {
   }
 
   /**
-   * The slot of a glyph, rasterised and stored if it is not there yet. It stays where it is at
+   * The slot of a glyph, rasterized and stored if it is not there yet. It stays where it is at
    * least until the next {@link #nextFrame}.
    *
    * @param pixelSize the size in physical pixels, as {@link GlyphRun#pixelSize}

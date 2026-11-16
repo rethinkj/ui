@@ -35,10 +35,10 @@ class JpegTest {
         "baseline-422",
         "baseline-420",
         "baseline-440",
-        "grey",
+        "gray",
         "progressive-444",
         "progressive-420",
-        "progressive-grey",
+        "progressive-gray",
         "restart-420",
         "restart-progressive");
   }

@@ -102,8 +102,8 @@ class SwatchesTest {
     Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
     // The narrow box breaks the eleven swatches into rows.
     float[] none = StructureTest.rect(line(tree, "#narrow", "label=\"None\""));
-    float[] grey = StructureTest.rect(line(tree, "#narrow", "label=\"Grey\""));
-    assertTrue(grey[1] > none[1], "wrapped: " + tree);
+    float[] gray = StructureTest.rect(line(tree, "#narrow", "label=\"Gray\""));
+    assertTrue(gray[1] > none[1], "wrapped: " + tree);
   }
 
   @Test
@@ -130,11 +130,11 @@ class SwatchesTest {
     run(app, "key Home");
     assertNull(s.chosen, "Home chooses None, the first");
     run(app, "key ArrowLeft");
-    assertEquals(Theme.Hue.GREY, s.chosen, "around from the first to the last");
+    assertEquals(Theme.Hue.GRAY, s.chosen, "around from the first to the last");
     run(app, "key ArrowDown");
     assertNull(s.chosen, "and on from the last to the first");
     run(app, "key End");
-    assertEquals(Theme.Hue.GREY, s.chosen);
+    assertEquals(Theme.Hue.GRAY, s.chosen);
     assertEquals("chosen", app.focused().key(), "the group keeps the focus");
   }
 

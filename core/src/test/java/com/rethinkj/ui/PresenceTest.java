@@ -32,7 +32,7 @@ class PresenceTest {
     El badge = find(app, "badge");
     assertTrue(badge.isExiting());
     assertEquals(1, badge.opacity(), "the rebuild itself fades nothing");
-    assertEquals(69, find(app, "switch").x(), "the switch springs to the centre from here");
+    assertEquals(69, find(app, "switch").x(), "the switch springs to the center from here");
 
     float last = 1;
     while (find(app, "badge") != null) {

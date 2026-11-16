@@ -296,7 +296,7 @@ public final class CpuRenderer {
   }
 
   /**
-   * The coverage and the fill share of pixel {@code px} in the row whose centres lie at {@code y},
+   * The coverage and the fill share of pixel {@code px} in the row whose centers lie at {@code y},
    * into {@code coverages[px]} and {@code fillShares[px]}; whether the coverage is exactly 1 and
    * the fill share exactly {@code share}.
    */
@@ -312,7 +312,7 @@ public final class CpuRenderer {
       double[] coverages,
       double[] fillShares,
       int share) {
-    // Distances are measured from the pixel's centre, in logical pixels.
+    // Distances are measured from the pixel's center, in logical pixels.
     double x = (px + 0.5) / scale;
     double coverage = shape.coverage(x, y, scale);
     if (clip != null) {
@@ -696,7 +696,7 @@ public final class CpuRenderer {
 
   /**
    * Draws a shadow whose corners have different radii: the box, less each rounded corner's square,
-   * plus its quarter disc. What depends on x alone is computed once per column, what depends on y
+   * plus its quarter disk. What depends on x alone is computed once per column, what depends on y
    * once per row.
    */
   private static void corners(
@@ -800,13 +800,13 @@ public final class CpuRenderer {
     return StrictMath.sqrt(sigma * sigma + 1 / (12 * scale * scale));
   }
 
-  /** Slices of a quarter disc in {@link #quarter}. */
+  /** Slices of a quarter disk in {@link #quarter}. */
   private static final int SLICES = 8;
 
   /**
    * How much of a Gaussian of deviation {@code sigma} around the point {@code x, y} lies in a
-   * rounded rectangle centred on the origin: two crossed boxes, whose blur is exact, and the
-   * quarter discs at their corners.
+   * rounded rectangle centered on the origin: two crossed boxes, whose blur is exact, and the
+   * quarter disks at their corners.
    */
   static double shadow(
       double x, double y, double halfW, double halfH, double radius, double sigma) {
@@ -858,9 +858,9 @@ public final class CpuRenderer {
   }
 
   /**
-   * The blur of the quarter disc of radius {@code r} at the origin towards {@code +x, +y}, seen
+   * The blur of the quarter disk of radius {@code r} at the origin towards {@code +x, +y}, seen
    * from {@code u, v}: within three deviations of {@code v}, in slices of equal height, each the
-   * Gaussian's exact mass across the slice times its mass along the disc at the slice's middle.
+   * Gaussian's exact mass across the slice times its mass along the disk at the slice's middle.
    * What depends on {@code v} alone comes as its {@link #slices}.
    */
   private static double quarter(double u, double[] slices, double r, double sigma) {
@@ -878,8 +878,8 @@ public final class CpuRenderer {
 
   /**
    * What {@link #quarter} needs of {@code v}, which it shares with a row of pixels: for each slice,
-   * the disc's extent at its middle and the Gaussian's mass across it, {@code (P(top - v) -
-   * P(bottom - v))}; or null when no part of the disc's height lies within three deviations.
+   * the disk's extent at its middle and the Gaussian's mass across it, {@code (P(top - v) -
+   * P(bottom - v))}; or null when no part of the disk's height lies within three deviations.
    */
   private static double[] slices(double v, double r, double sigma) {
     double reach = 3 * sigma;
@@ -929,9 +929,9 @@ public final class CpuRenderer {
   }
 
   /**
-   * A rounded rectangle, an instance's shape or a clip, by its centre, half size and the radii of
+   * A rounded rectangle, an instance's shape or a clip, by its center, half size and the radii of
    * its corners in logical pixels, top left, top right, bottom right, bottom left, across ({@code
-   * rx}) and from top to bottom ({@code ry}); the corner on a point's side of the centre ({@code x
+   * rx}) and from top to bottom ({@code ry}); the corner on a point's side of the center ({@code x
    * > 0} right, {@code y > 0} below) gives its distance. Only the fill of a border whose sides
    * differ has corners whose two radii differ.
    *
@@ -939,14 +939,14 @@ public final class CpuRenderer {
    * the coverage of each: in a row of pixels they are one run without gaps, and a box of pixels
    * whose four corners they include lies among them. That holds for the coverage as computed in
    * doubles, not only for the exact one, because every step of it is monotonic and IEEE rounding
-   * keeps that: the offset {@code x} of the pixel's centre {@code (px + 0.5) / scale} from the
-   * centre grows with {@code px}; {@link CpuRenderer#distance} grows with {@code |x|}, as each of
+   * keeps that: the offset {@code x} of the pixel's center {@code (px + 0.5) / scale} from the
+   * center grows with {@code px}; {@link CpuRenderer#distance} grows with {@code |x|}, as each of
    * its additions, maxima, minima, squares of values of 0 or more and its square root does; and
    * {@link CpuRenderer#coverage}, {@code 0.5 - distance * scale} clamped, shrinks as the distance
    * grows when {@code scale > 0}. A pixel between two others of its row has an {@code |x|} no
    * larger than the larger of theirs, so a coverage no smaller than the smaller of theirs: 1 if
    * both have 1. The same holds for {@code |y|} in a column, so in a box the corner farthest from
-   * the centre on both axes has the smallest coverage. With a radius per corner that holds in
+   * the center on both axes has the smallest coverage. With a radius per corner that holds in
    * each quadrant, and a pixel between two others of its row lies on the side of one of them with
    * an {@code |x|} no larger than its, as the corner of a box on its side does on both axes. A
    * product of coverages, each from 0 to 1, is 1 only where each is, so the pixels that several
@@ -1009,7 +1009,7 @@ public final class CpuRenderer {
     }
 
     /**
-     * How much of the pixel centred at {@code x, y}, in logical pixels, the box covers, and the
+     * How much of the pixel centered at {@code x, y}, in logical pixels, the box covers, and the
      * clips it lies in.
      */
     double coverage(double x, double y, double scale) {
@@ -1020,7 +1020,7 @@ public final class CpuRenderer {
       return cover;
     }
 
-    /** How much of the pixel centred at {@code x, y} the box covers by itself. */
+    /** How much of the pixel centered at {@code x, y} the box covers by itself. */
     private double own(double x, double y, double scale) {
       double dx = x - centerX;
       double dy = y - centerY;
@@ -1030,11 +1030,11 @@ public final class CpuRenderer {
 
     /**
      * Whether it covers none of the pixels from {@code left} to {@code right - 1} in the row whose
-     * centres lie at {@code y}: in a row, the coverage is largest at the pixels nearest the centre
-     * on either side (see above), which are among the four around where the centre falls.
+     * centers lie at {@code y}: in a row, the coverage is largest at the pixels nearest the center
+     * on either side (see above), which are among the four around where the center falls.
      */
     boolean missesRow(double y, int left, int right, double scale) {
-      // Clamped before the cast, so that a centre far outside cannot overflow the loop below.
+      // Clamped before the cast, so that a center far outside cannot overflow the loop below.
       int middle = (int) Math.clamp(Math.floor(centerX * scale - 0.5), left - 1, right);
       for (int px = middle - 1; px <= middle + 2; px++) {
         if (coverage((Math.clamp(px, left, right - 1) + 0.5) / scale, y, scale) != 0) {
@@ -1096,7 +1096,7 @@ public final class CpuRenderer {
   }
 
   /**
-   * Signed distance to a rounded rectangle centred on the origin whose corner on the point's side
+   * Signed distance to a rounded rectangle centered on the origin whose corner on the point's side
    * has the radius {@code rx} across and {@code ry} from top to bottom; negative inside. An elliptic
    * corner's is the first-order distance, as {@link Scene} says.
    */
@@ -1123,7 +1123,7 @@ public final class CpuRenderer {
         + StrictMath.sqrt(outsideX * outsideX + outsideY * outsideY);
   }
 
-  /** Signed distance to a rounded rectangle centred on the origin; negative inside. */
+  /** Signed distance to a rounded rectangle centered on the origin; negative inside. */
   private static double distance(double x, double y, double halfW, double halfH, double radius) {
     double qx = Math.abs(x) - halfW + radius;
     double qy = Math.abs(y) - halfH + radius;
@@ -1213,7 +1213,7 @@ public final class CpuRenderer {
 
   /**
    * {@link #encode(double)}, remembered by the bits of the value, as a pixel's bytes are: the
-   * channels of a grey are one value, and a gradient repeats its values along a row or a column.
+   * channels of a gray are one value, and a gradient repeats its values along a row or a column.
    */
   private static final class Encoder {
     private static final int BITS = 12;

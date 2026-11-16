@@ -64,7 +64,7 @@ export default function HomePage() {
       <Reason title="It draws everything itself"
         aside={<Shot src="examples/manual-{theme}-2x-top" alt="A Markdown document in the Manual example" />}>
         <p>
-          Layout is flexbox, text is shaped with HarfBuzz and rasterised with FreeType, and the
+          Layout is flexbox, text is shaped with HarfBuzz and rasterized with FreeType, and the
           scene goes to the GPU through wgpu in an SDL window. There is no toolkit underneath:
           the same pixels on Windows and Linux, and a CPU renderer that the GPU is checked
           against, pixel by pixel.

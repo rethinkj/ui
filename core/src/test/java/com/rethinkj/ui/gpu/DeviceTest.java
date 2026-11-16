@@ -119,7 +119,7 @@ class DeviceTest {
       int red = rgba(255, 0, 0, 255);
       assertPixel(blue, pixels, 0, 0);
       assertPixel(blue, pixels, WIDTH - 1, HEIGHT - 1);
-      // The red quad covers x 8 to 23 and y 4 to 11: pixel centres inside [8, 24) x [4, 12).
+      // The red quad covers x 8 to 23 and y 4 to 11: pixel centers inside [8, 24) x [4, 12).
       assertPixel(red, pixels, 8, 4);
       assertPixel(red, pixels, 23, 11);
       assertPixel(red, pixels, 16, 8);

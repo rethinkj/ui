@@ -27,7 +27,7 @@ press #cell-2-1 clicks 2
 move role=button label="Refresh"
 ```
 
-A step acts on the centre of the visible part of the element's rectangle; for an element over a range of text (`El.range`), on the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match, as the pointer does not hit them either. An element with motion, as most kit components have, fades in from opacity 0 when it appears in a parent that was already there, so in the frame it appears it does not match; the clock moves only with `advance`, so run `advance 1` and `frame` before the step. The error then says that what matches is fading in or out.
+A step acts on the center of the visible part of the element's rectangle; for an element over a range of text (`El.range`), on the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match, as the pointer does not hit them either. An element with motion, as most kit components have, fades in from opacity 0 when it appears in a parent that was already there, so in the frame it appears it does not match; the clock moves only with `advance`, so run `advance 1` and `frame` before the step. The error then says that what matches is fading in or out.
 
 ## Lists of rows
 

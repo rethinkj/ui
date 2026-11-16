@@ -103,7 +103,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   Node selected;
   final List<String> log = new ArrayList<>();
   final List<Node> loading = new ArrayList<>(); // opened, children asked for, not there yet
-  final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
+  final List<Node> labeled = new ArrayList<>(); // the nodes whose label was asked for
   final List<Node> detailed = new ArrayList<>(); // the nodes whose detail was asked for
   final List<Node> mutedAsked = new ArrayList<>(); // the nodes asked whether they are muted
   final java.util.Map<Node, String> failures = new java.util.HashMap<>(); // why, till retried
@@ -246,7 +246,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
 
   @Override
   public String label(Node node) {
-    labelled.add(node);
+    labeled.add(node);
     return node.name;
   }
 

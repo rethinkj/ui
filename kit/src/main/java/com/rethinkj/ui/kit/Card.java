@@ -208,7 +208,7 @@ public final class Card {
 
   /**
    * The top of a card: its title in {@link Theme.Type#heading} with a description in muted text
-   * below that wraps, and the actions at the right, centred on the text. The title is a heading of
+   * below that wraps, and the actions at the right, centered on the text. The title is a heading of
    * level 3 in a tree dump, below a page's title and a section's heading.
    *
    * @param description below the title; null for none

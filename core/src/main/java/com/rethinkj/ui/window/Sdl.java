@@ -21,7 +21,7 @@ import java.lang.invoke.MethodHandle;
  *
  * <p>The descriptors are constants, so that GraalVM native image can register them. The method
  * handles live in nested holders: {@link H} for what opening a window and its first frame need,
- * the others by topic. Each is initialised on its first call and only then binds its handles and
+ * the others by topic. Each is initialized on its first call and only then binds its handles and
  * loads the library through {@link Natives}; nothing in this class loads it. Struct offsets are
  * written out by hand from SDL's headers, for 64-bit platforms.
  */

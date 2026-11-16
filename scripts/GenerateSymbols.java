@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  * constant for each name in {@link #NAMES}, with the code points of its drawings for the sizes in
  * {@link #SIZES}. To name another icon, add its Fluent name to the list and run the script again.
  * Where Fluent gives two names to one glyph, the font has only one of them; the script says so.
- * The list is short on purpose: the enum's static initialiser would outgrow the 64 KB a method may
+ * The list is short on purpose: the enum's static initializer would outgrow the 64 KB a method may
  * have long before the font's 4000 names.
  */
 public class GenerateSymbols {

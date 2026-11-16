@@ -1,7 +1,7 @@
 /*
  * Ported from Taffy's out-of-flow positioning (src/compute/oof.rs in
  * https://github.com/DioxusLabs/taffy, MIT): Copyright (c) 2018 Visly Inc.,
- * Copyright (c) 2026 Taffy Authors. The licence text is at the top of Flexbox.java.
+ * Copyright (c) 2026 Taffy Authors. The license text is at the top of Flexbox.java.
  */
 package com.rethinkj.ui.layout;
 
@@ -77,7 +77,7 @@ final class Absolute {
         boxStart = 0;
         boxEnd = staticEnd;
       } else {
-        // Centred on the static range, as far as the nearer edge of the padding box allows.
+        // Centered on the static range, as far as the nearer edge of the padding box allows.
         float center = (staticStart + staticEnd) / 2;
         float toEnd = size - center;
         if (Math.abs(center) <= Math.abs(toEnd)) {

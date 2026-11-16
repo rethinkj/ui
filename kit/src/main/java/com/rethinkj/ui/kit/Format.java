@@ -282,7 +282,7 @@ public final class Format<T> {
 
   /**
    * {@link #OFFSET_DATE_TIME} written with the time's seconds and {@code precision} digits of
-   * their fraction always, as {@link #time(int)}, and the offset spelt as {@code offset} says:
+   * their fraction always, as {@link #time(int)}, and the offset spelled as {@code offset} says:
    * {@code offsetDateTime(0, Offset.SHORT)} writes {@code 2026-01-01 09:00:00+00}. It reads every
    * spelling of an offset ({@code Z}, {@code +00:00}, {@code +00}, {@code +05:30}), with or
    * without seconds and fraction. Digits beyond the precision are cut, not rounded, in the text

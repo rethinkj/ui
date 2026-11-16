@@ -1,7 +1,7 @@
 /*
  * The algorithm is a port of Taffy's flexbox implementation (src/compute/flexbox.rs and
  * src/compute/common/alignment.rs in https://github.com/DioxusLabs/taffy), which is under the MIT
- * licence:
+ * license:
  *
  * Copyright (c) 2018 Visly Inc.
  * Copyright (c) 2026 Taffy Authors

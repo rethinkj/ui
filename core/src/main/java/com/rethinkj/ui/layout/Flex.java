@@ -19,7 +19,7 @@ public final class Flex {
   /**
    * Computes the rectangle of {@code root} and of every element below it and stores each with
    * {@link El#place}. Rectangles are rounded to whole pixels in a way that leaves no gaps between
-   * neighbours.
+   * neighbors.
    *
    * <p>The root is sized by its own style and placed at its margin. An element that is, or is
    * inside, {@code display: none} is not placed ({@link El#isPlaced}).
@@ -89,7 +89,7 @@ public final class Flex {
 
   /**
    * Rounds edges, not sizes, and does so in window coordinates. Rounding each width on its own
-   * would open one-pixel gaps between neighbours.
+   * would open one-pixel gaps between neighbors.
    */
   private static void place(Node node, float parentX, float parentY, boolean round) {
     if (node.style.display == Style.Display.NONE) {

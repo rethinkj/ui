@@ -71,8 +71,8 @@ overlay right start gap 5 on #item-1 role=menuitem label="Color" 17,67 101x24
         el 136,292 16x16
           el 136,292 16x16
         text "Teal" 160,292 48x16
-    el #subitem-10 role=menuitem label="Grey" 128,312 88x24
+    el #subitem-10 role=menuitem label="Gray" 128,312 88x24
       el 128,312 88x24
         el 136,316 16x16
           el 136,316 16x16
-        text "Grey" 160,316 48x16
+        text "Gray" 160,316 48x16

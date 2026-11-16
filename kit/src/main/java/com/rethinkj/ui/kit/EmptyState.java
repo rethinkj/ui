@@ -13,7 +13,7 @@ public final class EmptyState {
   private EmptyState() {}
 
   /**
-   * What a list shows when it has nothing to show, centred in the room it is given: a large muted
+   * What a list shows when it has nothing to show, centered in the room it is given: a large muted
    * icon, a title, a text and an optional action below, such as "No connections match" with a
    * button that clears the filter. Title and text break into lines where the room is narrower than
    * they are, as in a side panel, each line in the middle. In a tree dump it is {@code role=status} with the title as its

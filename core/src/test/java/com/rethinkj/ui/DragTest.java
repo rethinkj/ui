@@ -17,7 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 /** Drags: the handler's steps, how a drag differs from a press, cancelling, and scroll areas. */
 class DragTest {
 
-  private static final int GREY = 0xFF808080;
+  private static final int GRAY = 0xFF808080;
   private static final int BLUE = 0xFF3B82F6;
 
   @TempDir
@@ -39,15 +39,15 @@ class DragTest {
     App<Bar> app = new App<>(new Bar(), b -> {
       b.views++;
       float start = b.width;
-      El root = row().wFull().hFull().fill(GREY).onPress(() -> b.log.add("root"));
+      El root = row().wFull().hFull().fill(GRAY).onPress(() -> b.log.add("root"));
       if (b.shown) {
         root.child(el().key("bar")
             .size(b.width, 20)
-            .fill(GREY)
+            .fill(GRAY)
             .child(el().key("handle")
                 .absolute(b.width - 10, 0)
                 .size(10, 20)
-                .fill(GREY)
+                .fill(GRAY)
                 .cursor(Cursor.EW_RESIZE)
                 .whenPressed(e -> e.fill(BLUE))
                 .onPress(() -> b.log.add("press"))
@@ -91,7 +91,7 @@ class DragTest {
     assertEquals("END 295.0,-30.0", bar.log.getLast());
     assertEquals(4, bar.log.size(), "no press, not even of the root under the pointer");
     assertEquals(395, bar.width);
-    assertEquals(GREY, find(app, "handle").fill(), "released");
+    assertEquals(GRAY, find(app, "handle").fill(), "released");
     assertEquals(Cursor.DEFAULT, app.cursor());
   }
 

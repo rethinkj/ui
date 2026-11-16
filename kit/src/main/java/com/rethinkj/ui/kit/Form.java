@@ -30,7 +30,7 @@ import java.util.Objects;
  *
  * <p>Labels stand {@link Labels#BESIDE} their fields, in a column as wide as the widest of them,
  * for wide panels, or {@link Labels#ABOVE} them, for narrow ones. A label beside its field is
- * centred on the field's first line. A required field has a {@code *} after its label in the
+ * centered on the field's first line. A required field has a {@code *} after its label in the
  * danger color. Help text is muted and wraps below the field; an error replaces it, in the danger
  * color, and gives a text field the invalid look ({@link TextField#invalid}). A warning, for a
  * valid value worth a second thought, takes the same place in the warning color after a warning

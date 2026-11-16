@@ -101,7 +101,7 @@ import java.util.function.Predicate;
  * children in the same way. A child that sticks out of its parent's box is therefore hit only
  * inside that box, also where the parent does not clip; such a child is drawn whole but takes
  * the pointer only where its parent does. A view that wants a part to take the pointer beyond its
- * neighbour's edge gives it a parent that covers that area, as the kit's split puts its divider's
+ * neighbor's edge gives it a parent that covers that area, as the kit's split puts its divider's
  * strip and the second part in one box. This keeps hit testing a single walk down the tree,
  * in proportion to its depth and the children along the way, however large the tree.
  *
@@ -502,7 +502,7 @@ public final class App<S> {
 
   /**
    * The button was released. A press counts when it began on the same element, which the app
-   * recognises after rebuilds by the identity that matches elements across them, and did not
+   * recognizes after rebuilds by the identity that matches elements across them, and did not
    * become a drag; a drag ends here, and so does a thumb's drag, which presses nothing.
    */
   public void pointerUp(float x, float y) {
@@ -1819,7 +1819,7 @@ public final class App<S> {
   }
 
   /**
-   * Sets how text is rasterised and blended, {@link TextRendering#platform} until this is called.
+   * Sets how text is rasterized and blended, {@link TextRendering#platform} until this is called.
    * Tests pin it, so that their images are the same on every platform.
    */
   public void textRendering(TextRendering rendering) {

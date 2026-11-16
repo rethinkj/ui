@@ -63,7 +63,7 @@ key Escape
 key Escape                                 # the menu, then the bar: the focus back in the query
 frame
 
-wheel #catalogue 0 -1000                   # back to the top: opening orders showed its columns
+wheel #catalog 0 -1000                   # back to the top: opening orders showed its columns
 frame
 
 press role=treeitem label="deliveries" right  # selects the table and opens its menu there

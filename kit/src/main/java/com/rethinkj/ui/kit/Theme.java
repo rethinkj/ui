@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 /**
  * The values the kit's components read, named for what they are for rather than for how they look:
- * {@code text().muted()}, not "grey 500". Components take no color, size or spring of their own,
+ * {@code text().muted()}, not "gray 500". Components take no color, size or spring of their own,
  * so a theme decides all of them.
  *
  * <p>A theme is immutable. {@link #DARK} and {@link #LIGHT} are a plain neutral default; an app
@@ -364,10 +364,10 @@ public record Theme(
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
-        new Tone(alpha(WHITE, 0.01f), GREY_853, GREY_395, WHITE),
+        new Tone(alpha(WHITE, 0.01f), GRAY_853, GRAY_395, WHITE),
         new Tone(alpha(BLUE_496, 0.07f), BLUE_782, BLUE_496, WHITE),
         new Tone(alpha(GREEN_735, 0.03f), GREEN_826, GREEN_452, WHITE),
-        new Tone(alpha(AMBER_745, 0.03f), AMBER_835, AMBER_745, GREY_108),
+        new Tone(alpha(AMBER_745, 0.03f), AMBER_835, AMBER_745, GRAY_108),
         new Tone(alpha(RED_649, 0.035f), RED_803, RED_457, WHITE),
         18,
         22,
@@ -377,10 +377,10 @@ public record Theme(
 
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
-        new Tone(alpha(GREY_407, 0.1f), GREY_314, GREY_407, WHITE),
+        new Tone(alpha(GRAY_407, 0.1f), GRAY_314, GRAY_407, WHITE),
         new Tone(alpha(BLUE_447, 0.12f), BLUE_366, BLUE_447, WHITE),
         new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
-        new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
+        new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GRAY_108),
         new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
         18,
         22,
@@ -421,11 +421,11 @@ public record Theme(
 
     /** For a dark raised surface. */
     public static final Callouts DARK = new Callouts(
-        new CalloutTone(Colors.over(GREY_122, alpha(BLUE_694, 0.1f)), BLUE_694),
-        new CalloutTone(Colors.over(GREY_122, alpha(AMBER_745, 0.1f)), AMBER_745),
-        new CalloutTone(Colors.over(GREY_122, alpha(RED_649, 0.1f)), RED_649),
-        new CalloutTone(Colors.over(GREY_122, alpha(GREEN_735, 0.1f)), GREEN_735),
-        GREY_747,
+        new CalloutTone(Colors.over(GRAY_122, alpha(BLUE_694, 0.1f)), BLUE_694),
+        new CalloutTone(Colors.over(GRAY_122, alpha(AMBER_745, 0.1f)), AMBER_745),
+        new CalloutTone(Colors.over(GRAY_122, alpha(RED_649, 0.1f)), RED_649),
+        new CalloutTone(Colors.over(GRAY_122, alpha(GREEN_735, 0.1f)), GREEN_735),
+        GRAY_747,
         3);
 
     /** For a light raised surface. */
@@ -434,7 +434,7 @@ public record Theme(
         new CalloutTone(Colors.over(WHITE, Badges.LIGHT.warning().soft()), AMBER_384),
         new CalloutTone(Colors.over(WHITE, Badges.LIGHT.danger().soft()), RED_395),
         new CalloutTone(Colors.over(WHITE, Badges.LIGHT.success().soft()), GREEN_389),
-        GREY_375,
+        GRAY_375,
         3);
 
     /** The tone of a kind. */
@@ -478,11 +478,11 @@ public record Theme(
 
     /** For a dark panel. */
     public static final Prose DARK =
-        new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f), GREY_311, 720);
+        new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f), GRAY_311, 720);
 
     /** For a light panel. */
     public static final Prose LIGHT =
-        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GREY_805, 720);
+        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GRAY_805, 720);
   }
 
   /**
@@ -532,7 +532,7 @@ public record Theme(
         VIOLET_782,
         GREEN_823,
         ORANGE_806,
-        GREY_747,
+        GRAY_747,
         CYAN_843,
         alpha(WHITE, 0.016f),
         alpha(WHITE, 0.047f),
@@ -546,7 +546,7 @@ public record Theme(
         VIOLET_362,
         GREEN_378,
         ORANGE_380,
-        GREY_386,
+        GRAY_386,
         CYAN_363,
         alpha(BLACK, 0.063f),
         alpha(BLACK, 0.15f),
@@ -649,7 +649,7 @@ public record Theme(
   /**
    * @param subtle the edges of cards and of a surface's parts, the lines of a data grid, and the
    *     edges of a disabled control
-   * @param strong the edges a control is recognised by, such as the line along a text field's
+   * @param strong the edges a control is recognized by, such as the line along a text field's
    *     bottom or a checkbox's box, which stand out 3:1 from the surfaces and from a field's fill,
    *     also under the pointer
    * @param control the edge of a button and of other controls that their text names, quieter
@@ -734,7 +734,7 @@ public record Theme(
     AMBER(AMBER_491, AMBER_701),
     GREEN(GREEN_492, GREEN_702),
     TEAL(TEAL_490, TEAL_700),
-    GREY(GREY_477, GREY_700);
+    GRAY(GRAY_477, GRAY_700);
 
     private final Accent dark;
     private final Accent light;
@@ -1200,7 +1200,7 @@ public record Theme(
    * The shadows under what lies above the rest ({@link com.rethinkj.ui.El#shadow}), each a tight
    * one that darkens the edge and a wide one that shows the height, the first on top. A dark theme
    * needs them stronger and tighter than a light one: a shadow shows little on a dark surface, and
-   * a wide one only greys it. The renderer mixes them in linear light, where a shadow shows about
+   * a wide one only grays it. The renderer mixes them in linear light, where a shadow shows about
    * half as much as the same alpha in CSS.
    *
    * @param card cards on the window, lifted a little
@@ -1256,18 +1256,18 @@ public record Theme(
    * (raised) a step above it, white in the light theme, where a control is told apart by its edge.
    * Popups are a step lighter again in the dark theme, so that a menu stands apart from the card
    * behind it, and white in the light one, told apart by their edge and shadow. The item under the
-   * pointer or the keys in a popup's list (highlight) is a neutral grey 6 L* or more from the
+   * pointer or the keys in a popup's list (highlight) is a neutral gray 6 L* or more from the
    * popup, with primary, muted and danger text 4.5:1 on it; the accent's tint marks a selection. In the light theme they are four tones: window L* 93,
    * band 97, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
    * button's edge (control) a little more. A divider, the hairline that separates content on a
    * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
-   * the button's edge, in the light one the step it needs on the grey window.
+   * the button's edge, in the light one the step it needs on the gray window.
    *
-   * Hover and pressed. A neutral grey laid over the surface, mixed in linear light both by
+   * Hover and pressed. A neutral gray laid over the surface, mixed in linear light both by
    * Theme.over and by the renderer, so every component gives the same color: hover 4 L* or more
-   * from the surface, pressed 3 L* or more beyond hover. In the dark theme a lighter grey near the
-   * surfaces at 25 % and 45 %; in the light one a grey (L* 77) at 33 % and 57 %, which darkens the
-   * grey window by as much as the rules ask, as it does the white surfaces.
+   * from the surface, pressed 3 L* or more beyond hover. In the dark theme a lighter gray near the
+   * surfaces at 25 % and 45 %; in the light one a gray (L* 77) at 33 % and 57 %, which darkens the
+   * gray window by as much as the rules ask, as it does the white surfaces.
    *
    * Accent. One blue: white text on it at 4.5:1. Its edge, the tone of lines, outlines and the
    * focus ring, 3:1 on every surface and on the grid's selection: a lighter blue in the dark
@@ -1297,27 +1297,27 @@ public record Theme(
    * cards; card titles 14, dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
    *
    * Palette. Every color is one of Palette's, named by its hue and its L* times ten, or one of
-   * them at an alpha: alpha(GREY_298, 0.25f) is the dark theme's hover. Tokens that share a color
-   * name the same entry (in the dark theme the band and the grid's header are GREY_099, and the
+   * them at an alpha: alpha(GRAY_298, 0.25f) is the dark theme's hover. Tokens that share a color
+   * name the same entry (in the dark theme the band and the grid's header are GRAY_099, and the
    * accent's edge, the grid's cursor, a link and the tint of a changed cell BLUE_694); a value
    * that no rule makes from another is an entry of its own, also where it is close to another.
    * The accents are those of Hue.BLUE; Hue's other accents follow the rules above in both themes.
    */
 
-  /** Neutral greys with a blue accent, light text on dark surfaces. */
+  /** Neutral grays with a blue accent, light text on dark surfaces. */
   public static final Theme DARK = new Theme(
       new Surfaces(
-          GREY_047,
-          GREY_083,
-          GREY_122,
-          GREY_099,
-          alpha(GREY_298, 0.25f),
-          alpha(GREY_298, 0.45f),
+          GRAY_047,
+          GRAY_083,
+          GRAY_122,
+          GRAY_099,
+          alpha(GRAY_298, 0.25f),
+          alpha(GRAY_298, 0.45f),
           alpha(BLACK, 0.6f),
-          GREY_157,
-          over(GREY_157, alpha(GREY_298, 0.36f))),
-      new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-      new Borders(GREY_157, GREY_501, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
+          GRAY_157,
+          over(GRAY_157, alpha(GRAY_298, 0.36f))),
+      new TextColors(GRAY_916, GRAY_648, GRAY_425, WHITE),
+      new Borders(GRAY_157, GRAY_501, GRAY_226, alpha(GRAY_477, 0.35f), GRAY_226),
       Hue.BLUE.dark(),
       new Status(RED_649, AMBER_745, GREEN_735),
       SPACE,
@@ -1325,8 +1325,8 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_099, GREY_083, GREY_083, BLUE_180, GREY_208, BLUE_694, 1),
-      new Scrollbars(6, 2, 3, 24, GREY_568, GREY_655, GREY_759),
+      new Grid(24, 32, 480, 6, 12, GRAY_099, GRAY_083, GRAY_083, BLUE_180, GRAY_208, BLUE_694, 1),
+      new Scrollbars(6, 2, 3, 24, GRAY_568, GRAY_655, GRAY_759),
       new Elevation(
           List.of(
               new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
@@ -1340,20 +1340,20 @@ public record Theme(
       Code.DARK,
       CAPTION);
 
-  /** Neutral greys with a blue accent, dark text on light surfaces. */
+  /** Neutral grays with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
       new Surfaces(
-          GREY_927,
-          GREY_993,
+          GRAY_927,
+          GRAY_993,
           WHITE,
-          GREY_968,
-          alpha(GREY_773, 0.33f),
-          alpha(GREY_773, 0.57f),
+          GRAY_968,
+          alpha(GRAY_773, 0.33f),
+          alpha(GRAY_773, 0.57f),
           alpha(BLACK, 0.35f),
           WHITE,
-          over(WHITE, alpha(GREY_773, 0.57f))),
-      new TextColors(GREY_108, GREY_395, GREY_602, WHITE),
-      new Borders(GREY_912, GREY_547, GREY_844, alpha(GREY_547, 0.37f), GREY_805),
+          over(WHITE, alpha(GRAY_773, 0.57f))),
+      new TextColors(GRAY_108, GRAY_395, GRAY_602, WHITE),
+      new Borders(GRAY_912, GRAY_547, GRAY_844, alpha(GRAY_547, 0.37f), GRAY_805),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
@@ -1361,12 +1361,12 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_968, WHITE, WHITE, BLUE_918, GREY_883, BLUE_447, 1),
-      new Scrollbars(6, 2, 3, 24, GREY_501, GREY_423, GREY_327),
+      new Grid(24, 32, 480, 6, 12, GRAY_968, WHITE, WHITE, BLUE_918, GRAY_883, BLUE_447, 1),
+      new Scrollbars(6, 2, 3, 24, GRAY_501, GRAY_423, GRAY_327),
       new Elevation(
           List.of(
-              new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
-              new Shadow(0, 2, 6, 0, alpha(GREY_084, 0.12f))),
+              new Shadow(0, 1, 2, 0, alpha(GRAY_084, 0.16f)),
+              new Shadow(0, 2, 6, 0, alpha(GRAY_084, 0.12f))),
           List.of(
               new Shadow(0, 1, 3, 0, alpha(BLACK, 0.25f)),
               new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),

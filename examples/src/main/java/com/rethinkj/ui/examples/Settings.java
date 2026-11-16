@@ -720,7 +720,7 @@ public final class Settings {
                 label(
                         theme,
                         Label.Variant.MUTED,
-                        "A database tool built with rethinkj UI. Free software under the MIT licence.")
+                        "A database tool built with rethinkj UI. Free software under the MIT license.")
                     .wrapText()))
         .grow(1);
   }

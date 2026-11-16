@@ -58,13 +58,13 @@ class FieldRowsTest {
 
   /** Presses the middle of the element with this key. */
   private static void press(App<?> app, String key) {
-    float[] at = centre(app, key);
+    float[] at = center(app, key);
     app.pointerDown(at[0], at[1]);
     app.pointerUp(at[0], at[1]);
     app.frame();
   }
 
-  private static float[] centre(App<?> app, String key) {
+  private static float[] center(App<?> app, String key) {
     El target = find(app, key);
     List<El> path = new ArrayList<>();
     pathTo(app.tree(), target, path);

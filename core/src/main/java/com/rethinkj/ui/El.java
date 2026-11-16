@@ -1258,9 +1258,9 @@ public final class El {
 
   /**
    * Aligns each line of this text element in its content box: at the start (the left, the
-   * default), in the centre or at the end, as CSS's {@code text-align} does, for a text of one
+   * default), in the center or at the end, as CSS's {@code text-align} does, for a text of one
    * line and for one that {@link #wrapText wraps}, also where a line ends in an {@link #ellipsis}:
-   * an empty state's centred message, a column of numbers aligned at the right. Each line on its
+   * an empty state's centered message, a column of numbers aligned at the right. Each line on its
    * own, on the grid of glyph positions. Text fields, which scroll their lines, start at the left.
    *
    * @param align {@link Style.Align#START}, {@link Style.Align#CENTER} or {@link Style.Align#END}
@@ -1348,7 +1348,7 @@ public final class El {
    * inside an element with an {@link #onPress} or {@link #onDrag} handler, and while it selects
    * the field counts as the element under the pointer, as a dragged element does.
    *
-   * <p>The field is as tall as a line of its text, centred in its content box, and takes its
+   * <p>The field is as tall as a line of its text, centered in its content box, and takes its
    * width from its style, as layout measures it 0 wide; the text scrolls sideways inside its
    * content box and is clipped to it. Line breaks in typed or pasted text become spaces; {@link
    * #multiline} makes a field that keeps them.
@@ -1744,7 +1744,7 @@ public final class El {
     return text;
   }
 
-  // Behaviour
+  // Behavior
 
   /**
    * Runs {@code handler} when the pointer is pressed and released on this element or on a
@@ -2046,8 +2046,8 @@ public final class El {
 
   /**
    * Changes how this element looks while the pointer is over it or over an element inside it, as
-   * CSS's {@code :hover} does: {@code el().fill(GREY).whenHovered(element ->
-   * element.fill(LIGHT_GREY))}. After each rebuild of the view and before layout, {@link App}
+   * CSS's {@code :hover} does: {@code el().fill(GRAY).whenHovered(element ->
+   * element.fill(LIGHT_GRAY))}. After each rebuild of the view and before layout, {@link App}
    * calls {@code look} with the element. With {@link #motion} it springs to the changed values and
    * back like after any other change.
    *
@@ -3676,7 +3676,7 @@ public final class El {
     row.style.height = Len.px(rowHeight);
     scaleText(row, scale, systemFonts);
     // Rounded where the row lies in the content, so that rows of a fractional height share their
-    // edges with their neighbours, what fills them included; placed from the first row that exists.
+    // edges with their neighbors, what fills them included; placed from the first row that exists.
     double top = rowsTop() + (firstRow + index) * (double) rowHeight;
     double whole = Math.floor(top);
     Flex.layout(row, inner, rowHeight, 0, (float) (top - whole));

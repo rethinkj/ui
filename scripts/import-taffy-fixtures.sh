@@ -10,7 +10,7 @@
 # and commits what Chrome reports as one XML file per variant under tests/xml/. Each file holds
 # the styled tree and the expected rectangles. This script joins the files of tests/xml/flex/
 # into core/src/test/resources/taffy/flex.xml, unchanged, under a root element that records the
-# commit, and copies Taffy's licence beside it. No browser is needed.
+# commit, and copies Taffy's license beside it. No browser is needed.
 #
 # After an import, run `mvn -pl core verify`. A new case that uses a style property the test does
 # not know fails with the name of that property.

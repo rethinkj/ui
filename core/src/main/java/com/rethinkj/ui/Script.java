@@ -31,14 +31,14 @@ import java.util.regex.Pattern;
  * <pre>
  * size 200 120 scale 2               # the window in logical pixels, and its scale
  * frame
- * press role=switch label="Lights"   # pointer down and up on the centre of that element
+ * press role=switch label="Lights"   # pointer down and up on the center of that element
  * frame                              # runs the handler and rebuilds the view
  * move #switch                       # the pointer over the switch, which looks hovered
  * leave                              # the pointer out of the window
  * advance 0.04
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
- * wheel #list 0 40                   # the wheel, 40 pixels down, over the centre of #list
+ * wheel #list 0 40                   # the wheel, 40 pixels down, over the center of #list
  * scroll #orders row 5000            # a list made with El.rows: row 5000 at its top
  * key Tab shift                      # Shift+Tab, down and up: the focus moves back
  * type "hello"                       # text for the focused element
@@ -663,7 +663,7 @@ public final class Script {
   }
 
   /**
-   * An element of the last frame with the window position of its border box, and the centre of
+   * An element of the last frame with the window position of its border box, and the center of
    * the part of it that its clips leave.
    */
   private record Found(El el, float left, float top, float x, float y) {}
@@ -1246,7 +1246,7 @@ public final class Script {
       return Double.parseDouble(word);
     }
 
-    /** The point a target stands for, in logical pixels: a position, or an element's centre. */
+    /** The point a target stands for, in logical pixels: a position, or an element's center. */
     float[] point(List<String> target, El root) {
       String text = String.join(" ", target);
       Matcher position = POSITION.matcher(text);

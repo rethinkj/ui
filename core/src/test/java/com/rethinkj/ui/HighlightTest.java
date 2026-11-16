@@ -30,17 +30,17 @@ import org.junit.jupiter.api.Test;
 class HighlightTest {
 
   static final int RED = 0xFFCC0000;
-  static final int GREY = 0xFF808080;
+  static final int GRAY = 0xFF808080;
   static final int TEXT = 0xFF000000;
 
-  /** Digits red, and block comments grey, which carry on to the next line in the state. */
+  /** Digits red, and block comments gray, which carry on to the next line in the state. */
   static final Highlighter COMMENTS = (line, state, out) -> {
     boolean inside = state == Boolean.TRUE;
     int start = 0;
     for (int i = 0; i < line.length(); i++) {
       if (inside) {
         if (line.startsWith("*/", i)) {
-          out.color(start, i + 2, GREY);
+          out.color(start, i + 2, GRAY);
           inside = false;
           i++;
         }
@@ -53,7 +53,7 @@ class HighlightTest {
       }
     }
     if (inside) {
-      out.color(start, line.length(), GREY);
+      out.color(start, line.length(), GRAY);
     }
     return inside ? Boolean.TRUE : null;
   };
@@ -210,7 +210,7 @@ class HighlightTest {
     assertTrue(afterOpen <= 12, "the lines from the edit to the view, not 2000: " + afterOpen);
     for (int[] row : colors(app)) {
       for (int c : row) {
-        assertEquals(GREY, c, "everything in view is inside the comment now");
+        assertEquals(GRAY, c, "everything in view is inside the comment now");
       }
     }
     int before = ls.highlighted;

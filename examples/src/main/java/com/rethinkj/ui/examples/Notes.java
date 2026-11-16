@@ -182,8 +182,8 @@ public final class Notes {
     float left = theme.space().l();
     int at = 0;
     for (int index = 0; index < row.size(); index++) {
-      float centre = left + index * (CARD + theme.space().m()) + CARD / 2;
-      if (x > centre) {
+      float center = left + index * (CARD + theme.space().m()) + CARD / 2;
+      if (x > center) {
         at = index + 1;
       }
     }

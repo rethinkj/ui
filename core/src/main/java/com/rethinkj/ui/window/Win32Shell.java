@@ -24,7 +24,7 @@ import java.nio.ByteOrder;
  * each size, and again when the scale changes.
  *
  * <p>The badge is an overlay icon, {@code ITaskbarList3::SetOverlayIcon}, through a taskbar list
- * object of the windows' thread, on which SDL has initialised COM. The taskbar takes it only once
+ * object of the windows' thread, on which SDL has initialized COM. The taskbar takes it only once
  * it has made the window's button, which it says with the registered message {@code
  * TaskbarButtonCreated}; a badge set before that waits for it, and the message comes again when
  * Explorer restarts, which also clears the badge, so it is set again. The progress ({@code
@@ -237,7 +237,7 @@ final class Win32Shell {
     smallIcon = bigIcon = badgeIcon = MemorySegment.NULL;
   }
 
-  /** Releases the taskbar list; before SDL quits, which uninitialises COM. */
+  /** Releases the taskbar list; before SDL quits, which uninitializes COM. */
   static void releaseTaskbar() {
     if (!taskbar.equals(MemorySegment.NULL)) {
       Win32.comCall(taskbar, Win32.VTBL_RELEASE);

@@ -9,7 +9,7 @@ package com.rethinkj.ui.kit;
  * is for is named by the tokens of {@link Theme}, whose source shows which tokens share a color
  * and which are made from another.
  *
- * <p>The greys are a little blue, as the themes' surfaces are; every color is opaque, and the
+ * <p>The grays are a little blue, as the themes' surfaces are; every color is opaque, and the
  * themes write translucent ones as one of these at an alpha ({@link
  * com.rethinkj.ui.Colors#alpha(int, float)}). Black and white are {@link
  * com.rethinkj.ui.Colors#BLACK} and {@link com.rethinkj.ui.Colors#WHITE}.
@@ -26,46 +26,46 @@ public final class Palette {
 
   private Palette() {}
 
-  // Grey
-  public static final int GREY_047 = 0xFF0F1013;
-  public static final int GREY_083 = 0xFF17181C;
-  public static final int GREY_084 = 0xFF141824;
-  public static final int GREY_099 = 0xFF1A1B20;
-  public static final int GREY_108 = 0xFF1B1D22;
-  public static final int GREY_122 = 0xFF1E2025;
-  public static final int GREY_157 = 0xFF25272D;
-  public static final int GREY_208 = 0xFF2E323D;
-  public static final int GREY_226 = 0xFF33363D;
-  public static final int GREY_298 = 0xFF45464C;
-  public static final int GREY_311 = 0xFF464952;
-  public static final int GREY_314 = 0xFF464A54;
-  public static final int GREY_327 = 0xFF4A4D54;
-  public static final int GREY_375 = 0xFF555863;
-  public static final int GREY_386 = 0xFF575B63;
-  public static final int GREY_395 = 0xFF5A5D67;
-  public static final int GREY_407 = 0xFF5C606B;
-  public static final int GREY_423 = 0xFF60646E;
-  public static final int GREY_425 = 0xFF62646D;
-  public static final int GREY_477 = 0xFF6E717B;
-  public static final int GREY_501 = 0xFF747780;
-  public static final int GREY_547 = 0xFF7F838C;
-  public static final int GREY_568 = 0xFF858892;
-  public static final int GREY_602 = 0xFF8E9199;
-  public static final int GREY_648 = 0xFF9A9DA9;
-  public static final int GREY_655 = 0xFF9C9FA8;
-  public static final int GREY_700 = 0xFFA9ABB2;
-  public static final int GREY_747 = 0xFFB4B8C0;
-  public static final int GREY_759 = 0xFFB9BBC1;
-  public static final int GREY_773 = 0xFFBDBFC5;
-  public static final int GREY_805 = 0xFFC4C8CF;
-  public static final int GREY_844 = 0xFFCFD3DA;
-  public static final int GREY_853 = 0xFFD3D5DB;
-  public static final int GREY_883 = 0xFFDADEE4;
-  public static final int GREY_912 = 0xFFE3E6EB;
-  public static final int GREY_916 = 0xFFE6E7EA;
-  public static final int GREY_927 = 0xFFE8EAEF;
-  public static final int GREY_968 = 0xFFF4F6F8;
-  public static final int GREY_993 = 0xFFFDFDFE;
+  // Gray
+  public static final int GRAY_047 = 0xFF0F1013;
+  public static final int GRAY_083 = 0xFF17181C;
+  public static final int GRAY_084 = 0xFF141824;
+  public static final int GRAY_099 = 0xFF1A1B20;
+  public static final int GRAY_108 = 0xFF1B1D22;
+  public static final int GRAY_122 = 0xFF1E2025;
+  public static final int GRAY_157 = 0xFF25272D;
+  public static final int GRAY_208 = 0xFF2E323D;
+  public static final int GRAY_226 = 0xFF33363D;
+  public static final int GRAY_298 = 0xFF45464C;
+  public static final int GRAY_311 = 0xFF464952;
+  public static final int GRAY_314 = 0xFF464A54;
+  public static final int GRAY_327 = 0xFF4A4D54;
+  public static final int GRAY_375 = 0xFF555863;
+  public static final int GRAY_386 = 0xFF575B63;
+  public static final int GRAY_395 = 0xFF5A5D67;
+  public static final int GRAY_407 = 0xFF5C606B;
+  public static final int GRAY_423 = 0xFF60646E;
+  public static final int GRAY_425 = 0xFF62646D;
+  public static final int GRAY_477 = 0xFF6E717B;
+  public static final int GRAY_501 = 0xFF747780;
+  public static final int GRAY_547 = 0xFF7F838C;
+  public static final int GRAY_568 = 0xFF858892;
+  public static final int GRAY_602 = 0xFF8E9199;
+  public static final int GRAY_648 = 0xFF9A9DA9;
+  public static final int GRAY_655 = 0xFF9C9FA8;
+  public static final int GRAY_700 = 0xFFA9ABB2;
+  public static final int GRAY_747 = 0xFFB4B8C0;
+  public static final int GRAY_759 = 0xFFB9BBC1;
+  public static final int GRAY_773 = 0xFFBDBFC5;
+  public static final int GRAY_805 = 0xFFC4C8CF;
+  public static final int GRAY_844 = 0xFFCFD3DA;
+  public static final int GRAY_853 = 0xFFD3D5DB;
+  public static final int GRAY_883 = 0xFFDADEE4;
+  public static final int GRAY_912 = 0xFFE3E6EB;
+  public static final int GRAY_916 = 0xFFE6E7EA;
+  public static final int GRAY_927 = 0xFFE8EAEF;
+  public static final int GRAY_968 = 0xFFF4F6F8;
+  public static final int GRAY_993 = 0xFFFDFDFE;
 
   // Blue
   public static final int BLUE_180 = 0xFF1C2B4D;
