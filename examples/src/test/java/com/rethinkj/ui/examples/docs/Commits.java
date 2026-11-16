@@ -22,11 +22,12 @@ final class Commits {
 
   static final String[] CUSTOMERS = {"Ada", "Brendan", "Chen", "Dagny"};
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   // The rows of the grid, which saving writes the changes into.
   final List<String[]> rows = new ArrayList<>(IntStream.range(0, 100)
-      .mapToObj(i -> IntStream.range(0, 3).mapToObj(c -> value(i, c)).toArray(String[]::new))
+      .mapToObj(row ->
+          IntStream.range(0, 3).mapToObj(column -> value(row, column)).toArray(String[]::new))
       .toList());
   GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
   int nextId = 1100; // the id the next new order gets
@@ -63,10 +64,10 @@ final class Commits {
       int row = (int) change.key(); // the row's index, for an insert below 0
       switch (change.kind()) {
         case DELETE -> rows.set(row, null); // removed after the updates
-        case UPDATE -> change.values().forEach((c, value) -> rows.get(row)[c] = value);
+        case UPDATE -> change.values().forEach((column, value) -> rows.get(row)[column] = value);
         case INSERT -> {
           String[] order = new String[3];
-          change.values().forEach((c, value) -> order[c] = value);
+          change.values().forEach((column, value) -> order[column] = value);
           order[0] = String.valueOf(nextId++); // as a database gives the key
           rows.add(order);
         }
@@ -79,38 +80,39 @@ final class Commits {
   }
   // docs:end grid-commit
 
-  static El view(Commits s) {
-    Theme t = s.t;
+  static El view(Commits state) {
+    Theme theme = state.theme;
     List<Column> columns = List.of(
-        new Column("id", 80, DataType.INTEGER, s.changes.cell(0)),
-        new Column("customer", 120, DataType.TEXT, s.changes.cell(1)).editable(),
-        new Column("shipped", 120, DataType.DATE, s.changes.cell(2)).editable());
+        new Column("id", 80, DataType.INTEGER, state.changes.cell(0)),
+        new Column("customer", 120, DataType.TEXT, state.changes.cell(1)).editable(),
+        new Column("shipped", 120, DataType.DATE, state.changes.cell(2)).editable());
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
-            s.changes.rowCount(),
-            DataGrid.options().select(s.selection).changes(s.changes))
+            state.changes.rowCount(),
+            DataGrid.options().select(state.selection).changes(state.changes))
         .key("orders")
         .label("Orders")
         .grow(1);
     // docs:start grid-commit-button
-    boolean pending = s.changes.count() > 0 || s.selection.isEditing();
-    El save = Button.button(t, PRIMARY, "Save", pending ? s::save : null).key("save");
+    boolean pending = state.changes.count() > 0 || state.selection.isEditing();
+    El save =
+        Button.button(theme, PRIMARY, "Save", pending ? state::save : null).key("save");
     // docs:end grid-commit-button
     return Frame.of(
-            t,
+            theme,
             Card.flush(
-                    t,
-                    Card.toolbar(t, "orders", null, save),
+                    theme,
+                    Card.toolbar(theme, "orders", null, save),
                     grid,
-                    Card.footer(t, Label.label(t, s.status).key("status")))
+                    Card.footer(theme, Label.label(theme, state.status).key("status")))
                 .wFull()
                 .grow(1))
-        .onKey(s::key);
+        .onKey(state::key);
   }
 
-  boolean key(Key k) {
-    if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
+  boolean key(Key key) {
+    if (key.modifiers() == Key.CONTROL && key.name().equals("S")) {
       save();
       return true;
     }

@@ -74,7 +74,7 @@ A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplie
 | `luminance(c)`, `contrast(a, b)`, `lightness(c)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
 | `BLACK`, `WHITE`, `TRANSPARENT` | |
 
-The default themes use the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `t.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
+The default themes use the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `theme.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
 
 ## Contrast
 

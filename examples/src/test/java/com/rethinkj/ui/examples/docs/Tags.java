@@ -15,7 +15,7 @@ import java.util.List;
 /** The app around {@link TagInput}: the guide "Write your own component". */
 final class Tags {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
 
   // docs:start tags-state
   List<String> tags = List.of("orders", "daily");
@@ -26,13 +26,15 @@ final class Tags {
   }
   // docs:end tags-state
 
-  static El view(Tags s) {
-    Theme t = s.t;
+  static El view(Tags state) {
+    Theme theme = state.theme;
     // docs:start tags-view
-    El tags =
-        TagInput.tagInput(t, s.tags, "Add tag", s.tagDraft, s::tags).key("tags").label("Tags");
+    El tags = TagInput.tagInput(theme, state.tags, "Add tag", state.tagDraft, state::tags)
+        .key("tags")
+        .label("Tags");
     // docs:end tags-view
-    return Frame.of(t, tags, Label.label(t, Label.Variant.MUTED, String.join(" · ", s.tags)));
+    return Frame.of(
+        theme, tags, Label.label(theme, Label.Variant.MUTED, String.join(" · ", state.tags)));
   }
 
   // docs:start tags-record
@@ -50,24 +52,26 @@ final class Tags {
   }
 
   final Editing<Dataset> dataset = Editing.of(new Dataset("orders_2026", List.of()))
-      .rule(Dataset.TAGS, d -> !d.tags().isEmpty(), "Give it at least one tag");
+      .rule(Dataset.TAGS, dataset -> !dataset.tags().isEmpty(), "Give it at least one tag");
   final TagInput.State datasetDraft = new TagInput.State();
 
   // docs:end tags-record
 
-  static El form(Tags s) {
-    Theme t = s.t;
+  static El form(Tags state) {
+    Theme theme = state.theme;
     // docs:start tags-form
-    Editing<Dataset> e = s.dataset;
+    Editing<Dataset> editing = state.dataset;
     El form = Form.form(
-        t,
+        theme,
         Form.Labels.BESIDE,
-        Form.field("Name", TextField.textField(t, e.at(Dataset.NAME)).key("name")),
+        Form.field("Name", TextField.textField(theme, editing.at(Dataset.NAME)).key("name")),
         Form.field(
             "Tags",
-            TagInput.tagInput(t, e.at(Dataset.TAGS), "Add tag", s.datasetDraft).key("tags")));
-    El save = Button.button(t, PRIMARY, "Save", e.valid() && e.changed() ? e::saved : null);
+            TagInput.tagInput(theme, editing.at(Dataset.TAGS), "Add tag", state.datasetDraft)
+                .key("tags")));
+    El save = Button.button(
+        theme, PRIMARY, "Save", editing.valid() && editing.changed() ? editing::saved : null);
     // docs:end tags-form
-    return Frame.of(t, form, Form.buttons(t, save));
+    return Frame.of(theme, form, Form.buttons(theme, save));
   }
 }

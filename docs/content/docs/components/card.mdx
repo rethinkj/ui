@@ -19,15 +19,15 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 
 | Call | |
 | --- | --- |
-| `card(t, content...)`, `card(t, variant, content...)` | A column with `space().xl()` (16) of padding and `space().l()` (12) between its children |
-| `header(t, title, description, actions...)` | A title in `type().heading()`, a muted description that wraps, and actions at the right |
-| `flush(t, parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
-| `toolbar(t, title, secondary, actions...)` | The first part of a flush card: a title in `type().heading()`, a muted text beside it, actions at the right |
-| `footer(t, start, end...)` | The last part: a quiet band with a hairline above it |
-| `filters(t, bar)` | An optional filter bar below a toolbar, with the card's side padding; null leaves the row out |
-| `inset(t, list)` | Insets a list with rounded rows, such as a tree or a nav list |
-| `pressable(t, card, label, selected, onPress)` | The whole card as a button, with `selected` drawn as an accent edge |
-| `footerHeight(t)` | The footer's height, to keep a toast clear of it |
+| `card(theme, content...)`, `card(theme, variant, content...)` | A column with `space().xl()` (16) of padding and `space().l()` (12) between its children |
+| `header(theme, title, description, actions...)` | A title in `type().heading()`, a muted description that wraps, and actions at the right |
+| `flush(theme, parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
+| `toolbar(theme, title, secondary, actions...)` | The first part of a flush card: a title in `type().heading()`, a muted text beside it, actions at the right |
+| `footer(theme, start, end...)` | The last part: a quiet band with a hairline above it |
+| `filters(theme, bar)` | An optional filter bar below a toolbar, with the card's side padding; null leaves the row out |
+| `inset(theme, list)` | Insets a list with rounded rows, such as a tree or a nav list |
+| `pressable(theme, card, label, selected, onPress)` | The whole card as a button, with `selected` drawn as an accent edge |
+| `footerHeight(theme)` | The footer's height, to keep a toast clear of it |
 
 | Variant | |
 | --- | --- |

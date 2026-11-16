@@ -53,17 +53,18 @@ final class Themes {
     }
   }
 
-  static El view(Themes s) {
-    Theme t = s.theme(); // every component of the view gets this one
+  static El view(Themes state) {
+    Theme theme = state.theme(); // every component of the view gets this one
     El settings = Card.card(
-            t,
-            Label.label(t, "Appearance"),
-            Segmented.segmented(t, List.of(Mode.values()), s.mode, m -> m.text, s::mode)
+            theme,
+            Label.label(theme, "Appearance"),
+            Segmented.segmented(
+                    theme, List.of(Mode.values()), state.mode, mode -> mode.text, state::mode)
                 .key("mode"),
-            Label.label(t, "Accent"),
-            HuePicker.huePicker(t, s.accent, s::accent).key("accent"))
-        .gap(t.space().m());
-    return Frame.of(t, settings);
+            Label.label(theme, "Accent"),
+            HuePicker.huePicker(theme, state.accent, state::accent).key("accent"))
+        .gap(theme.space().m());
+    return Frame.of(theme, settings);
   }
 
   public static void main(String[] args) throws Exception {

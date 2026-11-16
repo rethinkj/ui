@@ -47,22 +47,27 @@ public final class Lights {
   }
 
   // The view: a function from the state to a tree of elements, built again after each input.
-  static El view(Lights s) {
-    Theme t = Theme.DARK;
+  static El view(Lights state) {
+    Theme theme = Theme.DARK;
     El lamp = el().key("lamp")
         .size(56, 56)
         .radius(28)
-        .fill(s.on ? Colors.rgb(0xFACC15) : t.surface().raised())
-        .motion(t.motion().move()); // the colour springs to its new value
+        .fill(state.on ? Colors.rgb(0xFACC15) : theme.surface().raised())
+        .motion(theme.motion().move()); // the colour springs to its new value
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .center()
-        .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
-            .padding(t.space().xxl())
-            .gap(t.space().xl())
+        .child(Card.card(theme, lamp, toggle(theme, state.on, "Lamp", state::toggleLamp))
+            .padding(theme.space().xxl())
+            .gap(theme.space().xl())
             .align(Style.Align.CENTER));
+  }
+
+  // A handler: a method that changes the state, which the view passes as state::toggleLamp.
+  void toggleLamp() {
+    on = !on;
   }
 }
 ```

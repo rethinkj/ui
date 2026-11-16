@@ -14,14 +14,14 @@ Javadoc: [`Toast`](/api/com/rethinkj/ui/kit/Toast.html).
 ```java snippet="toast"
 ```
 
-`s.dropped` is the name of the dropped table in the app's state, null while there is no toast. The root attaches the toast while there is one, and `onClose` clears it.
+`state.dropped` is the name of the dropped table in the app's state, null while there is no toast. The root attaches the toast while there is one, and `onClose` clears it.
 
 | Parameter | |
 | --- | --- |
 | `message` | The text, and the toast's label |
 | `action`, `onAction` | The button's text and handler, or null for none |
 | `onClose` | Called when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape while the focus is in the toast |
-| `above` | In the form with this parameter, the toast lies that much higher, clear of a status bar (`StatusBar.height(t)`) or a card's footer (`Card.footerHeight(t)`) |
+| `above` | In the form with this parameter, the toast lies that much higher, clear of a status bar (`StatusBar.height(theme)`) or a card's footer (`Card.footerHeight(theme)`) |
 
 ## Keyboard
 

@@ -14,10 +14,10 @@ Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.
 ```java snippet="completion"
 ```
 
-- `editor` is the editable field. The caret is where its caret is, which `s.editor`, a `CodeEditor.State`, knows.
-- `s.completion` is a `Completion.State` in the app's state.
+- `editor` is the editable field. The caret is where its caret is, which `state.editor`, a `CodeEditor.State`, knows.
+- `state.completion` is a `Completion.State` in the app's state.
 - `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show. `new Completion.Entry(text, symbol, kind, insert)` puts `insert` in place of the word instead of the text it shows, such as a name in quotes.
-- The function runs on the app's thread on every keystroke while the list is open, so keep it fast. For entries that take time to find, as from a database, use `Completion.completeInBackground(t, app, field, caret, state, name, suggest)`: the function runs on another thread once per word, and until its entries arrive the list shows those of the word before and a row "Loading…".
+- The function runs on the app's thread on every keystroke while the list is open, so keep it fast. For entries that take time to find, as from a database, use `Completion.completeInBackground(theme, app, field, caret, completionState, name, suggest)`: the function runs on another thread once per word, and until its entries arrive the list shows those of the word before and a row "Loading…".
 - The function gets only the word. What stands before it, such as `orders.`, the app reads from its own text at the caret.
 
 The list shows up to eight rows and scrolls to keep the highlighted entry in view. It is as wide as its first entries need, up to twice a field's width; a longer text ends with an ellipsis.

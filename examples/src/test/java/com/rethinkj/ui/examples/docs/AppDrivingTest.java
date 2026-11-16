@@ -17,8 +17,8 @@ class AppDrivingTest {
   void tabAndSpaceSwitchTheLampOn() {
     try {
       Font.sans();
-    } catch (UnsatisfiedLinkError e) {
-      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
+    } catch (UnsatisfiedLinkError error) {
+      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + error.getMessage());
     }
     // docs:start app-from-java
     App<Lights> app = new App<>(new Lights(), Lights::view);

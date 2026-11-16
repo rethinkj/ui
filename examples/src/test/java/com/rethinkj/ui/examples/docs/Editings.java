@@ -24,7 +24,7 @@ import java.util.Objects;
 /** The examples of the page Editing records: a form over a record, and one over a POJO. */
 final class Editings {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
 
   // docs:start editing-record
   record Order(String customer, BigDecimal amount, LocalDate ordered, LocalDate due, boolean paid) {
@@ -57,35 +57,42 @@ final class Editings {
           new Order("Ada", new BigDecimal("12.50"), LocalDate.of(2026, 11, 13), null, false))
       .rule(
           Order.DUE,
-          o -> o.due() == null || !o.due().isBefore(o.ordered()),
+          order -> order.due() == null || !order.due().isBefore(order.ordered()),
           "Not before the order, 2026-11-13");
   String status = "";
   // docs:end editing-state
 
-  static El record(Editings s) {
-    Theme t = s.t;
+  static El record(Editings state) {
+    Theme theme = state.theme;
     // docs:start editing-view
-    Editing<Order> e = s.editing;
+    Editing<Order> editing = state.editing;
     El form = Form.form(
-        t,
+        theme,
         Form.Labels.BESIDE,
-        Form.field("Customer", TextField.textField(t, e.at(Order.CUSTOMER)).key("customer")),
+        Form.field(
+            "Customer", TextField.textField(theme, editing.at(Order.CUSTOMER)).key("customer")),
         Form.field(
             "Amount",
-            ValueField.valueField(t, Format.DECIMAL, e.at(Order.AMOUNT))
+            ValueField.valueField(theme, Format.DECIMAL, editing.at(Order.AMOUNT))
                 .key("amount")
                 .w(120)),
         Form.field(
             "Due",
-            ValueField.valueField(t, Format.DATE.optional(), e.at(Order.DUE), "2026-11-30")
+            ValueField.valueField(
+                    theme, Format.DATE.optional(), editing.at(Order.DUE), "2026-11-30")
                 .key("due")
                 .w(120)),
-        Form.field("Paid", Checkbox.checkbox(t, e.at(Order.PAID), null)));
-    El save = Button.button(t, PRIMARY, "Save", e.valid() && e.changed() ? s::save : null);
-    El revert = Button.button(t, SECONDARY, "Revert", e.changed() ? e::reset : null);
+        Form.field("Paid", Checkbox.checkbox(theme, editing.at(Order.PAID), null)));
+    El save = Button.button(
+        theme, PRIMARY, "Save", editing.valid() && editing.changed() ? state::save : null);
+    El revert =
+        Button.button(theme, SECONDARY, "Revert", editing.changed() ? editing::reset : null);
     // docs:end editing-view
     return Frame.of(
-        t, form, Form.buttons(t, revert, save), Label.label(t, Label.Variant.MUTED, s.status));
+        theme,
+        form,
+        Form.buttons(theme, revert, save),
+        Label.label(theme, Label.Variant.MUTED, state.status));
   }
 
   // docs:start editing-save
@@ -135,8 +142,10 @@ final class Editings {
     }
 
     @Override
-    public boolean equals(Object o) { // what changed() compares by
-      return o instanceof Settings s && s.fetchSize == fetchSize && s.autoCommit == autoCommit;
+    public boolean equals(Object other) { // what changed() compares by
+      return other instanceof Settings settings
+          && settings.fetchSize == fetchSize
+          && settings.autoCommit == autoCommit;
     }
 
     @Override
@@ -155,18 +164,20 @@ final class Editings {
 
   // docs:end editing-pojo
 
-  static El pojo(Editings s) {
-    Theme t = s.t;
+  static El pojo(Editings state) {
+    Theme theme = state.theme;
     // docs:start editing-pojo-view
-    Editing<Settings> e = s.editingSettings;
+    Editing<Settings> editing = state.editingSettings;
     El form = Form.form(
-        t,
+        theme,
         Form.Labels.BESIDE,
-        Form.field("Fetch size", NumberField.numberField(t, e.at(Settings.FETCH), 10, 1000, 10)),
-        Form.field("Commit", Toggle.toggle(t, e.at(Settings.AUTO_COMMIT), "Auto-commit")));
-    El apply = Button.button(t, PRIMARY, "Apply", e.changed() ? s::apply : null);
+        Form.field(
+            "Fetch size", NumberField.numberField(theme, editing.at(Settings.FETCH), 10, 1000, 10)),
+        Form.field(
+            "Commit", Toggle.toggle(theme, editing.at(Settings.AUTO_COMMIT), "Auto-commit")));
+    El apply = Button.button(theme, PRIMARY, "Apply", editing.changed() ? state::apply : null);
     // docs:end editing-pojo-view
-    return Frame.of(t, form, Form.buttons(t, apply));
+    return Frame.of(theme, form, Form.buttons(theme, apply));
   }
 
   /** Formats of times with a fixed precision; shown on the page Format. */

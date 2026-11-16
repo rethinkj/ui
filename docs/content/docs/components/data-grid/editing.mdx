@@ -19,7 +19,7 @@ Commit writes the changes into the app's rows:
 ```java snippet="grid-edit-commit"
 ```
 
-- `s.changes` is a `GridChanges` and `s.selection` a `DataGrid.Selection`, both in the app's state.
+- `state.changes` is a `GridChanges` and `state.selection` a `DataGrid.Selection`, both in the app's state.
 - `new GridChanges(count, (row, column) -> value)` takes the number of rows and the app's values. For rows that the app filters or sorts, make it from a `GridChanges.Rows`, which also gives each row a key that stays with it.
 - The columns take their cells from `changes.cell(column)` and the grid its rows from `changes.rowCount()`, so they show the changed values.
 - `options().changes(changes)` wires editing, pasting, clearing, new and deleted rows, the marks and Control+Z and Control+Y to it.

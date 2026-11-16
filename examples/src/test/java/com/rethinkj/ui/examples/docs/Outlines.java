@@ -31,7 +31,8 @@ final class Outlines {
   /** The headings as an indented outline, in their plain text. */
   static List<String> outline(MarkdownDocument document) {
     return document.headings().stream()
-        .map(h -> "  ".repeat(h.level() - 1) + MarkdownDocument.plainText(h.content()))
+        .map(heading ->
+            "  ".repeat(heading.level() - 1) + MarkdownDocument.plainText(heading.content()))
         .toList();
   }
   // docs:end markdown-model

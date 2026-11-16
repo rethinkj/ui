@@ -31,7 +31,7 @@ import java.util.List;
 /** The examples of the pages about menus, dialogs and other overlays. */
 final class Overlays {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   final Menu.State options = new Menu.State();
   final Menu.State context = new Menu.State();
   final MenuBar.State bar = new MenuBar.State();
@@ -135,30 +135,34 @@ final class Overlays {
     said = "customers";
   }
 
-  static El menus(Overlays s) {
-    Theme t = s.t;
+  static El menus(Overlays state) {
+    Theme theme = state.theme;
     // docs:start menu
     List<Menu.Item> items = List.of(
-        Menu.item("Run selection", s::run).shortcut(Key.CONTROL, "Enter"),
-        Menu.item("Autocommit", s::toggleAutocommit).checked(s.autocommit),
+        Menu.item("Run selection", state::run).shortcut(Key.CONTROL, "Enter"),
+        Menu.item("Autocommit", state::toggleAutocommit).checked(state.autocommit),
         Menu.separator(),
         Menu.submenu(
             "Export",
-            List.of(Menu.item("CSV", s::csv), Menu.item("JSON", null)))); // null: disabled
-    El button = Button.button(t, SECONDARY, "Options", s.options::toggle).key("options");
-    El dropdown = Menu.dropdown(t, button, s.options, items);
+            List.of(Menu.item("CSV", state::csv), Menu.item("JSON", null)))); // null: disabled
+    El button =
+        Button.button(theme, SECONDARY, "Options", state.options::toggle).key("options");
+    El dropdown = Menu.dropdown(theme, button, state.options, items);
     // docs:end menu
     // docs:start context-menu
     El row = row()
         .key("row")
         .padding(8)
-        .child(Label.label(t, "orders"))
+        .child(Label.label(theme, "orders"))
         .role("listitem")
         .label("orders");
     El withMenu = Menu.contextMenu(
-        t, row, s.context, List.of(Menu.item("Open", s::open), Menu.item("Copy name", s::copy)));
+        theme,
+        row,
+        state.context,
+        List.of(Menu.item("Open", state::open), Menu.item("Copy name", state::copy)));
     // docs:end context-menu
-    return Frame.of(t, dropdown, withMenu).onKey(Menu.shortcuts(items));
+    return Frame.of(theme, dropdown, withMenu).onKey(Menu.shortcuts(items));
   }
 
   Theme.Hue hue = Theme.Hue.RED;
@@ -168,158 +172,164 @@ final class Overlays {
   }
 
   /** Items with a swatch before their text; shown on the page, not run as an example. */
-  static List<Menu.Item> colours(Overlays s) {
+  static List<Menu.Item> colours(Overlays state) {
     // docs:start menu-leading
     List<Menu.Item> colours = new ArrayList<>();
     for (Theme.Hue each : Theme.Hue.values()) {
-      colours.add(Menu.item(HuePicker.name(each), () -> s.hue(each))
-          .leading(t -> HuePicker.swatch(t, each)) // built for each place the item shows
-          .checked(each == s.hue)); // the check mark goes to the item's end
+      colours.add(Menu.item(HuePicker.name(each), () -> state.hue(each))
+          .leading(
+              itemTheme -> HuePicker.swatch(itemTheme, each)) // built for each place the item shows
+          .checked(each == state.hue)); // the check mark goes to the item's end
     }
     Menu.Item colour = Menu.submenu("Colour", colours);
     // docs:end menu-leading
     return List.of(colour);
   }
 
-  static El menuBar(Overlays s) {
-    Theme t = s.t;
+  static El menuBar(Overlays state) {
+    Theme theme = state.theme;
     // docs:start menu-bar
     List<Menu.Item> menus = List.of(
         Menu.submenu(
             "&File",
             List.of(
-                Menu.item("New query", s::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
-                Menu.item("Exit", s::exit))),
-        Menu.submenu("&Edit", List.of(Menu.item("Undo", s::undo).shortcut(Key.CONTROL, "Z"))));
+                Menu.item("New query", state::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
+                Menu.item("Exit", state::exit))),
+        Menu.submenu("&Edit", List.of(Menu.item("Undo", state::undo).shortcut(Key.CONTROL, "Z"))));
     El root = col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .child(row().padding(4).child(MenuBar.menuBar(t, s.bar, menus)))
+        .fill(theme.surface().window())
+        .child(row().padding(4).child(MenuBar.menuBar(theme, state.bar, menus)))
         .child(el().grow(1))
-        .onKey(MenuBar.keys(s.bar, menus)) // Alt, F10, Alt+F, and Ctrl+N
-        .onKeyUp(MenuBar.keysUp(s.bar, menus)); // Alt alone gives the bar the keys
+        .onKey(MenuBar.keys(state.bar, menus)) // Alt, F10, Alt+F, and Ctrl+N
+        .onKeyUp(MenuBar.keysUp(state.bar, menus)); // Alt alone gives the bar the keys
     // docs:end menu-bar
     return root;
   }
 
-  static El popover(Overlays s) {
-    Theme t = s.t;
+  static El popover(Overlays state) {
+    Theme theme = state.theme;
     // docs:start popover
-    El button = Button.button(t, SECONDARY, Symbol.FILTER, "Filter", s.filterPopover::toggle);
+    El button =
+        Button.button(theme, SECONDARY, Symbol.FILTER, "Filter", state.filterPopover::toggle);
     El filter = Popover.form(
-        t,
+        theme,
         button,
-        s.filterPopover,
+        state.filterPopover,
         "Add a filter",
-        TextField.textField(t, s.filter, "status = 'paid'", s::filter).label("Condition"),
+        TextField.textField(theme, state.filter, "status = 'paid'", state::filter)
+            .label("Condition"),
         List.of(
-            Button.button(t, SECONDARY, "Cancel", s.filterPopover::close),
-            Button.button(t, PRIMARY, "Add", s.filterPopover::close)));
+            Button.button(theme, SECONDARY, "Cancel", state.filterPopover::close),
+            Button.button(theme, PRIMARY, "Add", state.filterPopover::close)));
     // docs:end popover
-    return Frame.of(t, filter);
+    return Frame.of(theme, filter);
   }
 
-  static El tooltip(Overlays s) {
-    Theme t = s.t;
+  static El tooltip(Overlays state) {
+    Theme theme = state.theme;
     // docs:start tooltip
     El refresh = Tooltip.tooltip(
-        t,
-        Button.button(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", s::refresh).key("refresh"),
+        theme,
+        Button.button(theme, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh)
+            .key("refresh"),
         "Refresh the schema (F5)");
     // docs:end tooltip
-    return Frame.of(t, refresh);
+    return Frame.of(theme, refresh);
   }
 
-  static El dialog(Overlays s) {
-    Theme t = s.t;
+  static El dialog(Overlays state) {
+    Theme theme = state.theme;
     // docs:start dialog
-    El open = Button.button(t, SECONDARY, "Rename…", s::startRename);
-    El dialog = !s.renaming
+    El open = Button.button(theme, SECONDARY, "Rename…", state::startRename);
+    El dialog = !state.renaming
         ? null
         : Dialog.dialog(
-            t,
+            theme,
             "Rename table",
-            TextField.textField(t, s.newName, "Name", s::newName).label("Name"),
+            TextField.textField(theme, state.newName, "Name", state::newName).label("Name"),
             List.of(
-                Button.button(t, SECONDARY, "Cancel", s::cancel),
-                Button.button(t, PRIMARY, "Rename", s.newName.isBlank() ? null : s::rename)),
-            s::cancel);
+                Button.button(theme, SECONDARY, "Cancel", state::cancel),
+                Button.button(
+                    theme, PRIMARY, "Rename", state.newName.isBlank() ? null : state::rename)),
+            state::cancel);
     El root = col() // the window: its background, some room, and the dialog over it
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().l())
-        .gap(t.space().m())
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .gap(theme.space().m())
         .align(Style.Align.START)
-        .children(Label.label(t, s.name), open)
+        .children(Label.label(theme, state.name), open)
         .overlay(dialog);
     // docs:end dialog
     return root;
   }
 
   /** A dialog with what its options add; on the Dialog page, not run on a script. */
-  static El dialogOptions(Overlays s) {
-    Theme t = s.t;
+  static El dialogOptions(Overlays state) {
+    Theme theme = state.theme;
     // docs:start dialog-options
-    El save = Button.button(t, PRIMARY, "Save", s::save);
+    El save = Button.button(theme, PRIMARY, "Save", state::save);
     El dialog = Dialog.dialog(
-        t,
+        theme,
         "Edit connection",
-        TextField.textField(t, s.newName, "Name", s::newName).label("Name"),
-        List.of(Button.button(t, SECONDARY, "Cancel", s::cancel), save),
-        s::cancel,
+        TextField.textField(theme, state.newName, "Name", state::newName).label("Name"),
+        List.of(Button.button(theme, SECONDARY, "Cancel", state::cancel), save),
+        state::cancel,
         Dialog.options()
-            .leading(HuePicker.swatch(t, Theme.Hue.RED)) // the connection's colour
+            .leading(HuePicker.swatch(theme, Theme.Hue.RED)) // the connection's colour
             .trailing(
-                Badge.badge(t, "Read only"),
-                Button.icon(t, GHOST, Symbol.DISMISS, "Close", s::cancel))
-            .start(Button.button(t, SECONDARY, "Test connection", s::test))
+                Badge.badge(theme, "Read only"),
+                Button.icon(theme, GHOST, Symbol.DISMISS, "Close", state::cancel))
+            .start(Button.button(theme, SECONDARY, "Test connection", state::test))
             .defaultButton(save));
     // docs:end dialog-options
-    return Frame.of(t, Label.label(t, s.name)).overlay(dialog);
+    return Frame.of(theme, Label.label(theme, state.name)).overlay(dialog);
   }
 
-  static El toast(Overlays s) {
-    Theme t = s.t;
+  static El toast(Overlays state) {
+    Theme theme = state.theme;
     // docs:start toast
-    El drop = Button.button(t, SECONDARY, "Drop orders", s::drop);
+    El drop = Button.button(theme, SECONDARY, "Drop orders", state::drop);
     El root = col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().l())
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
         .align(Style.Align.START)
         .child(drop)
         .overlay(
-            s.dropped == null
+            state.dropped == null
                 ? null
-                : Toast.toast(t, "Dropped " + s.dropped, "Undo", s::restore, s::dismiss));
+                : Toast.toast(
+                    theme, "Dropped " + state.dropped, "Undo", state::restore, state::dismiss));
     // docs:end toast
     return root;
   }
 
-  static El palette(Overlays s) {
-    Theme t = s.t;
+  static El palette(Overlays state) {
+    Theme theme = state.theme;
     // docs:start command-palette
     List<Menu.Item> menus = List.of(Menu.submenu(
         "Query",
         List.of(
-            Menu.item("Run", s::run).shortcut(Key.CONTROL, "Enter"),
-            Menu.item("Format", s::format))));
+            Menu.item("Run", state::run).shortcut(Key.CONTROL, "Enter"),
+            Menu.item("Format", state::format))));
     List<FilterList.Entry> tables = List.of(
-        FilterList.entry("orders", s::orders).symbol(Symbol.TABLE).detail("public"),
-        FilterList.entry("customers", s::customers).symbol(Symbol.TABLE));
+        FilterList.entry("orders", state::orders).symbol(Symbol.TABLE).detail("public"),
+        FilterList.entry("customers", state::customers).symbol(Symbol.TABLE));
     El root = col() // the root: without focus, only it gets the keys
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().l())
-        .child(Label.label(t, "Control+Shift+P opens the palette."))
-        .onKey(Menu.shortcuts(menus).or(CommandPalette.keys(s.palette)))
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .child(Label.label(theme, "Control+Shift+P opens the palette."))
+        .onKey(Menu.shortcuts(menus).or(CommandPalette.keys(state.palette)))
         .overlay(CommandPalette.palette(
-            t,
-            s.palette,
+            theme,
+            state.palette,
             CommandPalette.commands(menus),
             List.of(
                 new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(tables)))));

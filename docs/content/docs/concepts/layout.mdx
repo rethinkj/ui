@@ -45,11 +45,11 @@ Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col
 | `scroll()`, `scrollBoth()`, `scrollbars(look)` | A scroll area, up and down or both ways, with bars |
 | `fixedX()` | Does not scroll sideways with the nearest horizontal scroll area, but scrolls up and down with it: frozen table columns. Put it after what it covers in the tree and give it a fill |
 
-Colours are `int`s in ARGB. Prefer the theme's tokens (`t.surface().panel()`, `t.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
+Colours are `int`s in ARGB. Prefer the theme's tokens (`theme.surface().panel()`, `theme.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
 
 ## Scrollbars
 
-`scrollbars(look)` gives a scroll area a vertical bar while its content is taller than the area and a horizontal one while it is wider, drawn over the content. Dragging the thumb scrolls; a press on the track scrolls a page and does not move the focus. Pass the kit's `t.scrollbars()`, or your own look:
+`scrollbars(look)` gives a scroll area a vertical bar while its content is taller than the area and a horizontal one while it is wider, drawn over the content. Dragging the thumb scrolls; a press on the track scrolls a page and does not move the focus. Pass the kit's `theme.scrollbars()`, or your own look:
 
 | [`Scrollbars`](/api/com/rethinkj/ui/Scrollbars.html) | |
 | --- | --- |

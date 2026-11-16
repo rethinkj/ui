@@ -43,7 +43,7 @@ final class Desktop {
     Window.Options options = Window.options();
     try {
       options.placement(Window.Placement.parse(Files.readString(PLACEMENT)));
-    } catch (IOException | IllegalArgumentException e) {
+    } catch (IOException | IllegalArgumentException error) {
       // the first start, or a line it cannot read: the window opens as given below
     }
     App<Lights> app = new App<>(new Lights(), Lights::view);
@@ -58,10 +58,10 @@ final class Desktop {
   }
   // docs:end placement
 
-  static void taskbar(Window window, Theme t) {
+  static void taskbar(Window window, Theme theme) {
     // docs:start taskbar
     window.badge(
-        WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), 3)),
+        WindowIcon.of(size -> AppIcon.count(theme, size, theme.accent().color(), 3)),
         "3 queries running"); // Windows only
     window.attention(Window.Attention.BRIEFLY); // flash the taskbar button
     window.progress(Window.Progress.NORMAL, 0.4f); // a bar 40 % full in the button; Windows only
@@ -80,7 +80,7 @@ final class Desktop {
 
   static void answered(App<?> app, int button) {
     if (button == 0) { // Close
-      app.windows().all().forEach(w -> w.close());
+      app.windows().all().forEach(window -> window.close());
     }
   }
   // docs:end message-box

@@ -11,13 +11,13 @@ final class Frame {
 
   private Frame() {}
 
-  static El of(Theme t, El... content) {
+  static El of(Theme theme, El... content) {
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().l())
-        .gap(t.space().m())
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .gap(theme.space().m())
         .align(Style.Align.START)
         .children(content);
   }

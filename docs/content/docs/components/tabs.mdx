@@ -17,7 +17,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 ```java snippet="tabs-close"
 ```
 
-`s.tabs` is a list of `Tabs.Tab` and `s.tab` the active index, both in the app's state.
+`state.tabs` is a list of `Tabs.Tab` and `state.tab` the active index, both in the app's state.
 
 | `Tabs.Tab` | |
 | --- | --- |
@@ -38,7 +38,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | `drag(Tabs.Dragging)` | Tabs can be dragged along the bar, with a marker where they go |
 | `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
 | `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
-| `contextMenu(state, items)` | A menu for a tab, at a secondary press or the Menu key |
+| `contextMenu(menuState, items)` | A menu for a tab, at a secondary press or the Menu key |
 | `switchKeys(false)` | Leaves Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up to what encloses the bar, for tabs nested in the content of other tabs |
 
 [TabGroups](/docs/components/tab-groups) wires all of these for you.

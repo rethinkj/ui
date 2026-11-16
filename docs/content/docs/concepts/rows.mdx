@@ -27,7 +27,7 @@ description: Virtual lists that build only the rows in view, for a million rows,
 | `reveal(key, x, y, w, h)` | Keep a rectangle of the content in view whenever the key changes |
 | `onRowsBuilt((first, last) -> …)` | Which rows were built, so the app can load their data |
 | `scrollState(ScrollState)` | Keep the scroll offsets in the state, so the list comes back where it was |
-| `scrollbars(t.scrollbars())` | Bars that drag and page |
+| `scrollbars(theme.scrollbars())` | Bars that drag and page |
 | `app.scrollToRow(list, row)` | Scroll from a handler |
 
 The list needs a height or room to `grow`. Give rows keys (`row-<index>`) so scripts find them; a selector finds only built rows, so a script scrolls first: `scroll #rows row 765432`.

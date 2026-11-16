@@ -14,7 +14,7 @@ Javadoc: [`DataGrid.SortKey`](/api/com/rethinkj/ui/kit/DataGrid.SortKey.html), [
 ```java snippet="grid-sort"
 ```
 
-`s.sort` is a list of `SortKey`s, `s.widths` the columns' widths, `s.layout` a `DataGrid.Layout` and `s.gridMenu` a `Menu.State`, all in the app's state.
+`state.sort` is a list of `SortKey`s, `state.widths` the columns' widths, `state.layout` a `DataGrid.Layout` and `state.gridMenu` a `Menu.State`, all in the app's state.
 
 The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
 
@@ -51,7 +51,7 @@ A `DataGrid.Layout`, made with the titles of all columns and kept in the state, 
 - the grid shows the layout of all the columns it gets;
 - dragging a header cell moves its column, with a line where it will go;
 - the header's context menu has Sort ascending, Sort descending, Clear sort, Filter…, Hide column, Freeze up to here (with `onFreeze`), Fit width and Columns…;
-- `DataGrid.columnsButton(t, layout)` is a toolbar button that opens the chooser: a checkbox per column, a search field beyond eight columns, Show all and Reset. Alt+Arrow Up and Down move the focused column.
+- `DataGrid.columnsButton(theme, layout)` is a toolbar button that opens the chooser: a checkbox per column, a search field beyond eight columns, Show all and Reset. Alt+Arrow Up and Down move the focused column.
 
 With a layout, every handler, sort key and filter speaks of columns by their index among all of them; only the selection's ranges count the columns shown. `layout.shown(all)` gives the shown columns in order, and `hide`, `show`, `showAll`, `reset` and `moveBefore` change it from code.
 
@@ -59,7 +59,7 @@ With a layout, every handler, sort key and filter speaks of columns by their ind
 
 ## Freezing
 
-`options().frozen(n)` keeps the first `n` columns, and the row numbers, at the left while the rest scroll sideways. `onFreeze(n -> …)` lets the header's menu change it.
+`options().frozen(count)` keeps the first `count` columns, and the row numbers, at the left while the rest scroll sideways. `onFreeze(count -> …)` lets the header's menu change it.
 
 ## Reading the layout
 

@@ -15,8 +15,8 @@ Javadoc: [`MenuBar`](/api/com/rethinkj/ui/kit/MenuBar.html), [`MenuBar.State`](/
 ```
 
 - Each menu is a `Menu.submenu("&File", items)`. The `&` marks the mnemonic, the letter that opens the menu with Alt; `&&` is an ampersand.
-- `s.bar` is a `MenuBar.State` in the app's state.
-- `MenuBar.keys(state, menus)` on the root gives the bar Alt, F10 and the mnemonics, and runs the items' key combinations. `MenuBar.keysUp` handles Alt pressed and released alone. Combine them with other handlers with `Predicate.or`.
+- `state.bar` is a `MenuBar.State` in the app's state.
+- `MenuBar.keys(menuBarState, menus)` on the root gives the bar Alt, F10 and the mnemonics, and runs the items' key combinations. `MenuBar.keysUp` handles Alt pressed and released alone. Combine them with other handlers with `Predicate.or`.
 
 ## What the user can do
 

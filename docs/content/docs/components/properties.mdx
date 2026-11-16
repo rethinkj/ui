@@ -16,13 +16,13 @@ Javadoc: [`Properties`](/api/com/rethinkj/ui/kit/Properties.html).
 ```java snippet="properties"
 ```
 
-`s.clipboard` is a `Clipboard`, such as `app.clipboard()`.
+`state.clipboard` is a `Clipboard`, such as `app.clipboard()`.
 
 | | |
 | --- | --- |
-| `properties(t, properties, clipboard)` | One list; a null clipboard has no copy buttons |
-| `groups(t, groups, clipboard)` | Groups with headings |
-| `properties(t, properties, clipboard, copied)`, `groups(t, groups, clipboard, copied)` | The same, with copy buttons that confirm a copy, as a [copy button](/docs/components/button#copy-buttons) does. `copied` is a `Button.Copied` in the app's state; null for no confirmation |
+| `properties(theme, properties, clipboard)` | One list; a null clipboard has no copy buttons |
+| `groups(theme, groups, clipboard)` | Groups with headings |
+| `properties(theme, properties, clipboard, copied)`, `groups(theme, groups, clipboard, copied)` | The same, with copy buttons that confirm a copy, as a [copy button](/docs/components/button#copy-buttons) does. `copied` is a `Button.Copied` in the app's state; null for no confirmation |
 | `Properties.property(name, value)`, `.mono()` | A row; `mono()` for identifiers |
 | `Properties.group(title, properties)` | A group |
 

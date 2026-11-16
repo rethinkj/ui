@@ -254,9 +254,9 @@ public final class Settings {
   // docs:end settings-theme
 
   List<Connection> matches() {
-    String f = filter.strip().toLowerCase(Locale.ROOT);
+    String query = filter.strip().toLowerCase(Locale.ROOT);
     return connections.stream()
-        .filter(c -> c.name.contains(f) || c.host.contains(f))
+        .filter(connection -> connection.name.contains(query) || connection.host.contains(query))
         .toList();
   }
 
@@ -307,7 +307,7 @@ public final class Settings {
     try (Window window = Window.open("Settings", 880, 600, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
-          .appearance(a -> app.state().system = a)
+          .appearance(appearance -> app.state().system = appearance)
           .run();
     }
   }
@@ -325,372 +325,400 @@ public final class Settings {
   }
 
   // docs:start settings-pages
-  static El view(Settings s) {
-    Theme t = s.theme();
-    El pages = navList(t, List.of(Page.values()), s.page, Page::item, Page::group, s::show)
+  static El view(Settings state) {
+    Theme theme = state.theme();
+    El pages = navList(
+            theme, List.of(Page.values()), state.page, Page::item, Page::group, state::show)
         .key("pages")
         .label("Settings")
         .grow(1);
     El root = col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .child(titleBar(t, "Settings", t.accent().color(), Identity.maximized(s.app)))
+        .fill(theme.surface().window())
+        .child(titleBar(theme, "Settings", theme.accent().color(), Identity.maximized(state.app)))
         .child(row()
             .grow(1)
             .minSize(0, 0)
-            .padding(0, t.space().m(), t.space().m(), t.space().m())
-            .gap(t.space().m())
+            .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
+            .gap(theme.space().m())
             .children(
-                Card.flush(t, Card.inset(t, pages)).w(200).shrink(0),
-                switch (s.page) {
-                  case GENERAL -> general(t, s);
-                  case APPEARANCE -> appearance(t, s);
-                  case EDITOR -> editor(t, s);
-                  case CONNECTIONS -> connections(t, s);
-                  case KEYMAP -> keymap(t);
-                  case ABOUT -> about(t, s.platform);
+                Card.flush(theme, Card.inset(theme, pages)).w(200).shrink(0),
+                switch (state.page) {
+                  case GENERAL -> general(theme, state);
+                  case APPEARANCE -> appearance(theme, state);
+                  case EDITOR -> editor(theme, state);
+                  case CONNECTIONS -> connections(theme, state);
+                  case KEYMAP -> keymap(theme);
+                  case ABOUT -> about(theme, state.platform);
                 }));
-    return root.overlay(s.adding ? newConnection(t, s) : null);
+    return root.overlay(state.adding ? newConnection(theme, state) : null);
   }
   // docs:end settings-pages
 
   // docs:start settings-general
-  static El general(Theme t, Settings s) {
+  static El general(Theme theme, Settings state) {
     return page(
-            t,
+            theme,
             "General",
             section(
-                t,
+                theme,
                 "Startup",
                 null,
                 group(
-                    t,
+                    theme,
                     switchRow(
-                        t,
+                        theme,
                         "Reopen the last workspace",
                         "Open the tabs and connections of the last session again",
-                        s.reopen,
-                        s::toggleReopen),
-                    switchRow(t, "Check for updates", null, s.updates, s::toggleUpdates),
+                        state.reopen,
+                        state::toggleReopen),
+                    switchRow(
+                        theme, "Check for updates", null, state.updates, state::toggleUpdates),
                     Group.row(
-                        t,
+                        theme,
                         "Language",
                         null,
-                        comboBox(t, LANGUAGES, s.language, s.languages, s::language)
+                        comboBox(theme, LANGUAGES, state.language, state.languages, state::language)
                             .w(160)))),
             section(
-                t,
+                theme,
                 "History",
                 "What the workbench remembers of your work",
                 group(
-                    t,
+                    theme,
                     Group.row(
-                        t,
+                        theme,
                         "Statements kept",
                         "Per connection, the oldest go first",
-                        numberField(t, s.history, 0, 10_000, 50, s::history)),
+                        numberField(theme, state.history, 0, 10_000, 50, state::history)),
                     linkRow(
-                        t,
+                        theme,
                         Symbol.KEY_MULTIPLE,
                         "Keymap",
                         "The keys of every command",
                         "Default",
-                        s::showKeymap))))
+                        state::showKeymap))))
         .grow(1);
   }
   // docs:end settings-general
 
-  static El appearance(Theme t, Settings s) {
+  static El appearance(Theme theme, Settings state) {
     return page(
-            t,
+            theme,
             "Appearance",
             section(
-                t,
+                theme,
                 "Colours",
                 null,
                 group(
-                    t,
+                    theme,
                     Group.row(
-                        t,
+                        theme,
                         "Theme",
-                        s.system == null
+                        state.system == null
                             ? "System follows the dark theme in this example"
                             : "System follows the system's light or dark setting",
                         segmented(
-                            t, List.of(Look.values()), s.theme, l -> l.title, l -> s.theme = l)),
+                            theme,
+                            List.of(Look.values()),
+                            state.theme,
+                            look -> look.title,
+                            look -> state.theme = look)),
                     Group.row(
-                        t,
+                        theme,
                         "Accent colour",
                         "Buttons, switches and selections",
                         select(
-                                t,
+                                theme,
                                 List.of(Accent.values()),
-                                s.accent,
-                                a -> a.title,
-                                s.accents,
-                                a -> s.accent = a)
+                                state.accent,
+                                accent -> accent.title,
+                                state.accents,
+                                accent -> state.accent = accent)
                             .w(160)))),
             section(
-                t,
+                theme,
                 "Text and spacing",
                 null,
                 group(
-                    t,
+                    theme,
                     Group.row(
-                        t,
+                        theme,
                         "Interface font size",
-                        s.fontSize + " pixels",
-                        slider(t, s.fontSize, 11, 16, 1, v -> s.fontSize = v).w(160)),
+                        state.fontSize + " pixels",
+                        slider(theme, state.fontSize, 11, 16, 1, size -> state.fontSize = size)
+                            .w(160)),
                     Group.row(
-                        t,
+                        theme,
                         "Density",
                         "Space between the rows of lists, trees and grids",
                         segmented(
-                            t,
+                            theme,
                             List.of(Density.values()),
-                            s.density,
-                            d -> d.title,
-                            d -> s.density = d))),
-                s.fontSize == FONT_SIZE
+                            state.density,
+                            density -> density.title,
+                            density -> state.density = density))),
+                state.fontSize == FONT_SIZE
                     ? null
                     : callout(
-                        t,
+                        theme,
                         Callout.Kind.WARNING,
                         "Restart to apply",
                         "The interface font size changes the next time the workbench starts.",
-                        button(t, SECONDARY, "Undo", () -> s.fontSize = FONT_SIZE))))
+                        button(theme, SECONDARY, "Undo", () -> state.fontSize = FONT_SIZE))))
         .grow(1);
   }
 
-  static El editor(Theme t, Settings s) {
+  static El editor(Theme theme, Settings state) {
     return page(
-            t,
+            theme,
             "Editor",
             section(
-                t,
+                theme,
                 "Text",
                 null,
                 group(
-                    t,
+                    theme,
                     switchRow(
-                        t,
+                        theme,
                         "Word wrap",
                         "Wrap long lines at the edge of the editor instead of scrolling sideways",
-                        s.wrap,
-                        () -> s.wrap = !s.wrap),
+                        state.wrap,
+                        () -> state.wrap = !state.wrap),
                     switchRow(
-                        t,
+                        theme,
                         "Line numbers",
                         null,
-                        s.lineNumbers,
-                        () -> s.lineNumbers = !s.lineNumbers),
+                        state.lineNumbers,
+                        () -> state.lineNumbers = !state.lineNumbers),
                     switchRow(
-                        t,
+                        theme,
                         "Highlight the current line",
                         null,
-                        s.highlight,
-                        () -> s.highlight = !s.highlight),
+                        state.highlight,
+                        () -> state.highlight = !state.highlight),
                     Group.row(
-                        t,
+                        theme,
                         "Font",
                         null,
                         select(
-                                t,
+                                theme,
                                 List.of(EditorFont.values()),
-                                s.font,
-                                f -> f.title,
-                                s.fonts,
-                                f -> s.font = f)
+                                state.font,
+                                font -> font.title,
+                                state.fonts,
+                                font -> state.font = font)
                             .w(160)))),
             section(
-                t,
+                theme,
                 "Indentation",
                 null,
                 group(
-                    t,
+                    theme,
                     Group.row(
-                        t,
+                        theme,
                         "Tab size",
                         "Columns from one tab stop to the next",
-                        numberField(t, s.tabSize, 1, 16, 1, v -> s.tabSize = v)),
+                        numberField(theme, state.tabSize, 1, 16, 1, size -> state.tabSize = size)),
                     expander(
-                        t,
+                        theme,
                         "Advanced",
                         "Options most people never change",
-                        s.advanced,
-                        () -> s.advanced = !s.advanced,
+                        state.advanced,
+                        () -> state.advanced = !state.advanced,
                         switchRow(
-                            t,
+                            theme,
                             "Insert spaces for tabs",
                             null,
-                            s.spaces,
-                            () -> s.spaces = !s.spaces),
+                            state.spaces,
+                            () -> state.spaces = !state.spaces),
                         Group.row(
-                            t,
+                            theme,
                             "Undo steps",
                             null,
-                            numberField(t, s.undo, 10, 1000, 10, v -> s.undo = v)),
+                            numberField(
+                                theme, state.undo, 10, 1000, 10, steps -> state.undo = steps)),
                         Group.box(
-                            t,
-                            label(t, "Line endings"),
+                            theme,
+                            label(theme, "Line endings"),
                             radioGroup(
-                                    t,
+                                    theme,
                                     List.of(LineEnding.values()),
-                                    s.endings,
-                                    e -> e.title,
-                                    e -> s.endings = e)
+                                    state.endings,
+                                    ending -> ending.title,
+                                    ending -> state.endings = ending)
                                 .label("Line endings"))))))
         .grow(1);
   }
 
-  static El connections(Theme t, Settings s) {
-    List<Connection> matches = s.matches();
-    El list = col().gap(t.space().m());
-    for (Connection c : matches) {
+  static El connections(Theme theme, Settings state) {
+    List<Connection> matches = state.matches();
+    El list = col().gap(theme.space().m());
+    for (Connection connection : matches) {
       El menu = Menu.dropdown(
-          t,
-          button(t, GHOST, "…", c.menu::toggle).key("menu").label("Actions for " + c.name),
-          c.menu,
+          theme,
+          button(theme, GHOST, "…", connection.menu::toggle)
+              .key("menu")
+              .label("Actions for " + connection.name),
+          connection.menu,
           List.of(
-              Menu.item("Connect", c.connected ? null : () -> s.selected = c.name),
+              Menu.item(
+                  "Connect", connection.connected ? null : () -> state.selected = connection.name),
               Menu.item(
                   "Duplicate",
-                  () -> s.connections.add(new Connection(c.name + "-copy", c.host, c.port, false))),
+                  () -> state.connections.add(new Connection(
+                      connection.name + "-copy", connection.host, connection.port, false))),
               Menu.separator(),
-              Menu.item("Delete", () -> s.connections.remove(c))));
+              Menu.item("Delete", () -> state.connections.remove(connection))));
       list.child(Card.pressable(
-          t,
+          theme,
           card(
-                  t,
+                  theme,
                   Card.header(
-                      t,
-                      c.name,
-                      c.host + ":" + c.port,
+                      theme,
+                      connection.name,
+                      connection.host + ":" + connection.port,
                       Icon.icon(
-                          t,
-                          c.connected ? Symbol.PLUG_CONNECTED : Symbol.PLUG_DISCONNECTED,
-                          c.connected ? Icon.Variant.SUCCESS : Icon.Variant.MUTED),
+                          theme,
+                          connection.connected ? Symbol.PLUG_CONNECTED : Symbol.PLUG_DISCONNECTED,
+                          connection.connected ? Icon.Variant.SUCCESS : Icon.Variant.MUTED),
                       menu))
-              .key(c.name)
-              .value(c.connected ? "connected" : "not connected"),
-          c.name,
-          c.name.equals(s.selected),
-          () -> s.selected = c.name));
+              .key(connection.name)
+              .value(connection.connected ? "connected" : "not connected"),
+          connection.name,
+          connection.name.equals(state.selected),
+          () -> state.selected = connection.name));
     }
     return page(
-            t,
+            theme,
             "Connections",
             section(
-                t,
+                theme,
                 "Servers",
                 "Where the workbench connects to, and how",
                 row()
-                    .gap(t.space().m())
+                    .gap(theme.space().m())
                     .children(
-                        textField(t, s.filter, "Filter by name or host", v -> s.filter = v)
+                        textField(
+                                theme,
+                                state.filter,
+                                "Filter by name or host",
+                                filter -> state.filter = filter)
                             .key("filter")
                             .grow(1),
-                        button(t, PRIMARY, "New connection…", () -> {
-                              s.name = "";
-                              s.host = "";
-                              s.port = 5432;
-                              s.portDraft.clear();
-                              s.adding = true;
+                        button(theme, PRIMARY, "New connection…", () -> {
+                              state.name = "";
+                              state.host = "";
+                              state.port = 5432;
+                              state.portDraft.clear();
+                              state.adding = true;
                             })
                             .key("add")),
                 matches.isEmpty()
                     ? card(
-                        t,
+                        theme,
                         emptyState(
-                            t,
+                            theme,
                             Symbol.SEARCH,
                             "No connections match",
-                            "No name or host contains \"" + s.filter.strip() + "\".",
-                            button(t, SECONDARY, "Clear filter", () -> s.filter = "")))
+                            "No name or host contains \"" + state.filter.strip() + "\".",
+                            button(theme, SECONDARY, "Clear filter", () -> state.filter = "")))
                     : list))
         .grow(1);
   }
 
-  static El newConnection(Theme t, Settings s) {
+  static El newConnection(Theme theme, Settings state) {
     El port = ValueField.valueField(
-            t, ConnectionFormats.PORT, s.port, "5432", s.portDraft, value -> s.port = value)
+            theme,
+            ConnectionFormats.PORT,
+            state.port,
+            "5432",
+            state.portDraft,
+            value -> state.port = value)
         .key("port")
         .w(72);
-    boolean ready = !s.name.isBlank() && !s.host.isBlank() && s.portDraft.error() == null;
-    El add = button(t, PRIMARY, "Add", ready ? s::add : null).key("ok");
+    boolean ready =
+        !state.name.isBlank() && !state.host.isBlank() && state.portDraft.error() == null;
+    El add = button(theme, PRIMARY, "Add", ready ? state::add : null).key("ok");
     return Dialog.dialog(
-        t,
+        theme,
         "New connection",
         form(
-            t,
+            theme,
             Form.Labels.BESIDE,
             field(
                     "Name",
-                    textField(t, s.name, "Shown in the list", v -> s.name = v)
+                    textField(theme, state.name, "Shown in the list", name -> state.name = name)
                         .key("name")
                         .w(220))
                 .required(),
             field(
                     "Host",
-                    textField(t, s.host, "Name or address", v -> s.host = v)
+                    textField(theme, state.host, "Name or address", host -> state.host = host)
                         .key("host")
                         .w(220))
                 .required(),
             field("Port", port).help("From 1 to 65535")),
-        List.of(button(t, SECONDARY, "Cancel", () -> s.adding = false).key("cancel"), add),
+        List.of(button(theme, SECONDARY, "Cancel", () -> state.adding = false).key("cancel"), add),
         add, // Enter in a field adds, as Add does; on a button it presses that instead
-        () -> s.adding = false);
+        () -> state.adding = false);
   }
 
-  static El keymap(Theme t) {
+  static El keymap(Theme theme) {
     return page(
-            t,
+            theme,
             "Keymap",
             section(
-                t,
+                theme,
                 "Queries",
                 null,
                 group(
-                    t,
+                    theme,
                     Group.row(
-                        t,
+                        theme,
                         "Run the statement at the caret",
                         null,
-                        label(t, Label.Variant.MUTED, "Ctrl+Enter")),
+                        label(theme, Label.Variant.MUTED, "Ctrl+Enter")),
                     Group.row(
-                        t,
+                        theme,
                         "Run the whole script",
                         null,
-                        label(t, Label.Variant.MUTED, "Ctrl+Shift+Enter")),
+                        label(theme, Label.Variant.MUTED, "Ctrl+Shift+Enter")),
                     Group.row(
-                        t,
+                        theme,
                         "Cancel the running statement",
                         null,
-                        label(t, Label.Variant.MUTED, "Escape")),
-                    Group.row(t, "Format", null, label(t, Label.Variant.MUTED, "Ctrl+Alt+L")))),
+                        label(theme, Label.Variant.MUTED, "Escape")),
+                    Group.row(
+                        theme, "Format", null, label(theme, Label.Variant.MUTED, "Ctrl+Alt+L")))),
             section(
-                t,
+                theme,
                 "Navigation",
                 null,
                 group(
-                    t,
-                    Group.row(t, "Next tab", null, label(t, Label.Variant.MUTED, "Ctrl+Tab")),
-                    Group.row(t, "Close the tab", null, label(t, Label.Variant.MUTED, "Ctrl+W")),
+                    theme,
                     Group.row(
-                        t, "Find a table", null, label(t, Label.Variant.MUTED, "Ctrl+Shift+N")))))
+                        theme, "Next tab", null, label(theme, Label.Variant.MUTED, "Ctrl+Tab")),
+                    Group.row(
+                        theme, "Close the tab", null, label(theme, Label.Variant.MUTED, "Ctrl+W")),
+                    Group.row(
+                        theme,
+                        "Find a table",
+                        null,
+                        label(theme, Label.Variant.MUTED, "Ctrl+Shift+N")))))
         .grow(1);
   }
 
-  static El about(Theme t, String platform) {
+  static El about(Theme theme, String platform) {
     return page(
-            t,
+            theme,
             "About",
             card(
-                t,
-                Card.header(t, "rethinkj Workbench", "Version 0.1.0 · " + platform),
+                theme,
+                Card.header(theme, "rethinkj Workbench", "Version 0.1.0 · " + platform),
                 label(
-                        t,
+                        theme,
                         Label.Variant.MUTED,
                         "A database tool built with rethinkj UI. Free software under the MIT licence.")
                     .wrapText()))

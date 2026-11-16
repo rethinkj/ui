@@ -19,7 +19,7 @@ The state holds the value and the field's draft:
 ```java snippet="value-field"
 ```
 
-`valueField(t, format, value, [placeholder,] draft, onChange)` is a [TextField](/docs/components/text-field) in every other way, so `.key`, `.w` and `.maxLength` chain onto it.
+`valueField(theme, format, value, [placeholder,] draft, onChange)` is a [TextField](/docs/components/text-field) in every other way, so `.key`, `.w` and `.maxLength` chain onto it.
 
 ## Formats
 
@@ -42,7 +42,7 @@ Numbers have a full stop and no grouping, and dates and times are ISO 8601, what
 | Changed copy | |
 | --- | --- |
 | `.optional()` | The empty text is null. Without it, the empty text gets the message `A value is required` (`Format.REQUIRED`), except for `TEXT` |
-| `.where(test, message)` | Only values that pass, such as a range: `Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535")` |
+| `.where(test, message)` | Only values that pass, such as a range: `Format.INTEGER.where(port -> port >= 1 && port <= 65535, "1 to 65535")` |
 
 Formats need no native libraries; keep them in constants.
 
@@ -74,7 +74,7 @@ Digits beyond the precision are cut, not rounded: `time(0)` writes `09:00:05.999
 
 ## With a Prop
 
-`valueField(t, format, prop[, placeholder])` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) in place of the value, the draft and the handler. The editing keeps the draft, so the state needs none.
+`valueField(theme, format, prop[, placeholder])` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) in place of the value, the draft and the handler. The editing keeps the draft, so the state needs none.
 
 ## In a tree dump
 

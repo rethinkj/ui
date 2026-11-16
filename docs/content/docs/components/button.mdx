@@ -17,7 +17,7 @@ Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/a
 ```java snippet="button-toggle"
 ```
 
-`s.running` and `s.pinned` are booleans, `s.runs` a counter and `s.runMenu` a `Menu.State`, all in the app's state.
+`state.running` and `state.pinned` are booleans, `state.runs` a counter and `state.runMenu` a `Menu.State`, all in the app's state.
 
 ## Options
 
@@ -31,7 +31,7 @@ Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/a
 | `enabled(boolean)` | `false` disables the button and keeps its handler, exactly as a null handler does: no focus, the disabled colours, `disabled` in the tree. `El.disabled(true)` on the result changes only the tree, not the button |
 | `tone(Tone.DANGER)` | For an action that destroys something. `PRIMARY` is filled red, for the confirmation in a dialog; `SECONDARY` has red text and a red edge; `GHOST` red text alone, for a toolbar or a row |
 
-The options go to `button(t, variant, text, onPress, options)`, `icon(t, variant, symbol, label, onPress, options)` and `split(t, variant, text, onPress, menuState, items, options)`. The forms below are these with plain options.
+The options go to `button(theme, variant, text, onPress, options)`, `icon(theme, variant, symbol, label, onPress, options)` and `split(theme, variant, text, onPress, menuState, items, options)`. The forms below are these with plain options.
 
 On a split button, a null handler or `busy` affects the main half only: its chevron still opens the menu. `enabled(false)` disables both halves.
 
@@ -39,11 +39,11 @@ On a split button, a null handler or `busy` affects the main half only: its chev
 
 | Call | |
 | --- | --- |
-| `button(t, variant, text, onPress)` | Text alone |
-| `button(t, variant, icon, text, onPress)` | An icon before the text |
-| `icon(t, variant, symbol, label, onPress)` | The icon alone; the label shows in a tooltip and the tree |
-| `toggle(t, icon, text, on, onToggle)`, `toggleIcon(t, icon, label, on, onToggle)` | A button that stays on: the selection's tint and the icon in the accent while on |
-| `split(t, variant, icon, text, onPress, menuState, items)` | A main action and a chevron that opens a [Menu](/docs/components/menu) |
+| `button(theme, variant, text, onPress)` | Text alone |
+| `button(theme, variant, icon, text, onPress)` | An icon before the text |
+| `icon(theme, variant, symbol, label, onPress)` | The icon alone; the label shows in a tooltip and the tree |
+| `toggle(theme, icon, text, on, onToggle)`, `toggleIcon(theme, icon, label, on, onToggle)` | A button that stays on: the selection's tint and the icon in the accent while on |
+| `split(theme, variant, icon, text, onPress, menuState, items)` | A main action and a chevron that opens a [Menu](/docs/components/menu) |
 
 | Variant | |
 | --- | --- |
@@ -55,7 +55,7 @@ The result is an `El`: chain `.key("save")` or a width onto it.
 
 ## Copy buttons
 
-`Button.copy(t, clipboard, text, label, copied)` is a quiet square button with the copy icon. It writes `text` to the clipboard and shows the label in the tree and in a tooltip: `label="Copy host"` beside a value, say. `copied` is a `Button.Copied` in the app's state, one for all its copy buttons. After a copy, the button shows a check mark and the tooltip Copied for `motion().confirm()` seconds, then goes back by itself. Pass null to show no confirmation. Two buttons with the same label and text confirm together. [Properties](/docs/components/properties) and the code blocks of [Markdown](/docs/components/markdown) use it.
+`Button.copy(theme, clipboard, text, label, copied)` is a quiet square button with the copy icon. It writes `text` to the clipboard and shows the label in the tree and in a tooltip: `label="Copy host"` beside a value, say. `copied` is a `Button.Copied` in the app's state, one for all its copy buttons. After a copy, the button shows a check mark and the tooltip Copied for `motion().confirm()` seconds, then goes back by itself. Pass null to show no confirmation. Two buttons with the same label and text confirm together. [Properties](/docs/components/properties) and the code blocks of [Markdown](/docs/components/markdown) use it.
 
 ## Keyboard
 

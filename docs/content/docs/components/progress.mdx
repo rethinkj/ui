@@ -16,11 +16,11 @@ Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 
 | Call | |
 | --- | --- |
-| `bar(t, fraction[, state])` | A track with the part done in the accent; `fraction` from 0 to 1, clamped |
-| `labeled(t, label, fraction, detail[, state])` | The name over the bar and the detail (the percentage when null) at the right |
-| `indeterminate(t)` | A piece that sweeps along the track, while the fraction is not known |
-| `line(t[, fraction])` | Two pixels high, full width, no track: along the top of a card's content |
-| `spinner(t[, size])` | A ring with a light that goes round, icon-sized unless given |
+| `bar(theme, fraction[, kind])` | A track with the part done in the accent; `fraction` from 0 to 1, clamped |
+| `labeled(theme, label, fraction, detail[, kind])` | The name over the bar and the detail (the percentage when null) at the right |
+| `indeterminate(theme)` | A piece that sweeps along the track, while the fraction is not known |
+| `line(theme[, fraction])` | Two pixels high, full width, no track: along the top of a card's content |
+| `spinner(theme[, size])` | A ring with a light that goes round, icon-sized unless given |
 
 | State | |
 | --- | --- |

@@ -14,15 +14,15 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 ```java snippet="code-editor"
 ```
 
-- `s.sql` is the text, which every edit hands to `onChange`.
-- `s.editor` is a `CodeEditor.State` in the app's state, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
-- `Sql.of(t)` colours SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(t, Sql.Dialect.MYSQL)` colours SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space, and the backslash as the escape in strings. Pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colours every line again.
-- `s.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
+- `state.sql` is the text, which every edit hands to `onChange`.
+- `state.editor` is a `CodeEditor.State` in the app's state, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
+- `Sql.of(theme)` colours SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(theme, Sql.Dialect.MYSQL)` colours SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space, and the backslash as the escape in strings. Pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colours every line again.
+- `state.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(theme, value, editorState, highlighter, onChange)`) the editor has neither.
 - `.lines(n)` makes it `n` lines high; give it a width or let it grow.
 
 ## In a card
 
-The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(t, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's colour while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
+The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(theme, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's colour while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
 
 <Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 
@@ -58,7 +58,7 @@ A `Decorator` marks the lines in view with backgrounds and underlines, as the ed
 ```java snippet="decorator"
 ```
 
-`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a position `p` of the string is `p - start` in the line), the line's text and the `Spans` to mark it in. Colours and fonts from a decorator are ignored; they belong to the highlighter. `El.decorate` replaces the field's decorator, so call the editor's own, `editor.decorator()`, from yours, or its marks go.
+`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a `position` in the string is `position - start` in the line), the line's text and the `Spans` to mark it in. Colours and fonts from a decorator are ignored; they belong to the highlighter. `El.decorate` replaces the field's decorator, so call the editor's own, `editor.decorator()`, from yours, or its marks go.
 
 ## The state
 
@@ -83,7 +83,7 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 | Control+Shift+K | `DELETE_LINES` | Delete them |
 | Control+/ | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `LineComments` (`--` for SQL) |
 
-`CodeEditor.run(app, state, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. To add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
+`CodeEditor.run(app, editorState, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. To add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
 
 The editor also has every key of a multi-line text field. Tab indents, and Control+M switches Tab between indenting and moving the focus. A second Home goes to the first character of the line that is not a space. Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
 

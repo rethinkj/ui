@@ -68,11 +68,11 @@ When the focused element leaves the tree, the focus moves into the nearest conta
 
 | Call | |
 | --- | --- |
-| `whenHovered(e -> …)` | While the pointer is over it, or a press would go to it |
-| `whenPressed(e -> …)` | While pressed |
-| `whenFocused(e -> …)`, `whenFocusWithin(e -> …)` | While it, or something inside it, has the focus |
-| `whenHoveredFor(seconds, e -> …)` | After the pointer rested on it: how a tooltip appears |
-| `whenFocusVisibleFor(seconds, e -> …)` | After it had keyboard focus (with a ring) that long: a tooltip for keyboard users. Ends when the focus leaves or a key that does not move the focus is pressed |
+| `whenHovered(element -> …)` | While the pointer is over it, or a press would go to it |
+| `whenPressed(element -> …)` | While pressed |
+| `whenFocused(element -> …)`, `whenFocusWithin(element -> …)` | While it, or something inside it, has the focus |
+| `whenHoveredFor(seconds, element -> …)` | After the pointer rested on it: how a tooltip appears |
+| `whenFocusVisibleFor(seconds, element -> …)` | After it had keyboard focus (with a ring) that long: a tooltip for keyboard users. Ends when the focus leaves or a key that does not move the focus is pressed |
 | `onHoverFor(seconds, handler)` | Runs once each time the pointer has rested on it, or inside it, that long; with 0, as soon as the pointer is there. Menus use it to follow the pointer |
 
 A look changes the element after it is built; with `motion`, the change animates.

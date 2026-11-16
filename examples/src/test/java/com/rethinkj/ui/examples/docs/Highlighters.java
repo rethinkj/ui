@@ -12,25 +12,29 @@ import java.util.function.Consumer;
 /** The examples of a highlighter and a decorator of one's own, for the code editor's page. */
 final class Highlighters {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   App<?> app;
   String ini = "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n";
-  final CodeEditor.State state = new CodeEditor.State();
+  final CodeEditor.State editor = new CodeEditor.State();
 
   void ini(String value) {
     ini = value;
   }
 
-  static El view(Highlighters s) {
-    return Frame.of(s.t, editor(s.t, s.app, s.ini, s.state, s::ini).lines(6).wFull());
+  static El view(Highlighters state) {
+    Theme theme = state.theme;
+    return Frame.of(
+        theme,
+        editor(theme, state.app, state.ini, state.editor, state::ini).lines(6).wFull());
   }
 
   // docs:start highlighter
   /** Colours INI files: sections, keys and comments; a value goes on after a backslash. */
   record Ini(int section, int key, int comment) implements Highlighter, CodeEditor.LineComments {
 
-    static Ini of(Theme t) {
-      return new Ini(t.code().keyword(), t.code().operator(), t.code().comment());
+    static Ini of(Theme theme) {
+      return new Ini(
+          theme.code().keyword(), theme.code().operator(), theme.code().comment());
     }
 
     @Override
@@ -57,18 +61,18 @@ final class Highlighters {
   // docs:end highlighter
 
   static El editor(
-      Theme t, App<?> app, String value, CodeEditor.State state, Consumer<String> onChange) {
+      Theme theme, App<?> app, String value, CodeEditor.State state, Consumer<String> onChange) {
     // docs:start decorator
-    El editor = CodeEditor.codeEditor(t, app, value, state, Ini.of(t), onChange);
+    El editor = CodeEditor.codeEditor(theme, app, value, state, Ini.of(theme), onChange);
     Decorator own = editor.decorator(); // the caret's line, brackets, occurrences, matches
     editor.decorate((line, start, text, out) -> {
       own.line(line, start, text, out);
       int todo = text.indexOf("TODO");
       if (todo >= 0) {
-        out.underline(todo, todo + 4, t.status().warning());
+        out.underline(todo, todo + 4, theme.status().warning());
       }
       if (text.length() > 120) {
-        out.background(120, text.length(), t.code().match()); // what is beyond column 120
+        out.background(120, text.length(), theme.code().match()); // what is beyond column 120
       }
     });
     // docs:end decorator

@@ -23,7 +23,7 @@ final class Editors {
 
   static final List<String> TABLES = List.of("orders", "order_items", "customers");
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   App<?> app; // set by whoever makes the app: the editor edits and selects through it
   String sql = "SELECT id, total\nFROM orders\nWHERE status = 'paid';";
   final CodeEditor.State editor = new CodeEditor.State();
@@ -62,10 +62,11 @@ final class Editors {
     // docs:end code-words
   }
 
-  static El codeEditor(Editors s) {
-    Theme t = s.t;
+  static El codeEditor(Editors state) {
+    Theme theme = state.theme;
     // docs:start code-editor
-    El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.editor, Sql.of(t), s::sql)
+    El editor = CodeEditor.codeEditor(
+            theme, state.app, state.sql, state.editor, Sql.of(theme), state::sql)
         .key("query")
         .label("Query")
         .lines(8)
@@ -73,67 +74,73 @@ final class Editors {
     // docs:end code-editor
     // docs:start completion
     El withCompletions = Completion.complete(
-        t,
-        s.app,
+        theme,
+        state.app,
         editor,
-        s.editor.caret(),
-        s.completion,
+        state.editor.caret(),
+        state.completion,
         word -> TABLES.stream()
             .filter(name -> name.startsWith(word.toLowerCase(Locale.ROOT)))
             .map(name -> new Completion.Entry(name, Symbol.TABLE, "table"))
             .toList());
     // docs:end completion
     // docs:start code-editor-embedded
-    El card =
-        Card.flush(t, Card.toolbar(t, "orders.sql", null), CodeEditor.embedded(t, withCompletions));
+    El card = Card.flush(
+        theme,
+        Card.toolbar(theme, "orders.sql", null),
+        CodeEditor.embedded(theme, withCompletions));
     // docs:end code-editor-embedded
-    return Frame.of(t, card.wFull());
+    return Frame.of(theme, card.wFull());
   }
 
-  static El find(Editors s) {
-    Theme t = s.t;
+  static El find(Editors state) {
+    Theme theme = state.theme;
     // docs:start find
-    El notes =
-        TextField.textArea(t, s.notes, "Notes", s::notes).key("notes").lines(6).w(360);
-    El withFind = Find.find(t, s.app, notes, s.find); // Control+F, Control+H, F3, Control+G
+    El notes = TextField.textArea(theme, state.notes, "Notes", state::notes)
+        .key("notes")
+        .lines(6)
+        .w(360);
+    // Control+F, Control+H, F3, Control+G
+    El withFind = Find.find(theme, state.app, notes, state.find);
     // docs:end find
-    return Frame.of(t, withFind);
+    return Frame.of(theme, withFind);
   }
 
-  static El markdown(Editors s) {
-    Theme t = s.t;
+  static El markdown(Editors state) {
+    Theme theme = state.theme;
     // docs:start markdown
     El document = Markdown.markdown(
-            t, s.readme, Markdown.options().onLink(s::link).copy(s.app.clipboard()))
+            theme, state.readme, Markdown.options().onLink(state::link).copy(state.app.clipboard()))
         .key("readme")
         .grow(1);
     // docs:end markdown
-    return Frame.of(t, Card.flush(t, document).wFull().grow(1));
+    return Frame.of(theme, Card.flush(theme, document).wFull().grow(1));
   }
 
-  static El image(Editors s) {
-    Theme t = s.t;
+  static El image(Editors state) {
+    Theme theme = state.theme;
     // docs:start image
-    El shown = com.rethinkj.ui.kit.Image.image(t, s.swatch, "A swatch of the accent");
-    El waiting = com.rethinkj.ui.kit.Image.image(t, null, "Still being read").size(120, 60);
+    El shown = com.rethinkj.ui.kit.Image.image(theme, state.swatch, "A swatch of the accent");
+    El waiting =
+        com.rethinkj.ui.kit.Image.image(theme, null, "Still being read").size(120, 60);
     // docs:end image
-    return Frame.of(t, shown, waiting);
+    return Frame.of(theme, shown, waiting);
   }
 
   /** A gradient of 64 by 40 pixels. */
   static Pixels swatch() {
-    int w = 64;
-    int h = 40;
-    byte[] rgba = new byte[w * h * 4];
-    for (int y = 0; y < h; y++) {
-      for (int x = 0; x < w; x++) {
-        int i = (y * w + x) * 4;
-        rgba[i] = (byte) (0x3D + x);
-        rgba[i + 1] = (byte) (0x6F + y);
-        rgba[i + 2] = (byte) 0xE6;
-        rgba[i + 3] = (byte) 0xFF;
+    int width = 64;
+    int height = 40;
+    byte[] rgba = new byte[width * height * 4];
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        int index = (y * width + x) * 4;
+        rgba[index] = (byte) (0x3D + x);
+        rgba[index + 1] = (byte) (0x6F + y);
+        rgba[index + 2] = (byte) 0xE6;
+        rgba[index + 3] = (byte) 0xFF;
       }
     }
-    return new Pixels(w, h, rgba);
+    return new Pixels(width, height, rgba);
   }
 }

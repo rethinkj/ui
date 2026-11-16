@@ -14,20 +14,20 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 ```java snippet="nav-list"
 ```
 
-`s.page` is the index of the selected item in the list, headings counted, in the app's state.
+`state.page` is the index of the selected item in the list, headings counted, in the app's state.
 
 | | |
 | --- | --- |
-| `navList(t, items, selected, onSelect)` | A list of `NavList.Item`s |
-| `navList(t, count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
+| `navList(theme, items, selected, onSelect)` | A list of `NavList.Item`s |
+| `navList(theme, count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
 | `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
 | `NavList.heading(label)` | A heading, skipped by the keys |
 
-In a card, wrap it in `Card.inset(t, list)`.
+In a card, wrap it in `Card.inset(theme, list)`.
 
 ## Values instead of indexes
 
-`navList(t, values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(t, values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`navList(theme, values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(theme, values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="nav-list-types"
 ```

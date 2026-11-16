@@ -186,9 +186,9 @@ public final class Showcase {
 
     @Override
     public int place(long key) {
-      for (int i = 0; i < kept.size(); i++) {
-        if (kept.get(i).id() == key) {
-          return i;
+      for (int row = 0; row < kept.size(); row++) {
+        if (kept.get(row).id() == key) {
+          return row;
         }
       }
       return -1;
@@ -345,8 +345,9 @@ public final class Showcase {
   private List<Samples.Order> keep() {
     List<Column> columns = Samples.orderColumns(rows);
     return java.util.stream.IntStream.range(0, rows.size())
-        .filter(i -> gridFilters.stream()
-            .allMatch(f -> f.matches(columns.get(f.column()).cell().apply(i))))
+        .filter(row -> gridFilters.stream()
+            .allMatch(gridFilter ->
+                gridFilter.matches(columns.get(gridFilter.column()).cell().apply(row))))
         .mapToObj(rows::get)
         .toList();
   }
@@ -393,8 +394,8 @@ public final class Showcase {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Showcase s = app.state();
-    s.look = Look.SYSTEM; // the window follows the system until another look is chosen
+    Showcase state = app.state();
+    state.look = Look.SYSTEM; // the window follows the system until another look is chosen
     Window.Options options = Identity.options(
             Showcase.class, "Showcase", Identity.VIOLET, Symbol.SHAPES)
         .frameless()
@@ -402,35 +403,40 @@ public final class Showcase {
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
-          .appearance(a -> {
-            s.systemDark = a.dark();
-            s.systemAccent = a.accent();
+          .appearance(appearance -> {
+            state.systemDark = appearance.dark();
+            state.systemAccent = appearance.accent();
           })
           .run();
     }
   }
 
-  static El view(Showcase s) {
-    Theme t = s.theme();
+  static El view(Showcase state) {
+    Theme theme = state.theme();
     // docs:start showcase-sidebar
     El nav = NavList.navList(
-            t,
+            theme,
             List.of(Section.values()),
-            s.section,
+            state.section,
             section -> NavList.item(section.symbol, section.title),
-            s::show)
+            state::show)
         .key("sections")
         .label("Sections")
         .grow(1);
     El sidebar = Card.flush(
-            t,
-            Card.inset(t, nav),
+            theme,
+            Card.inset(theme, nav),
             col()
-                .padding(0, t.space().m(), t.space().m(), t.space().m())
-                .gap(t.space().s())
-                .child(label(t, MUTED, "Theme"))
+                .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
+                .gap(theme.space().s())
+                .child(label(theme, MUTED, "Theme"))
                 .child(Select.select(
-                        t, List.of(Look.values()), s.look, l -> l.title, s.lookMenu, s::look)
+                        theme,
+                        List.of(Look.values()),
+                        state.look,
+                        look -> look.title,
+                        state.lookMenu,
+                        state::look)
                     .key("look")
                     .label("Theme")
                     .wFull()))
@@ -440,23 +446,23 @@ public final class Showcase {
     El root = col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .child(titleBar(
-            t,
-            "Showcase · " + s.lookTitle(),
-            s.look == Look.SYSTEM && s.systemAccent != 0
-                ? s.systemAccent
-                : t.accent().color(),
-            Identity.maximized(s.app)))
+            theme,
+            "Showcase · " + state.lookTitle(),
+            state.look == Look.SYSTEM && state.systemAccent != 0
+                ? state.systemAccent
+                : theme.accent().color(),
+            Identity.maximized(state.app)))
         .child(row()
             .grow(1)
             .minSize(0, 0)
-            .padding(0, t.space().m(), t.space().m(), t.space().m())
-            .gap(t.space().m())
+            .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
+            .gap(theme.space().m())
             .child(sidebar)
-            .child(Sections.section(s, t)));
-    return root.onKey(CommandPalette.keys(s.palette))
-        .overlay(Sections.dialog(s, t))
-        .overlay(Sections.palette(s, t));
+            .child(Sections.section(state, theme)));
+    return root.onKey(CommandPalette.keys(state.palette))
+        .overlay(Sections.dialog(state, theme))
+        .overlay(Sections.palette(state, theme));
   }
 }

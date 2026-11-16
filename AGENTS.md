@@ -64,6 +64,7 @@ The site, with Node 24 in `docs/`: `npm ci`, then `npm run build`.
 
 - The site in `docs/` is the documentation, for people and agents. Keep it short and current: a change that users notice updates the page it concerns in the same pull request, and a new component gets a page under `docs/content/docs/components` and a tile on its index.
 - Nothing on a page is written by hand that the build could check: images are the tests' stored images (`<Shot>`), Java code is a snippet from `examples/src/test/java/com/rethinkj/ui/examples/docs`, or, on the pages of the example apps, from those apps in `examples/src/main/java`. `docs/scripts/docs.mjs` fails the build on what does not exist.
+- Code a page shows reads on its own: names are words (`theme`, `state`, `index`), not letters, and a handler is a named method, passed as `state::save` or from a lambda that only hands it a value.
 - What changed goes into the changelog (below). Plans, status, findings and reports go into the issue tracker, never into the repository: no `PLAN.md`, `SUMMARY.md`, `VALIDATION.md` or review notes, and nothing of the kind in this file.
 
 ## Changes

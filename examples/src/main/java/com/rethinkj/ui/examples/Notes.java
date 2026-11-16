@@ -94,36 +94,36 @@ public final class Notes {
 
   // ---- The row
 
-  static El view(Notes s) {
-    Theme t = THEME;
+  static El view(Notes state) {
+    Theme theme = THEME;
     El cards = row()
         .key("row")
         .grow(1)
-        .gap(t.space().m())
-        .padding(t.space().l())
-        .onDrop(d -> s.overRow(d));
-    for (int i = 0; i <= s.row.size(); i++) {
-      if (i == s.marker) {
+        .gap(theme.space().m())
+        .padding(theme.space().l())
+        .onDrop(drop -> state.overRow(drop));
+    for (int index = 0; index <= state.row.size(); index++) {
+      if (index == state.marker) {
         cards.child(el().key("marker")
-            .w(t.size().stroke() * 3)
+            .w(theme.size().stroke() * 3)
             .hFull()
-            .radius(t.radius().small())
-            .fill(t.accent().color()));
+            .radius(theme.radius().small())
+            .fill(theme.accent().color()));
       }
-      if (i < s.row.size()) {
-        Note note = s.row.get(i);
+      if (index < state.row.size()) {
+        Note note = state.row.get(index);
         El card = note.window != null
             ? card(
-                t,
+                theme,
                 Card.Variant.FILLED, // in its own window: shown, not edited, here
-                label(t, Label.Variant.MUTED, note.title),
-                label(t, Label.Variant.MUTED, note.text)
+                label(theme, Label.Variant.MUTED, note.title),
+                label(theme, Label.Variant.MUTED, note.text)
                     .key("text-" + note.title)
                     .wrapText())
             : card(
-                t,
-                handle(t, note, s),
-                textArea(t, note.text, "Empty", text -> note.text = text)
+                theme,
+                handle(theme, note, state),
+                textArea(theme, note.text, "Empty", text -> note.text = text)
                     .key("text-" + note.title)
                     .wFull()
                     .grow(1));
@@ -133,36 +133,36 @@ public final class Notes {
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .child(row()
-            .padding(t.space().l(), t.space().l(), 0, t.space().l())
-            .child(label(t, Label.Variant.HEADING, "Notes")))
+            .padding(theme.space().l(), theme.space().l(), 0, theme.space().l())
+            .child(label(theme, Label.Variant.HEADING, "Notes")))
         .child(cards);
   }
 
   /** A note's title, which drags the note: along the row, out of the window, back. */
   // docs:start notes-handle
-  static El handle(Theme t, Note note, Notes s) {
+  static El handle(Theme theme, Note note, Notes state) {
     return row()
         .key("handle-" + note.title)
         .cursor(Cursor.POINTER)
-        .child(label(t, Label.Variant.STRONG, note.title))
+        .child(label(theme, Label.Variant.STRONG, note.title))
         .dragPayload(note)
-        .onDrag(d -> s.drag(note, d));
+        .onDrag(drag -> state.drag(note, drag));
   }
   // docs:end notes-handle
 
   /** The drop handler of the row: the marker follows the pointer, a drop puts the note there. */
   // docs:start notes-dock
-  void overRow(Drop d) {
-    if (!(d.payload() instanceof Note note)) {
+  void overRow(Drop drop) {
+    if (!(drop.payload() instanceof Note note)) {
       return;
     }
-    switch (d.phase()) {
-      case OVER -> marker = slot(d.x());
+    switch (drop.phase()) {
+      case OVER -> marker = slot(drop.x());
       case LEAVE -> marker = -1;
       case DROP -> {
-        int at = slot(d.x());
+        int at = slot(drop.x());
         marker = -1;
         int from = row.indexOf(note);
         row.remove(from);
@@ -178,13 +178,13 @@ public final class Notes {
 
   /** The index in the row before which a note dropped at {@code x} would go. */
   int slot(double x) {
-    Theme t = THEME;
-    float left = t.space().l();
+    Theme theme = THEME;
+    float left = theme.space().l();
     int at = 0;
-    for (int i = 0; i < row.size(); i++) {
-      float centre = left + i * (CARD + t.space().m()) + CARD / 2;
+    for (int index = 0; index < row.size(); index++) {
+      float centre = left + index * (CARD + theme.space().m()) + CARD / 2;
       if (x > centre) {
-        at = i + 1;
+        at = index + 1;
       }
     }
     return at;
@@ -196,29 +196,29 @@ public final class Notes {
    * without the card, since it carries the note.
    */
   // docs:start notes-drag
-  void drag(Note note, Drag d) {
-    Theme t = THEME;
-    boolean moving = d.phase() == Drag.Phase.START || d.phase() == Drag.Phase.MOVE;
-    if (d.phase() == Drag.Phase.START) {
+  void drag(Note note, Drag drag) {
+    Theme theme = THEME;
+    boolean moving = drag.phase() == Drag.Phase.START || drag.phase() == Drag.Phase.MOVE;
+    if (drag.phase() == Drag.Phase.START) {
       // The title lies the card's padding inside the card, as in the note's own window.
-      grabX = (float) d.x() - d.dx() + t.space().l();
-      grabY = (float) d.y() - d.dy() + t.space().l();
+      grabX = (float) drag.x() - drag.dx() + theme.space().l();
+      grabY = (float) drag.y() - drag.dy() + theme.space().l();
     }
-    if (moving && d.outside() && note.window == null) {
-      tearOff(note, d);
+    if (moving && drag.outside() && note.window == null) {
+      tearOff(note, drag);
     } else if (moving && note.window != null) {
-      follow(note.window, d);
-    } else if (d.phase() == Drag.Phase.END && note.window != null) {
+      follow(note.window, drag);
+    } else if (drag.phase() == Drag.Phase.END && note.window != null) {
       note.window.dropTarget(true); // it stays where it was let go
-    } else if (d.phase() == Drag.Phase.CANCEL) {
+    } else if (drag.phase() == Drag.Phase.CANCEL) {
       marker = -1;
     }
   }
   // docs:end notes-drag
 
   // docs:start notes-tear-off
-  void tearOff(Note note, Drag d) {
-    App<Notes> noteApp = new App<>(this, s -> s.noteView(note));
+  void tearOff(Note note, Drag drag) {
+    App<Notes> noteApp = new App<>(this, state -> state.noteView(note));
     noteApp.textRendering(app.textRendering());
     float scale = app.windows().of(app).screenScale(); // the new window's, unless it differs
     note.window = app.windows()
@@ -228,8 +228,8 @@ public final class Notes {
             NOTE_HEIGHT,
             Identity.options(Notes.class, "Notes", Identity.VIOLET, Symbol.EDIT)
                 .position(
-                    Math.round(d.screenX() - grabX * scale),
-                    Math.round(d.screenY() - grabY * scale))
+                    Math.round(drag.screenX() - grabX * scale),
+                    Math.round(drag.screenY() - grabY * scale))
                 .underPointer(),
             noteApp);
     note.window.dropTarget(false); // it lies under the pointer, over the row it may go back to
@@ -244,24 +244,25 @@ public final class Notes {
     }
   }
 
-  void follow(Windows.Handle window, Drag d) {
+  void follow(Windows.Handle window, Drag drag) {
     float scale = window.screenScale();
-    window.moveTo(Math.round(d.screenX() - grabX * scale), Math.round(d.screenY() - grabY * scale));
+    window.moveTo(
+        Math.round(drag.screenX() - grabX * scale), Math.round(drag.screenY() - grabY * scale));
   }
   // docs:end notes-tear-off
 
   // ---- A note's window
 
   El noteView(Note note) {
-    Theme t = THEME;
+    Theme theme = THEME;
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().l())
-        .gap(t.space().l())
-        .child(label(t, Label.Variant.STRONG, note.title).key("title"))
-        .child(textArea(t, note.text, "Empty", text -> note.text = text)
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .gap(theme.space().l())
+        .child(label(theme, Label.Variant.STRONG, note.title).key("title"))
+        .child(textArea(theme, note.text, "Empty", text -> note.text = text)
             .key("text")
             .wFull()
             .grow(1));

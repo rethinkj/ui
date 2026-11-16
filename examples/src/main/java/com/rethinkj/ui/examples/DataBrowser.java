@@ -140,93 +140,94 @@ public final class DataBrowser {
     static final Order EMPTY =
         new Order(null, null, null, null, null, null, null, null, null, null, null, null);
 
-    Order withCustomer(String v) {
+    Order withCustomer(String value) {
       return new Order(
-          id, v, email, city, country, product, quantity, amount, createdAt, shippedAt, status,
+          id, value, email, city, country, product, quantity, amount, createdAt, shippedAt, status,
           note);
     }
 
-    Order withEmail(String v) {
+    Order withEmail(String value) {
       return new Order(
-          id, customer, v, city, country, product, quantity, amount, createdAt, shippedAt, status,
+          id, customer, value, city, country, product, quantity, amount, createdAt, shippedAt,
+          status, note);
+    }
+
+    Order withCity(String value) {
+      return new Order(
+          id, customer, email, value, country, product, quantity, amount, createdAt, shippedAt,
+          status, note);
+    }
+
+    Order withCountry(String value) {
+      return new Order(
+          id, customer, email, city, value, product, quantity, amount, createdAt, shippedAt, status,
           note);
     }
 
-    Order withCity(String v) {
+    Order withProduct(String value) {
       return new Order(
-          id, customer, email, v, country, product, quantity, amount, createdAt, shippedAt, status,
+          id, customer, email, city, country, value, quantity, amount, createdAt, shippedAt, status,
           note);
     }
 
-    Order withCountry(String v) {
+    Order withQuantity(Integer value) {
       return new Order(
-          id, customer, email, city, v, product, quantity, amount, createdAt, shippedAt, status,
+          id, customer, email, city, country, product, value, amount, createdAt, shippedAt, status,
           note);
     }
 
-    Order withProduct(String v) {
+    Order withAmount(BigDecimal value) {
       return new Order(
-          id, customer, email, city, country, v, quantity, amount, createdAt, shippedAt, status,
+          id, customer, email, city, country, product, quantity, value, createdAt, shippedAt,
+          status, note);
+    }
+
+    Order withCreatedAt(LocalDateTime value) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, value, shippedAt, status,
           note);
     }
 
-    Order withQuantity(Integer v) {
+    Order withShippedAt(LocalDateTime value) {
       return new Order(
-          id, customer, email, city, country, product, v, amount, createdAt, shippedAt, status,
+          id, customer, email, city, country, product, quantity, amount, createdAt, value, status,
           note);
     }
 
-    Order withAmount(BigDecimal v) {
-      return new Order(
-          id, customer, email, city, country, product, quantity, v, createdAt, shippedAt, status,
-          note);
-    }
-
-    Order withCreatedAt(LocalDateTime v) {
-      return new Order(
-          id, customer, email, city, country, product, quantity, amount, v, shippedAt, status,
-          note);
-    }
-
-    Order withShippedAt(LocalDateTime v) {
-      return new Order(
-          id, customer, email, city, country, product, quantity, amount, createdAt, v, status,
-          note);
-    }
-
-    Order withStatus(Status v) {
-      return new Order(
-          id, customer, email, city, country, product, quantity, amount, createdAt, shippedAt, v,
-          note);
-    }
-
-    Order withNote(String v) {
+    Order withStatus(Status value) {
       return new Order(
           id, customer, email, city, country, product, quantity, amount, createdAt, shippedAt,
-          status, v);
+          value, note);
+    }
+
+    Order withNote(String value) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, createdAt, shippedAt,
+          status, value);
     }
   }
 
   /** The made-up order at an index. */
-  static Order madeUp(int i) {
-    int quantity = 1 + i * 13 % 9;
-    int product = i * 3 % PRODUCT.length;
-    String customer = customer(i);
-    LocalDateTime created = START.plusSeconds(i * 29L).truncatedTo(ChronoUnit.MINUTES);
-    Status status = Status.values()[i * 7 % Status.values().length];
+  static Order madeUp(int index) {
+    int quantity = 1 + index * 13 % 9;
+    int product = index * 3 % PRODUCT.length;
+    String customer = customer(index);
+    LocalDateTime created = START.plusSeconds(index * 29L).truncatedTo(ChronoUnit.MINUTES);
+    Status status = Status.values()[index * 7 % Status.values().length];
     return new Order(
-        i + 1L,
+        index + 1L,
         customer,
-        customer.toLowerCase(Locale.ROOT).replace(' ', '.') + "@" + DOMAIN[i / 100 % DOMAIN.length],
-        CITY[i / 4 % CITY.length],
-        COUNTRY[i / 4 % COUNTRY.length],
+        customer.toLowerCase(Locale.ROOT).replace(' ', '.') + "@"
+            + DOMAIN[index / 100 % DOMAIN.length],
+        CITY[index / 4 % CITY.length],
+        COUNTRY[index / 4 % COUNTRY.length],
         PRODUCT[product],
         quantity,
         BigDecimal.valueOf((long) quantity * CENTS[product], 2),
         created,
-        status == Status.SHIPPED ? created.plusMinutes(i * 7919L % 4320) : null,
+        status == Status.SHIPPED ? created.plusMinutes(index * 7919L % 4320) : null,
         status,
-        NOTE[i % NOTE.length]);
+        NOTE[index % NOTE.length]);
   }
 
   /** The widths the columns start with. */
@@ -352,15 +353,15 @@ public final class DataBrowser {
 
   /** The order at a row shown, past the deleted ones; new orders after the million's. */
   int orderShown(int row) {
-    int k = row;
+    int kept = row;
     for (int place : gone) {
-      if (place <= k) {
-        k++;
+      if (place <= kept) {
+        kept++;
       } else {
         break;
       }
     }
-    return k < count() ? orderAt(k) : ROWS + k - count();
+    return kept < count() ? orderAt(kept) : ROWS + kept - count();
   }
 
   /** The row at which an order is shown, or -1. */
@@ -381,20 +382,20 @@ public final class DataBrowser {
   /** The places of the deleted orders the filters keep, after the filters or the sort changed. */
   private void places() {
     gone = removed.stream()
-        .filter(o -> o < ROWS)
+        .filter(order -> order < ROWS)
         .mapToInt(this::placeOf)
-        .filter(p -> p >= 0)
+        .filter(place -> place >= 0)
         .sorted()
         .toArray();
   }
 
-  static String customer(int i) {
-    return FIRST[i % FIRST.length] + " " + LAST[i / FIRST.length % LAST.length];
+  static String customer(int index) {
+    return FIRST[index % FIRST.length] + " " + LAST[index / FIRST.length % LAST.length];
   }
 
   private static int[] all() {
     int[] rows = new int[PERIOD];
-    Arrays.setAll(rows, i -> i);
+    Arrays.setAll(rows, index -> index);
     return rows;
   }
 
@@ -414,8 +415,7 @@ public final class DataBrowser {
     Predicate<Order> keeps = DataGrid.table(DataBrowser::madeUp).filter(MADE_UP, filters);
     int[] found = new int[PERIOD];
     int count = 0;
-    for (int r = 0; r < PERIOD; r++) {
-      int row = r;
+    for (int row = 0; row < PERIOD; row++) {
       if (matches(row, words) && keeps.test(madeUp(row))) {
         found[count++] = row;
       }
@@ -496,8 +496,8 @@ public final class DataBrowser {
   /** The row's text columns that are not NULL: what the filter looks at. */
   static List<String> texts(int row) {
     List<String> texts = new ArrayList<>();
-    for (int c = 0; c < MADE_UP.size(); c++) {
-      String text = text(c) ? MADE_UP.get(c).cell().apply(row) : null;
+    for (int column = 0; column < MADE_UP.size(); column++) {
+      String text = text(column) ? MADE_UP.get(column).cell().apply(row) : null;
       if (text != null) {
         texts.add(text);
       }
@@ -512,8 +512,8 @@ public final class DataBrowser {
 
   /** The row shown at this place of the grid. */
   int orderAt(int shown) {
-    int k = descending ? count() - 1 - shown : shown;
-    return k / matching.length * PERIOD + matching[k % matching.length];
+    int place = descending ? count() - 1 - shown : shown;
+    return place / matching.length * PERIOD + matching[place % matching.length];
   }
 
   /** The place of a row in the grid, or -1 if the filter hides it. */
@@ -522,8 +522,8 @@ public final class DataBrowser {
     if (at < 0) {
       return -1;
     }
-    int k = row / PERIOD * matching.length + at;
-    return descending ? count() - 1 - k : k;
+    int place = row / PERIOD * matching.length + at;
+    return descending ? count() - 1 - place : place;
   }
 
   String status() {
@@ -566,19 +566,20 @@ public final class DataBrowser {
     }
   }
 
-  static El view(DataBrowser s) {
-    Theme t = s.dark ? Theme.DARK : Theme.LIGHT;
+  static El view(DataBrowser state) {
+    Theme theme = state.dark ? Theme.DARK : Theme.LIGHT;
     List<Column> columns = new ArrayList<>();
-    List<Column> typed = columns(s.table, s.widths);
-    for (int c = 0; c < typed.size(); c++) {
+    List<Column> typed = columns(state.table, state.widths);
+    for (int index = 0; index < typed.size(); index++) {
       // The cells through the changes, which show the edited values and the new rows.
-      Column column = typed.get(c).cell(s.changes.cell(c)).sortable(c == 0); // id sorts
+      Column column =
+          typed.get(index).cell(state.changes.cell(index)).sortable(index == 0); // id sorts
       columns.add(
           switch (column.title()) {
             case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
             case "status" ->
               column.cellIcon(shown -> {
-                String status = s.changes.cell(shown, 10);
+                String status = state.changes.cell(shown, 10);
                 int at = status == null ? -1 : STATUS.choices().indexOf(status);
                 return at < 0 ? null : MARKS[at];
               });
@@ -586,91 +587,96 @@ public final class DataBrowser {
           });
     }
     DataGrid.Options options = DataGrid.options()
-        .select(s.selection)
-        .onSelect(s::selected)
-        .sort(List.of(new SortKey(0, s.descending)), s::sort)
-        .onResize((c, width) -> s.widths[c] = width)
+        .select(state.selection)
+        .onSelect(state::selected)
+        .sort(List.of(new SortKey(0, state.descending)), state::sort)
+        .onResize((column, width) -> state.widths[column] = width)
         .rowNumbers()
         .frozen(1)
-        .contextMenu(s.menu, List.of())
-        .changes(s.changes)
-        .filters(s.filters, s::filters)
+        .contextMenu(state.menu, List.of())
+        .changes(state.changes)
+        .filters(state.filters, state::filters)
         .filterable(DataBrowser::text)
-        .columns(s.layout);
-    if (s.app != null) { // the window's clipboard once it runs, the app's own before
-      options.copy(s.app.clipboard());
+        .columns(state.layout);
+    if (state.app != null) { // the window's clipboard once it runs, the app's own before
+      options.copy(state.app.clipboard());
     }
     // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
-    options.onLargeCopy((copy, limit) -> s.toast = String.format(
+    options.onLargeCopy((copy, limit) -> state.toast = String.format(
         Locale.ROOT, "%,d cells are too many to copy at once: at most %,d", copy.cells(), limit));
-    El grid = dataGrid(t, columns, s.changes.rowCount(), options);
+    El grid = dataGrid(theme, columns, state.changes.rowCount(), options);
     El filter = TextField.withIcon(
-        t, textField(t, s.filter, "Filter", s::filter).key("filter").w(280), Symbol.SEARCH);
+        theme,
+        textField(theme, state.filter, "Filter", state::filter).key("filter").w(280),
+        Symbol.SEARCH);
     filter = Tooltip.tooltip(
-        t, filter, "Words in customer, email, city, country, product," + " status or note");
-    int changed = s.changes.count();
+        theme, filter, "Words in customer, email, city, country, product," + " status or note");
+    int changed = state.changes.count();
     El revert = button(
-            t,
+            theme,
             Button.Variant.GHOST,
             "Revert",
-            s.changes::clear,
+            state.changes::clear,
             Button.options().icon(Symbol.ARROW_UNDO).enabled(changed != 0).tone(Button.Tone.DANGER))
         .key("revert");
     El commit = button(
-            t,
+            theme,
             Button.Variant.PRIMARY,
             Symbol.SAVE,
             changed == 0 ? "Commit" : "Commit (" + changed + ")",
-            changed == 0 && !s.selection.isEditing() ? null : s::commit)
+            changed == 0 && !state.selection.isEditing() ? null : state::commit)
         .key("commit");
-    El bar = DataGrid.filterBar(t, columns, s.filters, s::filters);
+    El bar = DataGrid.filterBar(theme, columns, state.filters, state::filters);
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .onKey(
-            k -> { // Control+S commits, as in Workbench
-              if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
-                s.commit();
+            key -> { // Control+S commits, as in Workbench
+              if (key.modifiers() == Key.CONTROL && key.name().equals("S")) {
+                state.commit();
                 return true;
               }
               return false;
             })
         // Above the card's footer, its edge and the space below the card: the status stays seen.
         .overlay(
-            s.toast == null
+            state.toast == null
                 ? null
                 : Toast.toast(
-                    t,
-                    s.toast,
+                    theme,
+                    state.toast,
                     null,
                     null,
-                    () -> s.toast = null,
-                    Card.footerHeight(t) + t.size().stroke() + t.space().m()))
+                    () -> state.toast = null,
+                    Card.footerHeight(theme)
+                        + theme.size().stroke()
+                        + theme.space().m()))
         .child(titleBar(
-            t,
+            theme,
             "Orders",
-            t.accent().color(),
-            Identity.maximized(s.app),
-            toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
+            theme.accent().color(),
+            Identity.maximized(state.app),
+            toggle(theme, state.dark, "Dark", () -> state.dark = !state.dark)))
         .child(col()
             .grow(1)
             .minSize(0, 0)
-            .padding(0, t.space().m(), t.space().m(), t.space().m())
+            .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
             .child(Card.flush(
-                    t,
+                    theme,
                     Card.toolbar(
-                        t,
+                        theme,
                         "orders",
-                        String.format(Locale.ROOT, "%,d rows", s.changes.rowCount()),
+                        String.format(Locale.ROOT, "%,d rows", state.changes.rowCount()),
                         filter,
-                        DataGrid.columnsButton(t, s.layout),
+                        DataGrid.columnsButton(theme, state.layout),
                         revert,
                         commit),
-                    Card.filters(t, bar),
-                    Divider.divider(t),
+                    Card.filters(theme, bar),
+                    Divider.divider(theme),
                     grid.key("orders").label("Orders").grow(1),
-                    Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))
+                    Card.footer(
+                        theme, label(theme, MUTED, state.status()).key("status").ellipsis()))
                 .grow(1)));
   }
 }

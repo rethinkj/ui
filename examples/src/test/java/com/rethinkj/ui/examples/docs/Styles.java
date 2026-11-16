@@ -14,15 +14,15 @@ import com.rethinkj.ui.kit.Theme;
 /** The example of the layout page's Style and Len, beyond the chained calls. */
 final class Styles {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
 
-  static El view(Styles s) {
-    Theme t = s.t;
+  static El view(Styles state) {
+    Theme theme = state.theme;
     // docs:start style
-    El bar = el().key("bar").h(8).fill(t.accent().color());
+    El bar = el().key("bar").h(8).fill(theme.accent().color());
     bar.style().width = Len.percent(0.4f); // 40 % of the parent's content box: 1 is all of it
 
-    El thumb = el().key("thumb").w(96).fill(t.surface().raised());
+    El thumb = el().key("thumb").w(96).fill(theme.surface().raised());
     thumb.style().aspectRatio = 16 / 9f; // the height follows the width
 
     El tags = row().key("tags").wrap().wFull();
@@ -39,30 +39,30 @@ final class Styles {
     inset.style().boxSizing = Style.BoxSizing.CONTENT_BOX; // 120 wide inside the padding
     // docs:end style
     for (String tag : new String[] {"orders", "customers", "order_items", "invoices"}) {
-      tags.child(text(tag).color(t.text().muted()));
+      tags.child(text(tag).color(theme.text().muted()));
     }
-    for (int i = 1; i <= 5; i++) {
-      latest.child(text("Query " + i).color(t.text().primary()));
+    for (int number = 1; number <= 5; number++) {
+      latest.child(text("Query " + number).color(theme.text().primary()));
     }
     baseline
-        .child(text("Rows").fontSize(20).color(t.text().primary()))
-        .child(text("1 000 000").color(t.text().muted()));
+        .child(text("Rows").fontSize(20).color(theme.text().primary()))
+        .child(text("1 000 000").color(theme.text().muted()));
     return Frame.of(
-        t,
+        theme,
         col().wFull().h(16).child(bar),
         thumb,
         tags,
         latest,
         baseline,
-        inset.fill(t.surface().raised()),
-        sparkline(t));
+        inset.fill(theme.surface().raised()),
+        sparkline(theme));
   }
 
-  static El sparkline(Theme t) {
+  static El sparkline(Theme theme) {
     // docs:start measure
     // A leaf that sizes itself: as wide as there is room for, at most 200, and 24 high.
     return el().key("sparkline")
-        .fill(t.surface().band())
+        .fill(theme.surface().band())
         .measure((knownWidth, knownHeight, availableWidth, availableHeight) -> {
           float width = Float.isNaN(knownWidth)
               ? Float.isFinite(availableWidth) ? Math.min(availableWidth, 200) : 200

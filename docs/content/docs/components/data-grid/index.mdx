@@ -14,13 +14,13 @@ Javadoc: [`DataGrid`](/api/com/rethinkj/ui/kit/DataGrid.html), [`DataGrid.Column
 ```java snippet="grid"
 ```
 
-- `s.selection` is a `DataGrid.Selection` and `s.gridCommands` a `DataGrid.Commands`, both in the app's state. `value(i, c)` and `COUNT` stand for the app's data.
+- `state.selection` is a `DataGrid.Selection` and `state.gridCommands` a `DataGrid.Commands`, both in the app's state. `value(row, column)` and `COUNT` stand for the app's data.
 - Each `Column` has a title, a width and a function from a row index to the cell's text. Null is SQL `NULL`, shown as a muted `NULL`.
 - `DataType` gives the column its alignment, font and header icon: `INTEGER`, `DECIMAL`, `TEXT`, `BOOLEAN`, `DATE`, `TIME`, `DATE_TIME`, `INTERVAL`, `UUID`, `JSON`, `BINARY`, `ARRAY`, `ENUM`, `GEOMETRY`, `OTHER`. Map your driver's types to it once.
 - The cell functions are called only for the cells in view and a few around them, on every frame. Keep them cheap: an array lookup, not a query.
 - Like any list of rows, the grid needs a height of its own or room to `grow`.
 
-The grid has no border of its own: put it flush in a card, as `Card.flush(t, grid)`.
+The grid has no border of its own: put it flush in a card, as `Card.flush(theme, grid)`.
 
 ## Columns
 
@@ -72,7 +72,7 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Dragging a header's edge resizes; a double press fits |
 | `fitColumns(Fit)` | Every column as wide as its content, once per result. [Fitting columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
-| `columns(Layout)`, `onFreeze(n -> …)` | The order and hidden columns, chosen in the header |
+| `columns(Layout)`, `onFreeze(count -> …)` | The order and hidden columns, chosen in the header |
 | `loading(loaded, onRows)` | Rows not loaded yet show `…`; the app is told which rows are in view, to load them |
 | `filters(filters, onFilter)`, `filterable(columns)` | A filter in each header cell. [Filters](/docs/components/data-grid/filters) |
 | `changes(GridChanges)` | Editing with pending changes, undo and redo. [Editing](/docs/components/data-grid/editing) |

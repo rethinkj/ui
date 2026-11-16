@@ -13,7 +13,7 @@ final class Paragraphs {
   static final String NOTE =
       "The orders table has no index on customer_id. See the query plan" + " before you add one.";
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   String opened = "";
 
   // docs:start range-handlers
@@ -22,19 +22,19 @@ final class Paragraphs {
   }
   // docs:end range-handlers
 
-  static El view(Paragraphs s) {
-    Theme t = s.t;
+  static El view(Paragraphs state) {
+    Theme theme = state.theme;
     // docs:start range
     int from = NOTE.indexOf("the query plan");
     El paragraph = text(NOTE)
-        .editable(v -> {}) // read-only below: it selects and copies, and takes no edits
+        .editable(value -> {}) // read-only below: it selects and copies, and takes no edits
         .readOnly()
         .multiline()
         .wrapText()
         .fitLines() // as high as its rows: it never scrolls
         .skipTab() // Tab goes to the link, not to the paragraph
         .key("note")
-        .color(t.text().primary())
+        .color(theme.text().primary())
         .wFull()
         .child(el().key("plan")
             .role("link")
@@ -42,9 +42,9 @@ final class Paragraphs {
             .range(from, from + "the query plan".length()) // over these characters
             .focusable()
             .cursor(Cursor.POINTER)
-            .onPress(s::openPlan)
-            .whenHovered(link -> link.fill(t.surface().hover())));
+            .onPress(state::openPlan)
+            .whenHovered(element -> element.fill(theme.surface().hover())));
     // docs:end range
-    return Frame.of(t, paragraph.w(260));
+    return Frame.of(theme, paragraph.w(260));
   }
 }

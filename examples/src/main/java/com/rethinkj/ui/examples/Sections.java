@@ -64,21 +64,21 @@ final class Sections {
 
   /** The section the state chooses, under its title, in an area that scrolls. */
   // docs:start showcase-section
-  static El section(Showcase s, Theme t) {
-    Section section = s.section;
+  static El section(Showcase state, Theme theme) {
+    Section section = state.section;
     El body = switch (section) {
-      case BUTTONS -> buttons(s, t);
-      case FIELDS -> fields(s, t);
-      case MENUS -> menus(s, t);
-      case GRID -> grid(s, t);
-      case TREE -> tree(s, t);
-      case WORKBENCH -> workbench(s, t);
-      case DETAILS -> details(s, t);
-      case PROGRESS -> progress(s, t);
-      case TYPE -> type(t);
-      case COLOUR -> colour(t);
-      case CONTRAST -> contrast(t);
-      case ICONS -> icons(t);
+      case BUTTONS -> buttons(state, theme);
+      case FIELDS -> fields(state, theme);
+      case MENUS -> menus(state, theme);
+      case GRID -> grid(state, theme);
+      case TREE -> tree(state, theme);
+      case WORKBENCH -> workbench(state, theme);
+      case DETAILS -> details(state, theme);
+      case PROGRESS -> progress(state, theme);
+      case TYPE -> type(theme);
+      case COLOUR -> colour(theme);
+      case CONTRAST -> contrast(theme);
+      case ICONS -> icons(theme);
     };
     // A key per section, so that what one section leaves does not fade out in the next.
     return col()
@@ -87,13 +87,13 @@ final class Sections {
         .grow(1)
         .minSize(0, 0)
         .scroll()
-        .scrollbars(t.scrollbars())
-        .padding(t.space().xxl())
-        .gap(t.space().l())
+        .scrollbars(theme.scrollbars())
+        .padding(theme.space().xxl())
+        .gap(theme.space().l())
         .child(col()
-            .gap(t.space().xs())
-            .child(label(t, TITLE, section.title))
-            .child(label(t, MUTED, section.description)))
+            .gap(theme.space().xs())
+            .child(label(theme, TITLE, section.title))
+            .child(label(theme, MUTED, section.description)))
         .child(body);
   }
   // docs:end showcase-section
@@ -104,136 +104,160 @@ final class Sections {
   private static final float FILL_MIN = 400;
 
   /** A card: an area set apart on the window, with a title above its content. */
-  private static El card(Theme t, String title, El... content) {
-    return Card.card(t, Card.header(t, title, null)).gap(t.space().m()).children(content);
+  private static El card(Theme theme, String title, El... content) {
+    return Card.card(theme, Card.header(theme, title, null))
+        .gap(theme.space().m())
+        .children(content);
   }
 
   /** A row of a form: the name in a column of its own, then the control, which it labels. */
-  private static El field(Theme t, String name, El control) {
-    return field(t, name, 96, control);
+  private static El field(Theme theme, String name, El control) {
+    return field(theme, name, 96, control);
   }
 
   /** A row of a form whose names take {@code width}. */
-  private static El field(Theme t, String name, float width, El control) {
+  private static El field(Theme theme, String name, float width, El control) {
     return row()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
-        .child(label(t, name).w(width).shrink(0))
+        .child(label(theme, name).w(width).shrink(0))
         .child(control.label(name));
   }
 
   /** A button with an icon before its text, or with only an icon when the text is null. */
   static El toolButton(
-      Theme t, Button.Variant variant, Symbol symbol, String text, String label, Runnable onPress) {
+      Theme theme,
+      Button.Variant variant,
+      Symbol symbol,
+      String text,
+      String label,
+      Runnable onPress) {
     return text == null
-        ? Button.icon(t, variant, symbol, label, onPress)
-        : Button.button(t, variant, symbol, text, onPress);
+        ? Button.icon(theme, variant, symbol, label, onPress)
+        : Button.button(theme, variant, symbol, text, onPress);
   }
 
-  private static El iconButton(Theme t, Symbol symbol, String label, Runnable onPress) {
-    return Button.icon(t, GHOST, symbol, label, onPress);
+  private static El iconButton(Theme theme, Symbol symbol, String label, Runnable onPress) {
+    return Button.icon(theme, GHOST, symbol, label, onPress);
   }
 
   /** A vertical line between groups of a toolbar. */
-  private static El divider(Theme t) {
-    return el().size(t.size().stroke(), t.size().control() - 2 * t.space().s())
+  private static El divider(Theme theme) {
+    return el().size(
+            theme.size().stroke(), theme.size().control() - 2 * theme.space().s())
         .shrink(0)
-        .margin(0, t.space().xs(), 0, t.space().xs())
-        .fill(t.border().subtle());
+        .margin(0, theme.space().xs(), 0, theme.space().xs())
+        .fill(theme.border().subtle());
   }
 
   /** A strip of tools on the page, its actions apart and its icon buttons in {@link #icons}. */
-  private static El toolbar(Theme t) {
-    return row().gap(t.space().m()).align(Style.Align.CENTER);
+  private static El toolbar(Theme theme) {
+    return row().gap(theme.space().m()).align(Style.Align.CENTER);
   }
 
   /** Icon buttons that belong together, close to each other in a toolbar. */
-  private static El icons(Theme t, El... buttons) {
-    return row().gap(t.space().xs()).align(Style.Align.CENTER).children(buttons);
+  private static El icons(Theme theme, El... buttons) {
+    return row().gap(theme.space().xs()).align(Style.Align.CENTER).children(buttons);
   }
 
   // Buttons
 
-  private static El buttons(Showcase s, Theme t) {
-    El tools = toolbar(t)
-        .child(toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run"))
+  private static El buttons(Showcase state, Theme theme) {
+    El tools = toolbar(theme)
+        .child(toolButton(theme, PRIMARY, Symbol.PLAY, "Run", "Run", () -> state.say("run"))
             .key("run"))
-        .child(toolButton(t, SECONDARY, Symbol.STOP, "Stop", "Stop", null))
-        .child(divider(t))
+        .child(toolButton(theme, SECONDARY, Symbol.STOP, "Stop", "Stop", null))
+        .child(divider(theme))
         .child(icons(
-            t,
-            iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.say("refresh")),
-            iconButton(t, Symbol.ARROW_DOWNLOAD, "Export", () -> s.say("export")),
-            iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter")),
-            iconButton(t, Symbol.HISTORY, "History", null)))
+            theme,
+            iconButton(theme, Symbol.ARROW_CLOCKWISE, "Refresh", () -> state.say("refresh")),
+            iconButton(theme, Symbol.ARROW_DOWNLOAD, "Export", () -> state.say("export")),
+            iconButton(theme, Symbol.FILTER, "Filter", () -> state.say("filter")),
+            iconButton(theme, Symbol.HISTORY, "History", null)))
         .child(el().grow(1))
-        .child(
-            toolButton(t, GHOST, Symbol.SETTINGS, "Settings", "Settings", () -> s.say("settings")));
+        .child(toolButton(
+            theme, GHOST, Symbol.SETTINGS, "Settings", "Settings", () -> state.say("settings")));
     El actions = card(
-        t,
+        theme,
         "Actions",
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(button(t, PRIMARY, "Run query", () -> s.say("run")).key("primary"))
-            .child(button(t, SECONDARY, "Cancel", () -> s.say("cancel")).key("cancel"))
-            .child(button(t, GHOST, "Format", () -> s.say("format")).key("format")),
-        label(t, MUTED, "Disabled"),
+            .child(button(theme, PRIMARY, "Run query", () -> state.say("run")).key("primary"))
+            .child(button(theme, SECONDARY, "Cancel", () -> state.say("cancel")).key("cancel"))
+            .child(button(theme, GHOST, "Format", () -> state.say("format")).key("format")),
+        label(theme, MUTED, "Disabled"),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(button(t, PRIMARY, "Run query", null))
-            .child(button(t, SECONDARY, "Cancel", null))
-            .child(button(t, GHOST, "Format", null)),
-        label(t, MUTED, "With icons"),
+            .child(button(theme, PRIMARY, "Run query", null))
+            .child(button(theme, SECONDARY, "Cancel", null))
+            .child(button(theme, GHOST, "Format", null)),
+        label(theme, MUTED, "With icons"),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
             .child(toolButton(
-                t, PRIMARY, Symbol.ADD, "New connection", "New connection", () -> s.say("new")))
+                theme,
+                PRIMARY,
+                Symbol.ADD,
+                "New connection",
+                "New connection",
+                () -> state.say("new")))
             .child(toolButton(
-                t, SECONDARY, Symbol.ARROW_IMPORT, "Import", "Import", () -> s.say("import")))
-            .child(toolButton(t, GHOST, Symbol.COPY, "Copy", "Copy", () -> s.say("copy"))),
-        label(t, MUTED, "Destructive"),
+                theme,
+                SECONDARY,
+                Symbol.ARROW_IMPORT,
+                "Import",
+                "Import",
+                () -> state.say("import")))
+            .child(toolButton(theme, GHOST, Symbol.COPY, "Copy", "Copy", () -> state.say("copy"))),
+        label(theme, MUTED, "Destructive"),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(button(t, PRIMARY, "Drop table", () -> s.say("drop"), danger()))
-            .child(button(t, SECONDARY, "Discard", () -> s.say("discard"), danger()))
-            .child(button(t, GHOST, "Delete", () -> s.say("delete"), danger().icon(Symbol.DELETE)))
+            .child(button(theme, PRIMARY, "Drop table", () -> state.say("drop"), danger()))
+            .child(button(theme, SECONDARY, "Discard", () -> state.say("discard"), danger()))
+            .child(button(
+                theme, GHOST, "Delete", () -> state.say("delete"), danger().icon(Symbol.DELETE)))
             .child(Button.icon(
-                t, GHOST, Symbol.DELETE, "Delete row", () -> s.say("delete"), danger())));
+                theme, GHOST, Symbol.DELETE, "Delete row", () -> state.say("delete"), danger())));
     El options = card(
-        t,
+        theme,
         "Connection options",
-        toggle(t, s.autocommit, "Auto-commit", () -> s.autocommit = !s.autocommit)
+        toggle(theme, state.autocommit, "Auto-commit", () -> state.autocommit = !state.autocommit)
             .key("autocommit"),
-        toggle(t, s.readOnly, "Read-only connection", () -> s.readOnly = !s.readOnly),
-        toggle(t, s.nullText, "Show NULL as text", () -> s.nullText = !s.nullText),
-        toggle(t, true, "Keep alive (set by the server)", null),
-        toggle(t, false, "Single session (set by the server)", null),
-        el().h(t.space().xs()),
-        checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl).key("ssl"),
-        checkbox(t, s.savePassword, "Save password", () -> s.savePassword = !s.savePassword),
-        checkbox(t, true, "Trust server certificate (managed)", null),
-        checkbox(t, false, "Use SSH tunnel (not installed)", null));
+        toggle(
+            theme, state.readOnly, "Read-only connection", () -> state.readOnly = !state.readOnly),
+        toggle(theme, state.nullText, "Show NULL as text", () -> state.nullText = !state.nullText),
+        toggle(theme, true, "Keep alive (set by the server)", null),
+        toggle(theme, false, "Single session (set by the server)", null),
+        el().h(theme.space().xs()),
+        checkbox(theme, state.ssl, "Require SSL", () -> state.ssl = !state.ssl).key("ssl"),
+        checkbox(
+            theme,
+            state.savePassword,
+            "Save password",
+            () -> state.savePassword = !state.savePassword),
+        checkbox(theme, true, "Trust server certificate (managed)", null),
+        checkbox(theme, false, "Use SSH tunnel (not installed)", null));
     El footer = row()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .justify(Style.Content.END)
         .align(Style.Align.CENTER)
-        .padding(t.space().m())
-        .fill(t.surface().panel())
-        .border(t.size().stroke(), t.border().subtle())
-        .radius(t.radius().large())
-        .child(label(t, MUTED, "A dialog's footer").grow(1))
-        .child(button(t, SECONDARY, "Cancel", () -> s.say("cancel")))
-        .child(button(t, SECONDARY, "Apply", () -> s.say("apply")))
-        .child(button(t, PRIMARY, "OK", () -> s.say("ok")).key("ok"));
+        .padding(theme.space().m())
+        .fill(theme.surface().panel())
+        .border(theme.size().stroke(), theme.border().subtle())
+        .radius(theme.radius().large())
+        .child(label(theme, MUTED, "A dialog's footer").grow(1))
+        .child(button(theme, SECONDARY, "Cancel", () -> state.say("cancel")))
+        .child(button(theme, SECONDARY, "Apply", () -> state.say("apply")))
+        .child(button(theme, PRIMARY, "OK", () -> state.say("ok")).key("ok"));
     return col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .child(tools)
         .child(row()
-            .gap(t.space().l())
+            .gap(theme.space().l())
             .align(Style.Align.START)
             .child(actions.grow(1).basis(0))
             .child(options.grow(1).basis(0)))
@@ -257,98 +281,121 @@ final class Sections {
     }
   }
 
-  private static El fields(Showcase s, Theme t) {
+  private static El fields(Showcase state, Theme theme) {
     El states = card(
-        t,
+        theme,
         "States",
         field(
-            t,
+            theme,
             "Empty",
-            textField(t, s.search, "Search tables", v -> s.search = v).key("empty")),
-        field(t, "Filled", textField(t, s.table, "Table", v -> s.table = v).key("filled")),
-        field(t, "Selected", textField(t, s.alias, "Alias", v -> s.alias = v).key("selecting")),
+            textField(theme, state.search, "Search tables", value -> state.search = value)
+                .key("empty")),
         field(
-            t,
+            theme,
+            "Filled",
+            textField(theme, state.table, "Table", value -> state.table = value).key("filled")),
+        field(
+            theme,
+            "Selected",
+            textField(theme, state.alias, "Alias", value -> state.alias = value).key("selecting")),
+        field(
+            theme,
             "Read-only",
-            textField(t, "jdbc:postgresql://localhost:5432/shop", "URL", v -> {})
+            textField(theme, "jdbc:postgresql://localhost:5432/shop", "URL", value -> {})
                 .readOnly()
                 .key("readonly")),
-        field(t, "Disabled", textField(t, "postgres", "User", null).key("disabled")),
-        field(t, "Placeholder", textField(t, "", "Optional", null).key("empty-disabled")));
+        field(theme, "Disabled", textField(theme, "postgres", "User", null).key("disabled")),
+        field(theme, "Placeholder", textField(theme, "", "Optional", null).key("empty-disabled")));
     El form = card(
-        t,
+        theme,
         "New connection",
         field(
-            t, "Name", textField(t, s.name, "Name", v -> s.name = v).key("name").w(280)),
+            theme,
+            "Name",
+            textField(theme, state.name, "Name", value -> state.name = value)
+                .key("name")
+                .w(280)),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
             .child(field(
-                t,
+                theme,
                 "Host",
-                textField(t, s.host, "Name or address", v -> s.host = v)
+                textField(theme, state.host, "Name or address", value -> state.host = value)
                     .key("host")
                     .w(176)))
-            .child(label(t, "Port"))
-            .child(textField(t, s.port, "5432", v -> s.port = v)
+            .child(label(theme, "Port"))
+            .child(textField(theme, state.port, "5432", value -> state.port = value)
                 .key("port")
                 .label("Port")
                 .maxLength(5)
                 .w(64)),
         field(
-            t,
+            theme,
             "Database",
-            textField(t, s.database, "Name", v -> s.database = v)
+            textField(theme, state.database, "Name", value -> state.database = value)
                 .key("database")
                 .w(280)),
         field(
-            t, "User", textField(t, s.user, "Role", v -> s.user = v).key("user").w(280)),
+            theme,
+            "User",
+            textField(theme, state.user, "Role", value -> state.user = value)
+                .key("user")
+                .w(280)),
         field(
-            t,
+            theme,
             "Driver",
-            Select.select(t, DRIVERS, s.driver, s.driverMenu, i -> s.driver = i)
+            Select.select(
+                    theme, DRIVERS, state.driver, state.driverMenu, index -> state.driver = index)
                 .key("driver")
                 .w(280)),
         field(
-            t,
+            theme,
             "Isolation",
             Select.select(
-                    t,
+                    theme,
                     List.of(Isolation.values()),
-                    s.isolation,
-                    i -> i.title,
-                    s.isolationMenu,
-                    i -> s.isolation = i)
+                    state.isolation,
+                    isolation -> isolation.title,
+                    state.isolationMenu,
+                    isolation -> state.isolation = isolation)
                 .key("isolation")
                 .w(280)),
         row()
-            .padding(0, 0, 0, 96 + t.space().m())
-            .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl)),
+            .padding(0, 0, 0, 96 + theme.space().m())
+            .child(checkbox(theme, state.ssl, "Require SSL", () -> state.ssl = !state.ssl)),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .justify(Style.Content.END)
-            .child(button(t, SECONDARY, "Test connection", () -> s.say("test")))
-            .child(button(t, PRIMARY, "Save", s.user.isBlank() ? null : () -> s.say("save"))));
-    El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.sqlEditor, Sql.of(t), v -> s.sql = v)
+            .child(button(theme, SECONDARY, "Test connection", () -> state.say("test")))
+            .child(button(
+                theme, PRIMARY, "Save", state.user.isBlank() ? null : () -> state.say("save"))));
+    El editor = CodeEditor.codeEditor(
+            theme, state.app, state.sql, state.sqlEditor, Sql.of(theme), value -> state.sql = value)
         .key("sql")
         .label("Query")
         .lines(5);
     El code = Card.flush(
-        t,
+        theme,
         Card.header(
-                t,
+                theme,
                 "Code editor",
                 "Line numbers, colours and brackets; a word's second letter, or"
                     + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces.")
-            .padding(t.space().l()),
+            .padding(theme.space().l()),
         CodeEditor.embedded(
-            t,
+            theme,
             Completion.complete(
-                t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion, Sections::complete)));
+                theme,
+                state.app,
+                editor,
+                state.sqlEditor.caret(),
+                state.sqlCompletion,
+                Sections::complete)));
     return col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .child(row()
-            .gap(t.space().l())
+            .gap(theme.space().l())
             .align(Style.Align.START)
             .child(states.w(360).shrink(0))
             .child(form.grow(1)))
@@ -363,12 +410,13 @@ final class Sections {
     String start = word.toLowerCase(Locale.ROOT);
     List<Completion.Entry> entries = new java.util.ArrayList<>();
     NAMES.stream()
-        .filter(n -> n.startsWith(start))
-        .forEach(n -> entries.add(new Completion.Entry(n, Symbol.TABLE, "name")));
+        .filter(name -> name.startsWith(start))
+        .forEach(name -> entries.add(new Completion.Entry(name, Symbol.TABLE, "name")));
     Sql.keywords().stream()
         .sorted()
-        .filter(k -> k.toLowerCase(Locale.ROOT).startsWith(start) && !k.equalsIgnoreCase(word))
-        .forEach(k -> entries.add(new Completion.Entry(k, null, "keyword")));
+        .filter(keyword ->
+            keyword.toLowerCase(Locale.ROOT).startsWith(start) && !keyword.equalsIgnoreCase(word))
+        .forEach(keyword -> entries.add(new Completion.Entry(keyword, null, "keyword")));
     return entries;
   }
 
@@ -417,170 +465,193 @@ final class Sections {
       List.of("localhost", "db.staging.internal", "db-eu-1.example.com", "db-us-1.example.com");
 
   /** The options of the console, which its dropdown and the command palette both show. */
-  static List<Menu.Item> options(Showcase s) {
+  static List<Menu.Item> options(Showcase state) {
     return List.of(
-        Menu.item("Run selection", () -> s.say("run selection")).shortcut("Ctrl+Enter"),
-        Menu.item("Explain plan", () -> s.say("explain")).shortcut("Ctrl+Shift+E"),
+        Menu.item("Run selection", () -> state.say("run selection")).shortcut("Ctrl+Enter"),
+        Menu.item("Explain plan", () -> state.say("explain")).shortcut("Ctrl+Shift+E"),
         Menu.separator(),
-        Menu.item("Auto-commit", () -> s.autocommit = !s.autocommit).checked(s.autocommit),
-        Menu.item("Line numbers", () -> s.lineNumbers = !s.lineNumbers).checked(s.lineNumbers),
-        Menu.item("Word wrap", () -> s.wordWrap = !s.wordWrap).checked(s.wordWrap),
+        Menu.item("Auto-commit", () -> state.autocommit = !state.autocommit)
+            .checked(state.autocommit),
+        Menu.item("Line numbers", () -> state.lineNumbers = !state.lineNumbers)
+            .checked(state.lineNumbers),
+        Menu.item("Word wrap", () -> state.wordWrap = !state.wordWrap).checked(state.wordWrap),
         Menu.separator(),
         Menu.submenu(
             "Export results",
             List.of(
-                Menu.item("CSV", () -> s.say("csv")),
-                Menu.item("JSON", () -> s.say("json")),
-                Menu.item("SQL inserts", () -> s.say("sql")),
+                Menu.item("CSV", () -> state.say("csv")),
+                Menu.item("JSON", () -> state.say("json")),
+                Menu.item("SQL inserts", () -> state.say("sql")),
                 Menu.item("Markdown table", null))),
         Menu.item("Close console", null).shortcut("Ctrl+W"));
   }
 
   /** The command palette, with the console's options as its commands, while it is open. */
-  static El palette(Showcase s, Theme t) {
+  static El palette(Showcase state, Theme theme) {
     List<FilterList.Entry> commands = new java.util.ArrayList<>(
-        CommandPalette.commands(List.of(Menu.submenu("Console", options(s)))));
-    commands.add(FilterList.entry("Rename query…", s::startRename).symbol(Symbol.EDIT));
+        CommandPalette.commands(List.of(Menu.submenu("Console", options(state)))));
+    commands.add(FilterList.entry("Rename query…", state::startRename).symbol(Symbol.EDIT));
     List<FilterList.Entry> schemas = new java.util.ArrayList<>();
-    for (int i = 0; i < SCHEMAS.size(); i++) {
-      int at = i;
-      schemas.add(FilterList.entry(SCHEMAS.get(i), () -> s.schema = at)
+    for (int index = 0; index < SCHEMAS.size(); index++) {
+      int at = index;
+      schemas.add(FilterList.entry(SCHEMAS.get(index), () -> state.schema = at)
           .symbol(Symbol.FOLDER)
           .detail("shop"));
     }
     return CommandPalette.palette(
-        t,
-        s.palette,
+        theme,
+        state.palette,
         commands,
         List.of(new CommandPalette.Source(
             "@", "to choose a schema", FilterList.Entries.of(List.copyOf(schemas)))));
   }
 
-  private static El menus(Showcase s, Theme t) {
-    List<Menu.Item> items = options(s);
-    El tools = toolbar(t)
-        .child(toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run")))
+  private static El menus(Showcase state, Theme theme) {
+    List<Menu.Item> items = options(state);
+    El tools = toolbar(theme)
+        .child(toolButton(theme, PRIMARY, Symbol.PLAY, "Run", "Run", () -> state.say("run")))
         .child(Menu.dropdown(
-            t, button(t, SECONDARY, "Options", s.options::toggle).key("options"), s.options, items))
+            theme,
+            button(theme, SECONDARY, "Options", state.options::toggle).key("options"),
+            state.options,
+            items))
         .child(el().grow(1))
-        .child(button(t, SECONDARY, "Rename…", s::startRename).key("rename"))
-        .child(divider(t))
+        .child(button(theme, SECONDARY, "Rename…", state::startRename).key("rename"))
+        .child(divider(theme))
         .child(icons(
-            t,
-            iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh (F5)", () -> s.say("refresh"))
+            theme,
+            iconButton(theme, Symbol.ARROW_CLOCKWISE, "Refresh (F5)", () -> state.say("refresh"))
                 .key("refresh"),
-            iconButton(t, Symbol.COPY, "Copy the results as CSV", () -> s.say("copy"))
+            iconButton(theme, Symbol.COPY, "Copy the results as CSV", () -> state.say("copy"))
                 .key("copy")));
 
     El list = col().key("saved").role("list").label("Saved queries");
-    for (int i = 0; i < s.queries.length; i++) {
-      int index = i;
-      boolean selected = i == s.saved;
+    for (int index = 0; index < state.queries.length; index++) {
+      int chosen = index;
+      boolean selected = index == state.saved;
       El item = row()
-          .key("saved-" + i)
+          .key("saved-" + index)
           .role("listitem")
-          .label(s.queries[i])
+          .label(state.queries[index])
           .selected(selected)
-          .h(t.grid().rowHeight())
-          .padding(0, t.space().s())
-          .gap(t.space().s())
+          .h(theme.grid().rowHeight())
+          .padding(0, theme.space().s())
+          .gap(theme.space().s())
           .align(Style.Align.CENTER)
-          .radius(t.radius().small())
-          .fill(selected ? t.grid().selectedInactive() : 0)
-          .onPress(() -> s.saved = index)
+          .radius(theme.radius().small())
+          .fill(selected ? theme.grid().selectedInactive() : 0)
+          .onPress(() -> state.saved = chosen)
           .onSecondaryPress((x, y) -> {
-            s.saved = index;
-            s.context.openAt(x, y);
+            state.saved = chosen;
+            state.context.openAt(x, y);
           })
-          .child(Icon.icon(t, Symbol.DOCUMENT, Icon.Variant.MUTED))
-          .child(label(t, s.queries[i]).grow(1))
-          .child(label(t, MUTED, EDITED[i]));
+          .child(Icon.icon(theme, Symbol.DOCUMENT, Icon.Variant.MUTED))
+          .child(label(theme, state.queries[index]).grow(1))
+          .child(label(theme, MUTED, EDITED[index]));
       if (!selected) {
-        item.whenHovered(e -> e.fill(t.surface().hover()));
+        item.whenHovered(element -> element.fill(theme.surface().hover()));
       }
       list.child(item);
     }
     List<Menu.Item> actions = List.of(
-        Menu.item("Open", () -> s.say("open")).shortcut("Enter"),
-        Menu.item("Rename…", s::startRename).shortcut("F2"),
-        Menu.item("Duplicate", () -> s.say("duplicate")).shortcut("Ctrl+D"),
+        Menu.item("Open", () -> state.say("open")).shortcut("Enter"),
+        Menu.item("Rename…", state::startRename).shortcut("F2"),
+        Menu.item("Duplicate", () -> state.say("duplicate")).shortcut("Ctrl+D"),
         Menu.separator(),
-        Menu.item("Copy name", () -> s.say("copy name")).shortcut("Ctrl+C"),
+        Menu.item("Copy name", () -> state.say("copy name")).shortcut("Ctrl+C"),
         Menu.item("Share…", null),
         Menu.separator(),
-        Menu.item("Delete", () -> s.say("delete")).shortcut("Delete").danger());
-    El saved =
-        card(t, "Saved queries", Menu.contextMenu(t, list, s.context, actions)).w(420);
+        Menu.item("Delete", () -> state.say("delete")).shortcut("Delete").danger());
+    El saved = card(theme, "Saved queries", Menu.contextMenu(theme, list, state.context, actions))
+        .w(420);
     El hints = col()
-        .gap(t.space().s())
+        .gap(theme.space().s())
         .grow(1)
-        .child(label(t, MUTED, "The secondary button on a query opens its menu."))
-        .child(label(t, MUTED, "Refresh and Copy show a tooltip after half a second."))
-        .child(label(t, MUTED, "Rename… opens a modal dialog over a scrim."))
-        .child(label(t, s.said.isEmpty() ? "" : "Last action: " + s.said).key("said"));
+        .child(label(theme, MUTED, "The secondary button on a query opens its menu."))
+        .child(label(theme, MUTED, "Refresh and Copy show a tooltip after half a second."))
+        .child(label(theme, MUTED, "Rename… opens a modal dialog over a scrim."))
+        .child(label(theme, state.said.isEmpty() ? "" : "Last action: " + state.said)
+            .key("said"));
     El typing = card(
-            t,
+            theme,
             "Choosing by typing",
             label(
-                    t,
+                    theme,
                     MUTED,
                     "A combo box filters its choices as one types; the free kind takes any"
                         + " text and suggests. Control+Shift+P or F1 opens the command palette.")
                 .wrapText(),
             field(
-                t,
+                theme,
                 "Schema",
-                ComboBox.comboBox(t, SCHEMAS, s.schema, s.schemaBox, i -> s.schema = i)
+                ComboBox.comboBox(
+                        theme,
+                        SCHEMAS,
+                        state.schema,
+                        state.schemaBox,
+                        index -> state.schema = index)
                     .key("schema-box")),
             field(
-                t,
+                theme,
                 "Host",
-                ComboBox.free(t, s.recentHost, HOSTS, s.hostBox, v -> s.recentHost = v)
+                ComboBox.free(
+                        theme,
+                        state.recentHost,
+                        HOSTS,
+                        state.hostBox,
+                        value -> state.recentHost = value)
                     .key("host-box")
                     .w(280)),
             field(
-                t,
+                theme,
                 "Database",
                 ComboBox.items(
-                        t, PRODUCTS, s.product, Product::item, s.productBox, p -> s.product = p)
+                        theme,
+                        PRODUCTS,
+                        state.product,
+                        Product::item,
+                        state.productBox,
+                        product -> state.product = product)
                     .key("provider-box")
                     .w(280)),
             row()
-                .padding(0, 0, 0, 96 + t.space().m())
-                .child(button(t, SECONDARY, Symbol.SEARCH, "Command palette…", s.palette::open)
-                    .key("open-palette")))
+                .padding(0, 0, 0, 96 + theme.space().m())
+                .child(
+                    button(theme, SECONDARY, Symbol.SEARCH, "Command palette…", state.palette::open)
+                        .key("open-palette")))
         .w(420);
     return col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .child(tools)
-        .child(row().gap(t.space().l()).align(Style.Align.START).child(saved).child(hints))
+        .child(
+            row().gap(theme.space().l()).align(Style.Align.START).child(saved).child(hints))
         .child(typing);
   }
 
   /** The rename dialog while the state asks for it, else null. */
-  static El dialog(Showcase s, Theme t) {
-    if (!s.renaming) {
+  static El dialog(Showcase state, Theme theme) {
+    if (!state.renaming) {
       return null;
     }
-    Runnable cancel = () -> s.renaming = false;
+    Runnable cancel = () -> state.renaming = false;
     Runnable rename = () -> {
-      s.queries[s.saved] = s.rename;
-      s.renaming = false;
+      state.queries[state.saved] = state.rename;
+      state.renaming = false;
     };
     El content = col()
-        .gap(t.space().m())
-        .child(label(t, MUTED, "The query keeps its text and its history."))
-        .child(textField(t, s.rename, "Name", v -> s.rename = v)
+        .gap(theme.space().m())
+        .child(label(theme, MUTED, "The query keeps its text and its history."))
+        .child(textField(theme, state.rename, "Name", value -> state.rename = value)
             .key("new-name")
             .label("Name")
             .w(320));
     return Dialog.dialog(
-        t,
+        theme,
         "Rename query",
         content,
         List.of(
-            button(t, SECONDARY, "Cancel", cancel),
-            button(t, PRIMARY, "Rename", s.rename.isBlank() ? null : rename)),
+            button(theme, SECONDARY, "Cancel", cancel),
+            button(theme, PRIMARY, "Rename", state.rename.isBlank() ? null : rename)),
         cancel);
   }
 
@@ -590,15 +661,20 @@ final class Sections {
 
   // Data grid
 
-  private static El grid(Showcase s, Theme t) {
-    List<Column> base = Samples.orderColumns(s.kept);
+  private static El grid(Showcase state, Theme theme) {
+    List<Column> base = Samples.orderColumns(state.kept);
     List<Column> columns = new ArrayList<>();
-    for (int c = 0; c < base.size(); c++) {
-      Column b = base.get(c);
-      Column column =
-          new Column(b.title(), b.width(), b.align(), b.mono(), b.sortable(), s.changes.cell(c));
+    for (int index = 0; index < base.size(); index++) {
+      Column original = base.get(index);
+      Column column = new Column(
+          original.title(),
+          original.width(),
+          original.align(),
+          original.mono(),
+          original.sortable(),
+          state.changes.cell(index));
       columns.add(
-          switch (b.title()) {
+          switch (original.title()) {
             case "id" -> column;
             case "status" ->
               column.editable().choices(List.of("paid", "pending", "shipped", "refunded"));
@@ -607,39 +683,39 @@ final class Sections {
           });
     }
     DataGrid.Options options = DataGrid.options()
-        .select(s.selection)
-        .sort(s.sort, s::sort)
+        .select(state.selection)
+        .sort(state.sort, state::sort)
         .rowNumbers()
         .frozen(1)
-        .contextMenu(s.gridMenu, List.of())
-        .changes(s.changes)
-        .filters(s.gridFilters, s::gridFilters);
-    El grid = DataGrid.dataGrid(t, columns, s.changes.rowCount(), options)
+        .contextMenu(state.gridMenu, List.of())
+        .changes(state.changes)
+        .filters(state.gridFilters, state::gridFilters);
+    El grid = DataGrid.dataGrid(theme, columns, state.changes.rowCount(), options)
         .key("orders")
         .label("Orders")
         .h(432);
-    long cells = DataGrid.cellCount(s.selection.ranges(), columns.size());
-    int changed = s.changes.count();
-    String status = s.changes.rowCount() + " rows in 23 ms"
+    long cells = DataGrid.cellCount(state.selection.ranges(), columns.size());
+    int changed = state.changes.count();
+    String status = state.changes.rowCount() + " rows in 23 ms"
         + (cells > 1 ? " · " + cells + " cells selected" : "")
         + (changed > 0 ? " · " + changed + " changes" : "")
         + " · sorted by customer, then amount descending";
-    El filters = DataGrid.filterBar(t, columns, s.gridFilters, s::gridFilters);
+    El filters = DataGrid.filterBar(theme, columns, state.gridFilters, state::gridFilters);
     return Card.flush(
-        t,
+        theme,
         Card.toolbar(
-            t,
+            theme,
             "Result",
-            s.changes.rowCount() + " rows",
+            state.changes.rowCount() + " rows",
             toolButton(
-                t,
+                theme,
                 SECONDARY,
                 Symbol.ARROW_UNDO,
                 "Revert",
                 "Revert",
-                changed == 0 ? null : s.changes::clear),
+                changed == 0 ? null : state.changes::clear),
             toolButton(
-                t,
+                theme,
                 PRIMARY,
                 Symbol.SAVE,
                 changed == 0 ? "Commit" : "Commit (" + changed + ")",
@@ -647,30 +723,30 @@ final class Sections {
                 changed == 0
                     ? null
                     : () -> {
-                      s.changes.clear();
-                      s.say("commit");
+                      state.changes.clear();
+                      state.say("commit");
                     })),
         row()
-            .padding(0, t.space().l(), t.space().m(), t.space().l())
+            .padding(0, theme.space().l(), theme.space().m(), theme.space().l())
             .child(label(
-                    t,
+                    theme,
                     MONO,
                     "SELECT o.id, c.name AS customer, c.email, o.amount,"
                         + " o.created_at, o.shipped_at, o.status, o.note FROM orders o JOIN customers c"
                         + " ON …")
-                .color(t.text().muted())
+                .color(theme.text().muted())
                 .ellipsis()
                 .minSize(0, 0)),
-        Card.filters(t, filters),
-        Divider.divider(t),
+        Card.filters(theme, filters),
+        Divider.divider(theme),
         grid,
-        Card.footer(t, label(t, MUTED, status).key("grid-status").ellipsis()));
+        Card.footer(theme, label(theme, MUTED, status).key("grid-status").ellipsis()));
   }
 
   // Tree
 
   /** The schema as the tree asks for it, with an icon per level. */
-  record Schema(Theme t, List<Node> roots) implements Tree.Model<Node> {
+  record Schema(Theme theme, List<Node> roots) implements Tree.Model<Node> {
 
     @Override
     public List<Node> children(Node node) {
@@ -692,91 +768,96 @@ final class Sections {
       return switch (node.level) {
         case 0 ->
           Icon.icon(
-              t,
+              theme,
               Symbol.SERVER,
               node.name.equals("localhost")
                   ? Icon.Variant.SUCCESS
                   : node.name.equals("prod-eu") ? Icon.Variant.DANGER : Icon.Variant.MUTED);
-        case 1 -> Icon.icon(t, Symbol.DATABASE, Icon.Variant.MUTED);
-        case 2 -> Icon.icon(t, Symbol.FOLDER, Icon.Variant.MUTED);
-        case 3 -> Icon.icon(t, Symbol.TABLE, Icon.Variant.MUTED);
+        case 1 -> Icon.icon(theme, Symbol.DATABASE, Icon.Variant.MUTED);
+        case 2 -> Icon.icon(theme, Symbol.FOLDER, Icon.Variant.MUTED);
+        case 3 -> Icon.icon(theme, Symbol.TABLE, Icon.Variant.MUTED);
         default ->
           Icon.icon(
-              t, node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE, Icon.Variant.MUTED);
+              theme,
+              node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE,
+              Icon.Variant.MUTED);
       };
     }
   }
 
   private static El schema(
-      Theme t,
-      Showcase s,
+      Theme theme,
+      Showcase state,
       Set<Node> open,
       Node selected,
       java.util.function.Consumer<Node> onSelect) {
     return Tree.tree(
-        t,
-        new Schema(t, s.catalog),
+        theme,
+        new Schema(theme, state.catalog),
         open::contains,
         selected,
         onSelect,
-        (node, opening) -> s.toggle(open, node, opening),
+        (node, opening) -> state.toggle(open, node, opening),
         null);
   }
 
-  private static El tree(Showcase s, Theme t) {
-    El tree = schema(t, s, s.open, s.node, n -> s.node = n)
+  private static El tree(Showcase state, Theme theme) {
+    El tree = schema(theme, state, state.open, state.node, node -> state.node = node)
         .key("schema")
         .label("Schema")
         .grow(1);
     El explorer = Card.flush(
-            t,
+            theme,
             Card.toolbar(
-                t,
+                theme,
                 "Database",
                 null,
-                iconButton(t, Symbol.ADD, "Add a connection", () -> s.say("add")),
-                iconButton(t, Symbol.ARROW_SYNC, "Synchronise", () -> s.say("sync")),
-                iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter"))),
-            Card.inset(t, tree))
+                iconButton(theme, Symbol.ADD, "Add a connection", () -> state.say("add")),
+                iconButton(theme, Symbol.ARROW_SYNC, "Synchronise", () -> state.say("sync")),
+                iconButton(theme, Symbol.FILTER, "Filter", () -> state.say("filter"))),
+            Card.inset(theme, tree))
         .w(300)
         .alignSelf(Style.Align.STRETCH)
         .shrink(0);
-    Node table = s.node != null && s.node.level == 3 ? s.node : null;
-    El details = col().grow(1).gap(t.space().m());
+    Node table = state.node != null && state.node.level == 3 ? state.node : null;
+    El details = col().grow(1).gap(theme.space().m());
     if (table == null) {
-      details.child(label(t, MUTED, "Select a table to see its columns."));
+      details.child(label(theme, MUTED, "Select a table to see its columns."));
     } else {
-      List<Node> cols = table.children;
+      List<Node> tableColumns = table.children;
       List<Column> columns = List.of(
-          new Column("column", 140, Align.LEFT, false, i -> cols.get(i).name),
-          new Column("type", 140, Align.LEFT, true, i -> cols.get(i).type),
+          new Column("column", 140, Align.LEFT, false, row -> tableColumns.get(row).name),
+          new Column("type", 140, Align.LEFT, true, row -> tableColumns.get(row).type),
           new Column(
               "nullable",
               80,
               Align.LEFT,
               false,
-              i -> cols.get(i).name.endsWith("id") ? "no" : "yes"),
+              row -> tableColumns.get(row).name.endsWith("id") ? "no" : "yes"),
           new Column(
               "default",
               120,
               Align.LEFT,
               true,
-              i -> cols.get(i).name.equals("id") ? "nextval(…)" : null));
+              row -> tableColumns.get(row).name.equals("id") ? "nextval(…)" : null));
       details
           .child(Card.flush(
-              t,
-              Card.toolbar(t, "public." + table.name, cols.size() + " columns · 1,204,311 rows"),
-              Divider.divider(t),
-              DataGrid.dataGrid(t, columns, cols.size(), DataGrid.options().select(s.columns))
+              theme,
+              Card.toolbar(
+                  theme, "public." + table.name, tableColumns.size() + " columns · 1,204,311 rows"),
+              Divider.divider(theme),
+              DataGrid.dataGrid(
+                      theme, columns, tableColumns.size(), DataGrid.options().select(state.columns))
                   .key("columns")
                   .label("Columns")
                   .h(200)))
-          .child(label(t, MUTED, "The grid's selection without the focus: " + "selectedInactive."));
+          .child(label(
+              theme, MUTED, "The grid's selection without the focus: " + "selectedInactive."));
     }
     return row()
         .grow(1)
         .minSize(0, FILL_MIN)
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .align(Style.Align.START)
         .child(explorer)
         .child(details);
@@ -790,7 +871,8 @@ final class Sections {
       ComboBox.Item item = ComboBox.item(name).detail(versions);
       return file
           ? item.icon(Symbol.DATABASE)
-          : item.leading(t -> Avatar.avatar(t, name, null, t.size().icon()));
+          : item.leading(
+              itemTheme -> Avatar.avatar(itemTheme, name, null, itemTheme.size().icon()));
     }
   }
 
@@ -815,92 +897,110 @@ final class Sections {
    * beside the open queries, each an editor over its results, and the status bar along its bottom,
    * the panes divided by hairlines.
    */
-  private static El workbench(Showcase s, Theme t) {
-    float stroke = t.size().stroke();
-    int line = t.border().divider();
-    El tree = schema(t, s, s.benchOpen, s.benchNode, n -> s.benchNode = n)
+  private static El workbench(Showcase state, Theme theme) {
+    float stroke = theme.size().stroke();
+    int line = theme.border().divider();
+    El tree = schema(theme, state, state.benchOpen, state.benchNode, node -> state.benchNode = node)
         .key("bench-schema")
         .label("Schema")
         .grow(1);
     // Its title in a band as high as the tab bar beside it, so that the two read as one row.
     El side = col()
         .label("Database")
-        .child(Card.toolbar(t, "Database", null)
-            .h(t.size().control() + t.space().m() + stroke)
+        .child(Card.toolbar(theme, "Database", null)
+            .h(theme.size().control() + theme.space().m() + stroke)
             .shrink(0)
-            .fill(t.surface().band())
+            .fill(theme.surface().band())
             .border(0, 0, stroke, 0, line))
-        .child(Card.inset(t, tree));
+        .child(Card.inset(theme, tree));
 
     El editor = CodeEditor.embedded(
-        t,
-        CodeEditor.codeEditor(t, s.app, s.query, s.queryEditor, Sql.of(t), v -> s.query = v)
+        theme,
+        CodeEditor.codeEditor(
+                theme,
+                state.app,
+                state.query,
+                state.queryEditor,
+                Sql.of(theme),
+                value -> state.query = value)
             .key("editor")
             .label("Query"));
     // The tab bar's hairline is the editor's top edge already; the accent's still marks focus.
     editor.border(stroke, 0, 0, 0, 0);
     List<Column> columns = List.of(
-        new Column("month", 120, Align.LEFT, true, i -> MONTHS[i][0]),
-        new Column("orders", 80, Align.RIGHT, true, i -> MONTHS[i][1]),
-        new Column("total", 110, Align.RIGHT, true, i -> MONTHS[i][2]));
+        new Column("month", 120, Align.LEFT, true, row -> MONTHS[row][0]),
+        new Column("orders", 80, Align.RIGHT, true, row -> MONTHS[row][1]),
+        new Column("total", 110, Align.RIGHT, true, row -> MONTHS[row][2]));
     El results = col()
         .child(DataGrid.dataGrid(
-                t, columns, MONTHS.length, DataGrid.options().select(s.results).rowNumbers())
+                theme,
+                columns,
+                MONTHS.length,
+                DataGrid.options().select(state.results).rowNumbers())
             .key("results")
             .label("Results")
             .grow(1)
             .minSize(0, 0))
-        .child(Card.footer(t, label(t, MUTED, "6 rows in 18 ms")));
+        .child(Card.footer(theme, label(theme, MUTED, "6 rows in 18 ms")));
     El content = Split.split(
-        t,
+        theme,
         Direction.COLUMN,
-        s.editor,
+        state.editor,
         Position.share(0.42f),
-        p -> s.editor = p,
+        position -> state.editor = position,
         editor,
         60,
         results,
         80);
     // The tabs make a card of their own; inside the window's card they are a pane without a frame.
-    El queries = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> s.say("close " + i), content)
+    El queries = Tabs.tabs(
+            theme,
+            state.tabs,
+            state.tab,
+            tab -> state.tab = tab,
+            tab -> state.say("close " + tab),
+            content)
         .key("queries")
         .radius(0)
         .border(0, 0)
         .shadow();
 
     El top = row()
-        .padding(t.space().xs(), t.space().m())
-        .gap(t.space().xs())
+        .padding(theme.space().xs(), theme.space().m())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .border(0, 0, stroke, 0, line)
-        .child(iconButton(t, Symbol.PLAY, "Run", () -> s.say("run")))
-        .child(iconButton(t, Symbol.STOP, "Stop", null))
-        .child(divider(t))
-        .child(iconButton(t, Symbol.ARROW_UNDO, "Undo", () -> s.say("undo")))
-        .child(iconButton(t, Symbol.ARROW_REDO, "Redo", () -> s.say("redo")))
+        .child(iconButton(theme, Symbol.PLAY, "Run", () -> state.say("run")))
+        .child(iconButton(theme, Symbol.STOP, "Stop", null))
+        .child(divider(theme))
+        .child(iconButton(theme, Symbol.ARROW_UNDO, "Undo", () -> state.say("undo")))
+        .child(iconButton(theme, Symbol.ARROW_REDO, "Redo", () -> state.say("redo")))
         .child(el().grow(1));
     El status = StatusBar.statusBar(
-            t,
+            theme,
             List.of(
                 StatusBar.status(
-                    t, StatusBar.State.CONNECTED, "localhost / shop", () -> s.say("connection")),
-                StatusBar.text(t, "PostgreSQL 17.2"),
-                StatusBar.status(t, StatusBar.State.BUSY, "staging", null),
-                StatusBar.status(t, StatusBar.State.ERROR, "prod-eu", null)),
+                    theme,
+                    StatusBar.State.CONNECTED,
+                    "localhost / shop",
+                    () -> state.say("connection")),
+                StatusBar.text(theme, "PostgreSQL 17.2"),
+                StatusBar.status(theme, StatusBar.State.BUSY, "staging", null),
+                StatusBar.status(theme, StatusBar.State.ERROR, "prod-eu", null)),
             List.of(
-                StatusBar.text(t, "Ln 4, Col 12"),
-                StatusBar.item(t, null, "UTF-8", () -> s.say("encoding")),
-                StatusBar.item(t, Symbol.HISTORY, "Tx: auto", () -> s.say("transaction"))))
+                StatusBar.text(theme, "Ln 4, Col 12"),
+                StatusBar.item(theme, null, "UTF-8", () -> state.say("encoding")),
+                StatusBar.item(theme, Symbol.HISTORY, "Tx: auto", () -> state.say("transaction"))))
         .border(stroke, 0, 0, 0, line);
     return Card.flush(
-            t,
+            theme,
             top,
             Split.split(
-                    t,
+                    theme,
                     Direction.ROW,
-                    s.sidebar,
+                    state.sidebar,
                     Position.first(200),
-                    p -> s.sidebar = p,
+                    position -> state.sidebar = position,
                     side,
                     140,
                     queries,
@@ -929,90 +1029,103 @@ final class Sections {
    * The sheet of a table, as a database tool has it: the path to it and its tools over a card of
    * its properties beside a card of its columns, and a popover that adds a filter.
    */
-  private static El details(Showcase s, Theme t) {
-    El crumbs = Breadcrumb.breadcrumb(t, s.crumbs, s.path, i -> {
-          s.say("go to " + s.path.get(i));
+  private static El details(Showcase state, Theme theme) {
+    El crumbs = Breadcrumb.breadcrumb(theme, state.crumbs, state.path, index -> {
+          state.say("go to " + state.path.get(index));
         })
         .key("path");
     El tools = Toolbar.toolbar(
-            t,
-            s.tools,
+            theme,
+            state.tools,
             "Table",
             List.of(
-                Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.say("refresh")),
+                Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> state.say("refresh")),
                 Toolbar.split(
                     PRIMARY,
                     Symbol.PLAY,
                     "Run",
-                    () -> s.say("run"),
-                    s.runMenu,
+                    () -> state.say("run"),
+                    state.runMenu,
                     List.of(
-                        Menu.item("Run selection", () -> s.say("run selection"))
+                        Menu.item("Run selection", () -> state.say("run selection"))
                             .icon(Symbol.TEXT_T),
-                        Menu.item("Explain", () -> s.say("explain")).icon(Symbol.BRANCH))),
+                        Menu.item("Explain", () -> state.say("explain")).icon(Symbol.BRANCH))),
                 Toolbar.separator(),
-                Toolbar.toggle(Symbol.TEXT_T, "Wrap values", s.wrapValues, on -> s.wrapValues = on),
-                Toolbar.toggle(Symbol.EYE, "System columns", s.showSystem, on -> s.showSystem = on),
-                Toolbar.button(Symbol.COPY, "Copy DDL", () -> s.say("copy DDL")),
+                Toolbar.toggle(
+                    Symbol.TEXT_T, "Wrap values", state.wrapValues, on -> state.wrapValues = on),
+                Toolbar.toggle(
+                    Symbol.EYE, "System columns", state.showSystem, on -> state.showSystem = on),
+                Toolbar.button(Symbol.COPY, "Copy DDL", () -> state.say("copy DDL")),
                 Toolbar.spacer(),
-                Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", () -> s.say("export")),
-                Toolbar.text(Symbol.ARROW_IMPORT, "Import", () -> s.say("import"))))
+                Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", () -> state.say("export")),
+                Toolbar.text(Symbol.ARROW_IMPORT, "Import", () -> state.say("import"))))
         .key("tools");
-    El filterButton =
-        Button.button(t, SECONDARY, Symbol.FILTER, "Filter", s.filter::toggle).key("filter");
+    El filterButton = Button.button(theme, SECONDARY, Symbol.FILTER, "Filter", state.filter::toggle)
+        .key("filter");
     El form = Popover.form(
-        t,
+        theme,
         filterButton,
-        s.filter,
+        state.filter,
         "Add a filter",
         col()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .w(240)
             .children(
                 field(
-                    t,
+                    theme,
                     "Column",
                     64,
-                    textField(t, s.filterColumn, "Column", v -> s.filterColumn = v)
+                    textField(
+                            theme,
+                            state.filterColumn,
+                            "Column",
+                            value -> state.filterColumn = value)
                         .key("filter-column")
                         .grow(1)),
                 field(
-                    t,
+                    theme,
                     "Value",
                     64,
-                    textField(t, s.filterValue, "Value", v -> s.filterValue = v)
+                    textField(theme, state.filterValue, "Value", value -> state.filterValue = value)
                         .key("filter-value")
                         .grow(1))),
         List.of(
-            button(t, SECONDARY, "Cancel", s.filter::close),
-            button(t, PRIMARY, "Add", () -> {
-                  s.filters.add(s.filterColumn + " = " + s.filterValue);
-                  s.filter.close();
+            button(theme, SECONDARY, "Cancel", state.filter::close),
+            button(theme, PRIMARY, "Add", () -> {
+                  state.filters.add(state.filterColumn + " = " + state.filterValue);
+                  state.filter.close();
                 })
                 .key("add-filter")));
-    El filters =
-        row().gap(t.space().s()).align(Style.Align.CENTER).child(label(t, MUTED, "Filters"));
-    for (String f : s.filters) {
+    El filters = row()
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .child(label(theme, MUTED, "Filters"));
+    for (String filter : state.filters) {
       filters.child(Badge.badge(
-          t, f, Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> s.filters.remove(f))));
+          theme,
+          filter,
+          Badge.options()
+              .toolbar()
+              .icon(Symbol.FILTER)
+              .onRemove(() -> state.filters.remove(filter))));
     }
     El head = Card.card(
-        t,
+        theme,
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
             .children(
-                Icon.icon(t, Symbol.TABLE, Icon.Variant.MUTED),
+                Icon.icon(theme, Symbol.TABLE, Icon.Variant.MUTED),
                 crumbs,
-                Badge.badge(t, "1,000,000 rows", Badge.options().toolbar())),
-        row().gap(t.space().s()).align(Style.Align.CENTER).children(tools, form),
+                Badge.badge(theme, "1,000,000 rows", Badge.options().toolbar())),
+        row().gap(theme.space().s()).align(Style.Align.CENTER).children(tools, form),
         filters);
 
     El properties = Card.card(
-            t,
-            Card.header(t, "Properties", "orders in shop.public"),
+            theme,
+            Card.header(theme, "Properties", "orders in shop.public"),
             Properties.groups(
-                t,
+                theme,
                 List.of(
                     Properties.group(
                         "General",
@@ -1031,28 +1144,28 @@ final class Sections {
                             Properties.property("Tablespace", "pg_default").mono(),
                             Properties.property("Access method", "heap").mono(),
                             Properties.property("Last vacuum", "2026-11-12 03:00:14")))),
-                s.app == null ? null : s.app.clipboard(),
-                s.copied))
+                state.app == null ? null : state.app.clipboard(),
+                state.copied))
         .grow(1)
         .minSize(320, 0);
 
     El columns = col();
-    for (int i = 0; i < COLUMNS.length; i++) {
-      String[] c = COLUMNS[i];
-      boolean primary = c.length > 2 && c[2].equals("PK");
-      float line = t.size().control();
+    for (int index = 0; index < COLUMNS.length; index++) {
+      String[] column = COLUMNS[index];
+      boolean primary = column.length > 2 && column[2].equals("PK");
+      float line = theme.size().control();
       // The keys as quiet badges, PK in a restrained accent; the other constraints as muted text.
-      El constraints = row().h(line).gap(t.space().s()).align(Style.Align.CENTER);
+      El constraints = row().h(line).gap(theme.space().s()).align(Style.Align.CENTER);
       List<String> rest = new ArrayList<>();
-      for (int j = 2; j < c.length; j++) {
-        switch (c[j]) {
-          case "PK" -> constraints.child(Badge.badge(t, Badge.Kind.ACCENT, c[j]));
-          case "FK" -> constraints.child(Badge.badge(t, c[j]));
-          default -> rest.add(c[j]);
+      for (int part = 2; part < column.length; part++) {
+        switch (column[part]) {
+          case "PK" -> constraints.child(Badge.badge(theme, Badge.Kind.ACCENT, column[part]));
+          case "FK" -> constraints.child(Badge.badge(theme, column[part]));
+          default -> rest.add(column[part]);
         }
       }
       if (!rest.isEmpty()) {
-        constraints.child(label(t, MUTED, String.join(" · ", rest)));
+        constraints.child(label(theme, MUTED, String.join(" · ", rest)));
       }
       // The name and type, then the constraints at the right, or on a line of their own below
       // them where the card is narrow; every line as high as a control.
@@ -1060,146 +1173,148 @@ final class Sections {
           .wrap()
           .grow(1)
           .minSize(0, 0)
-          .gap(t.space().s())
+          .gap(theme.space().s())
           .align(Style.Align.CENTER)
           .child(row()
               .h(line)
-              .gap(t.space().s())
+              .gap(theme.space().s())
               .align(Style.Align.CENTER)
-              .child(label(t, MONO, c[0]).w(110).shrink(0))
-              .child(label(t, MONO, c[1]).color(t.text().muted())))
+              .child(label(theme, MONO, column[0]).w(110).shrink(0))
+              .child(label(theme, MONO, column[1]).color(theme.text().muted())))
           .child(el().grow(1))
           .child(constraints);
       text.style().rowGap = Len.ZERO;
       columns.child(row()
-          .key("column-" + i)
+          .key("column-" + index)
           .role("row")
-          .label(c[0])
-          .padding(t.space().xs(), t.space().l())
-          .gap(t.space().s())
+          .label(column[0])
+          .padding(theme.space().xs(), theme.space().l())
+          .gap(theme.space().s())
           .border(
               0,
               0,
-              i == COLUMNS.length - 1 ? 0 : t.size().stroke(),
+              index == COLUMNS.length - 1 ? 0 : theme.size().stroke(),
               0,
-              t.border().subtle())
+              theme.border().subtle())
           .child(row()
               .h(line)
               .align(Style.Align.CENTER)
-              .child(Icon.icon(t, primary ? Symbol.KEY : Symbol.COLUMN_SINGLE, Icon.Variant.MUTED)))
+              .child(Icon.icon(
+                  theme, primary ? Symbol.KEY : Symbol.COLUMN_SINGLE, Icon.Variant.MUTED)))
           .child(text));
     }
     El columnsCard = Card.flush(
-            t,
+            theme,
             Card.toolbar(
-                t,
+                theme,
                 "Columns",
                 COLUMNS.length + " columns",
-                Button.icon(t, GHOST, Symbol.ADD, "Add column", () -> s.say("add column"))),
-            Divider.divider(t),
+                Button.icon(theme, GHOST, Symbol.ADD, "Add column", () -> state.say("add column"))),
+            Divider.divider(theme),
             columns)
         .grow(1)
         .minSize(320, 0);
     // Side by side where there is room, the columns below the properties where there is not.
     return col()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .children(
             head,
             row()
                 .wrap()
-                .gap(t.space().m())
+                .gap(theme.space().m())
                 .align(Style.Align.START)
                 .children(properties, columnsCard));
   }
 
   // Progress
 
-  private static El progress(Showcase s, Theme t) {
-    double fraction = s.downloaded / Showcase.SIZE;
-    Progress.State state = s.failed
+  private static El progress(Showcase state, Theme theme) {
+    double fraction = state.downloaded / Showcase.SIZE;
+    Progress.State downloadState = state.failed
         ? Progress.State.ERROR
         : fraction >= 1 ? Progress.State.DONE : Progress.State.NORMAL;
-    String detail = s.failed
-        ? "Failed at " + mb(s.downloaded)
+    String detail = state.failed
+        ? "Failed at " + mb(state.downloaded)
         : fraction >= 1
             ? "Done · " + mb(Showcase.SIZE)
-            : s.downloading
-                ? mb(s.downloaded) + " of " + mb(Showcase.SIZE) + " · "
-                    + Math.round((Showcase.SIZE - s.downloaded) / 16) + " s left"
+            : state.downloading
+                ? mb(state.downloaded) + " of " + mb(Showcase.SIZE) + " · "
+                    + Math.round((Showcase.SIZE - state.downloaded) / 16) + " s left"
                 : "Not started";
     El download = card(
-        t,
+        theme,
         "Download",
-        label(t, MUTED, "A made-up file of 80 MB, 4 MB each quarter of a second."),
-        Progress.labeled(t, "orders-2024.csv", fraction, detail, state)
+        label(theme, MUTED, "A made-up file of 80 MB, 4 MB each quarter of a second."),
+        Progress.labeled(theme, "orders-2024.csv", fraction, detail, downloadState)
             .key("download")
             .wFull(),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
             .child(Button.button(
-                    t,
+                    theme,
                     PRIMARY,
                     Symbol.ARROW_DOWNLOAD,
-                    s.downloading ? "Downloading" : "Download",
-                    s.downloading,
-                    s::startDownload)
+                    state.downloading ? "Downloading" : "Download",
+                    state.downloading,
+                    state::startDownload)
                 .key("start"))
-            .child(button(t, SECONDARY, "Let it fail", s.downloading ? s::failDownload : null)
+            .child(button(
+                    theme, SECONDARY, "Let it fail", state.downloading ? state::failDownload : null)
                 .key("fail")));
     El states = card(
-        t,
+        theme,
         "States",
-        field(t, "Empty", Progress.bar(t, 0).grow(1)),
-        field(t, "42 %", Progress.bar(t, 0.42).grow(1)),
-        field(t, "Failed", Progress.bar(t, 0.64, Progress.State.ERROR).grow(1)),
-        field(t, "Done", Progress.bar(t, 1, Progress.State.DONE).grow(1)),
-        field(t, "Paused", Progress.bar(t, 0.42, Progress.State.PAUSED).grow(1)),
-        field(t, "Running", Progress.indeterminate(t).grow(1)));
+        field(theme, "Empty", Progress.bar(theme, 0).grow(1)),
+        field(theme, "42 %", Progress.bar(theme, 0.42).grow(1)),
+        field(theme, "Failed", Progress.bar(theme, 0.64, Progress.State.ERROR).grow(1)),
+        field(theme, "Done", Progress.bar(theme, 1, Progress.State.DONE).grow(1)),
+        field(theme, "Paused", Progress.bar(theme, 0.42, Progress.State.PAUSED).grow(1)),
+        field(theme, "Running", Progress.indeterminate(theme).grow(1)));
     El spinners = card(
-        t,
+        theme,
         "Spinners",
         row()
-            .gap(t.space().l())
+            .gap(theme.space().l())
             .align(Style.Align.CENTER)
-            .child(Progress.spinner(t))
-            .child(Progress.spinner(t, 20))
-            .child(Progress.spinner(t, 24))
+            .child(Progress.spinner(theme))
+            .child(Progress.spinner(theme, 20))
+            .child(Progress.spinner(theme, 24))
             .child(row()
-                .gap(t.space().s())
+                .gap(theme.space().s())
                 .align(Style.Align.CENTER)
-                .child(Progress.spinner(t).label("Connecting"))
-                .child(label(t, MUTED, "Connecting to staging…"))),
+                .child(Progress.spinner(theme).label("Connecting"))
+                .child(label(theme, MUTED, "Connecting to staging…"))),
         row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(Button.button(t, PRIMARY, Symbol.PLAY, "Running", true, () -> {}))
-            .child(
-                Button.button(t, SECONDARY, Symbol.ARROW_CLOCKWISE, "Refreshing", true, () -> {})));
+            .child(Button.button(theme, PRIMARY, Symbol.PLAY, "Running", true, () -> {}))
+            .child(Button.button(
+                theme, SECONDARY, Symbol.ARROW_CLOCKWISE, "Refreshing", true, () -> {})));
     // A query that runs: the line lies over the top of the results, under the toolbar.
     El results = col()
         .grow(1)
         .minSize(0, 0)
-        .padding(t.space().l())
-        .child(label(t, MUTED, "Waiting for the server…"));
+        .padding(theme.space().l())
+        .child(label(theme, MUTED, "Waiting for the server…"));
     El query = Card.flush(
-            t,
+            theme,
             Card.toolbar(
-                t,
+                theme,
                 "orders by month.sql",
                 "running",
-                Button.button(t, PRIMARY, Symbol.PLAY, "Run", true, () -> {})),
-            Divider.divider(t),
-            el().h(0).child(Progress.line(t).absolute(0, 0)),
+                Button.button(theme, PRIMARY, Symbol.PLAY, "Run", true, () -> {})),
+            Divider.divider(theme),
+            el().h(0).child(Progress.line(theme).absolute(0, 0)),
             results)
         .h(160);
     return col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .child(row()
-            .gap(t.space().l())
+            .gap(theme.space().l())
             .align(Style.Align.START)
-            .child(col().gap(t.space().l()).grow(1).basis(0).child(download).child(states))
-            .child(col().gap(t.space().l()).grow(1).basis(0).child(spinners).child(query)));
+            .child(col().gap(theme.space().l()).grow(1).basis(0).child(download).child(states))
+            .child(col().gap(theme.space().l()).grow(1).basis(0).child(spinners).child(query)));
   }
 
   private static String mb(double megabytes) {
@@ -1208,42 +1323,43 @@ final class Sections {
 
   // Typography
 
-  private static El type(Theme t) {
-    Theme.Type type = t.type();
+  private static El type(Theme theme) {
+    Theme.Type type = theme.type();
     El styles = col()
-        .gap(t.space().m())
-        .child(style(t, "title", type.title(), t.text().primary(), "Connection settings"))
-        .child(style(t, "heading", type.heading(), t.text().primary(), "Connections and schemas"))
-        .child(style(t, "strong", type.strong(), t.text().primary(), "public.orders"))
+        .gap(theme.space().m())
+        .child(style(theme, "title", type.title(), theme.text().primary(), "Connection settings"))
         .child(style(
-            t,
+            theme, "heading", type.heading(), theme.text().primary(), "Connections and schemas"))
+        .child(style(theme, "strong", type.strong(), theme.text().primary(), "public.orders"))
+        .child(style(
+            theme,
             "body",
             type.body(),
-            t.text().primary(),
+            theme.text().primary(),
             "The quick brown fox jumps over the lazy dog. 0123456789"))
         .child(style(
-            t,
+            theme,
             "body, muted",
             type.body(),
-            t.text().muted(),
+            theme.text().muted(),
             "Hints, captions, values beside their names: 12 rows in 18 ms"))
         .child(style(
-            t,
+            theme,
             "body, disabled",
             type.body(),
-            t.text().disabled(),
+            theme.text().disabled(),
             "A control that cannot be used now"))
         .child(style(
-            t,
+            theme,
             "small, muted",
             type.small(),
-            t.text().muted(),
+            theme.text().muted(),
             "Beside what it is about: UTF-8 · Ln 12, Col 4 · 3 of 18"))
         .child(style(
-            t,
+            theme,
             "mono",
             type.mono(),
-            t.text().primary(),
+            theme.text().primary(),
             "SELECT id, amount FROM orders WHERE status = 'paid';"));
 
     Font sans = type.body().font().get();
@@ -1251,50 +1367,57 @@ final class Sections {
     float size = type.body().size();
     String[] numbers = {"1111.11", "98765.40", "7.00", "10000.01", "449.90", "0.05"};
     El figures = row()
-        .gap(t.space().xxl())
-        .child(figures(t, "body", sans, size, numbers))
-        .child(figures(t, "body, +tnum", sans, size, numbers, "+tnum"))
-        .child(figures(t, "mono", mono, type.mono().size(), numbers))
+        .gap(theme.space().xxl())
+        .child(figures(theme, "body", sans, size, numbers))
+        .child(figures(theme, "body, +tnum", sans, size, numbers, "+tnum"))
+        .child(figures(theme, "mono", mono, type.mono().size(), numbers))
         .child(col()
-            .gap(t.space().s())
+            .gap(theme.space().s())
             .grow(1)
-            .child(label(t, MUTED, "Width of each digit, in pixels at scale 1"))
-            .child(label(t, MONO, "body       " + digits(sans, size)))
-            .child(label(t, MONO, "body +tnum " + digits(sans, size, "+tnum")))
-            .child(label(t, MONO, "mono       " + digits(mono, type.mono().size()))));
+            .child(label(theme, MUTED, "Width of each digit, in pixels at scale 1"))
+            .child(label(theme, MONO, "body       " + digits(sans, size)))
+            .child(label(theme, MONO, "body +tnum " + digits(sans, size, "+tnum")))
+            .child(label(theme, MONO, "mono       " + digits(mono, type.mono().size()))));
 
     String forms = "Il1| O0o rn m {}[]() -> != => ++";
     El letters = col()
-        .gap(t.space().s())
-        .child(label(t, forms))
-        .child(label(t, MONO, forms))
-        .child(label(t, MONO, forms).fontFeatures("+calt"));
+        .gap(theme.space().s())
+        .child(label(theme, forms))
+        .child(label(theme, MONO, forms))
+        .child(label(theme, MONO, forms).fontFeatures("+calt"));
     return col()
-        .gap(t.space().xl())
-        .child(card(t, "Styles", styles))
-        .child(card(t, "Figures in a right-aligned column", figures))
-        .child(card(t, "Letterforms: body, mono, mono with ligatures (+calt)", letters));
+        .gap(theme.space().xl())
+        .child(card(theme, "Styles", styles))
+        .child(card(theme, "Figures in a right-aligned column", figures))
+        .child(card(theme, "Letterforms: body, mono, mono with ligatures (+calt)", letters));
   }
 
-  private static El style(Theme t, String name, Theme.TextStyle style, int colour, String sample) {
+  private static El style(
+      Theme theme, String name, Theme.TextStyle style, int colour, String sample) {
     Font font = style.font().get();
     int line = Math.round((font.ascent() + font.descent() + font.lineGap()) * style.size());
     String spec =
         String.format(Locale.ROOT, "%s · %s px · line %d px", font, trim(style.size()), line);
     return row()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .align(Style.Align.CENTER)
-        .child(col().w(300).shrink(0).child(label(t, name)).child(label(t, MUTED, spec)))
+        .child(col().w(300).shrink(0).child(label(theme, name)).child(label(theme, MUTED, spec)))
         .child(El.text(sample).font(font).fontSize(style.size()).color(colour));
   }
 
   private static El figures(
-      Theme t, String name, Font font, float size, String[] numbers, String... features) {
-    El column =
-        col().gap(t.space().xs()).align(Style.Align.END).w(120).child(label(t, MUTED, name));
-    for (String n : numbers) {
-      column.child(
-          El.text(n).font(font).fontSize(size).color(t.text().primary()).fontFeatures(features));
+      Theme theme, String name, Font font, float size, String[] numbers, String... features) {
+    El column = col()
+        .gap(theme.space().xs())
+        .align(Style.Align.END)
+        .w(120)
+        .child(label(theme, MUTED, name));
+    for (String number : numbers) {
+      column.child(El.text(number)
+          .font(font)
+          .fontSize(size)
+          .color(theme.text().primary())
+          .fontFeatures(features));
     }
     return column;
   }
@@ -1302,9 +1425,11 @@ final class Sections {
   /** The advance of each digit from 0 to 9 at scale 1, to two decimals. */
   private static String digits(Font font, float size, String... features) {
     StringBuilder widths = new StringBuilder();
-    for (char d = '0'; d <= '9'; d++) {
+    for (char digit = '0'; digit <= '9'; digit++) {
       widths.append(String.format(
-          Locale.ROOT, "%5.2f", font.shape(String.valueOf(d), size, 1, features).width()));
+          Locale.ROOT,
+          "%5.2f",
+          font.shape(String.valueOf(digit), size, 1, features).width()));
     }
     return widths.toString();
   }
@@ -1317,69 +1442,69 @@ final class Sections {
 
   private record Swatch(String name, int argb, int base) {}
 
-  private static List<List<Swatch>> swatches(Theme t) {
-    Theme.Surfaces s = t.surface();
-    Theme.Grid g = t.grid();
+  private static List<List<Swatch>> swatches(Theme theme) {
+    Theme.Surfaces surfaces = theme.surface();
+    Theme.Grid grid = theme.grid();
     return List.of(
         List.of(
-            new Swatch("window", s.window(), 0),
-            new Swatch("panel", s.panel(), 0),
-            new Swatch("raised", s.raised(), 0),
-            new Swatch("hover", s.hover(), s.raised()),
-            new Swatch("pressed", s.pressed(), s.raised()),
-            new Swatch("scrim", s.scrim(), s.window())),
+            new Swatch("window", surfaces.window(), 0),
+            new Swatch("panel", surfaces.panel(), 0),
+            new Swatch("raised", surfaces.raised(), 0),
+            new Swatch("hover", surfaces.hover(), surfaces.raised()),
+            new Swatch("pressed", surfaces.pressed(), surfaces.raised()),
+            new Swatch("scrim", surfaces.scrim(), surfaces.window())),
         List.of(
-            new Swatch("primary", t.text().primary(), 0),
-            new Swatch("muted", t.text().muted(), 0),
-            new Swatch("disabled", t.text().disabled(), 0),
-            new Swatch("onAccent", t.text().onAccent(), 0)),
+            new Swatch("primary", theme.text().primary(), 0),
+            new Swatch("muted", theme.text().muted(), 0),
+            new Swatch("disabled", theme.text().disabled(), 0),
+            new Swatch("onAccent", theme.text().onAccent(), 0)),
         List.of(
-            new Swatch("subtle", t.border().subtle(), 0),
-            new Swatch("strong", t.border().strong(), 0),
-            new Swatch("focus", t.accent().edge(), 0)),
+            new Swatch("subtle", theme.border().subtle(), 0),
+            new Swatch("strong", theme.border().strong(), 0),
+            new Swatch("focus", theme.accent().edge(), 0)),
         List.of(
-            new Swatch("color", t.accent().color(), 0),
-            new Swatch("hover", t.accent().hover(), 0),
-            new Swatch("pressed", t.accent().pressed(), 0),
-            new Swatch("selection", t.accent().selection(), s.raised())),
+            new Swatch("color", theme.accent().color(), 0),
+            new Swatch("hover", theme.accent().hover(), 0),
+            new Swatch("pressed", theme.accent().pressed(), 0),
+            new Swatch("selection", theme.accent().selection(), surfaces.raised())),
         List.of(
-            new Swatch("danger", t.status().danger(), 0),
-            new Swatch("warning", t.status().warning(), 0),
-            new Swatch("success", t.status().success(), 0)),
+            new Swatch("danger", theme.status().danger(), 0),
+            new Swatch("warning", theme.status().warning(), 0),
+            new Swatch("success", theme.status().success(), 0)),
         List.of(
-            new Swatch("header", g.header(), 0),
-            new Swatch("row", g.row(), 0),
-            new Swatch("stripe", g.stripe(), 0),
-            new Swatch("selected", g.selected(), 0),
-            new Swatch("selectedInactive", g.selectedInactive(), 0),
-            new Swatch("cursor", g.cursor(), 0)),
+            new Swatch("header", grid.header(), 0),
+            new Swatch("row", grid.row(), 0),
+            new Swatch("stripe", grid.stripe(), 0),
+            new Swatch("selected", grid.selected(), 0),
+            new Swatch("selectedInactive", grid.selectedInactive(), 0),
+            new Swatch("cursor", grid.cursor(), 0)),
         List.of(
-            new Swatch("thumb", t.scrollbars().thumb(), 0),
-            new Swatch("thumbHovered", t.scrollbars().thumbHovered(), 0),
-            new Swatch("thumbDragged", t.scrollbars().thumbDragged(), 0)),
+            new Swatch("thumb", theme.scrollbars().thumb(), 0),
+            new Swatch("thumbHovered", theme.scrollbars().thumbHovered(), 0),
+            new Swatch("thumbDragged", theme.scrollbars().thumbDragged(), 0)),
         List.of(
-            new Swatch("closeHover", t.caption().closeHover(), 0),
-            new Swatch("onClose", t.caption().onClose(), 0),
-            new Swatch("closePressed", t.caption().closePressed(), 0)));
+            new Swatch("closeHover", theme.caption().closeHover(), 0),
+            new Swatch("onClose", theme.caption().onClose(), 0),
+            new Swatch("closePressed", theme.caption().closePressed(), 0)));
   }
 
   private static final String[] GROUPS = {
     "surface", "text", "border", "accent", "status", "grid", "scrollbars", "caption"
   };
 
-  private static El colour(Theme t) {
-    List<List<Swatch>> groups = swatches(t);
-    El sheet = col().gap(t.space().m());
+  private static El colour(Theme theme) {
+    List<List<Swatch>> groups = swatches(theme);
+    El sheet = col().gap(theme.space().m());
     int columns = groups.stream().mapToInt(List::size).max().orElse(0);
-    for (int i = 0; i < groups.size(); i++) {
+    for (int index = 0; index < groups.size(); index++) {
       El row = row()
-          .gap(t.space().m())
+          .gap(theme.space().m())
           .align(Style.Align.START)
-          .child(label(t, MUTED, GROUPS[i]).w(80).shrink(0));
-      for (Swatch swatch : groups.get(i)) {
-        row.child(swatch(t, swatch));
+          .child(label(theme, MUTED, GROUPS[index]).w(80).shrink(0));
+      for (Swatch swatch : groups.get(index)) {
+        row.child(swatch(theme, swatch));
       }
-      for (int j = groups.get(i).size(); j < columns; j++) {
+      for (int column = groups.get(index).size(); column < columns; column++) {
         row.child(el().grow(1).basis(0)); // empty, so that the columns line up with the longest row
       }
       sheet.child(row);
@@ -1387,106 +1512,111 @@ final class Sections {
     return sheet;
   }
 
-  private static El swatch(Theme t, Swatch s) {
+  private static El swatch(Theme theme, Swatch swatch) {
     El chip = el().h(28)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .clip()
-        .border(t.size().stroke(), t.border().subtle());
-    if (s.base() != 0) { // a translucent colour, over the surface it lies on
-      chip.fill(s.base()).child(el().wFull().hFull().fill(s.argb()));
+        .border(theme.size().stroke(), theme.border().subtle());
+    if (swatch.base() != 0) { // a translucent colour, over the surface it lies on
+      chip.fill(swatch.base()).child(el().wFull().hFull().fill(swatch.argb()));
     } else {
-      chip.fill(s.argb());
+      chip.fill(swatch.argb());
     }
-    String hex = s.base() != 0
-        ? String.format("#%08X", s.argb())
-        : String.format("#%06X", s.argb() & 0xFFFFFF);
+    String hex = swatch.base() != 0
+        ? String.format("#%08X", swatch.argb())
+        : String.format("#%06X", swatch.argb() & 0xFFFFFF);
     return col()
         .grow(1)
         .basis(0)
         .minSize(0, 0)
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .child(chip)
-        .child(label(t, s.name()))
-        .child(label(t, MONO, hex).color(t.text().muted()));
+        .child(label(theme, swatch.name()))
+        .child(label(theme, MONO, hex).color(theme.text().muted()));
   }
 
   // Contrast
 
-  private static El contrast(Theme t) {
-    List<Integer> backs = Contrast.backgrounds(t);
-    El matrix = col().gap(t.space().xs());
-    El header = row().gap(t.space().xs()).child(el().w(150).shrink(0));
+  private static El contrast(Theme theme) {
+    List<Integer> backs = Contrast.backgrounds(theme);
+    El matrix = col().gap(theme.space().xs());
+    El header = row().gap(theme.space().xs()).child(el().w(150).shrink(0));
     for (String name : Contrast.BACKGROUNDS) {
-      header.child(label(t, MUTED, name).w(CELL).shrink(0).ellipsis().minSize(0, 0));
+      header.child(label(theme, MUTED, name).w(CELL).shrink(0).ellipsis().minSize(0, 0));
     }
     matrix.child(header);
-    for (Contrast.Foreground front : Contrast.foregrounds(t)) {
+    for (Contrast.Foreground front : Contrast.foregrounds(theme)) {
       El line = row()
-          .gap(t.space().xs())
+          .gap(theme.space().xs())
           .align(Style.Align.CENTER)
           .child(col()
               .w(150)
               .shrink(0)
-              .child(label(t, front.name()))
+              .child(label(theme, front.name()))
               .child(label(
-                  t,
+                  theme,
                   MUTED,
                   front.needs() == 0
                       ? "no minimum"
                       : "needs " + trim((float) front.needs()) + ":1")));
-      for (int b = 0; b < backs.size(); b++) {
-        line.child(ratio(t, front.argb(), backs.get(b), front.usedOn(b) ? front.needs() : -1));
+      for (int index = 0; index < backs.size(); index++) {
+        line.child(
+            ratio(theme, front.argb(), backs.get(index), front.usedOn(index) ? front.needs() : -1));
       }
       matrix.child(line);
     }
-    Theme.Accent a = t.accent();
-    int[] fills = {a.color(), a.hover(), a.pressed()};
+    Theme.Accent accentColours = theme.accent();
+    int[] fills = {accentColours.color(), accentColours.hover(), accentColours.pressed()};
     El accent = row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(col()
             .w(150)
             .shrink(0)
-            .child(label(t, "on the accent"))
-            .child(label(t, MUTED, "color, hover, pressed")));
+            .child(label(theme, "on the accent"))
+            .child(label(theme, MUTED, "color, hover, pressed")));
     for (int fill : fills) {
-      accent.child(ratio(t, t.text().onAccent(), fill, Contrast.TEXT));
+      accent.child(ratio(theme, theme.text().onAccent(), fill, Contrast.TEXT));
     }
     accent
-        .child(el().w(t.space().l()))
-        .child(label(t, MUTED, "primary button's ring").w(150));
-    for (int i = 0; i < fills.length; i++) {
-      accent.child(ratio(t, t.text().primary(), fills[i], i == 0 ? Contrast.MARK : -1));
+        .child(el().w(theme.space().l()))
+        .child(label(theme, MUTED, "primary button's ring").w(150));
+    for (int index = 0; index < fills.length; index++) {
+      accent.child(
+          ratio(theme, theme.text().primary(), fills[index], index == 0 ? Contrast.MARK : -1));
     }
     El other = row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(col()
             .w(150)
             .shrink(0)
-            .child(label(t, "selected text"))
-            .child(label(t, MUTED, "in a field, on raised")))
+            .child(label(theme, "selected text"))
+            .child(label(theme, MUTED, "in a field, on raised")))
         .child(ratio(
-            t, t.text().primary(), Theme.over(t.surface().raised(), a.selection()), Contrast.TEXT))
-        .child(el().w(t.space().l() + CELL * 2 + t.space().xs() * 2))
-        .child(label(t, MUTED, "cursor on the selection").w(150))
-        .child(ratio(t, t.grid().cursor(), t.grid().selected(), Contrast.MARK));
+            theme,
+            theme.text().primary(),
+            Theme.over(theme.surface().raised(), accentColours.selection()),
+            Contrast.TEXT))
+        .child(el().w(theme.space().l() + CELL * 2 + theme.space().xs() * 2))
+        .child(label(theme, MUTED, "cursor on the selection").w(150))
+        .child(ratio(theme, theme.grid().cursor(), theme.grid().selected(), Contrast.MARK));
     return col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .child(matrix)
         .child(accent)
         .child(other)
         .child(col()
-            .gap(t.space().xs())
+            .gap(theme.space().xs())
             .child(label(
-                    t,
+                    theme,
                     MUTED,
                     "Each cell is the pair itself: the ratio in the foreground on "
                         + "the background. An edge marks a pair the kit draws, in the danger colour when"
                         + " it is below its minimum.")
                 .wrapText())
             .child(label(
-                    t,
+                    theme,
                     MUTED,
                     "Hover is the overlay on raised and on panel; Theme.over and the "
                         + "renderer both mix it in linear light.")
@@ -1500,7 +1630,7 @@ final class Sections {
    * where the pair has a minimum ({@code needs} of 0 or more) and in the danger colour where it
    * misses it.
    */
-  private static El ratio(Theme t, int front, int back, double needs) {
+  private static El ratio(Theme theme, int front, int back, double needs) {
     double ratio = Contrast.ratio(front, back);
     boolean fails = needs > 0 && ratio < needs;
     El cell = row()
@@ -1509,45 +1639,48 @@ final class Sections {
         .shrink(0)
         .center()
         .fill(back)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .child(El.text(String.format(Locale.ROOT, "%.2f", ratio))
-            .font(t.type().mono().font().get())
-            .fontSize(t.type().mono().size())
+            .font(theme.type().mono().font().get())
+            .fontSize(theme.type().mono().size())
             .color(front)
             .textBackground(back));
     if (needs >= 0) {
       cell.border(
-          fails ? 2 : t.size().stroke(),
-          fails ? t.status().danger() : t.border().strong());
+          fails ? 2 : theme.size().stroke(),
+          fails ? theme.status().danger() : theme.border().strong());
     }
     return cell;
   }
 
   // Icons
 
-  private static El icons(Theme t) {
+  private static El icons(Theme theme) {
     Symbol[] symbols = Symbol.values();
     int columns = 5;
-    El sheet = row().gap(t.space().m()).align(Style.Align.START);
+    El sheet = row().gap(theme.space().m()).align(Style.Align.START);
     int perColumn = (symbols.length + columns - 1) / columns;
-    for (int c = 0; c < columns; c++) {
-      El column = col().w(160).shrink(0).gap(t.space().xs());
-      for (int i = c * perColumn; i < Math.min(symbols.length, (c + 1) * perColumn); i++) {
+    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
+      El column = col().w(160).shrink(0).gap(theme.space().xs());
+      for (int index = columnIndex * perColumn;
+          index < Math.min(symbols.length, (columnIndex + 1) * perColumn);
+          index++) {
         column.child(row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(Icon.icon(t, symbols[i]))
-            .child(
-                label(t, symbols[i].name().toLowerCase(Locale.ROOT)).ellipsis().minSize(0, 0)));
+            .child(Icon.icon(theme, symbols[index]))
+            .child(label(theme, symbols[index].name().toLowerCase(Locale.ROOT))
+                .ellipsis()
+                .minSize(0, 0)));
       }
       sheet.child(column);
     }
     return col()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .child(label(
-            t,
+            theme,
             MUTED,
-            "Size " + trim(t.size().icon()) + ", in the text colour, " + symbols.length
+            "Size " + trim(theme.size().icon()) + ", in the text colour, " + symbols.length
                 + " symbols"))
         .child(sheet);
   }

@@ -117,7 +117,7 @@ public final class ConnectionDialog {
     return Editing.of(Profile.NEW)
         .rule(
             Profile.USER,
-            p -> !p.user().equals("postgres") || p.host().equals("localhost"),
+            profile -> !profile.user().equals("postgres") || profile.host().equals("localhost"),
             "postgres connects only to localhost");
   }
 
@@ -134,15 +134,15 @@ public final class ConnectionDialog {
   }
 
   void connect() {
-    Profile p = editing.value();
-    if (p.port() != 5432) { // the made-up server listens on 5432 alone
-      editing.at(Profile.PORT).error("No server answers on port " + p.port());
+    Profile profile = editing.value();
+    if (profile.port() != 5432) { // the made-up server listens on 5432 alone
+      editing.at(Profile.PORT).error("No server answers on port " + profile.port());
       status = "The server refused the connection";
       return;
     }
     editing.saved();
-    status = "Connecting to " + p.database() + " on " + p.host() + ":" + p.port() + " as "
-        + p.user() + (p.ssl() ? " with SSL" : "");
+    status = "Connecting to " + profile.database() + " on " + profile.host() + ":" + profile.port()
+        + " as " + profile.user() + (profile.ssl() ? " with SSL" : "");
   }
   // docs:end connection-dialog-editing
 
@@ -177,17 +177,17 @@ public final class ConnectionDialog {
     // docs:end connection-dialog-window
   }
 
-  static El view(ConnectionDialog s) {
-    Theme t = s.theme();
-    Editing<Profile> e = s.editing;
+  static El view(ConnectionDialog state) {
+    Theme theme = state.theme();
+    Editing<Profile> editing = state.editing;
     // A null handler disables the button.
     // docs:start connection-dialog-form
-    El connect = button(t, PRIMARY, "Connect", s.ready() ? s::connect : null);
-    El form = Card.card(t)
-        .child(
-            Card.header(t, "Connect to PostgreSQL", "The server and the account to log in with."))
+    El connect = button(theme, PRIMARY, "Connect", state.ready() ? state::connect : null);
+    El form = Card.card(theme)
+        .child(Card.header(
+            theme, "Connect to PostgreSQL", "The server and the account to log in with."))
         .child(form(
-                t,
+                theme,
                 Form.Labels.BESIDE,
                 Form.group(
                     "Server",
@@ -195,21 +195,22 @@ public final class ConnectionDialog {
                     Form.row(
                         field(
                                 "Host",
-                                textField(t, e.at(Profile.HOST), "Name or address")
+                                textField(theme, editing.at(Profile.HOST), "Name or address")
                                     .key("host")
                                     .w(160))
                             .required()
                             .grow(),
                         field(
                                 "Port",
-                                valueField(t, PORT, e.at(Profile.PORT), "5432")
+                                valueField(theme, PORT, editing.at(Profile.PORT), "5432")
                                     .key("port")
                                     .maxLength(5)
                                     .w(72))
                             .required()),
                     field(
                             "Database",
-                            ComboBox.free(t, e.at(Profile.DATABASE), DATABASES, s.databases)
+                            ComboBox.free(
+                                    theme, editing.at(Profile.DATABASE), DATABASES, state.databases)
                                 .key("database")
                                 .wFull())
                         .required()),
@@ -217,36 +218,39 @@ public final class ConnectionDialog {
                     "Login",
                     field(
                             "User",
-                            textField(t, e.at(Profile.USER), "Role").key("user").wFull())
+                            textField(theme, editing.at(Profile.USER), "Role")
+                                .key("user")
+                                .wFull())
                         .required(),
                     field(
                         "Password",
                         revealable(
-                                t,
-                                passwordField(t, e.at(Profile.PASSWORD), null)
+                                theme,
+                                passwordField(theme, editing.at(Profile.PASSWORD), null)
                                     .key("password")
                                     .wFull(),
-                                s.revealed,
-                                s::toggleRevealed)
+                                state.revealed,
+                                state::toggleRevealed)
                             .wFull())))
-            .margin(t.space().s(), 0, t.space().s(), 0))
-        .child(checkbox(t, e.at(Profile.SSL), "Require SSL"))
-        .child(toggle(t, Prop.of(() -> s.dark, v -> s.dark = v), "Dark theme"))
+            .margin(theme.space().s(), 0, theme.space().s(), 0))
+        .child(checkbox(theme, editing.at(Profile.SSL), "Require SSL"))
+        .child(toggle(theme, Prop.of(() -> state.dark, dark -> state.dark = dark), "Dark theme"))
         .child(el().grow(1))
-        .child(label(t, MUTED, s.status))
-        .child(Form.buttons(t, button(t, SECONDARY, "Reset", s::reset), connect));
+        .child(label(theme, MUTED, state.status))
+        .child(Form.buttons(theme, button(theme, SECONDARY, "Reset", state::reset), connect));
     // docs:end connection-dialog-form
     // docs:start connection-dialog-enter
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
         .onKey(Dialog.enterPresses(connect))
-        .child(titleBar(t, "New connection", t.accent().color(), Identity.maximized(s.app)))
+        .child(titleBar(
+            theme, "New connection", theme.accent().color(), Identity.maximized(state.app)))
         .child(col()
             .grow(1)
-            .padding(0, t.space().m(), t.space().m(), t.space().m())
+            .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
             .child(form.grow(1)));
     // docs:end connection-dialog-enter
   }

@@ -16,8 +16,8 @@ Javadoc: [`Toggle`](/api/com/rethinkj/ui/kit/Toggle.html).
 
 | Call | |
 | --- | --- |
-| `toggle(t, on, text, onToggle)` | The switch and its text |
-| `toggle(t, on, onToggle)` | The switch alone; give it a `.label(...)` |
+| `toggle(theme, on, text, onToggle)` | The switch and its text |
+| `toggle(theme, on, onToggle)` | The switch alone; give it a `.label(...)` |
 
 A null handler disables it. The row is as wide as the switch and its text, and so are its press area and focus ring.
 
@@ -27,7 +27,7 @@ Tab reaches it; Space and Enter flip it. A press leaves the focus where it was.
 
 ## With a Prop
 
-`toggle(t, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`toggle(theme, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

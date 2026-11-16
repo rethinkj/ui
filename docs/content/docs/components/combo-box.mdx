@@ -17,13 +17,13 @@ Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`
 ```java snippet="combo-items"
 ```
 
-`s.schema` and `s.product` are indexes, `s.host` a string, and `s.schemaBox`, `s.hostBox` and `s.productBox` are `ComboBox.State`s, all in the app's state.
+`state.schema` and `state.product` are indexes, `state.host` a string, and `state.schemaBox`, `state.hostBox` and `state.productBox` are `ComboBox.State`s, all in the app's state.
 
 | Call | |
 | --- | --- |
-| `comboBox(t, choices, selected, state, onSelect)` | One of the choices, by index |
-| `free(t, value, suggestions, state, onChange)` | Any text. Suggestions open as the user types, none highlighted, so Enter keeps what was typed |
-| `items(t, items, selected, state, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(theme -> element)`, `.detail(text)` |
+| `comboBox(theme, choices, selected, comboBoxState, onSelect)` | One of the choices, by index |
+| `free(theme, value, suggestions, comboBoxState, onChange)` | Any text. Suggestions open as the user types, none highlighted, so Enter keeps what was typed |
+| `items(theme, items, selected, comboBoxState, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(theme -> element)`, `.detail(text)` |
 
 A null handler disables it. It is the control height unless the view sets one, so it fits a grid's cell. Pass the same list on every build, so that the box keeps what its filter found.
 
@@ -31,7 +31,7 @@ A null handler disables it. It is the control height unless the view sets one, s
 
 ## Values instead of indexes
 
-`comboBox(t, values, selected, text, state, onSelect)` and `items(t, values, selected, value -> item, state, onSelect)` choose among values of any type, such as records, and hand the value to the handler. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+`comboBox(theme, values, selected, text, comboBoxState, onSelect)` and `items(theme, values, selected, value -> item, comboBoxState, onSelect)` choose among values of any type, such as records, and hand the value to the handler. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="combo-box-typed"
 ```
@@ -52,7 +52,7 @@ The texts or items may be made anew on every build. While they come out equal to
 
 ## With a Prop
 
-`comboBox(t, values, prop, text, state)`, `items(t, values, prop, item, state)` and `free(t, prop, suggestions, state)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`comboBox(theme, values, prop, text, comboBoxState)`, `items(theme, values, prop, item, comboBoxState)` and `free(theme, prop, suggestions, comboBoxState)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 

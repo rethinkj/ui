@@ -38,7 +38,7 @@ The customers view shows each state the load can be in: an [EmptyState](/docs/co
 
 ## 3. Editing a record
 
-The dialog edits a copy of a customer. An `Editing<Customer>` in the state holds the edited value, the text of fields that does not parse yet, and the errors; while it is not null, the dialog is open. Each field gets the `Prop` of its part, `e.at(Customer.EMAIL)`, so the view needs no value, handler or error per field ([Form](/docs/components/form#with-a-prop)).
+The dialog edits a copy of a customer. An `Editing<Customer>` in the state holds the edited value, the text of fields that does not parse yet, and the errors; while it is not null, the dialog is open. Each field gets the `Prop` of its part, `editing.at(Customer.EMAIL)`, so the view needs no value, handler or error per field ([Form](/docs/components/form#with-a-prop)).
 
 - The name's format refuses blank text. Its error shows once the field was edited, or after `showErrors()`.
 - A rule across two fields, company and VAT ID, shows its message at the VAT ID at once.

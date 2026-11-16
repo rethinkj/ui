@@ -28,8 +28,8 @@ class StoredImagesTest {
     // docs:start assume-text
     try {
       Font.sans();
-    } catch (UnsatisfiedLinkError e) {
-      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
+    } catch (UnsatisfiedLinkError error) {
+      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + error.getMessage());
     }
     // docs:end assume-text
   }

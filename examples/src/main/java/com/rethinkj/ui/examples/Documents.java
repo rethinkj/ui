@@ -108,14 +108,15 @@ public final class Documents {
   }
 
   public static void main(String[] args) throws IOException {
-    Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    Documents state = new Documents();
+    state.app =
+        new App<>(state, documents -> documents.view(documents.groups.main(), documents.app));
     // A script's images are stored, so they must not depend on the platform.
-    s.app.textRendering(TextRendering.LINUX);
-    if (Script.handle(args, s.app)) {
+    state.app.textRendering(TextRendering.LINUX);
+    if (Script.handle(args, state.app)) {
       return;
     }
-    s.app.textRendering(TextRendering.platform());
+    state.app.textRendering(TextRendering.platform());
     Window.Options options = Identity.options(Documents.class, "Documents", MARK, Symbol.DOCUMENT)
         .frameless()
         .minimumSize(360, 240);
@@ -123,9 +124,9 @@ public final class Documents {
     SystemDialogs.reportFailure("Documents", () -> {
       try (Window window = Window.open("Documents", WIDTH, HEIGHT, options);
           GpuPresenter presenter = new GpuPresenter(window)) {
-        WindowLoop loop = new WindowLoop(window, s.app, presenter);
+        WindowLoop loop = new WindowLoop(window, state.app, presenter);
         // Closing the first window closes the others too, and with them the loop.
-        loop.windows().of(s.app).onCloseRequest(() -> {
+        loop.windows().of(state.app).onCloseRequest(() -> {
           for (Windows.Handle open : loop.windows().all()) {
             open.close();
           }
@@ -140,7 +141,7 @@ public final class Documents {
   Windows.Handle open(TabGroups.Group<Doc> group, Window.Options options) {
     @SuppressWarnings("unchecked")
     App<Documents>[] window = new App[1];
-    window[0] = new App<>(this, s -> s.view(group, window[0]));
+    window[0] = new App<>(this, state -> state.view(group, window[0]));
     window[0].textRendering(app.textRendering());
     return app.windows()
         .open(
@@ -159,22 +160,30 @@ public final class Documents {
    * @param window the window's app, which a document's find bar selects in
    */
   El view(TabGroups.Group<Doc> group, App<Documents> window) {
-    Theme t = theme();
+    Theme theme = theme();
     // docs:start documents-tabs
     El tabs = groups.tabs(
-        t,
+        theme,
         group,
-        d -> new Tab(d.title).icon(Symbol.DOCUMENT),
-        d -> d == null
+        document -> new Tab(document.title).icon(Symbol.DOCUMENT),
+        document -> document == null
             ? EmptyState.emptyState(
-                t, Symbol.DOCUMENT, "No documents", "Drag a tab here from another window.", null)
-            : editor(t, d, window));
+                theme,
+                Symbol.DOCUMENT,
+                "No documents",
+                "Drag a tab here from another window.",
+                null)
+            : editor(theme, document, window));
     // docs:end documents-tabs
     if (dropping == group) { // the card's edge in the accent, as wide as before
-      tabs.border(t.size().stroke(), t.accent().edge());
+      tabs.border(theme.size().stroke(), theme.accent().edge());
     }
-    El dark = toggle(t, this.dark, "Dark", () -> this.dark = !this.dark);
-    El root = col().wFull().hFull().fill(t.surface().window()).onFileDrop(d -> drop(group, d));
+    El dark = toggle(theme, this.dark, "Dark", () -> this.dark = !this.dark);
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .onFileDrop(dropped -> drop(group, dropped));
     if (group == groups.main()) {
       List<Menu.Item> menus = menus(group);
       // The tabs' keys from anywhere; an empty group has none.
@@ -182,25 +191,25 @@ public final class Documents {
       root.onKey(tabs.onKey() == null ? keys : keys.or(tabs.onKey()))
           .onKeyUp(MenuBar.keysUp(bar, menus))
           .child(withMenus(
-              t,
+              theme,
               "Documents",
               MARK,
-              MenuBar.menuBar(t, bar, menus),
+              MenuBar.menuBar(theme, bar, menus),
               Identity.maximized(window),
               dark));
     } else {
       root.onKey(tabs.onKey())
-          .child(titleBar(t, "Documents", MARK, Identity.maximized(window), dark));
+          .child(titleBar(theme, "Documents", MARK, Identity.maximized(window), dark));
     }
     root.child(col()
         .key("tabs")
         .grow(1)
-        .padding(0, t.space().m(), t.space().m(), t.space().m())
+        .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
         .child(tabs.grow(1)));
     if (dropping == group) {
-      root.overlay(hint(t));
+      root.overlay(hint(theme));
     } else if (toast != null && group == groups.main()) {
-      root.overlay(Toast.toast(t, toast, null, null, () -> toast = null));
+      root.overlay(Toast.toast(theme, toast, null, null, () -> toast = null));
     }
     return root;
   }
@@ -237,17 +246,17 @@ public final class Documents {
   // docs:end documents-open
 
   /** File › Save As…: the system's dialog, then the text written off the app's thread. */
-  void saveAs(Doc d) {
-    String name = d.path != null
-        ? d.path.getFileName().toString()
-        : d.title + (d.title.equals("Query") ? ".sql" : ".txt");
+  void saveAs(Doc document) {
+    String name = document.path != null
+        ? document.path.getFileName().toString()
+        : document.title + (document.title.equals("Query") ? ".sql" : ".txt");
     // The document's own kind first: the dialog starts with the first filter.
     FileDialog dialog = name.toLowerCase(Locale.ROOT).endsWith(".sql")
         ? FileDialog.save("Save As").filter("SQL", "sql").filter("Text", "txt", "md")
         : FileDialog.save("Save As").filter("Text", "txt", "md").filter("SQL", "sql");
     dialog = dialog.fileName(name);
-    if (d.path != null && d.path.toAbsolutePath().getParent() != null) {
-      dialog = dialog.in(d.path.toAbsolutePath().getParent());
+    if (document.path != null && document.path.toAbsolutePath().getParent() != null) {
+      dialog = dialog.in(document.path.toAbsolutePath().getParent());
     }
     app.fileDialog(
         dialog,
@@ -256,31 +265,31 @@ public final class Documents {
             return;
           }
           Path to = choice.path();
-          String text = d.text; // the state stays on the app's thread
+          String text = document.text; // the state stays on the app's thread
           app.background(
               "save " + to.getFileName(),
               () -> Files.writeString(to, text),
               saved -> {
-                d.path = to;
-                d.title = to.getFileName().toString();
-                toast = "Saved " + d.title;
+                document.path = to;
+                document.title = to.getFileName().toString();
+                toast = "Saved " + document.title;
               },
-              e -> toast = "Cannot save " + to.getFileName() + ": " + why(e));
+              error -> toast = "Cannot save " + to.getFileName() + ": " + why(error));
         },
         error -> toast = "No file dialog: " + error);
   }
 
   /** A drag from a file manager: the look while it is over, new tabs when it drops. */
   // docs:start documents-drop
-  void drop(TabGroups.Group<Doc> group, Drop d) {
-    switch (d.phase()) {
+  void drop(TabGroups.Group<Doc> group, Drop drop) {
+    switch (drop.phase()) {
       case OVER -> dropping = group;
       case LEAVE -> dropping = null;
       case DROP -> {
         dropping = null;
-        if (d.payload() instanceof List<?> files) {
+        if (drop.payload() instanceof List<?> files) {
           read(group, files.stream().map(Path.class::cast).toList());
-        } else if (d.payload() instanceof String text) {
+        } else if (drop.payload() instanceof String text) {
           groups.add(group, group.tabs().size(), new Doc("Dropped text", text));
         }
       }
@@ -307,68 +316,74 @@ public final class Documents {
                 throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
               }
               read.add(Files.readString(file));
-            } catch (IOException e) {
-              read.add(e);
+            } catch (IOException error) {
+              read.add(error);
             }
           }
           return read;
         },
         read -> {
           TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
-          for (int i = 0; i < files.size(); i++) {
-            Path file = files.get(i);
+          for (int index = 0; index < files.size(); index++) {
+            Path file = files.get(index);
             String name = file.getFileName() == null
                 ? file.toString()
                 : file.getFileName().toString();
-            if (read.get(i) instanceof String text) {
+            if (read.get(index) instanceof String text) {
               Doc doc = new Doc(name, text);
               doc.path = file;
               groups.add(to, to.tabs().size(), doc);
             } else {
-              toast = "Cannot open " + name + ": " + why((Exception) read.get(i));
+              toast = "Cannot open " + name + ": " + why((Exception) read.get(index));
             }
           }
         },
-        e -> toast = "Cannot open the files: " + why(e));
+        error -> toast = "Cannot open the files: " + why(error));
   }
 
   /** What went wrong with a file, in words. */
-  static String why(Exception e) {
-    return switch (e) {
-      case NoSuchFileException n -> "it is not there";
-      case AccessDeniedException a -> "it may not be read";
-      case MalformedInputException m -> "it is not text in UTF-8";
-      default -> e.getMessage() == null ? e.toString() : e.getMessage();
+  static String why(Exception error) {
+    return switch (error) {
+      case NoSuchFileException missing -> "it is not there";
+      case AccessDeniedException denied -> "it may not be read";
+      case MalformedInputException malformed -> "it is not text in UTF-8";
+      default -> error.getMessage() == null ? error.toString() : error.getMessage();
     };
   }
 
   /** What a window shows while a file manager's drag is over it. */
-  static El hint(Theme t) {
+  static El hint(Theme theme) {
     return row()
         .key("drop-hint")
         .role("status")
         .label("Drop to open in a new tab")
-        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, t.space().xl())
+        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, theme.space().xl())
         .keepFocus()
-        .padding(t.space().s(), t.space().l(), t.space().s(), t.space().l())
-        .gap(t.space().s())
+        .padding(
+            theme.space().s(),
+            theme.space().l(),
+            theme.space().s(),
+            theme.space().l())
+        .gap(theme.space().s())
         .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.accent().edge())
-        .shadow(t.elevation().popup())
-        .child(Icon.icon(t, Symbol.DOCUMENT))
-        .child(label(t, "Drop to open in a new tab"));
+        .radius(theme.radius().medium())
+        .fill(theme.surface().raised())
+        .border(theme.size().stroke(), theme.accent().edge())
+        .shadow(theme.elevation().popup())
+        .child(Icon.icon(theme, Symbol.DOCUMENT))
+        .child(label(theme, "Drop to open in a new tab"));
   }
 
-  static El editor(Theme t, Doc d, App<Documents> app) {
-    El area = d.title.equals("Query") || d.title.toLowerCase(Locale.ROOT).endsWith(".sql")
-        ? TextField.codeArea(t, d.text, "Empty", v -> d.text = v)
-        : TextField.textArea(t, d.text, "Empty", v -> d.text = v);
-    area.fieldState(d.field);
+  static El editor(Theme theme, Doc document, App<Documents> app) {
+    El area = document.title.equals("Query")
+            || document.title.toLowerCase(Locale.ROOT).endsWith(".sql")
+        ? TextField.codeArea(theme, document.text, "Empty", text -> document.text = text)
+        : TextField.textArea(theme, document.text, "Empty", text -> document.text = text);
+    area.fieldState(document.field);
     return col()
         .grow(1)
-        .padding(t.space().l())
-        .child(Find.find(t, app, area.key("text").label(d.title).wFull().grow(1), d.find));
+        .padding(theme.space().l())
+        .child(Find.find(
+            theme, app, area.key("text").label(document.title).wFull().grow(1), document.find));
   }
 }

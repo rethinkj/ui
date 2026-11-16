@@ -85,7 +85,7 @@ public final class Customers {
     }
   }
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   App<Customers> app; // set by app(), which makes it
   final Repository repository = new Repository();
   View view = View.CUSTOMERS;
@@ -108,40 +108,47 @@ public final class Customers {
   // docs:end customers-state
 
   // docs:start customers-view
-  static El view(Customers s) {
-    Theme t = s.t;
+  static El view(Customers state) {
+    Theme theme = state.theme;
     El views = NavList.navList(
-            t, List.of(View.values()), s.view, v -> NavList.item(v.icon, v.title), s::show)
+            theme,
+            List.of(View.values()),
+            state.view,
+            view -> NavList.item(view.icon, view.title),
+            state::show)
         .key("views")
         .label("Views")
         .grow(1);
     El root = row()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().m())
-        .gap(t.space().m())
+        .fill(theme.surface().window())
+        .padding(theme.space().m())
+        .gap(theme.space().m())
         .children(
-            Card.flush(t, Card.inset(t, views)).w(180).shrink(0),
-            switch (s.view) {
-              case CUSTOMERS -> customers(t, s);
-              case NOTES -> notes(t, s);
+            Card.flush(theme, Card.inset(theme, views)).w(180).shrink(0),
+            switch (state.view) {
+              case CUSTOMERS -> customers(theme, state);
+              case NOTES -> notes(theme, state);
             });
-    return root.overlay(s.editing == null ? null : dialog(t, s))
-        .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null, s::dismissToast));
+    return root.overlay(state.editing == null ? null : dialog(theme, state))
+        .overlay(
+            state.toast == null
+                ? null
+                : Toast.toast(theme, state.toast, null, null, state::dismissToast));
   }
 
   void dismissToast() {
     toast = null;
   }
 
-  static El notes(Theme t, Customers s) {
-    El area = TextField.textArea(t, s.notes, "Notes for the team", s::setNotes)
-        .fieldState(s.notesField) // the caret and undo come back with the view
+  static El notes(Theme theme, Customers state) {
+    El area = TextField.textArea(theme, state.notes, "Notes for the team", state::setNotes)
+        .fieldState(state.notesField) // the caret and undo come back with the view
         .key("notes")
         .wFull()
         .grow(1);
-    return Card.card(t, area).grow(1);
+    return Card.card(theme, area).grow(1);
   }
 
   void setNotes(String value) {
@@ -182,54 +189,61 @@ public final class Customers {
     loading = null;
   }
 
-  void notLoaded(Exception e) {
-    loadError = e.getMessage();
+  void notLoaded(Exception error) {
+    loadError = error.getMessage();
     loading = null;
   }
 
   // docs:end customers-load
 
   // docs:start customers-list
-  static El customers(Theme t, Customers s) {
-    List<Customer> rows = s.customers;
-    int row = s.selection.row();
+  static El customers(Theme theme, Customers state) {
+    List<Customer> rows = state.customers;
+    int row = state.selection.row();
     Customer selected = rows != null && row >= 0 && row < rows.size() ? rows.get(row) : null;
-    El reload = Button.button(t, SECONDARY, Symbol.ARROW_CLOCKWISE, "Reload", s::load);
+    El reload = Button.button(theme, SECONDARY, Symbol.ARROW_CLOCKWISE, "Reload", state::load);
     El edit = Button.button(
-        t, SECONDARY, Symbol.EDIT, "Edit", selected == null ? null : () -> s.edit(selected));
-    El add =
-        Button.button(t, PRIMARY, Symbol.ADD, "New customer", rows == null ? null : s::newCustomer);
+        theme,
+        SECONDARY,
+        Symbol.EDIT,
+        "Edit",
+        selected == null ? null : () -> state.edit(selected));
+    El add = Button.button(
+        theme, PRIMARY, Symbol.ADD, "New customer", rows == null ? null : state::newCustomer);
     El body;
-    if (rows == null && s.loadError != null) {
+    if (rows == null && state.loadError != null) {
       body = EmptyState.emptyState(
-          t,
+          theme,
           Symbol.ERROR_CIRCLE,
           "The customers did not load",
-          s.loadError,
-          Button.button(t, SECONDARY, "Try again", s::load));
+          state.loadError,
+          Button.button(theme, SECONDARY, "Try again", state::load));
     } else if (rows == null) {
-      body = EmptyState.emptyState(t, Symbol.PEOPLE, "Loading the customers…", null, null);
+      body = EmptyState.emptyState(theme, Symbol.PEOPLE, "Loading the customers…", null, null);
     } else if (rows.isEmpty()) {
       body = EmptyState.emptyState(
-          t, Symbol.PEOPLE, "No customers yet", "New customer adds the first.", null);
+          theme, Symbol.PEOPLE, "No customers yet", "New customer adds the first.", null);
     } else {
       GridTable<Customer> table = DataGrid.table(rows::get);
       body = DataGrid.dataGrid(
-              t,
+              theme,
               List.of(
                   table.column("Name", 180, Format.TEXT, Customer.NAME),
                   table.column("Email", 200, Format.TEXT, Customer.EMAIL),
                   table.column("VAT ID", 120, Format.TEXT, Customer.VAT_ID)),
               rows.size(),
-              DataGrid.options().select(s.selection)) // the state keeps selection and scroll
+              DataGrid.options().select(state.selection)) // the state keeps selection and scroll
           .key("customers")
           .label("Customers")
           .grow(1);
     }
     String count = rows == null ? null : rows.size() + " customers";
-    El loading = s.loading == null ? null : Progress.line(t).label("Loading customers");
+    El loading = state.loading == null ? null : Progress.line(theme).label("Loading customers");
     return Card.flush(
-            t, Card.toolbar(t, "Customers", count, reload, edit, add), loading, body.grow(1))
+            theme,
+            Card.toolbar(theme, "Customers", count, reload, edit, add),
+            loading,
+            body.grow(1))
         .grow(1);
   }
 
@@ -237,14 +251,15 @@ public final class Customers {
 
   // docs:start customers-edit
   /** A name: any text but a blank one, which is an error once edited or Save was pressed. */
-  static final Format<String> NAME = Format.TEXT.where(n -> !n.isBlank(), "A name is required");
+  static final Format<String> NAME =
+      Format.TEXT.where(name -> !name.isBlank(), "A name is required");
 
   /** Opens the dialog over a customer, or over {@link Customer#NEW} for a new one. */
   void edit(Customer customer) {
     editing = Editing.of(customer)
         .rule(
             Customer.VAT_ID, // a rule across two fields, shown at the VAT ID
-            c -> !c.company() || !c.vatId().isBlank(),
+            edited -> !edited.company() || !edited.vatId().isBlank(),
             "A company needs a VAT ID");
   }
 
@@ -259,29 +274,38 @@ public final class Customers {
     }
   }
 
-  static El dialog(Theme t, Customers s) {
-    Editing<Customer> e = s.editing;
+  static El dialog(Theme theme, Customers state) {
+    Editing<Customer> editing = state.editing;
     El form = Form.form(
-        t,
+        theme,
         Form.Labels.BESIDE,
         Form.field(
                 "Name",
-                ValueField.valueField(t, NAME, e.at(Customer.NAME)).key("name").w(240))
+                ValueField.valueField(theme, NAME, editing.at(Customer.NAME))
+                    .key("name")
+                    .w(240))
             .required(),
         Form.field(
-            "Email", TextField.textField(t, e.at(Customer.EMAIL)).key("email").w(240)),
-        Form.field("Company", Checkbox.checkbox(t, e.at(Customer.COMPANY), null).key("company")),
-        e.value().company() // only for a company; a null field is left out
+            "Email",
+            TextField.textField(theme, editing.at(Customer.EMAIL)).key("email").w(240)),
+        Form.field(
+            "Company",
+            Checkbox.checkbox(theme, editing.at(Customer.COMPANY), null).key("company")),
+        editing.value().company() // only for a company; a null field is left out
             ? Form.field(
                 "VAT ID",
-                TextField.textField(t, e.at(Customer.VAT_ID)).key("vat").w(160))
+                TextField.textField(theme, editing.at(Customer.VAT_ID))
+                    .key("vat")
+                    .w(160))
             : null);
-    boolean busy = s.saving != null;
-    El save = Button.button(t, PRIMARY, null, "Save", busy, e.changed() ? s::save : null);
-    El cancel = Button.button(t, SECONDARY, "Cancel", busy ? null : s::close);
-    String title =
-        e.original().id() == 0 ? "New customer" : "Edit " + e.original().name();
-    return Dialog.dialog(t, title, form, List.of(cancel, save), save, s::close);
+    boolean busy = state.saving != null;
+    El save =
+        Button.button(theme, PRIMARY, null, "Save", busy, editing.changed() ? state::save : null);
+    El cancel = Button.button(theme, SECONDARY, "Cancel", busy ? null : state::close);
+    String title = editing.original().id() == 0
+        ? "New customer"
+        : "Edit " + editing.original().name();
+    return Dialog.dialog(theme, title, form, List.of(cancel, save), save, state::close);
   }
 
   // docs:end customers-edit
@@ -298,7 +322,7 @@ public final class Customers {
         "save " + customer.name(),
         () -> repository.save(customer),
         saved -> stored(customer, saved),
-        e -> notSaved(customer, e));
+        error -> notSaved(customer, error));
   }
 
   /** The save of {@code customer} came back as {@code saved}. */
@@ -322,22 +346,22 @@ public final class Customers {
     }
   }
 
-  void notSaved(Customer customer, Exception e) {
+  void notSaved(Customer customer, Exception error) {
     saving = null;
-    if (e instanceof Repository.Refused refused) {
+    if (error instanceof Repository.Refused refused) {
       Part<Customer, ?> field = refused.field;
       if (Objects.equals(field.get(editing.value()), field.get(customer))) {
         editing.at(field).error(refused.getMessage()); // until the field is edited
       } // else the user already changed what the server refused
     } else {
-      toast = "Not saved: " + e.getMessage(); // the dialog stays open to try again
+      toast = "Not saved: " + error.getMessage(); // the dialog stays open to try again
     }
   }
 
   int indexOf(long id) {
-    for (int i = 0; i < customers.size(); i++) {
-      if (customers.get(i).id() == id) {
-        return i;
+    for (int index = 0; index < customers.size(); index++) {
+      if (customers.get(index).id() == id) {
+        return index;
       }
     }
     return -1;
@@ -380,18 +404,19 @@ public final class Customers {
       return List.copyOf(rows);
     }
 
-    synchronized Customer save(Customer c) throws Refused, InterruptedException {
+    synchronized Customer save(Customer customer) throws Refused, InterruptedException {
       Thread.sleep(Duration.ofMillis(200));
       for (Customer other : rows) {
-        if (other.id() != c.id() && other.email().equalsIgnoreCase(c.email())) {
+        if (other.id() != customer.id() && other.email().equalsIgnoreCase(customer.email())) {
           throw new Refused(Customer.EMAIL, other.name() + " has this email");
         }
       }
-      if (c.id() != 0) {
-        rows.replaceAll(other -> other.id() == c.id() ? c : other); // keeps its place
-        return c;
+      if (customer.id() != 0) {
+        rows.replaceAll(other -> other.id() == customer.id() ? customer : other); // keeps its place
+        return customer;
       }
-      Customer saved = new Customer(nextId++, c.name(), c.email(), c.company(), c.vatId());
+      Customer saved = new Customer(
+          nextId++, customer.name(), customer.email(), customer.company(), customer.vatId());
       rows.add(saved);
       return saved;
     }

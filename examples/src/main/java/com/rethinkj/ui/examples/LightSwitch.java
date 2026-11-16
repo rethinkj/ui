@@ -53,24 +53,24 @@ public final class LightSwitch {
   // docs:end light-switch-window
 
   // docs:start light-switch-view
-  static El view(LightSwitch s) {
-    Theme t = THEME;
+  static El view(LightSwitch state) {
+    Theme theme = THEME;
     El lamp = el().key("lamp")
         .size(56, 56)
         .radius(28)
-        .fill(s.on ? LAMP : t.surface().raised())
-        .motion(t.motion().move());
+        .fill(state.on ? LAMP : theme.surface().raised())
+        .motion(theme.motion().move());
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .child(titleBar(t, "Lights", LAMP, Identity.maximized(s.app)))
+        .fill(theme.surface().window())
+        .child(titleBar(theme, "Lights", LAMP, Identity.maximized(state.app)))
         .child(col()
             .grow(1)
             .center()
-            .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", s::toggleLamp))
-                .padding(t.space().xxl())
-                .gap(t.space().xl())
+            .child(Card.card(theme, lamp, toggle(theme, state.on, "Lamp", state::toggleLamp))
+                .padding(theme.space().xxl())
+                .gap(theme.space().xl())
                 .align(Style.Align.CENTER)));
   }
 

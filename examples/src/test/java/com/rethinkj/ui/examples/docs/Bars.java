@@ -12,31 +12,32 @@ import com.rethinkj.ui.kit.Theme;
 /** A bar that shows its buttons' texts while it is wide enough, else only their icons. */
 final class Bars {
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   float width; // the bar's width as onResize told it last; 0 before the first layout
 
   void resize(float width, float height) {
     this.width = width;
   }
 
-  static El view(Bars s) {
-    Theme t = s.t;
-    boolean roomy = s.width == 0 || s.width >= 300; // the texts until the first layout tells
+  static El view(Bars state) {
+    Theme theme = state.theme;
+    // The texts until the first layout tells.
+    boolean roomy = state.width == 0 || state.width >= 300;
     El bar = row()
         .key("bar")
         .wFull()
-        .gap(t.space().s())
-        .onResize(s::resize) // after layout; the view is built again
-        .child(button(t, roomy, Symbol.PLAY, "Run"))
-        .child(button(t, roomy, Symbol.COPY, "Copy"))
-        .child(button(t, roomy, Symbol.SAVE, "Save"));
-    return Frame.of(t, bar);
+        .gap(theme.space().s())
+        .onResize(state::resize) // after layout; the view is built again
+        .child(button(theme, roomy, Symbol.PLAY, "Run"))
+        .child(button(theme, roomy, Symbol.COPY, "Copy"))
+        .child(button(theme, roomy, Symbol.SAVE, "Save"));
+    return Frame.of(theme, bar);
   }
 
-  static El button(Theme t, boolean roomy, Symbol icon, String text) {
+  static El button(Theme theme, boolean roomy, Symbol icon, String text) {
     return roomy
-        ? Button.button(t, SECONDARY, icon, text, () -> {})
-        : Button.icon(t, SECONDARY, icon, text, () -> {}); // the text is its label and tooltip
+        ? Button.button(theme, SECONDARY, icon, text, () -> {})
+        : Button.icon(theme, SECONDARY, icon, text, () -> {}); // the text is its label and tooltip
   }
 }
 // docs:end resize

@@ -14,14 +14,14 @@ Javadoc: [`HuePicker`](/api/com/rethinkj/ui/kit/HuePicker.html).
 ```java snippet="hue-picker"
 ```
 
-`s.colour` is a `Theme.Hue` in the app's state, null for none.
+`state.colour` is a `Theme.Hue` in the app's state, null for none.
 
 | Call | |
 | --- | --- |
-| `huePicker(t, selected, onSelect)` | The ten hues; `selected` null for none |
-| `huePicker(t, selected, none, onSelect)` | A choice of no colour, named `none`, first, then the hues; null chooses it |
-| `huePicker(t, prop, none)` | The value of a [`Prop`](/docs/concepts/editing#components-that-take-a-prop); `none` null for no such choice |
-| `HuePicker.swatch(t, hue)` | The swatch alone, the size of a checkbox, for a menu item's [leading element](/docs/components/menu#items) or a list |
+| `huePicker(theme, selected, onSelect)` | The ten hues; `selected` null for none |
+| `huePicker(theme, selected, none, onSelect)` | A choice of no colour, named `none`, first, then the hues; null chooses it |
+| `huePicker(theme, prop, none)` | The value of a [`Prop`](/docs/concepts/editing#components-that-take-a-prop); `none` null for no such choice |
+| `HuePicker.swatch(theme, hue)` | The swatch alone, the size of a checkbox, for a menu item's [leading element](/docs/components/menu#items) or a list |
 | `HuePicker.name(hue)` | The hue's name as a person reads it: `Red`, `Violet` |
 
 A null handler disables it. The choice of no colour shows the `PROHIBITED` icon. The chosen swatch has a round ring around it. The keyboard's focus is a rounded square around the chosen swatch, or the first while none is chosen, so a focused choice shows a circle inside a square. Each swatch shows its name in a tooltip.

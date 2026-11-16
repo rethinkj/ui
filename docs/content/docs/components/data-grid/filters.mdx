@@ -14,9 +14,9 @@ Javadoc: [`DataGrid.Filter`](/api/com/rethinkj/ui/kit/DataGrid.Filter.html).
 ```java snippet="grid-filter"
 ```
 
-`s.filters` is a list of `DataGrid.Filter`s in the app's state; `value(i, c)` and `COUNT` stand for the app's data.
+`state.filters` is a list of `DataGrid.Filter`s in the app's state; `value(row, column)` and `COUNT` stand for the app's data.
 
-`DataGrid.filterBar(t, columns, filters, onFilter)` is a row of removable badges with Clear all, to put above the grid; it returns null while there are no filters.
+`DataGrid.filterBar(theme, columns, filters, onFilter)` is a row of removable badges with Clear all, to put above the grid; it returns null while there are no filters.
 
 <Shot src="kit/filter-{theme}-set" alt="A grid with filters set: funnels in the accent and a bar of badges above" />
 

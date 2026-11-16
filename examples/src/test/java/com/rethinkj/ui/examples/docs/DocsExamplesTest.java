@@ -116,7 +116,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Commits state = new Commits();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, Commits::view);
             },
             520,
@@ -128,7 +128,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Highlighters state = new Highlighters();
-              state.t = t;
+              state.theme = t;
               App<Highlighters> app = new App<>(state, Highlighters::view);
               state.app = app;
               return app;
@@ -143,7 +143,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Styles state = new Styles();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, Styles::view);
             },
             360,
@@ -159,7 +159,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Messages state = new Messages();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, Messages::view);
             },
             320,
@@ -170,7 +170,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Paragraphs state = new Paragraphs();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, Paragraphs::view);
             },
             300,
@@ -182,7 +182,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Concepts state = new Concepts();
-              state.t = t;
+              state.theme = t;
               App<Concepts> app = new App<>(state, Concepts::lanes);
               state.app = app;
               state.connection = app.lane("staging");
@@ -198,7 +198,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               App<Notebook> app = Notebook.app();
-              app.state().t = t;
+              app.state().theme = t;
               return app;
             },
             420,
@@ -212,7 +212,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Bars state = new Bars();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, Bars::view);
             },
             420,
@@ -232,7 +232,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               App<Customers> app = Customers.app();
-              app.state().t = t;
+              app.state().theme = t;
               return app;
             },
             760,
@@ -247,7 +247,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Controls state = new Controls();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -261,7 +261,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Layouts state = new Layouts();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -275,7 +275,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Overlays state = new Overlays();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -289,7 +289,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Grids state = new Grids();
-              state.t = t;
+              state.theme = t;
               App<Grids> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -305,7 +305,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Editors state = new Editors();
-              state.t = t;
+              state.theme = t;
               App<Editors> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -321,7 +321,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Concepts state = new Concepts();
-              state.t = t;
+              state.theme = t;
               App<Concepts> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -332,7 +332,7 @@ class DocsExamplesTest {
 
   private static App<Tags> tags(Theme t, Function<Tags, El> view) {
     Tags state = new Tags();
-    state.t = t;
+    state.theme = t;
     return new App<>(state, view);
   }
 
@@ -343,7 +343,7 @@ class DocsExamplesTest {
         new Example(
             t -> {
               Editings state = new Editings();
-              state.t = t;
+              state.theme = t;
               return new App<>(state, view);
             },
             width,
@@ -413,8 +413,8 @@ class DocsExamplesTest {
   private static void assumeText() {
     try {
       Font.sans();
-    } catch (UnsatisfiedLinkError e) {
-      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
+    } catch (UnsatisfiedLinkError error) {
+      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + error.getMessage());
     }
   }
 }

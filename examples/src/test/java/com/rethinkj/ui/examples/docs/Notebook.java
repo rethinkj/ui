@@ -30,7 +30,7 @@ final class Notebook {
     }
   }
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   App<Notebook> app; // the first window's app
   final TabGroups<Note> groups = new TabGroups<>(
       List.of(new Note("Groceries", "Milk"), new Note("Ideas", "A tree of tables")), this::open);
@@ -43,7 +43,8 @@ final class Notebook {
             420,
             260,
             options,
-            new App<>(this, s -> s.view(group))); // the same state: a change shows in all windows
+            // the same state: a change shows in all windows
+            new App<>(this, state -> state.view(group)));
   }
 
   /** The view of a window: the first one shows groups.main(). */
@@ -51,16 +52,16 @@ final class Notebook {
     return col()
         .wFull()
         .hFull()
-        .fill(t.surface().window())
-        .padding(t.space().m())
+        .fill(theme.surface().window())
+        .padding(theme.space().m())
         .child(groups
             .tabs(
-                t,
+                theme,
                 group,
                 note -> new Tabs.Tab(note.title, true, false).icon(Symbol.DOCUMENT),
                 note -> note == null // a group without tabs
                     ? null
-                    : col().padding(t.space().l()).child(Label.label(t, note.text)))
+                    : col().padding(theme.space().l()).child(Label.label(theme, note.text)))
             .grow(1));
   }
   // docs:end tab-groups
@@ -80,7 +81,7 @@ final class Notebook {
 
   static App<Notebook> app() {
     Notebook state = new Notebook();
-    state.app = new App<>(state, s -> s.view(s.groups.main()));
+    state.app = new App<>(state, notebook -> notebook.view(notebook.groups.main()));
     return state.app;
   }
 }

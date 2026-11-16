@@ -36,7 +36,7 @@ The form edits a `Profile` record through an `Editing`, which keeps the fields' 
 
 ### The form
 
-`e.at(Profile.HOST)` is the part of the edit that a field edits. The port is an `Integer` in a `ValueField`, the database a free [ComboBox](/docs/components/combo-box) with suggestions, and the password a field with a button that shows it ([TextField](/docs/components/text-field)). A button without a handler is disabled.
+`editing.at(Profile.HOST)` is the part of the edit that a field edits. The port is an `Integer` in a `ValueField`, the database a free [ComboBox](/docs/components/combo-box) with suggestions, and the password a field with a button that shows it ([TextField](/docs/components/text-field)). A button without a handler is disabled.
 
 ```java snippet="connection-dialog-form"
 ```

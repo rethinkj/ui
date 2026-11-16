@@ -57,7 +57,7 @@ Call `Window.identity(id, name)` before the first window: on Windows it groups t
 ```
 
 - `window.badge(icon, description)` puts a small icon on the taskbar button. `AppIcon.count` and `AppIcon.dot` make one.
-- `window.progress(state, value)` shows a bar in the taskbar button: `NORMAL` fills to `value`, from 0 to 1, in the accent, `PAUSED` in yellow and `ERROR` in red; `INDETERMINATE` runs without an end, and `NONE` removes the bar.
+- `window.progress(kind, value)` shows a bar in the taskbar button: `NORMAL` fills to `value`, from 0 to 1, in the accent, `PAUSED` in yellow and `ERROR` in red; `INDETERMINATE` runs without an end, and `NONE` removes the bar.
 - `window.attention(...)` flashes the button, `BRIEFLY` or `UNTIL_FOCUSED`.
 
 Badge and progress are Windows only. On Linux they do nothing and return false.

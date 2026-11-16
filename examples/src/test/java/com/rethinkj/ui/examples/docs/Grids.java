@@ -37,7 +37,7 @@ final class Grids {
   static final String[] STATUSES = {"paid", "pending", "shipped", "refunded"};
   static final int COUNT = 1000;
 
-  Theme t = Theme.DARK;
+  Theme theme = Theme.DARK;
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
@@ -50,7 +50,8 @@ final class Grids {
   List<DataGrid.Filter> filters = List.of();
   // The rows of the edited grid, which Commit writes the changes into.
   final List<String[]> rows = new ArrayList<>(IntStream.range(0, 20)
-      .mapToObj(i -> IntStream.range(0, 4).mapToObj(c -> value(i, c)).toArray(String[]::new))
+      .mapToObj(row ->
+          IntStream.range(0, 4).mapToObj(column -> value(row, column)).toArray(String[]::new))
       .toList());
   GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
   int nextId = 1020; // the id the next new order gets
@@ -82,41 +83,41 @@ final class Grids {
     return List.of(rows, cells);
   }
 
-  /** The made-up orders: row {@code i}, column {@code c}. */
-  static String value(int i, int c) {
-    return switch (c) {
-      case 0 -> String.valueOf(1000 + i);
-      case 1 -> CUSTOMERS[i % CUSTOMERS.length];
-      case 2 -> String.format(Locale.ROOT, "%d.%02d", i * 37 % 500, i * 13 % 100);
-      default -> STATUSES[i % STATUSES.length];
+  /** The made-up orders: the value at a row and a column. */
+  static String value(int row, int column) {
+    return switch (column) {
+      case 0 -> String.valueOf(1000 + row);
+      case 1 -> CUSTOMERS[row % CUSTOMERS.length];
+      case 2 -> String.format(Locale.ROOT, "%d.%02d", row * 37 % 500, row * 13 % 100);
+      default -> STATUSES[row % STATUSES.length];
     };
   }
 
-  static El basic(Grids s) {
-    Theme t = s.t;
+  static El basic(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid
     List<Column> columns = List.of(
-        new Column("id", 80, DataType.INTEGER, i -> value(i, 0))
+        new Column("id", 80, DataType.INTEGER, row -> value(row, 0))
             .typeName("bigint")
             .icon(Symbol.KEY, Icon.Variant.WARNING),
-        new Column("customer", 120, DataType.TEXT, i -> value(i, 1)),
-        new Column("amount", 100, DataType.DECIMAL, i -> value(i, 2)).typeName("numeric"),
-        new Column("status", 100, DataType.TEXT, i -> value(i, 3)));
+        new Column("customer", 120, DataType.TEXT, row -> value(row, 1)),
+        new Column("amount", 100, DataType.DECIMAL, row -> value(row, 2)).typeName("numeric"),
+        new Column("status", 100, DataType.TEXT, row -> value(row, 3)));
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
             COUNT,
             DataGrid.options()
-                .select(s.selection) // the app keeps the selection
-                .commands(s.gridCommands) // an external menu's handle, kept in the app's state
+                .select(state.selection) // the app keeps the selection
+                .commands(state.gridCommands) // an external menu's handle, kept in the app's state
                 .rowNumbers()
                 .frozen(1) // numbers and the id stay at the left
-                .copy(s.app.clipboard())) // Control+C copies tab-separated text
+                .copy(state.app.clipboard())) // Control+C copies tab-separated text
         .key("orders")
         .label("Orders")
         .grow(1);
     // docs:end grid
-    return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
   }
 
   static Menu.Item gridCopy(DataGrid.Commands commands) {
@@ -128,114 +129,115 @@ final class Grids {
     return copy;
   }
 
-  static El fitted(Grids s) {
-    Theme t = s.t;
+  static El fitted(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid-fit
     List<Column> columns = List.of(
-        new Column("id", s.fitted[0], DataType.INTEGER, i -> value(i, 0)),
-        new Column("customer", s.fitted[1], DataType.TEXT, i -> value(i, 1))
-            .detail(i -> (i * 7 % 30 + 1) + " orders"), // muted, after the name
-        new Column("amount", s.fitted[2], DataType.DECIMAL, i -> value(i, 2))
-            .detail(i -> "EUR"), // before the number, which stays at the right
-        new Column("status", s.fitted[3], DataType.TEXT, i -> value(i, 3)));
+        new Column("id", state.fitted[0], DataType.INTEGER, row -> value(row, 0)),
+        new Column("customer", state.fitted[1], DataType.TEXT, row -> value(row, 1))
+            .detail(row -> (row * 7 % 30 + 1) + " orders"), // muted, after the name
+        new Column("amount", state.fitted[2], DataType.DECIMAL, row -> value(row, 2))
+            .detail(row -> "EUR"), // before the number, which stays at the right
+        new Column("status", state.fitted[3], DataType.TEXT, row -> value(row, 3)));
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
             COUNT,
             DataGrid.options()
-                .select(s.selection)
-                .onResize(s::resizeFitted) // the widths are the app's
-                .fitColumns(s.fit)) // once; s.fit.reset() with a new result fits again
+                .select(state.selection)
+                .onResize(state::resizeFitted) // the widths are the app's
+                .fitColumns(state.fit)) // once; state.fit.reset() with a new result fits again
         .key("orders")
         .label("Orders")
         .grow(1);
     // docs:end grid-fit
-    return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
   }
 
-  static El sorted(Grids s) {
-    Theme t = s.t;
+  static El sorted(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid-sort
-    int[] order = s.order();
+    int[] order = state.order();
     List<Column> all = new ArrayList<>();
-    for (int c = 0; c < 4; c++) {
-      int column = c;
+    for (int index = 0; index < 4; index++) {
+      int column = index;
       all.add(new Column(
-          title(c),
-          s.widths[c],
-          c == 2 ? DataType.DECIMAL : DataType.TEXT,
-          i -> value(order[i], column)));
+          title(index),
+          state.widths[index],
+          index == 2 ? DataType.DECIMAL : DataType.TEXT,
+          row -> value(order[row], column)));
     }
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             all,
             COUNT,
             DataGrid.options()
-                .select(s.selection)
-                .sort(s.sort, s::sort) // the app sorts, see order()
-                .onResize(s::resize)
-                .columns(s.layout) // order and hidden columns
-                .contextMenu(s.gridMenu, List.of()))
+                .select(state.selection)
+                .sort(state.sort, state::sort) // the app sorts, see order()
+                .onResize(state::resize)
+                .columns(state.layout) // order and hidden columns
+                .contextMenu(state.gridMenu, List.of()))
         .key("orders")
         .label("Orders")
         .grow(1);
-    El toolbar = Card.toolbar(t, "orders", COUNT + " rows", DataGrid.columnsButton(t, s.layout));
+    El toolbar =
+        Card.toolbar(theme, "orders", COUNT + " rows", DataGrid.columnsButton(theme, state.layout));
     // docs:end grid-sort
-    return Frame.of(t, Card.flush(t, toolbar, grid).wFull().grow(1));
+    return Frame.of(theme, Card.flush(theme, toolbar, grid).wFull().grow(1));
   }
 
-  private static String title(int c) {
-    return List.of("id", "customer", "amount", "status").get(c);
+  private static String title(int column) {
+    return List.of("id", "customer", "amount", "status").get(column);
   }
 
   // docs:start grid-order
-  /** The rows in the order of the sort keys, the first key first: what row i of the grid shows. */
+  /** The rows in the order of the sort keys, the first key first: what each row of the grid shows. */
   int[] order() {
-    Comparator<Integer> by = (a, b) -> 0;
+    Comparator<Integer> by = (left, right) -> 0;
     for (DataGrid.SortKey key : sort) {
       Comparator<Integer> next = key.column() == 2
-          ? Comparator.comparingDouble(i -> Double.parseDouble(value(i, 2)))
-          : Comparator.comparing(i -> value(i, key.column()));
+          ? Comparator.comparingDouble(row -> Double.parseDouble(value(row, 2)))
+          : Comparator.comparing(row -> value(row, key.column()));
       by = by.thenComparing(key.descending() ? next.reversed() : next);
     }
-    by = by.thenComparingInt(i -> i); // rows equal in every key keep their order
-    return IntStream.range(0, COUNT).boxed().sorted(by).mapToInt(i -> i).toArray();
+    by = by.thenComparingInt(row -> row); // rows equal in every key keep their order
+    return IntStream.range(0, COUNT).boxed().sorted(by).mapToInt(row -> row).toArray();
   }
   // docs:end grid-order
 
-  static El edited(Grids s) {
-    Theme t = s.t;
+  static El edited(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid-edit
     List<Column> columns = List.of(
-        new Column("id", 80, DataType.INTEGER, s.changes.cell(0)),
-        new Column("customer", 120, DataType.TEXT, s.changes.cell(1)).editable(),
-        new Column("amount", 100, DataType.DECIMAL, s.changes.cell(2))
+        new Column("id", 80, DataType.INTEGER, state.changes.cell(0)),
+        new Column("customer", 120, DataType.TEXT, state.changes.cell(1)).editable(),
+        new Column("amount", 100, DataType.DECIMAL, state.changes.cell(2))
             .editable()
             .nullable(),
-        new Column("status", 100, DataType.ENUM, s.changes.cell(3))
+        new Column("status", 100, DataType.ENUM, state.changes.cell(3))
             .editable()
             .choices(List.of(STATUSES)));
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
-            s.changes.rowCount(),
+            state.changes.rowCount(),
             DataGrid.options()
-                .select(s.selection)
-                .changes(s.changes)) // edits, pastes, new and deleted rows, undo
+                .select(state.selection)
+                .changes(state.changes)) // edits, pastes, new and deleted rows, undo
         .key("orders")
         .label("Orders")
         .grow(1);
-    int count = s.changes.count();
+    int count = state.changes.count();
     El commit = Button.button(
-        t,
+        theme,
         PRIMARY,
         count == 0 ? "Commit" : "Commit (" + count + ")",
-        count == 0 ? null : s::commit);
-    El revert = Button.button(t, SECONDARY, "Revert", count == 0 ? null : s.changes::clear);
+        count == 0 ? null : state::commit);
+    El revert = Button.button(theme, SECONDARY, "Revert", count == 0 ? null : state.changes::clear);
     // docs:end grid-edit
     return Frame.of(
-        t,
-        Card.flush(t, Card.toolbar(t, "orders", null, revert, commit), grid)
+        theme,
+        Card.flush(theme, Card.toolbar(theme, "orders", null, revert, commit), grid)
             .wFull()
             .grow(1));
   }
@@ -250,10 +252,10 @@ final class Grids {
       int row = (int) change.key(); // the row's index, for an insert below 0
       switch (change.kind()) {
         case DELETE -> rows.set(row, null); // removed after the updates
-        case UPDATE -> change.values().forEach((c, value) -> rows.get(row)[c] = value);
+        case UPDATE -> change.values().forEach((column, value) -> rows.get(row)[column] = value);
         case INSERT -> {
           String[] order = new String[4];
-          change.values().forEach((c, value) -> order[c] = value);
+          change.values().forEach((column, value) -> order[column] = value);
           order[0] = String.valueOf(nextId++); // as a database gives the key
           rows.add(order); // at the end: a database decides where it goes
         }
@@ -261,7 +263,7 @@ final class Grids {
     }
     rows.removeIf(Objects::isNull);
     // The rows hold the changes now: new GridChanges over them, with their new count.
-    changes = new GridChanges(rows.size(), (r, c) -> rows.get(r)[c]);
+    changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
     selection.clear(); // deleted rows moved the indexes the selection points at
   }
   // docs:end grid-edit-commit
@@ -299,12 +301,12 @@ final class Grids {
 
   // The app's rows, records it replaces when one changes.
   final List<Order> orders = IntStream.range(0, COUNT)
-      .mapToObj(i -> new Order(
-          1000 + i,
-          CUSTOMERS[i % CUSTOMERS.length],
-          BigDecimal.valueOf(i * 3713L % 50_000, 2),
-          i % 5 == 0 ? null : LocalDate.of(2026, 11, 1).plusDays(i % 60),
-          Status.values()[i % 3]))
+      .mapToObj(row -> new Order(
+          1000 + row,
+          CUSTOMERS[row % CUSTOMERS.length],
+          BigDecimal.valueOf(row * 3713L % 50_000, 2),
+          row % 5 == 0 ? null : LocalDate.of(2026, 11, 1).plusDays(row % 60),
+          Status.values()[row % 3]))
       .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
   // docs:end typed-rows
   List<DataGrid.SortKey> typedSort = List.of();
@@ -324,11 +326,11 @@ final class Grids {
   }
   // docs:end grid-typed-commit
 
-  static El typed(Grids s) {
-    Theme t = s.t;
+  static El typed(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid-typed
     // The rows in the order of the grid's sort keys, by their typed values.
-    List<Order> rows = s.orders;
+    List<Order> rows = state.orders;
     GridTable<Order> table = DataGrid.table(rows::get);
     List<Column> columns = List.of(
         table.column("id", 80, Format.LONG, Order::id), // no wither: not editable
@@ -337,18 +339,18 @@ final class Grids {
         table.column("due", 110, Format.DATE.optional(), Order::due, Order::withDue),
         table.column("status", 90, STATUS, Order::status, Order::withStatus));
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
             rows.size(),
             DataGrid.options()
-                .select(s.selection)
-                .sort(s.typedSort, keys -> s.sortOrders(table, columns, keys))
-                .onCommit(table, s::commitOrder))
+                .select(state.selection)
+                .sort(state.typedSort, keys -> state.sortOrders(table, columns, keys))
+                .onCommit(table, state::commitOrder))
         .key("orders")
         .label("Orders")
         .grow(1);
     // docs:end grid-typed
-    return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+    return Frame.of(theme, Card.flush(theme, grid).wFull().grow(1));
   }
 
   // docs:start grid-pojo
@@ -387,9 +389,9 @@ final class Grids {
     for (GridChanges.RowChange<Order> change : changes.changes(table, columns)) {
       switch (change.kind()) {
         case UPDATE -> {
-          for (GridChanges.ValueChange<Order> v : change.values().values()) {
-            if (v.after() instanceof BigDecimal amount) {
-              System.out.println("amount " + v.before() + " -> " + amount);
+          for (GridChanges.ValueChange<Order> value : change.values().values()) {
+            if (value.after() instanceof BigDecimal amount) {
+              System.out.println("amount " + value.before() + " -> " + amount);
             }
           }
           Order updated = change.apply(change.row()); // through the withers
@@ -404,39 +406,47 @@ final class Grids {
   }
   // docs:end grid-typed-changes
 
-  static El filtered(Grids s) {
-    Theme t = s.t;
+  static El filtered(Grids state) {
+    Theme theme = state.theme;
     // docs:start grid-filter
     int[] rows = IntStream.range(0, COUNT)
-        .filter(i -> s.filters.stream().allMatch(f -> f.matches(value(i, f.column()))))
+        .filter(row ->
+            state.filters.stream().allMatch(filter -> filter.matches(value(row, filter.column()))))
         .toArray();
     List<Column> columns = new ArrayList<>();
-    for (int c = 0; c < 4; c++) {
-      int column = c;
+    for (int index = 0; index < 4; index++) {
+      int column = index;
       columns.add(new Column(
-          title(c), 110, c == 2 ? DataType.DECIMAL : DataType.TEXT, i -> value(rows[i], column)));
+          title(index),
+          110,
+          index == 2 ? DataType.DECIMAL : DataType.TEXT,
+          row -> value(rows[row], column)));
     }
     El grid = DataGrid.dataGrid(
-            t,
+            theme,
             columns,
             rows.length,
             DataGrid.options()
-                .select(s.selection)
-                .filters(s.filters, s::filters)) // the grid filters nothing itself
+                .select(state.selection)
+                .filters(state.filters, state::filters)) // the grid filters nothing itself
         .key("orders")
         .label("Orders")
         .grow(1);
-    El bar = DataGrid.filterBar(t, columns, s.filters, s::filters); // null without any
+    El bar = DataGrid.filterBar(theme, columns, state.filters, state::filters); // null without any
     // docs:end grid-filter
     return Frame.of(
-        t,
+        theme,
         Card.flush(
-                t,
-                Card.toolbar(t, "orders", rows.length + " rows"),
+                theme,
+                Card.toolbar(theme, "orders", rows.length + " rows"),
                 bar == null
                     ? null
                     : row()
-                        .padding(0, t.space().l(), t.space().m(), t.space().l())
+                        .padding(
+                            0,
+                            theme.space().l(),
+                            theme.space().m(),
+                            theme.space().l())
                         .child(bar),
                 grid)
             .wFull()
@@ -461,7 +471,7 @@ final class Grids {
           new Node("audit", Symbol.FOLDER, List.of(new Node("events", Symbol.TABLE)))));
 
   /** What the tree asks of the app's nodes. */
-  static Tree.Model<Node> model(Theme t) {
+  static Tree.Model<Node> model(Theme theme) {
     return new Tree.Model<>() {
       @Override
       public List<Node> roots() {
@@ -485,7 +495,7 @@ final class Grids {
 
       @Override
       public El icon(Node node) {
-        return Icon.icon(t, node.icon(), Icon.Variant.MUTED);
+        return Icon.icon(theme, node.icon(), Icon.Variant.MUTED);
       }
 
       @Override
@@ -530,21 +540,21 @@ final class Grids {
   }
   // docs:end tree-handlers
 
-  static El tree(Grids s) {
-    Theme t = s.t;
+  static El tree(Grids state) {
+    Theme theme = state.theme;
     // docs:start tree
     El tree = Tree.tree(
-            t,
-            model(t),
-            node -> s.open.contains(node.name()), // which nodes are open
-            s.selected,
-            s::selected, // the selection
-            s::expand, // open or close one
-            s::activate) // Enter, a double press
+            theme,
+            model(theme),
+            node -> state.open.contains(node.name()), // which nodes are open
+            state.selected,
+            state::selected, // the selection
+            state::expand, // open or close one
+            state::activate) // Enter, a double press
         .key("schema")
         .label("Schema")
         .grow(1);
     // docs:end tree
-    return Frame.of(t, Card.inset(t, tree).w(260).grow(1));
+    return Frame.of(theme, Card.inset(theme, tree).w(260).grow(1));
   }
 }
