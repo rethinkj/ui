@@ -8,6 +8,11 @@ description: PNG and JPEG images made for a scale, decoded off the app's thread 
 ```java snippet="images"
 ```
 
+The handlers open the dialog and decode the chosen file:
+
+```java snippet="images-handlers"
+```
+
 ## Scale
 
 An image is made for a scale, the physical pixels per logical pixel: 200 by 100 pixels made for scale 2 are 100 by 50 logical pixels, drawn pixel for pixel in a window at scale 2. `Image.decode(bytes, scale)` and `Image.of(pixels, scale)` take it; the default is 1.

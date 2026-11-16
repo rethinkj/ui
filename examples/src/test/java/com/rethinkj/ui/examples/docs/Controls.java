@@ -68,26 +68,55 @@ final class Controls {
   final ValueField.Draft dueDraft = new ValueField.Draft();
   // docs:end value-state
 
+  void run() {
+    runs++;
+  }
+
+  void cancel() {
+    runs = 0;
+  }
+
+  void refresh() {
+    runs++;
+  }
+
+  void start() {
+    running = true;
+  }
+
+  void pinned(Boolean on) {
+    pinned = on;
+  }
+
+  void runSelection() {
+    runs++;
+  }
+
+  void explainPlan() {
+    runs++;
+  }
+
   static El buttons(Controls s) {
     Theme t = s.t;
     // docs:start button
-    El run = Button.button(t, PRIMARY, Symbol.PLAY, "Run", () -> s.runs++);
-    El cancel = Button.button(t, SECONDARY, "Cancel", () -> s.runs = 0);
+    El run = Button.button(t, PRIMARY, Symbol.PLAY, "Run", s::run);
+    El cancel = Button.button(t, SECONDARY, "Cancel", s::cancel);
     El format = Button.button(t, GHOST, "Format", null); // null: disabled
-    El refresh = Button.icon(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.runs++);
-    El busy = Button.button(t, PRIMARY, null, "Running", s.running, () -> s.running = true);
+    El refresh = Button.icon(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", s::refresh);
+    El busy = Button.button(t, PRIMARY, null, "Running", s.running, s::start);
     // docs:end button
     // docs:start button-toggle
-    El pin = Button.toggle(t, Symbol.PIN, "Pin", s.pinned, on -> s.pinned = on);
+    El pin = Button.toggle(t, Symbol.PIN, "Pin", s.pinned, s::pinned);
     El split = Button.split(
         t,
         PRIMARY,
         Symbol.PLAY,
         "Run",
-        () -> s.runs++,
+        s::run,
         s.runMenu,
         List.of(
-            Menu.item("Run selection", () -> s.runs++), Menu.item("Explain plan", () -> s.runs++)));
+            Menu.item("Run selection", s::runSelection),
+            Menu.item("Explain plan", s::explainPlan)));
     // docs:end button-toggle
     return Frame.of(
         t,
@@ -95,32 +124,42 @@ final class Controls {
         row().gap(t.space().s()).children(pin, split));
   }
 
+  void drop() {
+    runs = 0;
+  }
+
+  void discard() {
+    runs = 0;
+  }
+
+  void deleteRow() {
+    runs--;
+  }
+
+  void save() {
+    runs = 0;
+  }
+
   static El buttonOptions(Controls s) {
     Theme t = s.t;
     // docs:start button-options
     // A red confirmation, a red secondary action and a quiet red one for a toolbar.
     Button.Options danger = Button.options().tone(Button.Tone.DANGER);
-    El drop = Button.button(t, PRIMARY, "Drop table", () -> s.runs = 0, danger);
-    El discard = Button.button(t, SECONDARY, "Discard", () -> s.runs = 0, danger);
-    El delete = Button.icon(t, GHOST, Symbol.DELETE, "Delete row", () -> s.runs--, danger);
+    El drop = Button.button(t, PRIMARY, "Drop table", s::drop, danger);
+    El discard = Button.button(t, SECONDARY, "Discard", s::discard, danger);
+    El delete = Button.icon(t, GHOST, Symbol.DELETE, "Delete row", s::deleteRow, danger);
     // Off while nothing changed, with its handler kept: as a null handler, Tab passes it by.
-    El save =
-        Button.button(t, SECONDARY, "Save", () -> s.runs = 0, Button.options().enabled(s.runs > 0));
+    El save = Button.button(t, SECONDARY, "Save", s::save, Button.options().enabled(s.runs > 0));
     // Busy: a spinner in place of the icon; it takes no press and keeps the focus.
     El refresh = Button.icon(
-        t,
-        GHOST,
-        Symbol.ARROW_CLOCKWISE,
-        "Refresh",
-        () -> s.running = true,
-        Button.options().busy(s.running));
+        t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", s::start, Button.options().busy(s.running));
     El run = Button.split(
         t,
         PRIMARY,
         "Run",
-        () -> s.running = true,
+        s::start,
         s.runMenu,
-        List.of(Menu.item("Run selection", () -> s.runs++), Menu.item("Cancel", () -> {})),
+        List.of(Menu.item("Run selection", s::runSelection), Menu.item("Cancel", () -> {})),
         Button.options().icon(Symbol.PLAY).busy(s.running));
     // docs:end button-options
     return Frame.of(
@@ -129,41 +168,74 @@ final class Controls {
         row().gap(t.space().s()).children(save, refresh, run));
   }
 
+  void toggleAutocommit() {
+    autocommit = !autocommit;
+  }
+
+  void toggleReadOnly() {
+    readOnly = !readOnly;
+  }
+
   static El toggles(Controls s) {
     Theme t = s.t;
     // docs:start toggle
-    El autocommit =
-        Toggle.toggle(t, s.autocommit, "Autocommit", () -> s.autocommit = !s.autocommit);
+    El autocommit = Toggle.toggle(t, s.autocommit, "Autocommit", s::toggleAutocommit);
     // docs:end toggle
     // docs:start checkbox
-    El readOnly = Checkbox.checkbox(t, s.readOnly, "Read only", () -> s.readOnly = !s.readOnly);
+    El readOnly = Checkbox.checkbox(t, s.readOnly, "Read only", s::toggleReadOnly);
     // docs:end checkbox
     return Frame.of(t, autocommit, readOnly);
+  }
+
+  void indent(int value) {
+    indent = value;
+  }
+
+  void mode(int value) {
+    mode = value;
+  }
+
+  void driver(int value) {
+    driver = value;
+  }
+
+  void fetchSize(int value) {
+    fetchSize = value;
+  }
+
+  void fontSize(int value) {
+    fontSize = value;
   }
 
   static El choices(Controls s) {
     Theme t = s.t;
     // docs:start radio
-    El indent = Radio.radioGroup(t, List.of("Spaces", "Tabs"), s.indent, i -> s.indent = i)
-        .label("Indent with");
+    El indent =
+        Radio.radioGroup(t, List.of("Spaces", "Tabs"), s.indent, s::indent).label("Indent with");
     // docs:end radio
     // docs:start segmented
-    El mode = Segmented.segmented(t, List.of("Rows", "Cells"), s.mode, i -> s.mode = i)
-        .label("Select");
+    El mode = Segmented.segmented(t, List.of("Rows", "Cells"), s.mode, s::mode).label("Select");
     // docs:end segmented
     // docs:start select
     El driver = Select.select(
-            t, List.of("PostgreSQL", "MySQL", "SQLite"), s.driver, s.driverMenu, i -> s.driver = i)
+            t, List.of("PostgreSQL", "MySQL", "SQLite"), s.driver, s.driverMenu, s::driver)
         .label("Driver");
     // docs:end select
     // docs:start number-field
-    El fetch =
-        NumberField.numberField(t, "Fetch size", s.fetchSize, 1, 16, 1, v -> s.fetchSize = v);
+    El fetch = NumberField.numberField(t, "Fetch size", s.fetchSize, 1, 16, 1, s::fetchSize);
     // docs:end number-field
     // docs:start slider
-    El size = Slider.slider(t, s.fontSize, 11, 16, 1, v -> s.fontSize = v).label("Font size");
+    El size = Slider.slider(t, s.fontSize, 11, 16, 1, s::fontSize).label("Font size");
     // docs:end slider
     return Frame.of(t, indent, mode, driver, fetch, size);
+  }
+
+  void kind(int value) {
+    kind = value;
+  }
+
+  void colour(Theme.Hue value) {
+    colour = value;
   }
 
   static El swatches(Controls s) {
@@ -176,11 +248,11 @@ final class Controls {
                 Radio.option("View", th -> Icon.icon(th, Symbol.TABLE_SIMPLE)),
                 Radio.option("Folder", th -> Icon.icon(th, Symbol.FOLDER))),
             s.kind, // -1: none chosen yet
-            i -> s.kind = i)
+            s::kind)
         .label("Kind");
     // docs:end swatches
     // docs:start hue-picker
-    El colour = HuePicker.huePicker(t, s.colour, "None", hue -> s.colour = hue).label("Colour");
+    El colour = HuePicker.huePicker(t, s.colour, "None", s::colour).label("Colour");
     // docs:end hue-picker
     return Frame.of(t, kind, colour);
   }
@@ -210,6 +282,26 @@ final class Controls {
   Schema owned;
   final ComboBox.State ownedBox = new ComboBox.State();
 
+  void isolation(Isolation value) {
+    isolation = value;
+  }
+
+  void level(Isolation value) {
+    level = value;
+  }
+
+  void shown(Isolation value) {
+    shown = value;
+  }
+
+  void schemaValue(Schema value) {
+    schemaValue = value;
+  }
+
+  void owned(Schema value) {
+    owned = value;
+  }
+
   static El typed(Controls s) {
     Theme t = s.t;
     List<Schema> schemas = List.of(
@@ -223,22 +315,21 @@ final class Controls {
             s.isolation,
             i -> i.title,
             s.isolationMenu,
-            i -> s.isolation = i)
+            s::isolation)
         .label("Isolation");
     // docs:end select-typed
     // docs:start radio-typed
-    El level = Radio.radioGroup(
-            t, List.of(Isolation.values()), s.level, i -> i.title, i -> s.level = i)
+    El level = Radio.radioGroup(t, List.of(Isolation.values()), s.level, i -> i.title, s::level)
         .label("Level");
     // docs:end radio-typed
     // docs:start segmented-typed
     El shown = Segmented.segmented( // null: none chosen yet
-            t, List.of(Isolation.values()), s.shown, i -> i.title, i -> s.shown = i)
+            t, List.of(Isolation.values()), s.shown, i -> i.title, s::shown)
         .label("Show");
     // docs:end segmented-typed
     // docs:start combo-box-typed
     El schema = ComboBox.comboBox(
-            t, schemas, s.schemaValue, Schema::name, s.schemaValueBox, v -> s.schemaValue = v)
+            t, schemas, s.schemaValue, Schema::name, s.schemaValueBox, s::schemaValue)
         .label("Schema");
     // docs:end combo-box-typed
     // docs:start combo-items-typed
@@ -248,20 +339,31 @@ final class Controls {
             s.owned,
             v -> ComboBox.item(v.name()).icon(Symbol.DATABASE).detail(v.owner()),
             s.ownedBox,
-            v -> s.owned = v)
+            s::owned)
         .label("Owned schema");
     // docs:end combo-items-typed
     return Frame.of(t, isolation, level, shown, schema, owned);
+  }
+
+  void schema(int value) {
+    schema = value;
+  }
+
+  void host(String value) {
+    host = value;
+  }
+
+  void product(int value) {
+    product = value;
   }
 
   static El combos(Controls s) {
     Theme t = s.t;
     // docs:start combo-box
     List<String> schemas = List.of("accounting", "public", "sales", "staging");
-    El schema =
-        ComboBox.comboBox(t, schemas, s.schema, s.schemaBox, i -> s.schema = i).label("Schema");
+    El schema = ComboBox.comboBox(t, schemas, s.schema, s.schemaBox, s::schema).label("Schema");
     El host = ComboBox.free(
-            t, s.host, List.of("localhost", "db.staging.internal"), s.hostBox, v -> s.host = v)
+            t, s.host, List.of("localhost", "db.staging.internal"), s.hostBox, s::host)
         .label("Host");
     // docs:end combo-box
     // docs:start combo-items
@@ -269,33 +371,68 @@ final class Controls {
         ComboBox.item("PostgreSQL").icon(Symbol.DATABASE).detail("9.6 or later"),
         ComboBox.item("SQLite").icon(Symbol.DOCUMENT).detail("a file"));
     El product =
-        ComboBox.items(t, products, s.product, s.productBox, i -> s.product = i).label("Database");
+        ComboBox.items(t, products, s.product, s.productBox, s::product).label("Database");
     // docs:end combo-items
     return Frame.of(t, schema, host, product);
+  }
+
+  void filter(String value) {
+    filter = value;
+  }
+
+  void table(String value) {
+    table = value;
+  }
+
+  void password(String value) {
+    password = value;
+  }
+
+  void toggleRevealed() {
+    revealed = !revealed;
+  }
+
+  void note(String value) {
+    note = value;
+  }
+
+  void sql(String value) {
+    sql = value;
   }
 
   static El fields(Controls s) {
     Theme t = s.t;
     // docs:start text-field
     El filter = TextField.withIcon(
-        t, TextField.textField(t, s.filter, "Filter tables", v -> s.filter = v), Symbol.SEARCH);
-    El name = TextField.textField(t, s.table, "Table name", v -> s.table = v)
-        .key("table")
-        .maxLength(63);
+        t, TextField.textField(t, s.filter, "Filter tables", s::filter), Symbol.SEARCH);
+    El name =
+        TextField.textField(t, s.table, "Table name", s::table).key("table").maxLength(63);
     El invalid = TextField.invalid(t, TextField.textField(t, "2 orders", "Name", v -> {}));
     // docs:end text-field
     // docs:start password-field
     El password = TextField.revealable(
         t,
-        TextField.passwordField(t, s.password, "Password", v -> s.password = v).key("password"),
+        TextField.passwordField(t, s.password, "Password", s::password).key("password"),
         s.revealed,
-        () -> s.revealed = !s.revealed);
+        s::toggleRevealed);
     // docs:end password-field
     // docs:start text-area
-    El note = TextField.textArea(t, s.note, "Note", v -> s.note = v).lines(3).w(280);
-    El code = TextField.codeArea(t, s.sql, "SQL", v -> s.sql = v).lines(3).w(280);
+    El note = TextField.textArea(t, s.note, "Note", s::note).lines(3).w(280);
+    El code = TextField.codeArea(t, s.sql, "SQL", s::sql).lines(3).w(280);
     // docs:end text-area
     return Frame.of(t, filter, name, invalid, password, note, code);
+  }
+
+  void amount(BigDecimal value) {
+    amount = value;
+  }
+
+  void due(LocalDate value) {
+    due = value;
+  }
+
+  void saveForm() {
+    runs++;
   }
 
   static El values(Controls s) {
@@ -306,14 +443,14 @@ final class Controls {
         Form.Labels.BESIDE,
         Form.field(
                 "Amount",
-                ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)
+                ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, s::amount)
                     .key("amount")
                     .w(120))
             .required(),
         Form.field(
                 "Due",
                 ValueField.valueField(
-                        t, Format.DATE.optional(), s.due, "2026-11-13", s.dueDraft, v -> s.due = v)
+                        t, Format.DATE.optional(), s.due, "2026-11-13", s.dueDraft, s::due)
                     .key("due")
                     .w(120))
             .help("Empty for none"));
@@ -322,9 +459,13 @@ final class Controls {
         PRIMARY,
         "Save",
         // A text that is no value leaves the last valid one in the state: save only without one.
-        s.amountDraft.error() == null && s.dueDraft.error() == null ? () -> s.runs++ : null);
+        s.amountDraft.error() == null && s.dueDraft.error() == null ? s::saveForm : null);
     // docs:end value-field
     return Frame.of(t, form, save);
+  }
+
+  void removeFilter() {
+    filter = "";
   }
 
   static El parts(Controls s) {
@@ -343,7 +484,7 @@ final class Controls {
     El type = Badge.badge(t, "bigint");
     El primary = Badge.badge(t, Badge.Kind.ACCENT, "PK");
     El filter = Badge.badge(
-        t, "status = paid", Badge.options().kind(Badge.Kind.ACCENT).onRemove(() -> s.filter = ""));
+        t, "status = paid", Badge.options().kind(Badge.Kind.ACCENT).onRemove(s::removeFilter));
     // docs:end badge
     // docs:start avatar
     El server = Avatar.avatar(t, "prod-eu");

@@ -20,14 +20,17 @@ final class Tags {
   // docs:start tags-state
   List<String> tags = List.of("orders", "daily");
   final TagInput.State tagDraft = new TagInput.State();
+
+  void tags(List<String> value) {
+    tags = value;
+  }
   // docs:end tags-state
 
   static El view(Tags s) {
     Theme t = s.t;
     // docs:start tags-view
-    El tags = TagInput.tagInput(t, s.tags, "Add tag", s.tagDraft, v -> s.tags = v)
-        .key("tags")
-        .label("Tags");
+    El tags =
+        TagInput.tagInput(t, s.tags, "Add tag", s.tagDraft, s::tags).key("tags").label("Tags");
     // docs:end tags-view
     return Frame.of(t, tags, Label.label(t, Label.Variant.MUTED, String.join(" · ", s.tags)));
   }

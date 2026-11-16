@@ -42,6 +42,18 @@ final class Editors {
   final Image swatch = Image.of(swatch(), 2); // 64 by 40 pixels made for scale 2
   String link = "";
 
+  void sql(String value) {
+    sql = value;
+  }
+
+  void notes(String value) {
+    notes = value;
+  }
+
+  void link(String destination) {
+    link = destination;
+  }
+
   static String codeWord(String text, int caret) {
     // docs:start code-words
     int from = CodeWords.start(text, caret);
@@ -53,7 +65,7 @@ final class Editors {
   static El codeEditor(Editors s) {
     Theme t = s.t;
     // docs:start code-editor
-    El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.editor, Sql.of(t), v -> s.sql = v)
+    El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.editor, Sql.of(t), s::sql)
         .key("query")
         .label("Query")
         .lines(8)
@@ -81,10 +93,8 @@ final class Editors {
   static El find(Editors s) {
     Theme t = s.t;
     // docs:start find
-    El notes = TextField.textArea(t, s.notes, "Notes", v -> s.notes = v)
-        .key("notes")
-        .lines(6)
-        .w(360);
+    El notes =
+        TextField.textArea(t, s.notes, "Notes", s::notes).key("notes").lines(6).w(360);
     El withFind = Find.find(t, s.app, notes, s.find); // Control+F, Control+H, F3, Control+G
     // docs:end find
     return Frame.of(t, withFind);
@@ -94,9 +104,7 @@ final class Editors {
     Theme t = s.t;
     // docs:start markdown
     El document = Markdown.markdown(
-            t,
-            s.readme,
-            Markdown.options().onLink(destination -> s.link = destination).copy(s.app.clipboard()))
+            t, s.readme, Markdown.options().onLink(s::link).copy(s.app.clipboard()))
         .key("readme")
         .grow(1);
     // docs:end markdown

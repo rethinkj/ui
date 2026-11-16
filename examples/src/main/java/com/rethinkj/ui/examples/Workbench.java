@@ -447,6 +447,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   // Handlers, on the app's thread
 
+  void selected(Node node) {
+    selected = node;
+  }
+
   // docs:start workbench-connect
   void openOrClose(Node node, boolean opens) {
     if (!opens) {
@@ -461,24 +465,28 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       app.background(
           "databases of " + server,
           () -> connect(server, wait),
-          names -> {
-            connecting.remove(node);
-            node.children = new ArrayList<>();
-            names.forEach(name ->
-                schema(database(node, name), "public", name.equals("shop") ? TABLES.length : 3));
-            connected++;
-            tell(server + ": " + names.size() + " databases");
-            answered();
-          },
-          error -> {
-            connecting.remove(node);
-            refused.add(node);
-            open.remove(node); // opening it again asks again
-            tell(server + ": " + error.getMessage());
-            answered();
-          });
+          names -> connectedTo(node, names),
+          error -> refusedBy(node, error));
       taskbar();
     }
+  }
+
+  void connectedTo(Node server, List<String> names) {
+    connecting.remove(server);
+    server.children = new ArrayList<>();
+    names.forEach(
+        name -> schema(database(server, name), "public", name.equals("shop") ? TABLES.length : 3));
+    connected++;
+    tell(server.name + ": " + names.size() + " databases");
+    answered();
+  }
+
+  void refusedBy(Node server, Exception error) {
+    connecting.remove(server);
+    refused.add(server);
+    open.remove(server); // opening it again asks again
+    tell(server.name + ": " + error.getMessage());
+    answered();
   }
   // docs:end workbench-connect
 
@@ -1139,8 +1147,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Theme t = s.theme();
     El right = s.tabs(t, s.groups.main());
     // docs:start workbench-tree
-    El tree = tree(
-            t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose, s::activate)
+    El tree = tree(t, s, s.open::contains, s.selected, s::selected, s::openOrClose, s::activate)
         .key("catalogue")
         .label("Catalogue");
     // docs:end workbench-tree
@@ -1659,24 +1666,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             "The servers refuse an amount below zero, and a paid order going back to pending."));
   }
 
+  // docs:start workbench-editor-handlers
+  void editQuery(Opened o, String query) {
+    o.query = query;
+    o.failure = null; // the next edit takes the error away
+    o.editor.noError();
+  }
+
+  /** Control+Enter runs the query; any other key goes on to the editor. */
+  boolean runKey(Opened o, Key k) {
+    boolean enter = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
+    if (enter) {
+      run(o);
+    }
+    return enter;
+  }
+  // docs:end workbench-editor-handlers
+
   private static El table(Theme t, Workbench s, Opened o, App<Workbench> app) {
     // docs:start workbench-editor
-    El area = codeEditor(t, app, o.query, o.editor, Sql.of(t), q -> {
-          o.query = q;
-          o.failure = null; // the next edit takes the error away
-          o.editor.noError();
-        })
+    El area = codeEditor(t, app, o.query, o.editor, Sql.of(t), q -> s.editQuery(o, q))
         .key("query-" + o.table.path())
         .label("Query")
         .wFull()
         .shrink(0);
-    Predicate<Key> run = k -> {
-      boolean enter = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
-      if (enter) {
-        s.run(o);
-      }
-      return enter;
-    };
+    Predicate<Key> run = k -> s.runKey(o, k);
     area.onKey(run.or(area.onKey())); // and the editor's own keys
     Completion.complete(t, app, area, o.editor.caret(), o.completion, word -> s.suggest(o, word));
     // docs:end workbench-editor

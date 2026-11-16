@@ -69,17 +69,19 @@ final class Desktop {
     // docs:end taskbar
   }
 
+  // docs:start message-box
   static void message(App<?> app) {
-    // docs:start message-box
     app.messageBox(
         MessageBox.warning("Close Workbench", "2 queries are still running.")
             .buttons("Close", "Cancel"),
-        button -> {
-          if (button == 0) {
-            app.windows().all().forEach(w -> w.close());
-          }
-        },
+        button -> answered(app, button),
         error -> {});
-    // docs:end message-box
   }
+
+  static void answered(App<?> app, int button) {
+    if (button == 0) { // Close
+      app.windows().all().forEach(w -> w.close());
+    }
+  }
+  // docs:end message-box
 }

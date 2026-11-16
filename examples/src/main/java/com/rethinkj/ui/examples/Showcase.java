@@ -317,6 +317,14 @@ public final class Showcase {
     return look == Look.SYSTEM ? (systemDark ? Theme.DARK : Theme.LIGHT) : look.theme;
   }
 
+  void show(Section value) {
+    section = value;
+  }
+
+  void look(Look value) {
+    look = value;
+  }
+
   /** The look's name, and for the system's which theme it is now. */
   String lookTitle() {
     return look == Look.SYSTEM ? "System (" + (systemDark ? "dark" : "light") + ")" : look.title;
@@ -410,7 +418,7 @@ public final class Showcase {
             List.of(Section.values()),
             s.section,
             section -> NavList.item(section.symbol, section.title),
-            section -> s.section = section)
+            s::show)
         .key("sections")
         .label("Sections")
         .grow(1);
@@ -422,12 +430,7 @@ public final class Showcase {
                 .gap(t.space().s())
                 .child(label(t, MUTED, "Theme"))
                 .child(Select.select(
-                        t,
-                        List.of(Look.values()),
-                        s.look,
-                        l -> l.title,
-                        s.lookMenu,
-                        l -> s.look = l)
+                        t, List.of(Look.values()), s.look, l -> l.title, s.lookMenu, s::look)
                     .key("look")
                     .label("Theme")
                     .wFull()))

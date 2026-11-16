@@ -8,6 +8,11 @@ An app, its state and its elements belong to the thread that runs the app, and o
 ```java snippet="background"
 ```
 
+The handlers are methods of the state, and so are the result's and the failure's:
+
+```java snippet="background-handlers"
+```
+
 <Shot src="examples/docs/background/counting-{theme}" alt="The count button busy with a spinner while the work runs, beside Cancel and Save" />
 
 - `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread, then posts `onResult` with the result or `onFailure` with the exception.
@@ -22,15 +27,25 @@ Give `background` a computation that takes a `Work.Progress`, and an `onProgress
 ```java snippet="reporting"
 ```
 
+Each report, the result and the failure go to a method:
+
+```java snippet="reporting-handlers"
+```
+
 - No `onProgress` runs after `work.cancel()`, `onResult` or `onFailure`. In a loop that does not block, check `progress.isCancelled()`; a blocking call sees the interrupt.
 - Reports that wait for the same frame may be merged into the newest, so `onProgress` runs about once per frame. Report the total so far (bytes read), not a step to add.
-- Type the parameter, as `Work.Progress<Integer>` above, when the handlers do not fix the type.
+- The handlers' parameters, such as `received(Integer)`, fix the type of the reports. Where nothing fixes it, type the computation's parameter: `(Work.Progress<Integer> progress) -> …`.
 
 ## Run work one after another
 
 A cancelled computation is interrupted but runs until it returns; a database driver may finish its statement first. For work that must not overlap, such as the calls on one connection, use a lane: `app.lane(name)` returns a [`Lane`](/api/com/rethinkj/ui/Lane.html) with the same `background` methods. Keep it in the state, one per connection. Work on a lane starts only when all work started before it there has ended, including cancelled work.
 
 ```java snippet="lane"
+```
+
+And its handlers:
+
+```java snippet="lane-handlers"
 ```
 
 - Cancelling work that has not started removes it from the lane; it never runs. Cancelling the running work interrupts it, and the next starts when it has returned.
@@ -45,6 +60,11 @@ A cancelled computation is interrupted but runs until it returns; a database dri
 ## Act later
 
 ```java snippet="after"
+```
+
+The handler shows a message and clears it three seconds later:
+
+```java snippet="after-handlers"
 ```
 
 `app.after(seconds, action)` runs the action in the first frame at or after that time on the app's clock. An idle window wakes for it; a script runs it with `advance`.

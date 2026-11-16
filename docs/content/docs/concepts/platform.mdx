@@ -71,6 +71,11 @@ Badge and progress are Windows only. On Linux they do nothing and return false.
 ```java snippet="images"
 ```
 
+The handlers open the dialog and decode the chosen file:
+
+```java snippet="images-handlers"
+```
+
 `app.fileDialog(dialog, onChoice, onError)` shows the system's dialog and posts the choice to the app's thread; the window keeps drawing while it is open.
 
 | [`FileDialog`](/api/com/rethinkj/ui/FileDialog.html) | |

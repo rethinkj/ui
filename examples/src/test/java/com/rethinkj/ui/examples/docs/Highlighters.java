@@ -17,9 +17,12 @@ final class Highlighters {
   String ini = "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n";
   final CodeEditor.State state = new CodeEditor.State();
 
+  void ini(String value) {
+    ini = value;
+  }
+
   static El view(Highlighters s) {
-    return Frame.of(
-        s.t, editor(s.t, s.app, s.ini, s.state, v -> s.ini = v).lines(6).wFull());
+    return Frame.of(s.t, editor(s.t, s.app, s.ini, s.state, s::ini).lines(6).wFull());
   }
 
   // docs:start highlighter

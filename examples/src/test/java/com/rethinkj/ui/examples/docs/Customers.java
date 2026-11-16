@@ -128,17 +128,24 @@ public final class Customers {
               case NOTES -> notes(t, s);
             });
     return root.overlay(s.editing == null ? null : dialog(t, s))
-        .overlay(
-            s.toast == null ? null : Toast.toast(t, s.toast, null, null, () -> s.toast = null));
+        .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null, s::dismissToast));
+  }
+
+  void dismissToast() {
+    toast = null;
   }
 
   static El notes(Theme t, Customers s) {
-    El area = TextField.textArea(t, s.notes, "Notes for the team", v -> s.notes = v)
+    El area = TextField.textArea(t, s.notes, "Notes for the team", s::setNotes)
         .fieldState(s.notesField) // the caret and undo come back with the view
         .key("notes")
         .wFull()
         .grow(1);
     return Card.card(t, area).grow(1);
+  }
+
+  void setNotes(String value) {
+    notes = value;
   }
 
   // docs:end customers-view
@@ -166,14 +173,18 @@ public final class Customers {
     loading = app.background(
         "load customers",
         repository::list, // on a virtual thread
-        list -> { // back on the app's thread
-          customers = new ArrayList<>(list);
-          loading = null;
-        },
-        e -> {
-          loadError = e.getMessage();
-          loading = null;
-        });
+        this::loaded,
+        this::notLoaded);
+  }
+
+  void loaded(List<Customer> list) { // back on the app's thread
+    customers = new ArrayList<>(list);
+    loading = null;
+  }
+
+  void notLoaded(Exception e) {
+    loadError = e.getMessage();
+    loading = null;
   }
 
   // docs:end customers-load
@@ -186,8 +197,8 @@ public final class Customers {
     El reload = Button.button(t, SECONDARY, Symbol.ARROW_CLOCKWISE, "Reload", s::load);
     El edit = Button.button(
         t, SECONDARY, Symbol.EDIT, "Edit", selected == null ? null : () -> s.edit(selected));
-    El add = Button.button(
-        t, PRIMARY, Symbol.ADD, "New customer", rows == null ? null : () -> s.edit(Customer.NEW));
+    El add =
+        Button.button(t, PRIMARY, Symbol.ADD, "New customer", rows == null ? null : s::newCustomer);
     El body;
     if (rows == null && s.loadError != null) {
       body = EmptyState.emptyState(
@@ -237,6 +248,10 @@ public final class Customers {
             "A company needs a VAT ID");
   }
 
+  void newCustomer() {
+    edit(Customer.NEW);
+  }
+
   /** Closes the dialog, unless its save runs. */
   void close() {
     if (saving == null) {
@@ -282,36 +297,41 @@ public final class Customers {
     saving = app.background(
         "save " + customer.name(),
         () -> repository.save(customer),
-        saved -> {
-          saving = null;
-          int at = indexOf(saved.id());
-          if (at >= 0) {
-            customers.set(at, saved);
-          } else {
-            customers.add(saved);
-          }
-          Customer now = editing.value();
-          if (now.equals(customer)) {
-            editing = null; // closes the dialog
-            toast = "Saved " + saved.name();
-          } else { // edited while the save ran: keep those edits, now over the saved customer
-            edit(saved);
-            editing
-                .root()
-                .set(new Customer(saved.id(), now.name(), now.email(), now.company(), now.vatId()));
-          }
-        },
-        e -> {
-          saving = null;
-          if (e instanceof Repository.Refused refused) {
-            Part<Customer, ?> field = refused.field;
-            if (Objects.equals(field.get(editing.value()), field.get(customer))) {
-              editing.at(field).error(refused.getMessage()); // until the field is edited
-            } // else the user already changed what the server refused
-          } else {
-            toast = "Not saved: " + e.getMessage(); // the dialog stays open to try again
-          }
-        });
+        saved -> stored(customer, saved),
+        e -> notSaved(customer, e));
+  }
+
+  /** The save of {@code customer} came back as {@code saved}. */
+  void stored(Customer customer, Customer saved) {
+    saving = null;
+    int at = indexOf(saved.id());
+    if (at >= 0) {
+      customers.set(at, saved);
+    } else {
+      customers.add(saved);
+    }
+    Customer now = editing.value();
+    if (now.equals(customer)) {
+      editing = null; // closes the dialog
+      toast = "Saved " + saved.name();
+    } else { // edited while the save ran: keep those edits, now over the saved customer
+      edit(saved);
+      editing
+          .root()
+          .set(new Customer(saved.id(), now.name(), now.email(), now.company(), now.vatId()));
+    }
+  }
+
+  void notSaved(Customer customer, Exception e) {
+    saving = null;
+    if (e instanceof Repository.Refused refused) {
+      Part<Customer, ?> field = refused.field;
+      if (Objects.equals(field.get(editing.value()), field.get(customer))) {
+        editing.at(field).error(refused.getMessage()); // until the field is edited
+      } // else the user already changed what the server refused
+    } else {
+      toast = "Not saved: " + e.getMessage(); // the dialog stays open to try again
+    }
   }
 
   int indexOf(long id) {

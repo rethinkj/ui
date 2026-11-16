@@ -47,10 +47,15 @@ public final class Lights {
         .hFull()
         .fill(t.surface().window())
         .center()
-        .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
+        .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", s::toggleLamp))
             .padding(t.space().xxl())
             .gap(t.space().xl())
             .align(Style.Align.CENTER));
+  }
+
+  // A handler: a method that changes the state, which the view passes as s::toggleLamp.
+  void toggleLamp() {
+    on = !on;
   }
   // docs:end lights-view
 }

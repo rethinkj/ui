@@ -61,6 +61,98 @@ final class Layouts {
   boolean dark = true;
   String said = "";
 
+  void edit() {
+    said = "edit";
+  }
+
+  void run() {
+    said = "run";
+  }
+
+  void keymap() {
+    said = "keymap";
+  }
+
+  void cancel() {
+    said = "cancel";
+  }
+
+  void connect() {
+    said = "connect";
+  }
+
+  void restart() {
+    said = "restart";
+  }
+
+  void encoding() {
+    said = "encoding";
+  }
+
+  void part(int index) {
+    said = "part " + index;
+  }
+
+  void explain() {
+    said = "explain";
+  }
+
+  void refresh() {
+    said = "refresh";
+  }
+
+  void export() {
+    said = "export";
+  }
+
+  void toggleWrap() {
+    wrap = !wrap;
+  }
+
+  void toggleAdvanced() {
+    advanced = !advanced;
+  }
+
+  void toggleAutoSave() {
+    autoSave = !autoSave;
+  }
+
+  void toggleDark() {
+    dark = !dark;
+  }
+
+  void host(String value) {
+    host = value;
+  }
+
+  void port(String value) {
+    port = value;
+  }
+
+  void user(String value) {
+    user = value;
+  }
+
+  void page(int index) {
+    page = index;
+  }
+
+  void clearFilter() {
+    filter = 0;
+  }
+
+  void sidebar(Split.Position position) {
+    sidebar = position;
+  }
+
+  void tab(int index) {
+    tab = index;
+  }
+
+  void wrapped(boolean on) {
+    wrapped = on;
+  }
+
   static El cards(Layouts s) {
     Theme t = s.t;
     // docs:start card
@@ -70,17 +162,14 @@ final class Layouts {
             t,
             "Connection",
             "Where the workbench connects at start.",
-            Button.button(t, SECONDARY, "Edit", () -> s.said = "edit")),
+            Button.button(t, SECONDARY, "Edit", s::edit)),
         Label.label(t, Label.Variant.MONO, "postgres://localhost:5432/shop"));
     // docs:end card
     // docs:start card-flush
     El results = Card.flush(
         t,
         Card.toolbar(
-            t,
-            "orders",
-            "1 000 000 rows",
-            Button.button(t, PRIMARY, Symbol.PLAY, "Run", () -> s.said = "run")),
+            t, "orders", "1 000 000 rows", Button.button(t, PRIMARY, Symbol.PLAY, "Run", s::run)),
         col().padding(t.space().l()).grow(1).child(Label.label(t, "The grid goes here.")),
         Card.footer(t, Label.label(t, Label.Variant.MUTED, "23 ms")));
     // docs:end card-flush
@@ -92,15 +181,14 @@ final class Layouts {
     // docs:start group
     El editor = Group.group(
         t,
-        Group.switchRow(
-            t, "Wrap lines", "Long lines break at the edge.", s.wrap, () -> s.wrap = !s.wrap),
-        Group.linkRow(t, Symbol.KEY, "Keymap", null, "Default", () -> s.said = "keymap"),
+        Group.switchRow(t, "Wrap lines", "Long lines break at the edge.", s.wrap, s::toggleWrap),
+        Group.linkRow(t, Symbol.KEY, "Keymap", null, "Default", s::keymap),
         Group.expander(
             t,
             "Advanced",
             null,
             s.advanced,
-            () -> s.advanced = !s.advanced,
+            s::toggleAdvanced,
             Group.row(t, "Tab size", null, Label.label(t, "4"))));
     // docs:end group
     return Frame.of(t, editor.w(420));
@@ -116,15 +204,13 @@ final class Layouts {
             t,
             "Text",
             "How the query editor shows text.",
-            Group.group(t, Group.switchRow(t, "Wrap lines", null, s.wrap, () -> s.wrap = !s.wrap))),
+            Group.group(t, Group.switchRow(t, "Wrap lines", null, s.wrap, s::toggleWrap))),
         Section.section(
             t,
             "Saving",
             null,
             Group.group(
-                t,
-                Group.switchRow(
-                    t, "Save on close", null, s.autoSave, () -> s.autoSave = !s.autoSave))));
+                t, Group.switchRow(t, "Save on close", null, s.autoSave, s::toggleAutoSave))));
     // docs:end section
     return Frame.of(t, settings.w(480).h(360));
   }
@@ -135,17 +221,15 @@ final class Layouts {
     El form = Form.form(
         t,
         Form.Labels.BESIDE,
-        Form.field("Host", TextField.textField(t, s.host, "localhost", v -> s.host = v))
-            .required(),
-        Form.field(
-                "Port", TextField.textField(t, s.port, "5432", v -> s.port = v).w(80))
+        Form.field("Host", TextField.textField(t, s.host, "localhost", s::host)).required(),
+        Form.field("Port", TextField.textField(t, s.port, "5432", s::port).w(80))
             .help("The server's TCP port."),
-        Form.field("User", TextField.textField(t, s.user, "Role", v -> s.user = v))
+        Form.field("User", TextField.textField(t, s.user, "Role", s::user))
             .error(s.user.isBlank() ? "A user is required." : null));
     El buttons = Form.buttons(
         t,
-        Button.button(t, SECONDARY, "Cancel", () -> s.said = "cancel"),
-        Button.button(t, PRIMARY, "Connect", s.user.isBlank() ? null : () -> s.said = "connect"));
+        Button.button(t, SECONDARY, "Cancel", s::cancel),
+        Button.button(t, PRIMARY, "Connect", s.user.isBlank() ? null : s::connect));
     // docs:end form
     return Frame.of(t, Card.card(t, form, buttons).w(440));
   }
@@ -160,18 +244,17 @@ final class Layouts {
                 "Server",
                 // Each field of the row keeps its label, help and error; the host grows.
                 Form.row(
-                    Form.field("Host", TextField.textField(t, s.host, "localhost", v -> s.host = v))
+                    Form.field("Host", TextField.textField(t, s.host, "localhost", s::host))
                         .required()
                         .grow(),
                     Form.field(
                             "Port",
-                            TextField.textField(t, s.port, "5432", v -> s.port = v)
-                                .w(72))
+                            TextField.textField(t, s.port, "5432", s::port).w(72))
                         .error(s.port.matches("\\d+") ? null : "Digits only")))
             .description("Where the database runs."),
         Form.group(
                 "Login",
-                Form.field("User", TextField.textField(t, s.user, "Role", v -> s.user = v)),
+                Form.field("User", TextField.textField(t, s.user, "Role", s::user)),
                 Form.field("Password", TextField.passwordField(t, "", null, v -> {})))
             .divided());
     // docs:end form-groups
@@ -181,9 +264,8 @@ final class Layouts {
   static El formCards(Layouts s) {
     Theme t = s.t;
     // docs:start form-cards
-    Form.Field host = Form.field("Host", TextField.textField(t, s.host, null, v -> s.host = v));
-    Form.Field user =
-        Form.field("User name", TextField.textField(t, s.user, null, v -> s.user = v));
+    Form.Field host = Form.field("Host", TextField.textField(t, s.host, null, s::host));
+    Form.Field user = Form.field("User name", TextField.textField(t, s.user, null, s::user));
     // One label column for forms in separate cards: the width of all their labels.
     float column = Form.labelWidth(t, host, user);
     El server = Card.card(t, Card.header(t, "Server", null), Form.form(t, BESIDE, column, host));
@@ -220,7 +302,7 @@ final class Layouts {
                 NavList.heading("Server"),
                 NavList.item(Symbol.PEOPLE, "Roles")),
             s.page,
-            i -> s.page = i)
+            s::page)
         .label("Sections");
     // docs:end nav-list
     return Frame.of(t, Card.inset(t, pages).w(220));
@@ -246,6 +328,10 @@ final class Layouts {
 
   Area area = Area.VIEWS;
 
+  void area(Area value) {
+    area = value;
+  }
+
   static El typedNavigation(Layouts s) {
     Theme t = s.t;
     // docs:start nav-list-typed
@@ -255,7 +341,7 @@ final class Layouts {
             s.area,
             v -> NavList.item(v.icon, v.title),
             v -> v.group, // a heading wherever the group changes
-            v -> s.area = v)
+            s::area)
         .label("Sections");
     // docs:end nav-list-typed
     return Frame.of(t, Card.inset(t, sections).w(220));
@@ -271,7 +357,7 @@ final class Layouts {
         Split.Direction.ROW,
         s.sidebar,
         Split.Position.first(160),
-        p -> s.sidebar = p,
+        s::sidebar,
         tree,
         120,
         editor,
@@ -289,7 +375,7 @@ final class Layouts {
             .padding(t.space().l())
             .grow(1)
             .child(Label.label(t, "The rows of " + s.tabs.get(s.tab).title()));
-    El tabs = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> close(s, i), content);
+    El tabs = Tabs.tabs(t, s.tabs, s.tab, s::tab, i -> close(s, i), content);
     // docs:end tabs
     return Frame.of(t, tabs.wFull().grow(1));
   }
@@ -311,7 +397,7 @@ final class Layouts {
         Callout.Kind.WARNING,
         "Restart needed",
         "The new font size applies after a restart.",
-        Button.button(t, SECONDARY, "Restart", () -> s.said = "restart"));
+        Button.button(t, SECONDARY, "Restart", s::restart));
     // docs:end callout
     // docs:start empty-state
     El empty = EmptyState.emptyState(
@@ -319,7 +405,7 @@ final class Layouts {
         Symbol.SEARCH,
         "No tables match",
         "Try another filter.",
-        Button.button(t, SECONDARY, "Clear filter", () -> s.filter = 0));
+        Button.button(t, SECONDARY, "Clear filter", s::clearFilter));
     // docs:end empty-state
     // docs:start progress
     El download = Progress.labeled(t, "orders.csv", 0.42, null);
@@ -338,7 +424,7 @@ final class Layouts {
         t,
         "Workbench",
         t.accent().color(),
-        Toggle.toggle(t, s.dark, () -> s.dark = !s.dark).label("Dark theme"));
+        Toggle.toggle(t, s.dark, s::toggleDark).label("Dark theme"));
     // docs:end title-bar
     // docs:start status-bar
     El status = StatusBar.statusBar(
@@ -346,9 +432,7 @@ final class Layouts {
         List.of(
             StatusBar.status(t, StatusBar.State.CONNECTED, "localhost", null),
             StatusBar.text(t, "shop · public")),
-        List.of(
-            StatusBar.item(t, null, "UTF-8", () -> s.said = "encoding"),
-            StatusBar.text(t, "Ln 3, Col 9")));
+        List.of(StatusBar.item(t, null, "UTF-8", s::encoding), StatusBar.text(t, "Ln 3, Col 9")));
     // docs:end status-bar
     return col()
         .wFull()
@@ -363,7 +447,7 @@ final class Layouts {
     Theme t = s.t;
     // docs:start breadcrumb
     El path = Breadcrumb.breadcrumb(
-        t, s.crumbs, List.of("localhost", "shop", "public", "orders"), i -> s.said = "part " + i);
+        t, s.crumbs, List.of("localhost", "shop", "public", "orders"), s::part);
     // docs:end breadcrumb
     // docs:start toolbar
     El tools = Toolbar.toolbar(
@@ -375,14 +459,14 @@ final class Layouts {
                 PRIMARY,
                 Symbol.PLAY,
                 "Run",
-                () -> s.said = "run",
+                s::run,
                 s.runMenu,
-                List.of(Menu.item("Explain", () -> s.said = "explain"))),
+                List.of(Menu.item("Explain", s::explain))),
             Toolbar.separator(),
-            Toolbar.toggle(Symbol.TEXT_WHOLE_WORD, "Wrap", s.wrapped, on -> s.wrapped = on),
-            Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.said = "refresh"),
+            Toolbar.toggle(Symbol.TEXT_WHOLE_WORD, "Wrap", s.wrapped, s::wrapped),
+            Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", s::refresh),
             Toolbar.spacer(),
-            Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", () -> s.said = "export")));
+            Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", s::export)));
     // docs:end toolbar
     // docs:start properties
     El table = Properties.properties(

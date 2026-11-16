@@ -70,7 +70,11 @@ final class Notebook {
 
   void track(Windows.Handle window) {
     searches.put(window, "");
-    window.onClosed(() -> searches.remove(window)); // however it closed, in a window still open
+    window.onClosed(() -> closed(window));
+  }
+
+  void closed(Windows.Handle window) { // however it closed, in a window still open
+    searches.remove(window);
   }
   // docs:end window-closed
 

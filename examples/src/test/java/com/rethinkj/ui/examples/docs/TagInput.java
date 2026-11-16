@@ -27,6 +27,10 @@ final class TagInput {
   /** What the input keeps between builds besides the tags: the text typed for the next tag. */
   static final class State {
     String draft = "";
+
+    void draft(String value) {
+      draft = value;
+    }
   }
 
   // docs:end tag-state
@@ -103,7 +107,7 @@ final class TagInput {
     boolean enabled = onChange != null;
     Theme.TextStyle body = t.type().body();
     return El.text(s.draft)
-        .editable(enabled ? v -> s.draft = v : null)
+        .editable(enabled ? s::draft : null)
         .key("draft")
         .label(placeholder)
         .placeholder(placeholder, enabled ? t.text().muted() : t.text().disabled())

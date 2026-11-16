@@ -148,6 +148,11 @@ final class Editings {
   Settings settings = new Settings(); // what the app uses
   final Editing<Settings> editingSettings = Editing.of(settings, Settings::new);
 
+  void apply() {
+    settings = new Settings(editingSettings.value());
+    editingSettings.saved();
+  }
+
   // docs:end editing-pojo
 
   static El pojo(Editings s) {
@@ -159,16 +164,7 @@ final class Editings {
         Form.Labels.BESIDE,
         Form.field("Fetch size", NumberField.numberField(t, e.at(Settings.FETCH), 10, 1000, 10)),
         Form.field("Commit", Toggle.toggle(t, e.at(Settings.AUTO_COMMIT), "Auto-commit")));
-    El apply = Button.button(
-        t,
-        PRIMARY,
-        "Apply",
-        e.changed()
-            ? () -> {
-              s.settings = new Settings(e.value());
-              e.saved();
-            }
-            : null);
+    El apply = Button.button(t, PRIMARY, "Apply", e.changed() ? s::apply : null);
     // docs:end editing-pojo-view
     return Frame.of(t, form, Form.buttons(t, apply));
   }

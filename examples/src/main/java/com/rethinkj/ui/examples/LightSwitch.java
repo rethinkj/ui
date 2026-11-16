@@ -68,10 +68,14 @@ public final class LightSwitch {
         .child(col()
             .grow(1)
             .center()
-            .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
+            .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", s::toggleLamp))
                 .padding(t.space().xxl())
                 .gap(t.space().xl())
                 .align(Style.Align.CENTER)));
+  }
+
+  void toggleLamp() {
+    on = !on;
   }
   // docs:end light-switch-view
 }

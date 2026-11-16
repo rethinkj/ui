@@ -45,18 +45,106 @@ final class Overlays {
   String filter = "";
   String said = "";
 
+  void run() {
+    said = "run";
+  }
+
+  void toggleAutocommit() {
+    autocommit = !autocommit;
+  }
+
+  void csv() {
+    said = "csv";
+  }
+
+  void open() {
+    said = "open";
+  }
+
+  void copy() {
+    said = "copy";
+  }
+
+  void newQuery() {
+    said = "new";
+  }
+
+  void exit() {
+    said = "exit";
+  }
+
+  void undo() {
+    said = "undo";
+  }
+
+  void filter(String value) {
+    filter = value;
+  }
+
+  void refresh() {
+    said = "refresh";
+  }
+
+  void newName(String value) {
+    newName = value;
+  }
+
+  void startRename() {
+    newName = name;
+    renaming = true;
+  }
+
+  void rename() {
+    name = newName;
+    renaming = false;
+  }
+
+  void cancel() {
+    renaming = false;
+  }
+
+  void save() {
+    renaming = false;
+  }
+
+  void test() {
+    said = "test";
+  }
+
+  void drop() {
+    dropped = "orders";
+  }
+
+  void restore() {
+    said = "restore";
+  }
+
+  void dismiss() {
+    dropped = null;
+  }
+
+  void format() {
+    said = "format";
+  }
+
+  void orders() {
+    said = "orders";
+  }
+
+  void customers() {
+    said = "customers";
+  }
+
   static El menus(Overlays s) {
     Theme t = s.t;
     // docs:start menu
     List<Menu.Item> items = List.of(
-        Menu.item("Run selection", () -> s.said = "run").shortcut(Key.CONTROL, "Enter"),
-        Menu.item("Autocommit", () -> s.autocommit = !s.autocommit).checked(s.autocommit),
+        Menu.item("Run selection", s::run).shortcut(Key.CONTROL, "Enter"),
+        Menu.item("Autocommit", s::toggleAutocommit).checked(s.autocommit),
         Menu.separator(),
         Menu.submenu(
             "Export",
-            List.of(
-                Menu.item("CSV", () -> s.said = "csv"),
-                Menu.item("JSON", null)))); // null: disabled
+            List.of(Menu.item("CSV", s::csv), Menu.item("JSON", null)))); // null: disabled
     El button = Button.button(t, SECONDARY, "Options", s.options::toggle).key("options");
     El dropdown = Menu.dropdown(t, button, s.options, items);
     // docs:end menu
@@ -68,24 +156,23 @@ final class Overlays {
         .role("listitem")
         .label("orders");
     El withMenu = Menu.contextMenu(
-        t,
-        row,
-        s.context,
-        List.of(
-            Menu.item("Open", () -> s.said = "open"),
-            Menu.item("Copy name", () -> s.said = "copy")));
+        t, row, s.context, List.of(Menu.item("Open", s::open), Menu.item("Copy name", s::copy)));
     // docs:end context-menu
     return Frame.of(t, dropdown, withMenu).onKey(Menu.shortcuts(items));
   }
 
   Theme.Hue hue = Theme.Hue.RED;
 
+  void hue(Theme.Hue value) {
+    hue = value;
+  }
+
   /** Items with a swatch before their text; shown on the page, not run as an example. */
   static List<Menu.Item> colours(Overlays s) {
     // docs:start menu-leading
     List<Menu.Item> colours = new ArrayList<>();
     for (Theme.Hue each : Theme.Hue.values()) {
-      colours.add(Menu.item(HuePicker.name(each), () -> s.hue = each)
+      colours.add(Menu.item(HuePicker.name(each), () -> s.hue(each))
           .leading(t -> HuePicker.swatch(t, each)) // built for each place the item shows
           .checked(each == s.hue)); // the check mark goes to the item's end
     }
@@ -101,12 +188,9 @@ final class Overlays {
         Menu.submenu(
             "&File",
             List.of(
-                Menu.item("New query", () -> s.said = "new")
-                    .icon(Symbol.ADD)
-                    .shortcut(Key.CONTROL, "N"),
-                Menu.item("Exit", () -> s.said = "exit"))),
-        Menu.submenu(
-            "&Edit", List.of(Menu.item("Undo", () -> s.said = "undo").shortcut(Key.CONTROL, "Z"))));
+                Menu.item("New query", s::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
+                Menu.item("Exit", s::exit))),
+        Menu.submenu("&Edit", List.of(Menu.item("Undo", s::undo).shortcut(Key.CONTROL, "Z"))));
     El root = col()
         .wFull()
         .hFull()
@@ -128,10 +212,10 @@ final class Overlays {
         button,
         s.filterPopover,
         "Add a filter",
-        TextField.textField(t, s.filter, "status = 'paid'", v -> s.filter = v).label("Condition"),
+        TextField.textField(t, s.filter, "status = 'paid'", s::filter).label("Condition"),
         List.of(
             Button.button(t, SECONDARY, "Cancel", s.filterPopover::close),
-            Button.button(t, PRIMARY, "Add", () -> s.filterPopover.close())));
+            Button.button(t, PRIMARY, "Add", s.filterPopover::close)));
     // docs:end popover
     return Frame.of(t, filter);
   }
@@ -141,8 +225,7 @@ final class Overlays {
     // docs:start tooltip
     El refresh = Tooltip.tooltip(
         t,
-        Button.button(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.said = "refresh")
-            .key("refresh"),
+        Button.button(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", s::refresh).key("refresh"),
         "Refresh the schema (F5)");
     // docs:end tooltip
     return Frame.of(t, refresh);
@@ -151,30 +234,17 @@ final class Overlays {
   static El dialog(Overlays s) {
     Theme t = s.t;
     // docs:start dialog
-    El open = Button.button(t, SECONDARY, "Rename…", () -> {
-      s.newName = s.name;
-      s.renaming = true;
-    });
-    Runnable cancel = () -> s.renaming = false;
+    El open = Button.button(t, SECONDARY, "Rename…", s::startRename);
     El dialog = !s.renaming
         ? null
         : Dialog.dialog(
             t,
             "Rename table",
-            TextField.textField(t, s.newName, "Name", v -> s.newName = v).label("Name"),
+            TextField.textField(t, s.newName, "Name", s::newName).label("Name"),
             List.of(
-                Button.button(t, SECONDARY, "Cancel", cancel),
-                Button.button(
-                    t,
-                    PRIMARY,
-                    "Rename",
-                    s.newName.isBlank()
-                        ? null
-                        : () -> {
-                          s.name = s.newName;
-                          s.renaming = false;
-                        })),
-            cancel);
+                Button.button(t, SECONDARY, "Cancel", s::cancel),
+                Button.button(t, PRIMARY, "Rename", s.newName.isBlank() ? null : s::rename)),
+            s::cancel);
     El root = col() // the window: its background, some room, and the dialog over it
         .wFull()
         .hFull()
@@ -191,20 +261,20 @@ final class Overlays {
   /** A dialog with what its options add; on the Dialog page, not run on a script. */
   static El dialogOptions(Overlays s) {
     Theme t = s.t;
-    Runnable cancel = () -> s.renaming = false;
     // docs:start dialog-options
-    El save = Button.button(t, PRIMARY, "Save", () -> s.renaming = false);
+    El save = Button.button(t, PRIMARY, "Save", s::save);
     El dialog = Dialog.dialog(
         t,
         "Edit connection",
-        TextField.textField(t, s.newName, "Name", v -> s.newName = v).label("Name"),
-        List.of(Button.button(t, SECONDARY, "Cancel", cancel), save),
-        cancel,
+        TextField.textField(t, s.newName, "Name", s::newName).label("Name"),
+        List.of(Button.button(t, SECONDARY, "Cancel", s::cancel), save),
+        s::cancel,
         Dialog.options()
             .leading(HuePicker.swatch(t, Theme.Hue.RED)) // the connection's colour
             .trailing(
-                Badge.badge(t, "Read only"), Button.icon(t, GHOST, Symbol.DISMISS, "Close", cancel))
-            .start(Button.button(t, SECONDARY, "Test connection", () -> s.said = "test"))
+                Badge.badge(t, "Read only"),
+                Button.icon(t, GHOST, Symbol.DISMISS, "Close", s::cancel))
+            .start(Button.button(t, SECONDARY, "Test connection", s::test))
             .defaultButton(save));
     // docs:end dialog-options
     return Frame.of(t, Label.label(t, s.name)).overlay(dialog);
@@ -213,7 +283,7 @@ final class Overlays {
   static El toast(Overlays s) {
     Theme t = s.t;
     // docs:start toast
-    El drop = Button.button(t, SECONDARY, "Drop orders", () -> s.dropped = "orders");
+    El drop = Button.button(t, SECONDARY, "Drop orders", s::drop);
     El root = col()
         .wFull()
         .hFull()
@@ -224,12 +294,7 @@ final class Overlays {
         .overlay(
             s.dropped == null
                 ? null
-                : Toast.toast(
-                    t,
-                    "Dropped " + s.dropped,
-                    "Undo",
-                    () -> s.said = "restore",
-                    () -> s.dropped = null));
+                : Toast.toast(t, "Dropped " + s.dropped, "Undo", s::restore, s::dismiss));
     // docs:end toast
     return root;
   }
@@ -240,11 +305,11 @@ final class Overlays {
     List<Menu.Item> menus = List.of(Menu.submenu(
         "Query",
         List.of(
-            Menu.item("Run", () -> s.said = "run").shortcut(Key.CONTROL, "Enter"),
-            Menu.item("Format", () -> s.said = "format"))));
+            Menu.item("Run", s::run).shortcut(Key.CONTROL, "Enter"),
+            Menu.item("Format", s::format))));
     List<FilterList.Entry> tables = List.of(
-        FilterList.entry("orders", () -> s.said = "orders").symbol(Symbol.TABLE).detail("public"),
-        FilterList.entry("customers", () -> s.said = "customers").symbol(Symbol.TABLE));
+        FilterList.entry("orders", s::orders).symbol(Symbol.TABLE).detail("public"),
+        FilterList.entry("customers", s::customers).symbol(Symbol.TABLE));
     El root = col() // the root: without focus, only it gets the keys
         .wFull()
         .hFull()

@@ -8,6 +8,11 @@ description: Single-line fields and multi-line editors in core, whose string is 
 ```java snippet="field"
 ```
 
+Each field's handler stores the string:
+
+```java snippet="field-handlers"
+```
+
 <Shot src="examples/docs/field/view-{theme}" alt="A text field holding orders above a code area with three lines of SQL" />
 
 ## Refuse or change an edit
@@ -49,6 +54,11 @@ For completion or rename, `CodeWords.start(text, index)` and `CodeWords.end(text
 A read-only multi-line field is a paragraph that selects and copies. A child with `range(from, to)` is placed over those characters of the field's string instead of where layout would put it, so it can be a link with its own key, focus and handler:
 
 ```java snippet="range"
+```
+
+The link's handler is a method of the state:
+
+```java snippet="range-handlers"
 ```
 
 ```text snippet="range-script"

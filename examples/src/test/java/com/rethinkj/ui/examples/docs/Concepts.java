@@ -15,6 +15,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Lane;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
@@ -122,15 +123,8 @@ final class Concepts {
         .center()
         .focusable()
         .cursor(Cursor.POINTER)
-        .onPress(() -> s.presses++) // also Enter and Space when focused
-        .onKey(
-            key -> { // true: the key was taken
-              if (key.name().equals("Delete")) {
-                s.presses = 0;
-                return true;
-              }
-              return false;
-            })
+        .onPress(s::press) // also Enter and Space when focused
+        .onKey(s::resetOnDelete)
         .whenHovered(e -> e.fill(t.surface().hover()))
         .whenPressed(e -> e.fill(t.surface().pressed()))
         .focusRing(t.accent().edge())
@@ -143,15 +137,34 @@ final class Concepts {
         .fill(t.accent().color())
         .absolute(s.knob, 0)
         .cursor(Cursor.EW_RESIZE)
-        .onDrag(d -> {
-          if (d.phase() == Drag.Phase.MOVE) {
-            s.knob = Math.clamp(s.knob + d.dx(), 0, 176);
-          }
-        });
+        .onDrag(s::dragKnob);
     El track = el().w(200).h(24).child(knob);
     // docs:end drag
     return Frame.of(t, counter, track);
   }
+
+  // docs:start input-handlers
+  void press() {
+    presses++;
+  }
+
+  // true: the key was taken
+  boolean resetOnDelete(Key key) {
+    if (key.name().equals("Delete")) {
+      presses = 0;
+      return true;
+    }
+    return false;
+  }
+  // docs:end input-handlers
+
+  // docs:start drag-handlers
+  void dragKnob(Drag d) {
+    if (d.phase() == Drag.Phase.MOVE) {
+      knob = Math.clamp(knob + d.dx(), 0, 176);
+    }
+  }
+  // docs:end drag-handlers
 
   static El states(Concepts s) {
     Theme t = s.t;
@@ -178,7 +191,7 @@ final class Concepts {
         .radius(t.radius().medium())
         .fill(s.open ? t.accent().color() : t.surface().raised())
         .motion(Spring.SETTLE); // size and colour spring to their new values
-    El toggle = Button.button(t, SECONDARY, s.open ? "Close" : "Open", () -> s.open = !s.open);
+    El toggle = Button.button(t, SECONDARY, s.open ? "Close" : "Open", s::toggleOpen);
     // docs:end motion
     // docs:start cycle
     El pulse = el().key("pulse")
@@ -189,6 +202,12 @@ final class Concepts {
     // docs:end cycle
     return Frame.of(t, panel, toggle, pulse);
   }
+
+  // docs:start motion-handlers
+  void toggleOpen() {
+    open = !open;
+  }
+  // docs:end motion-handlers
 
   static El overlay(Concepts s) {
     Theme t = s.t;
@@ -202,21 +221,33 @@ final class Concepts {
         .border(1, t.border().control())
         .shadow(t.elevation().popup())
         .side(Side.BOTTOM, Style.Align.START, 4) // below the button
-        .onDismiss(() -> s.menu = false) // a press outside
-        .onKey(key -> {
-          if (key.name().equals("Escape")) {
-            s.menu = false;
-            return true;
-          }
-          return false;
-        })
-        .child(Button.button(t, SECONDARY, "Open", () -> s.menu = false).key("open"));
-    El button = Button.button(t, SECONDARY, "Actions", () -> s.menu = !s.menu)
+        .onDismiss(s::closeMenu) // a press outside
+        .onKey(s::closeOnEscape)
+        .child(Button.button(t, SECONDARY, "Open", s::closeMenu).key("open"));
+    El button = Button.button(t, SECONDARY, "Actions", s::toggleMenu)
         .key("actions")
         .overlay(s.menu ? menu : null); // open is the app's state
     // docs:end overlay
     return Frame.of(t, button);
   }
+
+  // docs:start overlay-handlers
+  void toggleMenu() {
+    menu = !menu;
+  }
+
+  void closeMenu() {
+    menu = false;
+  }
+
+  boolean closeOnEscape(Key key) {
+    if (key.name().equals("Escape")) {
+      menu = false;
+      return true;
+    }
+    return false;
+  }
+  // docs:end overlay-handlers
 
   static El rows(Concepts s) {
     Theme t = s.t;
@@ -246,7 +277,7 @@ final class Concepts {
     Theme t = s.t;
     // docs:start field
     El name = text(s.name)
-        .editable(v -> s.name = v) // every edit hands on the string
+        .editable(s::name) // every edit hands on the string
         .key("name")
         .role("textbox")
         .label("Table name")
@@ -257,7 +288,7 @@ final class Concepts {
         .color(t.text().primary())
         .maxLength(63);
     El query = text(s.sql)
-        .editable(v -> s.sql = v)
+        .editable(s::sql)
         .multiline()
         .lines(4)
         .fieldState(s.query) // caret and history in the state
@@ -273,39 +304,24 @@ final class Concepts {
     return Frame.of(t, name, query);
   }
 
+  // docs:start field-handlers
+  void name(String value) {
+    name = value;
+  }
+
+  void sql(String value) {
+    sql = value;
+  }
+  // docs:end field-handlers
+
   static El background(Concepts s) {
     Theme t = s.t;
     // docs:start background
-    El count = Button.button(t, PRIMARY, null, "Count rows", s.count != null, () -> {
-      String table = s.name; // only what the work needs
-      s.count = s.app.background(
-          "count " + table,
-          () -> slowCount(table), // on a virtual thread
-          n -> { // back on the app's thread
-            s.rows = n + " rows";
-            s.count = null;
-          },
-          e -> {
-            s.rows = e.getMessage();
-            s.count = null;
-          });
-    });
-    El cancel = Button.button(
-        t,
-        SECONDARY,
-        "Cancel",
-        s.count == null
-            ? null
-            : () -> {
-              s.count.cancel(); // neither handler runs
-              s.count = null;
-            });
+    El count = Button.button(t, PRIMARY, null, "Count rows", s.count != null, s::countRows);
+    El cancel = Button.button(t, SECONDARY, "Cancel", s.count == null ? null : s::cancelCount);
     // docs:end background
     // docs:start after
-    El save = Button.button(t, SECONDARY, "Save", () -> {
-      s.message = "Saved";
-      s.app.after(3, () -> s.message = ""); // on the app's clock
-    });
+    El save = Button.button(t, SECONDARY, "Save", s::save);
     // docs:end after
     return Frame.of(
         t,
@@ -313,6 +329,44 @@ final class Concepts {
         Label.label(t, s.rows).key("rows"),
         Label.label(t, s.message).key("message"));
   }
+
+  // docs:start background-handlers
+  void countRows() {
+    String table = name; // only what the work needs
+    count = app.background(
+        "count " + table,
+        () -> slowCount(table), // on a virtual thread
+        this::rowsCounted,
+        this::countFailed);
+  }
+
+  // back on the app's thread
+  void rowsCounted(Long n) {
+    rows = n + " rows";
+    count = null;
+  }
+
+  void countFailed(Exception e) {
+    rows = e.getMessage();
+    count = null;
+  }
+
+  void cancelCount() {
+    count.cancel(); // neither handler runs
+    count = null;
+  }
+  // docs:end background-handlers
+
+  // docs:start after-handlers
+  void save() {
+    message = "Saved";
+    app.after(3, this::clearMessage); // on the app's clock
+  }
+
+  void clearMessage() {
+    message = "";
+  }
+  // docs:end after-handlers
 
   static long slowCount(String table) throws InterruptedException {
     Thread.sleep(Duration.ofMillis(50));
@@ -322,39 +376,9 @@ final class Concepts {
   static El lanes(Concepts s) {
     Theme t = s.t;
     // docs:start lane
-    El report = Button.button(t, PRIMARY, null, "Run report", s.report != null, () -> {
-      Connection db = s.db;
-      s.reportStatus = "Running…";
-      s.report = s.connection.background(
-          "report",
-          () -> db.query("SELECT pg_sleep(60)"),
-          r -> {
-            s.reportStatus = r;
-            s.report = null;
-          },
-          e -> s.report = null);
-    });
-    El cancel = Button.button(
-        t,
-        SECONDARY,
-        "Cancel",
-        s.report == null
-            ? null
-            : () -> {
-              Work cancelled = s.report;
-              cancelled.cancel(); // interrupts it; the driver still finishes the statement
-              cancelled.onEnd(() -> s.reportStatus = "Cancelled"); // once it has returned
-              s.report = null;
-              s.reportStatus = "Cancelling…";
-            });
-    El count = Button.button(t, SECONDARY, "Count orders", () -> {
-      Connection db = s.db;
-      s.connection.background( // begins once the work before it on the lane has ended
-          "count",
-          () -> db.query("SELECT count(*) FROM orders"),
-          n -> s.counted = n,
-          e -> s.counted = e.getMessage());
-    });
+    El report = Button.button(t, PRIMARY, null, "Run report", s.report != null, s::runReport);
+    El cancel = Button.button(t, SECONDARY, "Cancel", s.report == null ? null : s::cancelReport);
+    El count = Button.button(t, SECONDARY, "Count orders", s::countOrders);
     El waiting = Label.label(t, s.connection.pending().size() + " on the connection");
     // docs:end lane
     return Frame.of(
@@ -364,6 +388,53 @@ final class Concepts {
         Label.label(t, s.counted).key("count"),
         waiting.key("waiting"));
   }
+
+  // docs:start lane-handlers
+  void runReport() {
+    Connection db = this.db;
+    reportStatus = "Running…";
+    report = connection.background(
+        "report", () -> db.query("SELECT pg_sleep(60)"), this::reportDone, this::reportFailed);
+  }
+
+  void reportDone(String result) {
+    reportStatus = result;
+    report = null;
+  }
+
+  void reportFailed(Exception e) {
+    report = null;
+  }
+
+  void cancelReport() {
+    Work cancelled = report;
+    cancelled.cancel(); // interrupts it; the driver still finishes the statement
+    cancelled.onEnd(this::reportCancelled); // once it has returned
+    report = null;
+    reportStatus = "Cancelling…";
+  }
+
+  void reportCancelled() {
+    reportStatus = "Cancelled";
+  }
+
+  void countOrders() {
+    Connection db = this.db;
+    connection.background( // begins once the work before it on the lane has ended
+        "count",
+        () -> db.query("SELECT count(*) FROM orders"),
+        this::ordersCounted,
+        this::ordersFailed);
+  }
+
+  void ordersCounted(String n) {
+    counted = n;
+  }
+
+  void ordersFailed(Exception e) {
+    counted = e.getMessage();
+  }
+  // docs:end lane-handlers
 
   /**
    * A made-up connection, which one thread at a time may use. Its server finishes the report two
@@ -392,29 +463,44 @@ final class Concepts {
   static El progress(Concepts s) {
     Theme t = s.t;
     // docs:start reporting
-    El download = Button.button(t, PRIMARY, null, "Download", s.download != null, () -> {
-      s.received = 0;
-      Driver driver = Driver.madeUp(s.app, 8); // only what the work needs
-      s.download = s.app.background(
-          "download of " + driver.name,
-          (Work.Progress<Integer> progress) -> { // on a virtual thread
-            int megabytes = 0;
-            while (driver.read()) { // blocks for the next megabyte; cancel() interrupts it
-              progress.report(++megabytes); // reports that wait are coalesced into the newest
-            }
-            return megabytes;
-          },
-          megabytes -> s.received = megabytes, // back on the app's thread, each report
-          megabytes -> {
-            s.received = megabytes;
-            s.download = null;
-          },
-          e -> s.download = null);
-    });
+    El download = Button.button(t, PRIMARY, null, "Download", s.download != null, s::download);
     El bar = Progress.labeled(t, "Driver", s.received / 8.0, s.received + " of 8 MB");
     // docs:end reporting
     return Frame.of(t, download, bar.w(240));
   }
+
+  // docs:start reporting-handlers
+  void download() {
+    received = 0;
+    Driver driver = Driver.madeUp(app, 8); // only what the work needs
+    download = app.background(
+        "download of " + driver.name,
+        progress -> { // on a virtual thread
+          int megabytes = 0;
+          while (driver.read()) { // blocks for the next megabyte; cancel() interrupts it
+            progress.report(++megabytes); // reports that wait are coalesced into the newest
+          }
+          return megabytes;
+        },
+        this::received,
+        this::downloaded,
+        this::downloadFailed);
+  }
+
+  // back on the app's thread, each report
+  void received(Integer megabytes) {
+    received = megabytes;
+  }
+
+  void downloaded(Integer megabytes) {
+    received = megabytes;
+    download = null;
+  }
+
+  void downloadFailed(Exception e) {
+    download = null;
+  }
+  // docs:end reporting-handlers
 
   /**
    * A made-up download: its megabytes arrive one each quarter second of the app's clock, by
@@ -448,24 +534,7 @@ final class Concepts {
   static El images(Concepts s) {
     Theme t = s.t;
     // docs:start images
-    El open = Button.button(
-        t,
-        SECONDARY,
-        "Open image…",
-        () -> s.app.fileDialog(
-            FileDialog.open("Open an image").filter("Images", "png", "jpg", "jpeg"),
-            choice -> {
-              if (choice.paths().isEmpty()) {
-                return; // cancelled
-              }
-              Path path = choice.path();
-              s.app.background(
-                  "read " + path,
-                  () -> Image.decode(Files.readAllBytes(path)), // decoding takes a while
-                  image -> s.photo = image,
-                  e -> s.message = e.getMessage());
-            },
-            error -> s.message = error));
+    El open = Button.button(t, SECONDARY, "Open image…", s::openImage);
     El photo = s.photo == null
         ? Label.label(t, Label.Variant.MUTED, "No image")
         : El.image(s.photo).label("The chosen image").radius(t.radius().medium());
@@ -473,10 +542,43 @@ final class Concepts {
     return Frame.of(t, open, photo);
   }
 
+  // docs:start images-handlers
+  void openImage() {
+    app.fileDialog(
+        FileDialog.open("Open an image").filter("Images", "png", "jpg", "jpeg"),
+        this::imageChosen,
+        this::dialogFailed);
+  }
+
+  void imageChosen(FileDialog.Choice choice) {
+    if (choice.paths().isEmpty()) {
+      return; // cancelled
+    }
+    Path path = choice.path();
+    app.background(
+        "read " + path,
+        () -> Image.decode(Files.readAllBytes(path)), // decoding takes a while
+        this::photo,
+        this::readFailed);
+  }
+
+  void photo(Image image) {
+    photo = image;
+  }
+
+  void readFailed(Exception e) {
+    message = e.getMessage();
+  }
+
+  void dialogFailed(String error) {
+    message = error;
+  }
+  // docs:end images-handlers
+
   static El theme(Concepts s) {
     // docs:start theme
     Theme t = Theme.LIGHT.withAccent(Theme.Hue.TEAL); // a named accent, made for the light theme
-    El save = Button.button(t, PRIMARY, "Save", () -> s.presses++);
+    El save = Button.button(t, PRIMARY, "Save", s::save);
     // docs:end theme
     return Frame.of(t, save);
   }

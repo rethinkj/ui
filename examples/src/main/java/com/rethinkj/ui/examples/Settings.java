@@ -266,6 +266,30 @@ public final class Settings {
     adding = false;
   }
 
+  void show(Page value) {
+    page = value;
+  }
+
+  void showKeymap() {
+    page = Page.KEYMAP;
+  }
+
+  void toggleReopen() {
+    reopen = !reopen;
+  }
+
+  void toggleUpdates() {
+    updates = !updates;
+  }
+
+  void language(int value) {
+    language = value;
+  }
+
+  void history(int value) {
+    history = value;
+  }
+
   public static void main(String[] args) throws IOException {
     App<Settings> app = new App<>(new Settings(), Settings::view);
     app.state().app = app;
@@ -303,7 +327,7 @@ public final class Settings {
   // docs:start settings-pages
   static El view(Settings s) {
     Theme t = s.theme();
-    El pages = navList(t, List.of(Page.values()), s.page, Page::item, Page::group, p -> s.page = p)
+    El pages = navList(t, List.of(Page.values()), s.page, Page::item, Page::group, s::show)
         .key("pages")
         .label("Settings")
         .grow(1);
@@ -347,14 +371,13 @@ public final class Settings {
                         "Reopen the last workspace",
                         "Open the tabs and connections of the last session again",
                         s.reopen,
-                        () -> s.reopen = !s.reopen),
-                    switchRow(
-                        t, "Check for updates", null, s.updates, () -> s.updates = !s.updates),
+                        s::toggleReopen),
+                    switchRow(t, "Check for updates", null, s.updates, s::toggleUpdates),
                     Group.row(
                         t,
                         "Language",
                         null,
-                        comboBox(t, LANGUAGES, s.language, s.languages, i -> s.language = i)
+                        comboBox(t, LANGUAGES, s.language, s.languages, s::language)
                             .w(160)))),
             section(
                 t,
@@ -366,14 +389,14 @@ public final class Settings {
                         t,
                         "Statements kept",
                         "Per connection, the oldest go first",
-                        numberField(t, s.history, 0, 10_000, 50, v -> s.history = v)),
+                        numberField(t, s.history, 0, 10_000, 50, s::history)),
                     linkRow(
                         t,
                         Symbol.KEY_MULTIPLE,
                         "Keymap",
                         "The keys of every command",
                         "Default",
-                        () -> s.page = Page.KEYMAP))))
+                        s::showKeymap))))
         .grow(1);
   }
   // docs:end settings-general

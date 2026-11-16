@@ -152,6 +152,10 @@ public final class ConnectionDialog {
     status = "";
   }
 
+  void toggleRevealed() {
+    revealed = !revealed;
+  }
+
   public static void main(String[] args) throws IOException {
     App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view);
     app.state().app = app;
@@ -223,7 +227,7 @@ public final class ConnectionDialog {
                                     .key("password")
                                     .wFull(),
                                 s.revealed,
-                                () -> s.revealed = !s.revealed)
+                                s::toggleRevealed)
                             .wFull())))
             .margin(t.space().s(), 0, t.space().s(), 0))
         .child(checkbox(t, e.at(Profile.SSL), "Require SSL"))

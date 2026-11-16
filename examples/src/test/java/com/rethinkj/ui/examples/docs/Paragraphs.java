@@ -16,6 +16,12 @@ final class Paragraphs {
   Theme t = Theme.DARK;
   String opened = "";
 
+  // docs:start range-handlers
+  void openPlan() {
+    opened = "plan";
+  }
+  // docs:end range-handlers
+
   static El view(Paragraphs s) {
     Theme t = s.t;
     // docs:start range
@@ -36,7 +42,7 @@ final class Paragraphs {
             .range(from, from + "the query plan".length()) // over these characters
             .focusable()
             .cursor(Cursor.POINTER)
-            .onPress(() -> s.opened = "plan")
+            .onPress(s::openPlan)
             .whenHovered(link -> link.fill(t.surface().hover())));
     // docs:end range
     return Frame.of(t, paragraph.w(260));

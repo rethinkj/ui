@@ -228,7 +228,11 @@ public final class Documents {
             .filter("All files", "*")
             .many(),
         choice -> read(group, choice.paths()),
-        error -> toast = "No file dialog: " + error);
+        this::noFileDialog);
+  }
+
+  void noFileDialog(String error) {
+    toast = "No file dialog: " + error;
   }
   // docs:end documents-open
 

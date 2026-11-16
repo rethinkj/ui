@@ -233,13 +233,15 @@ public final class Notes {
                 .underPointer(),
             noteApp);
     note.window.dropTarget(false); // it lies under the pointer, over the row it may go back to
-    note.window.onCloseRequest(
-        () -> { // closing it docks the note where its muted card is
-          if (note.window != null) {
-            note.window.close();
-            note.window = null;
-          }
-        });
+    note.window.onCloseRequest(() -> dock(note));
+  }
+
+  // Closing a note's window docks the note where its muted card is.
+  void dock(Note note) {
+    if (note.window != null) {
+      note.window.close();
+      note.window = null;
+    }
   }
 
   void follow(Windows.Handle window, Drag d) {

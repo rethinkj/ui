@@ -8,6 +8,11 @@ Elements take input through handlers. The app finds the element under the pointe
 ```java snippet="input"
 ```
 
+The handlers are methods of the state:
+
+```java snippet="input-handlers"
+```
+
 <Shot src="examples/docs/input/pressed-{theme}" alt="The counter after two presses, showing 2, above the round knob to drag" />
 
 ## Pointer
@@ -25,6 +30,11 @@ Elements take input through handlers. The app finds the element under the pointe
 A press goes to the innermost element under the pointer that has a press handler, and counts only when the button goes down and up on that element.
 
 ```java snippet="drag"
+```
+
+The handler moves the knob:
+
+```java snippet="drag-handlers"
 ```
 
 A [`Drag`](/api/com/rethinkj/ui/Drag.html) has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), how far the pointer is from where it went down (`dx`, `dy`), and the pointer's position in the element's content (`x`, `y`). Escape cancels a drag.

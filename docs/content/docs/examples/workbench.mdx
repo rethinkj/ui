@@ -51,6 +51,11 @@ Each tab's query is a [CodeEditor](/docs/components/code-editor) with SQL highli
 ```java snippet="workbench-editor"
 ```
 
+The editor's two handlers are methods of the app: an edit keeps the query and takes the error away, and Control+Enter runs it.
+
+```java snippet="workbench-editor-handlers"
+```
+
 `suggest` returns the entries for the start of a word: the tab's columns, then the tables and columns of the connected servers, then SQL keywords, each name once.
 
 ```java snippet="workbench-suggest"

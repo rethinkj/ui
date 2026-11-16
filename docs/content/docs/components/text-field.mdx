@@ -36,7 +36,7 @@ A null handler disables the field. The handler may refuse an edit (store nothing
 
 ## Typed values
 
-For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
+For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, s::amount)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
 
 ## Passwords
 

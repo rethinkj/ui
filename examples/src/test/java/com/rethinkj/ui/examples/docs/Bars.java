@@ -15,6 +15,10 @@ final class Bars {
   Theme t = Theme.DARK;
   float width; // the bar's width as onResize told it last; 0 before the first layout
 
+  void resize(float width, float height) {
+    this.width = width;
+  }
+
   static El view(Bars s) {
     Theme t = s.t;
     boolean roomy = s.width == 0 || s.width >= 300; // the texts until the first layout tells
@@ -22,7 +26,7 @@ final class Bars {
         .key("bar")
         .wFull()
         .gap(t.space().s())
-        .onResize((width, height) -> s.width = width) // after layout; the view is built again
+        .onResize(s::resize) // after layout; the view is built again
         .child(button(t, roomy, Symbol.PLAY, "Run"))
         .child(button(t, roomy, Symbol.COPY, "Copy"))
         .child(button(t, roomy, Symbol.SAVE, "Save"));

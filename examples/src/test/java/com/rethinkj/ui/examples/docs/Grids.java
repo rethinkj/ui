@@ -58,6 +58,22 @@ final class Grids {
   Node selected;
   String said = "";
 
+  void resizeFitted(int column, float width) {
+    fitted[column] = width;
+  }
+
+  void sort(List<DataGrid.SortKey> value) {
+    sort = value;
+  }
+
+  void resize(int column, float width) {
+    widths[column] = width;
+  }
+
+  void filters(List<DataGrid.Filter> value) {
+    filters = value;
+  }
+
   static List<DataGrid.Selection> modes() {
     // docs:start grid-modes
     var rows = new DataGrid.Selection(DataGrid.Mode.ROWS); // whole rows, as results are read
@@ -128,7 +144,7 @@ final class Grids {
             COUNT,
             DataGrid.options()
                 .select(s.selection)
-                .onResize((column, width) -> s.fitted[column] = width) // the widths are the app's
+                .onResize(s::resizeFitted) // the widths are the app's
                 .fitColumns(s.fit)) // once; s.fit.reset() with a new result fits again
         .key("orders")
         .label("Orders")
@@ -156,8 +172,8 @@ final class Grids {
             COUNT,
             DataGrid.options()
                 .select(s.selection)
-                .sort(s.sort, keys -> s.sort = keys) // the app sorts, see order()
-                .onResize((column, width) -> s.widths[column] = width)
+                .sort(s.sort, s::sort) // the app sorts, see order()
+                .onResize(s::resize)
                 .columns(s.layout) // order and hidden columns
                 .contextMenu(s.gridMenu, List.of()))
         .key("orders")
@@ -214,30 +230,7 @@ final class Grids {
         t,
         PRIMARY,
         count == 0 ? "Commit" : "Commit (" + count + ")",
-        count == 0
-            ? null
-            : () -> {
-              if (!s.selection.commitEdit()) {
-                return; // the open editor refused its value: it stays open, the rows stay put
-              }
-              for (GridChanges.Change change : s.changes.changes()) { // the deletes first
-                int row = (int) change.key(); // the row's index, for an insert below 0
-                switch (change.kind()) {
-                  case DELETE -> s.rows.set(row, null); // removed after the updates
-                  case UPDATE -> change.values().forEach((c, value) -> s.rows.get(row)[c] = value);
-                  case INSERT -> {
-                    String[] order = new String[4];
-                    change.values().forEach((c, value) -> order[c] = value);
-                    order[0] = String.valueOf(s.nextId++); // as a database gives the key
-                    s.rows.add(order); // at the end: a database decides where it goes
-                  }
-                }
-              }
-              s.rows.removeIf(Objects::isNull);
-              // The rows hold the changes now: new GridChanges over them, with their new count.
-              s.changes = new GridChanges(s.rows.size(), (r, c) -> s.rows.get(r)[c]);
-              s.selection.clear(); // deleted rows moved the indexes the selection points at
-            });
+        count == 0 ? null : s::commit);
     El revert = Button.button(t, SECONDARY, "Revert", count == 0 ? null : s.changes::clear);
     // docs:end grid-edit
     return Frame.of(
@@ -246,6 +239,32 @@ final class Grids {
             .wFull()
             .grow(1));
   }
+
+  // docs:start grid-edit-commit
+  /** The Commit button: writes the changes into the rows. */
+  void commit() {
+    if (!selection.commitEdit()) {
+      return; // the open editor refused its value: it stays open, the rows stay put
+    }
+    for (GridChanges.Change change : changes.changes()) { // the deletes first
+      int row = (int) change.key(); // the row's index, for an insert below 0
+      switch (change.kind()) {
+        case DELETE -> rows.set(row, null); // removed after the updates
+        case UPDATE -> change.values().forEach((c, value) -> rows.get(row)[c] = value);
+        case INSERT -> {
+          String[] order = new String[4];
+          change.values().forEach((c, value) -> order[c] = value);
+          order[0] = String.valueOf(nextId++); // as a database gives the key
+          rows.add(order); // at the end: a database decides where it goes
+        }
+      }
+    }
+    rows.removeIf(Objects::isNull);
+    // The rows hold the changes now: new GridChanges over them, with their new count.
+    changes = new GridChanges(rows.size(), (r, c) -> rows.get(r)[c]);
+    selection.clear(); // deleted rows moved the indexes the selection points at
+  }
+  // docs:end grid-edit-commit
 
   // docs:start typed-rows
   enum Status {
@@ -290,6 +309,21 @@ final class Grids {
   // docs:end typed-rows
   List<DataGrid.SortKey> typedSort = List.of();
 
+  // docs:start grid-typed-commit
+  void sortOrders(GridTable<Order> table, List<Column> columns, List<DataGrid.SortKey> keys) {
+    typedSort = keys;
+    orders.sort(table.comparator(columns, keys)); // the app sorts its rows
+  }
+
+  String commitOrder(int row, Order order) {
+    if (order.customer().isBlank()) {
+      return "A customer is required"; // refused: the editor stays open
+    }
+    orders.set(row, order); // the new record from the wither
+    return null;
+  }
+  // docs:end grid-typed-commit
+
   static El typed(Grids s) {
     Theme t = s.t;
     // docs:start grid-typed
@@ -308,17 +342,8 @@ final class Grids {
             rows.size(),
             DataGrid.options()
                 .select(s.selection)
-                .sort(s.typedSort, keys -> {
-                  s.typedSort = keys;
-                  s.orders.sort(table.comparator(columns, keys)); // the app sorts its rows
-                })
-                .onCommit(table, (row, order) -> {
-                  if (order.customer().isBlank()) {
-                    return "A customer is required"; // refused: the editor stays open
-                  }
-                  s.orders.set(row, order); // the new record from the wither
-                  return null;
-                }))
+                .sort(s.typedSort, keys -> s.sortOrders(table, columns, keys))
+                .onCommit(table, s::commitOrder))
         .key("orders")
         .label("Orders")
         .grow(1);
@@ -397,11 +422,11 @@ final class Grids {
             rows.length,
             DataGrid.options()
                 .select(s.selection)
-                .filters(s.filters, f -> s.filters = f)) // the grid filters nothing itself
+                .filters(s.filters, s::filters)) // the grid filters nothing itself
         .key("orders")
         .label("Orders")
         .grow(1);
-    El bar = DataGrid.filterBar(t, columns, s.filters, f -> s.filters = f); // null without any
+    El bar = DataGrid.filterBar(t, columns, s.filters, s::filters); // null without any
     // docs:end grid-filter
     return Frame.of(
         t,
@@ -487,6 +512,24 @@ final class Grids {
   }
   // docs:end tree-failure
 
+  // docs:start tree-handlers
+  void selected(Node value) {
+    selected = value;
+  }
+
+  void expand(Node node, boolean open) {
+    if (open) {
+      this.open.add(node.name());
+    } else {
+      this.open.remove(node.name());
+    }
+  }
+
+  void activate(Node node) {
+    said = "open " + node.name();
+  }
+  // docs:end tree-handlers
+
   static El tree(Grids s) {
     Theme t = s.t;
     // docs:start tree
@@ -495,15 +538,9 @@ final class Grids {
             model(t),
             node -> s.open.contains(node.name()), // which nodes are open
             s.selected,
-            node -> s.selected = node, // the selection
-            (node, open) -> { // open or close one
-              if (open) {
-                s.open.add(node.name());
-              } else {
-                s.open.remove(node.name());
-              }
-            },
-            node -> s.said = "open " + node.name()) // Enter, a double press
+            s::selected, // the selection
+            s::expand, // open or close one
+            s::activate) // Enter, a double press
         .key("schema")
         .label("Schema")
         .grow(1);

@@ -106,12 +106,14 @@ final class Commits {
                     Card.footer(t, Label.label(t, s.status).key("status")))
                 .wFull()
                 .grow(1))
-        .onKey(k -> {
-          if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
-            s.save();
-            return true;
-          }
-          return false;
-        });
+        .onKey(s::key);
+  }
+
+  boolean key(Key k) {
+    if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
+      save();
+      return true;
+    }
+    return false;
   }
 }
