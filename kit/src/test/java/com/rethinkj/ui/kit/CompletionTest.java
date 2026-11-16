@@ -265,4 +265,37 @@ class CompletionTest {
     tree = run(app, "await");
     assertTrue(tree.contains("label=\"customers\"") && !tree.contains("#loading"), tree);
   }
+
+  @Test
+  void entriesTheAppLoadsIntoItsOwnStateShowLoadingUntilTheyArrive() throws IOException {
+    TextLibraries.assumeLoaded();
+    CountDownLatch release = new CountDownLatch(1);
+    var catalog = new Object() {
+      App<Query> app;
+      List<String> names; // the app's own state, which its work fills; null until it has
+      boolean asked;
+
+      List<Completion.Entry> suggest(String word) {
+        if (!asked) {
+          asked = true;
+          app.background(
+              "names",
+              () -> {
+                release.await();
+                return NAMES;
+              },
+              found -> names = found,
+              error -> {});
+        }
+        app.state().completion.loading(names == null);
+        return names == null ? List.of() : CompletionTest.suggest(word);
+      }
+    };
+    catalog.app = app(catalog::suggest);
+    String tree = run(catalog.app, "frame\npress #query\ntype \"SELECT cu\"");
+    assertTrue(tree.contains("el #loading"), "open with nothing but the waiting row: " + tree);
+    release.countDown();
+    tree = run(catalog.app, "await");
+    assertTrue(tree.contains("label=\"customers\"") && !tree.contains("#loading"), tree);
+  }
 }

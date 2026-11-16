@@ -1,0 +1,1 @@
+- `Completion.State.loading(true)` keeps the list of `Completion.complete` open with a row "Loading…" below its entries while the app still loads them into its own state, as from a catalog that fills in the background. Before, a function that had nothing yet returned an empty list, which closed the list until the next keystroke.

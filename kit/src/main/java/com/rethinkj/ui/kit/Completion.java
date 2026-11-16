@@ -40,7 +40,8 @@ import java.util.function.Predicate;
  * entries to show, in order; the kit shows them as they come and filters nothing. What stands
  * before the word, such as {@code orders.}, the app reads from its own text at the caret. Entries
  * that take time to find, as from a database, come from another thread with {@link
- * #completeInBackground}, which shows a row "Loading…" meanwhile. In a tree dump
+ * #completeInBackground}, which shows a row "Loading…" meanwhile; entries the app still loads into
+ * its own state show that row while {@link State#loading} says so. In a tree dump
  * the list is {@code role=listbox} with {@code label="Completions"}, its entries {@code
  * role=option} with their text as the label and the keys {@code option-<index>}, the highlighted
  * one {@code selected}. Only entries in or near the visible part are built. The list is as wide
@@ -85,6 +86,7 @@ public final class Completion {
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
+    private boolean loading; // set by the app: what suggest returns is not all there yet
     // completeInBackground: the word asked for, the work that finds its entries, and the entries
     // found last, which show until the next arrive.
     private String asked;
@@ -129,6 +131,17 @@ public final class Completion {
       return this;
     }
 
+    /**
+     * Says whether entries are still on their way, as while the app loads them into its own state:
+     * the open list then shows a last row "Loading…" below the entries it has, which alone keeps
+     * it open, until set back to false. The app sets it before {@link #complete} or in its
+     * function, which the next build calls again for the entries that arrived.
+     */
+    public State loading(boolean loading) {
+      this.loading = loading;
+      return this;
+    }
+
     /** The highlighted entry's index. */
     public int highlight() {
       return highlight;
@@ -145,7 +158,8 @@ public final class Completion {
    * @param field an {@link El#editable} field, such as a {@link CodeEditor}
    * @param caret where the field's caret is, as its {@link El#onSelect} handler told the app
    * @param suggest the entries for the part of the word before the caret, called on the app's
-   *     thread on every build while the list is open
+   *     thread on every build while the list is open; while more are on their way, it sets {@link
+   *     State#loading}
    * @return the field
    */
   public static El complete(
@@ -202,7 +216,7 @@ public final class Completion {
     List<Entry> entries = !state.open
         ? List.of()
         : background == null ? suggest.apply(word) : ask(app, state, background, word, suggest);
-    boolean loading = state.work != null;
+    boolean loading = state.work != null || state.loading; // read after suggest, which may set it
     if (entries.isEmpty() && !loading) {
       // A list with nothing to show is closed, or it would show wherever the caret went next,
       // as after a number typed, Home, a press or a find bar's match.
