@@ -11,7 +11,7 @@ package com.rethinkj.ui;
  * <pre>{@code
  * final class Query { String sql = ""; final FieldState field = new FieldState(); }
  *
- * El.text(q.sql).editable(v -> q.sql = v).multiline().fieldState(q.field)
+ * El.text(query.sql).editable(value -> query.sql = value).multiline().fieldState(query.field)
  * }</pre>
  *
  * <p>The app keeps one per field, as it keeps a {@code Menu.State} per menu, and gives it to the

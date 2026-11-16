@@ -129,19 +129,19 @@ public final class Colors {
   }
 
   /**
-   * The colour {@code t} of the way from {@code a} to {@code b}, from 0 to 1, mixed in linear
-   * light as {@link #over} does, alpha too: {@code mix(a, b, t)} of two opaque colours is {@code
-   * over(a, alpha(b, t))} without rounding {@code t} to 8 bits.
+   * The colour {@code amount} of the way from {@code from} to {@code to}, from 0 to 1, mixed in
+   * linear light as {@link #over} does, alpha too: {@code mix(from, to, amount)} of two opaque
+   * colours is {@code over(from, alpha(to, amount))} without rounding {@code amount} to 8 bits.
    */
-  public static int mix(int a, int b, double t) {
-    if (!(t >= 0 && t <= 1)) {
-      throw new IllegalArgumentException("a share from 0 to 1, not " + t);
+  public static int mix(int from, int to, double amount) {
+    if (!(amount >= 0 && amount <= 1)) {
+      throw new IllegalArgumentException("a share from 0 to 1, not " + amount);
     }
-    int alpha = (int) Math.round(alpha(a) + (alpha(b) - alpha(a)) * t);
+    int alpha = (int) Math.round(alpha(from) + (alpha(to) - alpha(from)) * amount);
     int argb = alpha;
     for (int shift = 16; shift >= 0; shift -= 8) {
-      double mixed =
-          linear((a >>> shift & 0xFF) / 255.0) * (1 - t) + linear((b >>> shift & 0xFF) / 255.0) * t;
+      double mixed = linear((from >>> shift & 0xFF) / 255.0) * (1 - amount)
+          + linear((to >>> shift & 0xFF) / 255.0) * amount;
       argb = argb << 8 | (int) Math.round(srgb(mixed) * 255);
     }
     return argb;
@@ -158,9 +158,9 @@ public final class Colors {
    * WCAG's contrast ratio between two colours, from 1 to 21, the same either way round; alphas are
    * ignored, so lay a translucent colour {@link #over} what it lies on first.
    */
-  public static double contrast(int a, int b) {
-    double la = luminance(a);
-    double lb = luminance(b);
+  public static double contrast(int first, int second) {
+    double la = luminance(first);
+    double lb = luminance(second);
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
   }
 

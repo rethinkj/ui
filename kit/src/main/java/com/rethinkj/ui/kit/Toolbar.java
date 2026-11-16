@@ -17,13 +17,14 @@ import java.util.function.Consumer;
  * its width changes.
  *
  * <pre>{@code
- * Toolbar.toolbar(t, s.toolbar, "Query", List.of(
- *     Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", s::refresh),
- *     Toolbar.split(Button.Variant.PRIMARY, Symbol.PLAY, "Run", s::run, s.runMenu, runItems),
+ * Toolbar.toolbar(theme, state.toolbar, "Query", List.of(
+ *     Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh),
+ *     Toolbar.split(
+ *         Button.Variant.PRIMARY, Symbol.PLAY, "Run", state::run, state.runMenu, runItems),
  *     Toolbar.separator(),
- *     Toolbar.toggle(Symbol.PIN, "Keep results", s.keep, on -> s.keep = on),
+ *     Toolbar.toggle(Symbol.PIN, "Keep results", state.keep, on -> state.keep = on),
  *     Toolbar.spacer(),
- *     Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", s::export)))
+ *     Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", state::export)))
  * }</pre>
  *
  * <p>The keys follow WAI-ARIA's toolbar: the toolbar is one stop for Tab, at the item it last had
@@ -167,21 +168,21 @@ public final class Toolbar {
   /**
    * @param label what the toolbar is for, its label in a tree dump
    */
-  public static El toolbar(Theme t, State state, String label, List<Item> items) {
+  public static El toolbar(Theme theme, State state, String label, List<Item> items) {
     int shown = state.fitting.fit(
-        t, items.size(), Fitting.Direction.PREFIX, 0, i -> switch (items.get(i).kind) {
+        theme, items.size(), Fitting.Direction.PREFIX, 0, i -> switch (items.get(i).kind) {
           case SPACER -> null; // takes what is left, nothing when nothing is
-          case SEPARATOR -> separator(t);
+          case SEPARATOR -> separator(theme);
           default -> state.fitting.width(id(items, i));
         });
-    El bar = state.fitting.row(t).role("toolbar").label(label);
+    El bar = state.fitting.row(theme).role("toolbar").label(label);
     List<El> stops = new ArrayList<>();
     for (int i = 0; i < shown; i++) {
       Item item = items.get(i);
       if (item.kind == Kind.SEPARATOR && (i == shown - 1 || i == 0)) {
         continue; // none at an end
       }
-      El el = build(t, item, stops);
+      El el = build(theme, item, stops);
       String id = id(items, i);
       bar.child(
           item.kind == Kind.SEPARATOR || item.kind == Kind.SPACER
@@ -202,11 +203,11 @@ public final class Toolbar {
         hidden.removeLast();
       }
       El more = Button.icon(
-              t, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
+              theme, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
           .key("more")
           .onResize(state.fitting.measure("more"));
       stops.add(more);
-      bar.child(Menu.dropdown(t, more, state.more, hidden));
+      bar.child(Menu.dropdown(theme, more, state.more, hidden));
     }
     state.keys.apply(bar, stops);
     return bar;
@@ -219,45 +220,45 @@ public final class Toolbar {
   }
 
   /** Builds an item; the elements Tab and the arrows reach go into {@code stops}. */
-  private static El build(Theme t, Item item, List<El> stops) {
+  private static El build(Theme theme, Item item, List<El> stops) {
     return switch (item.kind) {
       case BUTTON ->
         stop(
             stops,
-            Button.icon(t, item.variant, item.icon, item.label, item.onPress),
+            Button.icon(theme, item.variant, item.icon, item.label, item.onPress),
             item.onPress != null);
       case TEXT ->
         stop(
             stops,
-            Button.button(t, item.variant, item.icon, item.label, item.onPress),
+            Button.button(theme, item.variant, item.icon, item.label, item.onPress),
             item.onPress != null);
       case TOGGLE ->
         stop(
             stops,
-            Button.toggleIcon(t, item.icon, item.label, item.on, item.onToggle),
+            Button.toggleIcon(theme, item.icon, item.label, item.on, item.onToggle),
             item.onToggle != null);
       case SPLIT -> {
         El split = Button.split(
-            t, item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
+            theme, item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
         stop(stops, split.children().getFirst(), item.onPress != null);
         El more = split.children().getLast();
         stop(stops, more, more.onPress() != null);
         yield split;
       }
       case SEPARATOR ->
-        el().w(t.size().stroke())
-            .h(t.size().control() - 2 * t.space().s())
+        el().w(theme.size().stroke())
+            .h(theme.size().control() - 2 * theme.space().s())
             .shrink(0)
-            .margin(0, t.space().xs(), 0, t.space().xs())
-            .fill(t.border().divider())
+            .margin(0, theme.space().xs(), 0, theme.space().xs())
+            .fill(theme.border().divider())
             .role("separator");
       case SPACER -> el().grow(1);
     };
   }
 
   /** The width a separator takes, its margins included. */
-  private static float separator(Theme t) {
-    return t.size().stroke() + 2 * t.space().xs();
+  private static float separator(Theme theme) {
+    return theme.size().stroke() + 2 * theme.space().xs();
   }
 
   private static El stop(List<El> stops, El el, boolean enabled) {

@@ -25,11 +25,11 @@ import java.util.function.ObjIntConsumer;
  * <pre>{@code
  * final TabGroups<Doc> groups = new TabGroups<>(docs, (group, options) -> app.windows().open(
  *     group.activeTab().title, 520, 340, options.frameless(),
- *     new App<>(this, s -> s.windowView(group))));
+ *     new App<>(this, state -> state.windowView(group))));
  *
  * El windowView(TabGroups.Group<Doc> group) { // also the main window's, with groups.main()
  *   return col().wFull().hFull().children(titleBar(...),
- *       groups.tabs(theme, group, d -> new Tab(d.title), d -> editor(d)).grow(1));
+ *       groups.tabs(theme, group, doc -> new Tab(doc.title), doc -> editor(doc)).grow(1));
  * }
  * }</pre>
  *
@@ -216,7 +216,7 @@ public final class TabGroups<T> {
    * @param content the content of the active tab, and of none (null) in an empty group, whose
    *     bar still takes tabs; it may return null for no content
    */
-  public El tabs(Theme t, Group<T> group, Function<T, Tabs.Tab> tab, Function<T, El> content) {
+  public El tabs(Theme theme, Group<T> group, Function<T, Tabs.Tab> tab, Function<T, El> content) {
     boolean alone = group.window != null && group.tabs.size() == 1;
     // The menu opens for the active tab, acts on that tab wherever it goes, and ends with it.
     if (!group.menu.isOpen()) {
@@ -248,7 +248,7 @@ public final class TabGroups<T> {
       body = El.col().key(key).child(body.grow(1));
     }
     return Tabs.tabs(
-        t,
+        theme,
         group.tabs.stream().map(tab).toList(),
         group.active,
         i -> select(group, i),

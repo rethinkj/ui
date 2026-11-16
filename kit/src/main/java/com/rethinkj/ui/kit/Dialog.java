@@ -18,9 +18,10 @@ import java.util.function.Predicate;
  * it is open, usually to the root, and closes it in its handlers:
  *
  * <pre>{@code
- * El rename = button(t, PRIMARY, "Rename", s.name.isBlank() ? null : s::rename);
- * root.overlay(s.renaming ? Dialog.dialog(t, "Rename table", field,
- *     List.of(button(t, SECONDARY, "Cancel", s::cancel), rename), rename, s::cancel) : null);
+ * El rename = button(theme, PRIMARY, "Rename", state.name.isBlank() ? null : state::rename);
+ * root.overlay(state.renaming ? Dialog.dialog(theme, "Rename table", field,
+ *     List.of(button(theme, SECONDARY, "Cancel", state::cancel), rename), rename, state::cancel)
+ *     : null);
  * }</pre>
  *
  * <p>As it opens, the focus goes to its first focusable element; Tab and Shift+Tab go around
@@ -64,8 +65,9 @@ public final class Dialog {
    * @param buttons the actions, in the order shown, the main one usually last
    * @param onDismiss runs on Escape and on a press outside the dialog
    */
-  public static El dialog(Theme t, String title, El content, List<El> buttons, Runnable onDismiss) {
-    return dialog(t, title, content, buttons, onDismiss, options());
+  public static El dialog(
+      Theme theme, String title, El content, List<El> buttons, Runnable onDismiss) {
+    return dialog(theme, title, content, buttons, onDismiss, options());
   }
 
   /**
@@ -81,8 +83,14 @@ public final class Dialog {
    * @throws IllegalArgumentException if {@code defaultButton} is not one of {@code buttons}
    */
   public static El dialog(
-      Theme t, String title, El content, List<El> buttons, El defaultButton, Runnable onDismiss) {
-    return dialog(t, title, content, buttons, onDismiss, options().defaultButton(defaultButton));
+      Theme theme,
+      String title,
+      El content,
+      List<El> buttons,
+      El defaultButton,
+      Runnable onDismiss) {
+    return dialog(
+        theme, title, content, buttons, onDismiss, options().defaultButton(defaultButton));
   }
 
   /** What a dialog has beyond its title, content and buttons; {@link #options()} is a plain one. */
@@ -151,23 +159,28 @@ public final class Dialog {
    * @throws IllegalArgumentException if the default button is not one of {@code buttons}
    */
   public static El dialog(
-      Theme t, String title, El content, List<El> buttons, Runnable onDismiss, Options options) {
+      Theme theme,
+      String title,
+      El content,
+      List<El> buttons,
+      Runnable onDismiss,
+      Options options) {
     El defaultButton = options.defaultButton;
     if (defaultButton != null && buttons.stream().noneMatch(b -> b == defaultButton)) {
       throw new IllegalArgumentException(
           "The default button must be one of the dialog's buttons, the same El.");
     }
     Predicate<Key> enter = defaultButton == null ? k -> false : enterPresses(defaultButton);
-    El head = row().gap(t.space().m()).align(Style.Align.CENTER).shrink(0);
+    El head = row().gap(theme.space().m()).align(Style.Align.CENTER).shrink(0);
     if (options.leading != null) {
       head.child(options.leading.shrink(0));
     }
     head.child(Tooltip.whenShortened(
-        t,
+        theme,
         El.text(title)
-            .font(t.type().dialog().font().get())
-            .fontSize(t.type().dialog().size())
-            .color(t.text().primary())
+            .font(theme.type().dialog().font().get())
+            .fontSize(theme.type().dialog().size())
+            .color(theme.text().primary())
             .role("heading")
             .level(2)
             .label(title)
@@ -181,20 +194,20 @@ public final class Dialog {
       head.child(e.shrink(0));
     }
     El body = col()
-        .gap(t.space().l())
+        .gap(theme.space().l())
         .minSize(0, 0)
         .children(
-            scrolling(t, content).key("dialog-content"),
+            scrolling(theme, content).key("dialog-content"),
             buttons.isEmpty() && options.start.isEmpty() // no row, so no gap for it
                 ? null
-                : buttons(t, options.start, buttons));
+                : buttons(theme, options.start, buttons));
     El dialog = col()
         .key("dialog")
         .role("dialog")
         .label(title)
         .centerInWindow()
         .modal()
-        .scrim(t.surface().scrim())
+        .scrim(theme.surface().scrim())
         .onDismiss(onDismiss)
         .onKey(k -> {
           if (k.name().equals("Escape") && k.modifiers() == 0) {
@@ -204,14 +217,14 @@ public final class Dialog {
           return enter.test(k);
         })
         .justify(Style.Content.END) // at the top, in reverse
-        .margin(t.space().xl()) // keeps a dialog as large as the window off its edges
-        .padding(t.space().xl())
-        .gap(t.space().l())
-        .radius(t.radius().large())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().dialog())
-        .motion(t.motion().fade())
+        .margin(theme.space().xl()) // keeps a dialog as large as the window off its edges
+        .padding(theme.space().xl())
+        .gap(theme.space().l())
+        .radius(theme.radius().large())
+        .fill(theme.surface().raised())
+        .border(theme.size().stroke(), theme.border().control())
+        .shadow(theme.elevation().dialog())
+        .motion(theme.motion().fade())
         .children(body, head);
     // The head comes last in the tree, so that the focus opens in the content and Tab reaches a
     // close button in the head after the buttons; drawn at the top all the same.
@@ -225,9 +238,9 @@ public final class Dialog {
    * focus rings of what lies at its edges, which its clip would otherwise cut, and for its bars:
    * as much padding inside as margin outside, so the content keeps its place.
    */
-  static El scrolling(Theme t, El content) {
-    float ring = ring(t);
-    Scrollbars bars = t.scrollbars();
+  static El scrolling(Theme theme, El content) {
+    float ring = ring(theme);
+    Scrollbars bars = theme.scrollbars();
     // Along the right and the bottom, room for a bar's strip too, so that it lies beside the
     // content and its rings, not over them.
     float strip = Math.max(ring, bars.strip());
@@ -241,12 +254,12 @@ public final class Dialog {
   }
 
   /** How far a focus ring reaches out of its element at most: a primary button's, with its gap. */
-  static float ring(Theme t) {
-    return Scene.RING + t.size().ringGap();
+  static float ring(Theme theme) {
+    return Scene.RING + theme.size().ringGap();
   }
 
-  private static El buttons(Theme t, List<El> start, List<El> buttons) {
-    El row = row().gap(t.space().m()).align(Style.Align.CENTER).shrink(0);
+  private static El buttons(Theme theme, List<El> start, List<El> buttons) {
+    El row = row().gap(theme.space().m()).align(Style.Align.CENTER).shrink(0);
     if (start.isEmpty()) {
       return row.justify(Style.Content.END).children(buttons.toArray(El[]::new));
     }

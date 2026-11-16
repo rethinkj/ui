@@ -844,7 +844,7 @@ public final class El {
    * part exist as elements. A million rows cost no more per frame than a dozen.
    *
    * <pre>{@code
-   * col().key("orders").grow(1).rows(orders.size(), 28, i -> orderRow(orders.get(i)))
+   * col().key("orders").grow(1).rows(orders.size(), 28, index -> orderRow(orders.get(index)))
    * }</pre>
    *
    * <p>{@link App} calls {@code row} with a row's index, from 0, for the rows inside the list's
@@ -1883,10 +1883,10 @@ public final class El {
    * before it moved that far.
    *
    * <p>All steps go to the handler that the element had when the pointer went down, so that it
-   * can work from the values of that view, as in {@code onDrag(d -> resize(width + d.dx()))}. It
-   * gets {@link Drag.Phase#CANCEL} instead of the next step when the element has left the tree,
-   * and when the pointer goes down again before a release. Like {@link #onPress}, it runs in
-   * {@link App#frame}; the wheel scrolls during a drag as before.
+   * can work from the values of that view, as in {@code onDrag(drag -> resize(width +
+   * drag.dx()))}. It gets {@link Drag.Phase#CANCEL} instead of the next step when the element has
+   * left the tree, and when the pointer goes down again before a release. Like {@link #onPress}, it
+   * runs in {@link App#frame}; the wheel scrolls during a drag as before.
    */
   public El onDrag(Consumer<Drag> handler) {
     this.onDrag = handler;
@@ -2046,9 +2046,10 @@ public final class El {
 
   /**
    * Changes how this element looks while the pointer is over it or over an element inside it, as
-   * CSS's {@code :hover} does: {@code el().fill(GREY).whenHovered(e -> e.fill(LIGHT_GREY))}. After
-   * each rebuild of the view and before layout, {@link App} calls {@code look} with the element.
-   * With {@link #motion} it springs to the changed values and back like after any other change.
+   * CSS's {@code :hover} does: {@code el().fill(GREY).whenHovered(element ->
+   * element.fill(LIGHT_GREY))}. After each rebuild of the view and before layout, {@link App}
+   * calls {@code look} with the element. With {@link #motion} it springs to the changed values and
+   * back like after any other change.
    *
    * <p>A look may call what changes the element's appearance ({@link #fill}, {@link #radius},
    * {@link #border}, {@link #opacity}, {@link #cursor}) and its layout properties (size, spacing,
@@ -2288,11 +2289,12 @@ public final class El {
    * Shows {@code overlay} above everything else, beside this element, while this element is in
    * the tree and shows: after the whole tree, outside the clips of this element's ancestors. A
    * component returns its anchor with what it opens attached, and the app's state says whether it
-   * is open: {@code button.overlay(s.menuOpen ? menu : null)}. The overlay is an ordinary tree,
-   * with layout, text, scrolling, motion and presence; it gets its own clips, takes input before
-   * the tree below it, and keys that it does not take go on to this element and its ancestors.
-   * Its identity comes from this element and its key or index among this element's overlays, so
-   * that one with a key and {@link #motion} fades in when it opens and out when it closes.
+   * is open: {@code button.overlay(state.menuOpen ? menu : null)}. The overlay is an ordinary
+   * tree, with layout, text, scrolling, motion and presence; it gets its own clips, takes input
+   * before the tree below it, and keys that it does not take go on to this element and its
+   * ancestors. Its identity comes from this element and its key or index among this element's
+   * overlays, so that one with a key and {@link #motion} fades in when it opens and out when it
+   * closes.
    *
    * <p>After layout, {@link App} lays the overlay out on its own, at most as large as the window,
    * and places it as {@link #side}, {@link #atPoint} or {@link #centerInWindow} say, beside this
@@ -2359,9 +2361,9 @@ public final class El {
    * and can take Up, Down, Enter and Escape for the overlay.
    *
    * <pre>{@code
-   * El editor = El.text(s.sql).editable(v -> s.sql = v).multiline()
-   *     .onSelect((caret, anchor) -> s.caret = caret);
-   * editor.overlay(s.completing ? completions(s).atCaret().keepFocus() : null);
+   * El editor = El.text(state.sql).editable(value -> state.sql = value).multiline()
+   *     .onSelect((caret, anchor) -> state.caret = caret);
+   * editor.overlay(state.completing ? completions(state).atCaret().keepFocus() : null);
    * }</pre>
    */
   public El atCaret() {
@@ -2545,7 +2547,7 @@ public final class El {
    * Like {@link #autofocus()}, and also takes the focus again whenever a build of the view gives
    * this element another {@code key} than the tree before, as {@link #reveal} keeps a part in
    * view: the first field with an error takes the focus after each Save with {@code
-   * autofocus(s.saves)}, the count of Save presses in the state. Not in the rows of a virtual
+   * autofocus(state.saves)}, the count of Save presses in the state. Not in the rows of a virtual
    * list, whose rows appear whenever they scroll into view.
    *
    * @param key compared with {@link Object#equals}; null, the default, takes no focus

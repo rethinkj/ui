@@ -476,7 +476,7 @@ public final class WindowLoop {
    *
    * <pre>{@code
    * new WindowLoop(window, app, presenter)
-   *     .appearance(a -> app.state().dark = a.dark())
+   *     .appearance(appearance -> app.state().dark = appearance.dark())
    *     .run();
    * }</pre>
    *

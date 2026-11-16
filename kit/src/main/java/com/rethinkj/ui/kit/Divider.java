@@ -19,30 +19,33 @@ public final class Divider {
   private Divider() {}
 
   /** A line across a column. */
-  public static El divider(Theme t) {
-    return line(t).role("separator");
+  public static El divider(Theme theme) {
+    return line(theme).role("separator");
   }
 
   /** A line across a column with a label in muted text in its middle. */
-  public static El divider(Theme t, String label) {
+  public static El divider(Theme theme, String label) {
     return row()
         .role("separator")
         .label(label)
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
-        .children(line(t).grow(1), label(t, Label.Variant.MUTED, label), line(t).grow(1));
+        .children(
+            line(theme).grow(1),
+            label(theme, Label.Variant.MUTED, label),
+            line(theme).grow(1));
   }
 
   /** An upright line in a row, as high as the row. */
-  public static El vertical(Theme t) {
+  public static El vertical(Theme theme) {
     return el().role("separator")
-        .w(t.size().stroke())
+        .w(theme.size().stroke())
         .shrink(0)
-        .fill(t.border().divider())
+        .fill(theme.border().divider())
         .alignSelf(Style.Align.STRETCH);
   }
 
-  private static El line(Theme t) {
-    return el().h(t.size().stroke()).shrink(0).fill(t.border().divider());
+  private static El line(Theme theme) {
+    return el().h(theme.size().stroke()).shrink(0).fill(theme.border().divider());
   }
 }

@@ -22,14 +22,17 @@ import java.util.function.Consumer;
  * inside its frame that shows and hides the password:
  *
  * <pre>{@code
- * revealable(t, passwordField(t, s.password, null, v -> s.password = v).label("Password"),
- *     s.revealed, () -> s.revealed = !s.revealed)
+ * revealable(theme,
+ *     passwordField(theme, state.password, null, value -> state.password = value)
+ *         .label("Password"),
+ *     state.revealed, () -> state.revealed = !state.revealed)
  * }</pre>
  *
  * <p>A text area for a query, six lines high and as wide as its column:
  *
  * <pre>{@code
- * codeArea(t, s.query, "SQL", v -> s.query = v).key("query").lines(6).wFull()
+ * codeArea(theme, state.query, "SQL", value -> state.query = value)
+ *     .key("query").lines(6).wFull()
  * }</pre>
  */
 public final class TextField {
@@ -37,8 +40,8 @@ public final class TextField {
   private TextField() {}
 
   /** A field without placeholder; give it a label with {@code .label("...")}. */
-  public static El textField(Theme t, String value, Consumer<String> onChange) {
-    return textField(t, value, null, onChange);
+  public static El textField(Theme theme, String value, Consumer<String> onChange) {
+    return textField(theme, value, null, onChange);
   }
 
   /**
@@ -47,26 +50,28 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the field
    */
-  public static El textField(Theme t, String value, String placeholder, Consumer<String> onChange) {
-    float m = t.space().m();
-    return frame(t, El.text(value).editable(onChange), t.type().body(), placeholder, onChange)
-        .h(t.size().control())
-        .padding(0, m, t.size().stroke(), m); // the bottom's padding stands in for its border
+  public static El textField(
+      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+    float m = theme.space().m();
+    return frame(
+            theme, El.text(value).editable(onChange), theme.type().body(), placeholder, onChange)
+        .h(theme.size().control())
+        .padding(0, m, theme.size().stroke(), m); // the bottom's padding stands in for its border
   }
 
   /**
    * A field of a {@link Prop}: its string, written back on each edit, with the error of its field
    * when the prop comes from an {@link Editing}. A prop that cannot be written disables it.
    */
-  public static El textField(Theme t, Prop<String> value) {
-    return textField(t, value, null);
+  public static El textField(Theme theme, Prop<String> value) {
+    return textField(theme, value, null);
   }
 
   /** A field of a {@link Prop} with a placeholder, as {@link #textField(Theme, Prop)}. */
-  public static El textField(Theme t, Prop<String> value, String placeholder) {
+  public static El textField(Theme theme, Prop<String> value, String placeholder) {
     String text = value.get();
     return Prop.shown(
-        t, textField(t, text == null ? "" : text, placeholder, value.onChange()), value);
+        theme, textField(theme, text == null ? "" : text, placeholder, value.onChange()), value);
   }
 
   /**
@@ -81,8 +86,9 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the area
    */
-  public static El textArea(Theme t, String value, String placeholder, Consumer<String> onChange) {
-    return area(t, t.type().body(), value, placeholder, onChange).wrapText();
+  public static El textArea(
+      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+    return area(theme, theme.type().body(), value, placeholder, onChange).wrapText();
   }
 
   /**
@@ -92,64 +98,71 @@ public final class TextField {
    * focus. Words are those of code ({@link El#codeWords}): a double press on {@code orders} in
    * {@code shop.public.orders} selects that name alone.
    */
-  public static El codeArea(Theme t, String value, String placeholder, Consumer<String> onChange) {
-    El area =
-        area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true).codeWords();
+  public static El codeArea(
+      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+    El area = area(theme, theme.type().mono(), value, placeholder, onChange)
+        .tabIndents(true)
+        .codeWords();
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
-    Scrollbars bars = t.scrollbars();
+    Scrollbars bars = theme.scrollbars();
     area.style().paddingBottom =
-        Len.px(t.space().s() + t.size().stroke() + bars.thickness() + bars.margin());
+        Len.px(theme.space().s() + theme.size().stroke() + bars.thickness() + bars.margin());
     return area;
   }
 
   private static El area(
-      Theme t, Theme.TextStyle style, String value, String placeholder, Consumer<String> onChange) {
-    return frame(t, El.text(value).editable(onChange).multiline(), style, placeholder, onChange)
+      Theme theme,
+      Theme.TextStyle style,
+      String value,
+      String placeholder,
+      Consumer<String> onChange) {
+    return frame(theme, El.text(value).editable(onChange).multiline(), style, placeholder, onChange)
         .lines(4)
         .padding(
-            t.space().s(),
-            t.space().m(),
-            t.space().s() + t.size().stroke(),
-            t.space().m())
-        .scrollbars(t.scrollbars());
+            theme.space().s(),
+            theme.space().m(),
+            theme.space().s() + theme.size().stroke(),
+            theme.space().m())
+        .scrollbars(theme.scrollbars());
   }
 
   /** The look a field and an area share: type, colours, frame and the looks of their states. */
   private static El frame(
-      Theme t, El field, Theme.TextStyle style, String placeholder, Consumer<String> onChange) {
+      Theme theme, El field, Theme.TextStyle style, String placeholder, Consumer<String> onChange) {
     boolean enabled = onChange != null;
-    int fill = t.surface().raised();
+    int fill = theme.surface().raised();
     field
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .label(placeholder)
         .font(style.font().get())
         .fontSize(style.size())
-        .color(enabled ? t.text().primary() : t.text().disabled())
-        .selectionColor(t.accent().selection())
-        .w(t.size().field())
-        .radius(t.radius().medium())
+        .color(enabled ? theme.text().primary() : theme.text().disabled())
+        .selectionColor(theme.accent().selection())
+        .w(theme.size().field())
+        .radius(theme.radius().medium())
         .fill(fill)
-        .motion(t.motion().feedback());
+        .motion(theme.motion().feedback());
     if (enabled) {
-      edge(t, field, t.border().control(), t.border().strong());
+      edge(theme, field, theme.border().control(), theme.border().strong());
     } else {
-      edge(t, field, t.border().divider(), t.border().divider());
+      edge(theme, field, theme.border().divider(), theme.border().divider());
     }
     if (placeholder != null) {
-      field.placeholder(placeholder, enabled ? t.text().muted() : t.text().disabled());
+      field.placeholder(
+          placeholder, enabled ? theme.text().muted() : theme.text().disabled());
     }
     if (!enabled) {
       return field;
     }
-    int hover = over(fill, t.surface().hover());
+    int hover = over(fill, theme.surface().hover());
     return field
         .whenHovered(e -> {
           e.fill(hover);
-          if (e.borderColor() != t.status().danger()) { // an invalid field keeps its frame
-            edge(t, e, t.border().strong(), t.border().strong());
+          if (e.borderColor() != theme.status().danger()) { // an invalid field keeps its frame
+            edge(theme, e, theme.border().strong(), theme.border().strong());
           }
         })
-        .whenFocused(e -> edge(t, e, t.accent().color(), t.accent().color()));
+        .whenFocused(e -> edge(theme, e, theme.accent().color(), theme.accent().color()));
   }
 
   /**
@@ -158,8 +171,8 @@ public final class TextField {
    * box, so that it follows the lower corners; a field has no bottom border and pads its bottom
    * by a stroke instead, which keeps its content where a frame all round would.
    */
-  static El edge(Theme t, El field, int frame, int edge) {
-    float w = t.size().stroke();
+  static El edge(Theme theme, El field, int frame, int edge) {
+    float w = theme.size().stroke();
     return field.border(w, w, 0, w, frame).shadow(Theme.fieldEdge(w, edge));
   }
 
@@ -170,9 +183,9 @@ public final class TextField {
    *
    * @return the field
    */
-  public static El invalid(Theme t, El field) {
-    int danger = t.status().danger();
-    return edge(t, field.invalid(true), danger, danger).whenFocused(null);
+  public static El invalid(Theme theme, El field) {
+    int danger = theme.status().danger();
+    return edge(theme, field.invalid(true), danger, danger).whenFocused(null);
   }
 
   /**
@@ -181,13 +194,13 @@ public final class TextField {
    * textField}; {@link #revealable} adds a button that shows the password.
    */
   public static El passwordField(
-      Theme t, String value, String placeholder, Consumer<String> onChange) {
-    return textField(t, value, placeholder, onChange).masked();
+      Theme theme, String value, String placeholder, Consumer<String> onChange) {
+    return textField(theme, value, placeholder, onChange).masked();
   }
 
   /** A password field of a {@link Prop}, as {@link #textField(Theme, Prop, String)}. */
-  public static El passwordField(Theme t, Prop<String> value, String placeholder) {
-    return textField(t, value, placeholder).masked();
+  public static El passwordField(Theme theme, Prop<String> value, String placeholder) {
+    return textField(theme, value, placeholder).masked();
   }
 
   /**
@@ -211,23 +224,23 @@ public final class TextField {
    * @param revealed whether the string shows, from the app's state
    * @param onToggle runs on a press of the button; the app flips its state. Null disables it
    */
-  public static El revealable(Theme t, El field, boolean revealed, Runnable onToggle) {
+  public static El revealable(Theme theme, El field, boolean revealed, Runnable onToggle) {
     boolean enabled = onToggle != null && (field.onEdit() != null || field.isReadOnly());
     field.masked().revealed(revealed);
     El button = FieldActions.button(
-        t,
+        theme,
         revealed ? Symbol.EYE_OFF : Symbol.EYE,
         revealed ? "Hide password" : "Show password",
         enabled ? onToggle : null);
     if (enabled) {
-      button.focusable().focusRing(t.accent().edge());
+      button.focusable().focusRing(theme.accent().edge());
     }
-    El box = FieldActions.embed(t, field, button, t.size().control());
+    El box = FieldActions.embed(theme, field, button, theme.size().control());
     if (field.onEdit() != null) { // the frame keeps its focused look while the button has the focus
       box.whenFocusWithin(e -> {
         // An invalid field (#invalid, also set after this by a form) keeps its danger border.
-        if (field.borderColor() != t.status().danger()) {
-          edge(t, field, t.accent().color(), t.accent().color());
+        if (field.borderColor() != theme.status().danger()) {
+          edge(theme, field, theme.accent().color(), theme.accent().color());
         }
       });
     }
@@ -242,15 +255,16 @@ public final class TextField {
    *
    * @param field a field of {@link #textField}
    */
-  public static El withIcon(Theme t, El field, Symbol symbol) {
+  public static El withIcon(Theme theme, El field, Symbol symbol) {
     Len height = field.style().height; // the icon in a square as high as the field
-    float side = height.kind() == Len.Kind.PX ? height.value() : t.size().control();
+    float side = height.kind() == Len.Kind.PX ? height.value() : theme.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
-    El mark = icon(t, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+    El mark =
+        icon(theme, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
-    at.left = Len.px((side - t.size().icon()) / 2);
-    at.top = Len.px((side - t.size().icon()) / 2);
+    at.left = Len.px((side - theme.size().icon()) / 2);
+    at.top = Len.px((side - theme.size().icon()) / 2);
     El box = el().children(field, mark);
     box.style().width = Len.FIT_CONTENT;
     return box;

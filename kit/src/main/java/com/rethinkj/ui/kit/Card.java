@@ -18,10 +18,11 @@ import com.rethinkj.ui.Style;
  * and the rounded corners ({@link Theme.Radii#large}) clip them:
  *
  * <pre>{@code
- * card(t,
- *     Card.header(t, "Query history", "The last 50 statements", button(t, GHOST, "Clear", s::clear)),
+ * card(theme,
+ *     Card.header(theme, "Query history", "The last 50 statements",
+ *         button(theme, GHOST, "Clear", state::clear)),
  *     history,
- *     Form.buttons(t, button(t, SECONDARY, "Export…", s::export)))
+ *     Form.buttons(theme, button(theme, SECONDARY, "Export…", state::export)))
  * }</pre>
  *
  * <p>A body that runs to the edges, such as a data grid, goes into a {@link #flush} card, whose
@@ -30,11 +31,12 @@ import com.rethinkj.ui.Style;
  * list with rounded rows, such as a {@link Tree}, goes into it through {@link #inset}:
  *
  * <pre>{@code
- * Card.flush(t,
- *     Card.toolbar(t, "orders", "1,000,000 rows", filter, button(t, PRIMARY, Symbol.PLAY, "Run", s::run)),
- *     Divider.divider(t),
+ * Card.flush(theme,
+ *     Card.toolbar(theme, "orders", "1,000,000 rows", filter,
+ *         button(theme, PRIMARY, Symbol.PLAY, "Run", state::run)),
+ *     Divider.divider(theme),
  *     grid.grow(1),
- *     Card.footer(t, label(t, MUTED, "Row 2 of 1,000,000"), label(t, MUTED, "18 ms")))
+ *     Card.footer(theme, label(theme, MUTED, "Row 2 of 1,000,000"), label(theme, MUTED, "18 ms")))
  * }</pre>
  *
  * <p>{@link Group} is a card whose body is rows, and {@link Tabs} a flush card whose first row is
@@ -64,12 +66,15 @@ public final class Card {
   private Card() {}
 
   /** An {@link Variant#OUTLINED} card. */
-  public static El card(Theme t, El... content) {
-    return card(t, Variant.OUTLINED, content);
+  public static El card(Theme theme, El... content) {
+    return card(theme, Variant.OUTLINED, content);
   }
 
-  public static El card(Theme t, Variant variant, El... content) {
-    return surface(t, variant).padding(t.space().xl()).gap(t.space().l()).children(content);
+  public static El card(Theme theme, Variant variant, El... content) {
+    return surface(theme, variant)
+        .padding(theme.space().xl())
+        .gap(theme.space().l())
+        .children(content);
   }
 
   /**
@@ -78,8 +83,8 @@ public final class Card {
    * left out. It takes no minimum size from its parts, so that a list of rows in it scrolls inside
    * it; the part that fills the rest grows ({@code grid.grow(1)}).
    */
-  public static El flush(Theme t, El... parts) {
-    El card = surface(t, Variant.OUTLINED);
+  public static El flush(Theme theme, El... parts) {
+    El card = surface(theme, Variant.OUTLINED);
     for (El part : parts) {
       if (part == null) {
         continue;
@@ -98,19 +103,19 @@ public final class Card {
   }
 
   /** A card's surface, edge, corners and lift, without padding. */
-  static El surface(Theme t, Variant variant) {
-    El card = col().radius(t.radius().large()).clip().motion(t.motion().feedback());
+  static El surface(Theme theme, Variant variant) {
+    El card = col().radius(theme.radius().large()).clip().motion(theme.motion().feedback());
     return switch (variant) {
       case OUTLINED ->
-        card.fill(t.surface().panel())
-            .border(t.size().stroke(), t.border().subtle())
-            .shadow(t.elevation().card());
+        card.fill(theme.surface().panel())
+            .border(theme.size().stroke(), theme.border().subtle())
+            .shadow(theme.elevation().card());
       // The edge is there but transparent, so that the variants lay out alike.
-      case FILLED -> card.fill(t.surface().panel()).border(t.size().stroke(), 0);
+      case FILLED -> card.fill(theme.surface().panel()).border(theme.size().stroke(), 0);
       case ELEVATED ->
-        card.fill(t.surface().panel())
-            .border(t.size().stroke(), t.border().subtle())
-            .shadow(t.elevation().popup());
+        card.fill(theme.surface().panel())
+            .border(theme.size().stroke(), theme.border().subtle())
+            .shadow(theme.elevation().popup());
     };
   }
 
@@ -122,22 +127,22 @@ public final class Card {
    * @param secondary beside the title; null for none
    * @param actions in the order shown
    */
-  public static El toolbar(Theme t, String title, String secondary, El... actions) {
-    Theme.TextStyle style = t.type().heading();
+  public static El toolbar(Theme theme, String title, String secondary, El... actions) {
+    Theme.TextStyle style = theme.type().heading();
     El bar = row()
-        .padding(t.space().m(), t.space().xl())
-        .gap(t.space().m())
+        .padding(theme.space().m(), theme.space().xl())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .child(El.text(title)
             .font(style.font().get())
             .fontSize(style.size())
-            .color(t.text().primary())
+            .color(theme.text().primary())
             .role("heading")
             .level(3)
             .ellipsis()
             .minSize(0, 0));
     if (secondary != null) {
-      bar.child(label(t, Label.Variant.MUTED, secondary).shrink(0));
+      bar.child(label(theme, Label.Variant.MUTED, secondary).shrink(0));
     }
     bar.child(el().grow(1));
     for (El action : actions) {
@@ -150,15 +155,17 @@ public final class Card {
    * An optional filter bar below a toolbar, inside the card's side padding and apart from the
    * content below it. Returns null for no filters, so a card leaves the whole row out.
    */
-  public static El filters(Theme t, El filters) {
+  public static El filters(Theme theme, El filters) {
     return filters == null
         ? null
-        : row().padding(0, t.space().xl(), t.space().m(), t.space().xl()).child(filters);
+        : row()
+            .padding(0, theme.space().xl(), theme.space().m(), theme.space().xl())
+            .child(filters);
   }
 
   /** The height of a {@link #footer}, for what has to stay clear of it, as a {@link Toast}. */
-  public static float footerHeight(Theme t) {
-    return t.size().control() + t.space().s() + t.size().stroke();
+  public static float footerHeight(Theme theme) {
+    return theme.size().control() + theme.space().s() + theme.size().stroke();
   }
 
   /**
@@ -169,15 +176,15 @@ public final class Card {
    * @param start at the left; null for none
    * @param end at the right, in the order shown
    */
-  public static El footer(Theme t, El start, El... end) {
+  public static El footer(Theme theme, El start, El... end) {
     El row = row()
-        .h(footerHeight(t))
+        .h(footerHeight(theme))
         .shrink(0)
-        .padding(0, t.space().xl())
-        .gap(t.space().l())
+        .padding(0, theme.space().xl())
+        .gap(theme.space().l())
         .align(Style.Align.CENTER)
-        .fill(t.surface().band())
-        .border(t.size().stroke(), 0, 0, 0, t.border().divider());
+        .fill(theme.surface().band())
+        .border(theme.size().stroke(), 0, 0, 0, theme.border().divider());
     if (start != null) {
       row.child(start.shrink(1).minSize(0, 0));
     }
@@ -193,8 +200,8 @@ public final class Card {
    * {@link NavList}: inset by {@link Theme.Spacing#s}, so that the rows' corners lie inside the
    * card's. It grows to fill the card.
    */
-  public static El inset(Theme t, El list) {
-    El body = col().grow(1).padding(t.space().s()).child(list.grow(1));
+  public static El inset(Theme theme, El list) {
+    El body = col().grow(1).padding(theme.space().s()).child(list.grow(1));
     body.style().minHeight = Len.ZERO;
     return body;
   }
@@ -207,16 +214,16 @@ public final class Card {
    * @param description below the title; null for none
    * @param actions buttons or a menu button, in the order shown
    */
-  public static El header(Theme t, String title, String description, El... actions) {
+  public static El header(Theme theme, String title, String description, El... actions) {
     El text = col()
         .grow(1)
-        .gap(t.space().xs())
-        .child(label(t, Label.Variant.HEADING, title).role("heading").level(3));
+        .gap(theme.space().xs())
+        .child(label(theme, Label.Variant.HEADING, title).role("heading").level(3));
     text.style().minWidth = Len.ZERO;
     if (description != null) {
-      text.child(label(t, Label.Variant.MUTED, description).wrapText());
+      text.child(label(theme, Label.Variant.MUTED, description).wrapText());
     }
-    El header = row().gap(t.space().m()).align(Style.Align.CENTER).child(text);
+    El header = row().gap(theme.space().m()).align(Style.Align.CENTER).child(text);
     for (El action : actions) {
       header.child(action.shrink(0));
     }
@@ -237,21 +244,23 @@ public final class Card {
    *     focus order and leaves its content to the app to draw as disabled
    * @return the card
    */
-  public static El pressable(Theme t, El card, String label, boolean selected, Runnable onPress) {
+  public static El pressable(
+      Theme theme, El card, String label, boolean selected, Runnable onPress) {
     card.role("button").label(label).selected(selected).disabled(onPress == null);
     if (selected) {
-      card.border(t.size().stroke(), t.accent().edge());
+      card.border(theme.size().stroke(), theme.accent().edge());
     }
     if (onPress == null) {
       return card;
     }
     int fill = card.fill();
     boolean opaque = fill >>> 24 == 0xFF;
-    int hover = opaque ? over(fill, t.surface().hover()) : t.surface().hover();
-    int pressed = opaque ? over(fill, t.surface().pressed()) : t.surface().pressed();
+    int hover = opaque ? over(fill, theme.surface().hover()) : theme.surface().hover();
+    int pressed =
+        opaque ? over(fill, theme.surface().pressed()) : theme.surface().pressed();
     return card.focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(hover))

@@ -36,8 +36,8 @@ public final class StatusBar {
   }
 
   /** The height of the bar, for what has to stay clear of it, as a {@link Toast}. */
-  public static float height(Theme t) {
-    return t.size().control() + t.space().s();
+  public static float height(Theme theme) {
+    return theme.size().control() + theme.space().s();
   }
 
   /**
@@ -48,9 +48,9 @@ public final class StatusBar {
    * @param start the parts at the left, in the order shown; null parts are left out
    * @param end the parts at the right, in the order shown; null parts are left out
    */
-  public static El statusBar(Theme t, List<El> start, List<El> end) {
+  public static El statusBar(Theme theme, List<El> start, List<El> end) {
     El left = row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .grow(1)
         .shrink(1)
@@ -66,11 +66,11 @@ public final class StatusBar {
         .label("Status bar")
         .wFull()
         .shrink(0)
-        .h(height(t))
-        .padding(0, t.space().m())
-        .gap(t.space().xs())
+        .h(height(theme))
+        .padding(0, theme.space().m())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .child(left);
     for (El part : end) {
       if (part != null) {
@@ -81,8 +81,8 @@ public final class StatusBar {
   }
 
   /** A text of the bar, such as "1,000,000 rows". */
-  public static El text(Theme t, String text) {
-    return part(t, null, text, null);
+  public static El text(Theme theme, String text) {
+    return part(theme, null, text, null);
   }
 
   /**
@@ -92,8 +92,9 @@ public final class StatusBar {
    * @param onPress runs when the part is pressed, as a part that opens a menu or a dialog; null
    *     for a part that only shows
    */
-  public static El item(Theme t, Symbol icon, String text, Runnable onPress) {
-    return part(t, icon == null ? null : Icon.icon(t, icon, Icon.Variant.MUTED), text, onPress);
+  public static El item(Theme theme, Symbol icon, String text, Runnable onPress) {
+    return part(
+        theme, icon == null ? null : Icon.icon(theme, icon, Icon.Variant.MUTED), text, onPress);
   }
 
   /**
@@ -102,49 +103,49 @@ public final class StatusBar {
    *
    * @param onPress runs when the part is pressed; null for a part that only shows
    */
-  public static El status(Theme t, State state, String text, Runnable onPress) {
-    float side = t.space().m();
+  public static El status(Theme theme, State state, String text, Runnable onPress) {
+    float side = theme.space().m();
     int colour = switch (state) {
-      case CONNECTED -> t.status().success();
+      case CONNECTED -> theme.status().success();
       case BUSY -> 0; // a spinner instead
-      case IDLE -> t.text().disabled();
-      case ERROR -> t.status().danger();
+      case IDLE -> theme.text().disabled();
+      case ERROR -> theme.status().danger();
     };
     // In a box as wide as an icon, so that texts after dots and after icons line up; what is on
     // its way turns, as everything that waits does.
     El dot = state == State.BUSY
-        ? Progress.spinner(t)
-        : el().size(t.size().icon(), t.size().icon())
+        ? Progress.spinner(theme)
+        : el().size(theme.size().icon(), theme.size().icon())
             .center()
             .shrink(0)
             .child(el().size(side, side).radius(side / 2).fill(colour));
-    return part(t, dot, text, onPress).value(state.name().toLowerCase(java.util.Locale.ROOT));
+    return part(theme, dot, text, onPress).value(state.name().toLowerCase(java.util.Locale.ROOT));
   }
 
-  private static El part(Theme t, El before, String text, Runnable onPress) {
+  private static El part(Theme theme, El before, String text, Runnable onPress) {
     El part = row()
         .label(text)
-        .h(t.size().control())
-        .padding(0, t.space().s())
-        .gap(t.space().s())
+        .h(theme.size().control())
+        .padding(0, theme.space().s())
+        .gap(theme.space().s())
         .align(Style.Align.CENTER)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .minSize(0, 0);
     if (before != null) {
       part.child(before);
     }
-    part.child(Label.label(t, Label.Variant.SMALL, text).ellipsis().minSize(0, 0));
+    part.child(Label.label(theme, Label.Variant.SMALL, text).ellipsis().minSize(0, 0));
     if (onPress == null) {
       return part;
     }
     return part.role("button")
         .focusable()
         .keepFocus() // a press leaves the focus in the editor or grid the bar is about
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
-        .motion(t.motion().feedback())
-        .whenHovered(e -> e.fill(t.surface().hover()))
-        .whenPressed(e -> e.fill(t.surface().pressed()));
+        .motion(theme.motion().feedback())
+        .whenHovered(e -> e.fill(theme.surface().hover()))
+        .whenPressed(e -> e.fill(theme.surface().pressed()));
   }
 }

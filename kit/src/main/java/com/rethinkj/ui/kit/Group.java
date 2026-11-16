@@ -18,12 +18,15 @@ import com.rethinkj.ui.render.Scene;
  * stop for Tab; a row with any other control leaves the presses to the control.
  *
  * <pre>{@code
- * group(t,
- *     switchRow(t, "Word wrap", "Wrap long lines at the edge of the editor", s.wrap, s::flipWrap),
- *     row(t, "Tab size", null, numberField(t, s.tabSize, 1, 16, 1, v -> s.tabSize = v)),
- *     linkRow(t, Symbol.KEY, "Keymap", null, "Default", s::showKeymap),
- *     expander(t, "Advanced", "Options most people never change", s.advanced, s::flipAdvanced,
- *         switchRow(t, "Insert spaces", null, s.spaces, s::flipSpaces)))
+ * group(theme,
+ *     switchRow(theme, "Word wrap", "Wrap long lines at the edge of the editor",
+ *         state.wrap, state::flipWrap),
+ *     row(theme, "Tab size", null,
+ *         numberField(theme, state.tabSize, 1, 16, 1, value -> state.tabSize = value)),
+ *     linkRow(theme, Symbol.KEY, "Keymap", null, "Default", state::showKeymap),
+ *     expander(theme, "Advanced", "Options most people never change",
+ *         state.advanced, state::flipAdvanced,
+ *         switchRow(theme, "Insert spaces", null, state.spaces, state::flipSpaces)))
  * }</pre>
  *
  * <p>The rows share one height rule, so that a column of them lines up: the text starts {@link
@@ -48,15 +51,15 @@ public final class Group {
    * A card with these rows, or any elements of this class, and a hairline between each two; null
    * rows are left out, so that a view can write {@code advanced ? row(...) : null}.
    */
-  public static El group(Theme t, El... rows) {
-    El group = Card.card(t).padding(Scene.RING).gap(0);
-    lines(t, group, Section.present(rows));
+  public static El group(Theme theme, El... rows) {
+    El group = Card.card(theme).padding(Scene.RING).gap(0);
+    lines(theme, group, Section.present(rows));
     return group;
   }
 
   /** A row with a title, an optional description and an optional control at the right. */
-  public static El row(Theme t, String title, String description, El control) {
-    return row(t, null, title, description, control);
+  public static El row(Theme theme, String title, String description, El control) {
+    return row(theme, null, title, description, control);
   }
 
   /**
@@ -64,14 +67,14 @@ public final class Group {
    * @param description below the title in muted text, wrapping; null for none
    * @param control at the right, such as a select, a text field or a button; null for none
    */
-  public static El row(Theme t, Symbol icon, String title, String description, El control) {
+  public static El row(Theme theme, Symbol icon, String title, String description, El control) {
     // A control that says what is wrong with its value ({@link El#errorMessage}) has that in
     // place of the description, in the danger colour, as a form's field has.
     El target = control == null ? null : Form.target(control);
     String error = target == null ? null : target.errorMessage();
-    El row = base(t, icon, title, error != null ? error : description, true);
+    El row = base(theme, icon, title, error != null ? error : description, true);
     if (error != null) {
-      row.children().getLast().children().getLast().color(t.status().danger());
+      row.children().getLast().children().getLast().color(theme.status().danger());
     }
     if (control != null) {
       row.child(Form.named(control, title).shrink(0));
@@ -81,8 +84,8 @@ public final class Group {
 
   /** A row that is a switch, with the switch at the right. */
   public static El switchRow(
-      Theme t, String title, String description, boolean on, Runnable onToggle) {
-    return switchRow(t, null, title, description, on, onToggle);
+      Theme theme, String title, String description, boolean on, Runnable onToggle) {
+    return switchRow(theme, null, title, description, on, onToggle);
   }
 
   /**
@@ -92,21 +95,21 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El switchRow(
-      Theme t, Symbol icon, String title, String description, boolean on, Runnable onToggle) {
+      Theme theme, Symbol icon, String title, String description, boolean on, Runnable onToggle) {
     boolean enabled = onToggle != null;
-    El row = base(t, icon, title, description, enabled)
+    El row = base(theme, icon, title, description, enabled)
         .role("switch")
         .label(title)
         .checked(on)
         .disabled(!enabled)
-        .child(Toggle.track(t, on, enabled).shrink(0));
-    return press(t, row, onToggle);
+        .child(Toggle.track(theme, on, enabled).shrink(0));
+    return press(theme, row, onToggle);
   }
 
   /** A row that leads somewhere, with its current value and a chevron at the right. */
   public static El linkRow(
-      Theme t, String title, String description, String value, Runnable onPress) {
-    return linkRow(t, null, title, description, value, onPress);
+      Theme theme, String title, String description, String value, Runnable onPress) {
+    return linkRow(theme, null, title, description, value, onPress);
   }
 
   /**
@@ -117,26 +120,32 @@ public final class Group {
    * @param onPress runs when the row is pressed; null disables it
    */
   public static El linkRow(
-      Theme t, Symbol icon, String title, String description, String value, Runnable onPress) {
+      Theme theme, Symbol icon, String title, String description, String value, Runnable onPress) {
     boolean enabled = onPress != null;
-    El row = base(t, icon, title, description, enabled)
+    El row = base(theme, icon, title, description, enabled)
         .role("button")
         .label(title)
         .value(value)
         .disabled(!enabled);
     if (value != null) {
-      row.child(label(t, Label.Variant.MUTED, value)
-          .color(enabled ? t.text().muted() : t.text().disabled())
+      row.child(label(theme, Label.Variant.MUTED, value)
+          .color(enabled ? theme.text().muted() : theme.text().disabled())
           .shrink(0));
     }
-    row.child(icon(t, Symbol.CHEVRON_RIGHT, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-    return press(t, row, onPress);
+    row.child(
+        icon(theme, Symbol.CHEVRON_RIGHT, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    return press(theme, row, onPress);
   }
 
   /** A row that opens to show more rows below it. */
   public static El expander(
-      Theme t, String title, String description, boolean open, Runnable onToggle, El... content) {
-    return expander(t, null, title, description, open, onToggle, content);
+      Theme theme,
+      String title,
+      String description,
+      boolean open,
+      Runnable onToggle,
+      El... content) {
+    return expander(theme, null, title, description, open, onToggle, content);
   }
 
   /**
@@ -148,7 +157,7 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El expander(
-      Theme t,
+      Theme theme,
       Symbol icon,
       String title,
       String description,
@@ -156,21 +165,21 @@ public final class Group {
       Runnable onToggle,
       El... content) {
     boolean enabled = onToggle != null;
-    El head = base(t, icon, title, description, enabled)
+    El head = base(theme, icon, title, description, enabled)
         .role("button")
         .label(title)
         .expanded(open)
         .disabled(!enabled)
         .child(icon(
-            t,
+            theme,
             open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
             enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-    El expander = col().child(press(t, head, onToggle));
+    El expander = col().child(press(theme, head, onToggle));
     if (open && content.length > 0) {
       El nested = col();
-      nested.style().paddingLeft = Len.px(t.space().xl());
-      lines(t, nested, Section.present(content));
-      expander.child(line(t)).child(nested);
+      nested.style().paddingLeft = Len.px(theme.space().xl());
+      lines(theme, nested, Section.present(content));
+      expander.child(line(theme)).child(nested);
     }
     return expander;
   }
@@ -179,60 +188,61 @@ public final class Group {
    * Anything in a group or an expander, as wide as a row and with a row's padding, such as a
    * radio group or a paragraph: its children stacked {@link Theme.Spacing#m} apart.
    */
-  public static El box(Theme t, El... content) {
+  public static El box(Theme theme, El... content) {
     return col()
-        .padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
-        .gap(t.space().m())
+        .padding(theme.space().m() - Scene.RING, theme.space().l() - Scene.RING)
+        .gap(theme.space().m())
         .children(content);
   }
 
   /** A row's icon and text, with the padding, radius and height every row has. */
-  private static El base(Theme t, Symbol icon, String title, String description, boolean enabled) {
+  private static El base(
+      Theme theme, Symbol icon, String title, String description, boolean enabled) {
     El text = col()
         .grow(1)
-        .gap(t.space().xs())
-        .child(label(t, title)
-            .color(enabled ? t.text().primary() : t.text().disabled())
+        .gap(theme.space().xs())
+        .child(label(theme, title)
+            .color(enabled ? theme.text().primary() : theme.text().disabled())
             .wrapText());
     text.style().minWidth = Len.ZERO;
     if (description != null) {
-      text.child(label(t, Label.Variant.MUTED, description)
-          .color(enabled ? t.text().muted() : t.text().disabled())
+      text.child(label(theme, Label.Variant.MUTED, description)
+          .color(enabled ? theme.text().muted() : theme.text().disabled())
           .wrapText());
     }
     El row = El.row()
-        .padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
-        .gap(t.space().l())
+        .padding(theme.space().m() - Scene.RING, theme.space().l() - Scene.RING)
+        .gap(theme.space().l())
         .align(Style.Align.CENTER)
         // Concentric with the card's corner, so that the ring follows it in the first row.
-        .radius(t.radius().large() - t.size().stroke() - Scene.RING)
-        .motion(t.motion().feedback());
-    row.style().minHeight = Len.px(t.size().control() + 2 * (t.space().m() - Scene.RING));
+        .radius(theme.radius().large() - theme.size().stroke() - Scene.RING)
+        .motion(theme.motion().feedback());
+    row.style().minHeight = Len.px(theme.size().control() + 2 * (theme.space().m() - Scene.RING));
     if (icon != null) {
-      row.child(icon(t, icon, enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED));
+      row.child(icon(theme, icon, enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED));
     }
     return row.child(text);
   }
 
   /** Makes a row a press target, unless the handler is null. */
-  private static El press(Theme t, El row, Runnable onPress) {
+  private static El press(Theme theme, El row, Runnable onPress) {
     if (onPress == null) {
       return row;
     }
     return row.focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
-        .whenHovered(e -> e.fill(t.surface().hover()))
-        .whenPressed(e -> e.fill(t.surface().pressed()));
+        .whenHovered(e -> e.fill(theme.surface().hover()))
+        .whenPressed(e -> e.fill(theme.surface().pressed()));
   }
 
   /** Adds the elements with a hairline between each two. */
-  private static void lines(Theme t, El parent, El... children) {
+  private static void lines(Theme theme, El parent, El... children) {
     for (int i = 0; i < children.length; i++) {
       if (i > 0) {
-        parent.child(line(t));
+        parent.child(line(theme));
       }
       parent.child(children[i]);
     }
@@ -242,10 +252,10 @@ public final class Group {
    * A hairline across the whole card, past the band that its parent leaves for the rows' rings,
    * with such a band above and below it.
    */
-  private static El line(Theme t) {
-    return el().h(t.size().stroke())
+  private static El line(Theme theme) {
+    return el().h(theme.size().stroke())
         .shrink(0)
-        .fill(t.border().divider())
+        .fill(theme.border().divider())
         .margin(Scene.RING, -Scene.RING, Scene.RING, -Scene.RING);
   }
 }

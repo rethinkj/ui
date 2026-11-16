@@ -32,9 +32,9 @@ import java.util.function.IntFunction;
  * GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
  *
  * columns.add(new Column("name", 160, DataType.TEXT, changes.cell(1)).editable().nullable());
- * dataGrid(t, columns, changes.rowCount(), DataGrid.options().select(s.selection)
+ * dataGrid(theme, columns, changes.rowCount(), DataGrid.options().select(state.selection)
  *     .changes(changes))
- * button(t, PRIMARY, "Commit (" + changes.count() + ")", () -> {
+ * button(theme, PRIMARY, "Commit (" + changes.count() + ")", () -> {
  *   database.write(changes.changes()); // UPDATE, INSERT and DELETE
  *   changes.clear();                   // the rows hold them now
  * })
@@ -118,7 +118,7 @@ public final class GridChanges {
   /**
    * A cell's value before and after, in the type of its column's format: a {@code BigDecimal} of
    * {@link Format#DECIMAL}, an enum of a {@link Format#choice} of its constants; null for NULL.
-   * {@code if (v.after() instanceof BigDecimal amount) ...}
+   * {@code if (change.after() instanceof BigDecimal amount) ...}
    *
    * @param column the column, as the grid counts them
    * @param cells the typed part of the column, which writes the value into a row
@@ -150,7 +150,7 @@ public final class GridChanges {
 
   private static final long TOP = Long.MIN_VALUE;
 
-  /** Changes over the app's rows, which keep their places: row {@code i} has the key {@code i}. */
+  /** Changes over the app's rows, which keep their places: each row's key is its index. */
   public GridChanges(int count, Cells cells) {
     this(new Rows() {
       @Override
@@ -617,33 +617,33 @@ public final class GridChanges {
 
   /** A change of the state, which a step of the history does and undoes. */
   private sealed interface Op {
-    void redo(GridChanges c);
+    void redo(GridChanges changes);
 
-    void undo(GridChanges c);
+    void undo(GridChanges changes);
   }
 
   private record Put(long key, int column, Object before, Object after) implements Op {
     // An error stays until the cell's value changes, as undoing or redoing it does.
-    public void redo(GridChanges c) {
-      c.put(key, column, after);
-      c.clearError(key, column);
+    public void redo(GridChanges changes) {
+      changes.put(key, column, after);
+      changes.clearError(key, column);
     }
 
-    public void undo(GridChanges c) {
-      c.put(key, column, before);
-      c.clearError(key, column);
+    public void undo(GridChanges changes) {
+      changes.put(key, column, before);
+      changes.clearError(key, column);
     }
   }
 
   private record Insert(New row, int index) implements Op {
-    public void redo(GridChanges c) {
-      c.added.add(index, row);
+    public void redo(GridChanges changes) {
+      changes.added.add(index, row);
     }
 
-    public void undo(GridChanges c) {
-      c.added.remove(row);
-      c.edits.remove(row.id());
-      c.errors.remove(row.id());
+    public void undo(GridChanges changes) {
+      changes.added.remove(row);
+      changes.edits.remove(row.id());
+      changes.errors.remove(row.id());
     }
   }
 
@@ -652,34 +652,34 @@ public final class GridChanges {
       values = values == null ? null : Map.copyOf(values);
     }
 
-    public void redo(GridChanges c) {
-      c.added.remove(row);
-      c.edits.remove(row.id());
-      c.errors.remove(row.id());
+    public void redo(GridChanges changes) {
+      changes.added.remove(row);
+      changes.edits.remove(row.id());
+      changes.errors.remove(row.id());
     }
 
-    public void undo(GridChanges c) {
-      c.added.add(index, row);
+    public void undo(GridChanges changes) {
+      changes.added.add(index, row);
       if (values != null) {
-        c.edits.put(row.id(), new HashMap<>(values));
+        changes.edits.put(row.id(), new HashMap<>(values));
       }
     }
   }
 
   private record Mark(long key, boolean on) implements Op {
-    public void redo(GridChanges c) {
+    public void redo(GridChanges changes) {
       if (on) {
-        c.deleted.add(key);
+        changes.deleted.add(key);
       } else {
-        c.deleted.remove(key);
+        changes.deleted.remove(key);
       }
     }
 
-    public void undo(GridChanges c) {
+    public void undo(GridChanges changes) {
       if (on) {
-        c.deleted.remove(key);
+        changes.deleted.remove(key);
       } else {
-        c.deleted.add(key);
+        changes.deleted.add(key);
       }
     }
   }

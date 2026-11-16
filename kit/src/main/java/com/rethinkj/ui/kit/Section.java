@@ -12,9 +12,10 @@ import java.util.Objects;
  * below its title, as settings, a detail panel or a dashboard are laid out:
  *
  * <pre>{@code
- * page(t, "Editor",
- *     section(t, "Text", null, group(t, ...)),
- *     section(t, "Files", "What the editor does when it saves", group(t, ...), card(t, ...)))
+ * page(theme, "Editor",
+ *     section(theme, "Text", null, group(theme, ...)),
+ *     section(theme, "Files", "What the editor does when it saves",
+ *         group(theme, ...), card(theme, ...)))
  * }</pre>
  *
  * <p>The headings come in three levels of {@link Theme.Type}: a page's title, a section's
@@ -34,14 +35,14 @@ public final class Section {
    * @param content cards, groups or anything else, stacked in a column; null entries are left
    *     out, so that a view can write {@code changed ? callout(...) : null}
    */
-  public static El section(Theme t, String title, String description, El... content) {
+  public static El section(Theme theme, String title, String description, El... content) {
     El head = col()
-        .gap(t.space().xs())
-        .child(label(t, Label.Variant.HEADING, title).role("heading").level(2));
+        .gap(theme.space().xs())
+        .child(label(theme, Label.Variant.HEADING, title).role("heading").level(2));
     if (description != null) {
-      head.child(label(t, Label.Variant.MUTED, description).wrapText());
+      head.child(label(theme, Label.Variant.MUTED, description).wrapText());
     }
-    return col().gap(t.space().m()).child(head).children(present(content));
+    return col().gap(theme.space().m()).child(head).children(present(content));
   }
 
   /**
@@ -49,13 +50,13 @@ public final class Section {
    * which take its whole width; null sections are left out. It needs a height of its own or room
    * to grow, as any scroll area.
    */
-  public static El page(Theme t, String title, El... sections) {
+  public static El page(Theme theme, String title, El... sections) {
     return col()
         .scroll()
-        .scrollbars(t.scrollbars())
-        .padding(t.space().xxl())
-        .gap(t.space().xxl())
-        .child(label(t, Label.Variant.TITLE, title).role("heading").level(1))
+        .scrollbars(theme.scrollbars())
+        .padding(theme.space().xxl())
+        .gap(theme.space().xxl())
+        .child(label(theme, Label.Variant.TITLE, title).role("heading").level(1))
         .children(present(sections));
   }
 

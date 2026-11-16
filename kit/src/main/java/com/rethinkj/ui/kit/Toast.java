@@ -15,8 +15,9 @@ import com.rethinkj.ui.Style;
  * clears that:
  *
  * <pre>{@code
- * root.overlay(s.dropped == null ? null
- *     : Toast.toast(t, "Dropped " + s.dropped, "Undo", s::restore, () -> s.dropped = null));
+ * root.overlay(state.dropped == null ? null
+ *     : Toast.toast(theme, "Dropped " + state.dropped, "Undo", state::restore,
+ *         () -> state.dropped = null));
  * }</pre>
  *
  * <p>It leaves the keyboard focus where it is ({@link El#keepFocus}), also when its action is
@@ -36,8 +37,8 @@ public final class Toast {
    * @param onClose runs when the time is up, the action was pressed or Escape closes it
    */
   public static El toast(
-      Theme t, String message, String action, Runnable onAction, Runnable onClose) {
-    return toast(t, message, action, onAction, onClose, 0);
+      Theme theme, String message, String action, Runnable onAction, Runnable onClose) {
+    return toast(theme, message, action, onAction, onClose, 0);
   }
 
   /**
@@ -49,14 +50,19 @@ public final class Toast {
    * @param above how high, in logical pixels, what it must not cover reaches up from the bottom
    */
   public static El toast(
-      Theme t, String message, String action, Runnable onAction, Runnable onClose, float above) {
-    El toast = Popup.frame(t, row())
+      Theme theme,
+      String message,
+      String action,
+      Runnable onAction,
+      Runnable onClose,
+      float above) {
+    El toast = Popup.frame(theme, row())
         .key("toast")
         .role("status")
         .label(message)
-        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + t.space().xl())
+        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + theme.space().xl())
         .keepFocus()
-        .onShownFor(t.motion().toast(), onClose)
+        .onShownFor(theme.motion().toast(), onClose)
         .onKey(k -> {
           if (!k.name().equals("Escape") || k.modifiers() != 0) {
             return false;
@@ -64,12 +70,16 @@ public final class Toast {
           onClose.run();
           return true;
         })
-        .padding(t.space().xs(), t.space().xs(), t.space().xs(), t.space().l())
-        .gap(t.space().m())
+        .padding(
+            theme.space().xs(),
+            theme.space().xs(),
+            theme.space().xs(),
+            theme.space().l())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
-        .child(label(t, message));
+        .child(label(theme, message));
     if (action != null) {
-      toast.child(button(t, Button.Variant.GHOST, action, () -> {
+      toast.child(button(theme, Button.Variant.GHOST, action, () -> {
             onAction.run();
             onClose.run();
           })

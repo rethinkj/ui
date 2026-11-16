@@ -32,14 +32,14 @@ import java.util.function.Predicate;
  *   ...
  * }
  *
- * GridTable<Order> table = DataGrid.table(i -> s.orders.get(i));
+ * GridTable<Order> table = DataGrid.table(row -> state.orders.get(row));
  * List<Column> columns = List.of(
  *     table.column("id", 72, Format.LONG, Order::id),
  *     table.column("amount", 100, Format.DECIMAL, Order::amount, Order::withAmount),
  *     table.column("due", 110, Format.DATE.optional(), Order::due, Order::withDue),
  *     table.column("status", 100, STATUS, Order::status, Order::withStatus));
- * dataGrid(t, columns, s.orders.size(), DataGrid.options().select(s.selection)
- *     .onCommit(table, (row, order) -> { s.orders.set(row, order); return null; }))
+ * dataGrid(theme, columns, state.orders.size(), DataGrid.options().select(state.selection)
+ *     .onCommit(table, (row, order) -> { state.orders.set(row, order); return null; }))
  * }</pre>
  *
  * <p>The rows stay lazy: {@code rows} is asked for the rows the grid shows, while a frame runs,

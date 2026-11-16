@@ -103,9 +103,9 @@ public final class GlyphRun {
     return font;
   }
 
-  /** The font that draws glyph {@code i}: the one shaped, or one of its fallbacks. */
-  public Font font(int i) {
-    return fonts == null ? font : fonts[i];
+  /** The font that draws glyph {@code index}: the one shaped, or one of its fallbacks. */
+  public Font font(int index) {
+    return fonts == null ? font : fonts[index];
   }
 
   /** The size shaped at, in physical pixels: the size in logical pixels times the scale. */
@@ -119,8 +119,8 @@ public final class GlyphRun {
   }
 
   /** The glyph id in its {@link #font(int) font}; 0 is the "not defined" glyph. */
-  public int glyph(int i) {
-    return glyphs[i];
+  public int glyph(int index) {
+    return glyphs[index];
   }
 
   /**
@@ -128,27 +128,29 @@ public final class GlyphRun {
    * decrease: runs follow each other left to right, and all glyphs of a run of right-to-left text
    * have the index of its first character.
    */
-  public int cluster(int i) {
-    return clusters[i];
+  public int cluster(int index) {
+    return clusters[index];
   }
 
-  /** Where glyph {@code i}'s origin goes. */
-  public float x(int i) {
-    return pen[i] + dx[i];
+  /** Where glyph {@code index}'s origin goes. */
+  public float x(int index) {
+    return pen[index] + dx[index];
   }
 
-  /** How far glyph {@code i}'s origin sits below the baseline; usually 0. */
-  public float y(int i) {
-    return dy[i];
+  /** How far glyph {@code index}'s origin sits below the baseline; usually 0. */
+  public float y(int index) {
+    return dy[index];
   }
 
-  public float advance(int i) {
-    return pen[i + 1] - pen[i];
+  public float advance(int index) {
+    return pen[index + 1] - pen[index];
   }
 
-  /** The sum of the advances of the glyphs before {@code i}; {@code pen(count())} is the width. */
-  public float pen(int i) {
-    return pen[i];
+  /**
+   * The sum of the advances of the glyphs before {@code index}; {@code pen(count())} is the width.
+   */
+  public float pen(int index) {
+    return pen[index];
   }
 
   /** The sum of all advances. */

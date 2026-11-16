@@ -23,7 +23,7 @@ import java.util.Objects;
  * with what is above and below them; their hover fill reaches a little past it.
  *
  * <pre>{@code
- * Properties.properties(t, List.of(
+ * Properties.properties(theme, List.of(
  *     Properties.property("Rows", "1,000,000"),
  *     Properties.property("Owner", "shop_admin"),
  *     Properties.property("Created", "2024-03-01 09:12").mono()), app.clipboard())
@@ -72,8 +72,8 @@ public final class Properties {
   /**
    * @param clipboard where the copy buttons copy to; null for none
    */
-  public static El properties(Theme t, List<Property> properties, Clipboard clipboard) {
-    return properties(t, properties, clipboard, null);
+  public static El properties(Theme theme, List<Property> properties, Clipboard clipboard) {
+    return properties(theme, properties, clipboard, null);
   }
 
   /**
@@ -82,8 +82,8 @@ public final class Properties {
    *     for no confirmation
    */
   public static El properties(
-      Theme t, List<Property> properties, Clipboard clipboard, Button.Copied copied) {
-    return list(t, properties, column(t, properties), clipboard, copied);
+      Theme theme, List<Property> properties, Clipboard clipboard, Button.Copied copied) {
+    return list(theme, properties, column(theme, properties), clipboard, copied);
   }
 
   /**
@@ -91,8 +91,8 @@ public final class Properties {
    *
    * @param clipboard where the copy buttons copy to; null for none
    */
-  public static El groups(Theme t, List<Group> groups, Clipboard clipboard) {
-    return groups(t, groups, clipboard, null);
+  public static El groups(Theme theme, List<Group> groups, Clipboard clipboard) {
+    return groups(theme, groups, clipboard, null);
   }
 
   /**
@@ -100,41 +100,46 @@ public final class Properties {
    *
    * @param copied the app's state of the copy buttons; null for no confirmation
    */
-  public static El groups(Theme t, List<Group> groups, Clipboard clipboard, Button.Copied copied) {
+  public static El groups(
+      Theme theme, List<Group> groups, Clipboard clipboard, Button.Copied copied) {
     float column = 0;
     for (Group group : groups) {
-      column = Math.max(column, column(t, group.properties()));
+      column = Math.max(column, column(theme, group.properties()));
     }
-    El out = col().gap(t.space().l());
+    El out = col().gap(theme.space().l());
     for (Group group : groups) {
       out.child(col()
-          .gap(t.space().xs())
+          .gap(theme.space().xs())
           .children(
-              label(t, Label.Variant.STRONG, group.title()).role("heading").level(3),
-              list(t, group.properties(), column, clipboard, copied).label(group.title())));
+              label(theme, Label.Variant.STRONG, group.title()).role("heading").level(3),
+              list(theme, group.properties(), column, clipboard, copied).label(group.title())));
     }
     return out;
   }
 
   private static El list(
-      Theme t, List<Property> properties, float column, Clipboard clipboard, Button.Copied copied) {
+      Theme theme,
+      List<Property> properties,
+      float column,
+      Clipboard clipboard,
+      Button.Copied copied) {
     // The rows' padding, taken back by the margin, so that their text lines up with the heading.
-    El list = col().role("list").margin(0, -t.space().s(), 0, -t.space().s());
+    El list = col().role("list").margin(0, -theme.space().s(), 0, -theme.space().s());
     for (Property p : properties) {
-      list.child(entry(t, p, column, clipboard, copied));
+      list.child(entry(theme, p, column, clipboard, copied));
     }
     return list;
   }
 
   private static El entry(
-      Theme t, Property p, float column, Clipboard clipboard, Button.Copied copied) {
-    Theme.TextStyle style = p.isMono() ? t.type().mono() : t.type().body();
+      Theme theme, Property p, float column, Clipboard clipboard, Button.Copied copied) {
+    Theme.TextStyle style = p.isMono() ? theme.type().mono() : theme.type().body();
     // The name centred beside the value's first line, as in a row one line high.
     El name = row()
-        .h(t.size().control())
+        .h(theme.size().control())
         .shrink(0)
         .align(Style.Align.CENTER)
-        .child(label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).minSize(0, 0));
+        .child(label(theme, Label.Variant.MUTED, p.name()).ellipsis().w(column).minSize(0, 0));
     // The padding leaves a line's room in a control's height: one line sits where a field of that
     // height centres it, more lines grow the field downwards, the first beside the name.
     El value = El.text(p.value())
@@ -146,31 +151,31 @@ public final class Properties {
         .ellipsis()
         .font(style.font().get())
         .fontSize(style.size())
-        .color(t.text().primary())
-        .selectionColor(t.accent().selection())
+        .color(theme.text().primary())
+        .selectionColor(theme.accent().selection())
         .grow(1)
-        .minSize(0, t.size().control())
-        .padding(t.space().s(), 0);
-    Tooltip.whenShortened(t, value, p.value());
+        .minSize(0, theme.size().control())
+        .padding(theme.space().s(), 0);
+    Tooltip.whenShortened(theme, value, p.value());
     El entry = row()
         .role("listitem")
         .label(p.name())
         .value(p.value())
-        .padding(0, t.space().s())
-        .gap(t.space().m())
+        .padding(0, theme.space().s())
+        .gap(theme.space().m())
         .align(Style.Align.START)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .children(name, value);
     if (clipboard != null) {
       boolean shown =
           copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
-      El copy = Button.copy(t, clipboard, p.value(), "Copy " + p.name(), copied)
+      El copy = Button.copy(theme, clipboard, p.value(), "Copy " + p.name(), copied)
           .key("copy")
           .opacity(shown ? 1 : 0);
       entry
           .child(copy)
           .whenHovered(e -> {
-            e.fill(t.surface().hover());
+            e.fill(theme.surface().hover());
             copy.opacity(1);
           })
           .whenFocusWithin(e -> copy.opacity(1));
@@ -179,13 +184,13 @@ public final class Properties {
   }
 
   /** The names' column: the widest name, up to a text field's width. */
-  private static float column(Theme t, List<Property> properties) {
+  private static float column(Theme theme, List<Property> properties) {
     float widest = 0;
     for (Property p : properties) {
-      widest = Math.max(widest, width(label(t, Label.Variant.MUTED, p.name())));
+      widest = Math.max(widest, width(label(theme, Label.Variant.MUTED, p.name())));
     }
     // A pixel to spare: text shaped at another scale may come out a fraction wider.
-    return (float) Math.ceil(Math.min(widest, t.size().field())) + 1;
+    return (float) Math.ceil(Math.min(widest, theme.size().field())) + 1;
   }
 
   private static float width(El text) {

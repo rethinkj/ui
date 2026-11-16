@@ -22,21 +22,21 @@ public final class EmptyState {
    * @param text below the title; null for none
    * @param action a button below the text; null for none
    */
-  public static El emptyState(Theme t, Symbol symbol, String title, String text, El action) {
+  public static El emptyState(Theme theme, Symbol symbol, String title, String text, El action) {
     El empty = col()
         .role("status")
         .label(title)
         .grow(1)
         .center()
-        .padding(t.space().xxl())
-        .gap(t.space().m())
-        .child(icon(t, symbol, Icon.Variant.MUTED, 2 * t.size().control()))
-        .child(lines(label(t, Label.Variant.STRONG, title)));
+        .padding(theme.space().xxl())
+        .gap(theme.space().m())
+        .child(icon(theme, symbol, Icon.Variant.MUTED, 2 * theme.size().control()))
+        .child(lines(label(theme, Label.Variant.STRONG, title)));
     if (text != null) {
-      empty.child(lines(label(t, Label.Variant.MUTED, text)));
+      empty.child(lines(label(theme, Label.Variant.MUTED, text)));
     }
     if (action != null) {
-      empty.child(action.margin(t.space().s(), 0, 0, 0));
+      empty.child(action.margin(theme.space().s(), 0, 0, 0));
     }
     return empty;
   }

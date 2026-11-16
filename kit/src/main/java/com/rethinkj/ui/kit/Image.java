@@ -14,10 +14,10 @@ import com.rethinkj.ui.Style;
  *
  * <pre>{@code
  * // The app reads the file off its thread and keeps the image in its state:
- * s.app.background("cover", () -> com.rethinkj.ui.Image.decode(Files.readAllBytes(file)),
- *     image -> s.cover = image, e -> s.cover = null);
+ * state.app.background("cover", () -> com.rethinkj.ui.Image.decode(Files.readAllBytes(file)),
+ *     image -> state.cover = image, error -> state.cover = null);
  * // The view shows the placeholder until it is there:
- * Image.image(theme, s.cover, "The cover of the report").w(240);
+ * Image.image(theme, state.cover, "The cover of the report").w(240);
  * }</pre>
  *
  * <p>The image is as large as its pixels at its scale in logical pixels unless the view sizes it;
@@ -34,22 +34,22 @@ public final class Image {
    * @param image what to show; null for the placeholder
    * @param alt the text that stands for the image: the label of both, and the placeholder's text
    */
-  public static El image(Theme t, com.rethinkj.ui.Image image, String alt) {
+  public static El image(Theme theme, com.rethinkj.ui.Image image, String alt) {
     if (image != null) {
-      return El.image(image).label(alt).radius(t.radius().medium());
+      return El.image(image).label(alt).radius(theme.radius().medium());
     }
     return row()
         .role("img")
         .label(alt)
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .justify(Style.Content.CENTER)
-        .padding(t.space().l())
-        .radius(t.radius().medium())
-        .border(t.size().stroke(), t.border().subtle())
-        .fill(t.surface().band())
+        .padding(theme.space().l())
+        .radius(theme.radius().medium())
+        .border(theme.size().stroke(), theme.border().subtle())
+        .fill(theme.surface().band())
         .children(
-            Icon.icon(t, Symbol.IMAGE, Icon.Variant.MUTED),
-            Label.label(t, Label.Variant.MUTED, alt).wrapText().shrink(1).minSize(0, 0));
+            Icon.icon(theme, Symbol.IMAGE, Icon.Variant.MUTED),
+            Label.label(theme, Label.Variant.MUTED, alt).wrapText().shrink(1).minSize(0, 0));
   }
 }

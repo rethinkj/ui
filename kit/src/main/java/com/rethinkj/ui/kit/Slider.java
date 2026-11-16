@@ -31,11 +31,11 @@ public final class Slider {
    * A slider of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
    * written disables it.
    */
-  public static El slider(Theme t, Prop<Integer> value, int min, int max, int step) {
+  public static El slider(Theme theme, Prop<Integer> value, int min, int max, int step) {
     Integer now = value.get();
     return Prop.shown(
-        t,
-        slider(t, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
+        theme,
+        slider(theme, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
         value);
   }
 
@@ -44,7 +44,8 @@ public final class Slider {
    * @param step the distance between two numbers the slider stops at, from {@code min}
    * @param onChange told each new number; null disables the slider
    */
-  public static El slider(Theme t, int value, int min, int max, int step, IntConsumer onChange) {
+  public static El slider(
+      Theme theme, int value, int min, int max, int step, IntConsumer onChange) {
     if (min >= max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min < max and a step of 1 or more, was " + min + ", " + max + ", " + step);
@@ -53,21 +54,23 @@ public final class Slider {
     int at = Math.clamp(value, min, max);
     long range = (long) max - min;
     float share = (float) ((double) ((long) at - min) / range);
-    float knob = t.size().checkbox();
-    float track = 2 * t.space().xs();
+    float knob = theme.size().checkbox();
+    float track = 2 * theme.space().xs();
     // The rail runs between the knob's centre at either end, so that shares of it place the knob
     // at any width.
     El done = el().h(track)
         .radius(track / 2)
-        .fill(enabled ? t.accent().color() : t.border().divider())
-        .motion(t.motion().move());
+        .fill(enabled ? theme.accent().color() : theme.border().divider())
+        .motion(theme.motion().move());
     done.style().width = Len.percent(share);
-    int fill = t.surface().raised();
+    int fill = theme.surface().raised();
     El thumb = el().size(knob, knob)
         .radius(knob / 2)
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
-        .motion(t.motion().move());
+        .border(
+            theme.size().stroke(),
+            enabled ? theme.border().strong() : theme.border().divider())
+        .motion(theme.motion().move());
     Style place = thumb.style();
     place.position = Style.Position.ABSOLUTE;
     place.left = Len.percent(share);
@@ -76,17 +79,17 @@ public final class Slider {
     El rail = el().h(track)
         .grow(1)
         .radius(track / 2)
-        .fill(enabled ? t.border().strong() : t.border().divider())
+        .fill(enabled ? theme.border().strong() : theme.border().divider())
         .children(done, thumb);
     El slider = row()
         .role("slider")
         .value(Integer.toString(value))
         .disabled(!enabled)
-        .w(t.size().field())
-        .h(t.size().control())
+        .w(theme.size().field())
+        .h(theme.size().control())
         .padding(0, knob / 2)
         .align(Style.Align.CENTER)
-        .radius(t.size().control() / 2)
+        .radius(theme.size().control() / 2)
         .child(rail);
     if (!enabled) {
       return slider;
@@ -107,7 +110,7 @@ public final class Slider {
     return slider
         .focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress((clicks, modifiers, x, y) -> {
           last[0] = value;
@@ -146,10 +149,10 @@ public final class Slider {
           }
           return true;
         })
-        .whenHovered(e -> thumb.fill(over(fill, t.surface().hover())))
+        .whenHovered(e -> thumb.fill(over(fill, theme.surface().hover())))
         .whenPressed(e -> thumb
-            .fill(over(fill, t.surface().pressed()))
-            .border(t.size().stroke(), t.accent().color()));
+            .fill(over(fill, theme.surface().pressed()))
+            .border(theme.size().stroke(), theme.accent().color()));
   }
 
   /** The stop nearest to {@code v}, inside the range. */

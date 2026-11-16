@@ -32,13 +32,15 @@ import java.util.function.Predicate;
  *
  * <pre>{@code
  * List<Menu.Item> fileItems = List.of(
- *     Menu.item("New query", s::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
+ *     Menu.item("New query", state::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
  *     Menu.separator(),
- *     Menu.submenu("Export", List.of(Menu.item("CSV", s::csv), Menu.item("JSON", s::json))),
- *     Menu.item("Word wrap", s::toggleWrap).checked(s.wrap),
+ *     Menu.submenu("Export",
+ *         List.of(Menu.item("CSV", state::csv), Menu.item("JSON", state::json))),
+ *     Menu.item("Word wrap", state::toggleWrap).checked(state.wrap),
  *     Menu.item("Close", null));                             // disabled
- * El file = Menu.dropdown(t, button(t, SECONDARY, "File", s.file::toggle), s.file, fileItems);
- * El tables = Menu.contextMenu(t, list, s.tableMenu, items); // opens at a right press
+ * El file = Menu.dropdown(
+ *     theme, button(theme, SECONDARY, "File", state.file::toggle), state.file, fileItems);
+ * El tables = Menu.contextMenu(theme, list, state.tableMenu, items); // opens at a right press
  * root.onKey(Menu.shortcuts(fileItems));                     // Ctrl+N runs New query
  * }</pre>
  *
@@ -499,7 +501,7 @@ public final class Menu {
    *
    * @return the anchor
    */
-  public static El dropdown(Theme t, El anchor, State state, List<Item> items) {
+  public static El dropdown(Theme theme, El anchor, State state, List<Item> items) {
     El.PressAtHandler press = anchor.onPress();
     if (press != null) {
       anchor.onKey(opener(
@@ -513,8 +515,8 @@ public final class Menu {
     state.opening = 0;
     return anchor.overlay(
         state.isOpen()
-            ? menu(t, state, items)
-                .side(Side.BOTTOM, Style.Align.START, t.space().xs())
+            ? menu(theme, state, items)
+                .side(Side.BOTTOM, Style.Align.START, theme.space().xs())
             : null);
   }
 
@@ -567,93 +569,98 @@ public final class Menu {
    *
    * @return the target
    */
-  public static El contextMenu(Theme t, El target, State state, List<Item> items) {
+  public static El contextMenu(Theme theme, El target, State state, List<Item> items) {
     if (target.onSecondaryPress() == null) {
       target.onSecondaryPress(state::openAt);
     }
-    return target.overlay(state.isOpen() ? menu(t, state, items).atPoint(state.x, state.y) : null);
+    return target.overlay(
+        state.isOpen() ? menu(theme, state, items).atPoint(state.x, state.y) : null);
   }
 
   /**
    * The menu's panel, an overlay to attach to an element with {@link El#overlay} and place, as
    * {@link #dropdown} and {@link #contextMenu} do; it is dismissed with {@link State#close}.
    */
-  public static El menu(Theme t, State state, List<Item> items) {
-    return panel(t, state, items, 0, null).onDismiss(state::close);
+  public static El menu(Theme theme, State state, List<Item> items) {
+    return panel(theme, state, items, 0, null).onDismiss(state::close);
   }
 
   /** The menu of a {@link MenuBar}'s title, dismissed with {@link State#close} and the bar's. */
-  static El menu(Theme t, State state, List<Item> items, Bar bar) {
-    return panel(t, state, items, 0, bar).dismissGroup(bar.group()).onDismiss(() -> {
+  static El menu(Theme theme, State state, List<Item> items, Bar bar) {
+    return panel(theme, state, items, 0, bar).dismissGroup(bar.group()).onDismiss(() -> {
       state.close();
       bar.leave().run();
     });
   }
 
-  private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
+  private static El panel(Theme theme, State state, List<Item> items, int level, Bar bar) {
     state.fit(level, items);
-    El panel = Popup.frame(t, col())
+    El panel = Popup.frame(theme, col())
         .key(level == 0 ? "menu" : "submenu")
         .role("menu")
         .focusable()
-        .focusRing(t.accent().edge())
-        .padding(t.space().s())
+        .focusRing(theme.accent().edge())
+        .padding(theme.space().s())
         .scroll()
-        .scrollbars(t.scrollbars())
+        .scrollbars(theme.scrollbars())
         .revealRow(state.takeReveal(level)) // the items are its children, separators counted
         .onKey(k -> key(k, state, items, level, bar));
     for (int i = 0; i < items.size(); i++) {
       panel.child(
           items.get(i).isSeparator()
-              ? el().h(t.size().stroke())
+              ? el().h(theme.size().stroke())
                   .shrink(0)
-                  .margin(t.space().xs(), 0, t.space().xs(), 0)
-                  .fill(t.border().divider())
-              : item(t, state, items, i, level, bar));
+                  .margin(theme.space().xs(), 0, theme.space().xs(), 0)
+                  .fill(theme.border().divider())
+              : item(theme, state, items, i, level, bar));
     }
     return panel;
   }
 
-  private static El item(Theme t, State state, List<Item> items, int i, int level, Bar bar) {
+  private static El item(Theme theme, State state, List<Item> items, int i, int level, Bar bar) {
     Item item = items.get(i);
     boolean enabled = item.isEnabled();
     boolean lit = i == state.active(level);
-    int text = enabled && item.dangerous() ? t.danger().text() : PassiveContent.text(t, enabled);
-    int quiet = PassiveContent.muted(t, enabled);
+    int text =
+        enabled && item.dangerous() ? theme.danger().text() : PassiveContent.text(theme, enabled);
+    int quiet = PassiveContent.muted(theme, enabled);
     El leading = null;
     boolean checkAtEnd = item.checked() && item.leading() != null;
     if (item.leading() != null) {
-      leading = item.leading().apply(t).shrink(0);
+      leading = item.leading().apply(theme).shrink(0);
     } else if (item.checked()) {
-      leading = icon(t, CHECKED).color(text);
+      leading = icon(theme, CHECKED).color(text);
     } else if (item.icon() != null) {
-      leading = icon(t, item.icon()).color(text);
+      leading = icon(theme, item.icon()).color(text);
     }
     boolean opens = item.opens();
     El content = PassiveContent.row(
-        t,
-        PassiveContent.leading(t, leading),
-        label(t, item.label()).color(text),
+        theme,
+        PassiveContent.leading(theme, leading),
+        label(theme, item.label()).color(text),
         !opens && item.shortcut() != null
-            ? label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l())
+            ? label(theme, item.shortcut())
+                .color(quiet)
+                .margin(0, 0, 0, theme.space().l())
             : null,
-        checkAtEnd ? icon(t, CHECKED).color(text) : null,
-        opens ? icon(t, SUBMENU).color(quiet) : null);
+        checkAtEnd ? icon(theme, CHECKED).color(text) : null,
+        opens ? icon(theme, SUBMENU).color(quiet) : null);
     // After a rest, the item's submenu opens and any other of its level closes.
-    content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
+    content.onHoverFor(
+        theme.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
     // A neutral highlight, so the accent's tint means a selection only; a lighter one if disabled.
     int fill = !lit
         ? 0
         : enabled
-            ? t.surface().highlight()
-            : over(t.surface().popup(), t.surface().hover());
+            ? theme.surface().highlight()
+            : over(theme.surface().popup(), theme.surface().hover());
     El el = row()
         .key((level == 0 ? "item-" : "subitem-") + i)
         .role("menuitem")
         .label(item.label())
-        .h(t.size().control())
+        .h(theme.size().control())
         .shrink(0)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .fill(fill)
         .onHoverFor(0, () -> state.highlight(level, i))
         .disabled(!enabled)
@@ -669,8 +676,8 @@ public final class Menu {
       el.onPress(() -> choose(state, items, i, level, bar));
     }
     if (opens && state.submenu(level) == i) {
-      el.overlay(panel(t, state, item.submenu(), level + 1, bar)
-          .side(Side.RIGHT, Style.Align.START, t.space().s() + t.size().stroke())
+      el.overlay(panel(theme, state, item.submenu(), level + 1, bar)
+          .side(Side.RIGHT, Style.Align.START, theme.space().s() + theme.size().stroke())
           .onDismiss(() -> state.openSubmenu(level, -1)));
     }
     return el;

@@ -18,13 +18,13 @@ final class Fitting {
   private final Map<String, Float> widths = new HashMap<>();
 
   /** Fills the width but stays a control high, also in a column with room to spare. */
-  El row(Theme t) {
+  El row(Theme theme) {
     return El.row()
-        .h(t.size().control())
+        .h(theme.size().control())
         .grow(1)
-        .minSize(0, t.size().control())
-        .maxSize(Float.POSITIVE_INFINITY, t.size().control())
-        .gap(t.space().xs())
+        .minSize(0, theme.size().control())
+        .maxSize(Float.POSITIVE_INFINITY, theme.size().control())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .clip()
         .onResize((w, h) -> width = w);
@@ -45,11 +45,12 @@ final class Fitting {
    * for More when some are hidden. Shows everything until the row and every item have been
    * measured. A null item width is a flexible spacer: it contributes neither width nor gap.
    */
-  int fit(Theme t, int count, Direction direction, int mandatory, IntFunction<Float> itemWidth) {
+  int fit(
+      Theme theme, int count, Direction direction, int mandatory, IntFunction<Float> itemWidth) {
     if (Float.isNaN(width)) {
       return count;
     }
-    float gap = t.space().xs();
+    float gap = theme.space().xs();
     float[] costs = new float[count];
     float total = 0;
     for (int i = 0; i < count; i++) {
@@ -69,7 +70,7 @@ final class Fitting {
     }
     // A suffix's first retained item already carries the gap after More.
     float room = width
-        - widths.getOrDefault("more", t.size().control())
+        - widths.getOrDefault("more", theme.size().control())
         - (direction == Direction.PREFIX ? gap : 0);
     int shown = count;
     while (shown > mandatory && total > room) {

@@ -27,25 +27,25 @@ public final class Label {
 
   private Label() {}
 
-  public static El label(Theme t, String text) {
-    return label(t, Variant.NORMAL, text);
+  public static El label(Theme theme, String text) {
+    return label(theme, Variant.NORMAL, text);
   }
 
-  public static El label(Theme t, Variant variant, String text) {
+  public static El label(Theme theme, Variant variant, String text) {
     Theme.TextStyle style = switch (variant) {
-      case NORMAL, MUTED -> t.type().body();
-      case MONO -> t.type().mono();
-      case HEADING -> t.type().heading();
-      case TITLE -> t.type().title();
-      case STRONG -> t.type().strong();
-      case SMALL -> t.type().small();
+      case NORMAL, MUTED -> theme.type().body();
+      case MONO -> theme.type().mono();
+      case HEADING -> theme.type().heading();
+      case TITLE -> theme.type().title();
+      case STRONG -> theme.type().strong();
+      case SMALL -> theme.type().small();
     };
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
         .color(
             variant == Variant.MUTED || variant == Variant.SMALL
-                ? t.text().muted()
-                : t.text().primary());
+                ? theme.text().muted()
+                : theme.text().primary());
   }
 }

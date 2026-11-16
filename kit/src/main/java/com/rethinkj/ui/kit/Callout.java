@@ -39,26 +39,31 @@ public final class Callout {
    * @param actions buttons at the right, in the order shown: beside the text, or below it where
    *     beside it the text would be narrower than {@link Theme.Sizes#field}
    */
-  public static El callout(Theme t, Kind kind, String title, String text, El... actions) {
-    Theme.CalloutTone tone = t.callout().of(kind);
-    El words = col().grow(1).gap(t.space().xs()).child(label(t, title).wrapText());
+  public static El callout(Theme theme, Kind kind, String title, String text, El... actions) {
+    Theme.CalloutTone tone = theme.callout().of(kind);
+    El words = col().grow(1).gap(theme.space().xs()).child(label(theme, title).wrapText());
     words.style().minWidth = Len.ZERO;
     if (text != null) {
-      words.child(label(t, Label.Variant.MUTED, text).color(t.callout().text()).wrapText());
+      words.child(
+          label(theme, Label.Variant.MUTED, text).color(theme.callout().text()).wrapText());
     }
-    float bar = t.callout().bar();
+    float bar = theme.callout().bar();
     El callout = row()
         .role("note")
         .label(title)
-        .padding(t.space().m(), t.space().m(), t.space().m(), t.space().s())
-        .gap(t.space().m())
+        .padding(
+            theme.space().m(),
+            theme.space().m(),
+            theme.space().m(),
+            theme.space().s())
+        .gap(theme.space().m())
         .align(Style.Align.START)
-        .radius(t.radius().medium())
+        .radius(theme.radius().medium())
         .fill(tone.fill())
         .child(
             el().w(bar).shrink(0).alignSelf(Style.Align.STRETCH).radius(bar / 2).fill(tone.mark()))
         .child(icon(
-                t,
+                theme,
                 switch (kind) {
                   case INFO -> Symbol.INFO;
                   case WARNING -> Symbol.WARNING;
@@ -72,7 +77,7 @@ public final class Callout {
     // The text and the actions in a row that wraps: the text's basis is the least it may have
     // beside them, so the actions go below it, at the right, exactly when it would get less.
     El buttons = row()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .shrink(0)
         .alignSelf(Style.Align.CENTER)
@@ -82,7 +87,7 @@ public final class Callout {
         .wrap()
         .grow(1)
         .minSize(0, 0)
-        .gap(t.space().m())
-        .children(words.basis(t.size().field()), buttons));
+        .gap(theme.space().m())
+        .children(words.basis(theme.size().field()), buttons));
   }
 }

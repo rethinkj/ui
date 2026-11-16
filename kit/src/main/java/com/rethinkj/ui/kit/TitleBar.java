@@ -20,7 +20,8 @@ import com.rethinkj.ui.WindowPart;
  * maximize has none, since Windows 11 shows its snap layouts there.
  *
  * <pre>{@code
- * col().wFull().hFull().children(TitleBar.titleBar(t, "Workbench", t.accent().color()), content)
+ * col().wFull().hFull().children(
+ *     TitleBar.titleBar(theme, "Workbench", theme.accent().color()), content)
  * }</pre>
  *
  * <p>The bar is 32 high and each button 46 wide, Windows 11's own measures. In a tree dump the
@@ -43,24 +44,25 @@ public final class TitleBar {
    * @param mark the mark's colour, 0xAARRGGBB, usually the app's
    * @param controls the app's own, before the window's buttons
    */
-  public static El titleBar(Theme t, String title, int mark, El... controls) {
-    return titleBar(t, title, mark(mark), null, false, controls);
+  public static El titleBar(Theme theme, String title, int mark, El... controls) {
+    return titleBar(theme, title, mark(mark), null, false, controls);
   }
 
   /**
    * As {@link #titleBar(Theme, String, int, El...)}, for a window that may be maximized: the
    * maximize button shows Restore while {@code maximized}, usually {@code app.windowMaximized()}.
    */
-  public static El titleBar(Theme t, String title, int mark, boolean maximized, El... controls) {
-    return titleBar(t, title, mark(mark), null, maximized, controls);
+  public static El titleBar(
+      Theme theme, String title, int mark, boolean maximized, El... controls) {
+    return titleBar(theme, title, mark(mark), null, maximized, controls);
   }
 
   /**
    * A title bar with a menu bar after the title; the gaps between its titles move the window as
    * the rest of the bar does.
    */
-  public static El withMenus(Theme t, String title, int mark, El menus, El... controls) {
-    return titleBar(t, title, mark(mark), menus, false, controls);
+  public static El withMenus(Theme theme, String title, int mark, El menus, El... controls) {
+    return titleBar(theme, title, mark(mark), menus, false, controls);
   }
 
   /**
@@ -68,8 +70,8 @@ public final class TitleBar {
    * {@code maximized}, usually {@code app.windowMaximized()}.
    */
   public static El withMenus(
-      Theme t, String title, int mark, El menus, boolean maximized, El... controls) {
-    return titleBar(t, title, mark(mark), menus, maximized, controls);
+      Theme theme, String title, int mark, El menus, boolean maximized, El... controls) {
+    return titleBar(theme, title, mark(mark), menus, maximized, controls);
   }
 
   /**
@@ -82,39 +84,40 @@ public final class TitleBar {
    * @param controls the app's own, before the window's buttons
    */
   public static El titleBar(
-      Theme t, String title, El icon, El menus, boolean maximized, El... controls) {
-    int glyph = t.text().primary();
+      Theme theme, String title, El icon, El menus, boolean maximized, El... controls) {
+    int glyph = theme.text().primary();
     El bar = row()
         .wFull()
         .h(HEIGHT)
         .shrink(0)
         .align(Style.Align.CENTER)
-        .fill(t.surface().window())
+        .fill(theme.surface().window())
         .windowPart(WindowPart.DRAG);
     if (icon != null) {
-      bar.child(icon.margin(0, 0, 0, t.space().l()));
+      bar.child(icon.margin(0, 0, 0, theme.space().l()));
     }
-    bar.child(label(t, Label.Variant.STRONG, title).margin(0, 0, 0, t.space().m()));
+    bar.child(
+        label(theme, Label.Variant.STRONG, title).margin(0, 0, 0, theme.space().m()));
     if (menus != null) {
-      bar.child(menus.margin(0, 0, 0, t.space().m()));
+      bar.child(menus.margin(0, 0, 0, theme.space().m()));
     }
     bar.child(el().grow(1));
     if (controls.length > 0) {
       bar.child(row()
-          .gap(t.space().l())
-          .margin(0, t.space().l(), 0, 0)
+          .gap(theme.space().l())
+          .margin(0, theme.space().l(), 0, 0)
           .align(Style.Align.CENTER)
           .children(controls));
     }
     El restore = maximized
-        ? Icon.icon(t, Symbol.SQUARE_MULTIPLE, Icon.Variant.NORMAL, 12)
+        ? Icon.icon(theme, Symbol.SQUARE_MULTIPLE, Icon.Variant.NORMAL, 12)
         : el().size(10, 10).border(1, glyph);
     return bar.child(Tooltip.tooltip(
-            t,
-            button(t, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)),
+            theme,
+            button(theme, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)),
             "Minimize"))
-        .child(button(t, WindowPart.MAXIMIZE, maximized ? "Restore" : "Maximize", restore))
-        .child(Tooltip.tooltip(t, close(t), "Close"));
+        .child(button(theme, WindowPart.MAXIMIZE, maximized ? "Restore" : "Maximize", restore))
+        .child(Tooltip.tooltip(theme, close(theme), "Close"));
   }
 
   /** A small rounded square in the app's colour, before the title. */
@@ -127,7 +130,7 @@ public final class TitleBar {
    * The system acts on it; the handler, which does nothing, makes it the press's target, so that
    * it shows the press.
    */
-  private static El button(Theme t, WindowPart part, String label, El glyph) {
+  private static El button(Theme theme, WindowPart part, String label, El glyph) {
     return el().role("button")
         .label(label)
         .size(BUTTON, HEIGHT)
@@ -135,21 +138,21 @@ public final class TitleBar {
         .windowPart(part)
         .child(glyph)
         .onPress(() -> {})
-        .whenHovered(b -> b.fill(t.surface().hover()))
-        .whenPressed(b -> b.fill(t.surface().pressed()));
+        .whenHovered(b -> b.fill(theme.surface().hover()))
+        .whenPressed(b -> b.fill(theme.surface().pressed()));
   }
 
   /** The close button, red with a white cross under the pointer, as the system's is. */
-  private static El close(Theme t) {
-    El cross = Icon.icon(t, Symbol.DISMISS, Icon.Variant.NORMAL, 12);
-    return button(t, WindowPart.CLOSE, "Close", cross)
+  private static El close(Theme theme) {
+    El cross = Icon.icon(theme, Symbol.DISMISS, Icon.Variant.NORMAL, 12);
+    return button(theme, WindowPart.CLOSE, "Close", cross)
         .whenHovered(b -> {
-          b.fill(t.caption().closeHover());
-          cross.color(t.caption().onClose());
+          b.fill(theme.caption().closeHover());
+          cross.color(theme.caption().onClose());
         })
         .whenPressed(b -> {
-          b.fill(t.caption().closePressed());
-          cross.color(t.caption().onClose());
+          b.fill(theme.caption().closePressed());
+          cross.color(theme.caption().onClose());
         });
   }
 }

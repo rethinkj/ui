@@ -26,11 +26,11 @@ import java.util.function.IntFunction;
  * is one stop for Tab and follows the selection ({@link El#revealRow}).
  *
  * <pre>{@code
- * navList(t, List.of(
+ * navList(theme, List.of(
  *     NavList.item(Symbol.SETTINGS, "General"),
  *     NavList.item(Symbol.DATABASE, "Connections").count("3"),
  *     NavList.heading("Help"),
- *     NavList.item(Symbol.INFO, "About")), s.page, i -> s.page = i)
+ *     NavList.item(Symbol.INFO, "About")), state.page, index -> state.page = index)
  *     .label("Settings")
  * }</pre>
  *
@@ -85,8 +85,8 @@ public final class NavList {
    * @param onSelect told the index of the item the user selects, only when it changes; null
    *     disables the list
    */
-  public static El navList(Theme t, List<Item> items, int selected, IntConsumer onSelect) {
-    Rows rows = new Rows(t, items.size(), items::get, selected, onSelect);
+  public static El navList(Theme theme, List<Item> items, int selected, IntConsumer onSelect) {
+    Rows rows = new Rows(theme, items.size(), items::get, selected, onSelect);
     El list = col().scroll();
     for (int i = 0; i < items.size(); i++) {
       El r = rows.build(i).h(rows.height).shrink(0);
@@ -104,12 +104,12 @@ public final class NavList {
    * @param onSelect told the value the user selects, only when it changes; null disables the list
    */
   public static <T> El navList(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Item> item,
       Consumer<? super T> onSelect) {
-    return navList(t, values, selected, item, v -> null, onSelect);
+    return navList(theme, values, selected, item, v -> null, onSelect);
   }
 
   /**
@@ -117,15 +117,16 @@ public final class NavList {
    * before it, none for a null group. The headings count as rows, as in the form with indexes.
    *
    * <pre>{@code
-   * navList(t, List.of(Page.values()), s.page, p -> NavList.item(p.icon, p.title), Page::group,
-   *     p -> s.page = p)
+   * navList(theme, List.of(Page.values()), state.page,
+   *     page -> NavList.item(page.icon, page.title), Page::group,
+   *     page -> state.page = page)
    * }</pre>
    *
    * @param item the item of a value, which should not be a {@linkplain #heading heading}
    * @param group the heading over a value and those after it with an equal group, or null
    */
   public static <T> El navList(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Item> item,
@@ -151,7 +152,10 @@ public final class NavList {
       items.add(item.apply(once.get(i)));
     }
     return navList(
-        t, items, selectedRow, onSelect == null ? null : r -> onSelect.accept(once.get(value[r])));
+        theme,
+        items,
+        selectedRow,
+        onSelect == null ? null : r -> onSelect.accept(once.get(value[r])));
   }
 
   /**
@@ -161,14 +165,14 @@ public final class NavList {
    *     beside the selection
    */
   public static El navList(
-      Theme t, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
-    Rows rows = new Rows(t, count, item, selected, onSelect);
+      Theme theme, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+    Rows rows = new Rows(theme, count, item, selected, onSelect);
     return rows.list(col().rows(count, rows.height, rows::build));
   }
 
   /** What one rebuild of the list needs to build its rows and to take its keys. */
   private static final class Rows {
-    final Theme t;
+    final Theme theme;
     final int count;
     final IntFunction<Item> item;
     final int selected;
@@ -177,30 +181,30 @@ public final class NavList {
     final boolean[] focused = {false}; // set by the list's focus look, read by the rows
     El selectedPill; // of a list built at once, which the focus look reaches after the rows
 
-    Rows(Theme t, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
-      this.t = t;
+    Rows(Theme theme, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+      this.theme = theme;
       this.count = count;
       this.item = item;
       this.selected = selected;
       this.onSelect = onSelect;
-      this.height = t.size().control() + 2 * t.space().xs();
+      this.height = theme.size().control() + 2 * theme.space().xs();
     }
 
     El list(El list) {
       // Rounded, so that the focus ring is, without clipping the items' rounded fills.
       list.role("listbox")
-          .radius(t.radius().medium())
-          .scrollbars(t.scrollbars())
+          .radius(theme.radius().medium())
+          .scrollbars(theme.scrollbars())
           .revealRow(selected);
       if (onSelect == null) {
         return list.disabled(true);
       }
       return list.focusable()
-          .focusRing(t.accent().edge())
+          .focusRing(theme.accent().edge())
           .whenFocused(e -> {
             focused[0] = true;
             if (selectedPill != null) {
-              selectedPill.fill(t.grid().selected());
+              selectedPill.fill(theme.grid().selected());
             }
           })
           .onKey(k -> key(k, list));
@@ -213,43 +217,44 @@ public final class NavList {
         return row()
             .key("item-" + i)
             .align(Style.Align.CENTER)
-            .padding(0, t.space().m(), 0, 2 * t.space().xs() + t.space().s())
-            .child(label(t, Label.Variant.MUTED, entry.label()));
+            .padding(
+                0, theme.space().m(), 0, 2 * theme.space().xs() + theme.space().s())
+            .child(label(theme, Label.Variant.MUTED, entry.label()));
       }
       boolean on = i == selected;
-      float mark = t.size().icon();
+      float mark = theme.size().icon();
       El pill = row()
           .grow(1)
-          .gap(t.space().s())
+          .gap(theme.space().s())
           .align(Style.Align.CENTER)
-          .padding(0, t.space().m(), 0, t.space().xs())
-          .radius(t.radius().medium())
-          .fill(on ? focused[0] ? t.grid().selected() : t.grid().selectedInactive() : 0)
-          .motion(t.motion().feedback())
-          .child(el().size(t.space().xs(), mark)
-              .radius(t.space().xs() / 2)
-              .fill(on ? t.accent().edge() : 0));
+          .padding(0, theme.space().m(), 0, theme.space().xs())
+          .radius(theme.radius().medium())
+          .fill(on ? focused[0] ? theme.grid().selected() : theme.grid().selectedInactive() : 0)
+          .motion(theme.motion().feedback())
+          .child(el().size(theme.space().xs(), mark)
+              .radius(theme.space().xs() / 2)
+              .fill(on ? theme.accent().edge() : 0));
       if (on) {
         selectedPill = pill;
       }
       if (entry.icon() != null) {
-        pill.child(icon(t, entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        pill.child(icon(theme, entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
       }
-      pill.child(label(t, entry.label())
-          .color(enabled ? t.text().primary() : t.text().disabled())
+      pill.child(label(theme, entry.label())
+          .color(enabled ? theme.text().primary() : theme.text().disabled())
           .grow(1)
           .ellipsis()
           .minSize(0, 0));
       if (entry.count() != null) {
-        pill.child(label(t, Label.Variant.MUTED, entry.count())
-            .color(enabled ? t.text().muted() : t.text().disabled()));
+        pill.child(label(theme, Label.Variant.MUTED, entry.count())
+            .color(enabled ? theme.text().muted() : theme.text().disabled()));
       }
       El r = row()
           .key("item-" + i)
           .role("option")
           .label(entry.label())
           .selected(on)
-          .padding(t.space().xs(), 0)
+          .padding(theme.space().xs(), 0)
           .child(pill);
       if (!enabled) {
         return r;
@@ -260,8 +265,8 @@ public final class NavList {
         }
       });
       if (!on) {
-        r.whenHovered(e -> pill.fill(t.surface().hover()))
-            .whenPressed(e -> pill.fill(t.surface().pressed()));
+        r.whenHovered(e -> pill.fill(theme.surface().hover()))
+            .whenPressed(e -> pill.fill(theme.surface().pressed()));
       }
       return r;
     }

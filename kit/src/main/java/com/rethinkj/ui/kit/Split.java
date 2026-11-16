@@ -21,9 +21,11 @@ import java.util.function.DoubleConsumer;
  * reports a move:
  *
  * <pre>{@code
- * split(theme, Direction.ROW, s.sidebar, Position.first(240), p -> s.sidebar = p,
+ * split(theme, Direction.ROW, state.sidebar, Position.first(240),
+ *         position -> state.sidebar = position,
  *         schema.label("Schema"), 160,
- *         split(theme, Direction.COLUMN, s.editor, Position.share(0.5f), p -> s.editor = p,
+ *         split(theme, Direction.COLUMN, state.editor, Position.share(0.5f),
+ *             position -> state.editor = position,
  *             editor.label("Query"), 80, results, 80),
  *         320)
  *     .grow(1);
@@ -126,7 +128,7 @@ public final class Split {
    * @param minSecond the least width or height of the second part
    */
   public static El split(
-      Theme t,
+      Theme theme,
       Direction direction,
       Position position,
       Position reset,
@@ -135,7 +137,8 @@ public final class Split {
       float minFirst,
       El second,
       float minSecond) {
-    return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, false);
+    return split(
+        theme, direction, position, reset, onMove, first, minFirst, second, minSecond, false);
   }
 
   /**
@@ -144,7 +147,7 @@ public final class Split {
    * dragged, and their boxes do not clip them, so that the cards' lifts show.
    */
   public static El cards(
-      Theme t,
+      Theme theme,
       Direction direction,
       Position position,
       Position reset,
@@ -153,11 +156,12 @@ public final class Split {
       float minFirst,
       El second,
       float minSecond) {
-    return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, true);
+    return split(
+        theme, direction, position, reset, onMove, first, minFirst, second, minSecond, true);
   }
 
   private static El split(
-      Theme t,
+      Theme theme,
       Direction direction,
       Position position,
       Position reset,
@@ -170,14 +174,14 @@ public final class Split {
     Objects.requireNonNull(position, "position");
     boolean across = direction == Direction.ROW;
     // Between cards the gap takes the line's place, which shows in its middle.
-    float stroke = cards ? t.space().m() : t.size().stroke();
+    float stroke = cards ? theme.space().m() : theme.size().stroke();
     // The strip around the line reaches over both parts by this much. It comes after the second
     // part in the tree, so that it is on top of both: the second part and the strip are in a box
     // of their own, in reverse order, that begins where the strip does.
-    float over = Math.max(t.size().handle() - stroke, 0) / 2;
+    float over = Math.max(theme.size().handle() - stroke, 0) / 2;
     float strip = stroke + 2 * over;
 
-    El mark = el().fill(cards ? 0 : t.border().divider());
+    El mark = el().fill(cards ? 0 : theme.border().divider());
     El line = cards ? (across ? row() : col()).justify(Style.Content.CENTER).child(mark) : mark;
     El divider = (across ? row() : col())
         .key("divider")
@@ -200,7 +204,7 @@ public final class Split {
     zeroMin(split); // it fills the room it is given, whatever the parts hold
     rest.style().direction = across ? Style.Direction.ROW_REVERSE : Style.Direction.COLUMN_REVERSE;
     zeroMin(rest);
-    float hair = t.size().stroke();
+    float hair = theme.size().stroke();
     if (across) {
       line.w(stroke);
       mark.w(hair);
@@ -248,17 +252,17 @@ public final class Split {
             case SHARE -> room > 0 ? Position.share(Math.clamp(size / room, 0, 1)) : position;
           });
     };
-    float step = t.size().step();
+    float step = theme.size().step();
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
     // Tab reaches it; a press or a drag leaves the focus in the part that has it.
     divider
         .focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
-        .whenHovered(e -> mark.fill(t.border().strong()))
-        .whenPressed(e -> mark.fill(t.accent().color()))
+        .whenHovered(e -> mark.fill(theme.border().strong()))
+        .whenPressed(e -> mark.fill(theme.accent().color()))
         .onDrag(d -> {
           if (d.phase() == Drag.Phase.CANCEL) {
             onMove.accept(position);

@@ -21,17 +21,17 @@ import java.util.function.Predicate;
  * which one is selected; the tree shows them and reports what the user does:
  *
  * <pre>{@code
- * tree(theme, s.catalog, s.open::contains, s.selected,
- *     node -> s.selected = node,
+ * tree(theme, state.catalog, state.open::contains, state.selected,
+ *     node -> state.selected = node,
  *     (node, open) -> {
  *       if (open) {
- *         s.open.add(node);
- *         s.catalog.loadIfUnknown(node); // with App.background; children() is null till then
+ *         state.open.add(node);
+ *         state.catalog.loadIfUnknown(node); // with App.background; children() is null till then
  *       } else {
- *         s.open.remove(node);
+ *         state.open.remove(node);
  *       }
  *     },
- *     node -> s.show(node))
+ *     node -> state.show(node))
  *     .key("schema").label("Schema").grow(1);
  * }</pre>
  *
@@ -180,7 +180,7 @@ public final class Tree {
    * @param onActivate told the node the user activates with a double press or Enter; null for none
    */
   public static <N> El tree(
-      Theme t,
+      Theme theme,
       Model<N> model,
       Predicate<? super N> isOpen,
       N selected,
@@ -188,29 +188,31 @@ public final class Tree {
       Toggle<? super N> onToggle,
       Consumer<? super N> onActivate) {
     Rows<N> rows = new Rows<>(model, isOpen, selected);
-    float height = t.grid().rowHeight();
-    float indent = t.space().xl();
+    float height = theme.grid().rowHeight();
+    float indent = theme.space().xl();
     boolean presses = onSelect != null || onToggle != null || onActivate != null;
     // The rows are built after the tree's focus look has run, so they can read what it found.
     boolean[] focused = {false};
-    El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected);
+    El tree = col().role("tree").scrollbars(theme.scrollbars()).revealRow(rows.selected);
     tree.rows(rows.count, height, i -> {
       N node = rows.node(i);
       El r = row()
           .key("row-" + i)
-          .radius(t.radius().medium())
-          .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)
-          .gap(t.space().s())
+          .radius(theme.radius().medium())
+          .padding(0, theme.space().s(), 0, theme.space().s() + rows.depth(i) * indent)
+          .gap(theme.space().s())
           .align(Style.Align.CENTER);
       if (node == null) { // the children of the row's parent are not known yet
         N parent = rows.parent(i);
         Failure failure = model.failure(parent);
         if (failure != null) {
-          return failed(t, r.child(el().w(indent).shrink(0)), failure, rows.depth(i) + 1, height);
+          return failed(
+              theme, r.child(el().w(indent).shrink(0)), failure, rows.depth(i) + 1, height);
         }
         String text = model.loading(parent);
-        El loading = Label.label(t, Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
-        return whole(t, r.children(el().w(indent).shrink(0), loading), loading, null, text, height);
+        El loading = Label.label(theme, Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
+        return whole(
+            theme, r.children(el().w(indent).shrink(0), loading), loading, null, text, height);
       }
       boolean leaf = model.isLeaf(node);
       boolean open = !leaf && isOpen.test(node);
@@ -222,7 +224,7 @@ public final class Tree {
       };
       El mark = el().size(indent, height).shrink(0).center(); // the whole height takes presses
       if (!leaf) {
-        mark.key("mark-" + i).child(Icon.icon(t, open ? OPEN : CLOSED, Icon.Variant.MUTED));
+        mark.key("mark-" + i).child(Icon.icon(theme, open ? OPEN : CLOSED, Icon.Variant.MUTED));
         if (onToggle != null) {
           mark.onPress(() -> {
             select.run();
@@ -247,15 +249,15 @@ public final class Tree {
       Label.Variant variant = model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
       String detail = model.detail(node);
       if (detail == null) {
-        El name = Label.label(t, variant, label).ellipsis().minSize(0, 0);
-        whole(t, r.child(name), name, null, label, height);
+        El name = Label.label(theme, variant, label).ellipsis().minSize(0, 0);
+        whole(theme, r.child(name), name, null, label, height);
       } else {
-        detail(t, r.value(detail), variant, label, detail, height);
+        detail(theme, r.value(detail), variant, label, detail, height);
       }
       if (isSelected) {
-        r.fill(focused[0] ? t.grid().selected() : t.grid().selectedInactive());
+        r.fill(focused[0] ? theme.grid().selected() : theme.grid().selectedInactive());
       } else if (presses) {
-        r.whenHovered(e -> e.fill(t.surface().hover()));
+        r.whenHovered(e -> e.fill(theme.surface().hover()));
       }
       // The rows are built after the view, so a context menu given to the tree is there: the
       // row a secondary press lands on is selected before the menu opens.
@@ -293,7 +295,7 @@ public final class Tree {
       return tree;
     }
     return tree.focusable()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate))
         .onTypeAhead(typed -> {
@@ -315,15 +317,16 @@ public final class Tree {
    * so that both texts sit in its middle. The tooltip names both where either is cut or gone.
    */
   private static void detail(
-      Theme t, El row, Label.Variant variant, String label, String detail, float height) {
-    El name = Label.label(t, variant, label).ellipsis().minSize(0, 0).shrink(0);
+      Theme theme, El row, Label.Variant variant, String label, String detail, float height) {
+    El name = Label.label(theme, variant, label).ellipsis().minSize(0, 0).shrink(0);
     name.style().maxWidth = Len.percent(1);
-    El more = Label.label(t, Label.Variant.MUTED, detail)
+    El more = Label.label(theme, Label.Variant.MUTED, detail)
         .ellipsis()
         .minSize(0, 0)
         .grow(1)
-        .basis(TextSizing.natural(Label.label(t, Label.Variant.MUTED, TextSizing.least(detail))))
-        .margin(0, 0, 0, t.space().s());
+        .basis(
+            TextSizing.natural(Label.label(theme, Label.Variant.MUTED, TextSizing.least(detail))))
+        .margin(0, 0, 0, theme.space().s());
     El box = row()
         .wrap()
         .grow(1)
@@ -333,7 +336,7 @@ public final class Tree {
         .clip()
         .children(el().size(0, height), name, more);
     box.style().alignContent = Style.Content.START;
-    whole(t, row.child(box), name, more, label + " " + detail, height);
+    whole(theme, row.child(box), name, more, label + " " + detail, height);
   }
 
   /**
@@ -344,9 +347,9 @@ public final class Tree {
    * @param more the detail after the name, or null for none
    * @return the row
    */
-  private static El whole(Theme t, El row, El name, El more, String text, float height) {
+  private static El whole(Theme theme, El row, El name, El more, String text, float height) {
     return Tooltip.whenHovered(
-        t,
+        theme,
         row,
         () -> name.text().shortened()
                 || more != null && (more.text().shortened() || more.y() >= height)
@@ -364,36 +367,36 @@ public final class Tree {
    * not a node the selection can be on; Enter and Space run it, as a press does, and a press
    * leaves the focus where it is.
    */
-  private static El failed(Theme t, El row, Failure failure, int level, float height) {
-    El text = Label.label(t, failure.text()).ellipsis().minSize(0, 0).grow(1);
+  private static El failed(Theme theme, El row, Failure failure, int level, float height) {
+    El text = Label.label(theme, failure.text()).ellipsis().minSize(0, 0).grow(1);
     row.role("treeitem")
         .label(failure.text())
         .invalid(true)
         .errorMessage(failure.text())
         .level(level)
         .position(1, 1)
-        .children(Icon.icon(t, Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
-    whole(t, row, text, null, failure.text(), height);
+        .children(Icon.icon(theme, Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
+    whole(theme, row, text, null, failure.text(), height);
     Runnable run = failure.onAction();
     if (failure.action() == null || run == null) {
       return row;
     }
     // Clear of the scrollbar, which lies over the end of the rows: the only row with a part there.
-    Scrollbars bars = t.scrollbars();
-    float clear = Math.max(0, bars.strip() - t.space().s());
+    Scrollbars bars = theme.scrollbars();
+    float clear = Math.max(0, bars.strip() - theme.space().s());
     // No motion: it would fade in as the row turns from loading to failed, untouchable meanwhile.
     return row.child(row()
         .role("button")
         .label(failure.action())
-        .h(height - t.space().xs())
+        .h(height - theme.space().xs())
         .shrink(0)
         .margin(0, clear, 0, 0)
-        .padding(0, t.space().s())
+        .padding(0, theme.space().s())
         .align(Style.Align.CENTER)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(run)
         .onKey(k -> {
@@ -405,8 +408,9 @@ public final class Tree {
           }
           return press;
         })
-        .whenHovered(e -> e.fill(t.surface().hover())) // as a link: no darker look while pressed
-        .child(Label.label(t, failure.action()).color(t.prose().link())));
+        .whenHovered(
+            e -> e.fill(theme.surface().hover())) // as a link: no darker look while pressed
+        .child(Label.label(theme, failure.action()).color(theme.prose().link())));
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */

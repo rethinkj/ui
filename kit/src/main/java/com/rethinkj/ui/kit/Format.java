@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * Format.DECIMAL.parse("12.50")      // Parsed[value=12.50, error=null]
  * Format.DECIMAL.parse("12,50")      // Parsed[value=null, error=Not a number]
  * Format.DATE.text(LocalDate.of(2026, 11, 13))            // "2026-11-13"
- * Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535")
+ * Format.INTEGER.where(port -> port >= 1 && port <= 65535, "1 to 65535")
  * Format.choice(List.of(Status.values()), Status::label)   // an enumeration by its labels
  * Format.of(UUID::toString, UUID::fromString, "Expected a UUID such as 1b4e28ba-2fa1-11d2-883f-0016d3cca427")
  * }</pre>
@@ -520,8 +520,8 @@ public final class Format<T> {
 
   /**
    * This format taking only the values that pass {@code test}, and answering others with {@code
-   * message}, such as a range: {@code Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to
-   * 65535")}.
+   * message}, such as a range: {@code Format.INTEGER.where(port -> port >= 1 && port <= 65535,
+   * "1 to 65535")}.
    */
   public Format<T> where(Predicate<? super T> test, String message) {
     Objects.requireNonNull(test, "test");

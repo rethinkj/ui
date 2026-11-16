@@ -10,7 +10,7 @@ package com.rethinkj.ui;
  * <pre>{@code
  * final class Tab { final ScrollState rows = new ScrollState(); }
  *
- * El.col().rows(count, 22, i -> row(i)).scrollState(tab.rows)
+ * El.col().rows(count, 22, index -> row(index)).scrollState(tab.rows)
  * }</pre>
  *
  * <p>The app keeps one per area, as it keeps a {@link FieldState} per field, and gives it to the

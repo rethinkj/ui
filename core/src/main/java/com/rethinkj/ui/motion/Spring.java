@@ -57,16 +57,16 @@ public record Spring(double duration, double bounce) {
   }
 
   /**
-   * The position {@code t} seconds after leaving {@code from} with {@code velocity} (units per
-   * second) towards {@code to}. A negative {@code t} counts as 0.
+   * The position {@code time} seconds after leaving {@code from} with {@code velocity} (units per
+   * second) towards {@code to}. A negative {@code time} counts as 0.
    */
-  public double value(double from, double velocity, double to, double t) {
-    return to + solve(from - to, velocity, t, false);
+  public double value(double from, double velocity, double to, double time) {
+    return to + solve(from - to, velocity, time, false);
   }
 
   /** The velocity, in units per second, at the moment {@link #value} describes. */
-  public double velocity(double from, double velocity, double to, double t) {
-    return solve(from - to, velocity, t, true);
+  public double velocity(double from, double velocity, double to, double time) {
+    return solve(from - to, velocity, time, true);
   }
 
   /**

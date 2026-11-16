@@ -15,7 +15,8 @@ import java.util.function.Consumer;
  *   final ValueField.Draft amountDraft = new ValueField.Draft();
  * }
  *
- * valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v).w(120)
+ * valueField(theme, Format.DECIMAL, state.amount, state.amountDraft, value -> state.amount = value)
+ *     .w(120)
  * }</pre>
  *
  * <p>Between two values the user types texts that are none, such as {@code 12e} or a date half
@@ -141,20 +142,23 @@ public final class ValueField {
    *
    * @throws IllegalStateException for a prop of {@link Prop#of}, which keeps no draft
    */
-  public static <T> El valueField(Theme t, Format<T> format, Prop<T> value) {
-    return valueField(t, format, value, null);
+  public static <T> El valueField(Theme theme, Format<T> format, Prop<T> value) {
+    return valueField(theme, format, value, null);
   }
 
   /** A field of a {@link Prop} with a placeholder, as {@link #valueField(Theme, Format, Prop)}. */
-  public static <T> El valueField(Theme t, Format<T> format, Prop<T> value, String placeholder) {
+  public static <T> El valueField(
+      Theme theme, Format<T> format, Prop<T> value, String placeholder) {
     return Prop.shown(
-        t, valueField(t, format, value.get(), placeholder, value.draft(), value.onChange()), value);
+        theme,
+        valueField(theme, format, value.get(), placeholder, value.draft(), value.onChange()),
+        value);
   }
 
   /** A field without placeholder; give it a label with {@code .label("...")}. */
   public static <T> El valueField(
-      Theme t, Format<T> format, T value, Draft draft, Consumer<? super T> onChange) {
-    return valueField(t, format, value, null, draft, onChange);
+      Theme theme, Format<T> format, T value, Draft draft, Consumer<? super T> onChange) {
+    return valueField(theme, format, value, null, draft, onChange);
   }
 
   /**
@@ -167,7 +171,7 @@ public final class ValueField {
    * @return the field, so that a view goes on with {@code .key}, {@code .w} or {@code .maxLength}
    */
   public static <T> El valueField(
-      Theme t,
+      Theme theme,
       Format<T> format,
       T value,
       String placeholder,
@@ -176,9 +180,9 @@ public final class ValueField {
     Objects.requireNonNull(format, "format");
     draft.show(format, value);
     Consumer<String> edit = onChange == null ? null : text -> draft.edit(format, text, onChange);
-    El field = TextField.textField(t, draft.text, placeholder, edit);
+    El field = TextField.textField(theme, draft.text, placeholder, edit);
     if (draft.error != null && draft.showsError) {
-      TextField.invalid(t, field).errorMessage(draft.error);
+      TextField.invalid(theme, field).errorMessage(draft.error);
     }
     return field;
   }

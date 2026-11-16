@@ -11,7 +11,7 @@ import com.rethinkj.ui.text.Font;
  * {@code size} logical pixels at scale 1.
  *
  * <pre>{@code
- * WindowIcon icon = WindowIcon.of(size -> AppIcon.appIcon(t, size, brand, Symbol.DATABASE));
+ * WindowIcon icon = WindowIcon.of(size -> AppIcon.appIcon(theme, size, brand, Symbol.DATABASE));
  * }</pre>
  */
 public final class AppIcon {
@@ -27,7 +27,7 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El appIcon(Theme t, int size, int fill, Symbol symbol) {
+  public static El appIcon(Theme theme, int size, int fill, Symbol symbol) {
     int margin = Math.max(1, Math.round(size / 16f));
     int inner = size - 2 * margin;
     float glyph = Math.round(size * 0.625f);
@@ -41,7 +41,7 @@ public final class AppIcon {
             .child(El.text(Character.toString(symbol.codePoint(glyph)))
                 .font(Font.icons())
                 .fontSize(glyph)
-                .color(t.text().onAccent())
+                .color(theme.text().onAccent())
                 .shrink(0)));
   }
 
@@ -52,12 +52,12 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El dot(Theme t, int size, int fill) {
+  public static El dot(Theme theme, int size, int fill) {
     float ring = Math.max(1, Math.round(size / 8f));
     return el().wFull()
         .hFull()
         .radius(size / 2f)
-        .fill(t.text().onAccent())
+        .fill(theme.text().onAccent())
         .padding(ring)
         .child(el().wFull().hFull().radius(size / 2f - ring).fill(fill));
   }
@@ -68,7 +68,7 @@ public final class AppIcon {
    *
    * @param size the size of the image in pixels
    */
-  public static El count(Theme t, int size, int fill, int count) {
+  public static El count(Theme theme, int size, int fill, int count) {
     String text = count > 99 ? "99+" : Integer.toString(Math.max(0, count));
     float fontSize =
         Math.round(size * (text.length() == 1 ? 0.75f : text.length() == 2 ? 0.6f : 0.45f));
@@ -80,7 +80,7 @@ public final class AppIcon {
         .child(El.text(text)
             .font(Font.sansBold())
             .fontSize(fontSize)
-            .color(t.text().onAccent())
+            .color(theme.text().onAccent())
             .textBackground(fill)
             .shrink(0));
   }

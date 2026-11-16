@@ -29,8 +29,10 @@ import java.util.function.Predicate;
  * that move the caret sideways. A press on an entry takes it.
  *
  * <pre>{@code
- * El editor = codeEditor(t, s.sql, s.editor, Sql.of(t), v -> s.sql = v);
- * Completion.complete(t, app, editor, s.editor.caret(), s.completion, word -> s.suggest(word));
+ * El editor =
+ *     codeEditor(theme, state.sql, state.editor, Sql.of(theme), value -> state.sql = value);
+ * Completion.complete(theme, app, editor, state.editor.caret(), state.completion,
+ *     word -> state.suggest(word));
  * }</pre>
  *
  * <p>A word is what {@link El#codeWords} takes for one: letters, digits and {@code _}. The app's
@@ -147,13 +149,13 @@ public final class Completion {
    * @return the field
    */
   public static El complete(
-      Theme t,
+      Theme theme,
       App<?> app,
       El field,
       int caret,
       State state,
       Function<String, List<Entry>> suggest) {
-    return complete(t, app, field, caret, state, null, suggest);
+    return complete(theme, app, field, caret, state, null, suggest);
   }
 
   /**
@@ -167,18 +169,18 @@ public final class Completion {
    * @param name what the work is called, which {@link App#await} names
    */
   public static El completeInBackground(
-      Theme t,
+      Theme theme,
       App<?> app,
       El field,
       int caret,
       State state,
       String name,
       Function<String, List<Entry>> suggest) {
-    return complete(t, app, field, caret, state, Objects.requireNonNull(name, "name"), suggest);
+    return complete(theme, app, field, caret, state, Objects.requireNonNull(name, "name"), suggest);
   }
 
   private static El complete(
-      Theme t,
+      Theme theme,
       App<?> app,
       El field,
       int caret,
@@ -243,24 +245,26 @@ public final class Completion {
     int count = entries.size();
     int rows = count + (loading ? 1 : 0);
     El list = PassiveList.view(
-            t,
+            theme,
             rows,
             ROWS,
             state.highlight,
-            t.space().s(),
-            t.size().control(),
-            i -> i == count ? PassiveList.loading(t) : option(t, entries.get(i), i, state, take))
+            theme.space().s(),
+            theme.size().control(),
+            i -> i == count
+                ? PassiveList.loading(theme)
+                : option(theme, entries.get(i), i, state, take))
         .key("completions")
         .role("listbox")
         .label("Completions")
         .atCaret()
-        .side(Side.BOTTOM, Style.Align.START, t.space().xs())
+        .side(Side.BOTTOM, Style.Align.START, theme.space().xs())
         .keepFocus()
         .onDismiss(state::close);
-    list.style().minWidth = Len.px(width(t, entries) + PassiveList.gutter(t, rows, ROWS));
-    list.style().maxHeight =
-        Len.px(ROWS * t.size().control() + 2 * (t.space().s() + t.size().stroke()));
-    return field.overlay(Popup.frame(t, list));
+    list.style().minWidth = Len.px(width(theme, entries) + PassiveList.gutter(theme, rows, ROWS));
+    list.style().maxHeight = Len.px(
+        ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
+    return field.overlay(Popup.frame(theme, list));
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */
@@ -290,51 +294,53 @@ public final class Completion {
    * The list's width with its padding: what its first rows need, at least a field's width and at
    * most twice that.
    */
-  private static float width(Theme t, List<Entry> entries) {
+  private static float width(Theme theme, List<Entry> entries) {
     float texts = 0;
     for (int i = 0; i < Math.min(entries.size(), ROWS); i++) {
       Entry entry = entries.get(i);
       float kind = entry.kind() == null
           ? 0
-          : TextSizing.natural(kind(t, entry)) + t.space().m() + t.space().l();
-      texts = Math.max(texts, TextSizing.natural(text(t, entry)) + kind);
+          : TextSizing.natural(kind(theme, entry))
+              + theme.space().m()
+              + theme.space().l();
+      texts = Math.max(texts, TextSizing.natural(text(theme, entry)) + kind);
     }
-    float m = t.space().m();
+    float m = theme.space().m();
     // The row's padding, its icon and the gap after it, around the texts; the list's padding.
-    float need =
-        (float) Math.ceil(3 * m + t.size().icon() + texts + 2 * t.space().s());
-    return Math.clamp(need, t.size().field(), 2 * t.size().field());
+    float need = (float)
+        Math.ceil(3 * m + theme.size().icon() + texts + 2 * theme.space().s());
+    return Math.clamp(need, theme.size().field(), 2 * theme.size().field());
   }
 
-  private static El text(Theme t, Entry entry) {
-    return label(t, entry.text())
-        .font(t.type().mono().font().get())
-        .fontSize(t.type().mono().size());
+  private static El text(Theme theme, Entry entry) {
+    return label(theme, entry.text())
+        .font(theme.type().mono().font().get())
+        .fontSize(theme.type().mono().size());
   }
 
-  private static El kind(Theme t, Entry entry) {
-    return label(t, Label.Variant.SMALL, entry.kind());
+  private static El kind(Theme theme, Entry entry) {
+    return label(theme, Label.Variant.SMALL, entry.kind());
   }
 
-  private static El option(Theme t, Entry entry, int i, State state, Consumer<Integer> take) {
+  private static El option(Theme theme, Entry entry, int i, State state, Consumer<Integer> take) {
     El kind = null;
     if (entry.kind() != null) {
       // The text gives way first, the kind only beyond half the row.
-      kind = kind(t, entry)
+      kind = kind(theme, entry)
           .ellipsis()
           .minSize(0, 0)
           .shrink(0)
-          .margin(0, 0, 0, t.space().l());
+          .margin(0, 0, 0, theme.space().l());
       kind.style().maxWidth = Len.percent(0.5f);
     }
     El content = PassiveContent.row(
-        t,
+        theme,
         PassiveContent.leading(
-            t, entry.symbol() != null ? icon(t, entry.symbol(), Icon.Variant.MUTED) : null),
-        text(t, entry).ellipsis().minSize(0, 0),
+            theme, entry.symbol() != null ? icon(theme, entry.symbol(), Icon.Variant.MUTED) : null),
+        text(theme, entry).ellipsis().minSize(0, 0),
         kind);
     return PassiveList.option(
-            t, i, state.highlight, at -> state.highlight = at, () -> take.accept(i))
+            theme, i, state.highlight, at -> state.highlight = at, () -> take.accept(i))
         .label(entry.text())
         .child(content);
   }

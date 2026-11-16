@@ -44,20 +44,20 @@ public final class NumberField {
    * @param onChange told each new number; null disables the field
    */
   public static El numberField(
-      Theme t, int value, int min, int max, int step, IntConsumer onChange) {
-    return numberField(t, null, value, min, max, step, onChange);
+      Theme theme, int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(theme, null, value, min, max, step, onChange);
   }
 
   /**
    * A number field of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
    * written disables it. A prop of an {@link Editing} keeps the field's draft there.
    */
-  public static El numberField(Theme t, Prop<Integer> value, int min, int max, int step) {
+  public static El numberField(Theme theme, Prop<Integer> value, int min, int max, int step) {
     Integer now = value.get();
     return Prop.shown(
-        t,
+        theme,
         numberField(
-            t,
+            theme,
             null,
             now == null ? min : now,
             min,
@@ -78,8 +78,8 @@ public final class NumberField {
    * @param onChange told each new number; null disables the field
    */
   public static El numberField(
-      Theme t, String label, int value, int min, int max, int step, IntConsumer onChange) {
-    return numberField(t, label, value, min, max, step, null, onChange);
+      Theme theme, String label, int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(theme, label, value, min, max, step, null, onChange);
   }
 
   /**
@@ -95,7 +95,7 @@ public final class NumberField {
    * @param onChange told each new number; null disables the field
    */
   public static El numberField(
-      Theme t,
+      Theme theme,
       String label,
       int value,
       int min,
@@ -114,28 +114,28 @@ public final class NumberField {
       text = draft.text();
     }
     El field = TextField.textField(
-            t, text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
+            theme, text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
         .role("spinbutton")
         .label(label);
     if (draft != null && draft.error() != null && draft.showsError()) {
-      TextField.invalid(t, field).errorMessage(draft.error());
+      TextField.invalid(theme, field).errorMessage(draft.error());
     } else if (value < min || value > max) {
       // The message a form or a group's row shows below it, and a dump as error="...".
-      TextField.invalid(t, field).errorMessage(min + " to " + max);
+      TextField.invalid(theme, field).errorMessage(min + " to " + max);
     }
-    float inset = t.space().xs();
-    float size = FieldActions.size(t);
+    float inset = theme.space().xs();
+    float size = FieldActions.size(theme);
     El buttons = row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         // Even a disabled arrow keeps the focus in the field; neither is a Tab stop.
         .child(FieldActions.button(
-                t,
+                theme,
                 Symbol.SUBTRACT,
                 "Decrease",
                 enabled && value > min ? () -> onChange.accept(step(value, -step, min, max)) : null)
             .keepFocus())
         .child(FieldActions.button(
-                t,
+                theme,
                 Symbol.ADD,
                 "Increase",
                 enabled && value < max ? () -> onChange.accept(step(value, step, min, max)) : null)
@@ -162,8 +162,8 @@ public final class NumberField {
       });
     }
     return FieldActions.embed(
-            t, field.wFull(), buttons, 2 * size + inset + t.space().xs())
-        .w(t.size().field() / 2);
+            theme, field.wFull(), buttons, 2 * size + inset + theme.space().xs())
+        .w(theme.size().field() / 2);
   }
 
   /**

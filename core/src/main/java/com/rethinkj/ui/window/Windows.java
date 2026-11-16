@@ -11,7 +11,8 @@ import java.util.List;
  *
  * <pre>{@code
  * void tearOff(Note note) { // a handler
- *   App<Notes> app = new App<>(this, s -> s.noteView(note)); // the same state, another view
+ *   // the same state, another view
+ *   App<Notes> app = new App<>(this, state -> state.noteView(note));
  *   Windows.Handle window = this.app.windows().open(note.title, 280, 200,
  *       Window.options().position(x, y), app);
  *   window.onCloseRequest(() -> { dock(note); window.close(); });

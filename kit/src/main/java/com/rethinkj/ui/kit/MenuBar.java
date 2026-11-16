@@ -22,16 +22,16 @@ import java.util.function.Predicate;
  * <pre>{@code
  * List<Menu.Item> menus = List.of(
  *     Menu.submenu("&File", List.of(
- *         Menu.item("New query", s::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
- *         Menu.item("Save", s::save).icon(Symbol.SAVE).shortcut(Key.CONTROL, "S"))),
+ *         Menu.item("New query", state::newQuery).icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
+ *         Menu.item("Save", state::save).icon(Symbol.SAVE).shortcut(Key.CONTROL, "S"))),
  *     Menu.submenu("&Edit", List.of(
- *         Menu.item("Undo", s::undo).shortcut(Key.CONTROL, "Z"),
- *         Menu.item("Copy", s::copy).shortcut(Key.CONTROL, "C"))));
+ *         Menu.item("Undo", state::undo).shortcut(Key.CONTROL, "Z"),
+ *         Menu.item("Copy", state::copy).shortcut(Key.CONTROL, "C"))));
  * El root = col().children(
- *         titleBar.child(MenuBar.menuBar(t, s.bar, menus)),
+ *         titleBar.child(MenuBar.menuBar(theme, state.bar, menus)),
  *         editor)
- *     .onKey(MenuBar.keys(s.bar, menus))       // Alt, F10, Alt+F and Ctrl+N, Ctrl+S, ...
- *     .onKeyUp(MenuBar.keysUp(s.bar, menus));  // Alt alone gives the bar the keys
+ *     .onKey(MenuBar.keys(state.bar, menus))       // Alt, F10, Alt+F and Ctrl+N, Ctrl+S, ...
+ *     .onKeyUp(MenuBar.keysUp(state.bar, menus));  // Alt alone gives the bar the keys
  * }</pre>
  *
  * <p>The pointer: a press on a title opens its menu and a press on the open menu's title closes
@@ -165,7 +165,7 @@ public final class MenuBar {
    * @throws IllegalArgumentException if two items have one key combination, or one is Alt with a
    *     title's mnemonic
    */
-  public static El menuBar(Theme t, State state, List<Menu.Item> menus) {
+  public static El menuBar(Theme theme, State state, List<Menu.Item> menus) {
     table(menus); // refuses conflicts when the view is built
     state.fit(menus);
     boolean marks = state.alt || state.title >= 0;
@@ -183,7 +183,7 @@ public final class MenuBar {
             });
     Menu.Bar owner = new Menu.Bar(d -> state.step(menus, d), () -> state.title = -1, state);
     for (int i = 0; i < menus.size(); i++) {
-      bar.child(title(t, state, menus, i, marks, owner));
+      bar.child(title(theme, state, menus, i, marks, owner));
     }
     if (state.title >= 0) { // the keyboard has the bar
       bar.focusable().holdFocus().onDismiss(state::close).onKey(k -> barKey(k, state, menus));
@@ -192,14 +192,15 @@ public final class MenuBar {
   }
 
   private static El title(
-      Theme t, State state, List<Menu.Item> menus, int i, boolean marks, Menu.Bar owner) {
+      Theme theme, State state, List<Menu.Item> menus, int i, boolean marks, Menu.Bar owner) {
     Menu.Item menu = menus.get(i);
     String text = text(menu.label());
     int mnemonic = mnemonic(menu.label());
     boolean enabled = menu.isEnabled();
     boolean open = state.open() == i;
     boolean lit = open || state.title == i && !state.menu.isOpen();
-    El label = label(t, text).color(enabled ? t.text().primary() : t.text().disabled());
+    El label =
+        label(theme, text).color(enabled ? theme.text().primary() : theme.text().disabled());
     if (marks && mnemonic >= 0) {
       label.underline(mnemonic, text.offsetByCodePoints(mnemonic, 1));
     }
@@ -207,11 +208,11 @@ public final class MenuBar {
         .key("title-" + i)
         .role("menuitem")
         .label(text)
-        .h(t.size().control())
-        .padding(0, t.space().m())
+        .h(theme.size().control())
+        .padding(0, theme.space().m())
         .align(Style.Align.CENTER)
-        .radius(t.radius().small())
-        .fill(lit ? t.surface().pressed() : 0)
+        .radius(theme.radius().small())
+        .fill(lit ? theme.surface().pressed() : 0)
         .disabled(!enabled)
         .child(label);
     if (!enabled) {
@@ -234,11 +235,11 @@ public final class MenuBar {
           }
         });
     if (!lit) {
-      title.whenHovered(e -> e.fill(t.surface().hover()));
+      title.whenHovered(e -> e.fill(theme.surface().hover()));
     }
     if (open) {
-      title.overlay(Menu.menu(t, state.menu, menu.submenu(), owner)
-          .side(Side.BOTTOM, Style.Align.START, t.space().xs()));
+      title.overlay(Menu.menu(theme, state.menu, menu.submenu(), owner)
+          .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
     return title;
   }

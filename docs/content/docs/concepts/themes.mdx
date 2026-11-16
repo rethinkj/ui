@@ -65,17 +65,17 @@ A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplie
 
 | Method | What it does |
 | --- | --- |
-| `rgb(0x3D6FE6)`, `rgb(r, g, b)`, `argb(a, r, g, b)` | An opaque colour from 24 bits or from channels of 0 to 255 |
+| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | An opaque colour from 24 bits or from channels of 0 to 255 |
 | `alpha(colour, 0.4f)` | The colour at that alpha, `round(share * 255)`: 0.4 is `0x66` |
 | `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(colour)` | Parse from text and format back; a parse error shows the expected form |
-| `alpha(c)`, `red(c)`, `green(c)`, `blue(c)` | The channels, 0 to 255 |
+| `alpha(colour)`, `red(colour)`, `green(colour)`, `blue(colour)` | The channels, 0 to 255 |
 | `over(base, overlay)` | A translucent colour over an opaque one, mixed in linear light as the renderer does |
-| `mix(a, b, t)` | `t` of the way from `a` to `b`, in linear light; `mix(c, BLACK, 0.2)` is `c` with 20 % less light |
-| `luminance(c)`, `contrast(a, b)`, `lightness(c)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
+| `mix(from, to, amount)` | `amount` of the way from `from` to `to`, in linear light; `mix(colour, BLACK, 0.2)` is `colour` with 20 % less light |
+| `luminance(colour)`, `contrast(first, second)`, `lightness(colour)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
 | `BLACK`, `WHITE`, `TRANSPARENT` | |
 
 The default themes use the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `theme.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
 
 ## Contrast
 
-In the default themes, primary and muted text reach WCAG AA contrast (4.5:1) on every surface they appear on; disabled text is deliberately lower. A theme of your own should do the same; `Colors.contrast(a, b)` measures it.
+In the default themes, primary and muted text reach WCAG AA contrast (4.5:1) on every surface they appear on; disabled text is deliberately lower. A theme of your own should do the same; `Colors.contrast(text, surface)` measures it.

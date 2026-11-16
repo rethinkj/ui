@@ -15,7 +15,7 @@ final class ControlRow {
   private ControlRow() {}
 
   static El controlRow(
-      Theme t,
+      Theme theme,
       String role,
       boolean checked,
       String text,
@@ -29,11 +29,15 @@ final class ControlRow {
         .label(text)
         .checked(checked)
         .disabled(!enabled)
-        .gap(t.space().m())
+        .gap(theme.space().m())
         // Room for the focus ring around the text, taken back by the margin, so that the
         // row lines up with what is above and below it.
-        .padding(t.space().xs(), t.space().s())
-        .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
+        .padding(theme.space().xs(), theme.space().s())
+        .margin(
+            -theme.space().xs(),
+            -theme.space().s(),
+            -theme.space().xs(),
+            -theme.space().s())
         .align(Style.Align.CENTER)
         .radius(radius)
         .child(control);
@@ -41,17 +45,19 @@ final class ControlRow {
     // stretches neither the press area nor the ring; one that centres them still centres it.
     row.style().width = Len.FIT_CONTENT;
     if (text != null) {
-      row.child(label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
+      row.child(label(theme, text)
+          .color(enabled ? theme.text().primary() : theme.text().disabled()));
     }
     if (!enabled) {
       return row;
     }
-    int hover = checked ? t.accent().hover() : over(fill, t.surface().hover());
-    int pressed = checked ? t.accent().pressed() : over(fill, t.surface().pressed());
+    int hover = checked ? theme.accent().hover() : over(fill, theme.surface().hover());
+    int pressed =
+        checked ? theme.accent().pressed() : over(fill, theme.surface().pressed());
     // The whole row takes the press, text included, and its looks restyle the control.
     return row.focusable()
         .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> control.fill(hover))

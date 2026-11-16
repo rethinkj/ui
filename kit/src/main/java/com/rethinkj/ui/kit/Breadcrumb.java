@@ -47,15 +47,19 @@ public final class Breadcrumb {
    * @param onSelect told the index of the part the user goes to, never the last; null for a
    *     path that only shows
    */
-  public static El breadcrumb(Theme t, State state, List<String> parts, IntConsumer onSelect) {
+  public static El breadcrumb(Theme theme, State state, List<String> parts, IntConsumer onSelect) {
     if (parts.isEmpty()) {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
-    float gap = t.space().xs();
+    float gap = theme.space().xs();
     int first = parts.size()
         - state.fitting.fit(
-            t, parts.size(), Fitting.Direction.SUFFIX, 1, i -> state.fitting.width(id(parts, i)));
-    El bar = state.fitting.row(t).role("navigation").label("Breadcrumb");
+            theme,
+            parts.size(),
+            Fitting.Direction.SUFFIX,
+            1,
+            i -> state.fitting.width(id(parts, i)));
+    El bar = state.fitting.row(theme).role("navigation").label("Breadcrumb");
     List<El> stops = new ArrayList<>();
     if (first > 0) {
       List<Menu.Item> items = new ArrayList<>();
@@ -63,13 +67,13 @@ public final class Breadcrumb {
         int at = i;
         items.add(Menu.item(parts.get(i), onSelect == null ? null : () -> onSelect.accept(at)));
       }
-      El more = part(t, "…", null, state.hidden::toggle)
+      El more = part(theme, "…", null, state.hidden::toggle)
           .key("more")
           .role("button")
           .label("Hidden parts")
           .onResize(state.fitting.measure("more"));
       stops.add(more);
-      bar.child(Menu.dropdown(t, more, state.hidden, items));
+      bar.child(Menu.dropdown(theme, more, state.hidden, items));
     }
     for (int i = first; i < parts.size(); i++) {
       int at = i;
@@ -82,24 +86,30 @@ public final class Breadcrumb {
           .onResize(state.fitting.measure(id(parts, at)));
       if (i > 0) {
         unit.child(Icon.icon(
-            t, Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, t.badge().text().size()));
+            theme,
+            Symbol.CHEVRON_RIGHT,
+            Icon.Variant.MUTED,
+            theme.badge().text().size()));
       }
       if (current) {
-        Theme.TextStyle style = t.type().strong();
+        Theme.TextStyle style = theme.type().strong();
         unit.child(row()
             .role("link")
             .label(parts.get(i))
             .current(true)
-            .h(t.size().control())
-            .padding(0, t.space().s())
+            .h(theme.size().control())
+            .padding(0, theme.space().s())
             .align(Style.Align.CENTER)
             .child(El.text(parts.get(i))
                 .font(style.font().get())
                 .fontSize(style.size())
-                .color(t.text().primary())));
+                .color(theme.text().primary())));
       } else {
         El link = part(
-                t, parts.get(i), parts.get(i), onSelect == null ? null : () -> onSelect.accept(at))
+                theme,
+                parts.get(i),
+                parts.get(i),
+                onSelect == null ? null : () -> onSelect.accept(at))
             .role("link");
         if (onSelect != null) {
           stops.add(link);
@@ -113,35 +123,35 @@ public final class Breadcrumb {
   }
 
   /** A pressable part: muted text, primary under the pointer, on the hover's fill. */
-  private static El part(Theme t, String text, String label, Runnable onPress) {
+  private static El part(Theme theme, String text, String label, Runnable onPress) {
     El el = row()
         .label(label)
-        .h(t.size().control())
-        .padding(0, t.space().s())
+        .h(theme.size().control())
+        .padding(0, theme.space().s())
         .align(Style.Align.CENTER)
-        .radius(t.radius().small())
+        .radius(theme.radius().small())
         .shrink(0)
         .disabled(onPress == null)
-        .motion(t.motion().feedback());
-    Theme.TextStyle style = t.type().body();
+        .motion(theme.motion().feedback());
+    Theme.TextStyle style = theme.type().body();
     El words = El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
-        .color(onPress == null ? t.text().disabled() : t.text().muted());
+        .color(onPress == null ? theme.text().disabled() : theme.text().muted());
     el.child(words);
     if (onPress == null) {
       return el;
     }
     return el.focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> {
-          e.fill(t.surface().hover());
-          words.color(t.text().primary());
+          e.fill(theme.surface().hover());
+          words.color(theme.text().primary());
         })
-        .whenPressed(e -> e.fill(t.surface().pressed()));
+        .whenPressed(e -> e.fill(theme.surface().pressed()));
   }
 
   private static String id(List<String> parts, int i) {

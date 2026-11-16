@@ -13,48 +13,49 @@ final class SelectionFrame {
 
   private SelectionFrame() {}
 
-  static El frame(Theme t, String text, El lead, boolean enabled) {
+  static El frame(Theme theme, String text, El lead, boolean enabled) {
     El box = row()
         .role("combobox")
         .label(text)
         .disabled(!enabled)
-        .w(t.size().field())
-        .h(t.size().control())
-        .padding(0, t.space().m(), t.size().stroke(), t.space().m())
-        .gap(t.space().s())
+        .w(theme.size().field())
+        .h(theme.size().control())
+        .padding(0, theme.space().m(), theme.size().stroke(), theme.space().m())
+        .gap(theme.space().s())
         .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .motion(t.motion().feedback());
+        .radius(theme.radius().medium())
+        .fill(theme.surface().raised())
+        .motion(theme.motion().feedback());
     if (enabled) {
-      TextField.edge(t, box, t.border().control(), t.border().strong());
-      int accent = t.accent().color();
-      box.whenFocused(e -> TextField.edge(t, e, accent, accent));
+      TextField.edge(theme, box, theme.border().control(), theme.border().strong());
+      int accent = theme.accent().color();
+      box.whenFocused(e -> TextField.edge(theme, e, accent, accent));
     } else {
-      TextField.edge(t, box, t.border().divider(), t.border().divider());
+      TextField.edge(theme, box, theme.border().divider(), theme.border().divider());
     }
     if (lead != null) {
-      box.child(leading(t, lead));
+      box.child(leading(theme, lead));
     }
     return box.children(
-        label(t, text)
-            .color(enabled ? t.text().primary() : t.text().disabled())
+        label(theme, text)
+            .color(enabled ? theme.text().primary() : theme.text().disabled())
             .grow(1)
             .minSize(0, 0)
             .ellipsis(),
-        Icon.icon(t, Select.OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        Icon.icon(theme, Select.OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
   }
 
   /** The look under the pointer of an enabled frame: the hover fill and the whole frame strong. */
-  static void hovered(Theme t, El box) {
-    int strong = t.border().strong();
-    TextField.edge(t, box.fill(over(t.surface().raised(), t.surface().hover())), strong, strong);
+  static void hovered(Theme theme, El box) {
+    int strong = theme.border().strong();
+    TextField.edge(
+        theme, box.fill(over(theme.surface().raised(), theme.surface().hover())), strong, strong);
   }
 
   /** An item's own element in an icon's square, which takes no input. */
-  static El leading(Theme t, El lead) {
+  static El leading(Theme theme, El lead) {
     return el().key("lead")
-        .size(t.size().icon(), t.size().icon())
+        .size(theme.size().icon(), theme.size().icon())
         .shrink(0)
         .center()
         .child(lead.shrink(0));

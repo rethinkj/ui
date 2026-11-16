@@ -25,8 +25,9 @@ import java.util.regex.PatternSyntaxException;
  * selection, and below it the replacement; or a field for the line to go to.
  *
  * <pre>{@code
- * El area = TextField.textArea(t, s.text, "Notes", v -> s.text = v).key("notes");
- * Find.find(t, app, area, s.find);
+ * El area = TextField.textArea(theme, state.text, "Notes", value -> state.text = value)
+ *     .key("notes");
+ * Find.find(theme, app, area, state.find);
  * }</pre>
  *
  * <p>Control+F opens it with the selected text, or the word at the caret, as the text to find,
@@ -208,7 +209,7 @@ public final class Find {
    * @param field a {@link El#multiline} field
    * @return the field
    */
-  public static El find(Theme t, App<?> app, El field, State state) {
+  public static El find(Theme theme, App<?> app, El field, State state) {
     String text = field.text().string();
     // A view may make the field read-only after this call, as after CodeEditor's: the last build's
     // field says so too, and the bar only shows after a handler that ran on that build.
@@ -245,14 +246,14 @@ public final class Find {
     }
     Decorator decorator = field.decorator();
     if (state.open && state.mode != Mode.LINE) {
-      field.decorate(marks(t, state, pattern, text, decorator));
+      field.decorate(marks(theme, state, pattern, text, decorator));
     }
     state.findField = null;
     state.lineField = null;
     if (!state.open) {
       return field;
     }
-    return field.overlay(bar(t, app, state, text, editable));
+    return field.overlay(bar(theme, app, state, text, editable));
   }
 
   /** Opens the bar to find, with the selected text or the word at the caret. */
@@ -693,9 +694,9 @@ public final class Find {
 
   /** The matches in a line: the current one stronger, and the selection searched in. */
   private static Decorator marks(
-      Theme t, State state, Pattern pattern, String text, Decorator own) {
-    Theme.Code code = t.code();
-    int edge = t.accent().edge();
+      Theme theme, State state, Pattern pattern, String text, Decorator own) {
+    Theme.Code code = theme.code();
+    int edge = theme.accent().edge();
     boolean fresh = pattern != null && state.fresh(text);
     For target = state.target(text.length());
     int s = Math.min(state.caret, state.anchor);
@@ -781,27 +782,30 @@ public final class Find {
   }
 
   /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
-  private static El bar(Theme t, App<?> app, State state, String text, boolean editable) {
-    El panel = Popup.surface(t, col()).padding(t.space().xs()).gap(t.space().xs());
+  private static El bar(Theme theme, App<?> app, State state, String text, boolean editable) {
+    El panel = Popup.surface(theme, col())
+        .padding(theme.space().xs())
+        .gap(theme.space().xs());
     // Over the top right corner of the field, clear of its scrollbar: the root's padding.
-    Scrollbars bars = t.scrollbars();
+    Scrollbars bars = theme.scrollbars();
     El bar = row()
         .key("find")
         .role("search")
         .label("Find")
         .padding(0, bars.strip(), 0, 0)
-        .motion(t.motion().fade())
-        .side(Side.TOP, Style.Align.END, -(barHeight(t, state) + t.space().xs()))
+        .motion(theme.motion().fade())
+        .side(
+            Side.TOP, Style.Align.END, -(barHeight(theme, state) + theme.space().xs()))
         .onKey(k -> barKey(app, state, k))
         .child(panel);
     if (state.mode == Mode.LINE) {
-      panel.child(lineRow(t, state, text));
+      panel.child(lineRow(theme, state, text));
       return bar;
     }
-    float lead = t.size().control();
+    float lead = theme.size().control();
     El toggle = editable
         ? tool(
-                t,
+                theme,
                 state.mode == Mode.REPLACE ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT,
                 "Toggle replace",
                 "Toggle replace (Ctrl+H)",
@@ -811,15 +815,15 @@ public final class Find {
                 })
             .key("toggle-replace")
         : null;
-    El query = queryField(t, state);
+    El query = queryField(theme, state);
     String said = count(state, text);
-    El count = label(t, Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
-    count.style().minWidth = Len.px(2 * t.size().control());
+    El count = label(theme, Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
+    count.style().minWidth = Len.px(2 * theme.size().control());
     // The rows' gap is xs; the field stands a step m apart from what follows it.
-    float apart = t.space().m() - t.space().xs();
+    float apart = theme.space().m() - theme.space().xs();
     count.margin(0, 0, 0, apart);
     boolean searchable = !state.query.isEmpty() && state.error == null;
-    El findRow = row().gap(t.space().xs()).align(Style.Align.CENTER);
+    El findRow = row().gap(theme.space().xs()).align(Style.Align.CENTER);
     if (toggle != null) {
       findRow.child(toggle);
     }
@@ -827,7 +831,7 @@ public final class Find {
         .child(query)
         .child(count)
         .child(tool(
-                t,
+                theme,
                 Symbol.SELECT_ALL_ON,
                 "Find in selection",
                 "Find in selection (Alt+L)",
@@ -840,7 +844,7 @@ public final class Find {
                     : null)
             .key("in-selection"))
         .child(tool(
-                t,
+                theme,
                 Symbol.ARROW_UP,
                 "Previous match",
                 "Previous match (Shift+Enter)",
@@ -848,19 +852,19 @@ public final class Find {
                 searchable ? () -> go(state, -1) : null)
             .key("previous"))
         .child(tool(
-                t,
+                theme,
                 Symbol.ARROW_DOWN,
                 "Next match",
                 "Next match (Enter)",
                 null,
                 searchable ? () -> go(state, 1) : null)
             .key("next"))
-        .child(tool(t, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
+        .child(tool(theme, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
             .key("close"));
     panel.child(findRow);
     state.replaceField = null;
     if (state.mode == Mode.REPLACE) {
-      El replace = TextField.textField(t, state.replacement, "Replace", v -> {
+      El replace = TextField.textField(theme, state.replacement, "Replace", v -> {
             state.replacement = v;
             state.replaceError = null;
           })
@@ -880,22 +884,22 @@ public final class Find {
           });
       state.replaceField = replace;
       if (state.replaceError != null) {
-        replace = Tooltip.tooltip(t, TextField.invalid(t, replace), state.replaceError);
+        replace = Tooltip.tooltip(theme, TextField.invalid(theme, replace), state.replaceError);
       }
       panel.child(row()
-          .gap(t.space().xs())
+          .gap(theme.space().xs())
           .align(Style.Align.CENTER)
-          .padding(0, 0, 0, lead + t.space().xs())
+          .padding(0, 0, 0, lead + theme.space().xs())
           .child(replace)
           .child(Button.button(
-                  t,
+                  theme,
                   Button.Variant.SECONDARY,
                   "Replace",
                   searchable ? () -> replace(app, state) : null)
               .key("replace-one")
               .margin(0, 0, 0, apart))
           .child(Button.button(
-                  t,
+                  theme,
                   Button.Variant.SECONDARY,
                   "Replace all",
                   searchable ? () -> replaceAll(app, state) : null)
@@ -905,16 +909,16 @@ public final class Find {
   }
 
   /** The height of the bar, to lay it over the field's top. */
-  static float barHeight(Theme t, State state) {
+  static float barHeight(Theme theme, State state) {
     int rows = state.mode == Mode.REPLACE ? 2 : 1;
-    return rows * t.size().control()
-        + (rows - 1) * t.space().xs()
-        + 2 * (t.space().xs() + t.size().stroke());
+    return rows * theme.size().control()
+        + (rows - 1) * theme.space().xs()
+        + 2 * (theme.space().xs() + theme.size().stroke());
   }
 
   /** The field to find, with the switches of case, words and regular expressions inside. */
-  private static El queryField(Theme t, State state) {
-    El field = TextField.textField(t, state.query, "Find", v -> {
+  private static El queryField(Theme theme, State state) {
+    El field = TextField.textField(theme, state.query, "Find", v -> {
           state.query = v;
           changed(state);
         })
@@ -942,15 +946,15 @@ public final class Find {
           return enter;
         });
     state.findField = field;
-    float inset = t.space().xs();
-    float size = FieldActions.size(t);
+    float inset = theme.space().xs();
+    float size = FieldActions.size(theme);
     if (state.error != null) {
-      TextField.invalid(t, field);
+      TextField.invalid(theme, field);
     }
     El switches = row()
         .gap(0)
         .child(tool(
-                t,
+                theme,
                 Symbol.TEXT_CASE_TITLE,
                 "Match case",
                 "Match case (Alt+C)",
@@ -962,7 +966,7 @@ public final class Find {
             .key("match-case")
             .size(size, size))
         .child(tool(
-                t,
+                theme,
                 Symbol.TEXT_WHOLE_WORD,
                 "Whole word",
                 "Whole word (Alt+W)",
@@ -974,7 +978,7 @@ public final class Find {
             .key("whole-word")
             .size(size, size))
         .child(tool(
-                t,
+                theme,
                 Symbol.TEXT_PERIOD_ASTERISK,
                 "Regular expression",
                 "Regular expression (Alt+R)",
@@ -985,16 +989,16 @@ public final class Find {
                 })
             .key("regex")
             .size(size, size));
-    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset).whenFocusWithin(e -> {
-      int c = state.error != null ? t.status().danger() : t.accent().color();
-      TextField.edge(t, field, c, c);
+    El box = FieldActions.embed(theme, field, switches, 3 * size + 2 * inset).whenFocusWithin(e -> {
+      int c = state.error != null ? theme.status().danger() : theme.accent().color();
+      TextField.edge(theme, field, c, c);
     });
-    return state.error != null ? Tooltip.tooltip(t, box, state.error) : box;
+    return state.error != null ? Tooltip.tooltip(theme, box, state.error) : box;
   }
 
   /** The field of the line to go to and the lines there are. */
-  private static El lineRow(Theme t, State state, String text) {
-    El field = TextField.textField(t, state.line, "Line or line:column", v -> state.line = v)
+  private static El lineRow(Theme theme, State state, String text) {
+    El field = TextField.textField(theme, state.line, "Line or line:column", v -> state.line = v)
         .key("line-field")
         .label("Go to line")
         .autofocus(state.opened)
@@ -1014,22 +1018,22 @@ public final class Find {
         });
     state.lineField = field;
     if (!state.line.isBlank() && parseLine(state.line) == null) {
-      TextField.invalid(t, field);
+      TextField.invalid(theme, field);
     }
     int lines = 1;
     for (int i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) {
       lines++;
     }
     return row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(field)
-        .child(label(t, Label.Variant.MUTED, "1 to " + lines)
+        .child(label(theme, Label.Variant.MUTED, "1 to " + lines)
             .key("count")
             .shrink(0)
             .fontFeatures("+tnum")
-            .margin(0, t.space().s(), 0, t.space().s()))
-        .child(tool(t, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
+            .margin(0, theme.space().s(), 0, theme.space().s()))
+        .child(tool(theme, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
             .key("close"));
   }
 
@@ -1038,15 +1042,15 @@ public final class Find {
    * leaves the focus where it is when pressed, and Tab reaches it.
    */
   private static El tool(
-      Theme t, Symbol symbol, String label, String tip, Boolean checked, Runnable onPress) {
-    El button = FieldActions.button(t, symbol, label, checked, onPress)
-        .size(t.size().control(), t.size().control())
+      Theme theme, Symbol symbol, String label, String tip, Boolean checked, Runnable onPress) {
+    El button = FieldActions.button(theme, symbol, label, checked, onPress)
+        .size(theme.size().control(), theme.size().control())
         .shrink(0);
     if (onPress == null) {
       return button;
     }
-    button.focusable().focusRing(t.accent().edge());
-    return Tooltip.tooltip(t, button, tip);
+    button.focusable().focusRing(theme.accent().edge());
+    return Tooltip.tooltip(theme, button, tip);
   }
 
   /** The text as a regular expression that finds it. */

@@ -28,10 +28,11 @@ import java.util.function.Predicate;
  * finds commands.
  *
  * <pre>{@code
- * List<Menu.Item> menus = s.menus();
- * root.onKey(MenuBar.keys(s.bar, menus).or(CommandPalette.keys(s.palette)))
- *     .overlay(CommandPalette.palette(t, s.palette, CommandPalette.commands(menus),
- *         List.of(new CommandPalette.Source("@", "to open a table", Entries.of(s.tables())))));
+ * List<Menu.Item> menus = state.menus();
+ * root.onKey(MenuBar.keys(state.bar, menus).or(CommandPalette.keys(state.palette)))
+ *     .overlay(CommandPalette.palette(theme, state.palette, CommandPalette.commands(menus),
+ *         List.of(new CommandPalette.Source(
+ *             "@", "to open a table", Entries.of(state.tables())))));
  * }</pre>
  *
  * <p>A command may ask for more before it acts: its handler calls {@link State#ask} with a {@link
@@ -328,7 +329,7 @@ public final class CommandPalette {
    * @param sources the kinds found after their prefixes
    */
   public static El palette(
-      Theme t, State state, List<FilterList.Entry> commands, List<Source> sources) {
+      Theme theme, State state, List<FilterList.Entry> commands, List<Source> sources) {
     if (!state.open) {
       return null;
     }
@@ -361,7 +362,7 @@ public final class CommandPalette {
       }
     };
     String placeholder = stage != null ? stage.placeholder() : placeholder(sources);
-    El field = TextField.textField(t, state.text, placeholder, v -> {
+    El field = TextField.textField(theme, state.text, placeholder, v -> {
           state.text = v;
           state.list.typed(stage != null ? v : query(v, sources), true);
           if (entries != null && state.list.onHighlight != null) {
@@ -376,27 +377,28 @@ public final class CommandPalette {
         .label(stage != null ? stage.placeholder() : "Command")
         .autofocus(state.steps)
         .wFull()
-        .h(t.size().paletteField())
+        .h(theme.size().paletteField())
         .onKey(k -> key(k, state, stage, choose));
-    El panel = Popup.frame(t, col())
+    El panel = Popup.frame(theme, col())
         .key("palette")
         .role("dialog")
         .label("Command palette")
-        .w(t.size().palette())
-        .padding(t.space().m())
-        .gap(t.space().s())
-        .atWindowEdge(Side.TOP, Style.Align.CENTER, t.size().paletteTop())
-        .margin(0, 0, t.space().m(), 0) // above the bottom of a short window
+        .w(theme.size().palette())
+        .padding(theme.space().m())
+        .gap(theme.space().s())
+        .atWindowEdge(Side.TOP, Style.Align.CENTER, theme.size().paletteTop())
+        .margin(0, 0, theme.space().m(), 0) // above the bottom of a short window
         .onDismiss(state::close)
-        .child(TextField.withIcon(t, field, stage == null ? Symbol.SEARCH : Symbol.CHEVRON_RIGHT));
+        .child(
+            TextField.withIcon(theme, field, stage == null ? Symbol.SEARCH : Symbol.CHEVRON_RIGHT));
     // Not as wide as the field's own width, but the panel's.
     panel.children().getFirst().wFull();
     if (entries != null) {
       FilterList.Shown shown = FilterList.shown(state.list, entries);
       // A press on an entry leaves the keys in the field, also for one that keeps it open.
-      panel.child(
-          FilterList.list(t, state.list, shown, ROWS, t.size().paletteRow(), "Commands", choose)
-              .keepFocus());
+      panel.child(FilterList.list(
+              theme, state.list, shown, ROWS, theme.size().paletteRow(), "Commands", choose)
+          .keepFocus());
     }
     return panel;
   }

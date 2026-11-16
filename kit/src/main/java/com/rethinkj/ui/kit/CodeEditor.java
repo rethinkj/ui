@@ -18,7 +18,8 @@ import java.util.function.Consumer;
  * a line, and has the commands of {@link Command}.
  *
  * <pre>{@code
- * codeEditor(t, app, s.sql, s.editor, Sql.of(t), v -> s.sql = v).key("query").lines(12).wFull()
+ * codeEditor(theme, app, state.sql, state.editor, Sql.of(theme), value -> state.sql = value)
+ *     .key("query").lines(12).wFull()
  * }</pre>
  *
  * <p>Its keys are the field's {@link El#onKey} handler: a view that adds one of its own keeps them
@@ -218,8 +219,8 @@ public final class CodeEditor {
    * @param onChange receives the new string after each edit; null disables the editor
    */
   public static El codeEditor(
-      Theme t, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
-    return codeEditor(t, null, value, state, highlighter, onChange);
+      Theme theme, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
+    return codeEditor(theme, null, value, state, highlighter, onChange);
   }
 
   /**
@@ -229,13 +230,13 @@ public final class CodeEditor {
    * @param app the app the editor is in; null for an editor without find and commands
    */
   public static El codeEditor(
-      Theme t,
+      Theme theme,
       App<?> app,
       String value,
       State state,
       Highlighter highlighter,
       Consumer<String> onChange) {
-    Theme.Code code = t.code();
+    Theme.Code code = theme.code();
     int[] pair = matching(value, state.caret);
     String word =
         state.occurrences && !state.find.isOpen() ? word(value, state.caret, state.anchor) : null;
@@ -245,8 +246,8 @@ public final class CodeEditor {
         : state.caret == state.anchor
             ? CodeWords.start(value, Math.min(state.caret, value.length()))
             : Math.min(state.caret, state.anchor);
-    Theme.TextStyle mono = t.type().mono();
-    El editor = TextField.codeArea(t, value, null, onChange)
+    Theme.TextStyle mono = theme.type().mono();
+    El editor = TextField.codeArea(theme, value, null, onChange)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
           state.caret = caret;
@@ -273,15 +274,15 @@ public final class CodeEditor {
           }
           if (state.errorTo > start && state.errorFrom <= end) {
             out.underline(
-                state.errorFrom - start, state.errorTo - start, t.status().danger());
+                state.errorFrom - start, state.errorTo - start, theme.status().danger());
           }
         })
         .gutter((line, caret) -> El.text(String.valueOf(line + 1))
             .font(mono.font().get())
             .fontSize(mono.size())
-            .color(caret ? t.text().primary() : t.text().muted())
+            .color(caret ? theme.text().primary() : theme.text().muted())
             .textAlign(Style.Align.END)
-            .padding(0, t.space().m(), 0, 0));
+            .padding(0, theme.space().m(), 0, 0));
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
@@ -298,7 +299,7 @@ public final class CodeEditor {
       run(app, state, command);
       return true;
     });
-    return state.findBar ? Find.find(t, app, editor, state.find) : editor;
+    return state.findBar ? Find.find(theme, app, editor, state.find) : editor;
   }
 
   /**
@@ -309,25 +310,26 @@ public final class CodeEditor {
    * ring of the keyboard's focus lies just inside it, where the card clips it.
    *
    * <pre>{@code
-   * Card.flush(t, Card.toolbar(t, "orders.sql", null, run), embedded(t, editor).grow(1))
+   * Card.flush(theme, Card.toolbar(theme, "orders.sql", null, run),
+   *     embedded(theme, editor).grow(1))
    * }</pre>
    *
    * @param editor an editor of {@link #codeEditor}
    * @return the editor
    */
-  public static El embedded(Theme t, El editor) {
-    float stroke = t.size().stroke();
-    editor.radius(0).border(stroke, 0, 0, 0, t.border().divider()).shadow().wFull();
+  public static El embedded(Theme theme, El editor) {
+    float stroke = theme.size().stroke();
+    editor.radius(0).border(stroke, 0, 0, 0, theme.border().divider()).shadow().wFull();
     // The gutter lines up with the card's title, inside the card's padding.
-    editor.style().paddingLeft = Len.px(t.space().l());
-    editor.style().paddingRight = Len.px(t.space().l());
+    editor.style().paddingLeft = Len.px(theme.space().l());
+    editor.style().paddingRight = Len.px(theme.space().l());
     // Without the field's frame, no stroke of padding stands in for its bottom border.
     editor.style().paddingBottom = Len.px(editor.style().paddingBottom.value() - stroke);
     if (editor.onEdit() != null) {
-      int hover = Theme.over(t.surface().raised(), t.surface().hover());
+      int hover = Theme.over(theme.surface().raised(), theme.surface().hover());
       editor
           .whenHovered(e -> e.fill(hover)) // the field's hover, without its frame
-          .whenFocused(e -> e.border(stroke, 0, 0, 0, t.accent().edge()));
+          .whenFocused(e -> e.border(stroke, 0, 0, 0, theme.accent().edge()));
     }
     return editor;
   }

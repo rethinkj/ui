@@ -19,9 +19,10 @@ import java.util.Objects;
  * controls of a toolbar or a header.
  *
  * <pre>{@code
- * Badge.badge(t, "bigint")
- * Badge.badge(t, Badge.Kind.ACCENT, "PK")
- * Badge.badge(t, "status = paid", Badge.options().toolbar().onRemove(() -> s.filters.remove(f)))
+ * Badge.badge(theme, "bigint")
+ * Badge.badge(theme, Badge.Kind.ACCENT, "PK")
+ * Badge.badge(theme, "status = paid",
+ *     Badge.options().toolbar().onRemove(() -> state.filters.remove(filter)))
  * }</pre>
  *
  * <p>In a tree dump a badge that only shows has no role and its text as its label; a pressable
@@ -94,76 +95,78 @@ public final class Badge {
   }
 
   /** A quiet neutral badge for a row. */
-  public static El badge(Theme t, String text) {
-    return badge(t, text, options());
+  public static El badge(Theme theme, String text) {
+    return badge(theme, text, options());
   }
 
   /** A quiet badge of a kind for a row. */
-  public static El badge(Theme t, Kind kind, String text) {
-    return badge(t, text, options().kind(kind));
+  public static El badge(Theme theme, Kind kind, String text) {
+    return badge(theme, text, options().kind(kind));
   }
 
   /**
    * @param text what the badge says, also its label
-   * @param o its kind, look, height and handlers
+   * @param options its kind, look, height and handlers
    */
-  public static El badge(Theme t, String text, Options o) {
-    Theme.Badges b = t.badge();
-    Theme.Tone tone = switch (o.kind) {
+  public static El badge(Theme theme, String text, Options options) {
+    Theme.Badges b = theme.badge();
+    Theme.Tone tone = switch (options.kind) {
       case NEUTRAL -> b.neutral();
       case ACCENT -> b.accent();
       case SUCCESS -> b.success();
       case WARNING -> b.warning();
       case DANGER -> b.danger();
     };
-    int fill = o.strong ? tone.strong() : tone.soft();
-    int ink = o.strong ? tone.strongText() : tone.softText();
-    float height = o.toolbar ? b.toolbar() : b.row();
-    float side = o.toolbar ? t.space().m() : t.space().s() + t.space().xs();
+    int fill = options.strong ? tone.strong() : tone.soft();
+    int ink = options.strong ? tone.strongText() : tone.softText();
+    float height = options.toolbar ? b.toolbar() : b.row();
+    float side =
+        options.toolbar ? theme.space().m() : theme.space().s() + theme.space().xs();
     El badge = row()
         .label(text)
         .h(height)
         .shrink(0)
         .align(Style.Align.CENTER)
-        .gap(t.space().xs())
-        .padding(0, o.onRemove == null ? side : t.space().xs(), 0, side)
-        .radius(t.radius().small())
+        .gap(theme.space().xs())
+        .padding(0, options.onRemove == null ? side : theme.space().xs(), 0, side)
+        .radius(theme.radius().small())
         .fill(fill)
-        .motion(t.motion().feedback());
-    if (o.icon != null) {
-      badge.child(Icon.icon(t, o.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
+        .motion(theme.motion().feedback());
+    if (options.icon != null) {
+      badge.child(
+          Icon.icon(theme, options.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
     }
     badge.child(
         El.text(text).font(b.text().font().get()).fontSize(b.text().size()).color(ink));
-    if (o.onRemove != null) {
-      float cross = height - 2 * t.space().xs();
+    if (options.onRemove != null) {
+      float cross = height - 2 * theme.space().xs();
       badge.child(el().key("remove")
           .role("button")
           .label("Remove " + text)
           .size(cross, cross)
           .shrink(0)
           .center()
-          .radius(t.radius().small())
+          .radius(theme.radius().small())
           .focusable()
           .keepFocus()
-          .focusRing(t.accent().edge())
+          .focusRing(theme.accent().edge())
           .cursor(Cursor.POINTER)
-          .onPress(o.onRemove)
-          .whenHovered(e -> e.fill(t.surface().hover()))
-          .whenPressed(e -> e.fill(t.surface().pressed()))
-          .child(
-              Icon.icon(t, Symbol.DISMISS, Icon.Variant.MUTED, b.text().size()).color(ink)));
+          .onPress(options.onRemove)
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .whenPressed(e -> e.fill(theme.surface().pressed()))
+          .child(Icon.icon(theme, Symbol.DISMISS, Icon.Variant.MUTED, b.text().size())
+              .color(ink)));
     }
-    if (o.onPress != null) {
-      int hover = o.strong ? over(fill, t.surface().hover()) : deeper(fill, HOVER);
-      int pressed = o.strong ? over(fill, t.surface().pressed()) : deeper(fill, PRESSED);
+    if (options.onPress != null) {
+      int hover = options.strong ? over(fill, theme.surface().hover()) : deeper(fill, HOVER);
+      int pressed = options.strong ? over(fill, theme.surface().pressed()) : deeper(fill, PRESSED);
       badge
           .role("button")
           .focusable()
           .keepFocus()
-          .focusRing(t.accent().edge())
+          .focusRing(theme.accent().edge())
           .cursor(Cursor.POINTER)
-          .onPress(o.onPress)
+          .onPress(options.onPress)
           .whenHovered(e -> e.fill(hover))
           .whenPressed(e -> e.fill(pressed));
     }

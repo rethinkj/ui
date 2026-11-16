@@ -19,49 +19,49 @@ public final class Toggle {
    *
    * @param text shown beside it, also its label; null for none
    */
-  public static El toggle(Theme t, Prop<Boolean> on, String text) {
+  public static El toggle(Theme theme, Prop<Boolean> on, String text) {
     boolean now = Boolean.TRUE.equals(on.get());
-    return Prop.shown(t, toggle(t, now, text, on.writes() ? () -> on.set(!now) : null), on);
+    return Prop.shown(theme, toggle(theme, now, text, on.writes() ? () -> on.set(!now) : null), on);
   }
 
   /** A switch without text; give it a label with {@code .label("...")}. */
-  public static El toggle(Theme t, boolean on, Runnable onToggle) {
-    return toggle(t, on, null, onToggle);
+  public static El toggle(Theme theme, boolean on, Runnable onToggle) {
+    return toggle(theme, on, null, onToggle);
   }
 
   /**
    * @param text shown beside the switch, also its label; null for none
    * @param onToggle runs when the switch is pressed; null disables it
    */
-  public static El toggle(Theme t, boolean on, String text, Runnable onToggle) {
+  public static El toggle(Theme theme, boolean on, String text, Runnable onToggle) {
     boolean enabled = onToggle != null;
-    float height = t.size().switchHeight();
-    int fill = fill(t, on, enabled);
-    El track = track(t, on, enabled);
+    float height = theme.size().switchHeight();
+    int fill = fill(theme, on, enabled);
+    El track = track(theme, on, enabled);
     return ControlRow.controlRow(
-        t, "switch", on, text, onToggle, track, height / 2 + t.space().xs(), fill);
+        theme, "switch", on, text, onToggle, track, height / 2 + theme.space().xs(), fill);
   }
 
   /** The track with its knob, which takes no input: the element around it does. */
-  static El track(Theme t, boolean on, boolean enabled) {
-    float width = t.size().switchWidth();
-    float height = t.size().switchHeight();
-    float inset = t.space().xs();
+  static El track(Theme theme, boolean on, boolean enabled) {
+    float width = theme.size().switchWidth();
+    float height = theme.size().switchHeight();
+    float inset = theme.space().xs();
     float knob = height - 2 * inset;
     return el().size(width, height)
         .radius(height / 2)
-        .fill(fill(t, on, enabled))
-        .motion(t.motion().feedback())
+        .fill(fill(theme, on, enabled))
+        .motion(theme.motion().feedback())
         .child(el().size(knob, knob)
             .radius(knob / 2)
-            .fill(enabled ? t.text().onAccent() : t.text().disabled())
+            .fill(enabled ? theme.text().onAccent() : theme.text().disabled())
             .absolute(on ? width - inset - knob : inset, inset)
-            .motion(t.motion().move()));
+            .motion(theme.motion().move()));
   }
 
-  private static int fill(Theme t, boolean on, boolean enabled) {
+  private static int fill(Theme theme, boolean on, boolean enabled) {
     return !enabled
-        ? t.border().divider()
-        : on ? t.accent().color() : t.border().strong();
+        ? theme.border().divider()
+        : on ? theme.accent().color() : theme.border().strong();
   }
 }

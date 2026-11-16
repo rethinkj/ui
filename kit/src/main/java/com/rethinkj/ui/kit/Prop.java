@@ -9,15 +9,17 @@ import java.util.function.Supplier;
 
 /**
  * A value and where to write it back, which a component shows and edits in place of a value and
- * a handler: {@code textField(t, prop)} for {@code textField(t, prop.get(), null, v -> ...)}.
+ * a handler: {@code textField(theme, prop)} for {@code textField(theme, prop.get(), null,
+ * value -> ...)}.
  *
  * <pre>{@code
- * Prop<Boolean> dark = Prop.of(() -> s.dark, v -> s.dark = v);   // over the app's state
- * toggle(t, dark, "Dark theme")
+ * // over the app's state
+ * Prop<Boolean> dark = Prop.of(() -> state.dark, value -> state.dark = value);
+ * toggle(theme, dark, "Dark theme")
  *
- * Prop<Profile> profile = Prop.of(() -> s.profile, v -> s.profile = v);
- * textField(t, profile.at(Profile.HOST))                  // writes a new Profile back
- * select(t, MODES, profile.at(Profile.TLS).at(Tls.MODE), Mode::label, s.modeMenu)
+ * Prop<Profile> profile = Prop.of(() -> state.profile, value -> state.profile = value);
+ * textField(theme, profile.at(Profile.HOST))              // writes a new Profile back
+ * select(theme, MODES, profile.at(Profile.TLS).at(Tls.MODE), Mode::label, state.modeMenu)
  * }</pre>
  *
  * <p>{@link #at} goes into a {@link Part} of the value: writing the part writes the whole back
@@ -164,10 +166,10 @@ public final class Prop<T> {
    * shows it below the control; a draft's error only once the field shows it ({@link
    * ValueField.Draft#showsError}, {@link Editing#showErrors}).
    */
-  static El shown(Theme t, El component, Prop<?> prop) {
+  static El shown(Theme theme, El component, Prop<?> prop) {
     String error = prop.editing == null ? null : prop.editing.error(prop.path, true);
     El target = Form.target(component);
-    Form.invalid(t, target, error);
+    Form.invalid(theme, target, error);
     return component;
   }
 }

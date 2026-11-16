@@ -18,12 +18,14 @@ import java.util.Objects;
  * Fields with their labels, help and errors, as a dialog or a page of settings asks for values:
  *
  * <pre>{@code
- * form(t, Labels.BESIDE,
- *     field("Host", textField(t, s.host, "Name or address", v -> s.host = v)).required(),
- *     field("Port", textField(t, s.port, "5432", s::port).w(72))
- *         .help("1 to 65535").error(s.portError()),               // null while it is right
- *     field("Password", revealable(t, passwordField(t, s.password, null, v -> s.password = v),
- *         s.revealed, s::flipRevealed)))
+ * form(theme, Labels.BESIDE,
+ *     field("Host", textField(theme, state.host, "Name or address", value -> state.host = value))
+ *         .required(),
+ *     field("Port", textField(theme, state.port, "5432", state::port).w(72))
+ *         .help("1 to 65535").error(state.portError()),           // null while it is right
+ *     field("Password", revealable(theme,
+ *         passwordField(theme, state.password, null, value -> state.password = value),
+ *         state.revealed, state::flipRevealed)))
  * }</pre>
  *
  * <p>Labels stand {@link Labels#BESIDE} their fields, in a column as wide as the widest of them,
@@ -48,7 +50,7 @@ import java.util.Objects;
  * row:
  *
  * <pre>{@code
- * form(t, Labels.BESIDE,
+ * form(theme, Labels.BESIDE,
  *     group("Server",
  *         row(field("Host", host).required().grow(), field("Port", port.w(72))),
  *         field("Database", database)),
@@ -213,31 +215,32 @@ public final class Form {
    * left out, so that {@code active ? field(...) : null} shows a field under a condition, and so
    * is a group or a row whose entries are all null.
    */
-  public static El form(Theme t, Labels labels, Entry... entries) {
-    return form(t, labels, 0, entries);
+  public static El form(Theme theme, Labels labels, Entry... entries) {
+    return form(theme, labels, 0, entries);
   }
 
   /**
    * The form with its label column at least {@code labelWidth} wide ({@link Labels#BESIDE}), so
    * that forms in separate cards or pages line up: give each the {@link #labelWidth} of all.
    */
-  public static El form(Theme t, Labels labels, float labelWidth, Entry... entries) {
+  public static El form(Theme theme, Labels labels, float labelWidth, Entry... entries) {
     List<Entry> present = present(entries, true);
-    float column = (float) Math.ceil(Math.max(labelWidth, column(t, present)));
+    float column = (float) Math.ceil(Math.max(labelWidth, column(theme, present)));
     boolean beside = labels == Labels.BESIDE;
-    float gap = beside ? t.space().m() : t.space().l();
+    float gap = beside ? theme.space().m() : theme.space().l();
     // Groups lie two steps of spacing further apart than fields.
-    float apart = beside ? t.space().xl() : t.space().xxl();
+    float apart = beside ? theme.space().xl() : theme.space().xxl();
     El form = col().gap(gap);
     Entry before = null;
     for (Entry entry : present) {
       boolean group = entry instanceof Group;
       float above = before != null && (group || before instanceof Group) ? apart - gap : 0;
       if (group && before != null && ((Group) entry).isDivided()) {
-        form.child(Divider.divider(t).margin(above, 0, 0, 0));
+        form.child(Divider.divider(theme).margin(above, 0, 0, 0));
       }
-      El el =
-          group ? group(t, labels, column, gap, (Group) entry) : entry(t, labels, column, entry);
+      El el = group
+          ? group(theme, labels, column, gap, (Group) entry)
+          : entry(theme, labels, column, entry);
       if (above > 0) {
         el.style().marginTop = Len.px(above);
       }
@@ -251,19 +254,19 @@ public final class Form {
    * The width of the label column of a form of these entries with {@link Labels#BESIDE}: of the
    * widest label of a field or of a row's first field, in any group, with its marker.
    */
-  public static float labelWidth(Theme t, Entry... entries) {
-    return (float) Math.ceil(column(t, present(entries, true)));
+  public static float labelWidth(Theme theme, Entry... entries) {
+    return (float) Math.ceil(column(theme, present(entries, true)));
   }
 
-  private static float column(Theme t, List<Entry> entries) {
+  private static float column(Theme theme, List<Entry> entries) {
     float column = 0;
     for (Entry entry : entries) {
       column = Math.max(
           column,
           switch (entry) {
-            case Field f -> width(head(t, f));
-            case Row r -> width(head(t, r.fields().getFirst()));
-            case Group g -> column(t, g.entries());
+            case Field f -> width(head(theme, f));
+            case Row r -> width(head(theme, r.fields().getFirst()));
+            case Group g -> column(theme, g.entries());
           });
     }
     return column;
@@ -304,36 +307,37 @@ public final class Form {
   }
 
   /** A group: its heading and description, then its entries. */
-  private static El group(Theme t, Labels labels, float column, float gap, Group group) {
+  private static El group(Theme theme, Labels labels, float column, float gap, Group group) {
     El head = col()
-        .gap(t.space().xs())
-        .child(label(t, Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
+        .gap(theme.space().xs())
+        .child(
+            label(theme, Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
     if (group.description() != null) {
-      head.child(label(t, Label.Variant.MUTED, group.description()).wrapText());
+      head.child(label(theme, Label.Variant.MUTED, group.description()).wrapText());
     }
     El fields = col().gap(gap);
     for (Entry entry : group.entries()) {
-      fields.child(entry(t, labels, column, entry));
+      fields.child(entry(theme, labels, column, entry));
     }
-    return col().role("group").label(group.title()).gap(t.space().m()).children(head, fields);
+    return col().role("group").label(group.title()).gap(theme.space().m()).children(head, fields);
   }
 
   /** A field or a row of fields. */
-  private static El entry(Theme t, Labels labels, float column, Entry entry) {
+  private static El entry(Theme theme, Labels labels, float column, Entry entry) {
     if (entry instanceof Row row) {
-      return row(t, labels, column, row);
+      return row(theme, labels, column, row);
     }
     Field field = (Field) entry;
-    El head = head(t, field);
-    El body = body(t, field);
+    El head = head(theme, field);
+    El body = body(theme, field);
     if (labels == Labels.ABOVE) {
-      return col().gap(t.space().xs()).children(head, body);
+      return col().gap(theme.space().xs()).children(head, body);
     }
     body.grow(1).style().minWidth = Len.ZERO;
     // As high as a control, so that the label lines up with the field's first line.
     return El.row()
-        .gap(t.space().m())
-        .children(head.h(t.size().control()).w(column).shrink(0), body);
+        .gap(theme.space().m())
+        .children(head.h(theme.size().control()).w(column).shrink(0), body);
   }
 
   /**
@@ -341,18 +345,18 @@ public final class Form {
    * control and its help below it as wide, the errors below the whole row; beside, the first
    * field's label in the column and each further one's before its control.
    */
-  private static El row(Theme t, Labels labels, float column, Row row) {
+  private static El row(Theme theme, Labels labels, float column, Row row) {
     boolean beside = labels == Labels.BESIDE;
     El line = El.row().wrap().align(Style.Align.START);
-    line.style().columnGap = Len.px(t.space().m());
-    line.style().rowGap = Len.px(beside ? t.space().m() : t.space().l());
-    El errors = col().gap(t.space().xs());
+    line.style().columnGap = Len.px(theme.space().m());
+    line.style().rowGap = Len.px(beside ? theme.space().m() : theme.space().l());
+    El errors = col().gap(theme.space().xs());
     for (int i = 0; i < row.fields().size(); i++) {
       Field field = row.fields().get(i);
       // An error or warning takes the row's width: under a narrow control, as a port, it wraps
       // on many lines.
-      El note = note(t, field);
-      El help = note == null ? said(t, field.help(), false) : null;
+      El note = note(theme, field);
+      El help = note == null ? said(theme, field.help(), false) : null;
       if (help != null) {
         // Help takes no width of its own: it wraps at the control's.
         help.w(0).style().minWidth = Len.percent(1);
@@ -360,15 +364,15 @@ public final class Form {
       if (note != null) {
         errors.child(note);
       }
-      El box = body(t, field, help);
+      El box = body(theme, field, help);
       El item = box;
       if (!beside) {
-        item = col().gap(t.space().xs()).children(head(t, field), box);
+        item = col().gap(theme.space().xs()).children(head(theme, field), box);
       } else if (i > 0) {
         item = El.row()
-            .gap(t.space().m())
+            .gap(theme.space().m())
             .align(Style.Align.START)
-            .children(head(t, field).h(t.size().control()).shrink(0), box);
+            .children(head(theme, field).h(theme.size().control()).shrink(0), box);
       }
       if (field.grows()) {
         field.control().style().minWidth = Len.percent(1);
@@ -380,7 +384,7 @@ public final class Form {
       line.child(item);
     }
     // Always in a column, so that the fields keep their identity, and focus, when an error comes.
-    El fields = col().gap(t.space().xs()).child(line);
+    El fields = col().gap(theme.space().xs()).child(line);
     if (!errors.children().isEmpty()) {
       fields.child(errors);
     }
@@ -388,27 +392,28 @@ public final class Form {
       return fields;
     }
     fields.grow(1).style().minWidth = Len.ZERO;
-    El head = head(t, row.fields().getFirst()).h(t.size().control()).w(column).shrink(0);
-    return El.row().gap(t.space().m()).children(head, fields);
+    El head =
+        head(theme, row.fields().getFirst()).h(theme.size().control()).w(column).shrink(0);
+    return El.row().gap(theme.space().m()).children(head, fields);
   }
 
   /**
    * A field's control with its help, error or warning below it; names the control after the
    * label and marks it invalid while there is an error.
    */
-  private static El body(Theme t, Field field) {
-    El note = note(t, field);
-    return body(t, field, note != null ? note : said(t, field.help(), false));
+  private static El body(Theme theme, Field field) {
+    El note = note(theme, field);
+    return body(theme, field, note != null ? note : said(theme, field.help(), false));
   }
 
   /**
    * What a field says in place of its help: its error, else its warning; null for neither. Names
    * the control and marks it as {@link #error} does, and gives it the warning shown.
    */
-  private static El note(Theme t, Field field) {
-    String error = error(t, field);
+  private static El note(Theme theme, Field field) {
+    String error = error(theme, field);
     if (error != null) {
-      return said(t, error, true);
+      return said(theme, error, true);
     }
     if (field.warning() == null) {
       return null;
@@ -417,17 +422,17 @@ public final class Form {
     if (target != null) {
       target.warningMessage(field.warning());
     }
-    El words = said(t, field.warning(), false).color(t.status().warning());
+    El words = said(theme, field.warning(), false).color(theme.status().warning());
     words.grow(1).style().minWidth = Len.ZERO;
     return El.row()
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .align(Style.Align.START)
-        .children(icon(t, Symbol.WARNING, Icon.Variant.WARNING), words);
+        .children(icon(theme, Symbol.WARNING, Icon.Variant.WARNING), words);
   }
 
   /** A field's control with {@code below} under it; null for nothing. */
-  private static El body(Theme t, Field field, El below) {
-    El body = col().gap(t.space().xs()).child(field.control().alignSelf(Style.Align.START));
+  private static El body(Theme theme, Field field, El below) {
+    El body = col().gap(theme.space().xs()).child(field.control().alignSelf(Style.Align.START));
     if (below != null) {
       body.child(below);
     }
@@ -440,51 +445,54 @@ public final class Form {
    * @return the app's error, else the message of a typed field's text ({@link ValueField}); null
    *     for none
    */
-  private static String error(Theme t, Field field) {
+  private static String error(Theme theme, Field field) {
     El target = target(field.control());
     named(field.control(), field.label());
     String error = field.error() != null || target == null ? field.error() : target.errorMessage();
-    invalid(t, target, error);
+    invalid(theme, target, error);
     return error;
   }
 
   /** Text below a control that wraps: muted, or an error in the danger colour; null for none. */
-  private static El said(Theme t, String text, boolean error) {
+  private static El said(Theme theme, String text, boolean error) {
     return text == null
         ? null
-        : label(t, Label.Variant.MUTED, text)
+        : label(theme, Label.Variant.MUTED, text)
             .wrapText()
-            .color(error ? t.status().danger() : t.text().muted());
+            .color(error ? theme.status().danger() : theme.text().muted());
   }
 
   /**
    * Buttons at the end of a form, a card or a page: a row at the right, {@link Theme.Spacing#m}
    * apart, the main action usually last, as a dialog has them.
    */
-  public static El buttons(Theme t, El... buttons) {
+  public static El buttons(Theme theme, El... buttons) {
     return El.row()
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .justify(Style.Content.END)
         .align(Style.Align.CENTER)
         .children(buttons);
   }
 
   /** Applies a field's error to its control, including the frame of an editable text field. */
-  static void invalid(Theme t, El target, String error) {
+  static void invalid(Theme theme, El target, String error) {
     if (error == null || target == null) {
       return;
     }
     if (target.isEditable()) {
-      TextField.invalid(t, target);
+      TextField.invalid(theme, target);
     }
     target.invalid(true).errorMessage(error);
   }
 
   /** The label of a field, with the marker of a required one. */
-  private static El head(Theme t, Field field) {
-    El head = El.row().gap(t.space().xs()).align(Style.Align.CENTER).child(label(t, field.label()));
+  private static El head(Theme theme, Field field) {
+    El head = El.row()
+        .gap(theme.space().xs())
+        .align(Style.Align.CENTER)
+        .child(label(theme, field.label()));
     if (field.isRequired()) {
-      head.child(label(t, "*").color(t.status().danger()));
+      head.child(label(theme, "*").color(theme.status().danger()));
     }
     return head;
   }

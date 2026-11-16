@@ -29,14 +29,16 @@ import java.util.function.Predicate;
  *
  * <p>The constant is the part's identity: an {@link Editing} keeps the draft and the errors of a
  * field by the parts that lead to it, compared as objects, so a view that asks for {@code
- * e.at(Profile.PORT)} in every build finds the same field each time, whichever fields come and
- * go around it. A part made anew in every build ({@code e.at(Part.of(...))} in the view) is a new
- * field each time and loses its draft; declare it once. {@link #then} goes into a part of a part.
+ * editing.at(Profile.PORT)} in every build finds the same field each time, whichever fields come
+ * and go around it. A part made anew in every build ({@code editing.at(Part.of(...))} in the view)
+ * is a new field each time and loses its draft; declare it once. {@link #then} goes into a part
+ * of a part.
  *
  * <p>A record's part writes through a wither, which makes a new record; a POJO's through a
  * setter, which changes the object it has. The two factories have names of their own rather than
- * one overloaded name, so that a lambda works as well as a method reference: {@code (p, v) ->
- * p.withPort(v)} fits both a wither and a setter, which overloads could not tell apart.
+ * one overloaded name, so that a lambda works as well as a method reference: {@code (profile,
+ * port) -> profile.withPort(port)} fits both a wither and a setter, which overloads could not
+ * tell apart.
  *
  * @param <T> the type of the whole
  * @param <V> the type of the part
@@ -104,8 +106,8 @@ public final class Part<T, V> {
 
   /**
    * The part {@code inner} of this part, as {@code Profile.TLS.then(Tls.MODE)}: the same field as
-   * {@code e.at(Profile.TLS).at(Tls.MODE)}, since both are the same parts in the same order, so a
-   * rule or an error can name a field inside a field.
+   * {@code editing.at(Profile.TLS).at(Tls.MODE)}, since both are the same parts in the same order,
+   * so a rule or an error can name a field inside a field.
    */
   public <W> Part<T, W> then(Part<V, W> inner) {
     List<Part<?, ?>> joined = new ArrayList<>(path);

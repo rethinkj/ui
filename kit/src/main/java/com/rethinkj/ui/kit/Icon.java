@@ -10,8 +10,8 @@ import java.util.Locale;
  * up with the text beside it when the row centres its children:
  *
  * <pre>{@code
- * row().gap(t.space().s()).align(Style.Align.CENTER).children(
- *     icon(t, Symbol.TABLE, Icon.Variant.MUTED), label(t, "orders"));
+ * row().gap(theme.space().s()).align(Style.Align.CENTER).children(
+ *     icon(theme, Symbol.TABLE, Icon.Variant.MUTED), label(theme, "orders"));
  * }</pre>
  *
  * <p>The font is {@link Font#icons()}, which needs the artifact {@code rethinkj-ui-icons}; it is
@@ -50,27 +50,27 @@ public final class Icon {
   private Icon() {}
 
   /** The symbol in the text colour, {@link Theme.Sizes#icon} high. */
-  public static El icon(Theme t, Symbol symbol) {
-    return icon(t, symbol, Variant.NORMAL);
+  public static El icon(Theme theme, Symbol symbol) {
+    return icon(theme, symbol, Variant.NORMAL);
   }
 
   /** The symbol in the variant's colour, {@link Theme.Sizes#icon} high. */
-  public static El icon(Theme t, Symbol symbol, Variant variant) {
-    return icon(t, symbol, variant, t.size().icon());
+  public static El icon(Theme theme, Symbol symbol, Variant variant) {
+    return icon(theme, symbol, variant, theme.size().icon());
   }
 
   /**
    * The symbol in the variant's colour, {@code size} logical pixels wide and high, in the drawing
    * {@link Symbol#codePoint} picks for that size.
    */
-  public static El icon(Theme t, Symbol symbol, Variant variant, float size) {
+  public static El icon(Theme theme, Symbol symbol, Variant variant, float size) {
     int colour = switch (variant) {
-      case NORMAL -> t.text().primary();
-      case MUTED -> t.text().muted();
-      case DISABLED -> t.text().disabled();
-      case DANGER -> t.status().danger();
-      case WARNING -> t.status().warning();
-      case SUCCESS -> t.status().success();
+      case NORMAL -> theme.text().primary();
+      case MUTED -> theme.text().muted();
+      case DISABLED -> theme.text().disabled();
+      case DANGER -> theme.status().danger();
+      case WARNING -> theme.status().warning();
+      case SUCCESS -> theme.status().success();
     };
     return El.text(Character.toString(symbol.codePoint(size)))
         .label(LABELS[symbol.ordinal()])

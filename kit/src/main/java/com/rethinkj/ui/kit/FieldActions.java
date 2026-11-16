@@ -13,54 +13,56 @@ final class FieldActions {
 
   private FieldActions() {}
 
-  static float size(Theme t) {
-    return t.size().control() - 2 * t.space().xs();
+  static float size(Theme theme) {
+    return theme.size().control() - 2 * theme.space().xs();
   }
 
-  static El button(Theme t, Symbol symbol, String label, Runnable onPress) {
-    return button(t, symbol, label, null, onPress);
+  static El button(Theme theme, Symbol symbol, String label, Runnable onPress) {
+    return button(theme, symbol, label, null, onPress);
   }
 
   /** A button, or a switch when {@code checked} is not null; the caller decides Tab stops. */
-  static El button(Theme t, Symbol symbol, String label, Boolean checked, Runnable onPress) {
+  static El button(Theme theme, Symbol symbol, String label, Boolean checked, Runnable onPress) {
     boolean enabled = onPress != null;
     boolean on = checked != null && checked;
-    float size = size(t);
+    float size = size(theme);
     El button = el().role("button")
         .label(label)
         .disabled(!enabled)
         .size(size, size)
         .center()
-        .radius(t.radius().small())
-        .motion(t.motion().feedback())
+        .radius(theme.radius().small())
+        .motion(theme.motion().feedback())
         .child(icon(
-            t,
+            theme,
             symbol,
             !enabled ? Icon.Variant.DISABLED : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
     if (checked != null) {
       button.checked(on);
     }
     if (on) {
-      button.fill(t.grid().selected()).border(t.size().stroke(), t.accent().edge());
+      button
+          .fill(theme.grid().selected())
+          .border(theme.size().stroke(), theme.accent().edge());
     }
     if (!enabled) {
       return button;
     }
-    int rest = on ? t.grid().selected() : 0;
+    int rest = on ? theme.grid().selected() : 0;
     return button
         .keepFocus()
         .cursor(Cursor.POINTER)
         .onPress(onPress)
-        .whenHovered(
-            e -> e.fill(on ? Theme.over(rest, t.surface().hover()) : t.surface().hover()))
-        .whenPressed(e ->
-            e.fill(on ? Theme.over(rest, t.surface().pressed()) : t.surface().pressed()));
+        .whenHovered(e -> e.fill(
+            on ? Theme.over(rest, theme.surface().hover()) : theme.surface().hover()))
+        .whenPressed(e -> e.fill(
+            on ? Theme.over(rest, theme.surface().pressed()) : theme.surface().pressed()));
   }
 
   /** Places the actions inside the top right of the frame and reserves their text padding. */
-  static El embed(Theme t, El field, El actions, float paddingRight) {
+  static El embed(Theme theme, El field, El actions, float paddingRight) {
     field.style().paddingRight = Len.px(paddingRight);
-    float inset = t.space().xs();
+    float inset = theme.space().xs();
     Style at = actions.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(inset);

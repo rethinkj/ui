@@ -35,16 +35,16 @@ import java.util.function.ObjLongConsumer;
  *
  * <pre>{@code
  * List<Column> columns = List.of(
- *     new Column("id", s.widths[0], DataType.INTEGER, i -> String.valueOf(s.ids[i]))
+ *     new Column("id", state.widths[0], DataType.INTEGER, row -> String.valueOf(state.ids[row]))
  *         .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING),
- *     new Column("name", s.widths[1], Align.LEFT, false, i -> s.names[i]));
- * dataGrid(theme, columns, s.count, DataGrid.options()
- *         .select(s.selection)                       // a Selection the app keeps
- *         .sort(s.sort, keys -> s.sort = keys)
- *         .onResize((c, w) -> s.widths[c] = w)
+ *     new Column("name", state.widths[1], Align.LEFT, false, row -> state.names[row]));
+ * dataGrid(theme, columns, state.count, DataGrid.options()
+ *         .select(state.selection)                   // a Selection the app keeps
+ *         .sort(state.sort, keys -> state.sort = keys)
+ *         .onResize((column, width) -> state.widths[column] = width)
  *         .rowNumbers().frozen(1)
- *         .copy(s.app.clipboard())
- *         .contextMenu(s.menu, List.of(Menu.item("Export…", s::export))))
+ *         .copy(state.app.clipboard())
+ *         .contextMenu(state.menu, List.of(Menu.item("Export…", state::export))))
  *     .key("results").label("Results").grow(1);
  * }</pre>
  *
@@ -171,10 +171,10 @@ public final class DataGrid {
    * parts come with the methods that return a changed copy, as the view builds it:
    *
    * <pre>{@code
-   * new Column("id", w[0], DataType.INTEGER, i -> String.valueOf(ids[i]))
+   * new Column("id", widths[0], DataType.INTEGER, row -> String.valueOf(ids[row]))
    *     .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING)
-   * new Column("paid", w[1], DataType.BOOLEAN, i -> String.valueOf(paid[i]))
-   *     .typeName("boolean").cellIcon(i -> paid[i] ? CHECKED : UNCHECKED)
+   * new Column("paid", widths[1], DataType.BOOLEAN, row -> String.valueOf(paid[row]))
+   *     .typeName("boolean").cellIcon(row -> paid[row] ? CHECKED : UNCHECKED)
    * }</pre>
    *
    * @param title shown in the header, also the header cell's label
@@ -2132,7 +2132,7 @@ public final class DataGrid {
 
   /** What the parts of one build of the grid share. */
   static final class Build {
-    final Theme t;
+    final Theme theme;
     final Theme.Grid g;
     final List<Column> columns;
     final int rowCount;
@@ -2153,9 +2153,9 @@ public final class DataGrid {
     El probe; // a header's title, whose text tells the window's scale after layout
     List<Column> all; // all the columns, also those a layout hides
 
-    Build(Theme t, List<Column> columns, int rowCount, Options o) {
-      this.t = t;
-      this.g = t.grid();
+    Build(Theme theme, List<Column> columns, int rowCount, Options o) {
+      this.theme = theme;
+      this.g = theme.grid();
       this.columns = List.copyOf(columns);
       this.rowCount = rowCount;
       this.rows = rowCount + (o.appendRow ? 1 : 0);
@@ -2164,7 +2164,7 @@ public final class DataGrid {
       this.sel = o.selection;
       this.cells = sel != null && sel.mode() == Mode.CELLS;
       this.frozen = Math.min(o.frozen, columns.size());
-      this.numbers = o.rowNumbers ? numbersWidth(t, rowCount) : 0;
+      this.numbers = o.rowNumbers ? numbersWidth(theme, rowCount) : 0;
       this.xs = new float[columns.size() + 1];
       float x = numbers;
       for (int c = 0; c < columns.size(); c++) {
@@ -2172,7 +2172,7 @@ public final class DataGrid {
         x += columns.get(c).width();
       }
       xs[columns.size()] = x;
-      Scrollbars bars = t.scrollbars();
+      Scrollbars bars = theme.scrollbars();
       this.room = bars.strip();
     }
 
@@ -2199,7 +2199,7 @@ public final class DataGrid {
    * @param rowCount the number of rows, 0 or more
    * @param options what the grid does; {@link #options()} for a grid that only shows
    */
-  public static El dataGrid(Theme t, List<Column> columns, int rowCount, Options options) {
+  public static El dataGrid(Theme theme, List<Column> columns, int rowCount, Options options) {
     if (options.table != null) { // with all the columns, before a layout counts them its way
       options.table.accept(columns, rowCount);
       options.table = null;
@@ -2221,7 +2221,7 @@ public final class DataGrid {
       options.selection.showing(options.full, all);
       options.selection.keep(options.rowKey, rowCount, rows);
     }
-    Build b = new Build(t, columns, rowCount, options);
+    Build b = new Build(theme, columns, rowCount, options);
     b.all = allColumns;
     Theme.Grid g = b.g;
     El header = header(b);
@@ -2249,7 +2249,7 @@ public final class DataGrid {
         .key("rows")
         .grow(1)
         .rows(b.rows, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
-        .scrollbars(t.scrollbars());
+        .scrollbars(theme.scrollbars());
     b.body = body;
     if (sel != null) {
       body.scrollState(sel.rowsScroll);
@@ -2275,8 +2275,12 @@ public final class DataGrid {
     }
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
-    El grid =
-        row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row()).child(content);
+    El grid = row()
+        .role("grid")
+        .scrollBoth()
+        .scrollbars(theme.scrollbars())
+        .fill(g.row())
+        .child(content);
     b.grid = grid;
     if (options.commands != null) {
       options.commands.build = b;
@@ -2286,7 +2290,7 @@ public final class DataGrid {
     }
     reveal(b);
     if (options.menu != null) {
-      Menu.contextMenu(t, grid, options.menu, menuItems(b));
+      Menu.contextMenu(theme, grid, options.menu, menuItems(b));
     }
     if (sel == null) {
       return grid;
@@ -2296,7 +2300,7 @@ public final class DataGrid {
           .onText(text -> GridEdit.typed(b, text));
     }
     return grid.focusable()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .whenFocused(e -> b.focused[0] = true)
         .onKey(k -> key(b, k));
   }
@@ -2304,33 +2308,34 @@ public final class DataGrid {
   // Header
 
   private static El header(Build b) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Theme.Grid g = b.g;
     int n = b.columns.size();
     // The line under it is its border, which the cells and the pinned parts end above.
     El header = row()
         .key("header")
-        .h(g.rowHeight() + t.size().stroke())
+        .h(g.rowHeight() + theme.size().stroke())
         .shrink(0)
         .fill(g.header())
-        .border(0, 0, t.size().stroke(), 0, t.border().control())
+        .border(0, 0, theme.size().stroke(), 0, theme.border().control())
         .padding(0, 0, 0, b.fixedWidth());
     El[] lines = new El[n];
     List<El> pinned = new ArrayList<>();
     if (b.numbers > 0) {
-      pinned.add(pin(b, cellBox(t, Align.RIGHT, b.numbers).key("numbers").fill(g.header()), 0));
+      pinned.add(pin(b, cellBox(theme, Align.RIGHT, b.numbers).key("numbers").fill(g.header()), 0));
       // The lines in the frozen part are filled, so that nothing scrolled under it shows.
-      pinned.add(pin(b, line(t, false).fill(g.header()), b.numbers - t.size().stroke()));
+      pinned.add(
+          pin(b, line(theme, false).fill(g.header()), b.numbers - theme.size().stroke()));
     }
     for (int c = 0; c < n; c++) {
-      lines[c] = line(t, c == b.frozen - 1);
+      lines[c] = line(theme, c == b.frozen - 1);
       if (c < b.frozen - 1) {
         lines[c].fill(g.header());
       }
       El cell = headerCell(b, c);
       if (c < b.frozen) {
         pinned.add(pin(b, cell.fill(g.header()), b.xs[c]));
-        pinned.add(pin(b, lines[c], b.xs[c + 1] - t.size().stroke()));
+        pinned.add(pin(b, lines[c], b.xs[c + 1] - theme.size().stroke()));
       } else {
         header.children(cell, lines[c]);
       }
@@ -2358,9 +2363,9 @@ public final class DataGrid {
    * then the title ends in an ellipsis; icon and mark keep their size.
    */
   private static El headerCell(Build b, int index) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Column column = b.columns.get(index);
-    El title = title(t, column.title()).ellipsis().minSize(0, 0);
+    El title = title(theme, column.title()).ellipsis().minSize(0, 0);
     if (b.probe == null) {
       b.probe = title;
     }
@@ -2370,24 +2375,26 @@ public final class DataGrid {
       title.shrink(0).style().maxWidth = Len.percent(1);
       name = row()
           .align(Style.Align.CENTER)
-          .gap(t.space().s())
+          .gap(theme.space().s())
           .minSize(0, 0)
           .clip()
           .children(
               title,
-              Label.label(t, Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0));
+              Label.label(theme, Label.Variant.MUTED, column.typeName())
+                  .ellipsis()
+                  .minSize(0, 0));
     }
-    El cell = cellBox(t, column.align(), column.width())
+    El cell = cellBox(theme, column.align(), column.width())
         .key("column-" + index)
         .role("columnheader")
         .label(column.title())
-        .gap(t.space().xs())
+        .gap(theme.space().xs())
         .position(index + 1, b.columns.size());
     // Apart from the title by the gap of an icon in a cell, as the cell's gap is the mark's.
     El icon = column.icon() == null
         ? null
-        : Icon.icon(t, column.icon(), column.iconVariant())
-            .margin(0, t.space().s() - t.space().xs(), 0, 0);
+        : Icon.icon(theme, column.icon(), column.iconVariant())
+            .margin(0, theme.space().s() - theme.space().xs(), 0, 0);
     int at = -1;
     for (int k = 0; k < b.o.sort.size(); k++) {
       if (b.o.sort.get(k).column() == index) {
@@ -2402,11 +2409,14 @@ public final class DataGrid {
           .align(Style.Align.CENTER)
           .shrink(0)
           .child(Icon.icon(
-              t, descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP, Icon.Variant.MUTED, b.g.mark()));
+              theme,
+              descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP,
+              Icon.Variant.MUTED,
+              b.g.mark()));
       if (b.o.sort.size() > 1) {
-        mark.child(Label.label(t, Label.Variant.MUTED, String.valueOf(at + 1)));
+        mark.child(Label.label(theme, Label.Variant.MUTED, String.valueOf(at + 1)));
         if (column.align() == Align.RIGHT) { // the number apart from the title after it
-          mark.margin(0, t.space().xs(), 0, 0);
+          mark.margin(0, theme.space().xs(), 0, 0);
         }
       }
       if (descending) {
@@ -2435,20 +2445,23 @@ public final class DataGrid {
     if (inFlow && column.align() != Align.RIGHT) {
       cell.children(el().grow(1).minSize(0, 0), funnel);
     } else if (funnel != null && !inFlow) {
-      float inset = t.space().xs();
+      float inset = theme.space().xs();
       cell.child(funnel
           .absolute(
               column.align() == Align.RIGHT
                   ? inset
-                  : column.width() - t.size().stroke() - inset - t.size().icon(),
-              (b.g.rowHeight() - t.size().icon()) / 2)
+                  : column.width()
+                      - theme.size().stroke()
+                      - inset
+                      - theme.size().icon(),
+              (b.g.rowHeight() - theme.size().icon()) / 2)
           .fill(b.g.header()));
     }
     // The whole title and type where anything is cut short, measured only when it may show.
-    float room = column.width() - t.size().stroke() - 2 * t.space().s();
+    float room = column.width() - theme.size().stroke() - 2 * theme.space().s();
     String whole =
         column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
-    Tooltip.whenHovered(t, cell, () -> headerWidth(b, index) > room + 0.5f ? whole : null);
+    Tooltip.whenHovered(theme, cell, () -> headerWidth(b, index) > room + 0.5f ? whole : null);
     GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
@@ -2460,12 +2473,12 @@ public final class DataGrid {
         .onPress((clicks, modifiers) ->
             onSort.accept(nextSort(keys, index, (modifiers & Key.SHIFT) != 0)))
         .whenHovered(e -> {
-          e.fill(over(fill, t.surface().hover()));
+          e.fill(over(fill, theme.surface().hover()));
           if (funnel != null) {
             funnel.opacity(1);
           }
         })
-        .whenPressed(e -> e.fill(over(fill, t.surface().pressed())));
+        .whenPressed(e -> e.fill(over(fill, theme.surface().pressed())));
   }
 
   /**
@@ -2494,7 +2507,7 @@ public final class DataGrid {
 
   /** The strip at a column's right edge that resizes it, and fits it on a double press. */
   private static El edge(Build b, int c, El line) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Theme.Grid g = b.g;
     Column column = b.columns.get(c);
     Resize onResize = b.o.onResize;
@@ -2506,8 +2519,8 @@ public final class DataGrid {
         .absolute(b.xs[c + 1] - g.handle() / 2, 0)
         .size(g.handle(), g.rowHeight())
         .cursor(Cursor.EW_RESIZE)
-        .whenHovered(e -> line.fill(t.border().strong()))
-        .whenPressed(e -> line.fill(t.accent().color()))
+        .whenHovered(e -> line.fill(theme.border().strong()))
+        .whenPressed(e -> line.fill(theme.accent().color()))
         .onDrag(d -> {
           if (b.o.fit != null) {
             b.o.fit.byHand.add(full(b, c)); // a fit still to come leaves it
@@ -2610,10 +2623,10 @@ public final class DataGrid {
 
   /** {@link #fit} for the loaded rows from {@code first} to {@code last}, measured at a scale. */
   private static float fit(Build b, int c, int first, int last, float scale) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Column column = b.columns.get(c);
     float widest = headerWidth(b, c, scale);
-    Theme.TextStyle style = column.mono() ? t.type().mono() : t.type().body();
+    Theme.TextStyle style = column.mono() ? theme.type().mono() : theme.type().body();
     java.util.Set<String> seen = new java.util.HashSet<>(); // cells repeat: shape each once
     for (int i = first; i <= last; i++) {
       if (i >= b.rowCount || b.o.loaded != null && !b.o.loaded.test(i)) {
@@ -2625,7 +2638,7 @@ public final class DataGrid {
       float width = 0;
       int parts = 0;
       if (icon != null) {
-        width += t.size().icon();
+        width += theme.size().icon();
         parts++;
       }
       if (icon == null || !icon.alone()) {
@@ -2640,9 +2653,10 @@ public final class DataGrid {
         width += width(style, oneLine(detail), scale);
         parts++;
       }
-      widest = Math.max(widest, width + Math.max(parts - 1, 0) * t.space().s());
+      widest = Math.max(widest, width + Math.max(parts - 1, 0) * theme.space().s());
     }
-    float width = (float) Math.ceil(widest) + 2 * t.space().s() + t.size().stroke();
+    float width =
+        (float) Math.ceil(widest) + 2 * theme.space().s() + theme.size().stroke();
     return Math.clamp(width, b.g.minColumn(), Math.max(b.g.minColumn(), b.g.maxColumn()));
   }
 
@@ -2675,23 +2689,23 @@ public final class DataGrid {
   }
 
   private static float headerWidth(Build b, int c, float scale) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Column column = b.columns.get(c);
-    float width = width(t.type().strong(), column.title(), scale);
+    float width = width(theme.type().strong(), column.title(), scale);
     if (column.icon() != null) {
-      width += t.size().icon() + t.space().s();
+      width += theme.size().icon() + theme.space().s();
     }
     if (column.typeName() != null) {
-      width += t.space().s() + width(t.type().body(), column.typeName(), scale);
+      width += theme.space().s() + width(theme.type().body(), column.typeName(), scale);
     }
     if (b.o.sort.stream().anyMatch(k -> k.column() == c)) {
-      width += b.g.mark() + t.space().xs();
+      width += b.g.mark() + theme.space().xs();
       if (b.o.sort.size() > 1) {
-        width += t.space().xs() + width(t.type().body(), "9", scale);
+        width += theme.space().xs() + width(theme.type().body(), "9", scale);
       }
     }
     if (b.filtering(c) && GridFilter.set(b, c)) {
-      width += t.size().icon() + t.space().xs();
+      width += theme.size().icon() + theme.space().xs();
     }
     return width;
   }
@@ -2702,16 +2716,17 @@ public final class DataGrid {
    * part of one, so it gives way entirely and the tooltip names it.
    */
   private static boolean typeFits(Build b, int c) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     String type = b.columns.get(c).typeName();
-    float room = b.columns.get(c).width() - t.size().stroke() - 2 * t.space().s();
-    float whole = natural(Label.label(t, Label.Variant.MUTED, type));
+    float room =
+        b.columns.get(c).width() - theme.size().stroke() - 2 * theme.space().s();
+    float whole = natural(Label.label(theme, Label.Variant.MUTED, type));
     float left = room - (headerWidth(b, c) - whole);
     if (left >= whole) {
       return true;
     }
     String least = TextSizing.least(type);
-    return !least.equals(type) && left >= natural(Label.label(t, Label.Variant.MUTED, least));
+    return !least.equals(type) && left >= natural(Label.label(theme, Label.Variant.MUTED, least));
   }
 
   /** The width a text element takes on one line, in logical pixels. */
@@ -2722,7 +2737,7 @@ public final class DataGrid {
   // Rows
 
   private static El dataRow(Build b, int i, float from, float to) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Theme.Grid g = b.g;
     Selection sel = b.sel;
     boolean append = i >= b.rowCount; // the empty row after the last, to add one
@@ -2733,7 +2748,7 @@ public final class DataGrid {
     if (!rowSelected && (status == Status.NEW || status == Status.DELETED)) {
       fill = over(fill, status == Status.NEW ? g.added() : g.deleted()); // the selection wins
     }
-    float stroke = t.size().stroke();
+    float stroke = theme.size().stroke();
     // A hairline along the bottom, its border, which the cells end above.
     El r = row()
         .key("row-" + i)
@@ -2741,7 +2756,7 @@ public final class DataGrid {
         .fill(fill)
         .selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
-        .border(0, 0, stroke, 0, t.border().subtle());
+        .border(0, 0, stroke, 0, theme.border().subtle());
     if (status != Status.UNCHANGED) {
       r.value(statusName(status));
     }
@@ -2758,7 +2773,7 @@ public final class DataGrid {
       r.padding(0, 0, 0, b.xs[first]);
     }
     for (int c = first; c <= last; c++) {
-      r.children(cell(b, i, c, loaded, fill, status), line(t, false));
+      r.children(cell(b, i, c, loaded, fill, status), line(theme, false));
     }
     // The editor lies over the cells, and the frozen ones over it unless it is one of them; it is
     // there wherever its cell is, also scrolled out of the part the row was built for.
@@ -2770,18 +2785,18 @@ public final class DataGrid {
     if (b.numbers > 0) {
       // The numbers lie on the row's fill, which they need over the cells scrolled under them.
       String shown = append ? "*" : status == Status.NEW ? "+" : String.valueOf(i + 1);
-      El number = cellBox(t, Align.RIGHT, b.numbers)
+      El number = cellBox(theme, Align.RIGHT, b.numbers)
           .key("number-" + i)
           .role("rowheader")
           .fill(fill)
-          .child(number(t, shown));
+          .child(number(theme, shown));
       pinned.add(number);
       if (sel != null) {
         number.onPointerDown(
             (clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true, clicks, modifiers));
       }
       // The lines in the frozen part are filled, so that nothing scrolled under it shows.
-      El after = line(t, false).fill(fill);
+      El after = line(theme, false).fill(fill);
       pinned.add(after);
       r.children(pinRow(b, number, 0), pinRow(b, after, b.numbers - stroke));
     }
@@ -2791,7 +2806,7 @@ public final class DataGrid {
         cell.fill(fill);
         pinned.add(cell);
       }
-      El after = line(t, c == b.frozen - 1);
+      El after = line(theme, c == b.frozen - 1);
       if (c < b.frozen - 1) {
         after.fill(fill);
         pinned.add(after);
@@ -2802,12 +2817,13 @@ public final class DataGrid {
       r.child(GridEdit.editor(b, i, sel.editColumn));
     }
     if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
-      r.child(pinRow(b, el().key("mark").w(t.size().indicator()).fill(markColour(t, status)), 0));
+      r.child(pinRow(
+          b, el().key("mark").w(theme.size().indicator()).fill(markColour(theme, status)), 0));
     }
     if (rowSelected) {
       return r;
     }
-    int hovered = over(fill, t.surface().hover());
+    int hovered = over(fill, theme.surface().hover());
     return r.whenHovered(e -> {
       e.fill(hovered);
       pinned.forEach(p -> p.fill(hovered));
@@ -2815,10 +2831,10 @@ public final class DataGrid {
   }
 
   private static El cell(Build b, int i, int c, boolean loaded, int rowFill, Status row) {
-    Theme t = b.t;
+    Theme theme = b.theme;
     Selection sel = b.sel;
     Column column = b.columns.get(c);
-    El box = cellBox(t, column.align(), column.width())
+    El box = cellBox(theme, column.align(), column.width())
         .key("cell-" + i + "-" + c)
         .role("gridcell")
         .position(c + 1, b.columns.size());
@@ -2840,8 +2856,8 @@ public final class DataGrid {
       if (ring) {
         float w = b.g.cursorWidth();
         box.border(w, b.g.cursor())
-            .radius(t.radius().small())
-            .padding(0, Math.max(t.space().s() - w, 0));
+            .radius(theme.radius().small())
+            .padding(0, Math.max(theme.space().s() - w, 0));
       }
     }
     if (status == Status.CHANGED || status == Status.ERROR) {
@@ -2852,10 +2868,10 @@ public final class DataGrid {
       if (status == Status.ERROR) {
         box.invalid(true);
         if (!ring) { // a line of the danger colour inside the cell, where the cursor's would be
-          float w = t.size().stroke();
-          box.border(w, t.status().danger())
-              .radius(t.radius().small())
-              .padding(0, Math.max(t.space().s() - w, 0));
+          float w = theme.size().stroke();
+          box.border(w, theme.status().danger())
+              .radius(theme.radius().small())
+              .padding(0, Math.max(theme.space().s() - w, 0));
         }
       }
     }
@@ -2863,11 +2879,11 @@ public final class DataGrid {
       // A switch that was refused: the edge and the message of a refused editor.
       float w = b.g.cursorWidth();
       box.invalid(true)
-          .border(w, t.status().danger())
-          .radius(t.radius().small())
-          .padding(0, Math.max(t.space().s() - w, 0))
-          .overlay(GridEdit.alert(t, sel.refused)
-              .side(Side.BOTTOM, Style.Align.START, t.space().xs()));
+          .border(w, theme.status().danger())
+          .radius(theme.radius().small())
+          .padding(0, Math.max(theme.space().s() - w, 0))
+          .overlay(GridEdit.alert(theme, sel.refused)
+              .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
     String value = loaded && !append ? column.cell().apply(i) : null;
     CellIcon icon =
@@ -2879,22 +2895,23 @@ public final class DataGrid {
     }
     boolean alone = icon != null && icon.alone();
     boolean right = column.align() == Align.RIGHT;
-    float pad = t.space().s();
+    float pad = theme.space().s();
     // The room of the value and the detail: the cell's less its padding and an icon with its gap.
     float room = column.width()
-        - t.size().stroke()
+        - theme.size().stroke()
         - 2 * pad
-        - (icon == null ? 0 : t.size().icon() + pad);
+        - (icon == null ? 0 : theme.size().icon() + pad);
     El valueText = null;
     float detailWidth = 0; // the detail's with its gap, 0 where it gives way
     if (!loaded) {
-      box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
+      box.child(text(theme, false, Text.ELLIPSIS, theme.text().muted()));
     } else if (!append) {
       String shown = value == null ? "NULL" : oneLine(value);
       El more = null;
       if (detail != null) {
-        more = text(t, column.mono(), oneLine(detail), t.text().muted()).shrink(0);
-        float least = alone ? 0 : natural(text(t, column.mono(), TextSizing.least(shown), 0)) + pad;
+        more = text(theme, column.mono(), oneLine(detail), theme.text().muted()).shrink(0);
+        float least =
+            alone ? 0 : natural(text(theme, column.mono(), TextSizing.least(shown), 0)) + pad;
         // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
         detailWidth = natural(more) + pad;
         if (room < detailWidth - pad + least) {
@@ -2909,23 +2926,25 @@ public final class DataGrid {
         }
       }
       if (icon != null) {
-        box.gap(pad).child(Icon.icon(t, icon.symbol(), icon.variant()));
+        box.gap(pad).child(Icon.icon(theme, icon.symbol(), icon.variant()));
       }
       if (!alone) {
         El text = text(
-            t,
+            theme,
             column.mono(),
             shown,
-            value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
+            value == null || row == Status.DELETED
+                ? theme.text().muted()
+                : theme.text().primary());
         valueText = text;
         box.child(text);
         if (row == Status.DELETED) { // struck through, a line as the text is wide
-          float before = icon == null ? 0 : t.size().icon() + pad;
+          float before = icon == null ? 0 : theme.size().icon() + pad;
           float width = Math.min(natural(text), room - detailWidth);
-          float x = right ? column.width() - t.size().stroke() - pad - width : pad + before;
-          box.child(el().absolute(x, Math.round((b.g.rowHeight() - t.size().stroke()) / 2))
-              .size(Math.max(width, 0), t.size().stroke())
-              .fill(t.text().muted()));
+          float x = right ? column.width() - theme.size().stroke() - pad - width : pad + before;
+          box.child(el().absolute(x, Math.round((b.g.rowHeight() - theme.size().stroke()) / 2))
+              .size(Math.max(width, 0), theme.size().stroke())
+              .fill(theme.text().muted()));
         }
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
@@ -2959,7 +2978,7 @@ public final class DataGrid {
       boolean hidden = detail != null && detailWidth == 0;
       El measured = valueText;
       float valueRoom = room - detailWidth;
-      Tooltip.whenHovered(t, box, () -> {
+      Tooltip.whenHovered(theme, box, () -> {
         boolean shortened =
             measured != null && value != null && natural(measured) > valueRoom + 0.5f;
         String cut = shortened || hidden ? named : null;
@@ -2977,11 +2996,11 @@ public final class DataGrid {
   }
 
   /** The colour of the mark at the start of a row in this status. */
-  private static int markColour(Theme t, Status status) {
+  private static int markColour(Theme theme, Status status) {
     return switch (status) {
-      case CHANGED -> t.accent().edge();
-      case NEW -> t.status().success();
-      default -> t.status().danger();
+      case CHANGED -> theme.accent().edge();
+      case NEW -> theme.status().success();
+      default -> theme.status().danger();
     };
   }
 
@@ -2992,7 +3011,7 @@ public final class DataGrid {
 
   /** {@link #pin} in a row, above the row's hairline. */
   private static El pinRow(Build b, El el, float x) {
-    return pin(b, el, x).h(b.g.rowHeight() - b.t.size().stroke());
+    return pin(b, el, x).h(b.g.rowHeight() - b.theme.size().stroke());
   }
 
   // Selection by pointer
@@ -3326,8 +3345,8 @@ public final class DataGrid {
    * for the focused one, a field that narrows the list where there are many, Show all and Reset.
    * The header's context menu opens the same chooser at the column it opened on.
    */
-  public static El columnsButton(Theme t, Layout layout) {
-    return GridColumns.button(t, layout);
+  public static El columnsButton(Theme theme, Layout layout) {
+    return GridColumns.button(theme, layout);
   }
 
   /**
@@ -3339,8 +3358,8 @@ public final class DataGrid {
    * @param onFilter told the filters left
    */
   public static El filterBar(
-      Theme t, List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
-    return GridFilter.bar(t, columns, filters, onFilter);
+      Theme theme, List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
+    return GridFilter.bar(theme, columns, filters, onFilter);
   }
 
   /**
@@ -3476,8 +3495,8 @@ public final class DataGrid {
         .replace("\t", TAB);
   }
 
-  static El text(Theme t, boolean mono, String text, int colour) {
-    Theme.TextStyle style = mono ? t.type().mono() : t.type().body();
+  static El text(Theme theme, boolean mono, String text, int colour) {
+    Theme.TextStyle style = mono ? theme.type().mono() : theme.type().body();
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
@@ -3487,10 +3506,10 @@ public final class DataGrid {
   }
 
   /** A cell's box: its column's width less the line, which clips what is wider. */
-  private static El cellBox(Theme t, Align align, float width) {
+  private static El cellBox(Theme theme, Align align, float width) {
     return row()
-        .w(Math.max(width - t.size().stroke(), 0))
-        .padding(0, t.space().s())
+        .w(Math.max(width - theme.size().stroke(), 0))
+        .padding(0, theme.space().s())
         .align(Style.Align.CENTER)
         .justify(align == Align.RIGHT ? Style.Content.END : Style.Content.START)
         .clip();
@@ -3500,29 +3519,29 @@ public final class DataGrid {
    * The line after a column, as tall as the row: a hairline after the frozen columns, elsewhere
    * room that shows a line only while a header's edge is under the pointer or dragged.
    */
-  private static El line(Theme t, boolean visible) {
-    return el().w(t.size().stroke()).fill(visible ? t.border().subtle() : 0);
+  private static El line(Theme theme, boolean visible) {
+    return el().w(theme.size().stroke()).fill(visible ? theme.border().subtle() : 0);
   }
 
   /** A column's title, in the medium weight of {@link Theme.Type#strong}. */
-  private static El title(Theme t, String text) {
-    Theme.TextStyle style = t.type().strong();
+  private static El title(Theme theme, String text) {
+    Theme.TextStyle style = theme.type().strong();
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
-        .color(t.text().primary());
+        .color(theme.text().primary());
   }
 
   /**
    * A row's number, which never ends in an ellipsis: it keeps its width and, aligned right, takes
    * the fraction of a pixel it may need at the window's scale from the box's left padding.
    */
-  private static El number(Theme t, String shown) {
-    Theme.TextStyle mono = t.type().mono();
+  private static El number(Theme theme, String shown) {
+    Theme.TextStyle mono = theme.type().mono();
     return El.text(shown)
         .font(mono.font().get())
         .fontSize(mono.size())
-        .color(t.text().muted())
+        .color(theme.text().muted())
         .shrink(0);
   }
 
@@ -3536,10 +3555,10 @@ public final class DataGrid {
    * at scale 2, beyond which the first digit reaches the box's edge. Measure at the scale once
    * the view can know it.
    */
-  private static float numbersWidth(Theme t, int rowCount) {
-    Theme.TextStyle mono = t.type().mono();
+  private static float numbersWidth(Theme theme, int rowCount) {
+    Theme.TextStyle mono = theme.type().mono();
     String widest = "0".repeat(String.valueOf(Math.max(rowCount, 1)).length());
     float text = mono.font().get().shape(widest, mono.size(), 1).width();
-    return (float) Math.ceil(text) + 2 * t.space().s() + t.size().stroke();
+    return (float) Math.ceil(text) + 2 * theme.space().s() + theme.size().stroke();
   }
 }

@@ -1686,17 +1686,17 @@ public final class App<S> {
    *     invisible with opacity 0, or it is clipped away. An element that fades in can take the
    *     focus from the frame that adds it on.
    */
-  public void focus(El el) {
-    if (el != null
-        && !(el.isFocusable()
-            ? focusables().contains(el)
-            : root != null && pathTo(root, el, new ArrayList<>()))) {
+  public void focus(El element) {
+    if (element != null
+        && !(element.isFocusable()
+            ? focusables().contains(element)
+            : root != null && pathTo(root, element, new ArrayList<>()))) {
       throw new IllegalArgumentException(
           "This element cannot take the focus: it is not in the last frame's tree, or it is"
               + " focusable() and takes no input there");
     }
-    Object id = el == null ? null : animator.identity(el);
-    boolean into = el != null && !el.isFocusable();
+    Object id = element == null ? null : animator.identity(element);
+    boolean into = element != null && !element.isFocusable();
     enqueue(() -> {
       settle();
       El now = id == null ? null : animator.element(id);

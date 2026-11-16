@@ -57,7 +57,7 @@ public final class Radio {
    *     group
    */
   public static <T> El swatches(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, Option> option,
@@ -67,14 +67,15 @@ public final class Radio {
     for (T v : values) {
       options.add(option.apply(v));
     }
-    return swatches(t, options, Choices.index(values, selected), Choices.handler(values, onSelect));
+    return swatches(
+        theme, options, Choices.index(values, selected), Choices.handler(values, onSelect));
   }
 
   /** Swatches of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El swatches(
-      Theme t, List<T> values, Prop<T> selected, Function<? super T, Option> option) {
+      Theme theme, List<T> values, Prop<T> selected, Function<? super T, Option> option) {
     return Prop.shown(
-        t, swatches(t, values, selected.get(), option, selected.onChange()), selected);
+        theme, swatches(theme, values, selected.get(), option, selected.onChange()), selected);
   }
 
   /**
@@ -96,11 +97,12 @@ public final class Radio {
    * @param onSelect told the index of the option the user chooses, only when it changes; null
    *     disables the group
    */
-  public static El swatches(Theme t, List<Option> options, int selected, IntConsumer onSelect) {
+  public static El swatches(Theme theme, List<Option> options, int selected, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
-    float gap = t.size().ringGap();
-    float side = t.size().checkbox() + 2 * (gap + Scene.RING);
-    El group = row().role("radiogroup").disabled(!enabled).wrap().gap(t.space().s());
+    float gap = theme.size().ringGap();
+    float side = theme.size().checkbox() + 2 * (gap + Scene.RING);
+    El group =
+        row().role("radiogroup").disabled(!enabled).wrap().gap(theme.space().s());
     group.style().width = Len.FIT_CONTENT;
     El[] frames = new El[options.size()];
     for (int i = 0; i < options.size(); i++) {
@@ -111,33 +113,37 @@ public final class Radio {
           .center()
           .radius(side / 2)
           .padding(gap)
-          .border(Scene.RING, !on ? 0 : enabled ? t.accent().edge() : t.text().disabled())
-          .child(o.look().apply(t).shrink(0));
+          .border(
+              Scene.RING,
+              !on ? 0 : enabled ? theme.accent().edge() : theme.text().disabled())
+          .child(o.look().apply(theme).shrink(0));
       El option = el().role("radio")
           .label(o.label())
           .checked(on)
           .size(side + 2 * (gap + Scene.RING), side + 2 * (gap + Scene.RING))
           .shrink(0)
           .center()
-          .radius(t.radius().medium())
+          .radius(theme.radius().medium())
           .padding(gap)
           .border(Scene.RING, 0)
-          .motion(t.motion().feedback())
+          .motion(theme.motion().feedback())
           .child(chosen);
       frames[i] = option;
       if (enabled) {
         option
             .cursor(Cursor.POINTER)
             .onPress(choose(onSelect, selected, i))
-            .whenHovered(e -> e.fill(t.surface().hover()))
-            .whenPressed(e -> e.fill(t.surface().pressed()));
+            .whenHovered(e -> e.fill(theme.surface().hover()))
+            .whenPressed(e -> e.fill(theme.surface().pressed()));
       }
-      group.child(Tooltip.tooltip(t, option, o.label()));
+      group.child(Tooltip.tooltip(theme, option, o.label()));
     }
-    keys(t, group, options.size(), selected, onSelect);
+    keys(theme, group, options.size(), selected, onSelect);
     if (enabled && frames.length > 0) {
       El cursor = frames[Math.max(selected, 0)];
-      group.focusRing(0).whenFocused(e -> cursor.border(Scene.RING, t.accent().edge()));
+      group
+          .focusRing(0)
+          .whenFocused(e -> cursor.border(Scene.RING, theme.accent().edge()));
     }
     return group;
   }
@@ -153,14 +159,14 @@ public final class Radio {
    *     group
    */
   public static <T> El radioGroup(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, String> text,
       Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return radioGroup(
-        t,
+        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         Choices.handler(values, onSelect));
@@ -168,9 +174,9 @@ public final class Radio {
 
   /** Choices of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El radioGroup(
-      Theme t, List<T> values, Prop<T> selected, Function<? super T, String> text) {
+      Theme theme, List<T> values, Prop<T> selected, Function<? super T, String> text) {
     return Prop.shown(
-        t, radioGroup(t, values, selected.get(), text, selected.onChange()), selected);
+        theme, radioGroup(theme, values, selected.get(), text, selected.onChange()), selected);
   }
 
   /**
@@ -178,55 +184,64 @@ public final class Radio {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the group
    */
-  public static El radioGroup(Theme t, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El radioGroup(
+      Theme theme, List<String> choices, int selected, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     El group = col()
         .role("radiogroup")
         .disabled(!enabled)
-        .gap(t.space().s())
+        .gap(theme.space().s())
         // Room for the ring around the choices, taken back by the margin, as a toggle has it.
-        .padding(t.space().xs(), t.space().s())
-        .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
-        .radius(t.radius().medium());
+        .padding(theme.space().xs(), theme.space().s())
+        .margin(
+            -theme.space().xs(),
+            -theme.space().s(),
+            -theme.space().xs(),
+            -theme.space().s())
+        .radius(theme.radius().medium());
     group.style().width = Len.FIT_CONTENT;
     for (int i = 0; i < choices.size(); i++) {
-      group.child(radio(t, choices.get(i), i == selected, enabled, choose(onSelect, selected, i)));
+      group.child(
+          radio(theme, choices.get(i), i == selected, enabled, choose(onSelect, selected, i)));
     }
-    return keys(t, group, choices.size(), selected, onSelect);
+    return keys(theme, group, choices.size(), selected, onSelect);
   }
 
-  private static El radio(Theme t, String text, boolean on, boolean enabled, Runnable onPress) {
-    Theme.Surfaces s = t.surface();
-    float side = t.size().checkbox();
-    int fill = on ? (enabled ? t.accent().color() : t.border().divider()) : s.raised();
-    int edge =
-        !enabled ? t.border().divider() : on ? t.accent().pressed() : t.border().strong();
+  private static El radio(Theme theme, String text, boolean on, boolean enabled, Runnable onPress) {
+    Theme.Surfaces s = theme.surface();
+    float side = theme.size().checkbox();
+    int fill = on ? (enabled ? theme.accent().color() : theme.border().divider()) : s.raised();
+    int edge = !enabled
+        ? theme.border().divider()
+        : on ? theme.accent().pressed() : theme.border().strong();
     El mark = el().size(side, side)
         .shrink(0)
         .center()
         .radius(side / 2)
         .fill(fill)
-        .border(t.size().stroke(), edge)
-        .motion(t.motion().feedback());
+        .border(theme.size().stroke(), edge)
+        .motion(theme.motion().feedback());
     if (on) {
       float dot = Math.round(side * 3 / 8);
       mark.child(el().size(dot, dot)
           .radius(dot / 2)
-          .fill(enabled ? t.text().onAccent() : t.text().disabled()));
+          .fill(enabled ? theme.text().onAccent() : theme.text().disabled()));
     }
     El radio = row()
         .role("radio")
         .label(text)
         .checked(on)
-        .gap(t.space().m())
+        .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .children(
-            mark, label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
+            mark,
+            label(theme, text)
+                .color(enabled ? theme.text().primary() : theme.text().disabled()));
     if (!enabled) {
       return radio;
     }
-    int hover = on ? t.accent().hover() : over(fill, s.hover());
-    int pressed = on ? t.accent().pressed() : over(fill, s.pressed());
+    int hover = on ? theme.accent().hover() : over(fill, s.hover());
+    int pressed = on ? theme.accent().pressed() : over(fill, s.pressed());
     return radio
         .cursor(Cursor.POINTER)
         .onPress(onPress)
@@ -248,11 +263,11 @@ public final class Radio {
    * around at the ends, Home and End the first and the last, and Space the first while none is
    * chosen.
    */
-  static El keys(Theme t, El group, int count, int selected, IntConsumer onSelect) {
+  static El keys(Theme theme, El group, int count, int selected, IntConsumer onSelect) {
     if (onSelect == null || count == 0) {
       return group;
     }
-    return group.focusable().keepFocus().focusRing(t.accent().edge()).onKey(k -> {
+    return group.focusable().keepFocus().focusRing(theme.accent().edge()).onKey(k -> {
       int next = next(k, count, selected);
       if (next == -2) {
         return false;

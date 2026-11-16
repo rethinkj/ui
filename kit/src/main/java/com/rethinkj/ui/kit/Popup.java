@@ -7,16 +7,16 @@ final class Popup {
 
   private Popup() {}
 
-  static El frame(Theme t, El panel) {
-    return surface(t, panel).motion(t.motion().fade());
+  static El frame(Theme theme, El panel) {
+    return surface(theme, panel).motion(theme.motion().fade());
   }
 
   /** The surface alone, for a popup whose surrounding element carries the fade. */
-  static El surface(Theme t, El panel) {
+  static El surface(Theme theme, El panel) {
     return panel
-        .radius(t.radius().medium())
-        .fill(t.surface().popup())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup());
+        .radius(theme.radius().medium())
+        .fill(theme.surface().popup())
+        .border(theme.size().stroke(), theme.border().control())
+        .shadow(theme.elevation().popup());
   }
 }

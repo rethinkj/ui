@@ -173,22 +173,24 @@ public final class Image {
     return levels.length;
   }
 
-  /** The width of level {@code k}: the image's halved {@code k} times, rounded down, at least 1. */
-  public int levelWidth(int k) {
-    return Math.max(1, width >> k);
+  /**
+   * The width of a level, from 0: the image's halved {@code level} times, rounded down, at least 1.
+   */
+  public int levelWidth(int level) {
+    return Math.max(1, width >> level);
   }
 
-  /** The height of level {@code k}. */
-  public int levelHeight(int k) {
-    return Math.max(1, height >> k);
+  /** The height of a level, from 0. */
+  public int levelHeight(int level) {
+    return Math.max(1, height >> level);
   }
 
   /**
-   * The texels of level {@code k}, four bytes each, rows from the top, as the class comment says.
+   * The texels of a level, from 0, four bytes each, rows from the top, as the class comment says.
    * The array is the image's own: read it, never change it.
    */
-  public byte[] level(int k) {
-    return levels[k];
+  public byte[] level(int level) {
+    return levels[level];
   }
 
   /** The bytes all levels take. */

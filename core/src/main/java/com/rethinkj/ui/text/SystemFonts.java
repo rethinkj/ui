@@ -262,7 +262,7 @@ final class SystemFonts {
               }
 
               @Override
-              public FileVisitResult visitFileFailed(Path file, IOException e) {
+              public FileVisitResult visitFileFailed(Path file, IOException error) {
                 return FileVisitResult.CONTINUE; // unreadable, or a loop of links
               }
             });

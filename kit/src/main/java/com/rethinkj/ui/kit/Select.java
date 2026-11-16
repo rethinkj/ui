@@ -34,7 +34,8 @@ public final class Select {
    * A select of values of any type, such as the constants of an enum:
    *
    * <pre>{@code
-   * select(t, List.of(Level.values()), s.level, Level::label, s.levelMenu, v -> s.level = v)
+   * select(theme, List.of(Level.values()), state.level, Level::label, state.levelMenu,
+   *     value -> state.level = value)
    * }</pre>
    *
    * @param values the values to choose from
@@ -45,7 +46,7 @@ public final class Select {
    * @param onSelect told the value chosen; null disables the select
    */
   public static <T> El select(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, String> text,
@@ -53,7 +54,7 @@ public final class Select {
       Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return select(
-        t,
+        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         state,
@@ -65,13 +66,13 @@ public final class Select {
    * Menu.State, Consumer)}; a prop that cannot be written disables it.
    */
   public static <T> El select(
-      Theme t,
+      Theme theme,
       List<T> values,
       Prop<T> selected,
       Function<? super T, String> text,
       Menu.State state) {
     return Prop.shown(
-        t, select(t, values, selected.get(), text, state, selected.onChange()), selected);
+        theme, select(theme, values, selected.get(), text, state, selected.onChange()), selected);
   }
 
   /**
@@ -81,10 +82,10 @@ public final class Select {
    * @param onSelect told the index of the choice made; null disables the select
    */
   public static El select(
-      Theme t, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
+      Theme theme, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    El select = SelectionFrame.frame(t, text, null, enabled).expanded(state.isOpen());
+    El select = SelectionFrame.frame(theme, text, null, enabled).expanded(state.isOpen());
     if (!enabled) {
       return select;
     }
@@ -101,7 +102,7 @@ public final class Select {
     return select
         .focusable()
         .keepFocus()
-        .focusRing(t.accent().edge())
+        .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(open)
         .onKey(k -> {
@@ -136,11 +137,11 @@ public final class Select {
           }
           return true;
         })
-        .whenHovered(e -> SelectionFrame.hovered(t, e))
+        .whenHovered(e -> SelectionFrame.hovered(theme, e))
         .overlay(
             state.isOpen()
-                ? Menu.menu(t, state, items)
-                    .side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
+                ? Menu.menu(theme, state, items)
+                    .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
                 : null);
   }
 }

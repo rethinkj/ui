@@ -21,7 +21,7 @@ final class PassiveList {
    * highlight kept in view.
    */
   static El view(
-      Theme t,
+      Theme theme,
       int count,
       int most,
       int highlight,
@@ -29,35 +29,35 @@ final class PassiveList {
       float rowHeight,
       IntFunction<El> row) {
     return col()
-        .padding(padding, padding + gutter(t, count, most), padding, padding)
-        .scrollbars(t.scrollbars())
+        .padding(padding, padding + gutter(theme, count, most), padding, padding)
+        .scrollbars(theme.scrollbars())
         .revealRow(highlight)
         .rows(count, rowHeight, row);
   }
 
   /** The last row of a list whose entries are on their way. */
-  static El loading(Theme t) {
+  static El loading(Theme theme) {
     return row()
         .key("loading")
-        .padding(0, t.space().m())
+        .padding(0, theme.space().m())
         .align(Style.Align.CENTER)
-        .child(Label.label(t, Label.Variant.MUTED, "Loading…"));
+        .child(Label.label(theme, Label.Variant.MUTED, "Loading…"));
   }
 
-  static float gutter(Theme t, int count, int most) {
-    return count > most ? t.scrollbars().thickness() + t.scrollbars().margin() : 0;
+  static float gutter(Theme theme, int count, int most) {
+    return count > most ? theme.scrollbars().thickness() + theme.scrollbars().margin() : 0;
   }
 
   /** An option's highlight and pointer handlers; its content belongs to the caller. */
-  static El option(Theme t, int index, int highlight, IntConsumer light, Runnable choose) {
+  static El option(Theme theme, int index, int highlight, IntConsumer light, Runnable choose) {
     boolean lit = index == highlight;
     El row = row()
         .key("option-" + index)
         .role("option")
         .selected(lit)
         .disabled(choose == null)
-        .radius(t.radius().small())
-        .fill(lit ? t.surface().highlight() : 0);
+        .radius(theme.radius().small())
+        .fill(lit ? theme.surface().highlight() : 0);
     if (choose != null) {
       row.onHoverFor(0, () -> light.accept(index)).onPress(choose);
     }

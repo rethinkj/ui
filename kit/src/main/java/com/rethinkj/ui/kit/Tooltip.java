@@ -29,43 +29,43 @@ public final class Tooltip {
    *
    * @return the anchor
    */
-  public static El tooltip(Theme t, El anchor, String text) {
-    return tooltip(t, anchor, text, false);
+  public static El tooltip(Theme theme, El anchor, String text) {
+    return tooltip(theme, anchor, text, false);
   }
 
   /**
    * A tooltip with the whole text of an anchor whose text may be cut short ({@link El#ellipsis}):
    * as {@link #tooltip}, but it shows only while a text of the anchor ends in an ellipsis.
    */
-  public static El whenShortened(Theme t, El anchor, String text) {
-    return tooltip(t, anchor, text, true);
+  public static El whenShortened(Theme theme, El anchor, String text) {
+    return tooltip(theme, anchor, text, true);
   }
 
-  private static El tooltip(Theme t, El anchor, String text, boolean shortened) {
-    Consumer<El> show = e -> show(t, e, text, shortened);
+  private static El tooltip(Theme theme, El anchor, String text, boolean shortened) {
+    Consumer<El> show = e -> show(theme, e, text, shortened);
     return anchor
-        .whenHoveredFor(t.motion().tooltipDelay(), show)
-        .whenFocusVisibleFor(t.motion().tooltipDelay(), show);
+        .whenHoveredFor(theme.motion().tooltipDelay(), show)
+        .whenFocusVisibleFor(theme.motion().tooltipDelay(), show);
   }
 
   /**
    * A hover-only tooltip whose text is read when the delay is due; null means none. A virtual
    * row can decide from its laid-out text then, without an overlay or a focus look on every row.
    */
-  static El whenHovered(Theme t, El anchor, Supplier<String> text) {
-    return anchor.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+  static El whenHovered(Theme theme, El anchor, Supplier<String> text) {
+    return anchor.whenHoveredFor(theme.motion().tooltipDelay(), e -> {
       String tip = text.get();
       if (tip != null) {
-        show(t, e, tip, false);
+        show(theme, e, tip, false);
       }
     });
   }
 
-  private static void show(Theme t, El anchor, String text, boolean shortened) {
+  private static void show(Theme theme, El anchor, String text, boolean shortened) {
     if (shortened) {
       if (anchor.overlays().stream()
           .noneMatch(o -> WHOLE.equals(o.key()) || "tooltip".equals(o.key()))) {
-        anchor.overlay(panel(t, text).key(WHOLE).whenShortened());
+        anchor.overlay(panel(theme, text).key(WHOLE).whenShortened());
       }
       return;
     }
@@ -73,25 +73,25 @@ public final class Tooltip {
         .noneMatch(o -> "tooltip".equals(o.key()))) { // one for both looks
       // A tooltip the view gives stands in place of the one with the anchor's whole text.
       anchor.overlays().stream().filter(o -> WHOLE.equals(o.key())).forEach(o -> o.opacity(0));
-      anchor.overlay(panel(t, text));
+      anchor.overlay(panel(theme, text));
     }
   }
 
   private static final String WHOLE = "whole-text"; // the key of a cut text's tooltip
 
   /** The tooltip's overlay, for components that decide in their own look whether it shows. */
-  static El panel(Theme t, String text) {
+  static El panel(Theme theme, String text) {
     return row()
         .key("tooltip")
         .role("tooltip")
         .label(text)
-        .padding(t.space().xs(), t.space().s())
-        .radius(t.radius().small())
-        .fill(t.surface().popup())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
-        .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())
-        .child(label(t, text));
+        .padding(theme.space().xs(), theme.space().s())
+        .radius(theme.radius().small())
+        .fill(theme.surface().popup())
+        .border(theme.size().stroke(), theme.border().control())
+        .shadow(theme.elevation().popup())
+        .motion(theme.motion().fade())
+        .side(Side.BOTTOM, Style.Align.CENTER, theme.space().xs())
+        .child(label(theme, text));
   }
 }

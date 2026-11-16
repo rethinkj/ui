@@ -63,7 +63,7 @@ final class GridColumns {
       sel.headerMenu.close();
     } else {
       header.onSecondaryPress((x, y) -> {}); // beside the cells it opens nothing
-      Menu.contextMenu(b.t, header, sel.headerMenu, items(b, sel.headerColumn));
+      Menu.contextMenu(b.theme, header, sel.headerMenu, items(b, sel.headerColumn));
     }
     Layout l = b.o.layout;
     int at = l == null || !l.chooser.isOpen() || l.from < 0 ? -1 : l.shownNear(l.from, b.o.full);
@@ -73,19 +73,19 @@ final class GridColumns {
       El anchor = el().key("chooser-anchor")
           .absolute(b.xs[at], b.g.rowHeight())
           .size(b.columns.get(at).width(), 0)
-          .overlay(
-              chooser(b.t, l).side(Side.BOTTOM, Style.Align.START, b.t.space().xs()));
+          .overlay(chooser(b.theme, l)
+              .side(Side.BOTTOM, Style.Align.START, b.theme.space().xs()));
       if (at < b.frozen) {
         anchor.fixedX();
       }
       header.child(anchor);
     }
     if (sel.dragColumn >= 0 && sel.dropAt >= b.frozen && sel.dropAt <= n) {
-      float line = b.t.size().indicator();
+      float line = b.theme.size().indicator();
       header.child(el().key("marker")
           .absolute(b.xs[sel.dropAt] - line / 2, 0)
           .size(line, b.g.rowHeight())
-          .fill(b.t.accent().edge()));
+          .fill(b.theme.accent().edge()));
     }
   }
 
@@ -175,14 +175,14 @@ final class GridColumns {
   }
 
   /** {@link DataGrid#columnsButton}. */
-  static El button(Theme t, Layout l) {
+  static El button(Theme theme, Layout l) {
     El button = Button.button(
-            t, Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
+            theme, Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
         .key("columns-button")
         .expanded(l.chooser.isOpen() && l.from < 0);
     return button.overlay(
         l.chooser.isOpen() && l.from < 0
-            ? chooser(t, l).side(Side.BOTTOM, Style.Align.END, t.space().xs())
+            ? chooser(theme, l).side(Side.BOTTOM, Style.Align.END, theme.space().xs())
             : null);
   }
 
@@ -191,17 +191,19 @@ final class GridColumns {
    * Down change for the focused one; a field that narrows the list where there are many; Show all
    * and Reset.
    */
-  static El chooser(Theme t, Layout l) {
+  static El chooser(Theme theme, Layout l) {
     String search = l.search.toLowerCase(Locale.ROOT).strip();
     El list = col()
         .key("columns")
         .role("list")
         .label("Columns")
-        .gap(t.space().xs())
-        .padding(t.space().xs(), t.space().s())
+        .gap(theme.space().xs())
+        .padding(theme.space().xs(), theme.space().s())
         .scroll()
-        .scrollbars(t.scrollbars())
-        .maxSize(Float.POSITIVE_INFINITY, 10 * (t.size().control() - t.space().xs()));
+        .scrollbars(theme.scrollbars())
+        .maxSize(
+            Float.POSITIVE_INFINITY,
+            10 * (theme.size().control() - theme.space().xs()));
     for (int full : l.order()) {
       String title = l.titles.get(full);
       if (!search.isEmpty() && !title.toLowerCase(Locale.ROOT).contains(search)) {
@@ -209,7 +211,7 @@ final class GridColumns {
       }
       boolean shown = !l.isHidden(full);
       list.child(Checkbox.checkbox(
-              t,
+              theme,
               shown,
               title,
               !shown || l.shownCount() > 1
@@ -232,30 +234,31 @@ final class GridColumns {
           }));
     }
     El content = col()
-        .gap(t.space().s())
-        .child(Label.label(t, Label.Variant.STRONG, "Columns").role("heading").level(3));
+        .gap(theme.space().s())
+        .child(
+            Label.label(theme, Label.Variant.STRONG, "Columns").role("heading").level(3));
     if (l.titles.size() > 8) {
       content.child(TextField.withIcon(
-          t,
-          textField(t, l.search, "Search columns", v -> l.search = v)
+          theme,
+          textField(theme, l.search, "Search columns", v -> l.search = v)
               .key("search")
-              .w(t.size().field())
+              .w(theme.size().field())
               .autofocus(),
           Symbol.SEARCH));
     }
     content
         .child(list)
-        .child(Label.label(t, Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
+        .child(Label.label(theme, Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
         .child(row()
-            .gap(t.space().s())
+            .gap(theme.space().s())
             .justify(Style.Content.END)
             .children(
                 Button.button(
-                    t,
+                    theme,
                     Button.Variant.GHOST,
                     "Show all",
                     l.shownCount() == l.titles.size() ? null : l::showAll),
-                Button.button(t, Button.Variant.SECONDARY, "Reset", l::reset)));
-    return Popover.panel(t, l.chooser, "Columns", content).key("chooser");
+                Button.button(theme, Button.Variant.SECONDARY, "Reset", l::reset)));
+    return Popover.panel(theme, l.chooser, "Columns", content).key("chooser");
   }
 }

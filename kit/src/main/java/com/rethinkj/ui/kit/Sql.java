@@ -49,13 +49,13 @@ public record Sql(Theme.Code colors, Dialect dialect)
   }
 
   /** The highlighter in the theme's colours for code, as PostgreSQL writes SQL. */
-  public static Sql of(Theme t) {
-    return new Sql(t.code());
+  public static Sql of(Theme theme) {
+    return new Sql(theme.code());
   }
 
   /** The highlighter in the theme's colours for code, as {@code dialect} writes SQL. */
-  public static Sql of(Theme t, Dialect dialect) {
-    return new Sql(t.code(), dialect);
+  public static Sql of(Theme theme, Dialect dialect) {
+    return new Sql(theme.code(), dialect);
   }
 
   // What a line ends inside of; null for nothing.

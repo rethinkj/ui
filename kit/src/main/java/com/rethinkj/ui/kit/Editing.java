@@ -17,12 +17,14 @@ import java.util.function.UnaryOperator;
  *   Editing<Profile> editing;                        // Editing.of(profile) as the dialog opens
  * }
  *
- * Editing<Profile> e = s.editing;
- * form(t, Labels.BESIDE,
- *     field("Host", textField(t, e.at(Profile.HOST))),
- *     field("Port", valueField(t, PORT, e.at(Profile.PORT))),
- *     field("Mode", select(t, MODES, e.at(Profile.TLS).at(Tls.MODE), Mode::label, s.modeMenu)))
- * button(t, PRIMARY, "Save", e.valid() && e.changed() ? () -> save(e.value()) : null)
+ * Editing<Profile> editing = state.editing;
+ * form(theme, Labels.BESIDE,
+ *     field("Host", textField(theme, editing.at(Profile.HOST))),
+ *     field("Port", valueField(theme, PORT, editing.at(Profile.PORT))),
+ *     field("Mode", select(theme, MODES, editing.at(Profile.TLS).at(Tls.MODE), Mode::label,
+ *         state.modeMenu)))
+ * button(theme, PRIMARY, "Save",
+ *     editing.valid() && editing.changed() ? () -> save(editing.value()) : null)
  * }</pre>
  *
  * <p>{@link #at} gives the {@link Prop} of a field, by a {@link Part} declared once beside the
@@ -89,8 +91,8 @@ public final class Editing<T> {
 
   /**
    * A rule over the whole value, whose message shows at the field of {@code field} while it
-   * fails, as {@code rule(Order.DUE, o -> !o.due().isBefore(o.ordered()), "Not before the
-   * order")}. Rules are checked in the order given.
+   * fails, as {@code rule(Order.DUE, order -> !order.due().isBefore(order.ordered()), "Not
+   * before the order")}. Rules are checked in the order given.
    *
    * @return this editing, so that rules follow each other
    */

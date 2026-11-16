@@ -31,7 +31,8 @@ import com.rethinkj.ui.Style;
  * State#ERROR} is {@code invalid}. The part done is the child {@code #fill}.
  *
  * <pre>{@code
- * labeled(t, "orders.csv", s.done / s.size, mb(s.done) + " of " + mb(s.size) + " · " + left)
+ * labeled(theme, "orders.csv", state.done / state.size,
+ *         mb(state.done) + " of " + mb(state.size) + " · " + left)
  *     .key("export")
  * }</pre>
  */
@@ -56,21 +57,22 @@ public final class Progress {
    *
    * @param fraction how much is done, from 0 to 1, clamped; NaN is 0
    */
-  public static El bar(Theme t, double fraction) {
-    return bar(t, fraction, State.NORMAL);
+  public static El bar(Theme theme, double fraction) {
+    return bar(theme, fraction, State.NORMAL);
   }
 
   /** A bar with a value, coloured by what became of the work. */
-  public static El bar(Theme t, double fraction, State state) {
-    return states(track(t, t.size().progress(), true, clamp(fraction), state), fraction, state)
-        .w(t.size().field());
+  public static El bar(Theme theme, double fraction, State state) {
+    return states(
+            track(theme, theme.size().progress(), true, clamp(fraction), state), fraction, state)
+        .w(theme.size().field());
   }
 
   /** A bar that runs while the length of the work is not known. */
-  public static El indeterminate(Theme t) {
-    return track(t, t.size().progress(), true, Double.NaN, State.NORMAL)
+  public static El indeterminate(Theme theme) {
+    return track(theme, theme.size().progress(), true, Double.NaN, State.NORMAL)
         .role("progressbar")
-        .w(t.size().field());
+        .w(theme.size().field());
   }
 
   /**
@@ -78,17 +80,17 @@ public final class Progress {
    * it lies flush along a card's edge, under a tab bar or a card's header, where it shows that
    * something loads without taking room from what is around it.
    */
-  public static El line(Theme t, double fraction) {
+  public static El line(Theme theme, double fraction) {
     return states(
-            track(t, t.size().indicator(), false, clamp(fraction), State.NORMAL),
+            track(theme, theme.size().indicator(), false, clamp(fraction), State.NORMAL),
             fraction,
             State.NORMAL)
         .wFull();
   }
 
   /** A {@link #line} that runs while the length of the work is not known. */
-  public static El line(Theme t) {
-    return track(t, t.size().indicator(), false, Double.NaN, State.NORMAL)
+  public static El line(Theme theme) {
+    return track(theme, theme.size().indicator(), false, Double.NaN, State.NORMAL)
         .role("progressbar")
         .wFull();
   }
@@ -100,17 +102,17 @@ public final class Progress {
    *
    * @param detail such as "12.4 MB of 80 MB · 20 s left"; null for the percentage
    */
-  public static El labeled(Theme t, String label, double fraction, String detail) {
-    return labeled(t, label, fraction, detail, State.NORMAL);
+  public static El labeled(Theme theme, String label, double fraction, String detail) {
+    return labeled(theme, label, fraction, detail, State.NORMAL);
   }
 
   /** As {@link #labeled(Theme, String, double, String)}, coloured by what became of the work. */
-  public static El labeled(Theme t, String label, double fraction, String detail, State state) {
-    Theme.TextStyle body = t.type().body();
+  public static El labeled(Theme theme, String label, double fraction, String detail, State state) {
+    Theme.TextStyle body = theme.type().body();
     El name = El.text(label)
         .font(body.font().get())
         .fontSize(body.size())
-        .color(t.text().primary())
+        .color(theme.text().primary())
         .ellipsis()
         .minSize(0, 0)
         .shrink(1);
@@ -118,17 +120,21 @@ public final class Progress {
         .font(body.font().get())
         .fontSize(body.size())
         .fontFeatures("+tnum")
-        .color(state == State.ERROR ? t.status().danger() : t.text().muted())
+        .color(state == State.ERROR ? theme.status().danger() : theme.text().muted())
         .shrink(0);
-    El top = row().gap(t.space().m()).align(Style.Align.CENTER).children(name, el().grow(1), text);
-    El bar = track(t, t.size().progress(), true, clamp(fraction), state).wFull();
-    return states(col().gap(t.space().xs()).w(t.size().field()).children(top, bar), fraction, state)
+    El top =
+        row().gap(theme.space().m()).align(Style.Align.CENTER).children(name, el().grow(1), text);
+    El bar = track(theme, theme.size().progress(), true, clamp(fraction), state).wFull();
+    return states(
+            col().gap(theme.space().xs()).w(theme.size().field()).children(top, bar),
+            fraction,
+            state)
         .label(label);
   }
 
   /** A spinner of {@link Theme.Sizes#icon}, labelled "Loading". */
-  public static El spinner(Theme t) {
-    return spinner(t, t.size().icon());
+  public static El spinner(Theme theme) {
+    return spinner(theme, theme.size().icon());
   }
 
   /**
@@ -142,14 +148,14 @@ public final class Progress {
    *
    * @param size the side, such as {@code size().icon()} for a button or a row
    */
-  public static El spinner(Theme t, float size) {
-    return spinner(t, size, t.accent().edge(), t.border().track());
+  public static El spinner(Theme theme, float size) {
+    return spinner(theme, size, theme.accent().edge(), theme.border().track());
   }
 
   /** A spinner in other colours, as on a primary button. */
-  static El spinner(Theme t, float size, int arc, int ring) {
+  static El spinner(Theme theme, float size, int arc, int ring) {
     float width = size / 8; // 2 at 16, the stroke of the icons drawn for 16
-    double period = t.motion().spin();
+    double period = theme.motion().spin();
     El spinner = el().role("progressbar")
         .label("Loading")
         .size(size, size)
@@ -194,22 +200,23 @@ public final class Progress {
    * forms with a value therefore never pass; the piece is {@code #fill} in both, so that the one
    * becomes the other.
    */
-  private static El track(Theme t, float thickness, boolean round, double fraction, State state) {
+  private static El track(
+      Theme theme, float thickness, boolean round, double fraction, State state) {
     float radius = round ? thickness / 2 : 0;
     int colour = switch (state) {
-      case NORMAL -> t.accent().edge();
-      case ERROR -> t.status().danger();
-      case DONE -> t.status().success();
-      case PAUSED -> t.text().muted();
+      case NORMAL -> theme.accent().edge();
+      case ERROR -> theme.status().danger();
+      case DONE -> theme.status().success();
+      case PAUSED -> theme.text().muted();
     };
     El fill = el().key("fill")
         .absolute(0, 0)
         .hFull()
         .radius(radius)
         .fill(colour)
-        .motion(t.motion().move());
+        .motion(theme.motion().move());
     if (Double.isNaN(fraction)) {
-      fill.wFull().cycle(t.motion().progress(), (e, phase) -> {
+      fill.wFull().cycle(theme.motion().progress(), (e, phase) -> {
         // The front leads the back by a fifth of the pass, both easing in and out.
         double front = ease(Math.min(1, phase / 0.8));
         double back = ease(Math.max(0, (phase - 0.2) / 0.8));
@@ -223,7 +230,7 @@ public final class Progress {
         .shrink(0)
         .radius(radius)
         .clip()
-        .fill(round ? t.border().control() : 0)
+        .fill(round ? theme.border().control() : 0)
         .child(fill);
   }
 

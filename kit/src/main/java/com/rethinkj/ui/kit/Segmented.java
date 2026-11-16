@@ -37,14 +37,14 @@ public final class Segmented {
    *     control
    */
   public static <T> El segmented(
-      Theme t,
+      Theme theme,
       List<T> values,
       T selected,
       Function<? super T, String> text,
       Consumer<? super T> onSelect) {
     values = Choices.distinct(values);
     return segmented(
-        t,
+        theme,
         Choices.texts(values, text),
         Choices.index(values, selected),
         Choices.handler(values, onSelect));
@@ -52,8 +52,9 @@ public final class Segmented {
 
   /** Choices of the value of a {@link Prop}; a prop that cannot be written disables them. */
   public static <T> El segmented(
-      Theme t, List<T> values, Prop<T> selected, Function<? super T, String> text) {
-    return Prop.shown(t, segmented(t, values, selected.get(), text, selected.onChange()), selected);
+      Theme theme, List<T> values, Prop<T> selected, Function<? super T, String> text) {
+    return Prop.shown(
+        theme, segmented(theme, values, selected.get(), text, selected.onChange()), selected);
   }
 
   /**
@@ -61,37 +62,41 @@ public final class Segmented {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the control
    */
-  public static El segmented(Theme t, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El segmented(
+      Theme theme, List<String> choices, int selected, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
-    int fill = t.surface().panel();
+    int fill = theme.surface().panel();
     El group = row()
         .role("radiogroup")
         .disabled(!enabled)
-        .h(t.size().control())
-        .padding(t.space().xs())
-        .gap(t.space().xs())
-        .radius(t.radius().medium())
+        .h(theme.size().control())
+        .padding(theme.space().xs())
+        .gap(theme.space().xs())
+        .radius(theme.radius().medium())
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider());
+        .border(
+            theme.size().stroke(),
+            enabled ? theme.border().strong() : theme.border().divider());
     group.style().width = Len.FIT_CONTENT;
     for (int i = 0; i < choices.size(); i++) {
       boolean on = i == selected;
-      int back = on ? (enabled ? t.accent().color() : t.border().divider()) : 0;
-      int text =
-          !enabled ? t.text().disabled() : on ? t.text().onAccent() : t.text().primary();
+      int back = on ? (enabled ? theme.accent().color() : theme.border().divider()) : 0;
+      int text = !enabled
+          ? theme.text().disabled()
+          : on ? theme.text().onAccent() : theme.text().primary();
       El choice = row()
           .role("radio")
           .label(choices.get(i))
           .checked(on)
-          .padding(0, t.space().l())
+          .padding(0, theme.space().l())
           .align(Style.Align.CENTER)
-          .radius(t.radius().small())
+          .radius(theme.radius().small())
           .fill(back)
-          .motion(t.motion().feedback())
-          .child(label(t, choices.get(i)).color(text));
+          .motion(theme.motion().feedback())
+          .child(label(theme, choices.get(i)).color(text));
       if (enabled) {
-        int hover = on ? t.accent().hover() : over(fill, t.surface().hover());
-        int pressed = on ? t.accent().pressed() : over(fill, t.surface().pressed());
+        int hover = on ? theme.accent().hover() : over(fill, theme.surface().hover());
+        int pressed = on ? theme.accent().pressed() : over(fill, theme.surface().pressed());
         choice
             .cursor(Cursor.POINTER)
             .onPress(Radio.choose(onSelect, selected, i))
@@ -100,6 +105,6 @@ public final class Segmented {
       }
       group.child(choice);
     }
-    return Radio.keys(t, group, choices.size(), selected, onSelect);
+    return Radio.keys(theme, group, choices.size(), selected, onSelect);
   }
 }
