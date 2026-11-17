@@ -205,7 +205,13 @@ class LaneTest {
     app.await(LONG);
     app.frame();
 
-    assertEquals(List.of("ok 1", "ok ended", "failing failed", "failing ended"), s.log);
+    // The lane's piece and the app's work run side by side, so only each one's order is fixed.
+    assertEquals(
+        List.of("ok 1", "ok ended"),
+        s.log.stream().filter(entry -> entry.startsWith("ok ")).toList());
+    assertEquals(
+        List.of("failing failed", "failing ended"),
+        s.log.stream().filter(entry -> entry.startsWith("failing ")).toList());
   }
 
   @Test
