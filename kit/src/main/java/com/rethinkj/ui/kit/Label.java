@@ -12,8 +12,10 @@ public final class Label {
     MUTED,
     /** Code, identifiers and values that line up. */
     MONO,
-    /** The title of a section. */
+    /** The title of a card. */
     HEADING,
+    /** The heading of a section of a page, between a page's title and a card's. */
+    SECTION,
     /** The title of a page, above its sections. */
     TITLE,
     /** A title inside a section, such as a popover's: the body's size in a heavier weight. */
@@ -37,6 +39,7 @@ public final class Label {
       case NORMAL, MUTED -> theme.type().body();
       case MONO -> theme.type().mono();
       case HEADING -> theme.type().heading();
+      case SECTION -> theme.type().section();
       case TITLE -> theme.type().title();
       case STRONG -> theme.type().strong();
       case SMALL -> theme.type().small();

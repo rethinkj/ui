@@ -19,10 +19,12 @@ import java.util.Objects;
  * }</pre>
  *
  * <p>The headings come in three levels of {@link Theme.Type}: a page's title, a section's
- * heading, and a card's title ({@link Card#header}). The spacing follows them: a page has {@link
- * Theme.Spacing#xxl} of padding and its title and sections are {@code xxl} apart, a section's
- * content is {@link Theme.Spacing#m} below its heading and description and {@code m} apart, and a
- * description is {@link Theme.Spacing#xs} below its heading. In a tree dump the headings are
+ * heading, and a card's title ({@link Card#header}); a page's and a section's wrap when they are
+ * longer than the width. The spacing follows them: a page has {@link Theme.Spacing#xxl} of
+ * padding, its first section is {@link Theme.Spacing#xl} below its title and its sections are
+ * {@code xxl} apart, a section's content is {@link Theme.Spacing#m} below its heading and
+ * description and {@code m} apart, and a description is {@link Theme.Spacing#xs} below its
+ * heading. In a tree dump the headings are
  * {@code role=heading} with {@code level=1} for a page's title and {@code level=2} for a
  * section's.
  */
@@ -39,7 +41,7 @@ public final class Section {
     Theme theme = Theme.CURRENT.get();
     El head = col()
         .gap(theme.space().xs())
-        .child(label(Label.Variant.HEADING, title).role("heading").level(2));
+        .child(label(Label.Variant.SECTION, title).wrapText().role("heading").level(2));
     if (description != null) {
       head.child(label(Label.Variant.MUTED, description).wrapText());
     }
@@ -57,9 +59,9 @@ public final class Section {
         .scroll()
         .scrollbars(theme.scrollbars())
         .padding(theme.space().xxl())
-        .gap(theme.space().xxl())
-        .child(label(Label.Variant.TITLE, title).role("heading").level(1))
-        .children(present(sections));
+        .gap(theme.space().xl())
+        .child(label(Label.Variant.TITLE, title).wrapText().role("heading").level(1))
+        .child(col().gap(theme.space().xxl()).children(present(sections)));
   }
 
   /** The elements that are not null. */

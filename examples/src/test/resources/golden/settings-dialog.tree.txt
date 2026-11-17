@@ -47,39 +47,40 @@ el 0,0 880x600
               text "About" 41,211 154x16
     el 216,32 656x560
       text role=heading "Connections" 240,56 608x24 level=1
-      el 240,104 608x298
-        el 240,104 608x35
-          text role=heading "Servers" 240,104 608x17 level=2
-          text "Where the workbench connects to, and how" 240,123 608x16
-        el 240,147 608x24
-          text #filter role=textbox label="Filter by name or host" "" 240,147 460x24
-          el #add role=button label="New connection…" 708,147 140x24
-            text "New connection…" 721,151 114x16
-        el 240,179 608x223
-          el #localhost role=button label="localhost" 240,179 608x69 value="connected"
-            el 257,196 574x35
-              el 257,196 504x35
-                text role=heading "localhost" 257,196 504x17 level=3
-                text "localhost:5432" 257,215 504x16
-              text label="plug_connected" "\u{F0393}" 769,206 16x16
-              el #menu role=button label="Actions for localhost" 793,202 38x24
-                text "…" 806,206 12x16
-          el #staging role=button label="staging" 240,256 608x69 selected value="connected"
-            el 257,273 574x35
-              el 257,273 504x35
-                text role=heading "staging" 257,273 504x17 level=3
-                text "staging.db.example.com:5432" 257,292 504x16
-              text label="plug_connected" "\u{F0393}" 769,283 16x16
-              el #menu role=button label="Actions for staging" 793,279 38x24
-                text "…" 806,283 12x16
-          el #prod-eu role=button label="prod-eu" 240,333 608x69 value="not connected"
-            el 257,350 574x35
-              el 257,350 504x35
-                text role=heading "prod-eu" 257,350 504x17 level=3
-                text "eu.db.example.com:6432" 257,369 504x16
-              text label="plug_disconnected" "\u{F0394}" 769,360 16x16
-              el #menu role=button label="Actions for prod-eu" 793,356 38x24
-                text "…" 806,360 12x16
+      el 240,96 608x300
+        el 240,96 608x300
+          el 240,96 608x37
+            text role=heading "Servers" 240,96 608x19 level=2
+            text "Where the workbench connects to, and how" 240,117 608x16
+          el 240,141 608x24
+            text #filter role=textbox label="Filter by name or host" "" 240,141 460x24
+            el #add role=button label="New connection…" 708,141 140x24
+              text "New connection…" 721,145 114x16
+          el 240,173 608x223
+            el #localhost role=button label="localhost" 240,173 608x69 value="connected"
+              el 257,190 574x35
+                el 257,190 504x35
+                  text role=heading "localhost" 257,190 504x17 level=3
+                  text "localhost:5432" 257,209 504x16
+                text label="plug_connected" "\u{F0393}" 769,200 16x16
+                el #menu role=button label="Actions for localhost" 793,196 38x24
+                  text "…" 806,200 12x16
+            el #staging role=button label="staging" 240,250 608x69 selected value="connected"
+              el 257,267 574x35
+                el 257,267 504x35
+                  text role=heading "staging" 257,267 504x17 level=3
+                  text "staging.db.example.com:5432" 257,286 504x16
+                text label="plug_connected" "\u{F0393}" 769,277 16x16
+                el #menu role=button label="Actions for staging" 793,273 38x24
+                  text "…" 806,277 12x16
+            el #prod-eu role=button label="prod-eu" 240,327 608x69 value="not connected"
+              el 257,344 574x35
+                el 257,344 504x35
+                  text role=heading "prod-eu" 257,344 504x17 level=3
+                  text "eu.db.example.com:6432" 257,363 504x16
+                text label="plug_disconnected" "\u{F0394}" 769,354 16x16
+                el #menu role=button label="Actions for prod-eu" 793,350 38x24
+                  text "…" 806,354 12x16
 overlay center modal scrim on 0,0 880x600
   el #dialog role=dialog label="New connection" 287,197 307x207
     el 304,245 273x142

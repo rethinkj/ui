@@ -816,13 +816,13 @@ public record Theme(
   public record TextStyle(Supplier<Font> font, float size) {}
 
   /**
-   * The type scale, from a page's title down to code. Headings come in three levels: {@code
-   * title} over a page, {@code dialog} over a dialog, {@code heading} over a section or a card.
-   * Titles and headings are semibold, strong text medium.
+   * The type scale, from a page's title down to code. Headings come in four styles: {@code
+   * title} over a page, {@code dialog} over a dialog, {@code section} over a section of a page,
+   * {@code heading} over a card. Titles and headings are semibold, strong text medium.
    *
    * @param body the text of the interface and of controls
    * @param mono code, identifiers and values that line up
-   * @param heading titles of sections and of cards, in a card's header and its toolbar
+   * @param heading titles of cards, in a card's header and its toolbar
    * @param title the title of a page, such as a page of settings
    * @param strong the body's size in a heavier weight: the titles of a grid's columns and the text
    *     of buttons
@@ -830,6 +830,7 @@ public record Theme(
    * @param small secondary text that stands beside what it is about and gives way to it: the
    *     details of a status bar, the kind of a completion, the count of a find bar; the regular
    *     weight, so that it recedes, where a badge's text is medium to hold on its fill
+   * @param section the heading of a section of a page, between {@code heading} and {@code title}
    */
   public record Type(
       TextStyle body,
@@ -838,7 +839,8 @@ public record Theme(
       TextStyle title,
       TextStyle strong,
       TextStyle dialog,
-      TextStyle small) {}
+      TextStyle small,
+      TextStyle section) {}
 
   /**
    * @param control the height of a button and a text field
@@ -1242,7 +1244,8 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 20),
       new TextStyle(Font::sansMedium, 13),
       new TextStyle(Font::sansSemibold, 16),
-      new TextStyle(Font::sans, 12));
+      new TextStyle(Font::sans, 12),
+      new TextStyle(Font::sansSemibold, 16));
   private static final Sizes SIZE =
       new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28);
   private static final Motion MOTION =
@@ -1295,7 +1298,7 @@ public record Theme(
    * pointer, in both themes, with a white cross at 4.5:1 or more.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
-   * cards; card titles 14, dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
+   * cards; card titles 14, section and dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
    *
    * Palette. Every color is one of Palette's, named by its hue and its L* times ten, or one of
    * them at an alpha: alpha(GRAY_298, 0.25f) is the dark theme's hover. Tokens that share a color
