@@ -19,11 +19,11 @@ el 0,0 330x420
             el 125,57 1x24
             el #arrow role=button label="More Run" 126,57 22x24 expanded=false
               text label="chevron_down" "\u{F2A2}" 129,61 16x16
-          el role=separator 152,61 1x16
-          el role=button label="Wrap values" 157,57 24x24 checked=false
-            text label="text_t" "\u{ECAE}" 161,61 16x16
-          el #more role=button label="More" 183,57 24x24
-            text label="more_horizontal" "\u{E823}" 187,61 16x16
+          el role=group 154,57 28x24
+            el role=button label="Wrap values" 156,59 24x20 checked=false
+              text label="text_t" "\u{ECAE}" 160,61 16x16
+          el #more role=button label="More" 188,57 24x24
+            text label="more_horizontal" "\u{E823}" 192,61 16x16
         el #filter role=button label="Filter" 224,57 77x24
           text label="filter" "\u{E60A}" 237,61 16x16
           text "Filter" 257,61 31x16

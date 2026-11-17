@@ -959,12 +959,18 @@ final class Sections {
                         Menu.item("Run selection", () -> state.say("run selection"))
                             .icon(Symbol.TEXT_T),
                         Menu.item("Explain", () -> state.say("explain")).icon(Symbol.BRANCH))),
-                Toolbar.separator(),
-                Toolbar.toggle(
-                    Symbol.TEXT_T, "Wrap values", state.wrapValues, on -> state.wrapValues = on),
-                Toolbar.toggle(
-                    Symbol.EYE, "System columns", state.showSystem, on -> state.showSystem = on),
-                Toolbar.button(Symbol.COPY, "Copy DDL", () -> state.say("copy DDL")),
+                Toolbar.group(
+                    Toolbar.toggle(
+                        Symbol.TEXT_T,
+                        "Wrap values",
+                        state.wrapValues,
+                        on -> state.wrapValues = on),
+                    Toolbar.toggle(
+                        Symbol.EYE,
+                        "System columns",
+                        state.showSystem,
+                        on -> state.showSystem = on),
+                    Toolbar.button(Symbol.COPY, "Copy DDL", () -> state.say("copy DDL"))),
                 Toolbar.spacer(),
                 Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", () -> state.say("export")),
                 Toolbar.text(Symbol.ARROW_IMPORT, "Import", () -> state.say("import"))))

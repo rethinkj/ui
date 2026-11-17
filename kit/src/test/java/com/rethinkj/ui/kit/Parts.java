@@ -168,9 +168,10 @@ final class Parts {
                                     List.of(
                                         Menu.item("Run selection", () -> log.add("run selection")),
                                         Menu.item("Explain", () -> log.add("explain")))),
-                                Toolbar.separator(),
-                                Toolbar.toggle(Symbol.TEXT_T, "Wrap values", wrap, on -> wrap = on),
-                                Toolbar.button(Symbol.COPY, "Copy", () -> log.add("copy")),
+                                Toolbar.group(
+                                    Toolbar.toggle(
+                                        Symbol.TEXT_T, "Wrap values", wrap, on -> wrap = on),
+                                    Toolbar.button(Symbol.COPY, "Copy", () -> log.add("copy"))),
                                 Toolbar.spacer(),
                                 Toolbar.text(
                                     Symbol.ARROW_EXPORT_LTR, "Export", () -> log.add("export"))))

@@ -3,36 +3,40 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * A row of icon buttons, buttons, toggle buttons, split buttons, separators and a space that
- * grows, as above a grid or an editor. What does not fit moves, from the end, into a menu behind
- * a More button ({@link Symbol#MORE_HORIZONTAL}), as the same actions: a toggle as a checked item,
- * a split button as a submenu. The toolbar learns its width and the width of each item from the
- * layout ({@link El#onResize}) and keeps them in its {@link State}, so it settles a frame after
- * its width changes.
+ * A row of icon buttons, buttons, toggle buttons, split buttons, groups and a space that grows, as
+ * above a grid or an editor. A group gathers tools that belong together on a tinted, rounded
+ * surface of their own. What does not fit moves, from the end, into a menu behind a More button
+ * ({@link Symbol#MORE_HORIZONTAL}), as the same actions: a toggle as a checked item, a split button
+ * as a submenu, a group between lines. The toolbar learns its width and the width of each item
+ * from the layout ({@link El#onResize}) and keeps them in its {@link State}, so it settles a frame
+ * after its width changes.
  *
  * <pre>{@code
  * Toolbar.toolbar(state.toolbar, "Query", List.of(
- *     Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh),
  *     Toolbar.split(
  *         Button.Variant.PRIMARY, Symbol.PLAY, "Run", state::run, state.runMenu, runItems),
- *     Toolbar.separator(),
- *     Toolbar.toggle(Symbol.PIN, "Keep results", state.keep, on -> state.keep = on),
+ *     Toolbar.group(
+ *         Toolbar.toggle(Symbol.PIN, "Keep results", state.keep, state::keep),
+ *         Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh)),
  *     Toolbar.spacer(),
  *     Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", state::export)))
  * }</pre>
  *
  * <p>The keys follow WAI-ARIA's toolbar: the toolbar is one stop for Tab, at the item it last had
  * (the first at first); Arrow Left and Right go to the previous and the next item, around the
- * ends, Home and End to the first and the last, and Enter and Space press the item. A press with
- * the pointer leaves the focus where it was, as on any button. In a tree dump it is {@code
- * role=toolbar} with its label; its items are buttons with their labels, a toggle {@code checked}
- * or {@code checked=false}, the More button {@code label="More"}.
+ * ends, also through groups, Home and End to the first and the last, and Enter and Space press the
+ * item. A press with the pointer leaves the focus where it was, as on any button. In a tree dump it
+ * is {@code role=toolbar} with its label; its items are buttons with their labels, a toggle {@code
+ * checked} or {@code checked=false}, a group {@code role=group} around its items, the More button
+ * {@code label="More"}.
  */
 public final class Toolbar {
 
@@ -43,7 +47,7 @@ public final class Toolbar {
     TEXT,
     TOGGLE,
     SPLIT,
-    SEPARATOR,
+    GROUP,
     SPACER
   }
 
@@ -58,6 +62,7 @@ public final class Toolbar {
     final Consumer<Boolean> onToggle;
     final Menu.State menu;
     final List<Menu.Item> items;
+    final List<Item> members;
 
     private Item(
         Kind kind,
@@ -68,7 +73,8 @@ public final class Toolbar {
         Runnable onPress,
         Consumer<Boolean> onToggle,
         Menu.State menu,
-        List<Menu.Item> items) {
+        List<Menu.Item> items,
+        List<Item> members) {
       this.kind = kind;
       this.label = label;
       this.icon = icon;
@@ -78,6 +84,7 @@ public final class Toolbar {
       this.onToggle = onToggle;
       this.menu = menu;
       this.items = items;
+      this.members = members;
     }
   }
 
@@ -108,6 +115,7 @@ public final class Toolbar {
         onPress,
         null,
         null,
+        null,
         null);
   }
 
@@ -118,7 +126,7 @@ public final class Toolbar {
 
   /** A button of a variant with an icon, if any, and text. */
   public static Item text(Button.Variant variant, Symbol icon, String text, Runnable onPress) {
-    return new Item(Kind.TEXT, text, icon, variant, false, onPress, null, null, null);
+    return new Item(Kind.TEXT, text, icon, variant, false, onPress, null, null, null, null);
   }
 
   /** A toggle button with an icon alone ({@link Button#toggleIcon}). */
@@ -131,6 +139,7 @@ public final class Toolbar {
         on,
         null,
         onToggle,
+        null,
         null,
         null);
   }
@@ -152,17 +161,34 @@ public final class Toolbar {
         onPress,
         null,
         Objects.requireNonNull(menu, "menu"),
-        List.copyOf(items));
+        List.copyOf(items),
+        null);
   }
 
-  /** A hairline between groups of items. */
-  public static Item separator() {
-    return new Item(Kind.SEPARATOR, null, null, null, false, null, null, null, null);
+  /**
+   * Tools that belong together, such as Wrap and Format, on a tinted, rounded surface of their
+   * own, a little apart from the items beside it; the tools stand lower by the surface's padding.
+   * In the More menu, lines set them apart from the other items.
+   *
+   * @param members icon buttons, buttons and toggles: no split button, spacer or group
+   * @throws IllegalArgumentException for no members or one that a group cannot hold
+   */
+  public static Item group(Item... members) {
+    if (members.length == 0) {
+      throw new IllegalArgumentException("a group holds at least one item");
+    }
+    for (Item member : members) {
+      if (member.kind != Kind.BUTTON && member.kind != Kind.TEXT && member.kind != Kind.TOGGLE) {
+        throw new IllegalArgumentException("a group holds buttons and toggles, not a "
+            + member.kind.name().toLowerCase(Locale.ROOT));
+      }
+    }
+    return new Item(Kind.GROUP, null, null, null, false, null, null, null, null, List.of(members));
   }
 
   /** A space that takes the room left over, which pushes the items after it to the end. */
   public static Item spacer() {
-    return new Item(Kind.SPACER, null, null, null, false, null, null, null, null);
+    return new Item(Kind.SPACER, null, null, null, false, null, null, null, null, null);
   }
 
   /**
@@ -170,38 +196,62 @@ public final class Toolbar {
    */
   public static El toolbar(State state, String label, List<Item> items) {
     Theme theme = Theme.CURRENT.get();
+    // The items with each group's members in its place, and the place of each one's group in
+    // items, or -1: the members fit one by one, the first carrying its group's padding and margins.
+    List<Item> flat = new ArrayList<>();
+    List<Integer> groups = new ArrayList<>();
+    for (int g = 0; g < items.size(); g++) {
+      Item item = items.get(g);
+      for (Item member : item.kind == Kind.GROUP ? item.members : List.of(item)) {
+        flat.add(member);
+        groups.add(item.kind == Kind.GROUP ? g : -1);
+      }
+    }
     int shown = state.fitting.fit(
-        theme, items.size(), Fitting.Direction.PREFIX, 0, i -> switch (items.get(i).kind) {
-          case SPACER -> null; // takes what is left, nothing when nothing is
-          case SEPARATOR -> separator(theme);
-          default -> state.fitting.width(id(items, i));
-        });
+        theme,
+        flat.size(),
+        Fitting.Direction.PREFIX,
+        0,
+        i -> flat.get(i).kind == Kind.SPACER
+            ? null // takes what is left, nothing when nothing is
+            : state.fitting.width(id(flat, i))
+                + (opens(groups, i) ? 2 * theme.space().xs() + margins(theme, i) : 0));
     El bar = state.fitting.row(theme).role("toolbar").label(label);
     List<El> stops = new ArrayList<>();
+    El group = null;
     for (int i = 0; i < shown; i++) {
-      Item item = items.get(i);
-      if (item.kind == Kind.SEPARATOR && (i == shown - 1 || i == 0)) {
-        continue; // none at an end
+      Item item = flat.get(i);
+      El el = build(item, stops);
+      if (item.kind == Kind.SPACER) {
+        bar.child(el);
+        continue;
       }
-      El el = build(theme, item, stops);
-      String id = id(items, i);
-      bar.child(
-          item.kind == Kind.SEPARATOR || item.kind == Kind.SPACER
-              ? el
-              : el.onResize(state.fitting.measure(id)));
+      el.onResize(state.fitting.measure(id(flat, i)));
+      if (groups.get(i) < 0) {
+        bar.child(el);
+        continue;
+      }
+      if (opens(groups, i)) {
+        group = group(theme, i);
+        bar.child(group);
+      }
+      group.child(el.h(theme.size().control() - 2 * theme.space().xs())
+          .radius(theme.radius().small()));
     }
-    if (shown < items.size()) {
+    if (shown < flat.size()) {
       List<Menu.Item> hidden = new ArrayList<>();
-      for (int i = shown; i < items.size(); i++) {
-        Menu.Item entry = entry(items.get(i));
-        boolean separator = entry != null && entry.isSeparator();
-        if (entry != null
-            && !(separator && (hidden.isEmpty() || hidden.getLast().isSeparator()))) {
-          hidden.add(entry);
+      Integer previous = null; // the group of the last entry
+      for (int i = shown; i < flat.size(); i++) {
+        Menu.Item entry = entry(flat.get(i));
+        if (entry == null) {
+          continue;
         }
-      }
-      if (!hidden.isEmpty() && hidden.getLast().isSeparator()) {
-        hidden.removeLast();
+        int in = groups.get(i);
+        if (previous != null && in != previous && (in >= 0 || previous >= 0)) {
+          hidden.add(Menu.separator());
+        }
+        hidden.add(entry);
+        previous = in;
       }
       El more = Button.icon(
               Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
@@ -214,6 +264,30 @@ public final class Toolbar {
     return bar;
   }
 
+  /** Whether the item is the first of its group. */
+  private static boolean opens(List<Integer> groups, int i) {
+    return groups.get(i) >= 0 && (i == 0 || !groups.get(i - 1).equals(groups.get(i)));
+  }
+
+  /** A group's margins: apart from the items before and after it, none at the start. */
+  private static float margins(Theme theme, int first) {
+    return (first == 0 ? 0 : theme.space().s()) + theme.space().s();
+  }
+
+  /** The surface of a group whose first item has this place, which its items go into. */
+  private static El group(Theme theme, int first) {
+    return El.row()
+        .role("group")
+        .h(theme.size().control())
+        .shrink(0)
+        .margin(0, theme.space().s(), 0, first == 0 ? 0 : theme.space().s())
+        .padding(theme.space().xs())
+        .gap(theme.space().xs())
+        .align(Style.Align.CENTER)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().hover());
+  }
+
   /** The key of an item's width in the state: its label, or its kind and place. */
   private static String id(List<Item> items, int i) {
     Item item = items.get(i);
@@ -221,7 +295,7 @@ public final class Toolbar {
   }
 
   /** Builds an item; the elements Tab and the arrows reach go into {@code stops}. */
-  private static El build(Theme theme, Item item, List<El> stops) {
+  private static El build(Item item, List<El> stops) {
     return switch (item.kind) {
       case BUTTON ->
         stop(
@@ -246,20 +320,9 @@ public final class Toolbar {
         stop(stops, more, more.onPress() != null);
         yield split;
       }
-      case SEPARATOR ->
-        el().w(theme.size().stroke())
-            .h(theme.size().control() - 2 * theme.space().s())
-            .shrink(0)
-            .margin(0, theme.space().xs(), 0, theme.space().xs())
-            .fill(theme.border().divider())
-            .role("separator");
       case SPACER -> el().grow(1);
+      case GROUP -> throw new IllegalStateException("a group's members are built in its place");
     };
-  }
-
-  /** The width a separator takes, its margins included. */
-  private static float separator(Theme theme) {
-    return theme.size().stroke() + 2 * theme.space().xs();
   }
 
   private static El stop(List<El> stops, El el, boolean enabled) {
@@ -289,8 +352,7 @@ public final class Toolbar {
         all.addAll(item.items);
         yield Menu.submenu(item.label, all);
       }
-      case SEPARATOR -> Menu.separator();
-      case SPACER -> null;
+      case SPACER, GROUP -> null;
     };
   }
 }

@@ -1,0 +1,28 @@
+el 0,0 600x100
+  el 12,12 576x75
+    el 13,13 574x40
+      el role=toolbar label="Query" 21,21 558x24
+        el #split 21,21 93x24
+          el #main role=button label="Run" 21,21 70x24
+            text label="play" "\u{E990}" 34,25 16x16
+            text "Run" 54,25 24x16
+          el 91,21 1x24
+          el #arrow role=button label="More Run" 92,21 22x24 expanded=false
+            text label="chevron_down" "\u{F2A2}" 95,25 16x16
+        el role=group 120,21 80x24
+          el role=button label="Wrap" 122,23 24x20 checked
+            text label="text_whole_word" "\u{F03A4}" 126,25 16x16
+          el role=button label="Format" 148,23 24x20
+            text label="braces" "\u{EE90}" 152,25 16x16
+          el role=button label="Refresh" 174,23 24x20
+            text label="arrow_clockwise" "\u{E0AA}" 178,25 16x16
+        el 206,33 207x0
+        el role=button label="Export" 415,21 86x24
+          text label="arrow_export_ltr" "\u{E0C6}" 428,25 16x16
+          text "Export" 448,25 40x16
+        el role=button label="Save" 503,21 76x24
+          text label="save" "\u{EA43}" 516,25 16x16
+          text "Save" 536,25 30x16
+    el role=separator 13,53 574x1
+    el 13,54 574x32
+      text "select * from orders where total > 100" 21,62 558x16

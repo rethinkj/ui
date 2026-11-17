@@ -1,13 +1,13 @@
 ---
 title: Toolbar
-description: A row of buttons, toggles and split buttons that moves what has no room into a More menu.
+description: A row of buttons, toggles, split buttons and groups that moves what has no room into a More menu.
 ---
 
-`Toolbar.toolbar` is a row of actions: icon buttons, buttons with text, toggles, split buttons, separators and a spacer. It learns its width from the layout, and where the items do not fit, the last ones go into a menu behind More. It is one stop for Tab, with the arrows moving between items. For a card's title row with a few actions, `Card.toolbar` is enough ([Card](/docs/components/card)).
+`Toolbar.toolbar` is a row of actions: icon buttons, buttons with text, toggles, split buttons, groups and a spacer. A group gathers tools that belong together on a tinted, rounded surface. The toolbar learns its width from the layout, and where the items do not fit, the last ones go into a menu behind More, one by one, also out of a group. It is one stop for Tab, with the arrows moving between items. For a card's title row with a few actions, `Card.toolbar` is enough ([Card](/docs/components/card)).
 
 Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/api/com/rethinkj/ui/kit/Toolbar.Item.html).
 
-<Shot src="examples/docs/details/more-{theme}" crop="role=toolbar|role=list" alt="A narrow toolbar with Run and its menu arrow, Wrap and Refresh, and the More menu open with Export, which did not fit, over the properties below" />
+<Shot src="examples/docs/toolbar/view-{theme}" alt="A toolbar in a card above a query: Run with its menu arrow, a group of Wrap, which is on, Format and Refresh, and Export and Save at the end" />
 
 ## Example
 
@@ -22,9 +22,12 @@ Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/a
 | `Toolbar.text([variant,] icon, text, onPress)` | A button with text |
 | `Toolbar.toggle(icon, label, on, onToggle)` | A toggle button; a checked item in the More menu |
 | `Toolbar.split(variant, icon, text, onPress, menu, items)` | A split button; a submenu in the More menu |
-| `Toolbar.separator()`, `Toolbar.spacer()` | A line, and room that pushes the rest to the right |
+| `Toolbar.group(items...)` | Buttons and toggles on a surface of their own; between lines in the More menu |
+| `Toolbar.spacer()` | Room that pushes the rest to the right |
 
-After a change of width, the toolbar settles one frame later and new items fade in, so a script advances the clock before a snap.
+After a change of width, the toolbar settles one frame later and new items fade in, so a script advances the clock before a snap. Narrow, Refresh has moved out of its group into More, with Export and Save:
+
+<Shot src="examples/docs/toolbar/more-{theme}" alt="The same toolbar narrow: Run, the group with Wrap and Format, and the More menu open with Refresh, Export and Save" />
 
 ## Keyboard
 
@@ -32,7 +35,7 @@ One stop for Tab; Left, Right, Home and End move the focus between items; Enter 
 
 ## In a tree dump
 
-`role=toolbar` with its label; the More button is `role=button` `label="More"`:
+`role=toolbar` with its label, a group `role=group` around its items:
 
-```text file="examples/src/test/resources/golden/docs/details/more.tree.txt" start="role=toolbar" count="16"
+```text file="examples/src/test/resources/golden/docs/toolbar/view.tree.txt" start="role=toolbar" count="15"
 ```

@@ -53,7 +53,8 @@ class DocsExamplesTest {
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
       Map.entry("status", List.of("view")),
       Map.entry("choices", List.of("view")),
-      Map.entry("details", List.of("view", "more", "hidden")),
+      Map.entry("details", List.of("view", "hidden")),
+      Map.entry("toolbar", List.of("view", "more")),
       Map.entry("dividers", List.of("view")),
       Map.entry("groups", List.of("view")),
       Map.entry("parts", List.of("view")),
@@ -97,6 +98,7 @@ class DocsExamplesTest {
     layouts(all, "status", Layouts::status, 460, 420);
     layouts(all, "bars", Layouts::bars, 480, 160);
     layouts(all, "details", Layouts::details, 520, 280);
+    layouts(all, "toolbar", Layouts::toolbar, 600, 100);
     overlays(all, "menu", Overlays::menus, 360, 260);
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);

@@ -1,0 +1,1 @@
+- **Breaking:** `Toolbar.separator()` is gone. `Toolbar.group(items...)` gathers buttons and toggles that belong together on a tinted, rounded surface, a little apart from the items beside it; in the More menu, lines set a group apart. A tree dump shows a group as `role=group` around its items.

@@ -659,7 +659,7 @@ public record Theme(
    *     selection it lies on: a {@link Progress#spinner}'s ring
    * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
    *     separators, the lines between a {@link Group}'s rows, under a tab bar, above a card's
-   *     footer, between a split's parts and between a toolbar's groups; 1.2:1 or more on every
+   *     footer and between a split's parts; 1.2:1 or more on every
    *     surface, stronger than {@code subtle}, which a raised surface would almost hide
    * @param trackOnAccent translucent, a spinner's ring on a primary button's fill, the accent's or
    *     a dangerous one's, from which the arc in the button's text color stands out 3:1

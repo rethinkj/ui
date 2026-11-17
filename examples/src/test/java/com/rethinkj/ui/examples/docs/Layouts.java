@@ -152,6 +152,14 @@ final class Layouts {
     wrapped = on;
   }
 
+  void format() {
+    said = "format";
+  }
+
+  void save() {
+    said = "save";
+  }
+
   static El cards(Layouts state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start card
@@ -416,15 +424,12 @@ final class Layouts {
         .child(status);
   }
 
-  static El details(Layouts state) {
-    // docs:start breadcrumb
-    El path = Breadcrumb.breadcrumb(
-        state.crumbs, List.of("localhost", "shop", "public", "orders"), state::part);
-    // docs:end breadcrumb
+  static El toolbar(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
     // docs:start toolbar
     El tools = Toolbar.toolbar(
         state.tools,
-        "Table",
+        "Query",
         List.of(
             Toolbar.split(
                 PRIMARY,
@@ -433,12 +438,28 @@ final class Layouts {
                 state::run,
                 state.runMenu,
                 List.of(Menu.item("Explain", state::explain))),
-            Toolbar.separator(),
-            Toolbar.toggle(Symbol.TEXT_WHOLE_WORD, "Wrap", state.wrapped, state::wrapped),
-            Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh),
+            Toolbar.group(
+                Toolbar.toggle(Symbol.TEXT_WHOLE_WORD, "Wrap", state.wrapped, state::wrapped),
+                Toolbar.button(Symbol.BRACES, "Format", state::format),
+                Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh)),
             Toolbar.spacer(),
-            Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", state::export)));
+            Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", state::export),
+            Toolbar.text(SECONDARY, Symbol.SAVE, "Save", state::save)));
     // docs:end toolbar
+    El query = Card.flush(
+        col().padding(theme.space().m()).child(tools.wFull()),
+        Divider.divider(),
+        col()
+            .padding(theme.space().m())
+            .child(Label.label(Label.Variant.MONO, "select * from orders where total > 100")));
+    return Frame.of(query.wFull());
+  }
+
+  static El details(Layouts state) {
+    // docs:start breadcrumb
+    El path = Breadcrumb.breadcrumb(
+        state.crumbs, List.of("localhost", "shop", "public", "orders"), state::part);
+    // docs:end breadcrumb
     // docs:start properties
     El table = Properties.properties(
         List.of(
@@ -447,6 +468,6 @@ final class Layouts {
             Properties.property("OID", "16384").mono()),
         state.clipboard);
     // docs:end properties
-    return Frame.of(path.wFull(), tools.wFull(), table.w(320));
+    return Frame.of(path.wFull(), table.w(320));
   }
 }
