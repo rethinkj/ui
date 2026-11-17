@@ -139,7 +139,7 @@ class TypedChoicesTest {
   @Test
   void aNavListOfValuesHasAHeadingWhereTheGroupChanges() {
     List<Page> pages = List.of(Page.values());
-    List<NavList.Item> rows = List.of(
+    List<NavList.Entry> rows = List.of(
         Page.GENERAL.item(),
         Page.EDITOR.item(),
         NavList.heading("Advanced"),

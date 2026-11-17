@@ -283,8 +283,8 @@ public final class Manual {
         .filter(heading -> heading.level() <= 3)
         .toList();
     List<NavList.Item> outline = headings.stream()
-        .map(heading -> NavList.item(("  ".repeat(Math.max(0, heading.level() - 2)))
-            + MarkdownDocument.plainText(heading.content())))
+        .map(heading -> NavList.item(MarkdownDocument.plainText(heading.content()))
+            .indent(Math.max(0, heading.level() - 2)))
         .toList();
     El side = col()
         .grow(1)

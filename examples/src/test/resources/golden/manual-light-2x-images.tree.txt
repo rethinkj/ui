@@ -40,18 +40,18 @@ el 0,0 960x640
               el 13,154 230x24
                 el 15,158 2x16
                 text "Text" 21,158 214x15
-            el #item-2 role=option label="  Links" 13,180 230x28 pos=3/9
+            el #item-2 role=option label="Links" 13,180 230x28 pos=3/9
               el 13,182 230x24
                 el 15,186 2x16
-                text "  Links" 21,186 214x15
+                text "Links" 37,186 198x15
             el #item-3 role=option label="Lists" 13,208 230x28 pos=4/9
               el 13,210 230x24
                 el 15,214 2x16
                 text "Lists" 21,214 214x15
-            el #item-4 role=option label="  A checklist" 13,236 230x28 pos=5/9
+            el #item-4 role=option label="A checklist" 13,236 230x28 pos=5/9
               el 13,238 230x24
                 el 15,242 2x16
-                text "  A checklist" 21,242 214x15
+                text "A checklist" 37,242 198x15
             el #item-5 role=option label="Quotes" 13,264 230x28 pos=6/9
               el 13,266 230x24
                 el 15,270 2x16

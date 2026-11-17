@@ -44,42 +44,85 @@ import java.util.function.IntFunction;
  * the bottom of its row, so that the room above it sets the group apart. Like any scroll area,
  * the list needs a height of its own, room to grow, or no more items than fit.
  *
+ * <p>An item can stand in by steps, as the headings of an outline under the one above them
+ * ({@link Item#indent}), and can be disabled ({@link Item#disabled}): drawn in the disabled colors,
+ * passed by the keys and deaf to presses.
+ *
  * <p>In a tree dump the list is {@code role=listbox}, its items {@code role=option} with their
- * text as the label, {@code selected} and their position among all rows, headings counted, and
- * the keys {@code item-<index>}; a heading is a row without a role.
+ * text as the label, {@code selected} or {@code disabled}, and their position among all rows,
+ * headings counted, and the keys {@code item-<index>} or the item's own ({@link Item#key}); a
+ * heading is a row without a role.
  */
 public final class NavList {
 
+  /** An entry of the list: an {@link Item}, or a {@link Heading} over the items after it. */
+  public sealed interface Entry permits Item, Heading {}
+
   /**
-   * An entry of the list: an item, or a heading over the items after it.
+   * An item, which the user can select.
    *
    * @param label the text, also the item's label
    * @param icon shown before the text; null for none
    * @param count shown at the right in a quiet {@link Badge}, such as the number of things on the
    *     page; null for none
-   * @param heading whether this is a heading, which cannot be selected
+   * @param indent by how many steps of {@link Theme.Spacing#xl} its icon and text stand in, 0 or
+   *     more
+   * @param key its key in a tree dump, which a script names as {@code #<key>}, in place of {@code
+   *     item-<index>}, which changes when entries come or go above it; one of its own in the list,
+   *     not of that form; null for that
+   * @param disabled whether it cannot be selected
    */
-  public record Item(String label, Symbol icon, String count, boolean heading) {
+  public record Item(
+      String label, Symbol icon, String count, int indent, String key, boolean disabled)
+      implements Entry {
+
+    public Item {
+      if (indent < 0) {
+        throw new IllegalArgumentException("indent " + indent + " is below 0");
+      }
+    }
 
     /** This item with a count at its right. */
     public Item count(String text) {
-      return new Item(label, icon, text, heading);
+      return new Item(label, icon, text, indent, key, disabled);
+    }
+
+    /** This item standing in by {@code levels} steps, as a heading of an outline under another. */
+    public Item indent(int levels) {
+      return new Item(label, icon, count, levels, key, disabled);
+    }
+
+    /** This item with its own key in place of {@code item-<index>}. */
+    public Item key(String name) {
+      return new Item(label, icon, count, indent, name, disabled);
+    }
+
+    /** This item, disabled or not. */
+    public Item disabled(boolean off) {
+      return new Item(label, icon, count, indent, key, off);
     }
   }
+
+  /**
+   * A heading over the items after it, which cannot be selected.
+   *
+   * @param label the text
+   */
+  public record Heading(String label) implements Entry {}
 
   private NavList() {}
 
   public static Item item(String label) {
-    return new Item(label, null, null, false);
+    return new Item(label, null, null, 0, null, false);
   }
 
   public static Item item(Symbol icon, String label) {
-    return new Item(label, icon, null, false);
+    return new Item(label, icon, null, 0, null, false);
   }
 
   /** A heading over the items that follow it. */
-  public static Item heading(String label) {
-    return new Item(label, null, null, true);
+  public static Heading heading(String label) {
+    return new Heading(label);
   }
 
   /**
@@ -87,13 +130,13 @@ public final class NavList {
    * @param onSelect told the index of the item the user selects, only when it changes; null
    *     disables the list
    */
-  public static El navList(List<Item> items, int selected, IntConsumer onSelect) {
+  public static El navList(List<? extends Entry> entries, int selected, IntConsumer onSelect) {
     Theme theme = Theme.CURRENT.get();
-    Rows rows = new Rows(theme, items.size(), items::get, selected, onSelect);
+    Rows rows = new Rows(theme, entries.size(), entries::get, selected, onSelect);
     El list = col().scroll();
-    for (int i = 0; i < items.size(); i++) {
+    for (int i = 0; i < entries.size(); i++) {
       El r = rows.build(i).h(rows.height).shrink(0);
-      list.child(items.get(i).heading() ? r : r.position(i + 1, items.size()));
+      list.child(entries.get(i) instanceof Heading ? r : r.position(i + 1, entries.size()));
     }
     return rows.list(list);
   }
@@ -121,7 +164,7 @@ public final class NavList {
    *     page -> state.page = page)
    * }</pre>
    *
-   * @param item the item of a value, which should not be a {@linkplain #heading heading}
+   * @param item the item of a value
    * @param group the heading over a value and those after it with an equal group, or null
    */
   public static <T> El navList(
@@ -131,7 +174,7 @@ public final class NavList {
       Function<? super T, String> group,
       Consumer<? super T> onSelect) {
     List<T> once = Choices.distinct(values);
-    List<Item> items = new ArrayList<>(once.size());
+    List<Entry> items = new ArrayList<>(once.size());
     int[] value = new int[once.size() * 2]; // the index of the value of each row
     int chosen = Choices.index(once, selected);
     int selectedRow = -1;
@@ -156,12 +199,13 @@ public final class NavList {
   /**
    * A virtual list of {@code count} items, of which only those in view and a few more are built.
    *
-   * @param item the entry at an index; asked for the rows in view and, by the keys, for those
+   * @param entry the entry at an index; asked for the rows in view and, by the keys, for those
    *     beside the selection
    */
-  public static El navList(int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+  public static El navList(
+      int count, IntFunction<? extends Entry> entry, int selected, IntConsumer onSelect) {
     Theme theme = Theme.CURRENT.get();
-    Rows rows = new Rows(theme, count, item, selected, onSelect);
+    Rows rows = new Rows(theme, count, entry, selected, onSelect);
     return rows.list(col().rows(count, rows.height, rows::build));
   }
 
@@ -169,17 +213,22 @@ public final class NavList {
   private static final class Rows {
     final Theme theme;
     final int count;
-    final IntFunction<Item> item;
+    final IntFunction<? extends Entry> entries;
     final int selected;
     final IntConsumer onSelect;
     final float height;
     final boolean[] focused = {false}; // set by the list's focus look, read by the rows
     El selectedPill; // of a list built at once, which the focus look reaches after the rows
 
-    Rows(Theme theme, int count, IntFunction<Item> item, int selected, IntConsumer onSelect) {
+    Rows(
+        Theme theme,
+        int count,
+        IntFunction<? extends Entry> entries,
+        int selected,
+        IntConsumer onSelect) {
       this.theme = theme;
       this.count = count;
-      this.item = item;
+      this.entries = entries;
       this.selected = selected;
       this.onSelect = onSelect;
       this.height = theme.size().control() + 2 * theme.space().xs();
@@ -206,9 +255,8 @@ public final class NavList {
     }
 
     El build(int i) {
-      Item entry = item.apply(i);
-      boolean enabled = onSelect != null;
-      if (entry.heading()) {
+      Entry at = entries.apply(i);
+      if (at instanceof Heading heading) {
         // At the bottom of its row, so that the room above sets it apart from the items before.
         return row()
             .key("item-" + i)
@@ -218,8 +266,10 @@ public final class NavList {
                 theme.space().m(),
                 theme.space().xs(),
                 2 * theme.space().xs() + theme.space().s())
-            .child(label(Label.Variant.SMALL, entry.label()));
+            .child(label(Label.Variant.SMALL, heading.label()));
       }
+      Item entry = (Item) at;
+      boolean enabled = onSelect != null && !entry.disabled();
       boolean on = i == selected;
       float mark = theme.size().icon();
       El pill = row()
@@ -231,6 +281,8 @@ public final class NavList {
           .fill(on ? focused[0] ? theme.grid().selected() : theme.grid().selectedInactive() : 0)
           .motion(theme.motion().feedback())
           .child(el().size(theme.space().xs(), mark)
+              .shrink(0)
+              .margin(0, entry.indent() * theme.space().xl(), 0, 0)
               .radius(theme.space().xs() / 2)
               .fill(on ? theme.accent().edge() : 0));
       if (on) {
@@ -252,14 +304,14 @@ public final class NavList {
                 : label(Label.Variant.SMALL, entry.count()).color(theme.text().disabled()));
       }
       El r = row()
-          .key("item-" + i)
+          .key(entry.key() != null ? entry.key() : "item-" + i)
           .role("option")
           .label(entry.label())
           .selected(on)
           .padding(theme.space().xs(), 0)
           .child(pill);
       if (!enabled) {
-        return r;
+        return entry.disabled() ? r.disabled(true) : r;
       }
       r.cursor(Cursor.POINTER).onPress(() -> {
         if (!on) {
@@ -283,8 +335,8 @@ public final class NavList {
       int next = switch (k.name()) {
         case "ArrowUp" -> from < 0 ? item(count - 1, -1) : item(from - 1, -1);
         case "ArrowDown" -> from < 0 ? item(0, 1) : item(from + 1, 1);
-        case "PageUp" -> item(Math.max(0, from - page), 1);
-        case "PageDown" -> item(Math.min(count - 1, from + page), -1);
+        case "PageUp" -> beyond(item(Math.max(0, from - page), 1), -1);
+        case "PageDown" -> beyond(item(Math.min(count - 1, from + page), -1), 1);
         case "Home" -> item(0, 1);
         case "End" -> item(count - 1, -1);
         default -> -2;
@@ -299,12 +351,12 @@ public final class NavList {
     }
 
     /**
-     * The first item from {@code i} on in the direction of {@code step} that is no heading, else
+     * The first item from {@code i} on in the direction of {@code step} that can be selected, else
      * the nearest one the other way; -1 when there is none, or {@code selected} at an end.
      */
     int item(int i, int step) {
       for (int j = i; j >= 0 && j < count; j += step) {
-        if (!item.apply(j).heading()) {
+        if (selectable(j)) {
           return j;
         }
       }
@@ -312,11 +364,24 @@ public final class NavList {
         return selected;
       }
       for (int j = i; j >= 0 && j < count; j -= step) {
-        if (!item.apply(j).heading()) {
+        if (selectable(j)) {
           return j;
         }
       }
       return -1;
+    }
+
+    /**
+     * {@code found}, or, where it does not move past the selection in the direction of {@code
+     * step}, as when a page holds only entries that cannot be selected, the next item that way.
+     */
+    int beyond(int found, int step) {
+      return selected < 0 || (found - selected) * step > 0 ? found : item(selected + step, step);
+    }
+
+    /** Whether the entry at {@code i} is an item that is not disabled. */
+    boolean selectable(int i) {
+      return entries.apply(i) instanceof Item entry && !entry.disabled();
     }
   }
 }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -13,15 +14,19 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** A navigation list with headings, and the same list as a virtual list of many items. */
+/**
+ * A navigation list with headings, a disabled item and a key of its own, and a virtual list of
+ * many items.
+ */
 class NavListTest {
 
-  private static final List<NavList.Item> PAGES = List.of(
+  private static final List<NavList.Entry> PAGES = List.of(
       NavList.heading("Workbench"),
       NavList.item(Symbol.SETTINGS, "General"),
       NavList.item(Symbol.DATABASE, "Connections").count("3"),
       NavList.heading("Help"),
-      NavList.item(Symbol.INFO, "About"));
+      NavList.item("Updates").disabled(true),
+      NavList.item(Symbol.INFO, "About").key("about"));
 
   int selected = 1;
 
@@ -57,23 +62,39 @@ class NavListTest {
   }
 
   @Test
-  void theKeysMovePastTheHeadingsAndStopAtTheEnds() throws IOException {
+  void theKeysMovePastTheHeadingsAndDisabledItemsAndStopAtTheEnds() throws IOException {
     App<NavListTest> app = app(false);
     run(app, "focus #list\nkey ArrowDown\nframe\nkey ArrowDown");
-    assertEquals(4, selected, "past the heading Help");
+    assertEquals(5, selected, "past the heading Help and the disabled Updates");
     run(app, "key ArrowDown");
-    assertEquals(4, selected, "the last stays");
+    assertEquals(5, selected, "the last stays");
     run(app, "key Home");
     assertEquals(1, selected, "the first item, not the heading");
     run(app, "key ArrowUp\nframe\nkey End");
-    assertEquals(4, selected);
+    assertEquals(5, selected);
     run(app, "press role=option label=\"Connections\"");
     assertEquals(2, selected);
     String dump = app.tree().dump();
     assertTrue(dump.contains("el #list role=listbox "), dump);
     assertTrue(
-        StructureTest.line(dump, "label=\"Connections\"").contains(" selected pos=3/5"), dump);
+        StructureTest.line(dump, "label=\"Connections\"").contains(" selected pos=3/6"), dump);
     assertTrue(dump.contains("text \"3\""), "the count");
+    assertTrue(StructureTest.line(dump, "label=\"Updates\"").contains(" disabled"), dump);
+    assertTrue(StructureTest.line(dump, "label=\"About\"").contains("#about "), dump);
+  }
+
+  @Test
+  void aPageKeyGoesOnPastAPageOfDisabledItems() {
+    List<NavList.Entry> entries = List.of(
+        NavList.item("A"),
+        NavList.item("B").disabled(true),
+        NavList.item("C").disabled(true),
+        NavList.item("D"));
+    // Not laid out, so a page is one row.
+    NavList.navList(entries, 0, i -> selected = i).onKey().test(new Key("PageDown"));
+    assertEquals(3, selected);
+    NavList.navList(entries, 3, i -> selected = i).onKey().test(new Key("PageUp"));
+    assertEquals(0, selected);
   }
 
   @Test

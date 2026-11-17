@@ -1,0 +1,1 @@
+- `NavList` items can stand in by steps (`.indent(levels)`), carry a key of their own for the tree dump and scripts (`.key(name)`), and be disabled (`.disabled(true)`), which the keys pass by. Breaking: `NavList.heading` returns a `NavList.Heading`, items and headings are both a `NavList.Entry`, so a list that mixes them is a `List<NavList.Entry>`, and `Item.heading()` is gone.

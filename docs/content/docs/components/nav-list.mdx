@@ -20,10 +20,15 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
 | | |
 | --- | --- |
-| `navList(items, selected, onSelect)` | A list of `NavList.Item`s |
-| `navList(count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
+| `navList(entries, selected, onSelect)` | A list of `NavList.Entry`s: items and headings |
+| `navList(count, index -> entry, selected, onSelect)` | A virtual list for many entries, which builds only those in view |
 | `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
+| `.indent(levels)` | An item set in by steps, as the headings of an outline under theirs |
+| `.key(name)` | The item's key in the tree dump, `#name`, in place of `item-<index>` |
+| `.disabled(true)` | An item that cannot be selected, skipped by the keys |
 | `NavList.heading(label)` | A heading, skipped by the keys |
+
+Items and headings are both a `NavList.Entry`, so a list that mixes them is a `List<NavList.Entry>`.
 
 In a card, wrap it in `Card.inset(list)`.
 
@@ -44,11 +49,11 @@ The headings count as rows in the keys and positions of the tree dump, as with i
 
 ## Keyboard
 
-One stop for Tab. Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings.
+One stop for Tab. Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings and disabled items.
 
 ## In a tree dump
 
-`role=listbox` with its label. Items are `role=option` with `selected` and `pos`, and the key `item-<index>`, counting headings:
+`role=listbox` with its label. Items are `role=option` with `selected` or `disabled` and `pos`, and the key `item-<index>`, counting headings, unless the item has a key of its own:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```
