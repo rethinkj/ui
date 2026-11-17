@@ -21,6 +21,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.AppIcon;
+import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
@@ -1206,7 +1207,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 right.key("tabs"),
                 320)
             .grow(1)
-            .padding(0, theme.space().m(), 0, theme.space().m()))
+            .padding(0, theme.space().m(), theme.space().m(), theme.space().m()))
         .child(state.statusBar());
     if (state.dropping != null) {
       String name = state.dropping.name;
@@ -1329,7 +1330,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           ? StatusBar.State.BUSY
           : refused.contains(server)
               ? StatusBar.State.ERROR
-              : server.children == null ? StatusBar.State.IDLE : StatusBar.State.CONNECTED;
+              : server.children == null ? StatusBar.State.IDLE : StatusBar.State.OK;
       servers.add(StatusBar.status(state, server.name, () -> selected = server)
           .key("server-" + server.name));
     }
@@ -1339,10 +1340,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     El changes = changed == 0
         ? null
         : StatusBar.item(
-                Symbol.EDIT, changed == 1 ? "1 change" : changed + " changes", this::nextChanged)
+                Badge.Kind.ACCENT,
+                Symbol.EDIT,
+                changed == 1 ? "1 change" : changed + " changes",
+                this::nextChanged)
             .key("changes");
     return StatusBar.statusBar(
-        servers,
+        List.of(StatusBar.group("Servers", servers.toArray(El[]::new))),
         java.util.Arrays.asList(
             changes,
             StatusBar.text(

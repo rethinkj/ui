@@ -1,28 +1,46 @@
-el 0,0 480x160
-  el window=drag 0,0 480x32
+el 0,0 720x160
+  el window=drag 0,0 720x32
     el 12,11 10x10
     text "Workbench" 30,8 72x16
-    el 102,16 200x0
-    el 302,8 28x16
-      el role=switch label="Dark theme" 298,6 36x20 checked
-        el 302,8 28x16
-          el 316,10 12x12
-    el role=button label="Minimize" window=minimize 342,0 46x32
-      el 360,16 10x1
-    el role=button label="Maximize" window=maximize 388,0 46x32
-      el 406,11 10x10
-    el role=button label="Close" window=close 434,0 46x32
-      text label="dismiss" "\u{F367}" 451,10 12x12
-  el 0,32 480x100
-  el role=status label="Status bar" 0,132 480x28
-    el 8,134 348x24
-      el label="localhost" 8,134 79x24 value="connected"
-        el 12,138 16x16
-          el 16,142 8x8
-        text "localhost" 32,139 51x15
-      el label="shop · public" 89,134 78x24
-        text "shop · public" 93,139 70x15
-    el role=button label="UTF-8" 358,134 45x24
-      text "UTF-8" 362,139 37x15
-    el label="Ln 3, Col 9" 405,134 67x24
-      text "Ln 3, Col 9" 409,139 59x15
+    el 102,16 440x0
+    el 542,8 28x16
+      el role=switch label="Dark theme" 538,6 36x20 checked
+        el 542,8 28x16
+          el 556,10 12x12
+    el role=button label="Minimize" window=minimize 582,0 46x32
+      el 600,16 10x1
+    el role=button label="Maximize" window=maximize 628,0 46x32
+      el 646,11 10x10
+    el role=button label="Close" window=close 674,0 46x32
+      text label="dismiss" "\u{F367}" 691,10 12x12
+  el 0,32 720x99
+  el role=status label="Status bar" 0,131 720x29
+    el 8,134 241x24
+      el role=group label="Connection" 8,134 159x24
+        el label="localhost" 8,134 79x24 value="ok"
+          el 12,138 16x16
+            el 14,140 12x12
+              el 16,142 8x8
+          text "localhost" 32,139 51x15
+        el label="shop · public" 89,134 78x24
+          text "shop · public" 93,139 70x15
+      el role=separator 171,138 1x16
+      el label="prod-eu" 176,134 73x24 value="error"
+        text label="error_circle" "\u{F3F0}" 180,138 16x16
+        text "prod-eu" 200,139 45x15
+    el 251,134 234x24
+      el role=separator 253,138 1x16
+      el label="20 rows in 48 ms" 258,134 124x24
+        text label="checkmark_circle" "\u{F297}" 262,138 16x16
+        text "20 rows in 48 ms" 282,139 96x15
+    el 487,134 225x24
+      el label="3 changes" 487,134 86x24
+        text label="edit" "\u{F3DC}" 491,138 16x16
+        text "3 changes" 511,139 58x15
+      el role=separator 577,138 1x16
+      el role=group label="Caret" 582,134 130x24
+        el label="Ln 3, Col 9" 582,134 67x24
+          text "Ln 3, Col 9" 586,139 59x15
+        el role=button label="UTF-8" 651,134 61x24 expanded=false
+          text "UTF-8" 655,139 37x15
+          text label="chevron_down" "\u{F2A1}" 696,140 12x12

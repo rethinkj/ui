@@ -1,13 +1,13 @@
 ---
 title: StatusBar
-description: The bar along the bottom of a window, with texts, items and connection states at both ends.
+description: The bar along the bottom of a window, with groups of parts at both ends, states, a message and menus.
 ---
 
-`StatusBar.statusBar` is the bar along the bottom of a window, on the window's background as a title bar is: parts at the left that give way in a narrow window, and parts at the right that keep their size. Use it for the connection, the caret's position, the encoding. `Card.footer` is the same for one card ([Card](/docs/components/card)).
+`StatusBar.statusBar` is the bar along the bottom of a window: a band in the cards' color with a hairline along its top. Parts at the left give way in a narrow window, parts at the right keep their size, and a message takes the room between them. Use it for the connection, the caret's position, the encoding, and what just happened. `Card.footer` is the same for one card ([Card](/docs/components/card)). When cards lie on the window above the bar, leave a gap below them, as between the cards.
 
 Javadoc: [`StatusBar`](/api/com/rethinkj/ui/kit/StatusBar.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="status item" alt="A status item with a green dot, in each state" />
+<Shot src="examples/docs/bars/view-{theme}" crop="role=status" alt="A status bar: localhost with a green dot and its schema, prod-eu failed in red, a message, 3 changes in the accent's tint, the caret's position and the encoding with a chevron" />
 
 ## Example
 
@@ -18,18 +18,21 @@ Javadoc: [`StatusBar`](/api/com/rethinkj/ui/kit/StatusBar.html).
 | --- | --- |
 | `StatusBar.text(text)` | Muted text |
 | `StatusBar.item(icon, text, onPress)` | Text with an optional icon; pressable with a handler |
-| `StatusBar.status(status, text, onPress)` | A dot in the status's color before the text: `CONNECTED`, `IDLE`, `ERROR`, or `BUSY` with a spinner |
+| `StatusBar.item(tone, icon, text, onPress)` | The same, tinted as a [Badge](/docs/components/badge) of the tone (`Badge.Kind`), such as changes in `ACCENT` |
+| `StatusBar.status(state, text, onPress)` | The mark of a state before the text: `OK` a dot, `IDLE` a ring, `BUSY` a spinner, `WARNING` and `ERROR` a sign, with the part tinted |
+| `StatusBar.group(label, parts...)` | Parts that belong together, with no hairline between them |
+| `StatusBar.menu(part, state, items)` | Makes a part open a menu: a chevron after its text; give the part `state::toggle` as its handler |
 | `StatusBar.height()` | Its height, to keep a toast clear of it |
 
-Null parts are left out.
+Each end is a list of parts and groups, with a hairline between each two. Null parts are left out, and so is a group of none. `statusBar(start, message, end)` puts a part after the start, in the room the ends leave; in a narrow window it is cut first, then the start. A part whose text is cut shows the whole text in a tooltip.
 
 ## Keyboard
 
-A part with a handler is a button and one stop for Tab. A press on it leaves the focus where it was.
+A part with a handler is a button and one stop for Tab. A press on it leaves the focus where it was. A part with a menu opens it with Enter, Space or the arrows.
 
 ## In a tree dump
 
-`role=status` `label="Status bar"`; a `status` part says its state as `value`, a pressable part is `role=button`:
+`role=status` `label="Status bar"`; a group is `role=group` with its label, a hairline `role=separator`, a `status` part says its state as `value`, a pressable part is `role=button`, one with a menu `expanded` or `expanded=false`:
 
-```text file="examples/src/test/resources/golden/docs/bars/view.tree.txt" start="label=\"Status bar\"" count="5"
+```text file="examples/src/test/resources/golden/docs/bars/view.tree.txt" start="label=\"Status bar\"" count="12"
 ```

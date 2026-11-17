@@ -173,7 +173,7 @@ final class Gallery {
                   List.of(NavList.item(Symbol.TABLE, "orders").count("12")), 0, choose(h))
               .w(WIDTH - 20)
               .label("Tables")),
-      new Row("status item", h -> StatusBar.status(StatusBar.State.CONNECTED, "localhost", h)),
+      new Row("status item", h -> StatusBar.status(StatusBar.State.OK, "localhost", h)),
       new Row(
           "badge",
           h -> Badge.badge(

@@ -892,17 +892,22 @@ final class Sections {
         .child(iconButton(Symbol.ARROW_REDO, "Redo", () -> state.say("redo")))
         .child(el().grow(1));
     El status = StatusBar.statusBar(
-            List.of(
+        List.of(
+            StatusBar.group(
+                "Connection",
                 StatusBar.status(
-                    StatusBar.State.CONNECTED, "localhost / shop", () -> state.say("connection")),
-                StatusBar.text("PostgreSQL 17.2"),
+                    StatusBar.State.OK, "localhost / shop", () -> state.say("connection")),
+                StatusBar.text("PostgreSQL 17.2")),
+            StatusBar.group(
+                "Servers",
                 StatusBar.status(StatusBar.State.BUSY, "staging", null),
-                StatusBar.status(StatusBar.State.ERROR, "prod-eu", null)),
-            List.of(
+                StatusBar.status(StatusBar.State.ERROR, "prod-eu", null))),
+        List.of(
+            StatusBar.group(
+                "Caret",
                 StatusBar.text("Ln 4, Col 12"),
-                StatusBar.item(null, "UTF-8", () -> state.say("encoding")),
-                StatusBar.item(Symbol.HISTORY, "Tx: auto", () -> state.say("transaction"))))
-        .border(stroke, 0, 0, 0, line);
+                StatusBar.item(null, "UTF-8", () -> state.say("encoding"))),
+            StatusBar.item(Symbol.HISTORY, "Tx: auto", () -> state.say("transaction"))));
     return Card.flush(
             top,
             Split.split(

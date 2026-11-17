@@ -52,6 +52,7 @@ class DocsExamplesTest {
       Map.entry("theme", List.of("view")),
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
       Map.entry("status", List.of("view")),
+      Map.entry("bars", List.of("view")),
       Map.entry("choices", List.of("view")),
       Map.entry("details", List.of("view", "hidden")),
       Map.entry("toolbar", List.of("view", "more")),
@@ -96,7 +97,7 @@ class DocsExamplesTest {
     layouts(all, "split", Layouts::split, 520, 240);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
     layouts(all, "status", Layouts::status, 460, 420);
-    layouts(all, "bars", Layouts::bars, 480, 160);
+    layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "details", Layouts::details, 520, 280);
     layouts(all, "toolbar", Layouts::toolbar, 600, 100);
     overlays(all, "menu", Overlays::menus, 360, 260);

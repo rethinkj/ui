@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Callout;
@@ -56,6 +57,7 @@ final class Layouts {
   final Breadcrumb.State crumbs = new Breadcrumb.State();
   final Toolbar.State tools = new Toolbar.State();
   final Menu.State runMenu = new Menu.State();
+  final Menu.State encodings = new Menu.State();
   boolean wrapped;
   boolean dark = true;
   String said = "";
@@ -411,9 +413,23 @@ final class Layouts {
     // docs:start status-bar
     El status = StatusBar.statusBar(
         List.of(
-            StatusBar.status(StatusBar.State.CONNECTED, "localhost", null),
-            StatusBar.text("shop · public")),
-        List.of(StatusBar.item(null, "UTF-8", state::encoding), StatusBar.text("Ln 3, Col 9")));
+            StatusBar.group(
+                "Connection",
+                StatusBar.status(StatusBar.State.OK, "localhost", null),
+                StatusBar.text("shop · public")),
+            StatusBar.status(StatusBar.State.ERROR, "prod-eu", null)),
+        StatusBar.item(Symbol.CHECKMARK_CIRCLE, "20 rows in 48 ms", null),
+        List.of(
+            StatusBar.item(Badge.Kind.ACCENT, Symbol.EDIT, "3 changes", null),
+            StatusBar.group(
+                "Caret",
+                StatusBar.text("Ln 3, Col 9"),
+                StatusBar.menu(
+                    StatusBar.item(null, "UTF-8", state.encodings::toggle),
+                    state.encodings,
+                    List.of(
+                        Menu.item("UTF-8", state::encoding),
+                        Menu.item("ISO-8859-1", state::encoding))))));
     // docs:end status-bar
     return col()
         .wFull()
