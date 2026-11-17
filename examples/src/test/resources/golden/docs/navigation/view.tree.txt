@@ -1,24 +1,27 @@
-el 0,0 260x220
+el 0,0 440x220
   el 12,12 220x196
-    el role=listbox label="Sections" 16,16 212x188
-      el #item-0 16,16 212x28
-        text "Database" 24,22 57x16
-      el #item-1 role=option label="Tables" 16,44 212x28 pos=2/5
-        el 16,46 212x24
-          el 18,50 2x16
-          text label="table" "\u{EBF4}" 24,50 16x16
-          text "Tables" 44,50 159x16
-          text "12" 207,50 13x16
-      el #item-2 role=option label="Views" 16,72 212x28 pos=3/5
-        el 16,74 212x24
-          el 18,78 2x16
-          text label="code" "\u{F339}" 24,78 16x16
-          text "Views" 44,78 164x16
-          text "3" 212,78 8x16
-      el #item-3 16,100 212x28
-        text "Server" 24,106 41x16
-      el #item-4 role=option label="Roles" 16,128 212x28 pos=5/5
-        el 16,130 212x24
-          el 18,134 2x16
-          text label="people" "\u{F5A7}" 24,134 16x16
-          text "Roles" 44,134 176x16
+    el 13,13 218x194
+      el role=listbox label="Sections" 17,17 210x186
+        el #item-0 17,17 210x28
+          text "Database" 25,28 54x15
+        el #item-1 role=option label="Tables" 17,45 210x28 selected pos=2/5
+          el 17,47 210x24
+            el 19,51 2x16
+            text label="table" "\u{EBF4}" 25,51 16x16
+            text "Tables" 45,51 146x16
+            el label="12" 195,50 24x18
+              text "12" 201,52 12x15
+        el #item-2 role=option label="Views" 17,73 210x28 pos=3/5
+          el 17,75 210x24
+            el 19,79 2x16
+            text label="code" "\u{F339}" 25,79 16x16
+            text "Views" 45,79 150x16
+            el label="3" 199,78 20x18
+              text "3" 205,80 8x15
+        el #item-3 17,101 210x28
+          text "Server" 25,112 39x15
+        el #item-4 role=option label="Roles" 17,129 210x28 pos=5/5
+          el 17,131 210x24
+            el 19,135 2x16
+            text label="people" "\u{F5A7}" 25,135 16x16
+            text "Roles" 45,135 174x16

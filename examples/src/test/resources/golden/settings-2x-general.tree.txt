@@ -39,7 +39,7 @@ el 0,0 880x600
               text label="key_multiple" "\u{F0274}" 21,155 16x16
               text "Keymap" 41,155 154x16
           el #item-5 13,177 190x28
-            text "Help" 21,183 28x16
+            text "Help" 21,189 26x14
           el #item-6 role=option label="About" 13,205 190x28 pos=7/7
             el 13,207 190x24
               el 15,211 2x16

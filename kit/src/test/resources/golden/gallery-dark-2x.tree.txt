@@ -863,8 +863,9 @@ el 0,0 140x40
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 67x16
-        text "12" 109,12 13x16
+        text "orders" 38,12 56x16
+        el label="12" 98,11 24x18
+          text "12" 104,13 12x14
 # nav list, hover
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28
@@ -872,8 +873,9 @@ el 0,0 140x40
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 67x16
-        text "12" 109,12 13x16
+        text "orders" 38,12 56x16
+        el label="12" 98,11 24x18
+          text "12" 104,13 12x14
 # nav list, pressed
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 focused
@@ -881,8 +883,9 @@ el 0,0 140x40
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 67x16
-        text "12" 109,12 13x16
+        text "orders" 38,12 56x16
+        el label="12" 98,11 24x18
+          text "12" 104,13 12x14
 # nav list, focused
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 focused
@@ -890,8 +893,9 @@ el 0,0 140x40
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 67x16
-        text "12" 109,12 13x16
+        text "orders" 38,12 56x16
+        el label="12" 98,11 24x18
+          text "12" 104,13 12x14
 # nav list, disabled
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 disabled
@@ -899,8 +903,8 @@ el 0,0 140x40
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 67x16
-        text "12" 109,12 13x16
+        text "orders" 38,12 68x16
+        text "12" 110,13 12x14
 # status item, rest
 el 0,0 140x40
   el #c role=button label="localhost" 30,8 80x24 value="connected"

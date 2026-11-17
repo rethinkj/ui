@@ -3,7 +3,7 @@ title: NavList
 description: A list of pages or sections with one selected, headings between them and counts at the right.
 ---
 
-`NavList.navList` is a list of items with an icon and a count, under headings. One item is selected, with an accent mark at its left. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
+`NavList.navList` is a list of items with an icon and a count, under headings. One item is selected, with an accent mark at its left, its icon in the accent and its text a little heavier; a count sits in a quiet badge, and a heading is a small caption over its group. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
 
 Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
@@ -13,6 +13,8 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
 ```java snippet="nav-list"
 ```
+
+<Shot src="examples/docs/navigation/view-{theme}" alt="A nav list in a card: Tables with 12 and Views with 3 under the heading Database, Roles under Server" />
 
 `state.page` is the index of the selected item in the list, headings counted, in the app's state.
 

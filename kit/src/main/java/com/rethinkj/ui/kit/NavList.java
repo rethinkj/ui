@@ -37,10 +37,12 @@ import java.util.function.IntFunction;
  * <p>Given a count and a function in place of a list, it is a virtual list ({@link El#rows}) that
  * builds only the items in view, the general list of one selection among many. Items are {@link
  * Theme.Sizes#control} high with {@link Theme.Spacing#xs} above and below; the selected one has
- * the fill of the grid's selection, {@link Theme.Grid#selected} while the list has the focus, and a
- * mark of {@link Theme.Accent#edge} at its left, which stands out from the surfaces also
- * where the inactive selection's fill does not. Like any scroll area, the list needs a height of
- * its own, room to grow, or no more items than fit.
+ * the fill of the grid's selection, {@link Theme.Grid#selected} while the list has the focus, a
+ * mark of {@link Theme.Accent#edge} at its left, which stands out from the surfaces also where
+ * the inactive selection's fill does not, its icon in that color and its text in {@link
+ * Theme.Type#strong}. A count is a quiet {@link Badge}; a heading is {@link Theme.Type#small} at
+ * the bottom of its row, so that the room above it sets the group apart. Like any scroll area,
+ * the list needs a height of its own, room to grow, or no more items than fit.
  *
  * <p>In a tree dump the list is {@code role=listbox}, its items {@code role=option} with their
  * text as the label, {@code selected} and their position among all rows, headings counted, and
@@ -53,8 +55,8 @@ public final class NavList {
    *
    * @param label the text, also the item's label
    * @param icon shown before the text; null for none
-   * @param count shown at the right in muted text, such as the number of things on the page; null
-   *     for none
+   * @param count shown at the right in a quiet {@link Badge}, such as the number of things on the
+   *     page; null for none
    * @param heading whether this is a heading, which cannot be selected
    */
   public record Item(String label, Symbol icon, String count, boolean heading) {
@@ -207,12 +209,16 @@ public final class NavList {
       Item entry = item.apply(i);
       boolean enabled = onSelect != null;
       if (entry.heading()) {
+        // At the bottom of its row, so that the room above sets it apart from the items before.
         return row()
             .key("item-" + i)
-            .align(Style.Align.CENTER)
+            .align(Style.Align.END)
             .padding(
-                0, theme.space().m(), 0, 2 * theme.space().xs() + theme.space().s())
-            .child(label(Label.Variant.MUTED, entry.label()));
+                0,
+                theme.space().m(),
+                theme.space().xs(),
+                2 * theme.space().xs() + theme.space().s())
+            .child(label(Label.Variant.SMALL, entry.label()));
       }
       boolean on = i == selected;
       float mark = theme.size().icon();
@@ -231,16 +237,19 @@ public final class NavList {
         selectedPill = pill;
       }
       if (entry.icon() != null) {
-        pill.child(icon(entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        El symbol = icon(entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+        pill.child(on && enabled ? symbol.color(theme.accent().edge()) : symbol);
       }
-      pill.child(label(entry.label())
+      pill.child(label(on ? Label.Variant.STRONG : Label.Variant.NORMAL, entry.label())
           .color(enabled ? theme.text().primary() : theme.text().disabled())
           .grow(1)
           .ellipsis()
           .minSize(0, 0));
       if (entry.count() != null) {
-        pill.child(label(Label.Variant.MUTED, entry.count())
-            .color(enabled ? theme.text().muted() : theme.text().disabled()));
+        pill.child(
+            enabled
+                ? Badge.badge(entry.count())
+                : label(Label.Variant.SMALL, entry.count()).color(theme.text().disabled()));
       }
       El r = row()
           .key("item-" + i)

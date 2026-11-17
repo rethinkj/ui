@@ -1,0 +1,1 @@
+- `NavList` looks more settled: a heading is a small caption at the bottom of its row, set apart from the items above it; the selected item shows its icon in the accent and its text in the strong weight; a count is a quiet `Badge`.

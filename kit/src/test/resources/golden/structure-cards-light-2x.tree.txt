@@ -15,22 +15,22 @@ el 0,0 640x400
   el 16,222 608x86
     el 16,222 185x86
       text "Filled" 33,239 151x15
-    el 209,222 206x86
-      text "Elevated" 226,239 172x15
-    el 423,222 201x86
-      el role=listbox 424,223 199x84
-        el #item-0 role=option label="orders" 424,223 199x28 pos=1/3
-          el 424,225 199x24
-            el 426,229 2x16
-            text "orders" 432,229 183x15
-        el #item-1 role=option label="customers" 424,251 199x28 selected pos=2/3
-          el 424,253 199x24
-            el 426,257 2x16
-            text "customers" 432,257 183x15
-        el #item-2 role=option label="invoices" 424,279 199x28 pos=3/3
-          el 424,281 199x24
-            el 426,285 2x16
-            text "invoices" 432,285 183x15
+    el 209,222 205x86
+      text "Elevated" 226,239 171x15
+    el 422,222 202x86
+      el role=listbox 423,223 200x84
+        el #item-0 role=option label="orders" 423,223 200x28 pos=1/3
+          el 423,225 200x24
+            el 425,229 2x16
+            text "orders" 431,229 184x15
+        el #item-1 role=option label="customers" 423,251 200x28 selected pos=2/3
+          el 423,253 200x24
+            el 425,257 2x16
+            text "customers" 431,257 184x15
+        el #item-2 role=option label="invoices" 423,279 200x28 pos=3/3
+          el 423,281 200x24
+            el 425,285 2x16
+            text "invoices" 431,285 184x15
   el 16,320 608x77
     el #tile-0 role=button label="localhost" 16,320 203x77 selected
       text "localhost" 33,337 169x15

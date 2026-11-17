@@ -33,8 +33,13 @@ size 960 640 scale 2
 frame
 press role=option label="Writing documents"
 frame
+advance 1   # the selection's fill fades in
+frame
 snap manual-light-2x-top
 press role=option label="Images"
+frame
+leave   # no tooltip of an image under the pointer
+advance 1
 frame
 snap manual-light-2x-images
 press role=option label="Code blocks"
@@ -51,6 +56,8 @@ press role=option label="Lists"
 frame
 press role=option label="Writing documents"
 frame
+advance 1
+frame
 snap manual-dark-2x-top
 
 # A link out of the document shows its address in a toast.
@@ -63,5 +70,8 @@ frame
 advance 5
 frame
 press role=option label="Images"
+frame
+leave
+advance 1
 frame
 snap manual-dark-2x-images

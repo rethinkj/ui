@@ -147,6 +147,3 @@ el 0,0 960x640
           el role=separator 281,691 646x1
         el 281,704 646x17 pos=39/39
           text role=paragraph "That is all: a thematic break ends the manual." 281,704 646x17 readonly lines 1-1/1
-overlay edge bottom center gap 16 on 0,0 960x640
-  el #toast role=status label="Opens https://commonmark.org" 374,602 212x22 exiting
-    text "Opens https://commonmark.org" 387,605 196x16

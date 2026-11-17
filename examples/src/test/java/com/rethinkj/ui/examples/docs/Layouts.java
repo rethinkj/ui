@@ -45,7 +45,7 @@ final class Layouts {
   String port = "5432";
   String user = "";
   boolean autoSave = true;
-  int page;
+  int page = 1; // Tables, the first item under the heading Database
   int filter;
   Split.Position sidebar = Split.Position.first(160);
   final List<Tabs.Tab> tabs = new ArrayList<>(List.of(
@@ -288,7 +288,7 @@ final class Layouts {
             state::page)
         .label("Sections");
     // docs:end nav-list
-    return Frame.of(Card.inset(pages).w(220));
+    return Frame.of(Card.flush(Card.inset(pages)).w(220).grow(1));
   }
 
   // docs:start nav-list-types
@@ -325,7 +325,7 @@ final class Layouts {
             state::area)
         .label("Sections");
     // docs:end nav-list-typed
-    return Frame.of(Card.inset(sections).w(220));
+    return Frame.of(Card.flush(Card.inset(sections)).w(220).grow(1));
   }
 
   static El split(Layouts state) {
