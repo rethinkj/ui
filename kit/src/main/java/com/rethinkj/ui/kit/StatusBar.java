@@ -3,7 +3,6 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
-import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
@@ -176,7 +175,7 @@ public final class StatusBar {
                     dot + 2 * theme.space().xs(), dot + 2 * theme.space().xs())
                 .radius(dot)
                 .center()
-                .fill(Colors.alpha(theme.status().success(), 0.12f))
+                .fill(theme.badge().success().soft())
                 .child(el().size(dot, dot).radius(dot / 2).fill(theme.status().success())));
       case BUSY -> Progress.spinner(icon); // what is on its way turns, as everything that waits
       case IDLE ->
@@ -257,7 +256,8 @@ public final class StatusBar {
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
         .radius(theme.radius().small())
-        .minSize(0, 0);
+        .minSize(0, 0)
+        .clip(); // a mark or chevron that does not fit stays in the part
     if (tone != null) {
       part.fill(tone.soft());
       label.color(tone.softText());
