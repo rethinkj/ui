@@ -887,6 +887,31 @@ class FocusTest {
   }
 
   @Test
+  void revealingFocusFromAFractionalOffsetLeavesRoomForTheOutsideRing() {
+    ScrollState scroll = new ScrollState();
+    scroll.scrollTo(0, 0.02);
+    App<ScrollState> app = new App<>(
+        scroll,
+        state -> col()
+            .padding(10)
+            .child(col()
+                .size(100, 121)
+                .padding(4)
+                .scroll()
+                .scrollState(state)
+                .children(
+                    el().h(106).shrink(0),
+                    el().key("button").focusable().focusRingGap(2).size(40, 20).shrink(0),
+                    el().h(100).shrink(0))));
+    app.resize(140, 160, 1.5f);
+    app.frame();
+    app.focus(find(app.tree(), "button"));
+    app.frame();
+    Scene scene = app.scene();
+    assertEquals(48, scene.get(ring(scene), Scene.WIDTH));
+  }
+
+  @Test
   void aRingThatFitsStaysOutsideAndOneAtTheWindowsEdgeLiesInside() {
     App<Object> app = start(
         new App<>(

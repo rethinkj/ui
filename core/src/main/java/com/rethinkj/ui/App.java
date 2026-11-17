@@ -2268,12 +2268,16 @@ public final class App<S> {
       float down = Math.min(ring, s.paddingBottom.pixelsOrZero());
       area.scrollTo(
           area.scrollX()
-              + ScrollState.nearest(
-                  x - left - areaX, el.width() + left + right, area.width() - area.coverX()),
+              + revealDelta(
+                  x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
           area.scrollY()
-              + ScrollState.nearest(
-                  y - up - areaY, el.height() + up + down, area.height() - area.coverY()));
+              + revealDelta(y - up, el.height() + up + down, areaY, area.height() - area.coverY()));
     }
+  }
+
+  /** Compares both edges in window coordinates, at the precision used to place the focus ring. */
+  private static double revealDelta(float start, float size, float viewStart, float viewSize) {
+    return ScrollState.nearestEdge(start - viewStart, start + size - (viewStart + viewSize));
   }
 
   /**

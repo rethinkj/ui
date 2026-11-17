@@ -38,8 +38,12 @@ public final class ScrollState {
 
   /** The least distance that moves a span into a view from 0 to {@code view}, or its start to 0. */
   static double nearest(double start, double size, float view) {
-    double after = start + size - view;
-    return start < 0 ? start : after > 0 ? Math.min(after, start) : 0;
+    return nearestEdge(start, start + size - view);
+  }
+
+  /** The scroll delta given the signed distances of the two edges from their viewport edges. */
+  static double nearestEdge(double before, double after) {
+    return before < 0 ? before : after > 0 ? Math.min(after, before) : 0;
   }
 
   /** The horizontal offset in logical pixels, as the area last had it. */
