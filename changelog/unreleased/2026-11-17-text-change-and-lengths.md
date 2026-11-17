@@ -1,0 +1,1 @@
+- Use `TextChange.between(before, after)` to locate a replacement in two strings and `Len.pixelsOrZero()` to read a fixed length in logical pixels.

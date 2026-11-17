@@ -35,17 +35,19 @@ final class Overlays {
       boolean atTopOrBottom = l.edge == Side.TOP || l.edge == Side.BOTTOM;
       float gapX = l.edge != null && !atTopOrBottom ? l.gap : 0;
       float gapY = atTopOrBottom ? l.gap : 0;
-      s.maxWidth = limit(s.maxWidth, width - px(s.marginLeft) - px(s.marginRight) - gapX);
-      s.maxHeight = limit(s.maxHeight, height - px(s.marginTop) - px(s.marginBottom) - gapY);
+      s.maxWidth = limit(
+          s.maxWidth, width - s.marginLeft.pixelsOrZero() - s.marginRight.pixelsOrZero() - gapX);
+      s.maxHeight = limit(
+          s.maxHeight, height - s.marginTop.pixelsOrZero() - s.marginBottom.pixelsOrZero() - gapY);
       if (l.align == Style.Align.STRETCH
           && !l.centered
           && l.edge == null
           && Float.isNaN(l.pointX)) {
         boolean across = l.side == Side.TOP || l.side == Side.BOTTOM;
         if (across) {
-          s.minWidth = Len.px(Math.max(px(s.minWidth), el.width()));
+          s.minWidth = Len.px(Math.max(s.minWidth.pixelsOrZero(), el.width()));
         } else {
-          s.minHeight = Len.px(Math.max(px(s.minHeight), el.height()));
+          s.minHeight = Len.px(Math.max(s.minHeight.pixelsOrZero(), el.height()));
         }
       }
       Flex.layout(overlay, width, height);
@@ -56,10 +58,6 @@ final class Overlays {
   private static Len limit(Len max, float window) {
     window = Math.max(window, 0);
     return max.kind() == Len.Kind.PX && max.value() <= window ? max : Len.px(window);
-  }
-
-  private static float px(Len len) {
-    return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
   /**

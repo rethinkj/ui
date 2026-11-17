@@ -36,6 +36,12 @@ public final class ScrollState {
 
   public ScrollState() {}
 
+  /** The least distance that moves a span into a view from 0 to {@code view}, or its start to 0. */
+  static double nearest(double start, double size, float view) {
+    double after = start + size - view;
+    return start < 0 ? start : after > 0 ? Math.min(after, start) : 0;
+  }
+
   /** The horizontal offset in logical pixels, as the area last had it. */
   public double x() {
     return x;

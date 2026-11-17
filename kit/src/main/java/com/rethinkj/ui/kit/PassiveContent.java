@@ -4,11 +4,21 @@ import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 /** The content inside a menu item or list option; the component supplies its text and marks. */
 final class PassiveContent {
 
   private PassiveContent() {}
+
+  static Supplier<El> image(com.rethinkj.ui.Image image) {
+    Objects.requireNonNull(image, "image");
+    return () -> {
+      float side = Theme.CURRENT.get().size().icon();
+      return El.image(image).size(side, side).fit(com.rethinkj.ui.Image.Fit.CONTAIN);
+    };
+  }
 
   static int text(Theme theme, boolean enabled) {
     return enabled ? theme.text().primary() : theme.text().disabled();

@@ -6,7 +6,6 @@ import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -501,10 +500,7 @@ public final class Form {
   private static float width(El head) {
     float width = 0;
     for (El child : head.children()) {
-      width += child
-          .text()
-          .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-          .width();
+      width += TextSizing.natural(child);
     }
     return width + (head.children().size() - 1) * head.style().columnGap.value();
   }

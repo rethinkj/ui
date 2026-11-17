@@ -196,11 +196,7 @@ public final class ComboBox {
 
     /** An image before the text, fitted into an icon's square, such as a database's logo. */
     public Item image(com.rethinkj.ui.Image image) {
-      Objects.requireNonNull(image, "image");
-      return leading(() -> {
-        float side = Theme.CURRENT.get().size().icon();
-        return El.image(image).size(side, side).fit(com.rethinkj.ui.Image.Fit.CONTAIN);
-      });
+      return leading(PassiveContent.image(image));
     }
 
     /**

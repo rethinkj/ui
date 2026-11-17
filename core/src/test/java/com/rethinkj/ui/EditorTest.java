@@ -162,13 +162,15 @@ class EditorTest {
 
   @Test
   void positionsFollowTheTextAroundThem() {
-    assertEquals(2, Editor.map(3, "12a", "12"), "a refused letter at the end");
-    assertEquals(1, Editor.map(2, "1a2", "12"), "a refused letter in the middle");
-    assertEquals(3, Editor.map(3, "abc", "ABC"), "changed throughout: the end stays the end");
-    assertEquals(2, Editor.map(2, "abc", "ABC"));
-    assertEquals(0, Editor.map(0, "abc", ""), "cleared");
-    assertEquals(5, Editor.map(2, "ab", "xyzab"), "text put before: the caret keeps its place");
-    assertEquals(1, Editor.map(1, "ab", "abxyz"), "text put after");
+    assertEquals(2, TextChange.between("12a", "12").map(3), "a refused letter at the end");
+    assertEquals(1, TextChange.between("1a2", "12").map(2), "a refused letter in the middle");
+    assertEquals(
+        3, TextChange.between("abc", "ABC").map(3), "changed throughout: the end stays the end");
+    assertEquals(2, TextChange.between("abc", "ABC").map(2));
+    assertEquals(0, TextChange.between("abc", "").map(0), "cleared");
+    assertEquals(
+        5, TextChange.between("ab", "xyzab").map(2), "text put before: the caret keeps its place");
+    assertEquals(1, TextChange.between("ab", "abxyz").map(1), "text put after");
   }
 
   @Test

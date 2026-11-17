@@ -217,8 +217,9 @@ final class Editor {
         relined(value);
       } else if (!value.equals(proposed)) {
         // Changed: one step from before the edits to what the app made of them.
-        caret = map(caret, proposed, value);
-        anchor = map(anchor, proposed, value);
+        TextChange change = TextChange.between(proposed, value);
+        caret = change.map(caret);
+        anchor = change.map(anchor);
         undo = undoBefore;
         redo = new ArrayDeque<>();
         push(undo, diff(before, value, caret, anchor));
@@ -231,8 +232,9 @@ final class Editor {
       proposed = null;
     } else if (!value.equals(text)) {
       // Changed by the app on its own: the history no longer leads to it.
-      caret = map(caret, text, value);
-      anchor = map(anchor, text, value);
+      TextChange change = TextChange.between(text, value);
+      caret = change.map(caret);
+      anchor = change.map(anchor);
       undo.clear();
       redo.clear();
       run = null;
@@ -254,20 +256,11 @@ final class Editor {
   /** The step from a state to a string that differs from its text in one place. */
   private static Step diff(State from, String to, int caretAfter, int anchorAfter) {
     String a = from.text;
-    int prefix = 0;
-    int shorter = Math.min(a.length(), to.length());
-    while (prefix < shorter && a.charAt(prefix) == to.charAt(prefix)) {
-      prefix++;
-    }
-    int suffix = 0;
-    while (suffix < shorter - prefix
-        && a.charAt(a.length() - 1 - suffix) == to.charAt(to.length() - 1 - suffix)) {
-      suffix++;
-    }
+    TextChange change = TextChange.between(a, to);
     return new Step(
-        prefix,
-        a.substring(prefix, a.length() - suffix),
-        to.substring(prefix, to.length() - suffix),
+        change.start(),
+        a.substring(change.start(), change.oldEnd()),
+        to.substring(change.start(), change.newEnd()),
         from.caret,
         from.anchor,
         caretAfter,
@@ -417,10 +410,10 @@ final class Editor {
     }
     Style s = el.style();
     float scale = t.scale();
-    float top = s.borderTop.kind() == Len.Kind.PX ? s.borderTop.value() : 0;
-    top += s.paddingTop.kind() == Len.Kind.PX ? s.paddingTop.value() : 0;
-    float left = s.borderLeft.kind() == Len.Kind.PX ? s.borderLeft.value() : 0;
-    left += s.paddingLeft.kind() == Len.Kind.PX ? s.paddingLeft.value() : 0;
+    float top = s.borderTop.pixelsOrZero();
+    top += s.paddingTop.pixelsOrZero();
+    float left = s.borderLeft.pixelsOrZero();
+    left += s.paddingLeft.pixelsOrZero();
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     float rowTop = t.multiline() ? caretTopOffset() : t.lineTop(t.lineOf(shownCaret)) / scale;
     return new float[] {
@@ -1633,30 +1626,5 @@ final class Editor {
       return new int[] {backOver(text, index, kind), forwardOver(text, index, kind)};
     }
     return new int[] {index, clusterEnd(text, index)};
-  }
-
-  /**
-   * Maps a position from one string to another that differs from it in one place: positions in
-   * the common start stay, positions in the common end keep their distance from the end, and
-   * positions in between go to the end of the change, at the most.
-   */
-  static int map(int index, String from, String to) {
-    int prefix = 0;
-    int shorter = Math.min(from.length(), to.length());
-    while (prefix < shorter && from.charAt(prefix) == to.charAt(prefix)) {
-      prefix++;
-    }
-    int suffix = 0;
-    while (suffix < shorter - prefix
-        && from.charAt(from.length() - 1 - suffix) == to.charAt(to.length() - 1 - suffix)) {
-      suffix++;
-    }
-    if (index <= prefix) {
-      return Math.min(index, to.length());
-    }
-    if (index >= from.length() - suffix) {
-      return Math.max(to.length() - (from.length() - index), 0);
-    }
-    return Math.min(index, to.length() - suffix);
   }
 }

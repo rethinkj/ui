@@ -2262,23 +2262,18 @@ public final class App<S> {
       // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
       float ring = Scene.RING + el.focusRingGap();
       Style s = area.style();
-      float left = Math.min(ring, px(s.paddingLeft));
-      float right = Math.min(ring, px(s.paddingRight));
-      float up = Math.min(ring, px(s.paddingTop));
-      float down = Math.min(ring, px(s.paddingBottom));
+      float left = Math.min(ring, s.paddingLeft.pixelsOrZero());
+      float right = Math.min(ring, s.paddingRight.pixelsOrZero());
+      float up = Math.min(ring, s.paddingTop.pixelsOrZero());
+      float down = Math.min(ring, s.paddingBottom.pixelsOrZero());
       area.scrollTo(
           area.scrollX()
-              + nearest(x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
+              + ScrollState.nearest(
+                  x - left - areaX, el.width() + left + right, area.width() - area.coverX()),
           area.scrollY()
-              + nearest(y - up, el.height() + up + down, areaY, area.height() - area.coverY()));
+              + ScrollState.nearest(
+                  y - up - areaY, el.height() + up + down, area.height() - area.coverY()));
     }
-  }
-
-  /** The least distance that moves a span into a view, or its start onto the view's start. */
-  private static float nearest(float start, float size, float viewStart, float viewSize) {
-    float before = start - viewStart;
-    float after = start + size - (viewStart + viewSize);
-    return before < 0 ? before : after > 0 ? Math.min(after, before) : 0;
   }
 
   /**
@@ -3441,7 +3436,8 @@ public final class App<S> {
     List<El> path = new ArrayList<>();
     pathTo(root, field, path);
     float left = contentLeft(field);
-    float top = px(field.style().paddingTop) + px(field.style().borderTop);
+    float top =
+        field.style().paddingTop.pixelsOrZero() + field.style().borderTop.pixelsOrZero();
     for (El el : fromOverlay(path)) {
       left += el.x();
       top += el.y();
@@ -3454,17 +3450,13 @@ public final class App<S> {
 
   /** The distance from an element's border box to its content box at the top. */
   private static float contentTop(El el) {
-    return px(el.style().paddingTop) + px(el.style().borderTop);
+    return el.style().paddingTop.pixelsOrZero() + el.style().borderTop.pixelsOrZero();
   }
 
   /** The distance from an element's border box to its content box on the left. */
   private static float contentLeft(El el) {
     // shortcut: padding and border in pixels only, as the scene draws text.
-    return px(el.style().paddingLeft) + px(el.style().borderLeft);
-  }
-
-  private static float px(Len len) {
-    return len.kind() == Len.Kind.PX ? len.value() : 0;
+    return el.style().paddingLeft.pixelsOrZero() + el.style().borderLeft.pixelsOrZero();
   }
 
   /**

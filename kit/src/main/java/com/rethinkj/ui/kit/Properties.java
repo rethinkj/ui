@@ -6,7 +6,6 @@ import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.Objects;
@@ -188,15 +187,9 @@ public final class Properties {
   private static float column(Theme theme, List<Property> properties) {
     float widest = 0;
     for (Property p : properties) {
-      widest = Math.max(widest, width(label(Label.Variant.MUTED, p.name())));
+      widest = Math.max(widest, TextSizing.natural(label(Label.Variant.MUTED, p.name())));
     }
     // A pixel to spare: text shaped at another scale may come out a fraction wider.
     return (float) Math.ceil(Math.min(widest, theme.size().field())) + 1;
-  }
-
-  private static float width(El text) {
-    return text.text()
-        .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-        .width();
   }
 }

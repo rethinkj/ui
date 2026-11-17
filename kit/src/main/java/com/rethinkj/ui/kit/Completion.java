@@ -10,6 +10,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.TextChange;
 import com.rethinkj.ui.Work;
 import java.util.List;
 import java.util.Objects;
@@ -404,34 +405,24 @@ public final class Completion {
    * edit closes it.
    */
   static void follow(State state, String before, String after) {
-    int prefix = 0;
-    int shorter = Math.min(before.length(), after.length());
-    while (prefix < shorter && before.charAt(prefix) == after.charAt(prefix)) {
-      prefix++;
-    }
-    int suffix = 0;
-    while (suffix < shorter - prefix
-        && before.charAt(before.length() - 1 - suffix)
-            == after.charAt(after.length() - 1 - suffix)) {
-      suffix++;
-    }
-    String removed = before.substring(prefix, before.length() - suffix);
-    String inserted = after.substring(prefix, after.length() - suffix);
-    if (removed.isEmpty()
+    TextChange change = TextChange.between(before, after);
+    boolean insertion = change.start() == change.oldEnd();
+    String inserted = after.substring(change.start(), change.newEnd());
+    if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
         && CodeWords.isWordChar(inserted.codePointAt(0))) {
-      state.typed = prefix + inserted.length(); // the build after it may open the list
+      state.typed = change.newEnd(); // the build after it may open the list
       state.highlight = 0; // what it shows changes
-    } else if (removed.isEmpty()
+    } else if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
         && state.openAfter.contains(inserted)) {
-      state.typed = prefix + inserted.length();
+      state.typed = change.newEnd();
       state.triggered = true;
       state.highlight = 0;
     } else if (inserted.isEmpty()
-        && !removed.isEmpty()
+        && !insertion
         && state.open
-        && CodeWords.start(after, prefix) < prefix) {
+        && CodeWords.start(after, change.start()) < change.start()) {
       state.highlight = 0;
     } else {
       state.close();

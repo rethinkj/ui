@@ -10,7 +10,6 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
@@ -790,12 +789,8 @@ public final class Markdown {
     float column = theme.space().l();
     if (list.ordered()) {
       for (int i = 0; i < list.items().size(); i++) {
-        column = Math.max(
-            column,
-            marker(theme, (list.start() + i) + ".", c.color)
-                .text()
-                .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-                .width());
+        column =
+            Math.max(column, TextSizing.natural(marker(theme, (list.start() + i) + ".", c.color)));
       }
     }
     return (float) Math.ceil(column);
@@ -868,17 +863,16 @@ public final class Markdown {
       }
       cells.add(pieces);
     }
+    float[][] measured = new float[cells.size()][columns];
     for (int r = 0; r < cells.size(); r++) {
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
         Theme.TextStyle style = r == 0 ? head : body;
-        float width = El.text(piece.text)
+        float width = TextSizing.natural(El.text(piece.text)
             .font(style.font().get())
             .fontSize(style.size())
-            .highlight(piece, piece)
-            .text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-            .width();
+            .highlight(piece, piece));
+        measured[r][j] = width;
         widths[j] = Math.max(widths[j], Math.min(width + 2, theme.prose().measure() / 2));
       }
     }
@@ -901,15 +895,9 @@ public final class Markdown {
           case RIGHT -> Style.Content.END;
           default -> Style.Content.START;
         };
-        float measured = El.text(piece.text)
-            .font((r == 0 ? head : body).font().get())
-            .fontSize((r == 0 ? head : body).size())
-            .highlight(piece, piece)
-            .text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-            .width();
-        if (measured + 2 < widths[j]) {
-          field.w((float) Math.ceil(measured + 2));
+        float preferred = measured[r][j] + 2;
+        if (preferred < widths[j]) {
+          field.w((float) Math.ceil(preferred));
         }
         line.child(row()
             .role(r == 0 ? "columnheader" : "cell")

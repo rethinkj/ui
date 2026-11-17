@@ -98,6 +98,30 @@ public final class CpuRenderer {
     }
   }
 
+  private record Bounds(int left, int top, int right, int bottom, boolean clipWhole) {}
+
+  /** The pixels to visit for a shape and its clip, or null when none are visible. */
+  private static Bounds bounds(Box shape, Box clip, double scale, int width, int height) {
+    // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
+    int left = first(shape.centerX - shape.halfW, scale, width);
+    int top = first(shape.centerY - shape.halfH, scale, height);
+    int right = end(shape.centerX + shape.halfW, scale, width);
+    int bottom = end(shape.centerY + shape.halfH, scale, height);
+
+    // The clip's coverage multiplies the instance's. Entry 0 covers everything, so it is skipped.
+    if (clip != null) {
+      left = Math.max(left, first(clip.centerX - clip.halfW, scale, width));
+      top = Math.max(top, first(clip.centerY - clip.halfH, scale, height));
+      right = Math.min(right, end(clip.centerX + clip.halfW, scale, width));
+      bottom = Math.min(bottom, end(clip.centerY + clip.halfH, scale, height));
+    }
+    if (left >= right || top >= bottom) {
+      return null;
+    }
+    boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
+    return new Bounds(left, top, right, bottom, clipWhole);
+  }
+
   private static void rect(
       Scene scene,
       int i,
@@ -122,24 +146,11 @@ public final class CpuRenderer {
     Box shape = new Box(centerX, centerY, halfW, halfH, radii, radii, null);
     Box inner = border ? inner(centerX, centerY, halfW, halfH, radii, borders, scale) : null;
 
-    // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
-    int left = first(centerX - halfW, scale, width);
-    int top = first(centerY - halfH, scale, height);
-    int right = end(centerX + halfW, scale, width);
-    int bottom = end(centerY + halfH, scale, height);
-
-    // The clip's coverage multiplies the instance's. Entry 0 covers everything, so it is skipped.
     Box clip = Box.clip(scene, scene.clipOf(i));
-    if (clip != null) {
-      left = Math.max(left, first(clip.centerX - clip.halfW, scale, width));
-      top = Math.max(top, first(clip.centerY - clip.halfH, scale, height));
-      right = Math.min(right, end(clip.centerX + clip.halfW, scale, width));
-      bottom = Math.min(bottom, end(clip.centerY + clip.halfH, scale, height));
-    }
-    if (left >= right || top >= bottom) {
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
       return;
     }
-    boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
     double[] fill = color(scene, i, Scene.FILL);
     double[] edge = color(scene, i, Scene.BORDER);
     // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
@@ -155,16 +166,17 @@ public final class CpuRenderer {
 
     // Elliptic corners of the fill are measured at every pixel: Box's argument is for circles.
     boolean runs = inner == null || inner.circular();
-    for (int py = top; py < bottom; py++) {
+    for (int py = bounds.top; py < bounds.bottom; py++) {
       double y = (py + 0.5) / scale;
       // A row that the fill reaches nowhere, as along a border at the top or the bottom, has
       // runs of pixels in the border color; any other its runs in the fill.
-      int share = border && (inner == null || inner.missesRow(y, left, right, scale)) ? 0 : 1;
+      int share =
+          border && (inner == null || inner.missesRow(y, bounds.left, bounds.right, scale)) ? 0 : 1;
       // Measures from the left until a pixel is covered whole, by the shape and the clip, with
       // that fill share, then from the right until one is: the pixels between are covered whole
       // too (see Box), and only the measured ones need the formulas.
-      int first = left;
-      while (first < right
+      int first = bounds.left;
+      while (first < bounds.right
           && (!measure(
                   first,
                   y,
@@ -173,14 +185,14 @@ public final class CpuRenderer {
                   border,
                   inner,
                   clip,
-                  clipWhole,
+                  bounds.clipWhole,
                   coverages,
                   fillShares,
                   share)
               || !runs)) {
         first++;
       }
-      int last = right - 1;
+      int last = bounds.right - 1;
       while (last > first
           && !measure(
               last,
@@ -190,21 +202,21 @@ public final class CpuRenderer {
               border,
               inner,
               clip,
-              clipWhole,
+              bounds.clipWhole,
               coverages,
               fillShares,
               share)) {
         last--;
       }
       int row = py * width;
-      for (int px = left; px < first; px++) {
+      for (int px = bounds.left; px < first; px++) {
         blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
       }
       double[] source = whole[share];
       for (int px = first; px <= last; px++) {
         blend(frame, (row + px) * 4, source[0], source[1], source[2], source[3], blends);
       }
-      for (int px = Math.max(last + 1, first); px < right; px++) {
+      for (int px = Math.max(last + 1, first); px < bounds.right; px++) {
         blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
       }
     }
@@ -444,42 +456,52 @@ public final class CpuRenderer {
     double centerY = y0 + halfH;
     double[] square = new double[4];
     Box shape = new Box(centerX, centerY, halfW, halfH, square, square, null);
-    int left = first(centerX - halfW, scale, width);
-    int top = first(centerY - halfH, scale, height);
-    int right = end(centerX + halfW, scale, width);
-    int bottom = end(centerY + halfH, scale, height);
     Box clip = Box.clip(scene, scene.clipOf(i));
-    if (clip != null) {
-      left = Math.max(left, first(clip.centerX - clip.halfW, scale, width));
-      top = Math.max(top, first(clip.centerY - clip.halfH, scale, height));
-      right = Math.min(right, end(clip.centerX + clip.halfW, scale, width));
-      bottom = Math.min(bottom, end(clip.centerY + clip.halfH, scale, height));
-    }
-    if (left >= right || top >= bottom) {
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
       return;
     }
-    boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
     double[] color = color(scene, i, Scene.FILL);
     Sampler sampler = new Sampler(scene, i, scale);
     double[] coverages = scratch.coverage;
     double[] fillShares = scratch.fillShare;
     double[] sample = scratch.sample;
-    for (int py = top; py < bottom; py++) {
+    for (int py = bounds.top; py < bounds.bottom; py++) {
       double y = (py + 0.5) / scale;
-      int first = left;
-      while (first < right
+      int first = bounds.left;
+      while (first < bounds.right
           && !measure(
-              first, y, scale, shape, false, null, clip, clipWhole, coverages, fillShares, 1)) {
+              first,
+              y,
+              scale,
+              shape,
+              false,
+              null,
+              clip,
+              bounds.clipWhole,
+              coverages,
+              fillShares,
+              1)) {
         first++;
       }
-      int last = right - 1;
+      int last = bounds.right - 1;
       while (last > first
           && !measure(
-              last, y, scale, shape, false, null, clip, clipWhole, coverages, fillShares, 1)) {
+              last,
+              y,
+              scale,
+              shape,
+              false,
+              null,
+              clip,
+              bounds.clipWhole,
+              coverages,
+              fillShares,
+              1)) {
         last--;
       }
       int row = py * width;
-      for (int px = left; px < right; px++) {
+      for (int px = bounds.left; px < bounds.right; px++) {
         double coverage = px >= first && px <= last ? 1 : coverages[px];
         if (coverage <= 0) {
           continue;

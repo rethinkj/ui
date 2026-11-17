@@ -31,6 +31,11 @@ public record Len(Kind kind, float value) {
     return new Len(Kind.PERCENT, fraction);
   }
 
+  /** The fixed length in logical pixels, or zero for any other kind. */
+  public float pixelsOrZero() {
+    return kind == Kind.PX ? value : 0;
+  }
+
   public boolean isAuto() {
     return kind == Kind.AUTO;
   }

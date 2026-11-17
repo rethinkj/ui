@@ -1164,8 +1164,9 @@ public final class El {
       return;
     }
     float scale = text.scale();
-    float left = px(style.borderLeft) + px(style.paddingLeft) + (float) scrollX;
-    float top = px(style.borderTop) + px(style.paddingTop) + (float) scrollY;
+    float left =
+        style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero() + (float) scrollX;
+    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero() + (float) scrollY;
     int length = text.string().length();
     for (El child : children) {
       if (child.rangeFrom < 0) {
@@ -1444,7 +1445,7 @@ public final class El {
       return;
     }
     if (Float.isNaN(gutterLeft)) {
-      gutterLeft = px(style.paddingLeft);
+      gutterLeft = style.paddingLeft.pixelsOrZero();
     }
     El last = gutter.cell(text.lineTotal() - 1, false);
     scaleText(last, scale, text.systemFonts());
@@ -1474,7 +1475,7 @@ public final class El {
     }
     gutterShown = shown;
     float rowHeight = text.lineHeight() / scale;
-    float top = px(style.borderTop) + px(style.paddingTop);
+    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
     El column = el().key("gutter").clip();
     for (Text.Start start : starts) {
       El cell = gutter.cell(start.line(), start.line() == caretLine);
@@ -1494,7 +1495,7 @@ public final class El {
     }
     // The column stays where the content box is: the scroll that shifts it is added back.
     column.place(
-        px(style.borderLeft) + gutterLeft + (float) scrollX,
+        style.borderLeft.pixelsOrZero() + gutterLeft + (float) scrollX,
         top + (float) scrollY,
         gutterWidth,
         text.contentHeight() / scale);
@@ -3133,8 +3134,8 @@ public final class El {
       maxScrollY = Math.max(
           rowsTop()
               + rowsTotal()
-              + px(style.paddingBottom)
-              + px(style.borderBottom)
+              + style.paddingBottom.pixelsOrZero()
+              + style.borderBottom.pixelsOrZero()
               + coverY
               - height,
           0);
@@ -3147,8 +3148,10 @@ public final class El {
     float[] out = new float[2];
     for (El child : children) {
       if (child.placed && !child.exiting) {
-        extent[0] = Math.max(extent[0], child.x + child.width + px(child.style.marginRight));
-        extent[1] = Math.max(extent[1], child.y + child.height + px(child.style.marginBottom));
+        extent[0] =
+            Math.max(extent[0], child.x + child.width + child.style.marginRight.pixelsOrZero());
+        extent[1] =
+            Math.max(extent[1], child.y + child.height + child.style.marginBottom.pixelsOrZero());
         if (scrolls) {
           child.overflow(child.x, child.y, out);
         }
@@ -3156,10 +3159,10 @@ public final class El {
     }
     // shortcut: padding, border and margin only in pixels, not in percent; measure the layout's
     // content size when percentages need it.
-    float right = Math.max(extent[0] + px(style.paddingRight), out[0]);
-    float bottom = Math.max(extent[1] + px(style.paddingBottom), out[1]);
-    double overX = right + px(style.borderRight) - width;
-    double overY = bottom + px(style.borderBottom) - height;
+    float right = Math.max(extent[0] + style.paddingRight.pixelsOrZero(), out[0]);
+    float bottom = Math.max(extent[1] + style.paddingBottom.pixelsOrZero(), out[1]);
+    double overX = right + style.borderRight.pixelsOrZero() - width;
+    double overY = bottom + style.borderBottom.pixelsOrZero() - height;
     maxScrollX = style.overflowX == Style.Overflow.SCROLL && overX > 0 ? overX + coverX : 0;
     maxScrollY = style.overflowY == Style.Overflow.SCROLL && overY > 0 ? overY + coverY : 0;
   }
@@ -3182,10 +3185,6 @@ public final class El {
         child.overflow(childX, childY, extent);
       }
     }
-  }
-
-  private static float px(Len len) {
-    return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
   // Less than this is no overflow: what layout converted back and forth.
@@ -3231,8 +3230,8 @@ public final class El {
     measureScroll();
     float x = parentX + this.x;
     float y = parentY + this.y;
-    float right = x + width - px(style.borderRight);
-    float bottom = y + height - px(style.borderBottom);
+    float right = x + width - style.borderRight.pixelsOrZero();
+    float bottom = y + height - style.borderBottom.pixelsOrZero();
     boolean wide = maxScrollX > 0;
     boolean tall = maxScrollY > 0;
     if (scrollbars != null) {
@@ -3353,10 +3352,10 @@ public final class El {
         float t = scrollbars.thickness();
         float m = scrollbars.margin();
         // The padding box within the clips; a bar is placed only where it fits.
-        float boxLeft = Math.max(left, x + px(s.borderLeft));
-        float boxTop = Math.max(top, y + px(s.borderTop));
-        float boxRight = Math.min(right, x + width - px(s.borderRight));
-        float boxBottom = Math.min(bottom, y + height - px(s.borderBottom));
+        float boxLeft = Math.max(left, x + s.borderLeft.pixelsOrZero());
+        float boxTop = Math.max(top, y + s.borderTop.pixelsOrZero());
+        float boxRight = Math.min(right, x + width - s.borderRight.pixelsOrZero());
+        float boxBottom = Math.min(bottom, y + height - s.borderBottom.pixelsOrZero());
         boolean wide = s.overflowX == Style.Overflow.SCROLL && maxScrollX > 0;
         boolean tall = s.overflowY == Style.Overflow.SCROLL && maxScrollY > 0;
         if (wide && boxBottom - boxTop >= t + 2 * m) {
@@ -3460,7 +3459,7 @@ public final class El {
 
   /** The top of the content box, where row 0 begins, relative to the border box. */
   private float rowsTop() {
-    return px(style.borderTop) + px(style.paddingTop);
+    return style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
   }
 
   /**
@@ -3505,7 +3504,7 @@ public final class El {
     float shown = 0;
     float shownTo = 0;
     if (spans) { // the part in view sideways, in the coordinates of the content box
-      float origin = left + px(style.borderLeft) + px(style.paddingLeft);
+      float origin = left + style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
@@ -3621,10 +3620,10 @@ public final class El {
    */
   void revealArea() {
     double dx = style.overflowX == Style.Overflow.SCROLL
-        ? nearest(revealX - scrollX, revealWidth, width - coverX)
+        ? ScrollState.nearest(revealX - scrollX, revealWidth, width - coverX)
         : 0;
     double dy = style.overflowY == Style.Overflow.SCROLL
-        ? nearest(revealY - scrollY, revealHeight, height - coverY)
+        ? ScrollState.nearest(revealY - scrollY, revealHeight, height - coverY)
         : 0;
     scrollTo(scrollX + dx, scrollY + dy);
   }
@@ -3654,9 +3653,14 @@ public final class El {
 
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
   void layoutRow(int index, float scale, boolean systemFonts) {
-    float left = px(style.borderLeft) + px(style.paddingLeft);
+    float left = style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
     float inner = Math.max(
-        width - left - px(style.paddingRight) - px(style.borderRight) - style.scrollbarWidth, 0);
+        width
+            - left
+            - style.paddingRight.pixelsOrZero()
+            - style.borderRight.pixelsOrZero()
+            - style.scrollbarWidth,
+        0);
     El row = children.get(index);
     row.style.width = Len.px(inner);
     if (heights != null) { // as high as its content or its own height, measured and kept
@@ -3689,8 +3693,7 @@ public final class El {
    */
   double offsetShowing(int index) {
     double top = rowsTop() + rowTop(index) - scrollY;
-    double after = top + rowSize(index) - (height - coverY);
-    return scrollY + (top < 0 ? top : after > 0 ? Math.min(after, top) : 0);
+    return scrollY + ScrollState.nearest(top, rowSize(index), height - coverY);
   }
 
   /**
@@ -3702,17 +3705,11 @@ public final class El {
     for (El child : children) {
       if (!child.exiting && index-- == 0) {
         scrollTo(
-            scrollX + nearest(child.x - scrollX, child.width, width - coverX),
-            scrollY + nearest(child.y - scrollY, child.height, height - coverY));
+            scrollX + ScrollState.nearest(child.x - scrollX, child.width, width - coverX),
+            scrollY + ScrollState.nearest(child.y - scrollY, child.height, height - coverY));
         return;
       }
     }
-  }
-
-  /** The least distance that moves a span into a view from 0 to {@code view}, or its start to 0. */
-  private static double nearest(double start, float size, float view) {
-    double after = start + size - view;
-    return start < 0 ? start : after > 0 ? Math.min(after, start) : 0;
   }
 
   /**

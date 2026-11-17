@@ -3,7 +3,6 @@ package com.rethinkj.ui.render;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
-import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
@@ -538,10 +537,10 @@ public final class Scene {
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     Style s = el.style();
     float[] borders = {
-      stroke(px(s.borderTop)),
-      stroke(px(s.borderRight)),
-      stroke(px(s.borderBottom)),
-      stroke(px(s.borderLeft))
+      stroke(s.borderTop.pixelsOrZero()),
+      stroke(s.borderRight.pixelsOrZero()),
+      stroke(s.borderBottom.pixelsOrZero()),
+      stroke(s.borderLeft.pixelsOrZero())
     };
     boolean hasBorder = (borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0)
         && el.borderColor() >>> 24 != 0;
@@ -650,10 +649,10 @@ public final class Scene {
       boolean free) {
     Image image = el.image();
     Style s = el.style();
-    float insetLeft = borders[3] + px(s.paddingLeft);
-    float insetTop = borders[0] + px(s.paddingTop);
-    float insetRight = borders[1] + px(s.paddingRight);
-    float insetBottom = borders[2] + px(s.paddingBottom);
+    float insetLeft = borders[3] + s.paddingLeft.pixelsOrZero();
+    float insetTop = borders[0] + s.paddingTop.pixelsOrZero();
+    float insetRight = borders[1] + s.paddingRight.pixelsOrZero();
+    float insetBottom = borders[2] + s.paddingBottom.pixelsOrZero();
     float l = left + insetLeft;
     float t = top + insetTop;
     float r = left + width - insetRight;
@@ -817,10 +816,10 @@ public final class Scene {
   private ContentBox contentBox(
       El el, float x, float y, float left, float top, float width, float height) {
     Style s = el.style();
-    float l = px(s.borderLeft);
-    float t = px(s.borderTop);
-    float r = px(s.borderRight);
-    float b = px(s.borderBottom);
+    float l = s.borderLeft.pixelsOrZero();
+    float t = s.borderTop.pixelsOrZero();
+    float r = s.borderRight.pixelsOrZero();
+    float b = s.borderBottom.pixelsOrZero();
     if (Float.isNaN(scale) || l == 0 && t == 0 && r == 0 && b == 0) {
       return null;
     }
@@ -1003,8 +1002,8 @@ public final class Scene {
     Style s = el.style();
     // shortcut: padding and border in pixels only, not in percent, as for scrolling; take the
     // edges layout resolved when percentages need it.
-    double left = (x + px(s.paddingLeft) + px(s.borderLeft)) * scale;
-    double top = (y + px(s.paddingTop) + px(s.borderTop)) * scale;
+    double left = (x + s.paddingLeft.pixelsOrZero() + s.borderLeft.pixelsOrZero()) * scale;
+    double top = (y + s.paddingTop.pixelsOrZero() + s.borderTop.pixelsOrZero()) * scale;
     double grid = scale >= 1.5 && !text.font().wholePixels() ? 4 : 1;
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
@@ -1082,10 +1081,15 @@ public final class Scene {
     boolean rows = el.text().multiline();
     // Out to whole physical pixels, so that the clip cuts no glyph that the box holds.
     return clip(
-        outward(x + px(s.borderLeft) + px(s.paddingLeft), -1),
-        outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1),
-        outward(x + el.width() - px(s.borderRight) - px(s.paddingRight), 1),
-        outward(y + el.height() - px(s.borderBottom) - (rows ? px(s.paddingBottom) : 0), 1),
+        outward(x + s.borderLeft.pixelsOrZero() + s.paddingLeft.pixelsOrZero(), -1),
+        outward(y + s.borderTop.pixelsOrZero() + (rows ? s.paddingTop.pixelsOrZero() : 0), -1),
+        outward(x + el.width() - s.borderRight.pixelsOrZero() - s.paddingRight.pixelsOrZero(), 1),
+        outward(
+            y
+                + el.height()
+                - s.borderBottom.pixelsOrZero()
+                - (rows ? s.paddingBottom.pixelsOrZero() : 0),
+            1),
         SQUARE,
         clip);
   }
@@ -1124,10 +1128,6 @@ public final class Scene {
     }
     double p = v * (double) scale;
     return (float) ((sign < 0 ? Math.floor(p + 1e-3) : Math.ceil(p - 1e-3)) / scale);
-  }
-
-  private static float px(Len len) {
-    return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
   private void glyph(

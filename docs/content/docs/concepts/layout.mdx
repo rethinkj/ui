@@ -19,6 +19,8 @@ Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col
 | `minSize(w, h)`, `maxSize(w, h)` | Limits; `minSize(0, 0)` lets text shrink below its width |
 | `grow(factor)`, `shrink(factor)`, `basis(px)` | How an element takes and gives room along its parent's axis |
 
+A style length’s `pixelsOrZero()` returns its fixed size in logical pixels. Percentages, automatic sizes and `FIT_CONTENT` return zero.
+
 ## Space and alignment
 
 | Call | |

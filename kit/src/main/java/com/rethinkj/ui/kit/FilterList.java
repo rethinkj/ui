@@ -130,11 +130,7 @@ public final class FilterList {
 
     /** An image before the text, fitted into an icon's square, such as a product's logo. */
     public Entry image(com.rethinkj.ui.Image image) {
-      Objects.requireNonNull(image, "image");
-      return leading(() -> {
-        float side = Theme.CURRENT.get().size().icon();
-        return El.image(image).size(side, side).fit(com.rethinkj.ui.Image.Fit.CONTAIN);
-      });
+      return leading(PassiveContent.image(image));
     }
 
     /** A check mark at the right end of the row, as the current choice of a list has. */
