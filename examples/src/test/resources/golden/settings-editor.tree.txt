@@ -47,87 +47,86 @@ el 0,0 880x600
               text "About" 41,211 154x16
     el 216,32 656x560 thumb-y 864,34 6x499.78
       text role=heading "Editor" 240,56 608x24 level=1
-      el 240,96 608x535
-        el 240,96 608x202
-          el 240,96 608x19
-            text role=heading "Text" 240,96 608x19 level=2
-          el 240,123 608x175
-            el role=switch label="Word wrap" 243,126 602x46 checked
-              el 253,132 542x34
-                text "Word wrap" 253,132 542x16
-                text "Wrap long lines at the edge of the editor instead of scrolling sideways" 253,150 542x16
-              el 807,141 28x16
-                el 821,143 12x12
-            el 241,174 606x1
-            el role=switch label="Line numbers" 243,177 602x36 checked
-              el 253,187 542x16
-                text "Line numbers" 253,187 542x16
-              el 807,187 28x16
-                el 821,189 12x12
-            el 241,215 606x1
-            el role=switch label="Highlight the current line" 243,218 602x36 checked
-              el 253,228 542x16
-                text "Highlight the current line" 253,228 542x16
-              el 807,228 28x16
-                el 821,230 12x12
-            el 241,256 606x1
-            el 243,259 602x36
-              el 253,269 410x16
-                text "Font" 253,269 410x16
-              el role=combobox label="JetBrains Mono" 675,265 160x24 expanded=false
-                text "JetBrains Mono" 684,269 122x16
-                text label="chevron_down" "\u{F2A2}" 810,269 16x16
-        el 240,322 608x309
-          el 240,322 608x19
-            text role=heading "Indentation" 240,322 608x19 level=2
-          el 240,349 608x282
-            el 243,352 602x46
-              el 253,358 470x34
-                text "Tab size" 253,358 470x16
-                text "Columns from one tab stop to the next" 253,376 470x16
-              el 735,363 100x24
-                text role=spinbutton label="Tab size" "5" 735,363 100x24 focused caret 1
-                el 791,365 42x20
-                  el role=button label="Decrease" 791,365 20x20
-                    text label="subtract" "\u{EBCF}" 793,367 16x16
-                  el role=button label="Increase" 813,365 20x20
-                    text label="add" "\u{F108}" 815,367 16x16
-            el 241,400 606x1
-            el 243,403 602x225
-              el role=button label="Advanced" 243,403 602x46 expanded
-                el 253,409 554x34
-                  text "Advanced" 253,409 554x16
-                  text "Options most people never change" 253,427 554x16
-                text label="chevron_up" "\u{F2B5}" 819,418 16x16
-              el 241,451 606x1
-              el 243,454 602x174
-                el role=switch label="Insert spaces for tabs" 259,454 586x36 checked
-                  el 269,464 526x16
-                    text "Insert spaces for tabs" 269,464 526x16
-                  el 807,464 28x16
-                    el 821,466 12x12
-                el 257,492 590x1
-                el 259,495 586x36
-                  el 269,505 454x16
-                    text "Undo steps" 269,505 454x16
-                  el 735,501 100x24
-                    text role=spinbutton label="Undo steps" "100" 735,501 100x24
-                    el 791,503 42x20
-                      el role=button label="Decrease" 791,503 20x20
-                        text label="subtract" "\u{EBCF}" 793,505 16x16
-                      el role=button label="Increase" 813,503 20x20
-                        text label="add" "\u{F108}" 815,505 16x16
-                el 257,533 590x1
-                el 259,536 586x92
-                  text "Line endings" 269,542 566x16
-                  el role=radiogroup label="Line endings" 265,564 110x60
-                    el role=radio label="LF" 269,566 102x16 checked
-                      el 269,566 16x16
-                        el 274,571 6x6
-                      text "LF" 293,566 15x16
-                    el role=radio label="CRLF" 269,586 102x16 checked=false
-                      el 269,586 16x16
-                      text "CRLF" 293,586 32x16
-                    el role=radio label="As in the file" 269,606 102x16 checked=false
-                      el 269,606 16x16
-                      text "As in the file" 293,606 78x16
+      el 240,96 608x202
+        el 240,96 608x19
+          text role=heading "Text" 240,96 608x19 level=2
+        el 240,123 608x175
+          el role=switch label="Word wrap" 243,126 602x46 checked
+            el 253,132 542x34
+              text "Word wrap" 253,132 542x16
+              text "Wrap long lines at the edge of the editor instead of scrolling sideways" 253,150 542x16
+            el 807,141 28x16
+              el 821,143 12x12
+          el 241,174 606x1
+          el role=switch label="Line numbers" 243,177 602x36 checked
+            el 253,187 542x16
+              text "Line numbers" 253,187 542x16
+            el 807,187 28x16
+              el 821,189 12x12
+          el 241,215 606x1
+          el role=switch label="Highlight the current line" 243,218 602x36 checked
+            el 253,228 542x16
+              text "Highlight the current line" 253,228 542x16
+            el 807,228 28x16
+              el 821,230 12x12
+          el 241,256 606x1
+          el 243,259 602x36
+            el 253,269 410x16
+              text "Font" 253,269 410x16
+            el role=combobox label="JetBrains Mono" 675,265 160x24 expanded=false
+              text "JetBrains Mono" 684,269 122x16
+              text label="chevron_down" "\u{F2A2}" 810,269 16x16
+      el 240,322 608x309
+        el 240,322 608x19
+          text role=heading "Indentation" 240,322 608x19 level=2
+        el 240,349 608x282
+          el 243,352 602x46
+            el 253,358 470x34
+              text "Tab size" 253,358 470x16
+              text "Columns from one tab stop to the next" 253,376 470x16
+            el 735,363 100x24
+              text role=spinbutton label="Tab size" "5" 735,363 100x24 focused caret 1
+              el 791,365 42x20
+                el role=button label="Decrease" 791,365 20x20
+                  text label="subtract" "\u{EBCF}" 793,367 16x16
+                el role=button label="Increase" 813,365 20x20
+                  text label="add" "\u{F108}" 815,367 16x16
+          el 241,400 606x1
+          el 243,403 602x225
+            el role=button label="Advanced" 243,403 602x46 expanded
+              el 253,409 554x34
+                text "Advanced" 253,409 554x16
+                text "Options most people never change" 253,427 554x16
+              text label="chevron_up" "\u{F2B5}" 819,418 16x16
+            el 241,451 606x1
+            el 243,454 602x174
+              el role=switch label="Insert spaces for tabs" 259,454 586x36 checked
+                el 269,464 526x16
+                  text "Insert spaces for tabs" 269,464 526x16
+                el 807,464 28x16
+                  el 821,466 12x12
+              el 257,492 590x1
+              el 259,495 586x36
+                el 269,505 454x16
+                  text "Undo steps" 269,505 454x16
+                el 735,501 100x24
+                  text role=spinbutton label="Undo steps" "100" 735,501 100x24
+                  el 791,503 42x20
+                    el role=button label="Decrease" 791,503 20x20
+                      text label="subtract" "\u{EBCF}" 793,505 16x16
+                    el role=button label="Increase" 813,503 20x20
+                      text label="add" "\u{F108}" 815,505 16x16
+              el 257,533 590x1
+              el 259,536 586x92
+                text "Line endings" 269,542 566x16
+                el role=radiogroup label="Line endings" 265,564 110x60
+                  el role=radio label="LF" 269,566 102x16 checked
+                    el 269,566 16x16
+                      el 274,571 6x6
+                    text "LF" 293,566 15x16
+                  el role=radio label="CRLF" 269,586 102x16 checked=false
+                    el 269,586 16x16
+                    text "CRLF" 293,586 32x16
+                  el role=radio label="As in the file" 269,606 102x16 checked=false
+                    el 269,606 16x16
+                    text "As in the file" 293,606 78x16

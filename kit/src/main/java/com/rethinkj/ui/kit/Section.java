@@ -55,13 +55,19 @@ public final class Section {
    */
   public static El page(String title, El... sections) {
     Theme theme = Theme.CURRENT.get();
+    El heading = label(Label.Variant.TITLE, title).wrapText().role("heading").level(1);
+    El[] present = present(sections);
+    if (present.length > 0) {
+      // The sections stay children of the page, xxl apart, and the first comes up to xl below it.
+      heading.margin(0, 0, theme.space().xl() - theme.space().xxl(), 0);
+    }
     return col()
         .scroll()
         .scrollbars(theme.scrollbars())
         .padding(theme.space().xxl())
-        .gap(theme.space().xl())
-        .child(label(Label.Variant.TITLE, title).wrapText().role("heading").level(1))
-        .child(col().gap(theme.space().xxl()).children(present(sections)));
+        .gap(theme.space().xxl())
+        .child(heading)
+        .children(present);
   }
 
   /** The elements that are not null. */
