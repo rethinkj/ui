@@ -4,6 +4,8 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.El.text;
+import static com.rethinkj.ui.kit.Button.State.BUSY;
+import static com.rethinkj.ui.kit.Button.State.READY;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
@@ -318,7 +320,11 @@ final class Concepts {
   static El background(Concepts state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start background
-    El count = Button.button(PRIMARY, null, "Count rows", state.count != null, state::countRows);
+    El count = Button.button(
+        PRIMARY,
+        "Count rows",
+        state::countRows,
+        Button.options().state(state.count != null ? BUSY : READY));
     El cancel = Button.button(SECONDARY, "Cancel", state.count == null ? null : state::cancelCount);
     // docs:end background
     // docs:start after
@@ -376,7 +382,11 @@ final class Concepts {
   static El lanes(Concepts state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start lane
-    El report = Button.button(PRIMARY, null, "Run report", state.report != null, state::runReport);
+    El report = Button.button(
+        PRIMARY,
+        "Run report",
+        state::runReport,
+        Button.options().state(state.report != null ? BUSY : READY));
     El cancel =
         Button.button(SECONDARY, "Cancel", state.report == null ? null : state::cancelReport);
     El count = Button.button(SECONDARY, "Count orders", state::countOrders);
@@ -462,7 +472,11 @@ final class Concepts {
 
   static El progress(Concepts state) {
     // docs:start reporting
-    El download = Button.button(PRIMARY, null, "Download", state.download != null, state::download);
+    El download = Button.button(
+        PRIMARY,
+        "Download",
+        state::download,
+        Button.options().state(state.download != null ? BUSY : READY));
     El bar = Progress.labeled("Driver", state.received / 8.0, state.received + " of 8 MB");
     // docs:end reporting
     return Frame.of(download, bar.w(240));

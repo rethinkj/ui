@@ -63,10 +63,10 @@ class FocusRingTest {
       El focused = app.focused();
       float[] at = position(app.tree(), focused, 0, 0);
       assertTrue(at != null, "focused: " + focused);
-      // The middle of the ring's top edge, which is straight for every component.
+      // The middle of the ring's top edge, which is straight for every component, past its gap.
       Pixels pixels = app.render().pixels();
       int x = Math.round(at[0] + focused.width() / 2);
-      int y = (int) Math.ceil(at[1] - 2);
+      int y = (int) Math.ceil(at[1] - focused.focusRingGap() - 2);
       assertEquals(
           hex(t.accent().edge()),
           hex(pixels.argb(x, y)),

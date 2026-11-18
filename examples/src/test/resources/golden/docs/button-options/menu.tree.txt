@@ -1,4 +1,4 @@
-el 0,0 420x120
+el 0,0 420x170
   el 12,12 194x24
     el role=button label="Drop table" 12,12 89x24
       text "Drop table" 25,16 63x16
@@ -27,14 +27,33 @@ el 0,0 420x120
         text "Run" 133,48 24x16
       el 170,44 1x24
       el #arrow role=button label="More Run" 171,44 22x24 expanded
-        text label="chevron_down" "\u{F2A2}" 174,48 16x16
+        text label="chevron_down" "\u{F2A2}" 174,49 16x16
+  el 12,76 380x32
+    el role=button label="Commit" 12,80 130x24 busy
+      el 25,84 104x16
+        el 25,84 104x16
+          el role=progressbar label="Loading" 25,84 16x16
+            el 25,84 16x16
+            el 25,84 16x16
+            el 25,84 16x16
+            el 25,84 16x16
+            el 25,84 16x16
+          text "Committing…" 45,84 84x16
+        el 25,100 104x0
+          text "Commit" 25,100 49x0
+    el role=button label="Export" 146,80 86x24 expanded=false
+      text "Export" 159,84 40x16
+      text label="chevron_down" "\u{F2A2}" 203,84 16x16
+    el role=button label="New connection" 236,76 156x32
+      text label="add" "\u{F108}" 253,84 16x16
+      text "New connection" 273,84 102x16
 overlay bottom start gap 2 on #split 100,44 93x24
-  el #menu role=menu 100,62 134x58 focused
-    el #item-0 role=menuitem label="Run selection" 105,67 124x24 current
-      el 105,67 124x24
-        el 113,79 16x0
-        text "Run selection" 137,71 84x16
-    el #item-1 role=menuitem label="Cancel" 105,91 124x24
-      el 105,91 124x24
-        el 113,103 16x0
-        text "Cancel" 137,95 84x16
+  el #menu role=menu 100,70 134x58 focused
+    el #item-0 role=menuitem label="Run selection" 105,75 124x24 current
+      el 105,75 124x24
+        el 113,87 16x0
+        text "Run selection" 137,79 84x16
+    el #item-1 role=menuitem label="Cancel" 105,99 124x24
+      el 105,99 124x24
+        el 113,111 16x0
+        text "Cancel" 137,103 84x16

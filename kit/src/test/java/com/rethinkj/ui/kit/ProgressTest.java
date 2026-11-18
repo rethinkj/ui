@@ -73,7 +73,12 @@ class ProgressTest {
         s,
         st -> col()
             .child(Button.button(
-                    Button.Variant.PRIMARY, Symbol.PLAY, "Run", st.busy, () -> st.pressed++)
+                    Button.Variant.PRIMARY,
+                    "Run",
+                    () -> st.pressed++,
+                    Button.options()
+                        .icon(Symbol.PLAY)
+                        .state(st.busy ? Button.State.BUSY : Button.State.READY))
                 .key("run")));
     run(app, "key Tab\nframe\nkey Enter\nframe\npress role=button busy");
     assertEquals(0, s.pressed);
@@ -95,7 +100,11 @@ class ProgressTest {
     TextLibraries.assumeLoaded();
     int[] saved = {0};
     App<Object> app = new App<>(new Object(), x -> {
-      El refresh = Button.button(Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
+      El refresh = Button.button(
+              Button.Variant.SECONDARY,
+              "Refresh",
+              () -> {},
+              Button.options().state(Button.State.BUSY))
           .key("refresh");
       El save = Button.button(Button.Variant.PRIMARY, "Save", () -> saved[0]++);
       return col()

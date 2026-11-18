@@ -1,5 +1,5 @@
 # docs:start button-options-script
-size 420 120
+size 420 170
 frame
 key Tab                 # the focus on Drop table, with its ring
 key Space down          # held: the button shows pressed until the key is up

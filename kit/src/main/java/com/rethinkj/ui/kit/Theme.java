@@ -789,9 +789,16 @@ public record Theme(
    * @param edge a secondary button's edge, 3:1 on the surfaces
    * @param ring the focus ring of such a button, 3:1 on the surfaces; a primary one draws it
    *     {@link Sizes#ringGap} away, as with the accent
+   * @param disabled the fill of a primary one that is off: a pale tint of {@code color}, so that it
+   *     still reads as the main action, as the accent's selection does for a neutral one
    */
   public record Danger(
-      int color, int hover, int pressed, int onColor, int text, int edge, int ring) {
+      int color, int hover, int pressed, int onColor, int text, int edge, int ring, int disabled) {
+
+    /** Colors whose primary button, off, is filled with {@code color} at 40 % opacity. */
+    public Danger(int color, int hover, int pressed, int onColor, int text, int edge, int ring) {
+      this(color, hover, pressed, onColor, text, edge, ring, alpha(color, 0.4f));
+    }
 
     /** For dark surfaces. */
     public static final Danger DARK = of(Hue.RED.dark(), RED_649);
@@ -799,10 +806,17 @@ public record Theme(
     /** For light surfaces. */
     public static final Danger LIGHT = of(Hue.RED.light(), RED_377);
 
-    /** From an accent: its fills, white on them, and its edge for edge and ring. */
+    /** From an accent: its fills, white on them, its edge for edge and ring, its selection off. */
     private static Danger of(Accent red, int text) {
       return new Danger(
-          red.color(), red.hover(), red.pressed(), WHITE, text, red.edge(), red.edge());
+          red.color(),
+          red.hover(),
+          red.pressed(),
+          WHITE,
+          text,
+          red.edge(),
+          red.edge(),
+          red.selection());
     }
   }
 
@@ -864,8 +878,9 @@ public record Theme(
    * @param icon the side of an {@link Icon}, unless the view gives it another; the icons are
    *     sharpest at a size they are drawn for (see {@link Symbol})
    * @param indicator the thickness of the line that marks the active tab
-   * @param ringGap the gap between a primary button and its focus ring, in which what lies behind
-   *     the button shows, so that the ring in the accent's edge stands out from the accent's fill
+   * @param ringGap the gap between a button and its focus ring, in which what lies behind the
+   *     button shows, so that the ring in the accent's edge stands out from the accent's fill and
+   *     reads as a ring, not as the edge of a button
    * @param progress the thickness of a {@link Progress} bar in a row; the line along a card's edge
    *     is {@code indicator} thick
    * @param palette the width of a {@link CommandPalette}
@@ -873,6 +888,9 @@ public record Theme(
    * @param paletteTop the distance of a {@link CommandPalette} from the window's top
    * @param paletteField the height of a {@link CommandPalette}'s query field
    * @param paletteRow the height of a {@link CommandPalette}'s rows
+   * @param controlSmall the height of a {@link Button.Size#SMALL} button, as in a dense row
+   * @param controlLarge the height of a {@link Button.Size#LARGE} button, as the one action of an
+   *     empty view
    */
   public record Sizes(
       float control,
@@ -891,7 +909,50 @@ public record Theme(
       float dot,
       float paletteTop,
       float paletteField,
-      float paletteRow) {
+      float paletteRow,
+      float controlSmall,
+      float controlLarge) {
+
+    /** Sizes with small buttons 4 lower than {@code control} and large ones 8 higher. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot,
+        float paletteTop,
+        float paletteField,
+        float paletteRow) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          paletteTop,
+          paletteField,
+          paletteRow,
+          control - 4,
+          control + 8);
+    }
 
     /** Sizes with a command palette 72 from the window's top, its field 32 and its rows 28 high. */
     public Sizes(
@@ -1219,13 +1280,28 @@ public record Theme(
    * @param card cards on the window, lifted a little
    * @param popup menus, a select's list and tooltips
    * @param dialog dialogs, above the scrim
+   * @param control primary and secondary buttons at rest, lifted a hair above their surface; a
+   *     pressed one has none
+   * @param controlHover such a button under the pointer, a little higher
    */
-  public record Elevation(List<Shadow> card, List<Shadow> popup, List<Shadow> dialog) {
+  public record Elevation(
+      List<Shadow> card,
+      List<Shadow> popup,
+      List<Shadow> dialog,
+      List<Shadow> control,
+      List<Shadow> controlHover) {
 
     public Elevation {
       card = List.copyOf(card);
       popup = List.copyOf(popup);
       dialog = List.copyOf(dialog);
+      control = List.copyOf(control);
+      controlHover = List.copyOf(controlHover);
+    }
+
+    /** Elevation with flat buttons. */
+    public Elevation(List<Shadow> card, List<Shadow> popup, List<Shadow> dialog) {
+      this(card, popup, dialog, List.of(), List.of());
     }
   }
 
@@ -1257,7 +1333,7 @@ public record Theme(
       new TextStyle(Font::sans, 12),
       new TextStyle(Font::sansSemibold, 16));
   private static final Sizes SIZE =
-      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28);
+      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485);
@@ -1350,7 +1426,11 @@ public record Theme(
               new Shadow(0, 4, 12, 0, alpha(BLACK, 0.5f))),
           List.of(
               new Shadow(0, 2, 4, 0, alpha(BLACK, 0.6f)),
-              new Shadow(0, 12, 32, 0, alpha(BLACK, 0.6f)))),
+              new Shadow(0, 12, 32, 0, alpha(BLACK, 0.6f))),
+          List.of(new Shadow(0, 1, 2, 0, alpha(BLACK, 0.5f))),
+          List.of(
+              new Shadow(0, 1, 3, 0, alpha(BLACK, 0.6f)),
+              new Shadow(0, 2, 6, 0, alpha(BLACK, 0.35f)))),
       Code.DARK,
       CAPTION);
 
@@ -1386,7 +1466,11 @@ public record Theme(
               new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),
           List.of(
               new Shadow(0, 2, 6, 0, alpha(BLACK, 0.25f)),
-              new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f)))),
+              new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f))),
+          List.of(new Shadow(0, 1, 2, 0, alpha(GRAY_084, 0.2f))),
+          List.of(
+              new Shadow(0, 1, 3, 0, alpha(GRAY_084, 0.24f)),
+              new Shadow(0, 2, 5, 0, alpha(GRAY_084, 0.12f)))),
       Code.LIGHT,
       CAPTION);
 

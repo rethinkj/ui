@@ -25,6 +25,8 @@ Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/a
 | `Toolbar.group(items...)` | Buttons and toggles on a surface of their own; between lines in the More menu |
 | `Toolbar.spacer()` | Room that pushes the rest to the right |
 
+`.options(Button.options()...)` on a button, a button with text or a split button gives it a [button's options](/docs/components/button#options): its state, tone and shortcut; its icon stays the item's and its size the toolbar's. In the More menu, an item that is busy or off cannot be chosen, a split button that is off has no submenu, and the tone and shortcut show as the menu shows them.
+
 After a change of width, the toolbar settles one frame later and new items fade in, so a script advances the clock before a snap. Narrow, Refresh has moved out of its group into More, with Export and Save:
 
 <Shot src="examples/docs/toolbar/more-{theme}" alt="The same toolbar narrow: Run, the group with Wrap and Format, and the More menu open with Refresh, Export and Save" />

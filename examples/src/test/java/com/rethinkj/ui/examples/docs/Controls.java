@@ -1,11 +1,16 @@
 package com.rethinkj.ui.examples.docs;
 
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.State.BUSY;
+import static com.rethinkj.ui.kit.Button.State.DISABLED;
+import static com.rethinkj.ui.kit.Button.State.READY;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
@@ -60,6 +65,7 @@ final class Controls {
   String note = "Ship by Friday,\nfrom the north warehouse.";
   String sql = "SELECT id,\n\tname\nFROM t;";
   final Menu.State runMenu = new Menu.State();
+  final Menu.State exportMenu = new Menu.State();
   // docs:start value-state
   BigDecimal amount = new BigDecimal("12.50");
   final ValueField.Draft amountDraft = new ValueField.Draft();
@@ -102,7 +108,8 @@ final class Controls {
     El cancel = Button.button(SECONDARY, "Cancel", state::cancel);
     El format = Button.button(GHOST, "Format", null); // null: disabled
     El refresh = Button.icon(GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh);
-    El busy = Button.button(PRIMARY, null, "Running", state.running, state::start);
+    El busy = Button.button(
+        PRIMARY, "Running", state::start, Button.options().state(state.running ? BUSY : READY));
     // docs:end button
     // docs:start button-toggle
     El pin = Button.toggle(Symbol.PIN, "Pin", state.pinned, state::pinned);
@@ -137,6 +144,14 @@ final class Controls {
     runs = 0;
   }
 
+  void exportCsv() {
+    runs++;
+  }
+
+  void exportJson() {
+    runs++;
+  }
+
   static El buttonOptions(Controls state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start button-options
@@ -146,26 +161,47 @@ final class Controls {
     El discard = Button.button(SECONDARY, "Discard", state::discard, danger);
     El delete = Button.icon(GHOST, Symbol.DELETE, "Delete row", state::deleteRow, danger);
     // Off while nothing changed, with its handler kept: as a null handler, Tab passes it by.
-    El save =
-        Button.button(SECONDARY, "Save", state::save, Button.options().enabled(state.runs > 0));
+    El save = Button.button(
+        SECONDARY, "Save", state::save, Button.options().state(state.runs > 0 ? READY : DISABLED));
     // Busy: a spinner in place of the icon; it takes no press and keeps the focus.
     El refresh = Button.icon(
         GHOST,
         Symbol.ARROW_CLOCKWISE,
         "Refresh",
         state::start,
-        Button.options().busy(state.running));
+        Button.options().state(state.running ? BUSY : READY));
     El run = Button.split(
         PRIMARY,
         "Run",
         state::start,
         state.runMenu,
         List.of(Menu.item("Run selection", state::runSelection), Menu.item("Cancel", () -> {})),
-        Button.options().icon(Symbol.PLAY).busy(state.running));
+        Button.options().icon(Symbol.PLAY).state(state.running ? BUSY : READY));
+    // Busy with its verb, as wide as either text; its shortcut shows in its tooltip.
+    El commit = Button.button(
+        SECONDARY,
+        "Commit",
+        state::save,
+        Button.options()
+            .state(state.running ? BUSY : READY)
+            .busyText("Committing…")
+            .shortcut(Key.CONTROL | Key.SHIFT, "C"));
+    // A button that opens a menu, and a large one for the one action of an empty view.
+    El export = Button.menu(
+        SECONDARY,
+        "Export",
+        state.exportMenu,
+        List.of(Menu.item("CSV", state::exportCsv), Menu.item("JSON", state::exportJson)));
+    El connect = Button.button(
+        PRIMARY,
+        "New connection",
+        state::save,
+        Button.options().icon(Symbol.ADD).size(Button.Size.LARGE));
     // docs:end button-options
     return Frame.of(
         row().gap(theme.space().s()).children(drop, discard, delete),
-        row().gap(theme.space().s()).children(save, refresh, run));
+        row().gap(theme.space().s()).children(save, refresh, run),
+        row().gap(theme.space().s()).align(Style.Align.CENTER).children(commit, export, connect));
   }
 
   void toggleAutocommit() {

@@ -1,6 +1,8 @@
 package com.rethinkj.ui.examples.docs;
 
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.State.BUSY;
+import static com.rethinkj.ui.kit.Button.State.READY;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
@@ -281,7 +283,11 @@ public final class Customers {
                 TextField.textField(editing.at(Customer.VAT_ID)).key("vat").w(160))
             : null);
     boolean busy = state.saving != null;
-    El save = Button.button(PRIMARY, null, "Save", busy, editing.changed() ? state::save : null);
+    El save = Button.button(
+        PRIMARY,
+        "Save",
+        editing.changed() ? state::save : null,
+        Button.options().state(busy ? BUSY : READY));
     El cancel = Button.button(SECONDARY, "Cancel", busy ? null : state::close);
     String title = editing.original().id() == 0
         ? "New customer"

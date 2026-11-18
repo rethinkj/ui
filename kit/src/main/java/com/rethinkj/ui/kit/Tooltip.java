@@ -30,8 +30,16 @@ public final class Tooltip {
    * @return the anchor
    */
   public static El tooltip(El anchor, String text) {
+    return tooltip(anchor, text, null);
+  }
+
+  /**
+   * A tooltip with a key combination after its text, in the muted color, as a button's shortcut;
+   * null for none.
+   */
+  static El tooltip(El anchor, String text, String keys) {
     Theme theme = Theme.CURRENT.get();
-    return tooltip(theme, anchor, text, false);
+    return tooltip(theme, anchor, text, keys, false);
   }
 
   /**
@@ -40,11 +48,11 @@ public final class Tooltip {
    */
   public static El whenShortened(El anchor, String text) {
     Theme theme = Theme.CURRENT.get();
-    return tooltip(theme, anchor, text, true);
+    return tooltip(theme, anchor, text, null, true);
   }
 
-  private static El tooltip(Theme theme, El anchor, String text, boolean shortened) {
-    Consumer<El> show = e -> show(theme, e, text, shortened);
+  private static El tooltip(Theme theme, El anchor, String text, String keys, boolean shortened) {
+    Consumer<El> show = e -> show(theme, e, text, keys, shortened);
     return anchor
         .whenHoveredFor(theme.motion().tooltipDelay(), show)
         .whenFocusVisibleFor(theme.motion().tooltipDelay(), show);
@@ -58,12 +66,12 @@ public final class Tooltip {
     return anchor.whenHoveredFor(theme.motion().tooltipDelay(), e -> {
       String tip = text.get();
       if (tip != null) {
-        show(theme, e, tip, false);
+        show(theme, e, tip, null, false);
       }
     });
   }
 
-  private static void show(Theme theme, El anchor, String text, boolean shortened) {
+  private static void show(Theme theme, El anchor, String text, String keys, boolean shortened) {
     if (shortened) {
       if (anchor.overlays().stream()
           .noneMatch(o -> WHOLE.equals(o.key()) || "tooltip".equals(o.key()))) {
@@ -75,7 +83,7 @@ public final class Tooltip {
         .noneMatch(o -> "tooltip".equals(o.key()))) { // one for both looks
       // A tooltip the view gives stands in place of the one with the anchor's whole text.
       anchor.overlays().stream().filter(o -> WHOLE.equals(o.key())).forEach(o -> o.opacity(0));
-      anchor.overlay(panel(theme, text));
+      anchor.overlay(panel(theme, text, keys));
     }
   }
 
@@ -83,7 +91,11 @@ public final class Tooltip {
 
   /** The tooltip's overlay, for components that decide in their own look whether it shows. */
   static El panel(Theme theme, String text) {
-    return row()
+    return panel(theme, text, null);
+  }
+
+  private static El panel(Theme theme, String text, String keys) {
+    El panel = row()
         .key("tooltip")
         .role("tooltip")
         .label(text)
@@ -95,5 +107,8 @@ public final class Tooltip {
         .motion(theme.motion().fade())
         .side(Side.BOTTOM, Style.Align.CENTER, theme.space().xs())
         .child(label(text));
+    return keys == null
+        ? panel
+        : panel.gap(theme.space().m()).child(label(Label.Variant.MUTED, keys));
   }
 }

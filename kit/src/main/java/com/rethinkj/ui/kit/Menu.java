@@ -200,7 +200,7 @@ public final class Menu {
           label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, more);
     }
 
-    private static Key combination(int modifiers, String key) {
+    static Key combination(int modifiers, String key) {
       if (key.codePointCount(0, key.length()) == 1 && !key.equals(key.toUpperCase(Locale.ROOT))) {
         throw new IllegalArgumentException("A key that types a character is named by it in upper"
             + " case: \"" + key.toUpperCase(Locale.ROOT) + "\", not \"" + key + "\"");

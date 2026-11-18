@@ -103,6 +103,11 @@ final class Gallery {
     return revealable(field.w(WIDTH - 20), revealed, handler);
   }
 
+  /** Busy, or off in the column of a button that is off. */
+  private static Button.Options busy(Runnable h) {
+    return Button.options().state(h == null ? Button.State.DISABLED : Button.State.BUSY);
+  }
+
   private static Button.Options danger() {
     return Button.options().tone(Button.Tone.DANGER);
   }
@@ -110,19 +115,32 @@ final class Gallery {
   static final List<Row> ROWS = List.of(
       new Row("primary", h -> button(Variant.PRIMARY, "Run query", h)),
       new Row("secondary", h -> button(Variant.SECONDARY, "Cancel", h)),
-      new Row("busy", h -> button(Variant.PRIMARY, null, "Running", true, h)),
+      new Row("busy", h -> button(Variant.PRIMARY, "Running", h, busy(h))),
+      new Row("busy text", h -> button(Variant.PRIMARY, "Save", h, busy(h).busyText("Saving…"))),
       new Row("ghost", h -> button(Variant.GHOST, "Format", h)),
       new Row("danger", h -> button(Variant.PRIMARY, "Drop table", h, danger())),
       new Row("danger secondary", h -> button(Variant.SECONDARY, "Discard", h, danger())),
       new Row("danger ghost", h -> button(Variant.GHOST, "Delete", h, danger())),
       new Row(
           "busy icon",
-          h -> Button.icon(
-              Variant.GHOST,
-              Symbol.ARROW_CLOCKWISE,
-              "Refresh",
+          h -> Button.icon(Variant.GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", h, busy(h))),
+      new Row(
+          "small",
+          h -> button(Variant.SECONDARY, "Filter", h, Button.options().size(Button.Size.SMALL))),
+      new Row(
+          "large",
+          h -> button(
+              Variant.PRIMARY,
+              "Connect",
               h,
-              Button.options().busy(true))),
+              Button.options().icon(Symbol.ADD).size(Button.Size.LARGE))),
+      new Row(
+          "menu",
+          h -> Button.menu(
+              Variant.SECONDARY,
+              "Export",
+              new Menu.State(),
+              List.of(Menu.item("CSV", h), Menu.item("JSON", h)))),
       new Row("toggle off", h -> toggle(false, "Autocommit", h)),
       new Row("toggle on", h -> toggle(true, "Autocommit", h)),
       new Row("checkbox off", h -> checkbox(false, "Read only", h)),

@@ -63,6 +63,7 @@ public final class Toolbar {
     final Menu.State menu;
     final List<Menu.Item> items;
     final List<Item> members;
+    final Button.Options options;
 
     private Item(
         Kind kind,
@@ -74,7 +75,8 @@ public final class Toolbar {
         Consumer<Boolean> onToggle,
         Menu.State menu,
         List<Menu.Item> items,
-        List<Item> members) {
+        List<Item> members,
+        Button.Options options) {
       this.kind = kind;
       this.label = label;
       this.icon = icon;
@@ -85,6 +87,32 @@ public final class Toolbar {
       this.menu = menu;
       this.items = items;
       this.members = members;
+      this.options = options;
+    }
+
+    /**
+     * This button or split button with a button's options: its state, such as {@link
+     * Button.State#BUSY}, its tone and shortcut. Its icon is the item's and its size the
+     * toolbar's, whatever the options say. In the More menu, an item that is busy or off cannot be
+     * chosen, a split button that is off has no submenu, and the tone and shortcut show as a menu
+     * shows them.
+     *
+     * @throws IllegalArgumentException for a toggle, a group or a spacer
+     */
+    public Item options(Button.Options options) {
+      if (kind != Kind.BUTTON && kind != Kind.TEXT && kind != Kind.SPLIT) {
+        throw new IllegalArgumentException(
+            "a " + kind.name().toLowerCase(Locale.ROOT) + " takes no button options");
+      }
+      return new Item(
+          kind, label, icon, variant, on, onPress, onToggle, menu, items, members, options.copy());
+    }
+
+    /** The item's options, or plain ones, with this icon and the toolbar's size. */
+    private Button.Options with(Symbol icon) {
+      return (options == null ? Button.options() : options.copy())
+          .icon(icon)
+          .size(Button.Size.REGULAR);
     }
   }
 
@@ -116,6 +144,7 @@ public final class Toolbar {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -126,7 +155,7 @@ public final class Toolbar {
 
   /** A button of a variant with an icon, if any, and text. */
   public static Item text(Button.Variant variant, Symbol icon, String text, Runnable onPress) {
-    return new Item(Kind.TEXT, text, icon, variant, false, onPress, null, null, null, null);
+    return new Item(Kind.TEXT, text, icon, variant, false, onPress, null, null, null, null, null);
   }
 
   /** A toggle button with an icon alone ({@link Button#toggleIcon}). */
@@ -139,6 +168,7 @@ public final class Toolbar {
         on,
         null,
         onToggle,
+        null,
         null,
         null,
         null);
@@ -162,6 +192,7 @@ public final class Toolbar {
         null,
         Objects.requireNonNull(menu, "menu"),
         List.copyOf(items),
+        null,
         null);
   }
 
@@ -183,12 +214,13 @@ public final class Toolbar {
             + member.kind.name().toLowerCase(Locale.ROOT));
       }
     }
-    return new Item(Kind.GROUP, null, null, null, false, null, null, null, null, List.of(members));
+    return new Item(
+        Kind.GROUP, null, null, null, false, null, null, null, null, List.of(members), null);
   }
 
   /** A space that takes the room left over, which pushes the items after it to the end. */
   public static Item spacer() {
-    return new Item(Kind.SPACER, null, null, null, false, null, null, null, null, null);
+    return new Item(Kind.SPACER, null, null, null, false, null, null, null, null, null, null);
   }
 
   /**
@@ -299,25 +331,15 @@ public final class Toolbar {
     return switch (item.kind) {
       case BUTTON ->
         stop(
-            stops,
-            Button.icon(item.variant, item.icon, item.label, item.onPress),
-            item.onPress != null);
+            stops, Button.icon(item.variant, item.icon, item.label, item.onPress, item.with(null)));
       case TEXT ->
-        stop(
-            stops,
-            Button.button(item.variant, item.icon, item.label, item.onPress),
-            item.onPress != null);
-      case TOGGLE ->
-        stop(
-            stops,
-            Button.toggleIcon(item.icon, item.label, item.on, item.onToggle),
-            item.onToggle != null);
+        stop(stops, Button.button(item.variant, item.label, item.onPress, item.with(item.icon)));
+      case TOGGLE -> stop(stops, Button.toggleIcon(item.icon, item.label, item.on, item.onToggle));
       case SPLIT -> {
-        El split =
-            Button.split(item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
-        stop(stops, split.children().getFirst(), item.onPress != null);
-        El more = split.children().getLast();
-        stop(stops, more, more.onPress() != null);
+        El split = Button.split(
+            item.variant, item.label, item.onPress, item.menu, item.items, item.with(item.icon));
+        stop(stops, split.children().getFirst());
+        stop(stops, split.children().getLast());
         yield split;
       }
       case SPACER -> el().grow(1);
@@ -325,8 +347,9 @@ public final class Toolbar {
     };
   }
 
-  private static El stop(List<El> stops, El el, boolean enabled) {
-    if (enabled) {
+  /** Adds an element to the stops of the keys if it takes the focus: not one that is off. */
+  private static El stop(List<El> stops, El el) {
+    if (el.isFocusable()) {
       stops.add(el);
     }
     return el;
@@ -335,19 +358,16 @@ public final class Toolbar {
   /** The menu entry of an item that does not fit, or null for a spacer. */
   private static Menu.Item entry(Item item) {
     return switch (item.kind) {
-      case BUTTON, TEXT -> {
-        Menu.Item entry = Menu.item(item.label, item.onPress);
-        yield item.icon == null ? entry : entry.icon(item.icon);
-      }
+      case BUTTON, TEXT -> Button.entry(item.label, item.icon, item.onPress, item.with(item.icon));
       case TOGGLE ->
         Menu.item(item.label, item.onToggle == null ? null : () -> item.onToggle.accept(!item.on))
             .checked(item.on);
       case SPLIT -> {
+        if (item.with(item.icon).off()) { // as the split button, its entry opens no menu
+          yield Button.entry(item.label, item.icon, null, item.with(item.icon));
+        }
         List<Menu.Item> all = new ArrayList<>();
-        all.add(
-            item.icon == null
-                ? Menu.item(item.label, item.onPress)
-                : Menu.item(item.label, item.onPress).icon(item.icon));
+        all.add(Button.entry(item.label, item.icon, item.onPress, item.with(item.icon)));
         all.add(Menu.separator());
         all.addAll(item.items);
         yield Menu.submenu(item.label, all);

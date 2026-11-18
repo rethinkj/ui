@@ -1213,7 +1213,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
               PRIMARY,
               "Drop",
               state::drop,
-              Button.options().enabled(state.confirm.equals(name)).tone(Button.Tone.DANGER))
+              Button.options()
+                  .state(state.confirm.equals(name) ? Button.State.READY : Button.State.DISABLED)
+                  .tone(Button.Tone.DANGER))
           .key("drop");
       root.overlay(Dialog.dialog(
           "Drop table",
@@ -1294,7 +1296,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             PRIMARY,
             Symbol.SAVE,
             "Commit",
-            false,
             !free
                 ? null
                 : () -> {
@@ -1307,7 +1308,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         editor,
         List.of(
             button(SECONDARY, "Close", () -> previewing = null).key("close-preview"),
-            button(SECONDARY, Symbol.COPY, "Copy", false, () -> {
+            button(SECONDARY, Symbol.COPY, "Copy", () -> {
                   appOf(group).clipboard().write(sql);
                   tell("Copied the statements");
                 })
@@ -1803,7 +1804,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       return Card.toolbar(
           opened.table.name,
           rows,
-          Button.button(PRIMARY, Symbol.PLAY, "Run", opened.asking != null, () -> state.run(opened))
+          Button.button(
+                  PRIMARY,
+                  "Run",
+                  () -> state.run(opened),
+                  Button.options()
+                      .icon(Symbol.PLAY)
+                      .state(opened.asking != null ? Button.State.BUSY : Button.State.READY))
               .key("run"));
     }
     // With changes, Commit is the primary action, and Run a secondary one.
@@ -1815,16 +1822,26 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 GHOST,
                 "Revert",
                 opened.changes::clear,
-                Button.options().icon(Symbol.ARROW_UNDO).enabled(!writing).tone(DANGER))
+                Button.options()
+                    .icon(Symbol.ARROW_UNDO)
+                    .state(writing ? Button.State.DISABLED : Button.State.READY)
+                    .tone(DANGER))
             .key("revert"),
         Button.button(
                 PRIMARY,
-                Symbol.SAVE,
                 "Commit (" + changed + ")",
-                writing,
-                () -> state.commit(opened, null))
+                () -> state.commit(opened, null),
+                Button.options()
+                    .icon(Symbol.SAVE)
+                    .state(writing ? Button.State.BUSY : Button.State.READY))
             .key("commit"),
-        Button.button(SECONDARY, Symbol.PLAY, "Run", opened.asking != null, () -> state.run(opened))
+        Button.button(
+                SECONDARY,
+                "Run",
+                () -> state.run(opened),
+                Button.options()
+                    .icon(Symbol.PLAY)
+                    .state(opened.asking != null ? Button.State.BUSY : Button.State.READY))
             .key("run"));
   }
 

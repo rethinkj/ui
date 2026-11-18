@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Theme.over;
@@ -7,6 +8,9 @@ import static com.rethinkj.ui.kit.Theme.over;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.Objects;
@@ -15,24 +19,31 @@ import java.util.function.Consumer;
 /**
  * A button with text, an icon before its text, or an icon alone. A press runs its handler, and so
  * do Enter and Space while it is focused. Tab reaches it, but a press leaves the keyboard focus
- * where it is ({@link El#keepFocus}), so that the editor or grid a toolbar button acts on keeps it.
- * The text is in {@link Theme.Type#strong}, the medium weight.
+ * where it is ({@link El#keepFocus}), so that the editor or grid a toolbar button acts on keeps it;
+ * also a press on a button that is off. The text is in {@link Theme.Type#strong}, the medium
+ * weight.
+ *
+ * <p>Primary and secondary buttons lie a hair above their surface ({@link
+ * Theme.Elevation#control}), a little higher under the pointer; pressed, a button loses its shadow,
+ * its rounded corners tighten to {@link Theme.Radii#small} and its content moves down by {@link
+ * Theme.Sizes#stroke}, in the same box, so that a press shows in its shape and not in its color
+ * alone. The focus ring lies {@link Theme.Sizes#ringGap} apart from every button.
  *
  * <p>What a button is beyond its variant, text and handler goes into {@link #options()}:
  *
  * <pre>{@code
  * Button.button(PRIMARY, "Run", state::run,
- *     Button.options().icon(Symbol.PLAY).busy(state.running))
+ *     Button.options().icon(Symbol.PLAY).state(state.running ? BUSY : READY))
  * Button.button(PRIMARY, "Drop table", state::drop,
  *     Button.options().tone(Button.Tone.DANGER))
- * Button.button(SECONDARY, "Save", state::save,
- *     Button.options().enabled(state.changed()))
+ * Button.button(SECONDARY, "Commit", state::commit,
+ *     Button.options().state(state.open() ? READY : DISABLED).shortcut(Key.CONTROL, "S"))
  * }</pre>
  *
- * <p>A button is off when its handler is null or {@link Options#enabled} is false, both alike: it
- * takes no focus, shows no pointer cursor, draws in the disabled colors, a press on it goes to
- * its ancestors, and a tree dump says {@code disabled}. {@link El#disabled(boolean)} on the element
- * a button returns changes only the dump, not what it does.
+ * <p>A button is off when its handler is null or its {@link Options#state} is {@link
+ * State#DISABLED}, both alike: it takes no focus, shows no pointer cursor, draws in the disabled
+ * colors, a press on it goes to its ancestors, and a tree dump says {@code disabled}. {@link
+ * El#disabled(boolean)} on the element a button returns changes only the dump, not what it does.
  */
 public final class Button {
 
@@ -54,60 +65,142 @@ public final class Button {
      * colors: a primary button filled red with white text, for the confirmation in a dialog; a
      * secondary one with red text and a red edge on the raised surface, beside other actions; a
      * ghost one with red text alone, in a toolbar or a row. Its focus ring is {@link
-     * Theme.Danger#ring}. Off, it looks as any button that is off.
+     * Theme.Danger#ring}. Off, a primary one is filled with {@link Theme.Danger#disabled}.
      */
     DANGER
   }
 
-  /** The colors of a button: its fill at rest, hovered and pressed, its edge, text and ring. */
-  private record Look(int fill, int hover, int pressed, int edge, int text, int ring) {}
+  /** Whether a button takes a press now. */
+  public enum State {
+    /** It takes a press, if it has a handler: the default. */
+    READY,
+    /**
+     * Its action runs. A {@link Progress#spinner} in the text's color stands in place of its icon,
+     * or, without one, over the middle of its text, which keeps its place unseen so that the button
+     * keeps its width; with {@link Options#busyText} it stands before that text instead. It takes
+     * no press, but keeps its colors, its place in the order of Tab and the focus, so that nothing
+     * jumps when the work ends; Enter and Space on it do nothing and reach no other handler. A
+     * button is busy also without a handler. A tree dump says {@code busy}, WAI-ARIA's {@code
+     * aria-busy}, which a script selects as {@code role=button busy}.
+     */
+    BUSY,
+    /** Off, exactly as with a null handler while the view keeps its handler (see {@link Button}). */
+    DISABLED
+  }
+
+  /** How high a button is; its icon and text keep their size. */
+  public enum Size {
+    /**
+     * {@link Theme.Sizes#controlSmall} high, with narrower padding and the small radius, for a
+     * dense row.
+     */
+    SMALL,
+    /** {@link Theme.Sizes#control} high, as a text field: the default. */
+    REGULAR,
+    /**
+     * {@link Theme.Sizes#controlLarge} high, with wider padding, for the one action of an empty
+     * view or a welcome page.
+     */
+    LARGE
+  }
+
+  /** The colors and shadows of a button: at rest, hovered and pressed, its edge, text and ring. */
+  private record Look(
+      int fill,
+      int hover,
+      int pressed,
+      int edge,
+      int text,
+      int ring,
+      List<Shadow> rest,
+      List<Shadow> lifted) {}
 
   private Button() {}
 
   /** What a button is beyond its variant, text and handler; {@link #options()} is a plain one. */
   public static final class Options {
     private Symbol icon;
-    private boolean busy;
-    private boolean enabled = true;
+    private State state = State.READY;
+    private String busyText;
     private Tone tone = Tone.NEUTRAL;
+    private Size size = Size.REGULAR;
+    private Key shortcut;
 
     private Options() {}
 
     /**
-     * An icon before the text, in the text's color; null for none. Not for {@link #icon(Variant,
-     * Symbol, String, Runnable, Options)}, whose symbol is a parameter of its own.
+     * An icon before the text, muted beside the text of a secondary or ghost button, else in the
+     * text's color; null for none. Not for {@link #icon(Variant, Symbol, String, Runnable,
+     * Options)}, whose symbol is a parameter of its own.
      */
     public Options icon(Symbol icon) {
       this.icon = icon;
       return this;
     }
 
-    /**
-     * Whether its action runs. A busy button shows a {@link Progress#spinner} in the text's color
-     * in place of its icon, or, without one, over the middle of its text, which keeps its place
-     * unseen so that the button keeps its width; an icon button shows it in place of its icon. It
-     * takes no press, but keeps its colors, its place in the order of Tab and the focus, so that
-     * nothing jumps when the work ends; Enter and Space on it do nothing and reach no other
-     * handler. A tree dump says {@code busy}, WAI-ARIA's {@code aria-busy}, which a script selects
-     * as {@code role=button busy}. A button that is off is not busy.
-     */
-    public Options busy(boolean busy) {
-      this.busy = busy;
+    /** Whether it takes a press, is busy or is off: {@link State}. */
+    public Options state(State state) {
+      this.state = Objects.requireNonNull(state, "state");
       return this;
     }
 
     /**
-     * False turns the button off while the view keeps its handler, exactly as a null handler
-     * does (see {@link Button}).
+     * The text a busy button shows after its spinner, such as {@code "Saving…"}, while the tree
+     * dump keeps its own text as its label; null, the default, hides the text under the spinner.
+     * The button is as wide as the wider of both texts in either state, so that becoming busy moves
+     * nothing beside it. An icon button, which shows no text, shows none.
      */
-    public Options enabled(boolean enabled) {
-      this.enabled = enabled;
+    public Options busyText(String text) {
+      this.busyText = text;
       return this;
     }
 
     public Options tone(Tone tone) {
       this.tone = Objects.requireNonNull(tone, "tone");
       return this;
+    }
+
+    public Options size(Size size) {
+      this.size = Objects.requireNonNull(size, "size");
+      return this;
+    }
+
+    /**
+     * The key combination that runs the button's action elsewhere, shown after its text in a
+     * tooltip as a menu writes it ({@link Menu#shortcutText}): {@code shortcut(Key.CONTROL |
+     * Key.SHIFT, "C")} shows {@code Ctrl+Shift+C}. It only shows: the app binds the key where it
+     * binds its other keys, as with {@link Menu#shortcuts}. A button with text then shows that
+     * tooltip whether its text is cut short or not.
+     *
+     * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT}
+     *     and {@link Key#META}
+     * @param key the key's name, as {@link Key} lists them: {@code C}, {@code F5}, {@code Delete}
+     */
+    public Options shortcut(int modifiers, String key) {
+      this.shortcut = Menu.Item.combination(modifiers, key);
+      return this;
+    }
+
+    /** A copy, for a toolbar that gives it its item's icon. */
+    Options copy() {
+      Options copy = new Options();
+      copy.icon = icon;
+      copy.state = state;
+      copy.busyText = busyText;
+      copy.tone = tone;
+      copy.size = size;
+      copy.shortcut = shortcut;
+      return copy;
+    }
+
+    /** Whether the options turn a button off. */
+    boolean off() {
+      return state == State.DISABLED;
+    }
+
+    /** The shortcut as a menu writes it, or null. */
+    private String keys() {
+      return shortcut == null ? null : Menu.shortcutText(shortcut);
     }
   }
 
@@ -124,7 +217,7 @@ public final class Button {
   }
 
   /**
-   * A button with an icon before its text, in the text's color.
+   * A button with an icon before its text.
    *
    * @param icon before the text; null for none
    * @param text what the button says, also its label
@@ -135,56 +228,65 @@ public final class Button {
   }
 
   /**
-   * A button that may be busy, as {@link Options#busy} says.
-   *
-   * @param icon before the text; null for none
-   * @param busy whether its action runs
-   * @param onPress runs when the button is pressed; null disables the button, busy or not
-   */
-  public static El button(
-      Variant variant, Symbol icon, String text, boolean busy, Runnable onPress) {
-    return button(variant, text, onPress, options().icon(icon).busy(busy));
-  }
-
-  /**
    * A button with its options.
    *
    * @param text what the button says, also its label
-   * @param onPress runs when the button is pressed; null disables the button
-   * @param options its icon, whether it is busy or off, and its tone
+   * @param onPress runs when the button is pressed; null disables the button unless it is busy
+   * @param options its icon, state, busy text, tone, size and shortcut
    */
   public static El button(Variant variant, String text, Runnable onPress, Options options) {
     Theme theme = Theme.CURRENT.get();
-    Runnable press = options.enabled ? onPress : null;
-    Look look = look(theme, variant, options.tone, press != null);
-    El button = frame(theme, look, text, press)
-        .padding(0, theme.space().l())
+    State state = state(options, onPress);
+    Look look = look(theme, variant, options.tone, state != State.DISABLED);
+    El button = frame(theme, look, options.size, text, state == State.DISABLED)
+        .padding(theme.size().stroke(), padding(theme, options.size))
         .gap(theme.space().s());
-    Theme.TextStyle style = theme.type().strong();
-    // Where the view makes the button narrower than its text, the text ends in an ellipsis and
-    // shows whole in a tooltip.
-    El label = El.text(text)
-        .font(style.font().get())
-        .fontSize(style.size())
-        .color(look.text())
-        .ellipsis()
-        .minSize(0, 0);
-    if (options.busy && press != null) {
-      El spinner = spinner(theme, variant, look);
-      if (options.icon != null) { // in the icon's place
-        button.child(spinner).child(label);
-      } else { // over the middle of the text, which keeps its place unseen: the width stays
-        // Out of the flow and without a place of its own, it lies where the button centers its
-        // content, whatever size the view gives the button.
-        spinner.style().position = Style.Position.ABSOLUTE;
-        button.child(label.opacity(0)).child(spinner);
+    boolean busy = state == State.BUSY;
+    String shown = busy && options.busyText != null ? options.busyText : text;
+    El label = label(theme, look, shown);
+    // The spinner stands in the icon's place.
+    El lead = busy
+        ? spinner(theme, variant, look)
+        : options.icon == null
+            ? null
+            : icon(theme, variant, options.tone, state, look, options.icon);
+    if (options.busyText != null) {
+      El now = row().gap(theme.space().s()).center().minSize(0, 0);
+      if (lead != null) {
+        now.child(lead);
       }
-      return Tooltip.whenShortened(busy(theme, variant, look, button), text);
+      // The other state's content lies unseen under this one and without height, so that the
+      // button is as wide as the wider of both, at whatever scale the window draws it.
+      El other = row().gap(theme.space().s()).h(0).opacity(0).minSize(0, 0);
+      if (!busy) {
+        other.child(el().w(theme.size().icon()).shrink(0)); // the spinner's room
+      } else if (options.icon != null) {
+        other.child(icon(theme, variant, options.tone, state, look, options.icon));
+      }
+      // Without an ellipsis: cut short by a narrow view, it would show the tooltip of a cut text.
+      other.child(text(theme, busy ? text : options.busyText));
+      button.child(col().minSize(0, 0).child(now.child(label)).child(other));
+    } else if (busy && options.icon == null) {
+      // Over the middle of the text, which keeps its place unseen: the width stays. Out of the
+      // flow and without a place of its own, it lies where the button centers its content,
+      // whatever size the view gives the button.
+      lead.style().position = Style.Position.ABSOLUTE;
+      button.child(label.opacity(0)).child(lead);
+    } else {
+      if (lead != null) {
+        button.child(lead);
+      }
+      button.child(label);
     }
-    if (options.icon != null) {
-      button.child(Icon.icon(options.icon).color(look.text()));
-    }
-    return Tooltip.whenShortened(enable(theme, variant, look, button.child(label), press), text);
+    El tipped = busy
+        ? busy(theme, look, button)
+        : enable(theme, look, button, state == State.READY ? onPress : null);
+    // Where the view makes the button narrower than its text, the text ends in an ellipsis and
+    // shows whole in a tooltip, which a shortcut always shows.
+    String keys = options.keys();
+    return keys == null
+        ? Tooltip.whenShortened(tipped, shown)
+        : Tooltip.tooltip(tipped, text, keys);
   }
 
   /**
@@ -202,11 +304,12 @@ public final class Button {
   /**
    * A square button with an icon alone and its options: busy, a spinner stands in place of the
    * icon; with {@link Tone#DANGER} the icon has the tone's color, else it is muted unless the
-   * button is primary.
+   * button is primary; a shortcut follows the label in its tooltip.
    *
    * @param label what the button does, such as "Add connection"
-   * @param onPress runs when the button is pressed; null disables the button
-   * @param options whether it is busy or off, and its tone; no icon, which is {@code icon}
+   * @param onPress runs when the button is pressed; null disables the button unless it is busy
+   * @param options its state, tone, size and shortcut; no icon, which is {@code icon}; a busy
+   *     text does not show
    */
   public static El icon(
       Variant variant, Symbol icon, String label, Runnable onPress, Options options) {
@@ -215,19 +318,66 @@ public final class Button {
       throw new IllegalArgumentException(
           "an icon button's symbol is its parameter, not an option: " + options.icon);
     }
-    Runnable press = options.enabled ? onPress : null;
-    Look look = look(theme, variant, options.tone, press != null);
-    El button = frame(theme, look, label, press).w(theme.size().control());
-    if (options.busy && press != null) {
+    State state = state(options, onPress);
+    Look look = look(theme, variant, options.tone, state != State.DISABLED);
+    El button = frame(theme, look, options.size, label, state == State.DISABLED)
+        .w(height(theme, options.size));
+    if (state == State.BUSY) {
       return Tooltip.tooltip(
-          busy(theme, variant, look, button.child(spinner(theme, variant, look))), label);
+          busy(theme, look, button.child(spinner(theme, variant, look))), label, options.keys());
     }
-    button.child(Icon.icon(icon)
+    button.child(icon(theme, variant, options.tone, state, look, icon));
+    return Tooltip.tooltip(
+        enable(theme, look, button, state == State.READY ? onPress : null), label, options.keys());
+  }
+
+  /** The state a button shows: busy with or without a handler, else off without one. */
+  private static State state(Options options, Runnable onPress) {
+    return options.state == State.BUSY
+        ? State.BUSY
+        : onPress == null ? State.DISABLED : options.state;
+  }
+
+  private static float height(Theme theme, Size size) {
+    return switch (size) {
+      case SMALL -> theme.size().controlSmall();
+      case REGULAR -> theme.size().control();
+      case LARGE -> theme.size().controlLarge();
+    };
+  }
+
+  private static float padding(Theme theme, Size size) {
+    return switch (size) {
+      case SMALL -> theme.space().m();
+      case REGULAR -> theme.space().l();
+      case LARGE -> theme.space().xl();
+    };
+  }
+
+  private static float radius(Theme theme, Size size) {
+    return size == Size.SMALL ? theme.radius().small() : theme.radius().medium();
+  }
+
+  private static El label(Theme theme, Look look, String text) {
+    return text(theme, text).color(look.text()).ellipsis();
+  }
+
+  private static El text(Theme theme, String text) {
+    Theme.TextStyle style = theme.type().strong();
+    return El.text(text).font(style.font().get()).fontSize(style.size()).minSize(0, 0);
+  }
+
+  /**
+   * An icon in the text's color on a primary button, on one that destroys and on one that is off,
+   * else muted beside the text, which it leaves the weight.
+   */
+  private static El icon(
+      Theme theme, Variant variant, Tone tone, State state, Look look, Symbol symbol) {
+    return Icon.icon(symbol)
         .color(
-            variant == Variant.PRIMARY || press == null || options.tone == Tone.DANGER
+            variant == Variant.PRIMARY || tone == Tone.DANGER || state == State.DISABLED
                 ? look.text()
-                : theme.text().muted()));
-    return Tooltip.tooltip(enable(theme, variant, look, button, press), label);
+                : theme.text().muted());
   }
 
   /** The spinner of a busy button, in its text's color. */
@@ -242,15 +392,10 @@ public final class Button {
   }
 
   /** Makes a button busy: focusable, but Enter, Space and the pointer press nothing. */
-  private static El busy(Theme theme, Variant variant, Look look, El button) {
-    return button
-        .busy(true)
+  private static El busy(Theme theme, Look look, El button) {
+    return ring(theme, look, button.busy(true))
         // Enter and Space do nothing, and go no further: to a dialog's default button, say.
-        .onKey(k -> k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("Space")))
-        .focusable()
-        .keepFocus()
-        .focusRing(look.ring())
-        .focusRingGap(variant == Variant.PRIMARY ? theme.size().ringGap() : 0);
+        .onKey(k -> k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("Space")));
   }
 
   /** What a {@link #copy} button copied last, which it confirms for a moment: the app keeps one. */
@@ -282,9 +427,8 @@ public final class Button {
     };
     El button = enable(
         theme,
-        Variant.GHOST,
         look,
-        frame(theme, look, label, press)
+        frame(theme, look, Size.REGULAR, label, false)
             .w(theme.size().control())
             .child(Icon.icon(
                 done ? Symbol.CHECKMARK : Symbol.COPY,
@@ -365,7 +509,7 @@ public final class Button {
     return enabled
         ? button
             .whenHovered(e -> e.fill(over(fill, theme.surface().hover())))
-            .whenPressed(e -> e.fill(over(fill, theme.surface().pressed())))
+            .whenPressed(e -> pressed(theme, e.fill(over(fill, theme.surface().pressed()))))
         : button;
   }
 
@@ -394,11 +538,11 @@ public final class Button {
   /**
    * A split button with its options. Busy, the main half is busy as a {@link #button} is, and the
    * chevron still opens the menu, whose items the app enables as it sees fit (a Cancel, say). Off
-   * ({@link Options#enabled}), both halves are off and there is no menu: one that was open closes.
-   * The tone colors both halves.
+   * ({@link State#DISABLED}), both halves are off and there is no menu: one that was open closes.
+   * The tone and the size apply to both halves, the shortcut to the main one.
    *
-   * @param options the main half's icon, whether it is busy, whether the split button is off, its
-   *     tone
+   * @param options the main half's icon, state, busy text and shortcut, and the tone and size of
+   *     both
    */
   public static El split(
       Variant variant,
@@ -408,26 +552,26 @@ public final class Button {
       List<Menu.Item> items,
       Options options) {
     Theme theme = Theme.CURRENT.get();
-    boolean any = options.enabled && items.stream().anyMatch(Menu.Item::isEnabled);
-    El main = button(variant, text, onPress, options)
-        .key("main")
-        .radius(theme.radius().medium(), 0, 0, theme.radius().medium());
+    boolean off = options.state == State.DISABLED;
+    boolean any = !off && items.stream().anyMatch(Menu.Item::isEnabled);
+    float radius = radius(theme, options.size);
+    El main = button(variant, text, onPress, options).key("main").radius(radius, 0, 0, radius);
     Look look = look(theme, variant, options.tone, any);
     Runnable toggle = any ? state::toggle : null;
-    El more = frame(theme, look, "More " + text, toggle)
+    El more = frame(theme, look, options.size, "More " + text, !any)
         .key("arrow")
-        .w(theme.size().control() - theme.space().xs())
-        .radius(0, theme.radius().medium(), theme.radius().medium(), 0)
+        .w(height(theme, options.size) - theme.space().xs())
+        .radius(0, radius, radius, 0)
         .child(Icon.icon(Select.OPENS).color(look.text()));
     if (variant == Variant.SECONDARY) { // the main half's right edge lies between the two
       more.border(
           theme.size().stroke(), theme.size().stroke(), theme.size().stroke(), 0, look.edge());
     }
-    more = enable(theme, variant, look, more, toggle);
+    more = enable(theme, look, more, toggle);
     if (any) {
       more.expanded(state.isOpen());
       if (state.isOpen()) {
-        more.fill(look.pressed());
+        held(theme, more, look);
       }
       more.onKey(Menu.opener(state, more.onKey(), toggle));
     }
@@ -438,62 +582,163 @@ public final class Button {
           .fill(look(theme, variant, options.tone, true).pressed()));
     }
     whole.child(more);
-    if (!options.enabled) { // off, it has no menu, or one left open would still choose
+    if (off) { // off, it has no menu, or one left open would still choose
       state.close();
       return whole;
     }
     return Menu.dropdown(whole, state, items);
   }
 
-  /** A button's box: role, label, height, corners, fill and edge. */
-  private static El frame(Theme theme, Look look, String label, Runnable onPress) {
+  /**
+   * A button that opens a menu below it, with a chevron after its text, as Export with CSV and
+   * JSON: unlike a {@link #split} button it has no action of its own. Enter, Space, Arrow Down and
+   * Arrow Up open the menu with the first enabled item highlighted, Arrow Up with the last; while
+   * it is open the button stays pressed in. In a tree dump it is {@code role=button} with {@code
+   * expanded} or {@code expanded=false}.
+   *
+   * @param state whether the menu is open, which the button toggles
+   * @param items the menu's items; with none enabled the button is off
+   */
+  public static El menu(Variant variant, String text, Menu.State state, List<Menu.Item> items) {
+    return menu(variant, text, state, items, options());
+  }
+
+  /**
+   * A menu button with its options. Busy or off, it opens nothing, and a menu that was open
+   * closes.
+   *
+   * @param options its icon, state, busy text, tone, size and shortcut
+   */
+  public static El menu(
+      Variant variant, String text, Menu.State state, List<Menu.Item> items, Options options) {
+    Theme theme = Theme.CURRENT.get();
+    Runnable toggle = items.stream().anyMatch(Menu.Item::isEnabled) ? state::toggle : null;
+    State shown = state(options, toggle);
+    Look look = look(theme, variant, options.tone, shown != State.DISABLED);
+    El button = button(variant, text, toggle, options)
+        .child(icon(theme, variant, options.tone, shown, look, Select.OPENS));
+    if (shown != State.READY) {
+      state.close();
+      return button;
+    }
+    button.expanded(state.isOpen());
+    if (state.isOpen()) {
+      held(theme, button, look);
+    }
+    return Menu.dropdown(button, state, items);
+  }
+
+  /**
+   * The menu entry of a button that a toolbar has no room for: its state, tone and shortcut as a
+   * menu shows them.
+   */
+  static Menu.Item entry(String label, Symbol icon, Runnable onPress, Options options) {
+    Menu.Item entry = Menu.item(label, state(options, onPress) == State.READY ? onPress : null);
+    if (icon != null) {
+      entry = entry.icon(icon);
+    }
+    if (options.tone == Tone.DANGER) {
+      entry = entry.danger();
+    }
+    return options.shortcut == null ? entry : entry.shortcut(options.keys());
+  }
+
+  /** A button's box: role, label, height, corners, fill, edge and shadow. */
+  private static El frame(Theme theme, Look look, Size size, String label, boolean off) {
     return row()
         .role("button")
         .label(label)
-        .disabled(onPress == null)
-        .h(theme.size().control())
+        .disabled(off)
+        // A press leaves the focus in the editor or grid the button acts on, also on one that is
+        // off, which would else pass the press to an ancestor that takes the focus.
+        .keepFocus()
+        .h(height(theme, size))
         .shrink(0)
         .center()
-        .radius(theme.radius().medium())
+        // Room for the content to move down while pressed, in the same box.
+        .padding(theme.size().stroke(), 0)
+        .radius(radius(theme, size))
         .fill(look.fill())
         .border(theme.size().stroke(), look.edge())
+        .shadow(look.rest())
         .motion(theme.motion().feedback());
   }
 
+  /** Focusable by the keyboard, with its ring apart from it. */
+  private static El ring(Theme theme, Look look, El button) {
+    return button
+        .focusable()
+        // The surface behind the button shows between it and its ring.
+        .focusRing(look.ring())
+        .focusRingGap(theme.size().ringGap());
+  }
+
   /** Makes a button pressable, unless {@code onPress} is null. */
-  private static El enable(Theme theme, Variant variant, Look look, El button, Runnable onPress) {
+  private static El enable(Theme theme, Look look, El button, Runnable onPress) {
     if (onPress == null) {
       return button;
     }
-    return button
-        .focusable()
-        .keepFocus() // a press leaves the focus in the editor or grid the button acts on
-        .focusRing(look.ring())
-        // Around the accent's fill, the surface behind the button shows between fill and ring.
-        .focusRingGap(variant == Variant.PRIMARY ? theme.size().ringGap() : 0)
+    return ring(theme, look, button)
         .cursor(Cursor.POINTER)
         .onPress(onPress)
-        .whenHovered(e -> e.fill(look.hover()))
-        .whenPressed(e -> e.fill(look.pressed()));
+        .whenHovered(e -> e.fill(look.hover()).shadow(look.lifted()))
+        .whenPressed(e -> pressed(theme, e.fill(look.pressed())));
+  }
+
+  /**
+   * A pressed button's shape: no shadow, its rounded corners tightened to the small radius, and
+   * its content one stroke lower in the same box.
+   */
+  private static El pressed(Theme theme, El button) {
+    float[] corners = button.radii();
+    float small = theme.radius().small();
+    float stroke = theme.size().stroke();
+    button.style().paddingTop = Len.px(2 * stroke);
+    button.style().paddingBottom = Len.ZERO;
+    return button
+        .shadow()
+        .radius(
+            Math.min(corners[0], small),
+            Math.min(corners[1], small),
+            Math.min(corners[2], small),
+            Math.min(corners[3], small));
+  }
+
+  /**
+   * A button that stays pressed in while its menu is open, also under the pointer, and shows no
+   * tooltip over the menu.
+   */
+  private static void held(Theme theme, El button, Look look) {
+    Consumer<El> in = e -> pressed(theme, e.fill(look.pressed()));
+    in.accept(button);
+    button.whenHovered(in).whenHoveredFor(0, null).whenFocusVisibleFor(0, null);
   }
 
   private static Look look(Theme theme, Variant variant, Tone tone, boolean enabled) {
     Theme.Surfaces s = theme.surface();
+    List<Shadow> rest = theme.elevation().control();
+    List<Shadow> lifted = theme.elevation().controlHover();
+    List<Shadow> none = List.of();
     if (!enabled) {
-      return variant == Variant.GHOST
-          ? new Look(0, 0, 0, 0, theme.text().disabled(), 0)
-          : new Look(
-              s.raised(),
-              s.raised(),
-              s.raised(),
-              theme.border().control(),
-              theme.text().disabled(),
-              0);
+      int text = theme.text().disabled();
+      return switch (variant) {
+        // A pale tint of its fill, so that it still reads as the main action.
+        case PRIMARY -> {
+          int fill =
+              tone == Tone.DANGER ? theme.danger().disabled() : theme.accent().selection();
+          yield new Look(fill, fill, fill, 0, text, 0, none, none);
+        }
+        case SECONDARY ->
+          new Look(
+              s.raised(), s.raised(), s.raised(), theme.border().control(), text, 0, none, none);
+        case GHOST -> new Look(0, 0, 0, 0, text, 0, none, none);
+      };
     }
     if (tone == Tone.DANGER) {
       Theme.Danger d = theme.danger();
       return switch (variant) {
-        case PRIMARY -> new Look(d.color(), d.hover(), d.pressed(), 0, d.onColor(), d.ring());
+        case PRIMARY ->
+          new Look(d.color(), d.hover(), d.pressed(), 0, d.onColor(), d.ring(), rest, lifted);
         case SECONDARY ->
           new Look(
               s.raised(),
@@ -501,8 +746,10 @@ public final class Button {
               over(s.raised(), s.pressed()),
               d.edge(),
               d.text(),
-              d.ring());
-        case GHOST -> new Look(0, s.hover(), s.pressed(), 0, d.text(), d.ring());
+              d.ring(),
+              rest,
+              lifted);
+        case GHOST -> new Look(0, s.hover(), s.pressed(), 0, d.text(), d.ring(), none, none);
       };
     }
     int ring = theme.accent().edge();
@@ -514,7 +761,9 @@ public final class Button {
             theme.accent().pressed(),
             0,
             theme.text().onAccent(),
-            ring);
+            ring,
+            rest,
+            lifted);
       case SECONDARY ->
         new Look(
             s.raised(),
@@ -522,9 +771,12 @@ public final class Button {
             over(s.raised(), s.pressed()),
             theme.border().control(),
             theme.text().primary(),
-            ring);
+            ring,
+            rest,
+            lifted);
       // The overlays are translucent, so a ghost button shows whatever it lies on.
-      case GHOST -> new Look(0, s.hover(), s.pressed(), 0, theme.text().primary(), ring);
+      case GHOST ->
+        new Look(0, s.hover(), s.pressed(), 0, theme.text().primary(), ring, none, none);
     };
   }
 }

@@ -619,7 +619,10 @@ public final class DataBrowser {
             Button.Variant.GHOST,
             "Revert",
             state.changes::clear,
-            Button.options().icon(Symbol.ARROW_UNDO).enabled(changed != 0).tone(Button.Tone.DANGER))
+            Button.options()
+                .icon(Symbol.ARROW_UNDO)
+                .state(changed != 0 ? Button.State.READY : Button.State.DISABLED)
+                .tone(Button.Tone.DANGER))
         .key("revert");
     El commit = button(
             Button.Variant.PRIMARY,

@@ -77,7 +77,7 @@ class DocsExamplesTest {
     Map<String, Example> all = new LinkedHashMap<>();
     all.put("lights", new Example(t -> new App<>(new Lights(), Lights::view), 360, 240));
     controls(all, "buttons", Controls::buttons, 520, 120);
-    controls(all, "button-options", Controls::buttonOptions, 420, 120);
+    controls(all, "button-options", Controls::buttonOptions, 420, 170);
     controls(all, "toggles", Controls::toggles, 240, 110);
     controls(all, "choices", Controls::choices, 320, 260);
     controls(all, "swatches", Controls::swatches, 460, 140);

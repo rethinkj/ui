@@ -1155,10 +1155,11 @@ final class Sections {
             .align(Style.Align.CENTER)
             .child(Button.button(
                     PRIMARY,
-                    Symbol.ARROW_DOWNLOAD,
                     state.downloading ? "Downloading" : "Download",
-                    state.downloading,
-                    state::startDownload)
+                    state::startDownload,
+                    Button.options()
+                        .icon(Symbol.ARROW_DOWNLOAD)
+                        .state(state.downloading ? Button.State.BUSY : Button.State.READY))
                 .key("start"))
             .child(button(SECONDARY, "Let it fail", state.downloading ? state::failDownload : null)
                 .key("fail")));
@@ -1186,8 +1187,16 @@ final class Sections {
         row()
             .gap(theme.space().m())
             .align(Style.Align.CENTER)
-            .child(Button.button(PRIMARY, Symbol.PLAY, "Running", true, () -> {}))
-            .child(Button.button(SECONDARY, Symbol.ARROW_CLOCKWISE, "Refreshing", true, () -> {})));
+            .child(Button.button(
+                PRIMARY,
+                "Running",
+                null,
+                Button.options().icon(Symbol.PLAY).state(Button.State.BUSY)))
+            .child(Button.button(
+                SECONDARY,
+                "Refreshing",
+                null,
+                Button.options().icon(Symbol.ARROW_CLOCKWISE).state(Button.State.BUSY))));
     // A query that runs: the line lies over the top of the results, under the toolbar.
     El results = col()
         .grow(1)
@@ -1198,7 +1207,11 @@ final class Sections {
             Card.toolbar(
                 "orders by month.sql",
                 "running",
-                Button.button(PRIMARY, Symbol.PLAY, "Run", true, () -> {})),
+                Button.button(
+                    PRIMARY,
+                    "Run",
+                    null,
+                    Button.options().icon(Symbol.PLAY).state(Button.State.BUSY))),
             Divider.divider(),
             el().h(0).child(Progress.line().absolute(0, 0)),
             results)
