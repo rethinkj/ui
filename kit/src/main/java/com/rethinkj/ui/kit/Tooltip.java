@@ -231,7 +231,6 @@ public final class Tooltip {
         .role("tooltip")
         .label(label)
         .inert() // it only shows, also content of the view's own with links
-        .keepFocus()
         .align(Style.Align.START)
         .gap(theme.space().s())
         .padding(theme.space().s(), theme.space().m())

@@ -949,7 +949,7 @@ class OverlayTest {
   }
 
   @Test
-  void anInertOverlayLetsPressesThroughAndTabPassesIt() {
+  void anInertOverlayTakesNoFocusNoPressesAndNoKeys() {
     State s = new State();
     App<State> app = app(
         s,
@@ -961,22 +961,30 @@ class OverlayTest {
                     el().key("after")
                         .size(40, 20)
                         .focusable()
-                        .overlay(col()
-                            .key("tip")
-                            .inert()
-                            .keepFocus()
-                            .child(el().key("link")
-                                .size(40, 20)
-                                .focusable()
-                                .onPress(() -> st.log.add("link"))))))
+                        .overlay(
+                            st.open
+                                ? col()
+                                    .key("tip")
+                                    .inert()
+                                    .onAnyKeyDown(k -> st.log.add("key"))
+                                    .onAnyPointerDown(() -> st.log.add("pointer"))
+                                    .child(el().key("link")
+                                        .size(40, 20)
+                                        .focusable()
+                                        .onPress(() -> st.log.add("link")))
+                                : null)))
             .child(el().key("below").size(200, 100).focusable().onPress(() -> st.log.add("below"))),
         200,
         200);
+    press(app, 20, 10);
+    s.open = true;
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "it opened without taking the focus");
     press(app, 50, 30); // on the link, over the element below
-    assertEquals(List.of("below"), s.log);
     press(app, 60, 10);
     key(app, "Tab", 0);
     assertEquals("below", app.focused().key(), "Tab passes the link by");
+    assertEquals(List.of("below"), s.log);
   }
 
   @Test

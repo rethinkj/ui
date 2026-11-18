@@ -1317,11 +1317,13 @@ public final class Script {
         if (!why.isEmpty()) {
           throw fail("What matches " + text + " is " + String.join(", or ", why)
               + " in the last frame, so it takes no input."
-              + (why.equals(List.of("at opacity 0"))
-                  ? " The view gives it that opacity."
-                  : " An element with motion that appears fades in from opacity 0, and one that"
+              + (why.stream().anyMatch(w -> w.startsWith("fading"))
+                  ? " An element with motion that appears fades in from opacity 0, and one that"
                       + " leaves fades out; the clock moves only with `advance`, so run"
-                      + " `advance 1` and `frame` first."));
+                      + " `advance 1` and `frame` first."
+                  : why.equals(List.of("inert"))
+                      ? " The view makes it inert (El.inert), as a tooltip is."
+                      : " The view gives it that opacity."));
         }
       }
       if (matches.isEmpty()) {

@@ -2643,8 +2643,9 @@ public final class El {
   /**
    * Makes this element and everything inside it take no input, as HTML's {@code inert}: presses,
    * the wheel and the pointer go to what lies beneath it, and neither Tab nor a press focuses
-   * anything inside it. It still shows, and a tree dump lists it. A tooltip is so, also where its
-   * content has links or a scroll area: it only shows them.
+   * anything inside it, also not as an overlay opens. It still shows, and a tree dump lists it. A
+   * tooltip is so, also where its content has links or a scroll area: it only shows them. An
+   * overlay attached inside it takes input unless it is inert too.
    */
   public El inert() {
     this.inert = true;

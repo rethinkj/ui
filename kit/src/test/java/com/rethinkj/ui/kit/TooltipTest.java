@@ -66,8 +66,9 @@ class TooltipTest {
             .gap(40)
             .child(Tooltip.whenShortened(El.text("C").key("c"), "C"))
             .child(Tooltip.tooltip(El.el().key("a").size(20, 20), "A"))
-            .child(Tooltip.tooltip(El.el().key("b").size(20, 20), "B")));
-    Script.run("size 200 100\nframe\nmove #c\nframe\nadvance 0.5\nframe\nmove #a\nframe", app, out);
+            .child(Tooltip.tooltip(El.el().key("b").size(20, 20), "B"))
+            .child(Tooltip.whenShortened(El.text("D is cut").ellipsis().w(20).key("d"), "D")));
+    Script.run("size 240 100\nframe\nmove #c\nframe\nadvance 0.5\nframe\nmove #a\nframe", app, out);
     assertFalse(app.tree().dump().contains("role=tooltip"), "C's text fits: nothing showed");
     Script.run("advance 0.5\nframe", app, out);
     assertTrue(app.tree().dump().contains("role=tooltip label=\"A\""));
@@ -75,6 +76,10 @@ class TooltipTest {
     assertTrue(app.tree().dump().contains("role=tooltip label=\"B\""), "at once after A's");
     Script.run("press #b\nframe\nmove #a\nframe", app, out);
     assertFalse(app.tree().dump().contains("role=tooltip label=\"A\""), "a press ends that");
+    Script.run("move #d\nframe\nadvance 0.5\nframe", app, out);
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"D\""));
+    Script.run("move #a\nframe", app, out);
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"A\""), "at once after D's");
   }
 
   @Test

@@ -314,14 +314,14 @@ public final class App<S> {
 
   /**
    * Since when the pointer has been over an element; whether its onHoverFor handler has run;
-   * whether its whenHoveredFor look shows at once, as another one's has just gone; whether that
-   * look attached overlays.
+   * whether its whenHoveredFor look shows at once, as another one's has just gone; the overlays
+   * that look attached to the tree on screen.
    */
   private static final class Rest {
     double since;
     boolean ran;
     boolean warm;
-    boolean shown;
+    List<El> attached = List.of();
 
     Rest(double since) {
       this.since = since;
@@ -668,7 +668,7 @@ public final class App<S> {
   }
 
   private static void anyKeyDown(El el, List<Consumer<Key>> handlers) {
-    if (el.isExiting()) {
+    if (el.isExiting() || el.isInert()) {
       return; // it takes no input
     }
     if (el.onAnyKeyDown() != null) {
@@ -680,7 +680,7 @@ public final class App<S> {
   }
 
   private static void anyPointerDown(El el, Set<El> hit, List<Runnable> handlers) {
-    if (el.isExiting()) {
+    if (el.isExiting() || el.isInert()) {
       return; // it takes no input
     }
     if (el.onAnyPointerDown() != null) {
@@ -728,7 +728,7 @@ public final class App<S> {
     }
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
-      rest.shown = false;
+      rest.attached = List.of();
     }
     lookLeft = Double.NEGATIVE_INFINITY;
   }
@@ -3937,7 +3937,10 @@ public final class App<S> {
         .removeIf(
             stay -> { // a stay ends when the pointer leaves
               boolean left = !ids.contains(stay.getKey());
-              if (left && stay.getValue().shown) {
+              // Only one that showed: a cut text's tooltip shows only while the text is cut.
+              if (left
+                  && root != null
+                  && !Collections.disjoint(root.shownOverlays(), stay.getValue().attached)) {
                 lookLeft = time;
               }
               return left;
@@ -3983,7 +3986,7 @@ public final class App<S> {
     if (rest == null || lookDue(rest, el) > time) {
       return false;
     }
-    rest.shown |= delayedLook(el, el.restLook(), "whenHoveredFor");
+    rest.attached = delayedLook(el, el.restLook(), "whenHoveredFor");
     return true;
   }
 
@@ -3996,18 +3999,16 @@ public final class App<S> {
    * Applies a look that waited for a stay; the overlays it attaches, such as a tooltip, avoid
    * covering their anchor, under the pointer that would leave the anchor for them and hide them.
    *
-   * @return whether it attached overlays that show whether or not a text is cut ({@link
-   *     El#whenShortened}), which layout decides only later
+   * @return the overlays it attached
    */
-  private static boolean delayedLook(El el, Consumer<El> look, String name) {
+  private static List<El> delayedLook(El el, Consumer<El> look, String name) {
     int before = el.overlays().size();
     el.apply(look, name);
-    boolean shows = false;
-    for (El overlay : el.overlays().subList(before, el.overlays().size())) {
+    List<El> attached = List.copyOf(el.overlays().subList(before, el.overlays().size()));
+    for (El overlay : attached) {
       overlay.placement().avoidsAnchor = true;
-      shows |= !overlay.placement().whenShortened;
     }
-    return shows;
+    return attached;
   }
 
   /**
