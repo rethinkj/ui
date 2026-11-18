@@ -363,6 +363,7 @@ public final class Toolbar {
         Menu.item(item.label, item.onToggle == null ? null : () -> item.onToggle.accept(!item.on))
             .checked(item.on);
       case SPLIT -> {
+        item.menu.close(); // off the bar, its menu would else open again when it comes back
         if (item.with(item.icon).off()) { // as the split button, its entry opens no menu
           yield Button.entry(item.label, item.icon, null, item.with(item.icon));
         }
