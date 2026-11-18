@@ -62,7 +62,7 @@ import java.util.function.Predicate;
  * <p>Each level is indented by {@link Theme.Spacing#l}, and a hairline in {@link
  * Theme.Borders#divider} runs below the mark of every open node through the rows it holds. The
  * selected row has a short bar in the accent's edge at its start, as a {@link NavList}'s item, and
- * a mark brightens to the primary text color under the pointer.
+ * a mark that opens and closes its node brightens to the primary text color under the pointer.
  *
  * <p>In a tree dump the tree is {@code role=tree}, and its rows are {@code role=treeitem} with the
  * node's label and the key {@code row-<key>}, where the key is the model's {@link Model#key}, or
@@ -142,8 +142,8 @@ public final class Tree {
      * The key of the node's row, which a script finds at {@code #row-<key>} and its mark at
      * {@code #mark-<key>} however the nodes above it open or close; null, the default, keys the
      * row by its index. Asked only for the rows that are built. Unique among the nodes shown,
-     * without spaces, which end a key in a script, and not a number alone, which a loading row's
-     * key could be.
+     * without spaces or double quotes, which a script reads as the key's end, and not a number
+     * alone, which a loading row's key could be.
      */
     default String key(N node) {
       return null;

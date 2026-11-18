@@ -31,7 +31,7 @@ Javadoc: [`Tree`](/api/com/rethinkj/ui/kit/Tree.html), [`Tree.Model`](/api/com/r
 | `onActivate(handler)` | Enter or a double press on a node, such as opening a table |
 | `toggleOnDoublePress(predicate)` | Whether a double press also opens or closes the node; all nodes by default. Say no for tables that a double press opens, so that their columns stay closed |
 
-A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(tree, menuState, items)` acts on the row it opened on. The tree's rows are rounded; in a card, wrap it in `Card.inset(tree)`. Each level is indented by the theme's `space().l()`, and a hairline runs below the mark of each open node through what it holds. The selected row has a short accent bar at its start, as in a [NavList](/docs/components/nav-list), and a mark brightens under the pointer. The tree scrolls to keep the selection in view, and scrolls the children of a node that opens into view. The marks are icons and need `rethinkj-ui-icons`.
+A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(tree, menuState, items)` acts on the row it opened on. The tree's rows are rounded; in a card, wrap it in `Card.inset(tree)`. Each level is indented by the theme's `space().l()`, and a hairline runs below the mark of each open node through what it holds. The selected row has a short accent bar at its start, as in a [NavList](/docs/components/nav-list), and a mark brightens under the pointer where `onToggle` is given. The tree scrolls to keep the selection in view, and scrolls the children of a node that opens into view. The marks are icons and need `rethinkj-ui-icons`.
 
 ## The model
 
@@ -46,7 +46,7 @@ The app's nodes reach the tree through `Tree.Model`:
 | `icon(node)` | An element before the label, such as an icon; null by default |
 | `detail(node)` | A muted text after the label, such as a column's type or a schema's number of tables; null by default |
 | `muted(node)` | Whether the label is muted, as for a system schema beside the app's own; false by default |
-| `key(node)` | The key of the node's row, unique among the nodes shown, without spaces and not a number alone; null by default, which keys a row by its index |
+| `key(node)` | The key of the node's row, unique among the nodes shown, without spaces or double quotes and not a number alone; null by default, which keys a row by its index |
 
 `detail`, `muted` and `key` are called only for the rows in view.
 
