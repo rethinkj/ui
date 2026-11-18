@@ -235,11 +235,6 @@ public final class CodeEditor {
       return this;
     }
 
-    /** The markers the app set. */
-    public List<Marker> markers() {
-      return markers;
-    }
-
     /**
      * Shows {@code diagnostics} about {@code text}, in place of those before, while the editor's
      * value is {@code text}: after an edit they go, and they come back with an undo to it. Each
@@ -259,11 +254,6 @@ public final class CodeEditor {
     /** Shows no diagnostics. */
     public State noDiagnostics() {
       return diagnostics(null, List.of());
-    }
-
-    /** The diagnostics the app set, whether they show or not. */
-    public List<Diagnostic> diagnostics() {
-      return diagnostics;
     }
 
     /** The diagnostics that show with {@code value}: those about it. */

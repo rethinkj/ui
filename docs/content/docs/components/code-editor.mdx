@@ -79,8 +79,8 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 | --- | --- |
 | `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
 | `select(caret, anchor)` | Put the caret or a selection there and scroll it into view at the next build, also while the editor is away, as in a tab that is not shown |
-| `diagnostics(text, list)`, `noDiagnostics()`, `diagnostics()` | Show `CodeEditor.Diagnostic(from, to, severity, message)`s about `text` while the value is `text`: underlined, with a marker and its message as tooltip |
-| `markers(list)`, `markers()` | Show `CodeEditor.Marker(at, symbol, tone, label, onPress)`s in the gutter at the lines of their positions; `onPress` may be null |
+| `diagnostics(text, list)`, `noDiagnostics()` | Show `CodeEditor.Diagnostic(from, to, severity, message)`s about `text` while the value is `text`: underlined, with a marker and its message as tooltip |
+| `markers(list)` | Show `CodeEditor.Marker(at, symbol, tone, label, onPress)`s in the gutter at the lines of their positions; `onPress` may be null |
 | `block(from, to)`, `noBlock()` | Mark the lines of a range on the rail, such as the statement Control+Enter would run |
 | `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
 | `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |

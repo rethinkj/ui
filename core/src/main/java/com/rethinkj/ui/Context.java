@@ -65,6 +65,15 @@ public final class Context<T> {
     return (index, from, to) -> in(values, () -> row.row(index, from, to));
   }
 
+  /** The gutter, made to build its cells in the values that hold now. */
+  static El.Gutter captured(El.Gutter gutter) {
+    if (!VALUES.isBound()) {
+      return gutter;
+    }
+    Map<Context<?>, Object> values = VALUES.get();
+    return line -> in(values, () -> gutter.cell(line));
+  }
+
   /** The look, or null, made to apply in the values that hold now. */
   static Consumer<El> captured(Consumer<El> look) {
     if (look == null || !VALUES.isBound()) {

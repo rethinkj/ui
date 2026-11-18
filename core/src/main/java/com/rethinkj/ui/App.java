@@ -3301,7 +3301,7 @@ public final class App<S> {
         looked |= gutterLooks(field, entry.getKey());
       }
     }
-    // Placed beside carets, which are placed now, or of gutter cells that took a look.
+    // Placed beside carets, which are placed now, or of gutter cells whose looks changed.
     if (caretOverlays || looked) {
       Overlays.place(root, width, height);
     }
@@ -3310,16 +3310,17 @@ public final class App<S> {
   /**
    * Applies the looks of the moment to the cells a field's gutter has just built, after layout, as
    * {@link #rowLooks} does to a list's rows: those under the pointer take their hover look and
-   * their {@link El#whenHoveredFor} look once it is due, such as a marker's tooltip.
+   * their {@link El#whenHoveredFor} look once it is due, such as a marker's tooltip; those the
+   * old cells had go with them.
    *
-   * @return whether a cell took a look
+   * @return whether a cell took a look or the old cells had one, so that the overlays move
    */
   private boolean gutterLooks(El field, Object fieldId) {
     boolean took = false;
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
-    hovered.removeIf(id -> Animator.isBelow(id, fieldId));
-    rested.removeIf(id -> Animator.isBelow(id, fieldId));
+    boolean dropped = hovered.removeIf(id -> Animator.isBelow(id, fieldId))
+        | rested.removeIf(id -> Animator.isBelow(id, fieldId)); // not ||
     for (Object id : pointedIds()) {
       if (Animator.isBelow(id, fieldId)) {
         El el = Animator.find(field, fieldId, id);
@@ -3347,7 +3348,7 @@ public final class App<S> {
         shown.within(),
         shown.pressed(),
         shown.hoversRun());
-    return took;
+    return took || dropped;
   }
 
   /**
@@ -3667,8 +3668,9 @@ public final class App<S> {
 
   /**
    * Whether the element with this identity is not in the current tree, or it or an element above
-   * it is leaving; false for null, and before the lists have built their rows for one in a row
-   * that its list could build but does not have yet.
+   * it is leaving; false for null, before the lists have built their rows for one in a row that
+   * its list could build but does not have yet, and for one in the gutter of a field there, whose
+   * cells are built after layout: the release finds the cell or not.
    */
   private boolean gone(Object id, boolean rowsBuilt) {
     if (id == null) {
@@ -3678,11 +3680,16 @@ public final class App<S> {
     if (in != null && !in.list().hasRow(in.row())) {
       return rowsBuilt || in.row() >= in.list().rowCount();
     }
+    El above = null;
     for (Object at : Animator.lineage(id)) {
       El el = animator.element(at);
-      if (el == null || el.isExiting()) {
+      if (el == null) {
+        return above == null || !above.hasGutter();
+      }
+      if (el.isExiting()) {
         return true;
       }
+      above = el;
     }
     return false;
   }

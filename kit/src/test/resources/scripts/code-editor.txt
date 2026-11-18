@@ -21,7 +21,9 @@ frame
 advance 1
 frame
 snap tooltip           # its label, as a tooltip
-press role=button label="Run statement"
+down role=button label="Run statement"
+frame                  # the press takes the tooltip away: the view builds again before the release
+up role=button label="Run statement"
 frame
 snap ran               # it ran, and the caret stayed where it was
 

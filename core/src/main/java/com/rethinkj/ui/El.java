@@ -1490,12 +1490,17 @@ public final class El {
       throw new IllegalStateException(
           "gutter is for multi-line fields: call it after multiline().");
     }
-    this.gutter = Objects.requireNonNull(cells, "cells");
+    this.gutter = Context.captured(Objects.requireNonNull(cells, "cells"));
     this.gutterRail = rail;
     if (rail != null && rail.key == null) {
       rail.key("rail");
     }
     return this;
+  }
+
+  /** For {@link App}: whether this field has a gutter, whose cells are built after layout. */
+  boolean hasGutter() {
+    return gutter != null;
   }
 
   /** For {@link App}: whether the gutter's cells were built since it last asked. */

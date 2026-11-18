@@ -117,7 +117,7 @@ class CodeEditorTest {
         Files.readString(out.resolve("tooltip.tree.txt"))
             .contains("role=tooltip label=\"Run statement\""),
         "the marker's tooltip: " + Files.readString(out.resolve("tooltip.tree.txt")));
-    assertEquals(1, app.state().runs, "a press on the marker runs it");
+    assertEquals(1, app.state().runs, "a press on the marker runs it, across frames");
     assertTrue(
         Files.readString(out.resolve("ran.tree.txt")).contains(" focused caret " + after + " "),
         "the editor keeps the focus and the caret");
