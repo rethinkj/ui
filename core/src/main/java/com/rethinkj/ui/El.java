@@ -1322,6 +1322,29 @@ public final class El {
   }
 
   /**
+   * The bracket of this text's string just before {@code caret}, or else just after it, and the
+   * one that matches it, as indexes into the string as the element shows it: empty where there is
+   * none, and the one bracket where its partner is missing or more than 100 000 characters away.
+   * Brackets are {@code ( ) [ ] { }}, and nesting counts per kind. Where the {@link #highlight
+   * highlighter} {@link Highlighter#marksBrackets marks brackets}, only those it marks ({@link
+   * Spans#bracket}) count, so that one in a string or a comment pairs with none; otherwise every
+   * bracket of the string does.
+   *
+   * <p>A {@link #multiline} field with a {@link #fieldState} whose field showed this string reads
+   * what the highlighter said about the lines from the field's own highlighting and asks it only
+   * about lines it was not asked about yet, as far as the search reaches; otherwise the
+   * highlighter is asked about the lines up to the search's end on each call.
+   */
+  public int[] matchingBracket(int caret) {
+    Text t = textOnly("matchingBracket");
+    Editor editor = fieldState == null ? null : fieldState.editor;
+    Lines lines = editor == null ? null : editor.linesOf(t.value());
+    String text =
+        lines != null ? editor.text() : t.multiline() ? Editor.multiLine(t.value()) : t.value();
+    return Brackets.matching(text, caret, lines, t.highlighter(), t.highlightKey());
+  }
+
+  /**
    * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
    * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
    * error. The decorator is asked about each line in view and a few around it whenever the field

@@ -188,6 +188,14 @@ final class Editor {
     return lines;
   }
 
+  /**
+   * The lines of a multi-line field's text while {@code value}, a string the view gives, is that
+   * text with line feeds only; null otherwise.
+   */
+  Lines linesOf(String value) {
+    return lines != null && (value == text || normalized(value).equals(text)) ? lines : null;
+  }
+
   /** For tests: the lines of a multi-line field's text, and how many the field shaped. */
   Lines lineIndex() {
     return lines;

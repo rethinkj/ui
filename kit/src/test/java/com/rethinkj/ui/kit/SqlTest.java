@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +34,7 @@ class SqlTest {
       state = sql.line(line, state, spans);
       StringBuilder tokens = new StringBuilder();
       for (String range : spans.toString().split("\n")) {
-        if (range.isEmpty()) {
+        if (range.isEmpty() || range.startsWith("bracket")) {
           continue;
         }
         String[] parts = range.split(" ");
@@ -123,14 +125,29 @@ class SqlTest {
     assertNull(SQL.line("end */", state, new Spans(6)));
   }
 
+  private static int[] matching(Highlighter highlighter, String text, int caret) {
+    El field = El.text(text).editable(value -> {}).multiline();
+    return (highlighter == null ? field : field.highlight(highlighter, highlighter))
+        .matchingBracket(caret);
+  }
+
   @Test
-  void bracketsMatchAcrossNesting() {
+  void bracketsMatchAcrossNestingOutsideStringsAndComments() {
     String text = "f(a, (b), [c])";
-    assertArrayEquals(new int[] {1, 13}, CodeEditor.matching(text, 2), "after the caret's left");
-    assertArrayEquals(new int[] {13, 1}, CodeEditor.matching(text, 14), "before the caret");
-    assertArrayEquals(new int[] {5, 7}, CodeEditor.matching(text, 5), "the one after the caret");
-    assertArrayEquals(new int[0], CodeEditor.matching(text, 3));
-    assertArrayEquals(new int[] {0}, CodeEditor.matching("(a", 0), "no partner");
+    assertArrayEquals(new int[] {1, 13}, matching(SQL, text, 2), "after the caret's left");
+    assertArrayEquals(new int[] {13, 1}, matching(SQL, text, 14), "before the caret");
+    assertArrayEquals(new int[] {5, 7}, matching(SQL, text, 5), "the one after the caret");
+    assertArrayEquals(new int[0], matching(SQL, text, 3));
+    assertArrayEquals(new int[] {0}, matching(SQL, "(a", 0), "no partner");
+    String quoted = "SELECT f(')')";
+    assertArrayEquals(new int[] {8, 12}, matching(SQL, quoted, 9), "not the one in the string");
+    assertArrayEquals(new int[0], matching(SQL, quoted, 11), "the one in the string pairs none");
+    assertArrayEquals(new int[] {10, 8}, matching(null, quoted, 11), "without a highlighter: all");
+    String commented = "f(a -- )\n/* ( */ )";
+    assertArrayEquals(new int[] {1, 17}, matching(SQL, commented, 2), "across comments");
+    Sql mysql = new Sql(C, Sql.Dialect.MYSQL);
+    assertArrayEquals(
+        new int[] {1, 10}, matching(mysql, "f(`)` # )\n)", 2), "MySQL's identifiers, comments");
   }
 
   @Test
@@ -179,7 +196,7 @@ class SqlTest {
   private static int[] colors(Spans spans, int length) {
     int[] out = new int[length];
     for (String line : spans.toString().split("\n")) {
-      if (line.isEmpty()) {
+      if (line.isEmpty() || line.startsWith("bracket")) {
         continue;
       }
       String[] parts = line.split(" ");

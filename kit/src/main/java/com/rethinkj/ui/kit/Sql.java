@@ -8,10 +8,12 @@ import java.util.Set;
 /**
  * A {@link Highlighter} of SQL in the colors of {@link Theme.Code}: keywords, strings with doubled
  * quotes ({@code 'it''s'}), PostgreSQL's dollar-quoted strings ({@code $$...$$}, {@code
- * $fn$...$fn$}), numbers and parameters ({@code $1}), line comments ({@code --}), block comments, nested as in PostgreSQL,
- * and operators, brackets and punctuation. Identifiers in double quotes keep the text's color, and
- * a keyword inside them is none. Strings, quoted identifiers, dollar-quoted strings and block
- * comments go on across lines, which the state of a line carries.
+ * $fn$...$fn$}), numbers and parameters ({@code $1}), line comments ({@code --}), block comments,
+ * nested as in PostgreSQL, and operators, brackets and punctuation. It marks the brackets outside
+ * strings, identifiers in quotes and comments ({@link Spans#bracket}), which the editor pairs.
+ * Identifiers in double quotes keep the text's color, and a keyword inside them is none. Strings,
+ * quoted identifiers, dollar-quoted strings and block comments go on across lines, which the
+ * state of a line carries.
  *
  * <p>A record, so that two highlighters of the same colors are equal and a field keeps what it
  * asked of one while the view passes it again: {@code field.highlight(sql, sql)}. It scans each
@@ -20,8 +22,7 @@ import java.util.Set;
  * <p>The {@link Dialect} says how the database writes what differs: {@link Dialect#POSTGRES}, the
  * default, as above; {@link Dialect#MYSQL} for MySQL and MariaDB.
  */
-public record Sql(Theme.Code colors, Dialect dialect)
-    implements Highlighter, CodeEditor.LineComments {
+public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
 
   /** How a database writes identifiers, strings and comments. */
   public enum Dialect {
@@ -79,6 +80,7 @@ public record Sql(Theme.Code colors, Dialect dialect)
   private static final State IN_BACKTICK = new State(BACKTICK, 0, null);
 
   private static final String OPERATORS = "+-*/%<>=!~^&|#@:;,.()[]{}";
+  private static final String BRACKETS = "()[]{}";
 
   /** The keywords of SQL and PostgreSQL that queries and definitions use most, and the types. */
   static final Set<String> KEYWORDS = Set.of(
@@ -332,6 +334,9 @@ public record Sql(Theme.Code colors, Dialect dialect)
             }
           } else if (OPERATORS.indexOf(c) >= 0) {
             out.color(i, i + 1, colors.operator());
+            if (BRACKETS.indexOf(c) >= 0) {
+              out.bracket(i);
+            }
             i++;
           } else {
             i++;
@@ -416,6 +421,12 @@ public record Sql(Theme.Code colors, Dialect dialect)
 
   private static boolean isWordPart(char c) {
     return Character.isLetterOrDigit(c) || c == '_' || c == '$';
+  }
+
+  /** Brackets in strings, quoted identifiers and comments are not marked. */
+  @Override
+  public boolean marksBrackets() {
+    return true;
   }
 
   /** SQL's comments to the end of a line start with {@code --}. */

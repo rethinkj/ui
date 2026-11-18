@@ -26,7 +26,7 @@ final class Highlighters {
 
   // docs:start highlighter
   /** Colors INI files: sections, keys and comments; a value goes on after a backslash. */
-  record Ini(int section, int key, int comment) implements Highlighter, CodeEditor.LineComments {
+  record Ini(int section, int key, int comment) implements Highlighter {
 
     static Ini of() {
       Theme theme = Theme.CURRENT.get();

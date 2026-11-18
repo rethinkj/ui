@@ -522,6 +522,14 @@ public final class Text implements Measure {
     return align;
   }
 
+  Highlighter highlighter() {
+    return highlighter;
+  }
+
+  Object highlightKey() {
+    return highlightKey;
+  }
+
   void highlight(Object key, Highlighter highlighter) {
     this.highlightKey = key;
     this.highlighter = highlighter;

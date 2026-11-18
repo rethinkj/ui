@@ -34,22 +34,8 @@ public final class CodeEditor {
 
   private CodeEditor() {}
 
-  /** The most characters bracket matching looks through from the caret, each way. */
-  static final int BRACKET_REACH = 100_000;
-
-  private static final String BRACKETS = "([{)]}";
-
   /** The columns of a step of indentation, at which guides stand: four, as the field's tabs. */
   private static final int INDENT = 4;
-
-  /**
-   * A language whose comments run to the end of a line, which the highlighter tells the editor
-   * for {@link Command#TOGGLE_COMMENT}: {@link Sql} says {@code --}.
-   */
-  public interface LineComments {
-    /** What starts a comment to the end of the line, such as {@code --} or {@code //}. */
-    String lineComment();
-  }
 
   /**
    * What an editor does besides typing, each as one step of the undo history where it edits, with
@@ -71,8 +57,8 @@ public final class CodeEditor {
     DELETE_LINES,
     /**
      * Control+/ (on a German keyboard Control+Shift+7 or Control+#, and Control with the numpad's
-     * /): comments the lines out with the language's {@link LineComments}, or back in when each
-     * line that is not blank is a comment.
+     * /): comments the lines out with the highlighter's {@link Highlighter#lineComment}, or back
+     * in when each line that is not blank is a comment.
      */
     TOGGLE_COMMENT
   }
@@ -275,8 +261,8 @@ public final class CodeEditor {
    * muted but on the caret's line, after a column of markers ({@link State#markers}, {@link
    * State#diagnostics}); a {@link State#block marked block} tints the rail. The caret's line has
    * {@code code().line()} behind it, the bracket before or after the caret and the one that matches
-   * it {@code code().bracket()}, and the white space that starts a line {@code code().guide()} at
-   * each step of four columns.
+   * it ({@link El#matchingBracket}, among those the highlighter marks) {@code code().bracket()},
+   * and the white space that starts a line {@code code().guide()} at each step of four columns.
    *
    * @param value the code, from the app's state
    * @param state the app's state of this editor
@@ -300,7 +286,6 @@ public final class CodeEditor {
       App<?> app, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
     Theme theme = Theme.CURRENT.get();
     Theme.Code code = theme.code();
-    int[] pair = matching(value, state.caret);
     String word =
         state.occurrences && !state.find.isOpen() ? word(value, state.caret, state.anchor) : null;
     // Where the word at the caret starts, which is not marked: only its other occurrences are.
@@ -319,7 +304,12 @@ public final class CodeEditor {
         .onSelect((caret, anchor) -> {
           state.caret = caret;
           state.anchor = anchor;
-        })
+        });
+    if (highlighter != null) {
+      editor.highlight(highlighter, highlighter);
+    }
+    int[] pair = editor.matchingBracket(state.caret);
+    editor
         .decorate((line, start, text, out) -> {
           int end = start + text.length();
           if (state.caret >= start && state.caret <= end) {
@@ -346,14 +336,11 @@ public final class CodeEditor {
         .gutter(line -> cell(theme, state, diagnostics, line), rail);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
-    if (highlighter != null) {
-      editor.highlight(highlighter, highlighter);
-    }
     if (app == null) {
       return editor;
     }
     state.editor = editor;
-    state.lineComment = highlighter instanceof LineComments c ? c.lineComment() : null;
+    state.lineComment = highlighter == null ? null : highlighter.lineComment();
     editor.onKey(k -> {
       Command command = command(k);
       if (command == null) {
@@ -589,38 +576,5 @@ public final class CodeEditor {
     app.select(editor, next[1], next[0]);
     state.caret = next[1];
     state.anchor = next[0];
-  }
-
-  /**
-   * The bracket just before the caret, or else just after it, and the one that matches it, as
-   * indexes into the text; empty where there is none, and the one bracket where its partner is
-   * missing or more than {@link #BRACKET_REACH} characters away.
-   */
-  static int[] matching(String text, int caret) {
-    // shortcut: brackets inside strings and comments count too; take the highlighter's tokens
-    // when that shows in practice.
-    for (int at : new int[] {caret - 1, caret}) {
-      if (at < 0 || at >= text.length()) {
-        continue;
-      }
-      int kind = BRACKETS.indexOf(text.charAt(at));
-      if (kind < 0) {
-        continue;
-      }
-      char own = text.charAt(at);
-      char other = BRACKETS.charAt((kind + 3) % 6);
-      int step = kind < 3 ? 1 : -1;
-      int depth = 0;
-      for (int i = at, n = 0; i >= 0 && i < text.length() && n < BRACKET_REACH; i += step, n++) {
-        char c = text.charAt(i);
-        if (c == own) {
-          depth++;
-        } else if (c == other && --depth == 0) {
-          return new int[] {at, i};
-        }
-      }
-      return new int[] {at};
-    }
-    return new int[0];
   }
 }

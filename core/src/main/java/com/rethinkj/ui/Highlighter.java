@@ -29,4 +29,21 @@ public interface Highlighter {
    *     {@link Object#equals}; null when nothing goes on to the next line
    */
   Object line(String line, Object state, Spans out);
+
+  /**
+   * Whether {@link #line} gives the brackets of the code with {@link Spans#bracket}, so that
+   * bracket matching ({@link El#matchingBracket}) pairs only those, and not one in a string or a
+   * comment; false, the default, pairs every bracket of the text.
+   */
+  default boolean marksBrackets() {
+    return false;
+  }
+
+  /**
+   * What starts a comment to the end of the line in the language, such as {@code --} or {@code
+   * //}, which a code editor comments lines out with; null, the default, for a language without.
+   */
+  default String lineComment() {
+    return null;
+  }
 }

@@ -239,6 +239,56 @@ class HighlightTest {
     assertEquals(2 * first, ls.highlighted, "another key: the lines in view again");
   }
 
+  /** Marks the brackets outside strings in single quotes, which end with their line. */
+  static final class Quotes implements Highlighter {
+    int asked;
+
+    @Override
+    public Object line(String line, Object state, Spans out) {
+      asked++;
+      boolean quoted = false;
+      for (int i = 0; i < line.length(); i++) {
+        char c = line.charAt(i);
+        quoted ^= c == '\'';
+        if (!quoted && "()".indexOf(c) >= 0) {
+          out.bracket(i);
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public boolean marksBrackets() {
+      return true;
+    }
+  }
+
+  @Test
+  void bracketsPairAsTheHighlighterMarksThemFromTheFieldsLines() {
+    String text = numbered(2000) + "\nf(')')";
+    int at = text.length() - 5; // the line's (
+    Quotes quotes = new Quotes();
+    FieldState state = new FieldState();
+    int[][] pair = {null};
+    App<Model> app = area(text, f -> {
+      pair[0] = f.fieldState(state).highlight("q", quotes).matchingBracket(at + 1);
+      return f;
+    });
+    assertArrayEquals(new int[] {at, at + 4}, pair[0], "not the one in the string");
+    key(app, "End", Key.CONTROL);
+    int asked = quotes.asked;
+    type(app, "x");
+    assertArrayEquals(new int[] {at, at + 4}, pair[0]);
+    assertTrue(quotes.asked - asked <= 12, "the field's lines, not the text's");
+    El again = El.text(text).editable(edit -> {}).multiline().fieldState(state);
+    assertArrayEquals(
+        new int[0], again.highlight("q", quotes).matchingBracket(at + 3), "in the string");
+    assertArrayEquals(
+        new int[] {at + 2, at},
+        again.highlight("c", COMMENTS).matchingBracket(at + 3),
+        "a highlighter that marks none: every bracket");
+  }
+
   // Backgrounds and underlines
 
   private static final int YELLOW = 0xFFFFEE00;
