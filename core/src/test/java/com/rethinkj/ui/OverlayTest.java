@@ -985,6 +985,7 @@ class OverlayTest {
     key(app, "Tab", 0);
     assertEquals("below", app.focused().key(), "Tab passes the link by");
     assertEquals(List.of("below"), s.log);
+    assertFalse(col().child(el().inert().child(el().focusable())).hasFocusable());
   }
 
   @Test

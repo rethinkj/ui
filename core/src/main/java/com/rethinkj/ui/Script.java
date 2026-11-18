@@ -1321,9 +1321,12 @@ public final class Script {
                   ? " An element with motion that appears fades in from opacity 0, and one that"
                       + " leaves fades out; the clock moves only with `advance`, so run"
                       + " `advance 1` and `frame` first."
-                  : why.equals(List.of("inert"))
-                      ? " The view makes it inert (El.inert), as a tooltip is."
-                      : " The view gives it that opacity."));
+                  : why.stream().anyMatch(w -> w.startsWith("at opacity"))
+                      ? " The view gives it that opacity."
+                      : "")
+              + (why.contains("inert")
+                  ? " The view makes it inert (El.inert), as a tooltip is."
+                  : ""));
         }
       }
       if (matches.isEmpty()) {

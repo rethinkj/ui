@@ -615,7 +615,7 @@ final class Animator {
   }
 
   private static Id first(El top, Id id, boolean named) {
-    if (top.hidesFocus() || top.isInert()) {
+    if (top.hidesFocus()) {
       return null;
     }
     if (top.isFocusable() && (!named || top.autofocusKey() != null)) {

@@ -3026,8 +3026,8 @@ public final class El {
 
   /**
    * Whether this element or one inside it can take the focus, as an overlay that opens looks for
-   * it: one that {@link #isFocusable takes it} and is not at or below an element at opacity 0 or
-   * with {@code display: none}. Overlays are left out.
+   * it: one that {@link #isFocusable takes it} and is not at or below an element at opacity 0,
+   * with {@code display: none} or {@link #inert}. Overlays are left out.
    */
   public boolean hasFocusable() {
     if (hidesFocus()) {
@@ -3046,7 +3046,7 @@ public final class El {
 
   /** Whether this element keeps itself and what is inside it from the focus as it opens. */
   boolean hidesFocus() {
-    return opacity() == 0 || style().display == Style.Display.NONE;
+    return inert || opacity() == 0 || style().display == Style.Display.NONE;
   }
 
   /** The color set with {@link #focusRing(int)}, or null if none was and the app's applies. */
