@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.row;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,8 +86,8 @@ public final class Breadcrumb {
     final Menu.State hidden = new Menu.State();
     private final List<Menu.State> children = new ArrayList<>(); // by the crumb's index
     private List<String> path = List.of(); // the texts of the crumbs the last build had
-    // The width of a crumb's text as layout shaped it, at the window's scale, by its key.
-    private final Map<String, Float> texts = new HashMap<>();
+    // The width of a crumb's text as layout shaped it, at the window's scale.
+    private final Map<Shaped, Float> texts = new HashMap<>();
     final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
@@ -107,7 +108,7 @@ public final class Breadcrumb {
      * Closes the menus from the first crumb that differs from the last build's on, and the menu of
      * the ellipsis where the path changed, so that no menu shows another place's items.
      */
-    void follow(List<Crumb> crumbs) {
+    void follow(Theme theme, List<Crumb> crumbs) {
       int same = 0;
       while (same < Math.min(path.size(), crumbs.size())
           && path.get(same).equals(crumbs.get(same).text())) {
@@ -123,7 +124,7 @@ public final class Breadcrumb {
       texts
           .keySet()
           .retainAll(crumbs.stream()
-              .flatMap(c -> List.of(key(c, false), key(c, true)).stream())
+              .flatMap(c -> List.of(key(theme, c, false), key(theme, c, true)).stream())
               .toList());
     }
 
@@ -132,17 +133,22 @@ public final class Breadcrumb {
      * a build cannot measure itself, else at a scale of 1, until layout has had it.
      */
     float text(Theme theme, Crumb crumb, boolean current) {
-      Float width = texts.get(key(crumb, current));
+      Float width = texts.get(key(theme, crumb, current));
       return width != null ? width : TextSizing.natural(words(theme, crumb, current));
     }
 
     /** Learns the width of a crumb's text from layout, at the window's scale. */
-    El.SizeHandler learn(Crumb crumb, boolean current, El words) {
-      return (w, h) -> texts.put(key(crumb, current), TextSizing.natural(words));
+    El.SizeHandler learn(Theme theme, Crumb crumb, boolean current, El words) {
+      Shaped key = key(theme, crumb, current);
+      return (w, h) -> texts.put(key, TextSizing.natural(words));
     }
 
-    private static String key(Crumb crumb, boolean current) {
-      return (current ? "strong " : "body ") + crumb.text();
+    /** What the width of a crumb's text depends on, besides the window's scale. */
+    private record Shaped(Font font, float size, String text) {}
+
+    private static Shaped key(Theme theme, Crumb crumb, boolean current) {
+      Theme.TextStyle style = style(theme, current);
+      return new Shaped(style.font().get(), style.size(), crumb.text());
     }
 
     /** Closes the menus of the chevrons this build does not show, so none opens by itself. */
@@ -170,7 +176,7 @@ public final class Breadcrumb {
     if (crumbs.isEmpty()) {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
-    state.follow(crumbs);
+    state.follow(theme, crumbs);
     int last = crumbs.size() - 1;
     float[] widths = new float[crumbs.size()];
     for (int i = 0; i <= last; i++) {
@@ -298,7 +304,7 @@ public final class Breadcrumb {
     Runnable onPress = current ? null : crumb.onPress();
     int color = current ? theme.text().primary() : theme.text().muted();
     El words = words(theme, crumb, current).color(color).ellipsis().minSize(0, 0);
-    words.onResize(state.learn(crumb, current, words));
+    words.onResize(state.learn(theme, crumb, current, words));
     El icon = crumb.icon() == null ? null : Icon.icon(crumb.icon()).color(color).shrink(0);
     El el = row()
         .role("link")
@@ -337,8 +343,12 @@ public final class Breadcrumb {
 
   /** A crumb's text, in strong type for the current place. */
   private static El words(Theme theme, Crumb crumb, boolean current) {
-    Theme.TextStyle style = current ? theme.type().strong() : theme.type().body();
+    Theme.TextStyle style = style(theme, current);
     return El.text(crumb.text()).font(style.font().get()).fontSize(style.size());
+  }
+
+  private static Theme.TextStyle style(Theme theme, boolean current) {
+    return current ? theme.type().strong() : theme.type().body();
   }
 
   /**
