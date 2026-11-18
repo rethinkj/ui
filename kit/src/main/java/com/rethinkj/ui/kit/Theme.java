@@ -891,6 +891,7 @@ public record Theme(
    * @param controlSmall the height of a {@link Button.Size#SMALL} button, as in a dense row
    * @param controlLarge the height of a {@link Button.Size#LARGE} button, as the one action of an
    *     empty view
+   * @param tooltip the widest a {@link Tooltip} with text grows before its text wraps
    */
   public record Sizes(
       float control,
@@ -911,7 +912,52 @@ public record Theme(
       float paletteField,
       float paletteRow,
       float controlSmall,
-      float controlLarge) {
+      float controlLarge,
+      float tooltip) {
+
+    /** Sizes whose tooltips wrap their text at 320. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot,
+        float paletteTop,
+        float paletteField,
+        float paletteRow,
+        float controlSmall,
+        float controlLarge) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          paletteTop,
+          paletteField,
+          paletteRow,
+          controlSmall,
+          controlLarge,
+          320);
+    }
 
     /** Sizes with small buttons 4 lower than {@code control} and large ones 8 higher. */
     public Sizes(
@@ -951,7 +997,8 @@ public record Theme(
           paletteField,
           paletteRow,
           control - 4,
-          control + 8);
+          control + 8,
+          320);
     }
 
     /** Sizes with a command palette 72 from the window's top, its field 32 and its rows 28 high. */
@@ -1277,8 +1324,8 @@ public record Theme(
    * a wide one only grays it. The renderer mixes them in linear light, where a shadow shows about
    * half as much as the same alpha in CSS.
    *
-   * @param card cards on the window, lifted a little
-   * @param popup menus, a select's list and tooltips
+   * @param card cards on the window, lifted a little, and tooltips
+   * @param popup menus and a select's list
    * @param dialog dialogs, above the scrim
    * @param control primary and secondary buttons at rest, lifted a hair above their surface; a
    *     pressed one has none
@@ -1345,7 +1392,7 @@ public record Theme(
       new TextStyle(Font::sans, 12),
       new TextStyle(Font::sansSemibold, 16));
   private static final Sizes SIZE =
-      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32);
+      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12);

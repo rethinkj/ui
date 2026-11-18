@@ -273,40 +273,49 @@ public final class Menu {
   }
 
   static String shortcutText(Key key, boolean windows) {
-    StringBuilder text = new StringBuilder();
+    return String.join("+", shortcutKeys(key, windows));
+  }
+
+  /** The keys of a combination as {@link #shortcutText} names them, one by one, as on keycaps. */
+  static List<String> shortcutKeys(Key key) {
+    return shortcutKeys(key, WINDOWS);
+  }
+
+  private static List<String> shortcutKeys(Key key, boolean windows) {
+    List<String> keys = new ArrayList<>();
     int m = key.modifiers();
     if ((m & Key.META) != 0) {
-      text.append(windows ? "Win+" : "Super+");
+      keys.add(windows ? "Win" : "Super");
     }
     if ((m & Key.CONTROL) != 0) {
-      text.append("Ctrl+");
+      keys.add("Ctrl");
     }
     if ((m & Key.ALT) != 0) {
-      text.append("Alt+");
+      keys.add("Alt");
     }
     if ((m & Key.SHIFT) != 0) {
-      text.append("Shift+");
+      keys.add("Shift");
     }
     String name = key.name();
-    return text.append(
-            switch (name) {
-              case "ArrowUp" -> "Up";
-              case "ArrowDown" -> "Down";
-              case "ArrowLeft" -> "Left";
-              case "ArrowRight" -> "Right";
-              case "Escape" -> "Esc";
-              case "Delete" -> windows ? "Del" : "Delete";
-              case "Insert" -> windows ? "Ins" : "Insert";
-              case "PageUp" -> windows ? "PgUp" : "Page Up";
-              case "PageDown" -> windows ? "PgDn" : "Page Down";
-              case "NumpadAdd" -> "Num +";
-              case "NumpadSubtract" -> "Num -";
-              case "NumpadMultiply" -> "Num *";
-              case "NumpadDivide" -> "Num /";
-              case "NumpadDecimal" -> "Num .";
-              default -> name.startsWith("Numpad") ? "Num " + name.substring(6) : name;
-            })
-        .toString();
+    keys.add(
+        switch (name) {
+          case "ArrowUp" -> "Up";
+          case "ArrowDown" -> "Down";
+          case "ArrowLeft" -> "Left";
+          case "ArrowRight" -> "Right";
+          case "Escape" -> "Esc";
+          case "Delete" -> windows ? "Del" : "Delete";
+          case "Insert" -> windows ? "Ins" : "Insert";
+          case "PageUp" -> windows ? "PgUp" : "Page Up";
+          case "PageDown" -> windows ? "PgDn" : "Page Down";
+          case "NumpadAdd" -> "Num +";
+          case "NumpadSubtract" -> "Num -";
+          case "NumpadMultiply" -> "Num *";
+          case "NumpadDivide" -> "Num /";
+          case "NumpadDecimal" -> "Num .";
+          default -> name.startsWith("Numpad") ? "Num " + name.substring(6) : name;
+        });
+    return keys;
   }
 
   /**

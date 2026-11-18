@@ -56,6 +56,9 @@ class DocsExamplesTest {
       Map.entry("choices", List.of("view")),
       Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("toolbar", List.of("view", "more")),
+      Map.entry("tooltip", List.of("shown")),
+      Map.entry("tooltip-content", List.of("shown")),
+      Map.entry("tooltip-kind", List.of("shown")),
       Map.entry("dividers", List.of("view")),
       Map.entry("groups", List.of("view")),
       Map.entry("parts", List.of("view")),
@@ -106,7 +109,9 @@ class DocsExamplesTest {
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);
     overlays(all, "popover", Overlays::popover, 420, 260);
-    overlays(all, "tooltip", Overlays::tooltip, 320, 120);
+    overlays(all, "tooltip", Overlays::tooltip, 360, 160);
+    overlays(all, "tooltip-content", Overlays::tooltipContent, 360, 160);
+    overlays(all, "tooltip-kind", Overlays::tooltipKind, 360, 120);
     overlays(all, "dialog", Overlays::dialog, 420, 260);
     overlays(all, "toast", Overlays::toast, 420, 200);
     overlays(all, "command-palette", Overlays::palette, 640, 360);

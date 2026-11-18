@@ -39,6 +39,6 @@ el 0,0 360x240
       el #more role=button label="More…" 243,230 100x24
         text "More…" 271,234 44x15
   text #status "Ready · orders · UTF-8 · wrap" 12,213 336x15
-overlay bottom center gap 2 on #help role=button label="?" 156,12 33x24
-  el #tooltip role=tooltip label="Keyboard shortcuts" 108,38 130x22
-    text "Keyboard shortcuts" 113,41 120x16
+overlay bottom center gap 4 on #help role=button label="?" 156,12 33x24
+  el #tooltip role=tooltip label="Keyboard shortcuts" 108,40 129x25
+    text "Keyboard shortcuts" 117,45 111x15

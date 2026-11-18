@@ -1,7 +1,13 @@
-el 0,0 320x120
+el 0,0 360x160
   el #refresh role=button label="Refresh" 12,12 95x24 hovered
     text label="arrow_clockwise" "\u{E0AA}" 25,16 16x16
     text "Refresh" 45,16 49x16
-overlay bottom center gap 2 on #refresh role=button label="Refresh" 12,12 95x24
-  el #tooltip role=tooltip label="Refresh the schema (F5)" 2,38 165x22
-    text "Refresh the schema (F5)" 7,41 155x16
+overlay bottom center gap 4 on #refresh role=button label="Refresh" 12,12 95x24
+  el #tooltip role=tooltip label="Refresh the schema" 4,40 338x60
+    el 13,45 320x50
+      el 13,45 320x18
+        text "Refresh the schema" 13,47 112x15
+        el label="F5" 133,45 26x18
+          el label="F5" 133,45 26x18
+            text "F5" 139,47 14x15
+      text "Reads the tables, views and columns of the connection again." 13,65 320x30

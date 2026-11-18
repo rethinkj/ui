@@ -1,0 +1,9 @@
+size 360 120
+frame
+move #pattern
+frame
+advance 1               # the tooltip shows after the theme's delay
+frame
+advance 0.25            # past the theme's fade
+frame
+snap shown

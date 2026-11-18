@@ -883,7 +883,10 @@ public final class Find {
           });
       state.replaceField = replace;
       if (state.replaceError != null) {
-        replace = Tooltip.tooltip(TextField.invalid(replace), state.replaceError);
+        replace = Tooltip.tooltip(
+            TextField.invalid(replace),
+            state.replaceError,
+            Tooltip.options().kind(Callout.Kind.DANGER));
       }
       panel.child(row()
           .gap(theme.space().xs())
@@ -990,7 +993,9 @@ public final class Find {
       int c = state.error != null ? theme.status().danger() : theme.accent().color();
       TextField.edge(theme, field, c, c);
     });
-    return state.error != null ? Tooltip.tooltip(box, state.error) : box;
+    return state.error != null
+        ? Tooltip.tooltip(box, state.error, Tooltip.options().kind(Callout.Kind.DANGER))
+        : box;
   }
 
   /** The field of the line to go to and the lines there are. */

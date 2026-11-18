@@ -304,15 +304,24 @@ public final class App<S> {
   // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
   private final Map<Object, Rest> resting = new HashMap<>();
   private double restDue = Double.POSITIVE_INFINITY; // when the next of their looks or handlers is
+  // When a whenHoveredFor look that attached overlays, such as a tooltip, last went because the
+  // pointer left its element; a stay that begins within its delay of that shows its look at once.
+  private double lookLeft = Double.NEGATIVE_INFINITY;
   private int hoversRun; // onHoverFor handlers run so far
 
   /** Where the focus was, by identity, and whether it had a ring. */
   private record Focus(Object id, boolean ring) {}
 
-  /** Since when the pointer has been over an element; whether its onHoverFor handler has run. */
+  /**
+   * Since when the pointer has been over an element; whether its onHoverFor handler has run;
+   * whether its whenHoveredFor look shows at once, as another one's has just gone; whether that
+   * look attached overlays.
+   */
   private static final class Rest {
     double since;
     boolean ran;
+    boolean warm;
+    boolean shown;
 
     Rest(double since) {
       this.since = since;
@@ -719,7 +728,9 @@ public final class App<S> {
     }
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
+      rest.shown = false;
     }
+    lookLeft = Double.NEGATIVE_INFINITY;
   }
 
   /**
@@ -3921,7 +3932,16 @@ public final class App<S> {
    * is due.
    */
   private List<Object> rest(List<El> path, List<Object> ids) {
-    resting.keySet().retainAll(ids); // a stay ends when the pointer leaves
+    resting
+        .entrySet()
+        .removeIf(
+            stay -> { // a stay ends when the pointer leaves
+              boolean left = !ids.contains(stay.getKey());
+              if (left && stay.getValue().shown) {
+                lookLeft = time;
+              }
+              return left;
+            });
     restDue = Double.POSITIVE_INFINITY;
     List<Object> rested = new ArrayList<>();
     for (int i = 0; i < path.size(); i++) {
@@ -3929,9 +3949,13 @@ public final class App<S> {
       if (el.restLook() == null && el.onHoverFor() == null) {
         continue;
       }
-      Rest rest = resting.computeIfAbsent(ids.get(i), id -> new Rest(time));
+      Rest rest = resting.computeIfAbsent(ids.get(i), id -> {
+        Rest stay = new Rest(time);
+        stay.warm = el.restLook() != null && time - lookLeft <= el.restDelay();
+        return stay;
+      });
       if (el.restLook() != null) {
-        double due = rest.since + el.restDelay();
+        double due = lookDue(rest, el);
         if (due <= time) {
           rested.add(ids.get(i));
         } else {
@@ -3956,23 +3980,33 @@ public final class App<S> {
   /** Applies {@code el}'s {@link El#whenHoveredFor} look if it is due; whether it did. */
   private boolean restLook(El el, Object id) {
     Rest rest = el == null || el.restLook() == null ? null : resting.get(id);
-    if (rest == null || rest.since + el.restDelay() > time) {
+    if (rest == null || lookDue(rest, el) > time) {
       return false;
     }
-    delayedLook(el, el.restLook(), "whenHoveredFor");
+    // shortcut: an overlay that shows only while a text is cut (El.whenShortened) counts as shown
+    // even where the text fits; check its layout here if that warms up too much.
+    rest.shown |= delayedLook(el, el.restLook(), "whenHoveredFor");
     return true;
+  }
+
+  /** When the {@link El#whenHoveredFor} look of a stay is due. */
+  private static double lookDue(Rest rest, El el) {
+    return rest.warm ? rest.since : rest.since + el.restDelay();
   }
 
   /**
    * Applies a look that waited for a stay; the overlays it attaches, such as a tooltip, avoid
    * covering their anchor, under the pointer that would leave the anchor for them and hide them.
+   *
+   * @return whether it attached overlays
    */
-  private static void delayedLook(El el, Consumer<El> look, String name) {
+  private static boolean delayedLook(El el, Consumer<El> look, String name) {
     int before = el.overlays().size();
     el.apply(look, name);
     for (El overlay : el.overlays().subList(before, el.overlays().size())) {
       overlay.placement().avoidsAnchor = true;
     }
+    return el.overlays().size() > before;
   }
 
   /**

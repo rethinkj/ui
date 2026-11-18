@@ -465,7 +465,9 @@ public final class CodeEditor {
       place.warningMessage(warnings.isEmpty() ? null : warnings.toString());
       // A diagnostic without a message still shows, with its severity as the tooltip.
       return Tooltip.tooltip(
-          place, messages.isEmpty() ? (error ? "Error" : "Warning") : messages.toString());
+          place,
+          messages.isEmpty() ? (error ? "Error" : "Warning") : messages.toString(),
+          Tooltip.options().kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING));
     }
     for (Marker m : state.markers) {
       if (m.at >= line.start() && m.at <= line.end()) {

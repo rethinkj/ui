@@ -1,9 +1,9 @@
 ---
 title: Tooltip
-description: A short text below an element after the pointer rests on it, or the keyboard focuses it.
+description: A short text, or any content, below an element after the pointer rests on it, or the keyboard focuses it.
 ---
 
-`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second). It hides when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Use it to name icon buttons and to show text that is cut off. It holds no state. For content that the user interacts with, use a [Popover](/docs/components/popover).
+`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second). It hides when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Once one tooltip has shown, the next anchor the pointer reaches within that delay shows its own at once, as along a toolbar. Use it to name icon buttons and to show text that is cut off. It holds no state, and it takes no input: for content that the user interacts with, use a [Popover](/docs/components/popover).
 
 Javadoc: [`Tooltip`](/api/com/rethinkj/ui/kit/Tooltip.html).
 
@@ -11,10 +11,36 @@ Javadoc: [`Tooltip`](/api/com/rethinkj/ui/kit/Tooltip.html).
 
 ## Example
 
+`Tooltip.tooltip(anchor, text)` returns the anchor. `Tooltip.options()` adds the key combination of the anchor's action on keycaps, a muted description below the text, and another side to show on. Text wraps where it would be wider than `Theme.Sizes.tooltip`.
+
 ```java snippet="tooltip"
 ```
 
-`Tooltip.tooltip(anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label.
+<Shot src="examples/docs/tooltip/shown-{theme}" alt="A tooltip below a Refresh button: Refresh the schema with the key F5 on a keycap, and a description below" />
+
+Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label, and a button's `shortcut` option shows on keycaps in it.
+
+## Errors and warnings
+
+`kind` gives the tooltip the icon and the tint of a [Callout](/docs/components/callout) of that kind, for an error at a field:
+
+```java snippet="tooltip-kind"
+```
+
+<Shot src="examples/docs/tooltip-kind/shown-{theme}" alt="A field with an invalid pattern and a tooltip below it on a red tint with an error icon: Unclosed group near index 6" />
+
+The kit's find bar and the code editor's diagnostics show their errors this way.
+
+## Any content
+
+`Tooltip.tooltip(anchor, content)` takes a supplier of any element in place of the text, such as a short [Markdown](/docs/components/markdown) document of what an update brings. It is called once the tooltip is due and for each frame it shows; null shows none. Give the content its size:
+
+```java snippet="tooltip-content"
+```
+
+<Shot src="examples/docs/tooltip-content/shown-{theme}" alt="An update icon button with a tooltip below it that shows a Markdown document: a heading Version 2.4 and three items" />
+
+The pointer cannot reach a tooltip's content: it goes as the pointer leaves the anchor. What is to be scrolled or pressed belongs in a [Popover](/docs/components/popover).
 
 ## Only where the text is cut
 

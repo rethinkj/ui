@@ -1,0 +1,26 @@
+el 0,0 360x160
+  el #update role=button label="Update" 12,12 24x24 hovered
+    text label="arrow_download" "\u{F14F}" 16,16 16x16
+overlay bottom center gap 4 on #update role=button label="Update" 12,12 24x24
+  el #tooltip role=tooltip 4,40 258x94
+    el #markdown role=document 13,45 240x84 rows 0-3/4
+      el 13,45 240x29 pos=1/4
+        text #heading-version-24 role=heading "Version 2.4" 13,45 240x21 readonly level=3 lines 1-1/1
+      el 13,74 240x19 pos=2/4
+        el role=list 13,74 240x19
+          el role=listitem 13,74 240x17 pos=1/3
+            text "•" 13,74 12x17
+            el 29,74 224x17
+              text role=paragraph "Tooltips show any content" 29,74 224x17 readonly lines 1-1/1
+      el 13,93 240x19 pos=3/4
+        el role=list 13,93 240x19
+          el role=listitem 13,93 240x17 pos=2/3
+            text "•" 13,93 12x17
+            el 29,93 224x17
+              text role=paragraph "Keys on keycaps in tooltips" 29,93 224x17 readonly lines 1-1/1
+      el 13,112 240x17 pos=4/4
+        el role=list 13,112 240x17
+          el role=listitem 13,112 240x17 pos=3/3
+            text "•" 13,112 12x17
+            el 29,112 224x17
+              text role=paragraph "Errors at fields in their color" 29,112 224x17 readonly lines 1-1/1

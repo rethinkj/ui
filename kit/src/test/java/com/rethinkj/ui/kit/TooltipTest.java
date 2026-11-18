@@ -58,6 +58,22 @@ class TooltipTest {
     assertFalse(app.tree().dump().contains("role=tooltip"), "a press keeps the tooltip away");
   }
 
+  @Test
+  void theNextAnchorShowsItsTooltipAtOnceUntilAPress() throws IOException {
+    App<int[]> app = new App<>(
+        new int[0],
+        s -> El.row()
+            .gap(40)
+            .child(Tooltip.tooltip(El.el().key("a").size(20, 20), "A"))
+            .child(Tooltip.tooltip(El.el().key("b").size(20, 20), "B")));
+    Script.run("size 200 100\nframe\nmove #a\nframe\nadvance 0.5\nframe", app, out);
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"A\""));
+    Script.run("move #b\nframe", app, out);
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"B\""), "at once after A's");
+    Script.run("press #b\nframe\nmove #a\nframe", app, out);
+    assertFalse(app.tree().dump().contains("role=tooltip label=\"A\""), "a press ends that");
+  }
+
   @ParameterizedTest(name = "{0} at {1}x")
   @CsvSource({"dark, 2", "light, 2"})
   void showsBelowItsAnchorAfterTheDelay(String theme, int scale) throws IOException {
@@ -67,7 +83,7 @@ class TooltipTest {
     assertTrue(waiting.contains("label=\"?\""), waiting);
     String shown = Bench.tree(out, "tooltip", theme, scale, "shown");
     assertTrue(
-        shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""), shown);
+        shown.contains("\noverlay bottom center gap 4 on #help role=button label=\"?\""), shown);
     assertTrue(shown.contains(" role=tooltip label=\"Keyboard shortcuts\" "), shown);
   }
 
@@ -78,7 +94,7 @@ class TooltipTest {
     App<Bench> app = Bench.assertScript("keytip", theme, scale, out);
     String shown = Bench.tree(out, "keytip", theme, scale, "shown");
     assertTrue(
-        shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""), shown);
+        shown.contains("\noverlay bottom center gap 4 on #help role=button label=\"?\""), shown);
     assertTrue(shown.contains(" label=\"?\" ") && shown.contains(" focused\n"), shown);
     String size = "size 360 240 scale " + scale + "\n";
     Script.run(size + "key A\nframe\nadvance 0.25\nframe\n", app, out); // it fades out

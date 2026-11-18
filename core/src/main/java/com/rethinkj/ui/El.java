@@ -2252,7 +2252,10 @@ public final class El {
    * Changes how this element looks once the pointer has rested over it, or over elements inside
    * it, for {@code seconds} of the app's clock, until the pointer leaves it or presses: a tooltip,
    * which the look attaches as an {@link #overlay}. A press keeps the look away until the pointer
-   * has left the element and come back. {@link App#nextChange} says when the look is due, so an
+   * has left the element and come back. Once such a look has attached overlays and gone because
+   * the pointer left, the look of an element the pointer comes to within that element's {@code
+   * seconds} shows at once, as the tooltips along a toolbar do; a press ends that. {@link
+   * App#nextChange} says when the look is due, so an
    * idle window wakes for it and presents nothing while it waits. Besides what {@link
    * #whenHovered} may change, such a look may attach overlays; it comes after the hover look.
    *

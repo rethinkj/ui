@@ -102,6 +102,6 @@ el 0,0 200x300
         text label="chevron_right" "\u{F2AF}" 48,348 16x16
       text label="table" "\u{EBF4}" 68,348 16x16
       text "accounts_002" 88,348 85x16
-overlay bottom center gap 2 on #row-6 role=treeitem label="notification_preferences" 8,152 184x24
-  el #tooltip role=tooltip label="notification_preferences" 20,178 161x22
-    text "notification_preferences" 25,181 151x16
+overlay bottom center gap 4 on #row-6 role=treeitem label="notification_preferences" 8,152 184x24
+  el #tooltip role=tooltip label="notification_preferences" 23,180 154x25
+    text "notification_preferences" 32,185 136x15

@@ -12,11 +12,14 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Markdown;
+import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Popover;
@@ -43,6 +46,13 @@ final class Overlays {
   String dropped;
   String filter = "";
   String said = "";
+  String pattern = "(order";
+  final MarkdownDocument changes = Markdown.parse("""
+      ### Version 2.4
+      - Tooltips show any content
+      - Keys on keycaps in tooltips
+      - Errors at fields in their color
+      """);
 
   void run() {
     said = "run";
@@ -82,6 +92,14 @@ final class Overlays {
 
   void refresh() {
     said = "refresh";
+  }
+
+  void update() {
+    said = "update";
+  }
+
+  void pattern(String value) {
+    pattern = value;
   }
 
   void newName(String value) {
@@ -222,9 +240,34 @@ final class Overlays {
     // docs:start tooltip
     El refresh = Tooltip.tooltip(
         Button.button(GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", state::refresh).key("refresh"),
-        "Refresh the schema (F5)");
+        "Refresh the schema",
+        Tooltip.options()
+            .shortcut(0, "F5")
+            .description("Reads the tables, views and columns of the connection again."));
     // docs:end tooltip
     return Frame.of(refresh);
+  }
+
+  static El tooltipContent(Overlays state) {
+    // docs:start tooltip-content
+    El update = Tooltip.tooltip(
+        Button.icon(GHOST, Symbol.ARROW_DOWNLOAD, "Update", state::update).key("update"),
+        () -> Markdown.markdown(state.changes, Markdown.options())
+            .padding(0)
+            .w(240)
+            .h(84));
+    // docs:end tooltip-content
+    return Frame.of(update);
+  }
+
+  static El tooltipKind(Overlays state) {
+    // docs:start tooltip-kind
+    El pattern = Tooltip.tooltip(
+        TextField.invalid(TextField.textField(state.pattern, "Pattern", state::pattern)),
+        "Unclosed group near index 6",
+        Tooltip.options().kind(Callout.Kind.DANGER));
+    // docs:end tooltip-kind
+    return Frame.of(pattern.key("pattern"));
   }
 
   static El dialog(Overlays state) {

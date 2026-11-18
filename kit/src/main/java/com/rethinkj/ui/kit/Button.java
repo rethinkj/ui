@@ -198,9 +198,9 @@ public final class Button {
       return state == State.DISABLED;
     }
 
-    /** The shortcut as a menu writes it, or null. */
-    private String keys() {
-      return shortcut == null ? null : Menu.shortcutText(shortcut);
+    /** The tooltip's options: the shortcut on keycaps, if there is one. */
+    private Tooltip.Options tip() {
+      return Tooltip.options().shortcut(shortcut);
     }
   }
 
@@ -283,10 +283,9 @@ public final class Button {
         : enable(theme, look, button, state == State.READY ? onPress : null);
     // Where the view makes the button narrower than its text, the text ends in an ellipsis and
     // shows whole in a tooltip, which a shortcut always shows.
-    String keys = options.keys();
-    return keys == null
+    return options.shortcut == null
         ? Tooltip.whenShortened(tipped, shown)
-        : Tooltip.tooltip(tipped, text, keys);
+        : Tooltip.tooltip(tipped, text, options.tip());
   }
 
   /**
@@ -324,11 +323,11 @@ public final class Button {
         .w(height(theme, options.size));
     if (state == State.BUSY) {
       return Tooltip.tooltip(
-          busy(theme, look, button.child(spinner(theme, variant, look))), label, options.keys());
+          busy(theme, look, button.child(spinner(theme, variant, look))), label, options.tip());
     }
     button.child(icon(theme, variant, options.tone, state, look, icon));
     return Tooltip.tooltip(
-        enable(theme, look, button, state == State.READY ? onPress : null), label, options.keys());
+        enable(theme, look, button, state == State.READY ? onPress : null), label, options.tip());
   }
 
   /** The state a button shows: busy with or without a handler, else off without one. */
@@ -640,7 +639,7 @@ public final class Button {
     if (options.tone == Tone.DANGER) {
       entry = entry.danger();
     }
-    return options.shortcut == null ? entry : entry.shortcut(options.keys());
+    return options.shortcut == null ? entry : entry.shortcut(Menu.shortcutText(options.shortcut));
   }
 
   /** A button's box: role, label, height, corners, fill, edge and shadow. */

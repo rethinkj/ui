@@ -62,13 +62,7 @@ public final class Callout {
         .fill(tone.fill())
         .child(
             el().w(bar).shrink(0).alignSelf(Style.Align.STRETCH).radius(bar / 2).fill(tone.mark()))
-        .child(icon(switch (kind) {
-              case INFO -> Symbol.INFO;
-              case WARNING -> Symbol.WARNING;
-              case DANGER -> Symbol.ERROR_CIRCLE;
-              case SUCCESS -> Symbol.CHECKMARK_CIRCLE;
-            })
-            .color(tone.mark()));
+        .child(icon(symbol(kind)).color(tone.mark()));
     if (actions.length == 0) {
       return callout.child(words);
     }
@@ -87,5 +81,15 @@ public final class Callout {
         .minSize(0, 0)
         .gap(theme.space().m())
         .children(words.basis(theme.size().field()), buttons));
+  }
+
+  /** The icon of a kind, also a {@link Tooltip}'s of that kind. */
+  static Symbol symbol(Kind kind) {
+    return switch (kind) {
+      case INFO -> Symbol.INFO;
+      case WARNING -> Symbol.WARNING;
+      case DANGER -> Symbol.ERROR_CIRCLE;
+      case SUCCESS -> Symbol.CHECKMARK_CIRCLE;
+    };
   }
 }

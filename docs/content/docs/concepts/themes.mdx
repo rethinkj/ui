@@ -40,9 +40,9 @@ Keep what the user chose in the state and provide the theme from it. This app of
 | `space()` | `xs`, `s`, `m`, `l`, `xl`, `xxl` |
 | `radius()` | `small` (4), `medium` (6), `large` (10) |
 | `type()` | `body` (13), `small` (12: secondary text beside what it is about), `mono` (12), `strong` (13, medium), `heading` (14, semibold: cards), `section` (16, semibold: a section of a page), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
-| `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, … |
+| `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, `tooltip` (where a tooltip's text wraps), … |
 | `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
-| `elevation()` | Shadows of `card` (the least), `popup`, `dialog` (the most) |
+| `elevation()` | Shadows of `card` (the least: cards and tooltips), `popup`, `dialog` (the most) |
 | `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
 
 Each group's `with` method returns a changed copy: `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption`. The tokens of each group are in the Javadoc of [`Theme`](/api/com/rethinkj/ui/kit/Theme.html).
