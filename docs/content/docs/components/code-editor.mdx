@@ -85,7 +85,7 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 
 `CodeEditor.run(app, editorState, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. `editor.onKeyFirst(mine)` asks yours first and hands the keys it declines to the editor's, as the Workbench does for Control+Enter; `El.onKey` would replace them.
 
-The editor also has every key of a multi-line text field. Tab indents, and Control+M switches Tab between indenting and moving the focus. A second Home goes to the first character of the line that is not a space. Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
+The editor also has every key of a multi-line text field. Enter keeps the indentation of the line, Tab indents, and Control+M switches Tab between indenting and moving the focus. A second Home goes to the first character of the line that is not a space. Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
 
 ## In a tree dump
 

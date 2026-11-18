@@ -1590,9 +1590,11 @@ public final class El {
    * moving the focus. Tab puts a tab, or with {@code spaces} spaces up to the next tab stop, in
    * place of a selection inside a line; with a selection across lines it indents each of them but
    * empty ones by a tab or {@link #tabSize} spaces. Shift+Tab takes as much from the start of the
-   * caret's line or of each line of the selection. The keyboard can still leave the field: Escape
-   * and then Tab move the focus, and Control+M switches Tab between moving the focus and
-   * indenting until it is pressed again. A read-only field leaves Tab to the focus.
+   * caret's line or of each line of the selection. Enter starts the new line with the spaces and
+   * tabs that start the caret's line, up to the caret, or with a selection those of the line where
+   * it starts. The keyboard can still leave the field: Escape and then Tab move the focus, and
+   * Control+M switches Tab between moving the focus and indenting until it is pressed again. A
+   * read-only field leaves Tab to the focus.
    */
   public El tabIndents(boolean spaces) {
     editableOnly("tabIndents");

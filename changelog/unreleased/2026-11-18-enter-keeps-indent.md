@@ -1,0 +1,1 @@
+- Enter in a field that indents with Tab (`El.tabIndents`, as in the kit's `CodeEditor`) starts the new line with the spaces and tabs that start the caret's line, up to the caret; with a selection, those of the line where it starts. It is one step of the undo history. Other multi-line fields still insert a bare line feed.

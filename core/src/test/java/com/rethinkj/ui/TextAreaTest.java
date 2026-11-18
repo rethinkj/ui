@@ -469,6 +469,36 @@ class TextAreaTest {
   }
 
   @Test
+  void enterKeepsTheIndentOfTheLineInAFieldThatIndents() {
+    App<Model> app = focused("\t  ab\ncd", f -> f.tabIndents(true));
+    key(app, "End");
+    key(app, "Enter");
+    assertEquals("\t  ab\n\t  |\ncd", show(app), "the tab and spaces before the caret");
+    type(app, "x");
+    key(app, "Z", CONTROL);
+    key(app, "Z", CONTROL);
+    assertEquals("\t  ab|\ncd", show(app), "Enter with its indent is one step");
+
+    key(app, "Home");
+    key(app, "ArrowRight");
+    key(app, "Enter");
+    assertEquals("\t\n\t|  ab\ncd", show(app), "no more than there is before the caret");
+
+    app = focused("  ab\ncd", f -> f.tabIndents(true));
+    key(app, "ArrowRight");
+    key(app, "ArrowRight");
+    key(app, "ArrowRight");
+    key(app, "ArrowDown", SHIFT);
+    key(app, "Enter");
+    assertEquals("  a\n  |", show(app), "a selection: the indent of the line where it starts");
+
+    app = focused("  ab");
+    key(app, "End");
+    key(app, "Enter");
+    assertEquals("  ab\n|", show(app), "a field that does not indent breaks the line only");
+  }
+
+  @Test
   void escapeAndTabOrControlMLeaveAFieldThatIndents() {
     App<Model> app = focused("ab", f -> f.tabIndents(true));
     key(app, "Escape");

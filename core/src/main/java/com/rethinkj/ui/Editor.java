@@ -600,7 +600,7 @@ final class Editor {
           return false; // Control+Enter runs what the app runs with it
         }
         if (editable()) {
-          replace("\n", null);
+          replace("\n" + (el.tabIndents() ? indentBefore(start()) : ""), null);
         }
         return true;
       }
@@ -683,6 +683,19 @@ final class Editor {
 
   private int lineEnd(int at) {
     return text.length();
+  }
+
+  /**
+   * The spaces and tabs that start the line of {@code at}, up to {@code at}: what Enter carries to
+   * the new line in a field that indents.
+   */
+  private String indentBefore(int at) {
+    int from = lines().start(lines.line(at));
+    int to = from;
+    while (to < at && (text.charAt(to) == ' ' || text.charAt(to) == '\t')) {
+      to++;
+    }
+    return text.substring(from, to);
   }
 
   /** A tab, or spaces up to the next tab stop, in place of the selection. */
