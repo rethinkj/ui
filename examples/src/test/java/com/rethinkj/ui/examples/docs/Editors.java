@@ -8,6 +8,7 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Find;
+import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Sql;
@@ -39,10 +40,36 @@ final class Editors {
       """);
   final Image swatch = Image.of(swatch(), 2); // 64 by 40 pixels made for scale 2
   String link = "";
+  String ran; // the statement the marker ran last
+
+  Editors() {
+    showRun();
+    int orders = sql.indexOf("orders");
+    refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
+  }
 
   void sql(String value) {
     sql = value;
   }
+
+  // docs:start code-editor-marks
+  void run() {
+    ran = sql;
+  }
+
+  /** A marker at the statement's first line that runs it. */
+  void showRun() {
+    editor.markers(List.of(
+        new CodeEditor.Marker(0, Symbol.PLAY, Icon.Variant.ACCENT, "Run statement", this::run)));
+  }
+
+  /** The database refused {@code statement}: its error shows while the text is that statement. */
+  void refused(String statement, int from, int to, String message) {
+    editor.diagnostics(
+        statement,
+        List.of(new CodeEditor.Diagnostic(from, to, CodeEditor.Severity.ERROR, message)));
+  }
+  // docs:end code-editor-marks
 
   void notes(String value) {
     notes = value;

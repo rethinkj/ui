@@ -1582,14 +1582,15 @@ public final class Text implements Measure {
           int kind = spans.kinds[i];
           int a = Math.max(spans.froms[i], from);
           int b = Math.min(spans.tos[i], to);
-          if (kind != Spans.BACKGROUND && kind != Spans.UNDERLINE && kind != Spans.STRIKE
-              || b <= a) {
+          if (kind == Spans.COLOR || kind == Spans.FONT || b <= a) {
             continue;
           }
           float x0 = para.pen(a) - left - viewX;
           float x1 = para.pen(b) - left - viewX;
           if (kind == Spans.BACKGROUND) {
             ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
+          } else if (kind == Spans.GUIDE) {
+            ranges.add(new Mark(new Box(Math.round(x0), top, thick, lineHeight), spans.colors[i]));
           } else {
             float y = kind == Spans.UNDERLINE ? under : strike;
             unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));

@@ -511,9 +511,10 @@ public record Theme(
    * @param match translucent, behind each match of a find ({@link Find})
    * @param current translucent, behind the current match of a find, stronger than {@code match}
    * @param occurrence translucent, behind the other occurrences of the word at the caret
-   * @param block translucent, behind a block of lines the app marks ({@link
-   *     CodeEditor.State#block}), such as the statement that would run; in a hue of its own, so
-   *     that it differs from the selection and the caret's line, which is laid over it
+   * @param block translucent, over the gutter's band on the lines of a block the app marks
+   *     ({@link CodeEditor.State#block}), such as the statement that would run, beside a line in
+   *     the accent's edge; it stays blue with another accent
+   * @param guide the thin lines at each step of indentation in the white space that starts a line
    */
   public record Code(
       int keyword,
@@ -526,7 +527,8 @@ public record Theme(
       int match,
       int current,
       int occurrence,
-      int block) {
+      int block,
+      int guide) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(
@@ -540,7 +542,8 @@ public record Theme(
         alpha(AMBER_323, 0.376f),
         alpha(AMBER_467, 0.267f),
         alpha(WHITE, 0.03f),
-        alpha(mix(BLACK, TEAL_490, 0.08), 0.5f));
+        alpha(BLUE_496, 0.05f),
+        alpha(WHITE, 0.02f));
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(
@@ -554,11 +557,12 @@ public record Theme(
         alpha(AMBER_768, 0.25f),
         alpha(AMBER_720, 0.38f),
         alpha(BLACK, 0.11f),
-        alpha(TEAL_490, 0.2f));
+        alpha(BLUE_447, 0.22f),
+        alpha(BLACK, 0.25f));
 
     /**
-     * The colors of code with the background of a marked block of {@link #DARK} where the caret's
-     * line is light on dark, else of {@link #LIGHT}.
+     * The colors of code with the tint of a marked block and the guides of {@link #DARK} where the
+     * caret's line is light on dark, else of {@link #LIGHT}.
      */
     public Code(
         int keyword,
@@ -582,12 +586,13 @@ public record Theme(
           match,
           current,
           occurrence,
-          alpha(line, 1) == WHITE ? DARK.block : LIGHT.block);
+          alpha(line, 1) == WHITE ? DARK.block : LIGHT.block,
+          alpha(line, 1) == WHITE ? DARK.guide : LIGHT.guide);
     }
 
     /**
-     * The colors of code with the backgrounds of a find, of a word's occurrences and of a marked
-     * block of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     * The colors of code with the backgrounds of a find, of a word's occurrences, the tint of a
+     * marked block and the guides of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
      */
     public Code(
         int keyword, int string, int number, int comment, int operator, int line, int bracket) {

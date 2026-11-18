@@ -51,7 +51,7 @@ Each tab's query is a [CodeEditor](/docs/components/code-editor) with SQL highli
 ```java snippet="workbench-editor"
 ```
 
-The editor's two handlers are methods of the app: an edit keeps the query and takes the error away, and Control+Enter runs it.
+The editor's two handlers are methods of the app: an edit keeps the query and takes the message of the last failure away, and Control+Enter runs it. The underline of that failure is a diagnostic about the statement that ran, so the editor drops it by itself once the text changes, and ▶ in the gutter runs the statement too.
 
 ```java snippet="workbench-editor-handlers"
 ```

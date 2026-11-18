@@ -135,19 +135,15 @@ class ThemeTest {
           check(failures, "spinner ring", ring, Map.of(on, fill), 1.3);
           check(failures, "spinner arc", arc, Map.of("its ring on " + on, ring), 3);
         });
-    // Code in an editor: on the field's raised surface, hovered, on the caret's line and in a
-    // marked block, with the caret's line over it; the brackets at the caret on their background
-    // too, and every color 3:1 under the selection.
+    // Code in an editor: on the field's raised surface, hovered and on the caret's line; the
+    // brackets at the caret on their background too, and every color 3:1 under the selection.
     Theme.Code code = t.code();
     int line = over(s.raised(), code.line());
-    int block = over(s.raised(), code.block());
     Map<String, Integer> field = Map.of(
         "raised", s.raised(),
         "raised hovered", over(s.raised(), s.hover()),
         "caret line", line,
-        "caret line hovered", over(over(s.raised(), s.hover()), code.line()),
-        "block", block,
-        "caret line in block", over(block, code.line()));
+        "caret line hovered", over(over(s.raised(), s.hover()), code.line()));
     Map<String, Integer> codeColors = Map.of(
         "keyword",
         code.keyword(),
@@ -170,40 +166,38 @@ class ThemeTest {
               over(s.raised(), t.accent().selection()),
               "selection on the caret line",
               over(line, t.accent().selection()),
-              "selection in a block",
-              over(block, t.accent().selection())),
+              "selection on the caret line hovered",
+              over(over(over(s.raised(), s.hover()), code.line()), t.accent().selection())),
           3);
     });
     check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
     // The matches of a find, the current one, and the occurrences of the word at the caret, also
-    // on the caret's line, in a block and on the caret's line in a block; under the selection 3:1,
-    // as all code.
+    // on the caret's line; under the selection 3:1, as all code.
     Map<String, Integer> marked = new java.util.HashMap<>();
     Map<String, Integer> selectedMatch = new java.util.HashMap<>();
-    Map.of(
-            "",
-            s.raised(),
-            " on the caret line",
-            line,
-            " in a block",
-            block,
-            " on the caret line in a block",
-            over(block, code.line()))
-        .forEach((where, under) -> {
-          marked.put("match" + where, over(under, code.match()));
-          marked.put("current match" + where, over(under, code.current()));
-          marked.put("occurrence" + where, over(under, code.occurrence()));
-          selectedMatch.put(
-              "selected current match" + where,
-              over(over(under, code.current()), t.accent().selection()));
-        });
+    Map.of("", s.raised(), " on the caret line", line).forEach((where, under) -> {
+      marked.put("match" + where, over(under, code.match()));
+      marked.put("current match" + where, over(under, code.current()));
+      marked.put("occurrence" + where, over(under, code.occurrence()));
+      selectedMatch.put(
+          "selected current match" + where,
+          over(over(under, code.current()), t.accent().selection()));
+    });
     Map<String, Integer> text = new java.util.HashMap<>(codeColors);
     text.put("text", t.text().primary());
     text.forEach((token, color) -> {
       check(failures, token, color, marked, 4.5);
       check(failures, token, color, selectedMatch, 3);
     });
-    check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
+    // The gutter's rail, also in a marked block: its numbers muted, the caret's as text, and its
+    // markers 3:1, as icons.
+    Map<String, Integer> rail =
+        Map.of("rail", s.band(), "rail in block", over(s.band(), code.block()));
+    check(failures, "line number", t.text().muted(), rail, 4.5);
+    check(failures, "caret's line number", t.text().primary(), rail, 4.5);
+    check(failures, "run marker", t.accent().edge(), rail, 3);
+    check(failures, "error marker", t.status().danger(), rail, 3);
+    check(failures, "warning marker", t.status().warning(), rail, 3);
     // A document on a card: text, quotes, links and inline code on the panel, under the pointer
     // and on inline code's background; code blocks on the raised surface, as above.
     Theme.Prose prose = t.prose();

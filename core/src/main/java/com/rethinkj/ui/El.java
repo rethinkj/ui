@@ -84,11 +84,13 @@ public final class El {
   private boolean editable;
   private Consumer<String> onEdit;
   private Gutter gutter;
+  private El gutterRail;
   private SelectHandler onSelect;
   private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
   private float gutterWidth;
   private float gutterScale; // the scale gutterWidth was measured at
   private Object gutterShown; // what the cells were built for: their lines, tops and the caret
+  private boolean gutterBuilt; // the cells were built since App last applied looks to them
   private boolean readOnly;
   private int maxLength = -1;
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
@@ -229,11 +231,18 @@ public final class El {
    */
   @FunctionalInterface
   public interface Gutter {
+    El cell(Line line);
+
     /**
-     * @param line the line's index, from 0; its number is one more
+     * A line of the field, as its cell is built for it.
+     *
+     * @param index the line's index, from 0; its number is one more
+     * @param start where the line starts in the field's string, as the positions of {@link
+     *     Decorator#line} count
+     * @param end where it ends, before its line feed
      * @param caret whether the caret is on this line
      */
-    El cell(int line, boolean caret);
+    record Line(int index, int start, int end, boolean caret) {}
   }
 
   /**
@@ -1461,13 +1470,45 @@ public final class El {
    * @throws IllegalStateException if this is not a multi-line field
    */
   public El gutter(Gutter cells) {
+    return gutter(cells, null);
+  }
+
+  /**
+   * A {@link #gutter(Gutter)} on a rail: {@code rail}, an element of the view such as a band with
+   * a line along its right edge, lies behind the cells from the field's left border to the
+   * gutter's end, as high as the field inside its border, also above the first line and below the
+   * last; it does not scroll. Its right border lies after the gutter, beside the cells rather than
+   * under them, and its right margin is the gap between it and the text. In a {@code .tree.txt} it
+   * comes before the gutter, as {@code el #rail} unless it has a key.
+   *
+   * @param rail the rail, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El gutter(Gutter cells, El rail) {
     Text t = editableOnly("gutter");
     if (!t.multiline()) {
       throw new IllegalStateException(
           "gutter is for multi-line fields: call it after multiline().");
     }
     this.gutter = Objects.requireNonNull(cells, "cells");
+    this.gutterRail = rail;
+    if (rail != null && rail.key == null) {
+      rail.key("rail");
+    }
     return this;
+  }
+
+  /** For {@link App}: whether the gutter's cells were built since it last asked. */
+  boolean takeGutterBuilt() {
+    boolean built = gutterBuilt;
+    gutterBuilt = false;
+    return built;
+  }
+
+  /** The gutter's cell of line {@code line}. */
+  private El gutterCell(int line, boolean caret) {
+    Lines lines = text.shownIndex();
+    return gutter.cell(new Gutter.Line(line, lines.start(line), lines.end(line), caret));
   }
 
   /**
@@ -1482,12 +1523,15 @@ public final class El {
     if (Float.isNaN(gutterLeft)) {
       gutterLeft = style.paddingLeft.pixelsOrZero();
     }
-    El last = gutter.cell(text.lineTotal() - 1, false);
+    El last = gutterCell(text.lineTotal() - 1, false);
     scaleText(last, scale, text.systemFonts());
     Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
     gutterWidth = (float) Math.ceil(last.width);
     gutterScale = scale;
-    style.paddingLeft = Len.px(gutterLeft + gutterWidth);
+    float after = gutterRail == null
+        ? 0
+        : gutterRail.style.borderRight.pixelsOrZero() + gutterRail.style.marginRight.pixelsOrZero();
+    style.paddingLeft = Len.px(gutterLeft + gutterWidth + after);
     gutterShown = null;
   }
 
@@ -1509,11 +1553,12 @@ public final class El {
       return false;
     }
     gutterShown = shown;
+    gutterBuilt = true;
     float rowHeight = text.lineHeight() / scale;
     float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
     El column = el().key("gutter").clip();
     for (Text.Start start : starts) {
-      El cell = gutter.cell(start.line(), start.line() == caretLine);
+      El cell = gutterCell(start.line(), start.line() == caretLine);
       if (cell == null) {
         throw new IllegalStateException(
             "The gutter's function returned null for line " + start.line());
@@ -1535,6 +1580,15 @@ public final class El {
         gutterWidth,
         text.contentHeight() / scale);
     children.clear();
+    if (gutterRail != null) {
+      float borderTop = style.borderTop.pixelsOrZero();
+      gutterRail.place(
+          (float) scrollX + style.borderLeft.pixelsOrZero(),
+          (float) scrollY + borderTop,
+          gutterLeft + gutterWidth + gutterRail.style.borderRight.pixelsOrZero(),
+          height - borderTop - style.borderBottom.pixelsOrZero());
+      children.add(gutterRail);
+    }
     children.add(column);
     scrollTo(scrollX, scrollY);
     text.shownIndex().gutterCells += starts.size();

@@ -1,13 +1,13 @@
 ---
 title: CodeEditor
-description: A multi-line editor for code with line numbers, highlighting, brackets, a find bar and line commands.
+description: A multi-line editor for code with line numbers, markers, diagnostics, highlighting, brackets, a find bar and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line field for code. It has line numbers in a gutter, highlights the caret's line and matching brackets, and marks other occurrences of the word at the caret. Colors come from a highlighter such as `Sql`. It has a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines, and it handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
+`CodeEditor.codeEditor` is a multi-line field for code. It has line numbers and markers in a gutter on a rail of its own, highlights the caret's line and matching brackets, marks other occurrences of the word at the caret, and draws guides in the indentation. Colors come from a highlighter such as `Sql`. It has a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines, and it handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
 
 Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
-<Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers, keywords in color and a bracket pair highlighted" />
+<Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked and underlined, keywords in color and a bracket pair highlighted" />
 
 ## Example
 
@@ -22,12 +22,23 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 ## In a card
 
-The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's color while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
+The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, its rail starting at the card's edge, and with a line along its top that takes the accent's color while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
 
 <Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 
 ```java snippet="code-editor-embedded"
 ```
+
+## Gutter, markers and diagnostics
+
+The gutter lies on a rail in the band's color, with a hairline between it and the code. Line numbers are quiet, but the caret's. A marked block (`block(from, to)`), such as the statement Control+Enter would run, tints the rail beside a line in the accent's color and leaves the code as it is.
+
+Left of the numbers is a column of markers, kept free on every line so that the code never moves when one appears. A marker has a symbol, a tone, a label that shows as its tooltip, and optionally an action that a press on it runs. Diagnostics are what the app learned about the text, such as the error of the last run: each underlines its range in its severity's color (`ERROR` danger, `WARNING` warning) and puts a marker at its first line, with its message as the tooltip; several on one line share one marker of the worst severity. A diagnostic is about one text: it shows only while the editor's value equals the text it was given with, so an edit takes it away, and an undo back to that text brings it back.
+
+```java snippet="code-editor-marks"
+```
+
+Positions are indexes into the string, as for the caret. Moving the caret to a diagnostic is up to the app, with `select(caret, anchor)`.
 
 ## A highlighter of your own
 
@@ -47,9 +58,9 @@ A highlighter can be tested without native libraries: `new Spans(length)` takes 
 
 Positions are indexes into the line's string. A range runs from `from` to `to`, exclusive; it is clamped to the line and left out when empty. Where ranges of one kind overlap, the later one wins. Colors are 0xAARRGGBB.
 
-`color(from, to, argb)` gives the text of a range a color, and `font(from, to, font)` another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks. `background`, `underline`, `strike` and `lineBackground` are on [`Spans`](/api/com/rethinkj/ui/Spans.html).
+`color(from, to, argb)` gives the text of a range a color, and `font(from, to, font)` another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks. `background`, `underline`, `strike`, `guide` (a thin line at the left edge of a character, as the editor's indentation guides) and `lineBackground` are on [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
-Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
+Backgrounds, underlines, struck ranges, guides and line backgrounds show in multi-line fields only.
 
 ## Marks of your own
 
@@ -68,8 +79,9 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 | --- | --- |
 | `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
 | `select(caret, anchor)` | Put the caret or a selection there and scroll it into view at the next build, also while the editor is away, as in a tab that is not shown |
-| `error(from, to)`, `noError()`, `errorFrom()`, `errorTo()` | Underline a range in the danger color, such as the name a query got wrong |
-| `block(from, to)`, `noBlock()` | Mark the lines of a range with `code().block()` behind them, such as the statement Control+Enter would run |
+| `diagnostics(text, list)`, `noDiagnostics()`, `diagnostics()` | Show `CodeEditor.Diagnostic(from, to, severity, message)`s about `text` while the value is `text`: underlined, with a marker and its message as tooltip |
+| `markers(list)`, `markers()` | Show `CodeEditor.Marker(at, symbol, tone, label, onPress)`s in the gutter at the lines of their positions; `onPress` may be null |
+| `block(from, to)`, `noBlock()` | Mark the lines of a range on the rail, such as the statement Control+Enter would run |
 | `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
 | `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
 
@@ -89,7 +101,7 @@ The editor also has every key of a multi-line text field. Enter keeps the indent
 
 ## In a tree dump
 
-The editor is a `role=textbox` text element with its label, the lines in view and how many there are, then the error as `underline <from>-<to>` while its line is in view. While it has the focus, it shows its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
+The editor is a `role=textbox` text element with its label, the lines in view and how many there are, then the diagnostics' ranges as `underline <from>-<to>` while their lines are in view. While it has the focus, it shows its caret with line and column. Its rail is `#rail`, and the gutter `#gutter` with a `#line-<index>` per line. A line's marker is `#marker` in it: a diagnostic's is `role=img label="Error"` (or `"Warning"`) with the messages of its errors as `error="<message>"` and of its warnings as `warning=`, and one of yours has your label, `role=button` when it takes a press.
 
-```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="3"
+```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
 ```

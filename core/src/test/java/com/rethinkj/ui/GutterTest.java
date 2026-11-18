@@ -34,10 +34,12 @@ class GutterTest {
 
   /** Line numbers in JetBrains Mono, with a padding of 4 at the right, which tell presses. */
   private El.Gutter numbers() {
-    return (line, caret) -> El.row()
+    return line -> El.row()
         .padding(0, 4, 0, 0)
-        .onPress(() -> pressed.add("" + line))
-        .child(El.text((caret ? ">" : "") + (line + 1)).font(Font.mono()).fontSize(14));
+        .onPress(() -> pressed.add("" + line.index()))
+        .child(El.text((line.caret() ? ">" : "") + (line.index() + 1))
+            .font(Font.mono())
+            .fontSize(14));
   }
 
   private App<Model> area(String value, UnaryOperator<El> field) {
@@ -144,9 +146,31 @@ class GutterTest {
   }
 
   @Test
+  void aRailLiesBehindTheGutterOverTheFieldsHeightAndCellsKnowWhereTheirLinesAre() {
+    List<String> told = new ArrayList<>();
+    El.Gutter cells = line -> {
+      told.add(line.index() + ":" + line.start() + "-" + line.end());
+      return numbers().cell(line);
+    };
+    App<Model> app = Areas.start(
+        text(40),
+        f -> f.gutter(cells, El.el().border(0, 2, 0, 0, 0xFF000000).margin(0, 6, 0, 0)),
+        1);
+    El rail = field(app).children().getFirst();
+    assertEquals("rail", rail.key());
+    assertEquals(
+        List.of(0f, 0f, 26f, 98f), List.of(rail.x(), rail.y(), rail.width(), rail.height()));
+    assertEquals(
+        4 + 20 + 2 + 6, field(app).style().paddingLeft.value(), "the text after its margin");
+    assertTrue(told.contains("1:7-13"), "line 1, \"line 1\": " + told);
+    app.wheel(100, 40, 0, 36);
+    app.frame();
+    assertEquals(List.of(0f, 0f), List.of(rail.x(), rail.y()), "it does not scroll");
+  }
+
+  @Test
   void onlyAMultiLineFieldHasAGutter() {
     assertThrows(
-        IllegalStateException.class,
-        () -> El.text("x").editable(v -> {}).gutter((line, caret) -> El.el()));
+        IllegalStateException.class, () -> El.text("x").editable(v -> {}).gutter(line -> El.el()));
   }
 }

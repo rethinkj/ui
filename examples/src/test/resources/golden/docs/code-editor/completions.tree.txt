@@ -4,22 +4,32 @@ el 0,0 520x260
       text role=heading "orders.sql" 29,21 70x17 level=3
       el 107,30 384x0
     text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';\nJOIN or" 13,46 494x145 lines 1-4/4 focused caret 59 (4:8)
-      el #gutter 25,51 15x128
-        text #line-0 "1" 25,51 15x16
-        text #line-1 "2" 25,67 15x16
-        text #line-2 "3" 25,83 15x16
-        text #line-3 "4" 25,99 15x16
+      el #rail 13,47 38x144
+      el #gutter 13,51 37x128
+        el #line-0 13,51 37x16
+          el #marker role=button label="Run statement" 19,53 12x12
+            text label="play" "\u{E98F}" 19,53 12x12
+          text "1" 35,51 7x16
+        el #line-1 13,67 37x16
+          el 19,75 12x0
+          text "2" 35,67 7x16
+        el #line-2 13,83 37x16
+          el 19,91 12x0
+          text "3" 35,83 7x16
+        el #line-3 13,99 37x16
+          el 19,107 12x0
+          text "4" 35,99 7x16
 overlay bottom start gap 2 on #query role=textbox label="Query" 13,46 494x145
-  el #completions role=listbox label="Completions" 89,117 200x58 rows 0-1/2
-    el #option-0 role=option label="orders" 94,122 190x24 selected pos=1/2
-      el 94,122 190x24
-        el 102,126 16x16
-          text label="table" "\u{EBF4}" 102,126 16x16
-        text "orders" 126,126 102x16
-        text "table" 248,127 28x15
-    el #option-1 role=option label="order_items" 94,146 190x24 pos=2/2
-      el 94,146 190x24
-        el 102,150 16x16
-          text label="table" "\u{EBF4}" 102,150 16x16
-        text "order_items" 126,150 102x16
-        text "table" 248,151 28x15
+  el #completions role=listbox label="Completions" 108,117 200x58 rows 0-1/2
+    el #option-0 role=option label="orders" 113,122 190x24 selected pos=1/2
+      el 113,122 190x24
+        el 121,126 16x16
+          text label="table" "\u{EBF4}" 121,126 16x16
+        text "orders" 145,126 102x16
+        text "table" 267,127 28x15
+    el #option-1 role=option label="order_items" 113,146 190x24 pos=2/2
+      el 113,146 190x24
+        el 121,150 16x16
+          text label="table" "\u{EBF4}" 121,150 16x16
+        text "order_items" 145,150 102x16
+        text "table" 267,151 28x15

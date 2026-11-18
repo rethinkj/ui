@@ -3294,9 +3294,60 @@ public final class App<S> {
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
     }
-    if (caretOverlays) { // placed beside carets, which are placed now
+    boolean looked = false;
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      El field = entry.getValue().element();
+      if (kept.contains(entry.getValue()) && field.takeGutterBuilt()) {
+        looked |= gutterLooks(field, entry.getKey());
+      }
+    }
+    // Placed beside carets, which are placed now, or of gutter cells that took a look.
+    if (caretOverlays || looked) {
       Overlays.place(root, width, height);
     }
+  }
+
+  /**
+   * Applies the looks of the moment to the cells a field's gutter has just built, after layout, as
+   * {@link #rowLooks} does to a list's rows: those under the pointer take their hover look and
+   * their {@link El#whenHoveredFor} look once it is due, such as a marker's tooltip.
+   *
+   * @return whether a cell took a look
+   */
+  private boolean gutterLooks(El field, Object fieldId) {
+    boolean took = false;
+    List<Object> hovered = new ArrayList<>(shown.hovered());
+    List<Object> rested = new ArrayList<>(shown.rested());
+    hovered.removeIf(id -> Animator.isBelow(id, fieldId));
+    rested.removeIf(id -> Animator.isBelow(id, fieldId));
+    for (Object id : pointedIds()) {
+      if (Animator.isBelow(id, fieldId)) {
+        El el = Animator.find(field, fieldId, id);
+        if (look(el, El::hoverLook, "whenHovered")) {
+          hovered.add(id);
+          took = true;
+        }
+        if (restLook(el, id)) {
+          rested.add(id);
+          took = true;
+        }
+      }
+    }
+    if (took) {
+      for (El part : field.children()) {
+        El.scaleText(part, scale, systemFonts); // the overlays the looks attached
+        Overlays.layout(part, width, height);
+      }
+    }
+    shown = new Looks(
+        hovered,
+        rested,
+        shown.focused(),
+        shown.focusRested(),
+        shown.within(),
+        shown.pressed(),
+        shown.hoversRun());
+    return took;
   }
 
   /**

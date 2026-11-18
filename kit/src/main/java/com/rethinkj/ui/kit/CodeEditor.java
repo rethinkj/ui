@@ -7,15 +7,19 @@ import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers in
- * a gutter, the caret's line highlighted, the bracket at the caret and its partner marked, the
- * other occurrences of the word at the caret marked, the tokens colored by a highlighter ({@link
- * Sql}) and an error underlined. Given the app, it also finds and replaces ({@link Find}), goes to
- * a line, and has the commands of {@link Command}.
+ * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
+ * markers in a gutter on a rail of its own, the caret's line highlighted, the bracket at the caret
+ * and its partner marked, the other occurrences of the word at the caret marked, guides in the
+ * indentation, the tokens colored by a highlighter ({@link Sql}) and the app's diagnostics
+ * underlined. Given the app, it also finds and replaces ({@link Find}), goes to a line, and has the
+ * commands of {@link Command}.
  *
  * <pre>{@code
  * codeEditor(app, state.sql, state.editor, Sql.of(), value -> state.sql = value)
@@ -34,6 +38,9 @@ public final class CodeEditor {
   static final int BRACKET_REACH = 100_000;
 
   private static final String BRACKETS = "([{)]}";
+
+  /** The columns of a step of indentation, at which guides stand: four, as the field's tabs. */
+  private static final int INDENT = 4;
 
   /**
    * A language whose comments run to the end of a line, which the highlighter tells the editor
@@ -70,6 +77,42 @@ public final class CodeEditor {
     TOGGLE_COMMENT
   }
 
+  /** How much a {@link Diagnostic} matters. */
+  public enum Severity {
+    /** Something that is wrong, such as a column the database does not know: the danger color. */
+    ERROR,
+    /** Something to think twice about: the warning color. */
+    WARNING
+  }
+
+  /**
+   * Something the app says about characters {@code from} to {@code to} of the string, such as
+   * where the database said a query went wrong: a straight line under them in the severity's
+   * status color, and a marker at the start of the line of {@code from} with the message as its
+   * tooltip.
+   */
+  public record Diagnostic(int from, int to, Severity severity, String message) {
+    public Diagnostic {
+      Objects.requireNonNull(severity, "severity");
+      Objects.requireNonNull(message, "message");
+    }
+  }
+
+  /**
+   * A marker in the gutter at the line of position {@code at} of the string: {@code symbol} in
+   * {@code tone}'s color, with {@code label} as its tooltip, which a press on it runs {@code
+   * onPress} for, such as {@link Symbol#PLAY} "Run statement" at the first line of a statement.
+   *
+   * @param onPress what a press runs, or null for a marker that only shows
+   */
+  public record Marker(int at, Symbol symbol, Icon.Variant tone, String label, Runnable onPress) {
+    public Marker {
+      Objects.requireNonNull(symbol, "symbol");
+      Objects.requireNonNull(tone, "tone");
+      Objects.requireNonNull(label, "label");
+    }
+  }
+
   /** The command of a key, or null. */
   static Command command(Key k) {
     int mods = k.modifiers();
@@ -90,8 +133,8 @@ public final class CodeEditor {
 
   /**
    * What the app keeps of an editor in its state, as a {@link Menu.State}: where the caret and the
-   * selection are, which the editor updates as they change ({@link El#onSelect}), and an error
-   * to underline, which the app sets, such as where the database said a query went wrong. It also
+   * selection are, which the editor updates as they change ({@link El#onSelect}), and a marked
+   * block, markers and diagnostics, which the app sets. It also
    * holds the field's editing state ({@link FieldState}), so that an editor that leaves the tree,
    * as the content of a tab that is not active does, comes back with its caret, selection,
    * scroll and undo history: keep one per editor, such as one per tab.
@@ -105,8 +148,11 @@ public final class CodeEditor {
     private final Find.State find = new Find.State();
     private int caret;
     private int anchor;
-    private int errorFrom;
-    private int errorTo;
+    private List<Marker> markers = List.of();
+    private List<Diagnostic> diagnostics = List.of();
+    private String diagnosed; // the text the diagnostics are about
+    private String checked; // the value last compared with it, by identity, and whether it was it
+    private boolean current;
     private int blockFrom;
     private int blockTo;
     private boolean occurrences = true;
@@ -165,9 +211,9 @@ public final class CodeEditor {
     }
 
     /**
-     * Marks the lines of characters {@code from} to {@code to} of the string with {@code
-     * code().block()} behind them, such as the statement that Control+Enter would run; the
-     * caret's line shows its own background over it. {@code from == to} marks none.
+     * Marks the lines of characters {@code from} to {@code to} of the string on the gutter's rail,
+     * tinted with {@code code().block()} beside a line in the accent's edge, such as the statement
+     * that Control+Enter would run. {@code from == to} marks none.
      */
     public State block(int from, int to) {
       blockFrom = from;
@@ -181,36 +227,66 @@ public final class CodeEditor {
     }
 
     /**
-     * Underlines characters {@code from} to {@code to} of the string in the danger color; a tree
-     * dump shows it on the editor as {@code underline <from>-<to>} while its lines are in view.
+     * Shows {@code markers} in the gutter, each at its position's line, in place of those before;
+     * where several are on one line, the first, and a diagnostic's marker before them all.
      */
-    public State error(int from, int to) {
-      errorFrom = from;
-      errorTo = to;
+    public State markers(List<Marker> markers) {
+      this.markers = List.copyOf(markers);
       return this;
     }
 
-    /** Underlines nothing. */
-    public State noError() {
-      return error(0, 0);
+    /** The markers the app set. */
+    public List<Marker> markers() {
+      return markers;
     }
 
-    /** Where the {@link #error} starts; equal to {@link #errorTo} for none. */
-    public int errorFrom() {
-      return errorFrom;
+    /**
+     * Shows {@code diagnostics} about {@code text}, in place of those before, while the editor's
+     * value is {@code text}: after an edit they go, and they come back with an undo to it. Each
+     * is underlined in its severity's status color, and each line where one starts has a marker,
+     * of the worst severity among them, whose tooltip is their messages. A tree dump shows the
+     * lines under them on the editor as {@code underline <from>-<to>} while their lines are in
+     * view, and the marker in the line's cell, with the messages of its errors as {@code error=}
+     * and of its warnings as {@code warning=}.
+     */
+    public State diagnostics(String text, List<Diagnostic> diagnostics) {
+      this.diagnostics = List.copyOf(diagnostics);
+      diagnosed = text;
+      checked = null;
+      return this;
     }
 
-    /** Where the {@link #error} ends. */
-    public int errorTo() {
-      return errorTo;
+    /** Shows no diagnostics. */
+    public State noDiagnostics() {
+      return diagnostics(null, List.of());
+    }
+
+    /** The diagnostics the app set, whether they show or not. */
+    public List<Diagnostic> diagnostics() {
+      return diagnostics;
+    }
+
+    /** The diagnostics that show with {@code value}: those about it. */
+    private List<Diagnostic> diagnosticsOf(String value) {
+      if (diagnostics.isEmpty()) {
+        return List.of();
+      }
+      if (value != checked) { // the same string as before is compared once
+        checked = value;
+        current = value.equals(diagnosed);
+      }
+      return current ? diagnostics : List.of();
     }
   }
 
   /**
-   * The editor: the code area of the theme, whose gutter shows the number of each line, muted but
-   * on the caret's line, and whose caret's line has {@code code().line()} behind it, over the
-   * {@code code().block()} of a {@link State#block marked block}, and the bracket before or after
-   * the caret and the one that matches it {@code code().bracket()}.
+   * The editor: the code area of the theme, whose gutter lies on a rail of the band's color with a
+   * hairline at its right ({@link Theme.Borders#divider}) and shows the number of each line,
+   * muted but on the caret's line, after a column of markers ({@link State#markers}, {@link
+   * State#diagnostics}); a {@link State#block marked block} tints the rail. The caret's line has
+   * {@code code().line()} behind it, the bracket before or after the caret and the one that matches
+   * it {@code code().bracket()}, and the white space that starts a line {@code code().guide()} at
+   * each step of four columns.
    *
    * @param value the code, from the app's state
    * @param state the app's state of this editor
@@ -243,7 +319,11 @@ public final class CodeEditor {
         : state.caret == state.anchor
             ? CodeWords.start(value, Math.min(state.caret, value.length()))
             : Math.min(state.caret, state.anchor);
-    Theme.TextStyle mono = theme.type().mono();
+    List<Diagnostic> diagnostics = state.diagnosticsOf(value);
+    El rail = El.el()
+        .fill(theme.surface().band())
+        .border(0, theme.size().stroke(), 0, 0, theme.border().divider())
+        .margin(0, theme.space().m(), 0, 0);
     El editor = TextField.codeArea(value, null, onChange)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
@@ -252,12 +332,10 @@ public final class CodeEditor {
         })
         .decorate((line, start, text, out) -> {
           int end = start + text.length();
-          if (state.blockFrom < state.blockTo && state.blockTo > start && state.blockFrom <= end) {
-            out.lineBackground(code.block());
-          }
           if (state.caret >= start && state.caret <= end) {
             out.lineBackground(code.line());
           }
+          guides(text, code.guide(), out);
           for (int at : pair) {
             out.background(at - start, at - start + 1, code.bracket());
           }
@@ -269,17 +347,15 @@ public final class CodeEditor {
               }
             }
           }
-          if (state.errorTo > start && state.errorFrom <= end) {
-            out.underline(
-                state.errorFrom - start, state.errorTo - start, theme.status().danger());
+          for (Diagnostic d : diagnostics) {
+            if (d.to > start && d.from <= end) {
+              out.underline(d.from - start, d.to - start, color(theme, d.severity));
+            }
           }
         })
-        .gutter((line, caret) -> El.text(String.valueOf(line + 1))
-            .font(mono.font().get())
-            .fontSize(mono.size())
-            .color(caret ? theme.text().primary() : theme.text().muted())
-            .textAlign(Style.Align.END)
-            .padding(0, theme.space().m(), 0, 0));
+        .gutter(line -> cell(theme, state, diagnostics, line), rail);
+    // The rail starts at the frame: the field's padding lies after the gutter.
+    editor.style().paddingLeft = Len.ZERO;
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
@@ -318,8 +394,6 @@ public final class CodeEditor {
     Theme theme = Theme.CURRENT.get();
     float stroke = theme.size().stroke();
     editor.radius(0).border(stroke, 0, 0, 0, theme.border().divider()).shadow().wFull();
-    // The gutter lines up with the card's title, inside the card's padding.
-    editor.style().paddingLeft = Len.px(theme.space().l());
     editor.style().paddingRight = Len.px(theme.space().l());
     // Without the field's frame, no stroke of padding stands in for its bottom border.
     editor.style().paddingBottom = Len.px(editor.style().paddingBottom.value() - stroke);
@@ -330,6 +404,100 @@ public final class CodeEditor {
           .whenFocused(e -> e.border(stroke, 0, 0, 0, theme.accent().edge()));
     }
     return editor;
+  }
+
+  /** Guides at each step of indentation in the white space that starts {@code text}. */
+  private static void guides(String text, int color, Spans out) {
+    int column = 0;
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (c != ' ' && c != '\t') {
+        return;
+      }
+      if (column % INDENT == 0) {
+        out.guide(i, color);
+      }
+      column = c == '\t' ? (column / INDENT + 1) * INDENT : column + 1;
+    }
+  }
+
+  private static int color(Theme theme, Severity severity) {
+    return severity == Severity.ERROR ? theme.status().danger() : theme.status().warning();
+  }
+
+  /**
+   * The gutter's cell of a line: a bar in the accent's edge and a tint where the line is in the
+   * marked block, the column of markers, and the line's number.
+   */
+  private static El cell(
+      Theme theme, State state, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+    Theme.TextStyle mono = theme.type().mono();
+    float bar = theme.size().indicator();
+    float s = theme.space().s();
+    boolean block = state.blockFrom < state.blockTo
+        && state.blockTo > line.start()
+        && state.blockFrom <= line.end();
+    El cell = El.row()
+        .align(Style.Align.CENTER)
+        .gap(s)
+        .padding(0, theme.space().m(), 0, block ? s : s + bar);
+    if (block) {
+      cell.fill(theme.code().block()).border(0, 0, 0, bar, theme.accent().edge());
+    }
+    return cell.children(
+        marker(theme, state, diagnostics, line).w(mono.size()).shrink(0),
+        El.text(String.valueOf(line.index() + 1))
+            .font(mono.font().get())
+            .fontSize(mono.size())
+            .color(line.caret() ? theme.text().primary() : theme.text().muted())
+            .textAlign(Style.Align.END)
+            .grow(1));
+  }
+
+  /**
+   * The marker of a line: of the diagnostics that start on it, else of the app's first marker on
+   * it; an empty place for one where there is none, so that the numbers stay where they are.
+   */
+  private static El marker(
+      Theme theme, State state, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+    float size = theme.type().mono().size();
+    StringBuilder messages = new StringBuilder();
+    StringBuilder errors = new StringBuilder();
+    StringBuilder warnings = new StringBuilder();
+    for (Diagnostic d : diagnostics) {
+      if (d.from >= line.start() && d.from <= line.end()) {
+        StringBuilder kind = d.severity == Severity.ERROR ? errors : warnings;
+        kind.append(kind.isEmpty() ? "" : "\n").append(d.message);
+        messages.append(messages.isEmpty() ? "" : "\n").append(d.message);
+      }
+    }
+    El place = El.row().key("marker").justify(Style.Content.CENTER);
+    if (!messages.isEmpty()) {
+      boolean error = !errors.isEmpty();
+      place
+          .role("img")
+          .label(error ? "Error" : "Warning")
+          .child(Icon.icon(
+              error ? Symbol.DISMISS : Symbol.WARNING,
+              error ? Icon.Variant.DANGER : Icon.Variant.WARNING,
+              size));
+      place.errorMessage(error ? errors.toString() : null);
+      place.warningMessage(warnings.isEmpty() ? null : warnings.toString());
+      return Tooltip.tooltip(place, messages.toString());
+    }
+    for (Marker m : state.markers) {
+      if (m.at >= line.start() && m.at <= line.end()) {
+        place
+            .role(m.onPress == null ? "img" : "button")
+            .label(m.label)
+            .child(Icon.icon(m.symbol, m.tone, size));
+        if (m.onPress != null) {
+          place.onPress(m.onPress).keepFocus();
+        }
+        return Tooltip.tooltip(place, m.label);
+      }
+    }
+    return El.el();
   }
 
   /** The word at the caret, if nothing or exactly a word is selected; else null. */

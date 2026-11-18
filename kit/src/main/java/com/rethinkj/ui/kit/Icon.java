@@ -35,7 +35,9 @@ public final class Icon {
     /** Something that needs attention. */
     WARNING,
     /** Something that worked or is ready. */
-    SUCCESS
+    SUCCESS,
+    /** An action at hand, such as running a statement: in the accent's edge. */
+    ACCENT
   }
 
   /** The label of each symbol, by its ordinal, made once. */
@@ -73,6 +75,7 @@ public final class Icon {
       case DANGER -> theme.status().danger();
       case WARNING -> theme.status().warning();
       case SUCCESS -> theme.status().success();
+      case ACCENT -> theme.accent().edge();
     };
     return El.text(Character.toString(symbol.codePoint(size)))
         .label(LABELS[symbol.ordinal()])

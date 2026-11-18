@@ -14,9 +14,9 @@ import java.util.Objects;
  *
  * <p>Colors ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
- * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines and
- * the line's background and struck-out ranges are drawn in a {@link El#multiline multi-line} field only, before its
- * selection and glyphs.
+ * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines, the
+ * line's background, struck-out ranges and guides are drawn in a {@link El#multiline multi-line}
+ * field only, before its selection and glyphs.
  */
 public final class Spans {
 
@@ -25,6 +25,7 @@ public final class Spans {
   static final int BACKGROUND = 2;
   static final int UNDERLINE = 3;
   static final int STRIKE = 4;
+  static final int GUIDE = 5;
 
   private final int length;
   private final boolean discard; // only the state is wanted: adds do nothing
@@ -66,7 +67,7 @@ public final class Spans {
           .append(Integer.toHexString(argb).toUpperCase(Locale.ROOT))
           .append('\n');
     }
-    String[] names = {"color", "font", "background", "underline", "strike"};
+    String[] names = {"color", "font", "background", "underline", "strike", "guide"};
     for (int i = 0; i < count; i++) {
       out.append(names[kinds[i]])
           .append(' ')
@@ -119,6 +120,15 @@ public final class Spans {
    */
   public Spans strike(int from, int to, int argb) {
     return add(STRIKE, from, to, argb, null);
+  }
+
+  /**
+   * A thin vertical line a line high at the left edge of character {@code at}, in color {@code
+   * argb}, as thick as an {@link #underline}: an indentation guide in the leading white space of a
+   * line of code. It lies behind the glyphs.
+   */
+  public Spans guide(int at, int argb) {
+    return add(GUIDE, at, at + 1, argb, null);
   }
 
   /**

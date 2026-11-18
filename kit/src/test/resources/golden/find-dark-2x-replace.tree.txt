@@ -1,20 +1,49 @@
 el 0,0 560x260
   text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 12,12 536x194 lines 1-11/16 underline 161-163 thumb-y 539,15 6x133.82
-    el #gutter 21,17 23x176
-      text #line-0 "1" 21,17 23x16
-      text #line-1 "2" 21,33 23x16
-      text #line-2 "3" 21,49 23x16
-      text #line-3 "4" 21,65 23x16
-      text #line-4 "5" 21,81 23x16
-      text #line-5 "6" 21,97 23x16
-      text #line-6 "7" 21,113 23x16
-      text #line-7 "8" 21,129 23x16
-      text #line-8 "9" 21,145 23x16
-      text #line-9 "10" 21,161 23x16
-      text #line-10 "11" 21,177 23x16
-      text #line-11 "12" 21,193 23x16
-      text #line-12 "13" 21,209 23x16
-      text #line-13 "14" 21,225 23x16
+    el #rail 13,13 46x193
+    el #gutter 13,17 45x176
+      el #line-0 13,17 45x16
+        el 19,25 12x0
+        text "1" 35,17 15x16
+      el #line-1 13,33 45x16
+        el 19,41 12x0
+        text "2" 35,33 15x16
+      el #line-2 13,49 45x16
+        el 19,57 12x0
+        text "3" 35,49 15x16
+      el #line-3 13,65 45x16
+        el 19,73 12x0
+        text "4" 35,65 15x16
+      el #line-4 13,81 45x16
+        el 19,89 12x0
+        text "5" 35,81 15x16
+      el #line-5 13,97 45x16
+        el 19,105 12x0
+        text "6" 35,97 15x16
+      el #line-6 13,113 45x16
+        el 19,121 12x0
+        text "7" 35,113 15x16
+      el #line-7 13,129 45x16
+        el 19,137 12x0
+        text "8" 35,129 15x16
+      el #line-8 13,145 45x16
+        el 19,153 12x0
+        text "9" 35,145 15x16
+      el #line-9 13,161 45x16
+        el 19,169 12x0
+        text "10" 35,161 15x16
+      el #line-10 13,177 45x16
+        el 19,185 12x0
+        text "11" 35,177 15x16
+      el #line-11 13,193 45x16
+        el 19,201 12x0
+        text "12" 35,193 15x16
+      el #line-12 13,209 45x16
+        el 19,217 12x0
+        text "13" 35,209 15x16
+      el #line-13 13,225 45x16
+        el 19,233 12x0
+        text "14" 35,225 15x16
 overlay top end gap -58 on #query role=textbox 12,12 536x194
   el #find role=search label="Find" 127,14 421x56
     el 127,14 411x56

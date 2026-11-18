@@ -1,3 +1,8 @@
+# The editor as the code editor's page shows its tree: a marker and an error in the gutter.
+size 520 260
+frame
+snap view
+
 # docs:start completion-script
 size 520 260
 frame

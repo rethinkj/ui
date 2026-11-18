@@ -13,6 +13,8 @@ el 0,0 800x868
     text "warning" 393,6 49x16
     text label="warning" "\u{F868}" 450,6 16x16
     text "success" 474,6 51x16
+    text label="warning" "\u{F868}" 533,6 16x16
+    text "accent" 557,6 41x16
   el 0,28 200x28
     text label="add" "\u{F108}" 8,34 16x16
     text label="add" "\u{F109}" 32,32 20x20

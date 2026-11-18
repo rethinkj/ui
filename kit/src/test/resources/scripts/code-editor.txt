@@ -1,5 +1,5 @@
 # The kit's code editor (CodeEditorTest): SQL with every kind of token, line numbers, the caret's
-# line, a pair of brackets and an error underlined.
+# line, a marked block with a marker, a pair of brackets and an error underlined.
 frame
 snap rest              # without the focus: the caret's line, the first, still stands out
 
@@ -15,6 +15,21 @@ key ArrowDown
 key End                # after the ")" that closes the list of IN: both brackets marked
 frame
 snap brackets
+
+move role=button label="Run statement"
+frame
+advance 1
+frame
+snap tooltip           # its label, as a tooltip
+press role=button label="Run statement"
+frame
+snap ran               # it ran, and the caret stayed where it was
+
+type "x"               # the text is no longer the one the error is about: it goes
+frame
+snap edited
+key Backspace          # back to that text: it shows again
+frame
 
 key End control        # the last line: the gutter scrolls with the text
 frame

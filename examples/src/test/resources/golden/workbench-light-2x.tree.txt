@@ -88,11 +88,21 @@ el 0,0 1000x600
                   el role=separator 277,106 714x1
                   el 277,107 714x98
                     text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders\nWHERE customer_id = 7\nLIMIT 20;" 289,115 690x82 lines 1-4/4 focused caret 63 (4:9)
-                      el #gutter 298,120 15x64
-                        text #line-0 "1" 298,120 15x16
-                        text #line-1 "2" 298,136 15x16
-                        text #line-2 "3" 298,152 15x16
-                        text #line-3 "4" 298,168 15x16
+                      el #rail 290,116 38x81
+                      el #gutter 290,120 37x64
+                        el #line-0 290,120 37x16
+                          el #marker role=button label="Run statement" 296,122 12x12
+                            text label="play" "\u{E98F}" 296,122 12x12
+                          text "1" 312,120 7x16
+                        el #line-1 290,136 37x16
+                          el 296,144 12x0
+                          text "2" 312,136 7x16
+                        el #line-2 290,152 37x16
+                          el 296,160 12x0
+                          text "3" 312,152 7x16
+                        el #line-3 290,168 37x16
+                          el 296,176 12x0
+                          text "4" 312,168 7x16
                   el role=separator 277,205 714x1
                   el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x327 thumb-x 279,525 347.22x6
                     el #content 277,206 1460x327

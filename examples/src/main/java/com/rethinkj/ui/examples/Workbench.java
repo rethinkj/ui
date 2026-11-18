@@ -152,7 +152,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     int answered = -1; // the rows of the last answer, which a statement that fails leaves shown
     Work asking; // the question for the rows, cancelled with the tab or by the next one
     String query; // the statement in the query area
-    final CodeEditor.State editor = new CodeEditor.State(); // its caret, history and error
+    final CodeEditor.State editor = new CodeEditor.State(); // its caret, history and diagnostics
     final Completion.State completion = new Completion.State();
     String failure; // what the server said was wrong with the statement, until the next edit
     final Selection selection = new Selection(Mode.CELLS);
@@ -506,6 +506,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private void openTab(TabGroups.Group<Opened> group, Node table) {
     Opened opened =
         new Opened(table, stored.computeIfAbsent(table.path(), path -> new TableRows.Stored()));
+    opened.editor.markers(List.of(
+        new CodeEditor.Marker(0, Symbol.PLAY, Variant.ACCENT, "Run statement", () -> run(opened))));
     ask(opened, Integer.MAX_VALUE, null, 0, 0);
     groups.add(group, group.tabs().size(), opened);
     taskbar(); // again, now that the tab counts
@@ -568,7 +570,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     opened.rows = -1;
     opened.selection.reset();
     opened.failure = null;
-    opened.editor.noError();
+    opened.editor.noDiagnostics();
+    String statement = opened.query;
     Node server = opened.table;
     while (server.parent != null) {
       server = server.parent;
@@ -594,7 +597,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           opened.rows = opened.answered;
           if (error instanceof NoSuchTable) {
             opened.failure = error.getMessage();
-            opened.editor.error(from, to); // the name, underlined until the next edit
+            // The name, underlined while the statement is the one that ran.
+            opened.editor.diagnostics(
+                statement,
+                List.of(new CodeEditor.Diagnostic(
+                    from, to, CodeEditor.Severity.ERROR, error.getMessage())));
           } else {
             tell(path + ": " + error.getMessage());
           }
@@ -1679,7 +1686,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   void editQuery(Opened opened, String query) {
     opened.query = query;
     opened.failure = null; // the next edit takes the error away
-    opened.editor.noError();
   }
 
   /** Control+Enter runs the query; any other key goes on to the editor. */

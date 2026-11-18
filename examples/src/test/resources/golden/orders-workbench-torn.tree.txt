@@ -33,8 +33,12 @@ el 0,0 760x480
               el role=separator 9,106 742x1
               el 9,107 742x98
                 text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT * FROM orders LIMIT 5;" 21,115 718x82 lines 1-1/1 focused caret 29 (1:30)
-                  el #gutter 30,120 15x64
-                    text #line-0 "1" 30,120 15x16
+                  el #rail 22,116 38x81
+                  el #gutter 22,120 37x64
+                    el #line-0 22,120 37x16
+                      el #marker role=button label="Run statement" 28,122 12x12
+                        text label="play" "\u{E98F}" 28,122 12x12
+                      text "1" 44,120 7x16
               el role=separator 9,205 742x1
               el #grid-localhost/shop/public/orders role=grid label="orders" 9,206 742x236 thumb-x 11,434 375.07x6
                 el #content 9,206 1460x236
