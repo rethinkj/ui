@@ -39,7 +39,7 @@ An overlay is at most as large as the window minus its margins, and one at the w
 | `dismissGroup(group)` | Presses on elements of the same group do not dismiss it: a menu bar's titles |
 | `onShownFor(seconds, handler)` | Runs once it has been open that long: a toast closes itself |
 
-An overlay moves the focus to its first focusable element when it opens, and back when it closes. Keys go from the focused element up to the overlay's root and then to its anchor, so the owner of a menu sees Escape. Escape closes nothing by itself: handle it in `onKey` and change the state.
+An overlay moves the focus to its first focusable element when it opens, and back when it closes. Keys go from the focused element up to the overlay's root and then to its anchor, so the owner of a menu sees Escape. In a `modal()` overlay they end at its root: handle Escape there. Escape closes nothing by itself: handle it in `onKey` and change the state.
 
 ## In a tree dump
 

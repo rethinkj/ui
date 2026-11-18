@@ -12,7 +12,7 @@ The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a reco
 
 ## Providing the theme
 
-Components read the theme from `Theme.CURRENT`, and so does the view's own code, with `Theme.CURRENT.get()`. It is `Theme.DARK` until the app provides another: `app.provide(Theme.CURRENT, state -> theme)` gives the theme to every build of the view and to the rows of its lists, and `Theme.CURRENT.with(theme, () -> part)` to a part of the view, as above, so two themes can be on screen at once. Handlers run outside the view: one that needs the theme reads it from the state.
+Components read the theme from `Theme.CURRENT`, and so does the view's own code, with `Theme.CURRENT.get()`. It is `Theme.DARK` until the app provides another: `app.provide(Theme.CURRENT, state -> theme)` gives the theme to every build of the view and to the rows of its lists, and `Theme.CURRENT.with(theme, () -> part)` to a part of the view, as above, so two themes can be on screen at once. Handlers run outside the view: one that needs the theme reads it from the state. `Theme.CURRENT` is a core [`Context`](/api/com/rethinkj/ui/Context.html); `new Context<>(fallback)` makes one for any value of an app's own, provided and read the same way.
 
 ## Switching themes
 
@@ -42,14 +42,14 @@ Keep what the user chose in the state and provide the theme from it. This app of
 | `type()` | `body` (13), `small` (12: secondary text beside what it is about), `mono` (12), `strong` (13, medium), `heading` (14, semibold: cards), `section` (16, semibold: a section of a page), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
 | `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, `tooltip` (where a tooltip's text wraps), … |
 | `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
-| `elevation()` | Shadows of `card` (the least: cards and tooltips), `popup`, `dialog` (the most) |
+| `elevation()` | Shadows of `control` (the least: buttons at rest), `controlHover`, `card` (cards and tooltips), `popup`, `dialog` (the most) |
 | `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
 
-Each group's `with` method returns a changed copy: `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption`. The tokens of each group are in the Javadoc of [`Theme`](/api/com/rethinkj/ui/kit/Theme.html).
+Each group's `with` method returns a changed copy: `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge`, `withDanger`, `withCaption` and `withCallout`. The tokens of each group are in the Javadoc of [`Theme`](/api/com/rethinkj/ui/kit/Theme.html).
 
 ## Accents
 
-`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GRAY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links, the tint of a changed cell and that of a code editor's marked block stay blue.
+`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GRAY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links, the tint of a changed cell, that of a code editor's marked block and the accent badges stay blue.
 
 Your own accent is a `Theme.Accent` of a color and its hover and pressed tones. The selection is then the color at 40 % and the edge (focus rings, the grid's cursor) the color itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
 

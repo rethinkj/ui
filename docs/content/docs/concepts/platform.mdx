@@ -38,7 +38,7 @@ Save the window's placement when the app ends and pass it to the options at the 
 
 A frameless window needs to know which parts of its title bar are the drag area and the minimize, maximize and close buttons. Then it moves, snaps, maximizes, shows Windows 11's snap layouts and system menu like a framed window, and resizes at its edges. The kit's [TitleBar](/docs/components/title-bar) marks them for you.
 
-In a title bar of your own, mark elements with `El.windowPart(part)`. Descendants belong to their ancestor's part unless they are marked themselves or have a press handler. The parts under a modal dialog still work, so the window can be moved and closed. `app.windowPart(x, y)` returns the part at a point.
+In a title bar of your own, mark elements with `El.windowPart(part)`. Descendants belong to their ancestor's part unless they are marked themselves or have a press handler. The parts under a modal dialog still work, so the window can be moved and closed. `app.windowPart(x, y)` returns the part at a point. `WindowState.CURRENT.get()` says whether the window is `active()` and `maximized()`, to show Restore in place of Maximize and a quieter look in an inactive window.
 
 | [`WindowPart`](/api/com/rethinkj/ui/WindowPart.html) | |
 | --- | --- |

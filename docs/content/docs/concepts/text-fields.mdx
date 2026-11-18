@@ -37,7 +37,7 @@ The app keeps a field's caret, selection, scroll offset, undo history (100 steps
 | `placeholder(text, argb)` | Text shown while the field is empty |
 | `codeWords()` | Words are runs of letters, digits and `_`, for Control+Arrow and double clicks |
 | `highlight(key, highlighter)` | Colors, fonts, backgrounds, underlines per range |
-| `decorate(decorator)` | Backgrounds and underlines for the lines in view: the caret's line, matches, errors |
+| `decorate(decorator)`, `alsoDecorate(decorator)` | Backgrounds and underlines for the lines in view: the caret's line, matches, errors; `alsoDecorate` adds to those a component draws itself, such as a code editor |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | An element per line at the left, told the line's index, where it starts and ends and whether the caret is on it: line numbers, markers; on a rail behind them |
 
 The [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) has the rest: the mask character and a revealed password, the caret's and selection's colors, Tab indents and tab size, and `onSelect` for caret moves.

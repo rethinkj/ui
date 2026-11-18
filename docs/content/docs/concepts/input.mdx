@@ -44,21 +44,24 @@ A [`Drag`](/api/com/rethinkj/ui/Drag.html) has its `phase` (`START`, `MOVE`, `EN
 | Call | |
 | --- | --- |
 | `focusable()` | Tab reaches the element; a press focuses it |
-| `onKey(key -> …)` | A key while the element or something inside it has the focus; return true to take it |
+| `onKey(key -> …)` | A key while the element or something inside it has the focus; return true to take it. Replaces the element's handler |
+| `onKeyFirst(key -> …)` | A handler asked before the element's own; the keys it leaves go on to that one: a key added to a component that handles keys, such as a code editor |
 | `onKeyUp(...)`, `onText(text -> …)` | Releases, and typed text |
 | `onTypeAhead(text -> …)` | The text typed so far, to go to the item that starts with it, as a tree does; a pause of `App.TYPE_AHEAD` seconds or Escape starts anew |
 | `keepFocus()` | A press leaves the focus where it was: for buttons that act on an editor |
 | `skipTab()` | Tab passes it by; a press still focuses it |
-| `autofocus()` | Takes the focus in the build that adds it |
+| `autofocus()`, `autofocus(key)` | Takes the focus in the build that adds it; with a key, again whenever the key changes: the first field with an error after each Save |
 | `defaultFocus()` | Where the focus goes when it moves into an element around it that has not had it: a page's grid rather than the button above it. Takes no focus by itself |
 | `focusRing(argb)`, `focusRingGap(px)` | The ring drawn when the keyboard moved the focus |
 
 A key goes through these steps until one takes it:
 
-1. The focused element's `onKey` handler.
-2. Enter or Space without modifiers press the focused element, if it has a press handler.
-3. The `onKey` handlers of its ancestors, innermost first.
-4. Tab and Shift+Tab move the focus through the focusable elements in tree order. Page Up and Page Down scroll the innermost scroll area around the focus by one page; in a modal overlay such as a dialog, its first scroll area, also while the focus is on a button below it.
+1. The focused element's `onKey` handler, those added with `onKeyFirst` first.
+2. A focused text field's own editing.
+3. Enter or Space without modifiers press the focused element, if it has a press handler.
+4. The `onKey` handlers of its ancestors, innermost first.
+5. The Menu key and Shift+F10 run the `onSecondaryPress` handler of the focused element or its nearest ancestor that has one.
+6. Tab and Shift+Tab move the focus through the focusable elements in tree order. Page Up and Page Down scroll the innermost scroll area around the focus by one page; in a modal overlay such as a dialog, its first scroll area, also while the focus is on a button below it.
 
 A [`Key`](/api/com/rethinkj/ui/Key.html) has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 
