@@ -50,7 +50,7 @@ Without the native libraries, build with `-P '!natives-linux-x64'` (or `'!native
 
 On first use the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. The system property `rethinkj.ui.natives.cache` sets another cache folder; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
 
-Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), and the fonts and icons modules `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
+Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), which brings the fonts and icons JARs on the module path along; without it, add those you use, `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
 
 ## When something does not work
 
@@ -61,7 +61,7 @@ Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class
 | A Linux library does not load from the cache | The cache lies on a file system mounted `noexec`; set `rethinkj.ui.natives.cache` to another folder. The error names the dynamic linker's reason. |
 | The build stops at cmake on Windows | Install "C++ CMake tools for Windows", or set `CMAKE` as above |
 | The build stops at cmake on Linux | A development package is missing; the message names the option cmake turned off |
-| No GPU adapter | The machine has no GPU driver for Vulkan (Linux) or Direct3D 12 (Windows); scripts and `Headless.render` still work, since they draw on the CPU. The first window takes the GPU when it draws its first frame, so this error, like wgpu-native that cannot be loaded, is thrown by `WindowLoop.run`, not by `new GpuPresenter` |
+| No GPU adapter | The machine has no GPU driver for Vulkan (Linux) or Direct3D 12 (Windows); scripts and `Headless.render` still work, since they draw on the CPU. The first window takes the GPU when it first uses it, usually at its first frame, so this error, like wgpu-native that cannot be loaded, is mostly thrown by `WindowLoop.run`, not by `new GpuPresenter` |
 | The build fails to download | It needs network the first time; put the archive at the path the error names |
 
 ## Platform differences

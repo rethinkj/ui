@@ -255,7 +255,7 @@ All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`. `core` a
 
 ## Native libraries
 
-Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), and the fonts and icons modules with `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
+Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), which brings the fonts and icons JARs on the module path along. Without the natives module, add those you use: `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
 
 On first use, the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Two system properties change that:
 

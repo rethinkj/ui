@@ -3,14 +3,14 @@ title: Custom runner
 description: The App methods a runner of your own needs, for example to embed an app in another toolkit's loop.
 ---
 
-`WindowLoop` runs an app in an SDL window. To run an app in another loop, such as a window of another toolkit, feed it input with the methods under [Driving it from Java](/docs/concepts/app#driving-it-from-java) and the other input methods of [`App`](/api/com/rethinkj/ui/App.html#method-summary), call `frame()`, draw `scene()` with `GpuRenderer.render` (or take the CPU frame from `render()`), and use these methods for the rest:
+`WindowLoop` runs an app in an SDL window. To run an app in another loop, such as a window of another toolkit, feed it input with the methods under [Driving it from Java](/docs/concepts/app#driving-it-from-java) and the other input methods of [`App`](/api/com/rethinkj/ui/App.html#method-summary), call `frame()`, show the pixels of `GpuRenderer.render(scene(), …)` or of `render()`, and use these methods for the rest:
 
 | `App` method | |
 | --- | --- |
-| `advance(seconds)` | Moves the app's clock by the time since the last frame; call it once per frame. Nothing else reads a clock |
+| `advance(seconds)` | Moves the app's clock by the time since the last frame; call it once per frame |
 | `isMoving()` | Whether something moves, so the next frame draws something new after `advance` even without input; draw again at the display's rate while this holds |
 | `cursor()` | The pointer shape that the element under the pointer asks for, to set on the window after each frame |
-| `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | The system's clipboard, its file dialogs, and the windows a handler opens. Without them the app keeps an in-memory clipboard and `Dialogs.NONE`, and opening a window throws |
+| `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | The system's clipboard, its file dialogs and message boxes, and the windows a handler opens. Without them the app keeps an in-memory clipboard and `Dialogs.NONE`, and opening a window throws |
 | `nextChange()` | When the last frame will change without input (the caret's blink, a hover delay, an `after` action); positive infinity when nothing will, so the runner can wait for input alone |
 | `onPost(wake)` | Called on the posting thread when a task arrives; wake the runner's wait there |
 | `handlersWaiting()` | Whether the next frame has handlers to run at once, such as `onResize` handlers after a layout; a runner that draws on the system's request draws again while this holds, a few times at most |

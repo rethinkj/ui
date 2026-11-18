@@ -59,7 +59,7 @@ Make the cache again whenever the image is built again: the JVM uses it only wit
 
 `Window.open` makes the GPU device on another thread while it opens the window. An app that does a lot before it opens its first window can start that sooner by calling [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) first in `main`.
 
-To measure the start, `WindowLoop` logs at `DEBUG` on the `System.Logger` `com.rethinkj.ui.window` how many milliseconds after the process started each window showed its first frame; with `java.util.logging`, set `com.rethinkj.ui.window.level = FINE` and `java.util.logging.ConsoleHandler.level = FINE` to print it.
+To measure the start, `WindowLoop` logs at `DEBUG` on the `System.Logger` `com.rethinkj.ui.window` how many milliseconds after the process started each window showed its first frame; with `java.util.logging` (the module `java.logging`, which a packaged image adds with `--add-modules`), set `com.rethinkj.ui.window.level = FINE` and `java.util.logging.ConsoleHandler.level = FINE` to print it.
 
 ## Native libraries unpacked at install time
 
