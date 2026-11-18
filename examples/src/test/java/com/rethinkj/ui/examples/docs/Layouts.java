@@ -151,6 +151,10 @@ final class Layouts {
     tab = index;
   }
 
+  void result(int index) {
+    result = index;
+  }
+
   void wrapped(boolean on) {
     wrapped = on;
   }
@@ -376,7 +380,7 @@ final class Layouts {
     El results = Tabs.tabs(
         List.of(new Tabs.Tab("Result", false, false), new Tabs.Tab("Messages", false, false)),
         state.result,
-        index -> state.result = index,
+        state::result,
         null,
         col()
             .padding(theme.space().l())
