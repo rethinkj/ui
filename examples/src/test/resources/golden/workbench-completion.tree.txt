@@ -83,11 +83,11 @@ el 0,0 1000x600
               text "coupons" 93,154 54x16
             el #row-10 role=treeitem label="customers" 13,174 250x24 selected expanded=false level=4 pos=7/250
               el 25,174 1x24
-              el 15,178 2x16
               el #mark-10 53,174 16x24
                 text label="chevron_right" "\u{F2AF}" 53,178 16x16
               text label="table" "\u{EBF4}" 73,178 16x16
               text "customers" 93,178 65x16
+              el 15,178 2x16
             el #row-11 role=treeitem label="deliveries" 13,198 250x24 expanded=false level=4 pos=8/250
               el 25,198 1x24
               el #mark-11 53,198 16x24

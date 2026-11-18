@@ -17,10 +17,10 @@ el 0,0 320x260
           text "2 tables" 113,44 151x16
       el #row-2 role=treeitem label="orders" 16,64 252x24 selected level=3 pos=1/2
         el 28,64 1x24
-        el 18,68 2x16
         el 44,64 16x24
         text label="table" "\u{EBF4}" 64,68 16x16
         text "orders" 84,68 41x16
+        el 18,68 2x16
       el #row-3 role=treeitem label="customers" 16,88 252x24 level=3 pos=2/2
         el 28,88 1x24
         el 44,88 16x24

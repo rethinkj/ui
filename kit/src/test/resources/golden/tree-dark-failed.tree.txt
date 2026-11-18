@@ -77,11 +77,11 @@ el 0,0 280x300
       text label="database" "\u{F0D7}" 44,224 16x16
       text "shop" 64,224 31x16
     el #row-313 role=treeitem label="backup" 8,244 264x24 selected expanded level=1 pos=4/4
-      el 10,248 2x16
       el #mark-313 12,244 16x24
         text label="chevron_down" "\u{F2A2}" 12,248 16x16
       text label="server" "\u{F1DC}" 32,248 16x16
       text "backup" 52,248 45x16
+      el 10,248 2x16
     el #row-314 role=treeitem label="Cannot read the databases: connection refused" 8,268 264x24 invalid level=2 pos=1/1 error="Cannot read the databases: connection refused"
       el 20,268 1x24
       el 24,280 16x0

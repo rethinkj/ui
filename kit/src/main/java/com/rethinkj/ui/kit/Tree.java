@@ -141,8 +141,9 @@ public final class Tree {
     /**
      * The key of the node's row, which a script finds at {@code #row-<key>} and its mark at
      * {@code #mark-<key>} however the nodes above it open or close; null, the default, keys the
-     * row by its index. Asked only for the rows that are built. Unique among the nodes shown, and
-     * not a number alone, which a row keyed by its index could have.
+     * row by its index. Asked only for the rows that are built. Unique among the nodes shown,
+     * without spaces, which end a key in a script, and not a number alone, which a loading row's
+     * key could be.
      */
     default String key(N node) {
       return null;
@@ -319,13 +320,6 @@ public final class Tree {
           onSelect.accept(node);
         }
       };
-      if (isSelected) {
-        float bar = theme.size().icon();
-        r.child(el().absolute(theme.space().xs(), (height - bar) / 2)
-            .size(theme.space().xs(), bar)
-            .radius(theme.space().xs() / 2)
-            .fill(theme.accent().edge()));
-      }
       El handle = el().size(mark, height).shrink(0).center(); // the whole height takes presses
       if (!leaf) {
         El chevron = Icon.icon(open ? OPEN : CLOSED, Icon.Variant.MUTED);
@@ -363,7 +357,13 @@ public final class Tree {
         detail(theme, r.value(detail), variant, label, detail, height);
       }
       if (isSelected) {
-        r.fill(focused[0] ? theme.grid().selected() : theme.grid().selectedInactive());
+        // Last, so that selecting a row leaves the places of its other children as they were.
+        float bar = theme.size().icon();
+        r.child(el().absolute(theme.space().xs(), (height - bar) / 2)
+                .size(theme.space().xs(), bar)
+                .radius(theme.space().xs() / 2)
+                .fill(theme.accent().edge()))
+            .fill(focused[0] ? theme.grid().selected() : theme.grid().selectedInactive());
       } else if (presses) {
         r.whenHovered(e -> e.fill(theme.surface().hover()));
       }

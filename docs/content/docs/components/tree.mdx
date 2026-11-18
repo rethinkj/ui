@@ -46,7 +46,7 @@ The app's nodes reach the tree through `Tree.Model`:
 | `icon(node)` | An element before the label, such as an icon; null by default |
 | `detail(node)` | A muted text after the label, such as a column's type or a schema's number of tables; null by default |
 | `muted(node)` | Whether the label is muted, as for a system schema beside the app's own; false by default |
-| `key(node)` | The key of the node's row, unique among the nodes shown; null by default, which keys a row by its index |
+| `key(node)` | The key of the node's row, unique among the nodes shown, without spaces and not a number alone; null by default, which keys a row by its index |
 
 `detail`, `muted` and `key` are called only for the rows in view.
 
@@ -100,5 +100,5 @@ A script opens `public` with `press #mark-1` and selects with `press role=treeit
 
 The loading row is `role=status` with its text as the label. A failure's row is `role=treeitem` and `invalid`, with the message as its label and as `error="<message>"`, at the level of the children it stands for. Its action is `role=button` with its text as the label. A script finds the row with `role=treeitem invalid` and presses the action with `press role=button label="Try again"`:
 
-```text file="kit/src/test/resources/golden/tree-dark-failed.tree.txt" start="invalid" count="5"
+```text file="kit/src/test/resources/golden/tree-dark-failed.tree.txt" start="invalid" count="7"
 ```

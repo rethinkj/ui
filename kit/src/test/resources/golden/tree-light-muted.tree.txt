@@ -19,7 +19,6 @@ el 0,0 280x300
       text "postgres" 64,60 55x16
     el #row-3 role=treeitem label="pg_catalog" 8,80 264x24 selected expanded level=3 pos=1/2 value="2 tables"
       el 20,80 1x24
-      el 10,84 2x16
       el #mark-3 36,80 16x24
         text label="chevron_down" "\u{F2A2}" 36,84 16x16
       text label="folder" "\u{E643}" 56,84 16x16
@@ -27,6 +26,7 @@ el 0,0 280x300
         el 76,80 0x24
         text "pg_catalog" 76,84 67x16
         text "2 tables" 147,84 121x16
+      el 10,84 2x16
     el #row-4 role=treeitem label="pg_class" 8,104 264x24 expanded=false level=4 pos=1/2
       el 20,104 1x24
       el #mark-4 48,104 16x24

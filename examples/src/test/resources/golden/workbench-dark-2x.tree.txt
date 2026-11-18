@@ -56,11 +56,11 @@ el 0,0 1000x600
               text label="database" "\u{F0D7}" 49,153 16x16
               text "shop" 69,153 30x16
             el #row-4 role=treeitem label="prod-eu" 13,173 250x24 selected expanded=false level=1 pos=3/3
-              el 15,177 2x16
               el #mark-4 17,173 16x24
                 text label="chevron_right" "\u{F2AF}" 17,177 16x16
               text label="server" "\u{F1DC}" 37,177 16x16
               text "prod-eu" 57,177 50x16
+              el 15,177 2x16
     el #rest 268,32 724x531
       el #second 276,32 716x531
         el #tabs 276,32 716x531

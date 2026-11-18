@@ -524,8 +524,7 @@ final class Grids {
             new Tree.Options<Node>()
                 .open(node -> state.open.contains(node.name()), state::expand) // open or close
                 .select(state.selected, state::selected) // the selection
-                .onActivate(state::activate) // Enter, a double press
-                .toggleOnDoublePress(node -> node.icon() != Symbol.TABLE)) // a table only opens
+                .onActivate(state::activate)) // Enter, a double press
         .key("schema")
         .label("Schema")
         .grow(1);
