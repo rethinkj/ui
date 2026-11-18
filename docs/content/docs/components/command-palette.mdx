@@ -18,7 +18,7 @@ It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (
 
 - `state.palette` is a `CommandPalette.State` in the app's state.
 - `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`), with their icons, shortcuts and handlers. Add your own with `FilterList.entry(text, onChoose)`.
-- A `CommandPalette.Source(prefix, what, entries)` lists other things after its prefix, which cannot be empty or `>`: text without a prefix, or after `>`, finds commands.
+- A `CommandPalette.Source(prefix, what, entries)` lists other things after its prefix, which cannot be empty or `>`. Text that starts with no source's prefix finds commands, with a leading `>` left out.
 - `CommandPalette.keys(paletteState)` opens the palette with Control+Shift+P and F1; `state.palette.open("@")` opens it at a source, as for Control+P.
 - While nothing is typed, the last five commands chosen come first, under "Recently used". `state.palette.recent()` lists their keys, or their texts where they have none, the last first, and `state.palette.text()` is what is typed.
 - `entry.key("s1.orders")` tells an entry from others with the same text: the highlight follows it when the entries change, and Enter runs the one highlighted.

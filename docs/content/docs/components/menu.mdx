@@ -25,7 +25,7 @@ The button's handler calls `state.options.toggle()`; `Menu.dropdown(button, menu
 
 `state.context` is a `Menu.State` in the app's state.
 
-`Menu.contextMenu(target, menuState, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. The keys open it at the bottom left of the focused element's first descendant that is `current`, else `selected`, such as a grid's cursor cell or a tree's selected row, else of the focused element. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.context.openAt(x, y)` there.
+`Menu.contextMenu(target, menuState, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. The keys open it at the bottom left of the focused element's first descendant that is `current`, else `selected`, such as a grid's cursor cell or a tree's selected row, else of the focused element, and always inside the focused element. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.context.openAt(x, y)` there.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 

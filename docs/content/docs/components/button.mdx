@@ -70,7 +70,7 @@ Tab reaches the button; Enter and Space press it and show it pressed while the k
 
 ## In a tree dump
 
-`role=button` with the text as label (or the icon button's label). It says `disabled` when off (without a handler, unless busy), `busy` while busy, `checked` or `checked=false` for a toggle button, and `expanded` or `expanded=false` for a menu button and a split button's `#arrow` while they are enabled. A split button's parts are `#main` and `#arrow` (`label="More <text>"`).
+`role=button` with the text as label (or the icon button's label). It says `disabled` when off (without a handler, unless busy), `busy` while busy, `checked` or `checked=false` for a toggle button, and `expanded` or `expanded=false` for a menu button and a split button's `#arrow`, unless they are busy or disabled. A split button's parts are `#main` and `#arrow` (`label="More <text>"`).
 
 ```text file="examples/src/test/resources/golden/docs/buttons/view.tree.txt" start="label=\"Format\"" count="7"
 ```

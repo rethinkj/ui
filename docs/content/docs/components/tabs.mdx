@@ -65,7 +65,7 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 | Menu key, Shift+F10 | Open the menu of the active tab, with `contextMenu`, while the bar has the focus |
 
-When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, or its first focusable one. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
+When the active tab changes while the focus is in the content, the focus goes into the new content, if it has a focusable element: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, or its first focusable one. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
 
 The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
 
