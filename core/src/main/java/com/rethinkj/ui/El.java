@@ -1587,11 +1587,15 @@ public final class El {
     children.clear();
     if (gutterRail != null) {
       float borderTop = style.borderTop.pixelsOrZero();
+      float railWidth = gutterLeft + gutterWidth + gutterRail.style.borderRight.pixelsOrZero();
+      float railHeight = height - borderTop - style.borderBottom.pixelsOrZero();
+      scaleText(gutterRail, scale, text.systemFonts());
+      Flex.layout(gutterRail, railWidth, railHeight);
       gutterRail.place(
           (float) scrollX + style.borderLeft.pixelsOrZero(),
           (float) scrollY + borderTop,
-          gutterLeft + gutterWidth + gutterRail.style.borderRight.pixelsOrZero(),
-          height - borderTop - style.borderBottom.pixelsOrZero());
+          railWidth,
+          railHeight);
       children.add(gutterRail);
     }
     children.add(column);

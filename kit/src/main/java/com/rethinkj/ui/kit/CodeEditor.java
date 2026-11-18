@@ -454,16 +454,19 @@ public final class CodeEditor {
     StringBuilder messages = new StringBuilder();
     StringBuilder errors = new StringBuilder();
     StringBuilder warnings = new StringBuilder();
+    boolean any = false;
+    boolean error = false;
     for (Diagnostic d : diagnostics) {
       if (d.from >= line.start() && d.from <= line.end()) {
+        any = true;
+        error |= d.severity == Severity.ERROR;
         StringBuilder kind = d.severity == Severity.ERROR ? errors : warnings;
         kind.append(kind.isEmpty() ? "" : "\n").append(d.message);
         messages.append(messages.isEmpty() ? "" : "\n").append(d.message);
       }
     }
     El place = El.row().key("marker").justify(Style.Content.CENTER);
-    if (!messages.isEmpty()) {
-      boolean error = !errors.isEmpty();
+    if (any) {
       place
           .role("img")
           .label(error ? "Error" : "Warning")
@@ -473,7 +476,9 @@ public final class CodeEditor {
               size));
       place.errorMessage(error ? errors.toString() : null);
       place.warningMessage(warnings.isEmpty() ? null : warnings.toString());
-      return Tooltip.tooltip(place, messages.toString());
+      // A diagnostic without a message still shows, with its severity as the tooltip.
+      return Tooltip.tooltip(
+          place, messages.isEmpty() ? (error ? "Error" : "Warning") : messages.toString());
     }
     for (Marker m : state.markers) {
       if (m.at >= line.start() && m.at <= line.end()) {
