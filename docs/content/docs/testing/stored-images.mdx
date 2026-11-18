@@ -31,4 +31,4 @@ For a view that needs no input, `Headless.render` lays out and draws a tree of e
 
 - **Trees** are cheap to store, read well in a diff and say what matters: roles, labels, states, rectangles. Compare them in every test.
 - **Images** catch what trees do not: colors, clipping, text rendering. Store a few per view, at scale 2 where text matters, and in both themes where colors matter.
-- Assert the states the test is about directly, so a failure says what is wrong: that the line with `role=switch label="Lamp"` ends in `checked`.
+- Assert the states the test is about directly, so a failure says what is wrong: that the line with `role=switch label="Lamp"` has the state `checked`.
