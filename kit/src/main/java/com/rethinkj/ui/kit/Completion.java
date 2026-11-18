@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Completions at the caret of a text field, such as the keywords and table names of SQL in a
@@ -243,12 +242,11 @@ public final class Completion {
         onEdit.accept(v);
       });
     }
-    Predicate<Key> own = field.onKey();
-    field.onKey(k -> {
+    field.onKeyFirst(k -> {
       // The field's keys for undo and redo; onEdit does not say where an edit came from.
       state.history = (k.modifiers() & ~Key.SHIFT) == Key.CONTROL
           && (k.name().equals("Z") || k.name().equals("Y"));
-      return key(k, state, entries, take) || own != null && own.test(k);
+      return key(k, state, entries, take);
     });
     if (!state.open) {
       return field;

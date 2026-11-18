@@ -2,9 +2,12 @@ package com.rethinkj.ui;
 
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.layout.Flex;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 
 class ElTest {
@@ -113,5 +116,27 @@ class ElTest {
     El b = El.el().key("b");
     El parent = El.col().child(null).children(a, null, b).child(null);
     assertEquals(java.util.List.of(a, b), parent.children());
+  }
+
+  @Test
+  void anAddedKeyHandlerIsAskedFirstAndTheOwnGetsWhatItDeclines() {
+    StringBuilder asked = new StringBuilder();
+    Predicate<Key> own = key -> asked.append("own ") != null;
+    assertSame(own, el().onKeyFirst(own).onKey(), "with none, the added one is the handler");
+    El field = el().onKey(own);
+    field.onKeyFirst(key -> asked.append("added ") != null && key.name().equals("Enter"));
+    assertTrue(field.onKey().test(new Key("Enter", Key.CONTROL, false)));
+    assertTrue(field.onKey().test(new Key("A", 0, false)));
+    assertEquals("added added own ", asked.toString());
+  }
+
+  @Test
+  void anAddedDecoratorMarksAfterTheOwnSoItsMarksWin() {
+    El field = El.text("abc").editable(value -> {}).multiline();
+    field.alsoDecorate((line, start, text, out) -> out.background(0, 3, 0xFFFF0000));
+    field.alsoDecorate((line, start, text, out) -> out.background(1, 2, 0xFF0000FF));
+    Spans spans = new Spans(3);
+    field.decorator().line(0, 0, "abc", spans);
+    assertEquals("background 0-3 FFFF0000\nbackground 1-2 FF0000FF\n", spans.toString());
   }
 }

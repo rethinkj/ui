@@ -1710,8 +1710,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .label("Query")
         .wFull()
         .shrink(0);
-    Predicate<Key> run = key -> state.runKey(opened, key);
-    area.onKey(run.or(area.onKey())); // and the editor's own keys
+    area.onKeyFirst(key -> state.runKey(opened, key)); // then the editor's own keys
     Completion.complete(
         app, area, opened.editor.caret(), opened.completion, word -> state.suggest(opened, word));
     // docs:end workbench-editor

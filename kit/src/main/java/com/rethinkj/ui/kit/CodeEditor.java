@@ -22,8 +22,9 @@ import java.util.function.Consumer;
  *     .key("query").lines(12).wFull()
  * }</pre>
  *
- * <p>Its keys are the field's {@link El#onKey} handler: a view that adds one of its own keeps them
- * with {@code editor.onKey(mine.or(editor.onKey()))}.
+ * <p>Its keys are the field's {@link El#onKey} handler and its marks the field's {@link
+ * El#decorate decorator}: a view adds its own and keeps the editor's with {@link El#onKeyFirst} and
+ * {@link El#alsoDecorate}.
  */
 public final class CodeEditor {
 

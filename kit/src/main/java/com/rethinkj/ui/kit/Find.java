@@ -14,7 +14,6 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -237,8 +236,7 @@ public final class Find {
       state.jump = null;
       state.jumpText = null;
     }
-    Predicate<Key> own = field.onKey();
-    field.onKey(k -> fieldKey(app, state, k) || own != null && own.test(k));
+    field.onKeyFirst(k -> fieldKey(app, state, k));
     Pattern pattern = state.open && state.mode != Mode.LINE ? state.pattern() : null;
     if (pattern != null) {
       search(app, state, pattern, text);

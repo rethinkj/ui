@@ -1,7 +1,6 @@
 package com.rethinkj.ui.examples.docs;
 
 import com.rethinkj.ui.App;
-import com.rethinkj.ui.Decorator;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
@@ -62,9 +61,7 @@ final class Highlighters {
     Theme theme = Theme.CURRENT.get();
     // docs:start decorator
     El editor = CodeEditor.codeEditor(app, value, state, Ini.of(), onChange);
-    Decorator own = editor.decorator(); // the caret's line, brackets, occurrences, matches
-    editor.decorate((line, start, text, out) -> {
-      own.line(line, start, text, out);
+    editor.alsoDecorate((line, start, text, out) -> { // after the editor's own marks
       int todo = text.indexOf("TODO");
       if (todo >= 0) {
         out.underline(todo, todo + 4, theme.status().warning());

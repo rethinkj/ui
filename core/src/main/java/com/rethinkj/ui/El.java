@@ -1340,6 +1340,27 @@ public final class El {
     return text == null ? null : text.decorator();
   }
 
+  /**
+   * Adds a decorator to the one this field has, which marks its lines first: where marks of one
+   * kind overlap, the added one's win, as {@link Spans} says. A view that marks more in a component
+   * that decorates itself, such as a code editor, keeps the component's marks with it; {@link
+   * #decorate} replaces them.
+   *
+   * @param decorator the function; not null
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El alsoDecorate(Decorator decorator) {
+    Objects.requireNonNull(decorator, "decorator");
+    Decorator own = decorator();
+    return decorate(
+        own == null
+            ? decorator
+            : (line, start, string, out) -> {
+              own.line(line, start, string, out);
+              decorator.line(line, start, string, out);
+            });
+  }
+
   // Editing, for elements made with text()
 
   /**
@@ -1994,6 +2015,20 @@ public final class El {
    */
   public El onKey(Predicate<Key> handler) {
     this.onKey = handler;
+    return this;
+  }
+
+  /**
+   * Adds a key handler that is asked before the one this element has: the keys it does not handle
+   * go on to that one, as before. A view that adds a key, such as Control+Enter, to a component
+   * that handles keys of its own, such as a code editor, keeps them with it; {@link #onKey}
+   * replaces them.
+   *
+   * @param handler returns whether it handled the key; not null
+   */
+  public El onKeyFirst(Predicate<Key> handler) {
+    Objects.requireNonNull(handler, "handler");
+    this.onKey = onKey == null ? handler : handler.or(onKey);
     return this;
   }
 
