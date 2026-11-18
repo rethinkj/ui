@@ -68,7 +68,7 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 | `frozen(int columns)` | The first columns stay at the left while the rest scroll sideways |
 | `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Control+C copies the selection as tab-separated text. [Copying](/docs/components/data-grid/selection#copying) |
 | `commands(Commands)` | Copy, paste and select all from the app's own menu. [Commands](/docs/components/data-grid/selection#commands-from-an-external-menu) |
-| `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, Paste, Set NULL, Insert row and Delete rows as far as their handlers are set, a submenu `Column <title>` with the header's items, then the app's items |
+| `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, Paste, Set NULL, Insert row and Delete rows as far as their handlers are set, a submenu `Column <title>` with the header's items where it has any, then the app's items |
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Dragging a header's edge resizes; a double press fits |
 | `fitColumns(Fit)` | Every column as wide as its content, once per result. [Fitting columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
