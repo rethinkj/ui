@@ -456,8 +456,8 @@ final class Grids {
       }
 
       @Override
-      public List<Node> children(Node node) {
-        return node.children(); // null while not known: the tree shows a loading row
+      public Tree.Children<Node> children(Node node) { // asked for the open nodes alone
+        return Tree.ready(node.children()); // Tree.loading() while not known yet
       }
 
       @Override
@@ -491,11 +491,11 @@ final class Grids {
 
   // docs:start tree-failure
   /**
-   * What {@link Tree.Model#failure} returns for an open node whose children could not be read,
-   * in place of null: the row below the node says why, with an action that asks again.
+   * What {@link Tree.Model#children} returns for an open node whose children could not be read:
+   * the row below the node says why, with an action that asks again.
    */
-  static Tree.Failure refused(String why, Runnable tryAgain) {
-    return Tree.failure("Cannot read the tables: " + why).action("Try again", tryAgain);
+  static Tree.Children<Node> refused(String why, Runnable tryAgain) {
+    return Tree.failed("Cannot read the tables: " + why, "Try again", tryAgain);
   }
   // docs:end tree-failure
 
@@ -521,11 +521,11 @@ final class Grids {
     // docs:start tree
     El tree = Tree.tree(
             model(),
-            node -> state.open.contains(node.name()), // which nodes are open
-            state.selected,
-            state::selected, // the selection
-            state::expand, // open or close one
-            state::activate) // Enter, a double press
+            new Tree.Options<Node>()
+                .open(node -> state.open.contains(node.name()), state::expand) // open or close
+                .select(state.selected, state::selected) // the selection
+                .onActivate(state::activate) // Enter, a double press
+                .toggleOnDoublePress(node -> node.icon() != Symbol.TABLE)) // a table only opens
         .key("schema")
         .label("Schema")
         .grow(1);

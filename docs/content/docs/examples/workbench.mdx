@@ -25,12 +25,12 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 
 ### The tree over the app's own nodes
 
-The app state implements `Tree.Model` over its `Node`s. A server's `children` are null until it has connected, so the tree shows the loading row below it; a server that is connecting shows a spinner as its icon.
+The app state implements `Tree.Model` over its `Node`s. A server's `children` are null until it has connected, so the model returns `Tree.loading("Connecting…")` and the tree shows a row with a spinner and that text below it.
 
 ```java snippet="workbench-model"
 ```
 
-The view passes the model with the open nodes, the selection and three handlers ([Tree](/docs/components/tree)):
+The view passes the model and `Tree.Options` with the open nodes, the selection and the handlers ([Tree](/docs/components/tree)):
 
 ```java snippet="workbench-tree"
 ```

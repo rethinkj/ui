@@ -686,8 +686,8 @@ final class Sections {
   record Schema(Theme theme, List<Node> roots) implements Tree.Model<Node> {
 
     @Override
-    public List<Node> children(Node node) {
-      return node.children;
+    public Tree.Children<Node> children(Node node) {
+      return node.children == null ? Tree.loading() : Tree.ready(node.children);
     }
 
     @Override
@@ -723,11 +723,9 @@ final class Sections {
     Theme theme = Theme.CURRENT.get();
     return Tree.tree(
         new Schema(theme, state.catalog),
-        open::contains,
-        selected,
-        onSelect,
-        (node, opening) -> state.toggle(open, node, opening),
-        null);
+        new Tree.Options<Node>()
+            .open(open::contains, (node, opening) -> state.toggle(open, node, opening))
+            .select(selected, onSelect));
   }
 
   private static El tree(Showcase state) {

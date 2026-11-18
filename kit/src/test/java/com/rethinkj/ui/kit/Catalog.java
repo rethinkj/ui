@@ -108,6 +108,8 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   final List<Node> mutedAsked = new ArrayList<>(); // the nodes asked whether they are muted
   final java.util.Map<Node, String> failures = new java.util.HashMap<>(); // why, till retried
   int attempts; // connections to backup, of which only the first is refused
+  boolean keyed; // whether the rows are keyed by the nodes' paths
+  java.util.function.Predicate<Node> toggles = node -> true; // which a double press opens
   App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
@@ -235,8 +237,16 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   }
 
   @Override
-  public List<Node> children(Node node) {
-    return node.children;
+  public Tree.Children<Node> children(Node node) {
+    String why = failures.get(node);
+    if (why != null) {
+      return Tree.failed("Cannot read the databases: " + why, "Try again", () -> {
+        log.add("retry " + node);
+        failures.remove(node);
+        load(node);
+      });
+    }
+    return node.children == null ? Tree.loading() : Tree.ready(node.children);
   }
 
   @Override
@@ -268,16 +278,10 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     return node.name.startsWith("pg_");
   }
 
+  /** The node's path, once {@link #keyed}. */
   @Override
-  public Tree.Failure failure(Node node) {
-    String why = failures.get(node);
-    return why == null
-        ? null
-        : Tree.failure("Cannot read the databases: " + why).action("Try again", () -> {
-          log.add("retry " + node);
-          failures.remove(node);
-          load(node);
-        });
+  public String key(Node node) {
+    return keyed ? node.path() : null;
   }
 
   @Override
@@ -311,24 +315,24 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   El tree() {
     return Tree.tree(
         this,
-        open::contains,
-        selected,
-        node -> {
-          log.add("select " + node);
-          selected = node;
-        },
-        (node, opens) -> {
-          log.add((opens ? "open " : "close ") + node);
-          if (!opens) {
-            open.remove(node);
-            return;
-          }
-          open.add(node);
-          if (node.children == null && !loading.contains(node) && !failures.containsKey(node)) {
-            load(node);
-          }
-        },
-        node -> log.add("activate " + node));
+        new Tree.Options<Node>()
+            .open(open::contains, (node, opens) -> {
+              log.add((opens ? "open " : "close ") + node);
+              if (!opens) {
+                open.remove(node);
+                return;
+              }
+              open.add(node);
+              if (node.children == null && !loading.contains(node) && !failures.containsKey(node)) {
+                load(node);
+              }
+            })
+            .select(selected, node -> {
+              log.add("select " + node);
+              selected = node;
+            })
+            .onActivate(node -> log.add("activate " + node))
+            .toggleOnDoublePress(toggles));
   }
 
   App<Catalog> app() {

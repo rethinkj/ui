@@ -118,7 +118,7 @@ class TreeTest {
     El row = find(app, "row-76543");
     assertEquals("treeitem", row.role());
     assertEquals("customer_id_3", row.label());
-    assertEquals(T.space().s() + 4 * T.space().xl(), row.children().getFirst().x(), "level 4");
+    assertEquals(T.space().s() + 4 * T.space().l(), row.children().get(1).x(), "level 4");
   }
 
   /** The tree's line in the dump names the rows that exist, and they are its children. */
@@ -164,6 +164,14 @@ class TreeTest {
     run(app, "move #row-2\nframe");
     assertEquals(T.surface().hover(), find(app, "row-2").fill());
     assertEquals(0, find(app, "row-0").fill());
+    assertEquals(
+        T.text().muted(), find(app, "mark-2").children().getFirst().text().color());
+    run(app, "move #mark-2\nframe");
+    assertEquals(T.surface().hover(), find(app, "row-2").fill(), "the row's hover too");
+    assertEquals(
+        T.text().primary(),
+        find(app, "mark-2").children().getFirst().text().color(),
+        "the mark under the pointer brightens");
 
     run(app, "press 2,2\nframe"); // the panel around the tree: the focus leaves it
     assertNull(app.focused());
@@ -248,6 +256,15 @@ class TreeTest {
             "activate prod-eu/billing/public/invoices"),
         catalog.log.subList(3, 8));
 
+    catalog.toggles = node -> node.kind != Catalog.Kind.TABLE;
+    catalog.log.clear();
+    run(app, "frame\npress role=treeitem label=\"customers\" clicks 2\nframe");
+    assertEquals(
+        List.of(
+            "select prod-eu/billing/public/customers", "activate prod-eu/billing/public/customers"),
+        catalog.log,
+        "a table that does not toggle on a double press only activates");
+
     catalog.log.clear();
     run(app, "press role=treeitem label=\"amount\"\nframe"); // a column of invoices
     run(app, "press role=treeitem label=\"amount\" clicks 2\nframe");
@@ -256,6 +273,20 @@ class TreeTest {
         List.of(
             "select prod-eu/billing/public/invoices/amount",
             "activate prod-eu/billing/public/invoices/amount"),
+        catalog.log);
+  }
+
+  @Test
+  void rowsKeyedByTheModelKeepTheirKeysWhenNodesAboveThemOpen() throws IOException {
+    Catalog catalog = new Catalog(T);
+    catalog.keyed = true;
+    App<Catalog> app = start(catalog);
+    run(app, "press #mark-localhost\nframe");
+    assertTrue(
+        dumpLine(app, "row-prod-eu").contains(" level=1 pos=2/4"), dumpLine(app, "row-prod-eu"));
+    run(app, "press #mark-prod-eu\nframe");
+    assertEquals(
+        List.of("select localhost", "open localhost", "select prod-eu", "open prod-eu"),
         catalog.log);
   }
 
@@ -447,12 +478,13 @@ class TreeTest {
     assertEquals(List.of("select staging", "open staging"), catalog.log);
     assertEquals(List.of(catalog.node("staging")), catalog.loading, "the app starts the load");
     El loading = find(app, "row-3");
-    assertNull(loading.role());
-    assertNull(loading.label());
+    assertEquals("status", loading.role());
+    assertEquals("Loading…", loading.label());
+    assertEquals("progressbar", loading.children().get(2).role(), "a spinner");
     El text = loading.children().getLast();
     assertEquals("Loading…", text.text().string());
     assertEquals(T.text().muted(), text.text().color());
-    assertEquals(T.space().s() + T.space().xl(), loading.children().getFirst().x(), "level 1");
+    assertEquals(T.space().s() + T.space().l(), loading.children().get(1).x(), "level 1");
 
     run(app, "press #row-3\nframe\nfocus #schema\nkey ArrowDown\nframe");
     assertEquals(List.of("select staging", "open staging", "select backup"), catalog.log);
@@ -469,7 +501,7 @@ class TreeTest {
         List.of("localhost", "prod-eu", "staging", "scratch", "shop", "backup"),
         find(app, "schema").children().stream().map(El::label).toList());
     assertEquals(
-        T.space().s() + T.space().xl(), find(app, "row-3").children().getFirst().x());
+        T.space().s() + T.space().l(), find(app, "row-3").children().get(1).x());
     assertEquals("backup", key(app, catalog, "End"));
     assertEquals("staging/shop", key(app, catalog, "ArrowUp"));
   }
@@ -497,8 +529,8 @@ class TreeTest {
         dumpLine(app, "row-4"));
     assertTrue(app.tree().dump().contains(" role=button label=\"Try again\" "));
     El row = find(app, "row-4");
-    assertEquals(T.space().s() + T.space().xl(), row.children().getFirst().x(), "level 2");
-    assertEquals(T.status().danger(), row.children().get(1).text().color(), "the icon");
+    assertEquals(T.space().s() + T.space().l(), row.children().get(1).x(), "level 2");
+    assertEquals(T.status().danger(), row.children().get(2).text().color(), "the icon");
     El message = textOf(row, REFUSED);
     assertEquals(T.text().primary(), message.text().color());
     El action = row.children().getLast();
@@ -521,7 +553,7 @@ class TreeTest {
     run(app, "press role=button label=\"Try again\"\nframe");
     assertEquals("retry backup", catalog.log.getLast());
     assertEquals("schema", app.focused().key(), "the press leaves the focus in the tree");
-    assertNull(find(app, "row-4").role(), "loading again");
+    assertEquals("status", find(app, "row-4").role(), "loading again");
     assertEquals("Loading…", find(app, "row-4").children().getLast().text().string());
 
     run(app, "await\nframe");
@@ -572,14 +604,14 @@ class TreeTest {
     }
 
     @Override
-    public List<String> children(String node) {
+    public Tree.Children<String> children(String node) {
       return switch (node) {
-        case "deep" -> List.of("deep/two");
-        case "deep/two" -> List.of("deep/two/three");
-        case "deep/two/three" -> List.of("deep/two/three/four");
+        case "deep" -> Tree.ready(List.of("deep/two"));
+        case "deep/two" -> Tree.ready(List.of("deep/two/three"));
+        case "deep/two/three" -> Tree.ready(List.of("deep/two/three/four"));
         case "deep/two/three/four" ->
-          List.of("deep/two/three/four/plain", "deep/two/three/four/detailed");
-        default -> null;
+          Tree.ready(List.of("deep/two/three/four/plain", "deep/two/three/four/detailed"));
+        default -> Tree.loading(WAITING);
       };
     }
 
@@ -597,12 +629,10 @@ class TreeTest {
     public String detail(String node) {
       return node.endsWith("detailed") ? "varchar(320)" : null;
     }
-
-    @Override
-    public String loading(String node) {
-      return "Loading the databases of a server far away, which takes a while";
-    }
   }
+
+  private static final String WAITING =
+      "Loading the databases of a server far away, which takes a while";
 
   @Test
   void aLongLabelEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
@@ -613,14 +643,16 @@ class TreeTest {
         m -> col()
             .wFull()
             .hFull()
-            .child(Tree.tree(m, m.open::contains, null, s -> {}, null, null)
+            .child(Tree.tree(
+                    m,
+                    new Tree.Options<String>().open(m.open::contains, null).select(null, s -> {}))
                 .key("tree")
                 .grow(1)));
     run(app, "size " + width + " 300\nframe");
     // Rows 0 and 1 at level 1, 6 and 7 at level 5, 9 the loading row below waiting.
     for (int row : new int[] {0, 1, 6, 7, 9}) {
       El el = find(app, "row-" + row);
-      String text = row == 9 ? model.loading("waiting") : LONG;
+      String text = row == 9 ? WAITING : LONG;
       El name = textOf(el, text);
       assertTrue(name.text().shortened(), width + ": row " + row);
       String tip = row == 1 || row == 7 ? LONG + " varchar(320)" : text;
@@ -660,7 +692,11 @@ class TreeTest {
         c -> col()
             .wFull()
             .hFull()
-            .child(Tree.tree(c, c.open::contains, c.node("localhost/shop"), null, null, null)
+            .child(Tree.tree(
+                    c,
+                    new Tree.Options<Node>()
+                        .open(c.open::contains, null)
+                        .select(c.node("localhost/shop"), null))
                 .key("schema")
                 .grow(1)));
     run(app, "frame\nmove #row-1\npress #row-1\npress #mark-0\nkey Tab\nframe");
@@ -680,8 +716,8 @@ class TreeTest {
         return List.of("name");
       }
 
-      public List<String> children(String node) {
-        return List.of();
+      public Tree.Children<String> children(String node) {
+        return Tree.ready(List.of());
       }
 
       public boolean isLeaf(String node) {
@@ -696,8 +732,8 @@ class TreeTest {
         return "";
       }
     };
-    App<Tree.Model<String>> app = new App<>(
-        model, m -> Tree.tree(m, n -> false, null, null, null, null).wFull().hFull());
+    App<Tree.Model<String>> app =
+        new App<>(model, m -> Tree.tree(m, new Tree.Options<>()).wFull().hFull());
     run(app, "frame\nmove #row-0\nframe\nadvance 1\nframe");
     assertTrue(dumpLine(app, "row-0").contains("value=\"\""));
     assertFalse(textOf(find(app, "row-0"), "name").text().shortened());
@@ -789,8 +825,8 @@ class TreeTest {
     }
 
     @Override
-    public List<String> children(String node) {
-      return children;
+    public Tree.Children<String> children(String node) {
+      return children == null ? Tree.loading() : Tree.ready(children);
     }
 
     @Override
@@ -806,17 +842,16 @@ class TreeTest {
     El view() {
       return Tree.tree(
               this,
-              open::contains,
-              selected,
-              s -> selected = s,
-              (node, on) -> {
-                if (on) {
-                  open.add(node);
-                } else {
-                  open.remove(node);
-                }
-              },
-              activated::add)
+              new Tree.Options<String>()
+                  .open(open::contains, (node, on) -> {
+                    if (on) {
+                      open.add(node);
+                    } else {
+                      open.remove(node);
+                    }
+                  })
+                  .select(selected, s -> selected = s)
+                  .onActivate(activated::add))
           .key("tree")
           .wFull()
           .hFull();

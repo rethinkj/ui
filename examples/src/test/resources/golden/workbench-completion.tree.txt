@@ -34,158 +34,186 @@ el 0,0 1000x600
         el 9,73 258x489
           el #catalog role=tree label="Catalog" 13,77 250x481 rows 2-28/267 scroll 0,143 thumb-y 255,89.64 6x35.8
             el #row-2 role=treeitem label="shop" 13,-18 250x24 expanded level=2 pos=2/3
-              el #mark-2 33,-18 16x24
-                text label="chevron_down" "\u{F2A2}" 33,-14 16x16
-              text label="database" "\u{F0D7}" 53,-14 16x16
-              text "shop" 73,-14 31x16
+              el 25,-18 1x24
+              el #mark-2 29,-18 16x24
+                text label="chevron_down" "\u{F2A2}" 29,-14 16x16
+              text label="database" "\u{F0D7}" 49,-14 16x16
+              text "shop" 69,-14 31x16
             el #row-3 role=treeitem label="public" 13,6 250x24 expanded level=3 pos=1/2
-              el #mark-3 49,6 16x24
-                text label="chevron_down" "\u{F2A2}" 49,10 16x16
-              text label="folder" "\u{E643}" 69,10 16x16
-              text "public" 89,10 37x16
+              el 25,6 1x24
+              el #mark-3 41,6 16x24
+                text label="chevron_down" "\u{F2A2}" 41,10 16x16
+              text label="folder" "\u{E643}" 61,10 16x16
+              text "public" 81,10 37x16
             el #row-4 role=treeitem label="accounts" 13,30 250x24 expanded=false level=4 pos=1/250
-              el #mark-4 65,30 16x24
-                text label="chevron_right" "\u{F2AF}" 65,34 16x16
-              text label="table" "\u{EBF4}" 85,34 16x16
-              text "accounts" 105,34 56x16
+              el 25,30 1x24
+              el #mark-4 53,30 16x24
+                text label="chevron_right" "\u{F2AF}" 53,34 16x16
+              text label="table" "\u{EBF4}" 73,34 16x16
+              text "accounts" 93,34 56x16
             el #row-5 role=treeitem label="addresses" 13,54 250x24 expanded=false level=4 pos=2/250
-              el #mark-5 65,54 16x24
-                text label="chevron_right" "\u{F2AF}" 65,58 16x16
-              text label="table" "\u{EBF4}" 85,58 16x16
-              text "addresses" 105,58 65x16
+              el 25,54 1x24
+              el #mark-5 53,54 16x24
+                text label="chevron_right" "\u{F2AF}" 53,58 16x16
+              text label="table" "\u{EBF4}" 73,58 16x16
+              text "addresses" 93,58 65x16
             el #row-6 role=treeitem label="audit_log" 13,78 250x24 expanded=false level=4 pos=3/250
-              el #mark-6 65,78 16x24
-                text label="chevron_right" "\u{F2AF}" 65,82 16x16
-              text label="table" "\u{EBF4}" 85,82 16x16
-              text "audit_log" 105,82 55x16
+              el 25,78 1x24
+              el #mark-6 53,78 16x24
+                text label="chevron_right" "\u{F2AF}" 53,82 16x16
+              text label="table" "\u{EBF4}" 73,82 16x16
+              text "audit_log" 93,82 55x16
             el #row-7 role=treeitem label="carts" 13,102 250x24 expanded=false level=4 pos=4/250
-              el #mark-7 65,102 16x24
-                text label="chevron_right" "\u{F2AF}" 65,106 16x16
-              text label="table" "\u{EBF4}" 85,106 16x16
-              text "carts" 105,106 31x16
+              el 25,102 1x24
+              el #mark-7 53,102 16x24
+                text label="chevron_right" "\u{F2AF}" 53,106 16x16
+              text label="table" "\u{EBF4}" 73,106 16x16
+              text "carts" 93,106 31x16
             el #row-8 role=treeitem label="categories" 13,126 250x24 expanded=false level=4 pos=5/250
-              el #mark-8 65,126 16x24
-                text label="chevron_right" "\u{F2AF}" 65,130 16x16
-              text label="table" "\u{EBF4}" 85,130 16x16
-              text "categories" 105,130 66x16
+              el 25,126 1x24
+              el #mark-8 53,126 16x24
+                text label="chevron_right" "\u{F2AF}" 53,130 16x16
+              text label="table" "\u{EBF4}" 73,130 16x16
+              text "categories" 93,130 66x16
             el #row-9 role=treeitem label="coupons" 13,150 250x24 expanded=false level=4 pos=6/250
-              el #mark-9 65,150 16x24
-                text label="chevron_right" "\u{F2AF}" 65,154 16x16
-              text label="table" "\u{EBF4}" 85,154 16x16
-              text "coupons" 105,154 54x16
+              el 25,150 1x24
+              el #mark-9 53,150 16x24
+                text label="chevron_right" "\u{F2AF}" 53,154 16x16
+              text label="table" "\u{EBF4}" 73,154 16x16
+              text "coupons" 93,154 54x16
             el #row-10 role=treeitem label="customers" 13,174 250x24 selected expanded=false level=4 pos=7/250
-              el #mark-10 65,174 16x24
-                text label="chevron_right" "\u{F2AF}" 65,178 16x16
-              text label="table" "\u{EBF4}" 85,178 16x16
-              text "customers" 105,178 65x16
+              el 25,174 1x24
+              el 15,178 2x16
+              el #mark-10 53,174 16x24
+                text label="chevron_right" "\u{F2AF}" 53,178 16x16
+              text label="table" "\u{EBF4}" 73,178 16x16
+              text "customers" 93,178 65x16
             el #row-11 role=treeitem label="deliveries" 13,198 250x24 expanded=false level=4 pos=8/250
-              el #mark-11 65,198 16x24
-                text label="chevron_right" "\u{F2AF}" 65,202 16x16
-              text label="table" "\u{EBF4}" 85,202 16x16
-              text "deliveries" 105,202 60x16
+              el 25,198 1x24
+              el #mark-11 53,198 16x24
+                text label="chevron_right" "\u{F2AF}" 53,202 16x16
+              text label="table" "\u{EBF4}" 73,202 16x16
+              text "deliveries" 93,202 60x16
             el #row-12 role=treeitem label="employees" 13,222 250x24 expanded=false level=4 pos=9/250
-              el #mark-12 65,222 16x24
-                text label="chevron_right" "\u{F2AF}" 65,226 16x16
-              text label="table" "\u{EBF4}" 85,226 16x16
-              text "employees" 105,226 68x16
+              el 25,222 1x24
+              el #mark-12 53,222 16x24
+                text label="chevron_right" "\u{F2AF}" 53,226 16x16
+              text label="table" "\u{EBF4}" 73,226 16x16
+              text "employees" 93,226 68x16
             el #row-13 role=treeitem label="events" 13,246 250x24 expanded=false level=4 pos=10/250
-              el #mark-13 65,246 16x24
-                text label="chevron_right" "\u{F2AF}" 65,250 16x16
-              text label="table" "\u{EBF4}" 85,250 16x16
-              text "events" 105,250 41x16
+              el 25,246 1x24
+              el #mark-13 53,246 16x24
+                text label="chevron_right" "\u{F2AF}" 53,250 16x16
+              text label="table" "\u{EBF4}" 73,250 16x16
+              text "events" 93,250 41x16
             el #row-14 role=treeitem label="invoices" 13,270 250x24 expanded=false level=4 pos=11/250
-              el #mark-14 65,270 16x24
-                text label="chevron_right" "\u{F2AF}" 65,274 16x16
-              text label="table" "\u{EBF4}" 85,274 16x16
-              text "invoices" 105,274 50x16
+              el 25,270 1x24
+              el #mark-14 53,270 16x24
+                text label="chevron_right" "\u{F2AF}" 53,274 16x16
+              text label="table" "\u{EBF4}" 73,274 16x16
+              text "invoices" 93,274 50x16
             el #row-15 role=treeitem label="invoice_lines" 13,294 250x24 expanded=false level=4 pos=12/250
-              el #mark-15 65,294 16x24
-                text label="chevron_right" "\u{F2AF}" 65,298 16x16
-              text label="table" "\u{EBF4}" 85,298 16x16
-              text "invoice_lines" 105,298 78x16
+              el 25,294 1x24
+              el #mark-15 53,294 16x24
+                text label="chevron_right" "\u{F2AF}" 53,298 16x16
+              text label="table" "\u{EBF4}" 73,298 16x16
+              text "invoice_lines" 93,298 78x16
             el #row-16 role=treeitem label="orders" 13,318 250x24 expanded level=4 pos=13/250
-              el #mark-16 65,318 16x24
-                text label="chevron_down" "\u{F2A2}" 65,322 16x16
-              text label="table" "\u{EBF4}" 85,322 16x16
-              text "orders" 105,322 41x16
+              el 25,318 1x24
+              el #mark-16 53,318 16x24
+                text label="chevron_down" "\u{F2A2}" 53,322 16x16
+              text label="table" "\u{EBF4}" 73,322 16x16
+              text "orders" 93,322 41x16
             el #row-17 role=treeitem label="id" 13,342 250x24 level=5 pos=1/9 value="bigint"
-              el 81,342 16x24
-              text label="key" "\u{E740}" 101,346 16x16
-              el 121,342 138x24
-                el 121,342 0x24
-                text "id" 121,346 11x16
-                text "bigint" 136,346 123x16
+              el 25,342 1x24
+              el 65,342 16x24
+              text label="key" "\u{E740}" 85,346 16x16
+              el 105,342 154x24
+                el 105,342 0x24
+                text "id" 105,346 11x16
+                text "bigint" 120,346 139x16
             el #row-18 role=treeitem label="customer_id" 13,366 250x24 level=5 pos=2/9 value="integer"
-              el 81,366 16x24
-              text label="column_single" "\u{F0116}" 101,370 16x16
-              el 121,366 138x24
-                el 121,366 0x24
-                text "customer_id" 121,370 75x16
-                text "integer" 200,370 59x16
+              el 25,366 1x24
+              el 65,366 16x24
+              text label="column_single" "\u{F0116}" 85,370 16x16
+              el 105,366 154x24
+                el 105,366 0x24
+                text "customer_id" 105,370 75x16
+                text "integer" 184,370 75x16
             el #row-19 role=treeitem label="status" 13,390 250x24 level=5 pos=3/9 value="order_status"
-              el 81,390 16x24
-              text label="column_single" "\u{F0116}" 101,394 16x16
-              el 121,390 138x24
-                el 121,390 0x24
-                text "status" 121,394 37x16
-                text "order_status" 162,394 97x16
+              el 25,390 1x24
+              el 65,390 16x24
+              text label="column_single" "\u{F0116}" 85,394 16x16
+              el 105,390 154x24
+                el 105,390 0x24
+                text "status" 105,394 37x16
+                text "order_status" 146,394 113x16
             el #row-20 role=treeitem label="amount" 13,414 250x24 level=5 pos=4/9 value="numeric(10,2)"
-              el 81,414 16x24
-              text label="column_single" "\u{F0116}" 101,418 16x16
-              el 121,414 138x24
-                el 121,414 0x24
-                text "amount" 121,418 46x16
-                text "numeric(10,2)" 171,418 88x16
+              el 25,414 1x24
+              el 65,414 16x24
+              text label="column_single" "\u{F0116}" 85,418 16x16
+              el 105,414 154x24
+                el 105,414 0x24
+                text "amount" 105,418 46x16
+                text "numeric(10,2)" 155,418 104x16
             el #row-21 role=treeitem label="paid" 13,438 250x24 level=5 pos=5/9 value="boolean"
-              el 81,438 16x24
-              text label="column_single" "\u{F0116}" 101,442 16x16
-              el 121,438 138x24
-                el 121,438 0x24
-                text "paid" 121,442 26x16
-                text "boolean" 151,442 108x16
+              el 25,438 1x24
+              el 65,438 16x24
+              text label="column_single" "\u{F0116}" 85,442 16x16
+              el 105,438 154x24
+                el 105,438 0x24
+                text "paid" 105,442 26x16
+                text "boolean" 135,442 124x16
             el #row-22 role=treeitem label="email" 13,462 250x24 level=5 pos=6/9 value="varchar(255)"
-              el 81,462 16x24
-              text label="column_single" "\u{F0116}" 101,466 16x16
-              el 121,462 138x24
-                el 121,462 0x24
-                text "email" 121,466 32x16
-                text "varchar(255)" 157,466 102x16
+              el 25,462 1x24
+              el 65,462 16x24
+              text label="column_single" "\u{F0116}" 85,466 16x16
+              el 105,462 154x24
+                el 105,462 0x24
+                text "email" 105,466 32x16
+                text "varchar(255)" 141,466 118x16
             el #row-23 role=treeitem label="note" 13,486 250x24 level=5 pos=7/9 value="text"
-              el 81,486 16x24
-              text label="column_single" "\u{F0116}" 101,490 16x16
-              el 121,486 138x24
-                el 121,486 0x24
-                text "note" 121,490 28x16
-                text "text" 153,490 106x16
+              el 25,486 1x24
+              el 65,486 16x24
+              text label="column_single" "\u{F0116}" 85,490 16x16
+              el 105,486 154x24
+                el 105,486 0x24
+                text "note" 105,490 28x16
+                text "text" 137,490 122x16
             el #row-24 role=treeitem label="created_at" 13,510 250x24 level=5 pos=8/9 value="timestamptz"
-              el 81,510 16x24
-              text label="column_single" "\u{F0116}" 101,514 16x16
-              el 121,510 138x24
-                el 121,510 0x24
-                text "created_at" 121,514 64x16
-                text "timestamptz" 189,514 70x16
+              el 25,510 1x24
+              el 65,510 16x24
+              text label="column_single" "\u{F0116}" 85,514 16x16
+              el 105,510 154x24
+                el 105,510 0x24
+                text "created_at" 105,514 64x16
+                text "timestamptz" 173,514 86x16
             el #row-25 role=treeitem label="updated_at" 13,534 250x24 level=5 pos=9/9 value="timestamptz"
-              el 81,534 16x24
-              text label="column_single" "\u{F0116}" 101,538 16x16
-              el 121,534 138x24
-                el 121,534 0x24
-                text "updated_at" 121,538 68x16
-                text "timestamptz" 193,538 66x16
+              el 25,534 1x24
+              el 65,534 16x24
+              text label="column_single" "\u{F0116}" 85,538 16x16
+              el 105,534 154x24
+                el 105,534 0x24
+                text "updated_at" 105,538 68x16
+                text "timestamptz" 177,538 82x16
             el #row-26 role=treeitem label="order_items" 13,558 250x24 expanded=false level=4 pos=14/250
-              el #mark-26 65,558 16x24
-                text label="chevron_right" "\u{F2AF}" 65,562 16x16
-              text label="table" "\u{EBF4}" 85,562 16x16
-              text "order_items" 105,562 73x16
+              el 25,558 1x24
+              el #mark-26 53,558 16x24
+                text label="chevron_right" "\u{F2AF}" 53,562 16x16
+              text label="table" "\u{EBF4}" 73,562 16x16
+              text "order_items" 93,562 73x16
             el #row-27 role=treeitem label="payments" 13,582 250x24 expanded=false level=4 pos=15/250
-              el #mark-27 65,582 16x24
-                text label="chevron_right" "\u{F2AF}" 65,586 16x16
-              text label="table" "\u{EBF4}" 85,586 16x16
-              text "payments" 105,586 60x16
+              el 25,582 1x24
+              el #mark-27 53,582 16x24
+                text label="chevron_right" "\u{F2AF}" 53,586 16x16
+              text label="table" "\u{EBF4}" 73,586 16x16
+              text "payments" 93,586 60x16
             el #row-28 role=treeitem label="prices" 13,606 250x24 expanded=false level=4 pos=16/250
-              el #mark-28 65,606 16x24
-                text label="chevron_right" "\u{F2AF}" 65,610 16x16
-              text label="table" "\u{EBF4}" 85,610 16x16
-              text "prices" 105,610 38x16
+              el 25,606 1x24
+              el #mark-28 53,606 16x24
+                text label="chevron_right" "\u{F2AF}" 53,610 16x16
+              text label="table" "\u{EBF4}" 73,610 16x16
+              text "prices" 93,610 38x16
     el #rest 268,32 724x531
       el #second 276,32 716x531
         el #tabs 276,32 716x531

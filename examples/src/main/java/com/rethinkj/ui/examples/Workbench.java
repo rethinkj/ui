@@ -395,8 +395,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   @Override
-  public List<Node> children(Node node) {
-    return node.children;
+  public Tree.Children<Node> children(Node node) {
+    return node.children == null ? Tree.loading("Connecting…") : Tree.ready(node.children);
   }
 
   @Override
@@ -411,9 +411,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   @Override
   public El icon(Node node) {
-    if (connecting.contains(node)) {
-      return Progress.spinner().label("Connecting");
-    }
     return switch (node.kind) {
       case SERVER ->
         Icon.icon(
@@ -439,11 +436,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .map(Field::type)
         .findFirst()
         .orElse(null);
-  }
-
-  @Override
-  public String loading(Node node) {
-    return "Connecting…";
   }
 
   // Handlers, on the app's thread
@@ -1161,11 +1153,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     // docs:start workbench-tree
     El tree = tree(
             state,
-            state.open::contains,
-            state.selected,
-            state::selected,
-            state::openOrClose,
-            state::activate)
+            new Tree.Options<Node>()
+                .open(state.open::contains, state::openOrClose)
+                .select(state.selected, state::selected)
+                .onActivate(state::activate))
         .key("catalog")
         .label("Catalog");
     // docs:end workbench-tree

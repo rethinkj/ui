@@ -688,6 +688,11 @@ public record Theme(
     return new Shadow(0, stroke, 0, 0, color);
   }
 
+  /** A copy of a line {@code dx} to its right: a sharp shadow, as a tree's guide of a level. */
+  static Shadow lineCopy(float dx, int color) {
+    return new Shadow(dx, 0, 0, 0, color);
+  }
+
   /**
    * The color of the main action and of what is on, with its hover and pressed variants.
    *
