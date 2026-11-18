@@ -20,7 +20,7 @@ Apps with the same state object rebuild together: when a handler in one runs, th
 
 ## Closing
 
-A close request (the close button, Alt+F4, a script's `close`) runs the window's `onCloseRequest` handler, which closes the window now, after asking, or not at all. Without a handler the window closes, unless it is the last one open: then the loop ends and leaves the window open for its owner, and no `onClosed` runs. The loop also ends when its last window closes.
+A close request (the close button, Alt+F4, a script's `close`) runs the window's `onCloseRequest` handler, which closes the window now, after asking, or not at all. Without a handler the window closes. In `WindowLoop`, a request without a handler for the last open window ends the loop instead: the window it was started with stays open for the code after `run`, and no `onClosed` runs. The loop also ends when its last window closes.
 
 `onClosed` runs once a window has closed, however it closed: `close()` from the app, a close request without a handler, a torn-off tab that docks back and closes its window. It runs on the UI thread as a task of a window that stays open, one of the same state first, so it may change the state and the windows show it in the same frame. When no window stays open, or the loop stops, it does not run. That is where state kept per window goes away:
 
