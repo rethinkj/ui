@@ -164,6 +164,7 @@ public final class El {
   private double hoverDelay;
   private Object dismissGroup; // see #dismissGroup
   private boolean keepsFocus; // see #keepFocus
+  private boolean inert; // see #inert
   private boolean holdsFocus; // see #holdFocus
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
@@ -2640,6 +2641,17 @@ public final class El {
   }
 
   /**
+   * Makes this element and everything inside it take no input, as HTML's {@code inert}: presses,
+   * the wheel and the pointer go to what lies beneath it, and neither Tab nor a press focuses
+   * anything inside it. It still shows, and a tree dump lists it. A tooltip is so, also where its
+   * content has links or a scroll area: it only shows them.
+   */
+  public El inert() {
+    this.inert = true;
+    return this;
+  }
+
+  /**
    * Makes Tab and Shift+Tab pass this focusable element by, while a press and {@link App#focus}
    * still focus it: the paragraphs of a document, read-only fields for selecting and copying,
    * between the links that Tab reaches.
@@ -2977,6 +2989,11 @@ public final class El {
   /** Whether {@link #keepFocus} was called. */
   public boolean keepsFocus() {
     return keepsFocus;
+  }
+
+  /** Whether {@link #inert} was called. */
+  public boolean isInert() {
+    return inert;
   }
 
   /** Whether {@link #holdFocus} was called. */

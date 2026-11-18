@@ -40,7 +40,7 @@ The kit's find bar and the code editor's diagnostics show their errors this way.
 
 <Shot src="examples/docs/tooltip-content/shown-{theme}" alt="An update icon button with a tooltip below it that shows a Markdown document: a heading Version 2.4 and three items" />
 
-The pointer cannot reach a tooltip's content: it goes as the pointer leaves the anchor. What is to be scrolled or pressed belongs in a [Popover](/docs/components/popover).
+A tooltip takes no input (`El.inert()`): presses go to what lies beneath it, Tab passes its links by, and it goes as the pointer leaves the anchor. Content longer than the size it is given is cut off, so keep it short, such as the newest version only; what is to be scrolled or pressed belongs in a [Popover](/docs/components/popover).
 
 ## Only where the text is cut
 

@@ -64,14 +64,33 @@ class TooltipTest {
         new int[0],
         s -> El.row()
             .gap(40)
+            .child(Tooltip.whenShortened(El.text("C").key("c"), "C"))
             .child(Tooltip.tooltip(El.el().key("a").size(20, 20), "A"))
             .child(Tooltip.tooltip(El.el().key("b").size(20, 20), "B")));
-    Script.run("size 200 100\nframe\nmove #a\nframe\nadvance 0.5\nframe", app, out);
+    Script.run("size 200 100\nframe\nmove #c\nframe\nadvance 0.5\nframe\nmove #a\nframe", app, out);
+    assertFalse(app.tree().dump().contains("role=tooltip"), "C's text fits: nothing showed");
+    Script.run("advance 0.5\nframe", app, out);
     assertTrue(app.tree().dump().contains("role=tooltip label=\"A\""));
     Script.run("move #b\nframe", app, out);
     assertTrue(app.tree().dump().contains("role=tooltip label=\"B\""), "at once after A's");
     Script.run("press #b\nframe\nmove #a\nframe", app, out);
     assertFalse(app.tree().dump().contains("role=tooltip label=\"A\""), "a press ends that");
+  }
+
+  @Test
+  void tabPassesTheFocusableContentOfATooltipBy() throws IOException {
+    App<int[]> app = new App<>(
+        new int[0],
+        s -> El.col()
+            .gap(2)
+            .child(Tooltip.tooltip(
+                El.el().key("anchor").size(20, 20).focusable(),
+                () -> El.el().key("link").size(60, 20).focusable()))
+            .child(El.el().key("below").size(40, 40).focusable()));
+    Script.run(
+        "size 200 100\nframe\nfocus #anchor\nframe\nadvance 0.75\nframe\nkey Tab\nframe", app, out);
+    String dump = app.tree().dump();
+    assertTrue(dump.lines().anyMatch(l -> l.contains("#below") && l.endsWith(" focused")), dump);
   }
 
   @ParameterizedTest(name = "{0} at {1}x")

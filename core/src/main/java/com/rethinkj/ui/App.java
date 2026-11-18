@@ -2323,7 +2323,7 @@ public final class App<S> {
       float clipBottom,
       List<El> shown,
       List<El> found) {
-    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
+    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting() || el.isInert()) {
       return;
     }
     float left = parentX + el.x();
@@ -3983,8 +3983,6 @@ public final class App<S> {
     if (rest == null || lookDue(rest, el) > time) {
       return false;
     }
-    // shortcut: an overlay that shows only while a text is cut (El.whenShortened) counts as shown
-    // even where the text fits; check its layout here if that warms up too much.
     rest.shown |= delayedLook(el, el.restLook(), "whenHoveredFor");
     return true;
   }
@@ -3998,15 +3996,18 @@ public final class App<S> {
    * Applies a look that waited for a stay; the overlays it attaches, such as a tooltip, avoid
    * covering their anchor, under the pointer that would leave the anchor for them and hide them.
    *
-   * @return whether it attached overlays
+   * @return whether it attached overlays that show whether or not a text is cut ({@link
+   *     El#whenShortened}), which layout decides only later
    */
   private static boolean delayedLook(El el, Consumer<El> look, String name) {
     int before = el.overlays().size();
     el.apply(look, name);
+    boolean shows = false;
     for (El overlay : el.overlays().subList(before, el.overlays().size())) {
       overlay.placement().avoidsAnchor = true;
+      shows |= !overlay.placement().whenShortened;
     }
-    return el.overlays().size() > before;
+    return shows;
   }
 
   /**
@@ -4459,10 +4460,10 @@ public final class App<S> {
 
   /**
    * Whether the point lies inside the element's rounded rectangle and the element takes input:
-   * neither invisible nor leaving.
+   * neither invisible nor leaving nor {@link El#inert}.
    */
   private static boolean contains(El el, float parentX, float parentY, float x, float y) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting() || el.isInert()) {
       return false;
     }
     List<Text.Box> rows = el.rangeBoxes();

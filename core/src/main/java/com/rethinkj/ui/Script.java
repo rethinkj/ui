@@ -1422,6 +1422,8 @@ public final class Script {
     }
     if (why == null && el.isExiting()) {
       why = "fading out";
+    } else if (why == null && el.isInert()) {
+      why = "inert";
     } else if (why == null && el.opacity() == 0) {
       why = el.targetOpacity() > 0 ? "fading in, at opacity 0" : "at opacity 0";
     }
@@ -1448,7 +1450,7 @@ public final class Script {
       float clipBottom,
       List<Found> all,
       List<Found> clipped) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting() || el.isInert()) {
       return;
     }
     float left = parentX + el.x();

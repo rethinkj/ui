@@ -949,6 +949,37 @@ class OverlayTest {
   }
 
   @Test
+  void anInertOverlayLetsPressesThroughAndTabPassesIt() {
+    State s = new State();
+    App<State> app = app(
+        s,
+        st -> col()
+            .size(200, 200)
+            .child(row()
+                .children(
+                    el().key("field").size(40, 20).focusable(),
+                    el().key("after")
+                        .size(40, 20)
+                        .focusable()
+                        .overlay(col()
+                            .key("tip")
+                            .inert()
+                            .keepFocus()
+                            .child(el().key("link")
+                                .size(40, 20)
+                                .focusable()
+                                .onPress(() -> st.log.add("link"))))))
+            .child(el().key("below").size(200, 100).focusable().onPress(() -> st.log.add("below"))),
+        200,
+        200);
+    press(app, 50, 30); // on the link, over the element below
+    assertEquals(List.of("below"), s.log);
+    press(app, 60, 10);
+    key(app, "Tab", 0);
+    assertEquals("below", app.focused().key(), "Tab passes the link by");
+  }
+
+  @Test
   void anElementThatHoldsTheFocusTakesItAndGivesItBackAfterTheOverlaysInsideIt() {
     Bar b = new Bar();
     App<Bar> app = app(b, OverlayTest::bar, 200, 200);

@@ -230,7 +230,8 @@ public final class Tooltip {
         .key(KEY)
         .role("tooltip")
         .label(label)
-        .keepFocus() // content of the view's own may be focusable; the focus stays at the anchor
+        .inert() // it only shows, also content of the view's own with links
+        .keepFocus()
         .align(Style.Align.START)
         .gap(theme.space().s())
         .padding(theme.space().s(), theme.space().m())
