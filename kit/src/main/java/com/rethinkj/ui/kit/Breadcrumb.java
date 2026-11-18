@@ -81,7 +81,7 @@ public final class Breadcrumb {
   public static final class State {
     final Menu.State hidden = new Menu.State();
     private final List<Menu.State> children = new ArrayList<>(); // by the crumb's index
-    private final List<String> owners = new ArrayList<>(); // the text of the crumb each is for
+    private List<String> path = List.of(); // the texts of the crumbs the last build had
     final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
@@ -90,17 +90,31 @@ public final class Breadcrumb {
       return hidden;
     }
 
-    /** The menu of the chevron after a crumb, closed where another crumb took its index. */
-    Menu.State children(int index, String owner) {
+    /** The menu of the chevron after the crumb at {@code index}. */
+    Menu.State children(int index) {
       while (children.size() <= index) {
         children.add(new Menu.State());
-        owners.add(owner);
-      }
-      if (!owner.equals(owners.get(index))) {
-        children.get(index).close();
-        owners.set(index, owner);
       }
       return children.get(index);
+    }
+
+    /**
+     * Closes the menus from the first crumb that differs from the last build's on, and the menu of
+     * the ellipsis where the path changed, so that no menu shows another place's items.
+     */
+    void follow(List<Crumb> crumbs) {
+      int same = 0;
+      while (same < Math.min(path.size(), crumbs.size())
+          && path.get(same).equals(crumbs.get(same).text())) {
+        same++;
+      }
+      for (int i = same; i < children.size(); i++) {
+        children.get(i).close();
+      }
+      if (same < Math.max(path.size(), crumbs.size())) {
+        hidden.close();
+      }
+      path = crumbs.stream().map(Crumb::text).toList();
     }
 
     /** Closes the menus of the chevrons this build does not show, so none opens by itself. */
@@ -128,6 +142,7 @@ public final class Breadcrumb {
     if (crumbs.isEmpty()) {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
+    state.follow(crumbs);
     int last = crumbs.size() - 1;
     float[] widths = new float[crumbs.size()];
     for (int i = 0; i <= last; i++) {
@@ -304,7 +319,7 @@ public final class Breadcrumb {
     if (crumb.children() == null) {
       return last ? null : mark(theme);
     }
-    Menu.State menu = state.children(index, crumb.text());
+    Menu.State menu = state.children(index);
     boolean open = menu.isOpen();
     El glyph = glyph(theme, open ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT)
         .color(open ? theme.text().primary() : theme.border().strong());
