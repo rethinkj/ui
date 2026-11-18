@@ -30,7 +30,7 @@ A script that opens it:
 
 ## When it opens and closes
 
-A letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it. A character named with `state.completion.openAfter(".")` opens it at once, for the empty word after it, such as the columns after a table's name. Control+Space opens it with an empty word. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel close it.
+A letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it. A character named with `state.completion.openAfter(".")` opens it at once, for the empty word after it, such as the columns after a table's name. Control+Space opens it for the part of the word before the caret, an empty word outside one. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel close it, and so does a word with no entries, unless more are loading. A press on an entry takes it.
 
 ## Keyboard
 
@@ -42,7 +42,7 @@ A letter, digit or `_` typed opens the list once the word has two characters and
 | Escape | Close |
 | Left, Right, Home, End | Close and move the caret |
 
-Keys it does not take reach the field's own handler, Control+Enter among them.
+A key with Control, Alt or Meta, other than Control+Space, closes it. Keys it does not take reach the field's own handler, Control+Enter among them.
 
 ## In a tree dump
 

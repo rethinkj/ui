@@ -27,7 +27,7 @@ The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
 
 ## Resizing
 
-`options().onResize((column, width) -> …)` lets the user drag the right edge of a header cell, and fit a column to its content with a double press on the edge. Widths stay within the theme's `grid().minColumn()` and `maxColumn()`. The app keeps the widths and passes them to the columns.
+`options().onResize((column, width) -> …)` lets the user drag the right edge of a header cell, and fit a column to its content with a double press on the edge. A dragged width stays above the theme's `grid().minColumn()`; a fitted one also stays within `maxColumn()`. The app keeps the widths and passes them to the columns.
 
 ## Fitting columns
 
@@ -50,7 +50,7 @@ A `DataGrid.Layout`, made with the titles of all columns and kept in the state, 
 
 - the grid shows the layout of all the columns it gets;
 - dragging a header cell moves its column, with a line where it will go;
-- the header's context menu has Sort ascending, Sort descending, Clear sort, Filter…, Hide column, Freeze up to here (with `onFreeze`), Fit width and Columns…;
+- the header's context menu has Sort ascending, Sort descending, Clear sort (with `sort`), Filter… (with `filters`), Hide column, Freeze up to here (with `onFreeze`; Unfreeze columns on a frozen column), Fit width (with `onResize`) and Columns…;
 - `DataGrid.columnsButton(layout)` is a toolbar button that opens the chooser: a checkbox per column, a search field beyond eight columns, Show all and Reset. Alt+Arrow Up and Down move the focused column.
 
 With a layout, every handler, sort key and filter speaks of columns by their index among all of them; only the selection's ranges count the columns shown. `layout.shown(all)` gives the shown columns in order, and `hide`, `show`, `showAll`, `reset` and `moveBefore` change it from code.

@@ -20,7 +20,7 @@ Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Option
 | --- | --- |
 | `onLink(destination -> …)` | A link is pressed: a URL, or `#id` for a heading |
 | `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
-| `languages(language -> highlighter)` | Highlighters for code blocks; `sql` uses `Sql` by default |
+| `languages(language -> highlighter)` | Highlighters for code blocks; `sql`, `pgsql` and `postgresql`, in any case, use `Sql` by default |
 | `copy(clipboard)` | Where the code blocks' copy buttons and Control+C after Control+A copy to. A selection within one block of text copies to the app's clipboard |
 | `state(Markdown.State)` | Keeps Control+A's selection of the whole document, and the confirmation of a code block's copy button |
 

@@ -31,7 +31,7 @@ A million selected rows are one range, so selecting everything costs nothing.
 | `copyLimit(cells)` | The most cells the grid copies itself; 100 000 unless set |
 | `onLargeCopy(handler)` | Gets a larger copy, or one with rows not loaded, as a `Copy` (ranges, headers, cell count) with the cell limit. The handler builds the text with `DataGrid.copyText` on another thread, fetches it from the database, or tells the user why nothing was copied |
 | `copyLimit(cells, handler)` | Sets the limit and the handler in one call |
-| `contextMenu(menuState, items)` | Adds Copy and Copy with headers to the grid's menu, before your items |
+| `contextMenu(menuState, items)` | Adds Copy and Copy with headers to the grid's menu, before your items. Paste, Set NULL, Insert row and Delete rows follow when their handlers are set, and a submenu `Column <title>` holds the header's items for the cursor's column: the keyboard's way to sort, filter, hide, freeze and fit it |
 
 `DataGrid.copyText(columns, ranges, headers, nullText)` builds the same text from your code, and `DataGrid.parseText(text)` reads it back into rows of cells.
 

@@ -22,8 +22,8 @@ The sort handler sorts the rows by the typed values; the handler of `onCommit` g
 
 - `state.orders` is a list of `Order` records, `state.typedSort` a list of `SortKey`s and `state.selection` a `DataGrid.Selection`, all in the app's state.
 - `DataGrid.table(rows)` takes an `IntFunction<T>`: the row at an index, asked for each cell in view on every frame. Keep it cheap, such as a list's `get`. A row that is not loaded is null: give the grid `.loading(table::loaded, onRows)`, and it shows the loading cells.
-- `table.column(title, width, format, getter)` is a column that edits nothing. With a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter, it edits. Alignment, font, header icon and editor come from the format: `Format.DECIMAL` gives a right-aligned number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, and an `optional()` format allows NULL.
-- The result is an ordinary `Column`, so `.typeName`, `.icon`, `.cellIcon` and `.sortable` chain onto it. Its `cells()` is the typed part: `cells().value(row)`, `cells().format()`, `cells().comparator()`.
+- `table.column(title, width, format, getter)` is a column that edits nothing. With a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter, it edits. `table.column(title, width, format, part)` takes a [`Part`](/docs/concepts/editing#declare-the-fields) instead, such as `Order.AMOUNT`, which reads and writes. Alignment, font, header icon and editor come from the format: `Format.DECIMAL` gives a right-aligned number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, and an `optional()` format allows NULL.
+- The result is an ordinary `Column`, so `.typeName`, `.icon`, `.cellIcon`, `.detail` and `.sortable` chain onto it. Its `cells()` is the typed part: `cells().value(row)`, `cells().format()`, `cells().comparator()`.
 
 ## Editing
 
@@ -39,7 +39,7 @@ The handler refuses with a message, which shows under the editor, or accepts wit
 ```java snippet="grid-pojo"
 ```
 
-Give the setter or wither as a method reference: for a lambda, Java cannot tell a setter's `BiConsumer` from a wither's `BiFunction`.
+Give the setter or wither as a method reference: for a lambda, Java cannot tell a setter's `BiConsumer` from a wither's `BiFunction`. A `Part` has no such ambiguity.
 
 ```text snippet="grid-typed-script"
 ```

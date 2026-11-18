@@ -52,7 +52,7 @@ The app's nodes reach the tree through `Tree.Model`:
 
 ## Children that could not be read
 
-While `children(node)` returns `Tree.loading()`, the row below an open node shows a spinner and "Loading…", or the text of `Tree.loading(text)`, such as "Connecting…". When loading fails, it returns `Tree.failed(message, action, onAction)`, and the row shows a danger icon, the message and the action, such as Try again, at its end. The tree does not try again by itself: the action does, and `children` returns `Tree.loading()` again while the children load.
+While `children(node)` returns `Tree.loading()`, the row below an open node shows a spinner and "Loading…", or the text of `Tree.loading(text)`, such as "Connecting…". When loading fails, it returns `Tree.failed(message, action, onAction)`, and the row shows a danger icon, the message and the action, such as Try again, at its end. `Tree.failed(message)` shows the message without an action. The tree does not try again by itself: the action does, and `children` returns `Tree.loading()` again while the children load.
 
 ```java snippet="tree-failure"
 ```

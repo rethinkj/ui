@@ -44,7 +44,7 @@ The bar changes its `Find.State`. The app reads it for a status line, or to sear
 
 ## In a tree dump
 
-The bar is an overlay on the field, `role=search` `label="Find"`. Its field is `label="Find"`, the replacement `label="Replace"`, and the switches are `role=button` with `checked` or `checked=false`. `#count` says how many matches there are: `3 of 17`, `17 results`, `No results`, `10000+`, `Searching…`.
+The bar is an overlay on the field, `role=search` `label="Find"`. Its field is `label="Find"`, the replacement `label="Replace"`, and the switches are `role=button` with `checked` or `checked=false`. `#count` says how many matches there are: `3 of 17`, `17 results`, `1 result`, `No results`, `Searching…`; a `+` when there may be more, as `3 of 10000+` or `10000+ results`, and `Too slow` when the search ran out of time before a match. Going to a line, the field is `label="Go to line"` and `#count` says `1 to <lines>`.
 
 ```text file="examples/src/test/resources/golden/docs/find/found.tree.txt" start="#match-case" count="7"
 ```
