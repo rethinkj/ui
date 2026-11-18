@@ -134,4 +134,11 @@ public final class Style {
   public Len right = Len.AUTO;
   public Len top = Len.AUTO;
   public Len bottom = Len.AUTO;
+
+  /**
+   * Not in CSS: the key of a sibling whose border box an absolute element is placed in along its
+   * parent's main axis, instead of the parent's padding box; null, the default, for none. See
+   * {@link El#follow}.
+   */
+  public String follow;
 }

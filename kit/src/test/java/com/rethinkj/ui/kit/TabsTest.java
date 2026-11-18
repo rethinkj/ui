@@ -368,6 +368,44 @@ class TabsTest {
     assertEquals(end, find(app, "tablist").scrollX());
   }
 
+  // The line variant
+
+  @Test
+  void theLineSlidesUnderTheChosenTabAlsoInAnOverfullBar() throws IOException {
+    Workbench w = Workbench.many(T);
+    w.variant = Tabs.Variant.LINE;
+    App<Workbench> app = w.app(Workbench::tabsView);
+    float inset = T.space().s();
+    run(app, "frame");
+    El first = find(app, "tab-0");
+    assertEquals(x(app, first) + inset, x(app, find(app, "indicator")), "under the active tab");
+    assertEquals(first.width() - 2 * inset, find(app, "indicator").width());
+    assertEquals(0, find(app, "bar").fill(), "on the parent's surface");
+    assertEquals(
+        "indicator",
+        find(app, "tablist").children().getFirst().key(),
+        "under the tabs, which take the presses");
+
+    run(app, "press #tab-1\nframe");
+    assertEquals(
+        x(app, find(app, "tab-0")) + inset, x(app, find(app, "indicator")), "it starts from there");
+    run(app, "advance 1\nframe");
+    El second = find(app, "tab-1");
+    assertEquals(x(app, second) + inset, x(app, find(app, "indicator")), "and slides over");
+    assertEquals(second.width() - 2 * inset, find(app, "indicator").width());
+
+    String image = "tabs-line-dark";
+    run(app, "wheel #tablist 0 10000\nframe\npress #tab-7\nframe\nadvance 1\nmove #tab-6\nframe");
+    El last = find(app, "tab-7");
+    assertEquals(x(app, last) + inset, x(app, find(app, "indicator")), "in a scrolled bar too");
+    run(app, "frame\nsnap " + image); // the last tab active, the pointer on the one before it
+    Golden.assertMatches(
+        image,
+        com.rethinkj.ui.render.Png.decode(
+            java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
+        java.nio.file.Files.readString(out.resolve(image + ".tree.txt")));
+  }
+
   // Without handlers
 
   @Test

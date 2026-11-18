@@ -1,0 +1,46 @@
+el 0,0 400x160
+  el #queries 0,0 400x160
+    el #bar 0,0 400x29
+      el #tablist role=tablist 4,0 392x28 scroll 668,0
+        el #indicator 257,26 135x2
+        el #tab-0 role=tab label="customers.sql" -664,0 123x28
+          text "customers.sql" -656,6 87x16
+          el #close-0 role=button label="Close customers.sql" -565,6 16x16
+            text label="dismiss" "\u{F368}" -565,6 16x16
+        el #tab-1 role=tab label="orders by month.sql" -539,0 169x28 modified
+          el -531,12 4x4
+          text "orders by month.sql" -523,6 125x16
+          el #close-1 role=button label="Close orders by month.sql" -394,6 16x16
+            text label="dismiss" "\u{F368}" -394,6 16x16
+        el #tab-2 role=tab label="Console" -368,0 87x28 busy
+          el role=progressbar label="Loading" -360,6 16x16
+            el -360,6 16x16
+            el -360,6 16x16
+            el -360,6 16x16
+            el -360,6 16x16
+            el -360,6 16x16
+          text "Console" -340,6 51x16
+        el #tab-3 role=tab label="products.sql" -279,0 113x28
+          text "products.sql" -271,6 77x16
+          el #close-3 role=button label="Close products.sql" -190,6 16x16
+            text label="dismiss" "\u{F368}" -190,6 16x16
+        el #tab-4 role=tab label="invoices 2026.sql" -164,0 144x28
+          text "invoices 2026.sql" -156,6 108x16
+          el #close-4 role=button label="Close invoices 2026.sql" -44,6 16x16
+            text label="dismiss" "\u{F368}" -44,6 16x16
+        el #tab-5 role=tab label="slow queries.sql" -18,0 138x28
+          text "slow queries.sql" -10,6 102x16
+          el #close-5 role=button label="Close slow queries.sql" 96,6 16x16
+            text label="dismiss" "\u{F368}" 96,6 16x16
+        el #tab-6 role=tab label="schema diff.sql" 122,0 129x28 hovered
+          text "schema diff.sql" 130,6 93x16
+          el #close-6 role=button label="Close schema diff.sql" 227,6 16x16
+            text label="dismiss" "\u{F368}" 227,6 16x16
+        el #tab-7 role=tab label="migration 042.sql" 253,0 143x28 selected
+          text "migration 042.sql" 261,6 107x16
+          el #close-7 role=button label="Close migration 042.sql" 372,6 16x16
+            text label="dismiss" "\u{F368}" 372,6 16x16
+    el #panel role=tabpanel label="migration 042.sql" 0,29 400x131
+      el #work 0,29 400x131
+        text "migration 042.sql" 8,37 384x16
+        text #filter role=textbox label="Filter" "" 8,57 200x24

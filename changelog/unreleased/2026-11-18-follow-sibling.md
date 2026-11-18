@@ -1,0 +1,1 @@
+- `El.follow(key)` places an absolute element against the sibling with that key, along the parent's axis, instead of against the parent; with `motion` it slides from sibling to sibling when the key changes.

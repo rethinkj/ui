@@ -233,6 +233,39 @@ class FlexTest {
   }
 
   @Test
+  void anAbsoluteElementThatFollowsASiblingIsPlacedAlongTheSiblingsBox() {
+    El first = el().key("first").size(30, 10);
+    El second = el().key("second").size(50, 10);
+    El line = el().absolute(2, 8).h(2).follow("second");
+    line.style().right = Len.px(2);
+    El alone = el().absolute(0, 0).wFull().h(1).follow("none");
+    El auto = el().size(4, 2).follow("second");
+    auto.style().position = Style.Position.ABSOLUTE;
+    Flex.layout(
+        row().size(200, 20).padding(0, 10).gap(5).children(first, second, line, alone, auto),
+        200,
+        20);
+    El down = el().absolute(0, 0).w(4).follow("below");
+    down.style().bottom = Len.ZERO;
+    Flex.layout(
+        col()
+            .size(20, 200)
+            .padding(10, 0)
+            .children(el().h(10), el().key("below").h(10), down),
+        20,
+        200);
+
+    assertEquals(10 + 30 + 5 + 2, line.x(), "from the second's left");
+    assertEquals(50 - 2 - 2, line.width(), "to its right");
+    assertEquals(8, line.y(), "and across in the parent");
+    assertEquals(10 + 30 + 5, auto.x(), "at the second's left without offsets");
+    assertEquals(10 + 10, down.y(), "down a column");
+    assertEquals(10, down.height());
+    assertEquals(0, alone.x(), "without the sibling, in the parent");
+    assertEquals(200, alone.width());
+  }
+
+  @Test
   void aMaximumDoesNotGoThroughTheAspectRatioToASizeThatIsSet() {
     El absolute = el().absolute(0, 0).size(100, 100);
     absolute.style().aspectRatio = 1;

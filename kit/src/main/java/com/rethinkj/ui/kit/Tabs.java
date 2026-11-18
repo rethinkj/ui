@@ -93,8 +93,25 @@ import java.util.function.IntConsumer;
  * The tab being dragged is {@code grabbed}, and the line where it would go is {@code #marker}.
  * The component needs a size of its own or room to grow; its content fills the rest of it. It
  * takes no minimum size from its content, so that a list of rows there scrolls inside it.
+ *
+ * <p>Inside a card or a pane, such as the result and the messages of a query, {@link
+ * Variant#LINE} leaves the card out: a compact bar with a hairline under it, whose line under the
+ * active tab ({@code #indicator}) slides to the tab chosen next.
  */
 public final class Tabs {
+
+  /** How the tabs look. */
+  public enum Variant {
+    /** A card whose first row is the bar, on a band of its own: the default. */
+    CARD,
+    /**
+     * The bar and the content without a card, for tabs inside one: the bar a control and a small
+     * space high, with a hairline under it, and a line under the active tab that moves with
+     * {@link Theme.Motion#move()} to the tab chosen next. The tabs have no fill under the pointer,
+     * only primary text.
+     */
+    LINE
+  }
 
   /**
    * A tab of the bar.
@@ -269,8 +286,9 @@ public final class Tabs {
   }
 
   /**
-   * What the tabs do besides choosing and closing: moving, tearing off, docking and a menu. Each
-   * is off until a call turns it on; the view makes the options anew with the tabs.
+   * What the tabs do besides choosing and closing: moving, tearing off, docking and a menu, and
+   * how they look. Each is off until a call turns it on; the view makes the options anew with the
+   * tabs.
    */
   public static final class Options {
     private Dragging dragging;
@@ -282,8 +300,15 @@ public final class Tabs {
     private Dock onDock;
     private Menu.State menu;
     private List<Menu.Item> menuItems = List.of();
+    private Variant variant = Variant.CARD;
 
     private Options() {}
+
+    /** How the tabs look; {@link Variant#CARD} by default. */
+    public Options variant(Variant variant) {
+      this.variant = Objects.requireNonNull(variant, "variant");
+      return this;
+    }
 
     /**
      * The state of the drags of tabs, which the app keeps, one for all bars that take each other's
@@ -390,6 +415,12 @@ public final class Tabs {
     return active;
   }
 
+  /** The height of the tabs, which fill the bar. */
+  private static float height(Theme theme, Options o) {
+    return theme.size().control()
+        + (o.variant == Variant.LINE ? theme.space().s() : theme.space().m());
+  }
+
   /** A step of the drag of the tab at {@code index} of the bar whose tabs are {@code built}. */
   private static void drag(Theme theme, Options o, int index, El list, List<El> built, Drag d) {
     Dragging g = o.dragging;
@@ -423,9 +454,7 @@ public final class Tabs {
     if (moving
         && !g.torn
         && o.onTearOff != null
-        && (d.outside()
-            || d.y() < -reach
-            || d.y() > theme.size().control() + theme.space().m() + reach)) {
+        && (d.outside() || d.y() < -reach || d.y() > height(theme, o) + reach)) {
       g.torn = true;
     }
     if (g.torn) {
@@ -526,7 +555,7 @@ public final class Tabs {
     return tabs(tabs, active, onSelect, onClose, content, options());
   }
 
-  /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu. */
+  /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu, a look. */
   public static El tabs(
       List<Tab> tabs,
       int active,
@@ -549,21 +578,40 @@ public final class Tabs {
           }
         };
     IntConsumer close = onClose;
+    boolean line = options.variant == Variant.LINE;
+    float height = height(theme, options);
     // Its top corners follow the card's, inside its border and the bar's padding, so that the
     // focus ring, which the card's clip puts inside the bar, follows them too.
-    float corner =
-        theme.radius().large() - theme.size().stroke() - theme.space().xs();
+    float corner = line
+        ? theme.radius().small()
+        : theme.radius().large() - theme.size().stroke() - theme.space().xs();
     El list = row()
         .key("tablist")
         .role("tablist")
         .radius(corner, corner, 0, 0)
         .gap(theme.space().xs())
-        .scrollBoth()
-        .revealRow(active);
+        .scrollBoth();
     // Sideways only: the wheel moves the tabs left and right.
     list.style().overflowY = Style.Overflow.HIDDEN;
     // As high without tabs as with them, so that an empty bar still takes a tab dropped on it.
-    list.style().minHeight = Len.px(theme.size().control() + theme.space().m());
+    list.style().minHeight = Len.px(height);
+    boolean indicator = line && active >= 0 && active < tabs.size();
+    list.revealRow(indicator ? active + 1 : active);
+    if (indicator) {
+      // One element under whichever tab is active, so that it slides there; the first child, so
+      // that the tabs lie over it and take the presses, also where it slides across them.
+      float stroke = theme.size().indicator();
+      float inset = theme.space().s();
+      El under = el().key("indicator")
+          .follow("tab-" + active)
+          .absolute(inset, height - stroke)
+          .h(stroke)
+          .radius(stroke, stroke, 0, 0)
+          .fill(theme.accent().edge())
+          .motion(theme.motion().move());
+      under.style().right = Len.px(inset);
+      list.child(under);
+    }
     List<El> built = new ArrayList<>();
     for (int i = 0; i < tabs.size(); i++) {
       boolean grabbed = dragging != null && dragging.on(options.id, i);
@@ -574,6 +622,8 @@ public final class Tabs {
               tabs.get(i),
               i,
               i == active,
+              line,
+              height,
               grabbed && !dragging.torn,
               dragging != null && dragging.isActive(),
               select,
@@ -606,8 +656,8 @@ public final class Tabs {
     }
     El bar = row()
         .key("bar")
-        .fill(theme.surface().band())
-        .padding(0, theme.space().xs())
+        .fill(line ? 0 : theme.surface().band())
+        .padding(0, line ? theme.space().s() : theme.space().xs())
         .shrink(0)
         .border(0, 0, theme.size().stroke(), 0, theme.border().divider())
         .child(list);
@@ -616,7 +666,7 @@ public final class Tabs {
       if (dragging.slot >= 0 && Objects.equals(dragging.overBar, options.id)) {
         float side = theme.size().control();
         bar.child(el().key("marker")
-            .absolute(dragging.markerX, (theme.space().m()) / 2)
+            .absolute(dragging.markerX, (height - side) / 2)
             .size(theme.size().indicator(), side)
             .fill(theme.accent().edge()));
         if (dragging.reveal != null) {
@@ -639,7 +689,7 @@ public final class Tabs {
       content.style().minHeight = Len.ZERO;
       panel.child(content.grow(1));
     }
-    El root = Card.surface(theme, Card.Variant.OUTLINED).children(bar, panel);
+    El root = (line ? col() : Card.surface(theme, Card.Variant.OUTLINED)).children(bar, panel);
     // It fills the room it is given: a list of rows in the content is no minimum.
     root.style().minWidth = Len.ZERO;
     root.style().minHeight = Len.ZERO;
@@ -724,6 +774,8 @@ public final class Tabs {
       Tab tab,
       int index,
       boolean active,
+      boolean line,
+      float height,
       boolean muted,
       boolean quiet,
       IntConsumer onSelect,
@@ -735,7 +787,6 @@ public final class Tabs {
         : active ? theme.text().primary() : theme.text().muted();
     // The tabs fill the bar's height; the active one has a line at its bottom, the others show
     // the band, with the translucent overlays on it under the pointer.
-    float height = theme.size().control() + theme.space().m();
     El el = row()
         .key("tab-" + index)
         .role("tab")
@@ -749,10 +800,12 @@ public final class Tabs {
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
         .shrink(0);
-    if (active) {
-      float line = theme.size().indicator();
-      el.child(
-          el().absolute(0, height - line).h(line).wFull().fill(theme.accent().edge()));
+    if (active && !line) {
+      float stroke = theme.size().indicator();
+      el.child(el().absolute(0, height - stroke)
+          .h(stroke)
+          .wFull()
+          .fill(theme.accent().edge()));
     }
     El dot = null;
     if (tab.modified()) {
@@ -809,6 +862,9 @@ public final class Tabs {
         cross.opacity(1);
       }
     };
+    if (line) {
+      return el.whenHovered(lit).whenPressed(lit);
+    }
     return el.whenHovered(lit.andThen(e -> e.fill(s.hover())))
         .whenPressed(lit.andThen(e -> e.fill(s.pressed())));
   }

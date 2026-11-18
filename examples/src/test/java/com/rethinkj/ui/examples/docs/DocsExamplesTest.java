@@ -61,6 +61,7 @@ class DocsExamplesTest {
       Map.entry("parts", List.of("view")),
       Map.entry("navigation", List.of("view")),
       Map.entry("tabs", List.of("view")),
+      Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
@@ -96,6 +97,7 @@ class DocsExamplesTest {
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
     layouts(all, "split", Layouts::split, 520, 240);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
+    layouts(all, "tabs-line", Layouts::tabsLine, 480, 180);
     layouts(all, "status", Layouts::status, 460, 420);
     layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "details", Layouts::details, 520, 280);

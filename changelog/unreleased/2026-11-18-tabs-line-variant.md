@@ -1,0 +1,1 @@
+- `Tabs.options().variant(Tabs.Variant.LINE)` shows tabs without their card, for tabs inside a card or a pane: a compact bar with a hairline under it, and a line under the active tab (`#indicator` in a tree dump) that slides to the tab chosen next.

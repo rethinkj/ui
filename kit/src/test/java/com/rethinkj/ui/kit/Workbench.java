@@ -42,6 +42,7 @@ final class Workbench {
   Position editor = EDITOR;
   final List<Query> queries = new ArrayList<>();
   int active;
+  Tabs.Variant variant = Tabs.Variant.CARD;
   String filter = "";
   final List<String> log = new ArrayList<>();
 
@@ -130,7 +131,7 @@ final class Workbench {
                 .children(
                     label(Variant.MUTED, queries.get(active).title().replace("*", "")),
                     textField(filter, "Filter", f -> filter = f).key("filter"));
-    return tabs(tabs, active, this::select, this::close, content);
+    return tabs(tabs, active, this::select, this::close, content, Tabs.options().variant(variant));
   }
 
   private El schema() {

@@ -28,6 +28,15 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 
 `onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one.
 
+## Inside a card
+
+`Tabs.options().variant(Tabs.Variant.LINE)` leaves the card out, for tabs inside a card or a pane, such as the result and the messages of a query. The bar is compact, on the surface it sits on, with a hairline under it; the line under the active tab slides to the next one chosen.
+
+<Shot src="examples/docs/tabs-line/view-{theme}" alt="A card titled orders by month with the tabs Result, active with a line under it, and Messages" />
+
+```java snippet="tabs-line"
+```
+
 ## Options
 
 `Tabs.tabs(tabs, active, onSelect, onClose, content, Tabs.options()…)`:
@@ -39,9 +48,10 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
 | `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
 | `contextMenu(menuState, items)` | A menu for a tab, at a secondary press or the Menu key |
+| `variant(Tabs.Variant.LINE)` | Without the card, as above; `CARD` is the default |
 | `switchKeys(false)` | Leaves Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up to what encloses the bar, for tabs nested in the content of other tabs |
 
-[TabGroups](/docs/components/tab-groups) wires all of these for you.
+[TabGroups](/docs/components/tab-groups) wires moving, dragging, docking and the menu for you.
 
 The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html) for all bars that trade tabs. It says what a drag is doing, so that a view can hide things meanwhile, such as a tooltip or a drop hint: `isActive()` says whether a tab is being dragged, and `isTorn()` whether it has left its bar (`onTearOff`).
 
@@ -62,7 +72,7 @@ Keys go up from the focused element to the nearest tabs. When tabs sit inside th
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
+The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`. In the `LINE` variant the line under the active tab is `#indicator`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

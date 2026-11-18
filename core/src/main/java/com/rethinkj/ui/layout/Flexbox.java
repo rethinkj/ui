@@ -1161,8 +1161,38 @@ final class Flexbox {
     axisC.staticEdge = edgeC;
     horizontal.scrolls = scrolls(s.overflowX);
     vertical.scrolls = scrolls(s.overflowY);
+    Node followed = followed(child);
+    if (followed != null) { // along the main axis, the sibling's border box is its area
+      float start = isRow ? followed.x : followed.y;
+      float end = start + (isRow ? followed.width : followed.height);
+      axisM.staticStart = start;
+      axisM.staticEnd = end;
+      if (isRow) {
+        left = start;
+        right = width - end;
+      } else {
+        top = start;
+        bottom = height - end;
+      }
+    }
     Absolute.layout(
         child, width - left - right, height - top - bottom, left, top, horizontal, vertical);
+  }
+
+  /** The sibling in the flow whose key the absolute {@code child} follows, or null. */
+  private Node followed(Node child) {
+    String key = child.style.follow;
+    if (key == null) {
+      return null;
+    }
+    for (Node sibling : node.children) {
+      if (key.equals(sibling.el.key())
+          && sibling.style.position != Style.Position.ABSOLUTE
+          && sibling.style.display != Style.Display.NONE) {
+        return sibling;
+      }
+    }
+    return null;
   }
 
   /** 8.5: the first baseline of the container, from its first line. */

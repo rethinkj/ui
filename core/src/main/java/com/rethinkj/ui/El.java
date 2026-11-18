@@ -656,6 +656,20 @@ public final class El {
     return this;
   }
 
+  /**
+   * Places this {@link #absolute} element against the sibling with this key instead of its
+   * parent: along the parent's main axis its offsets and percentages refer to that sibling's
+   * border box, as a line under the active one of a row of tabs. With {@link #motion} it moves
+   * from one sibling to the next when the key changes. Without such a sibling in the flow it is
+   * placed in its parent as before.
+   *
+   * @param key the sibling's {@link #key}, or null for none
+   */
+  public El follow(String key) {
+    style.follow = key;
+    return this;
+  }
+
   // Look
 
   /** @param argb the color as 0xAARRGGBB */
