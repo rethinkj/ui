@@ -1537,8 +1537,8 @@ public record Theme(
   /**
    * The theme the kit's components read, {@link #DARK} unless the app gives another: {@code
    * app.provide(Theme.CURRENT, Settings::theme)} for the whole view, or {@code
-   * Theme.CURRENT.with(theme, () -> sidebar(state))} for a part of it, built inside. The view's own code reads it with
-   * {@code Theme.CURRENT.get()}.
+   * Theme.CURRENT.with(theme, () -> sidebar(state))} for a part of it, built inside. The view's
+   * own code reads it with {@code Theme.CURRENT.get()}.
    */
   public static final Context<Theme> CURRENT = new Context<>(DARK);
 
