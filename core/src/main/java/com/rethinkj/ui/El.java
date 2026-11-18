@@ -2253,8 +2253,8 @@ public final class El {
    * Changes how this element looks once the pointer has rested over it, or over elements inside
    * it, for {@code seconds} of the app's clock, until the pointer leaves it or presses: a tooltip,
    * which the look attaches as an {@link #overlay}. A press keeps the look away until the pointer
-   * has left the element and come back. Once such a look has attached overlays and gone because
-   * the pointer left, the look of an element the pointer comes to within that element's {@code
+   * has left the element and come back. Once such a look has shown overlays and gone because the
+   * pointer left, the look of an element the pointer comes to within that element's {@code
    * seconds} shows at once, as the tooltips along a toolbar do; a press ends that. {@link
    * App#nextChange} says when the look is due, so an
    * idle window wakes for it and presents nothing while it waits. Besides what {@link
@@ -2641,11 +2641,13 @@ public final class El {
   }
 
   /**
-   * Makes this element, everything inside it and the overlays attached inside it take no input,
-   * as HTML's {@code inert}: presses, the wheel and the pointer go to what lies beneath them, and
-   * neither Tab nor a press focuses anything in them, also not as an overlay opens. They still
-   * show, and a tree dump lists them; an inert overlay neither dismisses nor is modal. A tooltip is
-   * so, also where its content has links or a scroll area: it only shows them.
+   * Makes this element, everything inside it and the overlays attached inside it content that
+   * only shows, such as a tooltip's with links or a scroll area: presses, the wheel and the pointer
+   * go to what lies beneath them, neither Tab nor a press focuses anything in them, also not as
+   * an overlay opens, and their window-wide key and pointer handlers do not run. They still show,
+   * and a tree dump lists them; an inert overlay neither dismisses nor is modal. It is not for
+   * elements that take input of their own: a focus holder, a scroll area being dragged, or the
+   * handlers of the root and of the focus path are not kept from it.
    *
    * <p>shortcut: an overlay attached inside inert content becomes inert as it is placed, after
    * layout; one that opens with a focusable element in the frame its inert anchor appears may

@@ -4053,7 +4053,8 @@ public final class App<S> {
       }
       Object first = Animator.firstFocusable(overlay.getValue(), overlay.getKey());
       El el = overlay.getValue();
-      boolean takes = (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal());
+      boolean takes =
+          (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal() && !el.isInert());
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
       if (!takes && focusId != null) {
         outside.put(overlay.getKey(), new Focus(focusId, ring));

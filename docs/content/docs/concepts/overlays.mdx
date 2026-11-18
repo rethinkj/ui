@@ -31,11 +31,11 @@ An overlay is at most as large as the window minus its margins, and one at the w
 
 | Call | |
 | --- | --- |
-| `onDismiss(handler)` | A press outside, or the wheel outside a non-modal overlay. Overlays without one let presses through, as a tooltip. |
+| `onDismiss(handler)` | A press outside, or the wheel outside a non-modal overlay. Overlays without one let presses outside them through. |
 | `modal()` | Input outside reaches nothing; Tab stays inside |
 | `scrim(argb)` | A color over the window below it |
 | `keepFocus()` | Opens without taking the focus, as a toast |
-| `inert()` | Takes no input: presses and the pointer go to what lies beneath, and Tab passes what is inside by, as in a tooltip |
+| `inert()` | Only shows, as a tooltip: presses inside it and the pointer go to what lies beneath, and Tab passes what is inside by |
 | `dismissGroup(group)` | Presses on elements of the same group do not dismiss it: a menu bar's titles |
 | `onShownFor(seconds, handler)` | Runs once it has been open that long: a toast closes itself |
 

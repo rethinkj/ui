@@ -172,7 +172,9 @@ class ButtonTest {
     assertTrue(dump.contains("text \"Ctrl\"") && dump.contains("text \"H\""), dump); // keycaps
     run(app, "move #text\nframe\nadvance 1\nframe");
     dump = app.tree().dump();
-    assertTrue(dump.contains("text \"Shift\""), "also where the text fits: " + dump);
+    assertTrue(
+        dump.contains(" label=\"Ctrl+Shift+C\" ") && dump.contains("text \"Shift\""),
+        "also where the text fits: " + dump);
   }
 
   @Test

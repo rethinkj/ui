@@ -18,7 +18,8 @@ import java.util.function.Supplier;
  * rested on the element for {@link Theme.Motion#tooltipDelay}, and goes when the pointer leaves or
  * presses; and likewise once the keyboard has given the element the focus, with its ring, for as
  * long, until the focus leaves or a key goes down. Once one has shown, the tooltip of the next
- * element the pointer comes to shows at once, as along a toolbar ({@link El#whenHoveredFor}). It
+ * element the pointer comes to within the delay shows at once, as along a toolbar, unless a press
+ * came between ({@link El#whenHoveredFor}). It
  * needs no state: the app's clock carries the delay ({@link El#whenHoveredFor}, {@link
  * El#whenFocusVisibleFor}), and an idle window wakes for it without drawing frames meanwhile. Where
  * there is no room below, it shows above, and where it would cover the element, beside it.
@@ -89,8 +90,9 @@ public final class Tooltip {
 
     /** Where it shows beside the anchor, and how it lines up with it: below and centered. */
     public Options side(Side side, Style.Align align) {
-      this.side = Objects.requireNonNull(side, "side");
+      Objects.requireNonNull(side, "side");
       this.align = Objects.requireNonNull(align, "align");
+      this.side = side;
       return this;
     }
   }

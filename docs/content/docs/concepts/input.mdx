@@ -77,7 +77,7 @@ When the focused element leaves the tree, the focus moves into the nearest conta
 
 A look changes the element after it is built; with `motion`, the change animates.
 
-Delays run on the app's clock: an idle window wakes for them, and a script moves the clock with `advance`. After a press, delayed looks and `onHoverFor` wait until the pointer has left the element and come back. Once a `whenHoveredFor` look has attached an overlay and the pointer left, the next element the pointer reaches within its delay shows its look at once, as tooltips along a toolbar do; a press ends that. A delayed look may attach an [overlay](/docs/concepts/overlays); that is how the kit's [Tooltip](/docs/components/tooltip) works.
+Delays run on the app's clock: an idle window wakes for them, and a script moves the clock with `advance`. After a press, delayed looks and `onHoverFor` wait until the pointer has left the element and come back. Once a `whenHoveredFor` look has shown an overlay and the pointer left, the next element the pointer reaches within its delay shows its look at once, as tooltips along a toolbar do; a press ends that. A delayed look may attach an [overlay](/docs/concepts/overlays); that is how the kit's [Tooltip](/docs/components/tooltip) works.
 
 ## Watch all presses and keys
 

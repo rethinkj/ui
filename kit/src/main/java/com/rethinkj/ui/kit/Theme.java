@@ -891,7 +891,8 @@ public record Theme(
    * @param controlSmall the height of a {@link Button.Size#SMALL} button, as in a dense row
    * @param controlLarge the height of a {@link Button.Size#LARGE} button, as the one action of an
    *     empty view
-   * @param tooltip the widest a {@link Tooltip} with text grows before its text wraps
+   * @param tooltip the widest the text and the description of a {@link Tooltip} grow before they
+   *     wrap; its padding, icon and keycaps come on top
    */
   public record Sizes(
       float control,

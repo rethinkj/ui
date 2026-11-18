@@ -92,8 +92,9 @@ class TooltipTest {
                 El.el().key("anchor").size(20, 20).focusable(),
                 () -> El.el().key("link").size(60, 20).focusable()))
             .child(El.el().key("below").size(40, 40).focusable()));
-    Script.run(
-        "size 200 100\nframe\nfocus #anchor\nframe\nadvance 0.75\nframe\nkey Tab\nframe", app, out);
+    Script.run("size 200 100\nframe\nfocus #anchor\nframe\nadvance 0.75\nframe", app, out);
+    assertTrue(app.tree().dump().contains("#link"), "the tooltip shows");
+    Script.run("key Tab\nframe", app, out);
     String dump = app.tree().dump();
     assertTrue(dump.lines().anyMatch(l -> l.contains("#below") && l.endsWith(" focused")), dump);
   }
