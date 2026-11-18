@@ -6,7 +6,9 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -20,7 +22,8 @@ import java.util.function.Supplier;
  * the first one too, and only then is the current place shortened, with an ellipsis and its whole
  * name in a tooltip. The breadcrumb learns its width from the layout ({@link El#onResize}) and
  * keeps it in its {@link State}, so it settles a frame after its width changes; the width of each
- * crumb it works out from the theme and the width of its text.
+ * crumb it works out from the theme and the width of its text, as layout shaped that text at the
+ * window's scale once it has.
  *
  * <p>It is one stop for Tab, at the crumb or button the arrows last went to; Arrow Left and Right
  * go between the crumbs, the chevrons with a menu and the ellipsis, Home and End to the ends, Enter
@@ -82,6 +85,8 @@ public final class Breadcrumb {
     final Menu.State hidden = new Menu.State();
     private final List<Menu.State> children = new ArrayList<>(); // by the crumb's index
     private List<String> path = List.of(); // the texts of the crumbs the last build had
+    // The width of a crumb's text as layout shaped it, at the window's scale, by its key.
+    private final Map<String, Float> texts = new HashMap<>();
     final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
@@ -115,6 +120,29 @@ public final class Breadcrumb {
         hidden.close();
       }
       path = crumbs.stream().map(Crumb::text).toList();
+      texts
+          .keySet()
+          .retainAll(crumbs.stream()
+              .flatMap(c -> List.of(key(c, false), key(c, true)).stream())
+              .toList());
+    }
+
+    /**
+     * The width of a crumb's text: as layout shaped it at the window's scale where it has, which
+     * a build cannot measure itself, else at a scale of 1, until layout has had it.
+     */
+    float text(Theme theme, Crumb crumb, boolean current) {
+      Float width = texts.get(key(crumb, current));
+      return width != null ? width : TextSizing.natural(words(theme, crumb, current));
+    }
+
+    /** Learns the width of a crumb's text from layout, at the window's scale. */
+    El.SizeHandler learn(Crumb crumb, boolean current, El words) {
+      return (w, h) -> texts.put(key(crumb, current), TextSizing.natural(words));
+    }
+
+    private static String key(Crumb crumb, boolean current) {
+      return (current ? "strong " : "body ") + crumb.text();
     }
 
     /** Closes the menus of the chevrons this build does not show, so none opens by itself. */
@@ -146,7 +174,8 @@ public final class Breadcrumb {
     int last = crumbs.size() - 1;
     float[] widths = new float[crumbs.size()];
     for (int i = 0; i <= last; i++) {
-      widths[i] = width(theme, crumbs.get(i), i == last);
+      widths[i] =
+          width(theme, crumbs.get(i), i == last, state.text(theme, crumbs.get(i), i == last));
     }
     Plan plan = plan(theme, state.fitting.width(), widths);
     El bar = state.fitting.row(theme).role("navigation").label("Breadcrumb");
@@ -159,7 +188,7 @@ public final class Breadcrumb {
       }
       Crumb crumb = crumbs.get(i);
       El unit = row().key("crumb-" + i).gap(theme.space().xs()).align(Style.Align.CENTER);
-      El part = part(theme, crumb, i == last);
+      El part = part(theme, state, crumb, i == last);
       unit.child(part);
       if (part.isFocusable()) {
         stops.add(part);
@@ -225,11 +254,11 @@ public final class Breadcrumb {
   }
 
   /**
-   * The width of a crumb with the chevron after it, from the theme and its text alone, so that it
-   * does not depend on where layout puts it or on what the last build showed.
+   * The width of a crumb with the chevron after it, from the theme and the width of its text
+   * alone, so that it does not depend on where layout puts it or on what the last build showed.
    */
-  static float width(Theme theme, Crumb crumb, boolean current) {
-    float width = 2 * theme.space().s() + TextSizing.natural(words(theme, crumb, current));
+  static float width(Theme theme, Crumb crumb, boolean current, float text) {
+    float width = 2 * theme.space().s() + text;
     if (crumb.icon() != null) {
       width += theme.size().icon() + theme.space().s();
     }
@@ -265,10 +294,11 @@ public final class Breadcrumb {
   }
 
   /** A crumb: muted, primary under the pointer where it takes a press; the current place strong. */
-  private static El part(Theme theme, Crumb crumb, boolean current) {
+  private static El part(Theme theme, State state, Crumb crumb, boolean current) {
     Runnable onPress = current ? null : crumb.onPress();
     int color = current ? theme.text().primary() : theme.text().muted();
     El words = words(theme, crumb, current).color(color).ellipsis().minSize(0, 0);
+    words.onResize(state.learn(crumb, current, words));
     El icon = crumb.icon() == null ? null : Icon.icon(crumb.icon()).color(color).shrink(0);
     El el = row()
         .role("link")

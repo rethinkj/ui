@@ -215,6 +215,20 @@ class PartsTest {
   }
 
   @Test
+  void aBreadcrumbFitsItsTextAsShapedAtTheWindowsScale() throws IOException {
+    List<Breadcrumb.Crumb> crumbs = List.of(
+        Breadcrumb.crumb("Projects", () -> {}),
+        Breadcrumb.crumb("shared-internationalization-and-localization-settings", null));
+    App<Breadcrumb.State> app = new App<>(
+        new Breadcrumb.State(), s -> col().w(410).child(Breadcrumb.breadcrumb(s, crumbs)));
+    Script.run("size 450 40 scale 1.25\nframe\nframe\nframe", app, out);
+    String dump = app.tree().dump();
+    assertTrue(
+        dump.contains("label=\"Hidden parts\""),
+        "shaped at 1.25 the path is wider than at 1, so Projects gives way: " + dump);
+  }
+
+  @Test
   void aBreadcrumbHidesItsMiddleBeforeItsStart() throws IOException {
     Theme t = Theme.DARK;
     List<Breadcrumb.Crumb> crumbs = List.of(
@@ -225,10 +239,12 @@ class PartsTest {
     App<Breadcrumb.State> app = new App<>(
         new Breadcrumb.State(), s -> col().w(width[0]).child(Breadcrumb.breadcrumb(s, crumbs)));
     Script.run("size 400 100\nframe\nframe", app, out);
-    width[0] = (float) Math.ceil(Breadcrumb.width(t, crumbs.get(0), false)
-        + Breadcrumb.moreWidth(t)
-        + Breadcrumb.width(t, crumbs.get(2), true)
-        + 2 * t.space().xs());
+    Breadcrumb.State state = app.state();
+    width[0] = (float)
+        Math.ceil(Breadcrumb.width(t, crumbs.get(0), false, state.text(t, crumbs.get(0), false))
+            + Breadcrumb.moreWidth(t)
+            + Breadcrumb.width(t, crumbs.get(2), true, state.text(t, crumbs.get(2), true))
+            + 2 * t.space().xs());
     app.invalidate();
     Script.run("frame\nframe", app, out);
     String dump = app.tree().dump();
