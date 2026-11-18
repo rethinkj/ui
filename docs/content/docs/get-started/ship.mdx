@@ -37,7 +37,7 @@ On Windows, the launcher is `target\dist\Lights\Lights.exe`.
 
 ## Start faster
 
-The JVM can start an app from an ahead-of-time cache of the classes it loaded and the code it ran in an earlier run ([JEP 514](https://openjdk.org/jeps/514)). For the examples on Linux, that brings the first frame about 160 to 220 ms sooner, from about 700 to about 550 ms. The cache is made by running the app once, so the image needs the runtime's `java` command, which `jpackage` leaves out by default; `--jlink-options` without `--strip-native-commands` keeps it:
+The JVM can start an app from an ahead-of-time cache of the classes it loaded and the code it ran in an earlier run ([JEP 514](https://openjdk.org/jeps/514)). For the examples on Linux, that brings the first frame about 150 to 170 ms sooner, from about 700 to about 550 ms. The cache is made by running the app once, so the image needs the runtime's `java` command, which `jpackage` leaves out by default; `--jlink-options` without `--strip-native-commands` keeps it:
 
 ```sh
 jpackage --type app-image --name Lights \
@@ -58,6 +58,8 @@ echo 'java-options=-XX:AOTCache=$APPDIR/lights.aot' >> target/dist/Lights/lib/ap
 Make the cache again whenever the image is built again: the JVM uses it only with the JARs and the runtime it was made with, and otherwise starts without it after printing an error.
 
 `Window.open` makes the GPU device on another thread while it opens the window. An app that does a lot before it opens its first window can start that sooner by calling [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) first in `main`.
+
+To measure the start, `WindowLoop` logs at `DEBUG` on the `System.Logger` `com.rethinkj.ui.window` how many milliseconds after the process started each window showed its first frame; with `java.util.logging`, set `com.rethinkj.ui.window.level = FINE` and `java.util.logging.ConsoleHandler.level = FINE` to print it.
 
 ## Native libraries unpacked at install time
 

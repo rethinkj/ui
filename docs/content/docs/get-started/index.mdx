@@ -251,11 +251,11 @@ All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`. `core` a
 | `rethinkj-ui-kit` | The theme and the components | For the components |
 | `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts | For text with the default fonts |
 | `rethinkj-ui-icons` | Fluent UI System Icons, the icon font | For icons, the tree's marks, the grid's sort arrows |
-| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz | At run time, for the platform it runs on. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04. |
+| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz, and on Windows the DirectX Shader Compiler | At run time, for the platform it runs on. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04. |
 
 ## Native libraries
 
-Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
+Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), and the fonts and icons modules with `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
 
 On first use, the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Two system properties change that:
 

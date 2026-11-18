@@ -3,7 +3,7 @@ title: Targets and selectors
 description: How script steps find the element they act on.
 ---
 
-The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by its role and label, key, text or states.
+The target of a `press`, `move`, `wheel`, `drop`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by its role and label, key, text or states.
 
 ## Targets
 
@@ -15,8 +15,8 @@ The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a
 | `label="<text>"` | The element with this label. `\"` and `\\` inside. |
 | `text="<string>"` | The text element showing exactly this string, written as the tree writes it. |
 | a state | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `revealed`, `invalid`, `busy`, `grabbed`, `modified`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
-| `in <window> <target>` | A target in another window, for the pointer's steps (`press`, `down`, `up`, `move`, `wheel`). For `focus` and `scroll`, choose the window first with `window <name>`. |
-| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there; for the pointer's steps only. |
+| `in <window> <target>` | A target in another window, for the pointer's steps (`press`, `down`, `up`, `move`, `wheel`) and `drop`. For `focus` and `scroll`, choose the window first with `window <name>`. |
+| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there; for the pointer's steps and `drop` only. |
 
 Combine parts with spaces: all must match.
 
