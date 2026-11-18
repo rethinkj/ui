@@ -92,8 +92,14 @@ final class Layouts {
     said = "encoding";
   }
 
-  void part(int index) {
-    said = "part " + index;
+  void open(String place) {
+    said = "open " + place;
+  }
+
+  List<Menu.Item> tables() {
+    return List.of(
+        Menu.item("customers", () -> open("customers")).icon(Symbol.TABLE),
+        Menu.item("orders", () -> open("orders")).icon(Symbol.TABLE));
   }
 
   void explain() {
@@ -504,7 +510,14 @@ final class Layouts {
   static El details(Layouts state) {
     // docs:start breadcrumb
     El path = Breadcrumb.breadcrumb(
-        state.crumbs, List.of("localhost", "shop", "public", "orders"), state::part);
+        state.crumbs,
+        List.of(
+            Breadcrumb.crumb("localhost", () -> state.open("localhost")).icon(Symbol.SERVER),
+            Breadcrumb.crumb("shop", () -> state.open("shop")).icon(Symbol.DATABASE),
+            Breadcrumb.crumb("public", () -> state.open("public"))
+                .icon(Symbol.FOLDER)
+                .children(state::tables),
+            Breadcrumb.crumb("orders", null).icon(Symbol.TABLE)));
     // docs:end breadcrumb
     // docs:start properties
     El table = Properties.properties(

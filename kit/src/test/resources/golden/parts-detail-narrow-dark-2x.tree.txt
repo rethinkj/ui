@@ -2,12 +2,15 @@ el 0,0 330x420
   el 12,12 306x86
     el 29,29 272x52
       el #crumbs role=navigation label="Breadcrumb" 29,29 272x24
-        el #more role=button label="Hidden parts" 29,29 19x24
-          text "…" 33,33 11x16
-        el #crumb-3 50,29 223x24
-          text label="chevron_right" "\u{F2AE}" 50,35 12x12
-          el role=link label="orders_by_customer_and_month" 64,29 209x24 current
-            text "orders_by_customer_and_month" 68,33 201x16
+        el #more 29,29 42x24
+          el role=button label="Hidden parts" 29,29 24x24 expanded=false
+            text label="more_horizontal" "\u{E823}" 33,33 16x16
+          el 55,29 16x24
+            text label="chevron_right" "\u{F2AE}" 57,35 12x12
+        el #crumb-3 73,29 228x24
+          el role=link label="orders_by_customer_and_month" 73,29 228x24 current
+            text label="table" "\u{EBF4}" 77,33 16x16
+            text "orders_by_customer_and_month" 97,33 200x16
       el 29,57 272x24
         el #tools role=toolbar label="Table" 29,57 191x24
           el role=button label="Refresh" 29,57 24x24

@@ -1,20 +1,27 @@
 el 0,0 520x280
   el role=navigation label="Breadcrumb" 12,12 496x24
-    el #crumb-0 12,12 64x24
-      el role=link label="localhost" 12,12 64x24
-        text "localhost" 16,16 56x16
-    el #crumb-1 78,12 53x24
-      text label="chevron_right" "\u{F2AE}" 78,18 12x12
-      el role=link label="shop" 92,12 39x24
-        text "shop" 96,16 31x16
-    el #crumb-2 133,12 59x24
-      text label="chevron_right" "\u{F2AE}" 133,18 12x12
-      el role=link label="public" 147,12 45x24
-        text "public" 151,16 37x16
-    el #crumb-3 194,12 63x24
-      text label="chevron_right" "\u{F2AE}" 194,18 12x12
-      el role=link label="orders" 208,12 49x24 current
-        text "orders" 212,16 41x16
+    el #crumb-0 12,12 102x24
+      el role=link label="localhost" 12,12 84x24
+        text label="server" "\u{F1DC}" 16,16 16x16
+        text "localhost" 36,16 56x16
+      el 98,12 16x24
+        text label="chevron_right" "\u{F2AE}" 100,18 12x12
+    el #crumb-1 116,12 77x24
+      el role=link label="shop" 116,12 59x24
+        text label="database" "\u{F0D7}" 120,16 16x16
+        text "shop" 140,16 31x16
+      el 177,12 16x24
+        text label="chevron_right" "\u{F2AE}" 179,18 12x12
+    el #crumb-2 195,12 83x24
+      el role=link label="public" 195,12 65x24
+        text label="folder" "\u{E643}" 199,16 16x16
+        text "public" 219,16 37x16
+      el role=button label="Inside public" 262,12 16x24 expanded=false
+        text label="chevron_right" "\u{F2AE}" 264,18 12x12
+    el #crumb-3 280,12 69x24
+      el role=link label="orders" 280,12 69x24 current
+        text label="table" "\u{EBF4}" 284,16 16x16
+        text "orders" 304,16 41x16
   el role=list 8,44 320x72
     el role=listitem label="Name" 8,44 320x24 value="orders"
       el 12,44 37x24

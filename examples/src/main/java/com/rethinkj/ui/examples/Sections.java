@@ -937,16 +937,32 @@ final class Sections {
     {"note", "text"}
   };
 
+  /** The path to the table, each crumb with its level's icon, the schema with its tables. */
+  private static List<Breadcrumb.Crumb> crumbs(Showcase state) {
+    Symbol[] levels = {Symbol.SERVER, Symbol.DATABASE, Symbol.FOLDER, Symbol.TABLE};
+    List<Samples.Node> nodes = Samples.path(state.catalog, state.path.toArray(String[]::new));
+    List<Breadcrumb.Crumb> crumbs = new ArrayList<>();
+    for (Samples.Node node : nodes) {
+      Breadcrumb.Crumb crumb = Breadcrumb.crumb(node.name, () -> state.say("go to " + node.name))
+          .icon(levels[node.level]);
+      crumbs.add(
+          node.level == 2
+              ? crumb.children(() -> node.children.stream()
+                  .map(table -> Menu.item(table.name, () -> state.say("open " + table.name))
+                      .icon(Symbol.TABLE))
+                  .toList())
+              : crumb);
+    }
+    return crumbs;
+  }
+
   /**
    * The sheet of a table, as a database tool has it: the path to it and its tools over a card of
    * its properties beside a card of its columns, and a popover that adds a filter.
    */
   private static El details(Showcase state) {
     Theme theme = Theme.CURRENT.get();
-    El crumbs = Breadcrumb.breadcrumb(state.crumbs, state.path, index -> {
-          state.say("go to " + state.path.get(index));
-        })
-        .key("path");
+    El crumbs = Breadcrumb.breadcrumb(state.crumbs, crumbs(state)).key("path");
     El tools = Toolbar.toolbar(
             state.tools,
             "Table",

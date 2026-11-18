@@ -1,6 +1,13 @@
 size 520 280
 frame
 snap view
+press role=button label="Inside public"   # the schema's chevron opens its tables
+frame
+advance 0.25
+frame
+snap children
+key Escape
+frame
 size 240 280                            # narrow: the breadcrumb's start moves into Hidden parts
 frame
 frame

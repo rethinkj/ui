@@ -2,21 +2,28 @@ el 0,0 720x420
   el 12,12 696x86
     el 29,29 662x52
       el #crumbs role=navigation label="Breadcrumb" 29,29 662x24
-        el #crumb-0 29,29 63x24
-          el role=link label="localhost" 29,29 63x24
-            text "localhost" 33,33 55x16
-        el #crumb-1 94,29 53x24
-          text label="chevron_right" "\u{F2AE}" 94,35 12x12
-          el role=link label="shop" 108,29 39x24
-            text "shop" 112,33 31x16
-        el #crumb-2 149,29 59x24
-          text label="chevron_right" "\u{F2AE}" 149,35 12x12
-          el role=link label="public" 163,29 45x24
-            text "public" 167,33 37x16
-        el #crumb-3 210,29 223x24
-          text label="chevron_right" "\u{F2AE}" 210,35 12x12
-          el role=link label="orders_by_customer_and_month" 224,29 209x24 current
-            text "orders_by_customer_and_month" 228,33 201x16
+        el #crumb-0 29,29 101x24
+          el role=link label="localhost" 29,29 83x24
+            text label="server" "\u{F1DC}" 33,33 16x16
+            text "localhost" 53,33 55x16
+          el 114,29 16x24
+            text label="chevron_right" "\u{F2AE}" 116,35 12x12
+        el #crumb-1 132,29 77x24
+          el role=link label="shop" 132,29 59x24
+            text label="database" "\u{F0D7}" 136,33 16x16
+            text "shop" 156,33 31x16
+          el 193,29 16x24
+            text label="chevron_right" "\u{F2AE}" 195,35 12x12
+        el #crumb-2 211,29 83x24
+          el role=link label="public" 211,29 65x24
+            text label="folder" "\u{E643}" 215,33 16x16
+            text "public" 235,33 37x16
+          el role=button label="Inside public" 278,29 16x24 expanded=false
+            text label="chevron_right" "\u{F2AE}" 280,35 12x12
+        el #crumb-3 296,29 229x24
+          el role=link label="orders_by_customer_and_month" 296,29 229x24 current
+            text label="table" "\u{EBF4}" 300,33 16x16
+            text "orders_by_customer_and_month" 320,33 201x16
       el 29,57 662x24
         el #tools role=toolbar label="Table" 29,57 581x24
           el role=button label="Refresh" 29,57 24x24

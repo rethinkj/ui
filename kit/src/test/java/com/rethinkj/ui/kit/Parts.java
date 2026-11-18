@@ -118,6 +118,30 @@ final class Parts {
             Badge.badge("12", Badge.options().strong()));
   }
 
+  /** The path as crumbs, each with its level's icon and going up to it, the schema with tables. */
+  List<Breadcrumb.Crumb> trail() {
+    Symbol[] levels = {Symbol.SERVER, Symbol.DATABASE, Symbol.FOLDER, Symbol.TABLE};
+    List<Breadcrumb.Crumb> trail = new ArrayList<>();
+    for (int i = 0; i < path.size(); i++) {
+      int at = i;
+      Breadcrumb.Crumb crumb = Breadcrumb.crumb(path.get(i), () -> up(at)).icon(levels[i]);
+      trail.add(i == 2 ? crumb.children(this::tables) : crumb);
+    }
+    return trail;
+  }
+
+  void up(int index) {
+    log.add("crumb " + path.get(index));
+    path.subList(index + 1, path.size()).clear();
+  }
+
+  List<Menu.Item> tables() {
+    return List.of(
+        Menu.item("customers", () -> log.add("table customers")).icon(Symbol.TABLE),
+        Menu.item("orders_by_customer_and_month", () -> log.add("table orders"))
+            .icon(Symbol.TABLE));
+  }
+
   /** A breadcrumb and a toolbar in a card's head, over properties, with a popover's form. */
   El detail() {
     El filterButton = Button.button(
@@ -144,11 +168,7 @@ final class Parts {
     El head = col()
         .gap(t.space().s())
         .children(
-            Breadcrumb.breadcrumb(crumbs, path, i -> {
-                  log.add("crumb " + path.get(i));
-                  path.subList(i + 1, path.size()).clear();
-                })
-                .key("crumbs"),
+            Breadcrumb.breadcrumb(crumbs, trail()).key("crumbs"),
             row()
                 .gap(t.space().s())
                 .align(Style.Align.CENTER)

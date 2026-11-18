@@ -35,6 +35,11 @@ final class Fitting {
     return (w, h) -> widths.put(id, w);
   }
 
+  /** The row's last measured width, or NaN until layout has measured it. */
+  float width() {
+    return width;
+  }
+
   /** An item's last measured width, or NaN until layout has measured it. */
   float width(String id) {
     return widths.getOrDefault(id, Float.NaN);

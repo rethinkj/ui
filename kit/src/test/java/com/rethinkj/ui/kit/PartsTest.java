@@ -173,7 +173,7 @@ class PartsTest {
   }
 
   @Test
-  void theBreadcrumbGoesUpAndShortensAtItsStart() throws IOException {
+  void theBreadcrumbGoesUpOpensWhatIsInsideAndShortens() throws IOException {
     App<Parts> app = run(720, "");
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=navigation label=\"Breadcrumb\""), dump);
@@ -182,6 +182,12 @@ class PartsTest {
             && StructureTest.line(dump, "label=\"orders_by_customer_and_month\"")
                 .contains(" current"),
         dump);
+    more(app, out, 720, "press role=button label=\"Inside public\"\nframe\nadvance 0.25\nframe");
+    assertTrue(
+        StructureTest.line(app.tree().dump(), "label=\"Inside public\"").contains(" expanded"),
+        app.tree().dump());
+    more(app, out, 720, "press role=menuitem label=\"customers\"\nframe");
+    assertEquals("table customers", app.state().log.getLast());
     more(app, out, 720, "focus role=link label=\"localhost\"\nframe");
     more(app, out, 720, "key Tab shift\nkey Tab\nframe");
     assertEquals("localhost", app.focused().label(), "one stop, at the first part");
@@ -209,7 +215,7 @@ class PartsTest {
   }
 
   @Test
-  void aBreadcrumbKeepsTheSuffixThatFitsBesideMore() throws IOException {
+  void aBreadcrumbHidesItsMiddleBeforeItsStart() throws IOException {
     Theme t = Theme.DARK;
     Breadcrumb.State state = new Breadcrumb.State();
     float[] width = {400};
@@ -217,24 +223,31 @@ class PartsTest {
         state,
         s -> col()
             .w(width[0])
-            .child(Breadcrumb.breadcrumb(s, List.of("first", "middle", "current"), i -> {})));
+            .child(Breadcrumb.breadcrumb(
+                s,
+                List.of(
+                    Breadcrumb.crumb("first", () -> {}),
+                    Breadcrumb.crumb("middle", () -> {}),
+                    Breadcrumb.crumb("current", null)))));
     Script.run("size 400 100\nframe\nframe", app, out);
     width[0] = 1;
     app.invalidate();
     Script.run("frame\nframe\nframe", app, out);
-    width[0] = (float) Math.ceil(state.fitting.width("more")
-        + state.fitting.width("1:middle")
+    width[0] = (float) Math.ceil(state.fitting.width("0:first")
+        + state.fitting.width("more")
         + state.fitting.width("2:current")
         + 2 * t.space().xs());
     app.invalidate();
     Script.run("frame\nframe", app, out);
     String dump = app.tree().dump();
-    assertTrue(dump.contains("label=\"middle\""), dump);
-    assertFalse(dump.contains("label=\"first\""), dump);
+    assertTrue(dump.contains("label=\"first\""), dump);
+    assertFalse(dump.contains("label=\"middle\""), dump);
     width[0] -= t.space().xs();
     app.invalidate();
     Script.run("frame\nframe", app, out);
-    assertFalse(app.tree().dump().contains("label=\"middle\""), app.tree().dump());
+    dump = app.tree().dump();
+    assertFalse(dump.contains("label=\"first\""), dump);
+    assertTrue(dump.contains("label=\"current\""), dump);
   }
 
   @Test

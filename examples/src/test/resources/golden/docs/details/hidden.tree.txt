@@ -1,19 +1,20 @@
 el 0,0 240x280
   el role=navigation label="Breadcrumb" 12,12 216x24
-    el #more role=button label="Hidden parts" 12,12 19x24
-      text "…" 16,16 11x16
-    el #crumb-1 33,12 53x24
-      text label="chevron_right" "\u{F2AE}" 33,18 12x12
-      el role=link label="shop" 47,12 39x24
-        text "shop" 51,16 31x16
-    el #crumb-2 88,12 59x24
-      text label="chevron_right" "\u{F2AE}" 88,18 12x12
-      el role=link label="public" 102,12 45x24
-        text "public" 106,16 37x16
-    el #crumb-3 149,12 63x24
-      text label="chevron_right" "\u{F2AE}" 149,18 12x12
-      el role=link label="orders" 163,12 49x24 current
-        text "orders" 167,16 41x16
+    el #more 12,12 42x24
+      el role=button label="Hidden parts" 12,12 24x24 expanded
+        text label="more_horizontal" "\u{E823}" 16,16 16x16
+      el 38,12 16x24
+        text label="chevron_right" "\u{F2AE}" 40,18 12x12
+    el #crumb-2 56,12 83x24
+      el role=link label="public" 56,12 65x24
+        text label="folder" "\u{E643}" 60,16 16x16
+        text "public" 80,16 37x16
+      el role=button label="Inside public" 123,12 16x24 expanded=false
+        text label="chevron_right" "\u{F2AE}" 125,18 12x12
+    el #crumb-3 141,12 69x24
+      el role=link label="orders" 141,12 69x24 current
+        text label="table" "\u{EBF4}" 145,16 16x16
+        text "orders" 165,16 41x16
   el role=list 8,44 320x72
     el role=listitem label="Name" 8,44 320x24 value="orders"
       el 12,44 37x24
@@ -33,9 +34,15 @@ el 0,0 240x280
       text role=textbox "16384" 57,92 235x24 readonly
       el #copy role=button label="Copy OID" 300,92 24x24
         text label="copy" "\u{F32A}" 304,96 16x16
-overlay bottom start gap 2 on #more role=button label="Hidden parts" 12,12 19x24
-  el #menu role=menu 12,38 106x34 focused
+overlay bottom start gap 2 on role=button label="Hidden parts" 12,12 24x24
+  el #menu role=menu 12,38 106x58 focused
     el #item-0 role=menuitem label="localhost" 17,43 96x24
       el 17,43 96x24
-        el 25,55 16x0
+        el 25,47 16x16
+          text label="server" "\u{F1DC}" 25,47 16x16
         text "localhost" 49,47 56x16
+    el #item-1 role=menuitem label="shop" 17,67 96x24
+      el 17,67 96x24
+        el 25,71 16x16
+          text label="database" "\u{F0D7}" 25,71 16x16
+        text "shop" 49,71 56x16

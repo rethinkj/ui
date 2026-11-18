@@ -54,7 +54,7 @@ class DocsExamplesTest {
       Map.entry("status", List.of("view")),
       Map.entry("bars", List.of("view")),
       Map.entry("choices", List.of("view")),
-      Map.entry("details", List.of("view", "hidden")),
+      Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("toolbar", List.of("view", "more")),
       Map.entry("dividers", List.of("view")),
       Map.entry("groups", List.of("view")),
