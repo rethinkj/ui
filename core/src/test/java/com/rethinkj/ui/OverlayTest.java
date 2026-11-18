@@ -989,6 +989,33 @@ class OverlayTest {
   }
 
   @Test
+  void anOverlayAttachedInInertContentIsInertToo() {
+    State s = new State();
+    App<State> app = app(
+        s,
+        st -> col()
+            .size(200, 200)
+            .child(el().key("field").size(40, 20).focusable())
+            .child(col()
+                .key("preview")
+                .inert()
+                .child(el().key("inside").size(40, 20).focusable().autofocus(st.log.size()))
+                .overlay(el().key("dialog")
+                    .size(40, 20)
+                    .focusable()
+                    .autofocus(st.log.size())
+                    .onPress(() -> st.log.add("dialog")))),
+        200,
+        200);
+    press(app, 20, 10);
+    s.log.add("saved");
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "neither autofocus is heard");
+    press(app, 20, 50); // on the dialog below the preview
+    assertEquals(List.of("saved"), s.log);
+  }
+
+  @Test
   void anElementThatHoldsTheFocusTakesItAndGivesItBackAfterTheOverlaysInsideIt() {
     Bar b = new Bar();
     App<Bar> app = app(b, OverlayTest::bar, 200, 200);

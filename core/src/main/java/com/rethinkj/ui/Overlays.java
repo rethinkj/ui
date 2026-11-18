@@ -67,18 +67,22 @@ final class Overlays {
    * invisible by the view, the clips above the anchor leave nothing of its rectangle or it lies
    * wholly outside the window, and not while the view makes the overlay itself invisible. An
    * anchor or overlay that fades in counts from its first frame. One with {@link
-   * El#whenShortened} shows only while a text of its anchor is cut.
+   * El#whenShortened} shows only while a text of its anchor is cut. One attached in {@link
+   * El#inert} content is made inert too.
    */
   static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
     float far = Float.POSITIVE_INFINITY;
-    place(root, 0, 0, -far, -far, far, far, width, height, shown, null);
+    place(root, 0, 0, -far, -far, far, far, width, height, shown, null, false);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
     return shown.stream().anyMatch(overlay -> overlay.placement().atCaret);
   }
 
-  /** @param within the placement of the overlay {@code el} is in, null in the tree below */
+  /**
+   * @param within the placement of the overlay {@code el} is in, null in the tree below
+   * @param inert whether {@code el} is in {@link El#inert} content
+   */
   private static void place(
       El el,
       float parentX,
@@ -90,7 +94,8 @@ final class Overlays {
       float width,
       float height,
       List<El> shown,
-      El.Layer within) {
+      El.Layer within,
+      boolean inert) {
     // As for the focus, one that fades in counts from the frame that adds it: the submenu that a
     // key opens in the frame its menu appeared in shows, and takes the focus.
     if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
@@ -112,9 +117,13 @@ final class Overlays {
           continue; // not shown, so it neither blocks as a modal one does nor takes the focus
         }
         place(overlay, el, left, top, width, height, within);
+        if (inert || el.isInert()) {
+          overlay.inert();
+        }
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
-        place(overlay, 0, 0, -far, -far, far, far, width, height, shown, overlay.placement());
+        place(
+            overlay, 0, 0, -far, -far, far, far, width, height, shown, overlay.placement(), false);
       }
     }
     Style s = el.style();
@@ -129,7 +138,18 @@ final class Overlays {
     }
     for (El child : el.children()) {
       place(
-          child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown, within);
+          child,
+          left,
+          top,
+          clipLeft,
+          clipTop,
+          clipRight,
+          clipBottom,
+          width,
+          height,
+          shown,
+          within,
+          inert || el.isInert());
     }
   }
 
