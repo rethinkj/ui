@@ -3,7 +3,7 @@ title: Components
 description: Every component of the kit, with a picture, the smallest example, its options and what it shows in a tree dump.
 ---
 
-The kit (`rethinkj-ui-kit`, package `com.rethinkj.ui.kit`) holds components built on core, for desktop tools that work with data. Each is a static function that returns an `El`, which you may chain further: `Button.button(PRIMARY, "Run", onRun).key("run")`. Components read the theme from `Theme.CURRENT`, which the app provides ([Themes](/docs/concepts/themes)). There is no base class; the state belongs to the app, and a null handler disables a component, or, for a breadcrumb's crumb or a status bar's part, leaves a part that only shows.
+The kit (`rethinkj-ui-kit`, package `com.rethinkj.ui.kit`) holds components built on core, for desktop tools that work with data. Each is a static function that returns an `El`, which you may chain further: `Button.button(PRIMARY, "Run", onRun).key("run")`. Components read the theme from `Theme.CURRENT`, which the app provides ([Themes](/docs/concepts/themes)). There is no base class; the state belongs to the app, and a null handler usually disables a component; each page says what null means.
 
 Javadoc: [`com.rethinkj.ui.kit`](/api/com/rethinkj/ui/kit/package-summary.html).
 
@@ -14,7 +14,7 @@ Every page has the same order: what the component is and when to use it, a pictu
 <Tiles>
 <Tile href="/docs/components/data-grid" title="DataGrid" description="Query results for a million rows: selection, sorting, editing, filters." src="examples/docs/grid/selected-{theme}" />
 <Tile href="/docs/components/tree" title="Tree" description="Servers, schemas and tables that open and close." src="kit/tree-{theme}-opened" />
-<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code with line numbers, markers and diagnostics on a rail, highlighting and line commands." src="kit/code-editor-{theme}-2x-brackets" />
+<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code with line numbers, highlighting and line commands." src="kit/code-editor-{theme}-2x-brackets" />
 <Tile href="/docs/components/find" title="Find" description="Find and replace in a multi-line field." src="kit/find-{theme}-2x-replace" />
 <Tile href="/docs/components/completion" title="Completion" description="Completions at the caret." src="examples/workbench-completion" />
 <Tile href="/docs/components/markdown" title="Markdown" description="A Markdown document as a scrolling page." src="examples/manual-{theme}-2x-top" />

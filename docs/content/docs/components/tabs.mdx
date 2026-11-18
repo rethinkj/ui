@@ -44,7 +44,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | Option | What it does |
 | --- | --- |
 | `onMove((from, to) -> …)` | Control+Shift+Page Up and Page Down move the active tab; `Tabs.move(list, active, from, to)` moves an element and returns the new active index |
-| `drag(Tabs.Dragging)` | Tabs can be dragged along the bar, with a marker where they go; only with `onMove` or `onTearOff` |
+| `drag(Tabs.Dragging)` | Tabs can be dragged: along the bar, with a marker where they go, with `onMove`; out of it with `onTearOff` |
 | `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
 | `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
 | `contextMenu(menuState, items)` | A menu for a tab, at a secondary press or the Menu key |
@@ -65,7 +65,7 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 | Menu key, Shift+F10 | Open the menu of the active tab, with `contextMenu`, while the bar has the focus |
 
-When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, its first focusable one, or the bar. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
+When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, or its first focusable one. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
 
 The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
 
