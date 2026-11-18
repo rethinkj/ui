@@ -19,7 +19,7 @@ Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/a
 ```java snippet="button-toggle"
 ```
 
-`state.running` and `state.pinned` are booleans, `state.runs` a counter and `state.runMenu` a `Menu.State`, all in the app's state.
+`state.running` and `state.pinned` are booleans, `state.runs` a counter and `state.runMenu` and `state.exportMenu` `Menu.State`s, all in the app's state.
 
 ## Options
 
@@ -35,9 +35,9 @@ Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/a
 | `busyText(text)` | The text a busy button shows after its spinner, such as `Saving…`; the tree keeps the button's own text as its label. The button is as wide as the wider of both texts, busy or not |
 | `tone(Tone.DANGER)` | For an action that destroys something. `PRIMARY` is filled red, for the confirmation in a dialog; `SECONDARY` has red text and a red edge; `GHOST` red text alone, for a toolbar or a row |
 | `size(Size.SMALL)`, `size(Size.LARGE)` | 20 or 32 high instead of 24, with narrower or wider padding: small for a dense row, large for the one action of an empty view |
-| `shortcut(modifiers, key)` | The keys that run the action elsewhere, shown after the label in the tooltip as a menu writes them: `shortcut(Key.CONTROL \| Key.SHIFT, "C")` shows `Ctrl+Shift+C`. It only shows: the app binds the keys where it binds its others |
+| `shortcut(modifiers, key)` | The keys that run the action elsewhere, shown after the label in the tooltip as a menu writes them: `shortcut(Key.CONTROL \| Key.SHIFT, "C")` shows `Ctrl+Shift+C`. It only shows: the app binds the keys where it binds its others. A button with text then always shows its tooltip |
 
-The options go to `button(variant, text, onPress, options)`, `icon(variant, symbol, label, onPress, options)`, `split(variant, text, onPress, menuState, items, options)` and `menu(variant, text, menuState, items, options)`. The forms below are these with plain options.
+The options go to `button(variant, text, onPress, options)`, `icon(variant, symbol, label, onPress, options)`, `split(variant, text, onPress, menuState, items, options)` and `menu(variant, text, menuState, items, options)`. The forms below are these with plain options, or with `options().icon(icon)` where they take an icon.
 
 On a split button, a null handler or `BUSY` affects the main half only: its chevron still opens the menu. `DISABLED` disables both halves. A menu button is off without an enabled item, and opens nothing while busy or off.
 
@@ -70,7 +70,7 @@ Tab reaches the button; Enter and Space press it and show it pressed while the k
 
 ## In a tree dump
 
-`role=button` with the text as label (or the icon button's label). It says `disabled` when off (without a handler, unless busy), `busy` while busy, `checked` or `checked=false` for a toggle button, and `expanded` or `expanded=false` for a menu button. A split button's parts are `#main` and `#arrow` (`label="More <text>"`).
+`role=button` with the text as label (or the icon button's label). It says `disabled` when off (without a handler, unless busy), `busy` while busy, `checked` or `checked=false` for a toggle button, and `expanded` or `expanded=false` for a menu button and a split button's `#arrow`. A split button's parts are `#main` and `#arrow` (`label="More <text>"`).
 
 ```text file="examples/src/test/resources/golden/docs/buttons/view.tree.txt" start="label=\"Format\"" count="7"
 ```

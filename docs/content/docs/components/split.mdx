@@ -21,9 +21,9 @@ Javadoc: [`Split`](/api/com/rethinkj/ui/kit/Split.html).
 | Parameter | |
 | --- | --- |
 | `position` | Where the line is, a `Split.Position` the app keeps |
-| `reset` | Where a double press on the line puts it |
-| `onMove` | Told a new position while the line is dragged or moved by keys |
-| `minFirst`, `minSecond` | The smallest sizes of the parts. They hold when the split is smaller, without changing the position |
+| `reset` | Where a double press on the line puts it; null for nowhere |
+| `onMove` | Told a new position while the line is dragged or moved by keys; null fixes the line, which then takes no pointer and no focus |
+| `minFirst`, `minSecond` | The smallest sizes of the parts. They hold when the split is smaller, without changing the position; without room for both, the second part is cut off |
 
 The kind of position says what stays when the split grows:
 

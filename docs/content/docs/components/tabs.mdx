@@ -26,7 +26,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | `.hue(Theme.Hue.RED)` | A line in that color along the tab's top, to mark the tabs of a group, such as those of a connection to production. The tab says `value="red"` in a tree dump |
 | `.busy(true)` | A spinner in place of the icon while the tab's content works, such as a running query; it shows while another tab is active too |
 
-`onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one.
+`onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one. A null `onSelect` disables the bar; a null `onClose` shows no crosses.
 
 ## Inside a card
 
@@ -44,7 +44,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | Option | What it does |
 | --- | --- |
 | `onMove((from, to) -> …)` | Control+Shift+Page Up and Page Down move the active tab; `Tabs.move(list, active, from, to)` moves an element and returns the new active index |
-| `drag(Tabs.Dragging)` | Tabs can be dragged along the bar, with a marker where they go |
+| `drag(Tabs.Dragging)` | Tabs can be dragged along the bar, with a marker where they go; only with `onMove` or `onTearOff` |
 | `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
 | `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
 | `contextMenu(menuState, items)` | A menu for a tab, at a secondary press or the Menu key |
@@ -63,8 +63,9 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Control+Tab, Control+Shift+Tab; Control+Page Down, Control+Page Up | Next and previous tab, from the bar or the content |
 | Control+W, Control+F4 | Close the active tab |
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
+| Menu key, Shift+F10 | Open the menu of the active tab, with `contextMenu`, while the bar has the focus |
 
-When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` element. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
+When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, its first focusable one, or the bar. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
 
 The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
 
@@ -72,7 +73,7 @@ Keys go up from the focused element to the nearest tabs. When tabs sit inside th
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`. In the `LINE` variant the line under the active tab is `#indicator`.
+The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`. The content is `#panel` with `role=tabpanel`, labeled with the active tab's title. The line where a dragged tab would go is `#marker`. In the `LINE` variant the line under the active tab is `#indicator`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

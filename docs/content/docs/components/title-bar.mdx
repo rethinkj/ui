@@ -3,7 +3,7 @@ title: TitleBar
 description: A frameless window's own title bar with the app's icon, a title, a menu bar, a search field, actions and the window's buttons.
 ---
 
-`TitleBar.titleBar` is the title bar of a frameless window: the app's icon, the title, parts of the app's own at the start (a menu bar), in the middle (a search field) and at the end (actions), and minimize, maximize and close, as Windows 11 draws them. The window moves when the bar is dragged, and snaps, maximizes and shows the system menu as with a system title bar. Every example of the repository uses it. Open the window with `Window.options().frameless()`.
+`TitleBar.titleBar` is the title bar of a frameless window: the app's icon, the title, parts of the app's own at the start (a menu bar), in the middle (a search field) and at the end (actions), and minimize, maximize and close, as Windows 11 draws them. The window moves when the bar is dragged, and snaps, maximizes and shows the system menu as with a system title bar. Most example apps use it. Open the window with `Window.options().frameless()`.
 
 Javadoc: [`TitleBar`](/api/com/rethinkj/ui/kit/TitleBar.html).
 
@@ -20,13 +20,13 @@ Javadoc: [`TitleBar`](/api/com/rethinkj/ui/kit/TitleBar.html).
 | `titleBar(icon, title, start, center, end)` | Also parts after the title, such as a [MenuBar](/docs/components/menu-bar), and one in the middle: `start` and `end` are lists, `List.of()` for none, and `center` is `null` for none |
 | `search(placeholder, shortcut, onPress)` | A field for the middle that opens a [CommandPalette](/docs/components/command-palette) or a search |
 
-The icon sits in a square of the theme's icon size; `AppIcon.appIcon(16, color, symbol)` draws the same icon as the window's. The bar reads the window's state from `WindowState.CURRENT`, which the app gives the view: while the window is maximized the middle button shows Restore, and while it is inactive the title and the buttons' glyphs are muted. In a narrow window the middle gives way first, then the title shortens; the buttons keep their width and a gap that moves the window stays.
+The icon sits in a square of the theme's icon size; `AppIcon.appIcon(16, color, symbol)` draws the same icon as the window's. The bar reads the window's state from `WindowState.CURRENT`, which the app gives the view: while the window is maximized the middle button shows Restore, and while it is inactive the title and the buttons' glyphs are muted. In a narrow window the middle gives way first, then the title shortens, or with a middle is cut; the buttons keep their width and a gap that moves the window stays.
 
 The bar is `caption().height()` high (32), or `caption().tall()` (40) with a field in the middle, each button `caption().button()` wide (46) with a glyph of `caption().glyph()` (12), Windows 11's sizes. For a title bar of your own, mark its drag area and buttons with `El.windowPart`; see [Windows, icons and dialogs](/docs/concepts/platform).
 
 ## In a tree dump
 
-The bar is `window=drag`; the buttons are `role=button` with `window=minimize`, `window=maximize` and `window=close`:
+The bar is `window=drag`; the buttons are `role=button` labeled `Minimize`, `Maximize` (`Restore` while maximized) and `Close`, with `window=minimize`, `window=maximize` and `window=close`. The search field is `role=button` labeled with its placeholder:
 
 ```text file="examples/src/test/resources/golden/docs/bars/view.tree.txt" start="window=drag" count="26"
 ```

@@ -53,7 +53,7 @@ One stop for Tab. Up, Down, Home, End, Page Up and Page Down move the selection,
 
 ## In a tree dump
 
-`role=listbox` with its label. Items are `role=option` with `selected` or `disabled` and `pos`, and the key `item-<index>`, counting headings, unless the item has a key of its own:
+`role=listbox` with its label, `disabled` without an `onSelect`. Items are `role=option` with `selected` or `disabled` and `pos`, and the key `item-<index>`, counting headings, unless the item has a key of its own. A heading is a row without a role, keyed `item-<index>`:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

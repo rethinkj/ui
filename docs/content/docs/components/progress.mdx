@@ -16,13 +16,13 @@ Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 
 | Call | |
 | --- | --- |
-| `bar(fraction[, kind])` | A track with the part done in the accent; `fraction` from 0 to 1, clamped |
-| `labeled(label, fraction, detail[, kind])` | The name over the bar and the detail (the percentage when null) at the right |
+| `bar(fraction[, state])` | A track with the part done in the accent; `fraction` from 0 to 1, clamped |
+| `labeled(label, fraction, detail[, state])` | The name over the bar and the detail (the percentage when null) at the right |
 | `indeterminate()` | A piece that sweeps along the track, while the fraction is not known |
 | `line([fraction])` | Two pixels high, full width, no track: along the top of a card's content |
 | `spinner([size])` | A ring with a light that goes round, icon-sized unless given |
 
-| State | |
+| `Progress.State` | |
 | --- | --- |
 | `NORMAL` | The accent |
 | `ERROR` | The danger color; `invalid` in the tree |

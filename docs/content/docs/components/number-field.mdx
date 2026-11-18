@@ -16,15 +16,15 @@ Javadoc: [`NumberField`](/api/com/rethinkj/ui/kit/NumberField.html).
 
 `state.fetchSize` is an `int` in the app's state.
 
-`NumberField.numberField(label, value, min, max, step, onChange)`. Leave out the label in a [Form](/docs/components/form) field or a [Group](/docs/components/group) row, which label the field. Typing hands on every whole number, also one outside the range, which then shows as `invalid`. The buttons keep the focus in the field and are disabled at the ends of the range.
+`NumberField.numberField(label, value, min, max, step, onChange)`. Leave out the label in a [Form](/docs/components/form) field or a [Group](/docs/components/group) row, which label the field. Typing hands on every whole number, also one outside the range, which then shows as `invalid` with the message `<min> to <max>`, such as `1 to 16`; a Form or Group shows it below the field. The buttons keep the focus in the field and are disabled at the ends of the range.
 
 ## Text between two numbers
 
-On the way to `-5` the field holds a lone `-`, and an emptied field holds no number at all. To keep such a text, pass a `ValueField.Draft` from the app's state, as for a [ValueField](/docs/components/format): `numberField(label, value, min, max, step, draft, onChange)`. The field then shows the text as `invalid` with the message of `Format.INTEGER`, and the app keeps its last number until the text is one again. Without a draft, an edit that leaves no number is refused, so a new number is typed over the old one selected, and a negative one by typing the minus sign before it.
+On the way to `-5` the field holds a lone `-`, and an emptied field holds no number at all. To keep such a text, pass a `ValueField.Draft` from the app's state, as for a [ValueField](/docs/components/format): `numberField(label, value, min, max, step, draft, onChange)`. The field then shows the text as `invalid` with the message of `Format.INTEGER`, and the app keeps its last number until the text is one again. Without a draft, an edit that leaves no number is refused, so a new number is typed over the old one selected, and a negative one by typing the minus sign before it. The field takes a minus sign only when `min` is below zero.
 
 ## Keyboard
 
-Up and Down step; Page Up and Page Down step by ten, within the range.
+Up and Down step; Page Up and Page Down step by ten steps, within the range.
 
 ## With a Prop
 
@@ -32,7 +32,7 @@ Up and Down step; Page Up and Page Down step by ten, within the range.
 
 ## In a tree dump
 
-The field is a text element with `role=spinbutton` and its number. The buttons are `role=button` `label="Decrease"` and `"Increase"`:
+The field is a text element with `role=spinbutton` and its number, and out of range `error="1 to 16"`. The buttons are `role=button` `label="Decrease"` and `"Increase"`:
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="role=spinbutton label=\"Fetch size\"" count="6"
 ```

@@ -23,7 +23,7 @@ Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
 | `withIcon(field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
 | `invalid(field)` | The whole frame in the danger color, also under the pointer and while focused, and the `invalid` state |
 
-The result is the field itself, so core's field methods chain onto it:
+`textField` returns the field itself, so core's field methods chain onto it. `withIcon` and `revealable` return a box around the field, so chain the field's methods onto it before wrapping it:
 
 | | |
 | --- | --- |
@@ -52,7 +52,7 @@ For a number, a date or an enum, `ValueField.valueField(Format.DECIMAL, state.am
 ```java snippet="text-area"
 ```
 
-`textArea` is a multi-line field that wraps lines, for notes and descriptions. `codeArea` is one in the monospaced font that scrolls sideways, where Tab indents. `.lines(n)` sets the height in lines.
+`textArea` is a multi-line field that wraps lines, for notes and descriptions. `codeArea` is one in the monospaced font that scrolls sideways, where Tab indents, Shift+Tab outdents, Enter keeps the line's indentation and a double press selects a word of code; Escape and then Tab, or Control+M, let Tab move the focus. `.lines(n)` sets the height in lines.
 
 <Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />
 
@@ -66,7 +66,7 @@ Arrows, Home and End move the caret, with Shift to select and with Control by wo
 
 ## In a tree dump
 
-A text element with `role=textbox`, its label and its string in quotes. It says `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply. While focused, it says `focused caret <n>`, and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
+A text element with `role=textbox`, its label and its string in quotes. It says `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply. While focused, it says `focused caret <n>`, and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`, and after its caret the caret's line and column, as `caret 57 (3:12)`.
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```

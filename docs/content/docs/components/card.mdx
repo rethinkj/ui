@@ -39,7 +39,7 @@ Null content is left out, so `changed ? callout(...) : null` composes.
 
 ## In a tree dump
 
-A card has no role of its own; its header's title is `role=heading level=3`:
+A card has no role of its own, except a pressable one, which is `role=button` with its label, `selected` and `disabled` as they are; its header's title is `role=heading level=3`:
 
 ```text file="examples/src/test/resources/golden/docs/cards/view.tree.txt" start="\"Connection\"" count="5"
 ```
