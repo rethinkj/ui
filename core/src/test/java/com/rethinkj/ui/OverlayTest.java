@@ -1004,7 +1004,8 @@ class OverlayTest {
                     .size(40, 20)
                     .focusable()
                     .autofocus(st.log.size())
-                    .onPress(() -> st.log.add("dialog")))),
+                    .onPress(() -> st.log.add("dialog"))
+                    .onDismiss(() -> st.log.add("dismissed")))),
         200,
         200);
     press(app, 20, 10);

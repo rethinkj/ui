@@ -780,7 +780,7 @@ public final class App<S> {
     }
     boolean dismissed = false;
     for (El overlay : root.shownOverlays().reversed()) {
-      if (overlay.isExiting()) {
+      if (overlay.isExiting() || overlay.isInert()) {
         continue;
       }
       if (!hitFrom(overlay, x, y).isEmpty()
@@ -815,7 +815,7 @@ public final class App<S> {
   private El modal() {
     if (root != null) {
       for (El overlay : root.shownOverlays().reversed()) {
-        if (overlay.isModal() && !overlay.isExiting()) {
+        if (overlay.isModal() && !overlay.isExiting() && !overlay.isInert()) {
           return overlay;
         }
       }
@@ -4418,7 +4418,7 @@ public final class App<S> {
     if (root != null) {
       for (El overlay : root.shownOverlays().reversed()) {
         List<El> hit = hitFrom(overlay, x, y);
-        if (!hit.isEmpty() || overlay.isModal() && !overlay.isExiting()) {
+        if (!hit.isEmpty() || overlay.isModal() && !overlay.isExiting() && !overlay.isInert()) {
           return hit;
         }
       }

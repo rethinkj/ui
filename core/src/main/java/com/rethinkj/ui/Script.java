@@ -1407,7 +1407,10 @@ public final class Script {
     List<El> layers = new ArrayList<>(List.of(root));
     layers.addAll(root.shownOverlays());
     int modal = layers.size() - 1;
-    while (modal > 0 && !(layers.get(modal).isModal() && !layers.get(modal).isExiting())) {
+    while (modal > 0
+        && !(layers.get(modal).isModal()
+            && !layers.get(modal).isExiting()
+            && !layers.get(modal).isInert())) {
       modal--;
     }
     float far = Float.POSITIVE_INFINITY;

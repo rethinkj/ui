@@ -2644,8 +2644,13 @@ public final class El {
    * Makes this element, everything inside it and the overlays attached inside it take no input,
    * as HTML's {@code inert}: presses, the wheel and the pointer go to what lies beneath them, and
    * neither Tab nor a press focuses anything in them, also not as an overlay opens. They still
-   * show, and a tree dump lists them. A tooltip is so, also where its content has links or a
-   * scroll area: it only shows them.
+   * show, and a tree dump lists them; an inert overlay neither dismisses nor is modal. A tooltip is
+   * so, also where its content has links or a scroll area: it only shows them.
+   *
+   * <p>shortcut: an overlay attached inside inert content becomes inert as it is placed, after
+   * layout; one that opens with a focusable element in the frame its inert anchor appears may
+   * still take the focus. Mark such overlays inert in the view, or carry inertness into the
+   * build, if one needs that.
    */
   public El inert() {
     this.inert = true;
