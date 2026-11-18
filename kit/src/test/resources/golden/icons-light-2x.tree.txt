@@ -480,6 +480,10 @@ el 0,0 800x868
     text label="warning" "\u{F869}" 632,816 20x20
     text "warning" 660,818 49x16
   el 0,840 200x28
-    text label="window" "\u{EE5D}" 8,846 16x16
-    text label="window" "\u{F8B5}" 32,844 20x20
-    text "window" 60,846 48x16
+    text label="weather_moon" "\u{EE44}" 8,846 16x16
+    text label="weather_moon" "\u{F87D}" 32,844 20x20
+    text "weather_moon" 60,846 91x16
+  el 200,840 200x28
+    text label="window" "\u{EE5D}" 208,846 16x16
+    text label="window" "\u{F8B5}" 232,844 20x20
+    text "window" 260,846 48x16

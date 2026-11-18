@@ -1,12 +1,16 @@
 el 0,0 880x600
   el window=drag 0,0 880x32
-    el 12,11 10x10
-    text "Settings" 30,8 50x16
-    el 80,16 662x0
+    el 0,0 718x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{F6A8}" 11,11 10x10
+      text "Settings" 32,8 50x16
+    el 718,16 24x0
     el role=button label="Minimize" window=minimize 742,0 46x32
-      el 760,16 10x1
+      text label="subtract" "\u{EBCE}" 759,10 12x12
     el role=button label="Maximize" window=maximize 788,0 46x32
-      el 806,11 10x10
+      text label="maximize" "\u{F533}" 805,10 12x12
     el role=button label="Close" window=close 834,0 46x32
       text label="dismiss" "\u{F367}" 851,10 12x12
   el 0,32 880x568

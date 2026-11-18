@@ -1,19 +1,32 @@
 el 0,0 720x160
-  el window=drag 0,0 720x32
-    el 12,11 10x10
-    text "Workbench" 30,8 72x16
-    el 102,16 440x0
-    el 542,8 28x16
-      el role=switch label="Dark theme" 538,6 36x20 checked
-        el 542,8 28x16
-          el 556,10 12x12
-    el role=button label="Minimize" window=minimize 582,0 46x32
-      el 600,16 10x1
-    el role=button label="Maximize" window=maximize 628,0 46x32
-      el 646,11 10x10
-    el role=button label="Close" window=close 674,0 46x32
-      text label="dismiss" "\u{F367}" 691,10 12x12
-  el 0,32 720x99
+  el window=drag 0,0 720x40
+    el 0,0 518x40
+      el 8,12 16x16
+        el 8,12 16x16
+          el 9,13 14x14
+            text "\u{F0D7}" 11,15 10x10
+      text "Workbench" 32,12 72x16
+      el 104,20 78x0
+      el role=button label="Search commands" 182,8 259x24
+        text label="search" "\u{EA7C}" 191,12 16x16
+        text "Search commands" 215,12 114x16
+        el 337,8 95x24
+          el 337,8 0x24
+          text "Ctrl+Shift+P" 361,13 71x15
+      el 441,20 77x0
+    el 518,20 24x0
+    el 542,0 40x40
+      el 542,8 24x24
+        el role=button label="Dark theme" 542,8 24x24 checked
+          text label="weather_moon" "\u{EE44}" 546,12 16x16
+      el 566,20 16x0
+    el role=button label="Minimize" window=minimize 582,0 46x40
+      text label="subtract" "\u{EBCE}" 599,14 12x12
+    el role=button label="Maximize" window=maximize 628,0 46x40
+      text label="maximize" "\u{F533}" 645,14 12x12
+    el role=button label="Close" window=close 674,0 46x40
+      text label="dismiss" "\u{F367}" 691,14 12x12
+  el 0,40 720x91
   el role=status label="Status bar" 0,131 720x29
     el 8,134 241x24
       el role=group label="Connection" 8,134 159x24

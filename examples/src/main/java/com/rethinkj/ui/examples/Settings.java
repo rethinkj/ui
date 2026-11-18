@@ -31,6 +31,7 @@ import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.ComboBox;
@@ -195,7 +196,6 @@ public final class Settings {
   }
 
   Page page = Page.GENERAL;
-  App<Settings> app; // whose window says whether it is maximized
   // General
   boolean reopen = true;
   boolean updates = true;
@@ -293,7 +293,6 @@ public final class Settings {
   public static void main(String[] args) throws IOException {
     App<Settings> app =
         new App<>(new Settings(), Settings::view).provide(Theme.CURRENT, Settings::theme);
-    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -336,7 +335,7 @@ public final class Settings {
         .wFull()
         .hFull()
         .fill(theme.surface().window())
-        .child(titleBar("Settings", theme.accent().color(), Identity.maximized(state.app)))
+        .child(titleBar(AppIcon.appIcon(16, Identity.SLATE, Symbol.SETTINGS), "Settings"))
         .child(row()
             .grow(1)
             .minSize(0, 0)

@@ -106,7 +106,7 @@ frame
 
 advance 5                                  # the message goes on the app's clock (App.after)
 frame
-press role=switch label="Dark"             # the light theme
+press role=button label="Dark theme"             # the light theme
 frame
 advance 1
 frame
@@ -135,7 +135,7 @@ frame
 size 1000 600 scale 2                      # the same at twice the pixels
 frame
 snap workbench-light-2x
-press role=switch label="Dark"
+press role=button label="Dark theme"
 frame
 advance 1
 frame

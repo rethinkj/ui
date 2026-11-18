@@ -20,6 +20,7 @@ import static com.rethinkj.ui.kit.ValueField.valueField;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Dialog;
@@ -104,7 +105,6 @@ public final class ConnectionDialog {
   final ComboBox.State databases = new ComboBox.State(); // the server's, offered as one types
   boolean revealed; // whether the password field shows the password
   boolean dark = true;
-  App<ConnectionDialog> app; // whose window says whether it is maximized
   String status = "";
 
   /** The databases the server is known to have, which the database's field suggests. */
@@ -159,7 +159,6 @@ public final class ConnectionDialog {
   public static void main(String[] args) throws IOException {
     App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view)
         .provide(Theme.CURRENT, ConnectionDialog::theme);
-    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -243,7 +242,8 @@ public final class ConnectionDialog {
         .fill(theme.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
         .onKey(Dialog.enterPresses(connect))
-        .child(titleBar("New connection", theme.accent().color(), Identity.maximized(state.app)))
+        .child(
+            titleBar(AppIcon.appIcon(16, Identity.GREEN, Symbol.PLUG_CONNECTED), "New connection"))
         .child(col()
             .grow(1)
             .padding(0, theme.space().m(), theme.space().m(), theme.space().m())

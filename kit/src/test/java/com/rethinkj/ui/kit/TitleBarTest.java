@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Text;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
@@ -17,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The title bar of a frameless window: its parts, the buttons' looks and Restore. */
+/** The title bar of a frameless window: its parts, the buttons' looks, Restore, a narrow window and an inactive one. */
 class TitleBarTest {
 
   @TempDir
@@ -28,7 +30,7 @@ class TitleBarTest {
     TextLibraries.assumeLoaded();
   }
 
-  private App<Object> app(boolean maximized) {
+  private App<Object> app(String title, El... end) {
     Theme t = Theme.DARK;
     App<Object> app = new App<>(
         new Object(),
@@ -36,12 +38,7 @@ class TitleBarTest {
             .wFull()
             .hFull()
             .fill(t.surface().window())
-            .child(TitleBar.titleBar(
-                "Orders",
-                null,
-                null,
-                maximized,
-                Button.button(Button.Variant.GHOST, "Run", () -> {}))));
+            .child(TitleBar.titleBar(null, title, end)));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -56,7 +53,7 @@ class TitleBarTest {
 
   @Test
   void theBarMovesTheWindowAndItsButtonsShowHoverAndPress() throws IOException {
-    App<Object> app = app(false);
+    App<Object> app = app("Orders", Button.button(Button.Variant.GHOST, "Run", () -> {}));
     Script.run("""
         size 400 120
         frame
@@ -87,10 +84,45 @@ class TitleBarTest {
 
   @Test
   void aMaximizedWindowOffersRestore() throws IOException {
-    App<Object> app = app(true);
+    App<Object> app = app("Orders");
+    app.windowMaximized(true);
     Script.run("size 400 120\nframe", app, out);
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=button label=\"Restore\""), dump);
     assertTrue(dump.contains("label=\"square_multiple\""), dump);
+  }
+
+  @Test
+  void aNarrowWindowShortensTheTitleAndAnInactiveOneMutesIt() throws IOException {
+    String name = "monthly_revenue_by_region_and_channel.sql";
+    El[] actions = new El[4];
+    for (int i = 0; i < actions.length; i++) {
+      actions[i] = Button.icon(Button.Variant.GHOST, Symbol.ADD, "Add " + i, () -> {});
+    }
+    App<Object> app = app(name, actions);
+    Script.run("size 240 120\nframe", app, out);
+    assertEquals(WindowPart.CLOSE, app.windowPart(240 - 10, 16), "the buttons keep their width");
+    assertEquals(WindowPart.MINIMIZE, app.windowPart(240 - 46 * 3 + 10, 16));
+    assertEquals(WindowPart.DRAG, app.windowPart(10, 16), "a gap moves the window");
+    assertTrue(title(app.tree(), name).shortened());
+    assertEquals(Theme.DARK.text().primary(), title(app.tree(), name).color());
+    app.windowActive(false);
+    app.frame();
+    assertEquals(
+        Theme.DARK.text().muted(), title(app.tree(), name).color(), "muted while inactive");
+  }
+
+  /** The text {@code string} in the tree under {@code el}, or null. */
+  private static Text title(El el, String string) {
+    if (el.text() != null && el.text().string().equals(string)) {
+      return el.text();
+    }
+    for (El child : el.children()) {
+      Text found = title(child, string);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 }

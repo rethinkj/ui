@@ -1,17 +1,21 @@
 el 0,0 480x300
   el window=drag 0,0 480x32
-    el 12,11 10x10
-    text "Documents" 30,8 72x16
-    el 102,16 164x0
-    el 266,8 64x16
-      el role=switch label="Dark" 262,6 72x20 checked=false
-        el 266,8 28x16
-          el 268,10 12x12
-        text "Dark" 302,8 28x16
+    el 0,0 278x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{E4D7}" 11,11 10x10
+      text "Documents" 32,8 72x16
+    el 278,16 24x0
+    el 302,0 40x32
+      el 302,4 24x24
+        el role=button label="Dark theme" 302,4 24x24 checked=false
+          text label="weather_moon" "\u{EE44}" 306,8 16x16
+      el 326,16 16x0
     el role=button label="Minimize" window=minimize 342,0 46x32
-      el 360,16 10x1
+      text label="subtract" "\u{EBCE}" 359,10 12x12
     el role=button label="Maximize" window=maximize 388,0 46x32
-      el 406,11 10x10
+      text label="maximize" "\u{F533}" 405,10 12x12
     el role=button label="Close" window=close 434,0 46x32
       text label="dismiss" "\u{F367}" 451,10 12x12
   el #tabs 0,32 480x268

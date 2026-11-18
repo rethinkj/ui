@@ -1,17 +1,21 @@
 el 0,0 960x640
   el window=drag 0,0 960x32
-    el 12,11 10x10
-    text "Manual" 30,8 46x16
-    el 76,16 669x0
-    el 745,8 65x16
-      el role=switch label="Dark" 741,6 73x20 checked=false
-        el 745,8 28x16
-          el 747,10 12x12
-        text "Dark" 781,8 29x16
+    el 0,0 758x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{E4D7}" 11,11 10x10
+      text "Manual" 32,8 46x16
+    el 758,16 24x0
+    el 782,0 40x32
+      el 782,4 24x24
+        el role=button label="Dark theme" 782,4 24x24 checked=false
+          text label="weather_moon" "\u{EE44}" 786,8 16x16
+      el 806,16 16x0
     el role=button label="Minimize" window=minimize 822,0 46x32
-      el 840,16 10x1
+      text label="subtract" "\u{EBCE}" 839,10 12x12
     el role=button label="Maximize" window=maximize 868,0 46x32
-      el 886,11 10x10
+      text label="maximize" "\u{F533}" 885,10 12x12
     el role=button label="Close" window=close 914,0 46x32
       text label="dismiss" "\u{F367}" 931,10 12x12
   el 0,32 960x608

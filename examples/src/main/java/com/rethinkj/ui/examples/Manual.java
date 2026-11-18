@@ -3,12 +3,13 @@ package com.rethinkj.ui.examples;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.AppIcon;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Label;
@@ -329,10 +330,14 @@ public final class Manual {
         .hFull()
         .fill(theme.surface().window())
         .child(titleBar(
+            AppIcon.appIcon(16, Identity.TEAL, Symbol.DOCUMENT),
             "Manual",
-            theme.accent().color(),
-            Identity.maximized(state.app),
-            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
+            Button.icon(
+                    Button.Variant.GHOST,
+                    Symbol.WEATHER_MOON,
+                    "Dark theme",
+                    () -> state.dark = !state.dark)
+                .checked(state.dark)))
         .child(row()
             .grow(1)
             .minSize(0, 0)

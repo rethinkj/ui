@@ -4,8 +4,6 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.TitleBar.withMenus;
-import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Drop;
@@ -16,6 +14,8 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.AppIcon;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -175,7 +175,10 @@ public final class Documents {
     if (dropping == group) { // the card's edge in the accent, as wide as before
       tabs.border(theme.size().stroke(), theme.accent().edge());
     }
-    El dark = toggle(this.dark, "Dark", () -> this.dark = !this.dark);
+    El dark = Button.icon(
+            Button.Variant.GHOST, Symbol.WEATHER_MOON, "Dark theme", () -> this.dark = !this.dark)
+        .checked(this.dark);
+    El icon = AppIcon.appIcon(16, MARK, Symbol.DOCUMENT);
     El root = col()
         .wFull()
         .hFull()
@@ -187,10 +190,10 @@ public final class Documents {
       Predicate<Key> keys = MenuBar.keys(bar, menus);
       root.onKey(tabs.onKey() == null ? keys : keys.or(tabs.onKey()))
           .onKeyUp(MenuBar.keysUp(bar, menus))
-          .child(withMenus(
-              "Documents", MARK, MenuBar.menuBar(bar, menus), Identity.maximized(window), dark));
+          .child(titleBar(
+              icon, "Documents", List.of(MenuBar.menuBar(bar, menus)), null, List.of(dark)));
     } else {
-      root.onKey(tabs.onKey()).child(titleBar("Documents", MARK, Identity.maximized(window), dark));
+      root.onKey(tabs.onKey()).child(titleBar(icon, "Documents", dark));
     }
     root.child(col()
         .key("tabs")

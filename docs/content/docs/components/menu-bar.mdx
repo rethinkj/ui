@@ -3,7 +3,7 @@ title: MenuBar
 description: A row of menu titles, File, Edit and View, with mnemonics, Alt and F10, and the items' shortcuts.
 ---
 
-`MenuBar.menuBar` is a row of titles, each opening its [Menu](/docs/components/menu) below it, as a desktop app's menu bar. It handles the pointer, Alt and F10, mnemonics such as Alt+F, and the key combinations of all items. Put it in the window's [TitleBar](/docs/components/title-bar) with `TitleBar.withMenus`. For a few actions, a [Toolbar](/docs/components/toolbar) or a dropdown is enough.
+`MenuBar.menuBar` is a row of titles, each opening its [Menu](/docs/components/menu) below it, as a desktop app's menu bar. It handles the pointer, Alt and F10, mnemonics such as Alt+F, and the key combinations of all items. Put it in the window's [TitleBar](/docs/components/title-bar), after the title: `TitleBar.titleBar(icon, title, List.of(menuBar), null, List.of())`. For a few actions, a [Toolbar](/docs/components/toolbar) or a dropdown is enough.
 
 Javadoc: [`MenuBar`](/api/com/rethinkj/ui/kit/MenuBar.html), [`MenuBar.State`](/api/com/rethinkj/ui/kit/MenuBar.State.html).
 

@@ -24,7 +24,7 @@ snap documents-docking  # the marker there; the window of Query over the first
 up screen 230,148
 frame
 
-press role=switch label="Dark"
+press role=button label="Dark theme"
 frame
 advance 1
 frame

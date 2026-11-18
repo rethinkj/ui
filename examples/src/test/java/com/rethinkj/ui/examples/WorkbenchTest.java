@@ -175,7 +175,7 @@ class WorkbenchTest {
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertEquals(3, orders.rows);
     assertTrue(windowOf(s, orders).tree().dump().contains("orders · 3 rows"));
-    assertFalse(app.tree().dump().contains("3 rows"), "not in the first window");
+    assertFalse(app.tree().dump().contains("orders · 3 rows"), "not in the first window");
   }
 
   /**

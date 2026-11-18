@@ -11,8 +11,6 @@ import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.TitleBar.withMenus;
-import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
 
 import com.rethinkj.ui.App;
@@ -54,6 +52,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Tabs.Tab;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.TitleBar;
 import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -1189,12 +1188,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             right.onKey()))
         .onKeyUp(MenuBar.keysUp(state.bar, menus))
         .overlay(state.commandPalette(state.groups.main()))
-        .child(withMenus(
+        .child(titleBar(
+            AppIcon.appIcon(16, MARK, Symbol.DATABASE),
             "Workbench",
-            theme.accent().color(),
-            MenuBar.menuBar(state.bar, menus),
-            Identity.maximized(state.app),
-            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
+            List.of(MenuBar.menuBar(state.bar, menus)),
+            TitleBar.search(
+                "Search commands", "Ctrl+Shift+P", state.palette(state.groups.main())::open),
+            List.of(Button.icon(
+                    GHOST, Symbol.WEATHER_MOON, "Dark theme", () -> state.dark = !state.dark)
+                .checked(state.dark))))
         .child(Split.cards(
                 Direction.ROW,
                 state.sidebar,
@@ -1374,9 +1376,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .overlay(question(group))
         .overlay(preview(group))
         .child(titleBar(
-            active == null ? "Workbench" : active.title(),
-            theme.accent().color(),
-            Identity.maximized(group.window() == null ? null : group.window().app())))
+            AppIcon.appIcon(16, MARK, Symbol.DATABASE),
+            active == null ? "Workbench" : active.title()))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
         .child(col()
             .grow(1)

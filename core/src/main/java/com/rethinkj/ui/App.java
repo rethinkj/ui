@@ -1795,25 +1795,28 @@ public final class App<S> {
    * it; an app is active until this says otherwise. From the next {@link #frame} on, the focused
    * text field of an inactive app shows no caret and {@link #nextChange} is infinite, so that an
    * idle inactive window draws nothing. The focus, the selection and the ring stay as they are.
-   * When the app is active again, the caret is on and blinks from there.
+   * When the app is active again, the caret is on and blinks from there. A change builds the view
+   * again, in which {@link WindowState#CURRENT} says it, so that a title bar of the app's own looks
+   * quieter while the window is inactive.
    */
   public void windowActive(boolean active) {
     enqueue(() -> {
+      boolean changed = this.active != active;
       this.active = active;
       blinkStart = time;
       if (!active) { // its key comes up elsewhere, if at all
         keyPressed = null;
         keyPressKey = null;
       }
-      return false;
+      return changed;
     });
   }
 
   /**
    * The window became maximized or was restored, as a window reports it ({@link
    * com.rethinkj.ui.window.WindowLoop} passes it on); the view is built again in the next {@link
-   * #frame}, so that a title bar of its own shows Restore in place of Maximize ({@link
-   * #windowMaximized()}).
+   * #frame}, in which {@link WindowState#CURRENT} says it, so that a title bar of the app's own
+   * shows Restore in place of Maximize.
    */
   public void windowMaximized(boolean maximized) {
     enqueue(() -> {
@@ -3127,7 +3130,8 @@ public final class App<S> {
    */
   private void rebuild(boolean between) {
     List<Object> ids = Animator.identities(pointed());
-    El built = view.apply(state);
+    El built =
+        WindowState.CURRENT.with(new WindowState(active, maximized), () -> view.apply(state));
     El.fix(built);
     shown = applyLooks(built, ids);
     root = built;

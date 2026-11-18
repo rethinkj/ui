@@ -3,12 +3,14 @@ package com.rethinkj.ui.examples.docs;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
@@ -31,7 +33,6 @@ import com.rethinkj.ui.kit.Tabs;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.TitleBar;
-import com.rethinkj.ui.kit.Toggle;
 import com.rethinkj.ui.kit.Toolbar;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,6 +122,10 @@ final class Layouts {
 
   void toggleDark() {
     dark = !dark;
+  }
+
+  void search() {
+    said = "search";
   }
 
   void host(String value) {
@@ -428,9 +433,12 @@ final class Layouts {
     Theme theme = Theme.CURRENT.get();
     // docs:start title-bar
     El title = TitleBar.titleBar(
+        AppIcon.appIcon(16, theme.accent().color(), Symbol.DATABASE),
         "Workbench",
-        theme.accent().color(),
-        Toggle.toggle(state.dark, state::toggleDark).label("Dark theme"));
+        List.of(),
+        TitleBar.search("Search commands", "Ctrl+Shift+P", state::search),
+        List.of(Button.icon(GHOST, Symbol.WEATHER_MOON, "Dark theme", state::toggleDark)
+            .checked(state.dark)));
     // docs:end title-bar
     // docs:start status-bar
     El status = StatusBar.statusBar(

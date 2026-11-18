@@ -60,7 +60,7 @@ class AppTest {
     app.after(0.5, () -> log.add("second"));
     assertEquals(0.5, app.nextChange());
     app.windowActive(false); // input, which waits in the queue for the next frame
-    assertFalse(app.frame(), "nothing to draw");
+    assertTrue(app.frame(), "the view again, for the inactive window");
     assertEquals(0.5, app.nextChange(), "also while the window is inactive");
     app.advance(0.4);
     assertFalse(app.frame(), "not due yet");
@@ -69,7 +69,7 @@ class AppTest {
     app.advance(0.1);
     assertTrue(app.frame());
     assertEquals(List.of("first", "second"), log, "in the order asked for");
-    assertEquals(3, views[0], "built again before the second, as for the next input, and after");
+    assertEquals(4, views[0], "built again before the second, as for the next input, and after");
     assertEquals(0.5, app.nextChange(), "what the first asked for is due now");
     assertTrue(app.frame());
     assertEquals(List.of("first", "second", "asked by first"), log);

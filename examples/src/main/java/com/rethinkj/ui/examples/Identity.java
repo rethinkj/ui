@@ -1,6 +1,5 @@
 package com.rethinkj.ui.examples;
 
-import com.rethinkj.ui.App;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Symbol;
@@ -35,7 +34,7 @@ final class Identity {
   /** The icon of LightSwitch. */
   static final int AMBER = Colors.rgb(0xD97706);
 
-  /** The lamp of LightSwitch, and its mark. */
+  /** The lamp of LightSwitch. */
   static final int YELLOW = Colors.rgb(0xFACC15);
 
   private Identity() {}
@@ -48,10 +47,5 @@ final class Identity {
 
   static WindowIcon icon(int color, Symbol symbol) {
     return WindowIcon.of(size -> AppIcon.appIcon(size, color, symbol));
-  }
-
-  /** Whether the window that runs {@code app} is maximized, for its title bar's Restore. */
-  static boolean maximized(App<?> app) {
-    return app != null && app.windowMaximized();
   }
 }

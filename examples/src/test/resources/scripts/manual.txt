@@ -18,7 +18,7 @@ frame
 advance 1
 frame
 
-press role=switch label="Dark"
+press role=button label="Dark theme"
 frame
 advance 1
 frame
@@ -48,7 +48,7 @@ move role=code label="sql"
 frame
 advance 1
 frame
-press role=switch label="Dark"
+press role=button label="Dark theme"
 frame
 advance 1
 frame

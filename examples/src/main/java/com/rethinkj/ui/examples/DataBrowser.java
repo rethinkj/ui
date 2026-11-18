@@ -8,12 +8,12 @@ import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
@@ -654,10 +654,14 @@ public final class DataBrowser {
                     () -> state.toast = null,
                     Card.footerHeight() + theme.size().stroke() + theme.space().m()))
         .child(titleBar(
+            AppIcon.appIcon(16, Identity.BLUE, Symbol.TABLE),
             "Orders",
-            theme.accent().color(),
-            Identity.maximized(state.app),
-            toggle(state.dark, "Dark", () -> state.dark = !state.dark)))
+            Button.icon(
+                    Button.Variant.GHOST,
+                    Symbol.WEATHER_MOON,
+                    "Dark theme",
+                    () -> state.dark = !state.dark)
+                .checked(state.dark)))
         .child(col()
             .grow(1)
             .minSize(0, 0)

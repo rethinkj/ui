@@ -9,6 +9,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -28,12 +29,10 @@ public final class LightSwitch {
   private static final int LAMP = Identity.YELLOW;
 
   boolean on;
-  App<LightSwitch> app; // whose window says whether it is maximized
 
   // docs:start light-switch-window
   public static void main(String[] args) throws IOException {
     App<LightSwitch> app = new App<>(new LightSwitch(), LightSwitch::view);
-    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -63,7 +62,7 @@ public final class LightSwitch {
         .wFull()
         .hFull()
         .fill(theme.surface().window())
-        .child(titleBar("Lights", LAMP, Identity.maximized(state.app)))
+        .child(titleBar(AppIcon.appIcon(16, Identity.AMBER, Symbol.FLASH), "Lights"))
         .child(col()
             .grow(1)
             .center()

@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
@@ -446,11 +447,13 @@ public final class Showcase {
         .hFull()
         .fill(theme.surface().window())
         .child(titleBar(
-            "Showcase · " + state.lookTitle(),
-            state.look == Look.SYSTEM && state.systemAccent != 0
-                ? state.systemAccent
-                : theme.accent().color(),
-            Identity.maximized(state.app)))
+            AppIcon.appIcon(
+                16,
+                state.look == Look.SYSTEM && state.systemAccent != 0
+                    ? state.systemAccent
+                    : theme.accent().color(),
+                Symbol.SHAPES),
+            "Showcase · " + state.lookTitle()))
         .child(row()
             .grow(1)
             .minSize(0, 0)

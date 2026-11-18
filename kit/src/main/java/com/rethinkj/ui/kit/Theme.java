@@ -1306,18 +1306,30 @@ public record Theme(
   }
 
   /**
-   * The buttons at the right of a frameless window's own title bar, which draw no fill at rest.
+   * A frameless window's own title bar ({@link TitleBar}) and the buttons at its right, which draw
+   * no fill at rest.
    *
    * @param closeHover the close button's fill under the pointer, the red of the system's own
    * @param onClose the close button's cross on that fill and on {@code closePressed}
    * @param closePressed the close button's fill while it is pressed, a lighter red, as the
    *     system's
+   * @param height the height of the bar and its buttons, 32 as Windows 11 draws its own
+   * @param tall the height of a bar with a field in its middle, such as a search
+   * @param button the width of a minimize, maximize or close button, 46 as Windows 11's
+   * @param glyph the size of the buttons' glyphs, whose drawing of the icon font is made for it
    */
-  public record Caption(int closeHover, int onClose, int closePressed) {
+  public record Caption(
+      int closeHover,
+      int onClose,
+      int closePressed,
+      float height,
+      float tall,
+      float button,
+      float glyph) {
 
-    /** A caption whose close button is pressed in a lighter tone of its red. */
+    /** A caption of Windows 11's sizes whose close button is pressed in a lighter red. */
     public Caption(int closeHover, int onClose) {
-      this(closeHover, onClose, Theme.over(closeHover, alpha(WHITE, 0.12f)));
+      this(closeHover, onClose, Theme.over(closeHover, alpha(WHITE, 0.12f)), 32, 40, 46, 12);
     }
   }
 
@@ -1336,7 +1348,7 @@ public record Theme(
       new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
-  private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485);
+  private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.

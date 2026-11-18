@@ -5,7 +5,7 @@ package com.rethinkj.ui.kit;
 
 /**
  * The icons of the default icon font, {@link com.rethinkj.ui.text.Font#icons()} (Fluent
- * UI System Icons), that the kit names: 117 of them, for a database tool, the parts of a
+ * UI System Icons), that the kit names: 118 of them, for a database tool, the parts of a
  * window and the data in a table. {@link Icon#icon} shows one.
  *
  * <p>Each symbol is Fluent's icon of the same name: {@link #CHEVRON_RIGHT} is {@code
@@ -131,6 +131,7 @@ public enum Symbol {
   TEXT_WHOLE_WORD(0, 0xF03A4, 0xED68, 0, 0, 0, 0),
   TIMER(0xED85, 0xED86, 0xED88, 0xF827, 0xED89, 0xED8C, 0xED8D),
   WARNING(0xEE3B, 0xF868, 0xF869, 0xF86A, 0xEE3C, 0xF024A, 0xF03CF),
+  WEATHER_MOON(0xF0C55, 0xEE44, 0xF87D, 0xF87E, 0xEE45, 0xF07E8, 0xF87F),
   WINDOW(0, 0xEE5D, 0xF8B5, 0xEE5E, 0xEE5F, 0xE248, 0xEE61);
 
   private static final int[] SIZES = {12, 16, 20, 24, 28, 32, 48};
