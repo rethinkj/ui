@@ -50,7 +50,7 @@ A [`Drag`](/api/com/rethinkj/ui/Drag.html) has its `phase` (`START`, `MOVE`, `EN
 | `onTypeAhead(text -> …)` | The text typed so far, to go to the item that starts with it, as a tree does; a pause of `App.TYPE_AHEAD` seconds or Escape starts anew |
 | `keepFocus()` | A press leaves the focus where it was: for buttons that act on an editor |
 | `skipTab()` | Tab passes it by; a press still focuses it |
-| `autofocus()`, `autofocus(key)` | Takes the focus in the build that adds it; with a key, again whenever it gets a new key that is not null: the first field with an error after each Save |
+| `autofocus()`, `autofocus(key)` | Takes the focus in the build that adds it; with a key, asks again whenever it gets a new key that is not null, and the first that asks gets it: the first field with an error after each Save |
 | `defaultFocus()` | Where the focus goes when it moves into an element around it that has not had it: a page's grid rather than the button above it. Takes no focus by itself |
 | `focusRing(argb)`, `focusRingGap(px)` | The ring drawn when the keyboard moved the focus |
 
