@@ -14,16 +14,14 @@ final class Brackets {
 
   /**
    * The bracket just before {@code caret}, or else just after it, and its partner in {@code text}:
-   * among those {@code highlighter} marks, read from {@code lines}, where it marks brackets;
-   * among all of the text's otherwise.
+   * among those {@code highlighter} marks, read from {@code lines}, where it marks brackets and
+   * {@code lines} know the state the bracket's line starts in; among all of the text's otherwise,
+   * which costs no pass over the lines before the bracket.
    *
-   * @param lines the lines of {@code text}, whose highlighting they keep; null for lines made here
+   * @param lines the lines of {@code text}, whose highlighting they keep; null for none
    */
   static int[] matching(String text, int caret, Lines lines, Highlighter highlighter, Object key) {
-    boolean marked = highlighter != null && highlighter.marksBrackets();
-    if (marked && lines == null) {
-      lines = Lines.of(text);
-    }
+    boolean marked = highlighter != null && highlighter.marksBrackets() && lines != null;
     for (int at : new int[] {caret - 1, caret}) {
       if (at < 0 || at >= text.length()) {
         continue;
@@ -35,7 +33,8 @@ final class Brackets {
       char own = text.charAt(at);
       char other = BRACKETS.charAt((kind + 3) % 6);
       int step = kind < 3 ? 1 : -1;
-      if (!marked) {
+      int first = marked ? lines.line(at) : -1;
+      if (!marked || !lines.knows(first, key)) {
         int depth = 0;
         for (int i = at; i >= 0 && i < text.length() && Math.abs(i - at) < REACH; i += step) {
           char c = text.charAt(i);
@@ -47,7 +46,6 @@ final class Brackets {
         }
         return new int[] {at};
       }
-      int first = lines.line(at);
       Spans spans = lines.spans(first, text, highlighter, key);
       if (!has(spans, at - lines.start(first))) {
         continue; // in a string or a comment

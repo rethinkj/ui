@@ -4,17 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 /**
- * The tokens of {@link Sql}, line by line with the state the lines before left, and the bracket
- * matching of {@link CodeEditor}; without the native libraries.
+ * The tokens of {@link Sql}, line by line with the state the lines before left, without the native
+ * libraries, and the brackets it marks, as a field that laid it out pairs them.
  */
 class SqlTest {
 
@@ -34,7 +37,7 @@ class SqlTest {
       state = sql.line(line, state, spans);
       StringBuilder tokens = new StringBuilder();
       for (String range : spans.toString().split("\n")) {
-        if (range.isEmpty() || range.startsWith("bracket")) {
+        if (range.isEmpty()) {
           continue;
         }
         String[] parts = range.split(" ");
@@ -125,14 +128,22 @@ class SqlTest {
     assertNull(SQL.line("end */", state, new Spans(6)));
   }
 
+  /** The pair at the caret in a field that has laid out and highlighted the text. */
   private static int[] matching(Highlighter highlighter, String text, int caret) {
-    El field = El.text(text).editable(value -> {}).multiline();
-    return (highlighter == null ? field : field.highlight(highlighter, highlighter))
-        .matchingBracket(caret);
+    FieldState state = new FieldState();
+    Supplier<El> field = () -> {
+      El f = El.text(text).editable(value -> {}).multiline().fieldState(state);
+      return highlighter == null ? f : f.highlight(highlighter, highlighter);
+    };
+    App<Object> app = new App<>(new Object(), model -> field.get());
+    app.resize(400, 200, 1);
+    app.frame();
+    return field.get().matchingBracket(caret);
   }
 
   @Test
   void bracketsMatchAcrossNestingOutsideStringsAndComments() {
+    TextLibraries.assumeLoaded();
     String text = "f(a, (b), [c])";
     assertArrayEquals(new int[] {1, 13}, matching(SQL, text, 2), "after the caret's left");
     assertArrayEquals(new int[] {13, 1}, matching(SQL, text, 14), "before the caret");
@@ -196,7 +207,7 @@ class SqlTest {
   private static int[] colors(Spans spans, int length) {
     int[] out = new int[length];
     for (String line : spans.toString().split("\n")) {
-      if (line.isEmpty() || line.startsWith("bracket")) {
+      if (line.isEmpty()) {
         continue;
       }
       String[] parts = line.split(" ");

@@ -53,7 +53,7 @@ Positions are indexes into the string, as for the caret. Moving the caret to a d
 - Override `lineComment()` to return what starts a comment to the end of the line (`--`, `//`, `;`), which Control+/ comments lines out with. It is null by default, and Control+/ then does nothing.
 - To keep a bracket in a string or a comment from pairing with one in the code, call `out.bracket(at)` for each bracket of the code, `( ) [ ] { }`, and override `marksBrackets()` to return true; `Sql` does. A highlighter that does not opt in pairs every bracket of the text.
 
-A highlighter can be tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`, and each marked bracket as `bracket 5`.
+A highlighter can be tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
 
 ### Spans
 

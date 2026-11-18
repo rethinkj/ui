@@ -1330,10 +1330,10 @@ public final class El {
    * Spans#bracket}) count, so that one in a string or a comment pairs with none; otherwise every
    * bracket of the string does.
    *
-   * <p>A {@link #multiline} field with a {@link #fieldState} whose field showed this string reads
-   * what the highlighter said about the lines from the field's own highlighting and asks it only
-   * about lines it was not asked about yet, as far as the search reaches; otherwise the
-   * highlighter is asked about the lines up to the search's end on each call.
+   * <p>The marks come from the highlighting of a {@link #multiline} field with a {@link
+   * #fieldState} whose field showed this string: the highlighter is asked only about lines it was
+   * not asked about yet, as far as the search reaches. Before the field has highlighted down to
+   * the bracket's line, as at its first build, every bracket counts.
    */
   public int[] matchingBracket(int caret) {
     Text t = textOnly("matchingBracket");

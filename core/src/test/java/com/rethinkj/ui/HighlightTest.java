@@ -269,18 +269,20 @@ class HighlightTest {
     int at = text.length() - 5; // the line's (
     Quotes quotes = new Quotes();
     FieldState state = new FieldState();
+    state.select(at + 1, at + 1); // opened at the end
     int[][] pair = {null};
     App<Model> app = area(text, f -> {
       pair[0] = f.fieldState(state).highlight("q", quotes).matchingBracket(at + 1);
       return f;
     });
+    assertTrue(quotes.asked <= 2001 + 12, "the lines before the end once, by layout");
     assertArrayEquals(new int[] {at, at + 4}, pair[0], "not the one in the string");
     key(app, "End", Key.CONTROL);
     int asked = quotes.asked;
     type(app, "x");
     assertArrayEquals(new int[] {at, at + 4}, pair[0]);
     assertTrue(quotes.asked - asked <= 12, "the field's lines, not the text's");
-    El again = El.text(text).editable(edit -> {}).multiline().fieldState(state);
+    El again = El.text(text + "x").editable(edit -> {}).multiline().fieldState(state);
     assertArrayEquals(
         new int[0], again.highlight("q", quotes).matchingBracket(at + 3), "in the string");
     assertArrayEquals(

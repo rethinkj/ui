@@ -232,6 +232,11 @@ final class Lines {
     return out;
   }
 
+  /** Whether the state line {@code line} starts in is known for {@code key}. */
+  boolean knows(int line, Object key) {
+    return states != null && line < known && Objects.equals(key, highlightKey);
+  }
+
   private Object ask(Highlighter highlighter, String text, int line, Spans out) {
     highlighted++;
     return highlighter.line(text.substring(start(line), end(line)), states[line], out);

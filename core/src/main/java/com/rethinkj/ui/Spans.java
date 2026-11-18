@@ -60,8 +60,7 @@ public final class Spans {
 
   /**
    * What the spans hold, one range per line in the order given, as {@code color 0-6 FF7C3AED},
-   * with {@code line FFE0E7FF} first for each of a line's backgrounds and {@code bracket 5} last
-   * for each bracket.
+   * with {@code line FFE0E7FF} first for each of a line's backgrounds.
    */
   @Override
   public String toString() {
@@ -84,9 +83,6 @@ public final class Spans {
                   ? fonts[i].toString()
                   : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT))
           .append('\n');
-    }
-    for (int i = 0; i < bracketCount; i++) {
-      out.append("bracket ").append(brackets[i]).append('\n');
     }
     return out.toString();
   }
