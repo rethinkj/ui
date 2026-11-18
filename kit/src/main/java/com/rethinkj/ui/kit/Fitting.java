@@ -9,11 +9,6 @@ import java.util.function.IntFunction;
 /** The measured widths and fitting of a row whose overflow goes into a menu. */
 final class Fitting {
 
-  enum Direction {
-    PREFIX,
-    SUFFIX
-  }
-
   private float width = Float.NaN;
   private final Map<String, Float> widths = new HashMap<>();
 
@@ -46,12 +41,11 @@ final class Fitting {
   }
 
   /**
-   * How many items of the prefix or suffix fit, keeping at least {@code mandatory}, with room
-   * for More when some are hidden. Shows everything until the row and every item have been
-   * measured. A null item width is a flexible spacer: it contributes neither width nor gap.
+   * How many items from the start fit, with room for More when some are hidden. Shows everything
+   * until the row and every item have been measured. A null item width is a flexible spacer: it
+   * contributes neither width nor gap.
    */
-  int fit(
-      Theme theme, int count, Direction direction, int mandatory, IntFunction<Float> itemWidth) {
+  int fit(Theme theme, int count, IntFunction<Float> itemWidth) {
     if (Float.isNaN(width)) {
       return count;
     }
@@ -66,21 +60,16 @@ final class Fitting {
       if (Float.isNaN(w)) {
         return count;
       }
-      // The gap stays with its item, also at the start of a suffix after More.
       costs[i] = w + (i == 0 ? 0 : gap);
       total += costs[i];
     }
     if (total <= width) {
       return count;
     }
-    // A suffix's first retained item already carries the gap after More.
-    float room = width
-        - widths.getOrDefault("more", theme.size().control())
-        - (direction == Direction.PREFIX ? gap : 0);
+    float room = width - widths.getOrDefault("more", theme.size().control()) - gap;
     int shown = count;
-    while (shown > mandatory && total > room) {
-      total -= costs[direction == Direction.PREFIX ? shown - 1 : count - shown];
-      shown--;
+    while (shown > 0 && total > room) {
+      total -= costs[--shown];
     }
     return shown;
   }

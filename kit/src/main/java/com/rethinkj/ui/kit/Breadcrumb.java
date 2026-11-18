@@ -18,9 +18,9 @@ import java.util.function.Supplier;
  * address bar has it; the other chevrons only separate. Where the path does not fit, the crumbs
  * after the first go into a menu behind an ellipsis, from the start on; where that is not enough,
  * the first one too, and only then is the current place shortened, with an ellipsis and its whole
- * name in a tooltip. The breadcrumb learns its width and the width of each crumb from the layout
- * ({@link El#onResize}) and keeps them in its {@link State}, so it settles a frame after its width
- * changes.
+ * name in a tooltip. The breadcrumb learns its width from the layout ({@link El#onResize}) and
+ * keeps it in its {@link State}, so it settles a frame after its width changes; the width of each
+ * crumb it works out from the theme and the width of its text.
  *
  * <p>It is one stop for Tab, at the crumb or button the arrows last went to; Arrow Left and Right
  * go between the crumbs, the chevrons with a menu and the ellipsis, Home and End to the ends, Enter
@@ -75,12 +75,13 @@ public final class Breadcrumb {
   }
 
   /**
-   * What a breadcrumb keeps between builds, held by the app, one per breadcrumb: the widths, the
+   * What a breadcrumb keeps between builds, held by the app, one per breadcrumb: its width, the
    * menus and the stop Tab reaches.
    */
   public static final class State {
     final Menu.State hidden = new Menu.State();
     private final List<Menu.State> children = new ArrayList<>(); // by the crumb's index
+    private final List<String> owners = new ArrayList<>(); // the text of the crumb each is for
     final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
@@ -89,11 +90,26 @@ public final class Breadcrumb {
       return hidden;
     }
 
-    Menu.State children(int index) {
+    /** The menu of the chevron after a crumb, closed where another crumb took its index. */
+    Menu.State children(int index, String owner) {
       while (children.size() <= index) {
         children.add(new Menu.State());
+        owners.add(owner);
+      }
+      if (!owner.equals(owners.get(index))) {
+        children.get(index).close();
+        owners.set(index, owner);
       }
       return children.get(index);
+    }
+
+    /** Closes the menus of the chevrons this build does not show, so none opens by itself. */
+    void closeChildren(boolean[] shown) {
+      for (int i = 0; i < children.size(); i++) {
+        if (i >= shown.length || !shown[i]) {
+          children.get(i).close();
+        }
+      }
     }
   }
 
@@ -113,16 +129,20 @@ public final class Breadcrumb {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
     int last = crumbs.size() - 1;
-    Plan plan = plan(theme, state.fitting, crumbs);
+    float[] widths = new float[crumbs.size()];
+    for (int i = 0; i <= last; i++) {
+      widths[i] = width(theme, crumbs.get(i), i == last);
+    }
+    Plan plan = plan(theme, state.fitting.width(), widths);
     El bar = state.fitting.row(theme).role("navigation").label("Breadcrumb");
     List<El> stops = new ArrayList<>();
+    boolean[] menus = new boolean[crumbs.size()];
     for (int i = 0; i <= last; i++) {
       if (i == plan.start() && plan.start() < plan.from()) {
         bar.child(more(theme, state, crumbs, plan, stops));
         i = plan.from();
       }
       Crumb crumb = crumbs.get(i);
-      boolean squeezed = i == last && plan.squeeze();
       El unit = row().key("crumb-" + i).gap(theme.space().xs()).align(Style.Align.CENTER);
       El part = part(theme, crumb, i == last);
       unit.child(part);
@@ -134,13 +154,14 @@ public final class Breadcrumb {
         unit.child(chevron);
         if (crumb.children() != null) {
           stops.add(chevron);
+          menus[i] = true;
         }
       }
-      // A squeezed crumb is narrower than its own width, which the measure keeps from before.
-      bar.child(
-          squeezed
-              ? unit.shrink(1).minSize(0, 0)
-              : unit.shrink(0).onResize(state.fitting.measure(id(crumbs, i))));
+      bar.child(i == last && plan.squeeze() ? unit.shrink(1).minSize(0, 0) : unit.shrink(0));
+    }
+    state.closeChildren(menus);
+    if (plan.start() == plan.from()) {
+      state.hidden.close();
     }
     state.keys.apply(bar, stops);
     return bar;
@@ -149,31 +170,22 @@ public final class Breadcrumb {
   /**
    * The first crumb, the ellipsis and as many at the end as fit; where the current place does not
    * fit beside them, the ellipsis and the end, shortening the current place where it alone does
-   * not fit. Everything until the bar and every crumb have been measured.
+   * not fit. Everything until the bar has been measured.
    */
-  private static Plan plan(Theme theme, Fitting fitting, List<Crumb> crumbs) {
-    int count = crumbs.size();
-    float width = fitting.width();
+  private static Plan plan(Theme theme, float width, float[] widths) {
+    int count = widths.length;
     float gap = theme.space().xs();
-    float[] widths = new float[count];
     float total = -gap;
-    for (int i = 0; i < count; i++) {
-      widths[i] = fitting.width(id(crumbs, i));
-      if (Float.isNaN(widths[i]) || Float.isNaN(width)) {
-        return ALL;
-      }
-      total += gap + widths[i];
+    for (float w : widths) {
+      total += gap + w;
     }
-    if (total <= width) {
+    if (Float.isNaN(width) || total <= width) {
       return ALL;
     }
     if (count == 1) {
       return new Plan(0, 0, true);
     }
-    float more = fitting.width("more");
-    if (Float.isNaN(more)) {
-      more = theme.size().control();
-    }
+    float more = moreWidth(theme);
     if (count > 2) {
       int from = end(widths, gap, width - widths[0] - gap - more, 2);
       if (from < count) {
@@ -197,6 +209,26 @@ public final class Breadcrumb {
     return from;
   }
 
+  /**
+   * The width of a crumb with the chevron after it, from the theme and its text alone, so that it
+   * does not depend on where layout puts it or on what the last build showed.
+   */
+  static float width(Theme theme, Crumb crumb, boolean current) {
+    float width = 2 * theme.space().s() + TextSizing.natural(words(theme, crumb, current));
+    if (crumb.icon() != null) {
+      width += theme.size().icon() + theme.space().s();
+    }
+    if (!current || crumb.children() != null) {
+      width += theme.space().xs() + theme.size().icon();
+    }
+    return width;
+  }
+
+  /** The width of the ellipsis with the chevron after it. */
+  static float moreWidth(Theme theme) {
+    return theme.size().control() + theme.space().xs() + theme.size().icon();
+  }
+
   /** The ellipsis, with its menu of the crumbs it stands for, and the chevron after it. */
   private static El more(Theme theme, State state, List<Crumb> crumbs, Plan plan, List<El> stops) {
     List<Menu.Item> items = new ArrayList<>();
@@ -213,7 +245,6 @@ public final class Breadcrumb {
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .shrink(0)
-        .onResize(state.fitting.measure("more"))
         .child(Menu.dropdown(button, state.hidden, items))
         .child(mark(theme));
   }
@@ -221,14 +252,8 @@ public final class Breadcrumb {
   /** A crumb: muted, primary under the pointer where it takes a press; the current place strong. */
   private static El part(Theme theme, Crumb crumb, boolean current) {
     Runnable onPress = current ? null : crumb.onPress();
-    Theme.TextStyle style = current ? theme.type().strong() : theme.type().body();
     int color = current ? theme.text().primary() : theme.text().muted();
-    El words = El.text(crumb.text())
-        .font(style.font().get())
-        .fontSize(style.size())
-        .color(color)
-        .ellipsis()
-        .minSize(0, 0);
+    El words = words(theme, crumb, current).color(color).ellipsis().minSize(0, 0);
     El icon = crumb.icon() == null ? null : Icon.icon(crumb.icon()).color(color).shrink(0);
     El el = row()
         .role("link")
@@ -265,6 +290,12 @@ public final class Breadcrumb {
         .whenPressed(e -> e.fill(theme.surface().pressed()));
   }
 
+  /** A crumb's text, in strong type for the current place. */
+  private static El words(Theme theme, Crumb crumb, boolean current) {
+    Theme.TextStyle style = current ? theme.type().strong() : theme.type().body();
+    return El.text(crumb.text()).font(style.font().get()).fontSize(style.size());
+  }
+
   /**
    * The chevron after a crumb: a button that opens the menu of its children, pointing down while
    * it is open, or a mark between two crumbs; null after the last crumb without children.
@@ -273,7 +304,7 @@ public final class Breadcrumb {
     if (crumb.children() == null) {
       return last ? null : mark(theme);
     }
-    Menu.State menu = state.children(index);
+    Menu.State menu = state.children(index, crumb.text());
     boolean open = menu.isOpen();
     El glyph = glyph(theme, open ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT)
         .color(open ? theme.text().primary() : theme.border().strong());
@@ -284,6 +315,7 @@ public final class Breadcrumb {
         .expanded(open)
         .radius(theme.radius().small())
         .focusable()
+        .keepFocus()
         .focusRing(theme.accent().edge())
         .cursor(Cursor.POINTER)
         .motion(theme.motion().feedback())
@@ -313,9 +345,5 @@ public final class Breadcrumb {
 
   private static El box(Theme theme) {
     return El.el().size(theme.size().icon(), theme.size().control()).center().shrink(0);
-  }
-
-  private static String id(List<Crumb> crumbs, int i) {
-    return i + ":" + crumbs.get(i).text();
   }
 }

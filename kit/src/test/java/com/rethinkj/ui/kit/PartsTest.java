@@ -217,25 +217,17 @@ class PartsTest {
   @Test
   void aBreadcrumbHidesItsMiddleBeforeItsStart() throws IOException {
     Theme t = Theme.DARK;
-    Breadcrumb.State state = new Breadcrumb.State();
+    List<Breadcrumb.Crumb> crumbs = List.of(
+        Breadcrumb.crumb("first", () -> {}),
+        Breadcrumb.crumb("middle", () -> {}),
+        Breadcrumb.crumb("current", null));
     float[] width = {400};
     App<Breadcrumb.State> app = new App<>(
-        state,
-        s -> col()
-            .w(width[0])
-            .child(Breadcrumb.breadcrumb(
-                s,
-                List.of(
-                    Breadcrumb.crumb("first", () -> {}),
-                    Breadcrumb.crumb("middle", () -> {}),
-                    Breadcrumb.crumb("current", null)))));
+        new Breadcrumb.State(), s -> col().w(width[0]).child(Breadcrumb.breadcrumb(s, crumbs)));
     Script.run("size 400 100\nframe\nframe", app, out);
-    width[0] = 1;
-    app.invalidate();
-    Script.run("frame\nframe\nframe", app, out);
-    width[0] = (float) Math.ceil(state.fitting.width("0:first")
-        + state.fitting.width("more")
-        + state.fitting.width("2:current")
+    width[0] = (float) Math.ceil(Breadcrumb.width(t, crumbs.get(0), false)
+        + Breadcrumb.moreWidth(t)
+        + Breadcrumb.width(t, crumbs.get(2), true)
         + 2 * t.space().xs());
     app.invalidate();
     Script.run("frame\nframe", app, out);

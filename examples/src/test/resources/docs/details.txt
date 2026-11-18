@@ -8,7 +8,7 @@ frame
 snap children
 key Escape
 frame
-size 240 280                            # narrow: the breadcrumb's start moves into Hidden parts
+size 260 280                            # narrow: the middle of the path moves into Hidden parts
 frame
 frame
 advance 1

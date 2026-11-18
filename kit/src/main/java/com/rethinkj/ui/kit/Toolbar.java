@@ -242,8 +242,6 @@ public final class Toolbar {
     int shown = state.fitting.fit(
         theme,
         flat.size(),
-        Fitting.Direction.PREFIX,
-        0,
         i -> flat.get(i).kind == Kind.SPACER
             ? null // takes what is left, nothing when nothing is
             : state.fitting.width(id(flat, i))
