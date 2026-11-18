@@ -51,7 +51,7 @@ Positions are indexes into the string, as for the caret. Moving the caret to a d
 - The editor asks only about the lines it needs, and asks again about a line after an edit. So a highlighter must depend only on its line and its state, never on what it was asked before.
 - Make it a record, so that it is equal on every build, as `Sql.of` is.
 - Override `lineComment()` to return what starts a comment to the end of the line (`--`, `//`, `;`), which Control+/ comments lines out with. It is null by default, and Control+/ then does nothing.
-- To keep a bracket in a string or a comment from pairing with one in the code, call `out.bracket(at)` for each bracket of the code, `( ) [ ] { }`, and override `marksBrackets()` to return true; `Sql` does. A highlighter that does not opt in pairs every bracket of the text. `El.matchingBracket(caret)` finds the pair at the caret in any text element.
+- To keep a bracket in a string or a comment from pairing with one in the code, call `out.bracket(at)` for each bracket of the code, `( ) [ ] { }`, and override `marksBrackets()` to return true; `Sql` does. A highlighter that does not opt in pairs every bracket of the text. `El.matchingBracket(caret)` finds the pair at the caret in any text element; it skips brackets in strings and comments only where a multi-line field's highlighter has marked them.
 
 A highlighter can be tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
 
@@ -94,7 +94,7 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 | Control+Shift+D | `DUPLICATE_LINES` | Duplicate the caret's line or the selected lines |
 | Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move them |
 | Control+Shift+K | `DELETE_LINES` | Delete them |
-| Control+/, Control+Shift+7, Control+#, Control with the numpad's / | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `lineComment()` (`--` for SQL) |
+| Control+/, Control+Shift+7, Control+# where `#` has a key of its own, Control with the numpad's / | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `lineComment()` (`--` for SQL) |
 
 `CodeEditor.run(app, editorState, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. `editor.onKeyFirst(mine)` asks yours first and hands the keys it declines to the editor's, as the Workbench does for Control+Enter; `El.onKey` would replace them.
 
