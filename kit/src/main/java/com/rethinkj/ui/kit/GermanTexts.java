@@ -12,7 +12,7 @@ public class GermanTexts implements Texts {
   @Override
   public String key(String name) {
     return switch (name) {
-      case "Ctrl" -> "Strg";
+      case "Ctrl", "Control" -> "Strg";
       case "Shift" -> "Umschalt";
       case "Enter" -> "Eingabe";
       case "Escape" -> "Esc";
@@ -22,12 +22,13 @@ public class GermanTexts implements Texts {
       case "PgDn", "Page Down" -> "Bild ab";
       case "Home" -> "Pos1";
       case "End" -> "Ende";
-      case "Up" -> "Nach-oben";
-      case "Down" -> "Nach-unten";
-      case "Left" -> "Nach-links";
-      case "Right" -> "Nach-rechts";
+      case "Up" -> "↑";
+      case "Down" -> "↓";
+      case "Left" -> "←";
+      case "Right" -> "→";
       case "Backspace" -> "Rücktaste";
       case "Space" -> "Leertaste";
+      case "PrintScreen" -> "Druck";
       default -> name;
     };
   }
@@ -139,7 +140,7 @@ public class GermanTexts implements Texts {
 
   @Override
   public String moreOf(String button) {
-    return "Mehr zu " + button;
+    return "Weitere Optionen für „" + button + "“";
   }
 
   @Override
@@ -341,6 +342,16 @@ public class GermanTexts implements Texts {
   @Override
   public String replacingTookTooLong() {
     return "Das Ersetzen hat zu lange gedauert";
+  }
+
+  @Override
+  public String unclosedGroup() {
+    return "Ein ${ ohne schließende }";
+  }
+
+  @Override
+  public String noGroup(int number) {
+    return "Keine Gruppe " + number;
   }
 
   @Override

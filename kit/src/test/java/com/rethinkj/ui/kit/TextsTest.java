@@ -2,9 +2,11 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -30,6 +32,12 @@ class TextsTest {
             m.toString());
       }
     }
+  }
+
+  @Test
+  void anItemKeptInTheStateNamesItsKeysInTheMenusTexts() {
+    Menu.Item save = Menu.item("Save", () -> {}).shortcut(Key.CONTROL, "S");
+    assertEquals("Strg+S", Texts.CURRENT.with(GERMAN, save::shortcut));
   }
 
   @Test

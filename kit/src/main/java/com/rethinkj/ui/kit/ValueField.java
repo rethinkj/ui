@@ -108,6 +108,8 @@ public final class ValueField {
         this.value = value;
         text = format.text(value);
         error = format.parse(text).error();
+      } else if (error != null) {
+        error = format.parse(text).error(); // in the view's texts, also after they changed
       }
     }
 

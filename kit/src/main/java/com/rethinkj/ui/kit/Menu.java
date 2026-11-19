@@ -154,6 +154,16 @@ public final class Menu {
           label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
+    /**
+     * The text shown at the item's right: its own, or else its key combination as {@link
+     * #shortcutText} writes it where this is called, so that an item kept in the app's state
+     * names its keys in the texts of the menu it shows in.
+     */
+    @Override
+    public String shortcut() {
+      return shortcut == null && keys != null ? shortcutText(keys) : shortcut;
+    }
+
     /** This item with a text shown at its right, which only shows: no key runs the item. */
     public Item shortcut(String text) {
       return new Item(
@@ -172,16 +182,8 @@ public final class Menu {
     public Item shortcut(int modifiers, String key) {
       Key k = combination(modifiers, key);
       return new Item(
-          label,
-          shortcutText(k),
-          k,
-          checked,
-          icon,
-          onChoose,
-          submenu,
-          leading,
-          dangerous,
-          moreKeys);
+          label, null, // written where the menu shows, in its texts: see shortcut()
+          k, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /**

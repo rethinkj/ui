@@ -28,7 +28,9 @@ import java.util.StringJoiner;
  * <p>A method's default is the English text. Methods with parameters build a whole sentence, so
  * that each language puts its words in its own order. {@link Format}'s messages and {@link
  * Menu#shortcutText} read the texts where they are called: the kit's own handlers run them in the
- * texts of the view they came from, a handler of the app in its own (see {@link Context}).
+ * texts of the view they came from, a handler of the app in its own (see {@link Context}). A
+ * message a handler wrote before the texts changed, such as a refused cell's in a data grid, stays
+ * as it was until it goes.
  */
 public interface Texts {
 
@@ -326,6 +328,16 @@ public interface Texts {
 
   default String replacingTookTooLong() {
     return "Replacing took too long";
+  }
+
+  /** A replacement whose dollar and opening brace have no closing brace after them. */
+  default String unclosedGroup() {
+    return "A ${ without its }";
+  }
+
+  /** A replacement with {@code $2} where the pattern has fewer groups. */
+  default String noGroup(int number) {
+    return "No group " + number;
   }
 
   /** Which match is selected: {@code 3 of 17}; {@code total} may be {@code 1000+}. */

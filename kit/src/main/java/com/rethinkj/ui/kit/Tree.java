@@ -189,9 +189,13 @@ public final class Tree {
     return new Children.Ready<>(nodes);
   }
 
-  /** Children not known yet, whose row says {@link Texts#loading} of the texts where this is called. */
+  // The kit's own row of children on their way, which says Texts.loading of the view it shows in.
+  private static final Children.Loading<?> LOADING = new Children.Loading<>("Loading…");
+
+  /** Children not known yet, whose row says {@link Texts#loading} in the view's texts. */
+  @SuppressWarnings("unchecked")
   public static <N> Children<N> loading() {
-    return loading(Texts.CURRENT.get().loading());
+    return (Children<N>) LOADING;
   }
 
   /** Children not known yet, whose row says {@code text}. */
@@ -304,7 +308,9 @@ public final class Tree {
         if (pending.children() instanceof Children.Failed<?> failure) {
           return failed(theme, r, failure, depth + 1, height);
         }
-        String text = ((Children.Loading<?>) pending.children()).text();
+        String text = pending.children() == LOADING
+            ? Texts.CURRENT.get().loading()
+            : ((Children.Loading<?>) pending.children()).text();
         El loading = Label.label(Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
         r.role("status").label(text).children(Progress.spinner(), loading);
         return whole(theme, r, loading, null, text, height);

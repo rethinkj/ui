@@ -360,7 +360,7 @@ final class Search {
         if (next == '{') {
           int close = replacement.indexOf('}', i + 2);
           if (close < 0) {
-            throw new IllegalArgumentException("A ${ without its }");
+            throw new IllegalArgumentException(Texts.CURRENT.get().unclosedGroup());
           }
           String group = m.group(replacement.substring(i + 2, close));
           out.append(group == null ? "" : group);
@@ -378,7 +378,7 @@ final class Search {
             i++;
           }
           if (group > m.groupCount()) {
-            throw new IllegalArgumentException("No group " + group);
+            throw new IllegalArgumentException(Texts.CURRENT.get().noGroup(group));
           }
           String found = m.group(group);
           out.append(found == null ? "" : found);

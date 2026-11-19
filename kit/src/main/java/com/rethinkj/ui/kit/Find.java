@@ -579,15 +579,17 @@ public final class Find {
       // Only a match inside the part searched: never text outside a search in the selection.
       with = s < target.from()
           ? null
-          : Search.replacement(
-              state.search(),
-              pattern,
-              text,
-              s,
-              e,
-              target.to(),
-              state.replacement,
-              Search.deadline(SYNC_MILLIS));
+          : Texts.CURRENT.with(
+              state.texts,
+              () -> Search.replacement( // its messages: the bar's
+                  state.search(),
+                  pattern,
+                  text,
+                  s,
+                  e,
+                  target.to(),
+                  state.replacement,
+                  Search.deadline(SYNC_MILLIS)));
     } catch (Search.Stopped stopped) {
       state.replaceError = state.texts.replacingTookTooLong();
       return;
@@ -631,14 +633,16 @@ public final class Find {
     Search.Replaced replaced;
     state.replaceError = null;
     try {
-      replaced = Search.replaceAll(
-          state.search(),
-          pattern,
-          text,
-          target.from(),
-          target.to(),
-          state.replacement,
-          Search.deadline(BACKGROUND_MILLIS));
+      replaced = Texts.CURRENT.with(
+          state.texts,
+          () -> Search.replaceAll(
+              state.search(),
+              pattern,
+              text,
+              target.from(),
+              target.to(),
+              state.replacement,
+              Search.deadline(BACKGROUND_MILLIS)));
     } catch (Search.Stopped stopped) {
       state.replaceError = state.texts.replacingTookTooLong();
       return;
