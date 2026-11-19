@@ -89,11 +89,12 @@ import java.util.Map;
  * </pre>
  *
  * <p>A wider arc is 1 less the coverage of its gap, which is narrower: the same with {@code -y} for
- * {@code y} and {@code -c} for {@code c}. So each edge is smoothed as a straight one, and an arc or
- * a gap thinner than a pixel takes about as much of a pixel as it lies over, so that a ring at 1 %
- * shows a faint sliver and one at 99 % a faint gap, not a line of half coverage. {@code sin} and {@code cos} are the angle brought into a quarter turn around 0
- * and then the terms of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for
- * {@code erf} below, so that every renderer computes the same edges far from the center.
+ * {@code y} and {@code max(-cos(h), 0)} for {@code c}. So each edge is smoothed as a straight one,
+ * and an arc or a gap thinner than a pixel takes about as much of a pixel as it lies over, so that
+ * a ring at 1 % shows a faint sliver and one at 99 % a faint gap, not a line of half coverage.
+ * {@code sin} and {@code cos} are the angle brought into a quarter turn around 0 and then the terms
+ * of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for {@code erf} below,
+ * so that every renderer computes the same edges far from the center.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *

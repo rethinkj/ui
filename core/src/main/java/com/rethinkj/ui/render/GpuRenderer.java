@@ -275,7 +275,7 @@ public final class GpuRenderer implements AutoCloseable {
       // The coverage of an arc of at most half a turn at a point q.x beside its bisector, 0 or
       // more, and q.y along it, with the sine and cosine of half its angle in h.
       fn narrow(q: vec2f, half: vec2f) -> f32 {
-        // At half a turn the cosine is 0 up to rounding, whose sign would pick the near edge's side.
+        // At half a turn the cosine is 0 up to rounding, whose sign would pick the near edge.
         let h = vec2f(half.x, max(half.y, 0.0));
         let r = sqrt(q.x * q.x + q.y * q.y);
         let near = select(-r, -q.x * h.y + q.y * h.x, q.x * h.x + q.y * h.y >= 0.0);

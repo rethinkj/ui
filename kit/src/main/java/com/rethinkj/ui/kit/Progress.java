@@ -141,8 +141,8 @@ public final class Progress {
    * A ring of {@link Theme.Sizes#icon} that fills clockwise from the top as the work goes on, for
    * a place too small for a bar, such as a button: the faint ring of a {@link #spinner}, and the
    * part done over it in the accent's edge, which follows the value with {@link
-   * Theme.Motion#move}. In a tree dump it is a bar, {@code role=progressbar} with its value, and the
-   * part done is {@code #fill}.
+   * Theme.Motion#move}. In a tree dump it is a bar, {@code role=progressbar} with its value, and
+   * the part done is {@code #fill}.
    *
    * @param fraction how much is done, from 0 to 1, clamped; NaN is 0
    */

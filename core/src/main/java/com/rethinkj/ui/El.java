@@ -768,9 +768,9 @@ public final class El {
   /**
    * Draws this element's own fill and border only within an arc around its center: from {@code
    * start}, in turns clockwise from the top, over {@code sweep} turns. A round element with a
-   * border becomes a ring cut off square at both ends, as a {@code Progress} ring, one with a fill a
-   * pie. A sweep of 0 draws neither, 1, the default, both whole. The arc's edges are smoothed like
-   * any other. Its shadows, image, children, clip and focus ring stay whole, and so does what
+   * border becomes a ring cut off square at both ends, as a {@code Progress} ring, one with a fill
+   * a pie. A sweep of 0 draws neither, 1, the default, both whole. The arc's edges are smoothed
+   * like any other. Its shadows, image, children, clip and focus ring stay whole, and so does what
    * takes a press. With {@link #motion} the sweep springs like the other values; the start
    * changes at once.
    *
