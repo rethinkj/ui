@@ -101,7 +101,7 @@ Because native message boxes block all windows, prefer the kit's [Dialog](/docs/
 ```java snippet="open-uri"
 ```
 
-`app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It returns once the browser has started; a failure arrives in `onError` as a posted task. Any other scheme, such as `file:` or `mailto:` from a document's link, goes to `onError` without opening anything. Success means the system started a browser, not that the page loaded.
+`app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It hands the address to the system and returns; a failure the system reports arrives in `onError` as a posted task. Any other scheme, such as `file:` or `mailto:` from a document's link, goes to `onError` without opening anything. No error does not mean that a browser started or the page loaded.
 
 ## Headless scripts
 

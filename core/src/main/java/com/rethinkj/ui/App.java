@@ -1399,8 +1399,9 @@ public final class App<S> {
    * Opens a web address in the system's default browser, and hands what went wrong to {@code
    * onError} as a {@link #post posted} task. Only an absolute {@code http} or {@code https}
    * address opens; any other, such as one a document links to, goes to {@code onError}. Call it
-   * on the app's thread, usually in a handler; it returns once the system has started the
-   * browser, not when the page has loaded, and no error comes when the browser cannot load it.
+   * on the app's thread, usually in a handler; it returns once it has handed the address to the
+   * system, and {@code onError} hears only what the system reports then, not whether a browser
+   * started or the page loaded.
    * Under a {@link Script} nothing opens: a {@code snap} writes the addresses opened so far.
    *
    * <pre>{@code
@@ -1410,14 +1411,10 @@ public final class App<S> {
   public void openUri(URI uri, Consumer<String> onError) {
     Objects.requireNonNull(uri, "uri");
     Objects.requireNonNull(onError, "onError");
-    AtomicBoolean answered = new AtomicBoolean();
-    Consumer<String> failed = error -> {
-      if (answered.compareAndSet(false, true)) {
-        post(() -> onError.accept(error));
-      }
-    };
+    Consumer<String> failed = error -> post(() -> onError.accept(error));
     String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-    if (!(scheme.equals("http") || scheme.equals("https")) || uri.getHost() == null) {
+    // The authority, not getHost(), which is null for a host such as bücher.example.
+    if (!(scheme.equals("http") || scheme.equals("https")) || uri.getRawAuthority() == null) {
       failed.accept(uri + " is not a web address: only http and https addresses open.");
       return;
     }

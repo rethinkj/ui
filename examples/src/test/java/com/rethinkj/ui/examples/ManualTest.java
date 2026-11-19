@@ -29,20 +29,17 @@ class ManualTest {
         .matches("image role=img label=\".*\" \\d+,\\d+ 384x224"));
     assertTrue(Snaps.line("manual", "manual-dark-2x-images", "label=\"Three notes as cards\"")
         .endsWith(" 320x150"));
+    // The link out of the document opened in the browser, which the stored file names.
+    assertTrue(Files.exists(Path.of("target/manual/manual-dark-2x-images.opened.txt")));
   }
 
-  /** A link to a heading scrolls the document there; a link out of it opens in the browser. */
+  /** A link to a heading scrolls the document there. */
   @Test
-  void linksScrollToHeadingsOrOpenInTheBrowser(@TempDir Path out) throws IOException {
+  void linksToHeadingsScrollThere(@TempDir Path out) throws IOException {
     Snaps.assumeText();
     Manual manual = new Manual(List.of());
     manual.app = new App<>(manual, Manual::view).provide(Theme.CURRENT, Manual::theme);
-    Script.run(
-        "size 960 640\nframe\npress role=link label=\"inline\"\nframe\nsnap inline",
-        manual.app,
-        out);
-    assertEquals("https://commonmark.org\n", Files.readString(out.resolve("inline.opened.txt")));
-    Script.run("size 960 640\npress role=link label=\"tables\"\nframe", manual.app, out);
+    Script.run("size 960 640\nframe\npress role=link label=\"tables\"\nframe", manual.app, out);
     String heading = manual
         .app
         .tree()

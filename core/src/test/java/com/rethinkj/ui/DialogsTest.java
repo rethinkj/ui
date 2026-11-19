@@ -282,7 +282,7 @@ class DialogsTest {
   @Test
   void aScriptNotesTheWebAddressesAnAppOpensAndRefusesOthers(@TempDir Path out) throws IOException {
     App<Opener> app = opener();
-    app.state().address = "https://example.com/a?b=1";
+    app.state().address = "https://bücher.example/a?b=1";
     Script.run("""
         size 80 40
         frame
@@ -290,7 +290,8 @@ class DialogsTest {
         frame
         snap opened
         """, app, out);
-    assertEquals("https://example.com/a?b=1\n", Files.readString(out.resolve("opened.opened.txt")));
+    assertEquals(
+        "https://bücher.example/a?b=1\n", Files.readString(out.resolve("opened.opened.txt")));
     app.state().address = "file:///etc/passwd";
     Script.run("press #open\nframe\nawait\nframe", app, out);
     assertEquals(
