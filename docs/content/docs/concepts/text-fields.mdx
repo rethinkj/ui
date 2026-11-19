@@ -32,7 +32,7 @@ To preserve cursor, selection, scroll position, and undo history across tab swit
 | Method | Description |
 | --- | --- |
 | `multiline()`, `lines(n)`, `fitLines()` | Multi-line mode; fixed height of `n` lines; or auto-height to fit all lines |
-| `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling |
+| `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling; a single-line field without a width is as wide as its text, up to the room its layout gives it |
 | `readOnly()`, `editable(null)` | Read-only (selectable/copyable) vs. disabled |
 | `maxLength(n)` | Maximum length in Unicode code points |
 | `masked()` | Password field (displays `•`) |

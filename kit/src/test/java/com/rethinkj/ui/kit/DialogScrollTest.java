@@ -161,16 +161,17 @@ class DialogScrollTest {
             .overlay(Dialog.dialog(
                 "About",
                 Properties.properties(
-                    List.of(
+                    List.of( // the widest value first, focused with the caret at its end
+                        Properties.property("Website", "https://db.hoori.dev"),
                         Properties.property("Version", "Development build"),
-                        Properties.property("Author", "Patrick Trautmann"),
-                        Properties.property("Website", "https://db.hoori.dev")),
+                        Properties.property("Author", "Patrick Trautmann")),
                     null),
                 List.of(),
                 () -> {})));
     Script.run("size " + width + " 760\nframe\nadvance 0.25\nframe\n", app, out);
     String dump = app.tree().dump();
     assertFalse(StructureTest.line(dump, "#dialog-content ").contains("thumb"), dump);
+    assertEquals(0, app.focused().text().scroll(), "the value shows its start: " + dump);
     float row = StructureTest.rect(StructureTest.line(dump, "label=\"Website\""))[3];
     float control = Theme.DARK.size().control();
     if (width > 1000) {

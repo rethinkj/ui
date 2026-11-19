@@ -1,1 +1,1 @@
-- A single-line field that wraps, such as a `Properties` value, now measures as wide as its text on one line, so a dialog or other box sized to its content fits it without wrapping or scrolling; it wraps only where the window leaves no room.
+- A single-line field that wraps, such as a `Properties` value, now measures as wide as its text on one line, so a dialog or other box sized to its content fits it; it wraps only where its layout has no room for the line, and the box grows as high as its lines.

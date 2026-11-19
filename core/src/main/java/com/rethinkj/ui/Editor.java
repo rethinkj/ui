@@ -1346,7 +1346,7 @@ final class Editor {
   }
 
   /** Whole physical pixels, at least one. */
-  private static float caretWidth(float scale) {
+  static float caretWidth(float scale) {
     return Math.max(1, Math.round(scale));
   }
 
