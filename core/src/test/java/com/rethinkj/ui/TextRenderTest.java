@@ -281,6 +281,13 @@ class TextRenderTest {
     assertEquals(1, share(el(), 0xFFDCDCDC), "L* 87.8, above 80: thinned");
     assertEquals(0.161f, share(el().fill(0x80FFFFFF), 0xFF999999), 0.001f);
     assertEquals(0.161f, share(el().fill(0xFFFFFFFF).opacity(0.99f), 0xFF999999), 0.001f);
+    // A fill cut to an arc: none of it behind the text, or a part not known.
+    assertEquals(
+        0, share(el().fill(0xFFFFFFFF).child(el().fill(0xFF000000).arc(0, 0)), 0xFF999999));
+    assertEquals(
+        0.161f,
+        share(el().fill(0xFFFFFFFF).child(el().fill(0xFF000000).arc(0, 0.5f)), 0xFF999999),
+        0.001f);
     // Stated.
     El told = el();
     assertEquals(0, share(told, El.text("Hi").color(0xFFDCDCDC).textBackground(0xFFFFFFFF)));

@@ -137,9 +137,13 @@ final class ReferenceCpuRenderer {
           double across = Math.abs(x * bisector[1] + y * bisector[0]);
           double along = x * bisector[0] - y * bisector[1];
           double length = StrictMath.sqrt(x * x + y * y);
-          coverage *= gap >= 0.5
-              ? CpuRenderer.narrow(across, along, length, half[0], half[1], scale)
-              : 1 - CpuRenderer.narrow(across, -along, length, half[0], -half[1], scale);
+          coverage *= CpuRenderer.apex(
+              sweep <= 0.5
+                  ? CpuRenderer.narrow(across, along, length, half[0], half[1], scale)
+                  : 1 - CpuRenderer.narrow(across, -along, length, half[0], -half[1], scale),
+              sweep,
+              length,
+              scale);
         }
         if (coverage <= 0) {
           continue;

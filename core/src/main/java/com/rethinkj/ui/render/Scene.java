@@ -94,7 +94,9 @@ import java.util.Map;
  * a ring at 1 % shows a faint sliver and one at 99 % a faint gap, not a line of half coverage.
  * {@code sin} and {@code cos} are the angle brought into a quarter turn around 0 and then the terms
  * of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for {@code erf} below,
- * so that every renderer computes the same edges far from the center.
+ * so that every renderer computes the same edges far from the center. Within a physical pixel of
+ * the center, where the edges meet and neither formula holds, the coverage goes from {@code sweep}
+ * at the center to the formula's a pixel away: {@code sweep + (arc - sweep) min(|p| scale, 1)}.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *
@@ -606,7 +608,10 @@ public final class Scene {
       inner = clip(left, top, left + width, top + height, radii, clip);
     }
     if (inner >= 0) { // else everything below is clipped away
-      float content = over(el.fill(), opacity, behind);
+      // A fill cut to an arc lies behind none of the content, or behind a part not known here.
+      float content = el.arcSweep() == 1 || el.fill() >>> 24 == 0
+          ? over(el.fill(), opacity, behind)
+          : el.arcSweep() == 0 ? behind : Float.NaN;
       if (el.text() != null) {
         for (El child : el.children()) {
           if (child.rangeBoxes() != null) {
@@ -994,9 +999,8 @@ public final class Scene {
       return behind;
     }
     // shortcut: only the fill of the element itself and its ancestors count; text over an earlier
-    // sibling, an absolutely placed box, a border, outside a rounded corner or outside an arc gets
-    // the background further up, or none. Paint the scene into a coarse grid of colors when that
-    // shows.
+    // sibling, an absolutely placed box, a border or outside a rounded corner gets the background
+    // further up, or none. Paint the scene into a coarse grid of colors when that shows.
     float luminance = luminance(fill);
     return alpha == 1 ? luminance : luminance * alpha + behind * (1 - alpha);
   }

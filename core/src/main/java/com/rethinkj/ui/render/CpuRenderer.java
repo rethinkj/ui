@@ -1099,13 +1099,13 @@ public final class CpuRenderer {
 
   /**
    * The arc a rectangle shows within, as {@link Scene} says: around the center {@code centerX,
-   * centerY}, whether it covers at most half a turn, and the sine and cosine of its bisector and of
-   * half its angle.
+   * centerY}, the part of a turn it covers, and the sine and cosine of its bisector and of half its
+   * angle.
    */
   private record Arc(
       double centerX,
       double centerY,
-      boolean atMostHalf,
+      double sweep,
       double sinB,
       double cosB,
       double sinH,
@@ -1115,7 +1115,7 @@ public final class CpuRenderer {
       double sweep = 1 - gap;
       double[] b = turn(start + sweep / 2);
       double[] h = turn(sweep / 2);
-      return new Arc(centerX, centerY, gap >= 0.5, b[0], b[1], h[0], h[1]);
+      return new Arc(centerX, centerY, sweep, b[0], b[1], h[0], h[1]);
     }
 
     /** How much of the pixel centered at {@code x, y} the arc lets through. */
@@ -1125,9 +1125,13 @@ public final class CpuRenderer {
       double across = Math.abs(px * cosB + py * sinB);
       double along = px * sinB - py * cosB;
       double length = StrictMath.sqrt(px * px + py * py);
-      return atMostHalf
-          ? narrow(across, along, length, sinH, cosH, scale)
-          : 1 - narrow(across, -along, length, sinH, -cosH, scale);
+      return apex(
+          sweep <= 0.5
+              ? narrow(across, along, length, sinH, cosH, scale)
+              : 1 - narrow(across, -along, length, sinH, -cosH, scale),
+          sweep,
+          length,
+          scale);
     }
   }
 
@@ -1142,6 +1146,14 @@ public final class CpuRenderer {
     double near = x * sin + y * cos >= 0 ? -x * cos + y * sin : -length;
     double far = y * cos - x * sin >= 0 ? x * cos + y * sin : length;
     return Math.max(coverage(-near, scale) + coverage(-far, scale) - 1, 0);
+  }
+
+  /**
+   * An arc's coverage near its center, where its edges meet: from {@code sweep} at the center to
+   * {@code coverage} a physical pixel away.
+   */
+  static double apex(double coverage, double sweep, double length, double scale) {
+    return sweep + (coverage - sweep) * Math.min(length * scale, 1);
   }
 
   /**

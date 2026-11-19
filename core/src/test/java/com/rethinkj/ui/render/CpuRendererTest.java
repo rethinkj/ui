@@ -54,6 +54,21 @@ class CpuRendererTest {
   }
 
   @Test
+  void anArcCoversThePixelAtItsCenterByThePartOfATurnItSweeps() {
+    El half = el().size(21, 21).radius(10.5f).fill(RED).arc(0, 0.5f);
+    El quarter = el().absolute(30, 0).size(21, 21).radius(10.5f).fill(RED).arc(0, 0.25f);
+    El root = el().size(60, 21).children(half, quarter);
+    Flex.layout(root, 60, 21);
+
+    Pixels image = CpuRenderer.render(Scene.of(root, 1), 60, 21, 1);
+
+    assertEquals(0x80, image.argb(10, 10) >>> 24, "on the diameter of half a pie");
+    assertEquals(RED, image.argb(15, 10), "inside it");
+    assertEquals(0, image.argb(5, 10), "outside it");
+    assertEquals(0x40, image.argb(40, 10) >>> 24, "at the tip of a quarter");
+  }
+
+  @Test
   void drawsTheBorderInsideTheRectangle() {
     Scene scene = new Scene();
     scene.rect(0, 0, 8, 8, 0, 2, RED, BLUE);
