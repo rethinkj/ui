@@ -14,7 +14,7 @@ For an on/off setting, use [Toggle](/docs/components/toggle). For a row of actio
 
 Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/api/com/rethinkj/ui/kit/Button.Options.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,busy icon,small,large,menu,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
+<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,busy icon,progress icon,small,large,menu,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
 
 ## Example
 
@@ -37,6 +37,7 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 | `state(READY)` | Normal clickable state (default) |
 | `state(BUSY)` | Shows a spinner while an action runs. Ignores clicks, Enter, and Space, keeps its width and focus, and works even with a `null` handler |
 | `state(DISABLED)` | Disables the button while keeping the handler in your view code (same behavior as a `null` handler) |
+| `progress(fraction)` | While `BUSY`, shows a ring that fills from `0.0` to `1.0` in place of the spinner, as for a download |
 | `busyText(text)` | Text shown beside the spinner while `BUSY` (e.g., `"Saving…"`). Keeps the button width stable across ready/busy states |
 | `tone(Tone.DANGER)` | Red styling for destructive actions (`PRIMARY` filled red, `SECONDARY` red text/border, `GHOST` red text) |
 | `size(Size.SMALL)`, `size(Size.LARGE)` | Height `20` or `32` instead of default `24` (`SMALL` for compact rows, `LARGE` for empty-state calls to action) |

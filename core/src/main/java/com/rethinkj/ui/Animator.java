@@ -33,12 +33,15 @@ import java.util.Set;
 final class Animator {
 
   // The animated numbers: x, y, width, height and the four corners' radii in pixels, then the
-  // fill, the border and the text color as alpha, red, green and blue, then the opacity.
-  private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, COUNT = 21;
+  // fill, the border and the text color as alpha, red, green and blue, then the opacity and the
+  // sweep of an arc.
+  private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, SWEEP = 21;
+  private static final int COUNT = 22;
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
-  // quarter of a color step, which rounds to the target; for opacity, a quarter of 1/255.
-  private static final double PIXELS = 0.01, CHANNELS = 0.25;
+  // quarter of a color step, which rounds to the target; for opacity, a quarter of 1/255; for a
+  // sweep, a ten-thousandth of a turn, a twentieth of a pixel on a ring a hundred pixels across.
+  private static final double PIXELS = 0.01, CHANNELS = 0.25, TURNS = 1e-4;
 
   /**
    * The part is the element's key or, when it has none, its index as an Integer; for a row of a
@@ -52,7 +55,7 @@ final class Animator {
   /** Where an element is in a virtual list: the list, its identity and the index of the row. */
   record InRow(El list, Object listId, int row) {}
 
-  // shortcut: every element keeps twenty-one tracks, also without motion, so that one that gains
+  // shortcut: every element keeps twenty-two tracks, also without motion, so that one that gains
   // motion moves from where it was; keep plain values for those when trees reach many thousands.
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
@@ -700,6 +703,7 @@ final class Animator {
     channels(el.borderColor(), values, BORDER);
     channels(el.text() == null ? 0 : el.text().color(), values, TEXT);
     values[OPACITY] = el.opacity();
+    values[SWEEP] = el.arcSweep();
     return values;
   }
 
@@ -724,7 +728,8 @@ final class Animator {
       this.id = id;
       this.opened = opened;
       for (int i = 0; i < COUNT; i++) {
-        double tolerance = i < FILL ? PIXELS : i < OPACITY ? CHANNELS : CHANNELS / 255;
+        double tolerance =
+            i < FILL ? PIXELS : i < OPACITY ? CHANNELS : i == OPACITY ? CHANNELS / 255 : TURNS;
         tracks[i] = new Track(values[i], tolerance);
       }
     }
@@ -752,6 +757,7 @@ final class Animator {
       }
       el.shownOpacity(
           (float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
+      el.arc(el.arcStart(), (float) Math.clamp(tracks[SWEEP].value(now), 0.0, 1.0));
     }
 
     private float at(int index, double now) {

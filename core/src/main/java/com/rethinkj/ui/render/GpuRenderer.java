@@ -112,9 +112,10 @@ public final class GpuRenderer implements AutoCloseable {
         // A rectangle's border color, f32; a glyph's page, and as f32 its light_share,
         // dark_gamma and light_gamma.
         more: vec4u,
-        // A rectangle's and a shadow's radii at the top right, bottom right and bottom left.
+        // A rectangle's and a shadow's radii at the top right, bottom right and bottom left; a
+        // rectangle's arc start.
         radii: vec4f,
-        // A rectangle's border widths at the right, the bottom and the left.
+        // A rectangle's border widths at the right, the bottom and the left; its arc gap.
         borders: vec4f,
       }
 
@@ -248,6 +249,47 @@ public final class GpuRenderer implements AutoCloseable {
       // How much of a pixel the shape covers: a ramp one physical pixel wide across the edge.
       fn coverage(distance: f32) -> f32 {
         return clamp(0.5 - distance * globals.scale, 0.0, 1.0);
+      }
+
+      // The sine and cosine of t turns: brought into a quarter turn around 0, then the terms of
+      // their series up to x^11 and x^12, by arithmetic alone, as on the CPU.
+      fn turn(t: f32) -> vec2f {
+        var r = t - floor(t + 0.5);
+        var flip = 1.0;
+        if r > 0.25 {
+          r = 0.5 - r;
+          flip = -1.0;
+        } else if r < -0.25 {
+          r = -0.5 - r;
+          flip = -1.0;
+        }
+        let x = r * 6.283185307179586;
+        let x2 = x * x;
+        let s = x * (1.0 - x2 / 6.0 * (1.0 - x2 / 20.0 * (1.0 - x2 / 42.0 * (1.0 - x2 / 72.0
+            * (1.0 - x2 / 110.0)))));
+        let c = 1.0 - x2 / 2.0 * (1.0 - x2 / 12.0 * (1.0 - x2 / 30.0 * (1.0 - x2 / 56.0
+            * (1.0 - x2 / 90.0 * (1.0 - x2 / 132.0)))));
+        return vec2f(s, flip * c);
+      }
+
+      // The coverage of an arc of at most half a turn at a point q.x beside its bisector, 0 or
+      // more, and q.y along it, with the sine and cosine of half its angle in h.
+      fn narrow(q: vec2f, h: vec2f) -> f32 {
+        let r = sqrt(q.x * q.x + q.y * q.y);
+        let near = select(-r, -q.x * h.y + q.y * h.x, q.x * h.x + q.y * h.y >= 0.0);
+        let far = select(r, q.x * h.y + q.y * h.x, q.y * h.y - q.x * h.x >= 0.0);
+        return max(coverage(-near) + coverage(-far) - 1.0, 0.0);
+      }
+
+      // How much of the pixel at p from a rectangle's center its arc lets through.
+      fn arc(p: vec2f, start: f32, sweep: f32) -> f32 {
+        let b = turn(start + sweep / 2.0);
+        let h = turn(sweep / 2.0);
+        let q = vec2f(abs(p.x * b.y + p.y * b.x), p.x * b.x - p.y * b.y);
+        if h.y >= 0.0 {
+          return narrow(q, h);
+        }
+        return 1.0 - narrow(vec2f(q.x, -q.y), vec2f(h.x, -h.y));
       }
 
       // How much of the pixel centered at point, in logical pixels, the clip lets through: the
@@ -474,6 +516,13 @@ public final class GpuRenderer implements AutoCloseable {
         // Entry 0 covers everything; it is skipped like on the CPU.
         if instance.clip != 0u {
           cover *= clip_coverage(instance.clip, point);
+        }
+        let gap = instance.borders.w;
+        if gap >= 1.0 {
+          discard;
+        }
+        if gap > 0.0 {
+          cover *= arc(p, instance.radii.w, 1.0 - gap);
         }
         if cover <= 0.0 {
           discard;

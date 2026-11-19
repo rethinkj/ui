@@ -1,0 +1,1 @@
+- `Progress.ring(fraction)` shows progress as a ring that fills clockwise, and `Button.options().progress(fraction)` puts that ring in place of a busy button's spinner, as for a download. `El.arc(start, sweep)` draws an element's fill and border within an arc, and the sweep springs with `motion`.

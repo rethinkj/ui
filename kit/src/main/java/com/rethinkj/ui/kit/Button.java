@@ -75,13 +75,14 @@ public final class Button {
     /** It takes a press, if it has a handler: the default. */
     READY,
     /**
-     * Its action runs. A {@link Progress#spinner} in the text's color stands in place of its icon,
-     * or, without one, over the middle of its text, which keeps its place unseen so that the button
-     * keeps its width; with {@link Options#busyText} it stands before that text instead. It takes
-     * no press, but keeps its colors, its place in the order of Tab and the focus, so that nothing
-     * jumps when the work ends; Enter and Space on it do nothing and reach no other handler. A
-     * button is busy also without a handler. A tree dump says {@code busy}, WAI-ARIA's {@code
-     * aria-busy}, which a script selects as {@code role=button busy}.
+     * Its action runs. A {@link Progress#spinner} in the text's color, or a {@link Progress#ring}
+     * with {@link Options#progress}, stands in place of its icon, or, without one, over the middle
+     * of its text, which keeps its place unseen so that the button keeps its width; with {@link
+     * Options#busyText} it stands before that text instead. It takes no press, but keeps its
+     * colors, its place in the order of Tab and the focus, so that nothing jumps when the work
+     * ends; Enter and Space on it do nothing and reach no other handler. A button is busy also
+     * without a handler. A tree dump says {@code busy}, WAI-ARIA's {@code aria-busy}, which a
+     * script selects as {@code role=button busy}.
      */
     BUSY,
     /** Off, exactly as with a null handler while the view keeps its handler (see {@link Button}). */
@@ -122,6 +123,7 @@ public final class Button {
     private Symbol icon;
     private State state = State.READY;
     private String busyText;
+    private double progress = Double.NaN;
     private Tone tone = Tone.NEUTRAL;
     private Size size = Size.REGULAR;
     private Key shortcut;
@@ -152,6 +154,16 @@ public final class Button {
      */
     public Options busyText(String text) {
       this.busyText = text;
+      return this;
+    }
+
+    /**
+     * How far the work of a busy button has come, from 0 to 1, clamped: a {@link Progress#ring}
+     * stands in place of its spinner and fills as the value grows, as while a download runs. NaN,
+     * the default, keeps the spinner, for work whose length is not known.
+     */
+    public Options progress(double fraction) {
+      this.progress = fraction;
       return this;
     }
 
@@ -187,6 +199,7 @@ public final class Button {
       copy.icon = icon;
       copy.state = state;
       copy.busyText = busyText;
+      copy.progress = progress;
       copy.tone = tone;
       copy.size = size;
       copy.shortcut = shortcut;
@@ -232,7 +245,7 @@ public final class Button {
    *
    * @param text what the button says, also its label
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
-   * @param options its icon, state, busy text, tone, size and shortcut
+   * @param options its icon, state, busy text, progress, tone, size and shortcut
    */
   public static El button(Variant variant, String text, Runnable onPress, Options options) {
     Theme theme = Theme.CURRENT.get();
@@ -246,7 +259,7 @@ public final class Button {
     El label = label(theme, look, shown);
     // The spinner stands in the icon's place.
     El lead = busy
-        ? spinner(theme, variant, look)
+        ? spinner(theme, variant, look, options.progress)
         : options.icon == null
             ? null
             : icon(theme, variant, options.tone, state, look, options.icon);
@@ -301,14 +314,14 @@ public final class Button {
   }
 
   /**
-   * A square button with an icon alone and its options: busy, a spinner stands in place of the
-   * icon; with {@link Tone#DANGER} the icon has the tone's color, else it is muted unless the
-   * button is primary; a shortcut follows the label in its tooltip.
+   * A square button with an icon alone and its options: busy, a spinner, or a ring with a
+   * progress, stands in place of the icon; with {@link Tone#DANGER} the icon has the tone's color,
+   * else it is muted unless the button is primary; a shortcut follows the label in its tooltip.
    *
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
-   * @param options its state, tone, size and shortcut; no icon, which is {@code icon}; a busy
-   *     text does not show
+   * @param options its state, progress, tone, size and shortcut; no icon, which is {@code
+   *     icon}; a busy text does not show
    */
   public static El icon(
       Variant variant, Symbol icon, String label, Runnable onPress, Options options) {
@@ -323,7 +336,9 @@ public final class Button {
         .w(height(theme, options.size));
     if (state == State.BUSY) {
       return Tooltip.tooltip(
-          busy(theme, look, button.child(spinner(theme, variant, look))), label, options.tip());
+          busy(theme, look, button.child(spinner(theme, variant, look, options.progress))),
+          label,
+          options.tip());
     }
     button.child(icon(theme, variant, options.tone, state, look, icon));
     return Tooltip.tooltip(
@@ -379,15 +394,14 @@ public final class Button {
                 : theme.text().muted());
   }
 
-  /** The spinner of a busy button, in its text's color. */
-  private static El spinner(Theme theme, Variant variant, Look look) {
-    return Progress.spinner(
-        theme,
-        theme.size().icon(),
-        look.text(),
-        variant == Variant.PRIMARY
-            ? theme.border().trackOnAccent()
-            : theme.border().track());
+  /** The spinner of a busy button, or its ring with a progress, in its text's color. */
+  private static El spinner(Theme theme, Variant variant, Look look, double progress) {
+    int track = variant == Variant.PRIMARY
+        ? theme.border().trackOnAccent()
+        : theme.border().track();
+    return Double.isNaN(progress)
+        ? Progress.spinner(theme, theme.size().icon(), look.text(), track)
+        : Progress.ring(theme, theme.size().icon(), progress, look.text(), track);
   }
 
   /** Makes a button busy: focusable, but Enter, Space and the pointer press nothing. */
@@ -540,8 +554,8 @@ public final class Button {
    * ({@link State#DISABLED}), both halves are off and there is no menu: one that was open closes.
    * The tone and the size apply to both halves, the shortcut to the main one.
    *
-   * @param options the main half's icon, state, busy text and shortcut, and the tone and size of
-   *     both
+   * @param options the main half's icon, state, busy text, progress and shortcut, and the tone
+   *     and size of both
    */
   public static El split(
       Variant variant,
@@ -606,7 +620,7 @@ public final class Button {
    * A menu button with its options. Busy or off, it opens nothing, and a menu that was open
    * closes.
    *
-   * @param options its icon, state, busy text, tone, size and shortcut
+   * @param options its icon, state, busy text, progress, tone, size and shortcut
    */
   public static El menu(
       Variant variant, String text, Menu.State state, List<Menu.Item> items, Options options) {

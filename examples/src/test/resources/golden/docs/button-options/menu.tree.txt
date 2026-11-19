@@ -6,7 +6,7 @@ el 0,0 420x170
       text "Discard" 118,16 47x16
     el role=button label="Delete row" 182,12 24x24
       text label="delete" "\u{E47B}" 186,16 16x16
-  el 12,44 181x24
+  el 12,44 209x24
     el role=button label="Save" 12,44 56x24 disabled
       text "Save" 25,48 30x16
     el role=button label="Refresh" 72,44 24x24 busy
@@ -16,18 +16,22 @@ el 0,0 420x170
         el 76,48 16x16
         el 76,48 16x16
         el 76,48 16x16
-    el #split 100,44 93x24
-      el #main role=button label="Run" 100,44 70x24 busy
-        el role=progressbar label="Loading" 113,48 16x16
-          el 113,48 16x16
-          el 113,48 16x16
-          el 113,48 16x16
-          el 113,48 16x16
-          el 113,48 16x16
-        text "Run" 133,48 24x16
-      el 170,44 1x24
-      el #arrow role=button label="More Run" 171,44 22x24 expanded
-        text label="chevron_down" "\u{F2A2}" 174,49 16x16
+    el role=button label="Download update" 100,44 24x24 busy
+      el role=progressbar 104,48 16x16 value="42%"
+        el 104,48 16x16
+        el #fill 104,48 16x16
+    el #split 128,44 93x24
+      el #main role=button label="Run" 128,44 70x24 busy
+        el role=progressbar label="Loading" 141,48 16x16
+          el 141,48 16x16
+          el 141,48 16x16
+          el 141,48 16x16
+          el 141,48 16x16
+          el 141,48 16x16
+        text "Run" 161,48 24x16
+      el 198,44 1x24
+      el #arrow role=button label="More Run" 199,44 22x24 expanded
+        text label="chevron_down" "\u{F2A2}" 202,49 16x16
   el 12,76 380x32
     el role=button label="Commit" 12,80 130x24 busy
       el 25,84 104x16
@@ -47,13 +51,13 @@ el 0,0 420x170
     el role=button label="New connection" 236,76 156x32
       text label="add" "\u{F108}" 253,84 16x16
       text "New connection" 273,84 102x16
-overlay bottom start gap 2 on #split 100,44 93x24
-  el #menu role=menu 100,70 134x58 focused
-    el #item-0 role=menuitem label="Run selection" 105,75 124x24 current
-      el 105,75 124x24
-        el 113,87 16x0
-        text "Run selection" 137,79 84x16
-    el #item-1 role=menuitem label="Cancel" 105,99 124x24
-      el 105,99 124x24
-        el 113,111 16x0
-        text "Cancel" 137,103 84x16
+overlay bottom start gap 2 on #split 128,44 93x24
+  el #menu role=menu 128,70 134x58 focused
+    el #item-0 role=menuitem label="Run selection" 133,75 124x24 current
+      el 133,75 124x24
+        el 141,87 16x0
+        text "Run selection" 165,79 84x16
+    el #item-1 role=menuitem label="Cancel" 133,99 124x24
+      el 133,99 124x24
+        el 141,111 16x0
+        text "Cancel" 165,103 84x16

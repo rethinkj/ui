@@ -95,6 +95,14 @@ final class ReferenceCpuRenderer {
     double innerHalfH = halfH - (in[0] + in[2]) / 2;
     double innerX = centerX + (in[3] - in[1]) / 2;
     double innerY = centerY + (in[0] - in[2]) / 2;
+    // An arc: its bisector and half its angle, as sines and cosines.
+    double gap = scene.get(i, Scene.ARC_GAP);
+    if (gap >= 1) {
+      return;
+    }
+    double sweep = 1 - gap;
+    double[] bisector = CpuRenderer.turn(scene.get(i, Scene.ARC_START) + sweep / 2);
+    double[] half = CpuRenderer.turn(sweep / 2);
 
     // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
     int left = first(centerX - halfW, scale, width);
@@ -124,6 +132,14 @@ final class ReferenceCpuRenderer {
         double coverage = coverage(distance(x, y, halfW, halfH, radius, radius), scale);
         if (clip != 0) {
           coverage *= clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
+        }
+        if (gap > 0) {
+          double across = Math.abs(x * bisector[1] + y * bisector[0]);
+          double along = x * bisector[0] - y * bisector[1];
+          double length = StrictMath.sqrt(x * x + y * y);
+          coverage *= half[1] >= 0
+              ? CpuRenderer.narrow(across, along, length, half[0], half[1], scale)
+              : 1 - CpuRenderer.narrow(across, -along, length, half[0], -half[1], scale);
         }
         if (coverage <= 0) {
           continue;

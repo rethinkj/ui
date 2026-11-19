@@ -49,7 +49,8 @@ class ProgressTest {
                 Progress.bar(0.5, Progress.State.ERROR).key("failed"),
                 Progress.indeterminate().key("running"),
                 Progress.labeled("orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
-                Progress.spinner().key("spinner")));
+                Progress.spinner().key("spinner"),
+                Progress.ring(0.42).key("ring")));
     run(app, "key Tab");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#bar").contains("role=progressbar label=\"Export\""));
@@ -61,6 +62,7 @@ class ProgressTest {
         dump);
     assertTrue(
         StructureTest.line(dump, "#spinner").contains("role=progressbar label=\"Loading\" "), dump);
+    assertTrue(StructureTest.line(dump, "#ring").endsWith(" value=\"42%\""), dump);
     assertNull(app.focused(), "none takes the focus");
     assertTrue(app.isMoving(), "the running bar and the spinner go round");
   }
@@ -78,7 +80,8 @@ class ProgressTest {
                     () -> st.pressed++,
                     Button.options()
                         .icon(Symbol.PLAY)
-                        .state(st.busy ? Button.State.BUSY : Button.State.READY))
+                        .state(st.busy ? Button.State.BUSY : Button.State.READY)
+                        .progress(st.fraction))
                 .key("run")));
     run(app, "key Tab\nframe\nkey Enter\nframe\npress role=button busy");
     assertEquals(0, s.pressed);
@@ -86,6 +89,16 @@ class ProgressTest {
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#run").contains(" busy"), dump);
     assertTrue(dump.contains("role=progressbar label=\"Loading\""), dump);
+
+    // With a progress, a ring stands in place of the spinner.
+    s.fraction = 0.75;
+    app.invalidate();
+    run(app, "");
+    dump = app.tree().dump();
+    assertFalse(dump.contains("label=\"Loading\""), dump);
+    assertTrue(
+        dump.lines().anyMatch(l -> l.contains("role=progressbar ") && l.endsWith(" value=\"75%\"")),
+        dump);
 
     s.busy = false;
     app.invalidate();

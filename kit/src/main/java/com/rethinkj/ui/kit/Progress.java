@@ -11,8 +11,8 @@ import com.rethinkj.ui.Style;
 /**
  * How far work has come, or that it runs: a bar with a value, a bar that runs while the length of
  * the work is not known, a thin line along a card's edge, a bar with its name and a text, and a
- * spinner for small places such as a button, a tab or a row of a tree. None takes the focus or
- * input.
+ * ring and a spinner for small places such as a button, a tab or a row of a tree. None takes the
+ * focus or input.
  *
  * <p>A bar is a track of {@link Theme.Sizes#progress} with round ends in {@link
  * Theme.Borders#control}, {@link Theme.Sizes#field} wide unless the view sets a width ({@code
@@ -137,6 +137,44 @@ public final class Progress {
         .label(label);
   }
 
+  /**
+   * A ring of {@link Theme.Sizes#icon} that fills clockwise from the top as the work goes on, for
+   * a place too small for a bar, such as a button: the faint ring of a {@link #spinner}, and the
+   * part done over it in the accent's edge, which follows the value with {@link
+   * Theme.Motion#move}. In a tree dump it is a bar, {@code role=progressbar} with its value, and the
+   * part done is {@code #fill}.
+   *
+   * @param fraction how much is done, from 0 to 1, clamped; NaN is 0
+   */
+  public static El ring(double fraction) {
+    Theme theme = Theme.CURRENT.get();
+    return ring(
+        theme,
+        theme.size().icon(),
+        fraction,
+        theme.accent().edge(),
+        theme.border().track());
+  }
+
+  /** A ring in other colors, as on a primary button. */
+  static El ring(Theme theme, float size, double fraction, int arc, int ring) {
+    float width = size / 8; // as a spinner's
+    El fill = el().key("fill")
+        .absolute(0, 0)
+        .size(size, size)
+        .radius(size / 2)
+        .border(width, arc)
+        .arc(0, (float) clamp(fraction))
+        .motion(theme.motion().move());
+    return states(
+        el().size(size, size)
+            .shrink(0)
+            .child(el().absolute(0, 0).size(size, size).radius(size / 2).border(width, ring))
+            .child(fill),
+        fraction,
+        State.NORMAL);
+  }
+
   /** A spinner of {@link Theme.Sizes#icon}, labeled "Loading". */
   public static El spinner() {
     Theme theme = Theme.CURRENT.get();
@@ -146,11 +184,10 @@ public final class Progress {
   /**
    * A spinner: a faint ring in {@link Theme.Borders#track}, which shows on every surface and
    * selection, round which a light arc in the accent's
-   * edge runs once per {@link Theme.Motion#spin} seconds. The core has no rotation and no arcs, so
-   * the arc is four crescents, each the ring's box with a border on one side alone, which tapers
-   * to nothing a quarter of a turn either way; their opacities follow the light round, each fading
-   * into the next, so it moves smoothly rather than from one spoke to the next. Labeled "Loading" unless the view sets
-   * another label.
+   * edge runs once per {@link Theme.Motion#spin} seconds. The arc is four crescents, each the
+   * ring's box with a border on one side alone, which tapers to nothing a quarter of a turn either
+   * way; their opacities follow the light round, each fading into the next, so it moves smoothly
+   * rather than from one spoke to the next. Labeled "Loading" unless the view sets another label.
    *
    * @param size the side, such as {@code size().icon()} for a button or a row
    */

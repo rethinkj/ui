@@ -146,6 +146,12 @@ public final class CpuRenderer {
     Box shape = new Box(centerX, centerY, halfW, halfH, radii, radii, null);
     Box inner = border ? inner(centerX, centerY, halfW, halfH, radii, borders, scale) : null;
 
+    double gap = scene.get(i, Scene.ARC_GAP);
+    if (gap >= 1) {
+      return;
+    }
+    Arc arc = gap > 0 ? Arc.of(centerX, centerY, scene.get(i, Scene.ARC_START), 1 - gap) : null;
+
     Box clip = Box.clip(scene, scene.clipOf(i));
     Bounds bounds = bounds(shape, clip, scale, width, height);
     if (bounds == null) {
@@ -165,7 +171,8 @@ public final class CpuRenderer {
     double[] fillShares = scratch.fillShare;
 
     // Elliptic corners of the fill are measured at every pixel: Box's argument is for circles.
-    boolean runs = inner == null || inner.circular();
+    // So is an arc, which leaves out pixels the shape covers whole.
+    boolean runs = (inner == null || inner.circular()) && arc == null;
     for (int py = bounds.top; py < bounds.bottom; py++) {
       double y = (py + 0.5) / scale;
       // A row that the fill reaches nowhere, as along a border at the top or the bottom, has
@@ -186,6 +193,7 @@ public final class CpuRenderer {
                   inner,
                   clip,
                   bounds.clipWhole,
+                  arc,
                   coverages,
                   fillShares,
                   share)
@@ -203,6 +211,7 @@ public final class CpuRenderer {
               inner,
               clip,
               bounds.clipWhole,
+              arc,
               coverages,
               fillShares,
               share)) {
@@ -321,6 +330,7 @@ public final class CpuRenderer {
       Box inner,
       Box clip,
       boolean clipWhole,
+      Arc arc,
       double[] coverages,
       double[] fillShares,
       int share) {
@@ -329,6 +339,9 @@ public final class CpuRenderer {
     double coverage = shape.coverage(x, y, scale);
     if (clip != null) {
       coverage *= clipWhole ? 1 : clip.coverage(x, y, scale);
+    }
+    if (arc != null) {
+      coverage *= arc.coverage(x, y, scale);
     }
     double fillShare = 1;
     if (border) {
@@ -479,6 +492,7 @@ public final class CpuRenderer {
               null,
               clip,
               bounds.clipWhole,
+              null,
               coverages,
               fillShares,
               1)) {
@@ -495,6 +509,7 @@ public final class CpuRenderer {
               null,
               clip,
               bounds.clipWhole,
+              null,
               coverages,
               fillShares,
               1)) {
@@ -1080,6 +1095,66 @@ public final class CpuRenderer {
     private boolean whole(int px, int py, double scale) {
       return coverage((px + 0.5) / scale, (py + 0.5) / scale, scale) == 1;
     }
+  }
+
+  /**
+   * The arc a rectangle shows within, as {@link Scene} says: around the center {@code centerX,
+   * centerY}, with the sine and cosine of its bisector and of half its angle.
+   */
+  private record Arc(
+      double centerX, double centerY, double sinB, double cosB, double sinH, double cosH) {
+
+    static Arc of(double centerX, double centerY, double start, double sweep) {
+      double[] b = turn(start + sweep / 2);
+      double[] h = turn(sweep / 2);
+      return new Arc(centerX, centerY, b[0], b[1], h[0], h[1]);
+    }
+
+    /** How much of the pixel centered at {@code x, y} the arc lets through. */
+    double coverage(double x, double y, double scale) {
+      double px = x - centerX;
+      double py = y - centerY;
+      double across = Math.abs(px * cosB + py * sinB);
+      double along = px * sinB - py * cosB;
+      double length = StrictMath.sqrt(px * px + py * py);
+      return cosH >= 0
+          ? narrow(across, along, length, sinH, cosH, scale)
+          : 1 - narrow(across, -along, length, sinH, -cosH, scale);
+    }
+  }
+
+  /**
+   * The coverage of an arc of at most half a turn at a point {@code x} beside its bisector, 0 or
+   * more, and {@code y} along it, {@code length} from its center, with the sine and cosine of half
+   * its angle.
+   */
+  static double narrow(double x, double y, double length, double sin, double cos, double scale) {
+    double near = x * sin + y * cos >= 0 ? -x * cos + y * sin : -length;
+    double far = y * cos - x * sin >= 0 ? x * cos + y * sin : length;
+    return Math.max(coverage(-near, scale) + coverage(-far, scale) - 1, 0);
+  }
+
+  /**
+   * The sine and cosine of {@code t} turns: brought into a quarter turn around 0, then the terms of
+   * their series up to {@code x^11} and {@code x^12}, within 1e-7, by arithmetic alone, as the GPU
+   * computes them.
+   */
+  static double[] turn(double t) {
+    double r = t - Math.floor(t + 0.5); // from -1/2 to 1/2
+    double flip = 1;
+    if (r > 0.25) {
+      r = 0.5 - r;
+      flip = -1;
+    } else if (r < -0.25) {
+      r = -0.5 - r;
+      flip = -1;
+    }
+    double x = r * (2 * Math.PI);
+    double x2 = x * x;
+    double sin = x * (1 - x2 / 6 * (1 - x2 / 20 * (1 - x2 / 42 * (1 - x2 / 72 * (1 - x2 / 110)))));
+    double cos =
+        1 - x2 / 2 * (1 - x2 / 12 * (1 - x2 / 30 * (1 - x2 / 56 * (1 - x2 / 90 * (1 - x2 / 132)))));
+    return new double[] {sin, flip * cos};
   }
 
   /** The four channels of the color at {@code field} of instance {@code i}. */

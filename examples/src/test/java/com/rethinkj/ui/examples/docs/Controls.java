@@ -41,6 +41,7 @@ final class Controls {
 
   int runs;
   boolean running = true;
+  double downloaded = 0.42;
   boolean pinned;
   boolean autocommit = true;
   boolean readOnly;
@@ -170,6 +171,13 @@ final class Controls {
         "Refresh",
         state::start,
         Button.options().state(state.running ? BUSY : READY));
+    // Busy with a known length: a ring fills in place of the icon as the download goes on.
+    El download = Button.icon(
+        GHOST,
+        Symbol.ARROW_DOWNLOAD,
+        "Download update",
+        state::start,
+        Button.options().state(state.running ? BUSY : READY).progress(state.downloaded));
     El run = Button.split(
         PRIMARY,
         "Run",
@@ -200,7 +208,7 @@ final class Controls {
     // docs:end button-options
     return Frame.of(
         row().gap(theme.space().s()).children(drop, discard, delete),
-        row().gap(theme.space().s()).children(save, refresh, run),
+        row().gap(theme.space().s()).children(save, refresh, download, run),
         row().gap(theme.space().s()).align(Style.Align.CENTER).children(commit, export, connect));
   }
 

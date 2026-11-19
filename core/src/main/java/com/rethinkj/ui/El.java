@@ -102,6 +102,8 @@ public final class El {
   private Spring motion;
   private float opacity = 1;
   private float targetOpacity = 1; // as the view set it, which motion springs towards
+  private float arcStart;
+  private float arcSweep = 1;
   private boolean exiting;
   private boolean moving;
   private WindowPart windowPart;
@@ -761,6 +763,40 @@ public final class El {
     this.opacity = opacity;
     this.targetOpacity = opacity;
     return this;
+  }
+
+  /**
+   * Draws this element's own fill and border only within an arc around its center: from {@code
+   * start}, in turns clockwise from the top, over {@code sweep} turns. A round element with a
+   * border becomes a ring cut off square at both ends, as a {@code Progress} ring, one with a fill a
+   * pie. A sweep of 0 draws neither, 1, the default, both whole. The arc's edges are smoothed like
+   * any other. Its shadows, children, clip and focus ring stay whole, and so does what takes a
+   * press. With {@link #motion} the sweep springs like the other values; the start changes at
+   * once, so that a {@link #cycle} can turn it.
+   *
+   * @param start where the arc begins, in turns: 0 at the top, 0.25 at the right
+   * @param sweep how much of a turn it covers, from 0 to 1
+   */
+  public El arc(float start, float sweep) {
+    if (!Float.isFinite(start)) {
+      throw new IllegalArgumentException("an arc's start must be finite, was " + start);
+    }
+    if (!(sweep >= 0 && sweep <= 1)) {
+      throw new IllegalArgumentException("an arc's sweep must be from 0 to 1, was " + sweep);
+    }
+    this.arcStart = start;
+    this.arcSweep = sweep;
+    return this;
+  }
+
+  /** Where the {@link #arc} begins, in turns clockwise from the top; 0 without one. */
+  public float arcStart() {
+    return arcStart;
+  }
+
+  /** How much of a turn the {@link #arc} covers; 1, the whole element, without one. */
+  public float arcSweep() {
+    return arcSweep;
   }
 
   /** For {@link Animator}: the opacity of the moment while this element springs to its own. */
@@ -2152,9 +2188,9 @@ public final class El {
 
   /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
-   * already there a new rectangle, fill, border color, radius, opacity or text color, {@link App}
-   * moves it there with {@code spring} instead of at once. Children are placed relative to their
-   * parent and move with it.
+   * already there a new rectangle, fill, border color, radius, opacity, text color or {@link #arc}
+   * sweep, {@link App} moves it there with {@code spring} instead of at once. Children are placed
+   * relative to their parent and move with it.
    *
    * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
    * layout gives it; it takes the focus from that frame on, and presses once it shows. One with a

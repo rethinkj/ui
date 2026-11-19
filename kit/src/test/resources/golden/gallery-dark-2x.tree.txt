@@ -81,6 +81,31 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=progressbar 10,19 120x2
     el #fill 10.12,19 14.53x2
+# ring, 1
+el 0,0 140x40
+  el #c role=progressbar 62,12 16x16 value="0%"
+    el 62,12 16x16
+    el #fill 62,12 16x16
+# ring, 2
+el 0,0 140x40
+  el #c role=progressbar 62,12 16x16 value="8%"
+    el 62,12 16x16
+    el #fill 62,12 16x16
+# ring, 3
+el 0,0 140x40
+  el #c role=progressbar 62,12 16x16 value="42%"
+    el 62,12 16x16
+    el #fill 62,12 16x16
+# ring, 4
+el 0,0 140x40
+  el #c role=progressbar 62,12 16x16 value="75%"
+    el 62,12 16x16
+    el #fill 62,12 16x16
+# ring, 5
+el 0,0 140x40
+  el #c role=progressbar 62,12 16x16 value="100%"
+    el 62,12 16x16
+    el #fill 62,12 16x16
 # primary, rest
 el 0,0 140x40
   el #c role=button label="Run query" 25,8 90x24
@@ -356,6 +381,40 @@ overlay bottom center gap 4 on #c role=button label="Refresh" 58,8 24x24
 el 0,0 140x40
   el #c role=button label="Refresh" 58,8 24x24 disabled
     text label="arrow_clockwise" "\u{E0AA}" 62,12 16x16
+# progress icon, rest
+el 0,0 140x40
+  el #c role=button label="Download update" 58,8 24x24 busy
+    el role=progressbar 62,12 16x16 value="42%"
+      el 62,12 16x16
+      el #fill 62,12 16x16
+# progress icon, hover
+el 0,0 140x40
+  el #c role=button label="Download update" 58,8 24x24 busy
+    el role=progressbar 62,12 16x16 value="42%"
+      el 62,12 16x16
+      el #fill 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Download update" 58,8 24x24
+  el #tooltip role=tooltip label="Download update" 11,15 118x25
+    text "Download update" 20,20 100x15
+# progress icon, pressed
+el 0,0 140x40
+  el #c role=button label="Download update" 58,8 24x24 busy
+    el role=progressbar 62,12 16x16 value="42%"
+      el 62,12 16x16
+      el #fill 62,12 16x16
+# progress icon, focused
+el 0,0 140x40
+  el #c role=button label="Download update" 58,8 24x24 busy focused
+    el role=progressbar 62,12 16x16 value="42%"
+      el 62,12 16x16
+      el #fill 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Download update" 58,8 24x24
+  el #tooltip role=tooltip label="Download update" 11,15 118x25
+    text "Download update" 20,20 100x15
+# progress icon, disabled
+el 0,0 140x40
+  el #c role=button label="Download update" 58,8 24x24 disabled
+    text label="arrow_download" "\u{F14F}" 62,12 16x16
 # small, rest
 el 0,0 140x40
   el #c role=button label="Filter" 45,10 50x20

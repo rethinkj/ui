@@ -162,6 +162,31 @@ class MotionTest {
     assertThrows(IllegalStateException.class, app::frame);
   }
 
+  @Test
+  void anArcsSweepSpringsAndItsStartChangesAtOnce() {
+    float[] arc = {0, 0.25f}; // start, sweep
+    App<float[]> app = new App<>(
+        arc,
+        a -> el().size(40, 40)
+            .child(
+                el().size(20, 20).radius(10).border(2, 1).arc(a[0], a[1]).motion(Spring.SETTLE)));
+    app.resize(40, 40, 1);
+    app.frame();
+    arc[0] = 0.5f;
+    arc[1] = 0.75f;
+    app.invalidate();
+    app.frame();
+    app.advance(0.05);
+    app.frame();
+    El ring = app.tree().children().getFirst();
+    assertEquals(0.5f, ring.arcStart());
+    assertTrue(ring.arcSweep() > 0.25f && ring.arcSweep() < 0.75f, "sweep " + ring.arcSweep());
+    app.advance(2);
+    app.frame();
+    assertEquals(0.75f, app.tree().children().getFirst().arcSweep());
+    assertFalse(app.isMoving());
+  }
+
   private static App<Lights> switchApp(float scale) {
     App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, scale);

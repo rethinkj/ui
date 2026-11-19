@@ -431,8 +431,15 @@ final class Layouts {
     El failed = Progress.bar(0.64, Progress.State.ERROR);
     El running = Progress.indeterminate();
     El spinner = Progress.spinner();
+    El ring = Progress.ring(0.42); // a small bar, as in a button
     // docs:end progress
-    return Frame.of(restart.w(420), empty, download.w(240), failed.w(240), running.w(240), spinner);
+    return Frame.of(
+        restart.w(420),
+        empty,
+        download.w(240),
+        failed.w(240),
+        running.w(240),
+        row().gap(Theme.CURRENT.get().space().m()).children(spinner, ring));
   }
 
   static El bars(Layouts state) {

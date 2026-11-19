@@ -44,7 +44,7 @@ final class Gallery {
   static final int WIDTH = 140;
   static final int HEIGHT = 40;
   static final int AREA = 72; // the rows of text areas, three lines high
-  static final int PROGRESS = 3; // the rows of progress forms, which have no states
+  static final int PROGRESS = 4; // the rows of progress forms, which have no states
 
   /** The columns, with the steps that bring a component into each state. */
   enum State {
@@ -124,6 +124,14 @@ final class Gallery {
       new Row(
           "busy icon",
           h -> Button.icon(Variant.GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", h, busy(h))),
+      new Row(
+          "progress icon",
+          h -> Button.icon(
+              Variant.GHOST,
+              Symbol.ARROW_DOWNLOAD,
+              "Download update",
+              h,
+              busy(h).progress(0.42))),
       new Row(
           "small",
           h -> button(Variant.SECONDARY, "Filter", h, Button.options().size(Button.Size.SMALL))),
@@ -245,7 +253,7 @@ final class Gallery {
     gallery.put(5, cell, HEIGHT, label(Label.Variant.STRONG, "Strong"), "");
     // Progress takes no input: its rows show its forms, the running ones at two times.
     float w = WIDTH - 20;
-    String[] names = {"progress", "running", "labeled"};
+    String[] names = {"progress", "running", "labeled", "ring"};
     El[][] forms = {
       {
         Progress.bar(0).w(w),
@@ -267,12 +275,20 @@ final class Gallery {
         Progress.labeled("orders.csv", 1, "Done", Progress.State.DONE).w(w),
         Progress.line(0.42).w(w),
         Progress.line().w(w)
+      },
+      {
+        Progress.ring(0),
+        Progress.ring(0.08),
+        Progress.ring(0.42),
+        Progress.ring(0.75),
+        Progress.ring(1)
       }
     };
     String[][] times = {
       {"", "", "", "", ""},
       {"", "advance 0.5\nframe", "advance 1.1\nframe", "advance 0.2\nframe", "advance 0.7\nframe"},
-      {"", "", "", "", "advance 0.5\nframe"}
+      {"", "", "", "", "advance 0.5\nframe"},
+      {"", "", "", "", ""}
     };
     int top = 2 * cell;
     for (int r = 0; r < names.length; r++) {

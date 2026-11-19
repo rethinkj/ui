@@ -26,9 +26,13 @@ el 0,0 460x420
     el #fill 12,368 154x4
   el role=progressbar 12,380 240x4
     el #fill 12,380 0x4
-  el role=progressbar label="Loading" 12,392 16x16
-    el 12,392 16x16
-    el 12,392 16x16
-    el 12,392 16x16
-    el 12,392 16x16
-    el 12,392 16x16
+  el 12,392 40x16
+    el role=progressbar label="Loading" 12,392 16x16
+      el 12,392 16x16
+      el 12,392 16x16
+      el 12,392 16x16
+      el 12,392 16x16
+      el 12,392 16x16
+    el role=progressbar 36,392 16x16 value="42%"
+      el 36,392 16x16
+      el #fill 36,392 16x16

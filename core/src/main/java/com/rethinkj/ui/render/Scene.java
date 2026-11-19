@@ -43,18 +43,19 @@ import java.util.Map;
  * 32  fill         f32 x 4   r, g, b, a
  * 48  border       f32 x 4   r, g, b, a
  * 64  radii        f32 x 3   the top right, bottom right and bottom left corners' radii
- * 76  unused       f32   0
+ * 76  arcStart     f32   where the arc starts, in turns clockwise from the top, from 0 to 1
  * 80  borders      f32 x 3   the right, bottom and left sides' borders
- * 92  unused       f32   0
+ * 92  arcGap       f32   the part of a turn the arc leaves out, 0 for none, 1 for all
  * </pre>
  *
  * <p>As a WGSL storage buffer that is {@code array<Instance>} with {@code struct Instance { rect:
  * vec4f, radius: f32, border_width: f32, clip: u32, kind: u32, fill: vec4f, border: vec4f, radii:
- * vec4f, borders: vec4f }}. The instance was 64 bytes until corners and sides got values of their
- * own: six more floats do not fit into the sixteen slots, which a rectangle fills, and a table of
- * shapes beside the clips would cost a binding, an index and a second read per pixel to save 32
- * bytes per instance, a few hundred kilobytes in a frame of thousands. The first 64 bytes kept their
- * meaning, so a glyph has nothing after them.
+ * vec4f, borders: vec4f }}, the arc's start in {@code radii.w} and its gap in {@code borders.w}.
+ * The instance was 64 bytes until corners and sides got values of their own: six more floats do
+ * not fit into the sixteen slots, which a rectangle fills, and a table of shapes beside the clips
+ * would cost a binding, an index and a second read per pixel to save 32 bytes per instance, a few
+ * hundred kilobytes in a frame of thousands. The first 64 bytes kept their meaning, so a glyph has
+ * nothing after them.
  *
  * <p>A rectangle's coverage of a pixel is that of its rounded rectangle, the radius of the corner
  * on the pixel's side of the center ({@code x > 0} right, {@code y > 0} below) standing for all
@@ -68,6 +69,29 @@ import java.util.Map;
  * from the ellipse's center over its radii and {@code k = |q|}, the first-order distance. With
  * every border as wide, the inner rectangle is the outer one moved in by that width and its corners
  * are circles.
+ *
+ * <p>A rectangle with a gap above 0 ({@link El#arc}) shows only within an arc around its center:
+ * its coverage is multiplied by the arc's, so a round one with a border is a ring cut off square at
+ * both ends, and one with a fill a pie. A gap of 1 or more draws nothing. The arc has its bisector
+ * at {@code b = (start + sweep / 2)} turns and half the angle {@code h = sweep / 2} turns, with
+ * {@code sweep = 1 - gap}. For a pixel at {@code p} from the center, in logical pixels, {@code x =
+ * |p.x cos(b) + p.y sin(b)|} is how far it lies to either side of the bisector and {@code y = p.x
+ * sin(b) - p.y cos(b)} how far along it, {@code sin} and {@code cos} of turns. With {@code s =
+ * sin(h)} and {@code c = cos(h)}, for an arc of at most half a turn ({@code c >= 0}):
+ *
+ * <pre>
+ * near     = -x c + y s   when x s + y c &gt;= 0, else -|p|   the edge on the pixel's side
+ * far      =  x c + y s   when y c - x s &gt;= 0, else |p|    the other edge
+ * edge(d)  = clamp(0.5 + d scale, 0, 1)
+ * arc      = max(edge(near) + edge(far) - 1, 0)
+ * </pre>
+ *
+ * <p>A wider arc is 1 less the coverage of its gap, which is narrower: the same with {@code -y} for
+ * {@code y} and {@code -c} for {@code c}. So each edge is smoothed as a straight one, and an arc or
+ * a gap thinner than a pixel takes about as much of a pixel as it lies over, so that a ring at 1 %
+ * shows a faint sliver and one at 99 % a faint gap, not a line of half coverage. {@code sin} and {@code cos} are the angle brought into a quarter turn around 0
+ * and then the terms of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for
+ * {@code erf} below, so that every renderer computes the same edges far from the center.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *
@@ -334,6 +358,8 @@ public final class Scene {
   public static final int BORDER_RIGHT = 80;
   public static final int BORDER_BOTTOM = 84;
   public static final int BORDER_LEFT = 88;
+  public static final int ARC_START = 76;
+  public static final int ARC_GAP = 92;
 
   /** The {@link #KIND} of a rounded rectangle. */
   public static final int RECT = 0;
@@ -563,6 +589,11 @@ public final class Scene {
           el.borderColor(),
           opacity,
           clip);
+      if (el.arcSweep() < 1) {
+        long last = (long) (count - 1) * STRIDE;
+        put(last + ARC_START, el.arcStart() - (float) Math.floor(el.arcStart()));
+        put(last + ARC_GAP, 1 - el.arcSweep());
+      }
     }
     if (el.image() != null && inside) {
       image(el, left, top, width, height, borders, radii, opacity, clip, free);
@@ -1382,6 +1413,8 @@ public final class Scene {
     put(offset + BORDER_RIGHT, borders[1]);
     put(offset + BORDER_BOTTOM, borders[2]);
     put(offset + BORDER_LEFT, borders[3]);
+    put(offset + ARC_START, 0);
+    put(offset + ARC_GAP, 0);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, RECT);
     color(offset + FILL, fill, opacity);

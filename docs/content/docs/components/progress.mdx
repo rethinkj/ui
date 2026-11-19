@@ -1,13 +1,13 @@
 ---
 title: Progress
-description: Determinate and indeterminate progress bars, labeled bars, thin loading lines, and spinners.
+description: Determinate and indeterminate progress bars, labeled bars, thin loading lines, rings, and spinners.
 ---
 
-`Progress` provides indicators for ongoing work: determinate bars, labeled bars with percentage/detail text, indeterminate sweeping bars, thin 2 px card-edge lines, and compact spinners. For loading buttons, use `Button.options().state(BUSY)` ([Button](/docs/components/button)) instead.
+`Progress` provides indicators for ongoing work: determinate bars, labeled bars with percentage/detail text, indeterminate sweeping bars, thin 2 px card-edge lines, compact rings, and spinners. For loading buttons, use `Button.options().state(BUSY)` ([Button](/docs/components/button)) instead, with `.progress(fraction)` for a ring.
 
 Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="progress,running,labeled" alt="Progress bars at 0, 42 and 100 percent, failed and done, running bars, spinners and labeled bars" />
+<Shot src="kit/gallery-{theme}-2x" rows="progress,running,labeled,ring" alt="Progress bars at 0, 42 and 100 percent, failed and done, running bars, spinners, labeled bars and rings from 0 to 100 percent" />
 
 ## Example
 
@@ -20,6 +20,7 @@ Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 | `labeled(label, fraction, detail[, state])` | Bar with title above and right-aligned detail (defaults to percentage) |
 | `indeterminate()` | Animated bar when progress percentage is unknown |
 | `line([fraction])` | Thin 2 px full-width bar for the top of a card |
+| `ring(fraction)` | 16 px ring that fills clockwise from the top, for places too small for a bar |
 | `spinner([size])` | Animated circular spinner (default 16 px) |
 
 `Progress.State`: `NORMAL` (accent), `ERROR` (danger, marked `invalid`), `DONE` (success), `PAUSED` (muted).

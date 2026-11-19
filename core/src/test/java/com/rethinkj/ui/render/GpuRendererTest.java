@@ -150,6 +150,7 @@ class GpuRendererTest {
     cases.add(scene("overlaps", overlaps(), 160, 100, s));
     cases.add(view("clips", clips(), 160, 100, s));
     cases.add(scene("transparent", transparent(), 160, 100, s));
+    cases.add(view("arcs", arcs(), 300, 200, s));
     cases.add(nestedClips(s));
     cases.add(bars("bars-hovered", s));
     cases.add(text("shadows", shadows(), 240, 160, s));
@@ -731,6 +732,46 @@ class GpuRendererTest {
     app.resize(20, 20, scale);
     app.frame();
     return scene("scrim@" + scale, app.scene(), 20, 20, scale);
+  }
+
+  /**
+   * Rings at icon size from a sliver to a thin gap, from the top and from elsewhere, over a fill;
+   * a ring and a pie hundreds of pixels across, which shows how far the edges lie from the CPU's;
+   * translucent rings over each other; and a ring in a rounded clip.
+   */
+  private static El arcs() {
+    El root = el().size(300, 200).fill(BACKGROUND);
+    float[] sweeps = {0.003f, 0.01f, 0.25f, 0.5f, 0.75f, 0.99f, 0.997f};
+    for (int i = 0; i < sweeps.length; i++) {
+      root.child(el().absolute(4 + i * 20.25f, 4)
+          .size(16, 16)
+          .radius(8)
+          .border(2, 0xFF60A5FA)
+          .arc(0, sweeps[i]));
+      root.child(el().absolute(4.4f + i * 20.25f, 24.3f)
+          .size(17, 17)
+          .radius(8.5f)
+          .border(2.5f, 0xFFF8FAFC)
+          .fill(0x40FB7185)
+          .arc(0.37f, sweeps[i]));
+    }
+    root.child(
+        el().absolute(4, 46).size(150, 150).radius(75).border(9, 0xFF34D399).arc(0.6f, 0.37f));
+    root.child(el().absolute(158, 64).size(130, 130).radius(65).fill(0xFFFBBF24).arc(-0.1f, 0.62f));
+    root.child(
+        el().absolute(150, 4).size(40, 40).radius(20).border(6, 0x8038BDF8).arc(0.1f, 0.5f));
+    root.child(
+        el().absolute(160, 10).size(40, 40).radius(20).border(6, 0x80F472B6).arc(0.55f, 0.6f));
+    root.child(el().absolute(215, 4)
+        .size(50, 36)
+        .radius(8)
+        .clip()
+        .child(el().absolute(-10, -10)
+            .size(56, 56)
+            .radius(28)
+            .border(10, 0xFFA78BFA)
+            .arc(1.3f, 0.8f)));
+    return root;
   }
 
   /** {@link Examples#shapes}, focused, at this scale. */
