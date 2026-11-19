@@ -77,7 +77,9 @@ import java.util.Map;
  * {@code sweep = 1 - gap}. For a pixel at {@code p} from the center, in logical pixels, {@code x =
  * |p.x cos(b) + p.y sin(b)|} is how far it lies to either side of the bisector and {@code y = p.x
  * sin(b) - p.y cos(b)} how far along it, {@code sin} and {@code cos} of turns. With {@code s =
- * sin(h)} and {@code c = cos(h)}, for an arc of at most half a turn ({@code c >= 0}):
+ * sin(h)} and {@code c = max(cos(h), 0)}, for an arc of at most half a turn ({@code gap >= 0.5},
+ * which every renderer decides on the stored gap, not on {@code cos(h)}, whose sign at half a turn
+ * may round either way):
  *
  * <pre>
  * near     = -x c + y s   when x s + y c &gt;= 0, else -|p|   the edge on the pixel's side
@@ -991,8 +993,9 @@ public final class Scene {
       return behind;
     }
     // shortcut: only the fill of the element itself and its ancestors count; text over an earlier
-    // sibling, an absolutely placed box, a border or outside a rounded corner gets the background
-    // further up, or none. Paint the scene into a coarse grid of colors when that shows.
+    // sibling, an absolutely placed box, a border, outside a rounded corner or outside an arc gets
+    // the background further up, or none. Paint the scene into a coarse grid of colors when that
+    // shows.
     float luminance = luminance(fill);
     return alpha == 1 ? luminance : luminance * alpha + behind * (1 - alpha);
   }

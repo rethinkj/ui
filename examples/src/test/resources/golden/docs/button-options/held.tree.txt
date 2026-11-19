@@ -17,7 +17,7 @@ el 0,0 420x170
         el 76,48 16x16
         el 76,48 16x16
     el role=button label="Download update" 100,44 24x24 busy
-      el role=progressbar 104,48 16x16 value="42%"
+      el #progress role=progressbar 104,48 16x16 value="42%"
         el 104,48 16x16
         el #fill 104,48 16x16
     el #split 128,44 93x24

@@ -384,13 +384,13 @@ el 0,0 140x40
 # progress icon, rest
 el 0,0 140x40
   el #c role=button label="Download update" 58,8 24x24 busy
-    el role=progressbar 62,12 16x16 value="42%"
+    el #progress role=progressbar 62,12 16x16 value="42%"
       el 62,12 16x16
       el #fill 62,12 16x16
 # progress icon, hover
 el 0,0 140x40
   el #c role=button label="Download update" 58,8 24x24 busy
-    el role=progressbar 62,12 16x16 value="42%"
+    el #progress role=progressbar 62,12 16x16 value="42%"
       el 62,12 16x16
       el #fill 62,12 16x16
 overlay bottom center gap 4 on #c role=button label="Download update" 58,8 24x24
@@ -399,13 +399,13 @@ overlay bottom center gap 4 on #c role=button label="Download update" 58,8 24x24
 # progress icon, pressed
 el 0,0 140x40
   el #c role=button label="Download update" 58,8 24x24 busy
-    el role=progressbar 62,12 16x16 value="42%"
+    el #progress role=progressbar 62,12 16x16 value="42%"
       el 62,12 16x16
       el #fill 62,12 16x16
 # progress icon, focused
 el 0,0 140x40
   el #c role=button label="Download update" 58,8 24x24 busy focused
-    el role=progressbar 62,12 16x16 value="42%"
+    el #progress role=progressbar 62,12 16x16 value="42%"
       el 62,12 16x16
       el #fill 62,12 16x16
 overlay bottom center gap 4 on #c role=button label="Download update" 58,8 24x24

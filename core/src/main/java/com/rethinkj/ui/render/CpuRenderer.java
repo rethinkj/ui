@@ -150,7 +150,7 @@ public final class CpuRenderer {
     if (gap >= 1) {
       return;
     }
-    Arc arc = gap > 0 ? Arc.of(centerX, centerY, scene.get(i, Scene.ARC_START), 1 - gap) : null;
+    Arc arc = gap > 0 ? Arc.of(centerX, centerY, scene.get(i, Scene.ARC_START), gap) : null;
 
     Box clip = Box.clip(scene, scene.clipOf(i));
     Bounds bounds = bounds(shape, clip, scale, width, height);
@@ -1099,15 +1099,23 @@ public final class CpuRenderer {
 
   /**
    * The arc a rectangle shows within, as {@link Scene} says: around the center {@code centerX,
-   * centerY}, with the sine and cosine of its bisector and of half its angle.
+   * centerY}, whether it covers at most half a turn, and the sine and cosine of its bisector and of
+   * half its angle.
    */
   private record Arc(
-      double centerX, double centerY, double sinB, double cosB, double sinH, double cosH) {
+      double centerX,
+      double centerY,
+      boolean atMostHalf,
+      double sinB,
+      double cosB,
+      double sinH,
+      double cosH) {
 
-    static Arc of(double centerX, double centerY, double start, double sweep) {
+    static Arc of(double centerX, double centerY, double start, double gap) {
+      double sweep = 1 - gap;
       double[] b = turn(start + sweep / 2);
       double[] h = turn(sweep / 2);
-      return new Arc(centerX, centerY, b[0], b[1], h[0], h[1]);
+      return new Arc(centerX, centerY, gap >= 0.5, b[0], b[1], h[0], h[1]);
     }
 
     /** How much of the pixel centered at {@code x, y} the arc lets through. */
@@ -1117,7 +1125,7 @@ public final class CpuRenderer {
       double across = Math.abs(px * cosB + py * sinB);
       double along = px * sinB - py * cosB;
       double length = StrictMath.sqrt(px * px + py * py);
-      return cosH >= 0
+      return atMostHalf
           ? narrow(across, along, length, sinH, cosH, scale)
           : 1 - narrow(across, -along, length, sinH, -cosH, scale);
     }
@@ -1129,6 +1137,8 @@ public final class CpuRenderer {
    * its angle.
    */
   static double narrow(double x, double y, double length, double sin, double cos, double scale) {
+    // At half a turn the cosine is 0 up to rounding, whose sign would pick the near edge's side.
+    cos = Math.max(cos, 0);
     double near = x * sin + y * cos >= 0 ? -x * cos + y * sin : -length;
     double far = y * cos - x * sin >= 0 ? x * cos + y * sin : length;
     return Math.max(coverage(-near, scale) + coverage(-far, scale) - 1, 0);

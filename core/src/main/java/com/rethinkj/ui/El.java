@@ -770,9 +770,9 @@ public final class El {
    * start}, in turns clockwise from the top, over {@code sweep} turns. A round element with a
    * border becomes a ring cut off square at both ends, as a {@code Progress} ring, one with a fill a
    * pie. A sweep of 0 draws neither, 1, the default, both whole. The arc's edges are smoothed like
-   * any other. Its shadows, children, clip and focus ring stay whole, and so does what takes a
-   * press. With {@link #motion} the sweep springs like the other values; the start changes at
-   * once, so that a {@link #cycle} can turn it.
+   * any other. Its shadows, image, children, clip and focus ring stay whole, and so does what
+   * takes a press. With {@link #motion} the sweep springs like the other values; the start
+   * changes at once.
    *
    * @param start where the arc begins, in turns: 0 at the top, 0.25 at the right
    * @param sweep how much of a turn it covers, from 0 to 1

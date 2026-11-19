@@ -737,7 +737,8 @@ class GpuRendererTest {
   /**
    * Rings at icon size from a sliver to a thin gap, from the top and from elsewhere, over a fill;
    * a ring and a pie hundreds of pixels across, which shows how far the edges lie from the CPU's;
-   * translucent rings over each other; and a ring in a rounded clip.
+   * translucent rings over each other; a ring in a rounded clip; and half a pie whose center is a
+   * pixel's, where the edges of an arc of half a turn meet.
    */
   private static El arcs() {
     El root = el().size(300, 200).fill(BACKGROUND);
@@ -762,6 +763,7 @@ class GpuRendererTest {
         el().absolute(150, 4).size(40, 40).radius(20).border(6, 0x8038BDF8).arc(0.1f, 0.5f));
     root.child(
         el().absolute(160, 10).size(40, 40).radius(20).border(6, 0x80F472B6).arc(0.55f, 0.6f));
+    root.child(el().absolute(270, 8).size(22, 22).radius(11).fill(0xFFE879F9).arc(0.25f, 0.5f));
     root.child(el().absolute(215, 4)
         .size(50, 36)
         .radius(8)

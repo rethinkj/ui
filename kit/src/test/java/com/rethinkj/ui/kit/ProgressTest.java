@@ -49,8 +49,7 @@ class ProgressTest {
                 Progress.bar(0.5, Progress.State.ERROR).key("failed"),
                 Progress.indeterminate().key("running"),
                 Progress.labeled("orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
-                Progress.spinner().key("spinner"),
-                Progress.ring(0.42).key("ring")));
+                Progress.spinner().key("spinner")));
     run(app, "key Tab");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#bar").contains("role=progressbar label=\"Export\""));
@@ -62,7 +61,6 @@ class ProgressTest {
         dump);
     assertTrue(
         StructureTest.line(dump, "#spinner").contains("role=progressbar label=\"Loading\" "), dump);
-    assertTrue(StructureTest.line(dump, "#ring").endsWith(" value=\"42%\""), dump);
     assertNull(app.focused(), "none takes the focus");
     assertTrue(app.isMoving(), "the running bar and the spinner go round");
   }
@@ -106,6 +104,30 @@ class ProgressTest {
     assertEquals(1, s.pressed);
     assertFalse(StructureTest.line(app.tree().dump(), "#run").contains(" busy"));
     assertFalse(app.isMoving(), "no spinner, nothing goes round");
+  }
+
+  @Test
+  void theIconOfADoneDownloadShowsWithoutTheRingOverIt() throws IOException {
+    TextLibraries.assumeLoaded();
+    Shown s = new Shown();
+    s.fraction = 0.6;
+    App<Shown> app = new App<>(
+        s,
+        st -> col()
+            .child(Button.icon(
+                Button.Variant.GHOST,
+                Symbol.ARROW_DOWNLOAD,
+                "Download update",
+                () -> {},
+                Button.options()
+                    .state(st.busy ? Button.State.BUSY : Button.State.READY)
+                    .progress(st.fraction))));
+    run(app, "advance 1");
+    s.busy = false;
+    app.invalidate();
+    app.frame();
+    String dump = app.tree().dump();
+    assertFalse(dump.contains("exiting"), dump);
   }
 
   @Test

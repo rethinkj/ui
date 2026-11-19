@@ -431,7 +431,7 @@ final class Layouts {
     El failed = Progress.bar(0.64, Progress.State.ERROR);
     El running = Progress.indeterminate();
     El spinner = Progress.spinner();
-    El ring = Progress.ring(0.42); // a small bar, as in a button
+    El ring = Progress.ring(0.42); // where a bar does not fit, as in a button
     // docs:end progress
     return Frame.of(
         restart.w(420),

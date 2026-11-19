@@ -40,7 +40,7 @@ final class Animator {
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
   // quarter of a color step, which rounds to the target; for opacity, a quarter of 1/255; for a
-  // sweep, a ten-thousandth of a turn, a twentieth of a pixel on a ring a hundred pixels across.
+  // sweep, a ten-thousandth of a turn, a thirtieth of a pixel on a ring a hundred pixels across.
   private static final double PIXELS = 0.01, CHANNELS = 0.25, TURNS = 1e-4;
 
   /**

@@ -274,7 +274,9 @@ public final class GpuRenderer implements AutoCloseable {
 
       // The coverage of an arc of at most half a turn at a point q.x beside its bisector, 0 or
       // more, and q.y along it, with the sine and cosine of half its angle in h.
-      fn narrow(q: vec2f, h: vec2f) -> f32 {
+      fn narrow(q: vec2f, half: vec2f) -> f32 {
+        // At half a turn the cosine is 0 up to rounding, whose sign would pick the near edge's side.
+        let h = vec2f(half.x, max(half.y, 0.0));
         let r = sqrt(q.x * q.x + q.y * q.y);
         let near = select(-r, -q.x * h.y + q.y * h.x, q.x * h.x + q.y * h.y >= 0.0);
         let far = select(r, q.x * h.y + q.y * h.x, q.y * h.y - q.x * h.x >= 0.0);
@@ -282,11 +284,12 @@ public final class GpuRenderer implements AutoCloseable {
       }
 
       // How much of the pixel at p from a rectangle's center its arc lets through.
-      fn arc(p: vec2f, start: f32, sweep: f32) -> f32 {
+      fn arc(p: vec2f, start: f32, gap: f32) -> f32 {
+        let sweep = 1.0 - gap;
         let b = turn(start + sweep / 2.0);
         let h = turn(sweep / 2.0);
         let q = vec2f(abs(p.x * b.y + p.y * b.x), p.x * b.x - p.y * b.y);
-        if h.y >= 0.0 {
+        if gap >= 0.5 {
           return narrow(q, h);
         }
         return 1.0 - narrow(vec2f(q.x, -q.y), vec2f(h.x, -h.y));
@@ -522,7 +525,7 @@ public final class GpuRenderer implements AutoCloseable {
           discard;
         }
         if gap > 0.0 {
-          cover *= arc(p, instance.radii.w, 1.0 - gap);
+          cover *= arc(p, instance.radii.w, gap);
         }
         if cover <= 0.0 {
           discard;

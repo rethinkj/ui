@@ -399,9 +399,12 @@ public final class Button {
     int track = variant == Variant.PRIMARY
         ? theme.border().trackOnAccent()
         : theme.border().track();
+    // The ring is keyed, so that an icon or a spinner in its place later is another element:
+    // else its part done, which springs, would fade out over that.
     return Double.isNaN(progress)
         ? Progress.spinner(theme, theme.size().icon(), look.text(), track)
-        : Progress.ring(theme, theme.size().icon(), progress, look.text(), track);
+        : Progress.ring(theme, theme.size().icon(), progress, look.text(), track)
+            .key("progress");
   }
 
   /** Makes a button busy: focusable, but Enter, Space and the pointer press nothing. */
