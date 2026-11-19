@@ -1,20 +1,22 @@
 ---
 title: Ship your app
-description: Package the app with its own Java runtime as a jpackage app image.
+description: Package your app with its own Java runtime using jpackage.
 ---
 
-`jpackage`, which comes with the JDK, builds an app image: a folder with a launcher, a Java runtime and the app's JARs. Users need no Java of their own. The commands below start from [your own project](/docs/get-started) and are shown for Linux.
+Use `jpackage` (included with JDK 25) to bundle your app into a standalone app image containing a native launcher, a minimal Java runtime, and your JARs. End users do not need Java installed.
 
-## Build the image
+The commands below assume you started from the Maven project in [Installation](/docs/get-started) and show Linux paths.
 
-Collect the app's JAR and its runtime dependencies, which include the fonts, the icons and the natives JAR of the platform that builds:
+## 1. Build the app image
+
+First, copy your app JAR and all runtime dependencies (including fonts, icons, and native libraries) into `target/lib`:
 
 ```sh
 mvn -q package dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
 cp target/lights-1.0-SNAPSHOT.jar target/lib/
 ```
 
-Then build the image:
+Then build the app image with `jpackage`:
 
 ```sh
 jpackage --type app-image --name Lights \
@@ -24,20 +26,23 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
-`--add-modules java.base` keeps the runtime small, since `core` and `kit` need nothing else; add the modules your own code uses. Without it, jpackage bundles the whole JDK. `jpackage` builds only for the platform it runs on: build the Windows image on Windows, where the natives profile picks the Windows JAR.
+- `--add-modules java.base` keeps the bundled runtime small because `core` and `kit` only need `java.base`. Add any extra JDK modules your own code uses.
+- `jpackage` builds for the current operating system only. Run it on Windows to build a Windows app image.
 
-## Run it
+## 2. Run the packaged app
 
 ```sh
-target/dist/Lights/bin/Lights                                            # in a window
-target/dist/Lights/bin/Lights --script lights.txt --out target/packaged  # under a script
+target/dist/Lights/bin/Lights                                            # open in a window
+target/dist/Lights/bin/Lights --script lights.txt --out target/packaged  # run headless with a script
 ```
 
 On Windows, the launcher is `target\dist\Lights\Lights.exe`.
 
-## Start faster
+## Optional: Faster startup with an AOT cache
 
-The JVM can start an app from an ahead-of-time cache of the classes it loaded and the code it ran in an earlier run ([JEP 514](https://openjdk.org/jeps/514)). For the examples on Linux, that brings the first frame about 150 to 170 ms sooner, from about 700 to about 550 ms. The cache is made by running the app once, so the image needs the runtime's `java` command, which `jpackage` leaves out by default; `--jlink-options` without `--strip-native-commands` keeps it:
+Java 25 supports an ahead-of-time (AOT) class cache ([JEP 514](https://openjdk.org/jeps/514)) to make startup faster.
+
+1. Build the app image while keeping the `java` binary (remove `--strip-native-commands` from `--jlink-options`):
 
 ```sh
 jpackage --type app-image --name Lights \
@@ -48,22 +53,20 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
-Then run the app once with the window open as users see it, close it, and point the launcher at the cache:
+2. Run the app once to record the cache, close the window, and add the cache flag to `Lights.cfg`:
 
 ```sh
 JAVA_TOOL_OPTIONS=-XX:AOTCacheOutput=target/dist/Lights/lib/app/lights.aot target/dist/Lights/bin/Lights
 echo 'java-options=-XX:AOTCache=$APPDIR/lights.aot' >> target/dist/Lights/lib/app/Lights.cfg
 ```
 
-Make the cache again whenever the image is built again: the JVM uses it only with the JARs and the runtime it was made with, and otherwise starts without it after printing an error.
+> **Note:** Rebuild the `.aot` cache whenever you rebuild the app image. An outdated cache will be ignored with a startup warning.
 
-`Window.open` makes the GPU device on another thread while it opens the window. An app that does a lot before it opens its first window can start that sooner by calling [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) first in `main`.
+If your app runs heavy initialization before opening its first window, you can also call [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) early in `main` to initialize the GPU on a background thread.
 
-To measure the start, `WindowLoop` logs at `DEBUG` on the `System.Logger` `com.rethinkj.ui.window` how many milliseconds after the process started each window showed its first frame; with `java.util.logging` (the module `java.logging`, which a packaged image adds with `--add-modules`), set `com.rethinkj.ui.window.level = FINE` and `java.util.logging.ConsoleHandler.level = FINE` to print it.
+## Optional: Pre-extract native libraries
 
-## Native libraries unpacked at install time
-
-The packaged app unpacks the native libraries into the per-user cache on first start, like any other. An installer can instead place them next to the app and point `rethinkj.ui.natives.dir` at them: then nothing is unpacked, and the natives JAR can be left out. The folder holds the libraries and `manifest.txt`, as they are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/`. `$APPDIR` is the folder of the app's JARs inside the image:
+By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`:
 
 ```sh
 mkdir target/lib/natives
@@ -79,4 +82,4 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
-The libraries' license texts are in the natives JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`; ship them with the app.
+`$APPDIR` points to the app's JAR directory inside the image. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.

@@ -1,23 +1,23 @@
 ---
 title: Custom runner
-description: The App methods a runner of your own needs, for example to embed an app in another toolkit's loop.
+description: App methods for integrating rethinkj UI into your own event loop or another window toolkit.
 ---
 
-`WindowLoop` runs an app in an SDL window. To run an app in another loop, such as a window of another toolkit, feed it input with the methods under [Driving it from Java](/docs/concepts/app#driving-it-from-java) and the other input methods of [`App`](/api/com/rethinkj/ui/App.html#method-summary), call `frame()`, show the pixels of `GpuRenderer.render(scene(), …)` or of `render()`, and use these methods for the rest:
+By default, `WindowLoop` runs your app in an SDL window. If you want to embed rethinkj UI inside a custom event loop or another toolkit, feed input using the methods in [Driving it from Java](/docs/concepts/app#driving-it-from-java) (see [`App` Javadoc](/api/com/rethinkj/ui/App.html#method-summary)), call `frame()`, display the pixels from `GpuRenderer.render(scene(), …)` or `render()`, and use the lifecycle methods below:
 
-| `App` method | |
+| `App` method | Purpose |
 | --- | --- |
-| `advance(seconds)` | Moves the app's clock by the time since the last frame; call it once per frame |
-| `isMoving()` | Whether something moves, so the next frame draws something new after `advance` even without input; draw again at the display's rate while this holds |
-| `cursor()` | The pointer shape that the element under the pointer asks for, to set on the window after each frame |
-| `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | The system's clipboard, its file dialogs and message boxes, and the windows a handler opens. Without them the app keeps an in-memory clipboard and `Dialogs.NONE`, and opening a window throws |
-| `nextChange()` | When the last frame will change without input (the caret's blink, a hover delay, an `after` action); positive infinity when nothing will, so the runner can wait for input alone |
-| `onPost(wake)` | Called on the posting thread when a task arrives; wake the runner's wait there |
-| `handlersWaiting()` | Whether the next frame has handlers to run at once, such as `onResize` handlers after a layout; a runner that draws on the system's request draws again while this holds, a few times at most |
-| `invalidate()` | The state changed outside the app's handlers, so the next frame calls the view again. Call it on the other apps of the same state after one of them ran handlers (`ranHandlers()`) |
-| `inputArea()` | The focused element that takes text, as an `InputArea(x, y, width, height, cursor, password)` in logical pixels, or null: where the input method's window goes, and when to turn text input on and off |
-| `windowActive(boolean)`, `windowMaximized(boolean)` | The window's state; a change builds the view again, which reads it from `WindowState.CURRENT`, for a title bar that is muted while inactive and shows Restore |
-| `systemFonts(boolean)` | Fall back to the system's fonts for characters the app's fonts lack. Off by default, so tests draw the same everywhere; `WindowLoop` turns it on |
-| `textRendering(rendering)`, `imageMemory(bytes)` | The text hinting, and the GPU memory for images |
+| `advance(seconds)` | Advances the app clock by the elapsed time since the last frame. Call once per frame. |
+| `isMoving()` | Returns `true` while an animation is active and the next frame needs to render even without input. |
+| `cursor()` | Returns the mouse cursor shape requested by the hovered element so you can update the OS cursor after each frame. |
+| `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | Connects system clipboard, file dialogs, message boxes, and multi-window support. Without them, the app uses an in-memory clipboard and `Dialogs.NONE`, and opening new windows throws an exception. |
+| `nextChange()` | Returns the time until the next scheduled visual change (cursor blink, hover delay, or `after` timer), or positive infinity when idle so your loop can sleep until input arrives. |
+| `onPost(wake)` | Registers a callback invoked on the posting thread whenever a background task posts work; use it to wake your event loop. |
+| `handlersWaiting()` | Returns `true` if queued handlers (such as `onResize` after layout) need another frame immediately. |
+| `invalidate()` | Marks the view dirty when state changed outside this app's handlers (for example, call this on sibling windows sharing the same state when `ranHandlers()` is `true`). |
+| `inputArea()` | Returns `InputArea(x, y, width, height, cursor, password)` in logical pixels for the focused text field (or `null`), used to position IME windows and toggle text input. |
+| `windowActive(boolean)`, `windowMaximized(boolean)` | Updates `WindowState.CURRENT` and rebuilds the view (for example, to dim inactive title bars or toggle the maximize/restore button). |
+| `systemFonts(boolean)` | Enables fallback to OS fonts for characters missing from bundled fonts. Off by default for deterministic tests; `WindowLoop` turns it on. |
+| `textRendering(rendering)`, `imageMemory(bytes)` | Configures text hinting mode and GPU image cache size. |
 
-The app belongs to the thread that runs it: call these methods from that thread. Only the `wake` callback of `onPost` runs on another thread, the one that posted.
+Call all `App` methods from the app's thread. Only the `wake` callback passed to `onPost` runs on the posting thread.

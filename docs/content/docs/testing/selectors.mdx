@@ -1,24 +1,24 @@
 ---
 title: Targets and selectors
-description: How script steps find the element they act on.
+description: How script commands find UI elements by key, role, label, text, state, or coordinates.
 ---
 
-The target of a `press`, `move`, `wheel`, `drop`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by its role and label, key, text or states.
+Commands like `press`, `move`, `wheel`, `drop`, `focus`, and `scroll` take a **target**: either coordinates or a **selector** that matches exactly one element from the last rendered frame.
 
-## Targets
+## Target syntax
 
 | Target | Meaning |
 | --- | --- |
-| `x,y` | A position in logical pixels. |
-| `#key` | The element with this key, anywhere in the tree and its overlays; while a modal overlay is open, such as a dialog, only in it and the overlays above it. |
-| `role=<role>` | The element with this role, such as `button`, `switch`, `textbox`, `gridcell`, `treeitem`. |
-| `label="<text>"` | The element with this label. `\"` and `\\` inside. |
-| `text="<string>"` | The text element showing exactly this string, written as the tree writes it. |
-| a state | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `revealed`, `invalid`, `busy`, `grabbed`, `modified`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
-| `in <window> <target>` | A target in another window, for the pointer's steps (`press`, `down`, `up`, `move`, `wheel`) and `drop`. For `focus` and `scroll`, choose the window first with `window <name>`. |
-| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there; for the pointer's steps and `drop` only. |
+| `x,y` | Coordinates in logical pixels. |
+| `#key` | Element with this `.key(...)`. While a modal overlay (such as a dialog) is open, searches only inside the modal and overlays above it. |
+| `role=<role>` | Element with this role (for example: `button`, `switch`, `textbox`, `gridcell`, `treeitem`). |
+| `label="<text>"` | Element with this label (escape quotes and backslashes as `\"` and `\\`). |
+| `text="<string>"` | Text element showing this exact string. |
+| State filter | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `revealed`, `invalid`, `busy`, `grabbed`, `modified`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
+| `in <window> <target>` | Target inside another window (for pointer commands and `drop`). For `focus` and `scroll`, call `window <name>` first. |
+| `screen <x>,<y>` | Physical screen coordinates, hitting whichever window is at that point (for pointer commands and `drop`). |
 
-Combine parts with spaces: all must match.
+Combine multiple parts with spaces — every part must match:
 
 ```text
 press role=switch label="Lights"
@@ -27,13 +27,15 @@ press #cell-2-1 clicks 2
 move role=button label="Refresh"
 ```
 
-A step acts on the center of the visible part of the element's rectangle; for an element over a range of text (`El.range`), on the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match, as the pointer does not hit them either. An element with motion, as most kit components have, fades in from opacity 0 when it appears in a parent that was already there, so in the frame it appears it does not match; the clock moves only with `advance`, so run `advance 1` and `frame` before the step. The error then says that what matches is fading in or out.
+Commands act on the center of the element's visible area (or the middle of the first line for an `El.range`).
 
-While a modal overlay is open, such as a dialog, a selector searches only in it and the overlays above it, since presses reach nothing below it. A `Cancel` in a toolbar does not compete with the dialog's `Cancel`. A selector that matches only what lies below it fails and says so.
+**Animations and visibility:** Elements that are fading out (`exiting`) or at opacity `0` cannot be matched. Because most kit components fade in from opacity `0`, advance the clock before interacting with a newly opened element: run `advance 1` and `frame` first.
 
-## Lists of rows
+**Modal overlays:** While a modal dialog is open, selectors only search inside the dialog and overlays above it, so a `Cancel` button in the dialog will not collide with a `Cancel` button behind it.
 
-A list of rows builds only the rows in view and a few around them, so a selector finds only those. Scroll first, then press:
+## Virtual lists
+
+Virtual row lists only build visible rows (plus a small buffer), so selectors can only match built rows. Scroll to a row before clicking it:
 
 ```text
 scroll #rows row 765432
@@ -41,12 +43,13 @@ frame
 press #row-765432
 ```
 
-## When a selector fails
+## Debugging selector errors
 
-When a selector matches nothing, the error lists the keys, roles, labels, states and texts that exist, and the built rows of each list. When only its states do not match, it lists the elements that match the rest, with their states. When it matches several, it lists them with their rectangles. Pick the right selector from that list.
+- **No match:** The error lists all available keys, roles, labels, states, texts, and built row ranges. If an element matched everything except a state, it shows that element's actual states.
+- **Multiple matches:** The error lists every matching element with its bounds so you can narrow your selector.
 
-## Choosing good selectors
+## Best practices
 
-- Prefer `role` and `label`: they survive layout changes and read like the user's action.
-- Give elements a `.key(...)` where there are many of a kind, such as rows and cells; the kit's components do (`row-<index>`, `cell-<row>-<column>`, `item-<index>`).
-- Each component's page lists what it shows in the tree, under "In a tree dump".
+- Prefer `role` and `label` selectors: they stay readable and do not break when layouts shift.
+- Add `.key(...)` to repeated elements like rows and cells (kit components already add keys like `row-<index>`, `cell-<row>-<column>`, and `item-<index>`).
+- Check the **In a tree dump** section on each component's documentation page to see its exact roles, keys, and states.

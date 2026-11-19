@@ -1,20 +1,22 @@
 ---
 title: Write your own component
-description: Build a component the kit does not have, a tag input, so that it looks, types and tests like the kit's own.
+description: Build a custom tag input component that matches the theme, keyboard handling, validation, and testing conventions of rethinkj UI.
 ---
 
-The kit covers the common controls, but an app soon needs one of its own. This guide builds a tag input step by step: the tags as [badges](/docs/components/badge) with a cross that removes each, and a field after them in which Enter adds a tag. It follows the rules the kit's components follow, so it fits beside them in a form and a script can drive it.
+When you need a control that `rethinkj-ui-kit` does not include, you can build your own. This guide builds a tag input step by step: each tag is a removable [Badge](/docs/components/badge), followed by a text field where pressing Enter adds a new tag. It follows the same conventions as built-in components so it works smoothly inside forms and test scripts.
 
 <Shot src="examples/docs/tags/added-{theme}" alt="A tag input with the tags orders, daily and billing, each with a cross, and the empty field below them on a second row" />
 
-## 1. The shape
+## 1. Component signature
 
-A component is a static function. It takes the value it shows, then a handler for the new value, and reads the theme from `Theme.CURRENT`. It returns an `El`, so the caller can chain `.key(...)`, `.label(...)` or `.w(...)`. The value belongs to the app: the component shows the list it gets and hands each new list to `onChange`, which stores it. A null handler disables the component.
+A component is a static method. It takes the current value and an `onChange` handler, reads styling from `Theme.CURRENT`, and returns an `El` so callers can chain `.key(...)`, `.label(...)`, or `.w(...)`.
+
+The app owns the data: the component displays the list it receives and calls `onChange` with the updated list. Passing a `null` handler disables the component.
 
 ```java snippet="tag-input"
 ```
 
-The app keeps the tags in its state and passes them in each build:
+Your app stores the list of tags in its state and passes it on every build:
 
 ```java snippet="tags-state"
 ```
@@ -22,50 +24,62 @@ The app keeps the tags in its state and passes them in each build:
 ```java snippet="tags-view"
 ```
 
-See [App, state and view](/docs/concepts/app) for the loop that rebuilds the view after each handler.
+See [App, state and view](/docs/concepts/app) for how state updates rebuild the view.
 
-## 2. Look from tokens only
+## 2. Style with theme tokens
 
-Read every color, size, space, radius, font and spring from the theme, never from a literal: then a changed [theme](/docs/concepts/themes) changes the component too, and both default themes work. Mix colors with `Colors`, such as `Colors.over` for the hover overlay on a fill. Reuse kit components for the parts they already cover: each tag here is a `Badge` with `onRemove`, which brings its own cross, hover and focus ring.
+Always read colors, spacing, sizes, radii, fonts, and springs from `Theme.CURRENT` instead of hardcoding values. This ensures your component works in both dark and light themes and adapts when the user changes themes (see [Themes](/docs/concepts/themes)).
+
+Use `Colors` helpers (like `Colors.over`) for color mixing, and reuse existing kit components whenever possible — here each tag is a `Badge` with `onRemove`, which already provides the remove button, hover state, and focus ring.
 
 ```java snippet="tag-looks"
 ```
 
-`whenHovered` and `whenFocusWithin` restyle the frame while the pointer is over it or while the field inside has the focus; `motion` animates the change. A component that takes presses itself adds `whenPressed`, `focusRing` and `cursor`, as [Input, focus and keys](/docs/concepts/input#looks) shows.
+`whenHovered` and `whenFocusWithin` style the outer box when hovered or when the inner input is focused, and `motion` animates those transitions. For clickable components, also add `whenPressed`, `focusRing`, and `cursor` (see [Input, focus and keys](/docs/concepts/input#looks)).
 
-## 3. State the app keeps
+## 3. Component state
 
-The text typed for the next tag is neither the value nor something the view can rebuild, so it needs a home that lasts between builds. Give the component a small `State` class that the app keeps in its state, one per input, as the kit's `Menu.State` and `ComboBox.State` do:
+The text currently typed for the next tag is not part of the committed tag list, so it needs to survive across view rebuilds. Define a small `State` class that the app keeps in a `final` field (just like `Menu.State` or `ComboBox.State`):
 
 ```java snippet="tag-state"
 ```
 
-The app holds it in a `final` field beside the tags (`tagDraft` above) and passes it in each build.
+The app holds one `State` instance per tag input (`tagDraft` above) and passes it to the component on each build.
 
 ## 4. Keyboard and focus
 
-An editable field is focusable, so Tab reaches the input without more code: first each tag's cross, then the field. `onKey` on the field sees each key before the field edits with it; return true to take the key, false to let the field have it.
+Because the inner text field is focusable, pressing Tab automatically moves through each tag's remove button and then to the text field. `onKey` on the text field runs before default text editing: return `true` to handle the key yourself, or `false` to let the text field handle it.
 
 ```java snippet="tag-keys"
 ```
 
-Enter adds the typed tag and empties the field; Backspace in an empty field removes the last tag. A press on a cross leaves the focus where it was, so typing goes on in the field: `Badge` makes its cross `keepFocus()`. See [Input, focus and keys](/docs/concepts/input#keyboard-and-focus) for the order in which handlers see a key, and [Text fields and editors](/docs/concepts/text-fields) for the field itself.
+- **Enter** adds the typed tag and clears the draft text.
+- **Backspace** in an empty field removes the last tag.
+- Clicking a tag's remove button keeps focus in the text field because `Badge` sets `keepFocus()` on its remove button.
+
+See [Input, focus and keys](/docs/concepts/input#keyboard-and-focus) for key handling order and [Text fields and editors](/docs/concepts/text-fields) for text field details.
 
 ## 5. Roles, labels and states
 
-Say in words what the component is, so that a [tree dump](/docs/testing/tree-dump), a [selector](/docs/testing/selectors) and assistive tools can use it. The frame is `role("group")` with the tags as its `value`, and `disabled` when there is no handler; the caller's `.label("Tags")` names it, as a [Form](/docs/components/form) field does with its label. The field has the placeholder as its label, and each cross is a button labeled `Remove <tag>`. Key the parts that repeat by what they show, `tag-orders`, `tag-daily`: a key identifies an element among its siblings across builds, so when a tag goes, the ones after it stay themselves and only the removed one fades out. Two siblings must never share a key (the frame throws), so the tags must be distinct: Enter refuses a tag that is already there, and an app that loads tags from elsewhere drops repeats first, for example through a `LinkedHashSet`. [States and roles](/docs/concepts/states) lists every state.
+Add semantic roles, labels, and states so [tree dumps](/docs/testing/tree-dump), [selectors](/docs/testing/selectors), and assistive tools can understand your component:
+
+- The outer container has `role("group")`, the joined tags as its `value`, and `disabled` when `onChange` is `null`. The caller's `.label("Tags")` names it.
+- The text field uses its placeholder as its label, and each remove button is labeled `Remove <tag>`.
+- Give repeating items unique keys (`tag-orders`, `tag-daily`) so animations and identity stay accurate when a tag is removed. Because sibling keys must be unique (duplicate keys throw an error), reject duplicate tags on Enter and deduplicate loaded tags (for example with `LinkedHashSet`).
+
+See [States and roles](/docs/concepts/states) for the full list of supported states.
 
 ```text file="examples/src/test/resources/golden/docs/tags/view.tree.txt" start="role=group" end="#draft"
 ```
 
-## 6. A Prop overload
+## 6. Add a Prop overload
 
-A component that edits a value gets an overload that takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), so that it works with a field of an `Editing` as the kit's components do. It passes the prop's value and `onChange`, which is null for a prop that cannot be written, and shows the prop's error: `invalid`, `errorMessage` and the danger border.
+To integrate smoothly with `Editing` and [Form](/docs/components/form), add an overload that accepts a [`Prop`](/docs/concepts/editing#components-that-take-a-prop). It reads the value and `onChange` handler from the prop (using `null` if read-only) and displays validation errors with `invalid`, `errorMessage`, and a danger border.
 
 ```java snippet="tag-prop"
 ```
 
-In a form, the editing holds the record and a rule over its tags:
+With this overload, you can validate the tag list in a form:
 
 ```java snippet="tags-record"
 ```
@@ -73,7 +87,7 @@ In a form, the editing holds the record and a rule over its tags:
 ```java snippet="tags-form"
 ```
 
-A [Form](/docs/components/form) field shows the error below the input. This dataset has no tags yet, so the rule fails at once:
+`Form` displays the validation error below the input. Because this dataset has no tags yet, the rule triggers immediately:
 
 <Shot src="examples/docs/tags-form/view-{theme}" alt="A form with the name orders_2026 and an empty tag input in red, with Give it at least one tag below it, Save disabled" />
 
@@ -82,7 +96,7 @@ A [Form](/docs/components/form) field shows the error below the input. This data
 
 ## 7. Test it
 
-A [script](/docs/testing/scripts) drives the component as a user would and snaps the result:
+Write a [script](/docs/testing/scripts) to interact with your component and save snapshots:
 
 ```text snippet="tags-script"
 ```
@@ -90,4 +104,4 @@ A [script](/docs/testing/scripts) drives the component as a user would and snaps
 ```text file="examples/src/test/resources/golden/docs/tags/removed.tree.txt" start="role=group" end="#draft"
 ```
 
-Keep the snaps as a test: run the script in JUnit and compare each snap's tree, and a few images, with stored files, as [Stored images as tests](/docs/testing/stored-images) shows. The test then fails when a change breaks what the component shows or how it takes input.
+Run the script in a JUnit test and compare the resulting trees and screenshots against stored files (see [Stored images as tests](/docs/testing/stored-images)).

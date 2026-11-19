@@ -1,9 +1,9 @@
 ---
 title: Checkbox
-description: A box with a check mark and its text, for an option in a form.
+description: Checkbox with a label for boolean options in forms and lists.
 ---
 
-`Checkbox.checkbox` is a box and its text in a row; a press anywhere on the row checks or unchecks it. Use it for options in a form that apply when the form is saved, and for lists of options. For a setting that applies at once, use a [Toggle](/docs/components/toggle).
+`Checkbox.checkbox` renders a checkbox and label in a row; clicking anywhere on the row toggles it. Use checkboxes for form options that take effect when saved, or for multi-select lists. For settings that apply immediately, use [Toggle](/docs/components/toggle).
 
 Javadoc: [`Checkbox`](/api/com/rethinkj/ui/kit/Checkbox.html).
 
@@ -14,24 +14,24 @@ Javadoc: [`Checkbox`](/api/com/rethinkj/ui/kit/Checkbox.html).
 ```java snippet="checkbox"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `checkbox(checked, text, onToggle)` | The box and its text |
-| `checkbox(checked, onToggle)` | The box alone; give it a `.label(...)` |
+| `checkbox(checked, text, onToggle)` | Checkbox with label |
+| `checkbox(checked, onToggle)` | Checkbox alone (add `.label(...)` for accessibility and scripts) |
 
-A null handler disables it.
+Passing a `null` handler disables the checkbox.
 
 ## Keyboard
 
-Tab reaches it; Space and Enter check or uncheck it. A press leaves the focus where it was.
+**Tab** focuses the checkbox; **Space** and **Enter** toggle it. Clicking with the mouse keeps keyboard focus where it was.
 
 ## With a Prop
 
-`checkbox(prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`checkbox(prop, text)` binds directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=checkbox` with the text as label, `checked` or `checked=false`:
+`role=checkbox` with the text as `label`, and `checked` or `checked=false`:
 
 ```text file="examples/src/test/resources/golden/docs/toggles/view.tree.txt" start="role=checkbox" count="1"
 ```

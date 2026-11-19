@@ -1,64 +1,64 @@
 ---
 title: Text fields and editors
-description: Single-line fields and multi-line editors in core, whose string is the app's, with caret, selection, undo, input methods and highlighting.
+description: Build single-line inputs and multi-line code editors with selection, undo/redo, IME support, and syntax highlighting.
 ---
 
-`El.text(value).editable(onEdit)` makes a text field, and `.multiline()` a multi-line editor that handles 100 000 lines. The string belongs to the app: the view builds the field with the current value, and every edit passes the new string to `onEdit`, which stores it. The kit's [TextField](/docs/components/text-field) and [CodeEditor](/docs/components/code-editor) are built on these; use them unless you need your own look.
+Call `El.text(value).editable(onEdit)` to create a single-line text input, and add `.multiline()` for a multi-line editor capable of handling 100,000+ lines. Your app owns the string: you pass the current value on every build, and `onEdit` receives the updated string on each edit.
+
+For styled inputs out of the box, use the kit's [TextField](/docs/components/text-field) and [CodeEditor](/docs/components/code-editor).
 
 ```java snippet="field"
 ```
-
-Each field's handler stores the string:
 
 ```java snippet="field-handlers"
 ```
 
 <Shot src="examples/docs/field/view-{theme}" alt="A text field holding orders above a code area with three lines of SQL" />
 
-## Refuse or change an edit
+## Filtering or modifying edits
 
-`onEdit` may refuse an edit (store nothing) or change it, for example keep only digits; the field then shows the app's string, with the caret where it fits. When the app changes the value itself, the caret stays near its text and the undo history ends.
+Your `onEdit` handler can reject an edit (by not updating state) or transform it (for example, keeping only digits). The field always displays your state's string and adjusts the cursor accordingly. If you replace the string programmatically, the undo history resets.
 
-To locate an edit between two field values, `TextChange.between(before, after)` gives the shared start and the exclusive end in each string as UTF-16 offsets.
+To inspect what changed between two strings, call `TextChange.between(before, after)` to get the UTF-16 start and exclusive end offsets in both strings.
 
-## Keep caret and undo across tabs
+## Preserving cursor and undo across tabs
 
-The app keeps a field's caret, selection, scroll offset, undo history (100 steps) and input method composition by the field's identity, and drops them when the field leaves the tree, for example in a tab that is not active. To keep them, pass a `FieldState` from your state to `.fieldState(...)`: the editor then comes back as it was, also in another window. Only a composition ends when the field leaves. `fieldState.select(caret, anchor)` sets the caret or a selection for the field's next build, also while it is away; `App.select` needs the field in the last frame.
+By default, `App` tracks a field's cursor, selection, scroll offset, undo history (100 steps), and IME composition per element key, and discards them when the field leaves the tree (such as switching tabs).
+
+To preserve this state across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`.
 
 ## Options
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `multiline()`, `lines(n)`, `fitLines()` | Several lines; `n` lines high; as high as all its lines |
-| `wrapText()` | Break lines at the width instead of scrolling sideways; a word longer than a row breaks inside it |
-| `readOnly()`, `editable(null)` | Select and copy only; disabled |
-| `maxLength(n)` | At most `n` code points |
-| `masked()` | A password field |
-| `placeholder(text, argb)` | Text shown while the field is empty |
-| `codeWords()` | Words are runs of letters, digits and `_`, for Control+Arrow and double clicks |
-| `highlight(key, highlighter)` | Colors, fonts, backgrounds, underlines per range |
-| `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line fields only: backgrounds and underlines for the lines in view: the caret's line, matches, errors; `alsoDecorate` adds to those a component draws itself, such as a code editor |
-| `gutter(line -> cell)`, `gutter(cells, rail)` | An element per line at the left, told the line's index, where it starts and ends and whether the caret is on it: line numbers, markers; on a rail behind them |
+| `multiline()`, `lines(n)`, `fitLines()` | Multi-line mode; fixed height of `n` lines; or auto-height to fit all lines |
+| `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling |
+| `readOnly()`, `editable(null)` | Read-only (selectable/copyable) vs. disabled |
+| `maxLength(n)` | Maximum length in Unicode code points |
+| `masked()` | Password field (displays `•`) |
+| `placeholder(text, argb)` | Placeholder text shown when empty |
+| `codeWords()` | Treats letters, digits, and `_` as words for Ctrl+Arrow and double-click |
+| `highlight(key, highlighter)` | Syntax highlighting (colors, fonts, backgrounds, underlines) |
+| `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
+| `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
 
-The [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) has the rest: the mask character and a revealed password, the caret's and selection's colors, Tab indents and tab size, and `onSelect` for caret moves.
+See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`).
 
-From handlers, `app.edit(field, from, to, text, caret)` replaces a range as one undo step, `app.select(field, caret, anchor)` selects, and `app.undo(field)` and `app.redo(field)` step through the history, for an Edit menu.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
 
-## Find the word at the caret
+## Finding the word at the cursor
 
-For completion or rename, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return where the code word around an index begins and ends (letters, digits and `_`, as for `codeWords()`). Both return the index itself when no word touches it.
+For autocomplete or rename actions, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return the start and end offsets of the identifier (`letters`, `digits`, `_`) at `index`:
 
 ```java snippet="code-words"
 ```
 
-## Links in a paragraph
+## Inline links in selectable text
 
-A read-only multi-line field is a paragraph that selects and copies. A child with `range(from, to)` is placed over those characters of the field's string instead of where layout would put it, so it can be a link with its own key, focus and handler:
+A read-only multi-line text field lets users select and copy paragraphs. To place clickable links inside it, add a child element with `.range(from, to)` covering the link's character offsets:
 
 ```java snippet="range"
 ```
-
-The link's handler is a method of the state:
 
 ```java snippet="range-handlers"
 ```
@@ -69,17 +69,15 @@ The link's handler is a method of the state:
 ```text file="examples/src/test/resources/golden/docs/range/focused.tree.txt" start="#note" count="2"
 ```
 
-- In a tree dump the child's rectangle is the bounding box of its rows, but it takes presses and draws its fill and focus ring only on the text it covers, one rectangle per row. `rangeBoxes()` returns those rectangles after layout, as `Text.Box(x, y, width, height)` relative to the child.
-- It takes presses, the cursor, hover looks and, with `focusable()`, the focus, like any element; a press on it does not reach the field. Enter presses it while it has the focus.
-- `fitLines()` makes the field as high as its text, so it never scrolls, and `skipTab()` on the field lets Tab go from link to link.
+- The child receives clicks, hover styles, cursor shapes, and keyboard focus (Enter activates it) without passing clicks to the parent text field.
+- Combine `fitLines()` (auto-height) and `skipTab()` on the text field so Tab jumps cleanly from link to link. [Markdown](/docs/components/markdown) uses this pattern.
 
-[Markdown](/docs/components/markdown) builds its links this way.
+## Built-in keyboard and mouse shortcuts
 
-## Keys and pointer
-
-Arrows, Home, End, Page Up and Down, with Shift to select and Control to move by words; Backspace and Delete; Control+A, C, X, V, Z, Y and Control+Shift+Z. A double click selects a word, a triple click a line or everything. The caret never stops inside an emoji or between a letter and its accent. In a multi-line field Enter breaks the line, and Control+Enter goes to the app's handlers. In a field that indents with Tab (`tabIndents`), the new line starts with the spaces and tabs that start the caret's line, as far as they reach before the caret; with a selection, those of the line where it starts.
-
-Input methods compose in place, underlined; the composition shows in the tree as `composing "…"`.
+- **Navigation & selection:** Arrow keys, Home, End, Page Up/Down (with **Shift** to select and **Ctrl** to jump by word), double-click to select a word, triple-click to select a line.
+- **Editing:** Backspace, Delete, **Ctrl+A** (select all), **Ctrl+C/X/V** (copy/cut/paste), **Ctrl+Z** (undo), **Ctrl+Y** / **Ctrl+Shift+Z** (redo).
+- **Multi-line:** **Enter** inserts a newline (auto-indenting when `tabIndents` is enabled); **Ctrl+Enter** bubbles to your app's `onKey` handlers.
+- **IME:** Input methods compose inline with an underline (shown as `composing "…"` in tree dumps).
 
 ## In a tree dump
 

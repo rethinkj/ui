@@ -1,11 +1,11 @@
 ---
 title: The first app
-description: A state, a view and a window, explained line by line.
+description: Walk through a complete rethinkj UI app line by line.
 ---
 
-An app is a state object and a function from that state to a tree of elements. This page walks through the smallest complete app: a lamp and a switch in a card.
+Every rethinkj UI app consists of two parts: a **state** object and a **view** function that turns that state into a tree of UI elements. This page walks through a minimal complete app: a lamp and a toggle switch inside a card.
 
-<Shot src="examples/light-switch-on" alt="A lamp above a switch labeled Lamp, in a frameless window" caption="The LightSwitch example: the same lamp and switch in a window with a title bar of its own." />
+<Shot src="examples/light-switch-on" alt="A lamp above a switch labeled Lamp, in a frameless window" caption="The LightSwitch example: the same lamp and switch in a frameless window with a custom title bar." />
 
 ## The code
 
@@ -14,25 +14,25 @@ An app is a state object and a function from that state to a tree of elements. T
 
 ## Line by line
 
-**The state.** `Lights` has one field, `on`. State is plain Java: fields, lists, records, whatever the app needs. Nothing observes it. Only handlers change it, on the app's thread, one input at a time.
+**State.** `Lights` has a single field, `boolean on`. Your state is a plain Java object (fields, lists, records — whatever your app needs). You do not need observables or data binding. Only event handlers update the state, always on the app thread.
 
-**The app.** `new App<>(new Lights(), Lights::view)` ties the state to its view. The [`App`](/api/com/rethinkj/ui/App.html) owns everything that is not the app's business: focus, hover, scroll offsets, animations, the caret of a text field.
+**App.** `new App<>(new Lights(), Lights::view)` connects your state to your view function. [`App`](/api/com/rethinkj/ui/App.html) automatically manages UI internals like focus, hover state, scroll positions, animations, and text cursors.
 
-**`Script.handle(args, app)`.** With `--script <file> --out <folder>` it runs a script against the app and writes images and trees instead of opening a window, and returns true. Without them it returns false. Every app should have this line: it is what lets an agent or a test drive it. See [Testing and agents](/docs/testing).
+**Headless script support.** `Script.handle(args, app)` checks for `--script <file> --out <folder>` in the command-line arguments. If present, it runs the script without opening a window, writes screenshots and element trees, and returns `true`. Otherwise, it returns `false` and the app opens a window. Including this line lets automated tests and AI agents drive your app. See [Testing and agents](/docs/testing).
 
-**The window.** `Window.open` opens an SDL window, `GpuPresenter` draws into it with wgpu, and `WindowLoop.run` runs the app in it until the window closes: it passes input to the app, builds frames and waits while nothing changes. Both are `AutoCloseable`.
+**Window.** `Window.open` creates a desktop window, `GpuPresenter` renders to it using the GPU, and `WindowLoop.run` runs the event loop until the user closes the window. Both `Window` and `GpuPresenter` implement `AutoCloseable`.
 
-**The view.** `view` builds a new tree from the state, every time. It is called again after each input that a handler took, so it should only build elements, never change state.
+**View.** `view(Lights state)` returns a fresh element tree from the current state. rethinkj UI calls it again whenever an event handler changes the state. Keep `view` read-only — never modify state inside it.
 
-- `el()`, `row()` and `col()` make boxes; `text(...)` makes text. Calls chain: size, padding, fill, radius, children. See [Elements and layout](/docs/concepts/layout).
-- `.key("lamp")` gives the element an identity. Identity is what animations, focus and scroll offsets hang on, and what a script finds with `#lamp`.
-- `.motion(theme.motion().move())` makes the lamp's color spring to its new value instead of jumping. See [Motion](/docs/concepts/motion).
-- `Card.card` and `toggle` come from the kit. Each kit component is a static function that returns an `El` that you may chain further. Components read the theme from `Theme.CURRENT`, the dark theme unless the app provides another; the view reads its tokens from there too. See [Components](/docs/components) and [Themes](/docs/concepts/themes).
-- `toggleLamp` is the handler, a method of the state that the view passes as `state::toggleLamp`. It changes the state; the app builds the view again and the switch and the lamp follow.
+- `el()`, `row()`, and `col()` create layout containers, and `text(...)` creates text. Chain methods to set size, padding, background fill, corner radius, and children. See [Elements and layout](/docs/concepts/layout).
+- `.key("lamp")` gives the element a stable ID. Keys let rethinkj UI track animations, focus, and scroll positions across rebuilds, and let scripts find elements with `#lamp`.
+- `.motion(theme.motion().move())` smoothly animates the lamp's color change using a spring instead of snapping immediately. See [Motion](/docs/concepts/motion).
+- `Card.card` and `toggle` are ready-made components from `rethinkj-ui-kit`. Each component is a static method returning an `El` that you can style further. Components automatically read colors and spacing from `Theme.CURRENT` (dark theme by default). See [Components](/docs/components) and [Themes](/docs/concepts/themes).
+- `state::toggleLamp` is an event handler method. When the user clicks the switch, `toggleLamp()` flips `on`, and the app rebuilds the view automatically.
 
 ## Run it without a window
 
-The same app under a script. Each step is one line; `snap` writes a PNG and the element tree:
+You can drive the same app with a text script. Each line is one command, and `snap` saves a PNG screenshot and an element tree:
 
 ```text snippet="lights-script" title="lights.txt"
 ```
@@ -40,10 +40,10 @@ The same app under a script. Each step is one line; `snap` writes a PNG and the 
 ```text file="examples/src/test/resources/golden/docs/lights/on.tree.txt" title="on.tree.txt"
 ```
 
-The tree says what an agent would otherwise read from pixels: the switch has `role=switch`, its label, and `checked`. [Testing and agents](/docs/testing) explains every step and every state.
+The tree dump shows the UI structure as text — for example, `role=switch`, `label="Lamp"`, and `checked`. Tests and AI agents can check these states directly without inspecting pixels. See [Testing and agents](/docs/testing) for all commands and states.
 
-## Next
+## Next steps
 
-- [Ship your app](/docs/get-started/ship): an app image with its own Java runtime.
-- [App, state and view](/docs/concepts/app): how input, handlers and rebuilding fit together.
-- [Build a whole app](/docs/guides/real-app): views, loading, a dialog that edits a record and saving, in one small app.
+- [Ship your app](/docs/get-started/ship) — Package your app with its own Java runtime.
+- [App, state and view](/docs/concepts/app) — Learn how input, handlers, and view rebuilds work together.
+- [Build a whole app](/docs/guides/real-app) — Build a multi-view app with background loading, editing dialogs, and saving.

@@ -1,9 +1,11 @@
 ---
 title: CodeEditor
-description: A multi-line editor for code with line numbers, markers, diagnostics, highlighting, brackets, a find bar and line commands.
+description: Multi-line code editor with line numbers, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line field for code. It has line numbers and markers in a gutter on a rail of its own, highlights the caret's line and matching brackets, marks other occurrences of the word at the caret, and draws guides in the indentation. Colors come from a highlighter such as `Sql`. It has a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines, and it handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
+`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, gutter markers, syntax highlighting (such as `Sql`), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
+
+For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
 
 Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
@@ -14,15 +16,15 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 ```java snippet="code-editor"
 ```
 
-- `state.sql` is the text, which every edit hands to `onChange`.
-- `state.editor` is a `CodeEditor.State` in the app's state, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
-- `Sql.of()` colors SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(Sql.Dialect.MYSQL)` colors SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space or a character below it, such as a tab, or at the end of the line, and the backslash as the escape in strings. Call it in the view, where it takes the code colors of the theme the app provides, and pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colors every line again. Outside the view, `new Sql(theme.code())` takes them from the theme you give it.
-- `state.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(value, editorState, highlighter, onChange)`) the editor has neither.
-- `.lines(n)` makes it `n` lines high; give it a width or let it grow.
+- `state.sql` is the document string, updated via `onChange`.
+- `state.editor` is a `CodeEditor.State` stored in your app state (one per tab/editor) to preserve cursor, selection, scroll position, and undo history across tab switches.
+- `Sql.of()` highlights standard SQL (and `Sql.of(Sql.Dialect.MYSQL)` supports MySQL/MariaDB syntax). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
+- Passing `state.app` enables the built-in find bar and line commands. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
+- Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
 
-## In a card
+## Embedded in a card
 
-The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, its rail starting at the card's edge, and with a line along its top that takes the accent's color while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
+By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/components/card) or panel, wrap it with `CodeEditor.embedded(editor)` to remove the outer border and corners so it sits edge-to-edge with a top accent line on focus:
 
 <Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 
@@ -31,78 +33,70 @@ The editor has the frame of a text field, which makes a box in a box inside a ca
 
 ## Gutter, markers and diagnostics
 
-The gutter lies on a rail in the band's color, with a hairline between it and the code. Line numbers are quiet, but the caret's. A marked block (`block(from, to)`), such as the statement Control+Enter would run, tints the rail beside a line in the accent's color and leaves the code as it is.
-
-Left of the numbers is a column of markers, kept free on every line so that the code never moves when one appears. A marker has a symbol, a tone, a label that shows as its tooltip, and optionally an action that a press on it runs. Diagnostics are what the app learned about the text, such as the error of the last run: each underlines its range in its severity's color (`ERROR` danger, `WARNING` warning) and puts a marker at its first line, with its message as the tooltip; several on one line share one marker of the worst severity. A diagnostic is about one text: it shows only while the editor's value equals the text it was given with, so an edit takes it away, and an undo back to that text brings it back.
+The left gutter displays a marker column and line numbers. You can attach:
+- **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
+- **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
+- **Diagnostics (`diagnostics(text, list)`):** Underlines errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
 
 ```java snippet="code-editor-marks"
 ```
 
-Positions are indexes into the string, as for the caret. Moving the caret to a diagnostic is up to the app, with `select(caret, anchor)`.
+All positions are UTF-16 string offsets. To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
 
-## A highlighter of your own
+## Writing a custom highlighter
 
-`Sql` is one `Highlighter`; for any other language, write a class of your own. A highlighter is asked about one line at a time. It gets the state the line before ended in and returns the state its own line ends in, so that a string or a comment can go on across lines:
+Implement `Highlighter` to support other languages. It processes one line at a time, receiving the state from the previous line and returning the state at the end of the current line (for multi-line strings or block comments):
 
 ```java snippet="highlighter"
 ```
 
-- `Object line(String line, Object state, Spans out)` gets the line's string without its line feed, the state the line before returned (null for the first line) and a `Spans` to describe it in. It returns the state at the end of the line, such as "inside a block comment", or null when nothing goes on. States are compared with `equals`, so use values: an enum, a record, `Boolean.TRUE`.
-- The editor asks only about the lines it needs, and asks again about a line after an edit. So a highlighter must depend only on its line and its state, never on what it was asked before.
-- Make it a record, so that it is equal on every build, as `Sql.of` is.
-- Override `lineComment()` to return what starts a comment to the end of the line (`--`, `//`, `;`), which Control+/ comments lines out with. It is null by default, and Control+/ then does nothing.
-- To keep a bracket in a string or a comment from pairing with one in the code, call `out.bracket(at)` for each bracket of the code, `( ) [ ] { }`, and override `marksBrackets()` to return true; `Sql` does. A highlighter that does not opt in pairs every bracket of the text. `El.matchingBracket(caret)` finds the pair at the caret in any text element; it skips brackets in strings and comments only where a multi-line field's highlighter has marked them.
-
-A highlighter can be tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
+- `Object line(String line, Object state, Spans out)` receives the line without `\n`, the previous line's end state (`null` for line 0), and a `Spans` builder. Return a value object (enum, record, `Boolean.TRUE`, or `null`) so state changes can be compared with `equals`.
+- Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
+- Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
+- Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
 ### Spans
 
-Positions are indexes into the line's string. A range runs from `from` to `to`, exclusive; it is clamped to the line and left out when empty. Where ranges of one kind overlap, the later one wins. Colors are 0xAARRGGBB.
+`Spans` ranges use `[from, to)` character offsets within the line (later overlapping ranges win). Available methods: `color`, `font`, `background`, `underline`, `strike`, `guide` (vertical indentation guide), and `lineBackground`. See [`Spans` Javadoc](/api/com/rethinkj/ui/Spans.html).
 
-`color(from, to, argb)` gives the text of a range a color, and `font(from, to, font)` another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks. `background`, `underline`, `strike`, `guide` (a thin line at the left edge of a character, as the editor's indentation guides) and `lineBackground` are on [`Spans`](/api/com/rethinkj/ui/Spans.html).
+## Custom decorators
 
-Backgrounds, underlines, struck ranges, guides and line backgrounds show in multi-line fields only.
-
-## Marks of your own
-
-A `Decorator` marks the lines in view with backgrounds and underlines, as the editor does for the caret's line, brackets and the find bar's matches. Unlike a highlighter, it keeps nothing: it is asked again for each line in view whenever the field lays out its rows, so it may read anything in the app's state, such as the caret or the errors of the last run.
+A `Decorator` runs on visible lines during layout to add dynamic backgrounds or underlines (such as search matches or custom highlights) without caching state:
 
 ```java snippet="decorator"
 ```
 
-`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a `position` in the string is `position - start` in the line), the line's text and the `Spans` to mark it in. Colors and fonts from a decorator are ignored; they belong to the highlighter. `editor.alsoDecorate(mine)` marks after the editor's own decorator, so its marks draw over the editor's marks of the same kind; `El.decorate` would replace the editor's marks.
+Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlights (`El.decorate` would replace them).
 
-## The state
+## State API
 
-Positions are indexes into the string as the editor shows it. A carriage return, with or without a line feed after it, and U+2028 and U+2029 are each one line feed there; the editor hands the app that string at the first edit.
-
-| `CodeEditor.State` | |
+| `CodeEditor.State` method | Description |
 | --- | --- |
-| `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
-| `select(caret, anchor)` | Put the caret or a selection there and scroll it into view at the next build, also while the editor is away, as in a tab that is not shown |
-| `diagnostics(text, list)`, `noDiagnostics()` | Show `CodeEditor.Diagnostic(from, to, severity, message)`s about `text` while the value is `text`: underlined, with a marker and its message as tooltip |
-| `markers(list)` | Show `CodeEditor.Marker(at, symbol, tone, label, onPress)`s in the gutter at the lines of their positions; `onPress` may be null |
-| `block(from, to)`, `noBlock()` | Mark the lines of a range on the rail, such as the statement Control+Enter would run |
-| `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
-| `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
+| `caret()`, `anchor()` | Current cursor and selection anchor offsets |
+| `select(caret, anchor)` | Sets cursor/selection and scrolls it into view on the next build |
+| `diagnostics(text, list)`, `noDiagnostics()` | Sets or clears `CodeEditor.Diagnostic(from, to, severity, message)` items for `text` |
+| `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items |
+| `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
+| `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
+| `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 
-## Commands
+## Keyboard commands
 
-| Keys | `CodeEditor.Command` | |
+| Shortcut | `CodeEditor.Command` | Action |
 | --- | --- | --- |
-| Control+D | `SELECT_NEXT` | Select the word at the caret, then its next occurrence |
-| Control+Shift+D | `DUPLICATE_LINES` | Duplicate the caret's line or the selected lines |
-| Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move them |
-| Control+Shift+K | `DELETE_LINES` | Delete them |
-| Control+/, Control+Shift+7, Control+# where `#` has a key of its own, Control with the numpad's / | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `lineComment()` (`--` for SQL) |
+| Ctrl+D | `SELECT_NEXT` | Select current word, then next occurrence |
+| Ctrl+Shift+D | `DUPLICATE_LINES` | Duplicate current or selected lines |
+| Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move lines up or down |
+| Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
+| Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
 
-`CodeEditor.run(app, editorState, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. `editor.onKeyFirst(mine)` asks yours first and hands the keys it declines to the editor's, as the Workbench does for Control+Enter; `El.onKey` would replace them.
+Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
 
-The editor also has every key of a multi-line text field. Enter keeps the indentation of the line, Tab indents, and Control+M switches Tab between indenting and moving the focus. A second Home goes to the first character of the line that is not a space. Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
+Also supports all standard [multi-line text field shortcuts](/docs/concepts/text-fields): auto-indent on Enter, Tab indentation (**Ctrl+M** toggles Tab between indent and focus navigation), smart Home, and Ctrl+Z / Ctrl+Y undo/redo.
 
 ## In a tree dump
 
-The editor is a `role=textbox` text element with its label, the lines in view and how many there are, then the diagnostics' ranges as `underline <from>-<to>` while their lines are in view. While it has the focus, it shows its caret with line and column. Its rail is `#rail`, and the gutter `#gutter` with a `#line-<index>` per line. A line's marker is `#marker` in it: a diagnostic's is `role=img label="Error"` (or `"Warning"`) with the messages of its errors as `error="<message>"` and of its warnings as `warning=`, and one of yours has your label, `role=button` when it takes a press.
+`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
 ```

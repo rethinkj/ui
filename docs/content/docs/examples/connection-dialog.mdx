@@ -1,11 +1,17 @@
 ---
 title: ConnectionDialog
-description: The dialog in which a database tool asks where to connect, as a window of its own.
+description: A standalone frameless dialog window with form validation and Enter-to-submit support.
 ---
 
-ConnectionDialog is a window that is a dialog: a [Form](/docs/components/form) of host, port, database, user and password, with Connect as its default button.
+ConnectionDialog is a standalone dialog window featuring a [Form](/docs/components/form) for database connection details (host, port, database, user, and password) with field validation and a default **Connect** button.
+
+**Demonstrates:** [Form](/docs/components/form), [Editing records](/docs/concepts/editing), [TextField](/docs/components/text-field), [ComboBox](/docs/components/combo-box), [TitleBar](/docs/components/title-bar), and [Dialog](/docs/components/dialog).
 
 <Shot dark="examples/connection-dark" light="examples/connection-light" alt="A connection form with its fields filled, the password shown and the database focused" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog
@@ -13,37 +19,37 @@ mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog
 
 ## What to try
 
-- Fill in the fields: Connect stays disabled until host, port, database and user are there.
-- Type a port other than 5432 and connect: the port's field says no server answers.
-- Enter `postgres` as the user with a host other than `localhost`: the user's field says that it connects only to localhost.
-- Press Enter in a field to connect.
+- Fill in the fields: **Connect** stays disabled until host, port, database, and user are all filled in.
+- Enter a port other than `5432` and click **Connect**: the port field displays a connection error.
+- Enter `postgres` as the user with a host other than `localhost`: a cross-field validation rule shows an error on the user field.
+- Press **Enter** inside any text field to submit the form.
 
 ## How it works
 
-### A window that is a dialog
+### Frameless dialog window
 
-`main` opens a small frameless window; the view draws its own [TitleBar](/docs/components/title-bar) ([Platform](/docs/concepts/platform)).
+`main` opens a small frameless window, and the view draws its own [TitleBar](/docs/components/title-bar) ([Platform](/docs/concepts/platform)):
 
 ```java snippet="connection-dialog-window"
 ```
 
-### The edit and its rules
+### Editing and validation rules
 
-The form edits a `Profile` record through an `Editing`, which keeps the fields' text and errors ([Editing](/docs/concepts/editing)). A rule across two fields shows its message at the user's field; Connect is ready when the edit is valid, changed and complete. A failed connection puts an error on the port's field.
+The form edits a `Profile` record using `Editing`, which tracks draft text and validation errors ([Editing](/docs/concepts/editing)). A cross-field rule validates `user` and `host` together. **Connect** is enabled only when the form is valid, modified, and complete. A failed connection attaches an error directly to the port field:
 
 ```java snippet="connection-dialog-editing"
 ```
 
-### The form
+### Form fields
 
-`editing.at(Profile.HOST)` is the part of the edit that a field edits. The port is an `Integer` in a `ValueField`, the database a free [ComboBox](/docs/components/combo-box) with suggestions, and the password a field with a button that shows it ([TextField](/docs/components/text-field)). A button without a handler is disabled.
+Each field binds to a property via `editing.at(...)`. The port uses an `Integer` `ValueField`, the database uses an editable [ComboBox](/docs/components/combo-box) with suggestions, and the password uses a [TextField](/docs/components/text-field) with a show/hide toggle. Passing a `null` handler disables a button:
 
 ```java snippet="connection-dialog-form"
 ```
 
-The root takes Enter with `Dialog.enterPresses(connect)`: Enter in a single-line field presses Connect, while a focused button or checkbox presses itself.
+`Dialog.enterPresses(connect)` makes pressing **Enter** in any single-line field trigger **Connect**, while a focused button or checkbox still activates itself:
 
 ```java snippet="connection-dialog-enter"
 ```
 
-The whole app is in [`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java).
+Full source: [`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java).

@@ -1,13 +1,13 @@
 ---
 title: CommandPalette
-description: A searchable list of every command, and of other things after a prefix, opened with Control+Shift+P.
+description: Searchable command launcher (Ctrl+Shift+P) with fuzzy matching, prefix sources, and multi-step prompts.
 ---
 
-`CommandPalette.palette` is an overlay at the top of the window with a field over a list. Type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or anything else the app lists. A command can ask for more before it acts, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
+`CommandPalette.palette` is a floating command launcher at the top of the window. Users type to fuzzy-search commands from your menus, or type a prefix (such as `@`) to search custom items like tables or files. Commands can also prompt for follow-up input or live-previewed choices.
+
+For picking a value inside a form, use [ComboBox](/docs/components/combo-box).
 
 Javadoc: [`CommandPalette`](/api/com/rethinkj/ui/kit/CommandPalette.html), [`CommandPalette.State`](/api/com/rethinkj/ui/kit/CommandPalette.State.html).
-
-It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (560) wide, with a field `size().paletteField()` (32) high over at most 12 rows of `size().paletteRow()` (28); with fewer it is only as high as they are, and in a window too short for it the list shows fewer rows and scrolls.
 
 <Shot src="kit/palette-{theme}-2x-commands" alt="The command palette with recently used commands and their shortcuts" />
 
@@ -16,62 +16,57 @@ It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (
 ```java snippet="command-palette"
 ```
 
-- `state.palette` is a `CommandPalette.State` in the app's state.
-- `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`), with their icons, shortcuts and handlers. Add your own with `FilterList.entry(text, onChoose)`.
-- A `CommandPalette.Source(prefix, what, entries)` lists other things after its prefix, which cannot be empty or `>`. Text that starts with no source's prefix finds commands, with a leading `>` left out.
-- `CommandPalette.keys(paletteState)` opens the palette with Control+Shift+P and F1; `state.palette.open("@")` opens it at a source, as for Control+P.
-- While nothing is typed, the last five commands chosen come first, under "Recently used". `state.palette.recent()` lists their keys, or their texts where they have none, the last first, and `state.palette.text()` is what is typed.
-- `entry.key("s1.orders")` tells an entry from others with the same text: the highlight follows it when the entries change, and Enter runs the one highlighted.
-- `entry.keepsOpen(true)` leaves the palette open when the entry is chosen, for one that loads more entries into the list. The best entry is highlighted, also once the entries change, until a key or the pointer moves the highlight. The field keeps the focus, also after a press on the entry, so Escape still closes the palette.
-- `state.palette.onClose(runnable)` runs each time the palette closes, to stop what an entry started. A closed palette lets go of its entries and what their handlers hold; the recently used commands stay.
+- Store one `CommandPalette.State` in your app state.
+- `CommandPalette.commands(menus)` automatically turns `Menu.Item` lists (including menu bar menus) into searchable commands (`Query: Run`, `File: Export › CSV`) with their icons, shortcuts, and handlers. Add custom commands with `FilterList.entry(text, onChoose)`.
+- `CommandPalette.Source(prefix, placeholder, entries)` adds a prefixed search mode (e.g., `@` for tables). Prefixes cannot be empty or `>`.
+- `CommandPalette.keys(paletteState)` binds **Ctrl+Shift+P** and **F1** to open the palette. Call `state.palette.open("@")` to open directly into a source (for example on Ctrl+P).
+- When the search box is empty, the 5 most recently used commands appear under **Recently used**.
+- Set `entry.key(...)` to keep highlight tracking stable across list updates, `entry.keepsOpen(true)` for entries that load more results without closing, and `state.palette.onClose(...)` to clean up when dismissed.
 
-## Lists and fuzzy matching
+## Entry sources and fuzzy matching
 
-What a source lists is a `FilterList.Entries`, which a [ComboBox](/docs/components/combo-box) takes too:
+Sources use `FilterList.Entries` (also used by [ComboBox](/docs/components/combo-box)):
 
-| | |
+| Factory | Behavior |
 | --- | --- |
-| `Entries.of(list)` | The kit filters the list with `Fuzzy`. While nothing is typed, all entries show in their order; then the matches, best first within their groups, the shorter text first among equal matches. Pass the same list object while it does not change, so that the result is kept |
-| `Entries.inOrder(list)` | The same, but equal matches keep their order, as commands want |
-| `Entries.by(text -> list)` | The app finds the entries for the typed text, on the app's thread on every build; they show in the order given |
-| `Entries.background(app, name, text -> list)` | The same on another thread. The last entries stay, with a row "Loading…", until the answer comes; a new text cancels the search before it |
+| `Entries.of(list)` | Filters using `Fuzzy`, sorting best matches first (reuse the same list instance when unchanged to keep cached results) |
+| `Entries.inOrder(list)` | Same as `of`, preserving original order among equal-scoring matches |
+| `Entries.by(text -> list)` | Custom synchronous filter function |
+| `Entries.background(app, name, text -> list)` | Async background search showing `"Loading…"` while running and cancelling stale queries |
 
-`Fuzzy` is the kit's matching, for an app's own search. The query's characters must occur in the text in order. A match scores higher at the starts of words (after a space, `_`, `.` or `-`, and at a camelCase capital) and for characters next to each other, lower for gaps: `"ot"` ranks `orders_total` before `customer_note`. Case counts only when the query has a capital letter.
+You can also use `Fuzzy` directly in your own search UI. Characters must match in order, with bonuses for word boundaries (after spaces, `_`, `.`, `-`, or camelCase) and consecutive letters. Case-sensitive only when the query contains an uppercase letter:
 
 ```java snippet="fuzzy"
 ```
 
-| | |
+| Method | Description |
 | --- | --- |
-| `Fuzzy.score(query, text)` | The score, higher for a better match, or `Fuzzy.NO_MATCH` (`Integer.MIN_VALUE`) |
-| `Fuzzy.positions(query, text)` | The indexes of the characters the best match takes, one per character of the query, to highlight them; null when it does not match |
-| `Fuzzy.matcher(query)` | A [`Matcher`](/api/com/rethinkj/ui/kit/Fuzzy.Matcher.html) for scoring many texts without allocating. Use it on one thread |
+| `Fuzzy.score(query, text)` | Match score (higher is better), or `Fuzzy.NO_MATCH` (`Integer.MIN_VALUE`) |
+| `Fuzzy.positions(query, text)` | Matched character indexes for highlighting, or `null` if no match |
+| `Fuzzy.matcher(query)` | Allocation-free reusable [`Matcher`](/api/com/rethinkj/ui/kit/Fuzzy.Matcher.html) for scoring many strings on one thread |
 
-## Asking for more
+## Multi-step commands
 
-A command's handler may call `state.palette.ask(stage)` instead of letting the palette close:
+Inside a command's handler, call `state.palette.ask(stage)` to transition into a follow-up step instead of closing:
 
-| | |
+| Stage | Description |
 | --- | --- |
-| `Stage.choose(placeholder, entries, highlight)` | A list to choose from |
-| `.preview(onHighlight, onCancel)` | Called as the highlight moves, and undone on Escape: a theme previewed live |
-| `Stage.input(placeholder, text, onEnter)` | A text to type, as for Rename |
+| `Stage.choose(placeholder, entries, highlight)` | Pick from a second list |
+| `.preview(onHighlight, onCancel)` | Live preview as the user navigates options (reverts on Escape) |
+| `Stage.input(placeholder, text, onEnter)` | Prompt for text input (e.g., Rename) |
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Control+Shift+P, F1 | Open (with `keys(paletteState)`) |
-| Up, Down, Page Up, Page Down, Home, End | Move the highlight |
-| Enter | Choose |
-| Tab, Shift+Tab | Nothing, while the palette is open |
-| Escape, a press outside | Close, undo a preview, and give the focus back |
-
-Keys it does not take go on to the root, so the app's shortcuts still work.
+| Ctrl+Shift+P, F1 | Open palette (with `keys(paletteState)`) |
+| Up, Down, Page Up, Page Down, Home, End | Move highlight |
+| Enter | Run highlighted command |
+| Escape, click outside | Close, cancel any preview, and restore focus |
 
 ## In a tree dump
 
-An overlay at the window's top edge, `role=dialog` `label="Command palette"`. Its field is `role=textbox`, the list `role=listbox` with `role=option` entries, the highlighted one `selected`:
+Overlay at the top edge with `role=dialog` `label="Command palette"`, containing `role=textbox` and `role=listbox` with `role=option` items (`selected` on the highlighted item):
 
 ```text file="examples/src/test/resources/golden/docs/command-palette/tables.tree.txt" start="overlay" count="6"
 ```

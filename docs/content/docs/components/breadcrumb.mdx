@@ -1,9 +1,9 @@
 ---
 title: Breadcrumb
-description: A path of crumbs with chevrons between them that open the places inside, giving way to a menu when there is no room.
+description: Path navigation bar with child dropdown menus and automatic overflow collapsing.
 ---
 
-`Breadcrumb.breadcrumb` shows a path, such as server, database, schema and table, as crumbs with an icon each. Every crumb with a press is a link; the last is the current place. The chevron after a crumb with children opens a menu of the places inside it, as a file manager's address bar does.
+`Breadcrumb.breadcrumb` displays a hierarchical path (such as server › database › schema › table) with optional icons. Clickable items act as links, and the final item represents the current location. Items with children show a chevron that opens a dropdown menu of sub-items.
 
 Javadoc: [`Breadcrumb`](/api/com/rethinkj/ui/kit/Breadcrumb.html), [`Breadcrumb.Crumb`](/api/com/rethinkj/ui/kit/Breadcrumb.Crumb.html), [`Breadcrumb.State`](/api/com/rethinkj/ui/kit/Breadcrumb.State.html).
 
@@ -14,23 +14,23 @@ Javadoc: [`Breadcrumb`](/api/com/rethinkj/ui/kit/Breadcrumb.html), [`Breadcrumb.
 ```java snippet="breadcrumb"
 ```
 
-`state.crumbs` is a `Breadcrumb.State` in the app's state.
+Keep a `Breadcrumb.State` instance in your app state.
 
-`Breadcrumb.crumb(text, onPress)` makes a crumb; `onPress` null makes one that only shows. `.icon(symbol)` puts an icon before its text, and `.children(supplier)` gives it a chevron that opens a menu of the supplier's items, which it asks for only while the menu is open.
+Create crumbs with `Breadcrumb.crumb(text, onPress)` (pass `null` for a non-clickable crumb). Chain `.icon(symbol)` for an icon and `.children(supplier)` to add a chevron dropdown whose items are built lazily when opened.
 
-## When the path does not fit
+## Overflow behavior
 
-The crumbs after the first go into a menu behind an ellipsis, from the start on. Where that is not enough, the first crumb goes too. Only then is the current place shortened, with an ellipsis and its whole name in a tooltip. After a change of width the breadcrumb settles one frame later.
+When the path is too wide to fit, middle crumbs automatically collapse into an ellipsis (`…`) menu, followed by the first crumb if needed, and finally the current crumb truncates with a tooltip showing its full name.
 
 <Shot src="examples/docs/details/hidden-{theme}" crop="role=navigation|role=menu" alt="A narrow breadcrumb whose crumbs before orders went into an ellipsis, with its menu open" />
 
 ## Keyboard
 
-One stop for Tab; the arrows, Home and End move between crumbs, chevrons with a menu and the ellipsis; Enter presses, and Arrow Down opens a menu.
+One Tab stop; **Left/Right** arrows, **Home**, and **End** move between crumbs and dropdown buttons. **Enter** activates a crumb, and **ArrowDown** opens a dropdown menu.
 
 ## In a tree dump
 
-`role=navigation` `label="Breadcrumb"`; crumbs `role=link`, the last `current`; a chevron with a menu `role=button` `label="Inside public"`; the ellipsis `role=button` `label="Hidden parts"`. Both say `expanded` while their menu is open:
+`role=navigation` `label="Breadcrumb"`; crumbs use `role=link` (the last is `current`); chevrons are `role=button` `label="Inside <name>"`; the overflow button is `role=button` `label="Hidden parts"` (`expanded` when open):
 
 ```text file="examples/src/test/resources/golden/docs/details/view.tree.txt" start="#crumb-2" count="8"
 ```

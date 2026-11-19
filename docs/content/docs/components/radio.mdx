@@ -1,9 +1,9 @@
 ---
 title: Radio
-description: A group of round buttons for one choice among a few, all in view.
+description: Radio button group and visual swatch group for choosing one option among several visible choices.
 ---
 
-`Radio.radioGroup` shows a few choices one above the other, one of them chosen. Use it when the choices need to be read side by side, such as line endings or indentation. For a compact choice of two or three views, use [Segmented](/docs/components/segmented); for many choices, a [Select](/docs/components/select).
+`Radio.radioGroup` displays mutually exclusive choices stacked vertically so users can compare all options at once. For a compact horizontal switcher of 2–3 modes, use [Segmented](/docs/components/segmented). For many choices, use [Select](/docs/components/select).
 
 Javadoc: [`Radio`](/api/com/rethinkj/ui/kit/Radio.html).
 
@@ -14,43 +14,39 @@ Javadoc: [`Radio`](/api/com/rethinkj/ui/kit/Radio.html).
 ```java snippet="radio"
 ```
 
-`state.indent` is the index of the chosen choice, in the app's state.
-
-`Radio.radioGroup(choices, selected, onSelect)`. A null handler disables it. Give the group a `.label(...)`.
+Call `Radio.radioGroup(choices, selected, onSelect)` and add `.label(...)`. Passing a `null` handler disables the group.
 
 ## Values instead of indexes
 
-`Radio.radioGroup(values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+Use `Radio.radioGroup(values, selected, text, onSelect)` to work with typed values instead of integer indexes (matching works like [Select](/docs/components/select#values-instead-of-indexes)):
 
 ```java snippet="radio-typed"
 ```
 
 ## Swatches
 
-`Radio.swatches` is the same group for choices that show an element instead of a text, such as colors or icons. Each `Radio.option(name, () -> element)` is a square in a row that wraps, with the name in a tooltip and as the radio's label. [HuePicker](/docs/components/hue-picker) is one made of the theme's hues.
+`Radio.swatches` displays visual options (such as colors or icons up to 16×16 px) in a wrapping row with tooltips. [HuePicker](/docs/components/hue-picker) is built on this:
 
 ```java snippet="swatches"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `swatches(options, selected, onSelect)` | By index |
-| `swatches(values, selected, value -> option, onSelect)` | By value; null among the values is a choice like any other, such as no color |
-| `swatches(values, prop, value -> option)` | A `Prop` |
-
-Keep the element at most 16 pixels square, the size of a checkbox. The chosen option has a round ring around it. The keyboard's focus is a rounded square around the chosen option, or the first while none is chosen.
+| `swatches(options, selected, onSelect)` | Choose by index (`Radio.option(name, () -> element)`) |
+| `swatches(values, selected, value -> option, onSelect)` | Choose by typed value (`null` is allowed as an option) |
+| `swatches(values, prop, value -> option)` | Bind to a `Prop` |
 
 ## Keyboard
 
-The group is one stop for Tab. The arrows choose the next and the previous choice, around the ends. Home and End choose the first and the last. Space chooses the first while none is chosen.
+One Tab stop. **Arrow keys** move selection (wrapping around), **Home/End** jump to first/last, and **Space** selects the first option when none is selected.
 
 ## With a Prop
 
-`radioGroup(values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`radioGroup(values, prop, text)` binds directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=radiogroup` with its label, each choice `role=radio` with `checked` or `checked=false`:
+`role=radiogroup` with its `label`, containing `role=radio` options with `checked` or `checked=false`:
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Indent with\"" count="5"
 ```

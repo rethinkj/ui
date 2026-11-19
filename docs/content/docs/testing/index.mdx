@@ -1,39 +1,45 @@
 ---
 title: Testing and agents
-description: Run an app without a window, drive it with a script, and read images and element trees.
+description: Run your app without a window, drive it with a script, and inspect screenshots and element trees.
 ---
 
-Every rethinkj UI app can run without a window: a script drives it, and each `snap` writes a PNG of the frame and the element tree as text. Use it to test views in JUnit, and to let an agent see what it built.
+Every rethinkj UI app can run headless (without opening a window). A text script sends user actions, and each `snap` command saves a PNG screenshot and a text dump of the element tree. Use this for fast JUnit UI tests or to let AI agents inspect and interact with what they build.
 
 ## One line in `main`
 
-The `main` of the [first app](/docs/get-started/first-app):
+Add `Script.handle(args, app)` at the start of `main` (as in [The first app](/docs/get-started/first-app)):
 
 ```java snippet="lights-main" title="Lights.java"
 ```
 
-[`Script.handle(args, app)`](/api/com/rethinkj/ui/Script.html) looks for `--script <file> --out <folder>`. If they are there, it runs the script, prints the files it wrote and returns true; otherwise it returns false and `main` opens the window. The app, view and handlers are the same; nothing is mocked. On an error it throws `Script.Failure`, which names the line and says what to write instead; uncaught, the program exits with status 1.
+[`Script.handle(args, app)`](/api/com/rethinkj/ui/Script.html) checks for `--script <file> --out <folder>` in `args`. If found, it runs the script, prints the output file paths, and returns `true` so `main` exits without opening a window. Otherwise it returns `false` and your app opens normally.
 
-From Java, `Script.run(text, app, folder)` does the same and returns the files it wrote.
+Your real app, view, and handlers run with no mocking. If a script step fails, it throws `Script.Failure` with the line number and a helpful suggestion.
 
-## A script
+To run a script directly from Java (for example, inside JUnit), call `Script.run(text, app, folder)`.
+
+## A simple script
 
 ```text snippet="lights-script" title="lights.txt"
 ```
 
-`size` sets the window (here 360 by 240 logical pixels at scale 2). Only `frame` runs a frame: `press` queues a press, `advance` moves the app's clock, and the next `frame` handles both. `snap` writes `on.png` and `on.tree.txt`:
+- `size` sets the window size (360×240 logical pixels at scale 2).
+- `press` queues a click and `advance` moves the app clock.
+- `frame` processes all queued input and updates animations.
+- `snap on` saves `on.png` and `on.tree.txt`:
 
 ```text file="examples/src/test/resources/golden/docs/lights/on.tree.txt" title="on.tree.txt"
 ```
 
-## Why trees as well as images
+## Why both trees and screenshots?
 
-An image shows what a person sees. The tree says it in text that a test or an agent can match without reading pixels: each element's key, role, label, rectangle and states (`checked`, `selected`, `focused`, `disabled`, `busy`, `invalid` and more). A selector such as `role=switch label="Lamp"` finds an element the way a person would describe it.
+- **Screenshots (`.png`)** show the visual layout, colors, spacing, and text rendering.
+- **Element trees (`.tree.txt`)** expose roles, labels, bounds, and states (`checked`, `selected`, `focused`, `disabled`, `busy`, `invalid`, etc.) as plain text so tests and AI agents can assert UI state directly without reading pixels.
 
-## Pages
+## Next steps
 
-- [Scripts](/docs/testing/scripts): every step.
-- [Targets and selectors](/docs/testing/selectors): how steps find elements, and what errors say.
-- [The tree dump](/docs/testing/tree-dump): every part of a line and every state.
-- [Stored images as tests](/docs/testing/stored-images): JUnit tests that compare snaps.
-- [An agent builds a view](/docs/testing/agent-recipe): the loop, step by step.
+- [Scripts](/docs/testing/scripts) — Reference for every script command.
+- [Targets and selectors](/docs/testing/selectors) — How commands find UI elements.
+- [The tree dump](/docs/testing/tree-dump) — Format of `.tree.txt` files and every element state.
+- [Stored images as tests](/docs/testing/stored-images) — Writing JUnit snapshot tests.
+- [An agent builds a view](/docs/testing/agent-recipe) — Step-by-step workflow for AI agents.

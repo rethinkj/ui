@@ -1,66 +1,74 @@
 ---
 title: App, state and view
-description: An app is a state object and a view function; handlers change the state, and the view is built again.
+description: How rethinkj UI connects your state object and view function to handle input and rebuild frames.
 ---
 
-An app is two things you write: a **state**, an ordinary object that holds the app's data, and a **view**, a function from the state to a tree of elements. `new App<>(state, view)` joins them ([`App`](/api/com/rethinkj/ui/App.html)). Handlers in the view change the state; after each input, the app calls the view again and draws the result. There is no data binding, no observer and no diffing to manage. The [first app](/docs/get-started/first-app) keeps one field, `boolean on`, and has this view:
+Every rethinkj UI app is built from two pieces:
+- **State:** A plain Java object holding your application data.
+- **View:** A function that takes the state and returns a tree of `El` elements.
+
+`new App<>(state, view)` connects them ([`App`](/api/com/rethinkj/ui/App.html)). Event handlers update the state, and rethinkj UI automatically calls your view function again and renders the new frame. There is no data binding, no observable wrappers, and no manual diffing.
+
+For example, [The first app](/docs/get-started/first-app) stores one `boolean on` field and renders this view:
 
 ```java snippet="lights-view" title="Lights.java"
 ```
 
-## The loop
+## The update loop
 
-1. Input arrives: a press, a key, a wheel step, text, or a task from another thread.
-2. The app finds the element it is for, by hit testing or by the focus, and runs its handler.
-3. The handler changes the state.
-4. The app calls the view again, lays it out and animates what changed.
-5. The frame is drawn.
+1. Input arrives (mouse click, key press, scroll wheel, typed text, or a callback from a background task).
+2. `App` finds the target element (via hit testing or keyboard focus) and runs its handler.
+3. The handler updates your state.
+4. `App` calls your view function again, calculates layout, and updates animations.
+5. The new frame is rendered.
 
-Each input is handled against the view the previous input produced. Two Down keys before a frame move a selection by two rows; a key right after the press that opened a menu goes to the menu.
+Each input event runs against the view produced by the previous event. For example, pressing `ArrowDown` twice before a frame moves a selection down two rows, and pressing a key right after clicking a menu button sends that key to the newly opened menu.
 
-## Rules for the view
+## Rules for your view function
 
-- **Read, never write.** The view reads the state and returns elements. Only handlers change the state.
-- **Build everything.** The view runs after every input, so build the whole tree from the state each time. Long lists build only their visible rows (see [Lists of many rows](/docs/concepts/rows)).
-- **Give identity with keys.** `.key("lamp")` identifies an element among its siblings. Animations, focus, scroll offsets and a text field's caret belong to that identity, and scripts find elements by key.
-- **Provide the theme.** Kit components read the theme from `Theme.CURRENT`, which is `Theme.DARK` unless the app provides another from its state with `app.provide(Theme.CURRENT, ...)` ([Themes](/docs/concepts/themes)).
+- **Keep it read-only.** The view should only read state and return elements. Only event handlers should modify state.
+- **Rebuild the full tree.** Always build the current UI tree from state. For long lists, use virtual lists so only visible rows are built (see [Lists of many rows](/docs/concepts/rows)).
+- **Use keys for identity.** `.key("lamp")` identifies an element among its siblings. Keys preserve animations, focus, scroll positions, and text cursors across rebuilds, and let test scripts find elements.
+- **Provide a theme if needed.** Kit components read `Theme.CURRENT`, which defaults to `Theme.DARK`. To switch themes dynamically, call `app.provide(Theme.CURRENT, ...)` (see [Themes](/docs/concepts/themes)).
 
 ## What the app keeps for you
 
-The `App` tracks the focus, hover, scroll offsets, running animations, the caret, selection and undo history of text fields, and the clock. It keeps them per element identity and drops them when the element leaves the tree. To keep them across that, put a `FieldState` or `ScrollState` in your state ([Text fields](/docs/concepts/text-fields)).
+`App` automatically manages UI state that does not belong in your domain model: keyboard focus, hover state, scroll positions, running animations, text cursors, text selections, undo history, and the animation clock.
 
-## Threads
+This state is tracked per element key and cleared when the element leaves the tree. To preserve scroll positions or text editor state when switching tabs or views, store a `ScrollState` or `FieldState` in your app state (see [Text fields](/docs/concepts/text-fields)).
 
-An app, its state and its elements belong to the thread that runs the app. Long work runs elsewhere and comes back with `App.post` or `App.background` ([Work off the app's thread](/docs/concepts/background-work)).
+## Threading
 
-## Running it
+Your `App`, state, and elements all belong to the single app thread. Run slow operations (network calls, database queries, file I/O) off the app thread using `App.background` or `App.post` (see [Work off the app's thread](/docs/concepts/background-work)).
 
-- In a window: `WindowLoop.run(window, app, presenter)`. It draws only when something changed and waits otherwise.
-- Without a window: `Script.handle(args, app)` or `Script.run(text, app, folder)` ([Testing and agents](/docs/testing)).
-- One view alone: `Headless.render(root, width, height, scale)` returns the pixels and the tree.
-- Inside another toolkit or loop: see [Custom runner](/docs/reference/custom-runner).
+## Ways to run an app
+
+- **Desktop window:** `WindowLoop.run(window, app, presenter)` — renders only when something changes and sleeps when idle.
+- **Headless script:** `Script.handle(args, app)` or `Script.run(text, app, folder)` — see [Testing and agents](/docs/testing).
+- **Single static frame:** `Headless.render(root, width, height, scale)` — returns pixels and the element tree.
+- **Custom event loop:** See [Custom runner](/docs/reference/custom-runner).
 
 ## Driving it from Java
 
-A test can drive an app without a script. Input methods queue events, and `frame()` dispatches them in order, calls the view and runs the animations at the app's clock.
+You can also drive an `App` directly from Java code (for example in unit tests). Queue input events, then call `frame()` to dispatch them in order, rebuild the view, and step animations:
 
 ```java snippet="app-from-java"
 ```
 
-| `App` method | |
+| `App` method | Description |
 | --- | --- |
-| `resize(width, height, scale)` | The window's size in logical pixels, and physical pixels per logical pixel |
-| `pointerMove(x, y)` | The pointer moved, in logical pixels |
-| `pointerDown(x, y)`, `pointerDown(x, y, clicks, modifiers)`, `pointerUp(x, y)` | The primary button; `clicks` is 2 for the second press of a double click, `modifiers` the `Key` constants held |
-| `wheel(x, y, deltaX, deltaY)` | The wheel at a position; positive scrolls down or right |
-| `keyDown(key)`, `keyUp(key)` | A `Key` by its web name and modifiers, `new Key("S", Key.CONTROL, false)` |
-| `textInput(text)` | Typed text |
-| `frame()` | Dispatches the queue and draws; true when what shows changed |
-| `advance(seconds)`, `time()` | The app's clock, which springs, delays and `after` use |
-| `await(timeout)` | Waits until `background` work has finished, and queues its results and other posted tasks for the next frame. Cancelled work is waited for only if it has an `onEnd` handler |
-| `tree()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump) |
-| `render()` | The last frame's pixels and tree, as `Headless` makes them |
+| `resize(width, height, scale)` | Sets window size in logical pixels and display scale factor |
+| `pointerMove(x, y)` | Moves the mouse pointer (logical pixels) |
+| `pointerDown(x, y)`, `pointerDown(x, y, clicks, modifiers)`, `pointerUp(x, y)` | Primary mouse button down/up (`clicks = 2` for double-click, `modifiers` from `Key`) |
+| `wheel(x, y, deltaX, deltaY)` | Mouse wheel scroll at position (positive scrolls down or right) |
+| `keyDown(key)`, `keyUp(key)` | Key press/release using web key names and modifiers, e.g., `new Key("S", Key.CONTROL, false)` |
+| `textInput(text)` | Sends typed text |
+| `frame()` | Dispatches queued input, rebuilds the view, and renders; returns `true` if visuals changed |
+| `advance(seconds)`, `time()` | Advances or reads the app clock used by animations, hover delays, and `after` timers |
+| `await(timeout)` | Waits for `background` tasks to finish and queues their callbacks for the next frame |
+| `tree()` | Returns the root of the last rendered frame (`tree().dump()` produces a [tree dump](/docs/testing/tree-dump)) |
+| `render()` | Renders the last frame to pixels and a tree dump |
 
-The [`App` Javadoc](/api/com/rethinkj/ui/App.html#method-summary) has the rest: the pointer leaving the window, the secondary button, an input method's composition, focus and scrolling, `awaitProgress`, and the focused, hovered and pressed elements.
+See the [`App` Javadoc](/api/com/rethinkj/ui/App.html#method-summary) for additional methods (right-click, pointer leave, IME composition, focus/scroll helpers, `awaitProgress`, and inspecting hovered/focused elements).
 
-Until a window gives it the system clipboard, the app uses an in-memory one (`Clipboard.inMemory()`). `app.clipboard()` returns it; `app.clipboard(clipboard)` replaces it.
+Without a window, `App` uses an in-memory clipboard (`Clipboard.inMemory()`). Read or replace it with `app.clipboard()` and `app.clipboard(clipboard)`.

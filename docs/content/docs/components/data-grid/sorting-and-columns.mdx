@@ -1,9 +1,9 @@
 ---
 title: Sorting and columns
-description: Sort keys in the header, resizing, hiding, moving and freezing columns.
+description: Multi-column sorting, column resizing, auto-fitting, reordering, hiding, and freezing in DataGrid.
 ---
 
-The grid shows sort keys and lets the user change them, resize columns, and choose, move, hide and freeze them. It sorts nothing and keeps nothing: the app gets the new keys, widths and layout, keeps them and gives them back on the next build. That way sorting can happen in the database, where a million rows live.
+`DataGrid` provides UI controls for sorting, resizing, auto-fitting, reordering, hiding, and freezing columns. Your app owns the sort order, widths, and layout so sorting can run either in memory or in SQL (`ORDER BY`).
 
 Javadoc: [`DataGrid.SortKey`](/api/com/rethinkj/ui/kit/DataGrid.SortKey.html), [`DataGrid.Layout`](/api/com/rethinkj/ui/kit/DataGrid.Layout.html), [`DataGrid.Fit`](/api/com/rethinkj/ui/kit/DataGrid.Fit.html).
 
@@ -14,62 +14,53 @@ Javadoc: [`DataGrid.SortKey`](/api/com/rethinkj/ui/kit/DataGrid.SortKey.html), [
 ```java snippet="grid-sort"
 ```
 
-`state.sort` is a list of `SortKey`s, `state.widths` the columns' widths, `state.layout` a `DataGrid.Layout` and `state.gridMenu` a `Menu.State`, all in the app's state.
-
-The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
-
 ```java snippet="grid-order"
 ```
 
 ## Sorting
 
-`options().sort(keys, onSort)` shows a list of `SortKey(column, descending)` in the header: an arrow per key, numbered when there are several. A press on a sortable column's header cycles ascending, descending and unsorted, and replaces the keys. Shift with a press adds the column as a further key, or cycles it. `onSort` gets the new list. The arrows need `rethinkj-ui-icons`.
+Pass `options().sort(keys, onSort)` with a list of `SortKey(column, descending)`. Clicking a sortable header cycles ascending → descending → unsorted; **Shift+click** adds a secondary sort column. Sort arrows require `rethinkj-ui-icons`.
 
-## Resizing
+## Resizing columns
 
-`options().onResize((column, width) -> …)` lets the user drag the right edge of a header cell, and fit a column to its content with a double press on the edge. A dragged width is no narrower than the theme's `grid().minColumn()`; a fitted one also stays within `maxColumn()`. The app keeps the widths and passes them to the columns.
+Pass `options().onResize((column, width) -> …)` to let users drag column header edges to resize, or double-click an edge to fit the column to its content. Widths clamp to `theme.grid().minColumn()` and `maxColumn()`.
 
 ## Fitting columns
 
-`options().fitColumns(fit)` makes every column as wide as its header and the cells of the loaded rows, once per result, as a double press on its edge does. So a table opens with its headers and values whole. The widths stay the app's: the grid hands each one to `onResize`, which the option needs (without it, building the view throws). `fit` is a `DataGrid.Fit` in the app's state beside the widths. `fit.reset()` fits every column again, for a new result, where the app also calls `Selection.reset()`.
+Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongside `onResize`) to auto-size all columns to fit their headers and loaded values once per dataset. Call `fit.reset()` when loading new results.
 
 ```java snippet="grid-fit"
 ```
 
-- The fit happens on the first frame with loaded rows. The first frame shows the widths the app gave, the next the fitted ones, so a script needs one `frame` more before a `snap` shows them.
-- With `loading`, it waits for the first page. A grid without rows waits for its rows.
-- Each width stays within the theme's `grid().minColumn()` and `maxColumn()`, so a column of long text does not take the whole grid.
-- A column the user resized before the fit is left as it is. A column that a `Layout` hides is fitted when it is first shown, unless the app gave it another width meanwhile.
-- It measures every column, also those out of view sideways.
+- Auto-fitting runs on the first frame with loaded rows and updates widths on the next frame (so headless scripts need one extra `frame` before `snap`).
+- Columns the user manually resized are left untouched; hidden columns auto-fit when first shown.
 
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />
 
-## Choosing, moving and hiding
+## Reordering, hiding, and choosing columns
 
-A `DataGrid.Layout`, made with the titles of all columns and kept in the state, holds their order and which are hidden. With `options().columns(layout)`:
-
-- the grid shows the layout of all the columns it gets;
-- dragging a header cell moves its column, with a line where it will go;
-- the header's context menu has Sort ascending, Sort descending and Clear sort for a column that sorts, Filter… for one that filters, Hide column, Freeze up to here (with `onFreeze`; Unfreeze columns on a frozen column), Fit width (with `onResize`) and Columns…;
-- `DataGrid.columnsButton(layout)` is a toolbar button that opens the chooser: a checkbox per column, a search field beyond eight columns, Show all and Reset. Alt+Arrow Up and Down move the focused column.
-
-With a layout, every handler, sort key and filter speaks of columns by their index among all of them; only the selection's ranges count the columns shown. `layout.shown(all)` gives the shown columns in order, and `hide`, `show`, `showAll`, `reset` and `moveBefore` change it from code.
+Store a `DataGrid.Layout` (initialized with all column titles) in your state and pass `options().columns(layout)` to enable:
+- Drag-and-drop column reordering
+- Header context menu (Sort, Filter, Hide, Freeze up to here, Fit width, Columns…)
+- `DataGrid.columnsButton(layout)` — a toolbar button opening a searchable column chooser popover (Alt+Up/Down reorders columns)
 
 <Shot src="kit/columns-{theme}-chooser" alt="The chooser of columns, with a checkbox per column" />
 
-## Freezing
+## Freezing columns
 
-`options().frozen(count)` keeps the first `count` columns, and the row numbers, at the left while the rest scroll sideways. `onFreeze(count -> …)` lets the header's menu change it.
+Pass `options().frozen(count)` to pin the first `count` columns (plus row numbers) to the left edge while scrolling horizontally. Add `onFreeze(count -> …)` to let users change frozen columns from the header menu.
 
-## Reading the layout
+## Column index mapping
 
-Two kinds of column index meet in a grid with a layout. The columns the app passes to `dataGrid` are *all* columns, and handlers, sort keys, filters, `onResize`, `onFreeze` and the cells of `GridChanges` speak of them by their index in that list. The selection's `Range`s, `Selection.column()` and the keys in a tree dump (`column-<i>`, `cell-<row>-<i>`) count the columns *shown*, in the order shown. `shownColumns()` turns one into the other: `layout.shownColumns()[selection.column()]` is the index among all columns of the cursor's column.
+When using `DataGrid.Layout`, keep the two index spaces in mind:
+- **All-column indexes:** Used by `sort`, `filters`, `onResize`, `onFreeze`, and `GridChanges`.
+- **Visible-column indexes:** Used by `Selection` (`column()`, `ranges()`) and tree dump keys (`#column-<i>`, `#cell-<row>-<i>`).
 
-`layout.toggleChooser()` opens or closes the chooser on the `columnsButton`, as a press on it does, for a menu item or a key of the app's. The other methods of a layout are on [`DataGrid.Layout`](/api/com/rethinkj/ui/kit/DataGrid.Layout.html).
+Convert from visible index to all-column index with `layout.shownColumns()[selection.column()]`. Call `layout.toggleChooser()` to open/close the column chooser programmatically.
 
 ## In a tree dump
 
-A sorted column's header says `sort=ascending` or `sort=descending`. A column being moved is `grabbed`, and the line where it goes has the key `marker`.
+Sorted headers include `sort=ascending` or `sort=descending`. A column being dragged includes `grabbed`, and the drop indicator has key `#marker`:
 
 ```text file="examples/src/test/resources/golden/docs/grid-sort/view.tree.txt" start="#column-2" count="1"
 ```

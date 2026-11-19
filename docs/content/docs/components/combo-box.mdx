@@ -1,9 +1,12 @@
 ---
 title: ComboBox
-description: A choice made by typing, a free text with suggestions, and choices with icons, images or details.
+description: Searchable dropdown with fuzzy filtering, free-text suggestions, and rich items with icons or details.
 ---
 
-`ComboBox.comboBox` looks like a [Select](/docs/components/select) when closed. Typing opens a field with the choices below it, filtered by fuzzy matching. Use it for many choices, or for ones the user knows by name: a schema among dozens, a language. `ComboBox.free` is a text field with suggestions, for a host or a database name: every edit is the value. `ComboBox.items` chooses among items with an icon, an image or an element of their own, and a detail.
+`ComboBox.comboBox` looks like a [Select](/docs/components/select) when closed, and opens a searchable dropdown with fuzzy filtering when clicked or typed into. Use it when there are many choices or when users know the name they want.
+
+- `ComboBox.free` is an editable text field with autocomplete suggestions (any typed text is accepted).
+- `ComboBox.items` displays choices with icons, images, custom leading elements, and secondary detail text.
 
 Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`](/api/com/rethinkj/ui/kit/ComboBox.State.html).
 
@@ -17,21 +20,21 @@ Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`
 ```java snippet="combo-items"
 ```
 
-`state.schema` and `state.product` are indexes, `state.host` a string, and `state.schemaBox`, `state.hostBox` and `state.productBox` are `ComboBox.State`s, all in the app's state.
+Store a `ComboBox.State` in your app state for each combo box.
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `comboBox(choices, selected, comboBoxState, onSelect)` | One of the choices, by index |
-| `free(value, suggestions, comboBoxState, onChange)` | Any text. Suggestions open as the user types, none highlighted, so Enter keeps what was typed |
-| `items(items, selected, comboBoxState, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(() -> element)`, `.detail(text)` |
+| `comboBox(choices, selected, comboBoxState, onSelect)` | Pick one option by index |
+| `free(value, suggestions, comboBoxState, onChange)` | Free-text input with optional suggestion list |
+| `items(items, selected, comboBoxState, onSelect)` | Rich items built with `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(...)`, `.detail(text)` |
 
-A null handler disables it. It is the control height unless the view sets one, so it fits a grid's cell. Pass the same list on every build, so that the box keeps what its filter found.
+Passing a `null` handler disables the combo box. Reuse the same choices list when unchanged so filter results stay cached.
 
 <Shot src="kit/combobox-items-{theme}-2x-open" alt="A combo box of database products with logos and details" />
 
 ## Values instead of indexes
 
-`comboBox(values, selected, text, comboBoxState, onSelect)` and `items(values, selected, value -> item, comboBoxState, onSelect)` choose among values of any type, such as records, and hand the value to the handler. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+Use `comboBox(values, selected, text, comboBoxState, onSelect)` or `items(values, selected, value -> item, comboBoxState, onSelect)` to work directly with typed objects instead of integer indexes (matching works the same as [Select](/docs/components/select#values-instead-of-indexes)):
 
 ```java snippet="combo-box-typed"
 ```
@@ -39,24 +42,22 @@ A null handler disables it. It is the control height unless the view sets one, s
 ```java snippet="combo-items-typed"
 ```
 
-The texts or items may be made anew on every build. While they come out equal to the last build's (for items: equal values, texts and details), the filter keeps what it found. The element before an item's text is not compared, so it should follow from the value.
-
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| A letter or digit, Alt+Down, Alt+Up, a press | Open |
-| Up, Down, Page Up, Page Down, Home, End | Move the highlight |
-| Enter | Choose; the focus stays on the combo box |
-| Escape, Tab, Shift+Tab, a press outside | Close; the choice stays as it was |
+| Typing, Alt+Down, Alt+Up, click | Open dropdown |
+| Up, Down, Page Up, Page Down, Home, End | Move highlight |
+| Enter | Select highlighted option (keeps focus on the combo box) |
+| Escape, Tab, Shift+Tab, click outside | Close without changing selection |
 
 ## With a Prop
 
-`comboBox(values, prop, text, comboBoxState)`, `items(values, prop, item, comboBoxState)` and `free(prop, suggestions, comboBoxState)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`comboBox(values, prop, text, comboBoxState)`, `items(values, prop, item, comboBoxState)`, and `free(prop, suggestions, comboBoxState)` bind directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=combobox` with the value and `expanded` or `expanded=false`. While open, its field is `role=textbox` and the list `role=listbox` with `role=option` entries, the highlighted one `selected`. The chevron of a free combo box is `role=button` `label="Open"`.
+`role=combobox` with `expanded` or `expanded=false`. When open, contains `role=textbox` and `role=listbox` with `role=option` items (`selected` on the highlighted item). On `ComboBox.free`, the dropdown arrow is `role=button` `label="Open"`.
 
 ```text file="examples/src/test/resources/golden/docs/combos/typed.tree.txt" start="overlay" count="4"
 ```

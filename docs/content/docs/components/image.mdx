@@ -1,9 +1,11 @@
 ---
 title: Image
-description: A picture with rounded corners and a label, or a placeholder while it is being read.
+description: Display a decoded image with rounded corners, or a placeholder while loading.
 ---
 
-The kit's `Image.image` shows a core `Image` with the theme's rounded corners and a label, or, while the app has no image yet (still being read, or unreadable), a placeholder with an icon and the label. It shares its name with core's `com.rethinkj.ui.Image`, the picture itself; write one of them out in full. See [Images](/docs/concepts/images) for decoding and sizes.
+`com.rethinkj.ui.kit.Image.image` displays a decoded `com.rethinkj.ui.Image` with rounded corners and an alt label. If the image is `null` (for example, while loading in the background or after an error), it displays a styled placeholder with an icon and label.
+
+Because both `core` and `kit` have an `Image` class, qualify one of them when using both in the same file. See [Images](/docs/concepts/images) for decoding and sizing.
 
 Javadoc: [`Image`](/api/com/rethinkj/ui/kit/Image.html).
 
@@ -14,13 +16,11 @@ Javadoc: [`Image`](/api/com/rethinkj/ui/kit/Image.html).
 ```java snippet="image"
 ```
 
-`state.swatch` is a core `Image` in the app's state.
-
-`Image.image(image, alt)` shows the image as large as its pixels at its scale, but no wider than the room there is. A null image shows the placeholder, as large as its content or as the view sizes it.
+`Image.image(image, alt)` renders at the image's logical size (shrinking to fit its container if narrower), or renders a placeholder when `image` is `null`.
 
 ## In a tree dump
 
-An `image` line with `role=img` and the label; the placeholder is an `el` with the same role and label:
+Appears as `image` (or `el` for the placeholder) with `role=img` and `alt` as `label`:
 
 ```text file="examples/src/test/resources/golden/docs/image/view.tree.txt" start="image role" count="3"
 ```

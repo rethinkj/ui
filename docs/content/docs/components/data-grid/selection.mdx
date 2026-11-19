@@ -1,78 +1,69 @@
 ---
 title: Selection and copying
-description: The grid's cursor, selected rows or cells, and copying them as tab-separated text.
+description: Row and cell selection, scroll persistence, clipboard copying, and menu commands in DataGrid.
 ---
 
-A `DataGrid.Selection` holds the grid's cursor, the anchor that Shift extends from, and the selected ranges. The app keeps it in its state, and the grid changes it as the user selects. Pass it with `options().select(selection)` to make the grid selectable; most other options need it.
+Store a `DataGrid.Selection` in your app state and pass it to `options().select(selection)` to enable cursor navigation, multi-range selection, and scroll persistence. Most other `DataGrid` features require it.
 
 Javadoc: [`DataGrid.Selection`](/api/com/rethinkj/ui/kit/DataGrid.Selection.html), [`DataGrid.Commands`](/api/com/rethinkj/ui/kit/DataGrid.Commands.html).
 
 <Shot src="kit/cells-{theme}-range" alt="A range of selected cells in the data grid, with the cursor's cell outlined" />
 
-## Rows or cells
+## Row vs. cell selection
 
 ```java snippet="grid-modes"
 ```
 
-The example on [DataGrid](/docs/components/data-grid) uses cells:
-
 ```java snippet="grid"
 ```
 
-A million selected rows are one range, so selecting everything costs nothing.
+Selections are stored as compact ranges, so selecting a million rows uses almost no memory.
 
 ## Copying
 
-`options().copy(clipboard)` lets Control+C and Control+Insert put the selection on the clipboard as tab-separated lines: the rows and columns that have a selected cell. A field is quoted only where a tab, a line break or a quote needs it, and when it is an empty field alone on the last line. Pass `app.clipboard()`, which is the system's clipboard in a window and an in-memory one under a script.
+Pass `options().copy(app.clipboard())` to enable **Ctrl+C** and **Ctrl+Insert** copying as tab-separated values (TSV).
 
-| Option | |
+| Option | Description |
 | --- | --- |
-| `nullText(String)` | What a copied `NULL` is; `""` unless set, as spreadsheets read an empty cell |
-| `copyLimit(cells)` | The most cells the grid copies itself; 100 000 unless set |
-| `onLargeCopy(handler)` | Gets a larger copy, or one with rows not loaded, as a `Copy` (ranges, headers, cell count) with the cell limit. The handler builds the text with `DataGrid.copyText` on another thread, fetches it from the database, or tells the user why nothing was copied |
-| `copyLimit(cells, handler)` | Sets the limit and the handler in one call |
-| `contextMenu(menuState, items)` | With `select(selection)`, adds Copy and Copy with headers to the grid's menu, before your items, when the grid copies (`copy(clipboard)`). Paste (which also needs the clipboard), Set NULL, Insert row and Delete rows follow when their handlers are set, and a submenu `Column <title>`, where the column has header items, holds the header's items for the cursor's column: the keyboard's way to sort, filter, hide, freeze and fit it |
+| `nullText(String)` | Text exported for `NULL` cells (default `""`) |
+| `copyLimit(cells)` | Max cells copied synchronously (default `100,000`) |
+| `onLargeCopy(handler)` | Called when a copy exceeds the limit or includes unloaded rows, so you can export in the background |
+| `copyLimit(cells, handler)` | Sets both limit and handler together |
+| `contextMenu(menuState, items)` | Adds Copy, Copy with headers, Paste, Set NULL, Insert/Delete row, and a `Column <title>` submenu before your custom items |
 
-`DataGrid.copyText(columns, ranges, headers, nullText)` builds the same text from your code, and `DataGrid.parseText(text)` reads it back into rows of cells.
+Use `DataGrid.copyText(columns, ranges, headers, nullText)` and `DataGrid.parseText(text)` to format or parse TSV directly.
 
 ## Commands from an external menu
 
-Keep a `DataGrid.Commands` in the app's state and pass it with `options().commands(handle)` on each build, as the example above does. Its `run(command)` runs `DataGrid.Command.COPY`, `COPY_WITH_HEADERS`, `PASTE` or `SELECT_ALL` from a handler on the app's thread. `canRun(command)` tells a menu whether to enable the item:
+Store a `DataGrid.Commands` handle in your app state and pass it to `options().commands(handle)` so menu items or toolbar buttons can trigger `COPY`, `COPY_WITH_HEADERS`, `PASTE`, and `SELECT_ALL`:
 
 ```java snippet="grid-command"
 ```
 
-- The handle uses the last build's columns, rows, selection, clipboard and handlers. Pass it even when that build has no selection or editing handlers. One handle belongs to one grid at a time; before the first build, commands do nothing.
-- Commands work as the keys do, with the same limits and checks. Copy needs selected cells and a clipboard. Paste needs a cursor on a data row, a clipboard and an `onPaste` handler. Select all needs rows. `run` leaves the focus where it is.
-- While a cell editor is open, the commands are unavailable, and the editor keeps its own text selection and clipboard keys. A press on a menu title closes a single-line editor and hands on its value first, as any press outside does. When the value is refused, the editor stays open with its error and the commands stay unavailable.
+Use `handle.canRun(command)` to enable/disable menu items and `handle.run(command)` to execute them. Commands are disabled while a cell editor is open (so the editor keeps its own clipboard shortcuts).
 
-## The state
+## `Selection` API
 
-| Method | |
+| Method | Description |
 | --- | --- |
-| `row()`, `column()` | The cursor's cell |
-| `ranges()` | The selected `Range`s: `top`, `left`, `bottom`, `right`, inclusive; `Range.ALL` columns for whole rows |
-| `select(row, column)`, `selectAll(rowCount)`, `clear()` | Select from the app's own handlers |
-| `reset()` | Clear everything and scroll back to the start, for a new result |
+| `row()`, `column()` | Active cursor coordinates |
+| `ranges()` | Selected `Range`s (`top`, `left`, `bottom`, `right`, inclusive; `Range.ALL` for full rows) |
+| `select(row, column)`, `selectAll(rowCount)`, `clear()` | Update selection from handlers |
+| `reset()` | Clear selection and scroll back to top-left (call when loading a new dataset) |
 
-The anchor, questions such as `contains(row, column)`, and `extend` and `toggle` are on [`DataGrid.Selection`](/api/com/rethinkj/ui/kit/DataGrid.Selection.html).
+Use `onSelect(handler)` to update a status bar (e.g., `"3 cells selected"`), and `DataGrid.cellCount(ranges, columns)` to count selected cells.
 
-`onSelect(handler)` tells the app when the selection changes, for a status line such as "3 cells selected". `DataGrid.cellCount(ranges, columns)` counts the cells.
+With `options().changes(changes)`, selections follow rows by key across sorts and filters (up to `Selection.FOLLOWED_ROWS`, 10,000 rows). Without keys, call `clear()` or `reset()` when reordering rows. `Selection` also preserves scroll position across tab switches.
 
-With `options().changes(changes)`, the selection follows its rows by their keys when the app sorts, filters, inserts or removes rows. So Delete, Control+Minus, Control+0 and a paste act on the rows the user selected. A range that a sort tears apart becomes several. When the cursor's row is gone, the cursor goes to the nearest remaining row; when every selected row is gone, the selection shrinks to the cursor. A selection of more than `Selection.FOLLOWED_ROWS` (10 000) rows shrinks to the cursor when its rows move. Without keys, the selection stays on its row indexes, so an app that reorders rows calls `clear()` or `reset()`.
+## Mouse and keyboard interaction
 
-The selection also keeps where the grid is scrolled to, so a grid built again with it, after its tab was away or in another window, comes back to the same rows and columns. One selection belongs to one grid at a time.
-
-## What the user does
-
-- A press selects as the button goes down. Shift extends from the anchor; Control adds or removes.
-- Dragging from a cell or a row number extends to the cell under the pointer. Beyond an edge, the grid scrolls. A drag that begins below the rows or right of the columns changes nothing.
-- A press on a row number selects the row.
-- The arrows, Page Up and Page Down, Home and End move the cursor; with Shift they extend the selection. Control+A selects all. The grid scrolls to keep the cursor in view.
+- Click to select; **Shift+click** extends a range; **Ctrl+click** adds or removes ranges; drag to select across cells.
+- Click a row number to select the whole row.
+- Arrow keys, Page Up/Down, Home, End (with **Shift** to extend), and **Ctrl+A** select all.
 
 ## In a tree dump
 
-Selected cells (or rows in row mode) say `selected`, the cursor's `current`:
+Selected cells or rows include `selected`, and the active cursor includes `current`:
 
 ```text file="examples/src/test/resources/golden/docs/grid/selected.tree.txt" start="#cell-2-1" count="1"
 ```

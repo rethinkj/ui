@@ -1,33 +1,33 @@
 ---
 title: Introduction
-description: What rethinkj UI is, what is in it, and where to start.
+description: Overview of rethinkj UI, what it includes, and where to start.
 ---
 
-rethinkj UI is a native, GPU-rendered UI framework for Java 25 on Windows and Linux. It draws everything itself, from text to a data grid of a million rows, and it runs without a window too: a script drives the app, and images and element trees come out, so that an agent or a test can see and use what it builds. It is early: version 0.1.0-SNAPSHOT, SNAPSHOTs on Maven Central and no release yet, and the API still changes.
+rethinkj UI is a native, GPU-rendered desktop UI framework for Java 25 on Windows 11+ and Linux (x64). It renders everything itself, from text to large data grids. It can also run without a window so automated tests and AI agents can drive your app with scripts and inspect screenshots and element trees.
+
+> **Early preview:** rethinkj UI is currently at version `0.1.0-SNAPSHOT` on Maven Central Snapshots. The API may still change before the first stable release.
 
 <Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench example: a schema tree, a query editor and a result grid" />
 
-## What is in it
+## What is included
 
-- **core** (`com.rethinkj.ui`): elements and flexbox layout, text, springs, scrolling, virtual lists, overlays, focus and keyboard, text editors, several windows, scripts, and a GPU renderer with a CPU twin for rendering without a window.
-- **kit** (`com.rethinkj.ui.kit`): a dark and a light theme and the components of a data tool: a data grid, a tree, tabs, a code editor, menus, a command palette, dialogs, forms, and more.
-- `core` and `kit` depend on `java.base` only.
+- **core** (`com.rethinkj.ui`): Elements, flexbox layout, text rendering, spring animations, scrolling, virtual lists, overlays, focus and keyboard handling, text editors, multi-window support, headless scripting, and GPU/CPU rendering.
+- **kit** (`com.rethinkj.ui.kit`): Dark and light themes plus ready-made components for desktop apps and data tools: data grid, tree, tabs, code editor, menus, command palette, dialogs, forms, and more.
+- **Minimal dependencies:** Both `core` and `kit` depend only on `java.base`.
 
 ## Where to start
 
-| | |
+| Page | What you will learn |
 | --- | --- |
-| [Installation](/docs/get-started) | The Maven or Gradle setup, and how to run an app in a window or under a script |
-| [The first app](/docs/get-started/first-app) | A state, a view and a window, line by line |
-| [Build a whole app](/docs/guides/real-app) | Views, background work, editing and saving in one small app |
-| [Concepts](/docs/concepts) | How it works, topic by topic |
-| [Components](/docs/components) | Every component, with picture, code and tree |
-| [Testing and agents](/docs/testing) | Drive an app with a script and read its trees |
-| [Examples](/docs/examples) | Runnable apps |
-| [Reference](/docs/reference) | Platforms, native libraries and the changelog |
+| [Installation](/docs/get-started) | Set up Maven or Gradle and run your first app |
+| [The first app](/docs/get-started/first-app) | Walk through a complete app line by line |
+| [Build a whole app](/docs/guides/real-app) | Build a multi-view app with background loading, editing, and saving |
+| [Concepts](/docs/concepts) | Learn core ideas like layout, state, input, and themes |
+| [Components](/docs/components) | Browse every component with screenshots, code, and options |
+| [Testing and agents](/docs/testing) | Drive an app with scripts and read element trees |
+| [Examples](/docs/examples) | Explore complete runnable demo apps |
+| [Reference](/docs/reference) | Platform support, native libraries, API docs, and changelog |
 
-## For agents
+## For AI agents
 
-Every page of this site is also Markdown: add `.md` to its address (`/docs/components/button.md`), or use the Copy Markdown button. [/llms.txt](/llms.txt) lists all pages with a line each, and [/llms-full.txt](/llms-full.txt) holds them all in one file. Each component's page ends with what it shows in a tree dump, so that a script can find it.
-
-The Java on this site is compiled with the project's tests, and most of it runs there under a script; the pictures are the images those tests store.
+Every page on this site is also available as plain Markdown. Add `.md` to any page URL (for example, `/docs/components/button.md`) or click **Copy Markdown**. You can also use [/llms.txt](/llms.txt) for a page index or [/llms-full.txt](/llms-full.txt) for the full documentation in one file.

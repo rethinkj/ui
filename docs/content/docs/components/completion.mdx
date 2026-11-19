@@ -1,9 +1,11 @@
 ---
 title: Completion
-description: A list of completions at the caret of a text field, such as table and column names in a query.
+description: Autocomplete popup anchored to the cursor of a text field or CodeEditor.
 ---
 
-`Completion.complete` gives a text field, usually a [CodeEditor](/docs/components/code-editor), a list of completions below its caret. The app's function gets the part of the word before the caret and returns the entries. The list opens as the user types, and Enter or Tab puts the chosen entry in place. For choosing among fixed values in a form, use a [ComboBox](/docs/components/combo-box).
+`Completion.complete` attaches an autocomplete popup below the text cursor of a field (usually a [CodeEditor](/docs/components/code-editor)). Your callback receives the word prefix before the cursor and returns matching suggestions. Pressing **Enter** or **Tab** inserts the selected suggestion.
+
+For picking from a fixed list in a form, use [ComboBox](/docs/components/combo-box).
 
 Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.State`](/api/com/rethinkj/ui/kit/Completion.State.html).
 
@@ -14,39 +16,36 @@ Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.
 ```java snippet="completion"
 ```
 
-- `editor` is the editable field. The caret is where its caret is, which `state.editor`, a `CodeEditor.State`, knows.
-- `state.completion` is a `Completion.State` in the app's state.
-- `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show. `new Completion.Entry(text, symbol, kind, insert)` puts `insert` in place of the word instead of the text it shows, such as a name in quotes.
-- The function runs on the app's thread on every keystroke while the list is open, so keep it fast. For entries that take time to find, as from a database, use `Completion.completeInBackground(app, field, caret, completionState, name, suggest)`: the function runs on another thread once per word, and until its entries arrive the list shows those of the word before and a row "Loading…".
-- For entries the app loads into its own state on its own way, the function returns what is there and sets `state.completion.loading(true)` while more are on their way. The list then shows a row "Loading…" below them and stays open, even with no entries yet; once they arrive in the state, the next build calls the function again.
-- The function gets only the word. What stands before it, such as `orders.`, the app reads from its own text at the caret.
+- Pass the editor element, its current cursor offset (`state.editor.caret()`), and a `Completion.State` stored in your app state.
+- `new Completion.Entry(text, symbol, kind)` displays an optional icon and muted kind label. Suggestions appear in the exact order you return. Use the 4-argument constructor `new Completion.Entry(text, symbol, kind, insert)` when the inserted text differs from the display label (for example, adding quotes).
+- **Async suggestions:** Keep synchronous callbacks fast. For slow lookups (like database metadata), use `Completion.completeInBackground(app, field, caret, completionState, name, suggest)` to run on a background thread and show a `"Loading…"` row until results arrive. You can also set `state.completion.loading(true)` manually if you manage background loading yourself.
+- The callback receives only the current word. Inspect your full text at `caret` if you need preceding context (like `orders.`).
 
-The list shows up to eight rows and scrolls to keep the highlighted entry in view. It is as wide as its first entries need, up to twice a field's width; a longer text ends with an ellipsis.
-
-A script that opens it:
+Example headless script:
 
 ```text snippet="completion-script"
 ```
 
-## When it opens and closes
+## Trigger behavior
 
-A letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it. A character named with `state.completion.openAfter(".")` opens it at once, for the empty word after it, such as the columns after a table's name. Control+Space opens it for the part of the word before the caret, an empty word outside one. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel close it, and so does a word with no entries, unless more are loading. A press on an entry takes it.
+- Typing letters, digits, or `_` opens the popup automatically once the word reaches 2 characters.
+- Call `state.completion.openAfter(".")` to trigger immediately after specific characters (such as after a table name).
+- **Ctrl+Space** opens completions manually at any position.
+- Clicking outside, scrolling the wheel, or deleting the entire word closes the popup.
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Up, Down | Move the highlight, around the ends |
-| Page Up, Page Down | Move it by eight |
-| Enter, Tab | Put the highlighted entry in place of the whole word, also its part after the caret, as one step of the undo history; while only "Loading…" shows, close the list and do what they do in the field |
-| Escape | Close |
-| Left, Right, Home, End | Close and move the caret |
-
-A key with Control, Alt or Meta, other than Control+Space, closes it. Keys it does not take reach the field's own handler, Control+Enter among them.
+| Up, Down | Move highlight (wraps around) |
+| Page Up, Page Down | Move highlight by 8 items |
+| Enter, Tab | Accept highlighted suggestion (replaces full word as one undo step) |
+| Escape | Close popup |
+| Left, Right, Home, End | Close popup and move cursor |
 
 ## In a tree dump
 
-The list is an overlay at the caret, `role=listbox` `label="Completions"`. Its entries in view are `role=option` with their text as label and the key `option-<index>`, the index in the function's list; the highlighted one is `selected`. A row `#loading` follows them while entries are on their way:
+Overlay at the caret with `role=listbox` `label="Completions"`. Items are `role=option` with key `#option-<index>` (`selected` on the highlighted item), followed by `#loading` while loading:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
 ```

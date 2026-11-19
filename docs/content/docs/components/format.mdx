@@ -1,9 +1,11 @@
 ---
 title: Format and ValueField
-description: Typed values in text fields and grid columns, written and read without the system's locale.
+description: Locale-independent typed formatting and validated input fields for numbers, dates, enums, and custom types.
 ---
 
-`Format<T>` says how a value of a Java type is written as text and read back: `BigDecimal`, `LocalDate`, an enum, or a type of the app's own. `ValueField.valueField` is a text field for such a value. It hands the app values instead of strings, and keeps a text that is no value yet as a draft with the format's message. A [DataGrid](/docs/components/data-grid)'s typed columns take their alignment, icon and editor from the same formats. Use them wherever a field or column holds something other than text; for an `int` stepped by arrows and buttons, a [NumberField](/docs/components/number-field) fits better.
+`Format<T>` defines how a Java type (such as `BigDecimal`, `LocalDate`, an enum, or your own type) converts to and from text. `ValueField.valueField` is a text input built on `Format<T>`: it passes typed values to your handler and stores invalid input as a draft with an error message.
+
+[DataGrid](/docs/components/data-grid) typed columns reuse the same `Format` objects for alignment, icons, and editors. For stepping integers with arrows and +/- buttons, use [NumberField](/docs/components/number-field).
 
 Javadoc: [`Format`](/api/com/rethinkj/ui/kit/Format.html), [`ValueField`](/api/com/rethinkj/ui/kit/ValueField.html).
 
@@ -11,7 +13,7 @@ Javadoc: [`Format`](/api/com/rethinkj/ui/kit/Format.html), [`ValueField`](/api/c
 
 ## Example
 
-The state holds the value and the field's draft:
+Store the value and a `ValueField.Draft` in your state:
 
 ```java snippet="value-state"
 ```
@@ -19,66 +21,62 @@ The state holds the value and the field's draft:
 ```java snippet="value-field"
 ```
 
-`valueField(format, value, [placeholder,] draft, onChange)` is a [TextField](/docs/components/text-field) in every other way, so `.key`, `.w` and `.maxLength` chain onto it.
+`valueField(format, value, [placeholder,] draft, onChange)` returns an `El` like [TextField](/docs/components/text-field), so `.key`, `.w`, and `.maxLength` chain normally.
 
-## Formats
+## Built-in formats
 
-| Format | Type | Text |
+| Format | Java type | Text format |
 | --- | --- | --- |
-| `TEXT` | `String` | As it is; the empty text is the empty string |
-| `INTEGER`, `LONG`, `BIG_INTEGER` | `Integer`, `Long`, `BigInteger` | `-12`, `+7`; refused beyond the type's range |
-| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`. Written without an exponent, with its scale kept. An exponent that would write more than 4096 zeros (`1e5000`) is refused |
-| `DATE` | `LocalDate` | `2026-11-13` |
+| `TEXT` | `String` | Plain text (empty input is `""`) |
+| `INTEGER`, `LONG`, `BIG_INTEGER` | `Integer`, `Long`, `BigInteger` | Signed integers (`-12`, `+7`); rejects out-of-range values |
+| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3` (formatted without scientific notation; rejects huge exponents > 4096 zeros) |
+| `DATE` | `LocalDate` | ISO 8601 (`2026-11-13`) |
 | `TIME` | `LocalTime` | `14:30`, `14:30:15` |
-| `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |
+| `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30` (also accepts `T`) |
 | `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
-| `BYTES` | `Long` | A size in decimal units: `817 B`, `1.2 MB`, `12 MB`, with one decimal below 10 of a unit. Reads its own texts, plain bytes (`1200000`) and `KiB` to `EiB` (1024 each), in any case. `1.2 MB` reads as 1 200 000, so a value comes back only as exactly as it was written. Negative sizes are refused. A grid's column of sizes aligns right and sorts by the bytes |
-| `BOOLEAN` | `Boolean` | `true`, `false`; also `t`, `1`, `yes`, `on` and their opposites |
-| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)`. Two values with one label are refused |
-| `of(text, parse, message)` | any | The app's own: `Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`. A parser that throws or returns null fails with the message |
+| `BYTES` | `Long` | Decimal units (`817 B`, `1.2 MB`, `12 MB`); parses plain bytes, SI (`KB`–`EB`), and binary (`KiB`–`EiB`); rejects negatives |
+| `BOOLEAN` | `Boolean` | `true`/`false` (also parses `t`, `1`, `yes`, `on` and opposites) |
+| `choice(values, label)` | Any (e.g., enum) | Matches values by unique display label (`Format.choice(List.of(Status.values()), Status::label)`) |
+| `of(text, parse, message)` | Any custom type | Custom formatter/parser (`Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`) |
 
-Numbers have a full stop and no grouping, and dates and times are ISO 8601, whatever the system's locale; another notation is another format. For a text that is no value, each format gives a message that says what a valid one looks like (`Expected a date such as 2026-11-13`). `allows(text)` says whether typing may still lead to a valid text, so a field refuses a letter in a number but keeps `12.` and `-`. Number formats refuse texts longer than `Format.MAX_NUMBER_LENGTH` (100 000) characters.
+Numbers always use `.` as decimal separator (no thousands separators) and dates use ISO 8601 regardless of OS locale.
 
-| Changed copy | |
+| Modifier | Effect |
 | --- | --- |
-| `.optional()` | The empty text is null. Without it, the empty text gets the message `A value is required` (`Format.REQUIRED`), except for `TEXT` |
-| `.where(test, message)` | Only values that pass, such as a range: `Format.INTEGER.where(port -> port >= 1 && port <= 65535, "1 to 65535")` |
+| `.optional()` | Treats empty text as `null` (without it, empty text fails with `"A value is required"` except for `TEXT`) |
+| `.where(test, message)` | Adds a validation predicate (e.g., `Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535")`) |
 
-Formats need no native libraries; keep them in constants.
+Store formats in `static final` constants. Use `format.text(value)` and `format.parse(text)` directly when needed.
 
-`text(value)` writes a value, the empty text for null. `parse(text)` reads one into a `Parsed<T>`: `value()` and `error()`, the error null for a valid text. `allows`, `isOptional`, `choices` and `type` are on [`Format`](/api/com/rethinkj/ui/kit/Format.html).
+## Fixed-precision time formats
 
-## Times of a fixed precision
-
-`TIME`, `DATE_TIME` and `OFFSET_DATE_TIME` write a time as `LocalTime` does, without its seconds when they are zero, so a column shows `09:00` above `09:00:05`. These formats write every value with the same length:
+To align timestamps in tables with consistent length (e.g., always showing seconds or milliseconds):
 
 ```java snippet="format-precision"
 ```
 
-| Factory | Writes |
+| Factory | Example output |
 | --- | --- |
-| `Format.time(precision)` | `09:00:00` at 0, `09:00:05.120` at 3, up to 9 digits after the seconds |
+| `Format.time(precision)` | `09:00:00` (`0`), `09:00:05.120` (`3`), up to `9` fractional digits |
 | `Format.dateTime(precision)` | `2026-01-01 09:00:00` |
-| `Format.offsetDateTime(precision, offset)` | The offset as `Format.Offset` says: `Z` (`Z`, `+05:30`), `COLONS` (`+00:00`, `+05:30`) or `SHORT` (`+00`, `+05:30`, as PostgreSQL writes it) |
+| `Format.offsetDateTime(precision, offset)` | Formats offset as `Z` (`Z`, `+05:30`), `COLONS` (`+00:00`), or `SHORT` (`+00`) |
 
-Digits beyond the precision are cut, not rounded: `time(0)` writes `09:00:05.999` as `09:00:05`. Only the text is cut; the value stays as it was. They read what the plain formats read, and `offsetDateTime` reads all three spellings of an offset. `.optional()` and `.where(...)` chain onto them, and `type()` is the plain format's.
+Extra fractional digits are truncated in display text without modifying the underlying value.
 
-## How the field behaves
+## Field behavior
 
-- **When the handler runs**: on every edit whose text is a valid value, as a text field's handler runs on every edit. The state always holds what the field shows, so a Save button needs no Enter or leaving the field first.
-- **A text that is no value yet**, such as `12e` or a half-typed date, stays in the `ValueField.Draft` in the app's state. The field shows it with the danger border, `invalid` and `error="…"` in the dump. A [Form](/docs/components/form) field shows the message below it, unless the app passes an error of its own. The app's value stays the last valid one meanwhile, so a Save button checks `draft.error() == null`.
-- **The empty text** is what the format says: `A value is required`, or null for an `.optional()` format. Mark the form field `.required()` for the star.
-- **A value from outside** replaces the draft. When the app's value differs from the one the field handed on last (a reset, a loaded value), the field shows its text. The same happens when the handler stores another value than it was given, or none. `draft.clear()` forgets the draft even where the value stays.
-- **A value the format refuses**, such as null in a required field or 20 in a field of 1 to 10, gives `draft.error()` from the start, so Save stays disabled. The field shows the error only once the user has edited it, or the app calls `draft.showError()` (or `editing.showErrors()` for a whole [Editing](/docs/concepts/editing)), as Save does when it is pressed too early. So a form over a new record does not open in red.
-- A valid text stays as typed while it stands for the value: `007` stays `007` and the app has `7`.
+- **Live updates:** `onChange` runs on every edit that parses to a valid value, so Save buttons work without pressing Enter first.
+- **Drafts & errors:** Unparsed text (like `12e`) stays in `ValueField.Draft`, showing a danger border and error message in [Form](/docs/components/form). Your state keeps the last valid value; check `draft.error() == null` before saving.
+- **External updates:** If your state value changes externally (such as a reset), the field updates automatically. Call `draft.clear()` to reset a draft explicitly.
+- **Hidden initial errors:** Invalid initial values (such as `null` in a required field) set `draft.error()` immediately for Save validation, but stay visually hidden until edited or until you call `draft.showError()` (or `editing.showErrors()`).
 
 ## With a Prop
 
-`valueField(format, prop[, placeholder])` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) of an `Editing` in place of the value, the draft and the handler. The editing keeps the draft, so the state needs none; a prop of `Prop.of` keeps no draft and throws `IllegalStateException`.
+`valueField(format, prop[, placeholder])` binds to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record (which manages the draft automatically — `Prop.of` throws `IllegalStateException`).
 
 ## In a tree dump
 
-The field says `invalid` and `error="…"` while its text is no value:
+Shows `invalid` and `error="…"` while holding an invalid draft:
 
 ```text file="examples/src/test/resources/docs/values.txt" start="press #amount" count="6"
 ```

@@ -1,9 +1,9 @@
 ---
 title: HuePicker
-description: Round swatches of the theme's hues, for the color that marks a connection or a tab.
+description: Color swatch selector for the theme's ten accent hues, with an optional "no color" choice.
 ---
 
-`HuePicker.huePicker` shows a round swatch for each of the theme's ten hues, with a choice of no color first when the app allows one. Use it for a color that marks something, such as the connection to production, wherever the same hue shows again: a tab's mark (`Tab.hue`) has the same color. For choices that show other elements, use [Radio](/docs/components/radio#swatches)'s `swatches`, which this is built on.
+`HuePicker.huePicker` displays a row of circular swatches for the theme's ten hues (plus an optional "none" choice). Use it whenever users pick a color tag, such as marking a production connection or a colored tab (`Tab.hue`). For custom non-color swatches, see [Radio.swatches](/docs/components/radio#swatches).
 
 Javadoc: [`HuePicker`](/api/com/rethinkj/ui/kit/HuePicker.html).
 
@@ -14,25 +14,23 @@ Javadoc: [`HuePicker`](/api/com/rethinkj/ui/kit/HuePicker.html).
 ```java snippet="hue-picker"
 ```
 
-`state.color` is a `Theme.Hue` in the app's state, null for none.
-
-| Call | |
+| Method | Description |
 | --- | --- |
-| `huePicker(selected, onSelect)` | The ten hues; `selected` null for none |
-| `huePicker(selected, none, onSelect)` | A choice of no color, named `none`, first, then the hues; null chooses it |
-| `huePicker(prop, none)` | The value of a [`Prop`](/docs/concepts/editing#components-that-take-a-prop); `none` null for no such choice |
-| `HuePicker.swatch(hue)` | The swatch alone, the size of a checkbox, for a menu item's [leading element](/docs/components/menu#items) or a list |
-| `HuePicker.name(hue)` | The hue's name as a person reads it: `Red`, `Violet` |
+| `huePicker(selected, onSelect)` | The 10 theme hues (`selected` may be `null`) |
+| `huePicker(selected, none, onSelect)` | Adds a leading "no color" option labeled `none` (selects `null`) |
+| `huePicker(prop, none)` | Binds to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) (`none` may be `null` to omit) |
+| `HuePicker.swatch(hue)` | Renders a single swatch dot (for menu items or lists) |
+| `HuePicker.name(hue)` | Human-readable hue name (`"Red"`, `"Violet"`, …) |
 
-A null handler disables it. The choice of no color shows the `PROHIBITED` icon. The chosen swatch has a round ring around it. The keyboard's focus is a rounded square around the chosen swatch, or the first while none is chosen, so a focused choice shows a circle inside a square. Each swatch shows its name in a tooltip.
+Passing a `null` handler disables the picker. Each swatch shows its name in a tooltip on hover.
 
 ## Keyboard
 
-The picker is one stop for Tab. The arrows choose the next and the previous hue, around the ends. Home and End choose the first and the last. Space chooses the first while none is chosen. A press chooses and leaves the focus where it was.
+One Tab stop. **Arrow keys** move between hues (wrapping around), **Home/End** jump to first/last, and **Space** selects the first option when none is selected.
 
 ## In a tree dump
 
-`role=radiogroup` with its label, each swatch `role=radio` labeled by its hue's name with `checked` or `checked=false`:
+`role=radiogroup` containing `role=radio` swatches labeled by hue name with `checked` or `checked=false`:
 
 ```text file="examples/src/test/resources/golden/docs/swatches/view.tree.txt" start="label=\"Color\"" count="2"
 ```

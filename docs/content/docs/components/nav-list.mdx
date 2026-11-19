@@ -1,9 +1,11 @@
 ---
 title: NavList
-description: A list of pages or sections with one selected, headings between them and counts at the right.
+description: Sidebar navigation list with icons, group headings, count badges, and single selection.
 ---
 
-`NavList.navList` is a list of items with an icon and a count, under headings. One item is selected, with an accent mark at its left, its icon in the accent and its text a little heavier; a count sits in a quiet badge, and a heading is a small caption over its group. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
+`NavList.navList` displays a vertical list of selectable navigation items with optional icons, count badges, indentation, and section headings. Use it for app sidebars and settings pages.
+
+For hierarchical expandable data, use [Tree](/docs/components/tree). For horizontal tabs, use [Tabs](/docs/components/tabs).
 
 Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
@@ -16,25 +18,18 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
 <Shot src="examples/docs/navigation/view-{theme}" alt="A nav list in a card: Tables with 12 and Views with 3 under the heading Database, Roles under Server" />
 
-`state.page` is the index of the selected item in the list, headings counted, in the app's state.
-
-| | |
+| Method | Description |
 | --- | --- |
-| `navList(entries, selected, onSelect)` | A list of `NavList.Entry`s: items and headings |
-| `navList(count, index -> entry, selected, onSelect)` | A virtual list for many entries, which builds only those in view |
-| `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
-| `.indent(levels)` | An item set in by steps, as the headings of an outline under theirs |
-| `.key(name)` | The item's key in the tree dump, `#name`, in place of `item-<index>` |
-| `.disabled(true)` | An item that cannot be selected, skipped by the keys |
-| `NavList.heading(label)` | A heading, skipped by the keys |
+| `navList(entries, selected, onSelect)` | List of `NavList.Entry` items and headings (`selected` index includes headings) |
+| `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
+| `NavList.item([icon,] label)` | Navigation item with optional `.count(text)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
+| `NavList.heading(label)` | Non-selectable section heading |
 
-Items and headings are both a `NavList.Entry`, so a list that mixes them is a `List<NavList.Entry>`.
-
-In a card, wrap it in `Card.inset(list)`.
+Inside a card, wrap the list with `Card.inset(list)`.
 
 ## Values instead of indexes
 
-`navList(values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
+Use `navList(values, selected, value -> item, onSelect)` (or with an extra `value -> group` function to auto-insert group headings) to select typed objects instead of integer indexes (matching works like [Select](/docs/components/select#values-instead-of-indexes)):
 
 ```java snippet="nav-list-types"
 ```
@@ -42,18 +37,16 @@ In a card, wrap it in `Card.inset(list)`.
 ```java snippet="nav-list-typed"
 ```
 
-The headings count as rows in the keys and positions of the tree dump, as with indexes:
-
 ```text file="examples/src/test/resources/golden/docs/navigation-typed/view.tree.txt" start="role=listbox" count="5"
 ```
 
 ## Keyboard
 
-One stop for Tab. Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings and disabled items.
+One Tab stop. **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items.
 
 ## In a tree dump
 
-`role=listbox` with its label, `disabled` without an `onSelect`. Items are `role=option` with `selected` or `disabled` and `pos`, and the key `item-<index>`, counting headings, unless the item has a key of its own. A heading is a row without a role, keyed `item-<index>`:
+`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set):
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

@@ -1,9 +1,11 @@
 ---
 title: Form
-description: Labeled fields, beside or above them, with help, errors, warnings and required marks, and buttons at the end.
+description: Structured forms with side-by-side or stacked labels, groups, multi-field rows, helper text, errors, and warnings.
 ---
 
-`Form.form` lays out fields with their labels, either beside them in a column as wide as the widest label, or above them. Fields have help text, error messages, warnings and a mark when required. Longer forms group their fields under headings, with one label column for all groups, and put fields that belong together, such as host and port, in one row. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
+`Form.form` lays out labeled inputs with labels either beside (`Labels.BESIDE`) or above (`Labels.ABOVE`) each control, along with helper text, validation errors, warnings, and required indicators (`*`). Longer forms can organize fields into titled groups and multi-field rows (such as Host and Port side by side).
+
+Use `Form` for dialogs and configuration forms. For toggle-style settings lists, use [Group](/docs/components/group).
 
 Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 
@@ -14,27 +16,21 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 ```java snippet="form"
 ```
 
-`state.host`, `state.port` and `state.user` are strings in the app's state.
-
-| | |
+| Method | Description |
 | --- | --- |
-| `Form.form(Labels.BESIDE \| ABOVE, fields...)` | The form |
-| `Form.field(label, control)` | A field. The label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
-| `.help(text)` | Muted text below that wraps |
-| `.error(text)` | Replaces the help in the danger color and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
-| `.warning(text)` | Replaces the help in the warning color after a warning symbol and leaves the control valid, for a value worth a second thought; null for none. An error wins over it |
-| `.required()` | A `*` after the label |
-| `.grow()` | In a row, the field takes the room the others leave; its control's width is the least it has |
-| `Form.row(fields...)` | Fields side by side, each with its own label, help, error and mark; a row of one field is that field |
-| `Form.group(title, entries...)` | Fields and rows under a heading (`role=group`, the heading `level=4`); a group holds no groups |
-| `.description(text)` | Muted text under the group's heading that wraps |
-| `.divided()` | A line between the group and what comes before it; without it, space alone sets groups apart |
-| `.level(n)` | The heading's level, 4 unless set (below a card's title, which is 3) |
-| `Form.labelWidth(entries...)` | The width of the label column the entries need |
-| `Form.form(labels, labelWidth, entries...)` | A form whose label column is at least that wide |
-| `Form.buttons(buttons...)` | Buttons at the end, at the right |
+| `Form.form(Labels.BESIDE \| ABOVE, entries...)` | Builds the form |
+| `Form.field(label, control)` | Labeled field (automatically labels text fields and unlabeled controls) |
+| `.help(text)` | Muted helper text below the control |
+| `.error(text)` | Danger error text below the control (marks control `invalid`; overrides `ValueField` parse errors and warnings) |
+| `.warning(text)` | Amber warning text with icon (keeps control valid; overridden if an error is present) |
+| `.required()` | Displays `*` next to the label |
+| `.grow()` | Allows a field inside `Form.row` to expand into remaining space |
+| `Form.row(fields...)` | Places multiple fields side by side on one row (wraps automatically when narrow) |
+| `Form.group(title, entries...)` | Groups fields under a heading (`role=group`, `level=4`) with optional `.description(text)`, `.divided()`, and `.level(n)` |
+| `Form.labelWidth(entries...)`, `Form.form(labels, labelWidth, entries...)` | Aligns label columns across separate forms/cards |
+| `Form.buttons(buttons...)` | Right-aligned action button row |
 
-`form` takes fields, rows and groups in any order (`Form.Entry` is their common type). It leaves out a null entry, a null field in a row or a group, and a row or group whose entries are all null, so `shown ? field(...) : null` shows a field under a condition.
+`null` entries (and empty rows/groups) are ignored automatically, making conditional fields easy (`showPort ? field(...) : null`).
 
 ## Groups and rows
 
@@ -43,35 +39,31 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 ```java snippet="form-groups"
 ```
 
-With `Labels.BESIDE`, the label column is as wide as the widest label in any group, so the controls of all groups line up.
-
-In a row, the first field's label stands in the label column, and each further label stands before its control. Each field is as wide as its control, unless it grows, and its help lies under its control. The errors of the row's fields lie under the whole row, so an error does not move the controls. Where the form is too narrow, the row wraps, and a field on the next line keeps its label before its control.
+With `Labels.BESIDE`, all groups share one aligned label column. In narrow containers, `Form.row` wraps cleanly onto separate lines:
 
 <Shot src="kit/structure-form-groups-narrow-{theme}-1x" alt="The same form narrow: the port and its label on a line of their own below the host" />
 
-To put each group in a card of its own, put a form in each card. Give every form the width of all their labels, so that their controls still line up:
+To place each group inside its own card while keeping labels aligned, compute the shared label width once:
 
 ```java snippet="form-cards"
 ```
 
 ## Warnings
 
-A warning stands where an error would, also under a row, but the field stays valid and the form can be saved. When a field has an error too, only the error shows.
+Warnings display in amber where errors appear, without marking the field invalid or blocking Save:
 
 <Shot src="kit/structure-form-warning-{theme}-2x" alt="A driver version with a warning in amber under it, a host with a warning under its row, and the port's error below it in red" />
 
 ## With a Prop
 
-A control made with a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) shows its field's error in the same way as `.error(text)`, whether it comes from a rule, the app or a text that is no value.
+Controls bound to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) display validation and server errors automatically in `Form` just like `.error(text)`.
 
 ## In a tree dump
 
-Each field gets its label, also each field of a row; an error makes it `invalid` with `error="…"`, and a warning adds `warning="…"` alone:
+Each field labels its control; errors add `invalid` and `error="…"`, warnings add `warning="…"`, and groups use `role=group`:
 
 ```text file="examples/src/test/resources/golden/docs/form/view.tree.txt" start="\"User\"" count="3"
 ```
-
-A group is `role=group` with its title as its label, its heading inside:
 
 ```text file="examples/src/test/resources/golden/docs/form-groups/view.tree.txt" start="role=group label=\"Server\"" count="3"
 ```

@@ -1,40 +1,33 @@
 ---
 title: Properties
-description: Names and values in two columns, the values selectable and copyable, in groups with headings.
+description: Two-column key-value list with selectable, copyable values and optional grouped headings.
 ---
 
-`Properties.properties` shows names and values in two columns, the names muted, the values read-only fields that select and copy. With a clipboard, a copy button shows under the pointer. Use it for the details of a table, a connection or a file.
+`Properties.properties` displays key-value metadata in two columns: muted labels on the left and selectable, read-only values on the right. When given a `Clipboard`, hovering a row reveals a copy button. Useful for table details, connection info, or file metadata.
 
 Javadoc: [`Properties`](/api/com/rethinkj/ui/kit/Properties.html).
 
 <Shot src="examples/docs/details/view-{theme}" crop="role=list" alt="Properties Name, Rows and OID with their values orders, 1 000 000 and 16384" />
 
-<Shot src="kit/parts-detail-narrow-dark-2x" alt="The same properties in a narrow window, the comment wrapped onto three lines" caption="In a narrow window the long comment wraps beside its name." />
+<Shot src="kit/parts-detail-narrow-dark-2x" alt="The same properties in a narrow window, the comment wrapped onto three lines" caption="Long values wrap up to three lines in narrow containers." />
 
 ## Example
 
 ```java snippet="properties"
 ```
 
-`state.clipboard` is a `Clipboard`, such as `app.clipboard()`.
-
-| | |
+| Method | Description |
 | --- | --- |
-| `properties(properties, clipboard)` | One list; a null clipboard has no copy buttons |
-| `groups(groups, clipboard)` | Groups with headings |
-| `properties(properties, clipboard, copied)`, `groups(groups, clipboard, copied)` | The same, with copy buttons that confirm a copy, as a [copy button](/docs/components/button#copy-buttons) does. `copied` is a `Button.Copied` in the app's state; null for no confirmation |
-| `Properties.property(name, value)`, `.mono()` | A row; `mono()` for identifiers |
-| `Properties.group(title, properties)` | A group |
+| `properties(properties, clipboard[, copied])` | Single list (`null` clipboard hides copy buttons; optional `Button.Copied` enables [copy confirmation](/docs/components/button#copy-buttons)) |
+| `groups(groups, clipboard[, copied])` | Multiple titled groups |
+| `Properties.property(name, value)`, `.mono()` | Key-value row (`.mono()` uses monospace font for IDs/code) |
+| `Properties.group(title, properties)` | Named group of properties |
 
-A value too long for its column wraps onto up to three lines, with the name beside its first line. A longer one ends in an ellipsis and shows whole in a tooltip. Selecting and the copy button take the whole value.
-
-## Keyboard
-
-Tab skips the values; a press selects text in them.
+Long values wrap up to 3 lines, then truncate with `…` and show the full value in a tooltip (selecting or clicking Copy always copies the complete text).
 
 ## In a tree dump
 
-`role=list`, each row `role=listitem` with the name as label and `value="<value>"`; group headings are `role=heading level=3`.
+`role=list` with `role=listitem` rows (`label="<name>"`, `value="<value>"`), and `role=heading level=3` for group titles:
 
 ```text file="examples/src/test/resources/golden/docs/details/view.tree.txt" start="role=list " count="2"
 ```

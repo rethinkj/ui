@@ -1,42 +1,43 @@
 ---
 title: Several windows
-description: Windows that share one state, opened from handlers, with drags that carry a payload from one window to another.
+description: Open multiple windows sharing the same state and drag items between them.
 ---
 
-One `WindowLoop` runs any number of windows. Each has its own `App` (focus, hover, scroll, animations); windows that show the same data share one state object, and a change in one shows in the others in the same frame. Handlers open windows with `app.windows().open(...)`; drags can leave a window and drop in another. The kit's [TabGroups](/docs/components/tab-groups) uses all of it for tabs that tear off.
+A single `WindowLoop` can manage any number of desktop windows. Each window runs its own `App` (with independent focus, hover, scroll positions, and animations). Windows that share the same state object automatically stay in sync: when a handler updates state in one window, all other windows sharing that state rebuild in the same frame.
+
+The kit's [TabGroups](/docs/components/tab-groups) uses this for tear-off tabs.
 
 <Shot src="examples/notes-torn" alt="A note torn off into its own window, beside the row of notes it came from" />
 
-<Shot src="examples/groceries-notes-torn" alt="The window of the torn note Groceries: its title above a field with its text" caption="The torn note's own window." />
+<Shot src="examples/groceries-notes-torn" alt="The window of the torn note Groceries: its title above a field with its text" caption="A detached window sharing the same app state." />
 
-## Opening a window
+## Opening a new window
+
+Call `app.windows().open(title, width, height, options, newApp)` from any handler:
 
 ```java snippet="tab-groups"
 ```
 
-`windows.open(title, width, height, options, app)` opens a window that runs `app` and returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html): `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `isOpen()`, and the window's position and scale. `windows.all()` lists the open windows; `of(app)` finds an app's window.
+It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html) with `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `isOpen()`, and window position/scale getters. Use `windows.all()` to list all open windows or `windows.of(app)` to find a specific app's handle.
 
-Apps with the same state object rebuild together: when a handler in one runs, the others' views are built in the same pass.
+## Handling window close
 
-## Closing
-
-A close request (the close button, Alt+F4, a script's `close`) runs the window's `onCloseRequest` handler, which closes the window now, after asking, or not at all. Without a handler the window closes. In `WindowLoop`, a request without a handler for the last open window ends the loop instead, and no `onClosed` runs: a window given to `WindowLoop.run` stays open for the code after it, one the loop opened closes with the loop. The loop also ends when its last window closes.
-
-`onClosed` runs once a window has closed, however it closed: `close()` from the app, a close request without a handler, a torn-off tab that docks back and closes its window. It runs on the UI thread as a task of a window that stays open, one of the same state first, so it may change the state and the windows show it in the same frame. When no window stays open, or the loop stops, it does not run. That is where state kept per window goes away:
+- **`onCloseRequest(handler)`:** Runs when the user clicks the close button or presses Alt+F4. Your handler can close the window immediately, show a confirmation dialog, or ignore the request. Without a handler, the window closes directly (or ends `WindowLoop` if it is the last open window).
+- **`onClosed(handler)`:** Runs on the UI thread after a window closes (as long as at least one other window stays open). Use it to clean up per-window state:
 
 ```java snippet="window-closed"
 ```
 
-## Drags between windows
+## Dragging between windows
 
-`El.dragPayload(object)` on an element with `onDrag` makes its drags carry the object; `El.onDrop(drop -> …)` lets an element in any window receive it, with the phases `OVER`, `LEAVE` and `DROP`. Each `Drag` step also gives the pointer's screen position, whether it has left the window it started in, and which window it is over, so a handler can open a window that follows the pointer.
+Attach `El.dragPayload(object)` to a draggable element (`onDrag`) and `El.onDrop(drop -> …)` to drop targets in any window (`OVER`, `LEAVE`, and `DROP` phases). Each `Drag` event includes screen coordinates, `outside()` (whether the pointer left the origin window), and which window is currently under the cursor — allowing tear-off windows to follow the mouse.
 
-Files and text dropped from other applications reach `El.onFileDrop`.
+To accept files or text dragged from external applications, use `El.onFileDrop`.
 
-## Platforms
+## Platform notes
 
-On Windows and X11 an app can place windows anywhere. Wayland does not let apps place their windows: a torn-off window opens where the compositor puts it and does not follow the pointer, so offer menu items such as Move to new window and Move back.
+Windows and Linux X11 allow apps to position windows freely. Linux Wayland does not allow apps to set window positions, so detached windows cannot follow the mouse cursor — provide menu actions like **Move to new window** and **Move back** as alternatives.
 
-## Under a script
+## Testing multiple windows in scripts
 
-A handler that opens a window adds it to the script under its title; `window <name>` sends the following steps there, `snap` writes every window, and targets may say `in <window>`. See [Scripts](/docs/testing/scripts).
+Windows opened by handlers are registered in headless scripts under their window title. Use `window <name>` to switch targets, `in <window> <target>` for cross-window pointer actions, and `snap` to save screenshots of every open window. See [Scripts](/docs/testing/scripts).

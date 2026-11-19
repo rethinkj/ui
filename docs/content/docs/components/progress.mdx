@@ -1,9 +1,9 @@
 ---
 title: Progress
-description: Progress bars, labeled bars, a running bar, a line under a toolbar and a spinner.
+description: Determinate and indeterminate progress bars, labeled bars, thin loading lines, and spinners.
 ---
 
-`Progress` shows how far something is: a bar with a known fraction, a labeled bar with a name and a percentage, a running bar while the fraction is not known, a thin line along a card's edge, and a spinner for small places such as a busy button. For a button that runs something, use `Button.options().state(BUSY)` ([Button](/docs/components/button)), which shows the spinner itself.
+`Progress` provides indicators for ongoing work: determinate bars, labeled bars with percentage/detail text, indeterminate sweeping bars, thin 2 px card-edge lines, and compact spinners. For loading buttons, use `Button.options().state(BUSY)` ([Button](/docs/components/button)) instead.
 
 Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 
@@ -14,26 +14,21 @@ Javadoc: [`Progress`](/api/com/rethinkj/ui/kit/Progress.html).
 ```java snippet="progress"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `bar(fraction[, state])` | A track with the part done in the state's color, the accent by default; `fraction` from 0 to 1, clamped |
-| `labeled(label, fraction, detail[, state])` | The name over the bar and the detail (the percentage when null) at the right |
-| `indeterminate()` | A piece that sweeps along the track, while the fraction is not known |
-| `line([fraction])` | Two pixels high, full width, no track: along the top of a card's content |
-| `spinner([size])` | A ring with a light that goes round, icon-sized unless given |
+| `bar(fraction[, state])` | Horizontal progress bar (`fraction` clamped to `0.0`–`1.0`) |
+| `labeled(label, fraction, detail[, state])` | Bar with title above and right-aligned detail (defaults to percentage) |
+| `indeterminate()` | Animated bar when progress percentage is unknown |
+| `line([fraction])` | Thin 2 px full-width bar for the top of a card |
+| `spinner([size])` | Animated circular spinner (default 16 px) |
 
-| `Progress.State` | |
-| --- | --- |
-| `NORMAL` | The accent |
-| `ERROR` | The danger color; `invalid` in the tree |
-| `DONE` | The success color |
-| `PAUSED` | Muted |
+`Progress.State`: `NORMAL` (accent), `ERROR` (danger, marked `invalid`), `DONE` (success), `PAUSED` (muted).
 
-Give a running bar and the bar that replaces it once the fraction is known the same key, and the bar moves on from where the running piece was. Running bars and spinners move with the app's clock, so a script advances it.
+Tip: Give an `indeterminate()` bar and the `bar(fraction)` that replaces it the same `.key(...)` for a smooth transition.
 
 ## In a tree dump
 
-All are `role=progressbar`: bars with `value="42%"`, a running bar without a value, a spinner labeled `Loading`. None takes the focus.
+All variants use `role=progressbar` (determinate bars include `value="42%"`; spinners use `label="Loading"`):
 
 ```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="role=progressbar" count="7"
 ```

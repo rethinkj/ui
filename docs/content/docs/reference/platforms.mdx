@@ -1,32 +1,73 @@
 ---
 title: Platforms and native libraries
-description: Windows and Linux on x64, the native libraries in one JAR per platform, what a build needs, and what to do when a library does not load.
+description: Supported operating systems, native libraries, troubleshooting, and platform differences.
 ---
 
-rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with JDK 25. Windows, the GPU and text use native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and load on first use, so a view rendered without a window and without text needs none of them.
+rethinkj UI supports **Windows 11+** and **Linux** (both x64) with **JDK 25**.
 
-## Versions
+It uses native libraries for windows, GPU rendering, and text:
+- **SDL 3** for windows, input, clipboard, and dialogs
+- **wgpu-native** for GPU rendering (Direct3D 12 on Windows, Vulkan on Linux)
+- **FreeType** and **HarfBuzz** for text shaping and font rendering
 
-| Library | Version | For |
+All native libraries are packaged into one JAR per platform and load on first use.
+
+## Bundled native library versions
+
+| Library | Version | Purpose |
 | --- | --- | --- |
-| SDL | 3.4.20 | Windows, input, clipboard, dialogs |
-| wgpu-native | 29.0.1.1 | The GPU renderer |
-| FreeType | 2.15.0 | Rasterizing glyphs |
-| HarfBuzz | 15.1.0 | Shaping text |
-| DirectX Shader Compiler | 1.9.2609 | Compiling shaders on Direct3D 12, Windows only |
+| SDL | 3.4.20 | Windows, input, clipboard, and file dialogs |
+| wgpu-native | 29.0.1.1 | GPU rendering |
+| FreeType | 2.15.0 | Glyph rasterization |
+| HarfBuzz | 15.1.0 | Text shaping |
+| DirectX Shader Compiler | 1.9.2609 | Fast shader compilation on Direct3D 12 (Windows only) |
 
-FreeType and HarfBuzz are built from source and need nothing beyond the C runtime.
+On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) speeds up initial shader compilation and adds about 10 MB to the Windows JAR. If you ship pre-extracted natives via `rethinkj.ui.natives.dir` and omit `dxcompiler.dll` from `manifest.txt`, Windows falls back to its built-in FXC compiler. Third-party license files are included in each natives JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
 
-On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) compiles the shaders, so the first frame appears sooner; it adds about 10 MB to the Windows JAR. A folder given with `rethinkj.ui.natives.dir` may leave it out of its `manifest.txt`; then the compiler built into Windows (FXC) is used. The license texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
+## Loading native libraries
+
+On first run, native libraries are extracted to a per-user cache folder:
+- **Windows:** `%LOCALAPPDATA%\rethinkj-ui\natives\`
+- **Linux:** `$XDG_CACHE_HOME/rethinkj-ui/natives/` (defaults to `~/.cache/rethinkj-ui/natives/`)
+
+System properties:
+- `rethinkj.ui.natives.cache` — Extract native libraries to a custom cache folder.
+- `rethinkj.ui.natives.dir` — Load native libraries directly from a pre-extracted folder containing the libraries and `manifest.txt` (useful for packaged apps).
+
+Required JVM flags:
+- **Classpath:** `--enable-native-access=ALL-UNNAMED`
+- **Module path:** `--enable-native-access=com.rethinkj.ui --add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`). Without the natives module, add `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons` for the resource modules you use.
+
+## Troubleshooting
+
+| Problem | Cause and solution |
+| --- | --- |
+| Warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` to your JVM arguments. |
+| `UnsatisfiedLinkError` mentioning FreeType or HarfBuzz | The natives JAR for your OS is missing from the runtime classpath. |
+| Linux library fails to load from cache | The cache directory is on a `noexec` filesystem. Set `-Drethinkj.ui.natives.cache=<path>` to an executable directory. |
+| No GPU adapter found | No Vulkan (Linux) or Direct3D 12 (Windows) GPU driver is available. Headless scripts and `Headless.render` still work using the CPU renderer. Note: GPU initialization happens on the first frame inside `WindowLoop.run`, not in `new GpuPresenter`. |
+| CMake fails on Windows (building from source) | Install **C++ CMake tools for Windows** in Visual Studio, or pass `$env:CMAKE = '<folder>\bin\cmake.exe'`. |
+| CMake fails on Linux (building from source) | A required development package is missing. Install the `apt` packages listed below. |
+| Download fails on first source build | Internet access is required once to fetch native sources. |
+
+## Platform differences
+
+| Feature | Windows | Linux X11 | Linux Wayland |
+| --- | --- | --- | --- |
+| Frameless window snap layouts | Yes | Move and resize only | Move and resize only |
+| Window positioning and tear-off tabs following the cursor | Yes | Yes | No (compositor controls placement) |
+| Taskbar badge | Yes | No | No |
+| System accent color detection | Yes | No | No |
+| Native file dialogs | Windows dialog | XDG portal or zenity | XDG portal or zenity |
 
 ## What a build needs
 
-The first build downloads the archives, checks their SHA-256 and builds some libraries from source; later builds reuse them, also after `mvn clean`.
+This section only applies if you are [building rethinkj UI from source](/docs/get-started/from-source). The first build downloads native archives, verifies SHA-256 checksums, and compiles some libraries from source. Subsequent builds reuse the cached binaries even after `mvn clean`.
 
 <Tabs items={['Linux', 'Windows']}>
 <Tab value="Linux">
 
-SDL, FreeType and HarfBuzz are built with cmake and make, which takes about a minute. On Debian and Ubuntu:
+Building SDL, FreeType, and HarfBuzz uses `cmake` and `make` (about 1 minute). On Debian/Ubuntu:
 
 ```sh
 sudo apt install build-essential cmake pkg-config xz-utils libx11-dev libxext-dev \
@@ -34,42 +75,14 @@ sudo apt install build-essential cmake pkg-config xz-utils libx11-dev libxext-de
   libxkbcommon-dev libegl-dev libdbus-1-dev
 ```
 
-`natives-linux-x64/natives.properties` lists them. The build fails when cmake turns off X11 or Wayland because their development files are missing. The libraries need the glibc of the machine that built them.
+The built libraries depend on the `glibc` version of the build machine.
 
 </Tab>
 <Tab value="Windows">
 
-FreeType and HarfBuzz are built with Visual Studio 2022 or later, or its Build Tools, with the workload "Desktop development with C++". The build finds the installation itself; nothing needs to be on the `PATH`. Without "C++ CMake tools for Windows", unpack the CMake ZIP from cmake.org anywhere and build once with `$env:CMAKE = '<folder>\bin\cmake.exe'`.
+Install Visual Studio 2022+ (or Visual Studio Build Tools) with the **Desktop development with C++** workload. Maven detects it automatically; nothing needs to be on `PATH`. If you did not install "C++ CMake tools for Windows", download the CMake ZIP from cmake.org and run once with `$env:CMAKE = '<folder>\bin\cmake.exe'`.
 
 </Tab>
 </Tabs>
 
-Without the native libraries, build with `-P '!natives-linux-x64'` (or `'!natives-windows-x64'`); the tests that need them skip themselves.
-
-## Loading
-
-On first use the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. The system property `rethinkj.ui.natives.cache` sets another cache folder; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
-
-Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), which brings the fonts and icons JARs on the module path along; without it, add those you use, `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
-
-## When something does not work
-
-| Symptom | Cause and fix |
-| --- | --- |
-| A warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` |
-| `UnsatisfiedLinkError` naming FreeType or HarfBuzz | The natives JAR of the platform is not on the class path |
-| A Linux library does not load from the cache | The cache lies on a file system mounted `noexec`; set `rethinkj.ui.natives.cache` to another folder. The error names the dynamic linker's reason. |
-| The build stops at cmake on Windows | Install "C++ CMake tools for Windows", or set `CMAKE` as above |
-| The build stops at cmake on Linux | A development package is missing; the message names the option cmake turned off |
-| No GPU adapter | The machine has no GPU driver for Vulkan (Linux) or Direct3D 12 (Windows); scripts and `Headless.render` still work, since they draw on the CPU. The first window takes the GPU when it first uses it, usually at its first frame, so this error, like wgpu-native that cannot be loaded, is mostly thrown by `WindowLoop.run`, not by `new GpuPresenter` |
-| The build fails to download | It needs network the first time; put the archive at the path the error names |
-
-## Platform differences
-
-| | Windows | Linux X11 | Linux Wayland |
-| --- | --- | --- | --- |
-| Frameless windows with snap layouts | yes | moves, resizes | moves, resizes |
-| Placing windows, torn-off tabs that follow the pointer | yes | yes | no: the compositor places windows |
-| Taskbar badge | yes | no | no |
-| Accent color from the system | yes | no | no |
-| File dialogs | system dialog | XDG portal or zenity | XDG portal or zenity |
+To build from source without native libraries, pass `-P '!natives-linux-x64'` (or `'!natives-windows-x64'`).

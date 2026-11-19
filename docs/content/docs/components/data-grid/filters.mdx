@@ -1,9 +1,11 @@
 ---
 title: Filters
-description: A filter in each header cell, a bar of removable filters, and the app applying them.
+description: Per-column filter popovers and a removable filter badge bar for DataGrid.
 ---
 
-`options().filters(filters, onFilter)` puts a funnel in each header cell that opens a popover to filter by that column: text that contains, starts with, equals or matches; a range or a value for numbers, dates and times; the values to keep for a boolean or a column with choices; NULL or not for any. The grid filters nothing itself: the app gets `DataGrid.Filter` records, applies them (in SQL, or with `Filter.matches`) and gives them back.
+`options().filters(filters, onFilter)` adds a filter icon to each column header that opens a popover matched to the column type (text contains/starts with/equals/regex, numeric/date ranges, boolean/choice checkboxes, and `IS NULL` / `NOT NULL`).
+
+`DataGrid` does not filter data itself: it passes updated `DataGrid.Filter` records to `onFilter` so your app can filter in SQL or in memory with `filter.matches(...)`.
 
 Javadoc: [`DataGrid.Filter`](/api/com/rethinkj/ui/kit/DataGrid.Filter.html).
 
@@ -14,27 +16,27 @@ Javadoc: [`DataGrid.Filter`](/api/com/rethinkj/ui/kit/DataGrid.Filter.html).
 ```java snippet="grid-filter"
 ```
 
-`state.filters` is a list of `DataGrid.Filter`s in the app's state; `value(row, column)` and `COUNT` stand for the app's data.
+Store `List<DataGrid.Filter>` in your app state.
 
-`DataGrid.filterBar(columns, filters, onFilter)` is a row of removable badges with Clear all, to put above the grid; it returns null while there are no filters.
+Call `DataGrid.filterBar(columns, filters, onFilter)` to render a row of removable filter badges with a **Clear all** button above the grid (returns `null` when no filters are active).
 
 <Shot src="kit/filter-{theme}-set" alt="A grid with filters set: funnels in the accent and a bar of badges above" />
 
-## Filter
+## `Filter` API
 
-| | |
+| Method | Description |
 | --- | --- |
-| `Filter.of(column, Kind, value)` | `CONTAINS`, `STARTS_WITH`, `EQUALS`, `MATCHES` (a regular expression), all ignoring case; `IS_NULL` and `NOT_NULL` without a value |
-| `Filter.between(column, from, to)` | A range, either end empty for none |
-| `Filter.oneOf(column, values)` | The values to keep |
-| `filter.matches(cell)` | Whether a cell's text passes, for apps that filter their own rows |
-| `filter.describe(title)` | The filter in words, as the badge shows it |
+| `Filter.of(column, Kind, value)` | `CONTAINS`, `STARTS_WITH`, `EQUALS`, `MATCHES` (case-insensitive regex), `IS_NULL`, `NOT_NULL` |
+| `Filter.between(column, from, to)` | Range filter (leave either end empty for open-ended bounds) |
+| `Filter.oneOf(column, values)` | Keep rows matching any listed value |
+| `filter.matches(cell)` | Returns `true` if a cell's text matches (for in-memory filtering) |
+| `filter.describe(title)` | Human-readable summary used on filter badges |
 
-`options().filterable(column -> …)` limits the funnels to some columns. Alt+Arrow Down opens the filter of the cursor's column.
+Use `options().filterable(column -> …)` to enable filters only on specific columns. Press **Alt+ArrowDown** to open the filter popover for the active column.
 
 ## In a tree dump
 
-Each funnel is `role=button` with `label="Filter <title>"`, and with a filter set its `value` says the filter in words:
+Each header filter button is `role=button` `label="Filter <title>"`, with `value` describing the active filter:
 
 ```text file="examples/src/test/resources/golden/docs/grid-filter/view.tree.txt" start="#filter-1" count="1"
 ```

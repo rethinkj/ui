@@ -1,9 +1,9 @@
 ---
 title: Label
-description: "Text in one of the theme's styles: normal, muted, small, monospaced, strong, a heading or a title."
+description: "Themed text styles: normal, muted, small, monospace, strong, headings, and page titles."
 ---
 
-`Label.label` is a text element in one of the theme's type styles and text colors. Use it for every piece of text the kit does not draw itself. For text of your own font and size, use the core's `El.text` ([Text and fonts](/docs/concepts/text)).
+`Label.label` creates a text element using one of the active theme's typography styles and colors. Use it for all standard UI text. For custom fonts or sizes, use `El.text` ([Text and fonts](/docs/concepts/text)).
 
 Javadoc: [`Label`](/api/com/rethinkj/ui/kit/Label.html).
 
@@ -14,22 +14,22 @@ Javadoc: [`Label`](/api/com/rethinkj/ui/kit/Label.html).
 ```java snippet="label"
 ```
 
-| Variant | |
+| Variant | Use for |
 | --- | --- |
-| `NORMAL` | The text of the interface (the default) |
-| `MUTED` | Secondary text: hints, captions, values beside their names |
-| `MONO` | Code, identifiers and values that line up, in JetBrains Mono |
-| `HEADING` | The title of a card |
-| `SECTION` | The heading of a section of a page, between a page's title and a card's |
-| `TITLE` | The title of a page, above its sections |
-| `STRONG` | A title inside a section, such as a popover's |
-| `SMALL` | Secondary text beside what it is about, muted and 12 px: a status bar's details, a completion's kind, a find bar's count |
+| `NORMAL` | Standard UI text (default) |
+| `MUTED` | Hints, captions, secondary values |
+| `MONO` | Code, SQL identifiers, aligned numbers (JetBrains Mono) |
+| `HEADING` | Card headings |
+| `SECTION` | Section headings on a page |
+| `TITLE` | Page titles |
+| `STRONG` | Emphasized titles (e.g., popover headings) |
+| `SMALL` | Compact 12 px muted text (status bar details, match counts) |
 
-The result is a text element: chain `.wrapText()` for text that wraps, `.ellipsis()` for text that is cut off.
+Chain `.wrapText()` for multi-line wrapping or `.ellipsis()` for truncation.
 
 ## In a tree dump
 
-A `text` line with the string:
+Appears as a `text` line:
 
 ```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="\"Orders\"" count="3"
 ```

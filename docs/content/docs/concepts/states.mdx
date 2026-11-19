@@ -1,9 +1,11 @@
 ---
 title: States and roles
-description: Roles, labels and states say in words what an element is and what the app's state is, for the tree dump, scripts and assistive tools.
+description: Set semantic roles, labels, and WAI-ARIA states on elements for tree dumps, test selectors, and accessibility.
 ---
 
-An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `treeitem`), its **label** what it is called, and its **states** what condition it is in: `checked`, `selected`, `expanded`, `disabled` and more, named as in WAI-ARIA. They do not change how the element looks or takes input. A [tree dump](/docs/testing/tree-dump) shows them and [selectors](/docs/testing/selectors) match them, so a script presses `role=switch label="Lamp"` and checks `checked` without reading colors.
+Every element can carry semantic metadata: a **role** (what it is, such as `button`, `switch`, `textbox`, `grid`, `treeitem`), a **label** (its name), and **states** (such as `checked`, `selected`, `expanded`, `disabled`).
+
+States follow WAI-ARIA naming. They do not change styling or input handling by themselves — they describe the UI in [tree dumps](/docs/testing/tree-dump) so [selectors](/docs/testing/selectors) can target elements like `role=switch label="Lamp"` and verify `checked` without inspecting colors.
 
 ```java snippet="states"
 ```
@@ -11,33 +13,33 @@ An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `t
 ```text file="examples/src/test/resources/golden/docs/states/view.tree.txt" start="#row-3" count="1"
 ```
 
-## The calls
+## Methods on `El`
 
-All are methods of [`El`](/api/com/rethinkj/ui/El.html).
+All methods are on [`El`](/api/com/rethinkj/ui/El.html):
 
-| Call | In the tree |
+| Method | Tree dump output |
 | --- | --- |
 | `role(name)`, `label(text)` | `role=…`, `label="…"` |
 | `disabled(boolean)` | `disabled` |
 | `invalid(boolean)` | `invalid` |
 | `busy(boolean)` | `busy` |
 | `selected(boolean)` | `selected` |
-| `current(boolean)` | `current`: the cursor among the selected |
-| `grabbed(boolean)` | `grabbed`: being dragged |
-| `modified(boolean)` | `modified`: changes not saved (not a WAI-ARIA state) |
+| `current(boolean)` | `current` (active cursor row/cell or highlighted menu item) |
+| `grabbed(boolean)` | `grabbed` (currently being dragged) |
+| `modified(boolean)` | `modified` (has unsaved changes) |
 | `checked(boolean)`, `checkedMixed()` | `checked`, `checked=false`, `checked=mixed` |
 | `expanded(boolean)` | `expanded`, `expanded=false` |
-| `level(n)` | `level=<n>` |
-| `position(n, size)` | `pos=<n>/<size>` |
+| `level(n)` | `level=<n>` (1-based tree depth) |
+| `position(n, size)` | `pos=<n>/<size>` (1-based position and total count) |
 | `sortAscending()`, `sortDescending()` | `sort=ascending`, `sort=descending` |
 | `value(text)` | `value="…"` |
-| `errorMessage(text)` | `error="…"`, after the states |
-| `warningMessage(text)` | `warning="…"`, after the error: a value to think twice about, with or without an error |
+| `errorMessage(text)` | `error="…"` (shown after states) |
+| `warningMessage(text)` | `warning="…"` (shown after error, for non-blocking warnings) |
 
-A text field sets `disabled`, `readonly`, `password` and `revealed` (a password shown in clear text; not a WAI-ARIA state) itself.
+Text fields automatically set `disabled`, `readonly`, `password`, and `revealed` based on their configuration.
 
-## Rules
+## Guidelines for custom components
 
-- **Every state shown by color should also be a state.** If a tint shows a row is selected, also set `selected(true)`. The kit's components do; do the same in your own.
-- **Label what has no text.** An icon button needs a label on the element that takes the press.
-- **Mark the cursor.** A component with a cursor marks it `current` (or `selected` where only one item can be selected): the Menu key opens the context menu there.
+- **Mirror visual states semantically.** If a background color indicates selection, also call `selected(true)`. All kit components follow this rule.
+- **Label icon-only controls.** Give every icon button a clear `.label(...)` on the clickable element.
+- **Mark the active item.** Set `current(true)` (or `selected(true)` for single-select lists) so the **Menu** key opens context menus on the right item.

@@ -1,49 +1,49 @@
 ---
 title: The tree dump
-description: What each line of a .tree.txt says, every state, and how overlays, lists and text fields appear.
+description: How to read .tree.txt files, including element states, overlays, virtual lists, and text fields.
 ---
 
-Every `snap` writes `<name>.tree.txt` beside the image: one line per element, children indented by two spaces. It describes the image in text, so a test or an agent can check a view without reading pixels, and scripts find elements by the same words.
+Every `snap` command saves `<name>.tree.txt` next to the PNG screenshot. Each line represents one element, with children indented by two spaces. Tree dumps let tests and AI agents inspect UI state in plain text using the same roles, labels, and states that script selectors match.
 
-## A line
+## Reading a line
 
 ```text file="examples/src/test/resources/golden/docs/menu/open.tree.txt" start="#item-1" count="1"
 ```
 
-In this order:
+Fields appear in this order:
 
-1. `el` for a box, `text` for a text element, `image` for an image.
-2. `#key` if the element has a key.
-3. `role=` and `label="…"` if set. The kit's components set both.
-4. For text, the string in quotes. `\n` is a line feed, `\t` a tab, `\u{E305}` a character of a private use area such as an icon. A string longer than 200 characters shows its first 100 and last 40 and its length.
-5. `window=<part>` for a part of a self-drawn window frame (`El.windowPart`): `drag`, `minimize`, `maximize`, `close`, `control` or `content`.
-6. The rectangle in window coordinates as shown, `x,y widthxheight`, moved by the scroll offsets above it.
-7. The states that are set, always in the same order (below) with `value="<text>"` last, then `error="<message>"` for an invalid value (`El.errorMessage`) and `warning="<message>"` for a valid one worth a second thought (`El.warningMessage`).
-8. Extras of scroll areas, lists and multi-line text fields (below).
-9. `hovered` on the element a press would go to, `focused` on the element with the keyboard focus followed by a text field's caret, anchor and composition (below), and `exiting` on an element fading out after it left the tree.
+1. **Type:** `el` (container), `text`, or `image`.
+2. **Key:** `#key` if `.key(...)` was set.
+3. **Role and label:** `role=...` and `label="..."` if set (kit components set both).
+4. **Text content:** Quoted string for `text` elements (`\n`, `\t`, and private-use icon code points like `\u{E305}`). Strings over 200 characters show the first 100 and last 40 characters plus total length.
+5. **Window chrome:** `window=<part>` for custom title bar parts (`drag`, `minimize`, `maximize`, `close`, `control`, or `content`).
+6. **Bounds:** `x,y widthxheight` in window coordinates (accounting for parent scroll offsets).
+7. **States:** Active states in fixed order (table below), followed by `value="<text>"`, `error="<message>"` (`El.errorMessage`), and `warning="<message>"` (`El.warningMessage`).
+8. **Extra details:** Scroll offsets, virtual row ranges, or text editor line counts (see below).
+9. **Interaction flags:** `hovered` (under mouse), `focused` (keyboard focus, plus cursor/selection for text fields), and `exiting` (fading out after removal).
 
 ## States
 
-States describe the element's condition, named as in WAI-ARIA. They do not change how it looks or takes input. The view sets them (see [States and roles](/docs/concepts/states)); the kit's components set them for you.
+States follow WAI-ARIA naming. They are semantic metadata — setting a state does not change styling or input handling by itself (kit components set them automatically; see [States and roles](/docs/concepts/states)).
 
-| State | Meaning | Set with |
+| State | Meaning | How to set |
 | --- | --- | --- |
-| `disabled` | Marked as taking no input. The call only marks; a component must also leave out its handlers and `focusable()`, as the kit's do for a null handler | `disabled(true)`, or a text field with `editable(null)`, which really takes no input |
-| `readonly` | A text field that selects and copies but takes no edits | `readOnly()` |
-| `password` | A masked field; the string shows as `•` | `masked()` |
-| `revealed` | A masked field that shows its string on screen; the dump still shows the mask (not a WAI-ARIA state) | `revealed(true)`, or the kit's `revealable` while it shows |
-| `invalid` | A value that is not accepted | `invalid(true)` |
-| `busy` | An action runs. The call only marks; the component decides what input it takes meanwhile (the kit's `Button` takes no press) | `busy(true)` |
-| `selected` | Selected among others | `selected(true)` |
-| `current` | The cursor's cell or row, the highlighted menu item | `current(true)` |
-| `grabbed` | Being dragged | `grabbed(true)` |
-| `modified` | Has changes that are not saved, as a tab of an edited document (not a WAI-ARIA state) | `modified(true)` |
-| `checked`, `checked=false`, `checked=mixed` | A switch, checkbox, radio or toggle button | `checked(boolean)`, `checkedMixed()` |
-| `expanded`, `expanded=false` | Something opens here; absent where nothing does | `expanded(boolean)` |
-| `level=<n>` | Depth in a tree, from 1 | `level(n)` |
-| `pos=<n>/<size>` | Position in its set, from 1, and the set's size | `position(n, size)` |
-| `sort=ascending`, `sort=descending` | A sorted column | `sortAscending()`, `sortDescending()` |
-| `value="<text>"` | A value, such as a slider's or a changed row's | `value(text)` |
+| `disabled` | Control is disabled | `disabled(true)` (or `editable(null)` on text fields) |
+| `readonly` | Text field can be selected and copied, but not edited | `readOnly()` |
+| `password` | Masked text field (tree always shows `•`) | `masked()` |
+| `revealed` | Masked field currently showing plain text on screen (tree still masks it) | `revealed(true)` |
+| `invalid` | Input failed validation | `invalid(true)` |
+| `busy` | Action is currently running | `busy(true)` |
+| `selected` | Item is selected | `selected(true)` |
+| `current` | Active cursor cell/row or highlighted menu item | `current(true)` |
+| `grabbed` | Element is currently being dragged | `grabbed(true)` |
+| `modified` | Has unsaved changes (for example, an edited document tab) | `modified(true)` |
+| `checked`, `checked=false`, `checked=mixed` | Switch, checkbox, radio, or toggle button state | `checked(boolean)`, `checkedMixed()` |
+| `expanded`, `expanded=false` | Expandable section, tree node, or dropdown | `expanded(boolean)` |
+| `level=<n>` | Nesting depth in a tree (1-based) | `level(n)` |
+| `pos=<n>/<size>` | 1-based position and total count in a set | `position(n, size)` |
+| `sort=ascending`, `sort=descending` | Sorted table column | `sortAscending()`, `sortDescending()` |
+| `value="<text>"` | Current value (such as a slider value or changed row status) | `value(text)` |
 
 ```java snippet="states"
 ```
@@ -53,45 +53,45 @@ States describe the element's condition, named as in WAI-ARIA. They do not chang
 
 ## Overlays
 
-Menus, tooltips and dialogs follow the tree, in drawing order, each under a line that says where it is placed and what its anchor is:
+Menus, tooltips, and dialogs appear after the main tree in drawing order, with an `overlay` header showing placement and anchor:
 
 ```text file="examples/src/test/resources/golden/docs/menu/open.tree.txt" start="overlay" count="3"
 ```
 
-An overlay placed at an edge of the window with `atWindowEdge`, such as a toast, says `edge`, the side and the alignment, and `gap <n>` when it keeps a gap:
+Window-edge overlays (such as toasts) show `edge`, side, alignment, and optional `gap`:
 
 ```text file="examples/src/test/resources/golden/docs/toast/shown.tree.txt" start="overlay" count="1"
 ```
 
-A dialog in the middle of the window over a scrim:
+A centered modal dialog over a backdrop scrim:
 
 ```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
 ```
 
-## Scroll areas and lists
+## Scroll areas and virtual lists
 
-A scrolled area adds its offset, a list of rows the built rows and the row count, scrollbars their thumbs:
+Scrollable containers include their scroll offset and scrollbar thumb positions; virtual lists also include their built row range and total row count:
 
 ```text file="examples/src/test/resources/golden/docs/rows/far.tree.txt" start="#rows" count="1"
 ```
 
-`rows 765429-765442/1000000` says that rows 765429 to 765442 of a million are built, `scroll 0,18370368` how far the list is scrolled, and `thumb-y` where the vertical bar's thumb is. Its children are those rows, in order. A list with no rows built says `rows -/<count>`.
+Here, `rows 765429-765442/1000000` shows which rows are currently built out of one million, `scroll 0,18370368` is the scroll offset, and `thumb-y` is the vertical scrollbar thumb. An empty built range appears as `rows -/<count>`.
 
 ## Text fields
 
-A focused field adds its caret as an index into its string, then the selection's other end (`anchor`) and an input method's composition:
+A focused text field shows its `caret` index, optional selection `anchor`, and active IME `composing` text:
 
 ```text
 text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"
 ```
 
-A multi-line field adds the lines in view and how many there are, then what its decorator ([`El.decorate`](/api/com/rethinkj/ui/El.html#decorate(com.rethinkj.ui.Decorator))) underlines in those lines as `underline <from>-<to>`, several separated by commas, such as an editor's error, and after the caret its line and column:
+A multi-line editor adds visible line numbers (`lines 1-3/3`), any underlined diagnostic ranges (`underline <from>-<to>` from [`El.decorate`](/api/com/rethinkj/ui/El.html#decorate(com.rethinkj.ui.Decorator))), and `(line:column)` after the caret:
 
 ```text
 text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 29 (3:9)
 ```
 
-A masked field shows one `•` per character, never the string, and says `password`; while the password is shown on screen it adds `revealed`:
+A masked password field always replaces characters with `•` and includes `password` (plus `revealed` when visible on screen):
 
 ```text file="examples/src/test/resources/golden/connection-filled.tree.txt" start="#password" count="1"
 ```

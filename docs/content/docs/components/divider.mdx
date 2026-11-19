@@ -1,9 +1,9 @@
 ---
 title: Divider
-description: A hairline across a column, with an optional label, or upright in a row.
+description: Horizontal or vertical separator line with an optional centered label.
 ---
 
-`Divider.divider` is a hairline across a column; with a label it has a muted word in the middle, such as "or". `Divider.vertical` stands upright in a row, between groups of buttons. It draws in the theme's `border().divider()`. Use dividers sparingly: cards and space separate most things.
+`Divider.divider` draws a thin horizontal line across a column (with an optional centered label such as `"or"`). `Divider.vertical` draws a vertical separator between button groups in a row.
 
 Javadoc: [`Divider`](/api/com/rethinkj/ui/kit/Divider.html).
 
@@ -16,7 +16,7 @@ Javadoc: [`Divider`](/api/com/rethinkj/ui/kit/Divider.html).
 
 ## In a tree dump
 
-`role=separator`, with its label if it has one:
+Appears as `role=separator` (with `label` if provided):
 
 ```text file="examples/src/test/resources/golden/docs/dividers/view.tree.txt" start="role=separator" count="3"
 ```

@@ -1,49 +1,47 @@
 ---
 title: Text and fonts
-description: Text elements, the default fonts Inter and JetBrains Mono, wrapping, ellipses and fallback fonts.
+description: Render text with bundled fonts (Inter and JetBrains Mono), wrapping, ellipses, custom fonts, and system fallbacks.
 ---
 
-`El.text("…")` makes a text element, sized by its text. Text is shaped with HarfBuzz (kerning, ligatures, joining scripts) and rasterized with FreeType, so it looks the same on Windows and Linux. The kit's `Label` applies the theme's text styles; use `El.text` for anything else.
+Create text elements with `El.text("…")`. Text is shaped with HarfBuzz (supporting kerning, ligatures, and complex scripts) and rendered with FreeType so it looks consistent across Windows and Linux. For standard themed typography, use the kit's [Label](/docs/components/label) component.
 
 ```java snippet="text"
 ```
 
 <Shot src="examples/docs/text/view-{theme}" alt="A heading Orders, a muted paragraph wrapped onto two lines, a long value cut short with an ellipsis, and code with ligatures" />
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `font(Font)`, `fontSize(px)`, `color(argb)` | The look; the default is [`Font.sans()`](/api/com/rethinkj/ui/text/Font.html), 14, black |
-| `wrapText()` | Break lines at the element's width; a word, path or URL wider than the whole width breaks inside |
-| `ellipsis()` | End a line that does not fit in `…`; give the element a width or `minSize(0, 0)` |
-| `maxLines(n)` | Show at most `n` lines of a wrapped text; with `ellipsis()` the last ends in `…` where the text goes on |
-| `textAlign(Style.Align.CENTER)` | Each line centered (or `END`) in its box |
-| `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
-| `textBackground(argb)` | The color behind the text when it is not the fill of the element or an ancestor, such as an image or a sibling below; glyph edges are drawn for that color |
+| `font(Font)`, `fontSize(px)`, `color(argb)` | Font, size, and color (default: [`Font.sans()`](/api/com/rethinkj/ui/text/Font.html), 14 px, black) |
+| `wrapText()` | Wraps lines to fit width; breaks long unbreakable words (like URLs or file paths) between characters |
+| `ellipsis()` | Truncates overflowing text with `…` (set a width or `minSize(0, 0)` in flex layouts) |
+| `maxLines(n)` | Limits wrapped text to `n` lines (adds `…` on the last line when combined with `ellipsis()`) |
+| `textAlign(Style.Align.CENTER)` | Horizontal line alignment (`START`, `CENTER`, `END`) |
+| `fontFeatures("+calt")` | Enables or disables OpenType features using HarfBuzz syntax |
+| `textBackground(argb)` | Hints the background color for crisp glyph blending when text sits over an image or sibling |
 
-A line feed always starts a new line. Wrapped text breaks between words; a word wider than the whole box, such as a file path or a URL, starts its own line and breaks between characters, as with CSS's `overflow-wrap: break-word`. In a row, layout still gives a text room for its longest word; only a narrower box breaks it.
+After layout, `el.text()` returns a [`Text`](/api/com/rethinkj/ui/Text.html) object. `el.text().shortened()` tells you whether text was truncated with `…` (used by `Tooltip.whenShortened`).
 
-After layout, `el.text()` returns the element's [`Text`](/api/com/rethinkj/ui/Text.html). `shortened()` says whether a line was cut with `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` uses it). `lines()` holds a `GlyphRun` per drawn line, with its width and baseline in physical pixels.
+## Bundled and custom fonts
 
-## Fonts
-
-| Font | |
+| Font | Source |
 | --- | --- |
-| `Font.sans()`, `sansMedium()`, `sansSemibold()`, `sansBold()`, `sansItalic()`, `sansBoldItalic()` | Inter 4.1 |
-| `Font.mono()`, `monoBold()` | JetBrains Mono 2.304 |
-| `Font.icons()` | Fluent UI System Icons, for the kit's `Icon` |
-| `Font.of(bytes)`, `Font.resource(owner, name)` | Your own TrueType or OpenType font; `close()` frees it |
+| `Font.sans()`, `sansMedium()`, `sansSemibold()`, `sansBold()`, `sansItalic()`, `sansBoldItalic()` | Inter 4.1 (`rethinkj-ui-fonts`) |
+| `Font.mono()`, `monoBold()` | JetBrains Mono 2.304 (`rethinkj-ui-fonts`) |
+| `Font.icons()` | Fluent UI System Icons (`rethinkj-ui-icons`) |
+| `Font.of(bytes)`, `Font.resource(owner, name)` | Load your own TrueType or OpenType font (call `close()` to free) |
 
-The default fonts come in `rethinkj-ui-fonts`, the icons in `rethinkj-ui-icons`.
+## Fallback fonts
 
-## Characters a font lacks
+- `font.withFallback(other...)` adds fallback fonts for missing characters while keeping the primary font's line height.
+- `font.withSystemFonts()` falls back to installed OS fonts (Noto/DejaVu on Linux, Segoe UI and CJK fonts on Windows).
+- In desktop windows, `WindowLoop` enables system font fallback globally by default (disable with `loop.systemFonts(false)`). In headless scripts, it is off by default for deterministic screenshots across machines.
 
-`font.withFallback(other...)` falls back to other fonts in order, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, all text falls back to the system's fonts; under a script it does not, so images are the same on every machine. `app.systemFonts(boolean)` switches it; `WindowLoop` turns it on unless `loop.systemFonts(false)`.
+Note: Right-to-left text is shaped right-to-left, but full bidirectional reordering for mixed-direction lines is not supported yet. Color emoji render as monochrome outlines in the text color.
 
-Right-to-left text is shaped right to left, but mixed-direction lines are not reordered (no full bidirectional algorithm). Color emoji show as outlines in the text color where the font has them.
+## Platform text rendering
 
-## Text rendering
-
-`app.textRendering(TextRendering.LINUX)` or `WINDOWS` chooses how glyphs are hinted and blended; the default is the platform's. Pin one in [image tests](/docs/testing/stored-images) so they pass on both platforms.
+`app.textRendering(TextRendering.LINUX)` or `TextRendering.WINDOWS` selects glyph hinting and blending style (defaults to the current OS). Pin one in [stored image tests](/docs/testing/stored-images) so screenshots match on both platforms.
 
 ## In a tree dump
 

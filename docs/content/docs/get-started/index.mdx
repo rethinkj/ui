@@ -1,13 +1,23 @@
 ---
 title: Installation
-description: The Maven or Gradle setup for rethinkj UI, and how to run an app in a window and under a script.
+description: Set up rethinkj UI with Maven or Gradle and run your first app.
 ---
 
-rethinkj UI is a library for desktop apps in Java 25 on Windows 11 or later and Linux, both on x64. You need a JDK 25 and Maven 3.9 or later or Gradle 9.1 or later. There is no release yet: every push to `main` publishes SNAPSHOTs to Maven Central's snapshot repository. A SNAPSHOT changes with each push, the API with it, and Central removes SNAPSHOTs after 90 days.
+rethinkj UI builds desktop apps in Java 25 for Windows 11+ and Linux (x64).
 
-## Add the dependencies
+**Requirements:**
+- JDK 25
+- Maven 3.9+ or Gradle 9.1+
 
-You need the snapshot repository, the kit (it brings core with it), the fonts, the icons and the native libraries of your platform at run time, and `java` started with `--enable-native-access=ALL-UNNAMED`.
+> **Early preview:** There is no stable release yet. Snapshots (`0.1.0-SNAPSHOT`) are published to Maven Central Snapshots on every update to `main`. The API may change, and Maven Central removes old snapshots after 90 days.
+
+## 1. Add the dependencies
+
+To use rethinkj UI in your project, add:
+1. The Maven Central Snapshots repository
+2. `rethinkj-ui-kit` (which automatically includes `rethinkj-ui-core`)
+3. Runtime dependencies for the default fonts, icons, and native libraries for your operating system
+4. The JVM flag `--enable-native-access=ALL-UNNAMED`
 
 <Tabs items={['Maven', 'Gradle']}>
 <Tab value="Maven">
@@ -42,7 +52,7 @@ You need the snapshot repository, the kit (it brings core with it), the fonts, t
   </dependency>
   <dependency>
     <groupId>com.rethinkj.ui</groupId>
-    <!-- or rethinkj-ui-natives-windows-x64 -->
+    <!-- Use rethinkj-ui-natives-windows-x64 on Windows -->
     <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <scope>runtime</scope>
@@ -50,17 +60,17 @@ You need the snapshot repository, the kit (it brings core with it), the fonts, t
 </dependencies>
 ```
 
-The [whole pom](#a-whole-project) below picks the natives by the OS that builds and runs the app with `exec:exec` and the JVM flag:
+Use the [complete `pom.xml`](#a-whole-project) below to automatically pick the right native library for your OS and run the app with `exec:exec`:
 
 ```sh
-mvn compile exec:exec                                                  # in a window
-mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"  # under a script
+mvn compile exec:exec                                                     # open in a window
+mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights" # run headless with a script
 ```
 
 </Tab>
 <Tab value="Gradle">
 
-With the Kotlin DSL:
+Using Gradle Kotlin DSL:
 
 ```kotlin title="settings.gradle.kts"
 rootProject.name = "lights"
@@ -101,16 +111,18 @@ application {
 ```
 
 ```sh
-gradle run                                                # in a window
-gradle run --args="--script lights.txt --out build/lights"  # under a script
+gradle run                                                  # open in a window
+gradle run --args="--script lights.txt --out build/lights"  # run headless with a script
 ```
 
-Run `gradle wrapper` once to add `./gradlew` to the project, so that others build it without installing Gradle.
+Tip: Run `gradle wrapper` once to add `./gradlew` so others can build the project without installing Gradle.
 
 </Tab>
 </Tabs>
 
 ## A whole project
+
+Create a folder with this structure:
 
 ```text
 lights/
@@ -119,7 +131,7 @@ lights/
 └── src/main/java/com/example/Lights.java
 ```
 
-The whole pom, to copy:
+Complete `pom.xml` ready to copy:
 
 ```xml title="pom.xml"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -216,56 +228,72 @@ The whole pom, to copy:
 </project>
 ```
 
-- The kit brings core with it. Fonts, icons and the native libraries hold no classes, so they are runtime dependencies.
-- The profiles pick the native libraries of the machine that builds. An app built once for both platforms lists both natives JARs without the profiles; each loads only on its own platform.
-- `exec:exec` starts the `java` on the `PATH`, which must be a JDK 25, with native access enabled and the runtime class path. `-Dargs` passes arguments to `main`, and `-Dmain.class` runs another class.
+- **Profiles:** The Maven profiles automatically select the native library for your operating system. If you want one cross-platform build that runs on both Windows and Linux, include both native JARs directly as dependencies without profiles — each JAR only loads on its own OS.
+- **Running:** `exec:exec` runs `java` from your `PATH` (JDK 25) with native access enabled. Pass program arguments with `-Dargs="..."` and change the main class with `-Dmain.class=...`.
 
-## The app
+## 2. Create the app
 
-The main class goes under `src/main/java`. This is the app of [The first app](/docs/get-started/first-app); its first line is your package, here `package com.example;`.
+Create `src/main/java/com/example/Lights.java` and add `package com.example;` at the top. For a line-by-line explanation, see [The first app](/docs/get-started/first-app).
 
 ```java snippet="lights-app" title="src/main/java/com/example/Lights.java"
 ```
 
-## Run it
+## 3. Run it
 
-Run it in a window with `mvn compile exec:exec` or `gradle run`. Under a script it runs without a window. This script presses the switch and snaps before and after:
+Start the app in a desktop window:
+
+```sh
+mvn compile exec:exec        # Maven
+gradle run                   # Gradle
+```
+
+Or run it headless (without opening a window) using a script. Create `lights.txt`:
 
 ```text snippet="lights-script" title="lights.txt"
 ```
+
+Then run:
 
 ```sh
 mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"
 gradle run --args="--script lights.txt --out build/lights"
 ```
 
-It writes `off.png`, `off.tree.txt`, `on.png` and `on.tree.txt` to the `--out` folder and prints their paths. The commands are the same on Windows. [Testing and agents](/docs/testing) explains scripts and trees.
+This creates `off.png`, `off.tree.txt`, `on.png`, and `on.tree.txt` in the output folder and prints their paths. The commands work the same on Windows and Linux. Learn more in [Testing and agents](/docs/testing).
 
-## The artifacts
+## Artifacts
 
-All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`. `core` and `kit` come with a sources JAR, which IDEs pick up.
+All artifacts use group ID `com.rethinkj.ui` and version `0.1.0-SNAPSHOT`.
 
-| Artifact | What it is | Needed |
+| Artifact | Purpose | Required |
 | --- | --- | --- |
-| `rethinkj-ui-core` | Elements, layout, text, input, rendering, windows, scripts | Always |
-| `rethinkj-ui-kit` | The theme and the components | For the components |
-| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts | For text with the default fonts |
-| `rethinkj-ui-icons` | Fluent UI System Icons, the icon font | For icons, the tree's marks, the grid's sort arrows |
-| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz, and on Windows the DirectX Shader Compiler | At run time, for the platform it runs on. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04. |
+| `rethinkj-ui-core` | Core elements, layout, text, input, rendering, windows, and scripts | Always |
+| `rethinkj-ui-kit` | Ready-made UI components and themes (includes `core`) | When using kit components |
+| `rethinkj-ui-fonts` | Default fonts (Inter and JetBrains Mono) | For default text rendering |
+| `rethinkj-ui-icons` | Default icon font (Fluent UI System Icons) | For icons, trees, and sort arrows |
+| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | Native libraries (SDL3, wgpu-native, FreeType, HarfBuzz, plus DXC on Windows) | At runtime (Linux requires glibc 2.38+, e.g., Ubuntu 24.04+) |
 
-## Native libraries
+## Native libraries and JVM flags
 
-Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`), which brings the fonts and icons JARs on the module path along. Without the natives module, add those you use: `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons`.
+Because rethinkj UI calls native libraries through Java's Foreign Function & Memory API, you must pass `--enable-native-access=ALL-UNNAMED` when running on the classpath.
 
-On first use, the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Two system properties change that:
+If you use the Java module path instead, pass:
+- `--enable-native-access=com.rethinkj.ui`
+- `--add-modules com.rethinkj.ui.natives.linux.x64` (or `com.rethinkj.ui.natives.windows.x64`), which also pulls in the fonts and icons modules. If you do not include a natives module, add `--add-modules com.rethinkj.ui.fonts,com.rethinkj.ui.icons` explicitly.
 
-| Property | Effect |
+On first launch, native libraries are extracted to a per-user cache folder:
+- **Windows:** `%LOCALAPPDATA%\rethinkj-ui\natives\`
+- **Linux:** `$XDG_CACHE_HOME/rethinkj-ui/natives/` (defaults to `~/.cache/rethinkj-ui/natives/`)
+
+You can override this behavior with system properties:
+
+| System property | Effect |
 | --- | --- |
-| `rethinkj.ui.natives.dir` | Load the libraries from this folder, which holds them with their `manifest.txt` as the JAR has them. Nothing is unpacked. See [Ship your app](/docs/get-started/ship). |
-| `rethinkj.ui.natives.cache` | Unpack into this folder instead of the per-user cache. |
+| `rethinkj.ui.natives.dir` | Load native libraries directly from this folder (must include `manifest.txt`). Nothing is extracted. See [Ship your app](/docs/get-started/ship). |
+| `rethinkj.ui.natives.cache` | Extract native libraries to this folder instead of the default cache. |
 
-## Next
+## Next steps
 
-- [The first app](/docs/get-started/first-app): the code, line by line.
-- [Ship your app](/docs/get-started/ship): an app image with its own Java runtime.
-- [Platforms and native libraries](/docs/reference/platforms): what to do when a library does not load.
+- [The first app](/docs/get-started/first-app) — Understand the code line by line.
+- [Ship your app](/docs/get-started/ship) — Package your app with its own Java runtime.
+- [Platforms and native libraries](/docs/reference/platforms) — Troubleshooting and platform notes.

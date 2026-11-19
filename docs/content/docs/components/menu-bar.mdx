@@ -1,9 +1,11 @@
 ---
 title: MenuBar
-description: A row of menu titles, File, Edit and View, with mnemonics, Alt and F10, and the items' shortcuts.
+description: Desktop menu bar (File, Edit, View) with Alt/F10 activation, mnemonics, and global shortcuts.
 ---
 
-`MenuBar.menuBar` is a row of titles, each opening its [Menu](/docs/components/menu) below it, as a desktop app's menu bar. It handles the pointer, Alt and F10, mnemonics such as Alt+F, and the key combinations of all items. Put it in the window's [TitleBar](/docs/components/title-bar), after the title: `TitleBar.titleBar(icon, title, List.of(menuBar), null, List.of())`. For a few actions, a [Toolbar](/docs/components/toolbar) or a dropdown is enough.
+`MenuBar.menuBar` renders a horizontal row of top-level menus (File, Edit, View, …) that open [Menu](/docs/components/menu) dropdowns below them. It supports mouse hover switching, **Alt** and **F10** keyboard navigation, mnemonics (like **Alt+F**), and all menu item keyboard shortcuts.
+
+Place it inside your window's [TitleBar](/docs/components/title-bar): `TitleBar.titleBar(icon, title, List.of(menuBar), null, List.of())`. For a small set of actions, use a [Toolbar](/docs/components/toolbar) or dropdown button instead.
 
 Javadoc: [`MenuBar`](/api/com/rethinkj/ui/kit/MenuBar.html), [`MenuBar.State`](/api/com/rethinkj/ui/kit/MenuBar.State.html).
 
@@ -14,25 +16,22 @@ Javadoc: [`MenuBar`](/api/com/rethinkj/ui/kit/MenuBar.html), [`MenuBar.State`](/
 ```java snippet="menu-bar"
 ```
 
-- Each menu is a `Menu.submenu("&File", items)`. The `&` marks the mnemonic, the letter that opens the menu with Alt; `&&` is an ampersand.
-- `state.bar` is a `MenuBar.State` in the app's state.
-- `MenuBar.keys(menuBarState, menus)` on the root gives the bar Alt, F10 and the mnemonics, and runs the items' key combinations. `MenuBar.keysUp` handles Alt pressed and released alone. Combine them with other handlers with `Predicate.or`.
+- Define each top-level menu with `Menu.submenu("&File", items)`. The `&` marks the Alt mnemonic letter (`&&` displays a literal `&`).
+- Store a `MenuBar.State` in your app state.
+- Attach `MenuBar.keys(menuBarState, menus)` and `MenuBar.keysUp(...)` on your root element to enable Alt/F10 activation, mnemonics, and item shortcuts (combine with other key handlers using `Predicate.or`).
 
-## What the user can do
+## Interaction
 
-- A press on a title opens its menu, and a press on the open title closes it. While a menu is open, a press on another title, or the pointer moving onto it, switches to that menu.
-- Alt pressed and released alone, or F10, gives the bar the keys with the first enabled title highlighted. Left and Right move, Home and End go to the first and the last enabled title; Down, Up, Enter and Space open; a letter opens the menu of its mnemonic. Escape while no menu is open, Tab, Alt or F10 again, or a press outside leaves the bar.
-- Alt with a mnemonic's letter opens that menu from anywhere.
-- In a menu, Right on an item without a submenu goes to the next menu, and Left to the previous one. Escape steps back one level, then gives the focus back.
-- Mnemonics are underlined while Alt is held or the bar has the keys.
+- Click a title to open or close its menu; while open, hovering another title switches directly to that menu.
+- Press and release **Alt** (or press **F10**) to focus the menu bar, navigate with **Left/Right/Home/End**, open with **Enter/Space/ArrowDown**, or press a mnemonic letter.
+- **Alt+\<letter\>** opens that menu from anywhere in the window.
+- Inside an open menu, **Left/Right** moves between top-level menus, and **Escape** closes one level at a time and restores focus to your previous element (such as an editor).
 
-The titles leave the focus where it is, so the menu gives it back to the editor. An item's key combination of Alt and a title's mnemonic throws, as two items with one combination do.
-
-On Windows, Alt, F10 and Alt+Space reach the app; Alt+Space that no handler takes opens the window menu. Linux desktops take some combinations first, usually those with Super, Alt+Tab, Alt+F4 and Ctrl+Alt+F1 to F12.
+Note: Duplicate shortcuts or a shortcut colliding with an Alt mnemonic throw an exception when building the view.
 
 ## In a tree dump
 
-The bar is `role=menubar`, its titles `role=menuitem` with the key `title-<index>` and `expanded` or `expanded=false`. The open menu is an overlay on its title:
+`role=menubar` containing `role=menuitem` titles (`#title-<index>`, `expanded` or `expanded=false`). The open dropdown is an overlay on its title:
 
 ```text file="examples/src/test/resources/golden/docs/menu-bar/open.tree.txt" start="#menubar" count="4"
 ```

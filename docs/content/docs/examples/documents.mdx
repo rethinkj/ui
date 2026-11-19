@@ -1,15 +1,21 @@
 ---
 title: Documents
-description: Five documents in tabs that move and tear off into windows, with file dialogs, drops and find.
+description: Multi-window document editor with tear-off tabs, native file dialogs, file drag-and-drop, and find bar.
 ---
 
-Documents is five documents in tabs that move and tear off into windows of their own ([TabGroups](/docs/components/tab-groups)). It opens and saves files through the system's file dialogs and opens files dropped from a file manager.
+Documents opens five sample documents in tabs that can be reordered, torn off into separate windows, and docked back together. It also supports native Open/Save dialogs, drag-and-drop from your OS file manager, and an in-editor find bar.
+
+**Demonstrates:** [TabGroups](/docs/components/tab-groups), [Several windows](/docs/concepts/windows), [File dialogs and drops](/docs/concepts/platform), and [Find](/docs/components/find).
 
 <Shot src="examples/documents-docking" light="examples/documents-light-docking" alt="A tab dragged over a bar, with the marker where it will dock" />
 
 <Shot src="examples/documents-torn" alt="The tab Query torn off the bar, its window held under the pointer" />
 
-<Shot src="examples/query-documents-torn" alt="The window of the torn tab Query: a title bar, a bar with that one tab and its SQL below" caption="The torn tab's own window." />
+<Shot src="examples/query-documents-torn" alt="The window of the torn tab Query: a title bar, a bar with that one tab and its SQL below" caption="The torn-off tab in its own window." />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=Documents
@@ -17,42 +23,42 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Documents
 
 ## What to try
 
-- Drag a tab along the bar, out of the window, and over the bar of another window.
-- File › Open… and File › Save As… (Control+O, Control+Shift+S).
-- Drag files from a file manager onto a window: each opens in a new tab.
-- Control+F in a document opens its find bar.
+- Drag a tab along the tab bar, pull it outside the window to create a new window, and drag it onto another window's tab bar to dock it.
+- Use **File › Open…** (**Ctrl+O**) and **File › Save As…** (**Ctrl+Shift+S**).
+- Drag files from your file manager onto the window to open each file in a new tab.
+- Press **Ctrl+F** inside any document to open the find bar.
 
 ## How it works
 
-### One TabGroups for every window
+### Shared TabGroups across windows
 
-The documents are the tabs of one `TabGroups`. Its second argument is the opener, which it calls for the window of a new group: a tab torn off, or moved to a new window from its menu.
+All windows share one `TabGroups` instance. Its second argument is a callback that opens a new window whenever a tab is torn off or moved to a new window:
 
 ```java snippet="documents-groups"
 ```
 
-The opener opens a window with a new `App` over the same state, whose view shows that group ([Several windows](/docs/concepts/windows)):
+The callback creates a new window with its own `App` sharing the same state ([Several windows](/docs/concepts/windows)):
 
 ```java snippet="documents-window"
 ```
 
-Every window's view asks the groups for its tabs: how a document shows in the bar, and its content, or an empty state for a group without tabs.
+Each window renders its group's tabs, content, or an empty state when no tabs remain:
 
 ```java snippet="documents-tabs"
 ```
 
-### File dialogs
+### Native file dialogs
 
-File › Open… shows the system's file dialog through `App.fileDialog`; its handler gets the chosen paths, which `read` reads off the app's thread ([Platform](/docs/concepts/platform)).
+**File › Open…** opens the OS file picker via `App.fileDialog`. Its callback receives the selected paths and reads them on a background thread ([Platform](/docs/concepts/platform)):
 
 ```java snippet="documents-open"
 ```
 
-### Drops from other applications
+### Drag-and-drop from other apps
 
-Each window's root takes drops with `onFileDrop`. While a drag is over the window, its tabs' card shows that it takes it; a drop of files reads them into new tabs, and a drop of text becomes a tab of its own. Text dropped onto a document's editor is pasted into that document instead and never reaches the root.
+The root element accepts external drops with `onFileDrop`. While dragging over the window, the tab card highlights as a drop target. Dropped files open as new tabs, and dropped text opens in a new tab unless dropped directly into an editor (which pastes it there instead).
 
 ```java snippet="documents-drop"
 ```
 
-The whole app is in [`Documents.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Documents.java).
+Full source: [`Documents.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Documents.java).

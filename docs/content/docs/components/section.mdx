@@ -1,9 +1,9 @@
 ---
 title: Section and page
-description: A scrolling page with a title and sections, each with a heading, a description and content.
+description: Scrollable page layout with a top-level title and structured sections.
 ---
 
-`Section.page` is a scroll area with a title over sections; `Section.section` a heading, a description and content. Together with [Groups](/docs/components/group) and [Cards](/docs/components/card) they build a settings page, a detail panel or a dashboard.
+`Section.page` creates a scrollable page with a title and padded layout, and `Section.section` groups content under a heading and optional description. Combine them with [Group](/docs/components/group) and [Card](/docs/components/card) to build settings pages, detail panels, and dashboards.
 
 Javadoc: [`Section`](/api/com/rethinkj/ui/kit/Section.html).
 
@@ -14,16 +14,16 @@ Javadoc: [`Section`](/api/com/rethinkj/ui/kit/Section.html).
 ```java snippet="section"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `page(title, sections...)` | A scroll area with the title as a heading of level 1 and generous padding |
-| `section(title, description, content...)` | A heading of level 2, a description and the content below it |
+| `page(title, sections...)` | Scrollable page with a level-1 title and generous padding |
+| `section(title, description, content...)` | Section with a level-2 heading, optional description, and content |
 
-Null content and sections are left out. Headings longer than the page is wide wrap.
+`null` sections and content are ignored automatically.
 
 ## In a tree dump
 
-Headings are `role=heading` with `level`:
+Page titles and section headings appear as `role=heading` with `level=1` and `level=2`:
 
 ```text file="examples/src/test/resources/golden/docs/sections/view.tree.txt" start="\"Editor\"" count="4"
 ```

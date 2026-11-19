@@ -1,35 +1,33 @@
 ---
 title: Images
-description: PNG and JPEG images made for a scale, decoded off the app's thread and shown sharp at any size.
+description: Decode and display PNG and JPEG images with HiDPI scaling and GPU memory management.
 ---
 
-[`Image.decode(bytes)`](/api/com/rethinkj/ui/Image.html) reads a PNG or JPEG file, `Image.of(pixels)` takes pixels you computed, and `El.image(image)` shows the image. It is drawn pixel for pixel where possible and filtered smoothly when scaled. Decoding needs no `java.desktop`. The kit's [Image](/docs/components/image) adds rounded corners and a placeholder.
+Use [`Image.decode(bytes)`](/api/com/rethinkj/ui/Image.html) to decode PNG or JPEG bytes, `Image.of(pixels)` for generated pixel buffers, and `El.image(image)` to display an image in your view. Decoding works without `java.desktop`. For rounded corners and loading placeholders, see the kit's [Image](/docs/components/image) component.
 
 ```java snippet="images"
 ```
 
-The handlers open the dialog and decode the chosen file:
-
 ```java snippet="images-handlers"
 ```
 
-## Scale
+## HiDPI scale
 
-An image is made for a scale, the physical pixels per logical pixel: 200 by 100 pixels made for scale 2 are 100 by 50 logical pixels, drawn pixel for pixel in a window at scale 2. `Image.decode(bytes, scale)` and `Image.of(pixels, scale)` take it; the default is 1.
+Each `Image` has a scale factor (physical pixels per logical pixel, default `1`). For example, a 200×100 pixel image created with `Image.decode(bytes, 2)` or `Image.of(pixels, 2)` displays at 100×50 logical pixels and renders crisp on 2× displays.
 
-## Decode off the app's thread
+## Decode on a background thread
 
-Decoding a large image takes noticeable time, so decode with `app.background` and keep the `Image` in the state. Do not create it in the view: the renderer knows an image by its identity and uploads it to the GPU once.
+Decoding large images can take noticeable time. Always decode inside `app.background` and store the resulting `Image` in your state — never decode inside your view function. The renderer caches uploaded GPU textures by `Image` instance identity.
 
-PNG of every color type and bit depth and baseline and progressive JPEG (with EXIF orientation) are supported; interlaced PNG and CMYK JPEG fail with a message.
+**Supported formats:** All PNG color types and bit depths (non-interlaced), plus baseline and progressive JPEG (with automatic EXIF orientation). Interlaced PNG and CMYK JPEG throw an error.
 
-## Size and fit
+## Sizing and fit
 
-An image element is as large as the image in logical pixels, but no wider than the space available, keeping its aspect ratio. A width or height scales it; with both, `fit(Image.Fit.FILL)`, `CONTAIN` or `COVER` says how it fills the box, as CSS's `object-fit` does. Rounded corners, borders, shadows, opacity and motion work as on any element.
+By default, an image renders at its logical size, shrinking proportionally if the container is narrower. Setting one dimension scales proportionally. Setting both width and height uses `.fit(...)` (`Image.Fit.FILL`, `CONTAIN`, or `COVER`, just like CSS `object-fit`). Corner radius, borders, shadows, opacity, and motion work on images just like any other element.
 
-## Memory
+## GPU memory limit
 
-`app.imageMemory(bytes)` (default 256 MB) limits the GPU memory for images. Beyond it, the images drawn least recently are released and uploaded again when shown. Images in the current frame are never released, so a frame of many large images may use more.
+`app.imageMemory(bytes)` sets the GPU texture cache limit (default: 256 MB). When full, least-recently-used images are evicted and re-uploaded if displayed again. Images visible in the current frame are never evicted.
 
 ## In a tree dump
 

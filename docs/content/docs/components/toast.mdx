@@ -1,9 +1,9 @@
 ---
 title: Toast
-description: A short message at the bottom of the window that goes by itself, with an optional action such as Undo.
+description: Temporary bottom-edge notification banner with an optional action button like Undo.
 ---
 
-`Toast.toast` shows a message at the bottom of the window, in the middle, with an optional action button. It closes itself after a few seconds of the app's clock. Use it to confirm what just happened and to offer Undo. It leaves the keyboard focus where it is, so typing goes on. For something the user must answer, use a [Dialog](/docs/components/dialog).
+`Toast.toast` displays a brief notification banner at the bottom center of the window that dismisses itself automatically without stealing keyboard focus. Ideal for confirmations with an optional **Undo** button. For messages requiring a decision, use [Dialog](/docs/components/dialog).
 
 Javadoc: [`Toast`](/api/com/rethinkj/ui/kit/Toast.html).
 
@@ -14,22 +14,18 @@ Javadoc: [`Toast`](/api/com/rethinkj/ui/kit/Toast.html).
 ```java snippet="toast"
 ```
 
-`state.dropped` is the name of the dropped table in the app's state, null while there is no toast. The root attaches the toast while there is one, and `onClose` clears it.
+Attach the toast as an overlay on your root element while your state holds a message, and clear it in `onClose`.
 
-| Parameter | |
+| Parameter | Description |
 | --- | --- |
-| `message` | The text, and the toast's label |
-| `action`, `onAction` | The button's text and handler, or null for none |
-| `onClose` | Called when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape while the focus is in the toast |
-| `above` | In the form with this parameter, the toast lies that much higher, clear of a status bar (`StatusBar.height()`) or a card's footer (`Card.footerHeight()`) |
-
-## Keyboard
-
-A press elsewhere leaves the toast. Tab reaches its action last; when the toast closes from there, the focus goes back to where it was.
+| `message` | Notification text and accessibility label |
+| `action`, `onAction` | Optional action button text and handler (`null` for none) |
+| `onClose` | Called when the toast auto-dismisses (default 5 seconds), after its action runs, or on Escape while focused |
+| `above` | Optional bottom offset (for example, `StatusBar.height()` or `Card.footerHeight()`) |
 
 ## In a tree dump
 
-An overlay at the window's bottom edge, `role=status` with the message as label:
+Bottom-edge overlay with `role=status` and the message as `label`:
 
 ```text file="examples/src/test/resources/golden/docs/toast/shown.tree.txt" start="overlay"
 ```

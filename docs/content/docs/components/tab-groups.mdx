@@ -1,26 +1,28 @@
 ---
 title: TabGroups
-description: Tabs in several windows that move, tear off into a window of their own and dock again.
+description: Multi-window tab manager supporting drag reordering, tearing tabs off into new windows, and docking them back.
 ---
 
-`TabGroups` keeps an app's tabs in groups, one per window, as browsers and editors do: the user moves tabs along a bar, drags one out into a new window that follows the pointer, and drops it on a bar of any window. The app keeps one `TabGroups` in its state and builds each window's tabs with `groups.tabs(...)`; everything the user does goes through it. For tabs in one window, plain [Tabs](/docs/components/tabs) are enough.
+`TabGroups` manages tabs across multiple windows, just like a web browser or IDE: users can reorder tabs, drag a tab out into a new floating window, and drop it onto any other window's tab bar. Store one `TabGroups` in your shared app state and render each window with `groups.tabs(...)`.
+
+For single-window tabs without tear-off support, use [Tabs](/docs/components/tabs).
 
 Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html).
 
 <Shot src="examples/docs/tab-groups/moved-{theme}" alt="The first window, Groceries its one tab left, after Ideas moved to a window of its own" />
 
-<Shot src="examples/docs/tab-groups/ideas-moved-{theme}" alt="The window of Ideas, its one tab above its text" caption="The window that Move to new window opened." />
+<Shot src="examples/docs/tab-groups/ideas-moved-{theme}" alt="The window of Ideas, its one tab above its text" caption="Detached window opened by Move to new window." />
 
 ## Example
 
 ```java snippet="tab-groups"
 ```
 
-- The opener opens the window of a new group with an `App` of the same state, so that a change in one window shows in all. The options it gets say where the window opens; add your own (`frameless()`, an icon) and pass them on.
-- `groups.tabs(group, tab, content)` builds a window's tabs: a function from your tab to a `Tabs.Tab`, and one from your tab to its content (called with null for an empty group).
-- `groups.main()` is the group of the first window.
+- The window-opener callback opens a new window running an `App` over the same state so all windows stay synchronized. Pass the provided `Window.Options` through (adding `frameless()` or an icon if desired).
+- `groups.main()` returns the primary window's tab group.
+- `groups.tabs(group, tabToUi, tabToContent)` builds the tab bar and active content (`tabToContent` receives `null` when a group is empty).
 
-A script moves a tab to a window of its own through its menu:
+Example headless script moving a tab to a new window via its context menu:
 
 ```text snippet="tab-groups-script"
 ```
@@ -28,23 +30,21 @@ A script moves a tab to a window of its own through its menu:
 ```text file="examples/src/test/resources/golden/docs/tab-groups/ideas-moved.tree.txt" start="#tablist" count="2"
 ```
 
-## The rest of the API
+## Callbacks and programmatic control
 
-| | |
+| Method | Description |
 | --- | --- |
-| `onWindowClose(group -> …)` | What closing a group's window does: `dockAll` (the default) or `closeAll` |
-| `onCloseTab((group, index) -> …)` | What closing a tab by its cross, Control+W or Control+F4 does; `close` unless set. A handler that asks about unsaved changes calls `close` once the user agrees |
-| `onClosed(tab -> …)` | Called for each closed tab |
+| `onWindowClose(group -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
+| `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
+| `onClosed(tab -> …)` | Notification after a tab is closed |
 
-`select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll` and `closeAll` do from code what the user does. They and the questions, such as `groupOf(tab)`, are on [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html) and [`TabGroups.Group`](/api/com/rethinkj/ui/kit/TabGroups.Group.html).
+You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
 
-## The state
+## Focus and state across windows
 
-Content is built only for each group's active tab, inside an element of its own for each tab (`#content-<n>` in a tree dump), so that the focus is remembered per tab: `app.focus(panel)` and switching tabs go back to where the focus was in that tab, or to its `defaultFocus()` element if it has not had the focus yet. State the kit keeps by an element's identity, such as a field's caret and undo history or a scroll offset, stays with the window that showed it. To take it along with the tab, keep it in the tab's own state (`FieldState`, `ScrollState`). See [Several windows](/docs/concepts/windows).
+`TabGroups` remembers keyboard focus per tab automatically. To preserve text cursors, undo history, or scroll positions when moving a tab to another window, store `FieldState` or `ScrollState` inside each tab's own model object (see [Several windows](/docs/concepts/windows)).
 
-## What the user can do
+## User interaction
 
-- Drag a tab along its bar to move it, out of the bar to tear it off into a window that follows the pointer, and over any bar to dock it there, before the tab the marker shows.
-- Drag the only tab of a group's own window to move the whole window; the main window's last tab tears off like any other.
-- Escape, or a release that gets lost, puts a torn tab back where it was.
-- The tab's menu has Move to new window, disabled for the only tab of a group's own window, and, in a group's window, Move back to main window. On Wayland, where apps cannot place windows, these are the way to do it.
+- Drag a tab along a bar to reorder, drag it outside to tear off into a new window, or drop it onto another window's tab bar to dock it. Press **Escape** to cancel a drag.
+- Right-click any tab for **Move to new window** and **Move back to main window** (essential on Linux Wayland, where apps cannot position floating windows).

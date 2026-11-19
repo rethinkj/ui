@@ -1,9 +1,9 @@
 ---
 title: Rows of records
-description: Typed columns over records and POJOs, edited through withers and setters.
+description: Bind DataGrid columns directly to Java records or POJOs with typed formatting, sorting, filtering, and editing.
 ---
 
-`DataGrid.table(rows)` makes a `GridTable<T>` over the app's rows as objects, records or POJOs, and its `column` methods make columns from getters: each column shows a typed value in its [Format](/docs/components/format), and writes an edited value back through a record's wither or a POJO's setter. Use it when the app holds its rows as Java objects rather than strings; the grid still shows text, and the app still owns, sorts and filters its rows.
+Use `DataGrid.table(rows)` to build a `GridTable<T>` directly over Java records or POJOs instead of raw strings. Each column uses a getter, a [Format](/docs/components/format), and an optional wither/setter (or [`Part`](/docs/concepts/editing#declare-the-fields)) to format, validate, sort, filter, and write back typed values automatically.
 
 Javadoc: [`GridTable`](/api/com/rethinkj/ui/kit/GridTable.html), [`GridTable.Cells`](/api/com/rethinkj/ui/kit/GridTable.Cells.html).
 
@@ -15,56 +15,45 @@ Javadoc: [`GridTable`](/api/com/rethinkj/ui/kit/GridTable.html), [`GridTable.Cel
 ```java snippet="grid-typed"
 ```
 
-The sort handler sorts the rows by the typed values; the handler of `onCommit` gets the new record, and refuses it with a message:
-
 ```java snippet="grid-typed-commit"
 ```
 
-- `state.orders` is a list of `Order` records, `state.typedSort` a list of `SortKey`s and `state.selection` a `DataGrid.Selection`, all in the app's state.
-- `DataGrid.table(rows)` takes an `IntFunction<T>`: the row at an index, asked for each cell in view on every frame. Keep it cheap, such as a list's `get`. A row that is not loaded is null: give the grid `.loading(table::loaded, onRows)`, and it shows the loading cells.
-- `table.column(title, width, format, getter)` is a column that edits nothing. With a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter, it edits. `table.column(title, width, format, part)` takes a [`Part`](/docs/concepts/editing#declare-the-fields) instead, such as `Order.AMOUNT`, which reads and writes. Alignment, font, header icon and editor come from the format: `Format.DECIMAL` gives a right-aligned number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, and an `optional()` format allows NULL.
-- The result is an ordinary `Column`, so `.typeName`, `.icon`, `.cellIcon`, `.detail` and `.sortable` chain onto it. Its `cells()` is the typed part: `cells().value(row)`, `cells().format()`, `cells().comparator()`.
+- `DataGrid.table(rows)` accepts an `IntFunction<T>` (such as `state.orders::get`). Return `null` for unloaded rows and pair with `.loading(table::loaded, onRows)`.
+- `table.column(title, width, format, getter)` creates a read-only column. Add a wither (`Order::withAmount`), setter (`Account::setBalance`), or pass a [`Part`](/docs/concepts/editing#declare-the-fields) (`Order.AMOUNT`) to make it editable.
+- Alignment, monospace font, header icon, editor type, and nullability (`optional()`) are configured automatically from `Format`.
+- Returns a standard `Column`, so `.typeName`, `.icon`, `.detail`, and `.sortable` chain normally.
 
-## Editing
+## Inline editing
 
-`options().onCommit(table, (row, value) -> error)` lets the grid edit, paste into and clear the columns that write. The grid first checks the editor's text with the column's format: a letter in a number is refused as it is typed, and the message of a `where`, such as `Not below zero`, shows under the editor. Then it turns the text into the value and writes it into the row:
-
-- **Records**: the wither makes a new record, which the handler gets and stores, usually `rows.set(row, value)`. Nothing has changed if it refuses.
-- **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before, also a setter inside a record's part (`Order.DETAILS.then(Details.NOTE)`).
-
-A column of a joined part edits nothing in a row where a part on the way is null: the cell shows NULL, Enter opens no editor, and a paste leaves it.
-
-The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come as one call per row, with all of the row's values written. If the handler sorts or filters the rows, the remaining pasted rows still go to the right row objects.
+Pass `options().onCommit(table, (row, value) -> error)` to enable typed editing, pasting, and clearing:
+- Input is validated by `Format` first (including `.where(...)` constraints).
+- **Records:** The wither creates a new record passed to your handler (typically `rows.set(row, value)`).
+- **POJOs:** The setter mutates the object; if your handler returns an error message, the grid automatically reverts the previous value.
+- Return `null` to accept, or an error string to reject and display below the editor.
 
 ```java snippet="grid-pojo"
 ```
 
-Give the setter or wither as a method reference: for a lambda, Java cannot tell a setter's `BiConsumer` from a wither's `BiFunction`.
+Always pass withers and setters as method references (Java cannot distinguish a `BiConsumer` lambda from a `BiFunction` lambda).
 
 ```text snippet="grid-typed-script"
 ```
 
-## Sorting and filtering
+## Typed sorting and filtering
 
-The grid sorts and filters nothing; the app does it to its rows, with what the table gives it from the grid's state:
-
-| | |
+| Helper | Description |
 | --- | --- |
-| `table.comparator(columns, keys)` | A `Comparator<T>` of the sort keys, by the typed values: numbers as numbers, dates as dates, enums in their order; NULL first ascending and last descending |
-| `table.filter(columns, filters)` | A `Predicate<T>` of the header's filters: ranges and equality of numbers, dates and times compare values (`10.0` equals `10`), text compares text |
-| `filter.matches(value, format)` | One filter on one typed value |
+| `table.comparator(columns, keys)` | Builds a typed `Comparator<T>` (numbers numerically, dates chronologically, enums by order; `null` first ascending, last descending) |
+| `table.filter(columns, filters)` | Builds a typed `Predicate<T>` matching header filters |
+| `filter.matches(value, format)` | Tests a single typed value against one filter |
 
-## With GridChanges
+## Combining with `GridChanges`
 
-A [GridChanges](/docs/components/data-grid/editing) keeps edits as text until the app writes them. Over a table, give each column its cells through the changes, `column.cell(changes.cell(index))`, which keeps the column's format for the editor; `changes.changes(table, columns)` then lists the changes with typed values: the app's row, and for each column the value before and after in the column's type, which `apply` writes into a row through the withers or setters.
+To stage typed edits until Commit (as in [DataBrowser](/docs/examples/data-browser)), wire each column's text through `column.cell(changes.cell(index))` and read typed pending changes with `changes.changes(table, columns)`:
 
 ```java snippet="grid-typed-changes"
 ```
 
-The DataBrowser example works this way: a million made-up orders as records, `BigDecimal` amounts, `LocalDateTime`s and an enum of statuses, edited through a `GridChanges` and written through the withers on Commit.
+## Accessing typed values from custom commands
 
-## The typed part of a column
-
-`column.cells()` is a `GridTable.Cells<T, V>` for a column that `table.column` made, and null for a column of text. It is what the grid, `comparator`, `filter` and `GridChanges.changes(table, columns)` read, and what an app's own command reads and writes a value with, such as "Set to zero" on the selected cells. Its type parameters are lost in `Column`, so cast it to the row and value types the column was made with.
-
-`value(row)` reads the value in a row object, or in the row with an index (null for NULL and for a row not loaded). `write(row, value)` writes one: a new row from the wither, or `row` itself changed by the setter; it throws `IllegalStateException` when the column has neither. The other methods are on [`GridTable.Cells`](/api/com/rethinkj/ui/kit/GridTable.Cells.html).
+For columns created by `table.column(...)`, `column.cells()` returns a `GridTable.Cells<T, V>` (cast to your row/value types) with `value(row)` and `write(row, value)` for custom commands like "Set selected cells to 0". See [`GridTable.Cells` Javadoc](/api/com/rethinkj/ui/kit/GridTable.Cells.html).

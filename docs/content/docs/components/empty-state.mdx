@@ -1,9 +1,9 @@
 ---
 title: EmptyState
-description: A large muted icon, a title, a text and an action, where a list or page has nothing to show.
+description: Centered placeholder with an icon, title, message, and optional action button when there is no content.
 ---
 
-`EmptyState.emptyState` fills the place of a list, a grid or a page that has nothing to show, and says why and what to do: "No tables match" with Clear filter. Center it in the empty area.
+`EmptyState.emptyState` displays a helpful placeholder when a list, grid, or page has nothing to show (for example, `"No tables match"` with a **Clear filter** button).
 
 Javadoc: [`EmptyState`](/api/com/rethinkj/ui/kit/EmptyState.html).
 
@@ -14,11 +14,11 @@ Javadoc: [`EmptyState`](/api/com/rethinkj/ui/kit/EmptyState.html).
 ```java snippet="empty-state"
 ```
 
-`EmptyState.emptyState(symbol, title, text, action)`; the text and the action may be null. Title and text wrap where the room is narrow, as in a side panel, each line centered.
+Call `EmptyState.emptyState(symbol, title, text, action)` (`text` and `action` may be `null`). Title and text wrap and center automatically in narrow containers.
 
 ## In a tree dump
 
-`role=status` with the title as label:
+Appears as `role=status` with the title as `label`:
 
 ```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="label=\"No tables match\"" count="5"
 ```

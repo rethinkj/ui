@@ -1,9 +1,9 @@
 ---
 title: Slider
-description: A knob on a rail for a whole number in a range.
+description: Draggable range slider for adjusting an integer value between min and max.
 ---
 
-`Slider.slider` is a rail with a knob, the part up to the knob in the accent. Use it for a value one adjusts by feel, such as a font size. For an exact number, use a [NumberField](/docs/components/number-field).
+`Slider.slider` displays a horizontal track and draggable knob for picking an integer value in a range (such as font size or zoom). For exact numeric entry, use [NumberField](/docs/components/number-field).
 
 Javadoc: [`Slider`](/api/com/rethinkj/ui/kit/Slider.html).
 
@@ -14,23 +14,19 @@ Javadoc: [`Slider`](/api/com/rethinkj/ui/kit/Slider.html).
 ```java snippet="slider"
 ```
 
-`state.fontSize` is an `int` in the app's state.
-
-`Slider.slider(value, min, max, step, onChange)`. Dragging moves the knob under the pointer by steps; a press on the rail puts it there. A null handler disables it.
-
-The stops are `min` and every `step` after it. Where the range is not a whole number of steps, the last stop is the last one before `max`: End on 0 to 10 by 3 gives 9.
+Call `Slider.slider(value, min, max, step, onChange)`. Users can drag the knob or click anywhere on the track. Passing a `null` handler disables it. Values snap to `min + k * step` within `[min, max]`.
 
 ## Keyboard
 
-The arrows step. Page Up and Page Down step by a tenth of the range, at least one step. Home and End go to the ends. Enter and Space do nothing.
+**Arrow keys** move by `step`; **Page Up/Down** move by ~10% of the range; **Home/End** jump to the ends.
 
 ## With a Prop
 
-`slider(prop, min, max, step)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`slider(prop, min, max, step)` binds directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=slider` with its label and the value:
+`role=slider` with its `label` and `value`:
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="role=slider" count="1"
 ```

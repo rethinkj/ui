@@ -1,27 +1,37 @@
 ---
 title: Editing records
-description: A form over a record or a POJO, with drafts, rules and the server's errors kept in one Editing.
+description: Manage form state, unparsed drafts, validation rules, and server errors with Editing and Prop.
 ---
 
-An [`Editing<T>`](/api/com/rethinkj/ui/kit/Editing.html) holds the edit of one value, such as a record in a dialog: the original, the edited value, the text of fields that does not parse yet (drafts), and the fields' errors. Keep it in the state while the edit lasts. Kit components take its fields as a `Prop`, so the view needs no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or page that edits a value and saves it; for a value that applies at once, such as a theme switch, `Prop.of` over the state is enough.
+[`Editing<T>`](/api/com/rethinkj/ui/kit/Editing.html) manages the state of editing a record or object in a form or dialog. It tracks:
+- The original value and current edited value
+- Draft text for fields that cannot be parsed yet (such as a partially typed number or date)
+- Validation errors and server errors
+
+Keep one `Editing<T>` in your state while the form is open. Kit inputs accept `editing.at(part)` as a `Prop`, so you do not have to manage separate value, draft, error, and change handler fields for every input.
+
+(For simple instant settings like a dark-mode switch, you do not need `Editing` — use `Prop.of(...)` or direct handlers instead.)
 
 ## Declare the fields
 
-A [`Part`](/api/com/rethinkj/ui/kit/Part.html) says how to read one field of a value and how to write it back. Declare each once, beside the record, with the record's wither:
+A [`Part`](/api/com/rethinkj/ui/kit/Part.html) defines how to read and update one field of a record. Declare each `Part` once as a `static final` constant next to your record:
 
 ```java snippet="editing-record"
 ```
 
-The constant is the field's identity: the editing keeps drafts and errors per part, so `editing.at(Order.AMOUNT)` is the same field in every build. Do not create parts in the view: `editing.at(Part.of(...))` is a new field in each build and loses its draft. For a record inside a record, `Profile.TLS.then(Tls.MODE)` names the nested field, the same as `editing.at(Profile.TLS).at(Tls.MODE)`; rules and errors can use it. A data grid's [typed column](/docs/components/data-grid/typed) takes the same constant: `table.column("amount", 100, Format.DECIMAL, Order.AMOUNT)`.
+Because `Editing` tracks drafts and errors by `Part` identity, always reuse the same `Part` constants — never call `Part.of(...)` inside your view function.
+
+- **Nested records:** Chain parts with `Profile.TLS.then(Tls.MODE)` (equivalent to `editing.at(Profile.TLS).at(Tls.MODE)`).
+- **Reuse in DataGrid:** Pass the same `Part` constant to [typed grid columns](/docs/components/data-grid/typed), e.g., `table.column("amount", 100, Format.DECIMAL, Order.AMOUNT)`.
 
 ## Edit and save
 
-The state holds the editing, here with a rule across two fields:
+Store the `Editing` in your app state and attach any cross-field validation rules:
 
 ```java snippet="editing-state"
 ```
 
-The view passes each component the prop of its field and asks the editing whether Save is allowed:
+Bind each input to its `Prop` in the view, and check `editing.valid()` / `editing.changed()` for the Save button:
 
 ```java snippet="editing-view"
 ```
@@ -31,23 +41,23 @@ The view passes each component the prop of its field and asks the editing whethe
 ```java snippet="editing-save"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `Editing.of(record)` | The edit of a value that does not change, such as a record |
-| `Editing.of(pojo, copy)` | The edit of a copy of a POJO, as `Editing.of(settings, Settings::new)`, since setters change the object |
-| `.rule(part, test, message)` | A rule over the whole value; while it fails, the message shows at the part's field and the edit is not valid |
-| `editing.at(part)` | The `Prop` of a field: its value, where it is written, its draft and its error |
-| `value()`, `original()` | The edited value, and the one the edit began with or last saved |
-| `changed()` | Whether the value differs from the original, by `equals` |
-| `valid()` | No field holds text that does not parse, no error set by the app stands, and every rule holds |
-| `reset()` | Back to the original, drafts and errors forgotten |
-| `showErrors()` | Every field shows its error, also fields not edited yet, such as an empty required field: call it when Save is pressed while the edit is not valid |
-| `saved()` | The value is the new original: `changed()` is false until the next edit |
-| `prop.error(message)` | An error from the app, such as the server's refusal: shown at the field until its next edit |
+| `Editing.of(record)` | Starts editing an immutable record |
+| `Editing.of(pojo, copy)` | Starts editing a mutable POJO by copying it (e.g., `Editing.of(settings, Settings::new)`) |
+| `.rule(part, test, message)` | Adds a validation rule; when `test` fails, `message` appears on `part` and `valid()` becomes `false` |
+| `editing.at(part)` | Returns the `Prop` for a field (value, writer, draft text, and error) |
+| `value()`, `original()` | Returns the current edited value or the original/last-saved value |
+| `changed()` | Returns `true` if `value()` differs from `original()` (using `equals`) |
+| `valid()` | Returns `true` when there are no parse errors, no custom errors, and all rules pass |
+| `reset()` | Reverts to `original()` and clears all drafts and errors |
+| `showErrors()` | Reveals errors on all fields, including untouched required fields (call when Save is clicked while invalid) |
+| `saved()` | Commits `value()` as the new `original()` so `changed()` resets to `false` |
+| `prop.error(message)` | Attaches a custom error (such as a server validation error) until the user edits that field |
 
-The rest is in the Javadoc of [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html).
+See [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html) Javadoc for more methods.
 
-A field's error is the first of: a parse error (also for a value that has none, such as null in a required field), an error set by the app, the first failing rule that names the field. `valid()` counts parse errors from the start, but a field shows its parse error only after the user edited it or the app called `showErrors()`, so a form for a new record does not open with parse errors. Errors set by the app and failing rules show at once. The component shows the error (`invalid` and `error="…"` in a dump, a danger border on a text field), and a [Form](/docs/components/form) field shows it below the control. A field that is hidden keeps its draft, and a parse error in it still makes the edit invalid.
+**How errors are shown:** Each field displays its first active error in priority order: parse error, custom error (`prop.error(...)`), then failing `.rule(...)`. Parse errors count toward `valid()` immediately, but stay hidden on screen until the user edits the field or you call `showErrors()` (so empty "New item" forms do not open covered in red). Custom errors and rule errors appear immediately. [Form](/docs/components/form) displays the error text below the input. Hidden fields keep their drafts and still affect `valid()`.
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```
@@ -57,23 +67,23 @@ A field's error is the first of: a parse error (also for a value that has none, 
 
 ## Components that take a prop
 
-Each has an overload that takes a `Prop` in place of the value and its handler. A read-only prop disables the component, as a null handler does.
+All of these kit components have an overload accepting a `Prop`. A read-only `Prop` automatically disables the control:
 
-| Component | With a prop |
+| Component | `Prop` overload |
 | --- | --- |
 | [TextField](/docs/components/text-field) | `textField(prop[, placeholder])`, `passwordField(prop, placeholder)` |
-| [ValueField](/docs/components/format) | `valueField(format, prop[, placeholder])`: the draft is the editing's |
+| [ValueField](/docs/components/format) | `valueField(format, prop[, placeholder])` (draft stored in `Editing`) |
 | [Checkbox](/docs/components/checkbox), [Toggle](/docs/components/toggle) | `checkbox(prop, text)`, `toggle(prop, text)` |
 | [Select](/docs/components/select), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) | `select(values, prop, text, menuState)`, `radioGroup(values, prop, text)`, `segmented(values, prop, text)` |
 | [ComboBox](/docs/components/combo-box) | `comboBox(values, prop, text, comboBoxState)`, `items(values, prop, item, comboBoxState)`, `free(prop, suggestions, comboBoxState)` |
-| [NumberField](/docs/components/number-field) | `numberField(prop, min, max, step)`: the draft is the editing's |
+| [NumberField](/docs/components/number-field) | `numberField(prop, min, max, step)` (draft stored in `Editing`) |
 | [Slider](/docs/components/slider) | `slider(prop, min, max, step)` |
 
-`Prop.of(() -> state.dark, value -> state.dark = value)` is a prop over the state, without an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` is the prop of one field; writing it writes back the whole value, a new record through the wither.
+You can also create a standalone prop directly over state with `Prop.of(() -> state.dark, value -> state.dark = value)` (writes immediately, no draft or errors).
 
-## A POJO
+## Editing a mutable POJO
 
-A class with getters and setters works the same way. Declare its parts with `Part.ofSetter`, which takes the setter where `Part.of` takes a wither; the editing edits a copy and compares by the class's `equals`:
+Classes with getters and setters work the same way using `Part.ofSetter` instead of `Part.of`. `Editing` edits a copy and compares changes with `equals`:
 
 ```java snippet="editing-pojo"
 ```

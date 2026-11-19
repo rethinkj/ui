@@ -1,9 +1,15 @@
 ---
 title: TextField
-description: Single-line fields, password fields that can show their text, text areas and code areas.
+description: Single-line text inputs, password fields with show/hide toggle, multi-line text areas, and code areas.
 ---
 
-`TextField.textField` is a single-line text field: a quiet frame with a strong line along the bottom; under the pointer a lighter fill and a strong frame; while focused, frame and line in the accent color. Text areas, selects, combo boxes and the framed code editor share this frame. The same class has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor). For a typed value, such as a `BigDecimal` or a `LocalDate`, use a [ValueField](/docs/components/format). For a whole number with step buttons, use a [NumberField](/docs/components/number-field).
+`TextField` provides standard themed text inputs:
+- `textField` — Single-line text input
+- `passwordField` and `revealable` — Masked password input with optional show/hide toggle
+- `textArea` — Multi-line wrapping text input for notes and descriptions
+- `codeArea` — Monospace multi-line input with indentation
+
+Your app owns the string value and updates it via `onChange`. For syntax highlighting and line numbers, use [CodeEditor](/docs/components/code-editor). For typed values (decimals, dates, enums), use [ValueField](/docs/components/format). For bounded integers with step buttons, use [NumberField](/docs/components/number-field).
 
 Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
 
@@ -14,36 +20,27 @@ Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
 ```java snippet="text-field"
 ```
 
-`state.filter` and `state.table` are strings in the app's state.
-
-| Call | |
+| Method | Description |
 | --- | --- |
-| `textField(value, placeholder, onChange)` | A field of the theme's control height and field width. The placeholder is also its label, unless `.label(...)` sets one |
-| `textField(value, onChange)` | Without a placeholder |
-| `withIcon(field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
-| `invalid(field)` | The whole frame in the danger color, also under the pointer and while focused, and the `invalid` state |
+| `textField(value, placeholder, onChange)` | Single-line input (placeholder also serves as label unless `.label(...)` is set) |
+| `textField(value, onChange)` | Single-line input without placeholder |
+| `withIcon(field, symbol)` | Adds a leading icon inside the input (such as `Symbol.SEARCH`) |
+| `invalid(field)` | Applies red danger border and `invalid` state |
 
-`textField` returns the field itself, so core's field methods chain onto it. `withIcon` and `revealable` return a box around the field, so chain the field's methods onto it before wrapping it:
+Chain core text methods like `.readOnly()`, `.maxLength(n)`, `.w(px)`, `.wFull()`, `.key(...)`, and `.label(...)` onto `textField(...)` **before** wrapping it in `withIcon(...)` or `revealable(...)`.
 
-| | |
-| --- | --- |
-| `.readOnly()` | Selects and copies, takes no edits |
-| `.maxLength(n)` | At most `n` code points, typed or pasted |
-| `.w(pixels)`, `.wFull()` | Another width |
-| `.key(...)`, `.label(...)` | Identity and label |
-
-A null handler disables the field. The handler may refuse an edit (store nothing) or change it (keep only digits); the field shows the app's string. See [Text fields and editors](/docs/concepts/text-fields) for carets, selection, undo and input methods.
+Passing a `null` handler disables the field. Your handler can also reject or transform edits (for example, keeping only digits). See [Text fields and editors](/docs/concepts/text-fields) for cursors, selection, undo, and IME support.
 
 ## Typed values
 
-For a number, a date or an enum, `ValueField.valueField(Format.DECIMAL, state.amount, state.amountDraft, state::amount)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
+For numbers, dates, or enums, use `ValueField.valueField(Format.DECIMAL, value, draft, onChange)` instead (see [Format and ValueField](/docs/components/format)).
 
 ## Passwords
 
 ```java snippet="password-field"
 ```
 
-`passwordField` masks the string: one `•` per character. Copy and cut do nothing, and the tree dump and every selector see only the mask. `revealable(field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides the text; `revealed` is a boolean in the app's state. The button leaves the focus in the field. A shown password can be copied and moves by words as in an ordinary field. The tree dump still shows only the mask, and the field says `password revealed`.
+`passwordField` masks characters with `•` and blocks copying/cutting. Wrap it in `revealable(field, revealed, onToggle)` to add a show/hide button (tree dumps always stay masked and add `revealed` when visible on screen).
 
 <Shot src="kit/gallery-{theme}-2x" rows="password,password shown" alt="A password field masked and shown" />
 
@@ -52,23 +49,25 @@ For a number, a date or an enum, `ValueField.valueField(Format.DECIMAL, state.am
 ```java snippet="text-area"
 ```
 
-`textArea` is a multi-line field that wraps lines, for notes and descriptions. `codeArea` is one in the monospaced font that scrolls sideways, where Tab indents, Shift+Tab outdents, Enter keeps the line's indentation and a double press selects a word of code; Escape and then Tab, or Control+M, let Tab move the focus. `.lines(n)` sets the height in lines.
+- `textArea`: Multi-line wrapping input for prose/notes.
+- `codeArea`: Monospace multi-line input with horizontal scroll, Tab/Shift+Tab indentation, auto-indent on Enter, and **Ctrl+M** (or Escape then Tab) to move focus out.
+- Use `.lines(n)` to set height in lines.
 
 <Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />
 
 ## Keyboard
 
-Arrows, Home and End move the caret, with Shift to select and with Control by words. Backspace and Delete delete; Control+A, C, X, V, Z and Y select all, copy, cut, paste, undo and redo. In a multi-line field, Enter breaks the line, Page Up and Page Down scroll, and Control+Enter goes on to the app's key handlers. Tab into a single-line field selects its text.
+Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** to select, **Ctrl** by word), Backspace/Delete, **Ctrl+A/C/X/V/Z/Y**. Tabbing into a single-line field selects all text. In multi-line fields, **Enter** inserts a newline and **Ctrl+Enter** bubbles to app key handlers.
 
 ## With a Prop
 
-`textField(prop[, placeholder])` and `passwordField(prop, placeholder)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`textField(prop[, placeholder])` and `passwordField(prop, placeholder)` bind directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-A text element with `role=textbox`, its label and its string in quotes. It says `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply. While focused, it says `focused caret <n>`, and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`, and after its caret the caret's line and column, as `caret 57 (3:12)`.
+`text` element with `role=textbox`, label, quoted string, and active states (`disabled`, `readonly`, `password`, `revealed`, `invalid`). When focused, shows `focused caret <n>` (and `anchor <n>` if selected), plus `lines <first>-<last>/<count>` and `(line:col)` for multi-line fields:
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```
 
-Type into a field with `press #table` then `type "orders"`.
+In scripts: `press #table` followed by `type "orders"`.

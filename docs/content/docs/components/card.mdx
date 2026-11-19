@@ -1,9 +1,9 @@
 ---
 title: Card
-description: A rounded surface that frames a region, with a header, a toolbar, a footer and parts edge to edge.
+description: Rounded container panel with optional header, toolbar, footer, and edge-to-edge layout.
 ---
 
-`Card.card` is a column on the panel surface with rounded corners, an edge and a slight lift: the kit's way to frame each region of a window on its background. `Card.flush` holds parts edge to edge, such as a toolbar, a data grid and a footer. Data grids, trees and forms look best in a card. For rows of settings in a card, use a [Group](/docs/components/group).
+`Card.card` creates a rounded panel container with padding and spacing to frame sections of your window. `Card.flush` removes outer padding so components like toolbars, data grids, and footers sit edge-to-edge. For grouped settings rows, use [Group](/docs/components/group).
 
 Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 
@@ -17,29 +17,29 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 ```java snippet="card-flush"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `card(content...)`, `card(variant, content...)` | A column with `space().xl()` (16) of padding and `space().l()` (12) between its children |
-| `header(title, description, actions...)` | A title in `type().heading()`, a muted description that wraps, and actions at the right |
-| `flush(parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
-| `toolbar(title, secondary, actions...)` | The first part of a flush card: a title in `type().heading()`, a muted text beside it, actions at the right |
-| `footer(start, end...)` | The last part: a quiet band with a hairline above it |
-| `filters(bar)` | An optional filter bar below a toolbar, with the card's side padding; null leaves the row out |
-| `inset(list)` | Insets a list with rounded rows, such as a tree or a nav list |
-| `pressable(card, label, selected, onPress)` | The whole card as a button, with `selected` drawn as an accent edge |
-| `footerHeight()` | The footer's height, to keep a toast clear of it |
+| `card(content...)`, `card(variant, content...)` | Padded column (`space().xl()` padding, `space().l()` gap) |
+| `header(title, description, actions...)` | Card heading, optional muted description, and right-aligned actions |
+| `flush(parts...)` | Edge-to-edge card without padding, clipped to rounded corners |
+| `toolbar(title, secondary, actions...)` | Top bar for a flush card with heading, secondary text, and actions |
+| `footer(start, end...)` | Bottom bar for a flush card with a subtle top border |
+| `filters(bar)` | Optional filter bar below a toolbar (`null` is omitted) |
+| `inset(list)` | Adds inner padding around a list like a tree or nav list |
+| `pressable(card, label, selected, onPress)` | Makes an entire card clickable (accent border when `selected`) |
+| `footerHeight()` | Returns the footer height (useful to offset toasts above it) |
 
-| Variant | |
+| Variant | Description |
 | --- | --- |
-| `OUTLINED` | The panel with a subtle edge and the card's shadow (default); a card in a card is outlined |
-| `FILLED` | The panel without a visible edge or lift, on the window's background |
-| `ELEVATED` | The panel with the edge and a popup's shadow |
+| `OUTLINED` | Panel surface with border and subtle shadow (default) |
+| `FILLED` | Flat panel without border or shadow |
+| `ELEVATED` | Panel with border and stronger shadow |
 
-Null content is left out, so `changed ? callout(...) : null` composes.
+`null` children are ignored, so conditional expressions like `changed ? callout(...) : null` work cleanly.
 
 ## In a tree dump
 
-A card has no role of its own, except a pressable one, which is `role=button` with its label, `selected` and `disabled` as they are; its header's title is `role=heading level=3`:
+Normal cards have no role; `pressable` cards use `role=button` with `selected` and `disabled` states. Card header titles use `role=heading level=3`:
 
 ```text file="examples/src/test/resources/golden/docs/cards/view.tree.txt" start="\"Connection\"" count="5"
 ```

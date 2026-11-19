@@ -1,11 +1,17 @@
 ---
 title: DataBrowser
-description: A million made-up orders in the data grid, filtered, edited and committed.
+description: One million sample orders in an editable, filterable DataGrid with pending changes and commit/revert support.
 ---
 
-DataBrowser shows a million orders in the kit's [DataGrid](/docs/components/data-grid), flush in a card with a filter in its toolbar and the status in its footer. Its cells edit, and the changes wait until Commit.
+DataBrowser displays one million sample orders in a [DataGrid](/docs/components/data-grid) inside a card with a search filter in the toolbar and a status footer. You can edit cells, review pending changes, and commit or revert them.
+
+**Demonstrates:** [DataGrid](/docs/components/data-grid), [Typed rows](/docs/components/data-grid/typed), [Editing and changes](/docs/components/data-grid/editing), [Filters](/docs/components/data-grid/filters), and [Format](/docs/components/format).
 
 <Shot dark="examples/browser-dark" light="examples/browser-light" alt="The grid with pending changes marked, a filter on the status column, a filter bar and Commit (n) in the toolbar" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=DataBrowser
@@ -13,29 +19,29 @@ mvn -q -pl examples -am compile exec:exec -Dexample=DataBrowser
 
 ## What to try
 
-- Type words into Filter: the rows that hold each word in a text column stay.
-- Double-press a cell to edit it, then Commit or press Control+S; Revert forgets the changes.
-- Filter a column from its header, and choose the columns with Columns.
+- Type keywords into the **Filter** box to show only rows matching every word.
+- Double-click a cell to edit it. Click **Commit** (or press **Ctrl+S**) to save pending changes, or click **Revert** to discard them.
+- Click a column header to sort or filter that column, and use **Columns** to show or hide columns.
 
 ## How it works
 
-### A typed table
+### Typed columns
 
-The orders are records, and each column is a typed value of an `Order`: a getter, a [Format](/docs/components/format) and, for the columns that edit, a wither ([Rows of records](/docs/components/data-grid/typed)).
+Each order is a Java record. Every column maps a field of `Order` using a getter, a [Format](/docs/components/format), and (for editable columns) a wither method ([Rows of records](/docs/components/data-grid/typed)).
 
 ```java snippet="data-browser-columns"
 ```
 
-### Pending changes
+### Tracking pending changes
 
-The edits wait in a `GridChanges`. Its `Rows` give each row shown a key, here the order's number, so that a change stays with its order while the filter or the sort moves the rows ([Editing and changes](/docs/components/data-grid/editing)).
+Edits are stored in a `GridChanges` object. Its `Rows` view assigns each row a stable key (the order number), so pending edits stay attached to the right order even when you sort or filter the grid ([Editing and changes](/docs/components/data-grid/editing)).
 
 ```java snippet="data-browser-changes"
 ```
 
-Commit takes the changes as typed values and applies them to the orders: changed orders are kept beside the made-up ones, new orders come after the million, and deleted orders leave the rows.
+Clicking **Commit** reads the typed changes and applies them to the dataset: updated orders are stored, new orders are appended, and deleted orders are removed.
 
 ```java snippet="data-browser-commit"
 ```
 
-The whole app is in [`DataBrowser.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/DataBrowser.java).
+Full source: [`DataBrowser.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/DataBrowser.java).

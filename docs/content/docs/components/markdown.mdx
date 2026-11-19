@@ -1,9 +1,9 @@
 ---
 title: Markdown
-description: A Markdown document as a scrolling page of selectable blocks, with links, code, tables and images.
+description: Scrollable Markdown document viewer with syntax-highlighted code blocks, tables, links, and async images.
 ---
 
-`Markdown.markdown` shows a `MarkdownDocument` as a scrolling page: headings, paragraphs with emphasis and links, lists and task lists, quotes, code blocks with highlighting and a copy button, tables and images. The reader follows CommonMark with GitHub's tables, task lists, strikethrough and bare URLs, and never throws. Only the blocks in view are built, so long documents scroll smoothly.
+`Markdown.markdown` renders a parsed `MarkdownDocument` as a virtualized scrollable page supporting CommonMark plus GitHub tables, task lists, strikethrough, and autolinks. Only visible blocks are built, so long documents scroll smoothly.
 
 Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
 
@@ -14,53 +14,35 @@ Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Option
 ```java snippet="markdown"
 ```
 
-`state.readme` is a `MarkdownDocument` in the app's state, read once with `Markdown.parse(source)`: parsing a long text takes a moment. `state.link` is a string the handler writes. `Markdown.markdown(document, options)` shows the document.
+Parse the source once with `Markdown.parse(source)` and store the `MarkdownDocument` in your app state.
 
-| Option | |
+| Option | Description |
 | --- | --- |
-| `onLink(destination -> …)` | A link is pressed: a URL, or `#id` for a heading |
-| `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
-| `languages(language -> highlighter)` | Highlighters for code blocks; `sql`, `pgsql` and `postgresql`, in any case, use `Sql` by default |
-| `copy(clipboard)` | Where the code blocks' copy buttons and Control+C after Control+A copy to. A selection within one block of text copies to the app's clipboard |
-| `state(Markdown.State)` | Keeps Control+A's selection of the whole document, and the confirmation of a code block's copy button |
+| `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor) |
+| `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
+| `languages(language -> highlighter)` | Custom syntax highlighters for fenced code blocks (`sql`, `pgsql`, `postgresql` use `Sql` by default) |
+| `copy(clipboard)` | Enables code-block copy buttons and Ctrl+A / Ctrl+C full-document copy |
+| `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 
-`Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists the headings with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies. HTML in the source shows as text.
+Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text.
 
-## The document as data
+## Document AST
 
-A `MarkdownDocument` is a tree of records that an app can read, for an outline, a search or the statements of a runbook. `document.blocks()` are the top-level blocks. Two documents are equal only when they are the same object.
+`MarkdownDocument` exposes its parsed structure as Java records (`document.blocks()`, `document.headings()`, `MarkdownDocument.plainText(content)`):
 
 ```java snippet="markdown-model"
 ```
 
-| Block | |
-| --- | --- |
-| `Heading(level, content, id)` | Levels 1 to 6; `id` is GitHub's anchor, unique in the document |
-| `Paragraph(content)` | |
-| `CodeBlock(language, code)` | The first word of a fence's info string, or ""; each line of the code ends in a line feed |
-| `Quote(blocks)` | |
-| `ListBlock(ordered, start, tight, items)` | Each `Item(task, blocks)`, `task` null for an ordinary item, false for `[ ]` and true for `[x]` |
-| `Table(aligns, header, rows)` | An `Align` (`NONE`, `LEFT`, `CENTER`, `RIGHT`) per column; cells are lists of inline parts |
-| `ThematicBreak()` | |
+- **Blocks:** `Heading(level, content, id)`, `Paragraph(content)`, `CodeBlock(language, code)`, `Quote(blocks)`, `ListBlock(ordered, start, tight, items)`, `Table(aligns, header, rows)`, `ThematicBreak()`.
+- **Inlines:** `Text`, `Emphasis`, `Strong`, `Strike`, `Code`, `Link`, `Image`, `SoftBreak`, `HardBreak`.
 
-| Inline part | |
-| --- | --- |
-| `Text(text)` | Escapes and entities resolved; raw HTML is text too |
-| `Emphasis(content)`, `Strong(content)`, `Strike(content)` | |
-| `Code(code)` | Inline code |
-| `Link(destination, title, content)` | The destination as written, `#id` for a heading; title "" for none |
-| `Image(source, title, alt)` | |
-| `SoftBreak()`, `HardBreak()` | A line break that shows as a space, and one that breaks the line |
+## State API
 
-`MarkdownDocument.plainText(content)` is the text of inline parts as it shows: soft breaks as spaces, images as their description. `document.headings()` lists the headings, those inside quotes and lists too, and `document.tree()` is the whole tree as text, one node per line. `new MarkdownDocument(blocks)` makes a document from blocks of the app's own.
-
-## The state
-
-`Markdown.State`, one per document in the app's state, keeps Control+A's selection of the whole document. `allSelected()` says whether the whole document is selected, and `selectAll(boolean)` selects it or clears the selection, for an Edit menu's Select all. A press anywhere in the document clears it.
+Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`).
 
 ## In a tree dump
 
-`role=document`, a list of rows. Headings are `role=heading` with `level` and the key `heading-<id>`; links `role=link` with the destination as `value`; code blocks `role=code` with the language as label:
+`role=document` virtual list. Headings are `role=heading` (`level`, `#heading-<id>`), links are `role=link` (`value=<destination>`), and code blocks are `role=code` (labeled by language):
 
 ```text file="examples/src/test/resources/golden/docs/markdown/view.tree.txt" start="#readme" count="8"
 ```

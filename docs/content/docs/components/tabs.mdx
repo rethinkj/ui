@@ -1,9 +1,11 @@
 ---
 title: Tabs
-description: A card with a bar of tabs over the content of the active one.
+description: Tab bar over active tab content in card style or compact underline style.
 ---
 
-`Tabs.tabs` is a card whose first row is a bar of tabs. Below it, the content of the active tab fills the card edge to edge. Use it for open documents, queries or tables. The app owns the list and the active index; the content is built for the active tab only. To let tabs move between windows, use [TabGroups](/docs/components/tab-groups); for a choice of two or three views, a [Segmented](/docs/components/segmented) control.
+`Tabs.tabs` renders a tab bar above the active tab's content (only the active tab's content is built). Your app owns the tab list and active index.
+
+For tabs that tear off into separate windows, use [TabGroups](/docs/components/tab-groups). For a compact 2–3 option toggle, use [Segmented](/docs/components/segmented).
 
 Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/rethinkj/ui/kit/Tabs.Tab.html), [`Tabs.Options`](/api/com/rethinkj/ui/kit/Tabs.Options.html).
 
@@ -17,20 +19,18 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 ```java snippet="tabs-close"
 ```
 
-`state.tabs` is a list of `Tabs.Tab` and `state.tab` the active index, both in the app's state.
-
-| `Tabs.Tab` | |
+| `Tabs.Tab` | Description |
 | --- | --- |
-| `new Tabs.Tab(title, closable, modified)` | A title, whether it can be closed, and whether it is modified (a dot before the title) |
-| `.icon(Symbol)` | An icon before the title |
-| `.hue(Theme.Hue.RED)` | A line in that color along the tab's top, to mark the tabs of a group, such as those of a connection to production. The tab says `value="red"` in a tree dump |
-| `.busy(true)` | A spinner in place of the icon while the tab's content works, such as a running query; it shows while another tab is active too |
+| `new Tabs.Tab(title, closable, modified)` | Title, close button flag, and unsaved dot indicator |
+| `.icon(Symbol)` | Leading icon |
+| `.hue(Theme.Hue.RED)` | Colored top accent bar (for example, marking production connections; appears as `value="red"` in tree dumps) |
+| `.busy(true)` | Replaces icon with a loading spinner (visible even on inactive tabs) |
 
-`onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one. A null `onSelect` disables the bar; a null `onClose` shows no crosses.
+Passing `null` for `onSelect` disables the bar; `null` for `onClose` hides close buttons.
 
-## Inside a card
+## Underline style (`Variant.LINE`)
 
-`Tabs.options().variant(Tabs.Variant.LINE)` leaves the card out, for tabs inside a card or a pane, such as the result and the messages of a query. The bar is compact, on the surface it sits on, with a hairline under it; the line under the active tab slides to the next one chosen.
+For nested tabs inside a card or pane (such as Result / Messages below a query), use `Tabs.options().variant(Tabs.Variant.LINE)` to omit the outer card frame and draw a sliding underline under the active tab:
 
 <Shot src="examples/docs/tabs-line/view-{theme}" alt="A card titled orders by month with the tabs Result, active with a line under it, and Messages" />
 
@@ -39,41 +39,29 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 
 ## Options
 
-`Tabs.tabs(tabs, active, onSelect, onClose, content, Tabs.options()…)`:
-
-| Option | What it does |
+| Option | Description |
 | --- | --- |
-| `onMove((from, to) -> …)` | Control+Shift+Page Up and Page Down move the active tab; `Tabs.move(list, active, from, to)` moves an element and returns the new active index |
-| `drag(Tabs.Dragging)` | Tabs can be dragged: along the bar, with a marker where they go, with `onMove`; out of it with `onTearOff` |
-| `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
-| `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
-| `contextMenu(menuState, items)` | A menu for a tab, at a secondary press or the Menu key |
-| `variant(Tabs.Variant.LINE)` | Without the card, as above; `CARD` is the default |
-| `switchKeys(false)` | Leaves Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up to what encloses the bar, for tabs nested in the content of other tabs |
-
-[TabGroups](/docs/components/tab-groups) wires moving, dragging, docking and the menu for you.
-
-The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html) for all bars that trade tabs. It says what a drag is doing, so that a view can hide things meanwhile, such as a tooltip or a drop hint: `isActive()` says whether a tab is being dragged, and `isTorn()` whether it has left its bar (`onTearOff`).
+| `onMove((from, to) -> …)` | Enables tab reordering (`Tabs.move(list, active, from, to)` helper updates your list and returns the new active index) |
+| `drag(Tabs.Dragging)`, `onTearOff(...)`, `id(...)`, `onDock(...)` | Low-level drag-and-drop and cross-bar docking (handled automatically by [TabGroups](/docs/components/tab-groups)) |
+| `contextMenu(menuState, items)` | Right-click / Menu-key context menu on tabs |
+| `variant(Tabs.Variant.LINE)` | Compact underline style instead of default `CARD` |
+| `switchKeys(false)` | Lets Ctrl+Tab / Ctrl+PageUp/Down bubble to an outer `Tabs` bar when nesting tabs |
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Left, Right, Home, End | Choose a tab, while the bar has the focus |
-| Control+Tab, Control+Shift+Tab; Control+Page Down, Control+Page Up | Next and previous tab, from the bar or the content |
-| Control+W, Control+F4 | Close the active tab |
-| Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
-| Menu key, Shift+F10 | Open the menu of the active tab, with `contextMenu`, while the bar has the focus |
+| Left, Right, Home, End | Switch tabs while the tab bar is focused |
+| Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PageDown, Ctrl+PageUp | Next / previous tab |
+| Ctrl+W, Ctrl+F4 | Close active tab |
+| Ctrl+Shift+PageUp, Ctrl+Shift+PageDown | Reorder active tab (when `onMove` is set) |
+| Menu key, Shift+F10 | Open tab context menu |
 
-When the active tab changes while the focus is in the content, the focus goes into the new content, if it has a focusable element: to where it was last there, else to its `defaultFocus()` or `autofocus()` element, or its first focusable one. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
-
-The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
-
-Keys go up from the focused element to the nearest tabs. When tabs sit inside the content of other tabs, such as a result and its messages inside a query tab, give the inner ones `switchKeys(false)`: the keys that choose a tab then reach the outer ones, while Left, Right, Home and End on the inner bar still choose its own tabs.
+Give each tab's content a unique `.key(...)` so focus is remembered per tab when switching. Attach `root.onKey(tabs.onKey())` if you want Ctrl+Tab shortcuts to work from anywhere in the window.
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`. The content is `#panel` with `role=tabpanel`, labeled with the active tab's title. The line where a dragged tab would go is `#marker`. In the `LINE` variant the line under the active tab is `#indicator`.
+`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

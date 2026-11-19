@@ -1,14 +1,14 @@
 ---
 title: Motion
-description: Springs that move elements to their new size, place and color; presence for elements that come and go; cycles for spinners.
+description: Animate size, position, color, opacity, enter/exit transitions, and continuous spinners.
 ---
 
-With `.motion(spring)`, an element's size, position, color, opacity and radii animate from what the last frame showed to what the new view says, instead of jumping. Elements with a key and motion fade in when they appear and fade out when they leave the tree. `.cycle(...)` is an endless animation, for spinners and progress bars. All of it runs on the app's clock, which a script moves with `advance`.
+Calling `.motion(spring)` smoothly animates changes to an element's size, position, color, opacity, and corner radius instead of snapping immediately. Elements with both `.key(...)` and `.motion(...)` also fade in when added and fade out when removed. For continuous animations like spinners, use `.cycle(...)`.
+
+All animations run on the app clock (which scripts control with `advance`).
 
 ```java snippet="motion"
 ```
-
-The button's handler only changes the state:
 
 ```java snippet="motion-handlers"
 ```
@@ -17,33 +17,33 @@ The button's handler only changes the state:
 
 ## Springs
 
-[`Spring(duration, bounce)`](/api/com/rethinkj/ui/motion/Spring.html): how long the motion takes and how much it overshoots. The presets:
+[`Spring(duration, bounce)`](/api/com/rethinkj/ui/motion/Spring.html) controls animation duration and overshoot. Built-in presets:
 
-| Spring | For |
+| Preset | Best for |
 | --- | --- |
-| `INSTANT` | Tied to the pointer: takes the edge off a jump |
-| `SNAP` | Small controls answering a click |
-| `SETTLE` | The default state change: arrives and stops |
-| `REFLOW` | Layout moving out of the way |
-| `GLIDE` | Big surfaces traveling: drawers, sheets |
-| `MORPH` | One shape becoming another |
-| `POP` | A release with a little life in it |
-| `DRIFT` | Slow reveals the eye should follow |
-| `NONE` | No motion |
+| `INSTANT` | Pointer-tracking transitions |
+| `SNAP` | Small controls reacting to clicks |
+| `SETTLE` | Default state transitions (smooth stop, no bounce) |
+| `REFLOW` | Layout shifts |
+| `GLIDE` | Large panels, drawers, and sheets |
+| `MORPH` | Shape transitions |
+| `POP` | Playful release animations |
+| `DRIFT` | Slow, noticeable reveals |
+| `NONE` | Disable animation |
 
-In kit code, use the theme's springs: `theme.motion().move()`, `feedback()`, `fade()`. When the target changes mid-motion, the spring keeps its velocity, so a quick second press reverses smoothly.
+When using kit components, prefer theme springs: `theme.motion().move()`, `theme.motion().feedback()`, and `theme.motion().fade()`. Springs preserve velocity when interrupted, so rapid toggling reverses smoothly.
 
-## Presence
+## Enter and exit animations
 
-An element with a key and `motion` that leaves the tree stays where it was and fades out. It takes no input and is removed once invisible; in a tree dump its line ends in `exiting`. Menus, dialogs and toasts fade in and out this way.
+When a keyed element with `.motion(...)` is removed from the tree, it stays in place, fades out, ignores input, and is removed once invisible. In a tree dump, fading-out elements are marked `exiting`. Menus, dialogs, and toasts use this automatically.
 
-## Cycles
+## Continuous animations (`cycle`)
 
 ```java snippet="cycle"
 ```
 
-`cycle(seconds, (element, phase) -> …)` runs in every frame while the element is shown, with the phase from 0 to 1 within each period. It may move, fill and fade the element; it runs after layout and motion. While a cycle is shown, the window draws every refresh. Under a script, `advance` moves it.
+`cycle(seconds, (element, phase) -> …)` runs on every frame while visible, passing `phase` from `0` to `1` over each period. You can update position, fill color, or opacity inside the callback. Note that active cycles keep the window redrawing at the display refresh rate.
 
-## Idle windows
+## Idle power efficiency
 
-A window draws only when something changes: an input, a moving spring, a cycle, a caret that blinks, a timer that is due. Otherwise it waits and uses no CPU.
+When nothing is changing (no input, no active springs or cycles, no blinking cursor, and no due timers), the window sleeps and uses zero CPU.

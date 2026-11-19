@@ -1,9 +1,11 @@
 ---
 title: Popover
-description: Any content below an anchor, such as a small form, that closes with Escape or a press outside.
+description: Non-modal floating panel anchored to a button or element, dismissed by Escape or clicking outside.
 ---
 
-`Popover.popover` shows any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: the focus can leave it, and the wheel scrolls what is under the pointer. A press outside closes it and does nothing else. `Popover.form` is the common case: a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
+`Popover.popover` displays floating content anchored to an element (such as a filter form or detail card) while `Popover.State` is open. Unlike [Dialog](/docs/components/dialog), it is non-modal and closes when the user presses **Escape** or clicks outside. Use `Popover.form` for a titled panel with action buttons.
+
+For hover-only hints, use [Tooltip](/docs/components/tooltip).
 
 Javadoc: [`Popover`](/api/com/rethinkj/ui/kit/Popover.html), [`Popover.State`](/api/com/rethinkj/ui/kit/Popover.State.html).
 
@@ -14,23 +16,22 @@ Javadoc: [`Popover`](/api/com/rethinkj/ui/kit/Popover.html), [`Popover.State`](/
 ```java snippet="popover"
 ```
 
-`state.filterPopover` is a `Popover.State` and `state.filter` a string, both in the app's state.
+Store a `Popover.State` in your app state (`isOpen()`, `open()`, `close()`, `toggle()`).
 
-| | |
+| Method | Description |
 | --- | --- |
-| `Popover.popover(anchor, popoverState, label, content)` | Content below the anchor |
-| `Popover.popover(anchor, popoverState, side, align, label, content)` | On another side, aligned `START`, `CENTER`, `END` or `STRETCH` |
-| `Popover.form(anchor, popoverState, title, content, buttons)` | A small form with a heading and buttons at the bottom right. Where the window is too low, the content scrolls between them |
-| `Popover.panel(popoverState, label, content)` | The overlay alone, to attach yourself |
-| `Popover.State` | `isOpen()`, `open()`, `close()`, `toggle()` |
+| `Popover.popover(anchor, popoverState, label, content)` | Floating panel below `anchor` |
+| `Popover.popover(anchor, popoverState, side, align, label, content)` | Custom side and alignment (`START`, `CENTER`, `END`, `STRETCH`) |
+| `Popover.form(anchor, popoverState, title, content, buttons)` | Panel with heading, scrollable body (if tall), and bottom-right buttons |
+| `Popover.panel(popoverState, label, content)` | Standalone overlay element to attach manually |
 
 ## Keyboard
 
-The focus goes inside as the popover opens, to its first focusable element or else to the panel itself. Tab reaches it right after its anchor. Escape closes it, and the focus goes back to where it was before, if that element is still there. Since a button leaves the focus where it was, that is often an editor, not the anchor.
+Opening moves focus to the first focusable element inside the popover; **Escape** closes it and restores previous focus.
 
 ## In a tree dump
 
-An overlay on its anchor, `role=dialog` with its label:
+Overlay on its anchor with `role=dialog` and its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/popover/open.tree.txt" start="overlay" count="4"
 ```

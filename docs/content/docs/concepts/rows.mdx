@@ -1,9 +1,9 @@
 ---
 title: Lists of many rows
-description: Virtual lists that build only the rows in view, for a million rows, with rows of one height or of their own.
+description: Render lists of up to a million rows efficiently using virtual scrolling.
 ---
 
-[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scroll area into a list that builds only the visible rows and a few around them, so a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
+[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scrollable element into a virtual list. It only builds the visible rows (plus a small buffer), so rendering a million rows is just as fast as rendering twenty. [DataGrid](/docs/components/data-grid), [Tree](/docs/components/tree), and [Markdown](/docs/components/markdown) all use this mechanism.
 
 ```java snippet="rows"
 ```
@@ -13,28 +13,28 @@ description: Virtual lists that build only the rows in view, for a million rows,
 ```text file="examples/src/test/resources/golden/docs/rows/far.tree.txt" count="4"
 ```
 
-## Variants
+## Variants and options
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `rows(count, rowHeight, index -> row)` | Rows of one height |
-| `rows(count, rowHeight, (index, from, to) -> row)` | Rows built for the part in view sideways, for very wide rows such as hundreds of columns |
-| `rows(count, RowHeights, index -> row)` | Rows as high as their content; a `RowHeights` in the state estimates the rows not yet built and keeps what was measured |
+| `rows(count, rowHeight, index -> row)` | Fixed-height rows |
+| `rows(count, rowHeight, (index, from, to) -> row)` | Fixed-height rows with horizontal viewport range `(from, to)` for very wide tables |
+| `rows(count, RowHeights, index -> row)` | Variable-height rows measured automatically using a `RowHeights` object in your state |
 
-| Call | |
+| Helper | Description |
 | --- | --- |
-| `revealRow(index)` | Keep this row in view whenever it changes: a cursor |
-| `reveal(key, x, y, w, h)` | Keep a rectangle of the content in view whenever the key changes |
-| `onRowsBuilt((first, last) -> …)` | Which rows were built, so the app can load their data |
-| `scrollState(ScrollState)` | Keep the scroll offsets in the state, so the list comes back where it was |
-| `scrollbars(theme.scrollbars())` | Bars that drag and page |
-| `app.scrollToRow(list, row)` | Scroll from a handler |
+| `revealRow(index)` | Scrolls to keep `index` visible whenever it changes |
+| `reveal(key, x, y, w, h)` | Scrolls to keep a rectangle visible whenever `key` changes |
+| `onRowsBuilt((first, last) -> …)` | Notifies you which row indices were built (useful for lazy data loading) |
+| `scrollState(ScrollState)` | Preserves scroll position across view switches |
+| `scrollbars(theme.scrollbars())` | Adds draggable scrollbars |
+| `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |
 
-The list needs a height or room to `grow`. Give rows keys (`row-<index>`) so scripts find them; a selector finds only built rows, so a script scrolls first: `scroll #rows row 765432`.
+Give the list a height (or `grow(1)`) and give each row a key (such as `row-<index>`). In headless scripts, scroll to a row before clicking it (`scroll #rows row 765432`), since only built rows appear in the tree.
 
-## Rows as high as their content
+## Variable-height rows
 
-Log messages, document blocks and wrapping cells each have their own height. `rows(count, heights, row)` lays out each row it builds at the list's width, without `h(...)`, and a `RowHeights` in the state remembers the measured heights. Rows not built yet get the height its function estimates:
+For items with different heights (like log entries, wrapping text, or Markdown blocks), use `rows(count, heights, row)` without a fixed row height. Store a `RowHeights` instance in your app state to cache measured heights and estimate unmeasured ones:
 
 ```java snippet="row-heights"
 ```
@@ -45,10 +45,9 @@ Log messages, document blocks and wrapping cells each have their own height. `ro
 ```text file="examples/src/test/resources/golden/docs/row-heights/view.tree.txt" start="#row-0 " count="4"
 ```
 
-- The estimate is in logical pixels, above 0, from what the app knows without layout, such as the length of a row's text. The closer it is, the less the scrollbar thumb jumps as rows are measured.
-- A list of a million such rows scrolls as fast as one with a fixed row height.
-- When rows above the view turn out higher or lower than estimated, the offset adjusts, so the rows in view stay in place.
-- `app.scrollToRow(list, row)` keeps following the row while the rows before it are measured, until the user's next press, key or wheel.
-- Heights are kept by index. When rows are inserted or removed anywhere but at the end, or are sorted or moved, make a new `RowHeights`.
+- Pass an estimate function (`IntToDoubleFunction`, > 0 logical pixels) based on what you know before layout (such as text length). Closer estimates reduce scrollbar thumb jumping.
+- Scrolling stays smooth even with a million variable-height rows, and scroll positions auto-adjust when rows above the viewport are measured.
+- `app.scrollToRow(list, row)` keeps tracking the target row as earlier rows are measured until the user scrolls or clicks.
+- Create a new `RowHeights` whenever you insert, delete, sort, or reorder rows (appending to the end is fine).
 
-`new RowHeights(estimate)` takes an `IntToDoubleFunction` from a row's index to its estimated height. Its other methods, in the [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html), tell a row's height, where it starts and which row is at an offset.
+See [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html) for helper methods to query row heights and offsets.

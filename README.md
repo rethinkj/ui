@@ -4,41 +4,41 @@
 
 # rethinkj UI
 
-A native, GPU-rendered UI framework for Java. It draws everything itself (text, layout, animation, controls) with wgpu in SDL windows, and it can run without a window: a script drives the app, and images and element trees come out, so that an agent or a test can see and use what it builds.
+A native, GPU-rendered desktop UI framework for Java 25. It renders everything itself (text, layout, animations, and controls) using wgpu in SDL windows, and can also run headless without a window so automated tests and AI agents can drive your app with scripts and inspect screenshots and element trees.
 
-It is modeled on [rune](https://github.com/anomalyco/rune), which does the same for Rust.
+Inspired by [rune](https://github.com/anomalyco/rune) for Rust.
 
 ![The Workbench example: a schema tree, a query editor with completions and a result grid](examples/src/test/resources/golden/workbench-completion.png)
 
 ## Status
 
-Early. The version is `0.1.0-SNAPSHOT`, published as SNAPSHOTs only (see [Using it in a project](#using-it-in-a-project)), and the API still changes. It targets desktops only: Windows 11 and Linux on x64, with JDK 25.
+Early preview (`0.1.0-SNAPSHOT` on Maven Central Snapshots). The API may still change before the first stable release. Targets desktop platforms: **Windows 11+** and **Linux** (x64) with **JDK 25**.
 
-## What is in it
+## What is included
 
-- **`core`**: an element tree with flexbox layout, text shaped with HarfBuzz and rasterized with FreeType, springs, shadows, clipping, scrolling, lists that build only the rows in view, overlays, focus, pointer and keyboard input, text fields and multi-line editors for texts of 100 000 lines, images, several windows with drags between them, work off the app's thread, and a GPU renderer that is checked pixel by pixel against a CPU reference.
-- **`kit`**: a theme and components built on `core`: buttons, fields, selects and combo boxes, menus and a menu bar, dialogs, a data grid for a million rows with editing, filters and frozen columns, a tree, tabs that tear off into windows, split panes, a code editor with highlighting, completion and find, a command palette, Markdown, progress, status bar, toolbar and more, in a dark and a light theme.
-- **`examples`**: runnable apps written the way a user of the library writes them.
+- **`core`**: Element tree with flexbox layout, HarfBuzz text shaping and FreeType rendering, spring animations, shadows, clipping, scrolling, virtual lists, overlays, focus, mouse and keyboard input, text fields and code editors (100,000+ lines), images, multi-window drag and drop, background tasks, and GPU/CPU rendering.
+- **`kit`**: Dark and light themes plus ready-made components: buttons, text/number fields, selects, combo boxes, menus, menu bar, dialogs, a data grid for a million rows (with editing, filters, and frozen columns), lazy-loading tree, tear-off tabs, split panes, code editor (syntax highlighting, completion, find), command palette, Markdown viewer, progress indicators, status bar, toolbar, and more.
+- **`examples`**: Complete runnable demo apps.
 
-`core` and `kit` depend on `java.base` only: no AWT, no reflection, native code through the Foreign Function & Memory API.
+`core` and `kit` depend only on `java.base` — no AWT, no Swing, and no reflection. Native libraries are called through Java's Foreign Function & Memory API.
 
 | | |
 | --- | --- |
 | ![The data grid with pending changes and a filter, light theme](examples/src/test/resources/golden/browser-light.png) | ![The Manual example showing a Markdown document](examples/src/test/resources/golden/manual-dark-1x-top.png) |
 
-## A first app
+## Quick example
 
-An app is a state object and a function from that state to a tree of elements. Handlers change the state; the view is built again after each input.
+An app is a plain state object and a view function that returns a tree of elements. Event handlers update the state, and rethinkj UI rebuilds the view automatically.
 
 ```java
 public final class Lights {
 
-  boolean on; // the state: plain fields, changed only by handlers
+  boolean on; // plain Java state, updated only by event handlers
 
   public static void main(String[] args) throws Exception {
     App<Lights> app = new App<>(new Lights(), Lights::view);
     if (Script.handle(args, app)) {
-      return; // --script <file> --out <folder>: no window, images and trees instead
+      return; // --script <file> --out <folder>: run headless and save screenshots + trees
     }
     try (Window window = Window.open("Lights", 360, 240, Window.options());
         GpuPresenter presenter = new GpuPresenter(window)) {
@@ -46,14 +46,14 @@ public final class Lights {
     }
   }
 
-  // The view: a function from the state to a tree of elements, built again after each input.
+  // Rebuilt automatically after each input event.
   static El view(Lights state) {
-    Theme theme = Theme.CURRENT.get(); // the dark theme, unless the app provides another
+    Theme theme = Theme.CURRENT.get(); // dark theme by default
     El lamp = el().key("lamp")
         .size(56, 56)
         .radius(28)
         .fill(state.on ? Colors.rgb(0xFACC15) : theme.surface().raised())
-        .motion(theme.motion().move()); // the color springs to its new value
+        .motion(theme.motion().move()); // smoothly animate color changes
     return col()
         .wFull()
         .hFull()
@@ -65,16 +65,15 @@ public final class Lights {
             .align(Style.Align.CENTER));
   }
 
-  // A handler: a method that changes the state, which the view passes as state::toggleLamp.
   void toggleLamp() {
     on = !on;
   }
 }
 ```
 
-## Driving an app without a window
+## Headless scripting and testing
 
-The same app runs under a script. Each step is one line; `snap` writes a PNG and the element tree as text:
+Run the same app without a window using a script. Each line is one step, and `snap` writes a PNG screenshot and an element tree:
 
 ```text
 size 360 240 scale 2
@@ -96,33 +95,19 @@ el 0,0 360x240
       text "Lamp" 181,148 34x16
 ```
 
-Targets are selectors over roles, labels and states, so a script reads like what a person does. The tree says what an agent would otherwise have to read from pixels: what is checked, selected, focused, disabled or busy. The project's own tests are written this way, and its stored images are the snaps of such scripts.
+Scripts target elements by role, label, and state. The tree dump exposes states like `checked`, `selected`, `focused`, `disabled`, and `busy` as plain text so tests and AI agents can verify UI behavior reliably.
 
-## Building and running the examples
+## Using it in your project
 
-Requires JDK 25 and Maven 3.9 or later. The first build downloads the native libraries and builds some of them from source, which needs a C toolchain; [Platforms and native libraries](https://ui.rethinkj.com/docs/reference/platforms) lists what each platform needs.
+Add the Maven Central Snapshots repository and dependencies under group `com.rethinkj.ui`:
 
-```sh
-mvn verify                                   # build and test everything
-mvn -q -pl examples -am compile exec:exec    # the light switch
-mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
-```
-
-Other examples: `Showcase` (every component of the kit), `DataBrowser` (a million rows, editable), `Documents` (tabs that tear off, file dialogs), `Manual` (Markdown), `Settings`, `ConnectionDialog`, `Notes`.
-
-## Using it in a project
-
-Every push to `main` that builds on Linux and Windows publishes SNAPSHOTs to Maven Central's snapshot repository. There is no release yet: a SNAPSHOT changes with each push to `main`, and Central removes SNAPSHOTs after 90 days. The artifacts share the group `com.rethinkj.ui`:
-
-| Artifact | What it is |
+| Artifact | Purpose |
 | --- | --- |
-| `rethinkj-ui-core` | The framework |
-| `rethinkj-ui-kit` | Theme and components; brings `core` with it |
-| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts, which text in the kit's themes needs |
-| `rethinkj-ui-icons` | Fluent UI System Icons, the default icon font, for icons, the tree and a sorted grid |
-| `rethinkj-ui-natives-windows-x64`, `rethinkj-ui-natives-linux-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for a platform, and on Windows the DirectX Shader Compiler |
-
-Fonts, icons and natives hold no classes, so they are runtime dependencies. A profile per platform, activated by the operating system as in this project's own POMs, picks the natives of the machine that builds:
+| `rethinkj-ui-core` | Core framework |
+| `rethinkj-ui-kit` | Themes and components (includes `core`) |
+| `rethinkj-ui-fonts` | Default fonts (Inter and JetBrains Mono) |
+| `rethinkj-ui-icons` | Default icon font (Fluent UI System Icons) |
+| `rethinkj-ui-natives-windows-x64`, `rethinkj-ui-natives-linux-x64` | Platform native libraries (SDL3, wgpu-native, FreeType, HarfBuzz, plus DXC on Windows) |
 
 ```xml
 <properties>
@@ -190,14 +175,24 @@ Fonts, icons and natives hold no classes, so they are runtime dependencies. A pr
 </profiles>
 ```
 
-An app that ships to both platforms from one build lists both natives JARs without the profiles; each loads only on its own platform. Run with `--enable-native-access=ALL-UNNAMED` on the class path (or `=com.rethinkj.ui` on the module path), as in `java --enable-native-access=ALL-UNNAMED -cp <class path> Lights --script lights.txt --out snaps` for the first app above. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04, where the CI builds them. `core` and `kit` come with a sources JAR, which IDEs pick up.
+Run your app with `--enable-native-access=ALL-UNNAMED` (or `--enable-native-access=com.rethinkj.ui` on the module path). Linux requires glibc 2.38+ (for example, Ubuntu 24.04+). See [Installation](https://ui.rethinkj.com/docs/get-started) for Gradle setup and a complete project template.
+
+## Building and running the examples
+
+Requires JDK 25, Maven 3.9+, and a C/C++ toolchain on the first build (see [Platforms and native libraries](https://ui.rethinkj.com/docs/reference/platforms#what-a-build-needs)).
+
+```sh
+mvn verify                                                     # build and run tests
+mvn -q -pl examples -am compile exec:exec                      # run LightSwitch
+mvn -q -pl examples -am compile exec:exec -Dexample=Workbench  # run Workbench
+```
+
+Other examples: `Showcase`, `DataBrowser`, `Documents`, `Manual`, `Settings`, `ConnectionDialog`, and `Notes`.
 
 ## Documentation
 
-**[ui.rethinkj.com](https://ui.rethinkj.com)** is the documentation for users of the library: getting started, concepts, a page per component, and how to drive an app without a window. Every page is also Markdown for agents: [llms.txt](https://ui.rethinkj.com/llms.txt) lists them, and [llms-full.txt](https://ui.rethinkj.com/llms-full.txt) holds them all. Its source is in [`docs/`](docs).
-
-[AGENTS.md](AGENTS.md) holds the rules for working on the framework itself. Changes since the last release are under [`changelog/unreleased`](changelog/unreleased).
+Full documentation is at **[ui.rethinkj.com](https://ui.rethinkj.com)** (also available as Markdown for AI agents via [llms.txt](https://ui.rethinkj.com/llms.txt) and [llms-full.txt](https://ui.rethinkj.com/llms-full.txt)).
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The fonts, the icon font and the native libraries come under their own licenses, which their modules include.
+MIT — see [LICENSE](LICENSE). Bundled fonts, icons, and native libraries include their own licenses in their modules.

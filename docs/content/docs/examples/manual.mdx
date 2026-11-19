@@ -1,11 +1,17 @@
 ---
 title: Manual
-description: A reader of Markdown documents, with the headings of the chosen one and images read off the app's thread.
+description: A Markdown document reader with sidebar outline navigation and asynchronous image loading.
 ---
 
-Manual reads Markdown documents: a navigation list of documents with the headings of the chosen one, and the document in a card. Its own manual shows every form the kit's [Markdown](/docs/components/markdown) supports; Markdown files given as arguments open too.
+Manual is a Markdown document viewer with a sidebar listing documents and headings on the left, and the formatted document inside a card on the right. It displays every Markdown feature supported by [Markdown](/docs/components/markdown) and can also open local Markdown files passed as command-line arguments.
+
+**Demonstrates:** [Markdown](/docs/components/markdown), [NavList](/docs/components/nav-list), [Images](/docs/concepts/images), and [Background work](/docs/concepts/background-work).
 
 <Shot src="examples/manual-{theme}-2x-top" alt="The Manual: a list of documents and headings beside a Markdown document" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
@@ -13,31 +19,31 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
 
 ## What to try
 
-- Choose a heading under "On this page": the document scrolls there.
-- Press a link: one to a heading scrolls there, any other shows its address in a toast.
-- Control+A in the document selects all of it, Control+C copies it.
+- Click any heading under **On this page** to scroll directly to that section.
+- Click a link: heading links scroll smoothly to the target, while external links display their URL in a toast.
+- Press **Ctrl+A** to select the document and **Ctrl+C** to copy it.
 
 ## How it works
 
-### The document
+### Rendering Markdown
 
-Each document is parsed once with `Markdown.parse`. The view shows it with options: what a link does, the clipboard to copy to, the selection, and where its images come from.
+Each document is parsed once with `Markdown.parse`. The view renders it with options for link clicks, clipboard support, text selection, and image lookup:
 
 ```java snippet="manual-markdown"
 ```
 
-### Images read in the background
+### Loading images in the background
 
-`image` returns the image for an address, or null while it is not there yet; until then the document shows a placeholder. The first call reads the image with `App.background`, and the view is built again when it has arrived ([Images](/docs/concepts/images)).
+`image` returns the loaded image for a URL or `null` while it is still loading (displaying a placeholder in the meantime). On the first request, it loads the image using `App.background` and rebuilds the view once ready ([Images](/docs/concepts/images)).
 
 ```java snippet="manual-images"
 ```
 
-### Links and headings
+### Scrolling to headings
 
-A link to `#id` scrolls the document to that heading: `Markdown.rowOf` finds the heading's block, and `App.scrollToRow` brings it to the top of the document's list.
+Clicking a `#id` link finds the heading's block index with `Markdown.rowOf` and scrolls it to the top using `App.scrollToRow`:
 
 ```java snippet="manual-links"
 ```
 
-The whole app is in [`Manual.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Manual.java).
+Full source: [`Manual.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Manual.java).

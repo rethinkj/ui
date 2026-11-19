@@ -1,34 +1,34 @@
 ---
 title: Stored images as tests
-description: JUnit tests that run a script and compare its images and trees with stored ones.
+description: Write JUnit tests that run headless scripts and compare screenshots and element trees against stored golden files.
 ---
 
-A view test runs a script against the app and compares what each `snap` wrote with files stored in your repository: images pixel for pixel, trees line by line. After a deliberate change, the test stores the new files instead, and you look at them before committing.
+You can test your views in JUnit by running a script and comparing each `snap` against stored reference ("golden") files in your repository — images pixel by pixel, and trees line by line. When you intentionally change a view, regenerate the stored files and review them before committing.
 
-## A test
+## Example JUnit test
 
 ```java snippet="stored-images" title="StoredImagesTest.java"
 ```
 
-- `app.textRendering(TextRendering.LINUX)` fixes the text rendering, so the images are the same on Windows and Linux. The system property `rethinkj.ui.textRendering` (`linux` or `windows`) does the same for a whole test run, for example in Surefire's `systemPropertyVariables`.
-- `Script.run` returns the files it wrote, `.png` and `.tree.txt` for each snap, and `.clipboard.txt` when the `main` window's clipboard holds text.
-- `Png.decode` reads a PNG into `Pixels` without `java.desktop`.
-- Run it with `-Dgolden.update=true` to store new snaps, then look at the images and the tree diff before you commit.
+- `app.textRendering(TextRendering.LINUX)` ensures identical text rendering on both Windows and Linux. You can also set the system property `rethinkj.ui.textRendering=linux` (or `windows`) globally for a test run, for example in Maven Surefire.
+- `Script.run` returns the generated files (`.png`, `.tree.txt`, and `.clipboard.txt` when clipboard text exists).
+- `Png.decode` loads a PNG into `Pixels` without needing `java.desktop`.
+- Pass `-Dgolden.update=true` to overwrite stored files after intentional UI changes, then inspect the updated images and tree diffs before committing.
 
-The tests need the native libraries for text. Where they cannot load, skip the test with an assumption:
+Because text rendering requires the native libraries, skip image tests cleanly when natives are unavailable:
 
 ```java snippet="assume-text"
 ```
 
-## A view without an app
+## Testing a single static view
 
-For a view that needs no input, `Headless.render` lays out and draws a tree of elements and returns the pixels and the tree as text:
+If a view needs no interaction, use `Headless.render` to lay out and render an `El` tree directly into pixels and a tree string:
 
 ```java snippet="headless"
 ```
 
-## What to compare
+## What to test
 
-- **Trees** are cheap to store, read well in a diff and say what matters: roles, labels, states, rectangles. Compare them in every test.
-- **Images** catch what trees do not: colors, clipping, text rendering. Store a few per view, at scale 2 where text matters, and in both themes where colors matter.
-- Assert the states the test is about directly, so a failure says what is wrong: that the line with `role=switch label="Lamp"` has the state `checked`.
+- **Element trees:** Fast, tiny in Git, and easy to read in diffs. Compare trees in every UI test.
+- **Screenshots:** Catch visual issues that trees cannot see (colors, alignment, clipping, text rendering). Store a few key screenshots per view (use `scale 2` for sharp text, and both themes when testing colors).
+- **Direct assertions:** Assert key states directly (for example, check that `role=switch label="Lamp"` has `checked`) so test failures immediately explain what broke.

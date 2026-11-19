@@ -1,14 +1,14 @@
 ---
 title: Overlays
-description: Elements above everything else, anchored to an element, a point, the caret or the window, for menus, tooltips and dialogs.
+description: Display floating menus, tooltips, popovers, and modal dialogs above the main UI tree.
 ---
 
-A menu, tooltip, dropdown or dialog lies above everything else and is not clipped by its anchor's scroll area. The view declares it on the element it belongs to, [`anchor.overlay(menu)`](/api/com/rethinkj/ui/El.html#overlay(com.rethinkj.ui.El)), and the state says whether it is open: `button.overlay(state.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
+Overlays float above all other elements and are not clipped by parent scroll containers. Attach an overlay to its anchor element with [`anchor.overlay(menu)`](/api/com/rethinkj/ui/El.html#overlay(com.rethinkj.ui.El)) — passing `null` closes it (`button.overlay(state.open ? menu : null)`).
+
+Kit components like [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover), and [Toast](/docs/components/toast) use overlays internally. Use this API when building custom floating UI.
 
 ```java snippet="overlay"
 ```
-
-The handlers open and close the menu by changing the state:
 
 ```java snippet="overlay-handlers"
 ```
@@ -17,33 +17,33 @@ The handlers open and close the menu by changing the state:
 
 ## Placement
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `side(Side, Style.Align, gap)` | Beside the anchor: `BOTTOM` (default), `TOP`, `LEFT`, `RIGHT`, aligned `START`, `CENTER`, `END` or `STRETCH` |
-| `atPoint(x, y)` | At a point of the window, as a context menu at the pointer |
-| `atCaret()` | At the caret of the anchor, a text field, as completions |
-| `centerInWindow()` | In the middle, as a dialog |
-| `atWindowEdge(side, align, gap)` | Against an edge of the window, as a toast |
+| `side(Side, Style.Align, gap)` | Places next to the anchor: `BOTTOM` (default), `TOP`, `LEFT`, `RIGHT`, aligned `START`, `CENTER`, `END`, or `STRETCH` |
+| `atPoint(x, y)` | Places at window coordinates (for context menus) |
+| `atCaret()` | Places at the anchor text field's cursor (for autocomplete popups) |
+| `centerInWindow()` | Centers in the window (for dialogs) |
+| `atWindowEdge(side, align, gap)` | Places along a window edge (for toasts) |
 
-An overlay is at most as large as the window minus its margins, and one at the window's edge also minus its gap from that edge, so `margin(16)` keeps a dialog 16 pixels from the window's edges; if it has a scroll area that can shrink, that area scrolls. Where it does not fit, it flips to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is out of view.
+Overlays are automatically constrained to fit inside the window (respecting margins and edge gaps). If an anchored overlay does not fit on its preferred side, it flips to the opposite side and shifts into view. It also follows its anchor during scrolling and hides temporarily if the anchor scrolls out of view.
 
 ## Behavior
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `onDismiss(handler)` | A press outside, or the wheel outside a non-modal overlay. Non-modal overlays without one let presses outside them through. |
-| `modal()` | Input outside reaches nothing; Tab stays inside |
-| `scrim(argb)` | A color over the window below it |
-| `keepFocus()` | Opens without taking the focus, as a toast |
-| `inert()` | Only shows, as a tooltip: presses inside it and the pointer go to what lies beneath, and Tab passes what is inside by |
-| `dismissGroup(group)` | Presses on elements of the same group do not dismiss it: a menu bar's titles |
-| `onShownFor(seconds, handler)` | Runs once it has been open that long: a toast closes itself |
+| `onDismiss(handler)` | Called when clicking outside (or scrolling outside a non-modal overlay). Non-modal overlays without `onDismiss` pass outside clicks through |
+| `modal()` | Blocks input outside the overlay and traps Tab navigation inside |
+| `scrim(argb)` | Draws a dimmed backdrop behind the overlay |
+| `keepFocus()` | Opens without stealing keyboard focus (for toasts) |
+| `inert()` | Display-only overlay (for tooltips): ignores clicks and Tab navigation |
+| `dismissGroup(group)` | Prevents clicks on elements in the same group from dismissing this overlay (used by menu bars) |
+| `onShownFor(seconds, handler)` | Runs once after being visible for the specified duration (for auto-dismissing toasts) |
 
-An overlay moves the focus to its first focusable element when it opens, and back when it closes. Keys go from the focused element up to the overlay's root and then to its anchor, so the owner of a menu sees Escape. In a `modal()` overlay they end at its root: handle Escape there. Escape closes nothing by itself: handle it in `onKey` and change the state.
+**Focus and keyboard:** Opening an overlay focuses its first focusable element, and closing it restores previous focus. Unhandled keys bubble from the overlay to its anchor (unless `modal()` is set, which stops bubbling at the overlay root). Pressing **Escape** does not close an overlay automatically — handle `Escape` in `onKey` to update your state.
 
 ## In a tree dump
 
-Overlays follow the tree, each under a line that says where it is placed and what its anchor is:
+Overlays appear after the main tree with their placement and anchor:
 
 ```text file="examples/src/test/resources/golden/docs/overlay/open.tree.txt" start="overlay"
 ```

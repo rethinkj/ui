@@ -1,9 +1,11 @@
 ---
 title: Dialog
-description: A modal dialog in the middle of the window over a scrim, with a title, content and buttons.
+description: Centered modal dialog over a dimmed backdrop with title, scrollable content, and action buttons.
 ---
 
-`Dialog.dialog` is a modal overlay in the middle of the window: a title, the content and buttons at the bottom right, over a scrim that dims the rest. It takes the focus as it opens, keeps it inside, and gives it back when it closes. Use it to ask before something that cannot be undone, or for a short form. For something light that need not block the window, use a [Popover](/docs/components/popover); for a message that goes by itself, a [Toast](/docs/components/toast).
+`Dialog.dialog` displays a centered modal overlay over a dimmed backdrop (scrim). It traps keyboard focus inside while open and restores previous focus when closed. Use it for confirmations and short forms.
+
+For lightweight non-blocking overlays, use [Popover](/docs/components/popover). For brief status messages, use [Toast](/docs/components/toast).
 
 Javadoc: [`Dialog`](/api/com/rethinkj/ui/kit/Dialog.html), [`Dialog.Options`](/api/com/rethinkj/ui/kit/Dialog.Options.html).
 
@@ -14,58 +16,56 @@ Javadoc: [`Dialog`](/api/com/rethinkj/ui/kit/Dialog.html), [`Dialog.Options`](/a
 ```java snippet="dialog"
 ```
 
-`state.renaming` is a boolean and `state.name` and `state.newName` are strings, all in the app's state. Whether the dialog is open is the app's state: the root attaches it with `root.overlay(open ? dialog : null)`.
+Control visibility from your state by attaching `root.overlay(open ? dialog : null)`.
 
-| Parameter | |
+| Parameter | Description |
 | --- | --- |
-| `title` | The heading, and the dialog's label |
-| `content` | Any element |
-| `buttons` | Shown at the bottom right, in order; an empty list leaves the row out, unless the options give its `start(...)` |
-| `defaultButton` | One of `buttons`, which Enter presses while it is enabled (in the form with this parameter) |
-| `onDismiss` | Called on Escape and on a press on the scrim: cancel |
+| `title` | Dialog heading and accessibility label |
+| `content` | Body element (set its width, e.g. `.w(320)`, to size the dialog) |
+| `buttons` | Bottom-right action buttons (omitted if empty and no `start(...)` items exist) |
+| `defaultButton` | Button triggered when pressing **Enter** in a single-line field (while enabled) |
+| `onDismiss` | Handler called on **Escape** or clicking the backdrop |
 
-Enter without modifiers presses the default button from a field of the dialog. A focused button, checkbox or select presses itself, and a multi-line field keeps Enter for its line breaks. `Dialog.enterPresses(button)` is that key handler alone, for a window that is a dialog itself.
+Use `Dialog.enterPresses(button)` if you want the same Enter-to-submit behavior in a standalone dialog window.
 
-The dialog's key is `dialog`. A second dialog open at the same time, such as a question over a dialog, needs a key of its own: chain `.key("discard")` onto it. It then lies over the first with a scrim of its own. Without its own key, building the view throws, as for any two siblings with one key.
+**Stacked dialogs:** By default, a dialog uses key `"dialog"`. If you open a second dialog on top of another (for example, a "Discard changes?" prompt), chain a unique `.key("discard")` on the second dialog.
 
-A frameless window's own title bar stays usable under a dialog. Closing the window closes the dialog without calling `onDismiss`.
+Custom frameless title bars remain usable behind a dialog so users can still move or close the window.
 
 ## Options
 
-`Dialog.dialog(title, content, buttons, onDismiss, Dialog.options()…)` adds a mark of what the dialog edits before the title, a badge or a close button at the end of the head, and a secondary action or a status at the start of the button row.
+Pass `Dialog.options()` to add a leading badge/icon, trailing header actions (like a close button), or left-aligned footer buttons:
 
 <Shot src="kit/dialog-head-{theme}-2x" alt="A dialog with a red color mark before its title, a Read only badge and a close button at the head's end, and Test connection at the left of Cancel and Save" />
 
 ```java snippet="dialog-options"
 ```
 
-| Option | |
+| Option | Description |
 | --- | --- |
-| `leading(El)` | Before the title, centered on its line |
-| `trailing(El...)` | At the end of the head. The title gives way and ends in an ellipsis, with the whole title in a tooltip |
-| `start(El...)` | At the start of the button row, with the buttons at its end |
-| `defaultButton(El)` | One of `buttons`, which Enter presses, as the parameter of the other form |
+| `leading(El)` | Element placed before the title |
+| `trailing(El...)` | Elements at the right end of the header (long titles truncate with a tooltip) |
+| `start(El...)` | Left-aligned elements in the button row |
+| `defaultButton(El)` | Sets the default Enter-key button |
 
-A dialog is as wide as its content, title and button row ask for, up to the window's width less a margin. Size it by sizing the content, such as `field.w(320)`. It opens with the focus in the first field of its content; a close button in the head is the last Tab stop.
+## Tall content
 
-## Higher than the window
-
-Where the content does not fit in the window, it scrolls between the head and the buttons, which stay in view; content wider than the window scrolls sideways. The wheel scrolls the content, and Tab scrolls a focused field into view.
+If the dialog content is taller than the window, the body scrolls automatically while the header and button row stay pinned:
 
 <Shot src="kit/dialog-scroll-{theme}-2x-bottom" alt="A dialog of twelve fields scrolled to its last field, which is focused with its ring whole above the buttons, a scrollbar at the right" />
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Tab, Shift+Tab | Go around inside the dialog |
-| Enter | Press the default button |
-| Escape | `onDismiss` |
-| Page Up, Page Down | Scroll content higher than the window, while the focus is on something that does not take these keys, such as a button |
+| Tab, Shift+Tab | Cycle focus inside the dialog |
+| Enter | Click `defaultButton` (from single-line fields) |
+| Escape | Call `onDismiss` |
+| Page Up, Page Down | Scroll overflowing dialog content |
 
 ## In a tree dump
 
-The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label. Its content lies in the scroll area `#dialog-content`, which a script's `wheel` and a dump's `scroll` and `thumb-y` name. The head follows after the buttons; its title is `role=heading` with `level=2` and the title as label:
+Overlay `center modal scrim` with `role=dialog` and title as `label`. Scrollable body is `#dialog-content`, and the title is `role=heading level=2`:
 
 ```text snippet="dialog-script"
 ```

@@ -1,9 +1,9 @@
 ---
 title: Split
-description: Two parts side by side or one above the other, with a line the user drags.
+description: Resizable two-pane container split horizontally or vertically with a draggable divider.
 ---
 
-`Split.split` puts two parts beside each other (`Direction.ROW`) or one above the other (`COLUMN`), with a line between them that the pointer and the keyboard move. `Split.cards` does the same for two cards on the window's background, with the line in the gap between them. Use it for a sidebar beside an editor, or an editor over its results.
+`Split.split` arranges two panes side by side (`Direction.ROW`) or stacked vertically (`Direction.COLUMN`) with a draggable divider between them. `Split.cards` does the same for two cards on the window background, placing the resize handle in the gap between them. Splits can be nested freely.
 
 Javadoc: [`Split`](/api/com/rethinkj/ui/kit/Split.html).
 
@@ -14,34 +14,24 @@ Javadoc: [`Split`](/api/com/rethinkj/ui/kit/Split.html).
 ```java snippet="split"
 ```
 
-`state.sidebar` is a `Split.Position` in the app's state; `tree` and `editor` are the two parts.
+Store a `Split.Position` in your app state and pass `Split.cards(direction, position, reset, onMove, first, minFirst, second, minSecond)` (or `Split.split(...)`):
 
-`Split.cards(direction, position, reset, onMove, first, minFirst, second, minSecond)`, and the same for `Split.split`:
-
-| Parameter | |
+| Parameter | Description |
 | --- | --- |
-| `position` | Where the line is, a `Split.Position` the app keeps |
-| `reset` | Where a double press on the line puts it; null for nowhere |
-| `onMove` | Told a new position while the line is dragged or moved by keys; null fixes the line, which then takes no pointer and no focus |
-| `minFirst`, `minSecond` | The smallest sizes of the parts. They hold when the split is smaller, without changing the position |
+| `position` | Current divider position (`Position.first(px)`, `Position.second(px)`, or `Position.share(fraction)`) |
+| `reset` | Position restored when double-clicking the divider (or `null`) |
+| `onMove` | Handler receiving the updated `Position` (`null` locks the divider) |
+| `minFirst`, `minSecond` | Minimum pixel sizes for each pane |
 
-The kind of position says what stays when the split grows:
-
-| Position | |
-| --- | --- |
-| `Position.first(pixels)` | The first part keeps its size, as a side panel |
-| `Position.second(pixels)` | The second part keeps its size |
-| `Position.share(fraction)` | The first part keeps its share, as an editor over its results |
-
-A list or a tree in a part scrolls inside it, since the part takes no minimum size from what it holds. Splits nest.
+Choosing the right `Position` controls resize behavior: `first(px)` keeps the left/top pane fixed (good for sidebars), `second(px)` keeps the right/bottom pane fixed, and `share(fraction)` keeps a proportional split.
 
 ## Keyboard
 
-The line is one stop for Tab, after the second part. The arrow keys along the split move it by the theme's `size().step()`. A press or drag on it leaves the focus in the part that has it.
+The divider is one Tab stop (after the second pane). **Arrow keys** along the split direction move it by `theme.size().step()`.
 
 ## In a tree dump
 
-The line is `role=separator`, labeled `Resize` and the first part's label, with its position as `value`:
+The divider is `role=separator` labeled `"Resize <first label>"` with its position as `value`:
 
 ```text file="examples/src/test/resources/golden/docs/split/view.tree.txt" start="#divider" count="1"
 ```

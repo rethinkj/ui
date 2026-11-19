@@ -1,9 +1,9 @@
 ---
 title: Select
-description: A button showing the current choice that opens a menu of a few choices.
+description: Dropdown button that opens a menu for picking one option from a short list.
 ---
 
-`Select.select` is a button with the current choice and a chevron. A press opens a [Menu](/docs/components/menu) of the choices below it, with the current one checked. Use it for a few choices that one reads, such as a driver, an encoding or an isolation level. For more than a screenful, or where the user knows what to type, use a [ComboBox](/docs/components/combo-box). For two or three choices always in view, use [Radio](/docs/components/radio) or [Segmented](/docs/components/segmented).
+`Select.select` displays the current choice in a button that opens a [Menu](/docs/components/menu) of options below it. Use it for short lists (such as driver, encoding, or isolation level). For large or searchable lists, use [ComboBox](/docs/components/combo-box). For 2–3 always-visible options, use [Radio](/docs/components/radio) or [Segmented](/docs/components/segmented).
 
 Javadoc: [`Select`](/api/com/rethinkj/ui/kit/Select.html).
 
@@ -14,13 +14,11 @@ Javadoc: [`Select`](/api/com/rethinkj/ui/kit/Select.html).
 ```java snippet="select"
 ```
 
-`state.driver` is the index of the current choice and `state.driverMenu` a `Menu.State`, both in the app's state.
-
-`Select.select(choices, selected, menuState, onSelect)` takes the choices as texts, the index of the current one, the `Menu.State` and a handler that gets the new index. A null handler disables it. It has the width and frame of a text field. A long choice ends in an ellipsis; the control's label keeps the whole text.
+Store the selected index and a `Menu.State` in your app state. Call `Select.select(choices, selected, menuState, onSelect)` (`null` handler disables it).
 
 ## Values instead of indexes
 
-`Select.select(values, selected, text, menuState, onSelect)` chooses among values of any type, such as an enum's constants or records. The function `text` gives each value its text:
+Use `Select.select(values, selected, text, menuState, onSelect)` to pick typed objects (such as enums or records) instead of integer indexes:
 
 ```java snippet="choice-types"
 ```
@@ -28,32 +26,26 @@ Javadoc: [`Select`](/api/com/rethinkj/ui/kit/Select.html).
 ```java snippet="select-typed"
 ```
 
-These rules hold for every component that chooses among values: Select, [ComboBox](/docs/components/combo-box), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) and [NavList](/docs/components/nav-list).
-
-- The selected value is found with `equals`. Null is a value like any other when the list contains it.
-- A value that is not in the list, or null when the list has no null, selects nothing.
-- Equal values show once, and the arrow keys go from the selected value to the next one that differs.
-- The handler gets the value. A null handler disables the component.
-- For an enum, pass `List.of(E.values())`.
-
-The tree dump is the same as with indexes.
+These rules apply across `Select`, [ComboBox](/docs/components/combo-box), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented), and [NavList](/docs/components/nav-list):
+- Matching uses `equals` (`null` is allowed if present in `values`).
+- Values not in `values` leave nothing selected.
+- For enums, pass `List.of(MyEnum.values())`.
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Enter, Space, Alt+Down, Alt+Up | Open; in the menu, the menu's keys apply |
-| Down, Up (closed) | Choose the next or the previous choice |
-| Home, End (closed) | Choose the first or the last |
-| A letter or digit (closed) | Choose the next choice that starts with it |
+| Enter, Space, Alt+Down, Alt+Up | Open dropdown menu |
+| Down, Up, Home, End (while closed) | Change selection directly |
+| Typing a letter/digit (while closed) | Jump to next matching option |
 
 ## With a Prop
 
-`select(values, prop, text, menuState)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`select(values, prop, text, menuState)` binds directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=combobox` with the choice as text and `expanded` or `expanded=false`. Its label is the current choice, unless the view gives one with `.label(...)`:
+`role=combobox` with `expanded` or `expanded=false` (labeled by `.label(...)` or the current choice):
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Driver\"" count="2"
 ```

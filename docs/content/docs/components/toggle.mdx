@@ -1,9 +1,9 @@
 ---
 title: Toggle
-description: A switch for a setting that applies at once, with its text beside it.
+description: On/off switch with label for settings that take effect immediately.
 ---
 
-`Toggle.toggle` is a switch and its text in a row; a press anywhere on the row flips it. Use it for settings that take effect at once, such as Autocommit. For a choice that applies only when a form is saved, a [Checkbox](/docs/components/checkbox) reads better. For a switch in a settings list, use `Group.switchRow` ([Group](/docs/components/group)).
+`Toggle.toggle` renders an on/off switch and label in a row; clicking anywhere on the row toggles it. Use toggles for settings that apply immediately (such as Autocommit). For form options applied on Save, use [Checkbox](/docs/components/checkbox). For full-width settings rows, use `Group.switchRow` ([Group](/docs/components/group)).
 
 Javadoc: [`Toggle`](/api/com/rethinkj/ui/kit/Toggle.html).
 
@@ -14,24 +14,24 @@ Javadoc: [`Toggle`](/api/com/rethinkj/ui/kit/Toggle.html).
 ```java snippet="toggle"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `toggle(on, text, onToggle)` | The switch and its text |
-| `toggle(on, onToggle)` | The switch alone; give it a `.label(...)` |
+| `toggle(on, text, onToggle)` | Switch with label |
+| `toggle(on, onToggle)` | Switch alone (add `.label(...)` for accessibility and scripts) |
 
-A null handler disables it. The row is as wide as the switch and its text, and so are its press area and focus ring.
+Passing a `null` handler disables the toggle.
 
 ## Keyboard
 
-Tab reaches it; Space and Enter flip it. A press leaves the focus where it was.
+**Tab** focuses the toggle; **Space** and **Enter** flip it. Clicking with the mouse keeps keyboard focus where it was.
 
 ## With a Prop
 
-`toggle(prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
+`toggle(prop, text)` binds directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 
-`role=switch` with the text as label, `checked` when on and `checked=false` when off:
+`role=switch` with the text as `label`, and `checked` or `checked=false`:
 
 ```text file="examples/src/test/resources/golden/docs/toggles/view.tree.txt" start="role=switch" count="1"
 ```

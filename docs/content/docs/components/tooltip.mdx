@@ -1,9 +1,11 @@
 ---
 title: Tooltip
-description: A short text, or any content, below an element after the pointer rests on it, or the keyboard focuses it.
+description: Hover and keyboard-focus tooltips for text, shortcuts, errors, truncated text, or custom content.
 ---
 
-`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second). It hides when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Once one tooltip has shown, the next anchor the pointer reaches within that delay shows its own at once, as along a toolbar; a press ends that. Use it to name icon buttons and to show text that is cut off. It holds no state, and it takes no input: for content that the user interacts with, use a [Popover](/docs/components/popover).
+`Tooltip.tooltip` displays a floating hint when the user hovers over an element (after a short delay) or focuses it via keyboard. Moving quickly between adjacent tooltipped items (such as toolbar buttons) shows subsequent tooltips immediately.
+
+Tooltips are display-only and take no input. For interactive floating content, use [Popover](/docs/components/popover).
 
 Javadoc: [`Tooltip`](/api/com/rethinkj/ui/kit/Tooltip.html).
 
@@ -11,53 +13,45 @@ Javadoc: [`Tooltip`](/api/com/rethinkj/ui/kit/Tooltip.html).
 
 ## Example
 
-`Tooltip.tooltip(anchor, text)` returns the anchor. `Tooltip.options()` adds the key combination of the anchor's action on keycaps, a muted description below the text, and another side to show on. Text wraps where it would be wider than `Theme.Sizes.tooltip`.
+`Tooltip.tooltip(anchor, text)` attaches a tooltip and returns `anchor`. Use `Tooltip.options()` to add shortcut keycaps, a muted description, or a custom placement side:
 
 ```java snippet="tooltip"
 ```
 
 <Shot src="examples/docs/tooltip/shown-{theme}" alt="A tooltip below a Refresh button: Refresh the schema with the key F5 on a keycap, and a description below" />
 
-Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label, and a button's `shortcut` option shows on keycaps in it.
+`Button.icon` automatically attaches a tooltip from its label (and `Button.options().shortcut(...)` shows shortcut keycaps in it).
 
-## Errors and warnings
+## Error and warning tooltips
 
-`kind` gives the tooltip the icon and the tint of a [Callout](/docs/components/callout) of that kind, for an error at a field:
+Set `kind` in `Tooltip.options()` to style the tooltip with a [Callout](/docs/components/callout) icon and tint (for example, field validation errors):
 
 ```java snippet="tooltip-kind"
 ```
 
 <Shot src="examples/docs/tooltip-kind/shown-{theme}" alt="A field with an invalid pattern and a tooltip below it on a red tint with an error icon: Unclosed group near index 6" />
 
-The kit's find bar and the code editor's diagnostics show their errors this way.
+## Custom content
 
-## Any content
-
-`Tooltip.tooltip(anchor, content)` takes a supplier of any element in place of the text, such as a short [Markdown](/docs/components/markdown) document of what an update brings. It is called once the tooltip is due and for each frame it shows; null shows none. Give the content its size:
+Pass a supplier `Tooltip.tooltip(anchor, () -> element)` to render rich non-interactive content (such as a short [Markdown](/docs/components/markdown) preview). Give the content an explicit size:
 
 ```java snippet="tooltip-content"
 ```
 
 <Shot src="examples/docs/tooltip-content/shown-{theme}" alt="An update icon button with a tooltip below it that shows a Markdown document: a heading Version 2.4 and three items" />
 
-A tooltip takes no input (`El.inert()`): presses go to what lies beneath it, Tab passes its links by, and it goes as the pointer leaves the anchor. Content longer than the size it is given is cut off, so keep it short, such as the newest version only; what is to be scrolled or pressed belongs in a [Popover](/docs/components/popover).
+## Show only when truncated
 
-## Only where the text is cut
+`Tooltip.whenShortened(anchor, text)` displays a tooltip only when text inside `anchor` is actually truncated with `…` (`El.ellipsis()`). Built-in buttons, tabs, and data grid cells use this automatically.
 
-`Tooltip.whenShortened(anchor, text)` shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it does not fit (`El.ellipsis()`): the whole name of a column, a tab or a button in a narrow window. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor replaces it.
+## In a script and tree dump
 
-For a panel of your own, `El.whenShortened()` on an overlay shows it only while a text of its anchor is shortened. `Text.shortened()` says whether one text element was shortened, after layout ([Text](/docs/concepts/text)).
-
-## In a script
-
-Presses do not move the pointer, so a script moves onto the anchor and advances the clock:
+In headless scripts, hover with `move` and advance the clock past the hover delay:
 
 ```text file="examples/src/test/resources/docs/tooltip.txt"
 ```
 
-## In a tree dump
-
-An overlay below the anchor, `role=tooltip` with the text as label:
+Appears as an overlay with `role=tooltip` and its text as `label`:
 
 ```text file="examples/src/test/resources/golden/docs/tooltip/shown.tree.txt" start="overlay"
 ```

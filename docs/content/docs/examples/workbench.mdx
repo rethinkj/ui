@@ -1,11 +1,17 @@
 ---
 title: Workbench
-description: The frame of a database manager over made-up servers that answer slowly.
+description: A database manager demo with a lazy-loading tree, tear-off tabs, SQL editor with completions, and a million-row data grid.
 ---
 
-The Workbench is the frame of a database manager: servers, databases, schemas, tables and columns in a tree beside a tab per opened table, each a query editor over the table's rows in a data grid. The servers are made up and answer slowly, on other threads, so it shows how an app stays responsive.
+Workbench is a database manager demo using mock servers that respond slowly on background threads. It shows how to keep a complex desktop app responsive while loading data.
+
+**Demonstrates:** [Tree](/docs/components/tree), [TabGroups](/docs/components/tab-groups), [CodeEditor](/docs/components/code-editor), [Completion](/docs/components/completion), [DataGrid](/docs/components/data-grid), [CommandPalette](/docs/components/command-palette), and [Background work](/docs/concepts/background-work).
 
 <Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench: a tree of connections, a query editor and a result grid in cards" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
@@ -13,64 +19,64 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 
 ## What to try
 
-- Open `staging` in the tree: it connects on another thread while the tree shows a spinner; `prod-eu` refuses, and the status line says why.
-- Double-press a table, or press Enter on it, to open it in a tab. `localhost/shop/public/orders` has a million rows.
-- Type in the query: completions offer the tab's columns, then tables, then keywords. Control+Enter runs it; a table that does not exist is underlined.
-- Control+Shift+P opens the command palette; `@` finds tables, `:` goes to a line.
-- Drag a tab out of the bar: it gets a window of its own. Drag it back to dock it.
+- Expand `staging` in the tree: it connects in the background with a loading spinner. `prod-eu` fails to connect and shows the reason in the status bar.
+- Double-click a table (or press Enter) to open it in a tab. `localhost/shop/public/orders` loads one million rows.
+- Type inside the SQL editor: autocomplete suggests columns, tables, and SQL keywords. Press **Ctrl+Enter** to run the query. Unknown table names are underlined as errors.
+- Press **Ctrl+Shift+P** to open the command palette (`@` searches tables, `:` jumps to a line).
+- Drag a tab outside the window to tear it off into its own window, then drag it back to dock it.
 
 <Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
 
 ## How it works
 
-### The tree over the app's own nodes
+### Lazy-loading tree
 
-The app state implements `Tree.Model` over its `Node`s. A server's `children` are null until it has connected, so the model returns `Tree.loading("Connecting…")` and the tree shows a row with a spinner and that text below it.
+The app state implements `Tree.Model` over its `Node` objects. While a server's `children` are `null`, the model returns `Tree.loading("Connecting…")` so the tree displays a spinner row below it.
 
 ```java snippet="workbench-model"
 ```
 
-The view passes the model and `Tree.Options` with the open nodes, the selection and the handlers ([Tree](/docs/components/tree)):
+The view passes the model and `Tree.Options` (expanded nodes, selection, and handlers) to [Tree](/docs/components/tree):
 
 ```java snippet="workbench-tree"
 ```
 
 ### Connecting in the background
 
-Opening a server asks for its databases with `App.background`. The work runs on another thread; the two handlers run on the app's thread and change the state, which builds the view again ([Background work](/docs/concepts/background-work)).
+Expanding a server calls `App.background` to load its databases on a worker thread. The success and error callbacks run on the app thread, update the state, and rebuild the view automatically ([Background work](/docs/concepts/background-work)).
 
 ```java snippet="workbench-connect"
 ```
 
-Asking a table for its rows works the same way. Closing the tab or running the query again cancels the `Work` that `App.background` returned.
+Loading table rows works the same way. Closing the tab or re-running the query cancels the previous `Work` handle.
 
-### The query editor and its completions
+### SQL editor and autocomplete
 
-Each tab's query is a [CodeEditor](/docs/components/code-editor) with SQL highlighting. Control+Enter runs the query before the editor's own keys; `Completion.complete` adds the completion list ([Completion](/docs/components/completion)).
+Each tab uses a [CodeEditor](/docs/components/code-editor) with SQL syntax highlighting. `Ctrl+Enter` runs the query before the editor handles other keys, and `Completion.complete` attaches the autocomplete popup ([Completion](/docs/components/completion)).
 
 ```java snippet="workbench-editor"
 ```
 
-The editor's two handlers are methods of the app: an edit keeps the query and takes the message of the last failure away, and Control+Enter runs it. The underline of that failure is a diagnostic about the statement that ran, so the editor drops it by itself once the text changes, and ▶ in the gutter runs the statement too.
+The editor uses two state methods as handlers: editing updates the query and clears the previous error message, and `Ctrl+Enter` runs the query. Error underlines are attached as diagnostics and automatically clear when the text changes. Clicking ▶ in the gutter also runs the query.
 
 ```java snippet="workbench-editor-handlers"
 ```
 
-`suggest` returns the entries for the start of a word: the tab's columns, then the tables and columns of the connected servers, then SQL keywords, each name once.
+`suggest` returns autocomplete items matching the current word: first the tab's columns, then tables and columns from connected servers, and finally SQL keywords.
 
 ```java snippet="workbench-suggest"
 ```
 
-### Tabs that tear off
+### Tear-off tabs
 
-The tabs of every window are one `TabGroups` ([TabGroups](/docs/components/tab-groups)):
+All windows share a single `TabGroups` instance ([TabGroups](/docs/components/tab-groups)):
 
 ```java snippet="workbench-groups"
 ```
 
-Its opener opens the window of a torn-off tab: a new `App` over the same state, with a view of its own ([Several windows](/docs/concepts/windows)).
+When a user tears off a tab, the opener creates a new window with its own `App` sharing the same state ([Several windows](/docs/concepts/windows)):
 
 ```java snippet="workbench-window"
 ```
 
-The whole app is in [`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java).
+Full source: [`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java).

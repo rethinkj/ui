@@ -1,9 +1,9 @@
 ---
 title: Avatar
-description: A round mark with a name's initials or an icon, on a color the name picks.
+description: Circular badge displaying initials or an icon with a color derived from the name.
 ---
 
-`Avatar.avatar` is a round mark with the initials of a name, or an icon, on one of nine fills that the name picks by its hash: the same name always gets the same color, so that a server is known again by its color. Use it for servers, connections and people.
+`Avatar.avatar` displays a circular mark with initials or an icon on one of nine background colors chosen automatically from the name's hash — so the same name always gets the same color. Useful for servers, connections, and users.
 
 Javadoc: [`Avatar`](/api/com/rethinkj/ui/kit/Avatar.html).
 
@@ -14,14 +14,14 @@ Javadoc: [`Avatar`](/api/com/rethinkj/ui/kit/Avatar.html).
 ```java snippet="avatar"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `avatar(name)` | The initials: the first letter or digit of the first two words (`prod-eu` is `PE`) |
-| `avatar(name, symbol, size)` | An icon instead of initials, and a size |
+| `avatar(name)` | Shows initials from the first two words (e.g., `prod-eu` → `PE`) |
+| `avatar(name, symbol, size)` | Shows an icon instead of initials at a custom size |
 
 ## In a tree dump
 
-`role=img` with the name as label:
+Appears as `role=img` with the name as its label:
 
 ```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="role=img" count="2"
 ```

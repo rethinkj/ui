@@ -120,10 +120,8 @@ function changelog() {
     if (!byDate.has(date)) byDate.set(date, []);
     byDate.get(date).push(fs.readFileSync(path.join(dir, f), 'utf8').trim());
   }
-  let text = '---\ntitle: Changelog\ndescription: What changed since the last release, newest first.\n---\n\n'
-    + 'Nothing is released yet: these are the changes on the way to the first release, newest first. '
-    + 'Each comes from a file under [`changelog/unreleased`](https://github.com/rethinkj/ui/tree/main/changelog/unreleased) '
-    + 'in the repository, which the release folds into `CHANGELOG.md`.\n';
+  let text = '---\ntitle: Changelog\ndescription: Recent changes, newest first.\n---\n\n'
+    + 'rethinkj UI has not had a stable release yet. These are the latest changes on the way to the first release, newest first.\n';
   for (const [date, entries] of byDate) text += `\n## ${date}\n\n${entries.join('\n')}\n`;
   fs.writeFileSync(path.join(CONTENT, 'reference/changelog.md'), text);
 }

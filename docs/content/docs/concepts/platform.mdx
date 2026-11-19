@@ -1,103 +1,105 @@
 ---
 title: Windows, icons and dialogs
-description: Frameless windows with their own title bar, opening where the user left a window, icons and identity on the taskbar, badges and progress, the system's appearance, file dialogs and message boxes.
+description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and open native file dialogs.
 ---
 
-`Window` opens windows on Windows and Linux; `WindowLoop` runs an app in them. This page covers the system around the window: your own title bar, where the window opens, the icon and taskbar button, the system's dark or light appearance, file dialogs and message boxes. All calls are in the Javadoc of [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
+`Window` creates desktop windows on Windows and Linux, and `WindowLoop` runs your app inside them. For the full API, see [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
 
 ```java snippet="window"
 ```
 
 ## Window options
 
-| `Window.options()` | |
+| `Window.options()` method | Description |
 | --- | --- |
-| `frameless()` | No system frame: the app draws its title bar with the kit's [TitleBar](/docs/components/title-bar) |
-| `minimumSize(w, h)`, `fixedSize()` | Limits of resizing |
-| `icon(WindowIcon)` | The icon of the window and its taskbar button |
-| `position(x, y)` | Where it opens |
-| `placement(placement)` | Where it was when the app last ended: see [below](#open-where-the-user-left-it) |
-| `underPointer()` | For a window that opens under the pointer during a drag: no opening animation, and the focus stays where it was |
+| `frameless()` | Removes the OS title bar so you can draw your own (e.g., with [TitleBar](/docs/components/title-bar)) |
+| `minimumSize(w, h)`, `fixedSize()` | Sets minimum resize bounds or disables resizing |
+| `icon(WindowIcon)` | Sets the window and taskbar icon |
+| `position(x, y)` | Sets the initial window position |
+| `placement(placement)` | Restores saved position, size, and maximized state (see [below](#open-where-the-user-left-it)) |
+| `underPointer()` | Opens under the cursor without opening animation or stealing focus (for tear-off windows) |
 
-The other options are in [`Window.Options`](/api/com/rethinkj/ui/window/Window.Options.html).
+See [`Window.Options`](/api/com/rethinkj/ui/window/Window.Options.html) for all options.
 
 ## Open where the user left it
 
-Save the window's placement when the app ends and pass it to the options at the next start:
+Save `window.placement()` before closing and pass it to `options.placement(...)` on the next launch:
 
 ```java snippet="placement"
 ```
 
-- `window.placement()` returns a [`Window.Placement`](/api/com/rethinkj/ui/window/Window.Placement.html): the position, the size, whether the window is maximized and the name of its display. While the window is maximized or minimized, the position and size are those it is restored to. Read it while the window is open.
-- A placement prints as one line, `120,80 1200x720 maximized display "DELL U2720Q"`, and `Window.Placement.parse(line)` reads that line back. The app keeps the line where it keeps its settings; the library writes no file.
-- `parse` throws `IllegalArgumentException` for a line it cannot read, such as one another app wrote. Open the window as on the first start then.
-- `options.placement(placement)` opens the window at the saved position, with the saved size in place of the size passed to `Window.open`, and maximized if it was.
-- When the saved display is gone or smaller now, the window opens at most as large as the work area of the display it lies on, and its title bar inside that work area. Wayland ignores the position.
+- `window.placement()` returns a [`Window.Placement`](/api/com/rethinkj/ui/window/Window.Placement.html) with position, size, maximized flag, and display name. Read it while the window is still open.
+- `placement.toString()` formats it as a single line (e.g., `120,80 1200x720 maximized display "DELL U2720Q"`), and `Window.Placement.parse(line)` parses it back. Store it in your own settings file (throws `IllegalArgumentException` if malformed).
+- If the saved monitor is disconnected or smaller, rethinkj UI clamps the window to fit the current display's work area. Wayland ignores explicit window positions.
 
-## Draw your own title bar
+## Custom title bars
 
-A frameless window needs to know which parts of its title bar are the drag area and the minimize, maximize and close buttons. Then it moves, snaps, maximizes, shows Windows 11's snap layouts and system menu like a framed window, and resizes at its edges. The kit's [TitleBar](/docs/components/title-bar) marks them for you.
+In a frameless window, mark your custom title bar elements with `El.windowPart(part)` so dragging, edge resizing, double-click maximize, and Windows 11 snap layouts work natively. The kit's [TitleBar](/docs/components/title-bar) does this automatically.
 
-In a title bar of your own, mark elements with `El.windowPart(part)`. Descendants belong to their ancestor's part unless they are marked themselves or have a press handler. The parts under a modal dialog still work, so the window can be moved and closed. `app.windowPart(x, y)` returns the part at a point. `WindowState.CURRENT.get()` in the view says whether the window is `active()` and `maximized()`, to show Restore in place of Maximize and a quieter look in an inactive window.
+Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maximized()` (for example, to show a Restore icon or dim an inactive title bar). Window parts continue to work even when a modal dialog is open.
 
-| [`WindowPart`](/api/com/rethinkj/ui/WindowPart.html) | |
+| [`WindowPart`](/api/com/rethinkj/ui/WindowPart.html) | Behavior |
 | --- | --- |
-| `CONTENT` | Ordinary content (the default): mark an element inside a drag area that should not drag, such as a search field in a title bar |
-| `CONTROL` | Content that takes presses; elements with a press or drag handler, text fields and scrollbars are this without marking. The resize margin narrows to 2 pixels (`Window.CONTROL_MARGIN`) over it, so a scrollbar at the window's edge can be grabbed |
-| `DRAG` | Moves the window when dragged; a double click maximizes it or restores it, except on Wayland |
-| `MINIMIZE`, `MAXIMIZE`, `CLOSE` | The window's buttons; resting on `MAXIMIZE` shows Windows 11's snap layouts |
+| `CONTENT` | Normal content (use inside a `DRAG` area for non-draggable items like a search box) |
+| `CONTROL` | Interactive control (automatically inferred for buttons, inputs, and scrollbars; narrows resize edge to 2 px) |
+| `DRAG` | Drags the window; double-click maximizes/restores (except on Wayland) |
+| `MINIMIZE`, `MAXIMIZE`, `CLOSE` | Native window buttons (hovering `MAXIMIZE` shows Windows 11 snap layouts) |
 
-## Identity and icons
+## App identity and icons
 
-Call `Window.identity(id, name)` before the first window: on Windows it groups the app's windows under their own taskbar button instead of `java.exe`, and on Linux it names the app for Wayland and X11. `WindowIcon.of(pixels...)` takes images; `WindowIcon.of(size -> view)` draws a view at each size the system asks for. The kit's `AppIcon.appIcon(size, color, symbol)` is a rounded square with a symbol.
+Call `Window.identity(id, name)` before opening your first window. On Windows, this groups your windows under their own taskbar icon instead of `java.exe`; on Linux, it sets the app ID for Wayland and X11.
 
-## Taskbar
+Create icons with `WindowIcon.of(pixels...)` or `WindowIcon.of(size -> view)`. `AppIcon.appIcon(size, color, symbol)` creates a rounded-square icon from any kit symbol.
+
+## Taskbar indicators (Windows)
 
 ```java snippet="taskbar"
 ```
 
-- `window.badge(icon, description)` puts a small icon on the taskbar button. `AppIcon.count` and `AppIcon.dot` make one.
-- `window.progress(kind, value)` shows a bar in the taskbar button: `NORMAL` fills to `value`, from 0 to 1, in the accent, `PAUSED` in yellow and `ERROR` in red; `INDETERMINATE` runs without an end, and `NONE` removes the bar.
-- `window.attention(...)` flashes the button, `BRIEFLY` or `UNTIL_FOCUSED`.
+- `window.badge(icon, description)` adds a badge overlay to the taskbar button (`AppIcon.count` and `AppIcon.dot` generate common badges).
+- `window.progress(kind, value)` shows progress in the taskbar button (`NORMAL`, `PAUSED`, `ERROR` with `0.0`–`1.0`, `INDETERMINATE`, or `NONE`).
+- `window.attention(...)` flashes the taskbar button (`BRIEFLY` or `UNTIL_FOCUSED`).
 
-Badge and progress are Windows only. On Linux they do nothing and return false.
+Taskbar badges and progress are Windows-only (no-op on Linux).
 
 ## The system's appearance
 
-`WindowLoop.appearance(handler)` passes a [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) at the start and whenever it changes: dark or light, the accent color (Windows) and high contrast. Nothing follows it by itself; [Themes](/docs/concepts/themes#switching-themes) shows an app that does. `window.frameDark(boolean)` makes a framed window's title bar follow the app's theme instead of the system's (Windows).
+Register `WindowLoop.appearance(handler)` to receive a [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) at startup and whenever the OS theme changes (dark/light mode, Windows accent color, and high contrast). See [Themes](/docs/concepts/themes#switching-themes) for an example that follows the system theme.
 
-## File dialogs
+On Windows, call `window.frameDark(boolean)` to match a standard framed window's title bar to your app's dark/light theme.
+
+## Native file dialogs
 
 ```java snippet="images"
 ```
 
-The handlers open the dialog and decode the chosen file:
-
 ```java snippet="images-handlers"
 ```
 
-`app.fileDialog(dialog, onChoice, onError)` shows the system's dialog and posts the choice to the app's thread; the window keeps drawing while it is open.
+`app.fileDialog(dialog, onChoice, onError)` opens the OS file picker asynchronously without freezing the UI:
 
-| [`FileDialog`](/api/com/rethinkj/ui/FileDialog.html) | |
+| [`FileDialog`](/api/com/rethinkj/ui/FileDialog.html) method | Description |
 | --- | --- |
-| `open(title)`, `.many()` | Choose one file, or several |
-| `save(title)`, `.fileName("orders.csv")` | Choose where to save |
-| `chooseFolder(title)` | Choose a folder |
-| `.filter("SQL", "sql")`, `.in(folder)` | Filters by extension, and where it starts |
+| `open(title)`, `.many()` | Pick one or multiple files |
+| `save(title)`, `.fileName("orders.csv")` | Pick a save location |
+| `chooseFolder(title)` | Pick a directory |
+| `.filter("SQL", "sql")`, `.in(folder)` | Add file extension filters and initial directory |
 
-The `Choice` has the paths (empty when cancelled) and the chosen filter. On Linux the dialog comes from the XDG desktop portal, or from zenity if there is none.
+The `Choice` result contains the selected paths (empty if cancelled) and the chosen filter. On Linux, file dialogs use the XDG Desktop Portal (falling back to `zenity`).
 
-## Message boxes
+## Native message boxes
 
 ```java snippet="message-box"
 ```
 
-`app.messageBox(box, onButton, onError)` shows [`MessageBox`](/api/com/rethinkj/ui/MessageBox.html)`.information`, `warning` or `error` with up to three `.buttons(...)` and posts the index of the button pressed. Enter presses the first button and Escape the last; change that with `.defaultButton(index)` and `.cancelButton(index)`, called after `.buttons` (which resets both). Closing the box without a button answers the cancel button's index. A message box blocks all windows, so use it only when the window cannot show the question; the kit's [Dialog](/docs/components/dialog) asks inside the window.
+`app.messageBox(box, onButton, onError)` shows a system alert ([`MessageBox`](/api/com/rethinkj/ui/MessageBox.html)`.information`, `warning`, or `error`) with up to three `.buttons(...)` and returns the clicked button index. Configure default/cancel buttons with `.defaultButton(index)` and `.cancelButton(index)` (call after `.buttons(...)`).
 
-## Under a script
+Because native message boxes block all windows, prefer the kit's [Dialog](/docs/components/dialog) for normal in-app confirmations.
 
-A script never shows the system's dialogs: `dialog "<path>"`, `dialog cancel` and `dialog button "<text>"` answer them in order, and `drop` drops files from outside. See [Scripts](/docs/testing/scripts).
+## Headless scripts
+
+In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. See [Scripts](/docs/testing/scripts).
 
 ## Clipboard
 
-`app.clipboard()` is the system clipboard in a window and an in-memory one under a script; pass it to components that copy.
+`app.clipboard()` returns the system clipboard in desktop windows and an in-memory clipboard in headless scripts.

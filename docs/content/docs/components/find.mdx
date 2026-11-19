@@ -1,9 +1,11 @@
 ---
 title: Find
-description: A find and replace bar for a multi-line field, with whole words, case, regular expressions and go to line.
+description: Floating find-and-replace bar for multi-line text fields with case, whole-word, regex, and go-to-line support.
 ---
 
-`Find.find` gives a multi-line field a find bar, as editors have. It floats over the field's top right corner, marks every match in view, counts them, goes from match to match, replaces, and goes to a line. A [CodeEditor](/docs/components/code-editor) given the app has one already; use `Find.find` for other fields, such as a [text area](/docs/components/text-field#text-areas).
+`Find.find` attaches a floating find-and-replace bar to the top-right corner of a multi-line text field. It highlights matches, displays match counts, replaces text, and supports jumping to a line number.
+
+[CodeEditor](/docs/components/code-editor) already includes a find bar when given `app`; use `Find.find` for other multi-line fields such as [text areas](/docs/components/text-field#text-areas).
 
 Javadoc: [`Find`](/api/com/rethinkj/ui/kit/Find.html), [`Find.State`](/api/com/rethinkj/ui/kit/Find.State.html).
 
@@ -14,37 +16,35 @@ Javadoc: [`Find`](/api/com/rethinkj/ui/kit/Find.html), [`Find.State`](/api/com/r
 ```java snippet="find"
 ```
 
-`state.find` is a `Find.State` in the app's state. `Find.find(app, field, findState)` wraps the field's key, selection and decorator handlers and returns the field, so set handlers of your own on the field before.
+Store a `Find.State` in your app state. `Find.find(app, field, findState)` wraps the field's key, selection, and decorator handlers, so attach any custom handlers to `field` first.
 
 ```text snippet="find-script"
 ```
 
-`Find.open(findState)`, `openReplace(findState)`, `goToLine(findState)`, `goToLine(findState, "42")`, `next(findState)` and `previous(findState)` do the same as the keys, from a menu.
+You can also trigger find actions from a menu: `Find.open(findState)`, `openReplace(findState)`, `goToLine(findState)`, `goToLine(findState, "42")`, `next(findState)`, and `previous(findState)`.
 
-In a regular expression's replacement, `$1` and `${name}` refer to groups. A long text is searched on another thread, the lines in view first. A regular expression that runs too long stops.
+Regex replacements support capture groups (`$1`, `${name}`). Large documents are searched on a background thread, and runaway regular expressions time out safely.
 
-## The state
+## State API
 
-The bar changes its `Find.State`. The app reads it for a status line, or to search the same way elsewhere, such as in the results of a query. The switches are set only from the bar and its keys.
-
-`isOpen()`, `query()` and `replacement()` say whether the bar shows and what it finds and replaces with; `matchCase()`, `wholeWord()` and `regex()` are the switches Match case, Whole word and Regular expression. `close()` closes the bar; the field keeps its selection. The rest is on [`Find.State`](/api/com/rethinkj/ui/kit/Find.State.html).
+Read `Find.State` to inspect the current search (`isOpen()`, `query()`, `replacement()`, `matchCase()`, `wholeWord()`, `regex()`) or call `close()` to dismiss the bar while keeping the editor's selection. See [`Find.State` Javadoc](/api/com/rethinkj/ui/kit/Find.State.html).
 
 ## Keyboard
 
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Control+F | Open, with the selection of one line, or the word at the caret, as the text to find |
-| Control+H | Open with the replacement row (never in a read-only field) |
-| Control+G | Go to a line: `42`, or `42:7` for a column |
-| Enter, F3 / Shift+Enter, Shift+F3 | Next and previous match; F3 also with the bar closed |
-| Alt+C, Alt+W, Alt+R, Alt+L | Match case, whole word, regular expression, find in selection |
-| Enter in the replacement | Replace the current match and go on |
-| Control+Alt+Enter | Replace all, as one step of the undo history |
-| Escape | Close, leaving the last match selected and the focus in the field |
+| Ctrl+F | Open find bar (pre-filled with current selection or word at cursor) |
+| Ctrl+H | Open find & replace (editable fields only) |
+| Ctrl+G | Go to line (`42` or `42:7` for line and column) |
+| Enter, F3 / Shift+Enter, Shift+F3 | Next / previous match (`F3` also works while closed) |
+| Alt+C, Alt+W, Alt+R, Alt+L | Toggle Match case, Whole word, Regex, or Find in selection |
+| Enter (in Replace field) | Replace current match and move to next |
+| Ctrl+Alt+Enter | Replace all (as one undo step) |
+| Escape | Close bar and return focus to the editor |
 
 ## In a tree dump
 
-The bar is an overlay on the field, `role=search` `label="Find"`. Its field is `label="Find"`, the replacement `label="Replace"`, and the switches are `role=button` with `checked` or `checked=false`. `#count` says how many matches there are: `3 of 17`, `17 results`, `1 result`, `No results`, `Searching…`; a `+` when there may be more, as `3 of 10000+` or `10000+ results`, and `Too slow` when the search ran out of time before a match. Going to a line, the field is `label="Go to line"` and `#count` says `1 to <lines>`.
+Overlay on the field with `role=search` `label="Find"`. Inputs are `label="Find"` (or `"Go to line"`) and `label="Replace"`, option toggles are `role=button` (`checked` / `checked=false`), and `#count` shows match status (`3 of 17`, `No results`, `Searching…`, `Too slow`):
 
 ```text file="examples/src/test/resources/golden/docs/find/found.tree.txt" start="#match-case" count="7"
 ```

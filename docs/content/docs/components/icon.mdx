@@ -1,9 +1,9 @@
 ---
 title: Icon
-description: A symbol of the icon font, Fluent UI System Icons, in the text color or a status color.
+description: Render Fluent UI System Icons in standard or status colors.
 ---
 
-`Icon.icon` shows a `Symbol` of the icon font as a square glyph, 16 pixels unless given, in the text color or a variant's color. The font is Fluent UI System Icons, in `rethinkj-ui-icons`. Buttons, tabs, menus and the grid draw their icons themselves.
+`Icon.icon` renders a `Symbol` from the bundled Fluent UI System Icons font (`rethinkj-ui-icons`), sized at 16×16 px by default. Buttons, tabs, menus, and grids also accept `Symbol` directly.
 
 Javadoc: [`Icon`](/api/com/rethinkj/ui/kit/Icon.html), [`Symbol`](/api/com/rethinkj/ui/kit/Symbol.html).
 
@@ -14,17 +14,17 @@ Javadoc: [`Icon`](/api/com/rethinkj/ui/kit/Icon.html), [`Symbol`](/api/com/rethi
 ```java snippet="icon"
 ```
 
-| Call | |
+| Method | Description |
 | --- | --- |
-| `icon(symbol)` | In the text color, `size().icon()` (16) square |
-| `icon(symbol, variant)` | `NORMAL`, `MUTED`, `DISABLED`, `DANGER`, `WARNING`, `SUCCESS` or `ACCENT` (the accent's edge) |
-| `icon(symbol, variant, size)` | Another size |
+| `icon(symbol)` | Primary text color, `size().icon()` (16 px) |
+| `icon(symbol, variant)` | `NORMAL`, `MUTED`, `DISABLED`, `DANGER`, `WARNING`, `SUCCESS`, or `ACCENT` |
+| `icon(symbol, variant, size)` | Custom pixel size |
 
-`Symbol` has the names of Fluent's icons in upper case: `TABLE`, `KEY`, `SEARCH`, `CHEVRON_RIGHT`, and the kinds of data, such as `NUMBER_SYMBOL`, `CALENDAR_CLOCK`, `FINGERPRINT`. The sheet above lists all. An icon that stands alone, such as in a button without text, needs a label on the element that takes the press.
+`Symbol` uses uppercase Fluent icon names (`TABLE`, `KEY`, `SEARCH`, `CHEVRON_RIGHT`, etc.). Always add a `.label(...)` to icon-only clickable elements.
 
 ## In a tree dump
 
-A text element of one glyph whose label is the symbol's name in lower case, so that a dump says which icon it is:
+Appears as a `text` element whose `label` is the lowercase symbol name:
 
 ```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="label=\"table\"" count="3"
 ```

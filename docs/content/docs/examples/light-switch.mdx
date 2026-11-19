@@ -1,11 +1,17 @@
 ---
 title: LightSwitch
-description: "The smallest example: a lamp and a switch in a frameless window with a title bar of its own."
+description: "Minimal example: a lamp and toggle switch inside a frameless window with a custom title bar."
 ---
 
-LightSwitch is a lamp and a switch in a card, in a frameless window with the kit's [TitleBar](/docs/components/title-bar). It is the app of [The first app](/docs/get-started/first-app) with an identity, an icon and a title bar.
+LightSwitch is the simplest example app: a lamp and a toggle switch inside a card, wrapped in a frameless window with a custom [TitleBar](/docs/components/title-bar). It builds on [The first app](/docs/get-started/first-app) by adding a window icon and title bar.
+
+**Demonstrates:** [TitleBar](/docs/components/title-bar), [Card](/docs/components/card), [Toggle](/docs/components/toggle), [Motion](/docs/concepts/motion), and [Platform](/docs/concepts/platform).
 
 <Shot src="examples/light-switch-on" alt="The lamp lit above the switch" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec
@@ -13,24 +19,24 @@ mvn -q -pl examples -am compile exec:exec
 
 ## What to try
 
-- Press the switch, or Tab to it and press Space.
+- Click the toggle switch (or press **Tab** and **Space**) to turn the lamp on and off.
 - Drag the title bar to move the window.
 
 ## How it works
 
-`main` builds the app and hands it to `Script.handle`, which runs a script when the arguments name one. Otherwise it opens a frameless window with an icon ([Platform](/docs/concepts/platform)).
+`main` creates the `App` and calls `Script.handle` first so it can run headless when given `--script`. Otherwise, it opens a frameless window with a custom icon ([Platform](/docs/concepts/platform)):
 
 ```java snippet="light-switch-window"
 ```
 
-The view is the title bar over a card with the lamp and the switch. The lamp's fill changes with the state, and `motion` animates the change ([Motion](/docs/concepts/motion)).
+The view places the title bar above a card containing the lamp and switch. When `state.on` changes, `.motion(...)` smoothly animates the lamp's color ([Motion](/docs/concepts/motion)):
 
 ```java snippet="light-switch-view"
 ```
 
-Its script:
+You can also run it headless with its test script:
 
 ```text file="examples/src/test/resources/scripts/light-switch.txt"
 ```
 
-The whole app is in [`LightSwitch.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/LightSwitch.java).
+Full source: [`LightSwitch.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/LightSwitch.java).

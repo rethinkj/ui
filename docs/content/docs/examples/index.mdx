@@ -1,24 +1,32 @@
 ---
 title: Examples
-description: Runnable apps in the repository's examples module, written the way a user of the library writes them.
+description: Complete runnable demo apps built with rethinkj UI.
 ---
 
-The `examples` module holds apps that open a window, written as an app of your own would be. Each runs under a script too, and its tests compare the snaps with stored images, which are the pictures on these pages. Start one from the repository's root:
+The `examples` module contains complete, runnable desktop apps showing how to build real interfaces with rethinkj UI.
+
+## How to run the examples
+
+You need **JDK 25**, **Maven 3.9+**, and a C/C++ toolchain for the first build (see [Build from source](/docs/get-started/from-source) for setup details).
+
+Clone the repository and run any example from the root folder:
 
 ```sh
+git clone https://github.com/rethinkj/ui.git
+cd ui
 mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 ```
 
-With `-Dargs="--script <file> --out <folder>"` it runs a script instead of opening the window ([Run the examples](/docs/get-started/from-source#run-the-examples)).
+Replace `Workbench` with any example name below. To run an example headless with a script instead of opening a window, add `-Dargs="--script <file> --out <folder>"` (see [Run the examples](/docs/get-started/from-source#run-the-examples)).
 
 <Tiles>
-<Tile href="/docs/examples/workbench" title="Workbench" description="A database manager: tree, tabs, editor, grid, menus, palette." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
-<Tile href="/docs/examples/data-browser" title="DataBrowser" description="A million orders, editable, filtered, with pending changes." dark="examples/browser-dark" light="examples/browser-light" />
-<Tile href="/docs/examples/showcase" title="Showcase" description="Every component of the kit, section by section." src="kit/frame-{theme}-2x" />
-<Tile href="/docs/examples/documents" title="Documents" description="Tabs that tear off, file dialogs and drops." src="examples/documents-docking" light="examples/documents-light-docking" />
-<Tile href="/docs/examples/manual" title="Manual" description="A reader of Markdown documents with images." src="examples/manual-{theme}-2x-top" />
-<Tile href="/docs/examples/settings" title="Settings" description="Pages of settings built from the kit's structure." dark="examples/settings-2x-general" light="examples/settings-light-2x-general" />
-<Tile href="/docs/examples/connection-dialog" title="ConnectionDialog" description="A form in a window that is a dialog." dark="examples/connection-dark" light="examples/connection-light" />
-<Tile href="/docs/examples/notes" title="Notes" description="Cards that reorder and tear off into windows." src="examples/notes-row" />
-<Tile href="/docs/examples/light-switch" title="LightSwitch" description="The smallest app, in a frameless window." src="examples/light-switch-on" />
+<Tile href="/docs/examples/workbench" title="Workbench" description="Database manager with tree, tabs, SQL editor, data grid, menus, and command palette." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
+<Tile href="/docs/examples/data-browser" title="DataBrowser" description="One million rows in an editable, filterable data grid with pending changes." dark="examples/browser-dark" light="examples/browser-light" />
+<Tile href="/docs/examples/showcase" title="Showcase" description="Interactive gallery of every component in rethinkj-ui-kit." src="kit/frame-{theme}-2x" />
+<Tile href="/docs/examples/documents" title="Documents" description="Tear-off tabs, native file dialogs, drag-and-drop files, and find bar." src="examples/documents-docking" light="examples/documents-light-docking" />
+<Tile href="/docs/examples/manual" title="Manual" description="Markdown document reader with outline navigation and async image loading." src="examples/manual-{theme}-2x-top" />
+<Tile href="/docs/examples/settings" title="Settings" description="Multi-page settings window with live theme and accent switching." dark="examples/settings-2x-general" light="examples/settings-light-2x-general" />
+<Tile href="/docs/examples/connection-dialog" title="ConnectionDialog" description="Standalone frameless dialog window with form validation." dark="examples/connection-dark" light="examples/connection-light" />
+<Tile href="/docs/examples/notes" title="Notes" description="Draggable cards that reorder, tear off into windows, and dock back." src="examples/notes-row" />
+<Tile href="/docs/examples/light-switch" title="LightSwitch" description="Minimal app with a lamp and toggle switch in a frameless window." src="examples/light-switch-on" />
 </Tiles>

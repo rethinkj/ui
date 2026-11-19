@@ -1,9 +1,9 @@
 ---
 title: Toolbar
-description: A row of buttons, toggles, split buttons and groups that moves what has no room into a More menu.
+description: Responsive action bar of buttons, toggles, split buttons, and groups that moves overflowing items into a More menu.
 ---
 
-`Toolbar.toolbar` is a row of actions: icon buttons, buttons with text, toggles, split buttons, groups and a spacer. A group gathers tools that belong together on a tinted, rounded surface. The toolbar learns its width from the layout, and where the items do not fit, the last ones go into a menu behind More, one by one, also out of a group. It is one stop for Tab, with the arrows moving between items. For a card's title row with a few actions, `Card.toolbar` is enough ([Card](/docs/components/card)).
+`Toolbar.toolbar` arranges icon buttons, labeled buttons, toggles, split buttons, groups, and spacers in a single horizontal row. When the toolbar narrows, trailing items automatically move into a **More** overflow menu. For a simple card title bar with a few buttons, `Card.toolbar` ([Card](/docs/components/card)) is simpler.
 
 Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/api/com/rethinkj/ui/kit/Toolbar.Item.html).
 
@@ -14,30 +14,28 @@ Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/a
 ```java snippet="toolbar"
 ```
 
-`state.tools` is a `Toolbar.State` and `state.runMenu` a `Menu.State`, both in the app's state.
+Store a `Toolbar.State` in your app state.
 
-| Item | |
+| Item helper | Description |
 | --- | --- |
-| `Toolbar.button(icon, label, onPress)` | An icon button with a tooltip |
-| `Toolbar.text([variant,] icon, text, onPress)` | A button with text |
-| `Toolbar.toggle(icon, label, on, onToggle)` | A toggle button; a checked item in the More menu |
-| `Toolbar.split(variant, icon, text, onPress, menu, items)` | A split button; a submenu in the More menu |
-| `Toolbar.group(items...)` | Buttons and toggles on a surface of their own; between lines in the More menu |
-| `Toolbar.spacer()` | Room that pushes the rest to the right |
+| `Toolbar.button(icon, label, onPress)` | Icon button with tooltip |
+| `Toolbar.text([variant,] icon, text, onPress)` | Labeled button |
+| `Toolbar.toggle(icon, label, on, onToggle)` | Toggle button (appears as a checked item in the More menu) |
+| `Toolbar.split(variant, icon, text, onPress, menu, items)` | Split button (appears as a submenu in the More menu) |
+| `Toolbar.group(items...)` | Visually grouped tools (separated by dividers in the More menu) |
+| `Toolbar.spacer()` | Flexible space pushing following items to the right |
 
-`.options(Button.options()...)` on a button, a button with text or a split button gives it a [button's options](/docs/components/button#options): its state, tone and shortcut; its icon stays the item's and its size the toolbar's. In the More menu, an item that is busy or off cannot be chosen, a split button that is off has no submenu, and the tone and shortcut show as the menu shows them.
-
-After a change of width, the toolbar settles one frame later and new items fade in, so a script advances the clock before a snap. Narrow, Refresh has moved out of its group into More, with Export and Save:
+Chain `.options(Button.options()...)` on buttons or split buttons to set busy/disabled states, danger tone, or shortcut tooltips ([Button options](/docs/components/button#options)).
 
 <Shot src="examples/docs/toolbar/more-{theme}" alt="The same toolbar narrow: Run, the group with Wrap and Format, and the More menu open with Refresh, Export and Save" />
 
 ## Keyboard
 
-One stop for Tab; Left and Right move the focus between items, around the ends, Home and End to the first and the last; Enter and Space press. A press leaves the focus where it was.
+One Tab stop. **Left/Right** arrows move between items (wrapping around), **Home/End** jump to first/last, and **Enter/Space** activate. Clicking leaves keyboard focus where it was.
 
 ## In a tree dump
 
-`role=toolbar` with its label, a group `role=group` around its items, a toggle `checked` or `checked=false`, and the More button `label="More"`:
+`role=toolbar` with its `label`, groups as `role=group`, toggles with `checked` / `checked=false`, and the overflow button as `label="More"`:
 
 ```text file="examples/src/test/resources/golden/docs/toolbar/view.tree.txt" start="role=toolbar" count="15"
 ```

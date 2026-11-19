@@ -1,11 +1,17 @@
 ---
 title: Settings
-description: The settings of a database tool built from pages, sections, groups of rows, cards and a form in a dialog.
+description: A multi-page settings window with sections, grouped rows, cards, dialogs, and live theme switching.
 ---
 
-Settings is the settings window of a database tool: a navigation list of pages at the left and the chosen page at the right, built from [Section and page](/docs/components/section), [Group](/docs/components/group) rows, [Cards](/docs/components/card) and a [Form](/docs/components/form) in a dialog. The theme and the accent change the whole window.
+Settings is a complete settings window with a navigation sidebar on the left and structured settings pages on the right. Changing the theme or accent color updates the entire window immediately.
+
+**Demonstrates:** [NavList](/docs/components/nav-list), [TitleBar](/docs/components/title-bar), [Section and page](/docs/components/section), [Group](/docs/components/group), [Cards](/docs/components/card), [Form](/docs/components/form), and [Themes](/docs/concepts/themes).
 
 <Shot dark="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" alt="The Appearance page with switches, a segmented theme choice and a slider" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=Settings
@@ -13,30 +19,30 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Settings
 
 ## What to try
 
-- Appearance: switch the theme between Light, Dark and System, and choose another accent color.
-- Connections: filter the cards, open a card's menu, and add a connection in the dialog.
+- Open **Appearance** to switch between **Light**, **Dark**, and **System** themes, and pick a different accent color.
+- Open **Connections** to filter connection cards, open a card's menu, and add a new connection in a dialog.
 
 ## How it works
 
-### The pages
+### Page navigation
 
-The view is a [NavList](/docs/components/nav-list) of the pages beside the chosen page, in a frameless window with the kit's [TitleBar](/docs/components/title-bar). A switch picks the page's method.
+The view places a [NavList](/docs/components/nav-list) next to the active page inside a frameless window with a [TitleBar](/docs/components/title-bar). A `switch` selects which page method to render:
 
 ```java snippet="settings-pages"
 ```
 
-### A page
+### Building a settings page
 
-Each page is one expression: a `page` of `section`s, each with a `group` of rows. A row has a title, an optional description and a control. `switchRow` is a row that is a switch, `linkRow` one that leads to another page.
+Each page is composed of a `page` containing `section`s and `group`s of rows. Each row has a title, optional description, and control — such as `switchRow` for a toggle or `linkRow` to navigate to another page:
 
 ```java snippet="settings-general"
 ```
 
-### Theme and accent
+### Live theme and accent switching
 
-The app provides the theme from the state, `app.provide(Theme.CURRENT, Settings::theme)`, so every build of the view has the one the state chooses: the light or dark theme, System as the window loop reports the system's appearance, and `withAccent` for an accent other than blue ([Themes](/docs/concepts/themes)).
+The app provides its current theme dynamically via `app.provide(Theme.CURRENT, Settings::theme)`. It supports Light, Dark, and System (following OS appearance), plus `withAccent` for custom accent colors ([Themes](/docs/concepts/themes)):
 
 ```java snippet="settings-theme"
 ```
 
-The whole app is in [`Settings.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Settings.java).
+Full source: [`Settings.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Settings.java).

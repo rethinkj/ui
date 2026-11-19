@@ -1,81 +1,82 @@
 ---
 title: Themes and tokens
-description: The kit's Theme record of color, space, type, size and motion tokens, the dark and light themes, and how to change them.
+description: Use dark and light themes, customize accent colors and design tokens, and work with ARGB colors.
 ---
 
-The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a record of token groups: surfaces, text colors, borders, accent, status colors, spacing, radii, type, sizes, motion, elevation, the grid's and code colors, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
+All kit components read their styling from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a record containing design token groups: surfaces, text colors, borders, accent colors, status colors, spacing, corner radii, typography, sizes, motion, and elevation.
+
+`Theme.DARK` and `Theme.LIGHT` are built in. Because components only use theme tokens, updating the theme updates your entire UI at once.
 
 ```java snippet="theme"
 ```
 
 <Shot src="examples/docs/theme/view-{theme}" alt="A Save button in the teal accent of the light theme" />
 
-## Providing the theme
+## Providing a theme
 
-Components read the theme from `Theme.CURRENT`, and so does the view's own code, with `Theme.CURRENT.get()`. It is `Theme.DARK` until the app provides another: `app.provide(Theme.CURRENT, state -> theme)` gives the theme to every build of the view and to the rows of its lists, and `Theme.CURRENT.with(theme, () -> part)` to a part of the view, as above, so two themes can be on screen at once. Handlers run outside the view: one that needs the theme reads it from the state. `Theme.CURRENT` is a core [`Context`](/api/com/rethinkj/ui/Context.html); `new Context<>(fallback)` makes one for any value of an app's own, provided and read the same way.
+Read the active theme in your view with `Theme.CURRENT.get()` (defaults to `Theme.DARK`).
+
+- **App-wide theme:** Call `app.provide(Theme.CURRENT, state -> theme)` so every view rebuild and virtual list row receives your chosen theme.
+- **Scoped override:** Wrap part of a view in `Theme.CURRENT.with(theme, () -> part)` to mix two themes on screen.
+- **Custom contexts:** `Theme.CURRENT` is a core [`Context`](/api/com/rethinkj/ui/Context.html); create your own with `new Context<>(fallback)` to pass any shared value down the view tree.
 
 ## Switching themes
 
-Keep what the user chose in the state and provide the theme from it. This app offers Dark, Light and System, and an accent:
+Store the user's selected mode (Dark, Light, or System) and accent color in your state, and derive the `Theme` from it:
 
 ```java snippet="theming"
 ```
 
 <Shot src="examples/docs/theming/system-{theme}" alt="A card with the choices Dark, Light and System, System chosen, above ten round accent swatches, blue chosen" />
 
-- A handler that changes `mode` or `accent` rebuilds the view, and every component reads the new theme.
-- `WindowLoop.appearance(handler)` calls the handler at the start and whenever the system's setting changes, as a task of the app, so the view is built again. The app above keeps the system's choice in `systemDark` and uses it only in System mode. Nothing follows the system by itself.
-- The [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) it passes holds `scheme()`: `DARK`, `LIGHT`, or `UNKNOWN` where the system does not say, as on a Linux desktop without the portal; `dark()` is false then. `accent()` is the system's accent color as `0xFFRRGGBB` on Windows and 0 on Linux. `highContrast()` says whether high contrast is on; the kit has no theme for it.
-- `window.frameDark(dark)` makes a framed window's title bar follow the app's theme on Windows ([Windows, icons and dialogs](/docs/concepts/platform#the-systems-appearance)).
+- Changing `mode` or `accent` in a handler rebuilds the view with the new theme immediately.
+- `WindowLoop.appearance(handler)` notifies your app at startup and whenever the OS theme changes, passing [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) (`scheme()`: `DARK`, `LIGHT`, or `UNKNOWN`; `accent()` on Windows; `highContrast()`).
+- On Windows, call `window.frameDark(dark)` to match a framed window's title bar to your app theme (see [Windows, icons and dialogs](/docs/concepts/platform#the-systems-appearance)).
 
-## The groups
+## Theme token groups
 
-| Group | Tokens |
+| Group | Key tokens |
 | --- | --- |
-| `surface()` | `window` (the page), `panel` (cards), `raised` (controls), `band` (bars inside cards), `hover`, `pressed`, `scrim`, `popup` (menus, lists, the palette, popovers, tooltips, toasts), `highlight` (the item under the pointer or the keys in a popup's list) |
+| `surface()` | `window` (page background), `panel` (cards), `raised` (controls), `band` (toolbars/bars), `hover`, `pressed`, `scrim`, `popup`, `highlight` |
 | `text()` | `primary`, `muted`, `disabled`, `onAccent` |
-| `border()` | `subtle` (edges of cards, grid lines), `divider` (hairlines that separate content: dividers, menu separators, a group's rows), `control` (buttons, popups, a field's top and sides), `strong` (a field's bottom line, a checkbox's box), `track` and `trackOnAccent` (a spinner's ring, on the surfaces and on a primary button) |
-| `accent()` | `color`, `hover`, `pressed`, `selection`, `edge` (lines, rings, the grid's cursor) |
+| `border()` | `subtle` (cards, grid lines), `divider` (separators), `control` (buttons, popups, inputs), `strong` (input bottom border, checkboxes), `track`, `trackOnAccent` |
+| `accent()` | `color`, `hover`, `pressed`, `selection`, `edge` (focus rings, grid cursor) |
 | `status()` | `danger`, `warning`, `success` |
 | `space()` | `xs`, `s`, `m`, `l`, `xl`, `xxl` |
 | `radius()` | `small` (4), `medium` (6), `large` (10) |
-| `type()` | `body` (13), `small` (12: secondary text beside what it is about), `mono` (12), `strong` (13, medium), `heading` (14, semibold: cards), `section` (16, semibold: a section of a page), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
-| `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, `tooltip` (where a tooltip's text wraps), … |
-| `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
-| `elevation()` | Shadows of `control` (the least: buttons at rest), `controlHover`, `card` (cards and tooltips), `popup`, `dialog` (the most) |
-| `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
+| `type()` | `body` (13), `small` (12), `mono` (12), `strong` (13 medium), `heading` (14 semibold), `section` (16), `dialog` (16), `title` (20) |
+| `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, `tooltip`, … |
+| `motion()` | `feedback`, `move`, `fade` springs; tooltip/submenu delays; toast duration |
+| `elevation()` | Shadows for `control`, `controlHover`, `card`, `popup`, `dialog` |
+| `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | Component-specific token groups |
 
-Each group's `with` method returns a changed copy: `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge`, `withDanger`, `withCaption` and `withCallout`. The tokens of each group are in the Javadoc of [`Theme`](/api/com/rethinkj/ui/kit/Theme.html).
+Each group has a `with…` method (`withSurface`, `withAccent`, `withSpace`, etc.) that returns a modified copy of the `Theme`. See [`Theme` Javadoc](/api/com/rethinkj/ui/kit/Theme.html) for every token.
 
-## Accents
+## Accent colors
 
-`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GRAY`, for example a color per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links, the tint of a changed cell, that of a code editor's marked block and the accent badges stay blue.
+Pick any built-in accent hue with `theme.withAccent(Theme.Hue.VIOLET)`: `BLUE` (default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL`, or `GRAY`. Each hue automatically adapts to dark and light themes with accessible contrast.
 
-Your own accent is a `Theme.Accent` of a color and its hover and pressed tones. The selection is then the color at 40 % and the edge (focus rings, the grid's cursor) the color itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
+To define a custom accent, pass a `Theme.Accent` (use the 5-argument constructor if you need a lighter `edge` color on dark backgrounds for 3:1 focus ring contrast):
 
 ```java snippet="own-accent"
 ```
 
-## Colors
+## Working with colors
 
-A color is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. [`com.rethinkj.ui.Colors`](/api/com/rethinkj/ui/Colors.html) creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
+Colors are 32-bit ARGB integers (`0xAARRGGBB`, sRGB, non-premultiplied alpha). Use [`Colors`](/api/com/rethinkj/ui/Colors.html) instead of manual bit-shifting:
 
 ```java snippet="colors"
 ```
 
-| Method | What it does |
+| Method | Description |
 | --- | --- |
-| `rgb(0x3D6FE6)`, `rgb(red, green, blue)`, `argb(alpha, red, green, blue)` | A color from 24 bits or from channels of 0 to 255; `rgb` makes it opaque, `argb` takes its alpha too |
-| `alpha(color, 0.4f)` | The color at that alpha, `round(share * 255)`: 0.4 is `0x66` |
-| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(color)` | Parse from text and format back; a parse error shows the expected form |
-| `alpha(color)`, `red(color)`, `green(color)`, `blue(color)` | The channels, 0 to 255 |
-| `over(base, overlay)` | A translucent color over an opaque one, mixed in linear light as the renderer does |
-| `mix(from, to, amount)` | `amount` of the way from `from` to `to`, in linear light; `mix(color, BLACK, 0.2)` is `color` with 20 % less light |
-| `luminance(color)`, `contrast(first, second)`, `lightness(color)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
-| `BLACK`, `WHITE`, `TRANSPARENT` | |
+| `rgb(0x3D6FE6)`, `rgb(r, g, b)`, `argb(a, r, g, b)` | Create a color from hex or 0–255 channels |
+| `alpha(color, 0.4f)` | Set alpha from `0.0f` to `1.0f` |
+| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(color)` | Parse or format hex strings |
+| `alpha(c)`, `red(c)`, `green(c)`, `blue(c)` | Extract 0–255 channels |
+| `over(base, overlay)` | Blend a semi-transparent color over a base color in linear light |
+| `mix(from, to, amount)` | Interpolate between two colors in linear light |
+| `luminance(c)`, `contrast(c1, c2)`, `lightness(c)` | WCAG relative luminance, contrast ratio, and CIELAB L* |
+| `BLACK`, `WHITE`, `TRANSPARENT` | Common constants |
 
-The default themes use the colors of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `theme.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
-
-## Contrast
-
-In the default themes, primary and muted text reach WCAG AA contrast (4.5:1) on every surface they appear on; disabled text is deliberately lower. A theme of your own should do the same; `Colors.contrast(text, surface)` measures it.
+Prefer semantic theme tokens (`theme.accent().color()`) over raw `Palette` constants so theme switches work everywhere. All primary and muted text in the default themes meets WCAG AA (4.5:1) contrast; check custom themes with `Colors.contrast(text, surface)`.

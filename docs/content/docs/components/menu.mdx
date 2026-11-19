@@ -1,9 +1,11 @@
 ---
 title: Menu
-description: Items, separators, check marks, shortcuts and submenus, as a dropdown below a button or a context menu.
+description: Dropdown and context menus with icons, checkmarks, shortcuts, separators, and nested submenus.
 ---
 
-`Menu` shows items in an overlay: below a button with `Menu.dropdown`, at the pointer with `Menu.contextMenu`, or alone with `Menu.menu`. Items have text, an icon or a check mark, a shortcut shown at the right, and submenus to any depth. For the File, Edit and View menus of a window, use a [MenuBar](/docs/components/menu-bar); for one value among choices, a [Select](/docs/components/select).
+`Menu` displays action items in a floating overlay: below a button (`Menu.dropdown`), at the mouse cursor (`Menu.contextMenu`), or standalone (`Menu.menu`). Items support icons, checkmarks, keyboard shortcuts, and nested submenus.
+
+For top-level File/Edit/View menus, use [MenuBar](/docs/components/menu-bar). For picking a value in a form, use [Select](/docs/components/select).
 
 Javadoc: [`Menu`](/api/com/rethinkj/ui/kit/Menu.html), [`Menu.Item`](/api/com/rethinkj/ui/kit/Menu.Item.html), [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html).
 
@@ -14,69 +16,63 @@ Javadoc: [`Menu`](/api/com/rethinkj/ui/kit/Menu.html), [`Menu.Item`](/api/com/re
 ```java snippet="menu"
 ```
 
-`state.options` is a `Menu.State` and `state.autocommit` a boolean, both in the app's state.
+Store a `Menu.State` in your app state, toggle it from the button handler (`state.options.toggle()`), and attach `Menu.dropdown(button, menuState, items)`. Clicking an item closes the menu and runs its handler.
 
-The button's handler calls `state.options.toggle()`; `Menu.dropdown(button, menuState, items)` shows the menu below it. Choosing an item closes the menu and then runs its handler. A press outside closes it and does nothing else.
-
-## A context menu
+## Context menu
 
 ```java snippet="context-menu"
 ```
 
-`state.context` is a `Menu.State` in the app's state.
-
-`Menu.contextMenu(target, menuState, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. The keys open it at the bottom left of the focused element's first descendant that is `current`, else `selected`, such as a grid's cursor cell or a tree's selected row, else of the focused element; that point is kept within the focused element's bounds. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.context.openAt(x, y)` there.
+`Menu.contextMenu(target, menuState, items)` opens on right-click, or on the **Menu** key / **Shift+F10** when focused inside `target` (positioned near the `current` or `selected` item). If `target` already handles right-click (for example, to select a row first), call `state.context.openAt(x, y)` inside your handler.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 
 ## Items
 
-| | |
+| Method | Description |
 | --- | --- |
-| `Menu.item(label, onChoose)` | An item; a null handler disables it |
-| `.shortcut(Key.CONTROL, "N")` | A key combination that runs it, shown as the platform writes it (`Ctrl+N`) |
-| `.alsoShortcut(Key.CONTROL, "PageDown")` | A further key combination that runs it; only the first one shows |
-| `.shortcut("Ctrl+Enter")` | A text that only shows |
-| `.icon(Symbol)` | An icon before the text |
-| `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
-| `.danger()` | The text and icon in the theme's danger color, for an action that destroys something, such as Delete |
-| `.leading(() -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a color's swatch, an avatar |
-| `Menu.separator()` | A line |
-| `Menu.submenu(label, items)` | A submenu, opening beside the item |
+| `Menu.item(label, onChoose)` | Action item (`null` handler disables it) |
+| `.shortcut(Key.CONTROL, "N")` | Binds and displays a platform-formatted shortcut (`Ctrl+N`) |
+| `.alsoShortcut(Key.CONTROL, "PageDown")` | Binds an additional hidden shortcut |
+| `.shortcut("Ctrl+Enter")` | Displays shortcut text without binding it |
+| `.icon(Symbol)` | Icon before the label |
+| `.checked(boolean)` | Checkmark in the icon slot (or at the right if `.leading(...)` is used) |
+| `.danger()` | Red danger styling for destructive actions like Delete |
+| `.leading(() -> element)` | Custom leading element (up to 16×16 px, e.g., color swatch or avatar) |
+| `Menu.separator()` | Horizontal divider line |
+| `Menu.submenu(label, items)` | Nested submenu opening beside the item |
 
-An [`Item`](/api/com/rethinkj/ui/kit/Menu.Item.html) is a record, so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
+`Menu.Item` is a record (`isSeparator()`, `isEnabled()`), and `Menu.shortcutText(key)` formats a `Key` for display.
 
-A submenu of colors with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
+Example submenu with leading color swatches:
 
 ```java snippet="menu-leading"
 ```
 
 <Shot src="kit/menu-swatches-{theme}-2x" alt="A menu with a submenu Color that shows a round swatch before each hue's name and a check mark after Red" />
 
-`Menu.shortcuts(items)` is a key handler for the root. It runs the enabled item of a key combination, in submenus too, when no element on the focus path took the key, whether the menu is open or not. Two items with one combination throw an exception when the view is built.
+Attach `Menu.shortcuts(items)` to your root element's `onKey` to run enabled menu shortcuts globally even while menus are closed.
 
-## The state
+## State API
 
-The app keeps one [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html) per menu. `isOpen()`, `open()`, `openAt(x, y)`, `close()` and `toggle()` open and close it; `active(level)` and `submenu(level)` are the highlighted item and the item whose submenu is open, at each level.
+Keep one [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html) per menu: `isOpen()`, `open()`, `openAt(x, y)`, `close()`, `toggle()`, `active(level)`, and `submenu(level)`.
 
 ## Keyboard
 
-The menu takes the focus as it opens and gives it back as it closes. Enter, Space and Down on a dropdown's button open the menu with its first enabled item highlighted, and Up with the last. A press with the pointer highlights none.
-
-| Keys | Action |
+| Key | Action |
 | --- | --- |
-| Up, Down, Home, End | Move the highlight, past separators |
-| Enter, Space | Choose |
-| Right, Left | Open and close a submenu |
-| Escape | Close a submenu, then the menu |
-| Tab | Close the menu |
-| A letter or digit | The next item that starts with it |
+| Up, Down, Home, End | Move highlight (skips separators) |
+| Enter, Space | Activate item |
+| Right, Left | Open / close submenu |
+| Escape | Close submenu, then menu |
+| Tab | Close menu |
+| Typing a letter/digit | Jump to next item starting with that character |
 
-The item a key highlights stays in view. The pointer highlights the item it rests on and opens its submenu after the theme's delay. Menus fade in and out, so a script advances the clock past the fade (`advance 0.3`) before it presses an item or takes a snap.
+In headless scripts, advance past the fade-in animation (`advance 0.3`) before clicking a menu item or taking a snapshot.
 
 ## In a tree dump
 
-The menu is an overlay `role=menu`. Items are `role=menuitem` with their text as label and the key `item-<index>` (`subitem-<index>` in a submenu), separators counted. The highlighted item is `current`, a checked one `checked`, and an item with a submenu `expanded` or `expanded=false`.
+Overlay `role=menu`. Items are `role=menuitem` (`#item-<index>`, or `#subitem-<index>` in submenus, counting separators), with `current`, `checked`, and `expanded` / `expanded=false`:
 
 ```text snippet="menu-script"
 ```

@@ -1,13 +1,19 @@
 ---
 title: Notes
-description: Three notes as cards that reorder, tear off into windows of their own and dock again.
+description: Draggable note cards that reorder, tear off into separate windows, and dock back.
 ---
 
-Notes shows three notes as cards in a row that reorder, tear off into windows of their own and dock again. It does by hand what [TabGroups](/docs/components/tab-groups) does for tabs.
+Notes displays three note cards in a row. You can drag cards to reorder them, pull a card outside the window to detach it into its own window, and drag it back to dock it again. It demonstrates the low-level multi-window drag-and-drop pattern that [TabGroups](/docs/components/tab-groups) uses internally.
+
+**Demonstrates:** [Drag and drop](/docs/concepts/input), [Several windows](/docs/concepts/windows), and [Card](/docs/components/card).
 
 <Shot src="examples/notes-torn" alt="A note torn off into its own window beside the row" />
 
-<Shot src="examples/groceries-notes-torn" alt="The window of the torn note Groceries: its title above a field with its text" caption="The torn note's own window." />
+<Shot src="examples/groceries-notes-torn" alt="The window of the torn note Groceries: its title above a field with its text" caption="The detached note in its own window." />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
 
 ```sh
 mvn -q -pl examples -am compile exec:exec -Dexample=Notes
@@ -15,37 +21,37 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Notes
 
 ## What to try
 
-- Drag a card's title along the row to reorder the notes.
-- Drag it out of the window: the note gets a window of its own that follows the pointer.
-- Edit the note in its window: the muted card in the row shows the text at once.
-- Drag the title back over the row to dock the note, or close its window.
+- Drag a card's title left or right along the row to reorder the notes.
+- Drag a card outside the window to tear it off into its own floating window.
+- Edit the note inside the detached window: the card in the main window updates live.
+- Drag the title back over the row to dock the note again, or close its window.
 
 ## How it works
 
-### The drag
+### Dragging a card
 
-A card's title carries the note as its drag payload and reports each step of the drag ([Input](/docs/concepts/input)).
+Each card's title bar acts as a drag handle carrying the note as its drag payload ([Input](/docs/concepts/input)):
 
 ```java snippet="notes-handle"
 ```
 
-`drag` remembers where the pointer holds the title. Once `Drag.outside()` says the pointer has left the window, it tears the note off; after that, each step moves the note's window.
+`drag` stores where the mouse grabbed the title. When `Drag.outside()` detects that the pointer has left the window, it tears off the note and moves the new window with the cursor:
 
 ```java snippet="notes-drag"
 ```
 
-### A window of its own
+### Opening a detached window
 
-`tearOff` opens a window through `app.windows()` with a new `App` over the same state, placed so that the pointer holds the title where it held it in the card. The window is no drop target while it follows the pointer, so the row below it gets the drop ([Several windows](/docs/concepts/windows)).
+`tearOff` opens a new window via `app.windows()` with a new `App` sharing the same state. While the window follows the cursor, it ignores drops so the main row underneath can receive the drop ([Several windows](/docs/concepts/windows)):
 
 ```java snippet="notes-tear-off"
 ```
 
-### Docking
+### Docking back
 
-The row takes drops with `onDrop`. While a note is over it, a marker shows where it would go; a drop puts the note there and closes its window.
+The row accepts drops with `onDrop`. While a dragged note hovers over the row, a drop indicator shows where it will land. Dropping places the note at that index and closes the detached window:
 
 ```java snippet="notes-dock"
 ```
 
-The whole app is in [`Notes.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Notes.java).
+Full source: [`Notes.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Notes.java).

@@ -1,82 +1,82 @@
 ---
 title: Components
-description: Every component of the kit, with a picture, the smallest example, its options and what it shows in a tree dump.
+description: Ready-made UI components in rethinkj-ui-kit, with screenshots, code examples, and options.
 ---
 
-The kit (`rethinkj-ui-kit`, package `com.rethinkj.ui.kit`) holds components built on core, for desktop tools that work with data. Each is a static function that returns an `El`, which you may chain further: `Button.button(PRIMARY, "Run", onRun).key("run")`. Components read the theme from `Theme.CURRENT`, which the app provides ([Themes](/docs/concepts/themes)). There is no base class; the state belongs to the app, and a null handler usually disables a component.
+`rethinkj-ui-kit` (package `com.rethinkj.ui.kit`) provides ready-made desktop components built on `core`. Every component is a static method returning an `El` that you can chain further (for example, `Button.button(PRIMARY, "Run", onRun).key("run")`).
+
+Components automatically read styling from `Theme.CURRENT` ([Themes](/docs/concepts/themes)). Your app owns all state, and passing a `null` handler disables a control.
 
 Javadoc: [`com.rethinkj.ui.kit`](/api/com/rethinkj/ui/kit/package-summary.html).
-
-Every page has the same order: what the component is and when to use it, a picture, an example, the options and other forms, the state the app keeps, the keys, the form that takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) where there is one, and what the component shows in a [tree dump](/docs/testing/tree-dump), so that a script finds it.
 
 ## Data
 
 <Tiles>
-<Tile href="/docs/components/data-grid" title="DataGrid" description="Query results for a million rows: selection, sorting, editing, filters." src="examples/docs/grid/selected-{theme}" />
-<Tile href="/docs/components/tree" title="Tree" description="Servers, schemas and tables that open and close." src="kit/tree-{theme}-opened" />
-<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code with line numbers, highlighting and line commands." src="kit/code-editor-{theme}-2x-brackets" />
-<Tile href="/docs/components/find" title="Find" description="Find and replace in a multi-line field." src="kit/find-{theme}-2x-replace" />
-<Tile href="/docs/components/completion" title="Completion" description="Completions at the caret." src="examples/workbench-completion" />
-<Tile href="/docs/components/markdown" title="Markdown" description="A Markdown document as a scrolling page." src="examples/manual-{theme}-2x-top" />
-<Tile href="/docs/components/properties" title="Properties" description="Names and values that select and copy." src="examples/docs/details/view-{theme}" crop="role=list" />
+<Tile href="/docs/components/data-grid" title="DataGrid" description="Data table for up to a million rows with selection, sorting, editing, and filters." src="examples/docs/grid/selected-{theme}" />
+<Tile href="/docs/components/tree" title="Tree" description="Expandable hierarchical tree for servers, folders, and schemas." src="kit/tree-{theme}-opened" />
+<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code editor with line numbers, syntax highlighting, and line commands." src="kit/code-editor-{theme}-2x-brackets" />
+<Tile href="/docs/components/find" title="Find" description="Find and replace bar for multi-line text fields." src="kit/find-{theme}-2x-replace" />
+<Tile href="/docs/components/completion" title="Completion" description="Autocomplete popup at the text cursor." src="examples/workbench-completion" />
+<Tile href="/docs/components/markdown" title="Markdown" description="Scrollable Markdown document viewer." src="examples/manual-{theme}-2x-top" />
+<Tile href="/docs/components/properties" title="Properties" description="Key-value list with selectable, copyable values." src="examples/docs/details/view-{theme}" crop="role=list" />
 </Tiles>
 
 ## Frame
 
 <Tiles>
-<Tile href="/docs/components/tabs" title="Tabs" description="A bar of tabs, on a card or with a line under it." src="examples/docs/tabs/view-{theme}" />
-<Tile href="/docs/components/tab-groups" title="TabGroups" description="Tabs that tear off into windows." src="examples/docs/tab-groups/moved-{theme}" />
-<Tile href="/docs/components/split" title="Split" description="Two parts with a line between them." src="kit/split-{theme}-rest" />
-<Tile href="/docs/components/card" title="Card" description="A rounded surface that frames a region." src="kit/structure-cards-{theme}-2x" />
-<Tile href="/docs/components/group" title="Group" description="Rows of settings in a card." src="examples/docs/groups/view-{theme}" />
-<Tile href="/docs/components/section" title="Section and page" description="A page of sections with headings." dark="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" />
-<Tile href="/docs/components/nav-list" title="NavList" description="Pages or sections, one selected." src="examples/docs/navigation/view-{theme}" />
-<Tile href="/docs/components/title-bar" title="TitleBar" description="A frameless window's title bar." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
-<Tile href="/docs/components/status-bar" title="StatusBar" description="The bar along the bottom of a window." src="examples/docs/bars/view-{theme}" />
-<Tile href="/docs/components/toolbar" title="Toolbar" description="Actions in groups that move into More when narrow." src="examples/docs/toolbar/view-{theme}" />
-<Tile href="/docs/components/breadcrumb" title="Breadcrumb" description="A path whose chevrons open the places inside." src="examples/docs/details/children-{theme}" crop="role=navigation|role=menu" />
-<Tile href="/docs/components/divider" title="Divider" description="A hairline, with an optional label." src="examples/docs/dividers/view-{theme}" />
+<Tile href="/docs/components/tabs" title="Tabs" description="Tab bar with card or underline styles." src="examples/docs/tabs/view-{theme}" />
+<Tile href="/docs/components/tab-groups" title="TabGroups" description="Tabs that can tear off into separate windows and dock back." src="examples/docs/tab-groups/moved-{theme}" />
+<Tile href="/docs/components/split" title="Split" description="Resizable two-pane split container." src="kit/split-{theme}-rest" />
+<Tile href="/docs/components/card" title="Card" description="Rounded panel container with optional header, toolbar, and footer." src="kit/structure-cards-{theme}-2x" />
+<Tile href="/docs/components/group" title="Group" description="Grouped settings rows inside a card." src="examples/docs/groups/view-{theme}" />
+<Tile href="/docs/components/section" title="Section and page" description="Structured settings page with titled sections." dark="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" />
+<Tile href="/docs/components/nav-list" title="NavList" description="Sidebar navigation list with selectable items and groups." src="examples/docs/navigation/view-{theme}" />
+<Tile href="/docs/components/title-bar" title="TitleBar" description="Custom title bar for frameless windows." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
+<Tile href="/docs/components/status-bar" title="StatusBar" description="Bottom status bar for connection and cursor info." src="examples/docs/bars/view-{theme}" />
+<Tile href="/docs/components/toolbar" title="Toolbar" description="Action bar that moves overflowing buttons into a More menu." src="examples/docs/toolbar/view-{theme}" />
+<Tile href="/docs/components/breadcrumb" title="Breadcrumb" description="Navigation path with dropdown menus for child items." src="examples/docs/details/children-{theme}" crop="role=navigation|role=menu" />
+<Tile href="/docs/components/divider" title="Divider" description="Horizontal or vertical separator line with optional label." src="examples/docs/dividers/view-{theme}" />
 </Tiles>
 
 ## Overlays
 
 <Tiles>
-<Tile href="/docs/components/menu" title="Menu" description="Dropdowns and context menus with submenus." src="kit/menu-{theme}-2x-submenu" />
-<Tile href="/docs/components/menu-bar" title="MenuBar" description="File, Edit and View, with Alt and mnemonics." src="kit/menubar-{theme}-2x-open" />
-<Tile href="/docs/components/command-palette" title="CommandPalette" description="Every command, searchable." src="kit/palette-{theme}-2x-commands" />
-<Tile href="/docs/components/dialog" title="Dialog" description="A modal dialog over a scrim." src="kit/dialog-{theme}-2x-open" />
-<Tile href="/docs/components/popover" title="Popover" description="Content below an anchor." src="kit/parts-popover-{theme}-2x" />
-<Tile href="/docs/components/tooltip" title="Tooltip" description="A short text, or any content, after a rest." src="kit/tooltip-{theme}-2x-shown" />
-<Tile href="/docs/components/toast" title="Toast" description="A message that goes by itself." src="kit/toast-{theme}-2x-shown" />
+<Tile href="/docs/components/menu" title="Menu" description="Dropdown and context menus with submenus." src="kit/menu-{theme}-2x-submenu" />
+<Tile href="/docs/components/menu-bar" title="MenuBar" description="Classic top menu bar (File, Edit, View) with Alt shortcuts." src="kit/menubar-{theme}-2x-open" />
+<Tile href="/docs/components/command-palette" title="CommandPalette" description="Searchable command launcher (Ctrl+Shift+P)." src="kit/palette-{theme}-2x-commands" />
+<Tile href="/docs/components/dialog" title="Dialog" description="Centered modal dialog over a dimmed backdrop." src="kit/dialog-{theme}-2x-open" />
+<Tile href="/docs/components/popover" title="Popover" description="Floating container anchored to an element." src="kit/parts-popover-{theme}-2x" />
+<Tile href="/docs/components/tooltip" title="Tooltip" description="Hover tooltip with text or custom content." src="kit/tooltip-{theme}-2x-shown" />
+<Tile href="/docs/components/toast" title="Toast" description="Temporary notification banner that auto-dismisses." src="kit/toast-{theme}-2x-shown" />
 </Tiles>
 
 ## Inputs
 
 <Tiles>
-<Tile href="/docs/components/button" title="Button" description="Primary, secondary, ghost, busy, toggle, split and menu." src="kit/gallery-{theme}-2x" rows="primary,secondary,ghost" />
-<Tile href="/docs/components/toggle" title="Toggle" description="A switch for a setting." src="kit/gallery-{theme}-2x" rows="toggle off,toggle on" />
-<Tile href="/docs/components/checkbox" title="Checkbox" description="A box with a check mark." src="kit/gallery-{theme}-2x" rows="checkbox off,checkbox on" />
-<Tile href="/docs/components/text-field" title="TextField" description="Fields, passwords, text and code areas." src="kit/gallery-{theme}-2x" rows="field empty,field filled,password" />
-<Tile href="/docs/components/select" title="Select" description="One of a few choices in a menu." src="kit/select-{theme}-2x-open" />
-<Tile href="/docs/components/combo-box" title="ComboBox" description="A choice made by typing." src="kit/combobox-{theme}-2x-typed" />
-<Tile href="/docs/components/radio" title="Radio" description="One choice among a few, all in view." src="examples/docs/choices/view-{theme}" crop="Indent with" />
-<Tile href="/docs/components/segmented" title="Segmented" description="Joined buttons for views or modes." src="kit/gallery-{theme}-2x" rows="segmented" />
-<Tile href="/docs/components/hue-picker" title="HuePicker" description="Swatches of the theme's hues." src="kit/swatches-{theme}-2x" />
-<Tile href="/docs/components/number-field" title="NumberField" description="A whole number with steps." src="kit/gallery-{theme}-2x" rows="number" />
-<Tile href="/docs/components/slider" title="Slider" description="A knob on a rail." src="kit/gallery-{theme}-2x" rows="slider" />
-<Tile href="/docs/components/form" title="Form" description="Labeled fields with help and errors." src="kit/structure-form-{theme}-2x" />
-<Tile href="/docs/components/format" title="Format and ValueField" description="Numbers, dates and enums as typed values." src="kit/value-field-{theme}-2x-draft" />
+<Tile href="/docs/components/button" title="Button" description="Primary, secondary, ghost, icon, busy, toggle, split, and menu buttons." src="kit/gallery-{theme}-2x" rows="primary,secondary,ghost" />
+<Tile href="/docs/components/toggle" title="Toggle" description="On/off switch for instant settings." src="kit/gallery-{theme}-2x" rows="toggle off,toggle on" />
+<Tile href="/docs/components/checkbox" title="Checkbox" description="Checkbox with label for form options." src="kit/gallery-{theme}-2x" rows="checkbox off,checkbox on" />
+<Tile href="/docs/components/text-field" title="TextField" description="Single-line inputs, password fields, text areas, and code areas." src="kit/gallery-{theme}-2x" rows="field empty,field filled,password" />
+<Tile href="/docs/components/select" title="Select" description="Dropdown menu for picking one option." src="kit/select-{theme}-2x-open" />
+<Tile href="/docs/components/combo-box" title="ComboBox" description="Searchable dropdown with typing and suggestions." src="kit/combobox-{theme}-2x-typed" />
+<Tile href="/docs/components/radio" title="Radio" description="Visible list of mutually exclusive options." src="examples/docs/choices/view-{theme}" crop="Indent with" />
+<Tile href="/docs/components/segmented" title="Segmented" description="Connected button group for switching views or modes." src="kit/gallery-{theme}-2x" rows="segmented" />
+<Tile href="/docs/components/hue-picker" title="HuePicker" description="Color swatch picker for the theme's accent hues." src="kit/swatches-{theme}-2x" />
+<Tile href="/docs/components/number-field" title="NumberField" description="Integer input with increment/decrement step buttons." src="kit/gallery-{theme}-2x" rows="number" />
+<Tile href="/docs/components/slider" title="Slider" description="Draggable range slider." src="kit/gallery-{theme}-2x" rows="slider" />
+<Tile href="/docs/components/form" title="Form" description="Labeled form fields with helper text and validation errors." src="kit/structure-form-{theme}-2x" />
+<Tile href="/docs/components/format" title="Format and ValueField" description="Typed input fields for numbers, dates, and enums." src="kit/value-field-{theme}-2x-draft" />
 </Tiles>
 
 ## Display
 
 <Tiles>
-<Tile href="/docs/components/label" title="Label" description="Text in the theme's styles." src="kit/gallery-{theme}-2x" rows="label" />
+<Tile href="/docs/components/label" title="Label" description="Themed text styles for headings, body, and code." src="kit/gallery-{theme}-2x" rows="label" />
 <Tile href="/docs/components/icon" title="Icon" description="Fluent UI System Icons." src="kit/icons-{theme}-2x" />
-<Tile href="/docs/components/badge" title="Badge" description="A short word in a small fill." src="examples/docs/parts/view-{theme}" crop="bigint|status = paid" />
-<Tile href="/docs/components/avatar" title="Avatar" description="Initials on a color of the name." src="examples/docs/parts/view-{theme}" crop="prod-eu|localhost" />
-<Tile href="/docs/components/image" title="Image" description="A picture, or a placeholder." src="examples/manual-{theme}-2x-images" />
-<Tile href="/docs/components/progress" title="Progress" description="Bars, running bars and spinners." src="kit/gallery-{theme}-2x" rows="progress,running,labeled" />
-<Tile href="/docs/components/callout" title="Callout" description="A note that stands out." src="examples/docs/status/view-{theme}" crop="role=note" />
-<Tile href="/docs/components/empty-state" title="EmptyState" description="What to do when there is nothing." src="examples/docs/status/view-{theme}" crop="role=status" />
+<Tile href="/docs/components/badge" title="Badge" description="Compact tag for types, counts, or removable filters." src="examples/docs/parts/view-{theme}" crop="bigint|status = paid" />
+<Tile href="/docs/components/avatar" title="Avatar" description="Circular initials or icon with a deterministic color." src="examples/docs/parts/view-{theme}" crop="prod-eu|localhost" />
+<Tile href="/docs/components/image" title="Image" description="Rounded image display with loading placeholder." src="examples/manual-{theme}-2x-images" />
+<Tile href="/docs/components/progress" title="Progress" description="Progress bars, indeterminate bars, and loading spinners." src="kit/gallery-{theme}-2x" rows="progress,running,labeled" />
+<Tile href="/docs/components/callout" title="Callout" description="Highlighted info, warning, danger, or success banner." src="examples/docs/status/view-{theme}" crop="role=note" />
+<Tile href="/docs/components/empty-state" title="EmptyState" description="Placeholder view with message and action when there is no data." src="examples/docs/status/view-{theme}" crop="role=status" />
 </Tiles>
