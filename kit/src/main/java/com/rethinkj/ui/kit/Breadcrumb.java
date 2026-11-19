@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.row;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -143,12 +144,16 @@ public final class Breadcrumb {
       return (w, h) -> texts.put(key, TextSizing.measured(words)); // after the build: as laid out
     }
 
-    /** What the width of a crumb's text depends on, besides the window's scale. */
-    private record Shaped(Font font, float size, String text) {}
+    /** What the width of a crumb's text depends on. */
+    private record Shaped(Font font, float size, String text, float scale) {}
 
     private static Shaped key(Theme theme, Crumb crumb, boolean current) {
       Theme.TextStyle style = style(theme, current);
-      return new Shaped(style.font().get(), style.size(), crumb.text());
+      return new Shaped(
+          style.font().get(),
+          style.size(),
+          crumb.text(),
+          WindowState.CURRENT.get().scale());
     }
 
     /** Closes the menus of the chevrons this build does not show, so none opens by itself. */

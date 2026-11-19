@@ -13,6 +13,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import com.rethinkj.ui.text.Font;
@@ -248,6 +249,11 @@ public final class Markdown {
     }
     Theme theme = c.theme;
     MarkdownDocument.ListBlock list = (MarkdownDocument.ListBlock) u.block;
+    float scale = WindowState.CURRENT.get().scale();
+    if (c.prepared.columnsScale != scale) {
+      c.prepared.columns.clear();
+      c.prepared.columnsScale = scale;
+    }
     float column = c.prepared.columns.computeIfAbsent(list, l -> markerColumn(c, list));
     El item = item(c, list, u.item, column);
     boolean lastItem = u.item + 1 == list.items().size();
@@ -275,6 +281,7 @@ public final class Markdown {
     final MarkdownDocument document;
     final Map<Object, Piece> pieces = new IdentityHashMap<>();
     final Map<Object, Float> columns = new IdentityHashMap<>(); // the widths of lists' markers
+    float columnsScale; // the window's scale the markers were measured at
     final List<Unit> units;
     final RowHeights heights;
     String text; // the whole document's, for Control+C after Control+A
