@@ -374,9 +374,7 @@ final class MarkdownParser {
         closeUnmatched();
         B heading = add(HEADING);
         heading.level = m.group().strip().length();
-        String content = line.substring(offset);
-        content = content.replaceAll("^[ \\t]*#+[ \\t]*$", "").replaceAll("[ \\t]+#+[ \\t]*$", "");
-        heading.content.append(content.strip());
+        heading.content.append(withoutClosingSequence(line.substring(offset)).strip());
         advanceOffset(line.length() - offset, false);
         return 2;
       }
@@ -778,6 +776,24 @@ final class MarkdownParser {
 
   private static boolean isSpaceOrTab(char c) {
     return c == ' ' || c == '\t';
+  }
+
+  /**
+   * A heading's text without its closing run of #, which ends it, blanks aside, and follows a
+   * blank or begins it. Cut by hand: a regex retried at every blank of a long run.
+   */
+  private static String withoutClosingSequence(String content) {
+    int end = content.length();
+    while (end > 0 && isSpaceOrTab(content.charAt(end - 1))) {
+      end--;
+    }
+    int start = end;
+    while (start > 0 && content.charAt(start - 1) == '#') {
+      start--;
+    }
+    return start < end && (start == 0 || isSpaceOrTab(content.charAt(start - 1)))
+        ? content.substring(0, start)
+        : content;
   }
 
   private void findNextNonspace() {

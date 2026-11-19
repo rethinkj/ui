@@ -1658,7 +1658,7 @@ public final class Window implements AutoCloseable {
     float below = 0;
     if (frameless) {
       while (below < height && part(0, below) == WindowPart.DRAG) {
-        below++;
+        below += 1;
       }
     }
     int y = units(below);

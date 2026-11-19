@@ -1118,8 +1118,11 @@ public final class Script {
 
   /** A title as a part of a file name: lower case, words joined by hyphens. */
   static String slug(String title) {
-    String slug =
-        title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+    String slug = title
+        .toLowerCase(Locale.ROOT)
+        .replaceAll("[^a-z0-9]+", "-")
+        .replaceFirst("^-", "")
+        .replaceFirst("-$", "");
     return slug.isEmpty() ? "window" : slug;
   }
 

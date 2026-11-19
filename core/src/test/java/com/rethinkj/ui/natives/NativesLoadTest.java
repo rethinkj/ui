@@ -242,7 +242,7 @@ class NativesLoadTest {
         MemorySegment autofitter = arena.allocateFrom("autofitter");
         assertNotEquals(
             MemorySegment.NULL,
-            call(freetype, "FT_Get_Module", FT_GET_MODULE, library, autofitter),
+            (MemorySegment) call(freetype, "FT_Get_Module", FT_GET_MODULE, library, autofitter),
             "FreeType without the auto-hinter");
         MemorySegment version = arena.allocate(JAVA_INT, 3);
         call(

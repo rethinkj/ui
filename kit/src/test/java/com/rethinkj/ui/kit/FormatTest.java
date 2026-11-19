@@ -2,13 +2,16 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -219,6 +222,20 @@ class FormatTest {
     }
     // Reading it would take seconds; the limit of a busy machine is far from both.
     assertTrue(System.nanoTime() - start < 2_000_000_000L, "refused without reading the digits");
+  }
+
+  @Test
+  void theLongestNumberWithAWrongEndIsRefusedInTime() {
+    String digits = "9".repeat(Format.MAX_NUMBER_LENGTH - 1) + "x";
+    String blanks = " ".repeat(Format.MAX_NUMBER_LENGTH - 1) + "x";
+    assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
+      for (String text : List.of(digits, blanks)) {
+        for (Format<?> format : List.of(Format.DECIMAL, Format.BYTES)) {
+          assertNotNull(format.parse(text).error(), text.substring(0, 1));
+          assertFalse(format.allows(text), text.substring(0, 1));
+        }
+      }
+    });
   }
 
   @Test

@@ -84,9 +84,12 @@ public final class Format<T> {
 
   private static final Pattern WHOLE = Pattern.compile("[-+]?\\d+");
   private static final Pattern WHOLE_TYPED = Pattern.compile("[-+]?\\d*");
+  // Each digit and blank can belong to one part only: a long text with a wrong end fails in
+  // linear time, where \d+\.?\d* tried every split of the digits.
   private static final Pattern NUMBER =
-      Pattern.compile("[-+]?(\\d+\\.?\\d*|\\.\\d+)([eE][-+]?\\d+)?");
-  private static final Pattern NUMBER_TYPED = Pattern.compile("[-+]?\\d*\\.?\\d*([eE][-+]?\\d*)?");
+      Pattern.compile("[-+]?(\\d+(?:\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?");
+  private static final Pattern NUMBER_TYPED =
+      Pattern.compile("[-+]?\\d*(?:\\.\\d*)?([eE][-+]?\\d*)?");
   private static final DateTimeFormatter ISO_DATE =
       DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT);
   private static final DateTimeFormatter ISO_TIME =
@@ -123,10 +126,10 @@ public final class Format<T> {
       .withResolverStyle(ResolverStyle.STRICT);
 
   // A number, then a unit: b, kb or kib and so on, in any case.
-  private static final Pattern BYTES_TEXT =
-      Pattern.compile("(\\d+\\.?\\d*|\\.\\d+)\\s*((?:[kmgtpe]i?)?b|)", Pattern.CASE_INSENSITIVE);
-  private static final Pattern BYTES_TYPED =
-      Pattern.compile("\\s*\\d*\\.?\\d*\\s*(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
+  private static final Pattern BYTES_TEXT = Pattern.compile(
+      "(\\d+(?:\\.\\d*)?|\\.\\d+)\\s*((?:[kmgtpe]i?)?b|)", Pattern.CASE_INSENSITIVE);
+  private static final Pattern BYTES_TYPED = Pattern.compile(
+      "\\s*+\\d*(?:\\.\\d*)?\\s*+(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
   private static final String[] BYTE_UNITS = {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
 
   /**

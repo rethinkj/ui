@@ -175,7 +175,8 @@ class MarkdownParserTest {
         "[foo]: /url\n[foo]\n",
         "[[[[]]]]",
         "**a* ",
-        "\\* &amp; &#x41; ");
+        "\\* &amp; &#x41; ",
+        "# a" + " ".repeat(100_000) + "b");
     for (String kind : kinds) {
       String text = kind.repeat(128 * 1024 / kind.length());
       assertTimeoutPreemptively(Duration.ofSeconds(2), () -> MarkdownParser.read(text), kind);

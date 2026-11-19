@@ -1,0 +1,1 @@
+- A number or size field no longer stalls on a long typed or pasted text with a wrong end, such as many digits followed by a letter, and Markdown no longer stalls on a heading with a long run of blanks: both are now checked in linear time.
