@@ -3192,7 +3192,7 @@ public final class App<S> {
     boolean pending = rowsPending;
     scrolled = false;
     rowsPending = false;
-    if (fillRows() | pending) { // not ||
+    if (fillRows() || pending) {
       refocus();
       placeEditors();
     } else {
@@ -3219,7 +3219,7 @@ public final class App<S> {
         editing.focusGained();
       }
     }
-    if (editing != null && (editing.takeChanged() | moved)) {
+    if (editing != null && (editing.takeChanged() || moved)) {
       blinkStart = time;
     }
     return moved;
