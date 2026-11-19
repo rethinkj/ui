@@ -109,7 +109,9 @@ public final class ValueField {
         text = format.text(value);
         error = format.parse(text).error();
       } else if (error != null) {
-        error = format.parse(text).error(); // in the view's texts, also after they changed
+        // The message in the view's texts, also after they changed; only its words change.
+        String again = format.parse(text).error();
+        error = again != null ? again : error;
       }
     }
 

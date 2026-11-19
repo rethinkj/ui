@@ -82,6 +82,10 @@ public final class Menu {
 
   private static final boolean WINDOWS = System.getProperty("os.name", "").startsWith("Windows");
 
+  // The text of an item whose keys are written where the menu shows, in its texts; by identity,
+  // so that no text an app gives, and no null, which hides the text, is taken for it.
+  private static final String KEYS = new String();
+
   private Menu() {}
 
   /**
@@ -161,7 +165,7 @@ public final class Menu {
      */
     @Override
     public String shortcut() {
-      return shortcut == null && keys != null ? shortcutText(keys) : shortcut;
+      return shortcut == KEYS ? shortcutText(keys) : shortcut;
     }
 
     /** This item with a text shown at its right, which only shows: no key runs the item. */
@@ -182,7 +186,7 @@ public final class Menu {
     public Item shortcut(int modifiers, String key) {
       Key k = combination(modifiers, key);
       return new Item(
-          label, null, // written where the menu shows, in its texts: see shortcut()
+          label, KEYS, // written where the menu shows, in its texts: see shortcut()
           k, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
