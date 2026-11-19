@@ -129,8 +129,8 @@ public final class Breadcrumb {
     }
 
     /**
-     * The width of a crumb's text: as layout shaped it at the window's scale where it has, which
-     * a build cannot measure itself, else at a scale of 1, until layout has had it.
+     * The width of a crumb's text: as layout shaped it where it has, with the system's fonts where
+     * the app falls back to them, else as the build measures it at the window's scale.
      */
     float text(Theme theme, Crumb crumb, boolean current) {
       Float width = texts.get(key(theme, crumb, current));
@@ -140,7 +140,7 @@ public final class Breadcrumb {
     /** Learns the width of a crumb's text from layout, at the window's scale. */
     El.SizeHandler learn(Theme theme, Crumb crumb, boolean current, El words) {
       Shaped key = key(theme, crumb, current);
-      return (w, h) -> texts.put(key, TextSizing.natural(words));
+      return (w, h) -> texts.put(key, TextSizing.measured(words)); // after the build: as laid out
     }
 
     /** What the width of a crumb's text depends on, besides the window's scale. */

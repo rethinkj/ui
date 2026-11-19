@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Text;
+import com.rethinkj.ui.WindowState;
 import java.text.BreakIterator;
 import java.util.Locale;
 
@@ -11,8 +12,19 @@ final class TextSizing {
 
   private TextSizing() {}
 
-  /** The width a text element takes on one line, in logical pixels at its current scale. */
+  /**
+   * The width a text element takes on one line, in logical pixels, shaped at the scale of the
+   * window that shows the view being built. Only for a build: elsewhere the scale is 1.
+   */
   static float natural(El text) {
+    if (text.text() != null) {
+      text.text().scale(WindowState.CURRENT.get().scale());
+    }
+    return measured(text);
+  }
+
+  /** The width a text element takes on one line, in logical pixels at its current scale. */
+  static float measured(El text) {
     return text.text() == null
         ? 0
         : text.text()

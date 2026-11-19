@@ -17,6 +17,7 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
+import com.rethinkj.ui.WindowState;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
@@ -2686,9 +2687,9 @@ public final class DataGrid {
     return style.font().get().shape(text, style.size(), scale).width() / scale;
   }
 
-  /** The width of a header cell's content when nothing is cut short. */
+  /** The width of a header cell's content when nothing is cut short, at the window's scale. */
   private static float headerWidth(Build b, int c) {
-    return headerWidth(b, c, 1);
+    return headerWidth(b, c, WindowState.CURRENT.get().scale());
   }
 
   private static float headerWidth(Build b, int c, float scale) {

@@ -3141,8 +3141,8 @@ public final class App<S> {
    */
   private void rebuild(boolean between) {
     List<Object> ids = Animator.identities(pointed());
-    El built =
-        WindowState.CURRENT.with(new WindowState(active, maximized), () -> view.apply(state));
+    El built = WindowState.CURRENT.with(
+        new WindowState(active, maximized, scale), () -> view.apply(state));
     El.fix(built);
     shown = applyLooks(built, ids);
     root = built;

@@ -53,42 +53,42 @@ el 0,0 720x420
         text role=heading "Table" 29,127 662x16 level=3
         el role=list label="Table" 25,145 670x96
           el role=listitem label="Schema" 25,145 670x24 value="public"
-            el 29,145 71x24
-              text "Schema" 29,149 71x15
-            text role=textbox "public" 108,145 551x24 readonly
+            el 29,145 72x24
+              text "Schema" 29,149 72x15
+            text role=textbox "public" 109,145 550x24 readonly
             el #copy role=button label="Copy Schema" 667,145 24x24
               text label="copy" "\u{F32A}" 671,149 16x16
           el role=listitem label="Rows" 25,169 670x24 value="1,000,000"
-            el 29,169 71x24
-              text "Rows" 29,173 71x15
-            text role=textbox "1,000,000" 108,169 551x24 readonly
+            el 29,169 72x24
+              text "Rows" 29,173 72x15
+            text role=textbox "1,000,000" 109,169 550x24 readonly
             el #copy role=button label="Copy Rows" 667,169 24x24
               text label="copy" "\u{F32A}" 671,173 16x16
           el role=listitem label="Owner" 25,193 670x24 value="shop_admin"
-            el 29,193 71x24
-              text "Owner" 29,197 71x15
-            text role=textbox "shop_admin" 108,193 551x24 readonly
+            el 29,193 72x24
+              text "Owner" 29,197 72x15
+            text role=textbox "shop_admin" 109,193 550x24 readonly
             el #copy role=button label="Copy Owner" 667,193 24x24
               text label="copy" "\u{F32A}" 671,197 16x16
           el role=listitem label="Comment" 25,217 670x24 value="Every order a customer placed, by month, for the reports of the sales team"
-            el 29,217 71x24
-              text "Comment" 29,221 71x15
-            text role=textbox "Every order a customer placed, by month, for the reports of the sales team" 108,217 551x24 readonly
+            el 29,217 72x24
+              text "Comment" 29,221 72x15
+            text role=textbox "Every order a customer placed, by month, for the reports of the sales team" 109,217 550x24 readonly
             el #copy role=button label="Copy Comment" 667,217 24x24
               text label="copy" "\u{F32A}" 671,221 16x16
       el 29,253 662x65
         text role=heading "Storage" 29,253 662x15 level=3
         el role=list label="Storage" 25,270 670x48
           el role=listitem label="Size" 25,270 670x24 value="128 MB"
-            el 29,270 71x24
-              text "Size" 29,274 71x16
-            text role=textbox "128 MB" 108,270 551x24 readonly
+            el 29,270 72x24
+              text "Size" 29,274 72x16
+            text role=textbox "128 MB" 109,270 550x24 readonly
             el #copy role=button label="Copy Size" 667,270 24x24
               text label="copy" "\u{F32A}" 671,274 16x16
           el role=listitem label="Tablespace" 25,294 670x24 value="pg_default"
-            el 29,294 71x24
-              text "Tablespace" 29,298 71x16
-            text role=textbox "pg_default" 108,294 551x24 readonly
+            el 29,294 72x24
+              text "Tablespace" 29,298 72x16
+            text role=textbox "pg_default" 109,294 550x24 readonly
             el #copy role=button label="Copy Tablespace" 667,294 24x24
               text label="copy" "\u{F32A}" 671,298 16x16
 overlay bottom start gap 2 on #filter role=button label="Filter" 614,57 77x24

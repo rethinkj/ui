@@ -36,7 +36,7 @@ Save `window.placement()` before closing and pass it to `options.placement(...)`
 
 In a frameless window, mark your custom title bar elements with `El.windowPart(part)` so dragging, edge resizing, double-click maximize, and Windows 11 snap layouts work natively. The kit's [TitleBar](/docs/components/title-bar) does this automatically.
 
-Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maximized()` (for example, to show a Restore icon or dim an inactive title bar). Window parts continue to work even when a modal dialog is open.
+Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maximized()` (for example, to show a Restore icon or dim an inactive title bar), and `scale()` to measure text at the scale layout will use (`text.scale(scale)` before `measure`). Window parts continue to work even when a modal dialog is open.
 
 | [`WindowPart`](/api/com/rethinkj/ui/WindowPart.html) | Behavior |
 | --- | --- |

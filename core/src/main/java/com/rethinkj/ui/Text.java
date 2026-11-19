@@ -26,7 +26,8 @@ import java.util.Objects;
  *
  * <p>Text is shaped for the scale of the window, which {@link App} and {@link Headless} pass to
  * every text element before layout. Sizes go to layout in logical pixels; lines are in physical
- * pixels, so that a renderer draws the glyphs where they were measured.
+ * pixels, so that a renderer draws the glyphs where they were measured. A view that measures text
+ * while it is built sets the scale itself, from {@link WindowState#scale}.
  *
  * <p>The text of an {@link El#editable} element is a field. A single-line field is one line,
  * whatever the string holds, measured as 0 wide so that the field's width comes from its style;
@@ -647,7 +648,13 @@ public final class Text implements Measure {
     this.ellipsis = on;
   }
 
-  void scale(float scale) {
+  /**
+   * Shapes the text for a scale, so that {@link #measure} gives what layout will at that scale, as
+   * a component that measures text while the view is built needs ({@link WindowState#scale}). {@link
+   * App} and {@link Headless} set it again before layout; on text already laid out, this changes
+   * what is drawn until then.
+   */
+  public void scale(float scale) {
     if (scale != this.scale) {
       this.scale = scale;
       invalidate();
