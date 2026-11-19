@@ -70,6 +70,7 @@ class CpuRendererTest {
     assertEquals(0, image.argb(5, 10), "outside it");
     assertEquals(0x40, image.argb(40, 10) >>> 24, "at the tip of a quarter");
     assertEquals(RED, image.argb(70, 9), "at the tip of an even one, which lies on corners");
+    assertEquals(0, image.argb(69, 9) >>> 24);
     assertEquals(0, image.argb(69, 10));
   }
 

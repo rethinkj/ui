@@ -99,7 +99,8 @@ import java.util.Map;
  * physical pixel away and the formula's from {@code sqrt(1/2)} of one on, as far as the four pixels
  * around a center on their corners lie: {@code sweep + (arc - sweep) clamp((2 |p| scale - 1) /
  * (sqrt(2) - 1), 0, 1)}. So it changes continuously with the pixel and with the sweep, also where
- * an arc becomes wider than half a turn, and a pie of an even size is exact at its center.
+ * an arc becomes wider than half a turn, and a pie of an even size in physical pixels gets its
+ * edges' coverage at its center, not a blend towards the sweep.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *
