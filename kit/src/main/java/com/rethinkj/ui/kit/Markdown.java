@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -249,12 +250,10 @@ public final class Markdown {
     }
     Theme theme = c.theme;
     MarkdownDocument.ListBlock list = (MarkdownDocument.ListBlock) u.block;
-    float scale = WindowState.CURRENT.get().scale();
-    if (c.prepared.columnsScale != scale) {
-      c.prepared.columns.clear();
-      c.prepared.columnsScale = scale;
-    }
-    float column = c.prepared.columns.computeIfAbsent(list, l -> markerColumn(c, list));
+    float column = c.prepared
+        .columns
+        .computeIfAbsent(WindowState.CURRENT.get().scale(), s -> new IdentityHashMap<>())
+        .computeIfAbsent(list, l -> markerColumn(c, list));
     El item = item(c, list, u.item, column);
     boolean lastItem = u.item + 1 == list.items().size();
     float below = list.tight() ? theme.space().xs() : theme.space().l();
@@ -280,8 +279,8 @@ public final class Markdown {
   private static final class Prepared {
     final MarkdownDocument document;
     final Map<Object, Piece> pieces = new IdentityHashMap<>();
-    final Map<Object, Float> columns = new IdentityHashMap<>(); // the widths of lists' markers
-    float columnsScale; // the window's scale the markers were measured at
+    // The widths of lists' markers, by the window's scale they were measured at.
+    final Map<Float, Map<Object, Float>> columns = new HashMap<>();
     final List<Unit> units;
     final RowHeights heights;
     String text; // the whole document's, for Control+C after Control+A
