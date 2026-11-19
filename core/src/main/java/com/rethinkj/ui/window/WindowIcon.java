@@ -3,7 +3,10 @@ package com.rethinkj.ui.window;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -11,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntFunction;
+import java.util.stream.IntStream;
 
 /**
  * An icon of a window, for its taskbar button, Alt+Tab, its title bar and system menu, and a dock
@@ -105,5 +109,35 @@ public final class WindowIcon {
       drawn.put(size, image);
     }
     return image;
+  }
+
+  /**
+   * The icon as a Windows {@code .ico} file, for {@code jpackage --icon} or an installer, which
+   * show an app's icon before it runs. It holds a PNG of each size Windows takes an app's icon in
+   * from 100 to 250 %: 16, 20, 24, 32, 40, 48, 64 and 256 pixels. For an icon of images, these are
+   * the images {@link #image} gives for those sizes, each once.
+   */
+  public byte[] ico() {
+    List<Pixels> images = IntStream.of(16, 20, 24, 32, 40, 48, 64, 256)
+        .mapToObj(this::image)
+        .distinct()
+        .toList();
+    List<byte[]> pngs = images.stream().map(Png::encode).toList();
+    int offset = 6 + 16 * images.size();
+    ByteBuffer ico = ByteBuffer.allocate(
+            offset + pngs.stream().mapToInt(png -> png.length).sum())
+        .order(ByteOrder.LITTLE_ENDIAN)
+        .putShort((short) 0)
+        .putShort((short) 1)
+        .putShort((short) images.size());
+    for (int i = 0; i < images.size(); i++) {
+      // A size of 256 or more is written as 0; the PNG says the true size.
+      byte size = (byte) (images.get(i).width() < 256 ? images.get(i).width() : 0);
+      ico.put(size).put(size).putShort((short) 0).putShort((short) 1).putShort((short) 32);
+      ico.putInt(pngs.get(i).length).putInt(offset);
+      offset += pngs.get(i).length;
+    }
+    pngs.forEach(ico::put);
+    return ico.array();
   }
 }

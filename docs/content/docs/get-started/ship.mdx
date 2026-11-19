@@ -38,6 +38,10 @@ target/dist/Lights/bin/Lights --script lights.txt --out target/packaged  # run h
 
 On Windows, the launcher is `target\dist\Lights\Lights.exe`.
 
+## Optional: App icon
+
+Without `--icon`, the launcher and the Windows installer show jpackage's own icon until the app opens its window. Write your window's `WindowIcon` to a file in a build step and pass it to `--icon`: on Windows the bytes of `icon.ico()` as `Lights.ico`, on Linux a PNG from `Png.encode(icon.image(256))`.
+
 ## Optional: Faster startup with an AOT cache
 
 Java 25 supports an ahead-of-time (AOT) class cache ([JEP 514](https://openjdk.org/jeps/514)) to make startup faster.

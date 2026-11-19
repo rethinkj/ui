@@ -9,10 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +70,29 @@ class WindowIconTest {
     assertSame(p32, icon.image(32));
     assertSame(p256, icon.image(48));
     assertSame(p256, icon.image(512));
+  }
+
+  @Test
+  void anIcoFileHoldsAPngOfEachSizeWindowsTakes() {
+    WindowIcon icon = WindowIcon.of(WindowIconTest::view);
+    byte[] file = icon.ico();
+    ByteBuffer ico = ByteBuffer.wrap(file).order(ByteOrder.LITTLE_ENDIAN);
+    assertEquals(0, ico.getShort(0));
+    assertEquals(1, ico.getShort(2)); // an icon, not a cursor
+    int[] sizes = {16, 20, 24, 32, 40, 48, 64, 256};
+    assertEquals(sizes.length, ico.getShort(4));
+    for (int i = 0; i < sizes.length; i++) {
+      int entry = 6 + 16 * i;
+      assertEquals(sizes[i] % 256, Byte.toUnsignedInt(ico.get(entry)));
+      assertEquals(sizes[i] % 256, Byte.toUnsignedInt(ico.get(entry + 1)));
+      assertEquals(32, ico.getShort(entry + 6));
+      int start = ico.getInt(entry + 12);
+      byte[] png = Arrays.copyOfRange(file, start, start + ico.getInt(entry + 8));
+      assertArrayEquals(icon.image(sizes[i]).rgba(), Png.decode(png).rgba(), "size " + sizes[i]);
+    }
+    // An icon of images writes each of its images once.
+    byte[] images = WindowIcon.of(square(32), square(256)).ico();
+    assertEquals(2, ByteBuffer.wrap(images).order(ByteOrder.LITTLE_ENDIAN).getShort(4));
   }
 
   @Test
