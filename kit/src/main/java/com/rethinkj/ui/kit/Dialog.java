@@ -167,7 +167,7 @@ public final class Dialog {
       // Nothing to type in: the dialog opens on its default button, else its first, not on what
       // the options put before the buttons.
       Stream.concat(Stream.ofNullable(defaultButton), buttons.stream())
-          .filter(b -> b != null && b.isFocusable())
+          .filter(b -> b != null && b.isFocusable() && b.hasFocusable()) // itself, and shown
           .findFirst()
           .ifPresent(El::defaultFocus);
     }
