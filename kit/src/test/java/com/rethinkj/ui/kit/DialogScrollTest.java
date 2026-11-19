@@ -163,8 +163,8 @@ class DialogScrollTest {
                 Properties.properties(
                     List.of( // the widest value first, focused with the caret at its end
                         Properties.property("Version", "The current production version"),
-                        Properties.property("Author", "Patrick Trautmann"),
-                        Properties.property("Website", "https://db.hoori.dev")),
+                        Properties.property("Author", "Ada Lovelace"),
+                        Properties.property("Website", "https://example.com")),
                     null),
                 List.of(),
                 () -> {})));
