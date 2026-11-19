@@ -758,10 +758,9 @@ public final class Markdown {
     Clipboard clipboard = c.options.clipboard;
     if (clipboard != null) {
       Button.Copied copied = c.options.state == null ? null : c.options.state.copied;
-      boolean shown =
-          copied != null && copied.shows("Copy code", code); // confirming: seen till it ends
-      El copy =
-          Button.copy(clipboard, code, "Copy code", copied).key("copy").opacity(shown ? 1 : 0);
+      String label = Texts.CURRENT.get().copyCode();
+      boolean shown = copied != null && copied.shows(label, code); // confirming: seen till it ends
+      El copy = Button.copy(clipboard, code, label, copied).key("copy").opacity(shown ? 1 : 0);
       copy.style().position = Style.Position.ABSOLUTE;
       copy.style().top = Len.px(theme.space().s());
       copy.style().right = Len.px(theme.space().s());

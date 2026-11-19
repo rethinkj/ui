@@ -319,10 +319,10 @@ public final class GridTable<T> {
     return (row, column, text) -> {
       Cells<T, ?> cells = cells(columns, column);
       if (cells == null) {
-        return "Not a column of this table";
+        return Texts.CURRENT.get().notAColumn();
       }
       if (!cells.writes(row)) {
-        return "The value lies inside a part that is NULL in this row";
+        return Texts.CURRENT.get().insideNull();
       }
       Format.Parsed<?> parsed = cells.parse(text);
       if (!parsed.valid()) {
@@ -396,7 +396,7 @@ public final class GridTable<T> {
   /** Writes values into a row and tells the app; a refusal sets a setter's values back. */
   private String write(int index, Map<Cells<T, ?>, Object> values, RowCommit<T> onRow) {
     T row = rows.apply(index);
-    return row == null ? "The row is not loaded" : write(index, row, values, onRow);
+    return row == null ? Texts.CURRENT.get().rowNotLoaded() : write(index, row, values, onRow);
   }
 
   private String write(int index, T row, Map<Cells<T, ?>, Object> values, RowCommit<T> onRow) {

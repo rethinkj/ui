@@ -167,11 +167,9 @@ public final class Properties {
         .radius(theme.radius().small())
         .children(name, value);
     if (clipboard != null) {
-      boolean shown =
-          copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
-      El copy = Button.copy(clipboard, p.value(), "Copy " + p.name(), copied)
-          .key("copy")
-          .opacity(shown ? 1 : 0);
+      String label = Texts.CURRENT.get().copy(p.name());
+      boolean shown = copied != null && copied.shows(label, p.value()); // seen while it confirms
+      El copy = Button.copy(clipboard, p.value(), label, copied).key("copy").opacity(shown ? 1 : 0);
       entry
           .child(copy)
           .whenHovered(e -> {

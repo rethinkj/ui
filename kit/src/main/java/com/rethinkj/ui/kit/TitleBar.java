@@ -116,22 +116,23 @@ public final class TitleBar {
               .children(actions.toArray(El[]::new)))
           .child(el().w(theme.space().xl()).shrink(0)));
     }
+    Texts texts = Texts.CURRENT.get();
     El restore = glyph(theme, window.maximized() ? Symbol.SQUARE_MULTIPLE : Symbol.MAXIMIZE, glyph);
     return bar.child(Tooltip.tooltip(
             button(
                 theme,
                 WindowPart.MINIMIZE,
-                "Minimize",
+                texts.minimize(),
                 height,
                 glyph(theme, Symbol.SUBTRACT, glyph)),
-            "Minimize"))
+            texts.minimize()))
         .child(button(
             theme,
             WindowPart.MAXIMIZE,
-            window.maximized() ? "Restore" : "Maximize",
+            window.maximized() ? texts.restore() : texts.maximize(),
             height,
             restore))
-        .child(Tooltip.tooltip(close(theme, height, glyph), "Close"));
+        .child(Tooltip.tooltip(close(theme, height, glyph), texts.close()));
   }
 
   /**
@@ -213,7 +214,7 @@ public final class TitleBar {
   /** The close button, red with a white cross under the pointer, as the system's is. */
   private static El close(Theme theme, float height, int color) {
     El cross = glyph(theme, Symbol.DISMISS, color);
-    return button(theme, WindowPart.CLOSE, "Close", height, cross)
+    return button(theme, WindowPart.CLOSE, Texts.CURRENT.get().close(), height, cross)
         .whenHovered(b -> {
           b.fill(theme.caption().closeHover());
           cross.color(theme.caption().onClose());

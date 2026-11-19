@@ -102,6 +102,7 @@ public final class NumberField {
       ValueField.Draft draft,
       IntConsumer onChange) {
     Theme theme = Theme.CURRENT.get();
+    Texts texts = Texts.CURRENT.get();
     if (min > max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min <= max and a step of 1 or more, was " + min + ", " + max + ", " + step);
@@ -112,14 +113,16 @@ public final class NumberField {
       draft.show(Format.INTEGER, value);
       text = draft.text();
     }
-    El field = TextField.textField(text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
+    El field = TextField.textField(
+            text, enabled ? s -> edit(texts, s, min, value, draft, onChange) : null)
         .role("spinbutton")
         .label(label);
     if (draft != null && draft.error() != null && draft.showsError()) {
       TextField.invalid(field).errorMessage(draft.error());
     } else if (value < min || value > max) {
       // The message a form or a group's row shows below it, and a dump as error="...".
-      TextField.invalid(field).errorMessage(min + " to " + max);
+      TextField.invalid(field)
+          .errorMessage(texts.range(Integer.toString(min), Integer.toString(max)));
     }
     float inset = theme.space().xs();
     float size = FieldActions.size(theme);
@@ -129,13 +132,13 @@ public final class NumberField {
         .child(FieldActions.button(
                 theme,
                 Symbol.SUBTRACT,
-                "Decrease",
+                texts.decrease(),
                 enabled && value > min ? () -> onChange.accept(step(value, -step, min, max)) : null)
             .keepFocus())
         .child(FieldActions.button(
                 theme,
                 Symbol.ADD,
-                "Increase",
+                texts.increase(),
                 enabled && value < max ? () -> onChange.accept(step(value, step, min, max)) : null)
             .keepFocus());
     if (enabled) {
@@ -169,10 +172,10 @@ public final class NumberField {
    * and refuses anything else, so the field stays as it was.
    */
   private static void edit(
-      String s, int min, int value, ValueField.Draft draft, IntConsumer onChange) {
+      Texts texts, String s, int min, int value, ValueField.Draft draft, IntConsumer onChange) {
     if (draft != null) {
       if (s.matches(min < 0 ? "-?\\d*" : "\\d*")) {
-        draft.edit(Format.INTEGER, s, onChange::accept);
+        draft.edit(texts, Format.INTEGER, s, onChange::accept);
       }
       return;
     }

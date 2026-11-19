@@ -618,8 +618,11 @@ public final class FilterList {
     boolean note = count == 0 || shown.loading();
     float height = Math.max(1, Math.min(count + (note && count > 0 ? 1 : 0), most)) * rowHeight;
     if (count == 0) {
-      String text =
-          shown.failure() != null ? shown.failure() : shown.loading() ? "Loading…" : "No results";
+      String text = shown.failure() != null
+          ? shown.failure()
+          : shown.loading()
+              ? Texts.CURRENT.get().loading()
+              : Texts.CURRENT.get().noResults();
       return col()
           .key("options")
           .role("listbox")

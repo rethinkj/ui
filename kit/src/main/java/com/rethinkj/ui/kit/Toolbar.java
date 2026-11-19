@@ -284,7 +284,10 @@ public final class Toolbar {
         previous = in;
       }
       El more = Button.icon(
-              Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
+              Button.Variant.GHOST,
+              Symbol.MORE_HORIZONTAL,
+              Texts.CURRENT.get().more(),
+              state.more::toggle)
           .key("more")
           .onResize(state.fitting.measure("more"));
       stops.add(more);

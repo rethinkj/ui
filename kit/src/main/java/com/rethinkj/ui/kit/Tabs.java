@@ -828,7 +828,7 @@ public final class Tabs {
       float side = theme.size().checkbox();
       close = el().key("close-" + index)
           .role("button")
-          .label("Close " + tab.title())
+          .label(Texts.CURRENT.get().closeTab(tab.title()))
           .size(side, side)
           .shrink(0)
           .center()

@@ -142,7 +142,7 @@ public final class Badge {
       float cross = height - 2 * theme.space().xs();
       badge.child(el().key("remove")
           .role("button")
-          .label("Remove " + text)
+          .label(Texts.CURRENT.get().remove(text))
           .size(cross, cross)
           .shrink(0)
           .center()

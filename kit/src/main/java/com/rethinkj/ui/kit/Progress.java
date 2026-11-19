@@ -201,7 +201,7 @@ public final class Progress {
     float width = size / 8; // 2 at 16, the stroke of the icons drawn for 16
     double period = theme.motion().spin();
     El spinner = el().role("progressbar")
-        .label("Loading")
+        .label(Texts.CURRENT.get().busy())
         .size(size, size)
         .shrink(0)
         .child(el().absolute(0, 0).size(size, size).radius(size / 2).border(width, ring));

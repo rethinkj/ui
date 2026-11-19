@@ -454,7 +454,7 @@ public final class Button {
       return Tooltip.tooltip(button, label);
     }
     // The confirmation is an overlay, whose time on the app's clock ends it.
-    return button.overlay(Tooltip.panel(theme, "Copied")
+    return button.overlay(Tooltip.panel(theme, Texts.CURRENT.get().copied())
         .key("copied")
         .keepFocus()
         .onShownFor(theme.motion().confirm(), () -> {
@@ -574,7 +574,7 @@ public final class Button {
     El main = button(variant, text, onPress, options).key("main").radius(radius, 0, 0, radius);
     Look look = look(theme, variant, options.tone, any);
     Runnable toggle = any ? state::toggle : null;
-    El more = frame(theme, look, options.size, "More " + text, !any)
+    El more = frame(theme, look, options.size, Texts.CURRENT.get().moreOf(text), !any)
         .key("arrow")
         .w(height(theme, options.size) - theme.space().xs())
         .radius(0, radius, radius, 0)

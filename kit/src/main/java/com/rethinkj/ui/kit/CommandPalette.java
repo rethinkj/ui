@@ -59,11 +59,6 @@ public final class CommandPalette {
   /** The most rows the list shows at once; more scroll. */
   public static final int ROWS = 12;
 
-  /** The group of the commands chosen last, while nothing is typed, and of the others. */
-  static final String RECENT = "Recently used";
-
-  static final String OTHERS = "Other commands";
-
   /** How many commands chosen last it remembers. */
   static final int REMEMBERED = 5;
 
@@ -330,6 +325,7 @@ public final class CommandPalette {
    */
   public static El palette(State state, List<FilterList.Entry> commands, List<Source> sources) {
     Theme theme = Theme.CURRENT.get();
+    Texts texts = Texts.CURRENT.get();
     if (!state.open) {
       return null;
     }
@@ -340,7 +336,7 @@ public final class CommandPalette {
         ? stage.entries() == null ? null : FilterList.Entries.of(stage.entries())
         : source != null
             ? source.entries()
-            : FilterList.Entries.inOrder(ranked(commands, state.recent));
+            : FilterList.Entries.inOrder(ranked(texts, commands, state.recent));
     state.list.onHighlight = stage == null ? null : stage.onHighlight();
     state.list.query = stage != null ? state.text : query(state.text, sources);
     Consumer<FilterList.Entry> choose = e -> {
@@ -361,7 +357,7 @@ public final class CommandPalette {
         state.closed(true);
       }
     };
-    String placeholder = stage != null ? stage.placeholder() : placeholder(sources);
+    String placeholder = stage != null ? stage.placeholder() : placeholder(texts, sources);
     El field = TextField.textField(state.text, placeholder, v -> {
           state.text = v;
           state.list.typed(stage != null ? v : query(v, sources), true);
@@ -374,7 +370,7 @@ public final class CommandPalette {
           }
         })
         .key("query-" + state.steps)
-        .label(stage != null ? stage.placeholder() : "Command")
+        .label(stage != null ? stage.placeholder() : texts.command())
         .autofocus(state.steps)
         .wFull()
         .h(theme.size().paletteField())
@@ -382,7 +378,7 @@ public final class CommandPalette {
     El panel = Popup.frame(theme, col())
         .key("palette")
         .role("dialog")
-        .label("Command palette")
+        .label(texts.commandPalette())
         .w(theme.size().palette())
         .padding(theme.space().m())
         .gap(theme.space().s())
@@ -396,15 +392,18 @@ public final class CommandPalette {
       FilterList.Shown shown = FilterList.shown(state.list, entries);
       // A press on an entry leaves the keys in the field, also for one that keeps it open.
       panel.child(FilterList.list(
-              theme, state.list, shown, ROWS, theme.size().paletteRow(), "Commands", choose)
+              theme, state.list, shown, ROWS, theme.size().paletteRow(), texts.commands(), choose)
           .keepFocus());
     }
     return panel;
   }
 
-  /** The commands, those chosen last first, in their own group, while there are any. */
+  /**
+   * The commands, those chosen last first, in their own group, while there are any, and the
+   * others in a group after them.
+   */
   private static List<FilterList.Entry> ranked(
-      List<FilterList.Entry> commands, List<String> recent) {
+      Texts texts, List<FilterList.Entry> commands, List<String> recent) {
     if (recent.isEmpty()) {
       return commands;
     }
@@ -416,7 +415,7 @@ public final class CommandPalette {
     for (String id : recent) {
       FilterList.Entry e = byId.remove(id);
       if (e != null) {
-        ranked.add(e.group(RECENT));
+        ranked.add(e.group(texts.recentlyUsed()));
       }
     }
     if (ranked.isEmpty()) {
@@ -424,7 +423,7 @@ public final class CommandPalette {
     }
     for (FilterList.Entry e : commands) {
       if (byId.remove(id(e)) != null) {
-        ranked.add(e.group(OTHERS));
+        ranked.add(e.group(texts.otherCommands()));
       }
     }
     return ranked;
@@ -435,8 +434,8 @@ public final class CommandPalette {
     return e.key() != null ? "key " + e.key() : "text " + e.text();
   }
 
-  private static String placeholder(List<Source> sources) {
-    StringBuilder text = new StringBuilder("Type a command");
+  private static String placeholder(Texts texts, List<Source> sources) {
+    StringBuilder text = new StringBuilder(texts.typeACommand());
     for (Source s : sources) {
       text.append(", ").append(s.prefix()).append(' ').append(s.what());
     }

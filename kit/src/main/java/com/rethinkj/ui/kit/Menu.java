@@ -266,7 +266,8 @@ public final class Menu {
    * Linux), then the key: {@code Ctrl+Shift+N}, {@code Alt+F4}, {@code F5}. Arrows are {@code Up},
    * {@code Down}, {@code Left} and {@code Right}, Escape is {@code Esc}; Windows writes {@code
    * Del}, {@code Ins}, {@code PgUp} and {@code PgDn} where Linux writes {@code Delete}, {@code
-   * Insert}, {@code Page Up} and {@code Page Down}.
+   * Insert}, {@code Page Up} and {@code Page Down}. Each name is then the one of the {@link Texts}
+   * where this is called ({@link Texts#key}), such as {@code Strg+Umschalt+N} in German.
    */
   public static String shortcutText(Key key) {
     return shortcutText(key, WINDOWS);
@@ -315,6 +316,7 @@ public final class Menu {
           case "NumpadDecimal" -> "Num .";
           default -> name.startsWith("Numpad") ? "Num " + name.substring(6) : name;
         });
+    keys.replaceAll(Texts.CURRENT.get()::key);
     return keys;
   }
 

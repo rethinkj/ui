@@ -82,7 +82,7 @@ public final class StatusBar {
     }
     return row()
         .role("status")
-        .label("Status bar")
+        .label(Texts.CURRENT.get().statusBar())
         .wFull()
         .shrink(0)
         .h(height())

@@ -731,23 +731,28 @@ public final class DataGrid {
       }
     }
 
-    /** What it keeps, in words, after the column's title: {@code status in paid, shipped}. */
+    /**
+     * What it keeps, in words, with the column's title, in the {@link Texts} where this is
+     * called: {@code status in paid, shipped}.
+     */
     public String describe(String title) {
-      return title
-          + switch (kind) {
-            case CONTAINS -> " contains " + value;
-            case STARTS_WITH -> " starts with " + value;
-            case EQUALS -> " = " + value;
-            case MATCHES -> " matches " + value;
-            case BETWEEN ->
-              to.isBlank()
-                  ? " ≥ " + value
-                  : value.isBlank() ? " ≤ " + to : " " + value + " – " + to;
-            case ONE_OF ->
-              values.size() == 1 ? " = " + values.getFirst() : " in " + String.join(", ", values);
-            case IS_NULL -> " is NULL";
-            case NOT_NULL -> " is not NULL";
-          };
+      Texts texts = Texts.CURRENT.get();
+      return switch (kind) {
+        case CONTAINS -> texts.contains(title, value);
+        case STARTS_WITH -> texts.startsWith(title, value);
+        case EQUALS -> title + " = " + value;
+        case MATCHES -> texts.matches(title, value);
+        case BETWEEN ->
+          to.isBlank()
+              ? title + " ≥ " + value
+              : value.isBlank() ? title + " ≤ " + to : title + " " + value + " – " + to;
+        case ONE_OF ->
+          values.size() == 1
+              ? title + " = " + values.getFirst()
+              : texts.oneOf(title, String.join(", ", values));
+        case IS_NULL -> texts.isNull(title);
+        case NOT_NULL -> texts.isNotNull(title);
+      };
     }
   }
 
@@ -2133,6 +2138,7 @@ public final class DataGrid {
   /** What the parts of one build of the grid share. */
   static final class Build {
     final Theme theme;
+    final Texts texts;
     final Theme.Grid g;
     final List<Column> columns;
     final int rowCount;
@@ -2155,6 +2161,7 @@ public final class DataGrid {
 
     Build(Theme theme, List<Column> columns, int rowCount, Options o) {
       this.theme = theme;
+      this.texts = Texts.CURRENT.get();
       this.g = theme.grid();
       this.columns = List.copyOf(columns);
       this.rowCount = rowCount;
@@ -2511,7 +2518,7 @@ public final class DataGrid {
     // The edge goes to the handler of the view the drag began in, with the width of then.
     return el().key("resize-" + c)
         .role("separator")
-        .label("Resize " + column.title())
+        .label(b.texts.resize(column.title()))
         .absolute(b.xs[c + 1] - g.handle() / 2, 0)
         .size(g.handle(), g.rowHeight())
         .cursor(Cursor.EW_RESIZE)
@@ -3235,10 +3242,11 @@ public final class DataGrid {
   private static List<Menu.Item> menuItems(Build b) {
     List<Menu.Item> items = new ArrayList<>();
     if (b.o.clipboard != null && b.sel != null) {
-      items.add(Menu.item("Copy", canRun(b, Command.COPY) ? () -> run(b, Command.COPY) : null)
-          .shortcut("Ctrl+C"));
       items.add(Menu.item(
-          "Copy with headers",
+              b.texts.copy(), canRun(b, Command.COPY) ? () -> run(b, Command.COPY) : null)
+          .shortcut(b.texts.keys("Ctrl", "C")));
+      items.add(Menu.item(
+          b.texts.copyWithHeaders(),
           canRun(b, Command.COPY_WITH_HEADERS) ? () -> run(b, Command.COPY_WITH_HEADERS) : null));
     }
     GridEdit.menuItems(b, items);
@@ -3249,8 +3257,8 @@ public final class DataGrid {
       if (!items.isEmpty()) {
         items.add(Menu.separator());
       }
-      items.add(
-          Menu.submenu("Column " + b.columns.get(c).title(), column).icon(Symbol.COLUMN_SINGLE));
+      items.add(Menu.submenu(b.texts.column(b.columns.get(c).title()), column)
+          .icon(Symbol.COLUMN_SINGLE));
     }
     if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
       items.add(Menu.separator());

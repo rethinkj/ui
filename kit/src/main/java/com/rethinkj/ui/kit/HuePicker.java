@@ -6,7 +6,6 @@ import com.rethinkj.ui.El;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
@@ -61,10 +60,12 @@ public final class HuePicker {
     return Prop.shown(theme, huePicker(selected.get(), none, selected.onChange()), selected);
   }
 
-  /** The hue's name as a person reads it: {@code Red} for {@link Theme.Hue#RED}. */
+  /**
+   * The hue's name as a person reads it, in the {@link Texts} where this is called: {@code Red}
+   * for {@link Theme.Hue#RED}.
+   */
   public static String name(Theme.Hue hue) {
-    String n = hue.name();
-    return n.charAt(0) + n.substring(1).toLowerCase(Locale.ROOT);
+    return Texts.CURRENT.get().hue(hue);
   }
 
   /** A swatch of the hue, as large as a checkbox's box, for a menu or a list too. */

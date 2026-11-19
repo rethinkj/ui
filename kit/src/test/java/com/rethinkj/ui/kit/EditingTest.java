@@ -113,7 +113,7 @@ class EditingTest {
   static void type(Editing<Profile> e, String text) {
     shown(e);
     Prop<Integer> p = e.at(Profile.PORT);
-    p.draft().edit(PORT, text, p.onChange());
+    p.draft().edit(Texts.ENGLISH, PORT, text, p.onChange());
   }
 
   @Test

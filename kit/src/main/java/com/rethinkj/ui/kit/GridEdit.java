@@ -93,10 +93,10 @@ final class GridEdit {
   /** What is wrong with a value for its column's type, or null when it fits. */
   static String check(Column c, String value) {
     if (value == null) {
-      return c.editing().nullable() ? null : "A value is required";
+      return c.editing().nullable() ? null : Texts.CURRENT.get().required();
     }
     if (!c.editing().choices().isEmpty() && !c.editing().choices().contains(value)) {
-      return "Not one of the choices";
+      return Texts.CURRENT.get().notAChoice();
     }
     if (c.cells() != null) { // a choice too: a narrowed format refuses some
       return c.cells().format().parseText(value).error();
@@ -219,8 +219,18 @@ final class GridEdit {
     return sel.isEditing();
   }
 
-  /** Hands the editor's value on and moves the cursor, or keeps the editor open with a message. */
+  /**
+   * Hands the editor's value on and moves the cursor, or keeps the editor open with a message, in
+   * the grid's texts: also those of the column's format and of the app's handler.
+   */
   static void commit(Build b, Move move) {
+    Texts.CURRENT.with(b.texts, () -> {
+      handOn(b, move);
+      return null;
+    });
+  }
+
+  private static void handOn(Build b, Move move) {
     Selection sel = b.sel;
     if (!follow(b)) {
       return;
@@ -305,6 +315,13 @@ final class GridEdit {
    * as a refused editor does until the next key or press in the grid.
    */
   static void toggle(Build b, int row, int column) {
+    Texts.CURRENT.with(b.texts, () -> {
+      switchValue(b, row, column);
+      return null;
+    });
+  }
+
+  private static void switchValue(Build b, int row, int column) {
     Column c = b.columns.get(column);
     String value = value(b, row, column);
     String next = value == null || !truthy(value)
@@ -637,33 +654,34 @@ final class GridEdit {
     if (b.sel == null) {
       return;
     }
+    Texts texts = b.texts;
     List<Menu.Item> mine = new ArrayList<>();
     if (o.onPaste != null && o.clipboard != null) {
       mine.add(Menu.item(
-              "Paste",
+              texts.paste(),
               DataGrid.canRun(b, DataGrid.Command.PASTE)
                   ? () -> DataGrid.run(b, DataGrid.Command.PASTE)
                   : null)
-          .shortcut("Ctrl+V"));
+          .shortcut(texts.keys("Ctrl", "V")));
     }
     if (o.onPaste != null) {
-      mine.add(Menu.item("Set NULL", () -> clear(b, true)).shortcut("Ctrl+0"));
+      mine.add(Menu.item(texts.setNull(), () -> clear(b, true)).shortcut(texts.keys("Ctrl", "0")));
     }
     if (o.onInsertRow != null) {
-      mine.add(Menu.item("Insert row", () -> {
+      mine.add(Menu.item(texts.insertRow(), () -> {
             int after = b.sel.row() >= 0 ? Math.min(b.sel.row(), b.rowCount - 1) : b.rowCount - 1;
             o.onInsertRow.accept(after);
           })
-          .shortcut("Insert"));
+          .shortcut(texts.keys("Insert")));
     }
     if (o.onDeleteRows != null) {
-      mine.add(Menu.item("Delete rows", () -> {
+      mine.add(Menu.item(texts.deleteRows(), () -> {
             List<Range> rows = rowsOf(b);
             if (!rows.isEmpty()) {
               o.onDeleteRows.accept(rows);
             }
           })
-          .shortcut("Ctrl+Delete"));
+          .shortcut(texts.keys("Ctrl", "Delete")));
     }
     if (!mine.isEmpty() && !items.isEmpty()) {
       items.add(Menu.separator());
@@ -708,7 +726,7 @@ final class GridEdit {
       El field = El.text(sel.search.query)
           .editable(v -> sel.search.typed(v, true))
           .key("field")
-          .label("Edit " + c.title())
+          .label(b.texts.edit(c.title()))
           .font(style.font().get())
           .fontSize(style.size())
           .color(theme.text().primary())
@@ -761,7 +779,7 @@ final class GridEdit {
           .editable(v -> edit(c, sel, v))
           .key("field")
           .fieldState(sel.field)
-          .label("Edit " + c.title())
+          .label(b.texts.edit(c.title()))
           .font(style.font().get())
           .fontSize(style.size())
           .color(theme.text().primary())
@@ -776,7 +794,8 @@ final class GridEdit {
           field.placeholder("NULL", theme.text().muted());
         }
       } else if (text.isEmpty() && c.editing().nullable() && textLike(c)) {
-        field.placeholder("empty", theme.text().muted()); // not NULL: Control+0 makes it that
+        field.placeholder(
+            b.texts.empty(), theme.text().muted()); // not NULL: Control+0 makes it that
       }
       El fitted = field;
       if (right) {
@@ -805,7 +824,7 @@ final class GridEdit {
             .child(row()
                 .key("expand")
                 .role("button")
-                .label("Edit in several lines")
+                .label(b.texts.editInLines())
                 .size(button, button)
                 .shrink(0)
                 .center()
@@ -952,7 +971,7 @@ final class GridEdit {
             shown,
             ComboBox.ROWS,
             theme.size().control(),
-            "Choices of " + c.title(),
+            b.texts.choicesOf(c.title()),
             e -> e.onChoose().run()));
   }
 
@@ -1028,7 +1047,7 @@ final class GridEdit {
     Theme theme = b.theme;
     Selection sel = b.sel;
     Theme.TextStyle style = c.mono() ? theme.type().mono() : theme.type().body();
-    String label = "Edit " + c.title();
+    String label = b.texts.edit(c.title());
     El area = TextField.textArea(
             sel.draft == null ? "" : sel.draft,
             sel.draft == null && c.editing().nullable() ? "NULL" : null,
@@ -1069,9 +1088,10 @@ final class GridEdit {
             .align(Style.Align.CENTER)
             .gap(theme.space().s())
             .children(
-                Label.label(Label.Variant.MUTED, "Ctrl+Enter to save").grow(1),
-                Button.button(Button.Variant.SECONDARY, "Cancel", sel::cancelEdit),
-                Button.button(Button.Variant.PRIMARY, "Save", () -> commit(b, Move.NONE))))
+                Label.label(Label.Variant.MUTED, b.texts.toSave(b.texts.keys("Ctrl", "Enter")))
+                    .grow(1),
+                Button.button(Button.Variant.SECONDARY, b.texts.cancel(), sel::cancelEdit),
+                Button.button(Button.Variant.PRIMARY, b.texts.save(), () -> commit(b, Move.NONE))))
         .side(Side.BOTTOM, Style.Align.START, -height);
   }
 }

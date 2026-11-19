@@ -451,7 +451,7 @@ public final class ComboBox {
     }
     field.autofocus(state.opened == 0 ? null : state.opened);
     El mark = el().role("button")
-        .label(state.open ? "Close" : "Open")
+        .label(state.open ? Texts.CURRENT.get().close() : Texts.CURRENT.get().open())
         .size(side, side)
         .center()
         .child(Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));

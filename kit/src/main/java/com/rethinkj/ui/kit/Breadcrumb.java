@@ -184,7 +184,8 @@ public final class Breadcrumb {
           width(theme, crumbs.get(i), i == last, state.text(theme, crumbs.get(i), i == last));
     }
     Plan plan = plan(theme, state.fitting.width(), widths);
-    El bar = state.fitting.row(theme).role("navigation").label("Breadcrumb");
+    El bar =
+        state.fitting.row(theme).role("navigation").label(Texts.CURRENT.get().breadcrumb());
     List<El> stops = new ArrayList<>();
     boolean[] menus = new boolean[crumbs.size()];
     for (int i = 0; i <= last; i++) {
@@ -287,7 +288,10 @@ public final class Breadcrumb {
       items.add(Menu.item(crumb.text(), crumb.onPress()).icon(crumb.icon()));
     }
     El button = Button.icon(
-            Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "Hidden parts", state.hidden::toggle)
+            Button.Variant.GHOST,
+            Symbol.MORE_HORIZONTAL,
+            Texts.CURRENT.get().hiddenParts(),
+            state.hidden::toggle)
         .expanded(state.hidden.isOpen());
     stops.add(button);
     return row()
@@ -366,7 +370,7 @@ public final class Breadcrumb {
     El button = box(theme)
         .child(glyph)
         .role("button")
-        .label("Inside " + crumb.text())
+        .label(Texts.CURRENT.get().inside(crumb.text()))
         .expanded(open)
         .radius(theme.radius().small())
         .focusable()

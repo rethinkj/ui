@@ -118,6 +118,7 @@ public final class Find {
     El replaceField; // while the replacement's row shows: Tab goes there from the field to find
     El lineField;
     App<?> app;
+    Texts texts = Texts.ENGLISH;
 
     /** Whether the bar shows. */
     public boolean isOpen() {
@@ -221,6 +222,7 @@ public final class Find {
     }
     state.field = field;
     state.app = app;
+    state.texts = Texts.CURRENT.get();
     state.caret = Math.min(state.caret, text.length());
     state.anchor = Math.min(state.anchor, text.length());
     El.SelectHandler ownSelect = field.onSelect();
@@ -587,7 +589,7 @@ public final class Find {
               state.replacement,
               Search.deadline(SYNC_MILLIS));
     } catch (Search.Stopped stopped) {
-      state.replaceError = "Replacing took too long";
+      state.replaceError = state.texts.replacingTookTooLong();
       return;
     } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {
       state.replaceError = wrong.getMessage();
@@ -638,7 +640,7 @@ public final class Find {
           state.replacement,
           Search.deadline(BACKGROUND_MILLIS));
     } catch (Search.Stopped stopped) {
-      state.replaceError = "Replacing took too long";
+      state.replaceError = state.texts.replacingTookTooLong();
       return;
     } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {
       state.replaceError = wrong.getMessage();
@@ -763,25 +765,26 @@ public final class Find {
       return "";
     }
     if (!state.fresh(text)) {
-      return "Searching…";
+      return state.texts.searching();
     }
     Search.Matches m = state.matches;
     if (m.stopped() && m.count() == 0) {
-      return "Too slow";
+      return state.texts.tooSlow();
     }
     if (m.count() == 0) {
-      return "No results";
+      return state.texts.noResults();
     }
     String total = m.complete() ? String.valueOf(m.count()) : m.count() + "+";
     int i = m.indexOf(Math.min(state.caret, state.anchor), Math.max(state.caret, state.anchor));
     if (i >= 0) {
-      return (i + 1) + " of " + total;
+      return state.texts.match(i + 1, total);
     }
-    return total + (m.count() == 1 && m.complete() ? " result" : " results");
+    return state.texts.results(total, m.count() == 1 && m.complete());
   }
 
   /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
   private static El bar(Theme theme, App<?> app, State state, String text, boolean editable) {
+    Texts texts = state.texts;
     El panel = Popup.surface(theme, col())
         .padding(theme.space().xs())
         .gap(theme.space().xs());
@@ -790,7 +793,7 @@ public final class Find {
     El bar = row()
         .key("find")
         .role("search")
-        .label("Find")
+        .label(texts.find())
         .padding(0, bars.strip(), 0, 0)
         .motion(theme.motion().fade())
         .side(
@@ -806,8 +809,8 @@ public final class Find {
         ? tool(
                 theme,
                 state.mode == Mode.REPLACE ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT,
-                "Toggle replace",
-                "Toggle replace (Ctrl+H)",
+                texts.toggleReplace(),
+                texts.keys("Ctrl", "H"),
                 null,
                 () -> {
                   state.mode = state.mode == Mode.REPLACE ? Mode.FIND : Mode.REPLACE;
@@ -832,8 +835,8 @@ public final class Find {
         .child(tool(
                 theme,
                 Symbol.SELECT_ALL_ON,
-                "Find in selection",
-                "Find in selection (Alt+L)",
+                texts.findInSelection(),
+                texts.keys("Alt", "L"),
                 state.inSelection(),
                 state.scopeTo > state.scopeFrom
                     ? () -> {
@@ -845,30 +848,30 @@ public final class Find {
         .child(tool(
                 theme,
                 Symbol.ARROW_UP,
-                "Previous match",
-                "Previous match (Shift+Enter)",
+                texts.previousMatch(),
+                texts.keys("Shift", "Enter"),
                 null,
                 searchable ? () -> go(state, -1) : null)
             .key("previous"))
         .child(tool(
                 theme,
                 Symbol.ARROW_DOWN,
-                "Next match",
-                "Next match (Enter)",
+                texts.nextMatch(),
+                texts.keys("Enter"),
                 null,
                 searchable ? () -> go(state, 1) : null)
             .key("next"))
-        .child(tool(theme, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
+        .child(tool(theme, Symbol.DISMISS, texts.close(), texts.keys("Escape"), null, state::close)
             .key("close"));
     panel.child(findRow);
     state.replaceField = null;
     if (state.mode == Mode.REPLACE) {
-      El replace = TextField.textField(state.replacement, "Replace", v -> {
+      El replace = TextField.textField(state.replacement, texts.replace(), v -> {
             state.replacement = v;
             state.replaceError = null;
           })
           .key("replace")
-          .label("Replace")
+          .label(texts.replace())
           .onKey(k -> {
             if (k.name().equals("Tab") && k.modifiers() == Key.SHIFT && state.findField != null) {
               app.focus(state.findField); // back, past the switches, as it came
@@ -895,13 +898,13 @@ public final class Find {
           .child(replace)
           .child(Button.button(
                   Button.Variant.SECONDARY,
-                  "Replace",
+                  texts.replace(),
                   searchable ? () -> replace(app, state) : null)
               .key("replace-one")
               .margin(0, 0, 0, apart))
           .child(Button.button(
                   Button.Variant.SECONDARY,
-                  "Replace all",
+                  texts.replaceAll(),
                   searchable ? () -> replaceAll(app, state) : null)
               .key("replace-all")));
     }
@@ -918,12 +921,13 @@ public final class Find {
 
   /** The field to find, with the switches of case, words and regular expressions inside. */
   private static El queryField(Theme theme, State state) {
-    El field = TextField.textField(state.query, "Find", v -> {
+    Texts texts = state.texts;
+    El field = TextField.textField(state.query, texts.find(), v -> {
           state.query = v;
           changed(state);
         })
         .key("find-field")
-        .label("Find")
+        .label(texts.find())
         .autofocus(state.opened)
         .onSelect((caret, anchor) -> {
           if (state.selectQuery && state.findField != null) {
@@ -956,8 +960,8 @@ public final class Find {
         .child(tool(
                 theme,
                 Symbol.TEXT_CASE_TITLE,
-                "Match case",
-                "Match case (Alt+C)",
+                texts.matchCase(),
+                texts.keys("Alt", "C"),
                 state.matchCase,
                 () -> {
                   state.matchCase = !state.matchCase;
@@ -968,8 +972,8 @@ public final class Find {
         .child(tool(
                 theme,
                 Symbol.TEXT_WHOLE_WORD,
-                "Whole word",
-                "Whole word (Alt+W)",
+                texts.wholeWord(),
+                texts.keys("Alt", "W"),
                 state.wholeWord,
                 () -> {
                   state.wholeWord = !state.wholeWord;
@@ -980,8 +984,8 @@ public final class Find {
         .child(tool(
                 theme,
                 Symbol.TEXT_PERIOD_ASTERISK,
-                "Regular expression",
-                "Regular expression (Alt+R)",
+                texts.regularExpression(),
+                texts.keys("Alt", "R"),
                 state.regex,
                 () -> {
                   state.regex = !state.regex;
@@ -1000,9 +1004,10 @@ public final class Find {
 
   /** The field of the line to go to and the lines there are. */
   private static El lineRow(Theme theme, State state, String text) {
-    El field = TextField.textField(state.line, "Line or line:column", v -> state.line = v)
+    Texts texts = state.texts;
+    El field = TextField.textField(state.line, texts.lineOrColumn(), v -> state.line = v)
         .key("line-field")
-        .label("Go to line")
+        .label(texts.goToLine())
         .autofocus(state.opened)
         .onSelect((caret, anchor) -> {
           if (state.selectQuery && state.lineField != null) {
@@ -1030,21 +1035,21 @@ public final class Find {
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(field)
-        .child(label(Label.Variant.MUTED, "1 to " + lines)
+        .child(label(Label.Variant.MUTED, texts.range("1", Integer.toString(lines)))
             .key("count")
             .shrink(0)
             .fontFeatures("+tnum")
             .margin(0, theme.space().s(), 0, theme.space().s()))
-        .child(tool(theme, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
+        .child(tool(theme, Symbol.DISMISS, texts.close(), texts.keys("Escape"), null, state::close)
             .key("close"));
   }
 
   /**
    * A small square button with an icon in the bar: a switch when {@code checked} is not null. It
-   * leaves the focus where it is when pressed, and Tab reaches it.
+   * leaves the focus where it is when pressed, and Tab reaches it; its tooltip names its keys.
    */
   private static El tool(
-      Theme theme, Symbol symbol, String label, String tip, Boolean checked, Runnable onPress) {
+      Theme theme, Symbol symbol, String label, String keys, Boolean checked, Runnable onPress) {
     El button = FieldActions.button(theme, symbol, label, checked, onPress)
         .size(theme.size().control(), theme.size().control())
         .shrink(0);
@@ -1052,7 +1057,7 @@ public final class Find {
       return button;
     }
     button.focusable().focusRing(theme.accent().edge());
-    return Tooltip.tooltip(button, tip);
+    return Tooltip.tooltip(button, label + " (" + keys + ")");
   }
 
   /** The text as a regular expression that finds it. */

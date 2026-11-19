@@ -1,0 +1,17 @@
+---
+title: Languages
+description: Show the kit's own texts in English or German, or in a language of your own.
+---
+
+Kit components write some texts themselves: the find bar's buttons, the data grid's menus and filters, "Loading…", names such as "Show password", the messages of [`Format`](/api/com/rethinkj/ui/kit/Format.html), and the names of keys in shortcuts. They read them from [`Texts`](/api/com/rethinkj/ui/kit/Texts.html)`.CURRENT`, which is English unless the app provides other texts. Texts you give a component, such as a button's label or a field's placeholder, stay as you write them.
+
+```java snippet="languages"
+```
+
+- `Texts.ENGLISH` is the default. [`GermanTexts`](/api/com/rethinkj/ui/kit/GermanTexts.html) is German, with keys named as German keyboards print them (`Strg+C`, `Umschalt+Eingabe`).
+- Call `app.provide(Texts.CURRENT, state -> texts)`, as for the theme. Changing the language in a handler rebuilds the view in the new language at once.
+- **A text of your own:** override its method, such as `noResults()`, in a subclass of `GermanTexts` or an anonymous `Texts`.
+- **Another language:** implement `Texts`. Each method's default is the English text, so a text you leave out shows in English. Methods with parameters, such as `match(3, "17")`, return the whole phrase, so each language can use its own word order.
+- `Format`'s messages and `Menu.shortcutText` use the texts that apply where they are called. The kit's own handlers use the texts of their view. If your handler calls `format.parse` itself, take the texts in the view with `Texts.CURRENT.get()` and call `parse` inside `Texts.CURRENT.with(texts, …)`.
+
+Numbers and dates are not localized. `Format` always writes a full stop as the decimal separator and dates in ISO 8601. For another notation, write your own format with `Format.of`.

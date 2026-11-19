@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -43,7 +44,9 @@ import java.util.regex.Pattern;
  *
  * <p>The empty text is no value: {@link #parse} answers it with "A value is required", unless the
  * format is {@link #optional}, which reads it as null, or is {@link #TEXT}, whose empty text is the
- * empty string. A format is immutable and may be kept in a constant. It needs no native libraries.
+ * empty string. The kit's formats write their messages in the {@link Texts} where they read, and
+ * those of the app as it gives them. A format is immutable and may be kept in a constant. It needs
+ * no native libraries.
  *
  * @param <T> the type of the values
  */
@@ -73,7 +76,10 @@ public final class Format<T> {
     }
   }
 
-  /** What {@link #parse} answers to the empty text of a format that is not {@link #optional}. */
+  /**
+   * What {@link #parse} answers to the empty text of a format that is not {@link #optional}, in
+   * English; in other texts, their {@link Texts#required}.
+   */
   public static final String REQUIRED = "A value is required";
 
   private static final Pattern WHOLE = Pattern.compile("[-+]?\\d+");
@@ -121,11 +127,7 @@ public final class Format<T> {
       Pattern.compile("(\\d+\\.?\\d*|\\.\\d+)\\s*((?:[kmgtpe]i?)?b|)", Pattern.CASE_INSENSITIVE);
   private static final Pattern BYTES_TYPED =
       Pattern.compile("\\s*\\d*\\.?\\d*\\s*(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
-  private static final String BYTES_MESSAGE = "Expected a size such as 817 B, 1.2 MB or 4 GiB";
   private static final String[] BYTE_UNITS = {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
-
-  private static final String WHOLE_MESSAGE = "Not a whole number";
-  private static final String NUMBER_MESSAGE = "Not a number";
 
   /**
    * The most zeros the exponent of a {@link #DECIMAL} may add to its digits when it is written out
@@ -140,15 +142,6 @@ public final class Format<T> {
    */
   public static final int MAX_NUMBER_LENGTH = 100_000;
 
-  private static final String LENGTH_MESSAGE =
-      "Expected a number of at most " + MAX_NUMBER_LENGTH + " characters";
-  private static final String ZEROS_MESSAGE =
-      "Expected a number whose exponent adds at most " + MAX_ZEROS + " zeros";
-  private static final String DATE_MESSAGE = "Expected a date such as 2026-11-13";
-  private static final String TIME_MESSAGE = "Expected a time such as 14:30 or 14:30:15";
-  private static final String DATE_TIME_MESSAGE =
-      "Expected a date and time such as 2026-11-13 14:30";
-
   /** Text as it is: the empty text is the empty string, unless {@link #optional}. */
   public static final Format<String> TEXT =
       new Format<>(v -> v, Parsed::of, text -> true, DataType.TEXT, List.of(), false, true);
@@ -157,10 +150,10 @@ public final class Format<T> {
   public static final Format<BigInteger> BIG_INTEGER = new Format<>(
       BigInteger::toString,
       text -> text.length() > MAX_NUMBER_LENGTH
-          ? Parsed.error(LENGTH_MESSAGE)
+          ? Parsed.error(texts().numberTooLong(MAX_NUMBER_LENGTH))
           : WHOLE.matcher(text).matches()
               ? Parsed.of(new BigInteger(text))
-              : Parsed.error(WHOLE_MESSAGE),
+              : Parsed.error(texts().notAWholeNumber()),
       text -> text.length() <= MAX_NUMBER_LENGTH && WHOLE_TYPED.matcher(text).matches(),
       DataType.INTEGER,
       List.of(),
@@ -185,13 +178,13 @@ public final class Format<T> {
       BigDecimal::toPlainString,
       text -> {
         if (text.length() > MAX_NUMBER_LENGTH) {
-          return Parsed.error(LENGTH_MESSAGE);
+          return Parsed.error(texts().numberTooLong(MAX_NUMBER_LENGTH));
         }
         if (!NUMBER.matcher(text).matches()) {
-          return Parsed.error(NUMBER_MESSAGE);
+          return Parsed.error(texts().notANumber());
         }
         BigDecimal value = decimal(text);
-        return value == null ? Parsed.error(ZEROS_MESSAGE) : Parsed.of(value);
+        return value == null ? Parsed.error(texts().tooManyZeros(MAX_ZEROS)) : Parsed.of(value);
       },
       text -> text.length() <= MAX_NUMBER_LENGTH
           && NUMBER_TYPED.matcher(text).matches()
@@ -203,11 +196,11 @@ public final class Format<T> {
 
   /** A date as ISO 8601 writes it: {@code 2026-11-13}. */
   public static final Format<LocalDate> DATE =
-      temporal(LocalDate::toString, ISO_DATE, LocalDate::from, DATE_MESSAGE, DataType.DATE);
+      temporal(LocalDate::toString, ISO_DATE, LocalDate::from, Texts::expectedDate, DataType.DATE);
 
   /** A time of day: {@code 14:30}, {@code 14:30:15} or {@code 14:30:15.250}, without an offset. */
-  public static final Format<LocalTime> TIME =
-      temporal(LocalTime::toString, ISO_LOCAL_TIME, LocalTime::from, TIME_MESSAGE, DataType.TIME);
+  public static final Format<LocalTime> TIME = temporal(
+      LocalTime::toString, ISO_LOCAL_TIME, LocalTime::from, Texts::expectedTime, DataType.TIME);
 
   /**
    * A date and a time without an offset: {@code 2026-11-13 14:30}, also read with a {@code T}
@@ -217,7 +210,7 @@ public final class Format<T> {
       v -> v.toLocalDate() + " " + v.toLocalTime(),
       ISO_DATE_TIME,
       Format::localDateTime,
-      DATE_TIME_MESSAGE,
+      Texts::expectedDateTime,
       DataType.DATE_TIME);
 
   /** A date and a time with an offset: {@code 2026-11-13 14:30+01:00} or {@code ...Z}. */
@@ -225,7 +218,7 @@ public final class Format<T> {
       v -> v.toLocalDate() + " " + v.toLocalTime() + v.getOffset(),
       ISO_DATE_TIME,
       OffsetDateTime::from,
-      "Expected a date, a time and an offset such as 2026-11-13 14:30+01:00",
+      Texts::expectedOffsetDateTime,
       DataType.DATE_TIME);
 
   /** How {@link #offsetDateTime} writes an offset; it reads all three. */
@@ -260,7 +253,8 @@ public final class Format<T> {
    */
   public static Format<LocalTime> time(int precision) {
     DateTimeFormatter clock = clock(precision);
-    return temporal(clock::format, ISO_LOCAL_TIME, LocalTime::from, TIME_MESSAGE, DataType.TIME);
+    return temporal(
+        clock::format, ISO_LOCAL_TIME, LocalTime::from, Texts::expectedTime, DataType.TIME);
   }
 
   /**
@@ -276,7 +270,7 @@ public final class Format<T> {
         v -> v.toLocalDate() + " " + clock.format(v),
         ISO_DATE_TIME,
         Format::localDateTime,
-        DATE_TIME_MESSAGE,
+        Texts::expectedDateTime,
         DataType.DATE_TIME);
   }
 
@@ -299,7 +293,7 @@ public final class Format<T> {
         v -> v.toLocalDate() + " " + written.format(v),
         ISO_DATE_TIME_ANY_OFFSET,
         OffsetDateTime::from,
-        "Expected a date, a time and an offset such as 2026-11-13 14:30+01:00",
+        Texts::expectedOffsetDateTime,
         DataType.DATE_TIME);
   }
 
@@ -312,7 +306,7 @@ public final class Format<T> {
       text -> switch (text.strip().toLowerCase(Locale.ROOT)) {
         case "true", "t", "1", "yes", "y", "on" -> Parsed.of(true);
         case "false", "f", "0", "no", "n", "off" -> Parsed.of(false);
-        default -> Parsed.error("Expected true or false");
+        default -> Parsed.error(texts().expectedBoolean());
       },
       text -> true,
       DataType.BOOLEAN,
@@ -342,7 +336,7 @@ public final class Format<T> {
       text -> {
         var m = BYTES_TEXT.matcher(text.strip());
         if (text.length() > MAX_NUMBER_LENGTH || !m.matches()) {
-          return Parsed.error(BYTES_MESSAGE);
+          return Parsed.error(texts().expectedSize());
         }
         String unit = m.group(2).toLowerCase(Locale.ROOT);
         long base = unit.length() == 3 ? 1024 : 1000; // kib, or kb
@@ -356,7 +350,7 @@ public final class Format<T> {
             .multiply(BigDecimal.valueOf(factor))
             .setScale(0, java.math.RoundingMode.HALF_UP);
         return bytes.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
-            ? Parsed.error("Expected a size of at most " + Long.MAX_VALUE + " B")
+            ? Parsed.error(texts().sizeTooLarge(Long.toString(Long.MAX_VALUE)))
             : Parsed.of(bytes.longValue());
       },
       text -> text.length() <= MAX_NUMBER_LENGTH && BYTES_TYPED.matcher(text).matches(),
@@ -367,9 +361,9 @@ public final class Format<T> {
 
   // The grid's checks of TIME and DATE_TIME columns, which take a time with an offset or without.
   static final Format<TemporalAccessor> ANY_TIME =
-      temporal(Object::toString, ISO_TIME, t -> t, TIME_MESSAGE, DataType.TIME);
-  static final Format<TemporalAccessor> ANY_DATE_TIME =
-      temporal(Object::toString, ISO_DATE_TIME, t -> t, DATE_TIME_MESSAGE, DataType.DATE_TIME);
+      temporal(Object::toString, ISO_TIME, t -> t, Texts::expectedTime, DataType.TIME);
+  static final Format<TemporalAccessor> ANY_DATE_TIME = temporal(
+      Object::toString, ISO_DATE_TIME, t -> t, Texts::expectedDateTime, DataType.DATE_TIME);
 
   private final Function<? super T, String> text;
   private final Function<String, Parsed<T>> parse; // of a text that is not empty
@@ -451,7 +445,7 @@ public final class Format<T> {
         label,
         text -> {
           int at = texts.indexOf(text);
-          return at < 0 ? Parsed.error("Not one of the choices") : Parsed.of(all.get(at));
+          return at < 0 ? Parsed.error(texts().notAChoice()) : Parsed.of(all.get(at));
         },
         text -> true,
         DataType.ENUM,
@@ -468,13 +462,13 @@ public final class Format<T> {
   }
 
   /**
-   * The value of a text, or what is wrong with it. The empty text is {@link #REQUIRED}, null for
+   * The value of a text, or what is wrong with it. The empty text is {@link Texts#required}, null for
    * an {@link #optional} format, and the empty string for {@link #TEXT}.
    */
   public Parsed<T> parse(String text) {
     Objects.requireNonNull(text, "text");
     if (text.isEmpty() && (optional || !textual)) {
-      return optional ? Parsed.of(null) : Parsed.error(REQUIRED);
+      return optional ? Parsed.of(null) : Parsed.error(texts().required());
     }
     return parse.apply(text);
   }
@@ -524,13 +518,19 @@ public final class Format<T> {
    * "1 to 65535")}.
    */
   public Format<T> where(Predicate<? super T> test, String message) {
-    Objects.requireNonNull(test, "test");
     Objects.requireNonNull(message, "message");
+    return where(test, () -> message);
+  }
+
+  private Format<T> where(Predicate<? super T> test, Supplier<String> message) {
+    Objects.requireNonNull(test, "test");
     return new Format<>(
         text,
         s -> {
           Parsed<T> parsed = parse.apply(s);
-          return !parsed.valid() || test.test(parsed.value()) ? parsed : Parsed.error(message);
+          return !parsed.valid() || test.test(parsed.value())
+              ? parsed
+              : Parsed.error(message.get());
         },
         allows,
         type,
@@ -609,7 +609,7 @@ public final class Format<T> {
     BigInteger high = BigInteger.valueOf(max);
     return BIG_INTEGER.where(
         v -> v.compareTo(low) >= 0 && v.compareTo(high) <= 0,
-        "Expected a whole number from " + min + " to " + max);
+        () -> texts().wholeNumber(Long.toString(min), Long.toString(max)));
   }
 
   /** The date and time read, or null where it has an offset, which would be lost. */
@@ -641,16 +641,16 @@ public final class Format<T> {
       Function<? super T, String> text,
       DateTimeFormatter format,
       Function<TemporalAccessor, T> from,
-      String message,
+      Function<Texts, String> message,
       DataType type) {
     return new Format<>(
         text,
         s -> {
           try {
             T value = from.apply(format.parse(s.strip()));
-            return value == null ? Parsed.error(message) : Parsed.of(value);
+            return value == null ? Parsed.error(message.apply(texts())) : Parsed.of(value);
           } catch (java.time.DateTimeException e) {
-            return Parsed.error(message);
+            return Parsed.error(message.apply(texts()));
           }
         },
         s -> true,
@@ -658,6 +658,11 @@ public final class Format<T> {
         List.of(),
         false,
         false);
+  }
+
+  /** The texts of the messages: those where the format reads, see {@link Texts}. */
+  private static Texts texts() {
+    return Texts.CURRENT.get();
   }
 
   @Override

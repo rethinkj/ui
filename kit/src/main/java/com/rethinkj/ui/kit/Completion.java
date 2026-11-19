@@ -265,7 +265,7 @@ public final class Completion {
                 : option(theme, entries.get(i), i, state, take))
         .key("completions")
         .role("listbox")
-        .label("Completions")
+        .label(Texts.CURRENT.get().completions())
         .atCaret()
         .side(Side.BOTTOM, Style.Align.START, theme.space().xs())
         .keepFocus()

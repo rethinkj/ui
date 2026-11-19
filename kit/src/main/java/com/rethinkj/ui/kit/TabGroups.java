@@ -229,12 +229,13 @@ public final class TabGroups<T> {
     }
     T target = group.menuTab != null ? group.menuTab : group.activeTab();
     List<Menu.Item> items = new ArrayList<>();
+    Texts texts = Texts.CURRENT.get();
     items.add(Menu.item(
-        "Move to new window",
+        texts.moveToNewWindow(),
         alone || target == null ? null : () -> toNewWindow(group, indexOf(group, target))));
     if (group.window != null) {
       items.add(Menu.item(
-          "Move back to main window",
+          texts.moveToMainWindow(),
           target == null
               ? null
               : () -> dock(group, indexOf(group, target), main, main.tabs.size())));

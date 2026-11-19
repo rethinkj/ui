@@ -74,19 +74,6 @@ final class GridFilter {
     return c.type() == DataGrid.DataType.BOOLEAN ? List.of("true", "false") : List.of();
   }
 
-  private static String name(Kind kind) {
-    return switch (kind) {
-      case CONTAINS -> "Contains";
-      case STARTS_WITH -> "Starts with";
-      case EQUALS -> "Equals";
-      case MATCHES -> "Matches regular expression";
-      case BETWEEN -> "Between";
-      case ONE_OF -> "One of";
-      case IS_NULL -> "Is NULL";
-      case NOT_NULL -> "Is not NULL";
-    };
-  }
-
   /**
    * The funnel at the end of a header cell: under the pointer, or in the accent's edge where the
    * column has a filter, which its value says in a dump; a press opens the popover below it.
@@ -104,7 +91,7 @@ final class GridFilter {
     El funnel = row()
         .key("filter-" + column)
         .role("button")
-        .label("Filter " + c.title())
+        .label(b.texts.filter(c.title()))
         .size(theme.size().icon(), theme.size().icon())
         .shrink(0)
         .center()
@@ -150,7 +137,7 @@ final class GridFilter {
   }
 
   /** The filter the popover holds, null for none, or the message of what is wrong with it. */
-  private static Object made(Selection sel, Column c, int column) {
+  private static Object made(Texts texts, Selection sel, Column c, int column) {
     Kind kind = sel.filterKind;
     if (kind == Kind.EQUALS && ordered(c) && !sel.filterValue.isBlank()) {
       String error = GridEdit.check(c, sel.filterValue.strip()); // equality needs a value
@@ -166,7 +153,7 @@ final class GridFilter {
           Pattern.compile(sel.filterValue);
           yield sel.filterValue.isEmpty() ? null : Filter.of(column, kind, sel.filterValue);
         } catch (PatternSyntaxException e) {
-          yield "Not a regular expression";
+          yield texts.notARegularExpression();
         }
       }
       case BETWEEN ->
@@ -221,14 +208,15 @@ final class GridFilter {
     Selection sel = b.sel;
     Column c = b.columns.get(column);
     List<Kind> kinds = kinds(c);
-    Object made = made(sel, c, column);
+    Texts texts = b.texts;
+    Object made = made(texts, sel, c, column);
     String error = made instanceof String message ? message : null;
     Filter filter = made instanceof Filter f ? f : null;
     float width = theme.size().field();
     El content = col()
         .gap(theme.space().s())
         .child(Select.select(
-                kinds.stream().map(GridFilter::name).toList(),
+                kinds.stream().map(texts::filterKind).toList(),
                 kinds.indexOf(sel.filterKind),
                 sel.filterKinds,
                 i -> sel.filterKind = kinds.get(i))
@@ -236,7 +224,7 @@ final class GridFilter {
             .w(width));
     switch (sel.filterKind) {
       case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
-        El field = textField(sel.filterValue, "Value", v -> sel.filterValue = v)
+        El field = textField(sel.filterValue, texts.value(), v -> sel.filterValue = v)
             .key("value")
             .w(width)
             .autofocus();
@@ -246,11 +234,11 @@ final class GridFilter {
         content.child(row()
             .gap(theme.space().s())
             .children(
-                textField(sel.filterValue, "From", v -> sel.filterValue = v)
+                textField(sel.filterValue, texts.from(), v -> sel.filterValue = v)
                     .key("from")
                     .w((width - theme.space().s()) / 2)
                     .autofocus(),
-                textField(sel.filterTo, "To", v -> sel.filterTo = v)
+                textField(sel.filterTo, texts.to(), v -> sel.filterTo = v)
                     .key("to")
                     .w((width - theme.space().s()) / 2)));
       case ONE_OF -> {
@@ -281,16 +269,16 @@ final class GridFilter {
         .children(
             button(
                 Button.Variant.SECONDARY,
-                "Clear",
+                texts.clear(),
                 filterOf(b, column) == null ? null : () -> apply(b, column, null)),
-            button(Button.Variant.PRIMARY, "Apply", apply)));
+            button(Button.Variant.PRIMARY, texts.apply(), apply)));
     El panel = Popover.panel(
         sel.filtering,
-        "Filter " + c.title(),
+        texts.filter(c.title()),
         col()
             .gap(theme.space().m())
             .children(
-                Label.label(Label.Variant.STRONG, "Filter " + c.title())
+                Label.label(Label.Variant.STRONG, texts.filter(c.title()))
                     .role("heading")
                     .level(3),
                 content));
@@ -316,17 +304,18 @@ final class GridFilter {
     if (filters.isEmpty()) {
       return null;
     }
+    Texts texts = Texts.CURRENT.get();
     El bar = row()
         .key("filters")
         .role("list")
-        .label("Filters")
+        .label(texts.filters())
         .wrap()
         .gap(theme.space().xs())
         .align(Style.Align.CENTER);
     for (Filter f : filters) {
       String title = f.column() < columns.size()
           ? columns.get(f.column()).title()
-          : "column " + (f.column() + 1);
+          : texts.column(f.column() + 1);
       bar.child(Badge.badge(
               f.describe(title), Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> {
                 List<Filter> left = new ArrayList<>(filters);
@@ -336,7 +325,7 @@ final class GridFilter {
           .role("listitem"));
     }
     if (filters.size() > 1) {
-      bar.child(button(Button.Variant.GHOST, "Clear all", () -> onFilter.accept(List.of()))
+      bar.child(button(Button.Variant.GHOST, texts.clearAll(), () -> onFilter.accept(List.of()))
           .key("clear-filters"));
     }
     return bar;

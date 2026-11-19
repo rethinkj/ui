@@ -189,9 +189,9 @@ public final class Tree {
     return new Children.Ready<>(nodes);
   }
 
-  /** Children not known yet, whose row says "Loading…". */
+  /** Children not known yet, whose row says {@link Texts#loading} of the texts where this is called. */
   public static <N> Children<N> loading() {
-    return loading("Loading…");
+    return loading(Texts.CURRENT.get().loading());
   }
 
   /** Children not known yet, whose row says {@code text}. */

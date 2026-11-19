@@ -186,7 +186,10 @@ public final class Split {
     El divider = (across ? row() : col())
         .key("divider")
         .role("separator")
-        .label(first.label() == null ? "Resize" : "Resize " + first.label())
+        .label(
+            first.label() == null
+                ? Texts.CURRENT.get().resize()
+                : Texts.CURRENT.get().resize(first.label()))
         .value(position.kind().name().toLowerCase(Locale.ROOT) + " "
             + new BigDecimal(Float.toString(position.value()))
                 .stripTrailingZeros()

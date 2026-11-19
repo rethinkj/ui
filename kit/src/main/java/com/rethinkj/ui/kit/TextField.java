@@ -232,7 +232,7 @@ public final class TextField {
     El button = FieldActions.button(
         theme,
         revealed ? Symbol.EYE_OFF : Symbol.EYE,
-        revealed ? "Hide password" : "Show password",
+        revealed ? Texts.CURRENT.get().hidePassword() : Texts.CURRENT.get().showPassword(),
         enabled ? onToggle : null);
     if (enabled) {
       button.focusable().focusRing(theme.accent().edge());

@@ -93,45 +93,49 @@ final class GridColumns {
   static List<Menu.Item> items(Build b, int c) {
     DataGrid.Options o = b.o;
     Column column = b.columns.get(c);
+    Texts texts = b.texts;
     List<Menu.Item> items = new ArrayList<>();
     if (o.onSort != null && column.sortable()) {
       boolean sorted = o.sort.stream().anyMatch(k -> k.column() == c);
-      items.add(Menu.item("Sort ascending", () -> o.onSort.accept(List.of(new SortKey(c, false))))
+      items.add(Menu.item(
+              texts.sortAscending(), () -> o.onSort.accept(List.of(new SortKey(c, false))))
           .icon(Symbol.ARROW_SORT_UP));
-      items.add(Menu.item("Sort descending", () -> o.onSort.accept(List.of(new SortKey(c, true))))
+      items.add(Menu.item(
+              texts.sortDescending(), () -> o.onSort.accept(List.of(new SortKey(c, true))))
           .icon(Symbol.ARROW_SORT_DOWN));
       items.add(Menu.item(
-          "Clear sort",
+          texts.clearSort(),
           !sorted
               ? null
               : () ->
                   o.onSort.accept(o.sort.stream().filter(k -> k.column() != c).toList())));
     }
     if (b.filtering(c)) {
-      items.add(Menu.item("Filter…", () -> GridFilter.open(b, c))
+      items.add(Menu.item(texts.filterMenu(), () -> GridFilter.open(b, c))
           .icon(Symbol.FILTER)
-          .shortcut("Alt+Down"));
+          .shortcut(texts.keys("Alt", "Down")));
     }
     List<Menu.Item> columns = new ArrayList<>();
     if (o.layout != null) {
       Layout l = o.layout;
       int full = o.full[c];
-      columns.add(Menu.item("Hide column", l.shownCount() < 2 ? null : () -> l.hide(full))
+      columns.add(Menu.item(texts.hideColumn(), l.shownCount() < 2 ? null : () -> l.hide(full))
           .icon(Symbol.EYE_OFF));
     }
     if (o.onFreeze != null) {
       columns.add(
           c < b.frozen
-              ? Menu.item("Unfreeze columns", () -> o.onFreeze.accept(0))
-              : Menu.item("Freeze up to here", () -> o.onFreeze.accept(c + 1)).icon(Symbol.PIN));
+              ? Menu.item(texts.unfreezeColumns(), () -> o.onFreeze.accept(0))
+              : Menu.item(texts.freezeUpToHere(), () -> o.onFreeze.accept(c + 1))
+                  .icon(Symbol.PIN));
     }
     if (o.onResize != null) {
-      columns.add(Menu.item("Fit width", () -> o.onResize.resize(c, DataGrid.fit(b, c))));
+      columns.add(Menu.item(texts.fitWidth(), () -> o.onResize.resize(c, DataGrid.fit(b, c))));
     }
     if (o.layout != null) {
       Layout l = o.layout;
       int full = o.full[c];
-      columns.add(Menu.item("Columns…", () -> {
+      columns.add(Menu.item(texts.chooseColumns(), () -> {
             l.from = full;
             l.search = "";
             l.chooser.open();
@@ -177,7 +181,10 @@ final class GridColumns {
   /** {@link DataGrid#columnsButton}. */
   static El button(Theme theme, Layout l) {
     El button = Button.button(
-            Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
+            Button.Variant.GHOST,
+            Symbol.COLUMN_SINGLE,
+            Texts.CURRENT.get().columns(),
+            l::toggleChooser)
         .key("columns-button")
         .expanded(l.chooser.isOpen() && l.from < 0);
     return button.overlay(
@@ -192,11 +199,12 @@ final class GridColumns {
    * and Reset.
    */
   static El chooser(Theme theme, Layout l) {
+    Texts texts = Texts.CURRENT.get();
     String search = l.search.toLowerCase(Locale.ROOT).strip();
     El list = col()
         .key("columns")
         .role("list")
-        .label("Columns")
+        .label(texts.columns())
         .gap(theme.space().xs())
         .padding(theme.space().xs(), theme.space().s())
         .scroll()
@@ -234,10 +242,11 @@ final class GridColumns {
     }
     El content = col()
         .gap(theme.space().s())
-        .child(Label.label(Label.Variant.STRONG, "Columns").role("heading").level(3));
+        .child(
+            Label.label(Label.Variant.STRONG, texts.columns()).role("heading").level(3));
     if (l.titles.size() > 8) {
       content.child(TextField.withIcon(
-          textField(l.search, "Search columns", v -> l.search = v)
+          textField(l.search, texts.searchColumns(), v -> l.search = v)
               .key("search")
               .w(theme.size().field())
               .autofocus(),
@@ -245,16 +254,17 @@ final class GridColumns {
     }
     content
         .child(list)
-        .child(Label.label(Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
+        .child(Label.label(
+            Label.Variant.MUTED, texts.moveOne(texts.keys("Alt", "↑"), texts.keys("Alt", "↓"))))
         .child(row()
             .gap(theme.space().s())
             .justify(Style.Content.END)
             .children(
                 Button.button(
                     Button.Variant.GHOST,
-                    "Show all",
+                    texts.showAll(),
                     l.shownCount() == l.titles.size() ? null : l::showAll),
-                Button.button(Button.Variant.SECONDARY, "Reset", l::reset)));
-    return Popover.panel(l.chooser, "Columns", content).key("chooser");
+                Button.button(Button.Variant.SECONDARY, texts.reset(), l::reset)));
+    return Popover.panel(l.chooser, texts.columns(), content).key("chooser");
   }
 }

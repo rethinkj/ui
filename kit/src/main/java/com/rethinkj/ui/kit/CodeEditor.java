@@ -437,6 +437,7 @@ public final class CodeEditor {
    */
   private static El marker(
       Theme theme, State state, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+    Texts texts = Texts.CURRENT.get(); // the gutter builds in the view's values
     float size = theme.type().mono().size();
     StringBuilder messages = new StringBuilder();
     StringBuilder errors = new StringBuilder();
@@ -456,7 +457,7 @@ public final class CodeEditor {
     if (any) {
       place
           .role("img")
-          .label(error ? "Error" : "Warning")
+          .label(error ? texts.error() : texts.warning())
           .child(Icon.icon(
               error ? Symbol.DISMISS : Symbol.WARNING,
               error ? Icon.Variant.DANGER : Icon.Variant.WARNING,
@@ -466,7 +467,7 @@ public final class CodeEditor {
       // A diagnostic without a message still shows, with its severity as the tooltip.
       return Tooltip.tooltip(
           place,
-          messages.isEmpty() ? (error ? "Error" : "Warning") : messages.toString(),
+          messages.isEmpty() ? (error ? texts.error() : texts.warning()) : messages.toString(),
           Tooltip.options().kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING));
     }
     for (Marker m : state.markers) {
