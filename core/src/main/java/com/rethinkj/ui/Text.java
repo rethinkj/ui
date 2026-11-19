@@ -685,7 +685,7 @@ public final class Text implements Measure {
       widest = Math.max(widest, span.width);
     }
     if (field) { // room for the caret at the line's end, so that the focus does not scroll it
-      widest += Editor.caretWidth(scale);
+      widest += Editor.caretWidth(scale) + SLACK; // layout gives back a hair less at some scales
     }
     return new Size(widest / scale, spans.size() * lineHeight / scale, firstBaseline / scale);
   }

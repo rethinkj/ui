@@ -150,9 +150,9 @@ class DialogScrollTest {
    * Properties in a dialog without a width: the dialog is as wide as the values on one line, and
    * where the window is narrower they wrap and the dialog grows as high as they are, with no bar.
    */
-  @ParameterizedTest(name = "{0} wide")
-  @CsvSource({"1200", "240"})
-  void aDialogFitsPropertiesThatWrap(int width) throws IOException {
+  @ParameterizedTest(name = "{0} wide at {1}x")
+  @CsvSource({"1200, 1", "1200, 1.5", "240, 1"})
+  void aDialogFitsPropertiesThatWrap(int width, double scale) throws IOException {
     App<Object> app = new App<>(
         new Object(),
         s -> El.col()
@@ -162,17 +162,18 @@ class DialogScrollTest {
                 "About",
                 Properties.properties(
                     List.of( // the widest value first, focused with the caret at its end
-                        Properties.property("Website", "https://db.hoori.dev"),
-                        Properties.property("Version", "Development build"),
-                        Properties.property("Author", "Patrick Trautmann")),
+                        Properties.property("Version", "The current production version"),
+                        Properties.property("Author", "Patrick Trautmann"),
+                        Properties.property("Website", "https://db.hoori.dev")),
                     null),
                 List.of(),
                 () -> {})));
-    Script.run("size " + width + " 760\nframe\nadvance 0.25\nframe\n", app, out);
+    Script.run(
+        "size " + width + " 760 scale " + scale + "\nframe\nadvance 0.25\nframe\n", app, out);
     String dump = app.tree().dump();
     assertFalse(StructureTest.line(dump, "#dialog-content ").contains("thumb"), dump);
     assertEquals(0, app.focused().text().scroll(), "the value shows its start: " + dump);
-    float row = StructureTest.rect(StructureTest.line(dump, "label=\"Website\""))[3];
+    float row = StructureTest.rect(StructureTest.line(dump, "label=\"Version\""))[3];
     float control = Theme.DARK.size().control();
     if (width > 1000) {
       assertEquals(control, row, 0.01, "a value on one line: " + dump);
