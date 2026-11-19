@@ -20,7 +20,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
 ## What to try
 
 - Click any heading under **On this page** to scroll directly to that section.
-- Click a link: heading links scroll smoothly to the target, while external links display their URL in a toast.
+- Click a link: heading links scroll smoothly to the target, while web links open in the system's browser.
 - Press **Ctrl+A** to select the document and **Ctrl+C** to copy it.
 
 ## How it works
@@ -39,9 +39,9 @@ Each document is parsed once with `Markdown.parse`. The view renders it with opt
 ```java snippet="manual-images"
 ```
 
-### Scrolling to headings
+### Following links
 
-Clicking a `#id` link finds the heading's block index with `Markdown.rowOf` and scrolls it to the top using `App.scrollToRow`:
+Clicking a `#id` link finds the heading's block index with `Markdown.rowOf` and scrolls it to the top using `App.scrollToRow`. Any other link goes to `App.openUri`, which opens web addresses in the system's browser:
 
 ```java snippet="manual-links"
 ```

@@ -1,5 +1,5 @@
 # The manual (Manual): the top of the document, the images in both themes at scale 2, which the
-# documentation shows, and on the way a link that scrolls and one that shows a toast.
+# documentation shows, and on the way a link that scrolls and one that opens in the browser.
 size 960 640
 frame
 snap manual-dark-1x-top
@@ -60,15 +60,11 @@ advance 1
 frame
 snap manual-dark-2x-top
 
-# A link out of the document shows its address in a toast.
+# A link out of the document opens in the browser: the snap below writes its address.
 press role=link label="inline"
 frame
-advance 1
-frame
 
-# The images in the dark at scale 2, once the toast has closed itself.
-advance 5
-frame
+# The images in the dark at scale 2.
 press role=option label="Images"
 frame
 leave

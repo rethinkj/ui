@@ -11,10 +11,11 @@ import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** The examples of the page about windows, icons, the taskbar and the system's dialogs. */
+/** The examples of the page about windows, icons, the taskbar, the system's dialogs and browser. */
 final class Desktop {
 
   private Desktop() {}
@@ -84,4 +85,14 @@ final class Desktop {
     }
   }
   // docs:end message-box
+
+  // docs:start open-uri
+  static void website(App<?> app) {
+    app.openUri(URI.create("https://ui.rethinkj.com"), error -> notOpened(app, error));
+  }
+
+  static void notOpened(App<?> app, String error) {
+    app.messageBox(MessageBox.error("Cannot open the website", error), button -> {}, ignored -> {});
+  }
+  // docs:end open-uri
 }

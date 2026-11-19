@@ -18,7 +18,7 @@ Parse the source once with `Markdown.parse(source)` and store the `MarkdownDocum
 
 | Option | Description |
 | --- | --- |
-| `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor) |
+| `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor); open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
 | `languages(language -> highlighter)` | Custom syntax highlighters for fenced code blocks (`sql`, `pgsql`, `postgresql` use `Sql` by default) |
 | `copy(clipboard)` | Enables code-block copy buttons (and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set) |

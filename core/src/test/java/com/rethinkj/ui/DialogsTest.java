@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,13 +26,16 @@ class DialogsTest {
   static final class Opener {
     FileDialog dialog = FileDialog.open("Open").filter("SQL", "sql").filter("Text", "txt", "md");
     MessageBox box;
+    String address;
     final List<String> log = new ArrayList<>();
     App<Opener> app;
 
     El view() {
       return el().key("open").size(80, 40).onPress(() -> {
         log.add("asked on " + Thread.currentThread().getName());
-        if (box != null) {
+        if (address != null) {
+          app.openUri(URI.create(address), e -> log.add("error " + e));
+        } else if (box != null) {
           app.messageBox(box, button -> log.add("button " + button), e -> log.add("error " + e));
         } else {
           app.fileDialog(
@@ -272,5 +277,25 @@ class DialogsTest {
     Script.Failure usage =
         assertThrows(Script.Failure.class, () -> Script.run("dialog a.sql", opener(), out));
     assertTrue(usage.getMessage().contains("Write `dialog \"<path>\"`"), usage.getMessage());
+  }
+
+  @Test
+  void aScriptNotesTheWebAddressesAnAppOpensAndRefusesOthers(@TempDir Path out) throws IOException {
+    App<Opener> app = opener();
+    app.state().address = "https://example.com/a?b=1";
+    Script.run("""
+        size 80 40
+        frame
+        press #open
+        frame
+        snap opened
+        """, app, out);
+    assertEquals("https://example.com/a?b=1\n", Files.readString(out.resolve("opened.opened.txt")));
+    app.state().address = "file:///etc/passwd";
+    Script.run("press #open\nframe\nawait\nframe", app, out);
+    assertEquals(
+        List.of("error file:///etc/passwd is not a web address: only http and https addresses"
+            + " open."),
+        app.state().log.stream().filter(l -> l.startsWith("error")).toList());
   }
 }

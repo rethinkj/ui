@@ -1,6 +1,6 @@
 ---
 title: Windows, icons and dialogs
-description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and open native file dialogs.
+description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, open native file dialogs and web addresses.
 ---
 
 `Window` creates desktop windows on Windows and Linux, and `WindowLoop` runs your app inside them. For the full API, see [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
@@ -96,9 +96,16 @@ The `Choice` result contains the selected paths (empty if cancelled) and the cho
 
 Because native message boxes block all windows, prefer the kit's [Dialog](/docs/components/dialog) for normal in-app confirmations.
 
+## Open a web address
+
+```java snippet="open-uri"
+```
+
+`app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It returns once the browser has started; a failure arrives in `onError` as a posted task. Any other scheme, such as `file:` or `mailto:` from a document's link, goes to `onError` without opening anything. Success means the system started a browser, not that the page loaded.
+
 ## Headless scripts
 
-In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. See [Scripts](/docs/testing/scripts).
+In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. They open no browser: `snap` writes the addresses the app opened. See [Scripts](/docs/testing/scripts).
 
 ## Clipboard
 

@@ -74,7 +74,8 @@ import java.util.function.ToDoubleFunction;
  * virtual, and frames the display replaces before it shows them cost processor and graphics time
  * for nothing. Input or a task after a pause of a refresh or more is drawn at once.
  *
- * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}) and its fonts for
+ * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}), its browser
+ * ({@link App#browser}) and its fonts for
  * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
  * that off), turns the window's text input on while the focused element takes text and tells it
  * where ({@link App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of
@@ -764,6 +765,11 @@ public final class WindowLoop {
     App<?> app = e.app;
     app.clipboard(new SystemClipboard());
     app.dialogs(new SystemDialogs(e.window));
+    app.browser((uri, failed) -> { // on the windows' thread, as SDL wants
+      if (!Sdl.openUrl(uri.toASCIIString())) {
+        failed.accept(Sdl.getError());
+      }
+    });
     app.systemFonts(systemFonts);
     app.windows(windows);
     app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore

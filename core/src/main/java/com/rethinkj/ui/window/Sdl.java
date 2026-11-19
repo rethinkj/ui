@@ -381,6 +381,8 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code char *SDL_GetClipboardText(void)}, which the caller frees with SDL_free */
   static final FunctionDescriptor SDL_GET_CLIPBOARD_TEXT = FunctionDescriptor.of(ADDRESS);
+  /** {@code bool SDL_OpenURL(const char *url)} */
+  static final FunctionDescriptor SDL_OPEN_URL = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
 
   static final FunctionDescriptor SDL_FREE = FunctionDescriptor.ofVoid(ADDRESS);
   static final FunctionDescriptor SDL_ADD_EVENT_WATCH =
@@ -543,7 +545,7 @@ final class Sdl {
         bind("SDL_SetBooleanProperty", SDL_SET_BOOLEAN_PROPERTY);
   }
 
-  /** The system's dialogs and clipboard, and the app's metadata as SDL holds it. */
+  /** The system's dialogs, clipboard and browser, and the app's metadata as SDL holds it. */
   private static final class Desktop {
     static final MethodHandle SHOW_FILE_DIALOG_WITH_PROPERTIES =
         bind("SDL_ShowFileDialogWithProperties", SDL_SHOW_FILE_DIALOG_WITH_PROPERTIES);
@@ -552,6 +554,7 @@ final class Sdl {
         bind("SDL_SetClipboardText", SDL_SET_CLIPBOARD_TEXT);
     static final MethodHandle GET_CLIPBOARD_TEXT =
         bind("SDL_GetClipboardText", SDL_GET_CLIPBOARD_TEXT);
+    static final MethodHandle OPEN_URL = bind("SDL_OpenURL", SDL_OPEN_URL);
     static final MethodHandle GET_APP_METADATA_PROPERTY =
         bind("SDL_GetAppMetadataProperty", SDL_GET_APP_METADATA_PROPERTY);
   }
@@ -1116,6 +1119,15 @@ final class Sdl {
   static boolean setClipboardText(String text) {
     try (Arena arena = Arena.ofConfined()) {
       return (boolean) Desktop.SET_CLIPBOARD_TEXT.invokeExact(arena.allocateFrom(text));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Opens the address in the system's handler for it; SDL wants the main thread. */
+  static boolean openUrl(String url) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) Desktop.OPEN_URL.invokeExact(arena.allocateFrom(url));
     } catch (Throwable t) {
       throw failed(t);
     }

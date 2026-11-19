@@ -11,7 +11,7 @@ You can test your views in JUnit by running a script and comparing each `snap` a
 ```
 
 - `app.textRendering(TextRendering.LINUX)` ensures identical text rendering on both Windows and Linux. You can also set the system property `rethinkj.ui.textRendering=linux` (or `windows`) globally for a test run, for example in Maven Surefire.
-- `Script.run` returns the generated files (`.png`, `.tree.txt`, and `.clipboard.txt` when clipboard text exists).
+- `Script.run` returns the generated files (`.png`, `.tree.txt`, `.clipboard.txt` when clipboard text exists, and `.opened.txt` when the app opened web addresses).
 - `Png.decode` loads a PNG into `Pixels` without needing `java.desktop`.
 - Pass `-Dgolden.update=true` to overwrite stored files after intentional UI changes, then inspect the updated images and tree diffs before committing.
 

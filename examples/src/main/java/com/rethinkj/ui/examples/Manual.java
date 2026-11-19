@@ -26,6 +26,8 @@ import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +48,7 @@ import java.util.stream.Stream;
  * shows every form the kit's {@link Markdown} supports, the project's changelog, made from the
  * files under {@code changelog/unreleased} when that folder is there and from a copy that comes
  * with the example otherwise, and the Markdown files named on the command line. A link to a
- * heading scrolls there; other links show their address in a toast. The title bar switches
+ * heading scrolls there; other links open in the system's browser. The title bar switches
  * between the dark and the light theme. The state is this class.
  *
  * <p>Images are read off the app's thread ({@link App#background}) the first time the document
@@ -202,14 +204,25 @@ public final class Manual {
     return "Other";
   }
 
-  /** What a link does: a heading of the document comes into view, any other shows a toast. */
+  /**
+   * What a link does: a heading of the document comes into view, a web address opens in the
+   * system's browser, and a toast says why any other does not.
+   */
   // docs:start manual-links
   void link(String destination) {
     if (destination.startsWith("#")) {
       scrollTo(destination.substring(1));
       return;
     }
-    toast = "Opens " + destination;
+    try {
+      app.openUri(new URI(destination), this::notOpened);
+    } catch (URISyntaxException error) {
+      notOpened(error.getMessage());
+    }
+  }
+
+  void notOpened(String error) {
+    toast = "Cannot open the link: " + error;
   }
 
   /** Scrolls the document so that the block of the heading with this anchor is at its top. */

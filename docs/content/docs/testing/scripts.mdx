@@ -21,7 +21,7 @@ Inside `frame`, queued inputs run in order, each seeing the updated view from th
 | --- | --- |
 | `size <width> <height> [scale <factor>] [at <x>,<y>]` | Sets window size in logical pixels, display scale factor (default `1`), and optional screen position in physical pixels. Required before the first `frame`. |
 | `frame` | Processes queued input and background callbacks, rebuilds the view, and updates animations at the current clock time. |
-| `snap <name>` | Saves `<name>.png` and `<name>.tree.txt` from the last frame into the output folder (plus `<name>.clipboard.txt` if the clipboard has text). `<name>` may include `/`. Additional windows are saved with their lowercase hyphenated title as a prefix (e.g., `groceries-<name>.png`). |
+| `snap <name>` | Saves `<name>.png` and `<name>.tree.txt` from the last frame into the output folder (plus `<name>.clipboard.txt` if the clipboard has text, and `<name>.opened.txt` with the addresses the app opened with `openUri` so far, one per line). `<name>` may include `/`. Additional windows are saved with their lowercase hyphenated title as a prefix (e.g., `groceries-<name>.png`). |
 | `advance <seconds>` | Moves the app clock forward. Due `App.after` timers and animations update on the next `frame`. |
 | `await [<seconds>]` | Waits for all `App.background` tasks to finish or cancel (default timeout: 10 seconds) and queues their callbacks for the next `frame`. Fails if tasks are still running after the timeout. |
 | `await progress [<seconds>]` | Waits until a running background task reports progress via `Work.Progress` (default timeout: 10 seconds) and queues the update for the next `frame`. Fails if no task is running or none reports in time. |

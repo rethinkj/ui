@@ -7,6 +7,7 @@ import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Windows;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -276,6 +278,7 @@ public final class App<S> {
   private final List<Editor> selectedByBuild = new ArrayList<>();
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
+  private Browser browser = Browser.NONE;
   private Object fileOver; // the identity of the element the system's drag is over, or null
   private Consumer<Drop> fileOverHandler; // its onFileDrop, which gets the LEAVE
   private Windows windows = Windows.NONE;
@@ -1380,6 +1383,45 @@ public final class App<S> {
             post(() -> onError.accept(error));
           }
         });
+  }
+
+  /** What opens web addresses: the runner's ({@link Browser}), {@link Browser#NONE} at first. */
+  public Browser browser() {
+    return browser;
+  }
+
+  /** Sets what opens web addresses, as a runner does for its windows and a test may. */
+  public void browser(Browser browser) {
+    this.browser = Objects.requireNonNull(browser, "browser");
+  }
+
+  /**
+   * Opens a web address in the system's default browser, and hands what went wrong to {@code
+   * onError} as a {@link #post posted} task. Only an absolute {@code http} or {@code https}
+   * address opens; any other, such as one a document links to, goes to {@code onError}. Call it
+   * on the app's thread, usually in a handler; it returns once the system has started the
+   * browser, not when the page has loaded, and no error comes when the browser cannot load it.
+   * Under a {@link Script} nothing opens: a {@code snap} writes the addresses opened so far.
+   *
+   * <pre>{@code
+   * app.openUri(URI.create("https://ui.rethinkj.com"), error -> status = "No browser: " + error);
+   * }</pre>
+   */
+  public void openUri(URI uri, Consumer<String> onError) {
+    Objects.requireNonNull(uri, "uri");
+    Objects.requireNonNull(onError, "onError");
+    AtomicBoolean answered = new AtomicBoolean();
+    Consumer<String> failed = error -> {
+      if (answered.compareAndSet(false, true)) {
+        post(() -> onError.accept(error));
+      }
+    };
+    String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+    if (!(scheme.equals("http") || scheme.equals("https")) || uri.getHost() == null) {
+      failed.accept(uri + " is not a web address: only http and https addresses open.");
+      return;
+    }
+    browser.open(uri, failed);
   }
 
   /**
