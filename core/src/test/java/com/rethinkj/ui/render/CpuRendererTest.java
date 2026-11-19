@@ -3,12 +3,14 @@ package com.rethinkj.ui.render;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.layout.Flex;
+import java.lang.foreign.ValueLayout;
 import org.junit.jupiter.api.Test;
 
 class CpuRendererTest {
@@ -66,6 +68,25 @@ class CpuRendererTest {
     assertEquals(RED, image.argb(15, 10), "inside it");
     assertEquals(0, image.argb(5, 10), "outside it");
     assertEquals(0x40, image.argb(40, 10) >>> 24, "at the tip of a quarter");
+  }
+
+  @Test
+  void aPieJustOverHalfATurnLooksAsOneOfHalfATurn() {
+    Pixels[] images = new Pixels[2];
+    float[] gaps = {0.5f, 1 - Math.nextUp(0.5f)};
+    for (int i = 0; i < 2; i++) {
+      Scene scene = new Scene();
+      scene.rect(0.25f, 0.25f, 21, 21, 10.5f, 0, RED, 0); // the center a quarter pixel off
+      scene.data().set(ValueLayout.JAVA_FLOAT, Scene.ARC_GAP, gaps[i]);
+      images[i] = CpuRenderer.render(scene, 22, 22, 1);
+    }
+    for (int y = 0; y < 22; y++) {
+      for (int x = 0; x < 22; x++) {
+        int a = images[0].argb(x, y) >>> 24;
+        int b = images[1].argb(x, y) >>> 24;
+        assertTrue(Math.abs(a - b) <= 1, "at " + x + "," + y + ": " + a + " and " + b);
+      }
+    }
   }
 
   @Test

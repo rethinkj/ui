@@ -1149,11 +1149,12 @@ public final class CpuRenderer {
   }
 
   /**
-   * An arc's coverage near its center, where its edges meet: from {@code sweep} at the center to
-   * {@code coverage} a physical pixel away.
+   * An arc's coverage near its center, where its edges meet: {@code sweep} up to half a physical
+   * pixel away, where the ramps of the edges reach the center, then towards {@code coverage}, which
+   * holds from a physical pixel away.
    */
   static double apex(double coverage, double sweep, double length, double scale) {
-    return sweep + (coverage - sweep) * Math.min(length * scale, 1);
+    return sweep + (coverage - sweep) * Math.clamp(2 * length * scale - 1, 0.0, 1.0);
   }
 
   /**

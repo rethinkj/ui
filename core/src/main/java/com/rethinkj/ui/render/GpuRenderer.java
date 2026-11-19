@@ -293,8 +293,9 @@ public final class GpuRenderer implements AutoCloseable {
         if gap >= 0.5 {
           cover = narrow(q, h);
         }
-        // Near the center, where the edges meet: from the sweep there to cover a pixel away.
-        return sweep + (cover - sweep) * min(length(p) * globals.scale, 1.0);
+        // Near the center, where the edges meet: the sweep up to half a pixel away, then towards
+        // cover, which holds from a pixel away.
+        return sweep + (cover - sweep) * clamp(2.0 * length(p) * globals.scale - 1.0, 0.0, 1.0);
       }
 
       // How much of the pixel centered at point, in logical pixels, the clip lets through: the

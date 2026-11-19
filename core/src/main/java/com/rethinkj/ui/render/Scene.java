@@ -94,9 +94,11 @@ import java.util.Map;
  * a ring at 1 % shows a faint sliver and one at 99 % a faint gap, not a line of half coverage.
  * {@code sin} and {@code cos} are the angle brought into a quarter turn around 0 and then the terms
  * of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for {@code erf} below,
- * so that every renderer computes the same edges far from the center. Within a physical pixel of
- * the center, where the edges meet and neither formula holds, the coverage goes from {@code sweep}
- * at the center to the formula's a pixel away: {@code sweep + (arc - sweep) min(|p| scale, 1)}.
+ * so that every renderer computes the same edges far from the center. Near the center, where the
+ * ramps of the edges meet and neither formula holds, the coverage is {@code sweep} up to half a
+ * physical pixel away and goes over to the formula's a pixel away: {@code sweep + (arc - sweep)
+ * clamp(2 |p| scale - 1, 0, 1)}. So it changes continuously with the pixel and with the sweep,
+ * also where an arc becomes wider than half a turn.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *
