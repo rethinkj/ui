@@ -26,7 +26,7 @@ Control visibility from your state by attaching `root.overlay(open ? dialog : nu
 | `defaultButton` | Button triggered when pressing **Enter** in a single-line field (while enabled) |
 | `onDismiss` | Handler called on **Escape** or clicking the backdrop |
 
-Use `Dialog.enterPresses(button)` if you want the same Enter-to-submit behavior in a standalone dialog window.
+For a standalone dialog window, register `root.onKey(Dialog.enterPresses(button))` on the container holding the form, passing the button element from the same view build.
 
 **Stacked dialogs:** By default, a dialog uses key `"dialog"`. If you open a second dialog on top of another (for example, a "Discard changes?" prompt), chain a unique `.key("discard")` on the second dialog.
 

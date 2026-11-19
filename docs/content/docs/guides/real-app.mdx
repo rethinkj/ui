@@ -28,7 +28,7 @@ Loading from a server can be slow, so never block the app thread. Call `app.back
 
 Store the returned `Work` handle in your state:
 - When `loading` is non-null, a load is in progress.
-- Calling `cancel()` stops the task so neither callback runs.
+- Calling `cancel()` prevents either callback from running and interrupts the worker thread (the computation itself stops only if it responds to interruption, so clicking **Reload** while a non-interruptible request is running may overlap with the previous request).
 
 Here, switching away from the Customers view cancels an active load, and clicking **Reload** cancels the previous load before starting a new one.
 

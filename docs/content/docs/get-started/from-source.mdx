@@ -41,20 +41,27 @@ mvn verify
 
 If you do not have a C/C++ toolchain installed, you can skip the native libraries (tests that require them will be skipped):
 
+On Linux:
+
 ```sh
-mvn verify -P -natives-linux-x64     # Linux
-mvn verify -P -natives-windows-x64   # Windows
+mvn verify -P -natives-linux-x64
+```
+
+On Windows:
+
+```sh
+mvn verify -P -natives-windows-x64
 ```
 
 If a native library fails to build or load, see [Platforms and native libraries](/docs/reference/platforms).
 
 ## Run the examples
 
-From the repository root, run any example app with Maven:
+From the repository root, run `LightSwitch` (default) or any other example with `-Dexample`:
 
 ```sh
-mvn -q -pl examples -am compile exec:exec                    # runs LightSwitch
-mvn -q -pl examples -am compile exec:exec -Dexample=Showcase # runs Showcase
+mvn -q -pl examples -am compile exec:exec
+mvn -q -pl examples -am compile exec:exec -Dexample=Showcase
 ```
 
 Available `-Dexample` values: `LightSwitch`, `Workbench`, `DataBrowser`, `Showcase`, `Documents`, `Manual`, `Settings`, `ConnectionDialog`, and `Notes`. See [Examples](/docs/examples) for screenshots and details of each app.

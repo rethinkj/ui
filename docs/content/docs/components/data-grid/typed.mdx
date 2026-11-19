@@ -3,7 +3,7 @@ title: Rows of records
 description: Bind DataGrid columns directly to Java records or POJOs with typed formatting, sorting, filtering, and editing.
 ---
 
-Use `DataGrid.table(rows)` to build a `GridTable<T>` directly over Java records or POJOs instead of raw strings. Each column uses a getter, a [Format](/docs/components/format), and an optional wither/setter (or [`Part`](/docs/concepts/editing#declare-the-fields)) to format, validate, sort, filter, and write back typed values automatically.
+Use `DataGrid.table(rows)` to build a `GridTable<T>` directly over Java records or POJOs instead of raw strings. Each column uses a getter, a [Format](/docs/components/format), and an optional wither/setter (or [`Part`](/docs/concepts/editing#declare-the-fields)) to format, validate, and write back typed values automatically, and provides `table.comparator(...)` and `table.filter(...)` helpers so your app can sort and filter its rows.
 
 Javadoc: [`GridTable`](/api/com/rethinkj/ui/kit/GridTable.html), [`GridTable.Cells`](/api/com/rethinkj/ui/kit/GridTable.Cells.html).
 

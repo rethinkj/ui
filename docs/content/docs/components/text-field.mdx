@@ -33,7 +33,7 @@ Passing a `null` handler disables the field. Your handler can also reject or tra
 
 ## Typed values
 
-For numbers, dates, or enums, use `ValueField.valueField(Format.DECIMAL, value, draft, onChange)` instead (see [Format and ValueField](/docs/components/format)).
+For typed values, use `ValueField.valueField(format, value, draft, onChange)` with a matching format such as `Format.DECIMAL`, `Format.DATE`, or `Format.choice(...)` (see [Format and ValueField](/docs/components/format)).
 
 ## Passwords
 
@@ -50,7 +50,7 @@ For numbers, dates, or enums, use `ValueField.valueField(Format.DECIMAL, value, 
 ```
 
 - `textArea`: Multi-line wrapping input for prose/notes.
-- `codeArea`: Monospace multi-line input with horizontal scroll, Tab/Shift+Tab indentation, auto-indent on Enter, and **Ctrl+M** (or Escape then Tab) to move focus out.
+- `codeArea`: Monospace multi-line input with horizontal scroll, Tab/Shift+Tab indentation, and auto-indent on Enter. **Ctrl+M** toggles whether Tab indents or moves focus, so press **Ctrl+M, then Tab** (or **Escape, then Tab**) to move focus out.
 - Use `.lines(n)` to set height in lines.
 
 <Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />

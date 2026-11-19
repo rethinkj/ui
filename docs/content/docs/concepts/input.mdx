@@ -25,7 +25,7 @@ Elements respond to user interaction through event handlers on [`El`](/api/com/r
 | `onDrag(drag -> …)` | Drag handler (starts once the pointer moves more than 4 pixels) |
 | `cursor(Cursor.POINTER)` | Sets the mouse cursor shape on hover |
 
-Clicks go to the innermost element under the cursor that has an `onPress` handler.
+Clicks go to the innermost element under the cursor that has an `onPress` or `onDrag` handler (so a child with `onDrag` prevents even a stationary click from reaching an ancestor's `onPress`).
 
 ```java snippet="drag"
 ```

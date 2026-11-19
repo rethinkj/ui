@@ -39,7 +39,7 @@ This state is tracked per element key and cleared when the element leaves the tr
 
 ## Threading
 
-Your `App`, state, and elements all belong to the single app thread. Run slow operations (network calls, database queries, file I/O) off the app thread using `App.background` or `App.post` (see [Work off the app's thread](/docs/concepts/background-work)).
+Your `App`, state, and elements all belong to the single app thread. Run slow operations (network calls, database queries, file I/O) on a worker thread with `App.background`, or deliver updates back from an existing background thread with `App.post` (see [Work off the app's thread](/docs/concepts/background-work)).
 
 ## Ways to run an app
 
@@ -65,7 +65,7 @@ You can also drive an `App` directly from Java code (for example in unit tests).
 | `textInput(text)` | Sends typed text |
 | `frame()` | Dispatches queued input, rebuilds the view, and renders; returns `true` if visuals changed |
 | `advance(seconds)`, `time()` | Advances or reads the app clock used by animations, hover delays, and `after` timers |
-| `await(timeout)` | Waits for `background` tasks to finish and queues their callbacks for the next frame |
+| `await(timeout)` | Waits for `background` tasks to finish (and for cancelled tasks only if they have an `onEnd` handler), then queues their callbacks for the next frame |
 | `tree()` | Returns the root of the last rendered frame (`tree().dump()` produces a [tree dump](/docs/testing/tree-dump)) |
 | `render()` | Renders the last frame to pixels and a tree dump |
 

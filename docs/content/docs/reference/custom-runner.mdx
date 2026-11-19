@@ -11,7 +11,7 @@ By default, `WindowLoop` runs your app in an SDL window. If you want to embed re
 | `isMoving()` | Returns `true` while an animation is active and the next frame needs to render even without input. |
 | `cursor()` | Returns the mouse cursor shape requested by the hovered element so you can update the OS cursor after each frame. |
 | `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | Connects system clipboard, file dialogs, message boxes, and multi-window support. Without them, the app uses an in-memory clipboard and `Dialogs.NONE`, and opening new windows throws an exception. |
-| `nextChange()` | Returns the time until the next scheduled visual change (cursor blink, hover delay, or `after` timer), or positive infinity when idle so your loop can sleep until input arrives. |
+| `nextChange()` | Returns the absolute app-clock timestamp of the next scheduled visual change (cursor blink, hover delay, or `after` timer), or positive infinity when idle. Compute the sleep duration as `Math.max(0, app.nextChange() - app.time())` |
 | `onPost(wake)` | Registers a callback invoked on the posting thread whenever a background task posts work; use it to wake your event loop. |
 | `handlersWaiting()` | Returns `true` if queued handlers (such as `onResize` after layout) need another frame immediately. |
 | `invalidate()` | Marks the view dirty when state changed outside this app's handlers (for example, call this on sibling windows sharing the same state when `ranHandlers()` is `true`). |
@@ -20,4 +20,4 @@ By default, `WindowLoop` runs your app in an SDL window. If you want to embed re
 | `systemFonts(boolean)` | Enables fallback to OS fonts for characters missing from bundled fonts. Off by default for deterministic tests; `WindowLoop` turns it on. |
 | `textRendering(rendering)`, `imageMemory(bytes)` | Configures text hinting mode and GPU image cache size. |
 
-Call all `App` methods from the app's thread. Only the `wake` callback passed to `onPost` runs on the posting thread.
+Call all `App` methods except `post` from the app's thread (`App.post` may be called from any thread). Only the `wake` callback passed to `onPost` runs on the posting thread.

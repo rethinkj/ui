@@ -23,7 +23,7 @@ Pass `options().sort(keys, onSort)` with a list of `SortKey(column, descending)`
 
 ## Resizing columns
 
-Pass `options().onResize((column, width) -> …)` to let users drag column header edges to resize, or double-click an edge to fit the column to its content. Widths clamp to `theme.grid().minColumn()` and `maxColumn()`.
+Pass `options().onResize((column, width) -> …)` to let users drag column header edges to resize, or double-click an edge to fit the column to its content. Manual dragging enforces `theme.grid().minColumn()` (and may exceed `maxColumn()`), while auto-fitting clamps widths to both `minColumn()` and `maxColumn()`.
 
 ## Fitting columns
 
@@ -53,8 +53,9 @@ Pass `options().frozen(count)` to pin the first `count` columns (plus row number
 ## Column index mapping
 
 When using `DataGrid.Layout`, keep the two index spaces in mind:
-- **All-column indexes:** Used by `sort`, `filters`, `onResize`, `onFreeze`, and `GridChanges`.
+- **All-column indexes:** Used by `sort`, `filters`, `onResize`, and `GridChanges`.
 - **Visible-column indexes:** Used by `Selection` (`column()`, `ranges()`) and tree dump keys (`#column-<i>`, `#cell-<row>-<i>`).
+- **Visible-column count:** `onFreeze` receives the number of visible columns to freeze (`0` to unfreeze) and passes directly to `frozen(count)`.
 
 Convert from visible index to all-column index with `layout.shownColumns()[selection.column()]`. Call `layout.toggleChooser()` to open/close the column chooser programmatically.
 

@@ -60,11 +60,11 @@ To use rethinkj UI in your project, add:
 </dependencies>
 ```
 
-Use the [complete `pom.xml`](#a-whole-project) below to automatically pick the right native library for your OS and run the app with `exec:exec`:
+Use the [complete `pom.xml`](#a-whole-project) below to automatically pick the right native library for your OS and run the app in a window, or headless with a script:
 
 ```sh
-mvn compile exec:exec                                                     # open in a window
-mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights" # run headless with a script
+mvn compile exec:exec
+mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"
 ```
 
 </Tab>
@@ -110,9 +110,11 @@ application {
 }
 ```
 
+Run in a window, or headless with a script:
+
 ```sh
-gradle run                                                  # open in a window
-gradle run --args="--script lights.txt --out build/lights"  # run headless with a script
+gradle run
+gradle run --args="--script lights.txt --out build/lights"
 ```
 
 Tip: Run `gradle wrapper` once to add `./gradlew` so others can build the project without installing Gradle.
@@ -240,11 +242,14 @@ Create `src/main/java/com/example/Lights.java` and add `package com.example;` at
 
 ## 3. Run it
 
-Start the app in a desktop window:
+Start the app in a desktop window with Maven or Gradle:
 
 ```sh
-mvn compile exec:exec        # Maven
-gradle run                   # Gradle
+mvn compile exec:exec
+```
+
+```sh
+gradle run
 ```
 
 Or run it headless (without opening a window) using a script. Create `lights.txt`:

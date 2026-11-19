@@ -42,7 +42,7 @@ Required JVM flags:
 
 | Problem | Cause and solution |
 | --- | --- |
-| Warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` to your JVM arguments. |
+| Warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` (classpath) or `--enable-native-access=com.rethinkj.ui` (module path) to your JVM arguments. |
 | `UnsatisfiedLinkError` mentioning FreeType or HarfBuzz | The natives JAR for your OS is missing from the runtime classpath. |
 | Linux library fails to load from cache | The cache directory is on a `noexec` filesystem. Set `-Drethinkj.ui.natives.cache=<path>` to an executable directory. |
 | No GPU adapter found | No Vulkan (Linux) or Direct3D 12 (Windows) GPU driver is available. Headless scripts and `Headless.render` still work using the CPU renderer. Note: GPU initialization happens on the first frame inside `WindowLoop.run`, not in `new GpuPresenter`. |

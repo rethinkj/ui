@@ -41,7 +41,7 @@ The left gutter displays a marker column and line numbers. You can attach:
 ```java snippet="code-editor-marks"
 ```
 
-All positions are UTF-16 string offsets. To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
+All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are UTF-16 offsets in the editor's normalized displayed text, where CRLF (`\r\n`) is normalized to LF (`\n`). To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
 
 ## Writing a custom highlighter
 

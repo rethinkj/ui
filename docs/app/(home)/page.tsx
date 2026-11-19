@@ -121,7 +121,7 @@ export default function HomePage() {
       <section className="py-12 border-t">
         <h2 className="text-2xl font-semibold tracking-tight mb-3">Try the examples</h2>
         <p className="text-fd-muted-foreground mb-4">
-          Clone the repository and run the Workbench demo with JDK 25 and Maven 3.9+ (see{' '}
+          Clone the repository and run the Workbench demo with JDK 25, Maven 3.9+, and a C/C++ toolchain (see{' '}
           <Link href="/docs/get-started" className="underline">Installation</Link> to add rethinkj
           UI to your own project):
         </p>

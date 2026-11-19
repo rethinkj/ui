@@ -17,7 +17,7 @@ description: Configure frameless windows, save window placement, set icons and t
 | `icon(WindowIcon)` | Sets the window and taskbar icon |
 | `position(x, y)` | Sets the initial window position |
 | `placement(placement)` | Restores saved position, size, and maximized state (see [below](#open-where-the-user-left-it)) |
-| `underPointer()` | Opens under the cursor without opening animation or stealing focus (for tear-off windows) |
+| `underPointer()` | Suppresses focus activation and opening animation (combine with `position(x, y)` to place a tear-off window under the cursor) |
 
 See [`Window.Options`](/api/com/rethinkj/ui/window/Window.Options.html) for all options.
 
