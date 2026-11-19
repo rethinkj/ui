@@ -682,7 +682,7 @@ public final class Window implements AutoCloseable {
    * @param timeoutMillis 0 to not wait at all
    */
   public static void waitEvents(long timeoutMillis) {
-    pump((int) Math.clamp(timeoutMillis, 0, Integer.MAX_VALUE));
+    pump(Math.clamp(timeoutMillis, 0, Integer.MAX_VALUE));
   }
 
   /**
@@ -1149,7 +1149,7 @@ public final class Window implements AutoCloseable {
           if (file != null && !file.isEmpty()) {
             dropFiles.add(Path.of(file));
           }
-        } catch (InvalidPathException ignored) {
+        } catch (InvalidPathException _) {
           // a name Java cannot use is left out, as one the system could not give
         }
       }
@@ -2162,7 +2162,7 @@ public final class Window implements AutoCloseable {
   }
 
   private void destroy() {
-    if (syncCounter != 0 && handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
+    if (syncCounter != 0 && handle instanceof WindowHandle.Xlib(var display, long _)) {
       X11.destroyCounter(display, syncCounter);
     }
     Sdl.destroyWindow(sdl);

@@ -411,7 +411,7 @@ public final class Format<T> {
           T value;
           try {
             value = parse.apply(s);
-          } catch (RuntimeException e) {
+          } catch (RuntimeException _) {
             return Parsed.error(message);
           }
           return value == null ? Parsed.error(message) : Parsed.of(value);
@@ -567,7 +567,7 @@ public final class Format<T> {
     BigDecimal value;
     try {
       value = new BigDecimal(text);
-    } catch (NumberFormatException e) { // an exponent beyond an int
+    } catch (NumberFormatException _) { // an exponent beyond an int
       return null;
     }
     long scale = value.scale();
@@ -652,7 +652,7 @@ public final class Format<T> {
           try {
             T value = from.apply(format.parse(s.strip()));
             return value == null ? Parsed.error(message.apply(texts())) : Parsed.of(value);
-          } catch (java.time.DateTimeException e) {
+          } catch (java.time.DateTimeException _) {
             return Parsed.error(message.apply(texts()));
           }
         },

@@ -37,7 +37,7 @@ final class MarkdownParser {
     String text = source == null ? "" : source;
     try {
       return read(text);
-    } catch (RuntimeException | StackOverflowError e) {
+    } catch (RuntimeException | StackOverflowError _) {
       // shortcut: a fault of the reader shows the text as it is rather than failing the view;
       // the tests make sure it never comes to this.
       return new MarkdownDocument(List.of(new MarkdownDocument.CodeBlock("", text)));
@@ -165,7 +165,6 @@ final class MarkdownParser {
     partiallyConsumedTab = false;
     B container = doc;
     oldTip = tip;
-    boolean allMatched = true;
     B last;
     while ((last = container.last()) != null && last.open) {
       container = last;
@@ -175,7 +174,6 @@ final class MarkdownParser {
         return;
       }
       if (result == 1) {
-        allMatched = false;
         container = container.parent;
         break;
       }
@@ -1993,7 +1991,7 @@ final class MarkdownParser {
           item.blocks().forEach(b -> tree(b, depth + 2, out));
         }
       }
-      case MarkdownDocument.ThematicBreak t -> line(out, depth, "hr");
+      case MarkdownDocument.ThematicBreak _ -> line(out, depth, "hr");
       case MarkdownDocument.Table t -> {
         line(
             out,
@@ -2051,8 +2049,8 @@ final class MarkdownParser {
               depth,
               "image " + quote(m.source()) + (m.title().isEmpty() ? "" : " " + quote(m.title()))
                   + " alt=" + quote(m.alt()));
-        case MarkdownDocument.SoftBreak s -> line(out, depth, "softbreak");
-        case MarkdownDocument.HardBreak h -> line(out, depth, "hardbreak");
+        case MarkdownDocument.SoftBreak _ -> line(out, depth, "softbreak");
+        case MarkdownDocument.HardBreak _ -> line(out, depth, "hardbreak");
       }
     }
   }

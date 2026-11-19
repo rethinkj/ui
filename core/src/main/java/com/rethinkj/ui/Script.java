@@ -130,7 +130,7 @@ public final class Script {
     String text;
     try {
       text = Files.readString(Path.of(script));
-    } catch (NoSuchFileException e) {
+    } catch (NoSuchFileException _) {
       throw new Failure("There is no script " + script + ". " + USAGE, null);
     }
     for (Path file : run(text, app, Path.of(out))) {
@@ -434,7 +434,7 @@ public final class Script {
                     ? " If it needs longer, write a timeout in seconds, as in " + example
                         + "; the default is " + (int) AWAIT + "."
                     : ""));
-          } catch (InterruptedException e) {
+          } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
             throw line.fail("The script was interrupted while it waited for the app's work.");
           }
