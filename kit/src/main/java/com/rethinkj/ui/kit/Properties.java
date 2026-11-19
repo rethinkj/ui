@@ -128,6 +128,10 @@ public final class Properties {
     for (Property p : properties) {
       list.child(entry(theme, p, column, clipboard, copied));
     }
+    if (copied != null) {
+      // Ends a confirmation also when its button's label changed with the texts meanwhile.
+      list.overlay(Button.ending(theme, copied));
+    }
     return list;
   }
 
