@@ -96,9 +96,10 @@ import java.util.Map;
  * of their series up to {@code x^11} and {@code x^12}: arithmetic only, as for {@code erf} below,
  * so that every renderer computes the same edges far from the center. Near the center, where the
  * ramps of the edges meet and neither formula holds, the coverage is {@code sweep} up to half a
- * physical pixel away and goes over to the formula's a pixel away: {@code sweep + (arc - sweep)
- * clamp(2 |p| scale - 1, 0, 1)}. So it changes continuously with the pixel and with the sweep,
- * also where an arc becomes wider than half a turn.
+ * physical pixel away and the formula's from {@code sqrt(1/2)} of one on, as far as the four pixels
+ * around a center on their corners lie: {@code sweep + (arc - sweep) clamp((2 |p| scale - 1) /
+ * (sqrt(2) - 1), 0, 1)}. So it changes continuously with the pixel and with the sweep, also where
+ * an arc becomes wider than half a turn, and a pie of an even size is exact at its center.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *

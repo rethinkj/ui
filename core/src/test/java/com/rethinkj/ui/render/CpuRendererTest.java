@@ -59,15 +59,18 @@ class CpuRendererTest {
   void anArcCoversThePixelAtItsCenterByThePartOfATurnItSweeps() {
     El half = el().size(21, 21).radius(10.5f).fill(RED).arc(0, 0.5f);
     El quarter = el().absolute(30, 0).size(21, 21).radius(10.5f).fill(RED).arc(0, 0.25f);
-    El root = el().size(60, 21).children(half, quarter);
-    Flex.layout(root, 60, 21);
+    El even = el().absolute(60, 0).size(20, 20).radius(10).fill(RED).arc(0, 0.25f);
+    El root = el().size(80, 21).children(half, quarter, even);
+    Flex.layout(root, 80, 21);
 
-    Pixels image = CpuRenderer.render(Scene.of(root, 1), 60, 21, 1);
+    Pixels image = CpuRenderer.render(Scene.of(root, 1), 80, 21, 1);
 
     assertEquals(0x80, image.argb(10, 10) >>> 24, "on the diameter of half a pie");
     assertEquals(RED, image.argb(15, 10), "inside it");
     assertEquals(0, image.argb(5, 10), "outside it");
     assertEquals(0x40, image.argb(40, 10) >>> 24, "at the tip of a quarter");
+    assertEquals(RED, image.argb(70, 9), "at the tip of an even one, which lies on corners");
+    assertEquals(0, image.argb(69, 10));
   }
 
   @Test

@@ -289,13 +289,16 @@ public final class GpuRenderer implements AutoCloseable {
         let b = turn(start + sweep / 2.0);
         let h = turn(sweep / 2.0);
         let q = vec2f(abs(p.x * b.y + p.y * b.x), p.x * b.x - p.y * b.y);
-        var cover = 1.0 - narrow(vec2f(q.x, -q.y), vec2f(h.x, -h.y));
+        var cover: f32;
         if gap >= 0.5 {
           cover = narrow(q, h);
+        } else {
+          cover = 1.0 - narrow(vec2f(q.x, -q.y), vec2f(h.x, -h.y));
         }
-        // Near the center, where the edges meet: the sweep up to half a pixel away, then towards
-        // cover, which holds from a pixel away.
-        return sweep + (cover - sweep) * clamp(2.0 * length(p) * globals.scale - 1.0, 0.0, 1.0);
+        // Near the center, where the edges meet: the sweep up to half a pixel away, cover from
+        // sqrt(1/2) on, as far as the pixels around a center on their corners lie.
+        let ramp = (2.0 * length(p) * globals.scale - 1.0) / 0.41421356237309515;
+        return sweep + (cover - sweep) * clamp(ramp, 0.0, 1.0);
       }
 
       // How much of the pixel centered at point, in logical pixels, the clip lets through: the

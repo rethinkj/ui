@@ -1150,12 +1150,15 @@ public final class CpuRenderer {
 
   /**
    * An arc's coverage near its center, where its edges meet: {@code sweep} up to half a physical
-   * pixel away, where the ramps of the edges reach the center, then towards {@code coverage}, which
-   * holds from a physical pixel away.
+   * pixel away, where the ramps of the edges reach the center, and {@code coverage} from sqrt(1/2)
+   * of one on, as far as the pixels around a center on their corners lie, with a ramp between.
    */
   static double apex(double coverage, double sweep, double length, double scale) {
-    return sweep + (coverage - sweep) * Math.clamp(2 * length * scale - 1, 0.0, 1.0);
+    return sweep + (coverage - sweep) * Math.clamp((2 * length * scale - 1) / RAMP, 0.0, 1.0);
   }
+
+  /** From half a pixel to sqrt(1/2) of one, twice over. */
+  private static final double RAMP = Math.sqrt(2) - 1;
 
   /**
    * The sine and cosine of {@code t} turns: brought into a quarter turn around 0, then the terms of
