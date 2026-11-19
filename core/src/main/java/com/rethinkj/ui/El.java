@@ -1274,8 +1274,8 @@ public final class El {
   /**
    * Whether the text breaks into more lines where it is wider than its box, as {@link #wrapText()}
    * says; it does not until this says so. A {@link #multiline} field that wraps scrolls only up
-   * and down, one that does not also sideways; a single-line field that wraps measures as high as
-   * its lines, up to {@link #maxLines}.
+   * and down, one that does not also sideways; a single-line field that wraps measures as wide as
+   * its widest line and as high as its lines, up to {@link #maxLines}.
    */
   public El wrapText(boolean wraps) {
     textOnly("wrapText").wraps(wraps);

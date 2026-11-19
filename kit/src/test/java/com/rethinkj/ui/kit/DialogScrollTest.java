@@ -146,6 +146,40 @@ class DialogScrollTest {
     assertEquals(120 + 2 * inset, dialog[2], 0.01, "as wide as its content: " + dump);
   }
 
+  /**
+   * Properties in a dialog without a width: the dialog is as wide as the values on one line, and
+   * where the window is narrower they wrap and the dialog grows as high as they are, with no bar.
+   */
+  @ParameterizedTest(name = "{0} wide")
+  @CsvSource({"1200", "240"})
+  void aDialogFitsPropertiesThatWrap(int width) throws IOException {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.dialog(
+                "About",
+                Properties.properties(
+                    List.of(
+                        Properties.property("Version", "Development build"),
+                        Properties.property("Author", "Patrick Trautmann"),
+                        Properties.property("Website", "https://db.hoori.dev")),
+                    null),
+                List.of(),
+                () -> {})));
+    Script.run("size " + width + " 760\nframe\nadvance 0.25\nframe\n", app, out);
+    String dump = app.tree().dump();
+    assertFalse(StructureTest.line(dump, "#dialog-content ").contains("thumb"), dump);
+    float row = StructureTest.rect(StructureTest.line(dump, "label=\"Website\""))[3];
+    float control = Theme.DARK.size().control();
+    if (width > 1000) {
+      assertEquals(control, row, 0.01, "a value on one line: " + dump);
+    } else {
+      assertTrue(row > control, "a value that wraps: " + dump);
+    }
+  }
+
   /** A dialog of twelve fields at the left of its content, in a window too low for them. */
   private static El fields(Theme t) {
     El form = El.col().gap(t.space().m());

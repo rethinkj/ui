@@ -29,9 +29,10 @@ import java.util.Objects;
  * pixels, so that a renderer draws the glyphs where they were measured.
  *
  * <p>The text of an {@link El#editable} element is a field. A single-line field is one line,
- * whatever the string holds, unless it wraps, measured as 0 wide so that the field's width comes
- * from its style, its lines centered vertically in its content box, and shown with its composition
- * and placeholder. Its caret, selection and horizontal scroll come from {@link App}, which keeps
+ * whatever the string holds, measured as 0 wide so that the field's width comes from its style;
+ * one that wraps measures as other text does, as wide as its widest line and as high as its lines.
+ * Its lines are centered vertically in its content box and shown with its composition and
+ * placeholder. Its caret, selection and horizontal scroll come from {@link App}, which keeps
  * them per element; the methods below that return them are what a renderer draws.
  *
  * <p>A {@link El#multiline multi-line} field has a line per line feed of its string, wrapped or
@@ -664,7 +665,9 @@ public final class Text implements Measure {
   @Override
   public Size measure(
       float knownWidth, float knownHeight, float availableWidth, float availableHeight) {
-    if (field) {
+    // A single-line field that wraps measures as text does, as wide as its widest line, so that a
+    // box sized to its content gives it room for one line and only wraps it where it has to.
+    if (field && (multiline || !wraps)) {
       // shortcut: the baseline is that of a line at the top; a field's line is centered in its
       // content box, which measure does not know yet. Pass the box's height when a field has to
       // line up with text beside it by baseline.
@@ -673,10 +676,8 @@ public final class Text implements Measure {
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
         return new Size(0, fittedRows(width) * lineHeight / scale, firstBaseline / scale);
       }
-      int high = multiline
-          ? visibleLines
-          : wraps ? spans(Float.isNaN(knownWidth) ? availableWidth : knownWidth).size() : 1;
-      return new Size(0, high * lineHeight / scale, firstBaseline / scale);
+      return new Size(
+          0, (multiline ? visibleLines : 1) * lineHeight / scale, firstBaseline / scale);
     }
     List<Span> spans = spans(Float.isNaN(knownWidth) ? availableWidth : knownWidth);
     float widest = 0;
