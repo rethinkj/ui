@@ -112,10 +112,11 @@ public final class WindowIcon {
   }
 
   /**
-   * The icon as a Windows {@code .ico} file, for {@code jpackage --icon} or an installer, which
-   * show an app's icon before it runs. It holds a PNG of each size Windows takes an app's icon in
-   * from 100 to 250 %: 16, 20, 24, 32, 40, 48, 64 and 256 pixels. For an icon of images, these are
-   * the images {@link #image} gives for those sizes, each once.
+   * The icon as the bytes of a Windows {@code .ico} file, for {@code jpackage --icon} or an
+   * installer, which show an app's icon before it runs. It holds a PNG at each of 16, 20, 24, 32,
+   * 40, 48, 64 and 256 pixels; Windows scales the nearest one for other sizes. For an icon of
+   * images, these are the images {@link #image} gives for those sizes, each once; give it no image
+   * larger than 256 pixels, the largest an {@code .ico} entry holds.
    */
   public byte[] ico() {
     List<Pixels> images = IntStream.of(16, 20, 24, 32, 40, 48, 64, 256)

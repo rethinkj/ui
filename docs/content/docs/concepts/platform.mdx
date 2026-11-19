@@ -49,7 +49,7 @@ Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maxi
 
 Call `Window.identity(id, name)` before opening your first window. On Windows, this groups your windows under their own taskbar icon instead of `java.exe`; on Linux, it sets the app ID for Wayland and X11.
 
-Create icons with `WindowIcon.of(pixels...)` or `WindowIcon.of(size -> view)`. `AppIcon.appIcon(size, color, symbol)` creates a rounded-square icon from any kit symbol. For packaging, `icon.ico()` writes the icon as a Windows `.ico` file (see [Ship your app](/docs/get-started/ship#optional-app-icon)).
+Create icons with `WindowIcon.of(pixels...)` or `WindowIcon.of(size -> view)`. `AppIcon.appIcon(size, color, symbol)` creates a rounded-square icon from any kit symbol. For packaging, `icon.ico()` returns the icon as the bytes of a Windows `.ico` file (see [Ship your app](/docs/get-started/ship#optional-app-icon)).
 
 ## Taskbar indicators (Windows)
 

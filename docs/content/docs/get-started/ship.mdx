@@ -40,7 +40,7 @@ On Windows, the launcher is `target\dist\Lights\Lights.exe`.
 
 ## Optional: App icon
 
-Without `--icon`, the launcher and the Windows installer show jpackage's own icon until the app opens its window. Write your window's `WindowIcon` to a file in a build step and pass it to `--icon`: on Windows the bytes of `icon.ico()` as `Lights.ico`, on Linux a PNG from `Png.encode(icon.image(256))`.
+Without `--icon`, the launcher and an installer show jpackage's own icon. Save your window's `WindowIcon` to a file in a build step and pass that to `--icon`: on Windows the bytes of `icon.ico()` as `Lights.ico`, on Linux a PNG, the bytes of `Png.encode(icon.image(256))`.
 
 ## Optional: Faster startup with an AOT cache
 
