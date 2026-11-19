@@ -1182,6 +1182,11 @@ final class Editor {
    * than the field, and the selection, caret and composition in the coordinates of the glyphs.
    * Without the focus the text shows its start, and neither caret nor selection.
    */
+  /** A read-only field shows a caret only with a selection, so that it does not look editable. */
+  private boolean showsCaret(boolean focused) {
+    return focused && !(el.isReadOnly() && caret == anchor);
+  }
+
   void place(boolean focused, boolean caretOn) {
     if (multiline()) {
       placeLines(focused, caretOn);
@@ -1231,7 +1236,7 @@ final class Editor {
       float y = t.baseline(line) + Math.round(t.font().descent() * t.size() * scale / 2);
       underline = new Text.Box(from - s, y, to - from, caretWidth);
     }
-    Text.Box box = focused ? new Text.Box(caretX - s, top, caretWidth, height) : null;
+    Text.Box box = showsCaret(focused) ? new Text.Box(caretX - s, top, caretWidth, height) : null;
     t.decorate(s, List.copyOf(selection), box, underline);
     t.showCaret(caretOn);
   }
@@ -1304,7 +1309,7 @@ final class Editor {
       float y = t.shownBaseline(start()) + Math.round(t.font().descent() * t.size() * scale / 2);
       underline = new Text.Box(from - viewX, y, to - from, caretWidth);
     }
-    Text.Box box = focused
+    Text.Box box = showsCaret(focused)
         ? new Text.Box(t.x(shownCaret) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
         : null;
     t.decorate(viewX, selection, box, underline);

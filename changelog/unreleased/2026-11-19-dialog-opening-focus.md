@@ -1,0 +1,1 @@
+- A dialog whose content has nothing Tab reaches, such as one that shows only `Properties`, opens with the focus on its default button, else on its first button, instead of on a read-only value. A read-only field shows a caret only while some of its text is selected. An overlay that opens focuses an `El.defaultFocus` element before the first one Tab reaches.

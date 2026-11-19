@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * What {@link App} keeps of each element between rebuilds, so that elements with {@link
@@ -608,25 +609,34 @@ final class Animator {
 
   /**
    * The identity of the element at or below {@code top} of a tree the view has just built that an
-   * opening there focuses: the first in tree order that is {@link El#autofocus} and takes the
-   * focus, else the first that takes the focus, without its overlays; null if none does. Elements
+   * opening there focuses, the first in tree order that takes the focus and, of these, the first
+   * that is {@link El#autofocus}, else {@link El#defaultFocus}, else one that Tab reaches (not
+   * {@link El#skipTab}), else any; without its overlays; null if none takes the focus. Elements
    * at opacity 0 and with {@code display: none} hide what is below them.
    */
   static Object firstFocusable(El top, Object topIdentity) {
-    Object named = first(top, (Id) topIdentity, true);
-    return named != null ? named : first(top, (Id) topIdentity, false);
+    for (Predicate<El> wanted : FIRST) {
+      Id found = first(top, (Id) topIdentity, wanted);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
-  private static Id first(El top, Id id, boolean named) {
+  private static final List<Predicate<El>> FIRST = List.of(
+      el -> el.autofocusKey() != null, El::isDefaultFocus, el -> !el.skipsTab(), el -> true);
+
+  private static Id first(El top, Id id, Predicate<El> wanted) {
     if (top.hidesFocus()) {
       return null;
     }
-    if (top.isFocusable() && (!named || top.autofocusKey() != null)) {
+    if (top.isFocusable() && wanted.test(top)) {
       return id;
     }
     Id[] ids = ids(top, id);
     for (int i = 0; i < ids.length; i++) {
-      Id found = first(top.children().get(i), ids[i], named);
+      Id found = first(top.children().get(i), ids[i], wanted);
       if (found != null) {
         return found;
       }

@@ -11,6 +11,7 @@ import com.rethinkj.ui.render.Scene;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * A modal panel in the middle of the window, over a scrim that darkens everything else: a title,
@@ -24,7 +25,9 @@ import java.util.function.Predicate;
  *     : null);
  * }</pre>
  *
- * <p>As it opens, the focus goes to its first focusable element; Tab and Shift+Tab go around
+ * <p>As it opens, the focus goes to the first element of its content that Tab reaches; where
+ * there is none, as in a dialog that shows only {@link Properties}, to its default button, else
+ * to its first button. Tab and Shift+Tab go around
  * inside it, and nothing outside it takes the pointer, the wheel or the keys. Escape and a press
  * on the scrim call {@code onDismiss}. Enter in a field presses the default button, if the dialog
  * has one and it is enabled; Enter on a focused button presses that button, and a multi-line field
@@ -160,6 +163,14 @@ public final class Dialog {
           "The default button must be one of the dialog's buttons, the same El.");
     }
     Predicate<Key> enter = defaultButton == null ? k -> false : enterPresses(defaultButton);
+    if (content == null || !content.hasTabStop()) {
+      // Nothing to type in: the dialog opens on its default button, else its first, not on what
+      // the options put before the buttons.
+      Stream.concat(Stream.ofNullable(defaultButton), buttons.stream())
+          .filter(b -> b != null && b.isFocusable())
+          .findFirst()
+          .ifPresent(El::defaultFocus);
+    }
     El head = row().gap(theme.space().m()).align(Style.Align.CENTER).shrink(0);
     if (options.leading != null) {
       head.child(options.leading.shrink(0));

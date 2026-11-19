@@ -2,6 +2,8 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -280,6 +282,29 @@ class DialogTest {
                         .key("close")))));
     run(app, "frame\nadvance 0.25\nframe\n");
     assertEquals("ok", app.focused().key());
+  }
+
+  @Test
+  void aDialogOfReadOnlyValuesOpensOnItsDefaultButtonAndTheValuesShowNoCaret() throws IOException {
+    App<Object> app = new App<>(new Object(), s -> {
+      El ok = Button.button(Button.Variant.PRIMARY, "OK", () -> {}).key("ok");
+      return El.col()
+          .wFull()
+          .hFull()
+          .overlay(Dialog.dialog(
+              "About",
+              Properties.properties(List.of(Properties.property("Version", "1.0")), null),
+              List.of(Button.button(Button.Variant.SECONDARY, "Cancel", () -> {}), ok),
+              ok,
+              () -> {}));
+    });
+    run(app, "frame\nadvance 0.25\nframe\n");
+    assertEquals("ok", app.focused().key(), "not the read-only value, nor Cancel");
+    run(app, "press text=\"1.0\"\nframe\n");
+    assertEquals("1.0", app.focused().text().string());
+    assertNull(app.focused().text().caret(), "focused, but nothing selected: no caret");
+    run(app, "key A control\nframe\n");
+    assertNotNull(app.focused().text().caret(), "with a selection, the caret shows");
   }
 
   @Test

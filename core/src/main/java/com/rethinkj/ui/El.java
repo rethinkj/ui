@@ -1781,7 +1781,7 @@ public final class El {
 
   /**
    * Makes an {@link #editable} field read-only: it takes the focus, and its text can be selected
-   * and copied, but not changed.
+   * and copied, but not changed. It shows a caret only while some of its text is selected.
    */
   public El readOnly() {
     editableOnly("readOnly");
@@ -2698,7 +2698,8 @@ public final class El {
   /**
    * Makes Tab and Shift+Tab pass this focusable element by, while a press and {@link App#focus}
    * still focus it: the paragraphs of a document, read-only fields for selecting and copying,
-   * between the links that Tab reaches.
+   * between the links that Tab reaches. An overlay that opens focuses it only where nothing in it
+   * that Tab reaches takes the focus, unless it is {@link #autofocus} or {@link #defaultFocus}.
    */
   public El skipTab() {
     this.skipsTab = true;
@@ -2764,7 +2765,8 @@ public final class El {
    * Where {@code App.focus} finds the element that had the focus last inside, that one wins. Of
    * several inside, the one the fewest levels below the element focused into goes first, the first
    * in tree order among equals: a sidebar's list marked so gets the focus when the sidebar is
-   * focused into, and the page's grid, marked so too, when the page is.
+   * focused into, and the page's grid, marked so too, when the page is. An overlay that opens
+   * focuses the first marked so in tree order, unless an {@link #autofocus} element in it asks.
    */
   public El defaultFocus() {
     this.defaultFocus = true;
@@ -3073,14 +3075,27 @@ public final class El {
    * with {@code display: none} or {@link #inert}. Overlays are left out.
    */
   public boolean hasFocusable() {
+    return has(false);
+  }
+
+  /**
+   * Whether this element or one inside it can take the focus as {@link #hasFocusable} says, and
+   * Tab reaches it: it does not {@link #skipTab}. A dialog whose content has none, as read-only
+   * values only, opens on its default button.
+   */
+  public boolean hasTabStop() {
+    return has(true);
+  }
+
+  private boolean has(boolean tabStop) {
     if (hidesFocus()) {
       return false;
     }
-    if (isFocusable()) {
+    if (isFocusable() && !(tabStop && skipsTab)) {
       return true;
     }
     for (El child : children) {
-      if (child.hasFocusable()) {
+      if (child.has(tabStop)) {
         return true;
       }
     }
