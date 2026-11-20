@@ -129,8 +129,9 @@ class WindowTest {
   /** A torn-off window, larger than the work area and let go near its far corner, as one. */
   @Test
   void aWindowLargerThanTheWorkAreaComesWhollyIntoIt() {
-    assumeTrue(Window.knowsPositions());
     try (Window window = Window.open(TITLE, 300, 200)) {
+      // Asked with a window open: before, SDL knows no video driver.
+      assumeTrue(Window.knowsPositions(), "Skipped: the compositor places the windows");
       Desktop.settle();
       int[] first = Sdl.displayBounds(Window.displayOf(window.outer()), true);
       Sdl.setWindowSize(window.sdlWindow(), first[2] + 200, first[3] + 100);
