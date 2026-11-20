@@ -1,1 +1,1 @@
-- A script's `snap` now writes `<name>.windows.txt` while more than one window is open: the open windows front first, one per line with its title and the prefix of its files, so a test can check that a handler brings the right window to the front.
+- A script's `snap` now writes `<name>.windows.txt` while more than one window is open: the open windows front first, one per line with its title and the prefix of its snap files (`main` for the first window, whose files have none), so a test can check that a handler brings the right window to the front.
