@@ -85,7 +85,7 @@ On Windows, call `window.frameDark(boolean)` to match a standard framed window's
 | `chooseFolder(title)` | Pick a directory |
 | `.filter("SQL", "sql")`, `.in(folder)` | Add file extension filters and initial directory |
 
-The `Choice` result contains the selected paths (empty if cancelled) and the chosen filter. On Linux, file dialogs use the XDG Desktop Portal (falling back to `zenity`).
+The `Choice` result contains the selected paths (empty if cancelled) and the index of the chosen filter (-1 if cancelled, or where the system does not say). On Linux, file dialogs use the XDG Desktop Portal (falling back to `zenity`).
 
 ## Native message boxes
 

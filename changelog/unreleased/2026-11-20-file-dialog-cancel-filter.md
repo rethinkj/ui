@@ -1,0 +1,1 @@
+- Fixed: on Windows, a file dialog that the user cancelled reported filter 0, the first filter's index, in `FileDialog.Choice.filter()`, so a cancel looked like a choice made with that filter. A cancel reports -1 now, as on Linux.

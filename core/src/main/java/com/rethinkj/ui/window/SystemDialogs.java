@@ -202,7 +202,10 @@ public final class SystemDialogs implements Dialogs {
       if (files.equals(MemorySegment.NULL)) {
         pending.failed.accept(reason(Sdl.getError()));
       } else {
-        pending.chosen.accept(new FileDialog.Choice(paths(files), filter));
+        List<Path> paths = paths(files);
+        // On Windows SDL reports the filter the dialog showed also for a cancel, the first one's
+        // 0 (IFileDialog::GetFileTypeIndex); a cancel chooses none, as on Linux.
+        pending.chosen.accept(new FileDialog.Choice(paths, paths.isEmpty() ? -1 : filter));
       }
     } catch (Throwable t) { // one that left the upcall would end the JVM
       try {

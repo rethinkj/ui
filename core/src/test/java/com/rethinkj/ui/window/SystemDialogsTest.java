@@ -133,6 +133,8 @@ class SystemDialogsTest {
   void anEmptyListAndZenitysEmptyLineAreACancel() throws Exception {
     assertTrue(call(List.of(), -1, false).choice().cancelled());
     assertTrue(call(List.of(""), -1, true).choice().cancelled(), "zenity's cancel");
+    // Windows' cancel, with the index of the filter the dialog showed.
+    assertEquals(-1, call(List.of(), 0, true).choice().filter(), "a cancel chooses no filter");
   }
 
   @Test
@@ -301,6 +303,11 @@ class SystemDialogsTest {
         bind("GetWindowThreadProcessId", FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
     static final MethodHandle IS_WINDOW =
         bind("IsWindow", FunctionDescriptor.of(JAVA_INT, ADDRESS));
+    static final MethodHandle IS_WINDOW_VISIBLE =
+        bind("IsWindowVisible", FunctionDescriptor.of(JAVA_INT, ADDRESS));
+    static final MethodHandle GUI_THREAD_INFO =
+        bind("GetGUIThreadInfo", FunctionDescriptor.of(JAVA_INT, JAVA_INT, ADDRESS));
+    static final MethodHandle POST_MESSAGE = bind("PostMessageW", Win32.POST_MESSAGE);
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
       return Linker.nativeLinker()
@@ -334,6 +341,73 @@ class SystemDialogsTest {
 
   private static boolean isWindow(MemorySegment hwnd) throws Throwable {
     return (int) User32.IS_WINDOW.invokeExact(hwnd) != 0;
+  }
+
+  private static boolean isVisible(MemorySegment hwnd) {
+    try {
+      return (int) User32.IS_WINDOW_VISIBLE.invokeExact(hwnd) != 0;
+    } catch (Throwable t) {
+      throw new AssertionError(t);
+    }
+  }
+
+  /**
+   * Presses Escape in a dialog: posts the key's messages to the control that has the focus on the
+   * dialog's thread, without taking the foreground from whatever has it.
+   */
+  private static void pressEscape(MemorySegment dialog) throws Throwable {
+    int thread = (int) User32.WINDOW_PROCESS.invokeExact(dialog, MemorySegment.NULL);
+    MemorySegment focus = dialog;
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment info = arena.allocate(72, 8); // GUITHREADINFO
+      info.set(JAVA_INT, 0, 72); // cbSize
+      if ((int) User32.GUI_THREAD_INFO.invokeExact(thread, info) != 0
+          && !info.get(ADDRESS, 16).equals(MemorySegment.NULL)) { // hwndFocus
+        focus = info.get(ADDRESS, 16);
+      }
+    }
+    int vkEscape = 0x1B;
+    assertTrue((int) User32.POST_MESSAGE.invokeExact(focus, 0x0100, (long) vkEscape, 0x0001_0001L)
+        != 0); // WM_KEYDOWN, scan code 1
+    assertTrue((int) User32.POST_MESSAGE.invokeExact(focus, 0x0101, (long) vkEscape, 0xC001_0001L)
+        != 0); // WM_KEYUP
+  }
+
+  /**
+   * The user presses Escape in a dialog with filters: SDL reports the filter the dialog showed
+   * then, the first one's index, but a cancel chooses none, as on Linux.
+   */
+  @Test
+  void escapeInADialogWithFiltersCancelsItWithoutAFilter() throws Throwable {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "Windows' dialog reports its filter on a cancel");
+    Window window = shown("rethinkj escape in its dialog");
+    MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+    List<FileDialog.Choice> chosen = new java.util.concurrent.CopyOnWriteArrayList<>();
+    List<String> failed = new java.util.concurrent.CopyOnWriteArrayList<>();
+    try {
+      Desktop.settle();
+      new SystemDialogs(window)
+          .file(
+              FileDialog.open("Escape").filter("SQL", "sql").filter("Text", "txt", "md"),
+              chosen::add,
+              failed::add);
+      assertTrue(
+          Desktop.pollUntil(
+              () -> Win32.ownedDialogs(hwnd).stream().anyMatch(SystemDialogsTest::isVisible)),
+          "it opened");
+      Desktop.settle();
+      pressEscape(Win32.ownedDialogs(hwnd).stream()
+          .filter(SystemDialogsTest::isVisible)
+          .findFirst()
+          .orElseThrow());
+      assertTrue(Desktop.pollUntil(() -> !chosen.isEmpty() || !failed.isEmpty()), "it answered");
+      assertEquals(List.of(), failed);
+      assertTrue(chosen.getFirst().cancelled(), String.valueOf(chosen));
+      assertEquals(-1, chosen.getFirst().filter(), "a cancel chooses no filter");
+    } finally {
+      window.close(); // and with it a dialog that is still open
+    }
   }
 
   /**
