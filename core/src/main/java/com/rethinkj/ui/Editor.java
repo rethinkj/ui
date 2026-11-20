@@ -1272,40 +1272,14 @@ final class Editor {
     asked = false;
     if (revealed) {
       reveal = false;
-      float x = t.x(shownCaret);
-      double upper; // the tops of the first row and the last to show
-      double top;
-      if (covered > 0) { // the selection, to its last character, before a wrap that it ends at
-        upper = t.caretTop(start()); // first: measuring a line can move the rows after it
-        top = t.caretTop(Math.max(start(), end() - 1));
-      } else {
-        top = t.caretTop(shownCaret);
-        upper = top;
-      }
-      double sx = el.scrollX() * scale;
-      double sy = el.scrollY() * scale;
-      float width = t.contentWidth();
-      if (!t.wraps()) {
-        float margin = Math.min(MARGIN * scale, Math.max(0, (width - caretWidth) / 2));
-        if (x - sx < margin) {
-          sx = x - margin;
-        }
-        if (x + caretWidth - sx > width - margin) {
-          sx = x + caretWidth - width + margin;
-        }
-      }
-      float lineHeight = t.lineHeight();
-      covered = Math.clamp(t.contentHeight() - lineHeight, 0, covered); // a row stays in view
-      if (upper - covered < sy) {
-        sy = upper - covered;
-      } else if (top + lineHeight > sy + t.contentHeight()) {
-        sy = top + lineHeight - t.contentHeight();
-      }
-      el.measureScroll(); // with the caret's line, which may be the widest so far
-      el.scrollTo(sx / scale, sy / scale);
+      scrollToCaret(t, shownCaret, covered, caretWidth);
     }
     float shift = t.layOut();
-    if (shift != 0 && !revealed) { // rows above the view were measured: what is in view stays
+    if (revealed) { // the rows laid out may measure taller or shorter: jump again with them
+      for (int pass = 0; pass < 3 && scrollToCaret(t, shownCaret, covered, caretWidth); pass++) {
+        t.layOut();
+      }
+    } else if (shift != 0) { // rows above the view were measured: what is in view stays
       el.measureScroll();
       el.scrollTo(el.scrollX(), el.scrollY() + shift / scale);
     }
@@ -1332,6 +1306,51 @@ final class Editor {
     t.showCaret(caretOn);
     el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
+  }
+
+  /**
+   * Scrolls a multi-line field just far enough to show the caret's row whole, or with {@code
+   * covered} the selection below what covers the field's top, and sideways the caret with {@link
+   * #MARGIN} to spare.
+   *
+   * @return whether the scroll changed
+   */
+  private boolean scrollToCaret(Text t, int shownCaret, double covered, float caretWidth) {
+    float scale = t.scale();
+    float x = t.x(shownCaret);
+    double upper; // the tops of the first row and the last to show
+    double top;
+    if (covered > 0) { // the selection, to its last character, before a wrap that it ends at
+      upper = t.caretTop(start()); // first: measuring a line can move the rows after it
+      top = t.caretTop(Math.max(start(), end() - 1));
+    } else {
+      top = t.caretTop(shownCaret);
+      upper = top;
+    }
+    double sx = el.scrollX() * scale;
+    double sy = el.scrollY() * scale;
+    float width = t.contentWidth();
+    if (!t.wraps()) {
+      float margin = Math.min(MARGIN * scale, Math.max(0, (width - caretWidth) / 2));
+      if (x - sx < margin) {
+        sx = x - margin;
+      }
+      if (x + caretWidth - sx > width - margin) {
+        sx = x + caretWidth - width + margin;
+      }
+    }
+    float lineHeight = t.lineHeight();
+    covered = Math.clamp(t.contentHeight() - lineHeight, 0, covered); // a row stays in view
+    if (upper - covered < sy) {
+      sy = upper - covered;
+    } else if (top + lineHeight > sy + t.contentHeight()) {
+      sy = top + lineHeight - t.contentHeight();
+    }
+    double fromX = el.scrollX();
+    double fromY = el.scrollY();
+    el.measureScroll(); // with the caret's line, which may be the widest so far
+    el.scrollTo(sx / scale, sy / scale);
+    return el.scrollX() != fromX || el.scrollY() != fromY;
   }
 
   /** The caret's offset from the left of the content box, in logical pixels, as drawn. */

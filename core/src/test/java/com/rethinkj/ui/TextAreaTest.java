@@ -714,6 +714,20 @@ class TextAreaTest {
     assertNotEquals(null, field(app).text().caret());
   }
 
+  @Test
+  void aJumpInALongWrappedTextShowsTheCaretsRowAfterTheRowsAboveAreMeasured() {
+    // Words of 13 characters, one to a row of 24: each line takes more rows than its length tells.
+    String line = "abcdefghijkl ".repeat(8) + "\n";
+    String text = line.repeat(200);
+    App<Model> app = focused(text, f -> f.wrapText());
+    int caret = line.length() * 150 + 40;
+    app.select(field(app), caret, caret);
+    app.frame();
+    app.frame();
+    float top = field(app).text().caret().y();
+    assertTrue(top >= 0 && top + 18 <= 90, "the caret's row in view: " + top);
+  }
+
   private static int caretLine(App<Model> app) {
     Editor editor = field(app).editor();
     return editor.lineIndex().line(editor.caret());
