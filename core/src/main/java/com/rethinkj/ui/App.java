@@ -189,6 +189,7 @@ public final class App<S> {
   private final List<BooleanSupplier> resized = new ArrayList<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
+  private boolean resizeDue; // a build between inputs gave new sizes, which it did not tell
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -3112,6 +3113,7 @@ public final class App<S> {
   public boolean frame() {
     frames++;
     resizeRounds = 0;
+    resizeDue = false;
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -3160,7 +3162,7 @@ public final class App<S> {
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
-    stale |= !resized.isEmpty(); // told by a build between inputs: the rebuild below runs them
+    stale |= resizeDue || !resized.isEmpty(); // from builds between inputs: the rebuild tells them
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -3280,8 +3282,14 @@ public final class App<S> {
     Overlays.layout(root, width, height);
     // The sizes layout gave, before motion takes them along; an element that left is forgotten.
     Map<Object, Long> sizes = new HashMap<>();
+    int told = resized.size();
     tellSizes(root, new ArrayList<>(), sizes);
-    toldSizes = sizes;
+    if (between) { // its rows may be missing: the frame's last build tells these from its own tree
+      resizeDue |= resized.size() > told;
+      resized.subList(told, resized.size()).clear();
+    } else {
+      toldSizes = sizes;
+    }
     animator.update(root, time);
     untimed = true;
     stale = false;

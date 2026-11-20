@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.rethinkj.ui.motion.Spring;
 import java.util.ArrayList;
@@ -59,6 +60,31 @@ class ResizeTest {
     app.post(() -> width[0] = width[0] > 80 ? 100 : width[0]); // the queue goes on after a rebuild
     app.frame();
     assertEquals(3, told[0], "three rounds at the end of the frame, the rest in the next");
+  }
+
+  @Test
+  void aPressAfterInvalidateGoesToWhatTheFrameShowed() {
+    float[] width = {0}; // the bar's width as told
+    List<String> pressed = new ArrayList<>();
+    App<float[]> app = new App<>(
+        width,
+        s -> row()
+            .wFull()
+            .h(20)
+            .onResize((w, h) -> s[0] = w)
+            .child(
+                s[0] >= 150
+                    ? el().key("wide").size(50, 20).onPress(() -> pressed.add("wide"))
+                    : el().size(50, 20)));
+    app.resize(200, 100, 1);
+    app.frame();
+    app.resize(100, 100, 1);
+    app.invalidate();
+    app.pointerDown(10, 10);
+    app.pointerUp(10, 10);
+    app.frame();
+    assertEquals(List.of("wide"), pressed, "the press hit the button the last frame showed");
+    assertFalse(app.tree().dump().contains("#wide"), "and the frame ends with the new width");
   }
 
   @Test
