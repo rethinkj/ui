@@ -307,7 +307,8 @@ class ScriptTest {
                 .child(el().absolute(20, 30) // shows from 30 to 60, where its parent clips it
                     .size(60, 40)
                     .key("box")
-                    .onPress((clicks, modifiers, x, y) -> l.add(clicks + " " + x + "," + y)))));
+                    .onPress((clicks, modifiers, x, y) -> l.add(clicks + " " + x + "," + y)))
+                .child(el().absolute(80, 30).size(20, 30).onPress(() -> l.add("next")))));
     Script.run("""
         size 100 100
         frame
@@ -324,6 +325,7 @@ class ScriptTest {
         start + "#box at bottom-2\n",
         "That point of #box does not show in the last frame: a clip hides it",
         app);
+    assertFailure(start + "#box at right+0\n", "does not show in the last frame", app);
     assertFailure(start + "#box at middle\n", "Write `at` and an edge after a selector", app);
     assertFailure(start + "#box at top+2,bottom-2\n", "Write `at` and an edge", app);
     assertFailure(start + "50,50 at top+2\n", "Write `at` and an edge", app);

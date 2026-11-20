@@ -1481,10 +1481,11 @@ public final class Script {
       }
       float x = point[0];
       float y = point[1];
+      // With its edges, as the app's hit test counts them.
       boolean inside = x >= found.left
-          && x < found.left + found.el.width()
+          && x <= found.left + found.el.width()
           && y >= found.top
-          && y < found.top + found.el.height();
+          && y <= found.top + found.el.height();
       if (inside && !App.hit(root, x, y).contains(found.el)) {
         throw fail("That point of " + text + " does not show in the last frame: a clip hides it,"
             + " for example of a scroll area it is scrolled out of, or something lies over it,"
