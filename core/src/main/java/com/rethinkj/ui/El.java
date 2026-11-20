@@ -3849,7 +3849,10 @@ public final class El {
         && (!spans || shown >= spanFrom && shownTo <= spanTo);
     // Anew, none for another part sideways: only a rebuild of the view builds those cells.
     boolean sideways = spans && (start != spanFrom || shownTo + margin != spanTo);
-    if (rowsBuilt && (anew ? sideways : has)) {
+    // Rows laid out at another width, as while the list springs to a new one, are built anew.
+    boolean resized =
+        !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
+    if (rowsBuilt && !resized && (anew ? sideways : has)) {
       return null;
     }
     if (spans) {
