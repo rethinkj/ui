@@ -72,9 +72,9 @@ public final class FieldState {
 
   /**
    * Replaces the field's selection by {@code text} as {@link #replaceSelection(String)} does, with
-   * the caret at {@code caret} in {@code text}: between the parentheses of {@code "()"} with 1, or
-   * before a {@code '\n'} that ends {@code text} with {@code text.length() - 1}. The caret moves
-   * with the text when the field's limits change it, as its line breaks or {@link El#maxLength}.
+   * the caret at {@code caret} in {@code text}, such as between the parentheses of {@code "()"}
+   * with 1. The caret moves with the text when the field's limits change it, as its line breaks or
+   * {@link El#maxLength}.
    *
    * @param caret the caret's position in {@code text}, from 0 to its length
    * @throws IllegalArgumentException if {@code caret} is negative or beyond {@code text}
