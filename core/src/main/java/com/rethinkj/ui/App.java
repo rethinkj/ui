@@ -295,6 +295,7 @@ public final class App<S> {
   private boolean active = true; // the window has the system's keyboard focus
   private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
+  private FieldMenu.Open fieldMenu; // the menu of a field that is open, El#fieldMenu
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
   private final Map<Object, Focus> opened = new LinkedHashMap<>();
@@ -584,7 +585,7 @@ public final class App<S> {
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
       return any;
     }
-    Target target = target(x, y, el -> el.onSecondaryPress() != null);
+    Target target = target(x, y, this::opensMenu);
     secondary = target == null ? null : target.id();
     if (!keepsFocus(hit(x, y))) {
       Target focus = target(x, y, El::isFocusable);
@@ -700,20 +701,44 @@ public final class App<S> {
   /**
    * The secondary button was released here. When it went down on the same element, the {@link
    * #frame} that dispatches this runs that element's {@link El#onSecondaryPress} handler, or its
-   * nearest ancestor's, with this position.
+   * nearest ancestor's, with this position; a field with an {@link El#fieldMenu} on the way opens
+   * that instead.
    */
   public void secondaryUp(float x, float y) {
     enqueue(() -> {
       settle();
-      Target target = target(x, y, el -> el.onSecondaryPress() != null);
+      Target target = target(x, y, this::opensMenu);
       boolean ran = target != null && target.id().equals(secondary);
       secondary = null;
       if (ran) {
-        target.el.onSecondaryPress().accept(x, y);
-        handled = true;
+        openMenu(target.el, target.id(), x, y);
       }
       return ran;
     });
+  }
+
+  /**
+   * Whether a secondary press on this element runs its handler or opens its field's menu.
+   *
+   * <p>shortcut: a field in a virtual list's rows, which are built after {@link #openFieldMenu},
+   * opens no menu and leaves the press to the handlers around it; attach the menu in {@link
+   * #rowLooks} if rows with fields need one.
+   */
+  private boolean opensMenu(El el) {
+    return el.onSecondaryPress() != null
+        || el.fieldMenu() != null
+            && el.takesEdits()
+            && animator.inRow(animator.identity(el)) == null;
+  }
+
+  /** Runs the element's {@link El#onSecondaryPress} handler, or else opens its field's menu. */
+  private void openMenu(El el, Object id, float x, float y) {
+    if (el.onSecondaryPress() != null) {
+      el.onSecondaryPress().accept(x, y);
+    } else {
+      fieldMenu = new FieldMenu.Open(this, id, x, y, !clipboard.read().isEmpty());
+    }
+    handled = true;
   }
 
   /**
@@ -1051,8 +1076,8 @@ public final class App<S> {
    * as in a browser, or in a {@link El#modal} overlay without one the first in it that can, as a
    * dialog's content while a button below it has the focus. Unlike in a browser, a press handler
    * on the focused element takes Enter and Space before its ancestors' key handlers see them. The
-   * Menu key and Shift+F10 run the nearest {@link El#onSecondaryPress} handler at the bottom left
-   * of the focused element's cursor: the first element inside it that is {@link El#current}, else
+   * Menu key and Shift+F10 run the nearest {@link El#onSecondaryPress} handler, or open a field's
+   * {@link El#fieldMenu} that is nearer, at the bottom left of the focused element's cursor: the first element inside it that is {@link El#current}, else
    * the first that is {@link El#selected}, else the focused element itself.
    *
    * <p>In an overlay, keys go up from the focused element to the overlay's root and on to the
@@ -1146,10 +1171,9 @@ public final class App<S> {
     if (key.name().equals("ContextMenu") && key.modifiers() == 0
         || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
       for (El el : path.reversed()) {
-        if (el.onSecondaryPress() != null) {
+        if (opensMenu(el)) {
           float[] at = menuPoint(path);
-          el.onSecondaryPress().accept(at[0], at[1]);
-          handled = true;
+          openMenu(el, animator.identity(el), at[0], at[1]);
           return true;
         }
       }
@@ -3478,16 +3502,16 @@ public final class App<S> {
    * Undo. Nothing happens when there is no step. A handler may call this as {@link #edit}.
    */
   public void undo(El field) {
-    history(field, "undo", Editor::undo);
+    step(fieldId(field, "undo"), Editor::undo);
   }
 
   /** Does the step again that {@link #undo} or Control+Z took back last, as Control+Y does. */
   public void redo(El field) {
-    history(field, "redo", Editor::redo);
+    step(fieldId(field, "redo"), Editor::redo);
   }
 
-  private void history(El field, String call, Consumer<Editor> step) {
-    Object id = fieldId(field, call);
+  /** Runs a command of a field's editor right after the handler, as {@link #undo} does. */
+  void step(Object id, Consumer<Editor> step) {
     enqueue(() -> {
       settle();
       El now = animator.element(id);
@@ -4228,6 +4252,7 @@ public final class App<S> {
         rested.add(id);
       }
     }
+    openFieldMenu(tree);
     openAndClose(tree); // after the looks, which may attach overlays, and before the focus look
     El focus = focusId == null ? null : Animator.find(tree, focusId);
     boolean focusLook = focus != null
@@ -4256,6 +4281,28 @@ public final class App<S> {
         within,
         pressLook ? pressId : null,
         hoversRun);
+  }
+
+  /**
+   * Attaches the open {@link El#fieldMenu} to its field of a tree the view has just built, or
+   * forgets it when it closed or the field no longer takes input.
+   */
+  private void openFieldMenu(El tree) {
+    if (fieldMenu == null) {
+      return;
+    }
+    El field = Animator.find(tree, fieldMenu.field());
+    Editor editor = editors.get(fieldMenu.field());
+    El menu = null;
+    if (field != null && editor != null && field.fieldMenu() != null && field.takesEdits()) {
+      fieldMenu.update(field, editor);
+      menu = field.fieldMenu().build(field, fieldMenu);
+    }
+    if (menu == null) {
+      fieldMenu = null;
+    } else {
+      field.overlay(menu);
+    }
   }
 
   /** Applies {@code el}'s look of one state, if it has one; false if not. */

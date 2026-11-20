@@ -5,9 +5,15 @@ import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldMenu;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -27,6 +33,11 @@ import java.util.function.Consumer;
  *         .label("Password"),
  *     state.revealed, () -> state.revealed = !state.revealed)
  * }</pre>
+ *
+ * <p>A secondary press in a field, the Menu key and Shift+F10 open its menu ({@link
+ * El#fieldMenu}): Cut, Copy, Paste and Select all, with their keys, each disabled where it would
+ * do nothing; a password field that hides its string has no Cut and Copy. A field with an {@link
+ * El#onSecondaryPress} handler of the app's opens the app's menu instead.
  *
  * <p>A text area for a query, six lines high and as wide as its column:
  *
@@ -142,7 +153,8 @@ public final class TextField {
         .w(theme.size().field())
         .radius(theme.radius().medium())
         .fill(fill)
-        .motion(theme.motion().feedback());
+        .motion(theme.motion().feedback())
+        .fieldMenu((f, open) -> menu(f, open, List.of()));
     if (enabled) {
       edge(theme, field, theme.border().control(), theme.border().strong());
     } else {
@@ -164,6 +176,54 @@ public final class TextField {
           }
         })
         .whenFocused(e -> edge(theme, e, theme.accent().color(), theme.accent().color()));
+  }
+
+  /**
+   * The menu of a field of this class, with {@code more} items after its own, until an item is
+   * chosen or it is dismissed.
+   */
+  static El menu(El field, FieldMenu.Open open, List<Menu.Item> more) {
+    Menu.State state = open.state(() -> {
+      Menu.State opened = new Menu.State();
+      opened.open();
+      return opened;
+    });
+    if (!state.isOpen()) {
+      return null;
+    }
+    Texts texts = Texts.CURRENT.get();
+    Menu.Item cut = command(texts.cut(), open.canCut(), open::cut, "X");
+    Menu.Item copy = command(texts.copy(), open.canCopy(), open::copy, "C");
+    List<Menu.Item> items = new ArrayList<>();
+    if (!field.text().masked() || field.text().revealed()) { // a hidden password copies nothing
+      items.add(cut);
+      items.add(copy);
+    }
+    items.add(command(texts.paste(), open.canPaste(), open::paste, "V"));
+    items.add(Menu.separator());
+    items.add(command(texts.selectAll(), open.canSelectAll(), open::selectAll, "A"));
+    items.addAll(more);
+    // While the menu has the keys, those of its items choose them, and do nothing where they cannot
+    // act, as in the field, also a hidden password's Cut and Copy: they do not go on to the app.
+    Map<Key, Menu.Item> keys = new HashMap<>(Map.of(cut.keys(), cut, copy.keys(), copy));
+    for (Menu.Item item : items) {
+      if (item.keys() != null) {
+        keys.put(item.keys(), item);
+      }
+    }
+    return Menu.menu(state, items).atPoint(open.x(), open.y()).onKeyFirst(k -> {
+      Menu.Item item = keys.get(new Key(k.name(), k.modifiers(), false));
+      if (item != null && item.onChoose() != null) {
+        state.close();
+        item.onChoose().run();
+      }
+      return item != null;
+    });
+  }
+
+  /** An item of the menu, with the key that does the same with Control; disabled unless it can. */
+  static Menu.Item command(String label, boolean can, Runnable run, String key) {
+    return Menu.item(label, can ? run : null).shortcut(Key.CONTROL, key);
   }
 
   /**

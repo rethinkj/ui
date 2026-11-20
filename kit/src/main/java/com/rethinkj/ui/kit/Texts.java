@@ -111,6 +111,10 @@ public interface Texts {
     return "Reset";
   }
 
+  default String cut() {
+    return "Cut";
+  }
+
   default String copy() {
     return "Copy";
   }
@@ -131,6 +135,10 @@ public interface Texts {
 
   default String paste() {
     return "Paste";
+  }
+
+  default String selectAll() {
+    return "Select all";
   }
 
   default String error() {

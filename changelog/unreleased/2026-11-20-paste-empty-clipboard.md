@@ -1,0 +1,1 @@
+- Pasting into a text field while the clipboard holds no text changes nothing; before, it deleted the selection.

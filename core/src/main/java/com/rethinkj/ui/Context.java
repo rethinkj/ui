@@ -74,6 +74,15 @@ public final class Context<T> {
     return line -> in(values, () -> gutter.cell(line));
   }
 
+  /** The field's menu, or null, made to build in the values that hold now. */
+  static FieldMenu captured(FieldMenu menu) {
+    if (menu == null || !VALUES.isBound()) {
+      return menu;
+    }
+    Map<Context<?>, Object> values = VALUES.get();
+    return (field, open) -> in(values, () -> menu.build(field, open));
+  }
+
   /** The look, or null, made to apply in the values that hold now. */
   static Consumer<El> captured(Consumer<El> look) {
     if (look == null || !VALUES.isBound()) {

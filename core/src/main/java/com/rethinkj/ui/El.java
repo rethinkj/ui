@@ -86,6 +86,7 @@ public final class El {
   private Gutter gutter;
   private El gutterRail;
   private SelectHandler onSelect;
+  private FieldMenu fieldMenu;
   private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
   private float gutterWidth;
   private float gutterScale; // the scale gutterWidth was measured at
@@ -1745,6 +1746,26 @@ public final class El {
   }
 
   /**
+   * Gives an {@link #editable} field a menu of its own that a secondary press, the Menu key and
+   * Shift+F10 open, unless the field has an {@link #onSecondaryPress} handler, which goes first:
+   * the kit's fields have one with Cut, Copy, Paste and Select all. A secondary press on the field
+   * then opens it rather than a menu of an element around it. A field in the rows of a virtual
+   * list ({@link #rows}) opens none and leaves the press to those around it.
+   *
+   * @param menu builds the menu while it is open, or null for none
+   */
+  public El fieldMenu(FieldMenu menu) {
+    editableOnly("fieldMenu");
+    this.fieldMenu = Context.captured(menu);
+    return this;
+  }
+
+  /** The menu {@link #fieldMenu} gave, or null; a component that adds items builds on it. */
+  public FieldMenu fieldMenu() {
+    return fieldMenu;
+  }
+
+  /**
    * Keeps the editing state of an {@link #editable} field in {@code state}, which the app holds,
    * instead of by the field's identity, so that caret, selection, scroll, undo history and the
    * mode of Tab survive the field leaving the tree, as the content of a tab that is not active
@@ -2020,10 +2041,12 @@ public final class El {
 
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
-   * on this element or on a descendant that has no such handler of its own, with the position of
+   * on this element or on a descendant that has no such handler of its own, nor a {@link
+   * #fieldMenu} outside the rows of a virtual list, with the position of
    * the release in logical pixels of the window: where a context menu opens ({@link #atPoint}).
    * The Menu key and Shift+F10 that no key handler takes run it too, for the focused element or
-   * its nearest ancestor that has one, at the bottom left of the focused element. Such a press
+   * its nearest ancestor that has one, unless a field's menu is nearer, at the bottom left of the
+   * focused element. Such a press
    * focuses as a press of the primary button does; it does not drag, select text or press.
    *
    * @param handler told where, or null for none

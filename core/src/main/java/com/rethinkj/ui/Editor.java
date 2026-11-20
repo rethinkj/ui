@@ -873,9 +873,11 @@ final class Editor {
     }
   }
 
+  /** Pastes the clipboard's text in place of the selection; an empty clipboard changes nothing. */
   void paste(Clipboard clipboard) {
-    if (editable()) {
-      replace(fitLines(clipboard.read()), null);
+    String text = editable() ? clipboard.read() : "";
+    if (!text.isEmpty()) {
+      replace(fitLines(text), null);
     }
   }
 

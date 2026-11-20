@@ -89,6 +89,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String cut() {
+    return "Ausschneiden";
+  }
+
+  @Override
   public String copy() {
     return "Kopieren";
   }
@@ -111,6 +116,11 @@ public class GermanTexts implements Texts {
   @Override
   public String paste() {
     return "Einfügen";
+  }
+
+  @Override
+  public String selectAll() {
+    return "Alles auswählen";
   }
 
   @Override

@@ -59,6 +59,14 @@ For typed values, use `ValueField.valueField(format, value, draft, onChange)` wi
 
 Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** to select, **Ctrl** by word), Backspace/Delete, **Ctrl+A/C/X/V/Z/Y**. Tabbing into a single-line field selects all text. In multi-line fields, **Enter** inserts a newline and **Ctrl+Enter** bubbles to app key handlers.
 
+## Context menu
+
+A right-click in a field, the **Menu** key or **Shift+F10** opens its menu: **Cut**, **Copy**, **Paste** and **Select all**, with their keys. They act as the keys do, so **Ctrl+Z** takes back a cut or a paste. An item that would do nothing is disabled: Cut and Copy without a selection, Paste with an empty clipboard, Cut and Paste in a read-only field. A password field that hides its string has no Cut and Copy. A [CodeEditor](/docs/components/code-editor) given the app adds **Find** and **Replace**.
+
+A field with a secondary-press handler of your own, such as `Menu.contextMenu(field, state, items)`, opens your menu instead. A right-click on a field opens the field's menu, not a context menu of an element around it.
+
+In scripts: `press #name right`, then `frame`, `advance 1` and `press label="Copy"`. The menu is `role=menu` with `role=menuitem` items, as any [Menu](/docs/components/menu).
+
 ## With a Prop
 
 `textField(prop[, placeholder])` and `passwordField(prop, placeholder)` bind directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.

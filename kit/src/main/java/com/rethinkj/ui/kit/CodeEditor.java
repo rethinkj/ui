@@ -300,8 +300,9 @@ public final class CodeEditor {
   }
 
   /**
-   * The editor with its find bar ({@link Find}: Control+F, Control+H, F3, Control+G) and its
-   * {@link Command commands}, which edit through the app ({@link App#edit}).
+   * The editor with its find bar ({@link Find}: Control+F, Control+H, F3, Control+G), also in the
+   * field's menu as Find and Replace, and its {@link Command commands}, which edit through the app
+   * ({@link App#edit}).
    *
    * @param app the app the editor is in; null for an editor without find and commands
    */
@@ -391,7 +392,21 @@ public final class CodeEditor {
       run(app, state, command);
       return true;
     });
-    return state.findBar ? Find.find(app, editor, state.find) : editor;
+    if (!state.findBar) {
+      return editor;
+    }
+    editor.fieldMenu((field, open) -> {
+      Texts texts = Texts.CURRENT.get();
+      boolean edits = field.onEdit() != null && !field.isReadOnly(); // also if made so after this
+      return TextField.menu(
+          field,
+          open,
+          List.of(
+              Menu.separator(),
+              TextField.command(texts.find(), true, () -> Find.open(state.find), "F"),
+              TextField.command(texts.replace(), edits, () -> Find.openReplace(state.find), "H")));
+    });
+    return Find.find(app, editor, state.find);
   }
 
   /**

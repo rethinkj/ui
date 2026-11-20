@@ -23,7 +23,7 @@ Store a `Menu.State` in your app state, toggle it from the button handler (`stat
 ```java snippet="context-menu"
 ```
 
-`Menu.contextMenu(target, menuState, items)` opens on right-click, or on the **Menu** key / **Shift+F10** when focused inside `target` (positioned near the `current` or `selected` item). If `target` already handles right-click (for example, to select a row first), call `state.context.openAt(x, y)` inside your handler.
+`Menu.contextMenu(target, menuState, items)` opens on right-click, or on the **Menu** key / **Shift+F10** when focused inside `target` (positioned near the `current` or `selected` item). If `target` already handles right-click (for example, to select a row first), call `state.context.openAt(x, y)` inside your handler. A text field inside `target` opens [its own menu](/docs/components/text-field#context-menu) instead, except in the rows of a virtual list.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 
