@@ -68,6 +68,9 @@ import java.util.function.Supplier;
  * every item, so the texts line up. A checked item with a leading element shows the check mark at
  * its end, as a combo box's current choice does.
  *
+ * <p>An item's text wider than the room in the window ends in an ellipsis, and a {@link Tooltip}
+ * shows it whole: after the pointer rests on the item, or at once where the keys highlight it.
+ *
  * <p>In a tree dump a menu is {@code role=menu} and its items are {@code role=menuitem} with
  * their text as the label and the keys {@code item-<index>}, or {@code subitem-<index>} in a
  * submenu, counted with the separators.
@@ -386,6 +389,7 @@ public final class Menu {
     private int[] sub = {-1, -1, -1, -1}; // per level: the item whose submenu is open
     private int revealing = -1; // the level whose highlight a key moved, until its panel shows it
     private int opening; // a key opens the menu: 1 highlights its first item, -1 its last
+    private int keyed = -1; // the level whose highlight a key moved last, until the pointer does
 
     public boolean isOpen() {
       return open;
@@ -448,12 +452,19 @@ public final class Menu {
     void highlight(int level, int item) {
       grow(level);
       lit[level] = item;
+      keyed = -1;
     }
 
     /** Highlights an item as a key does, which also scrolls it into view. */
     void highlightByKey(int level, int item) {
       highlight(level, item);
       revealing = level;
+      keyed = level;
+    }
+
+    /** Whether a key, not the pointer, moved the highlight at this level last. */
+    boolean keyed(int level) {
+      return keyed == level;
     }
 
     /**
@@ -656,7 +667,7 @@ public final class Menu {
     El content = PassiveContent.row(
         theme,
         PassiveContent.leading(theme, leading),
-        label(item.label()).color(text),
+        label(item.label()).color(text).ellipsis().minSize(0, 0),
         !opens && item.shortcut() != null
             ? label(item.shortcut()).color(quiet).margin(0, 0, 0, theme.space().l())
             : null,
@@ -683,6 +694,12 @@ public final class Menu {
         .disabled(!enabled)
         .current(lit) // the highlight, which a dump would otherwise show only as a color
         .child(content);
+    // A text cut short shows whole in a tooltip: after a rest of the pointer, or at once where
+    // the keys highlight it, since the menu keeps the focus.
+    Tooltip.whenShortened(el, item.label());
+    if (lit && state.keyed(level)) {
+      el.overlay(Tooltip.whole(theme, item.label()));
+    }
     if (item.checked()) {
       el.checked(true);
     }
