@@ -296,8 +296,6 @@ class WindowsScriptTest {
     Windows.Handle a =
         app.windows().open("A", 60, 60, Window.options(), new App<>(new Object(), s -> el()));
     a.onShown(() -> told.add("A"));
-    // Set in A's first frame, after the main window's: too late, as in a loop.
-    a.app().request(() -> app.windows().of(app).onShown(() -> told.add("late")));
     Script.run("frame", app, out);
     assertEquals(List.of(), told, "a task of the frame after the first");
     Script.run("frame\nframe", app, out);

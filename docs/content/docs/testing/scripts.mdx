@@ -71,7 +71,7 @@ Place `dialog` lines **before** the step that opens the dialog. An unanswered di
 | `window <name>` | Directs subsequent commands to this window (`main` for the first window, or the window's title in quotes if it contains spaces). |
 | `close` | Requests the active window to close. |
 
-Pointer commands (`press`, `down`, `up`, `move`, `wheel`) and `drop` can also target another window directly with `in <window> <target>` or physical screen coordinates with `screen <x>,<y>`. For `focus` and `scroll`, switch windows first with `window <name>`. A window's `onShown` handler, set before the `frame` step that draws the window first, runs at the step after it. See [Several windows](/docs/concepts/windows).
+Pointer commands (`press`, `down`, `up`, `move`, `wheel`) and `drop` can also target another window directly with `in <window> <target>` or physical screen coordinates with `screen <x>,<y>`. For `focus` and `scroll`, switch windows first with `window <name>`. A window's `onShown` handler, set before the window first draws, runs at the `frame` step after the one that drew it. See [Several windows](/docs/concepts/windows).
 
 ## Error messages
 
