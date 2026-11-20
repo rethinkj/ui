@@ -63,6 +63,7 @@ jobs:
       # The Platforms page names the newest glibc symbol version that the Linux natives use.
       - name: Check the glibc on the Platforms page
         if: runner.os == 'Linux'
+        shell: bash
         run: |
           need=$(objdump -T natives-linux-x64/fetched/resources/META-INF/rethinkj-ui/natives/linux-x64/*.so* \
             | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
