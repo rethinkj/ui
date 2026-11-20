@@ -301,12 +301,15 @@ class WindowsScriptTest {
     Script.run("frame\nframe", app, out);
     assertEquals(List.of("main", "A"), told);
 
-    // From a handler of the frame after A has shown: in A's next frame, as in a loop.
-    a.app().request(() -> a.onShown(() -> told.add("late")));
+    // Set after A has shown, between steps or from a handler: in A's next frame, as in a loop.
+    a.onShown(() -> told.add("between"));
     Script.run("frame", app, out);
-    assertEquals(List.of("main", "A"), told);
+    assertEquals(List.of("main", "A", "between"), told);
+    a.app().request(() -> a.onShown(() -> told.add("handler")));
     Script.run("frame", app, out);
-    assertEquals(List.of("main", "A", "late"), told);
+    assertEquals(List.of("main", "A", "between"), told);
+    Script.run("frame", app, out);
+    assertEquals(List.of("main", "A", "between", "handler"), told);
   }
 
   @Test
