@@ -121,7 +121,8 @@ public final class Split {
    * @param onMove told the new position, of the same kind as {@code position}, while the line is
    *     dragged or moved with the keys, then {@code reset} on a double press, and {@code position}
    *     again if a drag is cancelled. The position it is told leaves both parts their minimums in
-   *     the split's size of the moment. Null fixes the line: it takes no pointer and no focus.
+   *     the split's size of the moment; where there is no room for both, it is {@code position}
+   *     unchanged. Null fixes the line: it takes no pointer and no focus.
    * @param first the part on the left or on top
    * @param minFirst the least width or height of the first part, in logical pixels
    * @param second the part on the right or below
@@ -245,15 +246,20 @@ public final class Split {
     // Moves the line by a distance from where it is in the view the drag began in, or in the view
     // a key goes to, which is built after the key before it.
     DoubleConsumer move = delta -> {
-      float room = Math.max(size(split, across) - stroke, 0);
+      // The parts fill the content box, whatever the split's padding and border resolve to.
+      float room = Math.max(size(one, across) + size(rest, across) - over - stroke, 0);
       float size =
           Math.max(minFirst, Math.min(size(one, across) + (float) delta, room - minSecond));
+      // Without room for both minimums the line cannot move, and keeps its position; the pixel
+      // allows for the rounding of the parts' sizes.
       onMove.accept(
-          switch (position.kind()) {
-            case FIRST -> Position.first(size);
-            case SECOND -> Position.second(Math.max(room - size, 0));
-            case SHARE -> room > 0 ? Position.share(Math.clamp(size / room, 0, 1)) : position;
-          });
+          room < minFirst + minSecond + 1
+              ? position
+              : switch (position.kind()) {
+                case FIRST -> Position.first(size);
+                case SECOND -> Position.second(Math.max(room - size, 0));
+                case SHARE -> Position.share(Math.clamp(size / room, 0, 1));
+              });
     };
     float step = theme.size().step();
     String back = across ? "ArrowLeft" : "ArrowUp";

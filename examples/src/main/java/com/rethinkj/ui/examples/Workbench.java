@@ -1207,7 +1207,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 right.key("tabs"),
                 320)
             .grow(1)
-            .padding(0, theme.space().m(), theme.space().m(), theme.space().m()))
+            .margin(0, theme.space().m(), theme.space().m(), theme.space().m()))
         .child(state.statusBar());
     if (state.dropping != null) {
       String name = state.dropping.name;
