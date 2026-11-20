@@ -1,0 +1,1 @@
+- Fixed: a breadcrumb's stop for Tab stays on the crumb or chevron it was at when the window gets narrower or wider and the ellipsis comes or goes, instead of moving to another one at the same place in the bar; where that crumb goes into the ellipsis, the stop moves to the one visited before that still shows (a crumb, a chevron or the ellipsis), else to the first.

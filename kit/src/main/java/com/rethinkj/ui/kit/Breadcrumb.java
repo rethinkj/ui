@@ -27,13 +27,14 @@ import java.util.function.Supplier;
  * crumb it works out from the theme and the width of its text, as layout shaped that text at the
  * window's scale once it has.
  *
- * <p>It is one stop for Tab, at the crumb or button the arrows last went to; Arrow Left and Right
- * go between the crumbs, the chevrons with a menu and the ellipsis, Home and End to the ends, Enter
- * presses, and Arrow Down opens a menu. A press on a crumb leaves the focus where it was. In a tree
- * dump it is {@code role=navigation label="Breadcrumb"}, each crumb {@code role=link} with its
- * text as the label, the last one {@code current}, a chevron with a menu {@code role=button
- * label="Inside shop"} and the ellipsis {@code role=button label="Hidden parts"}, each {@code
- * expanded} while its menu is open.
+ * <p>It is one stop for Tab, at the crumb or button the arrows last went to, also where the
+ * ellipsis comes or goes; where that one goes into the ellipsis, at the one they went to before it
+ * that still shows, else at the first. Arrow Left and Right go between the crumbs, the chevrons
+ * with a menu and the ellipsis, Home and End to the ends, Enter presses, and Arrow Down opens a
+ * menu. A press on a crumb leaves the focus where it was. In a tree dump it is {@code
+ * role=navigation label="Breadcrumb"}, each crumb {@code role=link} with its text as the label, the
+ * last one {@code current}, a chevron with a menu {@code role=button label="Inside shop"} and the
+ * ellipsis {@code role=button label="Hidden parts"}, each {@code expanded} while its menu is open.
  */
 public final class Breadcrumb {
 
@@ -175,6 +176,14 @@ public final class Breadcrumb {
 
   private static final Plan ALL = new Plan(0, 0, false);
 
+  /**
+   * A stop for Tab by the crumb it belongs to, not by its place in the bar.
+   *
+   * @param crumb its index in the path; -1 for the ellipsis
+   * @param chevron the chevron after the crumb rather than the crumb
+   */
+  private record Stop(int crumb, boolean chevron) {}
+
   /** @param crumbs the path from its start to the current place, at least one */
   public static El breadcrumb(State state, List<Crumb> crumbs) {
     Theme theme = Theme.CURRENT.get();
@@ -192,10 +201,12 @@ public final class Breadcrumb {
     El bar =
         state.fitting.row(theme).role("navigation").label(Texts.CURRENT.get().breadcrumb());
     List<El> stops = new ArrayList<>();
+    List<Stop> ids = new ArrayList<>();
     boolean[] menus = new boolean[crumbs.size()];
     for (int i = 0; i <= last; i++) {
       if (i == plan.start() && plan.start() < plan.from()) {
         bar.child(more(theme, state, crumbs, plan, stops));
+        ids.add(new Stop(-1, false));
         i = plan.from();
       }
       Crumb crumb = crumbs.get(i);
@@ -204,12 +215,14 @@ public final class Breadcrumb {
       unit.child(part);
       if (part.isFocusable()) {
         stops.add(part);
+        ids.add(new Stop(i, false));
       }
       El chevron = chevron(theme, state, crumb, i, i == last);
       if (chevron != null) {
         unit.child(chevron);
         if (crumb.children() != null) {
           stops.add(chevron);
+          ids.add(new Stop(i, true));
           menus[i] = true;
         }
       }
@@ -219,7 +232,15 @@ public final class Breadcrumb {
     if (plan.start() == plan.from()) {
       state.hidden.close();
     }
-    state.keys.apply(bar, stops);
+    // As the focus does (App#focused), the stop stays in its crumb where it can: on the chevron
+    // of a crumb that became the current place.
+    if (state.keys.active() instanceof Stop stop && !ids.contains(stop)) {
+      Stop other = new Stop(stop.crumb(), !stop.chevron());
+      if (ids.contains(other)) {
+        state.keys.at(other);
+      }
+    }
+    state.keys.apply(bar, stops, ids);
     return bar;
   }
 

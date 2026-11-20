@@ -215,6 +215,30 @@ class PartsTest {
   }
 
   @Test
+  void theBreadcrumbsTabStopStaysOnItsPartWhileTheEllipsisComesAndGoes() throws IOException {
+    App<Parts> app =
+        run(720, "focus role=link label=\"localhost\"\nkey ArrowRight\nframe\nkey ArrowRight");
+    assertEquals("public", app.focused().label());
+    assertEquals("public", tabStop(app, 420), "the ellipsis came before it");
+    assertEquals("public", tabStop(app, 720), "and went");
+    assertEquals("localhost", tabStop(app, 520), "public went into it: the part visited before");
+    assertEquals("localhost", tabStop(app, 720));
+    more(app, out, 720, "key ArrowRight\nframe\nkey ArrowRight\nframe\nkey Enter\nframe");
+    assertEquals("Inside public", tabStop(app, 720), "public became the current place");
+    more(app, out, 720, "key ArrowLeft\nframe");
+    assertEquals("Inside public", tabStop(app, 300), "shop went into it: the one visited before");
+  }
+
+  /** The focused element at this width, after asserting that Tab comes back to it from outside. */
+  private String tabStop(App<Parts> app, int width) throws IOException {
+    Script.run("size " + width + " 420\nframe\nframe\nadvance 1\nframe", app, out);
+    String focused = app.focused().label();
+    Script.run("key Tab shift\nframe\nkey Tab\nframe", app, out);
+    assertEquals(focused, app.focused().label(), "the stop for Tab at " + width);
+    return focused;
+  }
+
+  @Test
   void aBreadcrumbFitsItsTextAsShapedAtTheWindowsScale() throws IOException {
     List<Breadcrumb.Crumb> crumbs = List.of(
         Breadcrumb.crumb("Projects", () -> {}),
