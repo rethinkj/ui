@@ -169,6 +169,22 @@ public interface Windows {
     void onClosed(Runnable handler);
 
     /**
+     * What runs once the window has shown its first frame on the screen: on the app's thread as a
+     * task of the window's app, in its next frame. A window that is minimized or hidden shows no
+     * frame, and the handler waits until one is shown. It suits what has to wait until the app
+     * can be seen to work, such as telling an updater that a new version started, closing a
+     * splash screen, or measuring the time to the first frame. Set after the window has shown its
+     * first frame, it runs in the window's next frame. In a script, a window shows its first frame
+     * at the first {@code frame} step that draws it, and the handler runs in the next one.
+     *
+     * <p>The first window of a {@link WindowLoop} has its handle before {@link WindowLoop#run}, in
+     * {@code loop.windows().of(app)}.
+     *
+     * @param handler the handler, or null for none
+     */
+    void onShown(Runnable handler);
+
+    /**
      * Whether a drag's pointer finds this window ({@link #place}): true unless this turns it
      * off, as for a window that follows the pointer and would hide every window under it.
      */

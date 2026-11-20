@@ -18,7 +18,7 @@ Call `app.windows().open(title, width, height, options, newApp)` from any handle
 ```java snippet="tab-groups"
 ```
 
-It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html) with `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `isOpen()`, and window position/scale getters. Use `windows.all()` to list all open windows or `windows.of(app)` to find a specific app's handle.
+It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html) with `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `onShown(handler)`, `isOpen()`, and window position/scale getters. Use `windows.all()` to list all open windows or `windows.of(app)` to find a specific app's handle.
 
 ## Handling window close
 
@@ -26,6 +26,13 @@ It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html)
 - **`onClosed(handler)`:** Runs on the UI thread after a window closes (as long as at least one other window stays open). Use it to clean up per-window state:
 
 ```java snippet="window-closed"
+```
+
+## Knowing a window was shown
+
+`onShown(handler)` runs once the window has shown its first frame on the screen, on the UI thread in the window's next frame. A minimized or hidden window shows no frame, so its handler waits until one is shown. Use it to tell an updater that a new version runs, to close a splash screen, or to measure the time to the first frame. The first window of a `WindowLoop` has its handle before `run()`:
+
+```java snippet="window-shown"
 ```
 
 ## Dragging between windows

@@ -257,6 +257,41 @@ class WindowLoopTest {
   }
 
   @Test
+  void theWindowTellsOfTheFirstFrameItShowedNotOfThoseBefore() {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      App<Lights> app = new App<>(new Lights(), Examples::lights);
+      AtomicInteger presents = new AtomicInteger();
+      WindowLoop.Presenter presenter = new WindowLoop.Presenter() {
+        @Override
+        public void present(Scene scene, float w, float h, float s) {
+          presents.incrementAndGet();
+        }
+
+        /** The first two frames are not shown, as in a minimized window. */
+        @Override
+        public boolean pending() {
+          return presents.get() < 3;
+        }
+
+        @Override
+        public boolean presented() {
+          return !pending();
+        }
+      };
+      WindowLoop loop = new WindowLoop(window, app, presenter);
+      List<Integer> told = new ArrayList<>(); // the frames presented when the handler ran
+      loop.windows().of(app).onShown(() -> {
+        told.add(presents.get());
+        loop.stop();
+      });
+      Desktop.run(loop, () -> "told " + told + " after " + presents + " frames");
+
+      assertEquals(List.of(3), told);
+    }
+  }
+
+  @Test
   void aLiveRedrawShowsWhatTheResizeHandlersOfItsFrameChanged() {
     try (Window window = Window.open(TITLE, 300, 120)) {
       Desktop.settle();

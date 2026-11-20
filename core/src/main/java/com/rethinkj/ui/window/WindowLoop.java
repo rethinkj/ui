@@ -86,7 +86,7 @@ import java.util.function.ToDoubleFunction;
  * System.Logger} {@code com.rethinkj.ui.window} how many milliseconds after the process started
  * that was, to keep an app's start in budget. With {@code java.util.logging}, the lines {@code
  * com.rethinkj.ui.window.level = FINE} and {@code java.util.logging.ConsoleHandler.level = FINE}
- * in the logging configuration print it.
+ * in the logging configuration print it. An app learns it from {@link Windows.Handle#onShown}.
  *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
@@ -173,6 +173,7 @@ public final class WindowLoop {
     final boolean owned; // opened by the loop, which closes it
     Runnable onClose;
     Runnable onClosed;
+    Runnable onShown;
     boolean dropTarget = true;
     // Moved by the app during the press that is down, as a window that follows it, or during the
     // last one: the frame that runs the release still asks where on the screen it was (place).
@@ -291,6 +292,14 @@ public final class WindowLoop {
     @Override
     public void onClosed(Runnable handler) {
       onClosed = handler;
+    }
+
+    @Override
+    public void onShown(Runnable handler) {
+      onShown = handler;
+      if (shown && handler != null) {
+        app.post(handler);
+      }
     }
 
     @Override
@@ -1144,6 +1153,9 @@ public final class WindowLoop {
       e.showing = e.presenter.presented();
       if (!e.shown && e.showing) {
         e.shown = true;
+        if (e.onShown != null) {
+          app.post(e.onShown);
+        }
         LOGGER.log(System.Logger.Level.DEBUG, () -> {
           long millis = sinceStart();
           return e.window.title() + ": first frame "

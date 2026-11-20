@@ -36,6 +36,24 @@ final class Desktop {
     // docs:end window
   }
 
+  /** Opens the window and tells the updater once it shows; not run by the tests. */
+  static void openAndConfirm(Updater updater) {
+    // docs:start window-shown
+    App<Lights> app = new App<>(new Lights(), Lights::view);
+    try (Window window = Window.open("Lights", 360, 240, Window.options());
+        GpuPresenter presenter = new GpuPresenter(window)) {
+      WindowLoop loop = new WindowLoop(window, app, presenter);
+      loop.windows().of(app).onShown(updater::confirm); // the new version can be seen to run
+      loop.run();
+    }
+    // docs:end window-shown
+  }
+
+  /** What installed a new version of the app, and keeps the old one until the new one runs. */
+  interface Updater {
+    void confirm();
+  }
+
   // docs:start placement
   static final Path PLACEMENT = // where the app keeps its settings
       Path.of(System.getProperty("user.home"), ".lights", "window.txt");
