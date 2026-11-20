@@ -631,9 +631,15 @@ public final class Tree {
     if (g.node == null) { // the first step, before the row's drag handler has its own
       begin(g, node);
     }
+    // The point in the rows' coordinates: without the tree's own border and padding.
+    Style style = tree.style();
+    float left = style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
+    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
+    float bottom = style.borderBottom.pixelsOrZero() + style.paddingBottom.pixelsOrZero();
+    double x = d.x() - left;
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();
-      Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height, deepest(theme, tree));
+      Aim<N> aim = aim(theme, model, o, rows, node, x, d.y() - top, height, deepest(theme, tree));
       if (aim != null) {
         o.onDrop.accept(aim.move());
       }
@@ -642,7 +648,7 @@ public final class Tree {
     // Near the top or the bottom the tree scrolls along, by the time the pointer waits there.
     double scrollY = tree.scrollY();
     double y = d.y() - scrollY;
-    double end = Math.max(0, rows.count * height - tree.height()); // the farthest it scrolls
+    double end = Math.max(0, top + rows.count * height + bottom - tree.height()); // the farthest
     float near = Math.min(height, tree.height() / 2);
     int edge = y < near && scrollY > 0 ? -1 : y > tree.height() - near && scrollY < end ? 1 : 0;
     double shift = 0; // how far the rows move under the pointer with this step
@@ -661,7 +667,7 @@ public final class Tree {
     }
     // Where the node would go once the rows have moved, which the next frame shows.
     Aim<N> aim =
-        aim(theme, model, o, rows, node, d.x(), d.y() + shift, height, deepest(theme, tree));
+        aim(theme, model, o, rows, node, x, d.y() - top + shift, height, deepest(theme, tree));
     g.markRow = aim == null ? -1 : aim.row();
     if (aim != null) {
       g.into = aim.into();

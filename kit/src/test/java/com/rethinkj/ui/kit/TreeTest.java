@@ -756,6 +756,7 @@ class TreeTest {
     final List<Tree.Move<String>> asked = new ArrayList<>();
     java.util.function.Predicate<Tree.Move<String>> allows = move -> true;
     String selected;
+    float padding;
 
     Folders(int files) {
       List<String> docs = new ArrayList<>(List.of("drafts", "a.txt"));
@@ -815,6 +816,7 @@ class TreeTest {
                       move -> asked.add(move) && allows.test(move),
                       move -> log.add(move.node() + " " + move.place() + " " + move.target())))
           .key("tree")
+          .padding(padding)
           .wFull()
           .hFull();
     }
@@ -866,6 +868,29 @@ class TreeTest {
             "activate drafts"),
         folders.log);
     assertNull(find(app, "marker"));
+  }
+
+  @Test
+  void theTreesOwnPaddingMovesTheDropsWithItsRows() throws IOException {
+    Folders folders = new Folders(0);
+    folders.padding = 12;
+    App<Folders> app = new App<>(folders, Folders::view);
+    run(app, """
+        frame
+        down #row-notes.txt
+        move #row-b.txt at left+20,bottom-2
+        frame""");
+    // The line along the top of a.txt from the level of drafts, under the pointer: 16 to 28.
+    assertEquals(16, find(find(app, "row-a.txt"), "marker").x());
+    run(app, """
+        up #row-b.txt at left+20,bottom-2
+        frame
+        down #row-notes.txt
+        move #row-a.txt at top+2
+        frame""");
+    assertNotNull(find(find(app, "row-a.txt"), "marker"), "the line along the top of a.txt");
+    run(app, "up #row-a.txt at top+2\nframe");
+    assertEquals(List.of("notes.txt AFTER drafts", "notes.txt BEFORE a.txt"), folders.log);
   }
 
   @Test
