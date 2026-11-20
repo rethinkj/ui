@@ -13,7 +13,7 @@ el 0,0 520x280
       text label="maximize" "\u{F533}" 445,10 12x12
     el role=button label="Close" window=close 474,0 46x32
       text label="dismiss" "\u{F367}" 491,10 12x12
-  el 0,32 520x219
+  el 8,32 504x211
     el #first 8,32 160x211
       el 8,32 160x211
         text "Schema" 25,49 126x16

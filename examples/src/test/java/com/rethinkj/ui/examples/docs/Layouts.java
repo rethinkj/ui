@@ -411,7 +411,7 @@ final class Layouts {
             200)
         .grow(1)
         // Below the cards the same gap as beside and between them, so they clear the status bar.
-        .padding(0, gap, gap, gap);
+        .margin(0, gap, gap, gap);
     El window = col()
         .wFull()
         .hFull()
