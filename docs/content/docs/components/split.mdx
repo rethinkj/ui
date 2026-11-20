@@ -25,6 +25,15 @@ Store a `Split.Position` in your app state and pass `Split.cards(direction, posi
 
 Choosing the right `Position` controls resize behavior: `first(px)` keeps the left/top pane fixed (good for sidebars), `second(px)` keeps the right/bottom pane fixed, and `share(fraction)` keeps a proportional split.
 
+## In a window
+
+Between `Split.cards` and a [StatusBar](/docs/components/status-bar) below them, leave the same gap, `theme.space().m()`, as beside and between the cards, or their edges and shadows sit on the bar's hairline. With a title bar above, that is `padding(0, m, m, m)`:
+
+<Shot src="examples/docs/cards-window/view-{theme}" alt="A window: a title bar, a schema card beside a query card, and a status bar with the same gap below the cards as between them" />
+
+```java snippet="cards-window"
+```
+
 ## Keyboard
 
 The divider is one Tab stop (after the second pane). **Arrow keys** along the split direction move it by `theme.size().step()`.
