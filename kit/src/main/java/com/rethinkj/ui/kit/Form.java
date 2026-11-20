@@ -326,8 +326,9 @@ public final class Form {
     for (Entry entry : group.entries()) {
       fields.child(entry(theme, labels, column, entry));
     }
-    El el = col().role("group").label(group.title()).gap(theme.space().m());
-    return head.children().isEmpty() ? el.child(fields) : el.children(head, fields);
+    // An empty head stays, so that the fields keep their identity, and focus, when the title goes.
+    float below = head.children().isEmpty() ? 0 : theme.space().m();
+    return col().role("group").label(group.title()).gap(below).children(head, fields);
   }
 
   /** A field or a row of fields. */

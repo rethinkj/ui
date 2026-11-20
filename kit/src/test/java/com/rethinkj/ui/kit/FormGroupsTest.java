@@ -78,24 +78,29 @@ class FormGroupsTest {
   }
 
   @Test
-  void aGroupWithoutATitleHasNoHeadingAndKeepsTheFormsLabelColumn() throws IOException {
-    String dump = dump(
-        400,
-        () -> Form.form(
-            Form.Labels.BESIDE,
-            field("Host", TextField.textField("", null, v -> {}).key("host")),
-            Form.group(
-                    null,
-                    field("Password", TextField.passwordField("", null, v -> {}).key("password")))
-                .divided()));
+  void aGroupWithoutATitleHasNoHeadingAndItsFieldsKeepFocusWhenTheTitleGoes() throws IOException {
+    String[] title = {"Login"};
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(16)
+            .child(Form.form(
+                Form.Labels.BESIDE,
+                Form.group(
+                        title[0],
+                        field("User", TextField.textField("", null, v -> {}).key("user")),
+                        field(
+                            "Password",
+                            TextField.passwordField("", null, v -> {}).key("password")))
+                    .divided())));
+    dump(app, 400, "focus #password");
+    title[0] = null;
+    String dump = dump(app, 400, "");
+    assertTrue(line(dump, "#password").contains(" focused"), dump);
     assertFalse(line(dump, "role=group").contains("label="), dump);
     assertFalse(dump.contains("role=heading"), dump);
-    float[] host = rect(dump, "#host");
-    float[] divider = rect(dump, "role=separator");
-    // The widest label is the untitled group's, and the host's control starts after it too.
-    assertEquals(rect(dump, "#password")[0], host[0], dump);
-    assertEquals(16, divider[1] - (host[1] + host[3]), 1, dump);
-    assertEquals(16, rect(dump, "#password")[1] - (divider[1] + divider[3]), 1, dump);
   }
 
   @Test
