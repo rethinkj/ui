@@ -696,7 +696,7 @@ public final class App<S> {
     float left = parentX + el.x();
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
-    if (range != null) {
+    if (range.length != 0) {
       long start = System.nanoTime();
       boolean hooks = el.rowsHaveKeyHooks(range[0], range[1]); // runs the row function
       buildNanos += System.nanoTime() - start;
@@ -4102,7 +4102,7 @@ public final class App<S> {
         && el.isVirtualList()
         && relooking.contains(Animator.identities(path).getLast());
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height, relook);
-    boolean built = range != null;
+    boolean built = range.length != 0;
     if (el.onRowsBuilt() != null) {
       rowLists.add(Animator.identities(path).getLast());
     }
@@ -4111,7 +4111,7 @@ public final class App<S> {
     }
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
-    for (int pass = 0; range != null && pass < 3; pass++) {
+    for (int pass = 0; range.length != 0 && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
       int asking = El.autofocuses();
       long start = System.nanoTime();
@@ -4148,10 +4148,11 @@ public final class App<S> {
         ask(animator.autofocusInRows(el, id));
       }
       animator.rows(el, id, time);
-      range =
-          el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height) : null;
+      range = el.measuresRows()
+          ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
+          : new int[0];
     }
-    rowsWanted |= range != null; // beyond the passes of one frame: the next frame goes on
+    rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());

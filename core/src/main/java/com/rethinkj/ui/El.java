@@ -3896,7 +3896,7 @@ public final class El {
 
   /**
    * The rows this virtual list should have, as {@code {from, to}} with {@code to} exclusive, or
-   * null when it has them: those in its visible part, which is its border box inside the window,
+   * none (an empty array) when it has them: those in its visible part, which is its border box inside the window,
    * and {@link #OVERSCAN} more on each side. A list that has every row in view keeps its rows, so
    * that scrolling by less than the overscan builds nothing.
    *
@@ -3932,7 +3932,7 @@ public final class El {
    * Like {@link #wantedRows(float, float, float, float, float, float)}.
    *
    * @param anew whether to want the rows that a list built anew would, also when it has them;
-   *     then null where those are built for another part sideways than the rows it has
+   *     then none where those are built for another part sideways than the rows it has
    */
   int[] wantedRows(
       float left,
@@ -3943,7 +3943,7 @@ public final class El {
       float windowHeight,
       boolean anew) {
     if (rowBuilder == null) {
-      return null;
+      return new int[0];
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(top, 0);
@@ -3968,7 +3968,7 @@ public final class El {
     boolean resized =
         !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
     if (rowsBuilt && !resized && (anew ? sideways : has)) {
-      return null;
+      return new int[0];
     }
     if (spans) {
       spanFrom = start;

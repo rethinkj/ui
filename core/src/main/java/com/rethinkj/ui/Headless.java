@@ -77,7 +77,7 @@ public final class Headless {
     float left = parentX + el.x();
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight);
-    if (range != null) {
+    if (range.length != 0) {
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
       el.layoutRows(scale, false);
       for (El row : el.children()) {
