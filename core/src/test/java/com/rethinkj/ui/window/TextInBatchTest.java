@@ -6,7 +6,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
@@ -167,6 +166,7 @@ class TextInBatchTest {
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       MemorySegment ended = arena.allocate(Sdl.EVENT_SIZE, 8); // the event that ended the wait
       Thread waiting = Thread.currentThread();
+      boolean counted = false; // a try in which the character came alone
       for (char character : CHARACTERS.toCharArray()) {
         Window.pollEvents();
         events.clear();
@@ -178,7 +178,7 @@ class TextInBatchTest {
             if (inWait(waiting)) {
               try {
                 posted.set((int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) character, 1L));
-              } catch (Throwable t) {
+              } catch (Throwable _) {
                 posted.set(0);
               }
               return;
@@ -205,9 +205,10 @@ class TextInBatchTest {
         assumeTrue(posted.get() != 0, "Skipped: PostMessage failed");
         assertTrue(woken, "the character ended the wait");
         assertEquals(List.of(String.valueOf(character)), texts);
-        return;
+        counted = true;
+        break;
       }
-      fail("something else ended every wait");
+      assertTrue(counted, "something else ended every wait");
     }
   }
 
