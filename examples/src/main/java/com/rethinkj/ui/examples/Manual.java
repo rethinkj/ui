@@ -144,7 +144,10 @@ public final class Manual {
 
   /** Colors the code blocks that say they are SQL, in the theme's colors for code. */
   static Highlighter highlighter(String language) {
-    return language.equalsIgnoreCase("sql") ? Sql.of() : null;
+    return switch (language.toLowerCase(Locale.ROOT)) {
+      case "sql", "pgsql", "postgresql" -> Sql.of();
+      default -> null;
+    };
   }
 
   /**
