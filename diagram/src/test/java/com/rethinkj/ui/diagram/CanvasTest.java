@@ -23,7 +23,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The {@link Canvas}, driven by {@code canvas.txt}, with stored images: at 100 % and 75 %, panned,
- * with a node dragged and pinned, and fitted; and a node outside it culled.
+ * with a node dragged and pinned, and fitted, also again after a resize; and a node outside it
+ * culled.
  */
 class CanvasTest {
 
@@ -113,12 +114,13 @@ class CanvasTest {
     assertTrue(line(pinned, "#orders").contains(" value=\"Pinned\""), pinned);
     assertFalse(line(pinned, "#items").contains(" value="), pinned);
 
-    // From 40,0 to 560,220: 520 by 220, which fits 400 by 260 less the margins at 50 %, centered.
-    assertEquals(0.5f, state.viewport.zoom());
-    assertEquals(300 - 200 / 0.5, state.viewport.left(), 1e-9);
-    assertEquals(110 - 130 / 0.5, state.viewport.top(), 1e-9);
-    String fitted = Files.readString(out.resolve("fitted.tree.txt"));
-    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 50%\""), fitted);
+    // From 40,0 to 560,220: 520 by 220, which fits 280 by 260 less the margins at 25 %, centered;
+    // 400 by 260, before the canvas became narrower, at 50 %.
+    assertEquals(0.25f, state.viewport.zoom());
+    assertEquals(300 - 140 / 0.25, state.viewport.left(), 1e-9);
+    assertEquals(110 - 130 / 0.25, state.viewport.top(), 1e-9);
+    String fitted = app.tree().dump();
+    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 25%\""), fitted);
   }
 
   /** The line of the element with this key in a tree dump, or nothing. */

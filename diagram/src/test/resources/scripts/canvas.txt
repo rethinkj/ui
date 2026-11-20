@@ -21,5 +21,6 @@ frame
 snap pinned            # "orders" moved by 80, 50 and pinned
 
 key 0
-frame
-snap fitted            # all four nodes, at the nearest zoom that fits them
+frame                  # all four nodes, at the nearest zoom that fits them: 50 %
+size 280 260
+frame                  # narrower: fitted again, at 25 %

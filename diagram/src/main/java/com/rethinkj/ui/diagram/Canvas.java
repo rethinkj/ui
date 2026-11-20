@@ -112,9 +112,11 @@ public final class Canvas {
     // The canvas's size in the last layout; 0 before the first.
     private float width;
     private float height;
-    private boolean fitDue;
-    // Whether the last build fitted, to fit again should its layout give the canvas another size.
-    private boolean fitted;
+    // Since fit(), until a pan or zoom: fit again whenever the canvas has another size than the
+    // one fitted to (-1 for none yet).
+    private boolean fitting;
+    private float fittedWidth;
+    private float fittedHeight;
     // The node being dragged, which the canvas builds also outside it, or its drag would end.
     private String dragged;
 
@@ -143,6 +145,7 @@ public final class Canvas {
       }
       this.left = left;
       this.top = top;
+      fitting = false;
     }
 
     /**
@@ -159,6 +162,7 @@ public final class Canvas {
       float after = zoom();
       left += x / before - x / after;
       top += y / before - y / after;
+      fitting = false;
     }
 
     /** Zooms in by a step around the canvas's center. */
@@ -174,18 +178,20 @@ public final class Canvas {
     /**
      * Shows all nodes at the nearest zoom at which they fit into the canvas with a margin of
      * {@link Theme.Spacing#xl}, centered; at the furthest zoom where they fit at none. The canvas
-     * does it in its next build that knows its size, so that an app can call it before the first.
+     * does it in its next build that knows its size, so that an app can call it before the first,
+     * and again whenever its size changes, until the viewport is panned or zoomed.
      */
     public void fit() {
-      fitDue = true;
+      fitting = true;
+      fittedWidth = -1;
     }
 
     void fitIfDue(List<Node> nodes, float margin) {
-      fitted = fitDue && width > 0 && height > 0;
-      if (!fitted) {
+      if (!fitting || width <= 0 || height <= 0 || width == fittedWidth && height == fittedHeight) {
         return;
       }
-      fitDue = false;
+      fittedWidth = width;
+      fittedHeight = height;
       if (nodes.isEmpty()) {
         return;
       }
@@ -238,7 +244,6 @@ public final class Canvas {
         .focusable()
         .focusRing(theme.accent().edge())
         .onResize((width, height) -> {
-          viewport.fitDue |= viewport.fitted;
           viewport.width = width;
           viewport.height = height;
         })
