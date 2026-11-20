@@ -265,6 +265,7 @@ public final class App<S> {
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
+  private final Set<Object> relooking = new HashSet<>(); // lists that build their rows anew
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   // El#onTypeAhead's text so far, typed into the focused element: a move of the focus empties it.
@@ -3117,9 +3118,12 @@ public final class App<S> {
    *       the focus, so that the view is built again anyway: the pointer is followed into the
    *       tree as it is now, what it is over decides the looks, and the {@link El#onHoverFor}
    *       handlers whose delay has passed run. Otherwise this waits for the new tree, since one
-   *       built between inputs may lack the rows under the pointer.
-   *   <li>If anything may have changed (one of the above, or the looks of the moment differ from
-   *       those the tree has), the view is built again: it gets the looks of the moment ({@link
+   *       built between inputs may lack the rows under the pointer. Where those looks differ from
+   *       the ones the tree has only in hover looks of elements in rows of virtual lists, and no
+   *       such handler ran, those lists build the rows that have a look or should have one anew,
+   *       as scrolling does, and the pointer is followed into them again.
+   *   <li>If anything may have changed (one of the above, or the looks of the moment still differ
+   *       from those the tree has), the view is built again: it gets the looks of the moment ({@link
    *       El#whenHovered}, {@link El#whenHoveredFor}) and its text fields their editing state, the
    *       overlays that open take the focus and those that close give it back, it is laid out with
    *       its overlays, takes over the values and offsets of the tree before, and its virtual lists
@@ -3205,7 +3209,13 @@ public final class App<S> {
     // stays: the rebuild below asks again.
     if (!stale) {
       List<El> path = pointed();
-      stale = !wanted(path, Animator.identities(path)).equals(shown);
+      Looks looks = wanted(path, Animator.identities(path));
+      if (!looks.equals(shown) && relookRows(looks)) {
+        drawn = true;
+        path = pointed();
+        looks = wanted(path, Animator.identities(path));
+      }
+      stale = !looks.equals(shown);
     }
     boolean laidOut = false;
     if (stale) {
@@ -3940,6 +3950,12 @@ public final class App<S> {
     float left = parentX + el.x();
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+    if (range == null
+        && !relooking.isEmpty()
+        && el.isVirtualList()
+        && relooking.contains(Animator.identities(path).getLast())) {
+      range = new int[] {el.firstRow(), el.firstRow() + el.children().size()}; // the rows it has
+    }
     boolean built = range != null;
     if (el.onRowsBuilt() != null) {
       rowLists.add(Animator.identities(path).getLast());
@@ -4131,6 +4147,65 @@ public final class App<S> {
     }
     shown =
         new Looks(hovered, rested, focus, shown.focusRested(), within, press, shown.hoversRun());
+  }
+
+  /**
+   * When the looks of the moment differ from those the tree has only in hover looks ({@link
+   * El#whenHovered}, {@link El#whenHoveredFor}) of elements in rows of virtual lists, builds the
+   * rows of those lists that have a look or should have one anew, as scrolling does, instead of
+   * the view. An {@link El#onHoverFor} handler that ran, or any other look, leaves it to a rebuild
+   * of the view, which shows what the handler changed.
+   *
+   * @return whether it built rows
+   */
+  private boolean relookRows(Looks wanted) {
+    if (!Objects.equals(wanted.focused(), shown.focused())
+        || wanted.focusRested() != shown.focusRested()
+        || !wanted.within().equals(shown.within())
+        || !Objects.equals(wanted.pressed(), shown.pressed())
+        || wanted.hoversRun() != shown.hoversRun()) {
+      return false;
+    }
+    Set<Object> differ = new HashSet<>();
+    differing(wanted.hovered(), shown.hovered(), differ);
+    differing(wanted.rested(), shown.rested(), differ);
+    if (differ.isEmpty()) {
+      return false; // the same looks in another order
+    }
+    Set<Object> lists = new HashSet<>();
+    for (Object id : differ) {
+      Animator.InRow in = animator.inRow(id);
+      if (in == null || !in.list().hasRow(in.row())) {
+        return false;
+      }
+      lists.add(in.listId());
+    }
+    relooking.addAll(lists);
+    boolean built;
+    try {
+      built = fillRows();
+    } finally {
+      relooking.clear();
+    }
+    if (built) {
+      refocus();
+      placeEditors();
+    }
+    return built;
+  }
+
+  /** Adds to {@code into} the identities that are in one of the two lists and not in the other. */
+  private static void differing(List<Object> a, List<Object> b, Set<Object> into) {
+    for (Object id : a) {
+      if (!b.contains(id)) {
+        into.add(id);
+      }
+    }
+    for (Object id : b) {
+      if (!a.contains(id)) {
+        into.add(id);
+      }
+    }
   }
 
   /**

@@ -319,6 +319,37 @@ class RowsTest {
   }
 
   @Test
+  void theHoverLookFollowsTheRowUnderAStillPointerWithoutABuildOfTheView() {
+    Data data = new Data(1_000_000);
+    App<Data> app = new App<>(data, d -> {
+      d.views++;
+      return col().key("list").wFull().hFull().rows(d.count, 28, i -> {
+        d.built.add(i);
+        El row = el().key("row-" + i).fill(WHITE).whenHovered(e -> e.fill(HOVER));
+        return i == 7 ? row.onHoverFor(0, () -> d.log.add("hover 7")) : row;
+      });
+    });
+    app.resize(200, 300, 1);
+    app.pointerMove(100, 154); // row 5
+    app.frame();
+    int views = data.views;
+    data.built.clear();
+
+    app.wheel(100, 154, 0, 28); // row 6 under the pointer, among the rows the list has
+    app.frame();
+    assertEquals(HOVER, find(app.tree(), "row-6").fill());
+    assertEquals(WHITE, find(app.tree(), "row-5").fill());
+    assertEquals(views, data.views, "without building the view");
+    assertEquals(List.of(5, 6), data.built, "only the row that had the look and the one under it");
+
+    app.wheel(100, 154, 0, 28); // row 7, whose handler may change what the view shows
+    app.frame();
+    assertEquals(List.of("hover 7"), data.log);
+    assertEquals(HOVER, find(app.tree(), "row-7").fill());
+    assertEquals(views + 1, data.views, "the view is built again");
+  }
+
+  @Test
   void selectorsHitTestingAndHoverWorkOnTheRowsThatExist() throws IOException {
     Data data = new Data(1_000_000);
     App<Data> app = new App<>(

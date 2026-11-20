@@ -2299,7 +2299,8 @@ public final class El {
    * one wins.
    *
    * <p>Only elements with a look cause a rebuild when the pointer reaches or leaves them: moving
-   * the pointer over plain elements rebuilds nothing.
+   * the pointer over plain elements rebuilds nothing. In the rows of a virtual list ({@link #rows})
+   * the list builds only the rows that gain or lose the look, not the view.
    *
    * @param look changes the element, or null for none
    */
