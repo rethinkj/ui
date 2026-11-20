@@ -22,8 +22,8 @@ import java.util.List;
  *
  * <p>As it opens, the focus goes to its first {@link El#autofocus} or focusable element, or to
  * the popover itself where it has none, as one that only shows information; when it closes, the focus goes back to where it was, such as the button that opened it (see the focus
- * rules of overlays in core). A press outside it and Escape close it; Tab walks it right after
- * its anchor. It has the look of a menu: the popup surface, the control border, the medium
+ * rules of overlays in core). A press outside it, Escape and Tab or Shift+Tab out of it close it;
+ * Tab walks it right after its anchor. It has the look of a menu: the popup surface, the control border, the medium
  * radius, {@code elevation().popup()} and the fade. It has no arrow to its anchor, since the core
  * draws no triangles. In a tree dump it is an overlay {@code bottom start} on its anchor, {@code
  * role=dialog} with its label.
@@ -110,7 +110,7 @@ public final class Popover {
 
   /**
    * The popover's panel, an overlay to attach to an element with {@link El#overlay} and place, as
-   * {@link #popover} does; a press outside it and Escape call {@link State#close}. Where nothing
+   * {@link #popover} does; a press outside it, Escape and Tab out of it call {@link State#close}. Where nothing
    * in the content takes the focus ({@link El#hasFocusable}: disabled, invisible and fields
    * without an edit handler do not), the panel takes it, so that Escape reaches it.
    */

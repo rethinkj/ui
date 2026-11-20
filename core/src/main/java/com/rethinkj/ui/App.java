@@ -887,6 +887,27 @@ public final class App<S> {
     return press && dismissed;
   }
 
+  /**
+   * For Tab moving the focus from the end of {@code path} to {@code to}: runs the {@link
+   * El#onDismiss} handlers of the overlays it leaves, the topmost first, as a press outside them
+   * would. A modal overlay keeps the focus, so Tab never leaves one.
+   */
+  private void leaveOverlays(List<El> path, El to) {
+    List<El> into = new ArrayList<>();
+    pathTo(root, to, into);
+    for (El overlay : root.shownOverlays().reversed()) {
+      if (path.contains(overlay)
+          && !into.contains(overlay)
+          && overlay.onDismiss() != null
+          && !overlay.isModal()
+          && !overlay.isExiting()
+          && !overlay.isInert()) {
+        overlay.onDismiss().run();
+        handled = true;
+      }
+    }
+  }
+
   /** The topmost modal overlay that is open and not leaving, or null. */
   private El modal() {
     if (root != null) {
@@ -1275,6 +1296,7 @@ public final class App<S> {
         if (el.editor() != null && !el.text().multiline()) {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
+        leaveOverlays(path, el);
         return focus(el, true);
       }
     }

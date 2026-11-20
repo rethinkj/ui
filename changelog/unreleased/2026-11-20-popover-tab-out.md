@@ -1,0 +1,1 @@
+- A popover, and any other overlay that is not modal and has an `onDismiss` handler, now closes when Tab or Shift+Tab moves the focus out of it, as a press outside it does. Before, it stayed open while Escape and Enter went to the element that had the focus, such as the dialog below.

@@ -2721,8 +2721,8 @@ public final class El {
   }
 
   /**
-   * Tells the app that this overlay should close: a press outside it, or the wheel outside it
-   * when it is not modal. The app closes it by changing its state, so that the next view leaves
+   * Tells the app that this overlay should close: a press outside it, or, when it is not modal,
+   * the wheel outside it and Tab or Shift+Tab moving the focus out of it. The app closes it by changing its state, so that the next view leaves
    * it out; nothing closes by itself. Escape is the app's too, with an {@link #onKey} handler.
    *
    * @param handler runs in {@link App#frame}, or null for none
