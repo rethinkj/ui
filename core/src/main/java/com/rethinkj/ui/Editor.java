@@ -1293,7 +1293,7 @@ final class Editor {
         }
       }
       float lineHeight = t.lineHeight();
-      covered = Math.min(covered, Math.max(0, t.contentHeight() - lineHeight)); // a row in view
+      covered = Math.clamp(t.contentHeight() - lineHeight, 0, covered); // a row stays in view
       if (upper - covered < sy) {
         sy = upper - covered;
       } else if (top + lineHeight > sy + t.contentHeight()) {

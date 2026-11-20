@@ -1712,7 +1712,7 @@ public final class El {
    */
   public El coveredTop(float height) {
     editableOnly("coveredTop");
-    if (!(height >= 0)) {
+    if (height < 0 || Float.isNaN(height)) {
       throw new IllegalArgumentException("coveredTop must be 0 or more, was " + height);
     }
     coveredTop = height;
