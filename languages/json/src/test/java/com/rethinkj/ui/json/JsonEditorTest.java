@@ -135,5 +135,7 @@ class JsonEditorTest {
     }
     run(app, steps.toString());
     assertEquals("[\"x@€{[]}~|\"]", doc.text);
+    run(app, "key F control\nkey L control alt");
+    assertEquals("[\"x@€{[]}~|\"]", doc.text, "nor does Control+Alt+L in the find bar");
   }
 }

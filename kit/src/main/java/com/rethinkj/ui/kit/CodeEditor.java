@@ -473,7 +473,10 @@ public final class CodeEditor {
         return true;
       }
       Command command = command(k);
-      boolean formats = state.formatter != null && editor.onEdit() != null && !editor.isReadOnly();
+      boolean formats = state.formatter != null
+          && editor.onEdit() != null
+          && !editor.isReadOnly()
+          && app.focused() == editor; // not from the find bar, an overlay of the editor
       if (command == null || (command == Command.FORMAT && !formats)) {
         return false; // Control+Alt+L stays the app's where the editor cannot format
       }
