@@ -4,6 +4,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
@@ -13,6 +14,8 @@ import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
@@ -62,7 +65,18 @@ public final class CodeEditor {
      * /): comments the lines out with the highlighter's {@link Highlighter#lineComment}, or back
      * in when each line that is not blank is a comment.
      */
-    TOGGLE_COMMENT
+    TOGGLE_COMMENT,
+    /**
+     * Control+Alt+L: formats the whole text with the highlighter's {@link Highlighter#formatter},
+     * the caret and the selection at the same characters that are not white space. A text it
+     * cannot format stays as it is: the problem shows as an error diagnostic beside the app's
+     * ({@link State#diagnostics}) until the text changes, with its message above the caret, which
+     * goes to the problem's start, as F8 does. Nothing for a text that is blank or already
+     * formatted. On Windows, AltGr comes as Control+Alt: the characters it makes are typed, and on
+     * a layout with one on AltGr+L, such as Polish, that character is typed into the formatted
+     * text.
+     */
+    FORMAT
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -115,6 +129,7 @@ public final class CodeEditor {
       case "ArrowDown" -> mods == Key.ALT ? Command.MOVE_LINES_DOWN : null;
       case "/", "#", "NumpadDivide" -> mods == Key.CONTROL ? Command.TOGGLE_COMMENT : null;
       case "7" -> mods == controlShift ? Command.TOGGLE_COMMENT : null;
+      case "L" -> mods == (Key.CONTROL | Key.ALT) ? Command.FORMAT : null;
       default -> null;
     };
   }
@@ -152,7 +167,12 @@ public final class CodeEditor {
     private boolean nextWords;
     // The editor of the last build, and what it was built with, for the commands.
     private El editor;
+    private String value;
     private String lineComment;
+    private Function<String, Formatted> formatter;
+    // FORMAT's problem, shown while the app's string is the one it could not format.
+    private Formatted.Problem problem;
+    private String problemOf;
     // F8: where the diagnostics start whose message shows at the caret; -1 while none does.
     private int shown = -1;
 
@@ -301,8 +321,27 @@ public final class CodeEditor {
       return diagnostics(null, List.of());
     }
 
-    /** The diagnostics that show with {@code value}: those about it. */
+    /**
+     * The diagnostics that show with {@code value}: those about it, and the problem that kept it
+     * from formatting, in the view's texts.
+     */
     private List<Diagnostic> diagnosticsOf(String value) {
+      if (problem != null && !value.equals(problemOf)) { // at once for the same string object
+        problem = null;
+        problemOf = null;
+      }
+      List<Diagnostic> about = aboutValue(value);
+      if (problem == null) {
+        return about;
+      }
+      String message = Texts.CURRENT.get().formatProblem(problem.kind());
+      return Stream.concat(
+              about.stream(),
+              Stream.of(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message)))
+          .toList();
+    }
+
+    private List<Diagnostic> aboutValue(String value) {
       if (diagnostics.isEmpty()) {
         return List.of();
       }
@@ -425,7 +464,9 @@ public final class CodeEditor {
       return editor;
     }
     state.editor = editor;
+    state.value = value;
     state.lineComment = highlighter == null ? null : highlighter.lineComment();
+    state.formatter = highlighter == null ? null : highlighter.formatter();
     editor.onKey(k -> {
       if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
         return true;
@@ -723,6 +764,7 @@ public final class CodeEditor {
         state.lineComment == null
             ? null
             : LineEdits.comment(text, caret, anchor, state.lineComment);
+      case FORMAT -> format(app, state, editor, text, caret, anchor);
       default -> null;
     };
     if (edit == null) {
@@ -732,6 +774,54 @@ public final class CodeEditor {
     app.select(editor, edit.caret(), edit.anchor());
     state.caret = edit.caret();
     state.anchor = edit.anchor();
+  }
+
+  /**
+   * The edit that formats the whole text, or null where there is nothing to do; a problem that
+   * kept the text from formatting shows, with the caret at its start.
+   */
+  private static LineEdits.Edit format(
+      App<?> app, State state, El editor, String text, int caret, int anchor) {
+    if (state.formatter == null || text.isBlank()) {
+      return null;
+    }
+    Formatted formatted = state.formatter.apply(text);
+    if (formatted.valid()) {
+      String to = formatted.text();
+      return to.equals(text)
+          ? null
+          : new LineEdits.Edit(0, text.length(), to, same(text, to, caret), same(text, to, anchor));
+    }
+    int at = Math.min(formatted.problem().from(), text.length());
+    state.problem = formatted.problem();
+    state.problemOf = state.value;
+    app.select(editor, at, at);
+    state.caret = at;
+    state.anchor = at;
+    state.shown = at;
+    return null;
+  }
+
+  /**
+   * Where position {@code at} of {@code text} is in {@code formatted}, the same characters with
+   * other white space: after as many characters that are not white space, and before the next
+   * such character where white space or the start of the text is before {@code at}.
+   */
+  private static int same(String text, String formatted, int at) {
+    int count = 0;
+    for (int i = 0; i < at; i++) {
+      count += Character.isWhitespace(text.charAt(i)) ? 0 : 1;
+    }
+    int i = 0;
+    for (; i < formatted.length() && count > 0; i++) {
+      count -= Character.isWhitespace(formatted.charAt(i)) ? 0 : 1;
+    }
+    if (at == 0 || Character.isWhitespace(text.charAt(at - 1))) {
+      while (i < formatted.length() && Character.isWhitespace(formatted.charAt(i))) {
+        i++;
+      }
+    }
+    return i;
   }
 
   private static void selectNext(

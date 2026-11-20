@@ -545,5 +545,6 @@ class FindKeysTest {
         CodeEditor.Command.TOGGLE_COMMENT,
         CodeEditor.command(new com.rethinkj.ui.Key("#", com.rethinkj.ui.Key.CONTROL, false)),
         "Control+#, where a German keyboard has VS Code's");
+    assertEquals(TEXT, undoAfter.apply("key L control alt"), "SQL has no formatter");
   }
 }

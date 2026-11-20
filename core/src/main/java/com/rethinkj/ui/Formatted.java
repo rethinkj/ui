@@ -6,9 +6,10 @@ import java.util.Objects;
  * What formatting a text of code made of it: the formatted text, or the first problem that kept it
  * from formatting, where it is and of which kind. A language's formatter returns it, such as
  * {@code Json.format} of the module {@code rethinkj-ui-json}; one of an app's own language returns
- * it too. A formatter that finds a problem changes nothing, and the app can show the problem as a
- * diagnostic of the code editor, with the message the kit's texts give its kind ({@code
- * Texts.formatProblem}).
+ * it too, and its highlighter gives it to the code editor's format command ({@link
+ * Highlighter#formatter}). A formatter that finds a problem changes nothing, and the app can show
+ * the problem as a diagnostic of the code editor, with the message the kit's texts give its kind
+ * ({@code Texts.formatProblem}).
  *
  * <pre>{@code
  * Json.format("[1,2]")   // Formatted[text=[\n    1,\n    2\n], problem=null]
