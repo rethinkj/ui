@@ -169,8 +169,10 @@ public final class LayeredLayout {
     // The cluster of each node, and each cluster's nodes in the order they come.
     final int[] clusterOf;
     final List<List<Integer>> clusters = new ArrayList<>();
-    // Edges inside a cluster, from the node referred to to the one referring.
-    final List<int[]> arcs = new ArrayList<>();
+    // The connected part of each node, as the first node of the part, and the edges inside each
+    // part, from the node referred to to the one referring, in the order they come.
+    final int[] partOf;
+    final Map<Integer, List<int[]>> arcsOf = new HashMap<>();
     final Box[] boxes;
 
     Diagram(List<Node> nodes, List<Edge> edges, Options options) {
@@ -192,12 +194,28 @@ public final class LayeredLayout {
         clusterOf[i] = cluster;
         clusters.get(cluster).add(i);
       }
+      List<int[]> arcs = new ArrayList<>();
       for (Edge edge : edges) {
         Integer from = index.get(edge.from());
         Integer to = index.get(edge.to());
         if (from != null && to != null && !from.equals(to) && clusterOf[from] == clusterOf[to]) {
           arcs.add(new int[] {to, from});
         }
+      }
+      partOf = new int[nodes.size()];
+      for (int i = 0; i < partOf.length; i++) {
+        partOf[i] = i;
+      }
+      for (int[] arc : arcs) {
+        int a = find(partOf, arc[0]);
+        int b = find(partOf, arc[1]);
+        partOf[Math.max(a, b)] = Math.min(a, b);
+      }
+      for (int i = 0; i < partOf.length; i++) {
+        partOf[i] = find(partOf, i);
+      }
+      for (int[] arc : arcs) {
+        arcsOf.computeIfAbsent(partOf[arc[0]], part -> new ArrayList<>()).add(arc);
       }
     }
 
@@ -269,20 +287,9 @@ public final class LayeredLayout {
      * first, those of a size in the order of their first node.
      */
     private List<List<Integer>> connectedParts(List<Integer> cluster) {
-      int[] root = new int[nodes.size()];
-      for (int node : cluster) {
-        root[node] = node;
-      }
-      for (int[] arc : arcs) {
-        if (clusterOf[arc[0]] == clusterOf[cluster.get(0)]) {
-          int a = find(root, arc[0]);
-          int b = find(root, arc[1]);
-          root[Math.max(a, b)] = Math.min(a, b);
-        }
-      }
       Map<Integer, List<Integer>> parts = new LinkedHashMap<>();
       for (int node : cluster) {
-        parts.computeIfAbsent(find(root, node), r -> new ArrayList<>()).add(node);
+        parts.computeIfAbsent(partOf[node], part -> new ArrayList<>()).add(node);
       }
       List<List<Integer>> ordered = new ArrayList<>(parts.values());
       ordered.sort(Comparator.comparingInt((List<Integer> part) -> part.size()).reversed());
@@ -422,12 +429,15 @@ public final class LayeredLayout {
     // Per vertex, the part's nodes first and then the bends of edges that span layers: its layer,
     // its neighbors in the layers before and after it, and its size along the layer.
     final List<Integer> layering = new ArrayList<>();
-    final List<List<Integer>> joinedBefore = new ArrayList<>();
-    final List<List<Integer>> joinedAfter = new ArrayList<>();
-    // The shared bends of the long arcs from a node, by layer after it, and to a node, by layer
-    // before it.
-    final Map<Integer, List<Integer>> bendsAfter = new HashMap<>();
-    final Map<Integer, List<Integer>> bendsBefore = new HashMap<>();
+    // Each link a neighbor in the high half and its number of edges in the low half.
+    final List<List<Long>> joinedBefore = new ArrayList<>();
+    final List<List<Long>> joinedAfter = new ArrayList<>();
+    // Per node, the shared bends of the long arcs from it, by layer after it, and of those to it,
+    // by layer before it, and at each bend how many of those arcs leave the shared ones there.
+    final List<List<Integer>> bendsAfter = new ArrayList<>();
+    final List<List<Integer>> leavingAfter = new ArrayList<>();
+    final List<List<Integer>> bendsBefore = new ArrayList<>();
+    final List<List<Integer>> leavingBefore = new ArrayList<>();
     int[] layerOf;
     int[][] before;
     int[][] beforeWeight;
@@ -464,12 +474,8 @@ public final class LayeredLayout {
         local.put(members.get(k), k);
       }
       List<int[]> arcs = new ArrayList<>();
-      for (int[] arc : diagram.arcs) {
-        Integer from = local.get(arc[0]);
-        Integer to = local.get(arc[1]);
-        if (from != null && to != null) {
-          arcs.add(new int[] {from, to});
-        }
+      for (int[] arc : diagram.arcsOf.getOrDefault(diagram.partOf[members.get(0)], List.of())) {
+        arcs.add(new int[] {local.get(arc[0]), local.get(arc[1])});
       }
       return arcs;
     }
@@ -577,6 +583,12 @@ public final class LayeredLayout {
      * from far away, or that refers to many, costs a bend per layer, not one per edge and layer.
      */
     private void connectAll(List<int[]> arcs) {
+      for (int v = 0; v < size; v++) {
+        bendsAfter.add(new ArrayList<>());
+        leavingAfter.add(new ArrayList<>());
+        bendsBefore.add(new ArrayList<>());
+        leavingBefore.add(new ArrayList<>());
+      }
       int[] longOut = new int[size];
       int[] longIn = new int[size];
       for (int[] arc : arcs) {
@@ -592,40 +604,65 @@ public final class LayeredLayout {
           connectUp(arc[0], arc[1]);
         }
       }
+      for (int v = 0; v < size; v++) {
+        linkShared(v, bendsAfter.get(v), leavingAfter.get(v), true);
+        linkShared(v, bendsBefore.get(v), leavingBefore.get(v), false);
+      }
     }
 
+    /** An arc down the shared bends after its upper end, leaving them at its last one. */
     private void connectDown(int from, int to) {
-      List<Integer> shared = bendsAfter.computeIfAbsent(from, vertex -> new ArrayList<>());
+      int span = layering.get(to) - layering.get(from) - 1;
+      List<Integer> shared = bendsAfter.get(from);
+      while (shared.size() < span) {
+        shared.add(addVertex(layering.get(from) + 1 + shared.size()));
+        leavingAfter.get(from).add(0);
+      }
       int at = from;
-      int span = layering.get(to) - layering.get(from) - 1;
-      for (int k = 0; k < span; k++) {
-        if (k == shared.size()) {
-          shared.add(addVertex(layering.get(from) + 1 + k));
-        }
-        link(at, shared.get(k));
-        at = shared.get(k);
+      if (span > 0) {
+        at = shared.get(span - 1);
+        leavingAfter.get(from).set(span - 1, leavingAfter.get(from).get(span - 1) + 1);
       }
-      link(at, to);
+      link(at, to, 1);
     }
 
+    /** An arc up the shared bends before its lower end, joining them at its first one. */
     private void connectUp(int from, int to) {
-      List<Integer> shared = bendsBefore.computeIfAbsent(to, vertex -> new ArrayList<>());
-      int at = to;
       int span = layering.get(to) - layering.get(from) - 1;
-      for (int k = 0; k < span; k++) {
-        if (k == shared.size()) {
-          shared.add(addVertex(layering.get(to) - 1 - k));
-        }
-        link(shared.get(k), at);
-        at = shared.get(k);
+      List<Integer> shared = bendsBefore.get(to);
+      while (shared.size() < span) {
+        shared.add(addVertex(layering.get(to) - 1 - shared.size()));
+        leavingBefore.get(to).add(0);
       }
-      link(from, at);
+      int at = to;
+      if (span > 0) {
+        at = shared.get(span - 1);
+        leavingBefore.get(to).set(span - 1, leavingBefore.get(to).get(span - 1) + 1);
+      }
+      link(from, at, 1);
     }
 
-    /** Links two vertices once more: once for each edge that runs between them. */
-    private void link(int from, int to) {
-      joinedAfter.get(from).add(to);
-      joinedBefore.get(to).add(from);
+    /**
+     * Links a node's shared bends in a chain, each link once, with the number of arcs that run
+     * through it: those that leave at that bend or further away.
+     */
+    private void linkShared(int node, List<Integer> shared, List<Integer> leaving, boolean down) {
+      int through = 0;
+      for (int k = shared.size() - 1; k >= 0; k--) {
+        through += leaving.get(k);
+        int near = k == 0 ? node : shared.get(k - 1);
+        if (down) {
+          link(near, shared.get(k), through);
+        } else {
+          link(shared.get(k), near, through);
+        }
+      }
+    }
+
+    /** Links two vertices for this many edges more. */
+    private void link(int from, int to, int edges) {
+      joinedAfter.get(from).add(((long) to << 32) | edges);
+      joinedBefore.get(to).add(((long) from << 32) | edges);
     }
 
     /** The vertices in arrays, for the sweeps, each neighbor once with its number of edges. */
@@ -649,22 +686,24 @@ public final class LayeredLayout {
       }
     }
 
-    /** The distinct vertices, in order, and how often each comes. */
-    private static int[][] counted(List<Integer> joined) {
-      int[] sorted = new int[joined.size()];
+    /** The distinct neighbors, in order, and the number of edges to each. */
+    private static int[][] counted(List<Long> joined) {
+      long[] sorted = new long[joined.size()];
       for (int k = 0; k < sorted.length; k++) {
         sorted[k] = joined.get(k);
       }
       Arrays.sort(sorted);
       int distinct = 0;
+      int[] neighbors = new int[sorted.length];
       int[] counts = new int[sorted.length];
       for (int k = 0; k < sorted.length; k++) {
-        if (k == 0 || sorted[k] != sorted[k - 1]) {
-          sorted[distinct++] = sorted[k];
+        int neighbor = (int) (sorted[k] >>> 32);
+        if (distinct == 0 || neighbors[distinct - 1] != neighbor) {
+          neighbors[distinct++] = neighbor;
         }
-        counts[distinct - 1]++;
+        counts[distinct - 1] += (int) sorted[k];
       }
-      return new int[][] {Arrays.copyOf(sorted, distinct), Arrays.copyOf(counts, distinct)};
+      return new int[][] {Arrays.copyOf(neighbors, distinct), Arrays.copyOf(counts, distinct)};
     }
 
     private boolean isBend(int v) {
