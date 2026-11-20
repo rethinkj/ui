@@ -54,6 +54,7 @@ class DocsExamplesTest {
       Map.entry("status", List.of("view")),
       Map.entry("bars", List.of("view")),
       Map.entry("choices", List.of("view")),
+      Map.entry("hue-button", List.of("open")),
       Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("toolbar", List.of("view", "more")),
       Map.entry("tooltip", List.of("shown")),
@@ -84,6 +85,7 @@ class DocsExamplesTest {
     controls(all, "toggles", Controls::toggles, 240, 110);
     controls(all, "choices", Controls::choices, 320, 260);
     controls(all, "swatches", Controls::swatches, 460, 140);
+    controls(all, "hue-button", Controls::huePickerButton, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);

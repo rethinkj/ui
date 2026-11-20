@@ -1,0 +1,24 @@
+size 460 140
+frame
+press role=button label="Color"
+frame
+advance 0.3
+frame
+snap open
+key ArrowRight
+frame
+snap moved
+key Enter
+frame
+advance 0.3
+frame
+snap confirmed
+press role=button label="Color"
+frame
+advance 0.3
+frame
+press role=radio label="Red"
+frame
+advance 0.3
+frame
+snap chosen

@@ -23,6 +23,7 @@ import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.NumberField;
+import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Radio;
 import com.rethinkj.ui.kit.Segmented;
 import com.rethinkj.ui.kit.Select;
@@ -58,6 +59,7 @@ final class Controls {
   int fetchSize = 4;
   int kind = -1;
   Theme.Hue color = Theme.Hue.TEAL;
+  final Popover.State colorPopover = new Popover.State();
   int fontSize = 13;
   String filter = "";
   String table = "";
@@ -296,6 +298,19 @@ final class Controls {
     El color = HuePicker.huePicker(state.color, "None", state::color).label("Color");
     // docs:end hue-picker
     return Frame.of(kind, color);
+  }
+
+  static El huePickerButton(Controls state) {
+    // docs:start hue-picker-button
+    El form = Form.form(
+        Form.Labels.ABOVE,
+        Form.row(
+            Form.field("Host", TextField.textField(state.host, "localhost", state::host))
+                .grow(),
+            Form.field(
+                "Color", HuePicker.button(state.color, "None", state.colorPopover, state::color))));
+    // docs:end hue-picker-button
+    return Frame.of(form.w(320));
   }
 
   // docs:start choice-types

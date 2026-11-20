@@ -97,6 +97,11 @@ public final class Radio {
    *     disables the group
    */
   public static El swatches(List<Option> options, int selected, IntConsumer onSelect) {
+    return swatches(options, selected, onSelect, null);
+  }
+
+  /** Swatches that also run {@code onPressed} after any press on an option, a chosen one too. */
+  static El swatches(List<Option> options, int selected, IntConsumer onSelect, Runnable onPressed) {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     float gap = theme.size().ringGap();
@@ -132,7 +137,7 @@ public final class Radio {
       if (enabled) {
         option
             .cursor(Cursor.POINTER)
-            .onPress(choose(onSelect, selected, i))
+            .onPress(pressed(choose(onSelect, selected, i), onPressed))
             .whenHovered(e -> e.fill(theme.surface().hover()))
             .whenPressed(e -> e.fill(theme.surface().pressed()));
       }
@@ -270,6 +275,15 @@ public final class Radio {
       choose(onSelect, selected, next).run();
       return true;
     });
+  }
+
+  private static Runnable pressed(Runnable choose, Runnable onPressed) {
+    return onPressed == null
+        ? choose
+        : () -> {
+          choose.run();
+          onPressed.run();
+        };
   }
 
   /** The choice a key goes to from {@code selected}, or -2 for a key that chooses nothing. */

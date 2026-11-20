@@ -209,6 +209,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String color() {
+    return "Farbe";
+  }
+
+  @Override
   public String statusBar() {
     return "Statusleiste";
   }

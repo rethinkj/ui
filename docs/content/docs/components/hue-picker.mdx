@@ -19,10 +19,25 @@ Javadoc: [`HuePicker`](/api/com/rethinkj/ui/kit/HuePicker.html).
 | `huePicker(selected, onSelect)` | The 10 theme hues (`selected` may be `null`) |
 | `huePicker(selected, none, onSelect)` | Adds a leading "no color" option labeled `none` (selects `null`) |
 | `huePicker(prop, none)` | Binds to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) (`none` may be `null` to omit) |
+| `button(selected, none, state, onSelect)` | A compact button that opens the row in a popover (see below) |
 | `HuePicker.swatch(hue)` | Renders a single swatch dot (for menu items or lists) |
 | `HuePicker.name(hue)` | Human-readable hue name (`"Red"`, `"Violet"`, …) |
 
 Passing a `null` handler disables the picker. Each swatch shows its name in a tooltip on hover.
+
+## Compact
+
+Where a row of eleven swatches takes too much room, as in a form, `HuePicker.button` shows only the chosen swatch in a square button as high as a text field. A press opens the row in a [Popover](/docs/components/popover) below it; a press on a swatch chooses it and closes the popover. The app keeps the `Popover.State`, as it keeps a select's menu state.
+
+<Shot src="examples/docs/hue-button/open-{theme}" alt="A Host text field and beside it a small Color button showing a teal swatch, with a popover of all color swatches open below it" />
+
+```java snippet="hue-picker-button"
+```
+
+In the popover the arrow keys choose as in the row, and **Enter** or **Escape** close it. The button has no label of its own, so the form field names it. In a tree dump it is `role=button` with the chosen color as its value:
+
+```text file="examples/src/test/resources/golden/docs/hue-button/chosen.tree.txt" start="role=button" count="1"
+```
 
 ## Keyboard
 

@@ -21,6 +21,9 @@ import java.util.function.Consumer;
  * // None first, then the ten hues
  * HuePicker.huePicker(state.hue, "None", hue -> state.hue = hue)
  * }</pre>
+ *
+ * <p>Where a row of eleven swatches takes too much room, as in a form, {@link #button} shows only
+ * the chosen one and opens the row in a {@link Popover}.
  */
 public final class HuePicker {
 
@@ -46,12 +49,49 @@ public final class HuePicker {
    *     disables the picker
    */
   public static El huePicker(Theme.Hue selected, String none, Consumer<Theme.Hue> onSelect) {
-    List<Theme.Hue> hues = new ArrayList<>();
-    if (none != null) {
-      hues.add(null);
+    return swatches(selected, none, onSelect, null);
+  }
+
+  /**
+   * A square button as high as a text field that shows the chosen hue's swatch, or the symbol of
+   * no color, and opens the {@link #huePicker(Theme.Hue, String, Consumer) row} in a {@link
+   * Popover} below it, which fits beside a text field in a {@link Form#row}. A press on a swatch
+   * chooses it and closes the popover; the arrow keys choose as in the row, and Enter or Escape
+   * close it. The button has no label, so that its {@link Form#field} names it; in a tree dump it
+   * is {@code role=button} with the name of the choice as its value and {@code expanded} or {@code
+   * expanded=false}, and the open popover holds the {@code role=radiogroup}:
+   *
+   * <pre>{@code
+   * Form.field("Color", HuePicker.button(state.hue, "None", state.huePopover, state::hue))
+   * }</pre>
+   *
+   * @param selected the chosen hue; null for the choice of no color, or for none where there is
+   *     none
+   * @param none the name of the choice of no color, such as {@code None}; null for no such choice
+   * @param state whether the popover is open; the app keeps it
+   * @param onSelect told the hue the user chooses, null for no color, only when it changes; null
+   *     disables the button
+   */
+  public static El button(
+      Theme.Hue selected, String none, Popover.State state, Consumer<Theme.Hue> onSelect) {
+    Theme theme = Theme.CURRENT.get();
+    if (onSelect == null) {
+      state.close();
     }
-    hues.addAll(Arrays.asList(Theme.Hue.values()));
-    return Radio.swatches(hues, selected, hue -> option(hue, none), onSelect);
+    El button = Button.showing(
+            selected == null ? noColor(theme) : swatch(selected),
+            onSelect == null ? null : state::toggle)
+        .value(selected == null ? none : name(selected))
+        .expanded(state.isOpen());
+    // Around the row, whose own key handler chooses with the arrows.
+    El row = el().child(swatches(selected, none, onSelect, state::close)).onKey(k -> {
+      if (!k.name().equals("Enter") || k.modifiers() != 0) {
+        return false;
+      }
+      state.close();
+      return true;
+    });
+    return Popover.popover(button, state, Texts.CURRENT.get().color(), row);
   }
 
   /** A picker of the value of a {@link Prop}; a prop that cannot be written disables it. */
@@ -78,14 +118,28 @@ public final class HuePicker {
         .fill(theme.withAccent(hue).accent().edge());
   }
 
+  private static El swatches(
+      Theme.Hue selected, String none, Consumer<Theme.Hue> onSelect, Runnable onPressed) {
+    List<Theme.Hue> hues = new ArrayList<>();
+    if (none != null) {
+      hues.add(null);
+    }
+    hues.addAll(Arrays.asList(Theme.Hue.values()));
+    List<Radio.Option> options = new ArrayList<>(hues.size());
+    for (Theme.Hue hue : hues) {
+      options.add(option(hue, none));
+    }
+    return Radio.swatches(
+        options, hues.indexOf(selected), Choices.handler(hues, onSelect), onPressed);
+  }
+
   private static Radio.Option option(Theme.Hue hue, String none) {
     return hue == null
-        ? Radio.option(
-            none,
-            () -> Icon.icon(
-                Symbol.PROHIBITED,
-                Icon.Variant.MUTED,
-                Theme.CURRENT.get().size().checkbox()))
+        ? Radio.option(none, () -> noColor(Theme.CURRENT.get()))
         : Radio.option(name(hue), () -> swatch(hue));
+  }
+
+  private static El noColor(Theme theme) {
+    return Icon.icon(Symbol.PROHIBITED, Icon.Variant.MUTED, theme.size().checkbox());
   }
 }

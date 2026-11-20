@@ -645,6 +645,21 @@ public final class Button {
   }
 
   /**
+   * A square secondary button of the regular size that shows {@code content}, such as a swatch,
+   * without a label or a tooltip, so that a {@link Form#field} names it.
+   *
+   * @param onPress runs when the button is pressed; null disables the button
+   */
+  static El showing(El content, Runnable onPress) {
+    Theme theme = Theme.CURRENT.get();
+    Look look = look(theme, Variant.SECONDARY, Tone.NEUTRAL, onPress != null);
+    El button = frame(theme, look, Size.REGULAR, null, onPress == null)
+        .w(height(theme, Size.REGULAR))
+        .child(content);
+    return enable(theme, look, button, onPress);
+  }
+
+  /**
    * The menu entry of a button that a toolbar has no room for: its state, tone and shortcut as a
    * menu shows them.
    */

@@ -229,6 +229,11 @@ public interface Texts {
     return "Breadcrumb";
   }
 
+  /** The popover of a {@link HuePicker#button}. */
+  default String color() {
+    return "Color";
+  }
+
   /** A hue's name: {@code Red} for {@link Theme.Hue#RED}. */
   default String hue(Theme.Hue hue) {
     String name = hue.name();

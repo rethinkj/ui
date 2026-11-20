@@ -1,0 +1,1 @@
+- `HuePicker.button(selected, none, state, onSelect)` is a compact color picker: a square button as high as a text field that shows the chosen swatch and opens the row of swatches in a popover, so a color fits beside a field in a `Form.row`. A press on a swatch chooses it and closes the popover.
