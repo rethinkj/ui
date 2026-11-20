@@ -283,14 +283,15 @@ public final class Canvas {
         box.value(texts.pinned());
       }
       // A fixed node takes the drag too, or it would pan the canvas.
-      box.onDrag(onMove == null ? drag -> {} : drag -> move(viewport, node, zoom, onMove, drag));
+      box.onDrag(onMove == null ? drag -> {} : drag -> move(viewport, node, onMove, drag));
       canvas.child(box);
     }
     return canvas;
   }
 
-  private static void move(
-      Viewport viewport, Node node, float zoom, Consumer<Node> onMove, Drag drag) {
+  private static void move(Viewport viewport, Node node, Consumer<Node> onMove, Drag drag) {
+    // The zoom of now, not of the view the press came in: a fit may have changed it since.
+    float zoom = viewport.zoom();
     switch (drag.phase()) {
       case START -> viewport.dragged = node.key();
       case END, CANCEL -> viewport.dragged = null;
