@@ -5,6 +5,7 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -880,7 +881,7 @@ class TreeTest {
       assertNull(find(app, "marker"), "nothing shows over " + over);
     }
     run(app, "move 200,122\nframe"); // the top of notes.txt
-    assertTrue(find(app, "marker") != null, "a line above notes.txt");
+    assertNotNull(find(app, "marker"), "a line above notes.txt");
     run(app, "move #row-b.txt\nup #row-b.txt\nframe");
     assertEquals(List.of(), folders.log);
     List<String> inside = List.of("docs", "drafts", "b.txt", "a.txt");

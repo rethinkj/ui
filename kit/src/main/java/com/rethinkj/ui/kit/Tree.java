@@ -288,9 +288,6 @@ public final class Tree {
     boolean top;
     int depth; // the level of the line
 
-    /** A drag state for one tree. */
-    public Dragging() {}
-
     void unmark() {
       markRow = -1;
       edge = 0;
@@ -645,7 +642,8 @@ public final class Tree {
     float near = Math.min(height, tree.height() / 2);
     int edge = y < near && scrollY > 0 ? -1 : y > tree.height() - near && scrollY < end ? 1 : 0;
     double shift = 0; // how far the rows move under the pointer with this step
-    if (edge == 0 || edge != g.edge || !(d.time() > g.edgeSince)) { // NaN: no clock, no scroll
+    boolean waited = d.time() > g.edgeSince; // false without a clock, whose time is NaN
+    if (edge == 0 || edge != g.edge || !waited) {
       g.edge = edge;
       g.edgeSince = d.time();
     } else {
