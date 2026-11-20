@@ -123,6 +123,33 @@ class CanvasTest {
     assertTrue(line(fitted, "#board").contains(" value=\"Zoom 25%\""), fitted);
   }
 
+  @Test
+  void aZoomWhilePanningMovesNothingOnRelease() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    String script = """
+        size 400 260
+        frame
+        focus #board
+        down 300,200
+        move 260,180
+        key +
+        up 260,180
+        frame
+        """;
+    Script.run(script, app, out);
+    Canvas.Viewport viewport = app.state().viewport;
+    // Panned to 40,20, then zoomed to 125 % around the center, 200,130: the release adds nothing.
+    assertEquals(1.25f, viewport.zoom());
+    assertEquals(40 + 200 - 200 / 1.25, viewport.left(), 1e-9);
+    assertEquals(20 + 130 - 130 / 1.25, viewport.top(), 1e-9);
+  }
+
   /** The line of the element with this key in a tree dump, or nothing. */
   private static String line(String tree, String key) {
     return tree.lines().filter(l -> l.contains(key + " ")).findFirst().orElse("");

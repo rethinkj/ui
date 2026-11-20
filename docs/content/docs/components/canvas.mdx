@@ -35,9 +35,11 @@ Zoom does not scale a picture: the canvas lays its nodes out again at their size
 
 The canvas builds only the nodes that lie inside it, so a large diagram stays fast. Pins are plain values in your state: the canvas only reports that the user moved a node.
 
+The canvas learns its size from layout when that size changes. To show another diagram in the same place with a new `Viewport`, give the canvas another key, such as `canvas(...).key(diagram.name())`; with the same key the new viewport learns no size and shows no nodes.
+
 ## Pointer and keyboard
 
-Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
+Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
 
 ## In a tree dump
 

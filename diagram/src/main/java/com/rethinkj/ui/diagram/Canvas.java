@@ -119,8 +119,9 @@ public final class Canvas {
     private float fittedHeight;
     // The node being dragged, which the canvas builds also outside it, or its drag would end.
     private String dragged;
-    // Where the dragged node is, and the pointer's distance at the last step: each step adds its
-    // own movement at the zoom of that step, so that a zoom during the drag moves nothing.
+    // Where the dragged node is, and the pointer's distance at the last step of a drag of a node
+    // or of the canvas: each step adds its own movement at the zoom of that step, so that a zoom
+    // during the drag moves nothing.
     private double draggedX;
     private double draggedY;
     private float draggedDx;
@@ -261,11 +262,7 @@ public final class Canvas {
           viewport.height = height;
         })
         .onKey(key -> key(viewport, key))
-        .onDrag(drag -> {
-          // From where the view the drag began in showed the diagram, to undo a cancel.
-          float by = drag.phase() == Drag.Phase.CANCEL ? 0 : 1;
-          viewport.panTo(left - by * drag.dx() / zoom, top - by * drag.dy() / zoom);
-        });
+        .onDrag(drag -> pan(viewport, left, top, drag));
     for (Node node : nodes) {
       boolean inside = right > left
           && bottom > top
@@ -295,6 +292,27 @@ public final class Canvas {
       canvas.child(box);
     }
     return canvas;
+  }
+
+  /** Pans by each step's movement at the zoom of that step; a cancel goes back to the start. */
+  private static void pan(Viewport viewport, double left, double top, Drag drag) {
+    switch (drag.phase()) {
+      case START -> {
+        viewport.draggedDx = 0;
+        viewport.draggedDy = 0;
+      }
+      case CANCEL -> {
+        viewport.panTo(left, top);
+        return;
+      }
+      default -> {}
+    }
+    float zoom = viewport.zoom();
+    viewport.panTo(
+        viewport.left - (drag.dx() - viewport.draggedDx) / zoom,
+        viewport.top - (drag.dy() - viewport.draggedDy) / zoom);
+    viewport.draggedDx = drag.dx();
+    viewport.draggedDy = drag.dy();
   }
 
   private static void move(Viewport viewport, Node node, Consumer<Node> onMove, Drag drag) {
