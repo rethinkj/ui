@@ -237,6 +237,10 @@ class FormatTest {
         assertNotNull(Format.DURATION.parse(text).error(), text.substring(0, 1));
       }
       assertNotNull(Format.DURATION.parse("1 s ".repeat(24_999) + "x").error(), "parts");
+      String fraction = "0." + "9".repeat(50_000) + " s" + "1s".repeat(24_990);
+      assertNotNull(Format.DURATION.parse(fraction + "x").error(), "a long fraction, many parts");
+      assertTrue(Format.DURATION.parse(fraction).valid(), "a long fraction, many parts");
+      assertNotNull(Format.DURATION.parse("Σ".repeat(16_000)).error(), "no case folding of it");
     });
   }
 
@@ -349,6 +353,7 @@ class FormatTest {
       {"850 ns", Duration.ofNanos(850)},
       {"1.4 µs", Duration.ofNanos(1_400)},
       {"1.4 us", Duration.ofNanos(1_400)},
+      {"1 ΜS", Duration.ofNanos(1_000)}, // a capital mu
       {"-1.4 s", Duration.ofMillis(-1_400)},
       {" 1.5H ", Duration.ofMinutes(90)},
       {"1h30min", Duration.ofMinutes(90)},
@@ -359,7 +364,8 @@ class FormatTest {
       assertEquals(row[1], Format.DURATION.parse((String) row[0]).value(), (String) row[0]);
     }
     String message = "Expected a duration such as 12 ms, 1.4 s or 2 min 3 s";
-    for (String text : List.of("12", "1,4 s", "1 m", "s", "1 s 2", "--1 s", "1e3 s", "1 sec")) {
+    for (String text :
+        List.of("12", "1,4 s", "1 m", "s", "1 s 2", "--1 s", "1e3 s", "1 sec", "1 mın", "1 ſ")) {
       refused(Format.DURATION, text, message);
     }
     refused(Format.DURATION, "106751991167301 d", message); // beyond Duration

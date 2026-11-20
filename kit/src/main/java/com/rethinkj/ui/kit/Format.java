@@ -134,14 +134,11 @@ public final class Format<T> {
       "\\s*+\\d*(?:\\.\\d*)?\\s*+(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
   private static final String[] BYTE_UNITS = {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
 
-  // A number and a unit, once or more, after a minus if any: 2 min 3 s, -12 ms. Possessive, so
-  // that a long text with a wrong end fails in linear time.
-  private static final String DURATION_PART =
-      "(\\d++(?:\\.\\d*+)?+|\\.\\d++)\\s*+(d|h|min|ms|s|[uµμ]s|ns)\\s*+";
-  private static final Pattern DURATION_TEXT =
-      Pattern.compile("-?\\s*+(?:" + DURATION_PART + ")++", Pattern.CASE_INSENSITIVE);
-  private static final Pattern DURATION_PARTS =
-      Pattern.compile(DURATION_PART, Pattern.CASE_INSENSITIVE);
+  // A number and a unit of a duration in any case, such as the 2 min of 2 min 3 s. Read part
+  // after part, and possessive, so that a long text with a wrong end fails in linear time; the
+  // cases are spelled out, as a flag would fold other letters (ı, ſ) into the units.
+  private static final Pattern DURATION_PART = Pattern.compile("(\\d++(?:\\.\\d*+)?+|\\.\\d++)\\s*+"
+      + "([dD]|[hH]|[mM][iI][nN]|[mM][sS]|[sS]|[uUµμΜ][sS]|[nN][sS])\\s*+");
   private static final String[] SMALL_UNITS = {"ns", "µs", "ms", "s"};
 
   /**
@@ -385,8 +382,9 @@ public final class Format<T> {
    * <p>It reads its own texts back to the length they say, so a value comes back only as exactly
    * as it was written: {@code 1.4 s} is 1400 ms, also where the value was 1427 ms. It reads any
    * sum of numbers with units ({@code 1 h 30 min}, {@code 90 min}, {@code 1.5 h}), without a space
-   * before a unit too, in any case, and {@code us} for {@code µs}; a fraction of a nanosecond is
-   * rounded half up. A number without a unit, or a length beyond {@link Duration}'s, is refused.
+   * before a unit too, in any case, and {@code us} for {@code µs}; a part's fraction of a
+   * nanosecond is rounded half up. A number without a unit, or a length beyond {@link Duration}'s,
+   * is refused.
    * Its {@link #type} is {@link DataType#DECIMAL}, so a grid's column of lengths aligns right with
    * tabular figures, and sorts by the value.
    */
@@ -394,23 +392,28 @@ public final class Format<T> {
       Format::duration,
       text -> {
         String stripped = text.strip();
-        if (text.length() > MAX_NUMBER_LENGTH
-            || !DURATION_TEXT.matcher(stripped).matches()) {
+        boolean negative = stripped.startsWith("-");
+        int at = negative ? 1 : 0;
+        if (text.length() > MAX_NUMBER_LENGTH || at == stripped.length()) {
           return Parsed.error(texts().expectedDuration());
         }
-        BigDecimal seconds = BigDecimal.ZERO;
-        var part = DURATION_PARTS.matcher(stripped);
-        while (part.find()) {
-          seconds = seconds.add(new BigDecimal(part.group(1)).multiply(seconds(part.group(2))));
+        BigInteger nanos = BigInteger.ZERO;
+        var part = DURATION_PART.matcher(stripped);
+        while (at < stripped.length()) {
+          // Beyond 100 bits the sum is past any Duration's 93, and stays short to add to.
+          if (!part.region(at, stripped.length()).lookingAt() || nanos.bitLength() > 100) {
+            return Parsed.error(texts().expectedDuration());
+          }
+          nanos = nanos.add(new BigDecimal(part.group(1))
+              .multiply(nanos(part.group(2).toLowerCase(Locale.ROOT)))
+              .setScale(0, RoundingMode.HALF_UP)
+              .toBigInteger());
+          at = part.end();
         }
-        BigInteger[] nanos = seconds
-            .movePointRight(9)
-            .setScale(0, RoundingMode.HALF_UP)
-            .toBigInteger()
-            .multiply(BigInteger.valueOf(stripped.startsWith("-") ? -1 : 1))
+        BigInteger[] seconds = (negative ? nanos.negate() : nanos)
             .divideAndRemainder(BigInteger.valueOf(1_000_000_000));
         try {
-          return Parsed.of(Duration.ofSeconds(nanos[0].longValueExact(), nanos[1].longValue()));
+          return Parsed.of(Duration.ofSeconds(seconds[0].longValueExact(), seconds[1].longValue()));
         } catch (ArithmeticException _) { // beyond Duration's seconds
           return Parsed.error(texts().expectedDuration());
         }
@@ -685,7 +688,7 @@ public final class Format<T> {
       return sign + inSeconds.intValue() / 60 + " min " + inSeconds.intValue() % 60 + " s";
     }
     BigDecimal minutes = seconds.divide(BigDecimal.valueOf(60), 0, RoundingMode.HALF_UP);
-    if (minutes.compareTo(BigDecimal.valueOf(24 * 60)) < 0) {
+    if (minutes.compareTo(BigDecimal.valueOf(24L * 60)) < 0) {
       return sign + minutes.intValue() / 60 + " h " + minutes.intValue() % 60 + " min";
     }
     BigInteger[] days = seconds
@@ -696,17 +699,18 @@ public final class Format<T> {
     return sign + days[0] + " d " + days[1] + " h";
   }
 
-  /** The seconds of a unit of {@link #DURATION}, in any case. */
-  private static BigDecimal seconds(String unit) {
-    return switch (unit.toLowerCase(Locale.ROOT)) {
-      case "d" -> BigDecimal.valueOf(86_400);
-      case "h" -> BigDecimal.valueOf(3600);
-      case "min" -> BigDecimal.valueOf(60);
-      case "s" -> BigDecimal.ONE;
-      case "ms" -> BigDecimal.valueOf(1, 3);
-      case "ns" -> BigDecimal.valueOf(1, 9);
-      default -> BigDecimal.valueOf(1, 6); // µs, μs or us
-    };
+  /** The nanoseconds of a unit of {@link #DURATION}, in lower case. */
+  private static BigDecimal nanos(String unit) {
+    return BigDecimal.valueOf(
+        switch (unit) {
+          case "d" -> 86_400_000_000_000L;
+          case "h" -> 3_600_000_000_000L;
+          case "min" -> 60_000_000_000L;
+          case "s" -> 1_000_000_000L;
+          case "ms" -> 1_000_000L;
+          case "ns" -> 1L;
+          default -> 1000L; // µs, μs or us
+        });
   }
 
   /** {@code value / by}, rounded half up, without overflowing. */
