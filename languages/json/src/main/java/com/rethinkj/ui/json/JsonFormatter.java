@@ -19,6 +19,7 @@ final class JsonFormatter {
   private static final int END = -1;
   private static final int STRING = '"';
   private static final int SCALAR = '0'; // a number, true, false or null
+  private static final int OTHER = -3; // a character or word JSON does not know
 
   // What may come next.
   private static final int VALUE = 0;
@@ -29,7 +30,7 @@ final class JsonFormatter {
   private static final int AFTER_VALUE = 5; // a comma, the closing bracket or the end
   private static final int DONE = 6;
 
-  /** A token or a state: the problem is found. */
+  /** A state: the problem is found. */
   private static final int ERROR = -2;
 
   private final String text;
@@ -39,6 +40,7 @@ final class JsonFormatter {
   private int depth;
   private int start; // of the token
   private int at; // after it
+  private Problem invalid; // of the token, a string or a number, where one may stand
   private Problem problem;
 
   private JsonFormatter(String text, StringBuilder out) {
@@ -66,9 +68,6 @@ final class JsonFormatter {
     int state = VALUE;
     while (state != DONE && state != ERROR) {
       int token = next();
-      if (token == ERROR) {
-        break;
-      }
       state = switch (state) {
         case VALUE -> value(token);
         case FIRST_ELEMENT -> first(false, token);
@@ -83,8 +82,7 @@ final class JsonFormatter {
 
   private int value(int token) {
     if (token == STRING || token == SCALAR) {
-      copy();
-      return AFTER_VALUE;
+      return copy(AFTER_VALUE);
     }
     if (token != '[' && token != '{') {
       return unexpected(token);
@@ -107,11 +105,7 @@ final class JsonFormatter {
   }
 
   private int name(int token) {
-    if (token != STRING) {
-      return unexpected(token);
-    }
-    copy();
-    return COLON;
+    return token == STRING ? copy(COLON) : unexpected(token);
   }
 
   private int colon(int token) {
@@ -160,12 +154,17 @@ final class JsonFormatter {
     }
   }
 
-  /** The token as it is written. */
-  private void copy() {
+  /** The string or number as it is written, then {@code state}; unless it is invalid. */
+  private int copy(int state) {
+    if (invalid != null) {
+      problem = invalid;
+      return ERROR;
+    }
     length += at - start;
     if (out != null) {
       out.append(text, start, at);
     }
+    return state;
   }
 
   /** A line feed and the indentation of the depth: four spaces a step. */
@@ -178,8 +177,12 @@ final class JsonFormatter {
 
   // ---- Tokens
 
-  /** The next token after white space, from {@link #start} to {@link #at}. */
+  /**
+   * The next token after white space, from {@link #start} to {@link #at}; a string or number that
+   * is not valid to the end of its {@link #invalid} problem, which counts only where one may stand.
+   */
   private int next() {
+    invalid = null;
     int n = text.length();
     while (at < n && isSpace(text.charAt(at))) {
       at++;
@@ -205,7 +208,7 @@ final class JsonFormatter {
           return word();
         }
         at += Character.charCount(text.codePointAt(at));
-        return fail(start, at, Kind.UNEXPECTED);
+        return OTHER;
       }
     }
   }
@@ -221,25 +224,33 @@ final class JsonFormatter {
         return STRING;
       } else if (c == '\\') {
         i = escape(i);
-        if (i == ERROR) {
-          return ERROR;
+        if (i < 0) {
+          return STRING;
         }
       } else if (c == '\n' || c == '\r') {
-        return fail(start, i, Kind.UNCLOSED_STRING);
+        return invalid(start, i, Kind.UNCLOSED_STRING);
       } else if (c < 0x20) { // a control character, which JSON escapes
-        return fail(i, i + 1, Kind.UNEXPECTED);
+        return invalid(i, i + 1, Kind.UNEXPECTED);
       } else {
         i++;
       }
     }
-    return fail(start, n, Kind.UNCLOSED_STRING);
+    return invalid(start, n, Kind.UNCLOSED_STRING);
   }
 
-  /** The end of the escape whose backslash is at {@code i}; {@link #ERROR} for an invalid one. */
+  /** A string that is not valid: its problem, and its end there. */
+  private int invalid(int from, int to, Kind kind) {
+    invalid = new Problem(from, to, kind);
+    at = to;
+    return STRING;
+  }
+
+  /** The end of the escape whose backslash is at {@code i}; -1 for an invalid one. */
   private int escape(int i) {
     int n = text.length();
     if (i + 1 == n) {
-      return fail(start, n, Kind.UNCLOSED_STRING);
+      invalid(start, n, Kind.UNCLOSED_STRING);
+      return -1;
     }
     char e = text.charAt(i + 1);
     switch (e) {
@@ -248,18 +259,19 @@ final class JsonFormatter {
       }
       case 'u' -> {
         int end = i + 2;
-        while (end < n && end < i + 6 && Character.digit(text.charAt(end), 16) >= 0) {
+        while (end < n && end < i + 6 && isHex(text.charAt(end))) {
           end++;
         }
-        return end == i + 6 ? end : fail(i, end, Kind.INVALID_ESCAPE);
+        if (end == i + 6) {
+          return end;
+        }
+        invalid(i, end, Kind.INVALID_ESCAPE);
       }
-      case '\n', '\r' -> {
-        return fail(i, i + 1, Kind.INVALID_ESCAPE);
-      }
-      default -> {
-        return fail(i, i + 1 + Character.charCount(text.codePointAt(i + 1)), Kind.INVALID_ESCAPE);
-      }
+      case '\n', '\r' -> invalid(i, i + 1, Kind.INVALID_ESCAPE);
+      default ->
+        invalid(i, i + 1 + Character.charCount(text.codePointAt(i + 1)), Kind.INVALID_ESCAPE);
     }
+    return -1;
   }
 
   /**
@@ -273,7 +285,10 @@ final class JsonFormatter {
       i++;
     }
     at = i;
-    return isNumber() ? SCALAR : fail(start, at, Kind.INVALID_NUMBER);
+    if (!isNumber()) {
+      invalid = new Problem(start, at, Kind.INVALID_NUMBER);
+    }
+    return SCALAR;
   }
 
   /** Whether the token is {@code -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?}. */
@@ -302,18 +317,23 @@ final class JsonFormatter {
     return i > from ? i : -1;
   }
 
-  /** {@code true}, {@code false} or {@code null}; another word is unexpected as a whole. */
+  /** {@code true}, {@code false} or {@code null}; another word is one token, unexpected. */
   private int word() {
     int i = start + 1;
     while (i < text.length() && isWordChar(text.charAt(i))) {
       i++;
     }
     at = i;
-    return Json.isLiteral(text, start, at) ? SCALAR : fail(start, at, Kind.UNEXPECTED);
+    return Json.isLiteral(text, start, at) ? SCALAR : OTHER;
   }
 
   private static boolean isSpace(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+  }
+
+  /** A hexadecimal digit, as JSON writes it: of ASCII. */
+  private static boolean isHex(char c) {
+    return Json.isDigit(c) || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
   }
 
   private static boolean isWordChar(char c) {

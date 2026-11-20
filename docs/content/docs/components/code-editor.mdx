@@ -43,7 +43,7 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 ### Formatting JSON
 
-The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. It returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`:
+The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. It returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`. A handler runs outside the view, so it takes the texts the view read with `Texts.CURRENT.get()`:
 
 ```java snippet="code-editor-json-format"
 ```

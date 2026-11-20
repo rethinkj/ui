@@ -123,8 +123,11 @@ final class Editors {
 
   final CodeEditor.State cellEditor = new CodeEditor.State().readOnly(true);
 
-  /** Shows the value formatted; JSON that is not valid as it is, with its first problem. */
-  void show(String value) {
+  /**
+   * Shows the value formatted; JSON that is not valid as it is, with its first problem in the texts
+   * of the view the handler came from: {@code Texts.CURRENT.get()} where the view builds.
+   */
+  void show(String value, Texts texts) {
     Formatted formatted = Json.format(value);
     if (formatted.valid()) {
       cell = formatted.text();
@@ -132,7 +135,7 @@ final class Editors {
       return;
     }
     Formatted.Problem problem = formatted.problem();
-    String message = Texts.CURRENT.get().formatProblem(problem.kind());
+    String message = texts.formatProblem(problem.kind());
     cell = value;
     cellEditor.diagnostics(
         value,

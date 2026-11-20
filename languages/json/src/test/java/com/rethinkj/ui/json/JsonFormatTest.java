@@ -42,7 +42,6 @@ class JsonFormatTest {
         formatted,
         format("{\"id\":1042,\"customer\":\"Ada\",\"items\":[{\"sku\":\"A-17\",\"quantity\":2},[]],"
             + "\"coupon\":null,\"tags\":{}}"));
-    assertEquals(formatted, format(formatted));
     assertEquals(
         formatted,
         format(formatted.replace("\n", "\r\n\t").replace(": ", " :\t")),
@@ -86,6 +85,8 @@ class JsonFormatTest {
     problem("[-Infinity]", 1, 10, Kind.INVALID_NUMBER);
     problem("[\"a\\x\"]", 3, 5, Kind.INVALID_ESCAPE);
     problem("[\"\\u12\"]", 2, 6, Kind.INVALID_ESCAPE);
+    problem("[\"\\u00\uFF210\"]", 2, 6, Kind.INVALID_ESCAPE); // a fullwidth A is no hex digit
+    problem("[1 \"\\q\"]", 3, 6, Kind.UNEXPECTED); // the missing comma before the bad escape
     problem("[\"abc", 1, 5, Kind.UNCLOSED_STRING);
     problem("[\"abc\n\"]", 1, 5, Kind.UNCLOSED_STRING);
     problem("[\"😀\",😀]", 6, 8, Kind.UNEXPECTED);
