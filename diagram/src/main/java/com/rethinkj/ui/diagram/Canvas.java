@@ -32,6 +32,11 @@ import java.util.function.Consumer;
  * {@code 0} fits all nodes in ({@link Viewport#fit}). The canvas fills itself with {@link
  * Theme.Surfaces#window} and clips its nodes. It needs a size of its own or room to grow.
  *
+ * <p>A node takes the pointer as a whole: content with a press or drag handler of its own keeps
+ * the pointer there, and the node does not move. A canvas learns its size when layout gives it a
+ * new one; one that shows another viewport in the same place needs another {@link El#key}, such as
+ * the diagram's name, or the new viewport learns no size and the canvas shows no nodes.
+ *
  * <p>In a tree dump the canvas is {@code role=graphics-document} with the label {@link
  * DiagramTexts#diagram} unless the app gives another, and its zoom as the value ({@link
  * DiagramTexts#zoom}). Each node is {@code role=graphics-object} with its key and label, and the
@@ -108,6 +113,8 @@ public final class Canvas {
     private float width;
     private float height;
     private boolean fitDue;
+    // Whether the last build fitted, to fit again should its layout give the canvas another size.
+    private boolean fitted;
     // The node being dragged, which the canvas builds also outside it, or its drag would end.
     private String dragged;
 
@@ -174,7 +181,8 @@ public final class Canvas {
     }
 
     void fitIfDue(List<Node> nodes, float margin) {
-      if (!fitDue || width <= 0 || height <= 0) {
+      fitted = fitDue && width > 0 && height > 0;
+      if (!fitted) {
         return;
       }
       fitDue = false;
@@ -210,7 +218,7 @@ public final class Canvas {
    * @param nodes the nodes, each with a key of its own; later ones lie on top
    * @param content builds what each node shows at the zoom of the moment
    * @param onMove told a node moved and pinned while the user drags it, and the node as it was
-   *     when the drag is cancelled; null fixes the nodes, while the canvas still pans
+   *     when the drag is cancelled; null fixes the nodes
    */
   public static El canvas(
       Viewport viewport, List<Node> nodes, NodeContent content, Consumer<Node> onMove) {
@@ -230,6 +238,7 @@ public final class Canvas {
         .focusable()
         .focusRing(theme.accent().edge())
         .onResize((width, height) -> {
+          viewport.fitDue |= viewport.fitted;
           viewport.width = width;
           viewport.height = height;
         })
@@ -240,25 +249,31 @@ public final class Canvas {
           viewport.panTo(left - by * drag.dx() / zoom, top - by * drag.dy() / zoom);
         });
     for (Node node : nodes) {
-      boolean inside = node.x() < right
+      boolean inside = right > left
+          && bottom > top
+          && node.x() < right
           && node.x() + node.width() > left
           && node.y() < bottom
           && node.y() + node.height() > top;
       if (!inside && !node.key().equals(viewport.dragged)) {
         continue;
       }
+      long x = Math.round((node.x() - left) * zoom);
+      long y = Math.round((node.y() - top) * zoom);
       El box = el().key(node.key())
           .role("graphics-object")
           .label(node.label())
-          .absolute(Math.round((node.x() - left) * zoom), Math.round((node.y() - top) * zoom))
-          .size(Math.round(node.width() * zoom), Math.round(node.height() * zoom))
+          // Rounded at both edges, so that nodes that touch still touch at every zoom.
+          .absolute(x, y)
+          .size(
+              Math.round((node.x() + node.width() - left) * zoom) - x,
+              Math.round((node.y() + node.height() - top) * zoom) - y)
           .child(content.build(node, zoom));
       if (node.pinned()) {
         box.value(texts.pinned());
       }
-      if (onMove != null) {
-        box.onDrag(drag -> move(viewport, node, zoom, onMove, drag));
-      }
+      // A fixed node takes the drag too, or it would pan the canvas.
+      box.onDrag(onMove == null ? drag -> {} : drag -> move(viewport, node, zoom, onMove, drag));
       canvas.child(box);
     }
     return canvas;
