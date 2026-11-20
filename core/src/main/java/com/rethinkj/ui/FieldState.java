@@ -1,6 +1,7 @@
 package com.rethinkj.ui;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * What a text field keeps of its editing while it is not in the tree, held by the app: caret and
@@ -80,13 +81,48 @@ public final class FieldState {
    * @throws IllegalArgumentException if {@code caret} is negative or beyond {@code text}
    */
   public void replaceSelection(String text, int caret) {
+    checkCaret(text, caret);
+    edit(editor -> editor.request(editor.start(), editor.end(), text, editor.start() + caret));
+  }
+
+  /**
+   * Replaces characters {@code from} to {@code to} of the field's string by {@code text}, with the
+   * caret at {@code caret} in {@code text}, as {@link #replaceSelection(String, int)} does with
+   * the selection: for text that goes to a place the app computed, such as a line below the one
+   * with the caret. The positions are taken as they are, not moved to a grapheme boundary as
+   * {@link #select} moves them, and clamped to the string the field has when the edit runs. Undo
+   * brings back the selection the field had before. Unlike {@link App#edit}, it needs no field of
+   * the last frame's tree, and {@code caret} is a position in {@code text}, not in the new string.
+   *
+   * @param from the first position, an index into the string from 0
+   * @param to the position after the last, at least {@code from}
+   * @param caret the caret's position in {@code text}, from 0 to its length
+   * @throws IllegalArgumentException if {@code from} is negative, {@code to} is before it, or
+   *     {@code caret} is negative or beyond {@code text}
+   */
+  public void replace(int from, int to, String text, int caret) {
+    if (from < 0 || to < from) {
+      throw new IllegalArgumentException(
+          "from must be 0 or more and to at least from, were " + from + " and " + to);
+    }
+    checkCaret(text, caret);
+    edit(editor -> {
+      int at = Math.min(from, editor.text().length()); // the caret goes into the text where it is
+      editor.request(at, to, text, at + caret);
+    });
+  }
+
+  private static void checkCaret(String text, int caret) {
     Objects.requireNonNull(text, "text");
     if (caret < 0 || caret > text.length()) {
       throw new IllegalArgumentException(
           "caret must be from 0 to the text's length " + text.length() + ", was " + caret);
     }
+  }
+
+  private void edit(Consumer<Editor> edit) {
     if (app instanceof App<?> owner) {
-      owner.replaceSelection(this, text, caret);
+      owner.edit(this, edit);
     }
   }
 }

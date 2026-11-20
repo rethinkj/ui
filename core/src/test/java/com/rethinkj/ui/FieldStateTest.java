@@ -278,6 +278,31 @@ class FieldStateTest {
   }
 
   @Test
+  void replaceEditsTheRangeAndUndoBringsBackTheSelection() {
+    TextLibraries.assumeLoaded();
+    App<Model> app = started();
+    FieldState state = app.state().fields[0];
+    state.select(5, 3); // SEL^EC|T 1, inside the line
+    app.frame();
+    app.post(() -> state.replace(8, 9, "\nSELECT 0\n", 9)); // a line below, the caret at its end
+    app.frame();
+    assertTrue(show(app).startsWith("SELECT 1\nSELECT 0|\nSELECT 2"), show(app));
+    app.undo(field(app));
+    app.frame();
+    assertTrue(show(app).startsWith("SEL^EC|T 1\nSELECT 2"), "where it was: " + show(app));
+
+    app.state().sql[0] = "SELECT 1;́"; // a combining accent after the semicolon
+    app.frame();
+    app.post(() -> state.replace(9, 9, " -- one", 7)); // not moved before the semicolon
+    app.frame();
+    assertEquals("SELECT 1; -- oné", app.state().sql[0]);
+
+    assertThrows(IllegalArgumentException.class, () -> state.replace(-1, 0, "x", 0));
+    assertThrows(IllegalArgumentException.class, () -> state.replace(2, 1, "x", 0));
+    assertThrows(IllegalArgumentException.class, () -> state.replace(0, 0, "x", 2));
+  }
+
+  @Test
   void aStringTheAppChangedMeanwhileEndsTheHistory() {
     TextLibraries.assumeLoaded();
     App<Model> app = started();

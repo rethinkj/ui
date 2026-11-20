@@ -3657,8 +3657,11 @@ public final class App<S> {
     });
   }
 
-  /** {@link FieldState#replaceSelection}: in the field that has {@code state} when it runs. */
-  void replaceSelection(FieldState state, String text, int caret) {
+  /**
+   * {@link FieldState#replaceSelection} and {@link FieldState#replace}: runs {@code edit} on the
+   * editor of the field that has {@code state} right after the handler, as {@link #edit} does.
+   */
+  void edit(FieldState state, Consumer<Editor> edit) {
     enqueue(() -> {
       settle();
       // By the state, not the identity: another field may stand there now, or this one fade out.
@@ -3666,10 +3669,8 @@ public final class App<S> {
       if (now == null || now.fieldState() != state) {
         return false;
       }
-      Editor editor = state.editor;
-      int from = editor.start();
-      editor.request(from, editor.end(), text, from + caret);
-      handled |= editor.answerPending();
+      edit.accept(state.editor);
+      handled |= state.editor.answerPending();
       return true;
     });
   }

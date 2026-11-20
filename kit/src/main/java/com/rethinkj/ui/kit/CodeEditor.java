@@ -235,6 +235,21 @@ public final class CodeEditor {
     }
 
     /**
+     * Replaces characters {@code from} to {@code to} of the string by {@code text}, with the caret
+     * at {@code caret} in {@code text}, as {@link #replaceSelection(String, int)} does with the
+     * selection: for text at a place the app computed, such as a line below the one with the
+     * caret. The positions are taken as they are, and Control+Z brings back the selection from
+     * before ({@link FieldState#replace}).
+     *
+     * @throws IllegalArgumentException if {@code from} is negative, {@code to} is before it, or
+     *     {@code caret} is negative or beyond {@code text}
+     */
+    public State replace(int from, int to, String text, int caret) {
+      field.replace(from, to, text, caret);
+      return this;
+    }
+
+    /**
      * Marks the lines of characters {@code from} to {@code to} of the string on the gutter's rail,
      * tinted with {@code code().block()} beside a line in the accent's edge, such as the statement
      * that Control+Enter would run. {@code from == to} marks none.
