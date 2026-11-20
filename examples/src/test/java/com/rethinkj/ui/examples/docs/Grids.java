@@ -22,6 +22,8 @@ import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -150,6 +152,19 @@ final class Grids {
         .grow(1);
     // docs:end grid-fit
     return Frame.of(Card.flush(grid).wFull().grow(1));
+  }
+
+  static Column placedAt(List<OffsetDateTime> moments) {
+    // docs:start grid-tooltip
+    ZoneId local = ZoneId.of("Europe/Berlin");
+    Column placed = new Column(
+            "placed_at",
+            200,
+            DataType.DATE_TIME,
+            row -> moments.get(row).atZoneSameInstant(local).toOffsetDateTime().toString())
+        .cellTooltip(row -> moments.get(row).toString()); // as the database returns it
+    // docs:end grid-tooltip
+    return placed;
   }
 
   // docs:start grid-open-handler

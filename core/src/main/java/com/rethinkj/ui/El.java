@@ -61,6 +61,7 @@ public final class El {
   private float radiusBottomLeft;
   private int borderColor;
   private List<Shadow> shadows = List.of();
+  private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
   private Image image;
@@ -826,6 +827,30 @@ public final class El {
   /** How much of a turn the {@link #arc} covers; 1, the whole element, without one. */
   public float arcSweep() {
     return arcSweep;
+  }
+
+  /**
+   * Draws straight lines over this element's fill and image, in logical pixels from the top left
+   * corner of its border box, in the order given: the edges of a diagram, the marks of a chart.
+   * They come before its text and children, which lie on top, and are clipped as its children
+   * are, so with {@link #clip} they stay inside its box. They take no presses; what takes a press
+   * is still the element's box. A line along the pixel grid is sharpest with its edges on physical
+   * pixel boundaries: at scale 1, one 1 pixel wide at {@code y = 10.5}, not at 10.
+   */
+  public El segments(Segment... segments) {
+    this.segments = List.of(segments);
+    return this;
+  }
+
+  /** As {@link #segments(Segment...)}, from a list. */
+  public El segments(List<Segment> segments) {
+    this.segments = List.copyOf(segments);
+    return this;
+  }
+
+  /** The lines this element draws ({@link #segments(Segment...)}); empty without any. */
+  public List<Segment> segments() {
+    return segments;
   }
 
   /** For {@link Animator}: the opacity of the moment while this element springs to its own. */

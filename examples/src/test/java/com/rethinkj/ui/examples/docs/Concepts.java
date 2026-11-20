@@ -19,6 +19,7 @@ import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Lane;
+import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
@@ -32,6 +33,8 @@ import com.rethinkj.ui.window.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 /** The examples of the concept pages, built from core's elements where they can be. */
@@ -542,6 +545,33 @@ final class Concepts {
       left--;
       return true;
     }
+  }
+
+  static El lines() {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start lines
+    float[] queries = {14, 32, 24, 46, 38, 58}; // per minute, drawn as a line chart
+    List<Segment> segments = new ArrayList<>();
+    segments.add(new Segment(0, 70.5f, 220, 70.5f, 1, theme.border().divider())); // the axis
+    for (int minute = 1; minute < queries.length; minute++) {
+      float x1 = 10 + (minute - 1) * 40;
+      float x2 = 10 + minute * 40;
+      segments.add(new Segment(
+          x1,
+          70 - queries[minute - 1],
+          x2,
+          70 - queries[minute],
+          2,
+          theme.accent().color()));
+    }
+    El chart = el().key("chart")
+        .size(220, 80)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().raised())
+        .clip() // keeps the lines inside the rounded box
+        .segments(segments);
+    // docs:end lines
+    return Frame.of(chart);
   }
 
   static El images(Concepts state) {

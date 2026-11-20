@@ -31,6 +31,7 @@ Javadoc: [`DataGrid`](/api/com/rethinkj/ui/kit/DataGrid.html), [`DataGrid.Column
 | Custom header icon | `.icon(Symbol)` or `.icon(Symbol, Icon.Variant)` |
 | Cell icons | `.cellIcon(row -> CellIcon)` using `CellIcon.before(...)` or `CellIcon.instead(...)` with optional `.tooltip(...)` |
 | Secondary text in cell | `.detail(row -> text)` (see [Details](#details)) |
+| Tooltip of a cell | `.cellTooltip(row -> text)` (see [Tooltips](#tooltips)) |
 | Sorting | `.sortable(boolean)` |
 | Inline editing | `.editable()`, `.editable(rows)`, `.nullable()`, `.choices(list)`, `.editor(...)` (see [Editing](/docs/components/data-grid/editing)) |
 
@@ -51,6 +52,15 @@ Line breaks and tabs inside cells display as `⏎` and `⇥`. Overflowing text t
 ```
 
 <Shot src="kit/grid-details-{theme}-2x-details" alt="A grid with EUR before each amount and the size after each note, whose text is cut" />
+
+## Tooltips
+
+`column.cellTooltip(row -> text)` shows a cell's value in a second form on hover, such as a timestamp as the database returns it beside the local time the cell shows. Copying and editing use the cell's text.
+
+```java snippet="grid-tooltip"
+```
+
+A cell shows one tooltip with a line for each part that applies, in this order: the error of a failed cell, the icon's tooltip, the column's tooltip, and the full text where the cell truncates it.
 
 ## Options
 
