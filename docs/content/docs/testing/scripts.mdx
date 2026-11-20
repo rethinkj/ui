@@ -36,7 +36,7 @@ Inside `frame`, queued inputs run in order, each seeing the updated view from th
 | `down <target> [clicks <n>] [modifiers]`, `up <target>` | Presses or releases the left mouse button separately. A click only triggers when both land on the same element. |
 | `move <target>` | Moves the mouse over the target (triggers hover states and tooltips). Between `down` and `up`, moving more than 4 pixels starts a drag (such as text selection, scrollbars, or drag handlers). |
 | `leave` | Moves the mouse outside the window, clearing hover states. |
-| `wheel <target> <deltaX> <deltaY>` | Scrolls the mouse wheel at the target in logical pixels (positive values scroll down or right). Does not change hover state. |
+| `wheel <target> <deltaX> <deltaY> [modifiers]` | Scrolls the mouse wheel at the target in logical pixels (positive values scroll down or right), with any of `shift`, `control`, `alt` and `meta` held, for example `wheel #canvas 0 -48 control`. Does not change hover state. |
 | `scroll <target> row <index>` | Scrolls a virtual row list so row `<index>` (0-based) is at the top, or as far as possible. |
 
 Note: `press` does not move the hover pointer. Add `move <target>` first when testing hover styles or tooltips.

@@ -56,7 +56,9 @@ public final class Popover {
 
   /**
    * Attaches {@code content} in a popover below {@code anchor}, at its start, while {@code state}
-   * is open; where there is no room below, above it.
+   * is open; where there is no room below, above it, and where there is none at its start, in the
+   * window or the dialog it is in, at its end, if that fits, else moved into them (see {@link
+   * El#side}).
    *
    * @param label what the popover is, its label in a tree dump
    * @return the anchor
@@ -67,7 +69,8 @@ public final class Popover {
 
   /**
    * Attaches {@code content} in a popover on a side of {@code anchor}, aligned along it, while
-   * {@code state} is open.
+   * {@code state} is open. The side and the alignment are what it prefers: it moves where it does
+   * not fit, as {@link El#side} says.
    *
    * @return the anchor
    */
