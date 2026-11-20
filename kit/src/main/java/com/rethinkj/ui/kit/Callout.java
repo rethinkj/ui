@@ -15,8 +15,8 @@ import com.rethinkj.ui.Style;
  * title, a text that wraps and optional actions at the right, on a tint of the kind's color with a
  * bar in that color along its leading edge ({@link Theme#callout}). The actions stand beside the
  * text while that leaves the text at least {@link Theme.Sizes#field} wide, and below it at the right
- * otherwise, as in a narrow dialog. In a tree dump it is {@code role=note} with the title as its
- * label; the bar has no role.
+ * otherwise, as in a narrow dialog, under each other where they do not fit in a row there. In a
+ * tree dump it is {@code role=note} with the title as its label; the bar has no role.
  */
 public final class Callout {
 
@@ -37,7 +37,8 @@ public final class Callout {
   /**
    * @param text below the title, wrapping; null for none
    * @param actions buttons at the right, in the order shown: beside the text, or below it where
-   *     beside it the text would be narrower than {@link Theme.Sizes#field}
+   *     beside it the text would be narrower than {@link Theme.Sizes#field}, and under each other
+   *     where below it they do not fit in a row
    */
   public static El callout(Kind kind, String title, String text, El... actions) {
     Theme theme = Theme.CURRENT.get();
@@ -68,10 +69,12 @@ public final class Callout {
     }
     // The text and the actions in a row that wraps: the text's basis is the least it may have
     // beside them, so the actions go below it, at the right, exactly when it would get less.
+    // Below it, too narrow for them in a row, they shrink and wrap under each other.
     El buttons = row()
+        .wrap()
+        .justify(Style.Content.END)
         .gap(theme.space().m())
         .align(Style.Align.CENTER)
-        .shrink(0)
         .alignSelf(Style.Align.CENTER)
         .children(actions);
     buttons.style().marginLeft = Len.AUTO;

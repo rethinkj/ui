@@ -1,0 +1,1 @@
+- A `Callout` whose actions do not fit in a row even below its text, as two buttons in a sidebar of 160 pixels, now stacks them under each other at its right instead of cutting off the last one. With room for the row, it looks as before.

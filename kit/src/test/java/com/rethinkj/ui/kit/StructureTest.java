@@ -132,6 +132,38 @@ class StructureTest {
     }
   }
 
+  @Test
+  void aCalloutTooNarrowForItsActionsInARowStacksThemAtItsRight() throws IOException {
+    int[] presses = new int[2];
+    App<int[]> app = new App<>(
+        presses,
+        p -> El.col()
+            .w(160)
+            .child(Callout.callout(
+                Callout.Kind.WARNING,
+                "The update was not applied",
+                "Files were in use, as by a virus scanner.",
+                Button.button(Button.Variant.SECONDARY, "Try again", () -> p[0]++),
+                Button.button(Button.Variant.SECONDARY, "Dismiss", () -> p[1]++))));
+    Script.run(
+        "size 300 400\nframe\npress role=button label=\"Try again\"\n"
+            + "press role=button label=\"Dismiss\"\nframe\nsnap narrow",
+        app,
+        out);
+    String tree = Files.readString(out.resolve("narrow.tree.txt"));
+    float[] note = rect(line(tree, "role=note"));
+    float[] again = rect(line(tree, "label=\"Try again\""));
+    float[] dismiss = rect(line(tree, "label=\"Dismiss\""));
+    for (float[] button : new float[][] {again, dismiss}) {
+      assertTrue(button[0] >= note[0] && button[0] + button[2] <= note[0] + note[2], tree);
+      assertTrue(button[1] >= note[1] && button[1] + button[3] <= note[1] + note[3], tree);
+    }
+    assertTrue(dismiss[1] >= again[1] + again[3], "below each other: " + tree);
+    assertEquals(again[0] + again[2], dismiss[0] + dismiss[2], 0.5f, "at the right: " + tree);
+    assertEquals(1, presses[0]);
+    assertEquals(1, presses[1]);
+  }
+
   static String line(String tree, String part) {
     return tree.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
   }
