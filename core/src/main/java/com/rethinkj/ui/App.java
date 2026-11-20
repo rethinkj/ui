@@ -3500,6 +3500,23 @@ public final class App<S> {
     });
   }
 
+  /** {@link FieldState#replaceSelection}: in the field that has {@code state} when it runs. */
+  void replaceSelection(FieldState state, String text) {
+    enqueue(() -> {
+      settle();
+      // By the state, not the identity: another field may stand there now, or this one fade out.
+      El now = state.app == this && !gone(state.id, true) ? animator.element(state.id) : null;
+      if (now == null || now.fieldState() != state) {
+        return false;
+      }
+      Editor editor = state.editor;
+      int from = editor.start();
+      editor.request(from, editor.end(), text, from + text.length());
+      handled |= editor.answerPending();
+      return true;
+    });
+  }
+
   private Object fieldId(El field, String call) {
     Object id = field == null || !field.isEditable() ? null : animator.identity(field);
     if (id == null) {

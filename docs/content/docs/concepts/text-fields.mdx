@@ -25,7 +25,7 @@ To inspect what changed between two strings, call `TextChange.between(before, af
 
 By default, `App` tracks a field's cursor, selection, scroll offset, undo history (100 steps), and IME composition per element key, and discards them when the field leaves the tree (such as switching tabs).
 
-To preserve cursor, selection, scroll position, and undo history across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. Active IME composition is not preserved and ends if the field leaves the tree. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`.
+To preserve cursor, selection, scroll position, and undo history across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. Active IME composition is not preserved and ends if the field leaves the tree. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`, and replace it from a handler, such as a button that inserts a snippet, with `fieldState.replaceSelection(text)`: one undo step, applied right after the handler.
 
 ## Options
 

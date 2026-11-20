@@ -230,6 +230,30 @@ class FieldStateTest {
   }
 
   @Test
+  void replaceSelectionIsOneStepOfTheFieldThatHasTheState() {
+    TextLibraries.assumeLoaded();
+    App<Model> app = started();
+    FieldState state = app.state().fields[0];
+    state.select(6, 0); // SELECT
+    app.frame();
+    app.post(() -> state.replaceSelection("VALUES")); // as a button's handler
+    app.frame();
+    assertTrue(show(app).startsWith("VALUES| 1\nSELECT 2"), show(app));
+    app.undo(field(app));
+    app.frame();
+    assertTrue(show(app).startsWith("^SELECT| 1\nSELECT 2"), "one step: " + show(app));
+
+    app.post(() -> {
+      state.replaceSelection("x");
+      app.state().active = 1; // the field there now is another query's,
+      app.state().keep = false; // without a state, which takes over the editor
+    });
+    app.frame();
+    assertEquals("SELECT 2", app.state().sql[1]);
+    assertTrue(app.state().sql[0].startsWith("SELECT 1\n"), app.state().sql[0]);
+  }
+
+  @Test
   void aStringTheAppChangedMeanwhileEndsTheHistory() {
     TextLibraries.assumeLoaded();
     App<Model> app = started();

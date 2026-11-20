@@ -1,0 +1,1 @@
+- `CodeEditor.State.replaceSelection(text)` and `FieldState.replaceSelection(text)` replace a field's selection, or insert at its caret, from a handler such as a button that inserts a snippet: one step of the undo history, with the caret after the text, without looking for the field in `app.tree()`.

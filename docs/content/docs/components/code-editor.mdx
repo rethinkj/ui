@@ -57,6 +57,13 @@ The left gutter displays a marker column and line numbers. You can attach:
 
 All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are UTF-16 offsets in the editor's normalized displayed text, where CRLF (`\r\n`) is normalized to LF (`\n`). To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
 
+## Inserting text
+
+To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the selection, or inserts at the cursor, and puts the cursor after the text. The edit runs right after the handler, goes to `onChange` like typed text, and is one step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
+
+```java snippet="code-editor-insert"
+```
+
 ## Writing a custom highlighter
 
 Implement `Highlighter` to support other languages. It processes one line at a time, receiving the state from the previous line and returning the state at the end of the current line (for multi-line strings or block comments):
@@ -88,6 +95,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | --- | --- |
 | `caret()`, `anchor()` | Current cursor and selection anchor offsets |
 | `select(caret, anchor)` | Sets cursor/selection and scrolls it into view on the next build |
+| `replaceSelection(text)` | Replaces the selection with `text` right after the handler, as one undo step |
 | `diagnostics(text, list)`, `noDiagnostics()` | Sets or clears `CodeEditor.Diagnostic(from, to, severity, message)` items for `text` |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |

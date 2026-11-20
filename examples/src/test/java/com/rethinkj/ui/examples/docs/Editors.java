@@ -4,6 +4,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.Completion;
@@ -82,6 +83,17 @@ final class Editors {
   void draft(String value) {
     draft = value;
   }
+
+  // docs:start code-editor-insert
+  /** Puts a join in place of the selection, as one step that Control+Z takes back. */
+  void insertJoin() {
+    editor.replaceSelection("JOIN customers c ON c.id = o.customer_id\n");
+  }
+
+  static El insertJoinButton(Editors state) {
+    return Button.button(Button.Variant.SECONDARY, "Insert join", state::insertJoin);
+  }
+  // docs:end code-editor-insert
 
   void notes(String value) {
     notes = value;

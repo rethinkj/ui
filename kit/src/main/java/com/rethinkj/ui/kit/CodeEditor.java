@@ -208,6 +208,17 @@ public final class CodeEditor {
     }
 
     /**
+     * Replaces the selection by {@code text}, or puts it in at the caret, with the caret after it,
+     * as one step of the undo history, such as a snippet from a button beside the editor: right
+     * after the handler that calls it, in the editor of the tree built from what the handler
+     * changed ({@link FieldState#replaceSelection}); nothing while the editor is not in it.
+     */
+    public State replaceSelection(String text) {
+      field.replaceSelection(text);
+      return this;
+    }
+
+    /**
      * Marks the lines of characters {@code from} to {@code to} of the string on the gutter's rail,
      * tinted with {@code code().block()} beside a line in the accent's edge, such as the statement
      * that Control+Enter would run. {@code from == to} marks none.

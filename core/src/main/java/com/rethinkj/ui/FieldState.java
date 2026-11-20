@@ -1,5 +1,7 @@
 package com.rethinkj.ui;
 
+import java.util.Objects;
+
 /**
  * What a text field keeps of its editing while it is not in the tree, held by the app: caret and
  * anchor, the scroll of both axes, the undo history and whether Tab indents or moves the focus
@@ -52,5 +54,21 @@ public final class FieldState {
     }
     this.caret = caret;
     this.anchor = anchor;
+  }
+
+  /**
+   * Replaces the field's selection by {@code text}, or puts it in at the caret when nothing is
+   * selected, with the caret after it, as one step of the undo history: for a button or a menu
+   * beside the field, such as one that puts in a snippet. Called in a handler, the frame edits
+   * right after it, as {@link App#edit} does, in the tree built from what the handler changed;
+   * the edit goes to the field's {@link El#editable onEdit} handler as typed text does. Nothing
+   * happens when this field is not in that tree, as when the handler switched to another tab, or
+   * when it is read-only or disabled.
+   */
+  public void replaceSelection(String text) {
+    Objects.requireNonNull(text, "text");
+    if (app instanceof App<?> owner) {
+      owner.replaceSelection(this, text);
+    }
   }
 }
