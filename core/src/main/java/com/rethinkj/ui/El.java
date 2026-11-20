@@ -3705,8 +3705,8 @@ public final class El {
     double min = vertical ? minScrollY() : 0; // a field can scroll above its first row
     double range = (vertical ? maxScrollY : maxScrollX) - min;
     double offset = (vertical ? scrollY : scrollX) - min;
-    float thumb =
-        (float) Math.min(Math.max(track * view / (view + range), scrollbars.minThumb()), track);
+    float thumb = (float)
+        Math.clamp(track * view / (view + range), Math.min(scrollbars.minThumb(), track), track);
     float at = start + (float) ((track - thumb) * (offset / range));
     float t = scrollbars.thickness();
     int color = scrollbars.thumb();
