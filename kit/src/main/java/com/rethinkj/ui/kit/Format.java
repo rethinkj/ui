@@ -3,6 +3,8 @@ package com.rethinkj.ui.kit;
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -131,6 +133,16 @@ public final class Format<T> {
   private static final Pattern BYTES_TYPED = Pattern.compile(
       "\\s*+\\d*(?:\\.\\d*)?\\s*+(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
   private static final String[] BYTE_UNITS = {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
+
+  // A number and a unit, once or more, after a minus if any: 2 min 3 s, -12 ms. Possessive, so
+  // that a long text with a wrong end fails in linear time.
+  private static final String DURATION_PART =
+      "(\\d++(?:\\.\\d*+)?+|\\.\\d++)\\s*+(d|h|min|ms|s|[uµμ]s|ns)\\s*+";
+  private static final Pattern DURATION_TEXT =
+      Pattern.compile("-?\\s*+(?:" + DURATION_PART + ")++", Pattern.CASE_INSENSITIVE);
+  private static final Pattern DURATION_PARTS =
+      Pattern.compile(DURATION_PART, Pattern.CASE_INSENSITIVE);
+  private static final String[] SMALL_UNITS = {"ns", "µs", "ms", "s"};
 
   /**
    * The most zeros the exponent of a {@link #DECIMAL} may add to its digits when it is written out
@@ -358,6 +370,53 @@ public final class Format<T> {
       },
       text -> text.length() <= MAX_NUMBER_LENGTH && BYTES_TYPED.matcher(text).matches(),
       DataType.INTEGER,
+      List.of(),
+      false,
+      false);
+
+  /**
+   * A length of time, in the unit that fits its size and with a space before it: {@code 850 ns},
+   * {@code 1.4 µs}, {@code 12 ms}, {@code 1.4 s}, {@code 12 s}; from a minute on in two units,
+   * {@code 2 min 3 s}, {@code 1 h 5 min}, {@code 3 d 4 h}. Below a minute it has one decimal below
+   * 10 of a unit and none from 10 on, as {@link #BYTES}; each unit is rounded half up and never
+   * reaches the next: {@code 999.96 ms} is {@code 1.0 s}, {@code 59.6 s} is {@code 1 min 0 s}.
+   * Zero is {@code 0 s}, and a negative length has a minus before it: {@code -1.4 s}.
+   *
+   * <p>It reads its own texts back to the length they say, so a value comes back only as exactly
+   * as it was written: {@code 1.4 s} is 1400 ms, also where the value was 1427 ms. It reads any
+   * sum of numbers with units ({@code 1 h 30 min}, {@code 90 min}, {@code 1.5 h}), without a space
+   * before a unit too, in any case, and {@code us} for {@code µs}; a fraction of a nanosecond is
+   * rounded half up. A number without a unit, or a length beyond {@link Duration}'s, is refused.
+   * Its {@link #type} is {@link DataType#DECIMAL}, so a grid's column of lengths aligns right with
+   * tabular figures, and sorts by the value.
+   */
+  public static final Format<Duration> DURATION = new Format<>(
+      Format::duration,
+      text -> {
+        String stripped = text.strip();
+        if (text.length() > MAX_NUMBER_LENGTH
+            || !DURATION_TEXT.matcher(stripped).matches()) {
+          return Parsed.error(texts().expectedDuration());
+        }
+        BigDecimal seconds = BigDecimal.ZERO;
+        var part = DURATION_PARTS.matcher(stripped);
+        while (part.find()) {
+          seconds = seconds.add(new BigDecimal(part.group(1)).multiply(seconds(part.group(2))));
+        }
+        BigInteger[] nanos = seconds
+            .movePointRight(9)
+            .setScale(0, RoundingMode.HALF_UP)
+            .toBigInteger()
+            .multiply(BigInteger.valueOf(stripped.startsWith("-") ? -1 : 1))
+            .divideAndRemainder(BigInteger.valueOf(1_000_000_000));
+        try {
+          return Parsed.of(Duration.ofSeconds(nanos[0].longValueExact(), nanos[1].longValue()));
+        } catch (ArithmeticException _) { // beyond Duration's seconds
+          return Parsed.error(texts().expectedDuration());
+        }
+      },
+      text -> true,
+      DataType.DECIMAL,
       List.of(),
       false,
       false);
@@ -599,6 +658,55 @@ public final class Format<T> {
       }
       unit++; // 999.5 kB is 1.0 MB; there is no unit after EB, and a long reaches 9.2 EB
     }
+  }
+
+  /** The text of {@link #DURATION}: one unit below a minute, two from a minute on. */
+  private static String duration(Duration value) {
+    BigDecimal seconds =
+        BigDecimal.valueOf(value.getSeconds()).add(BigDecimal.valueOf(value.getNano(), 9));
+    if (seconds.signum() == 0) {
+      return "0 s";
+    }
+    String sign = seconds.signum() < 0 ? "-" : "";
+    seconds = seconds.abs();
+    for (int unit = 0; unit < SMALL_UNITS.length; unit++) { // ns, µs, ms and s
+      BigDecimal amount = seconds.movePointRight(9 - 3 * unit);
+      BigDecimal tenths = amount.movePointRight(1).setScale(0, RoundingMode.HALF_UP);
+      if (unit > 0 && tenths.compareTo(BigDecimal.valueOf(100)) < 0) {
+        return sign + tenths.movePointLeft(1).toPlainString() + " " + SMALL_UNITS[unit];
+      }
+      BigDecimal whole = amount.setScale(0, RoundingMode.HALF_UP);
+      if (whole.compareTo(BigDecimal.valueOf(unit == 3 ? 60 : 1000)) < 0) {
+        return sign + whole.toPlainString() + " " + SMALL_UNITS[unit];
+      }
+    }
+    BigDecimal inSeconds = seconds.setScale(0, RoundingMode.HALF_UP);
+    if (inSeconds.compareTo(BigDecimal.valueOf(3600)) < 0) {
+      return sign + inSeconds.intValue() / 60 + " min " + inSeconds.intValue() % 60 + " s";
+    }
+    BigDecimal minutes = seconds.divide(BigDecimal.valueOf(60), 0, RoundingMode.HALF_UP);
+    if (minutes.compareTo(BigDecimal.valueOf(24 * 60)) < 0) {
+      return sign + minutes.intValue() / 60 + " h " + minutes.intValue() % 60 + " min";
+    }
+    BigInteger[] days = seconds
+        .divide(BigDecimal.valueOf(3600), 0, RoundingMode.HALF_UP)
+        .min(BigDecimal.valueOf(Long.MAX_VALUE / 3600)) // the longest reads back, rounded down
+        .toBigInteger()
+        .divideAndRemainder(BigInteger.valueOf(24));
+    return sign + days[0] + " d " + days[1] + " h";
+  }
+
+  /** The seconds of a unit of {@link #DURATION}, in any case. */
+  private static BigDecimal seconds(String unit) {
+    return switch (unit.toLowerCase(Locale.ROOT)) {
+      case "d" -> BigDecimal.valueOf(86_400);
+      case "h" -> BigDecimal.valueOf(3600);
+      case "min" -> BigDecimal.valueOf(60);
+      case "s" -> BigDecimal.ONE;
+      case "ms" -> BigDecimal.valueOf(1, 3);
+      case "ns" -> BigDecimal.valueOf(1, 9);
+      default -> BigDecimal.valueOf(1, 6); // µs, μs or us
+    };
   }
 
   /** {@code value / by}, rounded half up, without overflowing. */

@@ -16,6 +16,7 @@ import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Toggle;
 import com.rethinkj.ui.kit.ValueField;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -174,5 +175,15 @@ final class Editings {
         Format.offsetDateTime(0, Format.Offset.SHORT).optional();
     // docs:end format-precision
     return List.of(time, stamp, zoned);
+  }
+
+  /** Lengths of time as Format.DURATION writes them; shown on the page Format. */
+  static List<String> durations() {
+    // docs:start format-duration
+    String fast = Format.DURATION.text(Duration.ofMillis(12)); // 12 ms
+    String query = Format.DURATION.text(Duration.ofMillis(1_427)); // 1.4 s
+    String load = Format.DURATION.text(Duration.ofSeconds(123)); // 2 min 3 s
+    // docs:end format-duration
+    return List.of(fast, query, load);
   }
 }

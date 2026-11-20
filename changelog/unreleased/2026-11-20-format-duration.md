@@ -1,0 +1,1 @@
+- `Format.DURATION` writes a `java.time.Duration` in the unit that fits its size (`850 ns`, `12 ms`, `1.4 s`, `2 min 3 s`, `1 h 5 min`) and reads sums of units back (`1 h 30 min`, `1.5 h`). A grid's column of durations aligns right like numbers and sorts by the value.

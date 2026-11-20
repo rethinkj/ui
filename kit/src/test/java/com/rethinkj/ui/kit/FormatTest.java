@@ -234,7 +234,9 @@ class FormatTest {
           assertNotNull(format.parse(text).error(), text.substring(0, 1));
           assertFalse(format.allows(text), text.substring(0, 1));
         }
+        assertNotNull(Format.DURATION.parse(text).error(), text.substring(0, 1));
       }
+      assertNotNull(Format.DURATION.parse("1 s ".repeat(24_999) + "x").error(), "parts");
     });
   }
 
@@ -303,6 +305,66 @@ class FormatTest {
         Format.BYTES, "9223372036854775808", "Expected a size of at most 9223372036854775807 B");
     refused(Format.BYTES, "8 EiB", "Expected a size of at most 9223372036854775807 B");
     assertNull(Format.BYTES.optional().parse("").value());
+  }
+
+  @Test
+  void durationsAreWrittenInTheUnitThatFitsTheirSize() {
+    Object[][] table = {
+      {Duration.ZERO, "0 s"},
+      {Duration.ofNanos(850), "850 ns"},
+      {Duration.ofNanos(1_440), "1.4 µs"},
+      {Duration.ofNanos(999_960), "1.0 ms"}, // never 1000 µs
+      {Duration.ofMillis(12), "12 ms"},
+      {Duration.ofNanos(9_960_000), "10 ms"},
+      {Duration.ofMillis(1_449), "1.4 s"},
+      {Duration.ofMillis(1_450), "1.5 s"}, // half up
+      {Duration.ofNanos(999_960_000), "1.0 s"},
+      {Duration.ofMillis(59_400), "59 s"},
+      {Duration.ofMillis(59_600), "1 min 0 s"}, // never 60 s
+      {Duration.ofSeconds(123), "2 min 3 s"},
+      {Duration.ofMillis(3_599_600), "1 h 0 min"},
+      {Duration.ofSeconds(3_900), "1 h 5 min"},
+      {Duration.ofSeconds(86_370), "1 d 0 h"},
+      {Duration.ofHours(76), "3 d 4 h"},
+      {Duration.ofMillis(-1_400), "-1.4 s"},
+      {Duration.ofSeconds(Long.MAX_VALUE, 999_999_999), "106751991167300 d 15 h"},
+      {Duration.ofSeconds(Long.MIN_VALUE), "-106751991167300 d 15 h"}, // rounded down
+    };
+    for (Object[] row : table) {
+      String text = Format.DURATION.text((Duration) row[0]);
+      assertEquals(row[1], text, String.valueOf(row[0]));
+      assertTrue(Format.DURATION.parse(text).valid(), text + " reads back");
+    }
+    assertEquals(DataType.DECIMAL, Format.DURATION.type());
+  }
+
+  @Test
+  void durationsAreReadAsSumsOfUnits() {
+    Object[][] table = {
+      {"12 ms", Duration.ofMillis(12)},
+      {"1.4 s", Duration.ofMillis(1_400)},
+      {"2 min 3 s", Duration.ofSeconds(123)},
+      {"1 h 5 min", Duration.ofMinutes(65)},
+      {"3 d 4 h", Duration.ofHours(76)},
+      {"850 ns", Duration.ofNanos(850)},
+      {"1.4 µs", Duration.ofNanos(1_400)},
+      {"1.4 us", Duration.ofNanos(1_400)},
+      {"-1.4 s", Duration.ofMillis(-1_400)},
+      {" 1.5H ", Duration.ofMinutes(90)},
+      {"1h30min", Duration.ofMinutes(90)},
+      {".5 ns", Duration.ofNanos(1)}, // a fraction of a nanosecond, half up
+      {"0 s", Duration.ZERO},
+    };
+    for (Object[] row : table) {
+      assertEquals(row[1], Format.DURATION.parse((String) row[0]).value(), (String) row[0]);
+    }
+    String message = "Expected a duration such as 12 ms, 1.4 s or 2 min 3 s";
+    for (String text : List.of("12", "1,4 s", "1 m", "s", "1 s 2", "--1 s", "1e3 s", "1 sec")) {
+      refused(Format.DURATION, text, message);
+    }
+    refused(Format.DURATION, "106751991167301 d", message); // beyond Duration
+    refused(Format.DURATION, "", Format.REQUIRED);
+    assertNull(Format.DURATION.optional().parse("").value());
   }
 
   @Test

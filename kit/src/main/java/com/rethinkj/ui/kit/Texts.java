@@ -602,6 +602,10 @@ public interface Texts {
     return "Expected a size of at most " + max + " B";
   }
 
+  default String expectedDuration() {
+    return "Expected a duration such as 12 ms, 1.4 s or 2 min 3 s";
+  }
+
   default String expectedBoolean() {
     return "Expected true or false";
   }

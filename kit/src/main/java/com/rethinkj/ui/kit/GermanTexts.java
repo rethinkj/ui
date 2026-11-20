@@ -649,6 +649,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String expectedDuration() {
+    return "Erwartet wird eine Dauer wie 12 ms, 1.4 s oder 2 min 3 s";
+  }
+
+  @Override
   public String expectedBoolean() {
     return "Erwartet wird true oder false";
   }
