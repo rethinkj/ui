@@ -192,4 +192,25 @@ class TextAreaPointerTest {
     key(app, "ArrowRight");
     assertEquals(0, field(app).scrollY(), "the next key shows the caret again");
   }
+
+  @Test
+  void theThumbOfAFieldCoveredAtTheTopMovesOnFromAboveItsFirstRow() {
+    App<Model> app = Areas.start(lines(40), f -> f.scrollbars(BARS).coveredTop(40), 1);
+    app.wheel(x(1), y(1), 0, -100);
+    app.frame();
+    assertEquals(-36, field(app).scrollY(), "above the first row, the padding of 4 under 40");
+    Scrollbars.Bar bar = field(app).verticalBar();
+    assertEquals(bar.trackY(), bar.thumbY(), "the thumb at the top");
+    float thumbX = bar.thumbX() + 3;
+    app.pointerDown(thumbX, bar.thumbY() + 2, 1, 0);
+    app.pointerMove(thumbX, bar.thumbY() + 3);
+    app.frame();
+    double range = 41 * 18 - 90 + 36;
+    double free = bar.trackHeight() - bar.thumbHeight();
+    assertEquals(-36 + range / free, field(app).scrollY(), 1e-3, "a pixel's share, not past 0");
+    app.pointerMove(thumbX, -100);
+    app.pointerUp(thumbX, -100);
+    app.frame();
+    assertEquals(-36, field(app).scrollY(), "back above the first row");
+  }
 }
