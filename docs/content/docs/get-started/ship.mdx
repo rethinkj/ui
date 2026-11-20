@@ -5,20 +5,23 @@ description: Package your app with its own Java runtime using jpackage.
 
 Use `jpackage` (included with JDK 25) to bundle your app into a standalone app image containing a native launcher, a minimal Java runtime, and your JARs. End users do not need Java installed.
 
-The commands below assume you started from the Maven project in [Installation](/docs/get-started) and show Linux paths.
+The commands below assume you started from the Maven project in [Installation](/docs/get-started). Where Windows needs other commands, the tabs show them for PowerShell and cmd.
 
 ## 1. Build the app image
 
-First, copy your app JAR and all runtime dependencies (including fonts, icons, and native libraries) into `target/lib`:
+First, copy all runtime dependencies (including fonts, icons, and native libraries) into `target/lib`:
 
 ```sh
 mvn -q package dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
-cp target/lights-1.0-SNAPSHOT.jar target/lib/
 ```
 
-Then build the app image with `jpackage`:
+Then add your app JAR and build the app image with `jpackage`:
+
+<Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
+<Tab value="Linux">
 
 ```sh
+cp target/lights-1.0-SNAPSHOT.jar target/lib/
 jpackage --type app-image --name Lights \
   --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights \
   --add-modules java.base \
@@ -26,17 +29,66 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
+</Tab>
+<Tab value="PowerShell">
+
+```powershell
+cp target/lights-1.0-SNAPSHOT.jar target/lib/
+jpackage --type app-image --name Lights `
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights `
+  --add-modules java.base `
+  --java-options --enable-native-access=ALL-UNNAMED `
+  --dest target/dist
+```
+
+</Tab>
+<Tab value="cmd">
+
+```bat
+copy target\lights-1.0-SNAPSHOT.jar target\lib\
+jpackage --type app-image --name Lights ^
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights ^
+  --add-modules java.base ^
+  --java-options --enable-native-access=ALL-UNNAMED ^
+  --dest target/dist
+```
+
+</Tab>
+</Tabs>
+
 - `--add-modules java.base` keeps the bundled runtime small because `core` and `kit` only need `java.base`. Add any extra JDK modules your own code uses.
 - `jpackage` builds for the current operating system only. Run it on Windows to build a Windows app image.
 
 ## 2. Run the packaged app
+
+<Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
+<Tab value="Linux">
 
 ```sh
 target/dist/Lights/bin/Lights                                            # open in a window
 target/dist/Lights/bin/Lights --script lights.txt --out target/packaged  # run headless with a script
 ```
 
-On Windows, the launcher is `target\dist\Lights\Lights.exe`.
+</Tab>
+<Tab value="PowerShell">
+
+```powershell
+target\dist\Lights\Lights.exe                                                      # open in a window
+target\dist\Lights\Lights.exe --script lights.txt --out target\packaged | Out-Host  # run headless with a script
+```
+
+</Tab>
+<Tab value="cmd">
+
+```bat
+target\dist\Lights\Lights.exe
+target\dist\Lights\Lights.exe --script lights.txt --out target\packaged | more
+```
+
+</Tab>
+</Tabs>
+
+On Windows, `Lights.exe` is a GUI program: PowerShell and cmd neither wait for it nor show what it prints. Piping its output, as above, makes them wait for the script and print the paths of the images and trees.
 
 ## Optional: App icon
 
@@ -48,6 +100,9 @@ Java 25 supports an ahead-of-time (AOT) class cache ([JEP 514](https://openjdk.o
 
 1. Build the app image while keeping the `java` binary (remove `--strip-native-commands` from `--jlink-options`):
 
+<Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
+<Tab value="Linux">
+
 ```sh
 jpackage --type app-image --name Lights \
   --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights \
@@ -57,12 +112,67 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
+</Tab>
+<Tab value="PowerShell">
+
+```powershell
+jpackage --type app-image --name Lights `
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights `
+  --add-modules java.base `
+  --jlink-options '--strip-debug --no-man-pages --no-header-files' `
+  --java-options --enable-native-access=ALL-UNNAMED `
+  --dest target/dist
+```
+
+</Tab>
+<Tab value="cmd">
+
+```bat
+jpackage --type app-image --name Lights ^
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights ^
+  --add-modules java.base ^
+  --jlink-options "--strip-debug --no-man-pages --no-header-files" ^
+  --java-options --enable-native-access=ALL-UNNAMED ^
+  --dest target/dist
+```
+
+</Tab>
+</Tabs>
+
 2. Run the app once to record the cache, close the window, and add the cache flag to `Lights.cfg`:
+
+<Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
+<Tab value="Linux">
 
 ```sh
 JAVA_TOOL_OPTIONS=-XX:AOTCacheOutput=target/dist/Lights/lib/app/lights.aot target/dist/Lights/bin/Lights
 echo 'java-options=-XX:AOTCache=$APPDIR/lights.aot' >> target/dist/Lights/lib/app/Lights.cfg
 ```
+
+</Tab>
+<Tab value="PowerShell">
+
+```powershell
+$env:JAVA_TOOL_OPTIONS = '-XX:AOTCacheOutput=target\dist\Lights\app\lights.aot'
+target\dist\Lights\Lights.exe
+Remove-Item Env:JAVA_TOOL_OPTIONS
+Add-Content target\dist\Lights\app\Lights.cfg 'java-options=-XX:AOTCache=$APPDIR\lights.aot'
+```
+
+Use `Add-Content`, not `>>`: Windows PowerShell 5.1 writes `>>` as UTF-16, and the launcher skips such a line.
+
+</Tab>
+<Tab value="cmd">
+
+```bat
+set JAVA_TOOL_OPTIONS=-XX:AOTCacheOutput=target\dist\Lights\app\lights.aot
+target\dist\Lights\Lights.exe
+set JAVA_TOOL_OPTIONS=
+echo java-options=-XX:AOTCache=$APPDIR\lights.aot>> target\dist\Lights\app\Lights.cfg
+```
+
+</Tab>
+</Tabs>
 
 > **Note:** Rebuild the `.aot` cache whenever you rebuild the app image. An outdated cache will be ignored with a startup warning.
 
@@ -71,6 +181,9 @@ If your app runs heavy initialization before opening its first window, you can a
 ## Optional: Pre-extract native libraries
 
 By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`:
+
+<Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
+<Tab value="Linux">
 
 ```sh
 mkdir target/lib/natives
@@ -86,4 +199,41 @@ jpackage --type app-image --name Lights \
   --dest target/dist
 ```
 
-`$APPDIR` points to the app's JAR directory inside the image. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.
+</Tab>
+<Tab value="PowerShell">
+
+```powershell
+mkdir target\lib\natives
+tar -xf target\lib\rethinkj-ui-natives-windows-x64-0.1.0-SNAPSHOT.jar -C target\lib\natives `
+  --strip-components 4 --exclude "*/licenses/*" "META-INF/rethinkj-ui/natives/windows-x64/*"
+rm target\lib\rethinkj-ui-natives-windows-x64-0.1.0-SNAPSHOT.jar
+Remove-Item -Recurse -Force target\dist
+jpackage --type app-image --name Lights `
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights `
+  --add-modules java.base `
+  --java-options --enable-native-access=ALL-UNNAMED `
+  --java-options '-Drethinkj.ui.natives.dir=$APPDIR\natives' `
+  --dest target/dist
+```
+
+</Tab>
+<Tab value="cmd">
+
+```bat
+mkdir target\lib\natives
+tar -xf target\lib\rethinkj-ui-natives-windows-x64-0.1.0-SNAPSHOT.jar -C target\lib\natives ^
+  --strip-components 4 --exclude "*/licenses/*" "META-INF/rethinkj-ui/natives/windows-x64/*"
+del target\lib\rethinkj-ui-natives-windows-x64-0.1.0-SNAPSHOT.jar
+rmdir /s /q target\dist
+jpackage --type app-image --name Lights ^
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights ^
+  --add-modules java.base ^
+  --java-options --enable-native-access=ALL-UNNAMED ^
+  --java-options "-Drethinkj.ui.natives.dir=$APPDIR\natives" ^
+  --dest target/dist
+```
+
+</Tab>
+</Tabs>
+
+`$APPDIR` points to the app's JAR directory inside the image. On Windows, `tar` comes with the system and unpacks the JAR; `unzip` usually does not. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.

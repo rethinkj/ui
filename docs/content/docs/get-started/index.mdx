@@ -117,7 +117,7 @@ gradle run
 gradle run --args="--script lights.txt --out build/lights"
 ```
 
-Tip: Run `gradle wrapper` once to add `./gradlew` so others can build the project without installing Gradle.
+Tip: Run `gradle wrapper` once to add `./gradlew` (in cmd: `gradlew`) so others can build the project without installing Gradle.
 
 </Tab>
 </Tabs>
@@ -231,7 +231,7 @@ Complete `pom.xml` ready to copy:
 ```
 
 - **Profiles:** The Maven profiles automatically select the native library for your operating system. If you want one cross-platform build that runs on both Windows and Linux, include both native JARs directly as dependencies without profiles — each JAR only loads on its own OS.
-- **Running:** `exec:exec` runs `java` from your `PATH` (JDK 25) with native access enabled. Pass program arguments with `-Dargs="..."` and change the main class with `-Dmain.class=...`.
+- **Running:** `exec:exec` runs `java` from your `PATH` (JDK 25) with native access enabled. Pass program arguments with `-Dargs="..."` and change the main class with `-Dmain.class=...` (in PowerShell, quote it: `'-Dmain.class=...'`).
 
 ## 2. Create the app
 
