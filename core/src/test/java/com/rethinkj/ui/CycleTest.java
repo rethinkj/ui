@@ -191,6 +191,27 @@ class CycleTest {
   }
 
   @Test
+  void aRowThatScrollingKeepsInViewCyclesFromWhatLayoutGaveIt() {
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .key("list")
+            .w(100)
+            .h(100)
+            .rows(
+                1000,
+                20,
+                i -> el().key("row-" + i).cycle(1, (e, phase) -> e.opacity(e.opacity() / 2))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.wheel(50, 50, 0, 70); // row 8 shows; row 3 was in view and still is
+    app.frame();
+    El row = app.tree().children().get(3);
+    assertEquals("row-3", row.key());
+    assertEquals(0.5f, row.opacity());
+  }
+
+  @Test
   void headlessShowsPhaseZero() {
     Shown s = new Shown();
     El root = view(s);

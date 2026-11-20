@@ -918,8 +918,8 @@ public final class El {
    * <p>{@link App} calls {@code row} with a row's index, from 0, for the rows inside the list's
    * visible part, which is its border box inside the window, and {@link #OVERSCAN} more on each
    * side: after every rebuild of the view, and when scrolling shows a row that does not exist yet.
-   * That builds the rows that do not exist, but not the view: the rows that exist and stay near
-   * the visible part are kept, and scrolling within them builds nothing. {@code row} runs on the
+   * That builds the rows that do not exist yet, but not the view, and keeps most of those that do;
+   * scrolling within the rows that exist builds nothing. {@code row} runs on the
    * app's thread during {@link App#frame}, so it has to be cheap, and like the view it only reads
    * the state and returns a new element each time. Each row
    * is laid out on its own, with the list's inner width and {@code rowHeight}, at {@code index *
@@ -3772,8 +3772,9 @@ public final class El {
 
   /**
    * Gives this virtual list the rows from {@code from} to {@code to}, exclusive. A row it has
-   * already stays as it is, unless {@code anew} holds for its index or the rows were built for
-   * another part sideways or laid out at another width; its row function builds the others.
+   * already stays as it is, unless {@code anew} holds for its index, it has a {@link #cycle} or the
+   * rows were built for another part sideways or laid out at another width; its row function
+   * builds the others.
    * {@link #layoutRows} lays out the new rows and moves the kept ones.
    */
   void makeRows(int from, int to, IntPredicate anew) {
@@ -3786,8 +3787,9 @@ public final class El {
         && Len.px(rowWidth()).equals(had.getFirst().style.width);
     children.clear();
     for (int i = from; i < to; i++) {
-      if (keeps && i >= hadFrom && i - hadFrom < had.size() && !anew.test(i)) {
-        El row = had.get(i - hadFrom);
+      El row = keeps && i >= hadFrom && i - hadFrom < had.size() ? had.get(i - hadFrom) : null;
+      // Placed again, a row with a cycle would take the values its cycle gave for its own.
+      if (row != null && row.cycle == null && !anew.test(i)) {
         row.kept = true;
         children.add(row);
       } else {
