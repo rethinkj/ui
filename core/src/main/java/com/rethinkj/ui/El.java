@@ -4590,7 +4590,7 @@ public final class El {
 
   /**
    * The text in double quotes, with a backslash before each quote and backslash in it, line feeds
-   * as {@code \n} and tabs as {@code \t}, so that it stays on one line and shows them, and a
+   * as {@code \n}, carriage returns as {@code \r} and tabs as {@code \t}, so that it stays on one line and shows them, and a
    * character of a private use area, such as an
    * icon, as <code>&#92;u{E0EB}</code>, which would otherwise show as nothing or a box.
    */
@@ -4601,6 +4601,8 @@ public final class El {
         out.append('\\').append((char) c);
       } else if (c == '\n') {
         out.append("\\n");
+      } else if (c == '\r') {
+        out.append("\\r");
       } else if (c == '\t') {
         out.append("\\t");
       } else if (Character.getType(c) == Character.PRIVATE_USE) {

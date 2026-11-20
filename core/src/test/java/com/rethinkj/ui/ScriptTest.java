@@ -289,9 +289,10 @@ class ScriptTest {
             .onPress(() -> l.add("outside"))
             .child(el().absolute(40, 40)
                 .size(20, 20)
-                .label("Say \"hi\" \\ bye")
+                .label("Say \"hi\" \\ bye\r")
                 .onPress(() -> l.add("center"))));
-    Script.run("size 100 100\nframe\npress label=\"Say \\\"hi\\\" \\\\ bye\"\nframe\n", app, out);
+    Script.run(
+        "size 100 100\nframe\npress label=\"Say \\\"hi\\\" \\\\ bye\\r\"\nframe\n", app, out);
     assertEquals(List.of("center"), log);
   }
 

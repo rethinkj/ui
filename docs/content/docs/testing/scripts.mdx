@@ -46,7 +46,7 @@ Note: `press` does not move the hover pointer. Add `move <target>` first when te
 | Command | Description |
 | --- | --- |
 | `key <name> [shift] [control] [alt] [meta] [down \| up]` | Presses and releases a key, or holds/releases it across frames with `down` or `up`. Uses web key names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`) and uppercase characters (`A`, `1`). See [`Key` Javadoc](/api/com/rethinkj/ui/Key.html). |
-| `type "<text>"` | Types text into the focused element one character at a time (triggering autocomplete and per-character handlers). Supports `\"`, `\\`, `\n`, and `\t`. To insert large text at once, use `clipboard` followed by `key V control`. |
+| `type "<text>"` | Types text into the focused element one character at a time (triggering autocomplete and per-character handlers). Supports `\"`, `\\`, `\n`, `\r`, and `\t`. To insert large text at once, use `clipboard` followed by `key V control`. |
 | `compose "<text>"` | Simulates IME text composition (underlined, uncommitted text). `compose ""` clears it; `type` commits it. |
 | `focus <target>` | Moves keyboard focus to the target (or its nearest focusable parent), showing the focus ring. |
 | `clipboard "<text>"` | Sets the app's in-memory clipboard text. Does not require a `frame`. |
