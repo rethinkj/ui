@@ -50,6 +50,8 @@ public final class LayeredLayout {
   private static final int PLACE_ROUNDS = 8;
   private static final int LEAST_ROUNDS = 2;
   private static final int VISITS = 16_000;
+  // The longest layer that sweeps sort by insertion.
+  private static final int SHORT_LAYER = 64;
   // How hard a part of a long edge holds its line against a node, and how little a node without
   // neighbors on that side holds its place.
   private static final double BEND_WEIGHT = 2;
@@ -693,10 +695,9 @@ public final class LayeredLayout {
       number();
       int[][] best = copy(layers);
       long fewest = crossings();
-      // Until no crossings are left, or a sweep down and one up bring no fewer.
-      int stale = 0;
+      // Until no crossings are left: a sweep that brings no fewer can still lead to fewer later.
       int sweeps = Math.clamp(2L * VISITS / layerOf.length, LEAST_SWEEPS, ORDER_SWEEPS);
-      for (int sweep = 0; sweep < sweeps && fewest > 0 && stale < 2; sweep++) {
+      for (int sweep = 0; sweep < sweeps && fewest > 0; sweep++) {
         boolean down = sweep % 2 == 0;
         for (int k = 1; k < count; k++) {
           int l = down ? k : count - 1 - k;
@@ -706,9 +707,6 @@ public final class LayeredLayout {
         if (crossings < fewest) {
           fewest = crossings;
           best = copy(layers);
-          stale = 0;
-        } else {
-          stale++;
         }
       }
       layers = best;
@@ -750,7 +748,30 @@ public final class LayeredLayout {
         }
         key[k] = edges == 0 ? k : sum / edges;
       }
-      // Insertion sort, stable: the layers come nearly sorted from the sweep before.
+      sortStable(sorted, key);
+      int[] was = layer.clone();
+      for (int k = 0; k < layer.length; k++) {
+        layer[k] = was[sorted[k]];
+        position[layer[k]] = k;
+      }
+    }
+
+    /**
+     * Sorts the indices by their keys, keeping the order of equal ones: by insertion for a short
+     * layer, which comes nearly sorted from the sweep before, and by merging for a long one.
+     */
+    private static void sortStable(int[] sorted, double[] key) {
+      if (sorted.length > SHORT_LAYER) {
+        Integer[] boxed = new Integer[sorted.length];
+        for (int k = 0; k < sorted.length; k++) {
+          boxed[k] = sorted[k];
+        }
+        Arrays.sort(boxed, Comparator.comparingDouble(k -> key[k]));
+        for (int k = 0; k < sorted.length; k++) {
+          sorted[k] = boxed[k];
+        }
+        return;
+      }
       for (int k = 1; k < sorted.length; k++) {
         int moving = sorted[k];
         int at = k;
@@ -759,11 +780,6 @@ public final class LayeredLayout {
           at--;
         }
         sorted[at] = moving;
-      }
-      int[] was = layer.clone();
-      for (int k = 0; k < layer.length; k++) {
-        layer[k] = was[sorted[k]];
-        position[layer[k]] = k;
       }
     }
 
