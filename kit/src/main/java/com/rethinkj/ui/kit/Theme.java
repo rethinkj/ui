@@ -497,9 +497,9 @@ public record Theme(
   }
 
   /**
-   * The colors of code in an editor ({@link CodeEditor}, {@link Sql}): text colors for the kinds
-   * of token, each 4.5:1 on the field's raised surface, also hovered and on the caret's line, and
-   * translucent backgrounds laid over that surface.
+   * The colors of code in an editor ({@link CodeEditor} and the language modules' highlighters):
+   * text colors for the kinds of token, each 4.5:1 on the field's raised surface, also hovered and
+   * on the caret's line, and translucent backgrounds laid over that surface.
    *
    * @param keyword words of the language, such as {@code SELECT}
    * @param string literal strings

@@ -23,7 +23,7 @@ This file holds the rules for working on the repository, and nothing else. What 
 | --- | --- | --- |
 | `core/` | `rethinkj-ui-core` | The framework itself, package `com.rethinkj.ui` |
 | `kit/` | `rethinkj-ui-kit` | Theme and components built on `core`, package `com.rethinkj.ui.kit` |
-| `languages/<language>/` | `rethinkj-ui-<language>` | A language for the code editor, such as `json`, package `com.rethinkj.ui.<language>`; `languages/pom.xml` is their parent |
+| `languages/<language>/` | `rethinkj-ui-<language>` | A language for the code editor, such as `json` or `sql`, package `com.rethinkj.ui.<language>`; `languages/pom.xml` is their parent |
 | `natives-<platform>/` | `rethinkj-ui-natives-<platform>` | SDL3, wgpu-native, FreeType and HarfBuzz for `windows-x64` and `linux-x64`; no Java code |
 | `fonts/`, `icons/` | `rethinkj-ui-fonts`, `-icons` | The default fonts and the icon font; no Java code |
 | `examples/` | not published | Runnable apps, written as a user of the library writes them |

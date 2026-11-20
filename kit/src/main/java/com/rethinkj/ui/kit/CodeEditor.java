@@ -18,12 +18,13 @@ import java.util.function.Consumer;
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
  * markers in a gutter on a rail of its own, the caret's line highlighted, the bracket at the caret
  * and its partner marked, the other occurrences of the word at the caret marked, guides in the
- * indentation, the tokens colored by a highlighter ({@link Sql}) and the app's diagnostics
- * underlined. Given the app, it also finds and replaces ({@link Find}), goes to a line, goes from
- * diagnostic to diagnostic with F8 and Shift+F8, and has the commands of {@link Command}.
+ * indentation, the tokens colored by a {@link Highlighter}, such as one of a language module's,
+ * and the app's diagnostics underlined. Given the app, it also finds and replaces ({@link Find}),
+ * goes to a line, goes from diagnostic to diagnostic with F8 and Shift+F8, and has the commands of
+ * {@link Command}.
  *
  * <pre>{@code
- * codeEditor(app, state.sql, state.editor, Sql.of(), value -> state.sql = value)
+ * codeEditor(app, state.sql, state.editor, highlighter, value -> state.sql = value)
  *     .key("query").lines(12).wFull()
  * }</pre>
  *
@@ -327,7 +328,7 @@ public final class CodeEditor {
    * @param state the app's state of this editor
    * @param highlighter colors the tokens, or null for none; it is also the key the field keeps
    *     its colors by ({@link El#highlight}), so pass the same object again, or one equal to it,
-   *     such as {@link Sql#of} of the same theme
+   *     such as a language module's highlighter made again in the same theme
    * @param onChange receives the new string after each edit; null disables the editor, unless the
    *     state makes it {@link State#readOnly read-only}
    */

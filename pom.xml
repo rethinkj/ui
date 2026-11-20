@@ -146,11 +146,11 @@
             </execution>
             <execution>
               <!-- The HTML of core, kit and the languages together, which the site serves at
-                   /api/: mvn -P '!natives-linux-x64' -pl core,kit,languages/json -am
-                   javadoc:aggregate, into target/reports/apidocs. kit has no module descriptor,
-                   and an aggregate cannot mix a named module with unnamed ones: all go on the
-                   class path, and without a source path, on which javadoc would find core's
-                   module-info.java. -->
+                   /api/: mvn -P '!natives-linux-x64' -pl core,kit,languages/json,languages/sql
+                   -am javadoc:aggregate, into target/reports/apidocs. kit has no module
+                   descriptor, and an aggregate cannot mix a named module with unnamed ones: all
+                   go on the class path, and without a source path, on which javadoc would find
+                   core's module-info.java. -->
               <id>default-cli</id>
               <configuration>
                 <legacyMode>true</legacyMode>
@@ -171,7 +171,7 @@
                   </group>
                   <group>
                     <title>Languages</title>
-                    <packages>com.rethinkj.ui.json</packages>
+                    <packages>com.rethinkj.ui.json:com.rethinkj.ui.sql</packages>
                   </group>
                 </groups>
               </configuration>

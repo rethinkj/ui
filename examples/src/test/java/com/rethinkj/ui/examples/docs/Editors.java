@@ -4,6 +4,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Formatted;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
@@ -14,11 +15,11 @@ import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
-import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.sql.Sql;
 import java.util.List;
 import java.util.Locale;
 
@@ -230,12 +231,23 @@ final class Editors {
   static El markdown(Editors state) {
     // docs:start markdown
     El document = Markdown.markdown(
-            state.readme, Markdown.options().onLink(state::link).copy(state.app.clipboard()))
+            state.readme,
+            Markdown.options()
+                .onLink(state::link)
+                .copy(state.app.clipboard())
+                .languages(Editors::highlighter))
         .key("readme")
         .grow(1);
     // docs:end markdown
     return Frame.of(Card.flush(document).wFull().grow(1));
   }
+
+  // docs:start markdown-languages
+  /** Colors the code blocks that say they are SQL, in the theme's colors for code. */
+  static Highlighter highlighter(String language) {
+    return language.equalsIgnoreCase("sql") ? Sql.of() : null;
+  }
+  // docs:end markdown-languages
 
   static El image(Editors state) {
     // docs:start image

@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -58,9 +57,9 @@ import java.util.function.Function;
  * #id}.
  *
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are colored by
- * the highlighter {@link Options#languages} gives for their language, {@link Sql} for {@code
- * sql}; with {@link Options#copy} a copy button shows in the corner under the pointer. Task list
- * items show the kit's checkbox, which takes no input.
+ * the highlighter {@link Options#languages} gives for their language; with {@link Options#copy} a
+ * copy button shows in the corner under the pointer. Task list items show the kit's checkbox,
+ * which takes no input.
  *
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
@@ -130,9 +129,9 @@ public final class Markdown {
 
     /**
      * The highlighter for a code block's language, the first word of its info string as written
-     * ({@code SQL}, {@code java}), or null for none; asked before the kit's own, {@link Sql} for
-     * {@code sql}. Return the same object or an equal one for a language on each call: it is the
-     * block's key for what was highlighted.
+     * ({@code SQL}, {@code java}), or null for none; without it, no block is colored. Return the
+     * same object or an equal one for a language on each call: it is the block's key for what was
+     * highlighted.
      */
     public Options languages(Function<String, Highlighter> highlighters) {
       this.languages = Objects.requireNonNull(highlighters, "highlighters");
@@ -720,9 +719,6 @@ public final class Markdown {
         : block.code();
     String language = block.language();
     Highlighter highlighter = c.options.languages.apply(language);
-    if (highlighter == null && language.toLowerCase(Locale.ROOT).matches("sql|pgsql|postgresql")) {
-      highlighter = Sql.of();
-    }
     Theme.TextStyle mono = theme.type().mono();
     El field = El.text(code)
         .editable(text -> {})

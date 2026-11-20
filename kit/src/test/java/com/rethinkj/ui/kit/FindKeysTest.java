@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,6 +34,19 @@ class FindKeysTest {
       -- orders of the Straße
       select * from Orders o where o.name = 'STRASSE';
       UPDATE orders SET name = 'x' WHERE id = 1;""";
+
+  /** Colors nothing, and comments lines out with {@code --}, as SQL does. */
+  private static final Highlighter SQL_COMMENTS = new Highlighter() {
+    @Override
+    public Object line(String line, Object state, Spans out) {
+      return null;
+    }
+
+    @Override
+    public String lineComment() {
+      return "--";
+    }
+  };
 
   @TempDir
   Path out;
@@ -67,7 +82,7 @@ class FindKeysTest {
                 .wFull(),
             s.find);
       } else {
-        field = codeEditor(s.app, s.text, s.editor, Sql.of(), v -> s.text = v)
+        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> s.text = v)
             .key("query")
             .lines(6)
             .wFull();

@@ -56,7 +56,7 @@ class CompletionTest {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
-      El editor = codeEditor(s.sql, s.editor, Sql.of(), v -> s.sql = v)
+      El editor = codeEditor(s.sql, s.editor, null, v -> s.sql = v)
           .key("query")
           .lines(4)
           .wFull();

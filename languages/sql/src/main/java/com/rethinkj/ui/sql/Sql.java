@@ -1,7 +1,8 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.sql;
 
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Theme;
 import java.util.Locale;
 import java.util.Set;
 
