@@ -80,6 +80,7 @@ public final class El {
   private float focusRingGap;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
+  private WheelHandler onWheel;
   private Consumer<String> onText;
   private Consumer<String> onTypeAhead;
   private boolean editable;
@@ -221,6 +222,21 @@ public final class El {
   @FunctionalInterface
   public interface PressAtHandler {
     void press(int clicks, int modifiers, double x, double y);
+  }
+
+  /**
+   * Told how the wheel turned over an element, as {@link #onWheel} is: by {@code deltaX} and {@code
+   * deltaY} in logical pixels, positive towards the end as {@link App#wheel(float, float, float,
+   * float, int)} counts them, with these modifiers held, a combination of {@link Key#SHIFT}, {@link
+   * Key#CONTROL}, {@link Key#ALT} and {@link Key#META}, and the pointer at {@code x, y} in the
+   * element's content, as {@link PressAtHandler} is told. In a window, a mouse's wheel that turns
+   * up and down with Shift held comes sideways, in {@code deltaX}, as it scrolls; a script and
+   * {@link App#wheel} give the deltas as they are.
+   */
+  @FunctionalInterface
+  public interface WheelHandler {
+    /** @return whether it took the wheel; if not, the wheel goes on as without this handler */
+    boolean wheel(double deltaX, double deltaY, int modifiers, double x, double y);
   }
 
   /**
@@ -2247,6 +2263,21 @@ public final class El {
     return this;
   }
 
+  /**
+   * Gives {@code handler} the wheel turned over this element or one below it before it scrolls,
+   * as a diagram zooms around the pointer with Control+wheel and pans without it. The handler
+   * returns whether it took the wheel; if it did, nothing scrolls, and if not, the wheel goes on to
+   * the handlers around it and scrolls as without them. A scroll area inside this element that can
+   * move with the wheel takes it first, without asking the handler; this element's own scrolling
+   * comes after its handler. Like {@link #onPress}, it runs in {@link App#frame}.
+   *
+   * @param handler told how, or null for none
+   */
+  public El onWheel(WheelHandler handler) {
+    this.onWheel = handler;
+    return this;
+  }
+
   /** Like {@link #onKey}, for keys that are released. Released keys do nothing by default. */
   public El onKeyUp(Predicate<Key> handler) {
     this.onKeyUp = handler;
@@ -2447,6 +2478,16 @@ public final class El {
     this.cycleSeconds = seconds;
     this.cycle = Context.captured(look);
     return this;
+  }
+
+  /** The width layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutWidth() {
+    return cycleBased ? baseWidth : width;
+  }
+
+  /** The height layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutHeight() {
+    return cycleBased ? baseHeight : height;
   }
 
   /** The look of {@link #cycle}, or null. */
@@ -3217,6 +3258,10 @@ public final class El {
 
   public Predicate<Key> onKeyUp() {
     return onKeyUp;
+  }
+
+  public WheelHandler onWheel() {
+    return onWheel;
   }
 
   public Consumer<String> onText() {
@@ -4074,10 +4119,13 @@ public final class El {
     return style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
   }
 
-  /** The width of the rows: the width of the content box, without the scrollbar's. */
+  /**
+   * The width of the rows: the width of the content box as layout gave it, not as a {@link #cycle}
+   * shows it, without the scrollbar's.
+   */
   private float rowWidth() {
     return Math.max(
-        width
+        laidOutWidth()
             - rowsLeft()
             - style.paddingRight.pixelsOrZero()
             - style.borderRight.pixelsOrZero()
@@ -4225,6 +4273,7 @@ public final class El {
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
+    WheelHandler wheel = onWheel;
     Consumer<String> text = onText;
     Consumer<String> typeAhead = onTypeAhead;
     Consumer<String> edit = onEdit;
@@ -4242,6 +4291,7 @@ public final class El {
                     || onDrag != drag
                     || onKey != keyDown
                     || onKeyUp != up
+                    || onWheel != wheel
                     || onText != text
                     || onTypeAhead != typeAhead
                     || onEdit != edit

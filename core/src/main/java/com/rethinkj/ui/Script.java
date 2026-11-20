@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
  * wheel #list 0 40                   # the wheel, 40 pixels down, over the center of #list
+ * wheel #canvas 0 -48 control        # the wheel up with Control held
  * scroll #orders row 5000            # a list made with El.rows: row 5000 at its top
  * key Tab shift                      # Shift+Tab, down and up: the focus moves back
  * type "hello"                       # text for the focused element
@@ -301,18 +302,24 @@ public final class Script {
           desk.pointer = null;
         }
         case "wheel" -> {
-          if (args.size() < 3
-              || !SIGNED.matcher(args.get(args.size() - 2)).matches()
-              || !SIGNED.matcher(args.getLast()).matches()) {
+          List<String> rest = new ArrayList<>(args); // the target, the deltas, the modifiers
+          int modifiers = 0;
+          while (!rest.isEmpty() && modifier(rest.getLast()) != 0) {
+            modifiers |= modifier(rest.removeLast());
+          }
+          if (rest.size() < 3
+              || !SIGNED.matcher(rest.get(rest.size() - 2)).matches()
+              || !SIGNED.matcher(rest.getLast()).matches()) {
             throw line.usage(step);
           }
-          Aim aim = desk.aim(line, args.subList(0, args.size() - 2), "there is nothing to scroll");
+          Aim aim = desk.aim(line, rest.subList(0, rest.size() - 2), "there is nothing to scroll");
           float[] at = aim.in(aim.win);
           aim.win.app.wheel(
               at[0],
               at[1],
-              Float.parseFloat(args.get(args.size() - 2)),
-              Float.parseFloat(args.getLast()));
+              Float.parseFloat(rest.get(rest.size() - 2)),
+              Float.parseFloat(rest.getLast()),
+              modifiers);
         }
         case "scroll" -> {
           if (args.size() < 3
@@ -1231,8 +1238,9 @@ public final class Script {
                   + TARGET + ".";
             case "wheel" ->
               "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
-                  + " positive to scroll down or right, for example `wheel #list 0 40`. A"
-                  + " target is " + TARGET + ".";
+                  + " positive to scroll down or right, and any of shift, control, alt and meta"
+                  + " that are held, for example `wheel #list 0 40` or `wheel #canvas 0 -48"
+                  + " control`. A target is " + TARGET + ".";
             case "scroll" ->
               "`scroll <target> row <index>`, which scrolls the list of rows at the target so"
                   + " that the row with that index, counted from 0, is at its top, for"

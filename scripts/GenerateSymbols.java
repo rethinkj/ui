@@ -40,7 +40,8 @@ public class GenerateSymbols {
       add alert arrow_clockwise arrow_down arrow_download arrow_import arrow_left arrow_maximize
       arrow_export_ltr arrow_minimize arrow_redo arrow_right arrow_sort arrow_sort_down
       arrow_sort_up arrow_sync arrow_undo arrow_up arrow_upload braces branch calendar_ltr checkmark
-      checkmark_circle chevron_down chevron_left chevron_right chevron_up circle
+      checkmark_circle chevron_double_down chevron_double_up chevron_down chevron_left chevron_right
+      chevron_up circle
       clipboard_paste clock code column_single copy cube cut database delete dismiss
       dismiss_circle document document_table edit error_circle eye eye_off filter
       filter_dismiss folder folder_open history info key key_multiple link lock_closed lock_open
