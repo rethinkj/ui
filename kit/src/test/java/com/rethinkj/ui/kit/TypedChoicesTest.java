@@ -9,13 +9,19 @@ import com.rethinkj.ui.Key;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
  * The typed forms of the choice components build the trees of the forms with indexes and hand on
- * values. Without layout, so without native libraries: the trees are compared as built.
+ * values. Without layout: the trees are compared as built.
  */
 class TypedChoicesTest {
+
+  @BeforeEach
+  void textLibraries() {
+    TextLibraries.assumeLoaded(); // building a label loads the font
+  }
 
   enum Level {
     LOW("Low"),
