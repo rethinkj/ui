@@ -167,7 +167,8 @@ final class Editor {
       return moved;
     }
     String value = t.value();
-    boolean moved = answer(value == proposed || value == text ? value : normalized(value));
+    boolean moved =
+        answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
     t.edited(text, lines());
     showComposition();
     return moved;
