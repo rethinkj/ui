@@ -243,11 +243,17 @@ final class Overlays {
       float edge = l.avoidsAnchor ? l.gap : 0;
       boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
       boolean turn = within != null && within.flipped && within.side == l.side;
+      // Only an anchor wholly inside the dialog keeps it there, not a submenu's item below it.
+      boolean inDialog = dialog != null
+          && ax >= dialog.x()
+          && ay >= dialog.y()
+          && ax + aw <= dialog.x() + dialog.width()
+          && ay + ah <= dialog.y() + dialog.height();
       float far = Float.POSITIVE_INFINITY;
-      float dialogLeft = dialog == null ? -far : dialog.x();
-      float dialogTop = dialog == null ? -far : dialog.y();
-      float dialogRight = dialog == null ? far : dialog.x() + dialog.width();
-      float dialogBottom = dialog == null ? far : dialog.y() + dialog.height();
+      float dialogLeft = inDialog ? dialog.x() : -far;
+      float dialogTop = inDialog ? dialog.y() : -far;
+      float dialogRight = inDialog ? dialog.x() + dialog.width() : far;
+      float dialogBottom = inDialog ? dialog.y() + dialog.height() : far;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
         top = beside(after != turn, ay, ah, h, l.gap, height);
         left = along(l.align, ax, aw, w, width, edge, dialogLeft, dialogRight);
@@ -314,10 +320,6 @@ final class Overlays {
       float margin,
       float from,
       float to) {
-    if (start < from || start + extent > to) { // such as a submenu's item below the dialog
-      from = Float.NEGATIVE_INFINITY;
-      to = Float.POSITIVE_INFINITY;
-    }
     float end = start + extent - size;
     float first = switch (align) {
       case END, FLEX_END -> end;
