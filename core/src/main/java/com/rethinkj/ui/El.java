@@ -3782,7 +3782,8 @@ public final class El {
   /**
    * Like {@link #wantedRows(float, float, float, float, float, float)}.
    *
-   * @param anew whether to want the rows that a list built anew would, also when it has them
+   * @param anew whether to want the rows that a list built anew would, also when it has them;
+   *     then null where those are built for another part sideways than the rows it has
    */
   int[] wantedRows(
       float left,
@@ -3816,7 +3817,11 @@ public final class El {
     }
     if (spans) {
       float margin = (shownTo - shown) / 2;
-      spanFrom = Math.max(shown - margin, 0);
+      float start = Math.max(shown - margin, 0);
+      if (anew && (start != spanFrom || shownTo + margin != spanTo)) {
+        return null; // cells of another part sideways, which only a rebuild of the view builds
+      }
+      spanFrom = start;
       spanTo = shownTo + margin;
     }
     return new int[] {Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
