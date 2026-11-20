@@ -761,7 +761,7 @@ public final class Text implements Measure {
       int to = cut ? Math.min(underlineTo, shown) : underlineTo;
       float from = x(underlineFrom);
       float end = cut && to == shown ? lineX[line] + lineEnd[line] : x(to);
-      composition = to <= underlineFrom
+      composition = to <= underlineFrom || lines.get(line).glyphs().count() == 0
           ? null
           : new Box(
               from,
