@@ -1,0 +1,1 @@
+- The Platforms page names the glibc that the Linux natives need: 2.38 or later, as on Ubuntu 24.04, Debian 13 or Fedora 39. They do not load on Ubuntu 22.04 or Debian 12.

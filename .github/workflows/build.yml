@@ -60,6 +60,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
       - name: Build and test
         run: mvn -B -ntp verify
+      # The Platforms page names the newest glibc symbol version that the Linux natives use.
+      - name: Check the glibc on the Platforms page
+        if: runner.os == 'Linux'
+        run: |
+          need=$(objdump -T natives-linux-x64/fetched/resources/META-INF/rethinkj-ui/natives/linux-x64/*.so* \
+            | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          grep -qF "glibc ${need#GLIBC_} or later" docs/content/docs/reference/platforms.mdx \
+            || { echo "::error::The Linux natives need ${need:-an unknown glibc}, which platforms.mdx does not name."; exit 1; }
       - name: Keep what failing tests left
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
