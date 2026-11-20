@@ -72,13 +72,12 @@ public record Json(Theme.Code colors) implements Highlighter {
     int n = line.length();
     int i = at + 1;
     while (i < n) {
-      char c = line.charAt(i);
-      if (c == '\\') {
-        i += 2; // the character after it is itself, a quote too
-      } else if (c == '"') {
-        return i + 1;
-      } else {
-        i++;
+      switch (line.charAt(i)) {
+        case '\\' -> i += 2; // the character after it is itself, a quote too
+        case '"' -> {
+          return i + 1;
+        }
+        default -> i++;
       }
     }
     return n;
