@@ -176,13 +176,20 @@ class TextInBatchTest {
         }
       }));
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      AtomicBoolean done = new AtomicBoolean();
       loop.get().waits((millis, holdBack) -> {
         if (millis == -1 && !sent.getAndSet(true)) {
-          // A moment later, from another thread: the events of the window's opening may still end
-          // this wait, and the character has to come while the loop waits for the next.
+          // From another thread once the loop waits in SDL: until then, events of the window's
+          // opening that are still pending would deliver the character without a wait.
+          Thread waiting = Thread.currentThread();
           Thread.ofPlatform().daemon().start(() -> {
+            while (!inWait(waiting)) {
+              if (done.get()) {
+                return;
+              }
+              Thread.onSpinWait();
+            }
             try {
-              Thread.sleep(300);
               if ((int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) 'é', 1L) == 0) {
                 throw new AssertionError("PostMessage failed");
               }
@@ -192,8 +199,23 @@ class TextInBatchTest {
           });
         }
       });
-      Desktop.run(loop.get(), () -> "a frame after the character, typed: \"" + form.name + "\"");
+      try {
+        Desktop.run(loop.get(), () -> "a frame after the character, typed: \"" + form.name + "\"");
+      } finally {
+        done.set(true);
+      }
     }
+  }
+
+  /** Whether the thread waits in SDL for an event ({@link Sdl#waitEventTimeout}). */
+  private static boolean inWait(Thread thread) {
+    for (StackTraceElement frame : thread.getStackTrace()) {
+      if (frame.getClassName().equals(Sdl.class.getName())
+          && frame.getMethodName().equals("waitEventTimeout")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test
