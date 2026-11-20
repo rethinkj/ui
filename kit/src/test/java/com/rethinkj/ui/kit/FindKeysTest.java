@@ -456,8 +456,9 @@ class FindKeysTest {
     tree = run(app, "key Escape");
     assertFalse(tree.contains("role=tooltip"), "Escape hides the message:\n" + tree);
     assertEquals(orders, caret(doc));
-    run(app, "key F8");
-    tree = run(app, "key ArrowLeft");
+    tree = run(app, "key F8\n" + "key ArrowRight\n".repeat(5));
+    assertTrue(tree.contains("role=tooltip label=\"No WHERE\""), "inside it:\n" + tree);
+    tree = run(app, "key ArrowRight");
     assertFalse(tree.contains("role=tooltip"), "and so does leaving the diagnostic:\n" + tree);
 
     // With the find bar open, Escape closes the bar first, then the message.

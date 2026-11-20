@@ -52,7 +52,7 @@ The left gutter displays a marker column and line numbers. You can attach:
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
 - **Diagnostics (`diagnostics(text, list)`):** Underlines errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
 
-With the app passed, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** to the previous one, wrapping around at the ends. The message then shows below the cursor, in the look of the marker's tooltip, until the cursor leaves the diagnostic or **Escape** hides it. Escape still closes an open completion list or find bar first. Without diagnostics, the keys do nothing.
+With the app passed, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** to the previous one, wrapping around at the ends. The message then shows above the cursor, in the look of the marker's tooltip, while the editor has the focus, until the cursor leaves the diagnostic or **Escape** hides it. Escape still closes an open completion list or find bar first. Without diagnostics, the keys do nothing.
 
 ```java snippet="code-editor-marks"
 ```

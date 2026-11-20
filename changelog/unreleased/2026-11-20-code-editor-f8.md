@@ -1,1 +1,1 @@
-- In a `CodeEditor` given the app, F8 and Shift+F8 move the caret to the next or previous diagnostic and show its message below the caret, as `role=tooltip` in a tree dump, until the caret leaves the diagnostic or Escape hides it.
+- In a `CodeEditor` given the app, F8 and Shift+F8 move the caret to the next or previous diagnostic and show its message above the caret, as `role=tooltip` in a tree dump, until the caret leaves the diagnostic or Escape hides it.

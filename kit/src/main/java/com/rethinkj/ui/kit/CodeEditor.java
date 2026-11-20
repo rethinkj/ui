@@ -257,8 +257,8 @@ public final class CodeEditor {
      *
      * <p>Given the app, F8 puts the caret at the start of the next diagnostic after it, Shift+F8 at
      * the start of the one before, round at the ends, and the message of those that start there
-     * shows below the caret, as their marker's tooltip, until the caret leaves them or Escape
-     * hides it; a tree dump shows it as an overlay of the editor, {@code role=tooltip} with the
+     * shows above the caret, as their marker's tooltip, while the editor has the focus, until the
+     * caret leaves them or Escape hides it; a tree dump shows it as an overlay of the editor, {@code role=tooltip} with the
      * message as the label. Without diagnostics the keys do nothing.
      */
     public State diagnostics(String text, List<Diagnostic> diagnostics) {
@@ -386,8 +386,11 @@ public final class CodeEditor {
             }
           }
         })
-        .gutter(line -> cell(theme, state, diagnostics, line), rail)
-        .overlay(message(theme, state, diagnostics));
+        .gutter(line -> cell(theme, state, diagnostics, line), rail);
+    El message = message(theme, state, diagnostics);
+    if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
+      editor.whenFocusWithin(e -> e.overlay(message));
+    }
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
     if (app == null) {
@@ -557,8 +560,9 @@ public final class CodeEditor {
   }
 
   /**
-   * The message of the diagnostics that start where F8 put the caret, below the caret on the look
-   * of their marker's tooltip while the caret is in them; else null, and F8's place is forgotten.
+   * The message of the diagnostics that start where F8 put the caret, above the caret, where a
+   * list of completions does not cover it, on the look of their marker's tooltip while the caret
+   * is at their start or inside them; else null, and F8's place is forgotten.
    */
   private static El message(Theme theme, State state, List<Diagnostic> diagnostics) {
     if (state.shown < 0) {
@@ -574,7 +578,8 @@ public final class CodeEditor {
         messages.append(messages.isEmpty() ? "" : "\n").append(d.message);
       }
     }
-    if (state.caret < state.shown || state.caret > to) {
+    boolean in = state.caret == state.shown || (state.caret > state.shown && state.caret < to);
+    if (to < 0 || !in) {
       state.shown = -1;
       return null;
     }
@@ -584,7 +589,7 @@ public final class CodeEditor {
             messages.isEmpty() ? (error ? texts.error() : texts.warning()) : messages.toString(),
             Tooltip.options()
                 .kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING)
-                .side(Side.BOTTOM, Style.Align.START))
+                .side(Side.TOP, Style.Align.START))
         .atCaret();
   }
 
