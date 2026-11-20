@@ -152,7 +152,9 @@ public final class Window implements AutoCloseable {
      * {@code DWMWA_TRANSITIONS_FORCEDISABLED}, so that no empty frame zooms in before its first
      * frame), and without taking the keyboard focus from the window the drag began in ({@code
      * SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN}), whose keys, Escape among them, reach the drag as they
-     * did. A {@link WindowLoop} gives it the focus when the press ends, if it is still open.
+     * did. A {@link WindowLoop} gives it the focus when the press ends, if it is still open, and
+     * moves it wholly into the work area of its display, which it may reach beyond where it was
+     * let go near an edge of the screen.
      */
     public Options underPointer() {
       underPointer = true;
@@ -1379,16 +1381,34 @@ public final class Window implements AutoCloseable {
    * frameless window the rows at its top that the view marks as its drag area ({@link
    * WindowPart#DRAG}), inside the work area (the display less the taskbar or a dock) of the
    * display it lies mostly on, from top to bottom and across for {@link #REACHABLE} logical
-   * pixels or its whole width. A window that the app moved during a press, as a torn-off tab's
-   * window that follows the pointer, can be let go with its title bar above the top of the screen
-   * or beyond another edge, where nothing grabs it any more: a {@link WindowLoop} calls this for
-   * it when the press ends, and a window opens so ({@link Options#position}). An app calls it
-   * after moving a window by itself. Nothing moves while the window is maximized, minimized or
+   * pixels or its whole width. A window that the app moved during a press, as one that follows
+   * the pointer with its only tab, can be let go with its title bar above the top of the screen or
+   * beyond another edge, where nothing grabs it any more: a {@link WindowLoop} calls this for it
+   * when the press ends (and moves one that opened during the press wholly into the work area,
+   * {@link Options#underPointer}), and a window opens so ({@link Options#position}). An app calls
+   * it after moving a window by itself. Nothing moves while the window is maximized, minimized or
    * fullscreen, nor on Wayland, where the compositor places windows.
    *
    * @return whether the window moved
    */
   public boolean keepReachable() {
+    return keep(false);
+  }
+
+  /**
+   * Like {@link #keepReachable}, but moves the window wholly into that work area, frame and all,
+   * or, where it is larger, its top left corner to the area's: for a window that opened under the
+   * pointer during a press ({@link Options#underPointer}), as a torn-off tab's, which {@link
+   * WindowLoop} moves so when the press ends. Let go near an edge, it would reach beyond it, its
+   * close button out of reach.
+   *
+   * @return whether the window moved
+   */
+  boolean keepInWorkArea() {
+    return keep(true);
+  }
+
+  private boolean keep(boolean wholly) {
     checkOpen();
     if (!knowsPositions()
         || (Sdl.getWindowFlags(sdl)
@@ -1405,16 +1425,20 @@ public final class Window implements AutoCloseable {
     if (frame == null || frameless) {
       frame = new int[4];
     }
-    int[] bar = frame[0] > 0
-        ? new int[] {x - frame[1], y - frame[0], w + frame[1] + frame[3], frame[0]}
-        : dragArea(x, y);
-    int display = Sdl.displayForRect(
-        x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]);
+    int[] outer = {x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]};
+    int display = Sdl.displayForRect(outer[0], outer[1], outer[2], outer[3]);
     int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
     if (area == null) {
       return false;
     }
-    int[] by = reachable(bar, area, units(REACHABLE));
+    int[] by;
+    if (wholly) {
+      by = inside(outer, area);
+    } else {
+      int[] bar =
+          frame[0] > 0 ? new int[] {outer[0], outer[1], outer[2], frame[0]} : dragArea(x, y);
+      by = reachable(bar, area, units(REACHABLE));
+    }
     if (by[0] == 0 && by[1] == 0) {
       return false;
     }
@@ -1557,6 +1581,20 @@ public final class Window implements AutoCloseable {
       dx = area[0] + area[2] - across - bar[0];
     }
     return new int[] {dx, dy};
+  }
+
+  /**
+   * How far a window has to move to lie wholly in a work area; where it is wider or higher than
+   * the area, so far that its left or top edge is the area's.
+   *
+   * @param window x, y, width and height of the window on the screen, frame and all
+   * @param area x, y, width and height of the work area
+   * @return the move across and down
+   */
+  static int[] inside(int[] window, int[] area) {
+    int x = Math.clamp(window[0], area[0], Math.max(area[0], area[0] + area[2] - window[2]));
+    int y = Math.clamp(window[1], area[1], Math.max(area[1], area[1] + area[3] - window[3]));
+    return new int[] {x - window[0], y - window[1]};
   }
 
   /**

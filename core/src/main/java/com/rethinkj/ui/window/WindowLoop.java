@@ -686,7 +686,12 @@ public final class WindowLoop {
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
         for (Entry e : List.copyOf(entries)) {
-          if (e.moved && e.isOpen()) { // the app moved it during the press, maybe off screen
+          if (!e.isOpen()) {
+            continue;
+          }
+          if (e.focusAfterPress) { // opened under the pointer, as a torn-off tab: wholly in view
+            e.window.keepInWorkArea();
+          } else if (e.moved) { // the app moved it during the press, maybe off screen
             e.window.keepReachable();
           }
         }

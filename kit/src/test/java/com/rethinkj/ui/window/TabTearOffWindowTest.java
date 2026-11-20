@@ -7,6 +7,7 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
@@ -19,6 +20,7 @@ import com.rethinkj.ui.text.Font;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -101,6 +103,65 @@ class TabTearOffWindowTest {
       assertEquals(List.of("a", "c", "b", "d"), d.groups.main().tabs());
       assertEquals(2, d.groups.main().active());
       assertFalse(d.groups.isDragging());
+    }
+  }
+
+  /**
+   * Let go near the bottom right corner of the screen, the torn-off tab's window, which followed
+   * the pointer beyond the edges, comes wholly into the work area, its close button within reach.
+   */
+  @Test
+  void aTabLetGoNearTheEdgeOfTheScreenOpensWhollyInTheWorkArea() {
+    assumeWindows();
+    assumeTrue(Window.knowsPositions(), "Skipped: the compositor places the windows");
+    try (Window a =
+        Window.open("rethinkj tab tear-off test", 400, 160, Window.options().position(100, 200))) {
+      Docs d = new Docs();
+      d.app = new App<>(d, s -> s.view(s.groups.main()));
+      WindowLoop loop = new WindowLoop(a, d.app, (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {});
+      settle();
+      int[] area = Sdl.displayBounds(Sdl.displayForRect(a.x(), a.y(), 1, 1), true);
+      // 10 pixels inside the work area's bottom right corner, in the main window's pixels.
+      float right = (area[0] + area[2] - 10 - a.x()) / a.unitsPerLogical();
+      float bottom = (area[1] + area[3] - 10 - a.y()) / a.unitsPerLogical();
+      int[] step = new int[1];
+      int[] torn = new int[4];
+      loop.waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        switch (step[0]) {
+          case 0 -> { // b, out of the bar and down
+            button(a, true, 52, 17);
+            motion(a, 52, 40);
+            motion(a, 52, 120);
+            step[0]++;
+          }
+          case 1 -> {
+            if (d.groups.groups().size() == 2) { // its window is open: to the corner, let go
+              motion(a, right, bottom);
+              button(a, false, right, bottom);
+              step[0]++;
+            }
+          }
+          default -> {
+            Window b = d.groups.groups().get(1).window().window();
+            torn[0] = b.x();
+            torn[1] = b.y();
+            torn[2] = b.units(b.width());
+            torn[3] = b.units(b.height());
+            loop.stop();
+          }
+        }
+      });
+      run(loop, () -> "b torn off and let go: " + d.log + " " + d.groups.groups());
+
+      assertEquals(2, d.groups.groups().size(), "b stays in a window of its own");
+      String where = Arrays.toString(torn) + " in " + Arrays.toString(area);
+      assertTrue(torn[0] >= area[0] && torn[1] >= area[1], where);
+      assertTrue(torn[0] + torn[2] <= area[0] + area[2], "its right edge: " + where);
+      assertTrue(torn[1] + torn[3] <= area[1] + area[3], "its bottom edge: " + where);
     }
   }
 

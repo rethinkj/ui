@@ -3,6 +3,7 @@ package com.rethinkj.ui.window;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.App;
@@ -38,6 +39,19 @@ class EdgesTest {
     int[] there = {1920, 0, 2560, 1400};
     assertEquals(50, Window.reachable(second, there, 120)[1]);
     assertEquals(0, Window.reachable(second, there, 120)[0]);
+  }
+
+  @Test
+  void aTornOffWindowComesWhollyIntoTheWorkArea() {
+    int[] area = {0, 0, 1920, 1032}; // a work area above a taskbar of 48
+    assertArrayEquals(new int[] {0, 0}, Window.inside(new int[] {300, 200, 900, 600}, area));
+    // Let go near the right edge: beyond it and under the taskbar.
+    assertArrayEquals(new int[] {-562, -35}, Window.inside(new int[] {1582, 467, 900, 600}, area));
+    assertArrayEquals(new int[] {40, 30}, Window.inside(new int[] {-40, -30, 900, 600}, area));
+    // Larger than the area: its top left corner at the area's, where its title bar is.
+    assertArrayEquals(new int[] {-100, -50}, Window.inside(new int[] {100, 50, 2000, 1100}, area));
+    int[] there = {1920, 0, 2560, 1400}; // a display to the right, at x 1920
+    assertArrayEquals(new int[] {-120, 0}, Window.inside(new int[] {3700, 100, 900, 600}, there));
   }
 
   @Test

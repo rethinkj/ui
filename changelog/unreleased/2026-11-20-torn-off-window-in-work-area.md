@@ -1,0 +1,1 @@
+- A window opened under the pointer during a drag (`Window.Options.underPointer()`), such as a tab torn off with `TabGroups`, now moves wholly into the work area of its display when the drag ends. Let go near the right or bottom edge of the screen, it used to reach beyond the edge or under the taskbar, its close button out of reach.
