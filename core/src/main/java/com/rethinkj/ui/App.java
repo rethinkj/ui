@@ -184,10 +184,11 @@ public final class App<S> {
   // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
   private final List<BooleanSupplier> follow = new ArrayList<>();
   // The El#onResize handlers the last layout told a new size, which rebuild runs before the frame
-  // draws, and how many times it builds again for them; those of later rounds wait for the next
-  // frame.
+  // draws, and how many times a frame builds again for them; those of later rounds wait for the
+  // next frame.
   private final List<BooleanSupplier> resized = new ArrayList<>();
   private static final int RESIZE_ROUNDS = 3;
+  private int resizeRounds; // in this frame
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -3110,6 +3111,7 @@ public final class App<S> {
    */
   public boolean frame() {
     frames++;
+    resizeRounds = 0;
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -3219,14 +3221,16 @@ public final class App<S> {
   }
 
   /**
-   * Builds the view as {@link #build} does, then runs the {@link El#onResize} handlers its layout
-   * told a new size, as handlers of input, and builds again from what they changed, until no
-   * size changes or after {@link #RESIZE_ROUNDS} rounds: a toolbar shows what fits a new width in
-   * the frame that has it.
+   * Builds the view as {@link #build} does; at the end of a frame, then runs the {@link
+   * El#onResize} handlers its layout told a new size, as handlers of input, and builds again from
+   * what they changed, until no size changes or after {@link #RESIZE_ROUNDS} rounds in the frame:
+   * a toolbar shows what fits a new width in the frame that has it. Between two inputs, whose
+   * rows may not be built yet, the handlers wait in the queue as input does.
    */
   private void rebuild(boolean between) {
     build(between);
-    for (int round = 0; round < RESIZE_ROUNDS && !resized.isEmpty(); round++) {
+    while (!between && resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+      resizeRounds++;
       ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
       resized.clear();
       dispatching = true;

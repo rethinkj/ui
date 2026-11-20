@@ -40,6 +40,28 @@ class ResizeTest {
   }
 
   @Test
+  void aViewThatNeverSettlesStillEndsEachFrame() {
+    int[] width = {40};
+    int[] told = {0};
+    App<int[]> app = new App<>(
+        width,
+        s -> el().size(s[0], 20).onResize((w, h) -> {
+          if (w >= 80) {
+            s[0] = s[0] == 120 ? 80 : s[0] + 1; // never the size it was told
+            if (++told[0] > 50) {
+              throw new IllegalStateException("the frame runs the handler without end");
+            }
+          }
+        }));
+    app.resize(200, 100, 1);
+    app.frame();
+    app.post(() -> width[0] = 80);
+    app.post(() -> width[0] = width[0] > 80 ? 100 : width[0]); // the queue goes on after a rebuild
+    app.frame();
+    assertEquals(4, told[0], "once as input, three rounds at the end, the rest in the next frame");
+  }
+
+  @Test
   void anElementWithMotionIsToldTheSizeLayoutGaveNotTheStepsOfItsSpring() {
     List<Float> told = new ArrayList<>();
     int[] width = {40};
