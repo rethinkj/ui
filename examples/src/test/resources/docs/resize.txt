@@ -1,11 +1,9 @@
 # docs:start resize-script
 size 420 100
-frame                   # the texts; then onResize tells the bar's width, 396
-frame                   # still room for the texts
+frame                   # laid out at 396: onResize tells it, room for the texts
 snap wide
 size 240 100
-frame                   # laid out at 216: onResize tells it
-frame                   # too narrow for the texts: icons only
+frame                   # laid out at 216: onResize tells it, built again with icons only
 advance 1               # the buttons' widths spring to their new size
 frame
 snap narrow

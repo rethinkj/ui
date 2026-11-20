@@ -26,16 +26,15 @@ class ResizeTest {
     });
     app.resize(200, 100, 1);
     app.frame();
-    assertEquals(List.of(), told, "told in the next frame, as a handler of input");
-    app.frame();
-    assertEquals(List.of("200.0x20.0", "item 30.0", "item 30.0", "item 30.0"), told);
+    assertEquals(
+        List.of("200.0x20.0", "item 30.0", "item 30.0", "item 30.0"),
+        told,
+        "told in the frame that laid it out");
     told.clear();
     app.invalidate();
     app.frame();
-    app.frame();
     assertEquals(List.of(), told, "the same sizes are not told again");
     app.resize(150, 100, 1);
-    app.frame();
     app.frame();
     assertEquals(List.of("150.0x20.0"), told, "only what changed");
   }

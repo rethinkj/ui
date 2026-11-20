@@ -23,7 +23,8 @@ import java.util.function.Supplier;
  * after the first go into a menu behind an ellipsis, from the start on; where that is not enough,
  * the first one too, and only then is the current place shortened, with an ellipsis and its whole
  * name in a tooltip. The breadcrumb learns its width from the layout ({@link El#onResize}) and
- * keeps it in its {@link State}, so it settles a frame after its width changes; the width of each
+ * keeps it in its {@link State}, and the frame that brings a new width already shows what fits it;
+ * the width of each
  * crumb it works out from the theme and the width of its text, as layout shaped that text at the
  * window's scale once it has.
  *

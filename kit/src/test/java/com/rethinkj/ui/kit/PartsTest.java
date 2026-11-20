@@ -140,6 +140,31 @@ class PartsTest {
   }
 
   @Test
+  void theFirstFrameAfterAResizeShowsWhatFits() throws IOException {
+    App<Parts> app = new Parts(Theme.DARK).app(Parts::detail);
+    String wide = resized(app, 720);
+    assertFalse(wide.contains("label=\"More\""), wide);
+    assertFalse(wide.contains("label=\"Hidden parts\""), wide);
+    String narrow = resized(app, 330);
+    assertTrue(narrow.contains("role=button label=\"More\""), narrow);
+    assertFalse(narrow.contains("role=button label=\"Export\""), narrow);
+    assertTrue(narrow.contains("role=button label=\"Hidden parts\""), narrow);
+    String back = resized(app, 720);
+    assertTrue(back.contains("role=button label=\"Export\""), back);
+    assertFalse(back.contains("label=\"More\""), back);
+    assertFalse(back.contains("label=\"Hidden parts\""), back);
+  }
+
+  /** The tree of the first frame at this width, which the next frame leaves as it is. */
+  private String resized(App<Parts> app, int width) throws IOException {
+    Script.run("size " + width + " 420\nframe", app, out);
+    String first = app.tree().dump();
+    Script.run("frame", app, out);
+    assertEquals(first, app.tree().dump(), "settled in the first frame at " + width);
+    return first;
+  }
+
+  @Test
   void theToolbarIsOneStopAndTheArrowsGoThroughIt() throws IOException {
     App<Parts> app = run(720, "focus role=link label=\"localhost\"\nkey Tab\nframe");
     assertEquals("Refresh", app.focused().label(), "Tab reaches the first item");

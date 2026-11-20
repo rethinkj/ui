@@ -67,15 +67,11 @@ class GridFitTest {
   }
 
   @Test
-  void everyColumnIsFittedOnceInAHandlerOfTheFrameThatBuiltItsRows() throws IOException {
+  void everyColumnIsFittedOnceInTheFrameThatBuiltItsRows() throws IOException {
     Fit fit = new Fit();
     Orders orders = fitted(new Orders(T, 1_000_000), fit);
     App<Orders> app = orders.app();
-    run(app, "frame");
-    assertTrue(fit.isPending());
-    assertTrue(shortened(app, 2) > 0, "the addresses are cut short before");
-    assertTrue(app.tree().dump().contains("#fit-"), "what fits, while it is due");
-    run(app, "frame"); // its handler runs, and the view is built with the widths
+    run(app, "frame"); // its handler runs after layout, and the view is built with the widths
     assertFalse(fit.isPending());
     assertEquals(7, resizes(orders).size(), "" + orders.log);
     for (int c = 0; c < 6; c++) {
@@ -118,9 +114,7 @@ class GridFitTest {
     assertTrue(orders.log.getFirst().startsWith("rows 0-"), "the app was asked for the rows");
 
     app.post(() -> orders.loaded = 1000); // the first page arrives
-    run(app, "await\nframe");
-    assertEquals(List.of(), resizes(orders), "the frame that shows the page");
-    run(app, "frame");
+    run(app, "await\nframe"); // the frame that shows the page fits to it
     assertFalse(fit.isPending());
     assertEquals(7, resizes(orders).size(), "" + orders.log);
     assertEquals(0, shortened(app, 2));

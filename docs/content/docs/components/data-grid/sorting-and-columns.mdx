@@ -32,7 +32,7 @@ Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongsi
 ```java snippet="grid-fit"
 ```
 
-- Auto-fitting runs on the first frame with loaded rows and updates widths on the next frame (so headless scripts need one extra `frame` before `snap`).
+- Auto-fitting runs on the first frame with loaded rows, and that frame already shows the fitted widths.
 - Columns the user manually resized are left untouched; hidden columns auto-fit when first shown.
 
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />

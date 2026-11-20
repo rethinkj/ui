@@ -975,7 +975,7 @@ public final class WindowLoop {
           tick();
           draw(e, !redraw.live());
           // During the system's live resize no other frame comes until the next step: what the
-          // frame queued, such as a toolbar's resize handler, shows now, not a step late.
+          // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
           for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
             draw(e, false);
           }

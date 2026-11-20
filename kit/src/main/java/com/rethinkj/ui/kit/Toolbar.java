@@ -16,8 +16,8 @@ import java.util.function.Consumer;
  * surface of their own. What does not fit moves, from the end, into a menu behind a More button
  * ({@link Symbol#MORE_HORIZONTAL}), as the same actions: a toggle as a checked item, a split button
  * as a submenu, a group between lines. The toolbar learns its width and the width of each item
- * from the layout ({@link El#onResize}) and keeps them in its {@link State}, so it settles a frame
- * after its width changes.
+ * from the layout ({@link El#onResize}) and keeps them in its {@link State}; the frame that brings
+ * a new width already shows what fits it.
  *
  * <pre>{@code
  * Toolbar.toolbar(state.toolbar, "Query", List.of(

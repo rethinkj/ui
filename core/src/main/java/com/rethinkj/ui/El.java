@@ -1107,10 +1107,11 @@ public final class El {
    * Tells the app the size layout gave this element, as a browser's {@code ResizeObserver} does:
    * in the first build that has it and whenever a rebuild gives it another size than it told,
    * so that a view can show what fits, as a toolbar that moves the buttons it has no room for
-   * into a menu. It runs as {@link #onRowsBuilt} does, after the input of the frame or in the
-   * next {@link App#frame}, and the view built from what it changed is laid out again, which may
-   * tell it again; a view that settles needs a frame or two more. Not told inside the rows of a
-   * virtual list, nor for the sizes motion passes through.
+   * into a menu. It runs as the handlers of input do, right after the layout that gave the size,
+   * and the view built from what it changed is laid out again, which may tell it again, up to
+   * three times before the {@link App#frame} ends: the frame that brings a new size shows the view
+   * that fits it. A view that has not settled by then goes on in the next frame. Not told inside
+   * the rows of a virtual list, nor for the sizes motion passes through.
    *
    * @param handler told the width and height, or null for none
    */

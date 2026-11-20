@@ -1755,7 +1755,7 @@ public final class DataGrid {
      * exist are loaded (with {@link #loading}, once the first of them are; a grid without rows
      * waits for them), and again after {@link Fit#reset}. Each width goes to {@link #onResize},
      * within the theme's {@code minColumn} and {@code maxColumn}, all in one handler, so the view
-     * is built once with them; a script needs one {@code frame} more to show them. A column the
+     * is built once with them, and that frame already shows them. A column the
      * user resized while the fit was still to come is left as it is; a column a {@link Layout}
      * hides is fitted when it is first shown, unless the app gave it another width since.
      *

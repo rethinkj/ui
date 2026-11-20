@@ -110,11 +110,11 @@ Use `El.measure(measure)` for leaf elements that compute their own size dynamica
 <Shot src="examples/docs/resize/narrow-{theme}" alt="The same bar in a narrower window: the three buttons show only their icons" caption="When narrower than 300 px, the bar shows icons only." />
 
 - Fires on the first build and whenever the element's laid-out size changes.
-- Runs like an event handler and triggers a rebuild, so responsive layouts settle within 1–2 frames.
+- Runs like an event handler right after layout, and the view is built again before the frame ends (up to three times), so the first frame at a new size already shows the layout that fits it.
 - Keep the element's size independent of its own contents (e.g., `wFull()`) to avoid resize loops.
 - Not called inside virtual list rows (`rows`) or during intermediate animation frames (`motion`).
 
-In scripts, `size` resizes the window; run `frame` to trigger layout and another `frame` (plus `advance`) to see the updated view:
+In scripts, `size` resizes the window, and the next `frame` already shows the view that fits; `advance` lets the springs finish:
 
 ```text snippet="resize-script"
 ```

@@ -1,4 +1,3 @@
 size 520 300
-frame
 frame                  # the fit's handler tells the widths, and the view is built with them
 snap view

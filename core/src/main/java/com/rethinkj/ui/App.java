@@ -183,6 +183,11 @@ public final class App<S> {
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
   // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
   private final List<BooleanSupplier> follow = new ArrayList<>();
+  // The El#onResize handlers the last layout told a new size, which rebuild runs before the frame
+  // draws, and how many times it builds again for them; those of later rounds wait for the next
+  // frame.
+  private final List<BooleanSupplier> resized = new ArrayList<>();
+  private static final int RESIZE_ROUNDS = 3;
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -1604,11 +1609,11 @@ public final class App<S> {
 
   /**
    * Whether the next {@link #frame} has handlers to run at once that the last one queued, such as
-   * the {@link El#onResize} handlers of elements that layout gave another size, or input and
-   * tasks that arrived since. A runner that draws a single frame when the system asks for one, as
-   * a {@link com.rethinkj.ui.window.WindowLoop} does during a live resize, draws again while this
-   * holds (a few times at most), so that a toolbar that gives way to the new width shows so in
-   * the same step instead of one step late.
+   * the {@link El#onRowsBuilt} handler of a list that built other rows, the {@link El#onResize}
+   * handlers of a view that did not settle in its frame, or input and tasks that arrived since. A
+   * runner that draws a single frame when the system asks for one, as a {@link
+   * com.rethinkj.ui.window.WindowLoop} does during a live resize, draws again while this holds (a
+   * few times at most), so that what they change shows in the same step instead of one step late.
    */
   public boolean handlersWaiting() {
     return !queued.isEmpty();
@@ -3214,6 +3219,39 @@ public final class App<S> {
   }
 
   /**
+   * Builds the view as {@link #build} does, then runs the {@link El#onResize} handlers its layout
+   * told a new size, as handlers of input, and builds again from what they changed, until no
+   * size changes or after {@link #RESIZE_ROUNDS} rounds: a toolbar shows what fits a new width in
+   * the frame that has it.
+   */
+  private void rebuild(boolean between) {
+    build(between);
+    for (int round = 0; round < RESIZE_ROUNDS && !resized.isEmpty(); round++) {
+      ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
+      resized.clear();
+      dispatching = true;
+      try {
+        while (!told.isEmpty()) {
+          told.poll().getAsBoolean();
+        }
+      } catch (RuntimeException | Error e) {
+        handled = true; // as in frame: the next input gets a tree built anew
+        throw e;
+      } finally {
+        dispatching = false;
+        queued.addAll(told); // those after one that threw
+        for (int i = follow.size() - 1; i >= 0; i--) {
+          queued.addFirst(follow.get(i));
+        }
+        follow.clear();
+      }
+      build(between);
+    }
+    queued.addAll(resized); // a view that has not settled goes on in the next frame
+    resized.clear();
+  }
+
+  /**
    * Builds the view from the state, gives it the looks of the moment and its fields their editing
    * state, lays it out, hands it to the animator and builds the rows of its virtual lists; then
    * finds the focus in it again and places the fields' carets and the scrollbars.
@@ -3223,7 +3261,7 @@ public final class App<S> {
    *     input that needs them: most keys need only the elements around the focus, and the rows
    *     are most of what a rebuild of a data grid costs.
    */
-  private void rebuild(boolean between) {
+  private void build(boolean between) {
     List<Object> ids = Animator.identities(pointed());
     El built = WindowState.CURRENT.with(
         new WindowState(active, maximized, scale), () -> view.apply(state));
@@ -3885,7 +3923,7 @@ public final class App<S> {
     return built;
   }
 
-  /** Queues the {@link El#onResize} handlers below {@code el} whose element has a new size. */
+  /** Collects the {@link El#onResize} handlers below {@code el} whose element has a new size. */
   private void tellSizes(El el, List<El> path, Map<Object, Long> sizes) {
     path.add(el);
     El.SizeHandler handler = el.onResize();
@@ -3897,7 +3935,7 @@ public final class App<S> {
       sizes.put(id, size);
       Long before = toldSizes.get(id);
       if (before == null || before != size) {
-        queued.add(() -> {
+        resized.add(() -> {
           handler.accept(w, h);
           handled = true;
           return true;
