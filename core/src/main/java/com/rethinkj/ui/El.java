@@ -1098,9 +1098,8 @@ public final class El {
    * a table asks for, so an app that fetches its rows in pages starts fetching here. It runs as
    * the handlers of input do: after the input of the frame that built the rows, or in the next
    * {@link App#frame} when the rebuild at the end of one built them, which {@link
-   * App#nextChange} then says is due at once. The handlers of all lists that are due together,
-   * and those of {@link #onRowsInView}, run as one input, on one tree. A list without rows tells
-   * nothing.
+   * App#nextChange} then says is due at once; with an {@link #onRowsInView} handler too, as
+   * that one. A list without rows tells nothing.
    *
    * @param handler told the rows, or null for none
    */
@@ -1118,8 +1117,8 @@ public final class El {
    * whole or the list has none. It runs as the handlers of input do, in the {@link App#frame}
    * after the one that showed the rows, which {@link App#nextChange} then says is due at
    * once. The view built after it shows the rows in view, as a status line "Rows 201–223" or
-   * buttons that page through the rows. Handlers of both kinds that are due together run as one
-   * input, followed by one rebuild.
+   * buttons that page through the rows. A list with both handlers runs its {@link #onRowsBuilt}
+   * one at that time too, and both as one input, followed by one rebuild.
    *
    * @param handler told the rows, or null for none
    */
