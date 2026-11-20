@@ -43,7 +43,7 @@ To preserve cursor, selection, scroll position, and undo history across tab swit
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
 | `coveredTop(height)` | Multi-line only: something lies over the field's top, such as a find bar. The field can scroll that far above its first line, where its scrollbar's thumb is at the top, and a selection made with `app.select` scrolls into view below it |
 
-See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`).
+See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`). `onSelect` hears the caret of an edit once the app has answered it, so its positions always fit the app's string: an edit the app refuses tells it nothing.
 
 From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)` (add an `anchor` to select with the edit: if the app refuses it, the selection stays as it was), `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
 

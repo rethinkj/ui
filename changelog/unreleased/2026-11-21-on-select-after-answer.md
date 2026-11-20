@@ -1,0 +1,1 @@
+- A text field's `onSelect` handler hears the caret of an edit (typed text, `App.edit`, `FieldState` edits) only once the app has answered it, so its positions always fit the app's string; before, it briefly heard positions in a refused edit's text. A field with `onSelect` now builds its view once more per edit.
