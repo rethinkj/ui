@@ -503,7 +503,8 @@ public final class Script {
                     + " rebuilds the view and moves what is animated.");
           }
           // Each open window, the first under the name and the others under theirs before it.
-          for (Win each : desk.open()) {
+          List<Win> open = desk.open();
+          for (Win each : open) {
             String name = (each == desk.first ? "" : slug(each.title) + "-") + args.getFirst();
             Path png;
             Path tree;
@@ -539,7 +540,8 @@ public final class Script {
               Files.writeString(copied, clipboard);
               written.add(copied);
             }
-            if (each == desk.first && !desk.opened.isEmpty()) {
+            // In the first open window's name, so that it is written while another stays open.
+            if (each == open.getFirst() && !desk.opened.isEmpty()) {
               Path browsed = folder.resolve(name + ".opened.txt").normalize();
               Files.writeString(browsed, String.join("\n", desk.opened) + "\n");
               written.add(browsed);
