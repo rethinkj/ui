@@ -56,14 +56,17 @@ class FieldMenuTest {
     Script.run("size 400 300\nframe\n" + steps.replace("open", settle) + "\n" + settle, app, out);
   }
 
-  /** The open menu's items, each with its shortcut and {@code -} if disabled. */
+  /** The open menu's items, each its label with {@code -} after it if disabled. */
   private static String items(App<?> app) {
     return app.tree()
         .dump()
         .lines()
         .filter(l -> l.contains("role=menuitem"))
-        .map(l ->
-            l.replaceAll(".*label=\"([^\"]*)\".*?( disabled)?$", "$1$2").replace(" disabled", "-"))
+        .map(l -> {
+          int from = l.indexOf("label=\"") + "label=\"".length();
+          String label = l.substring(from, l.indexOf('"', from));
+          return l.endsWith(" disabled") ? label + "-" : label;
+        })
         .collect(Collectors.joining(", "));
   }
 
