@@ -171,12 +171,12 @@ class CompletionTest {
     assertEquals("SELECT coo", app.state().sql);
     assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|oo");
 
-    run(app, "key A control\ntype \"SELECT count\"\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft");
-    run(app, "key ArrowRight shift\nkey ArrowRight shift\nkey Space control");
+    run(app, "key A control\ntype \"SELECT coount\"" + "\nkey ArrowLeft".repeat(5));
+    run(app, "key ArrowRight shift\nkey Space control"); // SELECT c[o]ount
     asked.clear();
     run(app, "key Delete");
-    assertEquals("SELECT cot", app.state().sql);
-    assertEquals(List.of("co"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "co|t");
+    assertEquals("SELECT count", app.state().sql);
+    assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|ount");
   }
 
   @Test

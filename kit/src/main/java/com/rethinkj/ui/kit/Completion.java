@@ -85,10 +85,12 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    // The string an edit proposed and where its caret went, until the build that answers it, and
-    // whether the key of this input is Backspace, which leaves the caret before what it took.
+    // The string an edit proposed and where its caret went, until the build that answers it; the
+    // caret and anchor onSelect told last; and whether the key of this input is Backspace.
     private String edited;
     private int editedCaret;
+    private int toldCaret = -1;
+    private int toldAnchor = -1;
     private boolean back;
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
@@ -256,11 +258,24 @@ public final class Completion {
         } else {
           follow(state, text, v);
         }
+        // After what it put in or before what it took, as of the selection's end; Delete without
+        // a selection leaves it.
+        int anchor = state.toldCaret == at ? state.toldAnchor : at;
+        int grown = v.length() - text.length();
         state.edited = v;
-        state.editedCaret = caretAfter(text, v, at, state.back);
+        state.editedCaret =
+            at == anchor && grown < 0 && !state.back ? at : Math.max(at, anchor) + grown;
         onEdit.accept(v);
       });
     }
+    El.SelectHandler ownSelect = field.onSelect();
+    field.onSelect((told, anchor) -> {
+      state.toldCaret = told;
+      state.toldAnchor = anchor;
+      if (ownSelect != null) {
+        ownSelect.select(told, anchor);
+      }
+    });
     field.onKeyFirst(k -> {
       // The field's keys for undo and redo; onEdit does not say where an edit came from.
       state.history = (k.modifiers() & ~Key.SHIFT) == Key.CONTROL
@@ -294,26 +309,6 @@ public final class Completion {
     list.style().maxHeight = Len.px(
         ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
     return field.overlay(Popup.frame(theme, list));
-  }
-
-  /**
-   * Where an edit from {@code before} to {@code after} puts a caret that was at {@code at}: after
-   * what typing put in, before what a deletion took, and where Backspace leaves it when the
-   * deletion fits on both sides of it, as in a run of equal characters.
-   */
-  static int caretAfter(String before, String after, int at, boolean back) {
-    int grown = after.length() - before.length();
-    if (grown >= 0) {
-      return at + grown;
-    }
-    int to = at + grown; // where it is if what went ended at it
-    boolean ended = to >= 0
-        && after.regionMatches(0, before, 0, to)
-        && after.regionMatches(to, before, at, before.length() - at);
-    boolean started = at - grown <= before.length()
-        && after.regionMatches(0, before, 0, at)
-        && after.regionMatches(at, before, at - grown, after.length() - at);
-    return ended && (back || !started) ? to : at;
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */
