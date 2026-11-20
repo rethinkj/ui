@@ -239,3 +239,5 @@ jpackage --type app-image --name Lights ^
 </Tabs>
 
 `$APPDIR` points to the app's JAR directory inside the image. On Windows, `tar` comes with the system and unpacks the JAR; `unzip` usually does not. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.
+
+This rebuild drops an AOT cache. To use both, add the AOT section's `--jlink-options` to this `jpackage` command, then record the cache again as in its step 2.
