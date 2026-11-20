@@ -29,7 +29,8 @@ import java.util.function.Consumer;
  *
  * <p>Its keys are the field's {@link El#onKey} handler and its marks the field's {@link
  * El#decorate decorator}: a view adds its own and keeps the editor's with {@link El#onKeyFirst} and
- * {@link El#alsoDecorate}.
+ * {@link El#alsoDecorate}. The message that F8 shows is the field's {@link El#whenFocusWithin}
+ * look, which a look of the view's own replaces.
  */
 public final class CodeEditor {
 
@@ -590,6 +591,7 @@ public final class CodeEditor {
             Tooltip.options()
                 .kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING)
                 .side(Side.TOP, Style.Align.START))
+        .key("message") // beside a tooltip of the view's on the editor
         .atCaret();
   }
 
