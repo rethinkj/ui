@@ -219,6 +219,18 @@ public final class CodeEditor {
     }
 
     /**
+     * Replaces the selection by {@code text} as {@link #replaceSelection(String)} does, with the
+     * caret at {@code caret} in {@code text}, such as between the parentheses of {@code "()"}
+     * ({@link FieldState#replaceSelection(String, int)}).
+     *
+     * @throws IllegalArgumentException if {@code caret} is negative or beyond {@code text}
+     */
+    public State replaceSelection(String text, int caret) {
+      field.replaceSelection(text, caret);
+      return this;
+    }
+
+    /**
      * Marks the lines of characters {@code from} to {@code to} of the string on the gutter's rail,
      * tinted with {@code code().block()} beside a line in the accent's edge, such as the statement
      * that Control+Enter would run. {@code from == to} marks none.

@@ -254,6 +254,30 @@ class FieldStateTest {
   }
 
   @Test
+  void replaceSelectionPutsTheCaretAtItsPlaceInTheText() {
+    TextLibraries.assumeLoaded();
+    App<Model> app = started();
+    FieldState state = app.state().fields[0];
+    state.select(6, 6); // after SELECT
+    app.frame();
+    app.post(() -> state.replaceSelection("()", 1)); // between the parentheses
+    app.frame();
+    assertTrue(show(app).startsWith("SELECT(|) 1\n"), show(app));
+
+    state.select(0, 0);
+    app.frame();
+    app.post(() -> state.replaceSelection("SELECT 0\n", 8)); // a line of its own, before its break
+    app.frame();
+    assertTrue(show(app).startsWith("SELECT 0|\nSELECT() 1\n"), show(app));
+    app.undo(field(app));
+    app.frame();
+    assertTrue(show(app).startsWith("|SELECT() 1\n"), "one step: " + show(app));
+
+    assertThrows(IllegalArgumentException.class, () -> state.replaceSelection("()", 3));
+    assertThrows(IllegalArgumentException.class, () -> state.replaceSelection("()", -1));
+  }
+
+  @Test
   void aStringTheAppChangedMeanwhileEndsTheHistory() {
     TextLibraries.assumeLoaded();
     App<Model> app = started();

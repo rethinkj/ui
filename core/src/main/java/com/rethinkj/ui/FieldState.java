@@ -67,8 +67,26 @@ public final class FieldState {
    */
   public void replaceSelection(String text) {
     Objects.requireNonNull(text, "text");
+    replaceSelection(text, text.length());
+  }
+
+  /**
+   * Replaces the field's selection by {@code text} as {@link #replaceSelection(String)} does, with
+   * the caret at {@code caret} in {@code text}: between the parentheses of {@code "()"} with 1, or
+   * before a line break that ends {@code text} with {@code text.length() - 1}. The caret moves with
+   * the text when the field's limits change it, as its line breaks or {@link El#maxLength}.
+   *
+   * @param caret the caret's position in {@code text}, from 0 to its length
+   * @throws IllegalArgumentException if {@code caret} is negative or beyond {@code text}
+   */
+  public void replaceSelection(String text, int caret) {
+    Objects.requireNonNull(text, "text");
+    if (caret < 0 || caret > text.length()) {
+      throw new IllegalArgumentException(
+          "caret must be from 0 to the text's length " + text.length() + ", was " + caret);
+    }
     if (app instanceof App<?> owner) {
-      owner.replaceSelection(this, text);
+      owner.replaceSelection(this, text, caret);
     }
   }
 }

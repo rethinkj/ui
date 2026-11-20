@@ -3617,7 +3617,7 @@ public final class App<S> {
   }
 
   /** {@link FieldState#replaceSelection}: in the field that has {@code state} when it runs. */
-  void replaceSelection(FieldState state, String text) {
+  void replaceSelection(FieldState state, String text, int caret) {
     enqueue(() -> {
       settle();
       // By the state, not the identity: another field may stand there now, or this one fade out.
@@ -3627,7 +3627,7 @@ public final class App<S> {
       }
       Editor editor = state.editor;
       int from = editor.start();
-      editor.request(from, editor.end(), text, from + text.length());
+      editor.request(from, editor.end(), text, from + caret);
       handled |= editor.answerPending();
       return true;
     });

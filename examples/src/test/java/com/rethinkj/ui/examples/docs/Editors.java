@@ -90,6 +90,11 @@ final class Editors {
     editor.replaceSelection("JOIN customers c ON c.id = o.customer_id\n");
   }
 
+  /** Puts in a count with the cursor between its parentheses. */
+  void insertCount() {
+    editor.replaceSelection("count()", "count(".length());
+  }
+
   static El insertJoinButton(Editors state) {
     return Button.button(Button.Variant.SECONDARY, "Insert join", state::insertJoin);
   }

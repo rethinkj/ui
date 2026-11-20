@@ -1,0 +1,1 @@
+- `CodeEditor.State.replaceSelection(text, caret)` and `FieldState.replaceSelection(text, caret)` put the caret at `caret` in the inserted text instead of after it, such as between the parentheses of `()` or before a line break that ends a snippet: one step of the undo history, as `replaceSelection(text)`.
