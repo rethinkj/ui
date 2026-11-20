@@ -1,0 +1,1 @@
+- `StatusBar`: a message with less room than a control's width is no longer shown, and the hairline before it goes with it instead of standing alone.
