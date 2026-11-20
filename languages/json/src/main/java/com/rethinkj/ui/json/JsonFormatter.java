@@ -23,8 +23,8 @@ final class JsonFormatter {
 
   // What may come next.
   private static final int VALUE = 0;
-  private static final int FIRST_ELEMENT = 1; // a value or ]
-  private static final int FIRST_MEMBER = 2; // a name or }
+  private static final int FIRST_ELEMENT = 1; // a value or the closing bracket
+  private static final int FIRST_MEMBER = 2; // a name or the closing brace
   private static final int NAME = 3;
   private static final int COLON = 4;
   private static final int AFTER_VALUE = 5; // a comma, the closing bracket or the end
