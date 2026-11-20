@@ -4,13 +4,17 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.diagram.Canvas.Node;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * The {@link Canvas}, driven by {@code canvas.txt}, with stored images: at 100 % and 75 %, panned,
  * with a node dragged and pinned, and fitted, also again after a resize; and a node outside it
- * culled.
+ * culled; and the whole diagram saved as PNG.
  */
 class CanvasTest {
 
@@ -148,6 +152,32 @@ class CanvasTest {
     assertEquals(1.25f, viewport.zoom());
     assertEquals(40 + 200 - 200 / 1.25, viewport.left(), 1e-9);
     assertEquals(20 + 130 - 130 / 1.25, viewport.top(), 1e-9);
+  }
+
+  @Test
+  void savesTheWholeDiagramAsPng() throws IOException {
+    Board board = new Board();
+    byte[] png = Theme.CURRENT.with(
+        Theme.LIGHT,
+        () -> Canvas.png(
+            board.nodes, viewport -> Canvas.canvas(viewport, board.nodes, CanvasTest::card, null)));
+    Pixels image = Png.decode(png);
+    // From 40,0 to 560,220, with a margin of 16 on each side, at a scale of 2.
+    assertEquals(2 * (520 + 2 * 16), image.width());
+    assertEquals(2 * (220 + 2 * 16), image.height());
+    Golden.assertImage("canvas-png-light", image);
+  }
+
+  @Test
+  void refusesADiagramTooLargeForAnImage() {
+    // At most 2^24 physical pixels: 2048 by 2048 at a scale of 2, 4096 by 4096 at 1.
+    assertEquals(2, Canvas.pngScale(2048, 2048));
+    assertEquals(1, Canvas.pngScale(2049, 2048));
+    assertEquals(1, Canvas.pngScale(4096, 4096));
+    List<Node> huge = List.of(new Node("huge", null, 0, 0, 5000, 4000));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Canvas.png(huge, viewport -> fail("built before the size was checked")));
   }
 
   /** The line of the element with this key in a tree dump, or nothing. */

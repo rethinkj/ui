@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Compares an image and its tree with the files stored under {@code src/test/resources/golden}, as
+ * Compares an image, and its tree where it has one, with the files stored under {@code src/test/resources/golden}, as
  * core's and kit's tests do; their helpers are in their test sources, which this module does not
  * see. Run with {@code -Dgolden.update=true} to write the files anew, and look at them before
  * committing.
@@ -50,19 +50,28 @@ final class Golden {
     }
   }
 
+  /** Compares an image without a tree with the stored image {@code <name>}. */
+  static void assertImage(String name, Pixels pixels) throws IOException {
+    assertMatches(name, pixels, null);
+  }
+
   private static void assertMatches(String name, Pixels pixels, String tree) throws IOException {
     Path image = STORED.resolve(name + ".png");
     Path text = STORED.resolve(name + ".tree.txt");
     if (Boolean.getBoolean("golden.update")) {
       Files.createDirectories(STORED);
       Files.write(image, Png.encode(pixels));
-      Files.writeString(text, tree);
+      if (tree != null) {
+        Files.writeString(text, tree);
+      }
       return;
     }
-    if (!Files.exists(image) || !Files.exists(text)) {
+    if (!Files.exists(image) || tree != null && !Files.exists(text)) {
       fail("No stored result for '" + name + "'. Run with -Dgolden.update=true to create it.");
     }
-    assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
+    if (tree != null) {
+      assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
+    }
     Pixels expected = Png.decode(Files.readAllBytes(image));
     if (expected.width() == pixels.width()
         && expected.height() == pixels.height()

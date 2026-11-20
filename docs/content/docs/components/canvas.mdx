@@ -37,6 +37,10 @@ The canvas builds only the nodes that lie inside it, so a large diagram stays fa
 
 The canvas learns its size from layout when that size changes. To show another diagram in the same place with a new `Viewport`, give the canvas another key, such as `canvas(...).key(diagram.name())`; with the same key the new viewport learns no size and shows no nodes.
 
+## Saving as an image
+
+`Canvas.png(nodes, view)` returns the whole diagram as PNG bytes, not only the part a canvas shows, and your app decides where they go. `view` builds the canvas at the viewport it is given, as your view does, such as `viewport -> canvas(viewport, nodes, Tables::card, null)`, so that everything the canvas draws is in the image. The image is cropped to the nodes with a margin, at 100 % and a scale of 2, and drawn without a window or a GPU. It takes the theme of `Theme.CURRENT` where it is called; a handler runs outside the view's, so it gives your theme again: `Theme.CURRENT.with(state.theme, () -> Canvas.png(...))`. Above 16 megapixels it falls back to a scale of 1, and a diagram too large for that as well throws an `IllegalArgumentException` before anything is drawn.
+
 ## Pointer and keyboard
 
 Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
