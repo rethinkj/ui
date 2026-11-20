@@ -84,7 +84,7 @@ public final class SchemaDiagram {
   }
 
   private static Node table(String name, double x, double y) {
-    return new Node(name, name, x, y, 180, 40 + 24 * COLUMNS.get(name).size());
+    return new Node(name, name, x, y, 180, 40f + 24f * COLUMNS.get(name).size());
   }
 
   // A table at the zoom's size: its name, and its columns from 75 % on.

@@ -127,7 +127,9 @@ public final class Canvas {
     private float draggedDy;
 
     /** A viewport at 100 % with the diagram's origin at the canvas's top left. */
-    public Viewport() {}
+    public Viewport() {
+      // Every field starts at its default.
+    }
 
     /** The diagram coordinate at the canvas's left edge. */
     public double left() {
@@ -274,8 +276,8 @@ public final class Canvas {
       if (!inside && !node.key().equals(viewport.dragged)) {
         continue;
       }
-      long x = Math.round((node.x() - left) * zoom);
-      long y = Math.round((node.y() - top) * zoom);
+      float x = Math.round((node.x() - left) * zoom);
+      float y = Math.round((node.y() - top) * zoom);
       El box = el().key(node.key())
           .role("graphics-object")
           .label(node.label())
