@@ -3241,37 +3241,41 @@ public final class App<S> {
    */
   private void rebuild() {
     resizeDue = false;
-    build(false, true);
-    while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
-      resizeRounds++;
-      tellResized();
+    try {
       build(false, true);
-    }
-    if (!resized.isEmpty()) { // not settled: the next frame's last build tells them from its tree
-      toldSizes.keySet().removeAll(resized.keySet());
-      resized.clear();
-      resizeDue = true;
+      while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+        resizeRounds++;
+        tellResized();
+        build(false, true);
+      }
+    } finally {
+      // What is left, of a view that has not settled or after a throw: the next frame's last
+      // build tells it again, from its own tree.
+      if (!resized.isEmpty()) {
+        toldSizes.keySet().removeAll(resized.keySet());
+        resized.clear();
+        resizeDue = true;
+      }
     }
   }
 
   /** Runs the handlers in {@link #resized} as handlers of input; what they ask for waits. */
   private void tellResized() {
-    Map<Object, BooleanSupplier> told = new LinkedHashMap<>(resized);
-    resized.clear();
+    List<BooleanSupplier> told = List.copyOf(resized.values());
     dispatching = true;
     try {
-      for (BooleanSupplier handler : told.values()) {
+      for (BooleanSupplier handler : told) {
         handler.getAsBoolean();
       }
     } catch (RuntimeException | Error e) {
       handled = true; // as in frame: the next input gets a tree built anew
-      toldSizes.keySet().removeAll(told.keySet()); // the next build tells them again
       throw e;
     } finally {
       dispatching = false;
       asked.addAll(follow);
       follow.clear();
     }
+    resized.clear();
   }
 
   /**
