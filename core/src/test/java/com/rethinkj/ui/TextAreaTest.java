@@ -714,6 +714,45 @@ class TextAreaTest {
     assertNotEquals(null, field(app).text().caret());
   }
 
+  @Test
+  void aJumpInALongWrappedTextShowsTheCaretsRowAfterTheRowsAboveAreMeasured() {
+    // Words of 13 characters, one to a row of 24: each line takes more rows than its length tells.
+    String line = "abcdefghijkl ".repeat(8) + "\n";
+    App<Model> app = focused(line.repeat(200), f -> f.wrapText());
+    int caret = line.length() * 150 + 40;
+    app.select(field(app), caret, caret);
+    app.frame();
+    float top = field(app).text().caret().y();
+    assertTrue(top >= 0 && top + 18 <= 90, "the caret's row in view: " + top);
+
+    // Spaces at a row's end take no room: each line takes fewer rows than its length tells. The
+    // match comes into view below what covers the field's top, 25 pixels of its content box.
+    line = "x" + " ".repeat(200) + "\n";
+    app = focused(line.repeat(200), f -> f.wrapText().coveredTop(29));
+    int start = line.length() * 150;
+    app.select(field(app), start + 1, start);
+    app.frame();
+    top = field(app).text().caret().y();
+    assertTrue(top >= 25 && top + 18 <= 90, "the match's row below the cover: " + top);
+
+    // A match in view over three lines, of two rows each at 36 characters a row. In the same frame
+    // the field narrows to 24, where they take three rows, but the estimate still says two: the
+    // jump measures only the lines of the match's ends, the middle one pushes the end down.
+    line = "abcdefghijklmnop abcdefghijklmnop abcdefghijklmn\n";
+    app = focused(line.repeat(200), f -> f.wrapText().wFull().lines(10).coveredTop(29));
+    app.scrollTo(field(app), 0, 99 * 36);
+    app.frame();
+    app.resize(220, 240, 1);
+    start = line.length() * 101 + 34; // the last row of line 101, to the start of line 103
+    app.select(field(app), start, line.length() * 103 + 1);
+    app.frame();
+    Text t = field(app).text();
+    double first = t.caretTop(start) - t.scrollY();
+    double last = t.caretTop(line.length() * 103) - t.scrollY();
+    assertTrue(
+        first >= 25 && last + 18 <= 180, "the match below the cover: " + first + ", " + last);
+  }
+
   private static int caretLine(App<Model> app) {
     Editor editor = field(app).editor();
     return editor.lineIndex().line(editor.caret());

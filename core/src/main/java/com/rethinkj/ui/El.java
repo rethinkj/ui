@@ -2608,7 +2608,10 @@ public final class El {
    * CENTER} or {@code END}, or {@code STRETCH} for {@code START} and at least as wide as the anchor
    * (as tall, beside it). Where it does not fit into the window there, it goes to the other side,
    * and along the side to the other end; where it fits neither way, it moves into the window as
-   * far as it needs. The default is below the anchor at its start, 0 away.
+   * far as it needs. In a {@link #modal} overlay, such as a dialog, it keeps inside that overlay
+   * along the side as well: at {@code START} or {@code END} it takes the end that fits into it, else it moves into it as far as
+   * the window lets it, over its middle where it is wider. The default is below the anchor at its
+   * start, 0 away.
    */
   public El side(Side side, Style.Align align, float gap) {
     Layer l = layer();

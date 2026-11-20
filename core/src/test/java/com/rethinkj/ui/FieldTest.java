@@ -563,6 +563,23 @@ class FieldTest {
     assertEquals(3, field(app).text().lines().getFirst().glyphs().count());
   }
 
+  @Test
+  void aFieldMadeReadOnlyEndsItsComposition() {
+    boolean[] readOnly = {false};
+    App<Model> app = start("ab", f -> readOnly[0] ? f.readOnly() : f, 1);
+    focus(app);
+    app.textComposition("ni", -1);
+    app.frame();
+    readOnly[0] = true;
+    app.invalidate();
+    app.frame();
+    assertNull(field(app).text().composition());
+    assertFalse(app.tree().dump().contains("composing"));
+    key(app, "ArrowLeft");
+    assertEquals("a|b", show(app), "the field has the keys again");
+    assertEquals(List.of(), app.state().edits);
+  }
+
   // The caret's blinking
 
   @Test
