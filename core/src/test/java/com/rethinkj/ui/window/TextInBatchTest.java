@@ -21,6 +21,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -272,8 +273,8 @@ class TextInBatchTest {
   private static final int EVENT_POLL_SENTINEL = 0x7F00;
   private static final int EVENT_USER = 0x8000; // and up: the type of Window.wake's event
 
-  /** {@link Sdl#EVENT_FILTER}, called by SDL for each event as it queues it. */
-  private static boolean queued(MemorySegment userdata, MemorySegment event) {
+  /** Counts the event, unless a wake or the sentinel; SDL calls this for each event it queues. */
+  static boolean count(MemorySegment event) {
     int type = event.reinterpret(Sdl.EVENT_SIZE).get(JAVA_INT, Sdl.EVENT_TYPE);
     if (type != EVENT_POLL_SENTINEL && type < EVENT_USER) {
       QUEUED.incrementAndGet();
@@ -281,10 +282,27 @@ class TextInBatchTest {
     return true;
   }
 
-  /** The watch that counts the queued events, made on first use. */
+  /** The watch, an {@link Sdl#EVENT_FILTER} that counts the queued events; made on first use. */
   private static final class Counting {
-    static final MemorySegment WATCH =
-        Window.upcall(MethodHandles.lookup(), TextInBatchTest.class, "queued", Sdl.EVENT_FILTER);
+    static final MemorySegment WATCH;
+
+    static {
+      try {
+        MethodHandle count = MethodHandles.lookup()
+            .findStatic(
+                TextInBatchTest.class,
+                "count",
+                MethodType.methodType(boolean.class, MemorySegment.class));
+        // Without the watch's userdata, which SDL passes first.
+        WATCH = Linker.nativeLinker()
+            .upcallStub(
+                MethodHandles.dropArguments(count, 0, MemorySegment.class),
+                Sdl.EVENT_FILTER,
+                Arena.global());
+      } catch (ReflectiveOperationException e) {
+        throw new LinkageError("No watch to count the events", e);
+      }
+    }
   }
 
   /**
