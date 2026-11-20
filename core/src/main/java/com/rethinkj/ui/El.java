@@ -3808,19 +3808,17 @@ public final class El {
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
-    if (!anew
-        && rowsBuilt
-        && first >= firstRow
+    float margin = (shownTo - shown) / 2;
+    float start = Math.max(shown - margin, 0);
+    boolean has = first >= firstRow
         && end <= firstRow + children.size()
-        && (!spans || shown >= spanFrom && shownTo <= spanTo)) {
+        && (!spans || shown >= spanFrom && shownTo <= spanTo);
+    // Anew, none for another part sideways: only a rebuild of the view builds those cells.
+    boolean sideways = spans && (start != spanFrom || shownTo + margin != spanTo);
+    if (rowsBuilt && (anew ? sideways : has)) {
       return null;
     }
     if (spans) {
-      float margin = (shownTo - shown) / 2;
-      float start = Math.max(shown - margin, 0);
-      if (anew && rowsBuilt && (start != spanFrom || shownTo + margin != spanTo)) {
-        return null; // cells of another part sideways, which only a rebuild of the view builds
-      }
       spanFrom = start;
       spanTo = shownTo + margin;
     }
