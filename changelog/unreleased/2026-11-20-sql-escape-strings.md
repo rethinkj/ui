@@ -1,0 +1,1 @@
+- `Sql` reads PostgreSQL's escape strings, `E'...'` and `e'...'`, with the backslash as an escape, so `E'It\'s'` is one string, also across lines, and the colors and bracket pairs after it are right. Plain strings keep `''` as their only escape, and the MySQL dialect is unchanged.

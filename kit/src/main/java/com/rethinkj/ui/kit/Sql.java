@@ -7,9 +7,10 @@ import java.util.Set;
 
 /**
  * A {@link Highlighter} of SQL in the colors of {@link Theme.Code}: keywords, strings with doubled
- * quotes ({@code 'it''s'}), PostgreSQL's dollar-quoted strings ({@code $$...$$}, {@code
- * $fn$...$fn$}), numbers and parameters ({@code $1}), line comments ({@code --}), block comments,
- * nested as in PostgreSQL, and operators, brackets and punctuation. It marks the brackets outside
+ * quotes ({@code 'it''s'}), PostgreSQL's escape strings, in which the backslash escapes too ({@code
+ * E'it\'s'}), and its dollar-quoted strings ({@code $$...$$}, {@code $fn$...$fn$}), numbers and
+ * parameters ({@code $1}), line comments ({@code --}), block comments, nested as in PostgreSQL,
+ * and operators, brackets and punctuation. It marks the brackets outside
  * strings, identifiers in quotes and comments ({@link Spans#bracket}), which the editor pairs.
  * Identifiers in double quotes keep the text's color, and a keyword inside them is none. Strings,
  * quoted identifiers, dollar-quoted strings and block comments go on across lines, which the
@@ -73,11 +74,13 @@ public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
   private static final int QUOTED = 3;
   private static final int DOLLAR = 4;
   private static final int BACKTICK = 5;
+  private static final int ESCAPED = 6; // PostgreSQL's E'...'
 
   private static final State IN_STRING = new State(STRING, 0, null);
   private static final State IN_QUOTED = new State(QUOTED, 0, null);
   private static final State IN_COMMENT = new State(COMMENT, 1, null);
   private static final State IN_BACKTICK = new State(BACKTICK, 0, null);
+  private static final State IN_ESCAPED = new State(ESCAPED, 0, null);
 
   private static final String OPERATORS = "+-*/%<>=!~^&|#@:;,.()[]{}";
   private static final String BRACKETS = "()[]{}";
@@ -267,9 +270,9 @@ public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
             i++;
           }
         }
-        case STRING, QUOTED, BACKTICK -> {
-          char quote = kind == STRING ? '\'' : kind == QUOTED ? '"' : '`';
-          if (mysql && c == '\\' && kind != BACKTICK) {
+        case STRING, ESCAPED, QUOTED, BACKTICK -> {
+          char quote = kind == QUOTED ? '"' : kind == BACKTICK ? '`' : '\'';
+          if (c == '\\' && (kind == ESCAPED || mysql && kind != BACKTICK)) {
             i = Math.min(i + 2, n); // the character after it is itself, a quote too
           } else if (c != quote) {
             i++;
@@ -277,7 +280,7 @@ public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
             i += 2; // doubled: the quote itself
           } else {
             i++;
-            if (kind == STRING || mysql && kind == QUOTED) {
+            if (kind == STRING || kind == ESCAPED || mysql && kind == QUOTED) {
               out.color(start, i, colors.string());
             }
             kind = NONE;
@@ -306,6 +309,9 @@ public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
           } else if (c == '\'') {
             kind = STRING;
             i++;
+          } else if (!mysql && (c == 'E' || c == 'e') && next == '\'') {
+            kind = ESCAPED;
+            i += 2;
           } else if (c == '"') {
             kind = QUOTED;
             i++;
@@ -349,9 +355,9 @@ public record Sql(Theme.Code colors, Dialect dialect) implements Highlighter {
         out.color(start, n, colors.comment());
         return depth == 1 ? IN_COMMENT : new State(COMMENT, depth, null);
       }
-      case STRING -> {
+      case STRING, ESCAPED -> {
         out.color(start, n, colors.string());
-        return IN_STRING;
+        return kind == STRING ? IN_STRING : IN_ESCAPED;
       }
       case QUOTED -> {
         if (mysql) { // a string there

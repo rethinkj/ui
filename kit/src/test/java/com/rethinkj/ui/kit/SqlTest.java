@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.rethinkj.ui.App;
@@ -111,6 +112,29 @@ class SqlTest {
   }
 
   @Test
+  void escapeStringsTakeTheBackslashToo() {
+    assertEquals(
+        List.of("SELECT:1 E'It\\'s':2 ,:5 e'a\\\\':2 ,:5 e'b''c':2 ):5 AS:1"),
+        tokens("SELECT E'It\\'s', e'a\\\\', e'b''c') AS x"));
+    assertEquals(
+        List.of("SELECT:1 'a\\':2 ,:5 'b':2"),
+        tokens("SELECT 'a\\', E 'b'"),
+        "a plain string and an E that a space parts from the quote take the backslash as itself");
+    assertEquals(
+        List.of("E'a:2", "it\\'s':2 ):5"),
+        tokens("E'a", "it\\'s')"),
+        "an escape string across lines");
+    assertNotEquals(
+        SQL.line("E'a", null, new Spans(3)),
+        SQL.line("'a", null, new Spans(2)),
+        "a state of its own");
+    assertEquals(
+        List.of("SELECT:1 'a\\'':2 ,:5 1:3"),
+        tokens(new Sql(C, Sql.Dialect.MYSQL), "SELECT E'a\\'', 1"),
+        "MySQL has no escape strings: E is a word and every string takes the backslash");
+  }
+
+  @Test
   void dollarQuotedStrings() {
     assertEquals(
         List.of("AS:1 $fn$ BEGIN 'x' $$:2", "  RETURN 1; -- no:2", "$fn$:2 LANGUAGE:1 ;:5"),
@@ -154,6 +178,7 @@ class SqlTest {
     assertArrayEquals(new int[] {8, 12}, matching(SQL, quoted, 9), "not the one in the string");
     assertArrayEquals(new int[0], matching(SQL, quoted, 11), "the one in the string pairs none");
     assertArrayEquals(new int[] {10, 8}, matching(null, quoted, 11), "without a highlighter: all");
+    assertArrayEquals(new int[] {1, 8}, matching(SQL, "f(E'\\')')", 1), "past an escaped quote");
     String commented = "f(a -- )\n/* ( */ )";
     assertArrayEquals(new int[] {1, 17}, matching(SQL, commented, 2), "across comments");
     Sql mysql = new Sql(C, Sql.Dialect.MYSQL);
@@ -167,11 +192,12 @@ class SqlTest {
       "SELECT 'a\nb''c' AS x",
       "SELECT $tag$a\nb$tag$ FROM x",
       "SELECT /* a\n/* b */\nc */ FROM x",
-      "SELECT \"a\nb\" FROM x"
+      "SELECT \"a\nb\" FROM x",
+      "SELECT E'a\\\nb\\'c' AS x"
     };
     for (String source : sources) {
       for (int at = 0; at <= source.length(); at++) {
-        for (String insert : new String[] {"'", "\"", "$t$", "/*", "*/"}) {
+        for (String insert : new String[] {"'", "\"", "$t$", "/*", "*/", "\\", "E"}) {
           sameAsOnePass(source.substring(0, at) + insert + source.substring(at));
         }
         if (at < source.length() && source.charAt(at) != '\n') {
