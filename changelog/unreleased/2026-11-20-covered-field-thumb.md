@@ -1,0 +1,1 @@
+- Fixed: in a multi-line field with `coveredTop`, such as a code editor with its find bar open, grabbing the scrollbar's thumb while the field was scrolled above its first line made the content jump down past that line. The thumb now spans the whole range the field can scroll, from above its first line to its end, so it moves the content by a pixel's share.

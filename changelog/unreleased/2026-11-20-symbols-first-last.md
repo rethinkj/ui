@@ -1,0 +1,1 @@
+- `Symbol.CHEVRON_DOUBLE_UP` and `Symbol.CHEVRON_DOUBLE_DOWN` go to the start and the end of a list, such as the first and last of four paging buttons beside `CHEVRON_UP` and `CHEVRON_DOWN`.

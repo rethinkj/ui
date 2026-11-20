@@ -1,0 +1,37 @@
+el 0,0 520x280
+  el window=drag 0,0 520x32
+    el 0,0 358x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{F0D7}" 11,11 10x10
+      text "Workbench" 32,8 72x16
+    el 358,16 24x0
+    el role=button label="Minimize" window=minimize 382,0 46x32
+      text label="subtract" "\u{EBCE}" 399,10 12x12
+    el role=button label="Maximize" window=maximize 428,0 46x32
+      text label="maximize" "\u{F533}" 445,10 12x12
+    el role=button label="Close" window=close 474,0 46x32
+      text label="dismiss" "\u{F367}" 491,10 12x12
+  el 8,32 504x211
+    el #first 8,32 160x211
+      el 8,32 160x211
+        text "Schema" 25,49 126x16
+    el #rest 168,32 344x211
+      el #second 176,32 336x211
+        el 176,32 336x211
+          text "Query" 193,49 302x16
+      el #divider role=separator label="Resize" 168,32 8x211 value="first 160"
+        el 168,32 8x211
+          el 172,32 1x211
+  el role=status label="Status bar" 0,251 520x29
+    el 8,254 79x24
+      el label="localhost" 8,254 79x24 value="ok"
+        el 12,258 16x16
+          el 14,260 12x12
+            el 16,262 8x8
+        text "localhost" 32,259 51x15
+    el 89,266 354x0
+    el 445,254 67x24
+      el label="Ln 3, Col 9" 445,254 67x24
+        text "Ln 3, Col 9" 449,259 59x15

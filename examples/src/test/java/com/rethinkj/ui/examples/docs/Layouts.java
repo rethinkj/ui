@@ -393,6 +393,38 @@ final class Layouts {
     return Frame.of(frame.wFull().grow(1));
   }
 
+  static El cardsWindow(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    El icon = AppIcon.appIcon(16, theme.accent().color(), Symbol.DATABASE);
+    El tree = Card.card(Label.label("Schema")).grow(1);
+    El editor = Card.card(Label.label("Query")).grow(1);
+    // docs:start cards-window
+    float gap = theme.space().m();
+    El cards = Split.cards(
+            Split.Direction.ROW,
+            state.sidebar,
+            Split.Position.first(160),
+            state::sidebar,
+            tree,
+            120,
+            editor,
+            200)
+        .grow(1)
+        // Below the cards the same gap as beside and between them, so they clear the status bar.
+        .margin(0, gap, gap, gap);
+    El window = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .child(TitleBar.titleBar(icon, "Workbench"))
+        .child(cards)
+        .child(StatusBar.statusBar(
+            List.of(StatusBar.status(StatusBar.State.OK, "localhost", null)),
+            List.of(StatusBar.text("Ln 3, Col 9"))));
+    // docs:end cards-window
+    return window;
+  }
+
   static El tabs(Layouts state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start tabs

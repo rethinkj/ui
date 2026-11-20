@@ -15,6 +15,7 @@ import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.layout.Flex;
@@ -151,6 +152,14 @@ class GpuRendererTest {
     cases.add(view("clips", clips(), 160, 100, s));
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
+    cases.add(view("lines", Examples.lines(), 240, 120, s));
+    // A line from a billion pixels out, as an edge of a diagram zoomed far in.
+    cases.add(view(
+        "lines-far",
+        el().size(40, 20).segments(new Segment(-1e9f, 10.5f, 20.5f, 10.5f, 2, 0xFFE5E7EB)),
+        40,
+        20,
+        1));
     cases.add(nestedClips(s));
     cases.add(bars("bars-hovered", s));
     cases.add(text("shadows", shadows(), 240, 160, s));
@@ -549,14 +558,18 @@ class GpuRendererTest {
 
   /**
    * How many instances draw into each pixel, at most: those whose pixels, bounded as the CPU
-   * renderer bounds them, include it. A rectangle reaches a pixel beyond its edges; a glyph covers
-   * exactly the pixels of its texels.
+   * renderer bounds them, include it. A rectangle reaches a pixel beyond its edges, a line a pixel
+   * beyond the box around its ends grown by half its width; a glyph covers exactly the pixels of
+   * its texels.
    */
   private static int[] layers(Case c) {
     int[] layers = new int[c.width * c.height];
     Scene s = c.scene;
     for (int i = 0; i < s.count(); i++) {
-      if (!(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
+      boolean line = s.getInt(i, Scene.KIND) == Scene.LINE;
+      if (line
+          ? s.get(i, Scene.LINE_WIDTH) <= 0
+          : !(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
         continue;
       }
       int clip = s.clipOf(i);
@@ -586,21 +599,27 @@ class GpuRendererTest {
         y1 = Math.min(y1, c.height);
       } else {
         // A shadow reaches three deviations beyond its shape.
-        double reach = s.getInt(i, Scene.KIND) != Scene.SHADOW
-            ? 0
-            : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
-        double left = Math.max(s.get(i, Scene.X) - reach, s.clipGet(clip, Scene.X));
-        double top = Math.max(s.get(i, Scene.Y) - reach, s.clipGet(clip, Scene.Y));
+        double reach = line
+            ? s.get(i, Scene.LINE_WIDTH) / 2
+            : s.getInt(i, Scene.KIND) != Scene.SHADOW
+                ? 0
+                : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
+        double x = s.get(i, Scene.X);
+        double y = s.get(i, Scene.Y);
+        // A rectangle's other corner; a line's other end.
+        double x2 = line ? s.get(i, Scene.X2) : x + s.get(i, Scene.WIDTH);
+        double y2 = line ? s.get(i, Scene.Y2) : y + s.get(i, Scene.HEIGHT);
+        double left = Math.max(Math.min(x, x2) - reach, s.clipGet(clip, Scene.X));
+        double top = Math.max(Math.min(y, y2) - reach, s.clipGet(clip, Scene.Y));
         double right = Math.min(
-            s.get(i, Scene.X) + s.get(i, Scene.WIDTH) + reach,
-            s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
+            Math.max(x, x2) + reach, s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
         double bottom = Math.min(
-            s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT) + reach,
-            s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
-        x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
-        y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
-        x1 = Math.min((int) Math.ceil(right * c.scale) + 1, c.width);
-        y1 = Math.min((int) Math.ceil(bottom * c.scale) + 1, c.height);
+            Math.max(y, y2) + reach, s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
+        // Clamped before the cast, so that an edge a billion pixels out cannot overflow.
+        x0 = (int) Math.max(Math.floor(left * c.scale) - 1, 0);
+        y0 = (int) Math.max(Math.floor(top * c.scale) - 1, 0);
+        x1 = (int) Math.min(Math.ceil(right * c.scale) + 1, c.width);
+        y1 = (int) Math.min(Math.ceil(bottom * c.scale) + 1, c.height);
       }
       for (int y = y0; y < y1; y++) {
         for (int x = x0; x < x1; x++) {

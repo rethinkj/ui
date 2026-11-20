@@ -59,6 +59,8 @@ final class ReferenceCpuRenderer {
         shadow(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.IMAGE) {
         image(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.LINE) {
+        line(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -348,6 +350,56 @@ final class ReferenceCpuRenderer {
   }
 
   /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */
+  private static void line(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double half = scene.get(i, Scene.LINE_WIDTH) / 2;
+    if (Double.isNaN(half) || half <= 0) {
+      return;
+    }
+    double ax = scene.get(i, Scene.X);
+    double ay = scene.get(i, Scene.Y);
+    double ex = scene.get(i, Scene.X2);
+    double ey = scene.get(i, Scene.Y2);
+    double bx = ex - ax;
+    double by = ey - ay;
+    double length = bx * bx + by * by;
+    int clip = scene.clipOf(i);
+    for (int py = 0; py < height; py++) {
+      for (int px = 0; px < width; px++) {
+        double x = (px + 0.5) / scale;
+        double y = (py + 0.5) / scale;
+        // From the end nearer the pixel, so a far end costs no precision near the other.
+        double ux = x - ax;
+        double uy = y - ay;
+        double vx = x - ex;
+        double vy = y - ey;
+        boolean near = ux * ux + uy * uy <= vx * vx + vy * vy;
+        double t = length > 0
+            ? Math.clamp(near ? (ux * bx + uy * by) / length : -(vx * bx + vy * by) / length, 0, 1)
+            : 0;
+        double dx = near ? ux - bx * t : vx + bx * t;
+        double dy = near ? uy - by * t : vy + by * t;
+        double d = StrictMath.sqrt(dx * dx + dy * dy);
+        double coverage = coverage(d - half, scale) - coverage(d + half, scale);
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, x, y, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.COLOR + 12) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.COLOR + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
   private static void shadow(
       Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double w = scene.get(i, Scene.WIDTH);

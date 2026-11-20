@@ -41,6 +41,7 @@ class DocsExamplesTest {
    */
   static final Map<String, List<String>> IMAGES = Map.ofEntries(
       Map.entry("layout", List.of("view")),
+      Map.entry("lines", List.of("view")),
       Map.entry("text", List.of("view")),
       Map.entry("input", List.of("pressed")),
       Map.entry("motion", List.of("opening")),
@@ -53,6 +54,7 @@ class DocsExamplesTest {
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
       Map.entry("status", List.of("view")),
       Map.entry("bars", List.of("view")),
+      Map.entry("cards-window", List.of("view")),
       Map.entry("choices", List.of("view")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("dialog-stack", List.of("stacked")),
@@ -75,7 +77,8 @@ class DocsExamplesTest {
       Map.entry("theming", List.of("system")),
       Map.entry("customers", List.of("loaded", "invalid", "saved")),
       Map.entry("code-editor-placeholder", List.of("view")),
-      Map.entry("code-editor-json", List.of("view")));
+      Map.entry("code-editor-json", List.of("view")),
+      Map.entry("canvas", List.of("view")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -106,12 +109,14 @@ class DocsExamplesTest {
     layouts(all, "navigation", Layouts::navigation, 440, 220); // wide, for the tile's crop
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
     layouts(all, "split", Layouts::split, 520, 240);
+    layouts(all, "cards-window", Layouts::cardsWindow, 520, 280);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
     layouts(all, "tabs-line", Layouts::tabsLine, 480, 180);
     layouts(all, "status", Layouts::status, 460, 420);
     layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "details", Layouts::details, 520, 280);
     layouts(all, "toolbar", Layouts::toolbar, 600, 100);
+    all.put("canvas", new Example(t -> new App<>(new Diagrams(), Diagrams::view), 560, 280));
     overlays(all, "menu", Overlays::menus, 360, 260);
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);
@@ -208,6 +213,7 @@ class DocsExamplesTest {
             440,
             150));
     concepts(all, "images", Concepts::images, 280, 120);
+    concepts(all, "lines", state -> Concepts.lines(), 244, 104);
     concepts(all, "theme", Concepts::theme, 200, 80);
     all.put(
         "tab-groups",

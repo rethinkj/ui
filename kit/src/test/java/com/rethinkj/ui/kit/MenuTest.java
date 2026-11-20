@@ -386,4 +386,47 @@ class MenuTest {
     assertEquals(Menu.CHECKED, pinned.symbol());
     assertFalse(pinned.checked());
   }
+
+  @Test
+  void anItemWiderThanTheWindowEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
+    String path =
+        "Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest";
+    String primary = path + " / Primary";
+    String secondary = path + " / Secondary";
+    Menu.State state = new Menu.State();
+    List<Menu.Item> folders = List.of(Menu.item(primary, () -> {}), Menu.item(secondary, () -> {}));
+    List<Menu.Item> items =
+        List.of(Menu.item("Rename…", () -> {}), Menu.submenu("Move to", folders));
+    App<Menu.State> app = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().window())
+                .child(Menu.contextMenu(El.el().key("target").wFull().hFull(), s, items)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(com.rethinkj.ui.text.TextRendering.LINUX);
+    String image = "menu-cut-dark";
+    Script.run(
+        "size 640 240\nframe\npress 300,20 right\nframe\nadvance 1\nframe\n"
+            + "press label=\"Move to\"\nframe\nadvance 1\nframe\nsnap cut\n"
+            + "move #subitem-1\nframe\nadvance 1\nframe\nsnap hovered\n"
+            + "key ArrowDown\nframe\nadvance 1\nframe\nsnap "
+            + image,
+        app,
+        out);
+    String cut = java.nio.file.Files.readString(out.resolve("cut.tree.txt"));
+    assertTrue(cut.contains("label=\"" + secondary + "\""), "the label is the whole text");
+    assertFalse(cut.contains("role=tooltip"), cut);
+    String hovered = java.nio.file.Files.readString(out.resolve("hovered.tree.txt"));
+    assertTrue(hovered.contains("role=tooltip label=\"" + secondary + "\""), hovered);
+    String tree = java.nio.file.Files.readString(out.resolve(image + ".tree.txt"));
+    assertTrue(tree.contains("role=tooltip label=\"" + primary + "\""), "the keys show it too");
+    assertEquals(1, tree.split("role=tooltip", -1).length - 1, "not the pointer's as well");
+    Golden.assertMatches(
+        image,
+        com.rethinkj.ui.render.Png.decode(
+            java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
+        tree);
+  }
 }

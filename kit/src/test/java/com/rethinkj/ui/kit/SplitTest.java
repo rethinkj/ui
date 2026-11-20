@@ -183,6 +183,20 @@ class SplitTest {
   }
 
   @Test
+  void theLineStopsWhereTheSecondPartsMinimumEndsInsideThePadding() throws IOException {
+    App<Workbench> app = new Workbench(T).app(Workbench::paddedCardsView);
+    run(app, "size 520 200\nframe");
+    El divider = find(app, "divider");
+    float at = x(app, divider) + divider.width() / 2;
+    run(app, "down " + at + ",100\nmove 519,100\nup 519,100\nframe");
+    float shown = find(app, "first").width();
+    assertEquals(336, shown, "520 less the padding, the gap and the second part's 160");
+    assertEquals(Position.first(shown), app.state().sidebar, "it stores what it shows");
+    run(app, "size 536 200\nframe");
+    assertEquals(shown, find(app, "first").width(), "a wider window leaves it where it was");
+  }
+
+  @Test
   void aCancelledDragPutsTheLineBack() throws IOException {
     App<Workbench> app = start(Position.first(200));
     app.pointerDown(200, 100);
@@ -224,6 +238,8 @@ class SplitTest {
     app.state().sidebar = Position.share(0.75f);
     run(app, "size 480 200\nframe");
     assertParts(app, 319, 160);
+    run(app, "size 250 200\nframe\nkey Tab\nkey ArrowRight\nframe");
+    assertEquals(Position.share(0.75f), app.state().sidebar, "a line that cannot move keeps it");
     run(app, "size 1001 200\nframe");
     assertParts(app, 750, 250);
   }

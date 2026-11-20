@@ -61,6 +61,7 @@ public final class El {
   private float radiusBottomLeft;
   private int borderColor;
   private List<Shadow> shadows = List.of();
+  private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
   private Image image;
@@ -80,6 +81,7 @@ public final class El {
   private float focusRingGap;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
+  private WheelHandler onWheel;
   private Consumer<String> onText;
   private Consumer<String> onTypeAhead;
   private boolean editable;
@@ -221,6 +223,21 @@ public final class El {
   @FunctionalInterface
   public interface PressAtHandler {
     void press(int clicks, int modifiers, double x, double y);
+  }
+
+  /**
+   * Told how the wheel turned over an element, as {@link #onWheel} is: by {@code deltaX} and {@code
+   * deltaY} in logical pixels, positive towards the end as {@link App#wheel(float, float, float,
+   * float, int)} counts them, with these modifiers held, a combination of {@link Key#SHIFT}, {@link
+   * Key#CONTROL}, {@link Key#ALT} and {@link Key#META}, and the pointer at {@code x, y} in the
+   * element's content, as {@link PressAtHandler} is told. In a window, a mouse's wheel that turns
+   * up and down with Shift held comes sideways, in {@code deltaX}, as it scrolls; a script and
+   * {@link App#wheel} give the deltas as they are.
+   */
+  @FunctionalInterface
+  public interface WheelHandler {
+    /** @return whether it took the wheel; if not, the wheel goes on as without this handler */
+    boolean wheel(double deltaX, double deltaY, int modifiers, double x, double y);
   }
 
   /**
@@ -810,6 +827,30 @@ public final class El {
   /** How much of a turn the {@link #arc} covers; 1, the whole element, without one. */
   public float arcSweep() {
     return arcSweep;
+  }
+
+  /**
+   * Draws straight lines over this element's fill and image, in logical pixels from the top left
+   * corner of its border box, in the order given: the edges of a diagram, the marks of a chart.
+   * They come before its text and children, which lie on top, and are clipped as its children
+   * are, so with {@link #clip} they stay inside its box. They take no presses; what takes a press
+   * is still the element's box. A line along the pixel grid is sharpest with its edges on physical
+   * pixel boundaries: at scale 1, one 1 pixel wide at {@code y = 10.5}, not at 10.
+   */
+  public El segments(Segment... segments) {
+    this.segments = List.of(segments);
+    return this;
+  }
+
+  /** As {@link #segments(Segment...)}, from a list. */
+  public El segments(List<Segment> segments) {
+    this.segments = List.copyOf(segments);
+    return this;
+  }
+
+  /** The lines this element draws ({@link #segments(Segment...)}); empty without any. */
+  public List<Segment> segments() {
+    return segments;
   }
 
   /** For {@link Animator}: the opacity of the moment while this element springs to its own. */
@@ -1735,7 +1776,7 @@ public final class El {
    * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
    * such as a find bar: as far as that reaches into its content box, the field can scroll above
    * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
-   * 0 unless set.
+   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set.
    */
   public El coveredTop(float height) {
     editableOnly("coveredTop");
@@ -2246,6 +2287,21 @@ public final class El {
     return this;
   }
 
+  /**
+   * Gives {@code handler} the wheel turned over this element or one below it before it scrolls,
+   * as a diagram zooms around the pointer with Control+wheel and pans without it. The handler
+   * returns whether it took the wheel; if it did, nothing scrolls, and if not, the wheel goes on to
+   * the handlers around it and scrolls as without them. A scroll area inside this element that can
+   * move with the wheel takes it first, without asking the handler; this element's own scrolling
+   * comes after its handler. Like {@link #onPress}, it runs in {@link App#frame}.
+   *
+   * @param handler told how, or null for none
+   */
+  public El onWheel(WheelHandler handler) {
+    this.onWheel = handler;
+    return this;
+  }
+
   /** Like {@link #onKey}, for keys that are released. Released keys do nothing by default. */
   public El onKeyUp(Predicate<Key> handler) {
     this.onKeyUp = handler;
@@ -2448,6 +2504,16 @@ public final class El {
     return this;
   }
 
+  /** The width layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutWidth() {
+    return cycleBased ? baseWidth : width;
+  }
+
+  /** The height layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutHeight() {
+    return cycleBased ? baseHeight : height;
+  }
+
   /** The look of {@link #cycle}, or null. */
   ObjDoubleConsumer<El> cycle() {
     return cycle;
@@ -2598,7 +2664,10 @@ public final class El {
    * CENTER} or {@code END}, or {@code STRETCH} for {@code START} and at least as wide as the anchor
    * (as tall, beside it). Where it does not fit into the window there, it goes to the other side,
    * and along the side to the other end; where it fits neither way, it moves into the window as
-   * far as it needs. The default is below the anchor at its start, 0 away.
+   * far as it needs. In a {@link #modal} overlay, such as a dialog, it keeps inside that overlay
+   * along the side as well: at {@code START} or {@code END} it takes the end that fits into it, else it moves into it as far as
+   * the window lets it, over its middle where it is wider. The default is below the anchor at its
+   * start, 0 away.
    */
   public El side(Side side, Style.Align align, float gap) {
     Layer l = layer();
@@ -2721,8 +2790,8 @@ public final class El {
   }
 
   /**
-   * Tells the app that this overlay should close: a press outside it, or the wheel outside it
-   * when it is not modal. The app closes it by changing its state, so that the next view leaves
+   * Tells the app that this overlay should close: a press outside it, or, when it is not modal,
+   * the wheel outside it and Tab or Shift+Tab moving the focus out of it. The app closes it by changing its state, so that the next view leaves
    * it out; nothing closes by itself. Escape is the app's too, with an {@link #onKey} handler.
    *
    * @param handler runs in {@link App#frame}, or null for none
@@ -3215,6 +3284,10 @@ public final class El {
     return onKeyUp;
   }
 
+  public WheelHandler onWheel() {
+    return onWheel;
+  }
+
   public Consumer<String> onText() {
     return onText;
   }
@@ -3702,11 +3775,12 @@ public final class El {
       return null;
     }
     double view = vertical ? height : width;
-    double max = vertical ? maxScrollY : maxScrollX;
-    double offset = Math.max(vertical ? scrollY : scrollX, 0); // not above a field's first row
-    float thumb =
-        (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()), track);
-    float at = start + (float) ((track - thumb) * (offset / max));
+    double min = vertical ? minScrollY() : 0; // a field can scroll above its first row
+    double range = (vertical ? maxScrollY : maxScrollX) - min;
+    double offset = (vertical ? scrollY : scrollX) - min;
+    float thumb = (float)
+        Math.clamp(track * view / (view + range), Math.min(scrollbars.minThumb(), track), track);
+    float at = start + (float) ((track - thumb) * (offset / range));
     float t = scrollbars.thickness();
     int color = scrollbars.thumb();
     return vertical
@@ -3744,7 +3818,8 @@ public final class El {
   /**
    * Scrolls so that the thumb of a bar of the last frame starts at {@code start}, in window
    * coordinates along its axis: the offset is in proportion to where the thumb is between the ends
-   * of its track, so that both ends reach the ends of the content exactly.
+   * of its track, so that both ends reach the ends of the content exactly: for a field covered at
+   * the top, the start of the track is as far above its first row as it can scroll.
    *
    * @return whether the offset changed
    */
@@ -3758,7 +3833,11 @@ public final class El {
     double share = free > 0
         ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0)
         : 0;
-    return vertical ? scrollTo(scrollX, share * maxScrollY) : scrollTo(share * maxScrollX, scrollY);
+    if (!vertical) {
+      return scrollTo(share * maxScrollX, scrollY);
+    }
+    double min = minScrollY();
+    return scrollTo(scrollX, min + share * (maxScrollY - min));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
@@ -3846,7 +3925,10 @@ public final class El {
         && (!spans || shown >= spanFrom && shownTo <= spanTo);
     // Anew, none for another part sideways: only a rebuild of the view builds those cells.
     boolean sideways = spans && (start != spanFrom || shownTo + margin != spanTo);
-    if (rowsBuilt && (anew ? sideways : has)) {
+    // Rows laid out at another width, as while the list springs to a new one, are built anew.
+    boolean resized =
+        !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
+    if (rowsBuilt && !resized && (anew ? sideways : has)) {
       return null;
     }
     if (spans) {
@@ -4061,10 +4143,14 @@ public final class El {
     return style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
   }
 
-  /** The width of the rows: the width of the content box, without the scrollbar's. */
-  private float rowWidth() {
+  /**
+   * The width of the rows of a virtual list ({@link #rows(int, float, IntFunction)}): the width
+   * of the content box as layout gave it, not as a {@link #cycle} shows it, without the
+   * scrollbar's.
+   */
+  public float rowWidth() {
     return Math.max(
-        width
+        laidOutWidth()
             - rowsLeft()
             - style.paddingRight.pixelsOrZero()
             - style.borderRight.pixelsOrZero()
@@ -4212,6 +4298,7 @@ public final class El {
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
+    WheelHandler wheel = onWheel;
     Consumer<String> text = onText;
     Consumer<String> typeAhead = onTypeAhead;
     Consumer<String> edit = onEdit;
@@ -4229,6 +4316,7 @@ public final class El {
                     || onDrag != drag
                     || onKey != keyDown
                     || onKeyUp != up
+                    || onWheel != wheel
                     || onText != text
                     || onTypeAhead != typeAhead
                     || onEdit != edit

@@ -1,0 +1,26 @@
+# The canvas (CanvasTest): four nodes, of which "archive" lies just right of the canvas at 100 %.
+frame
+snap actual            # 100 %: "archive" is culled
+
+focus #board
+key -
+frame
+snap out               # 75 %, around the center: "archive" comes in, the nodes show only their names
+
+key +                  # back to 100 %
+down 300,200           # empty space
+move 260,180
+up 260,180
+frame
+snap panned            # 40 to the left and 20 up: "archive" shows at the right edge
+
+down #orders
+move 150,100
+up 150,100
+frame
+snap pinned            # "orders" moved by 80, 50 and pinned
+
+key 0
+frame                  # all four nodes, at the nearest zoom that fits them: 50 %
+size 280 260
+frame                  # narrower: fitted again, at 25 %

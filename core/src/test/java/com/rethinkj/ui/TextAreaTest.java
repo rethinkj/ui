@@ -13,11 +13,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Fields.Model;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The keys of a multi-line field ({@link El#multiline}): line breaks, moving by rows, Home and
@@ -714,8 +718,75 @@ class TextAreaTest {
     assertNotEquals(null, field(app).text().caret());
   }
 
+  @Test
+  void aJumpInALongWrappedTextShowsTheCaretsRowAfterTheRowsAboveAreMeasured() {
+    // Words of 13 characters, one to a row of 24: each line takes more rows than its length tells.
+    String line = "abcdefghijkl ".repeat(8) + "\n";
+    App<Model> app = focused(line.repeat(200), f -> f.wrapText());
+    int caret = line.length() * 150 + 40;
+    app.select(field(app), caret, caret);
+    app.frame();
+    float top = field(app).text().caret().y();
+    assertTrue(top >= 0 && top + 18 <= 90, "the caret's row in view: " + top);
+
+    // Spaces at a row's end take no room: each line takes fewer rows than its length tells. The
+    // match comes into view below what covers the field's top, 25 pixels of its content box.
+    line = "x" + " ".repeat(200) + "\n";
+    app = focused(line.repeat(200), f -> f.wrapText().coveredTop(29));
+    int start = line.length() * 150;
+    app.select(field(app), start + 1, start);
+    app.frame();
+    top = field(app).text().caret().y();
+    assertTrue(top >= 25 && top + 18 <= 90, "the match's row below the cover: " + top);
+
+    // A match in view over three lines, of two rows each at 36 characters a row. In the same frame
+    // the field narrows to 24, where they take three rows, but the estimate still says two: the
+    // jump measures only the lines of the match's ends, the middle one pushes the end down.
+    line = "abcdefghijklmnop abcdefghijklmnop abcdefghijklmn\n";
+    app = focused(line.repeat(200), f -> f.wrapText().wFull().lines(10).coveredTop(29));
+    app.scrollTo(field(app), 0, 99 * 36);
+    app.frame();
+    app.resize(220, 240, 1);
+    start = line.length() * 101 + 34; // the last row of line 101, to the start of line 103
+    app.select(field(app), start, line.length() * 103 + 1);
+    app.frame();
+    Text t = field(app).text();
+    double first = t.caretTop(start) - t.scrollY();
+    double last = t.caretTop(line.length() * 103) - t.scrollY();
+    assertTrue(
+        first >= 25 && last + 18 <= 180, "the match below the cover: " + first + ", " + last);
+  }
+
   private static int caretLine(App<Model> app) {
     Editor editor = field(app).editor();
     return editor.lineIndex().line(editor.caret());
+  }
+
+  @Test
+  void aPressInTheFrameOfAJumpBelowTheCoverPutsTheCaretUnderThePointer(@TempDir Path out)
+      throws IOException {
+    // F3 jumps to line 30, as a find bar's next match: the pointer then presses at 30, left of a
+    // bar that covers the field's top. The press sees the view after the jump, and the jump alone
+    // keeps the match below the cover: the row pressed stays under the pointer.
+    AtomicReference<App<Model>> app = new AtomicReference<>();
+    app.set(Areas.start(
+        "line\n".repeat(40),
+        f -> f.coveredTop(29),
+        1,
+        root -> root.onKey(k -> {
+          if (!k.name().equals("F3")) {
+            return false;
+          }
+          app.get().select(field(app.get()), 30 * 5 + 4, 30 * 5);
+          return true;
+        })));
+    focus(app.get());
+    Script.run("size 320 240\nframe\nkey F3\npress 30,30\nframe", app.get(), out);
+    Text.Box caret = field(app.get()).text().caret();
+    float pointer = 30 - 14; // in the content box, inside a padding of 4 at 10,10
+    assertTrue(
+        caret.y() <= pointer && pointer < caret.y() + caret.height(),
+        "the caret's row under the pointer: " + caret);
+    assertEquals(26, caretLine(app.get()), "the press, on the first row the jump left in view");
   }
 }

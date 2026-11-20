@@ -69,6 +69,8 @@ public final class CpuRenderer {
         shadow(scene, i, frame, width, height, scale, blends, scratch);
       } else if (kind == Scene.IMAGE) {
         image(scene, i, frame, width, height, scale, blends, scratch);
+      } else if (kind == Scene.LINE) {
+        line(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends, scratch);
       }
@@ -638,6 +640,69 @@ public final class CpuRenderer {
     private static double value(byte[] texels, int at, int channel) {
       int b = texels[at] & 0xFF;
       return channel == 3 ? b / 255.0 : Scene.linear(b);
+    }
+  }
+
+  /** Draws a line segment: a capsule, over the box around its ends grown by half its width. */
+  private static void line(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double half = scene.get(i, Scene.LINE_WIDTH) / 2;
+    if (Double.isNaN(half) || half <= 0) {
+      return;
+    }
+    double ax = scene.get(i, Scene.X);
+    double ay = scene.get(i, Scene.Y);
+    double ex = scene.get(i, Scene.X2);
+    double ey = scene.get(i, Scene.Y2);
+    double bx = ex - ax;
+    double by = ey - ay;
+    double length = bx * bx + by * by;
+    Box shape = new Box(
+        ax + bx / 2,
+        ay + by / 2,
+        Math.abs(bx) / 2 + half,
+        Math.abs(by) / 2 + half,
+        null,
+        null,
+        null);
+    Box clip = Box.clip(scene, scene.clipOf(i));
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
+      return;
+    }
+    double[] color = color(scene, i, Scene.COLOR);
+    for (int py = bounds.top; py < bounds.bottom; py++) {
+      double y = (py + 0.5) / scale;
+      for (int px = bounds.left; px < bounds.right; px++) {
+        double x = (px + 0.5) / scale;
+        // From the end nearer the pixel, so a far end costs no precision near the other.
+        double ux = x - ax;
+        double uy = y - ay;
+        double vx = x - ex;
+        double vy = y - ey;
+        boolean near = ux * ux + uy * uy <= vx * vx + vy * vy;
+        double t = length > 0
+            ? Math.clamp(near ? (ux * bx + uy * by) / length : -(vx * bx + vy * by) / length, 0, 1)
+            : 0;
+        double dx = near ? ux - bx * t : vx + bx * t;
+        double dy = near ? uy - by * t : vy + by * t;
+        double d = StrictMath.sqrt(dx * dx + dy * dy);
+        double cover = coverage(d - half, scale) - coverage(d + half, scale);
+        if (clip != null) {
+          cover *= bounds.clipWhole ? 1 : clip.coverage(x, y, scale);
+        }
+        if (cover <= 0) {
+          continue;
+        }
+        blend(
+            frame,
+            (py * width + px) * 4,
+            color[0] * cover,
+            color[1] * cover,
+            color[2] * cover,
+            color[3] * cover,
+            blends);
+      }
     }
   }
 

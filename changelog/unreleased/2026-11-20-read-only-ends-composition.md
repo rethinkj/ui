@@ -1,0 +1,1 @@
+- A text field made read-only while an input method composes ends the composition, as losing the focus does: it no longer shows the composed text, and its keys reach the field and its ancestors as in any read-only field.

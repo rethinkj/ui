@@ -73,7 +73,7 @@ final class Overlays {
   static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
     float far = Float.POSITIVE_INFINITY;
-    place(root, 0, 0, -far, -far, far, far, width, height, shown, null, false);
+    place(root, 0, 0, -far, -far, far, far, width, height, shown, null, null, false);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
     return shown.stream().anyMatch(overlay -> overlay.placement().atCaret);
@@ -81,6 +81,7 @@ final class Overlays {
 
   /**
    * @param within the placement of the overlay {@code el} is in, null in the tree below
+   * @param dialog the nearest {@link El#modal} overlay {@code el} is in, null in the tree below
    * @param inert whether {@code el} is in {@link El#inert} content
    */
   private static void place(
@@ -95,6 +96,7 @@ final class Overlays {
       float height,
       List<El> shown,
       El.Layer within,
+      El dialog,
       boolean inert) {
     // As for the focus, one that fades in counts from the frame that adds it: the submenu that a
     // key opens in the frame its menu appeared in shows, and takes the focus.
@@ -116,14 +118,27 @@ final class Overlays {
         if (overlay.targetOpacity() == 0 || overlay.placement().whenShortened && !shortened(el)) {
           continue; // not shown, so it neither blocks as a modal one does nor takes the focus
         }
-        place(overlay, el, left, top, width, height, within);
+        place(overlay, el, left, top, width, height, within, dialog);
         if (inert || el.isInert()) {
           overlay.inert();
         }
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
+        El in = overlay.placement().modal ? overlay : dialog;
         place(
-            overlay, 0, 0, -far, -far, far, far, width, height, shown, overlay.placement(), false);
+            overlay,
+            0,
+            0,
+            -far,
+            -far,
+            far,
+            far,
+            width,
+            height,
+            shown,
+            overlay.placement(),
+            in,
+            false);
       }
     }
     Style s = el.style();
@@ -149,6 +164,7 @@ final class Overlays {
           height,
           shown,
           within,
+          dialog,
           inert || el.isInert());
     }
   }
@@ -179,17 +195,25 @@ final class Overlays {
    * Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. An
    * overlay inside one that went to the other side of its anchor than it asked tries that other
    * side first too when it asks the same side, so that submenus go on the way the first that
-   * flipped at the window's edge went.
+   * flipped at the window's edge went. Along the side it keeps inside {@code dialog}, the nearest
+   * modal overlay it is in, as far as it can.
    */
   private static void place(
-      El overlay, El anchor, float x, float y, float width, float height, El.Layer within) {
+      El overlay,
+      El anchor,
+      float x,
+      float y,
+      float width,
+      float height,
+      El.Layer within,
+      El dialog) {
     El.Layer l = overlay.placement();
     l.flipped = false;
     l.anchor = anchor;
     l.anchorX = x;
     l.anchorY = y;
-    float w = overlay.width();
-    float h = overlay.height();
+    float w = overlay.laidOutWidth(); // placing it anew ends what its cycle shows
+    float h = overlay.laidOutHeight();
     float left;
     float top;
     if (l.centered) {
@@ -219,23 +243,36 @@ final class Overlays {
       float edge = l.avoidsAnchor ? l.gap : 0;
       boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
       boolean turn = within != null && within.flipped && within.side == l.side;
+      // Only an anchor wholly inside the dialog keeps it there, not a submenu's item below it.
+      boolean inDialog = dialog != null
+          && ax >= dialog.x()
+          && ay >= dialog.y()
+          && ax + aw <= dialog.x() + dialog.width()
+          && ay + ah <= dialog.y() + dialog.height();
+      float far = Float.POSITIVE_INFINITY;
+      float dialogLeft = inDialog ? dialog.x() : -far;
+      float dialogTop = inDialog ? dialog.y() : -far;
+      float dialogRight = inDialog ? dialog.x() + dialog.width() : far;
+      float dialogBottom = inDialog ? dialog.y() + dialog.height() : far;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
         top = beside(after != turn, ay, ah, h, l.gap, height);
-        left = along(l.align, ax, aw, w, width, edge);
+        left = along(l.align, ax, aw, w, width, edge, dialogLeft, dialogRight);
         l.flipped = after ? top < ay : top >= ay + ah;
       } else {
         left = beside(after != turn, ax, aw, w, l.gap, width);
-        top = along(l.align, ay, ah, h, height, edge);
+        top = along(l.align, ay, ah, h, height, edge, dialogTop, dialogBottom);
         l.flipped = after ? left < ax : left >= ax + aw;
       }
       // A tooltip that would cover its anchor, under the pointer that shows it, would take the
       // hover from the anchor and hide again: it goes to a side across if one has room.
       if (l.avoidsAnchor && Float.isNaN(l.pointX) && overlaps(left, top, w, h, ax, ay, aw, ah)) {
         boolean down = l.side == Side.TOP || l.side == Side.BOTTOM;
-        float acrossLeft =
-            down ? beside(true, ax, aw, w, l.gap, width) : along(l.align, ax, aw, w, width, edge);
-        float acrossTop =
-            down ? along(l.align, ay, ah, h, height, edge) : beside(true, ay, ah, h, l.gap, height);
+        float acrossLeft = down
+            ? beside(true, ax, aw, w, l.gap, width)
+            : along(l.align, ax, aw, w, width, edge, dialogLeft, dialogRight);
+        float acrossTop = down
+            ? along(l.align, ay, ah, h, height, edge, dialogTop, dialogBottom)
+            : beside(true, ay, ah, h, l.gap, height);
         if (!overlaps(acrossLeft, acrossTop, w, h, ax, ay, aw, ah)) {
           left = acrossLeft;
           top = acrossTop;
@@ -270,10 +307,19 @@ final class Overlays {
   /**
    * Where an overlay starts along the side it is on: aligned with the anchor, else at the other
    * end of it, else moved into the window; each {@code margin} away from the window's edges where
-   * there is room for that.
+   * there is room for that. For an anchor inside a dialog from {@code from} to {@code to}, it
+   * takes the first of those ends that fits into the dialog too, else it moves into the dialog as
+   * far as the window lets it, and over its middle where it is wider than the dialog.
    */
   static float along(
-      Style.Align align, float start, float extent, float size, float window, float margin) {
+      Style.Align align,
+      float start,
+      float extent,
+      float size,
+      float window,
+      float margin,
+      float from,
+      float to) {
     float end = start + extent - size;
     float first = switch (align) {
       case END, FLEX_END -> end;
@@ -281,14 +327,19 @@ final class Overlays {
       default -> start;
     };
     margin = Math.clamp(margin, 0, Math.max(window - size, 0) / 2);
-    if (fits(first - margin, size + 2 * margin, window)) {
+    float second = first == end ? start : end;
+    boolean firstFits = fits(first - margin, size + 2 * margin, window);
+    boolean secondFits =
+        align != Style.Align.CENTER && fits(second - margin, size + 2 * margin, window);
+    if (firstFits && fits(first - from, size, to - from)) {
       return first;
     }
-    float second = first == end ? start : end;
-    if (align != Style.Align.CENTER && fits(second - margin, size + 2 * margin, window)) {
+    if (secondFits && fits(second - from, size, to - from)) {
       return second;
     }
-    return Math.clamp(first, margin, Math.max(window - size - margin, margin));
+    // Without a dialog, from and to are infinite: every end fits into it, and this is first.
+    float moved = to - from >= size ? Math.clamp(first, from, to - size) : (from + to - size) / 2;
+    return Math.clamp(moved, margin, Math.max(window - size - margin, margin));
   }
 
   /** Where an overlay of this size starts along an edge of the window. */

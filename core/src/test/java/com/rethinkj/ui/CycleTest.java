@@ -234,6 +234,35 @@ class CycleTest {
   }
 
   @Test
+  void theRowsOfAListWhoseCycleNarrowsItAreAsWideAsLayoutMadeIt() {
+    float[] width = {20};
+    IntFunction<El> list = key -> col()
+        .key("list-" + key)
+        .w(100)
+        .h(60)
+        .cycle(1, (e, phase) -> e.place(e.x(), e.y(), 40, e.height()))
+        .rows(10, 20, i -> el().key("row-" + i));
+    App<Object> app = new App<>(
+        new Object(),
+        state -> El.row()
+            .child(el().key("side").w(width[0]).h(10).motion(Spring.SETTLE).overlay(list.apply(1)))
+            .child(list.apply(0)));
+    app.resize(300, 100, 1);
+    app.frame();
+    width[0] = 60; // the side springs: every frame moves the list and places the overlay anew
+    app.invalidate();
+    for (int i = 0; i < 4; i++) {
+      app.advance(0.05);
+      app.frame();
+      for (El shown :
+          List.of(app.tree().children().get(1), app.tree().shownOverlays().getFirst())) {
+        assertEquals(40, shown.width(), "frame " + i + ": as the cycle shows it");
+        assertEquals(100, shown.children().getFirst().width(), "frame " + i + ": as laid out");
+      }
+    }
+  }
+
+  @Test
   void headlessShowsPhaseZero() {
     Shown s = new Shown();
     El root = view(s);
