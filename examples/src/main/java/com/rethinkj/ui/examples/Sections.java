@@ -20,6 +20,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
+import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
@@ -351,6 +352,14 @@ final class Sections {
             .padding(theme.space().l()),
         CodeEditor.embedded(Completion.complete(
             state.app, editor, state.sqlEditor.caret(), state.sqlCompletion, Sections::complete)));
+    El json = Card.flush(
+        Card.header("JSON", "Control+Alt+L formats the document, Control+Z takes it back.")
+            .padding(theme.space().l()),
+        CodeEditor.embedded(CodeEditor.codeEditor(
+                state.app, state.json, state.jsonEditor, Json.of(), value -> state.json = value)
+            .key("json")
+            .label("Document")
+            .lines(5)));
     return col()
         .gap(theme.space().l())
         .child(row()
@@ -358,7 +367,8 @@ final class Sections {
             .align(Style.Align.START)
             .child(states.w(360).shrink(0))
             .child(form.grow(1)))
-        .child(code);
+        .child(code)
+        .child(json);
   }
 
   private static final List<String> NAMES =

@@ -148,6 +148,10 @@ public final class Showcase {
   final CodeEditor.State sqlEditor = new CodeEditor.State();
   final Completion.State sqlCompletion = new Completion.State();
   App<Showcase> app; // puts a completion in place
+  // Minified, so that Control+Alt+L has something to format.
+  String json = "{\"id\":1042,\"customer\":\"Ada Lovelace\",\"paid\":true,"
+      + "\"items\":[{\"sku\":\"A-17\",\"qty\":2},{\"sku\":\"B-03\",\"qty\":1}],\"note\":null}";
+  final CodeEditor.State jsonEditor = new CodeEditor.State();
 
   // Menus and overlays
   final Menu.State options = new Menu.State();

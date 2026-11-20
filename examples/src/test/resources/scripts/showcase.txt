@@ -44,6 +44,12 @@ frame
 snap find
 key Escape                    # closed, the last match selected in the editor
 frame
+focus #json                   # the JSON editor, its minified document formatted
+key L control alt
+frame
+advance 1
+frame
+snap json
 
 press role=option label="Menus and overlays"
 frame
