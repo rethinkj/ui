@@ -184,23 +184,26 @@ public final class GpuRenderer implements AutoCloseable {
           high = min(origin + glyph_size(instance),
               (clip.rect.xy + clip.rect.zw) * globals.scale + 1.0);
         } else {
-          var rect = instance.rect;
+          let rect = instance.rect;
+          var start = rect.xy;
+          var end = rect.xy + rect.zw;
           empty = !(rect.z > 0.0 && rect.w > 0.0);
           if instance.kind == SHADOW {
             let reach = 3.0 * deviation(instance);
-            rect = vec4f(rect.xy - reach, rect.zw + 2.0 * reach);
+            start -= reach;
+            end += reach;
           }
           if instance.kind == LINE {
             // shortcut: a long diagonal line covers a large box mostly empty; a quad along the
             // line would save those fragments where many long diagonals need it.
             let half = bitcast<f32>(instance.shape.x) / 2.0;
-            let start = min(rect.xy, rect.zw) - half;
-            rect = vec4f(start, max(rect.xy, rect.zw) + half - start);
+            start = min(rect.xy, rect.zw) - half;
+            end = max(rect.xy, rect.zw) + half;
             empty = !(half > 0.0);
           }
           let pad = 1.0 / globals.scale;
-          low = (max(rect.xy, clip.rect.xy) - pad) * globals.scale;
-          high = (min(rect.xy + rect.zw, clip.rect.xy + clip.rect.zw) + pad) * globals.scale;
+          low = (max(start, clip.rect.xy) - pad) * globals.scale;
+          high = (min(end, clip.rect.xy + clip.rect.zw) + pad) * globals.scale;
         }
         // No further than a pixel beyond the target: the fragments are the same, and a quad that
         // reaches a billion pixels out, as a scrim's, is one a software rasterizer may drop.

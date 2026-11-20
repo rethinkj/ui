@@ -15,6 +15,7 @@ import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.layout.Flex;
@@ -152,6 +153,13 @@ class GpuRendererTest {
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
     cases.add(view("lines", Examples.lines(), 240, 120, s));
+    // A line from a billion pixels out, as an edge of a diagram zoomed far in.
+    cases.add(view(
+        "lines-far",
+        el().size(40, 20).segments(new Segment(-1e9f, 10.5f, 20.5f, 10.5f, 2, 0xFFE5E7EB)),
+        40,
+        20,
+        1));
     cases.add(nestedClips(s));
     cases.add(bars("bars-hovered", s));
     cases.add(text("shadows", shadows(), 240, 160, s));
@@ -607,10 +615,11 @@ class GpuRendererTest {
             Math.max(x, x2) + reach, s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
         double bottom = Math.min(
             Math.max(y, y2) + reach, s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
-        x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
-        y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
-        x1 = Math.min((int) Math.ceil(right * c.scale) + 1, c.width);
-        y1 = Math.min((int) Math.ceil(bottom * c.scale) + 1, c.height);
+        // Clamped before the cast, so that an edge a billion pixels out cannot overflow.
+        x0 = (int) Math.max(Math.floor(left * c.scale) - 1, 0);
+        y0 = (int) Math.max(Math.floor(top * c.scale) - 1, 0);
+        x1 = (int) Math.min(Math.ceil(right * c.scale) + 1, c.width);
+        y1 = (int) Math.min(Math.ceil(bottom * c.scale) + 1, c.height);
       }
       for (int y = y0; y < y1; y++) {
         for (int x = x0; x < x1; x++) {
