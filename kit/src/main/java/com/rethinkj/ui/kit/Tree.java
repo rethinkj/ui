@@ -278,6 +278,7 @@ public final class Tree {
     boolean ended; // a drag ended since the last build
     int scrolls; // the steps it scrolled along near an edge, for its reveal
     float scrollTo; // where the last of them scrolled to, in the content
+    boolean along; // it scrolled along during this drag
     int edge; // the edge the pointer waits near: -1 the top, 1 the bottom, 0 neither
     double edgeSince; // since when, on the app's clock, or since it last scrolled
     Object resting; // the closed node the pointer rests on, which opens after a while
@@ -508,7 +509,7 @@ public final class Tree {
         // The tree's drop handler does the rest, with the rows of the latest build.
         r.grabbed(grabbed).dragPayload(new Carried(dragging, node)).onDrag(d -> {
           if (d.phase() == Drag.Phase.START && dragging.node == null) { // not over the tree
-            begin(dragging, node, tree);
+            begin(dragging, node);
           } else if (d.phase() == Drag.Phase.END || d.phase() == Drag.Phase.CANCEL) {
             dragging.clear();
           }
@@ -539,8 +540,11 @@ public final class Tree {
     };
     tree.rows(rows.count, height, i -> marked(theme, dragging, i, height, build.apply(i)));
     int scrolls = dragging == null ? 0 : dragging.scrolls;
-    if (held) { // scrolls along near an edge, and else nowhere
-      tree.reveal(List.of(dragging.rowCount, scrolls), 0, dragging.scrollTo, 0, 1);
+    if (held) {
+      // Scrolls along near an edge, and else nowhere: the key stays the one the tree had, if any.
+      if (dragging.along || dragging.selectedRow >= 0) {
+        tree.reveal(List.of(dragging.rowCount, scrolls), 0, dragging.scrollTo, 0, 1);
+      }
     } else if (rows.selected >= 0) {
       // When nodes open or close, the number of rows changes: the tree shows the selected node's
       // children below it as far as the view has room, as one just opened by Right or the mark.
@@ -624,7 +628,7 @@ public final class Tree {
     @SuppressWarnings("unchecked") // the payload of a row of this tree
     N node = (N) c.node();
     if (g.node == null) { // the first step, before the row's drag handler has its own
-      begin(g, node, tree);
+      begin(g, node);
     }
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();
@@ -648,6 +652,7 @@ public final class Tree {
       double by = Math.min(tree.height(), (d.time() - g.edgeSince) * ALONG * height);
       g.edgeSince = d.time();
       g.scrolls++;
+      g.along = true;
       shift = edge < 0 ? -Math.min(by, scrollY) : Math.min(by, end - scrollY);
       // A pixel the reveal shows at the top or the bottom: as far as the aim below expects.
       g.scrollTo = (float) (scrollY + shift + (edge < 0 ? 0 : tree.height() - 1));
@@ -673,10 +678,10 @@ public final class Tree {
     }
   }
 
-  /** Notes that a drag of {@code node} began, with the rows where they are. */
-  private static void begin(Dragging g, Object node, El tree) {
+  /** Notes that a drag of {@code node} began. */
+  private static void begin(Dragging g, Object node) {
     g.node = node;
-    g.scrollTo = (float) tree.scrollY();
+    g.along = false;
   }
 
   /** Where a node dropped at {@code x}, {@code y} of the tree's content goes; null for nowhere. */
