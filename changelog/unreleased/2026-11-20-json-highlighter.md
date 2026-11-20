@@ -1,0 +1,1 @@
+- The new module `rethinkj-ui-json` colors JSON in the code editor: `codeEditor(app, value, state, Json.of(), onChange)`, with `Json` in the package `com.rethinkj.ui.json`. Member names take the new color `property` of `Theme.Code`; code colors made with the earlier constructors take the default themes' color for it.

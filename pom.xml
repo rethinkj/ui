@@ -42,6 +42,7 @@
   <modules>
     <module>core</module>
     <module>kit</module>
+    <module>languages</module>
     <module>fonts</module>
     <module>icons</module>
     <module>examples</module>
@@ -103,7 +104,8 @@
           </configuration>
         </plugin>
         <plugin>
-          <!-- A JAR of the sources beside the classes, for IDEs; core and kit declare it. -->
+          <!-- A JAR of the sources beside the classes, for IDEs; core, kit and the languages
+               declare it. -->
           <artifactId>maven-source-plugin</artifactId>
           <version>3.4.0</version>
           <executions>
@@ -117,7 +119,7 @@
         </plugin>
         <plugin>
           <!-- The API documentation. A JAR of it beside the classes, which Central wants for a
-               release; core and kit declare it. -->
+               release; core, kit and the languages declare it. -->
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>3.12.0</version>
           <configuration>
@@ -143,11 +145,12 @@
               </configuration>
             </execution>
             <execution>
-              <!-- The HTML of core and kit together, which the site serves at /api/:
-                   mvn -P '!natives-linux-x64' -pl core,kit -am javadoc:aggregate, into
-                   target/reports/apidocs. kit has no module descriptor, and an aggregate cannot
-                   mix a named module with unnamed ones: both go on the class path, and without a
-                   source path, on which javadoc would find core's module-info.java. -->
+              <!-- The HTML of core, kit and the languages together, which the site serves at
+                   /api/: mvn -P '!natives-linux-x64' -pl core,kit,languages/json -am
+                   javadoc:aggregate, into target/reports/apidocs. kit has no module descriptor,
+                   and an aggregate cannot mix a named module with unnamed ones: all go on the
+                   class path, and without a source path, on which javadoc would find core's
+                   module-info.java. -->
               <id>default-cli</id>
               <configuration>
                 <legacyMode>true</legacyMode>
@@ -165,6 +168,10 @@
                   <group>
                     <title>Kit</title>
                     <packages>com.rethinkj.ui.kit</packages>
+                  </group>
+                  <group>
+                    <title>Languages</title>
+                    <packages>com.rethinkj.ui.json</packages>
                   </group>
                 </groups>
               </configuration>

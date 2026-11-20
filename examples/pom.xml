@@ -37,6 +37,12 @@
       <artifactId>rethinkj-ui-kit</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- JSON for the code editor. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.rethinkj.ui</groupId>
       <artifactId>rethinkj-ui-fonts</artifactId>

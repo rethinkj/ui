@@ -3,7 +3,7 @@ title: CodeEditor
 description: Multi-line code editor with line numbers, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, gutter markers, syntax highlighting (such as `Sql`), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
+`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, gutter markers, syntax highlighting (such as `Sql` and [`Json`](#json)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
 
 For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
 
@@ -21,6 +21,27 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 - `Sql.of()` highlights standard SQL (and `Sql.of(Sql.Dialect.MYSQL)` supports MySQL/MariaDB syntax). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
 - Passing `state.app` enables the built-in find bar, line commands and F8 to go to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
 - Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
+
+## JSON
+
+`Json.of()` highlights JSON as RFC 8259 defines it: member names, strings, numbers, `true`, `false` and `null`, and brackets, where only the brackets outside strings are matched. Member names take the `property` color of `Theme.Code`. Invalid JSON is colored as far as it goes. JSON has no comments, so Ctrl+/ does nothing.
+
+`Json` is in its own module, `rethinkj-ui-json`, in the package `com.rethinkj.ui.json`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-json</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+```java snippet="code-editor-json"
+```
+
+<Shot src="examples/docs/code-editor-json/view-{theme}" alt="A JSON document in the code editor, its member names, strings, numbers and literals each in a color of their own" />
+
+Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html).
 
 ## Placeholder and read-only
 

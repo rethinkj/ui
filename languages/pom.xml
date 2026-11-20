@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The parent of the language modules: each language, a Highlighter on kit, in a module of its own. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>rethinkj-ui-languages</artifactId>
+  <packaging>pom</packaging>
+
+  <name>rethinkj UI :: Languages</name>
+  <description>The parent of the language modules of rethinkj UI.</description>
+
+  <modules>
+    <module>json</module>
+  </modules>
+</project>

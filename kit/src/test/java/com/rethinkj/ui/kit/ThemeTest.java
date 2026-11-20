@@ -154,7 +154,9 @@ class ThemeTest {
         "comment",
         code.comment(),
         "operator",
-        code.operator());
+        code.operator(),
+        "property",
+        code.property());
     codeColors.forEach((token, color) -> {
       check(failures, token, color, field, 4.5);
       check(
@@ -655,6 +657,27 @@ class ThemeTest {
         name, lightness(d.color()), lightness(d.hover()), lightness(d.pressed()));
     assertTrue(lightness(d.color()) - lightness(d.hover()) >= 2, at);
     assertTrue(lightness(d.hover()) - lightness(d.pressed()) >= 2, at);
+  }
+
+  /** Code colors made without a color for members' names take that of their lightness. */
+  @Test
+  void codeColorsWithoutAPropertyColorTakeThatOfTheirLightness() {
+    for (Theme.Code c : List.of(Theme.Code.DARK, Theme.Code.LIGHT)) {
+      Theme.Code older = new Theme.Code(
+          c.keyword(),
+          c.string(),
+          c.number(),
+          c.comment(),
+          c.operator(),
+          c.line(),
+          c.bracket(),
+          c.match(),
+          c.current(),
+          c.occurrence(),
+          c.block(),
+          c.guide());
+      assertEquals(c, older);
+    }
   }
 
   /** A theme made without danger colors takes those of its lightness. */

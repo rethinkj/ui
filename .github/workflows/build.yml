@@ -77,14 +77,15 @@ jobs:
           path: |
             */target/surefire-reports
             */target/golden
+            languages/*/target/surefire-reports
             core/target/gpu-vs-cpu
           retention-days: 7
           if-no-files-found: ignore
 
-  # Each module goes up once: Linux the parent POM, core, kit, fonts, icons and natives-linux-x64,
-  # then Windows natives-windows-x64 alone, whose POM names that parent. Only after build passed
-  # on both platforms, so the tests are not run again; deployAtEnd (root POM) uploads nothing from
-  # a reactor that failed.
+  # Each module goes up once: Linux the parent POM, core, kit, the languages with their parent POM,
+  # fonts, icons and natives-linux-x64, then Windows natives-windows-x64 alone, whose POM names
+  # that parent. Only after build passed on both platforms, so the tests are not run again;
+  # deployAtEnd (root POM) uploads nothing from a reactor that failed.
   publish:
     name: Publish SNAPSHOT (${{ matrix.os }})
     needs: build

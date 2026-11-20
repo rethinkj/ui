@@ -515,6 +515,7 @@ public record Theme(
    *     ({@link CodeEditor.State#block}), such as the statement that would run, beside a line in
    *     the accent's edge; it stays blue with another accent
    * @param guide the thin lines at each step of indentation in the white space that starts a line
+   * @param property the names of an object's members, such as the keys of JSON
    */
   public record Code(
       int keyword,
@@ -528,7 +529,8 @@ public record Theme(
       int current,
       int occurrence,
       int block,
-      int guide) {
+      int guide,
+      int property) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(
@@ -543,7 +545,8 @@ public record Theme(
         alpha(AMBER_467, 0.267f),
         alpha(WHITE, 0.03f),
         alpha(BLUE_496, 0.05f),
-        alpha(WHITE, 0.02f));
+        alpha(WHITE, 0.02f),
+        BLUE_782);
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(
@@ -558,11 +561,45 @@ public record Theme(
         alpha(AMBER_720, 0.38f),
         alpha(BLACK, 0.11f),
         alpha(BLUE_447, 0.22f),
-        alpha(BLACK, 0.25f));
+        alpha(BLACK, 0.25f),
+        BLUE_366);
 
     /**
-     * The colors of code with the tint of a marked block and the guides of {@link #DARK} where the
-     * caret's line is light on dark, else of {@link #LIGHT}.
+     * The colors of code with the color of members' names of {@link #DARK} where the caret's line
+     * is light on dark, else of {@link #LIGHT}.
+     */
+    public Code(
+        int keyword,
+        int string,
+        int number,
+        int comment,
+        int operator,
+        int line,
+        int bracket,
+        int match,
+        int current,
+        int occurrence,
+        int block,
+        int guide) {
+      this(
+          keyword,
+          string,
+          number,
+          comment,
+          operator,
+          line,
+          bracket,
+          match,
+          current,
+          occurrence,
+          block,
+          guide,
+          alpha(line, 1) == WHITE ? DARK.property : LIGHT.property);
+    }
+
+    /**
+     * The colors of code with the tint of a marked block, the guides and the color of members' names
+     * of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
      */
     public Code(
         int keyword,
@@ -592,7 +629,8 @@ public record Theme(
 
     /**
      * The colors of code with the backgrounds of a find, of a word's occurrences, the tint of a
-     * marked block and the guides of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     * marked block, the guides and the color of members' names of {@link #DARK} where the caret's
+     * line is light on dark, else of {@link #LIGHT}.
      */
     public Code(
         int keyword, int string, int number, int comment, int operator, int line, int bracket) {

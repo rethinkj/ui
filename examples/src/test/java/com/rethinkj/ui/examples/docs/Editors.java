@@ -4,6 +4,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
@@ -35,6 +36,16 @@ final class Editors {
   /** The editor of a statement that is only shown: it takes no edits, so it needs no handler. */
   final CodeEditor.State definitionEditor = new CodeEditor.State().readOnly(true);
   // docs:end code-editor-read-only
+  String document = """
+      {
+        "id": 1042,
+        "customer": "Ada Lovelace",
+        "paid": true,
+        "total": 129.5,
+        "coupon": null,
+        "items": [{"sku": "A-17", "quantity": 2}]
+      }""";
+  final CodeEditor.State documentEditor = new CodeEditor.State();
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
@@ -100,6 +111,10 @@ final class Editors {
   }
   // docs:end code-editor-insert
 
+  void document(String value) {
+    document = value;
+  }
+
   void notes(String value) {
     notes = value;
   }
@@ -157,6 +172,18 @@ final class Editors {
         .wFull();
     // docs:end code-editor-placeholder
     return Frame.of(draft, definition);
+  }
+
+  static El json(Editors state) {
+    // docs:start code-editor-json
+    El editor = CodeEditor.codeEditor(
+            state.app, state.document, state.documentEditor, Json.of(), state::document)
+        .key("document")
+        .label("Document")
+        .lines(8)
+        .wFull();
+    // docs:end code-editor-json
+    return Frame.of(editor);
   }
 
   static El find(Editors state) {
