@@ -839,6 +839,11 @@ public final class Script {
     }
 
     @Override
+    public void onShown(Runnable handler) {
+      onShown = handler;
+    }
+
+    @Override
     public void onCloseRequest(Runnable handler) {
       onClose = handler;
     }
@@ -846,11 +851,6 @@ public final class Script {
     @Override
     public void onClosed(Runnable handler) {
       onClosed = handler;
-    }
-
-    @Override
-    public void onShown(Runnable handler) {
-      onShown = handler;
     }
 
     @Override
