@@ -693,19 +693,10 @@ public final class Script {
   }
 
   /**
-   * An element of the last frame with the window position of its border box, the center of the
-   * part of it that its clips leave, and that part.
+   * An element of the last frame with the window position of its border box, and the center of
+   * the part of it that its clips leave.
    */
-  private record Found(
-      El el,
-      float left,
-      float top,
-      float x,
-      float y,
-      float seenLeft,
-      float seenTop,
-      float seenRight,
-      float seenBottom) {}
+  private record Found(El el, float left, float top, float x, float y) {}
 
   /** A target's point in logical pixels of the window it was found in. */
   private record Aim(Win win, float x, float y) {
@@ -1367,7 +1358,7 @@ public final class Script {
       List<Found> matches = all.stream().filter(matching).toList();
       if (matches.size() == 1) {
         Found found = matches.getFirst();
-        return edges == null ? new float[] {found.x, found.y} : near(found, edges, text);
+        return edges == null ? new float[] {found.x, found.y} : near(found, edges, text, root);
       }
       if (matches.isEmpty() && clipped.stream().anyMatch(matching)) {
         throw fail(
@@ -1472,7 +1463,7 @@ public final class Script {
     }
 
     /** The point that {@code at <edges>} names, from the edges of the element's rectangle. */
-    float[] near(Found found, String edges, String text) {
+    float[] near(Found found, String edges, String text, El root) {
       float[] point = {found.x, found.y};
       boolean[] named = new boolean[2];
       for (String part : edges.split(",", -1)) {
@@ -1494,12 +1485,11 @@ public final class Script {
           && x < found.left + found.el.width()
           && y >= found.top
           && y < found.top + found.el.height();
-      boolean seen =
-          x >= found.seenLeft && x < found.seenRight && y >= found.seenTop && y < found.seenBottom;
-      if (inside && !seen) {
-        throw fail("That point of " + text + " is clipped away in the last frame, for example"
-            + " scrolled out of its scroll area, so it would reach what lies there instead. Bring"
-            + " it into view first, or name a point of the part that shows.");
+      if (inside && !App.hit(root, x, y).contains(found.el)) {
+        throw fail("That point of " + text + " does not show in the last frame: a clip hides it,"
+            + " for example of a scroll area it is scrolled out of, or something lies over it,"
+            + " such as a scrollbar. A press there would reach what shows instead. Name a point"
+            + " of the part that shows, or bring it into view first.");
       }
       return point;
     }
@@ -1578,16 +1568,14 @@ public final class Script {
     float visibleTop = Math.max(top, clipTop);
     float visibleRight = Math.min(right, clipRight);
     float visibleBottom = Math.min(bottom, clipBottom);
-    float x = (visibleLeft + visibleRight) / 2;
-    float y = (visibleTop + visibleBottom) / 2;
+    Found found = new Found(
+        el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
     List<Text.Box> rows = el.rangeBoxes();
     if (rows != null && !rows.isEmpty()) { // a range: the middle of its first row
       Text.Box row = rows.getFirst();
-      x = left + row.x() + row.width() / 2;
-      y = top + row.y() + row.height() / 2;
+      found = new Found(
+          el, left, top, left + row.x() + row.width() / 2, top + row.y() + row.height() / 2);
     }
-    Found found =
-        new Found(el, left, top, x, y, visibleLeft, visibleTop, visibleRight, visibleBottom);
     boolean visible = left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop;
     (visible ? all : clipped).add(found);
     Style s = el.style();

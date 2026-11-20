@@ -320,7 +320,10 @@ class ScriptTest {
     assertEquals(List.of("1 30.0,2.0", "2 58.5,15.0", "1 3.0,12.0"), log);
 
     String start = "size 100 100\nframe\npress ";
-    assertFailure(start + "#box at bottom-2\n", "That point of #box is clipped away", app);
+    assertFailure(
+        start + "#box at bottom-2\n",
+        "That point of #box does not show in the last frame: a clip hides it",
+        app);
     assertFailure(start + "#box at middle\n", "Write `at` and an edge after a selector", app);
     assertFailure(start + "#box at top+2,bottom-2\n", "Write `at` and an edge", app);
     assertFailure(start + "50,50 at top+2\n", "Write `at` and an edge", app);

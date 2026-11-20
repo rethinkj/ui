@@ -45,7 +45,7 @@ press #header-2 at right-3                  # 3 pixels left of the right edge, c
 move #row-7 at left+20,bottom-2             # near the bottom left corner
 ```
 
-The edges are those of the element's rectangle in the tree dump. The point moves with the element when the layout shifts, so the script keeps working without coordinates. A distance away from the element, such as `at bottom+4`, names a point just outside it. A point inside the element that its scroll area or another clip hides fails, since it would reach what lies there instead.
+The edges are those of the element's rectangle in the tree dump. The point moves with the element when the layout shifts, so the script keeps working without coordinates. A distance away from the element, such as `at bottom+4`, names a point just outside it. A point inside the element that does not show fails, such as one its scroll area hides or a scrollbar lies over, since it would reach what shows there instead.
 
 ## Virtual lists
 
