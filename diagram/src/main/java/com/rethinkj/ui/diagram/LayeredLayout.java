@@ -34,7 +34,8 @@ import java.util.function.Function;
  * <p>A {@link Node#pinned pinned} node stays where it is, and the others are placed around it: each
  * cluster is moved so that its pinned nodes lie where it would put them, and a node that would
  * overlap one moves past it along its layer, down from left to right and right from top to bottom.
- * A layout without pins starts at the diagram's origin. The places of unpinned nodes going in do
+ * Clusters then keep their gap only where the pins let them: unpinned nodes keep clear of every
+ * other node, but the clusters' areas can meet. A layout without pins starts at the diagram's origin. The places of unpinned nodes going in do
  * not matter, so that arranging twice gives the same as once, and the same input always gives the
  * same output.
  */
@@ -419,7 +420,9 @@ public final class LayeredLayout {
     final Map<Integer, List<Integer>> bendsBefore = new HashMap<>();
     int[] layerOf;
     int[][] before;
+    int[][] beforeWeight;
     int[][] after;
+    int[][] afterWeight;
     double[] extent;
     int[][] layers;
     int[] position;
@@ -587,10 +590,9 @@ public final class LayeredLayout {
       int span = layering.get(to) - layering.get(from) - 1;
       for (int k = 0; k < span; k++) {
         if (k == shared.size()) {
-          int bend = addVertex(layering.get(from) + 1 + k);
-          link(at, bend);
-          shared.add(bend);
+          shared.add(addVertex(layering.get(from) + 1 + k));
         }
+        link(at, shared.get(k));
         at = shared.get(k);
       }
       link(at, to);
@@ -602,33 +604,53 @@ public final class LayeredLayout {
       int span = layering.get(to) - layering.get(from) - 1;
       for (int k = 0; k < span; k++) {
         if (k == shared.size()) {
-          int bend = addVertex(layering.get(to) - 1 - k);
-          link(bend, at);
-          shared.add(bend);
+          shared.add(addVertex(layering.get(to) - 1 - k));
         }
+        link(shared.get(k), at);
         at = shared.get(k);
       }
       link(from, at);
     }
 
+    /** Links two vertices once more: once for each edge that runs between them. */
     private void link(int from, int to) {
       joinedAfter.get(from).add(to);
       joinedBefore.get(to).add(from);
     }
 
-    /** The vertices in arrays, for the sweeps. */
+    /** The vertices in arrays, for the sweeps, each neighbor once with its number of edges. */
     private void freeze() {
       int count = layering.size();
       layerOf = new int[count];
       before = new int[count][];
+      beforeWeight = new int[count][];
       after = new int[count][];
+      afterWeight = new int[count][];
       extent = new double[count];
       for (int v = 0; v < count; v++) {
         layerOf[v] = layering.get(v);
-        before[v] = joinedBefore.get(v).stream().mapToInt(Integer::intValue).toArray();
-        after[v] = joinedAfter.get(v).stream().mapToInt(Integer::intValue).toArray();
+        before[v] = distinct(joinedBefore.get(v));
+        beforeWeight[v] = counts(joinedBefore.get(v), before[v]);
+        after[v] = distinct(joinedAfter.get(v));
+        afterWeight[v] = counts(joinedAfter.get(v), after[v]);
         extent[v] = isBend(v) ? 0 : diagram.crossSize(members.get(v));
       }
+    }
+
+    private static int[] distinct(List<Integer> joined) {
+      return joined.stream().mapToInt(Integer::intValue).distinct().toArray();
+    }
+
+    private static int[] counts(List<Integer> joined, int[] distinct) {
+      Map<Integer, Integer> count = new HashMap<>();
+      for (int vertex : joined) {
+        count.merge(vertex, 1, Integer::sum);
+      }
+      int[] counts = new int[distinct.length];
+      for (int k = 0; k < distinct.length; k++) {
+        counts[k] = count.get(distinct[k]);
+      }
+      return counts;
     }
 
     private boolean isBend(int v) {
@@ -664,7 +686,7 @@ public final class LayeredLayout {
         boolean down = sweep % 2 == 0;
         for (int k = 1; k < count; k++) {
           int l = down ? k : count - 1 - k;
-          sortByBarycenter(layers[l], down ? before : after);
+          sortByBarycenter(layers[l], down ? before : after, down ? beforeWeight : afterWeight);
         }
         long crossings = crossings();
         if (crossings < fewest) {
@@ -692,18 +714,24 @@ public final class LayeredLayout {
       return copy;
     }
 
-    /** Sorts a layer by the mean place of the neighbors; one without any keeps its place. */
-    private void sortByBarycenter(int[] layer, int[][] neighbors) {
+    /**
+     * Sorts a layer by the mean place of the neighbors, each counted once for each edge to it; one
+     * without any keeps its place.
+     */
+    private void sortByBarycenter(int[] layer, int[][] neighbors, int[][] weights) {
       double[] key = new double[layer.length];
       Integer[] sorted = new Integer[layer.length];
       for (int k = 0; k < layer.length; k++) {
         sorted[k] = k;
         int[] of = neighbors[layer[k]];
+        int[] weight = weights[layer[k]];
         double sum = 0;
-        for (int w : of) {
-          sum += position[w];
+        int edges = 0;
+        for (int n = 0; n < of.length; n++) {
+          sum += (double) position[of[n]] * weight[n];
+          edges += weight[n];
         }
-        key[k] = of.length == 0 ? k : sum / of.length;
+        key[k] = edges == 0 ? k : sum / edges;
       }
       Arrays.sort(sorted, Comparator.comparingDouble(k -> key[k]));
       int[] was = layer.clone();
@@ -714,31 +742,35 @@ public final class LayeredLayout {
     }
 
     /**
-     * The crossings between each two layers: with the edges in the order of their upper ends,
-     * then their lower ends, the pairs whose lower ends come the other way round, counted in a
-     * Fenwick tree over the lower layer.
+     * The crossings of edges between each two layers, a segment that several edges share counted
+     * once for each: with the segments in the order of their upper ends, then their lower ends,
+     * the pairs whose lower ends come the other way round, counted in a Fenwick tree over the
+     * lower layer.
      */
     private long crossings() {
       long total = 0;
       for (int l = 0; l + 1 < layers.length; l++) {
-        int[] tree = new int[layers[l + 1].length + 1];
-        int seen = 0;
+        long[] tree = new long[layers[l + 1].length + 1];
+        long seen = 0;
         for (int v : layers[l]) {
-          int[] ends = new int[after[v].length];
+          // Each segment's lower end in the high half, its number of edges in the low half.
+          long[] ends = new long[after[v].length];
           for (int k = 0; k < ends.length; k++) {
-            ends[k] = position[after[v][k]];
+            ends[k] = ((long) position[after[v][k]] << 32) | afterWeight[v][k];
           }
           Arrays.sort(ends);
-          for (int end : ends) {
-            int notAfter = 0;
+          for (long segment : ends) {
+            int end = (int) (segment >>> 32);
+            long edges = segment & 0xFFFF_FFFFL;
+            long notAfter = 0;
             for (int i = end + 1; i > 0; i -= i & -i) {
               notAfter += tree[i];
             }
-            total += seen - notAfter;
+            total += edges * (seen - notAfter);
             for (int i = end + 1; i < tree.length; i += i & -i) {
-              tree[i]++;
+              tree[i] += edges;
             }
-            seen++;
+            seen += edges;
           }
         }
       }
