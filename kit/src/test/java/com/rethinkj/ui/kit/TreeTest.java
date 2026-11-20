@@ -928,6 +928,89 @@ class TreeTest {
     assertEquals(along, find(app, "tree").scrollY(), "where the drag left it");
   }
 
+  /** A chain of twelve open folders, n1 holding n2 down to the leaf n12, and the root other. */
+  private static final class Chain implements Tree.Model<String> {
+    final Tree.Dragging dragging = new Tree.Dragging();
+    final List<String> log = new ArrayList<>();
+
+    @Override
+    public List<String> roots() {
+      return List.of("n1", "other");
+    }
+
+    @Override
+    public Tree.Children<String> children(String node) {
+      int level = Integer.parseInt(node.substring(1));
+      return Tree.ready(List.of("n" + (level + 1)));
+    }
+
+    @Override
+    public boolean isLeaf(String node) {
+      return node.equals("other") || node.equals("n12");
+    }
+
+    @Override
+    public String label(String node) {
+      return node.equals("other") ? node : "level " + node.substring(1);
+    }
+
+    @Override
+    public String key(String node) {
+      return node;
+    }
+
+    El view() {
+      return Tree.tree(
+              this,
+              new Tree.Options<String>()
+                  .open(node -> true, null)
+                  .drag(
+                      dragging,
+                      node -> true,
+                      move -> true,
+                      move -> log.add(move.node() + " " + move.place() + " " + move.target())))
+          .key("tree")
+          .wFull()
+          .hFull();
+    }
+  }
+
+  @Test
+  void deepRowsKeepTheirMarksAndNamesInANarrowTreeAndDropsFollowTheirIndent() throws IOException {
+    Chain chain = new Chain();
+    App<Chain> app = new App<>(chain, Chain::view);
+    run(app, "size 160 400\nframe");
+    float width = find(app, "tree").width();
+    for (int level = 1; level <= 12; level++) {
+      El row = find(app, "row-n" + level);
+      El name = textOf(row, "level " + level);
+      boolean shown = name.width() >= 32 && name.x() + name.width() <= width;
+      assertTrue(shown, "32 of the name of level " + level + " in view");
+      if (level < 12) {
+        El mark = find(row, "mark-n" + level);
+        assertTrue(mark.x() + mark.width() <= width, "the mark of level " + level + " in view");
+      }
+    }
+    // Half of 160 holds six indents of 12: deeper rows stay at the seventh level's place.
+    assertEquals(
+        find(find(app, "row-n7"), "mark-n7").x(),
+        find(find(app, "row-n11"), "mark-n11").x());
+    assertTrue(dumpLine(app, "row-n12").contains(" level=12 "), dumpLine(app, "row-n12"));
+    // Below the leaf n12, the line at n6's indent means after n6, at the deepest after n12.
+    run(app, "size 160 400\ndown #row-other\nmove #row-n12 at left+66,bottom-2\nframe");
+    El marker = find(find(app, "row-other"), "marker");
+    assertEquals(4 + 5 * 12, marker.x(), "the line at n6's indent");
+    run(app, """
+        size 160 400
+        up #row-n12 at left+66,bottom-2
+        frame
+        down #row-other
+        move #row-n12 at left+78,bottom-2
+        up #row-n12 at left+78,bottom-2
+        frame""");
+    assertEquals(List.of("other AFTER n6", "other AFTER n12"), chain.log);
+  }
+
   // Images
 
   @ParameterizedTest

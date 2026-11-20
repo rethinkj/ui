@@ -4119,10 +4119,11 @@ public final class El {
   }
 
   /**
-   * The width of the rows: the width of the content box as layout gave it, not as a {@link #cycle}
-   * shows it, without the scrollbar's.
+   * The width of the rows of a virtual list ({@link #rows(int, float, IntFunction)}): the width
+   * of the content box as layout gave it, not as a {@link #cycle} shows it, without the
+   * scrollbar's.
    */
-  private float rowWidth() {
+  public float rowWidth() {
     return Math.max(
         laidOutWidth()
             - rowsLeft()
