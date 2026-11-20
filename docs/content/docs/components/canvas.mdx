@@ -1,0 +1,49 @@
+---
+title: Canvas
+description: Pannable, zoomable area of nodes at diagram coordinates, from the optional diagram module.
+---
+
+`Canvas.canvas` lays nodes, any elements, at positions in diagram coordinates on an area that the user pans and zooms. It is the base of the diagrams in the optional module `rethinkj-ui-diagram`, package `com.rethinkj.ui.diagram`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-diagram</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`Canvas`](/api/com/rethinkj/ui/diagram/Canvas.html).
+
+<Shot src="examples/docs/canvas/view-{theme}" alt="Four tables on a canvas, fitted in at 75 percent" />
+
+## Example
+
+```java snippet="canvas"
+```
+
+Keep a `Canvas.Viewport` and the nodes in your app state and pass `Canvas.canvas(viewport, nodes, content, onMove)`:
+
+| Parameter | Description |
+| --- | --- |
+| `viewport` | The diagram point at the canvas's top left and the zoom; `fit()`, `zoomIn()`, `zoomOut()`, `zoomBy(steps, x, y)` and `panTo(left, top)` change it |
+| `nodes` | `Canvas.Node(key, label, x, y, width, height, pinned)`, in diagram coordinates at 100 % |
+| `content` | Builds a node's element at the zoom of the moment, sized `width × zoom` by `height × zoom` |
+| `onMove` | Receives a dragged node, moved and pinned, and the node as it was when Escape cancels the drag (`null` fixes the nodes) |
+
+Zoom does not scale a picture: the canvas lays its nodes out again at their sizes times the zoom, so text stays sharp. The `content` function multiplies its own sizes by the zoom and is the level of detail: zoomed out, a node can show less, as the tables above drop their columns below 75 %. The zoom moves in the steps of `Viewport.ZOOMS`, 25 % to 200 %.
+
+The canvas builds only the nodes that lie inside it, so a large diagram stays fast. Pins are plain values in your state: the canvas only reports that the user moved a node.
+
+The canvas learns its size from layout when that size changes. To show another diagram in the same place with a new `Viewport`, give the canvas another key, such as `canvas(...).key(diagram.name())`; with the same key the new viewport learns no size and shows no nodes.
+
+## Pointer and keyboard
+
+Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
+
+## In a tree dump
+
+The canvas is `role=graphics-document` with its zoom as `value`, and each node `role=graphics-object` with its key and label; a pinned node has the value `Pinned`. Its texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+
+```text file="examples/src/test/resources/golden/docs/canvas/view.tree.txt" start="el role=graphics-document" count="2"
+```

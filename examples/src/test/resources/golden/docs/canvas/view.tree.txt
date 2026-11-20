@@ -1,0 +1,17 @@
+el role=graphics-document label="Diagram" 0,0 560x280 value="Zoom 75%"
+  el #customers role=graphics-object label="customers" 40,61 120x54
+    el 40,61 120x54
+      text "customers" 47,68 106x13
+      text "id, name, created_at" 47,83 106x11
+  el #orders role=graphics-object label="orders" 220,91 120x54
+    el 220,91 120x54
+      text "orders" 227,98 106x13
+      text "id, name, created_at" 227,113 106x11
+  el #products role=graphics-object label="products" 400,61 120x54
+    el 400,61 120x54
+      text "products" 407,68 106x13
+      text "id, name, created_at" 407,83 106x11
+  el #items role=graphics-object label="order_items" 400,166 120x54 value="Pinned"
+    el 400,166 120x54
+      text "order_items" 407,173 106x13
+      text "id, name, created_at" 407,188 106x11
