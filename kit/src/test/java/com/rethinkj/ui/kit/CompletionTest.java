@@ -156,13 +156,20 @@ class CompletionTest {
   }
 
   @Test
-  void backspaceInsideAWordKeepsTheListForThePartBeforeTheCaret() throws IOException {
+  void backspaceInsideAWordAsksForThePartBeforeTheCaret() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Query> app = app();
-    run(app, "frame\npress #query\ntype \"SELECT cux\"\nkey ArrowLeft\ntype \"s\"");
-    String tree = run(app, "key Backspace");
-    assertEquals("SELECT cux", app.state().sql);
-    assertTrue(tree.contains("label=\"customers\""), tree);
+    List<String> asked = new ArrayList<>();
+    App<Query> app = app(word -> {
+      asked.add(word);
+      return List.of(new Completion.Entry("count"));
+    });
+    run(
+        app,
+        "frame\npress #query\ntype \"SELECT cooo\"\nkey ArrowLeft\nkey ArrowLeft\nkey Space control");
+    asked.clear();
+    run(app, "key Backspace");
+    assertEquals("SELECT coo", app.state().sql);
+    assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|oo");
   }
 
   @Test

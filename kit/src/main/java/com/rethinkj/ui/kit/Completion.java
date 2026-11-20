@@ -85,9 +85,11 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    // The string an edit proposed and where its caret went, until the build that answers it.
+    // The string an edit proposed and where its caret went, until the build that answers it, and
+    // whether the key of this input is Backspace, which leaves the caret before what it took.
     private String edited;
     private int editedCaret;
+    private boolean back;
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
@@ -247,12 +249,17 @@ public final class Completion {
     };
     Consumer<String> onEdit = field.onEdit();
     if (onEdit != null) {
+      int at = caret;
       field.editable(v -> {
         if (state.history) {
           state.close(); // a step of the history brings text back; nobody typed it
         } else {
           follow(state, text, v);
         }
+        // Typing puts the caret after what it put in, Delete leaves it, Backspace moves it back.
+        int grown = v.length() - text.length();
+        state.edited = v;
+        state.editedCaret = grown > 0 || state.back ? at + grown : at;
         onEdit.accept(v);
       });
     }
@@ -260,6 +267,7 @@ public final class Completion {
       // The field's keys for undo and redo; onEdit does not say where an edit came from.
       state.history = (k.modifiers() & ~Key.SHIFT) == Key.CONTROL
           && (k.name().equals("Z") || k.name().equals("Y"));
+      state.back = k.name().equals("Backspace");
       return key(k, state, entries, take);
     });
     if (!state.open) {
@@ -418,8 +426,6 @@ public final class Completion {
    */
   static void follow(State state, String before, String after) {
     TextChange change = TextChange.between(before, after);
-    state.edited = after;
-    state.editedCaret = change.newEnd();
     boolean insertion = change.start() == change.oldEnd();
     String inserted = after.substring(change.start(), change.newEnd());
     if (insertion
