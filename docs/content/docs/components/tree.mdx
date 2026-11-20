@@ -91,14 +91,16 @@ A `Tree.Move` has the dragged `node`, the `target` it was dropped on, and a `pla
 
 Near the top or bottom edge the tree scrolls while the pointer waits there. A closed node opens after the pointer rests on it for the theme's `submenuDelay` where the node could go into it. **Escape** cancels the drag. A click or double-click without dragging selects, opens and activates as before. Select the moved node in `onDrop`, so the rows follow it to its new place.
 
-A script drags with `down`, `move` and `up`. A row's center means `INTO` where the node may go there, else the place below the row. For other places, aim at a point near a row's top or bottom edge, taken from its position in the tree dump:
+A script drags with `down`, `move` and `up`. A row's center means `INTO` where the node may go there, else the place below the row. For other places, aim near a row's top or bottom edge with `at` (see [A point near an edge](/docs/testing/selectors#a-point-near-an-edge)):
 
 ```text
 down role=treeitem label="orders"
-move role=treeitem label="audit"
-up role=treeitem label="audit"
+move role=treeitem label="audit" at top+2
+up role=treeitem label="audit" at top+2   # before audit
 frame
 ```
+
+`at bottom-2` aims at the place below a row, as the rules above give it. In the last row inside an open node, add a distance from the left for the level, as in `at left+20,bottom-2`.
 
 ## Keyboard
 

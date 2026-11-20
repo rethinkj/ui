@@ -17,6 +17,7 @@ Commands like `press`, `move`, `wheel`, `drop`, `focus`, and `scroll` take a **t
 | State filter | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `revealed`, `invalid`, `busy`, `grabbed`, `modified`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
 | `in <window> <target>` | Target inside another window (for pointer commands and `drop`). For `focus` and `scroll`, call `window <name>` first. |
 | `screen <x>,<y>` | Physical screen coordinates, hitting whichever window is at that point (for pointer commands and `drop`). |
+| `<selector> at <edge>` | A point near an edge of the element instead of its center, such as `at top+2` or `at right-4,bottom-2` (see [A point near an edge](#a-point-near-an-edge)). |
 
 Combine multiple parts with spaces — every part must match:
 
@@ -27,11 +28,24 @@ press #cell-2-1 clicks 2
 move role=button label="Refresh"
 ```
 
-Commands act on the center of the element's visible area (or the middle of the first line for an `El.range`).
+Commands act on the center of the element's visible area (or the middle of the first line for an `El.range`), unless the selector is followed by `at`.
 
 **Animations and visibility:** Elements that are fading out (`exiting`) or at opacity `0` cannot be matched. Because most kit components fade in from opacity `0`, advance the clock before interacting with a newly opened element: run `advance 1` and `frame` first.
 
 **Modal overlays:** While a modal dialog is open, selectors only search inside the dialog and overlays above it, so a `Cancel` button in the dialog will not collide with a `Cancel` button behind it.
+
+## A point near an edge
+
+After a selector, `at` names a point near an edge of the element: the edge, `left`, `right`, `top` or `bottom`, and a distance from it in logical pixels. Two edges, one across and one along, separated by a comma, name a point near a corner:
+
+```text
+move role=treeitem label="audit" at top+2   # 2 pixels below the top edge, centered across
+up role=treeitem label="audit" at bottom-2  # 2 pixels above the bottom edge
+press #header-2 at right-3                  # 3 pixels left of the right edge, centered along
+move #row-7 at left+20,bottom-2             # near the bottom left corner
+```
+
+The edges are those of the element's rectangle in the tree dump. The point moves with the element when the layout shifts, so the script keeps working without coordinates. A distance away from the element, such as `at bottom+4`, names a point just outside it. A point inside the element that does not show fails, such as one its scroll area hides or a scrollbar lies over, since it would reach what shows there instead.
 
 ## Virtual lists
 

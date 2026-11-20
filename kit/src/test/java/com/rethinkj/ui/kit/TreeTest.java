@@ -834,16 +834,16 @@ class TreeTest {
         up #row-music
         frame
         down #row-notes.txt
-        move 200,74
-        up 200,74
+        move #row-a.txt at top+2
+        up #row-a.txt at top+2
         frame
         down #row-notes.txt
-        move 200,70
-        up 200,70
+        move #row-b.txt at bottom-2
+        up #row-b.txt at bottom-2
         frame
         down #row-notes.txt
-        move 20,70
-        up 20,70
+        move #row-b.txt at left+20,bottom-2
+        up #row-b.txt at left+20,bottom-2
         frame
         down #row-a.txt
         move 200,200

@@ -4883,6 +4883,11 @@ public final class App<S> {
    * down to the topmost one; empty if none, and outside a modal overlay.
    */
   private List<El> hit(float x, float y) {
+    return hit(root, x, y);
+  }
+
+  /** As {@link #hit(float, float)}, for the tree of {@code root} and its overlays. */
+  static List<El> hit(El root, float x, float y) {
     if (root != null) {
       for (El overlay : root.shownOverlays().reversed()) {
         List<El> hit = hitFrom(overlay, x, y);
