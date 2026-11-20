@@ -3757,6 +3757,7 @@ public final class App<S> {
         return false;
       }
       now.editor().select(caret, anchor);
+      scrolled = true; // its jump is placed before the next input hit tests, as a scroll's is
       return true;
     });
   }
