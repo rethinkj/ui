@@ -340,6 +340,37 @@ class PostTest {
     assertEquals("loaded 3", app.tree().label());
   }
 
+  /** A query held at a gate and a save beside it: awaiting the save by name lets its result in. */
+  @Test
+  void aScriptAwaitsOneWorkByItsNameWhileOtherWorkIsHeld() throws IOException {
+    CountDownLatch gate = new CountDownLatch(1);
+    AtomicReference<App<Counter>> holder = new AtomicReference<>();
+    App<Counter> app = new App<>(
+        new Counter(),
+        c -> el().wFull().hFull().key("load").label(c.result + " " + c.log).onPress(() -> {
+          holder
+              .get()
+              .background(
+                  "query",
+                  () -> {
+                    gate.await();
+                    return "rows";
+                  },
+                  r -> c.log.add(r),
+                  f -> {});
+          holder.get().background("save", () -> "saved", r -> c.result = r, f -> {});
+        }));
+    holder.set(app);
+    try {
+      Script.run("size 100 100\nframe\npress #load\nframe\nawait \"save\"\nframe\n", app, out);
+      assertEquals("saved []", app.tree().label(), "the query is still held");
+    } finally {
+      gate.countDown();
+    }
+    Script.run("size 100 100\nawait\nframe\n", app, out);
+    assertEquals("saved [rows]", app.tree().label());
+  }
+
   // Progress
 
   /** Reporting work that the test holds at a gate after its reports, as a script's work does. */

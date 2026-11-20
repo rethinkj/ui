@@ -24,6 +24,7 @@ Inside `frame`, queued inputs run in order, each seeing the updated view from th
 | `snap <name>` | Saves `<name>.png` and `<name>.tree.txt` from the last frame into the output folder (plus `<name>.clipboard.txt` if the clipboard has text, and `<name>.opened.txt` with the addresses the app opened with `openUri` so far, one per line). `<name>` may include `/`. Additional windows are saved with their lowercase hyphenated title as a prefix (e.g., `groceries-<name>.png`). |
 | `advance <seconds>` | Moves the app clock forward. Due `App.after` timers and animations update on the next `frame`. |
 | `await [<seconds>]` | Waits for all `App.background` tasks to finish or cancel (default timeout: 10 seconds) and queues their callbacks for the next `frame`. Fails if tasks are still running after the timeout. |
+| `await "<name>" [<seconds>]` | Waits only for the `App.background` tasks started with that name, such as `await "save"`, then queues everything posted so far for the next `frame`. Other tasks keep running, so a test can hold one at a gate and still see the result of another. Returns at once if no task of that name is running. |
 | `await progress [<seconds>]` | Waits until a running background task reports progress via `Work.Progress` (default timeout: 10 seconds) and queues the update for the next `frame`. Fails if no task is running or none reports in time. |
 
 ## Pointer (mouse)

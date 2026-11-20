@@ -2903,16 +2903,37 @@ public final class App<S> {
    * @throws InterruptedException if the thread is interrupted while it waits
    */
   public void await(Duration timeout) throws InterruptedException {
+    awaitWork(work -> true, timeout);
+  }
+
+  /**
+   * Waits as {@link #await(Duration)} does, but only for the work of this {@code name} that {@link
+   * #background} started, and then queues what was posted so far for the next {@link #frame}:
+   * what that work delivered, and what other work delivered or reported by then. Other work runs
+   * on, such as work a test holds at a gate to show what the app shows meanwhile, together with
+   * the result of a short piece of work beside it. Returns at once when no work of the name runs.
+   *
+   * @param name the name the work was started with, such as {@code "save of the history"}
+   * @throws IllegalStateException if work of the name still runs after {@code timeout}, or if this
+   *     is called in a handler, whose thread it would block
+   * @throws InterruptedException if the thread is interrupted while it waits
+   */
+  public void await(String name, Duration timeout) throws InterruptedException {
+    Objects.requireNonNull(name, "name");
+    awaitWork(work -> work.name().equals(name), timeout);
+  }
+
+  private void awaitWork(Predicate<Work> waited, Duration timeout) throws InterruptedException {
     if (dispatching) {
       throw new IllegalStateException("await blocks the app's thread: call it between frames");
     }
     long nanos = timeout.toNanos();
     long start = System.nanoTime();
     synchronized (running) {
-      while (!running.isEmpty()) {
+      while (running.stream().anyMatch(waited)) {
         long left = nanos - (System.nanoTime() - start);
         if (left <= 0) {
-          List<String> names = running.stream().map(Work::name).toList();
+          List<String> names = running.stream().filter(waited).map(Work::name).toList();
           throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
               + " still runs: " + String.join(", ", names) + ". Work that App.background started"
               + " ends when it has delivered or is cancelled, and cancelled work with an onEnd"

@@ -1,0 +1,1 @@
+- The script step `await "<name>"` and `App.await(name, timeout)` wait only for the background work started with that name, so a test that holds other work at a gate still gets the results of the work that finishes.

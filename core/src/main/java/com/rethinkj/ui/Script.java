@@ -53,6 +53,7 @@ import java.util.regex.Pattern;
  * up 230,40                          # text field from the first pixel
  * await                              # waits for the work the app started on other threads
  * await progress                     # waits for a report of that work, not for its end
+ * await "save"                       # waits for the work named save alone, not for the rest
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
@@ -65,7 +66,9 @@ import java.util.regex.Pattern;
  * not show the steps before it. What other threads {@link App#post post} waits until an {@code
  * await} step, which waits for the work the app started ({@link App#background}) and queues what
  * it delivered for the next frame, so that a script shows the same however fast the work is;
- * {@code await progress} lets in what running work has reported ({@link App#awaitProgress}).
+ * {@code await progress} lets in what running work has reported ({@link App#awaitProgress}), and
+ * {@code await "<name>"} waits only for the work of that name ({@link App#await(String,
+ * Duration)}), while other work, such as work held at a gate, runs on.
  * The site documents the format, under {@code docs/content/docs/testing}.
  */
 public final class Script {
@@ -414,7 +417,9 @@ public final class Script {
         }
         case "await" -> {
           boolean progress = !args.isEmpty() && args.getFirst().equals("progress");
-          List<String> rest = progress ? args.subList(1, args.size()) : args;
+          String work =
+              !args.isEmpty() && quoted(args.getFirst()) ? unescape(strip(args.getFirst())) : null;
+          List<String> rest = progress || work != null ? args.subList(1, args.size()) : args;
           if (rest.size() > 1) {
             throw line.usage(step);
           }
@@ -425,11 +430,16 @@ public final class Script {
               App.awaitProgress(desk.open().stream().map(each -> each.app).toList(), timeout);
             } else {
               for (Win each : desk.open()) {
-                each.app.await(timeout);
+                if (work == null) {
+                  each.app.await(timeout);
+                } else {
+                  each.app.await(work, timeout);
+                }
               }
             }
           } catch (IllegalStateException e) {
-            String example = progress ? "`await progress 30`" : "`await 30`";
+            String example =
+                "`await " + (progress || work != null ? args.getFirst() + " " : "") + "30`";
             throw line.fail(e.getMessage()
                 + (e.getMessage().startsWith("After") // a timeout, not a mistake of the script
                     ? " If it needs longer, write a timeout in seconds, as in " + example
@@ -1163,7 +1173,9 @@ public final class Script {
             case "await" ->
               "`await`, or `await <seconds>` with a number above 0 to wait longer than "
                   + (int) AWAIT + " seconds, for example `await 30`; `await progress` or `await"
-                  + " progress <seconds>` to wait for a report of work that still runs.";
+                  + " progress <seconds>` to wait for a report of work that still runs; `await"
+                  + " \"<name>\"` or `await \"<name>\" <seconds>` to wait only for the work"
+                  + " that App.background started with that name, as in `await \"save\"`.";
             case "advance" ->
               "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
             case "frame", "leave" -> "`" + step + "` with nothing after it.";
