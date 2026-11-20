@@ -1933,7 +1933,8 @@ public final class DataGrid {
     }
 
     /**
-     * Tells {@code handler} the first and the last row wholly in view whenever they change, as
+     * Tells {@code handler} the first and the last row wholly in view in the grid's own box,
+     * not clipped further by what is around it, whenever they change, as
      * {@link Selection#firstRowInView} and {@link Selection#lastRowInView} give them, so that the
      * view built after it shows them, as a status line "Rows 201–223" or buttons that page and
      * turn off at the first or the last row: after each scroll that changes them, by a single row

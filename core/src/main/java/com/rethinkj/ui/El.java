@@ -1110,7 +1110,7 @@ public final class El {
 
   /**
    * Tells {@code handler} the first and the last row of this {@link #rows virtual list} that are
-   * wholly in view whenever a frame shows others than it told: after scrolling, by less than the
+   * wholly in view, inside its own border box, whenever a frame shows others than it told: after scrolling, by less than the
    * rows it has built ({@link #onRowsBuilt}) too, after a change of its size or of the number of
    * rows, and when the list first shows; not on every frame or rebuild of the view. A row partly
    * under a bar along the bottom ({@link #coverY}) is not whole. With -1 and -1 where no row is
