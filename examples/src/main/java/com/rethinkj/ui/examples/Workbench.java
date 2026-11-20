@@ -297,7 +297,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Map<String, TableRows.Stored> stored = new HashMap<>();
   Question question; // the dialog that asks about changes not committed, or null
   Opened previewing; // the tab whose changes the preview shows, or null
-  final CodeEditor.State preview = new CodeEditor.State();
+  final CodeEditor.State preview = new CodeEditor.State().readOnly(true);
 
   /**
    * What the dialog about changes not committed asks before something goes on in a window.
@@ -1287,8 +1287,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         schema.parent.name + "." + schema.name + "." + opened.table.name,
         opened.changes.changes(),
         key -> opened.data.stored.value(key, 0));
-    El editor = codeEditor(sql, preview, Sql.of(), value -> {})
-        .readOnly()
+    El editor = codeEditor(sql, preview, Sql.of(), null)
         .key("statements")
         .label("Statements")
         .w(560)

@@ -26,6 +26,14 @@ final class Editors {
   App<?> app; // set by whoever makes the app: the editor edits and selects through it
   String sql = "SELECT id, total\nFROM orders\nWHERE status = 'paid';";
   final CodeEditor.State editor = new CodeEditor.State();
+  String draft = ""; // a query not yet typed
+  final CodeEditor.State draftEditor = new CodeEditor.State();
+  String definition =
+      "CREATE VIEW paid_orders AS\nSELECT id, total\nFROM orders\nWHERE status = 'paid';";
+  // docs:start code-editor-read-only
+  /** The editor of a statement that is only shown: it takes no edits, so it needs no handler. */
+  final CodeEditor.State definitionEditor = new CodeEditor.State().readOnly(true);
+  // docs:end code-editor-read-only
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
@@ -71,6 +79,10 @@ final class Editors {
   }
   // docs:end code-editor-marks
 
+  void draft(String value) {
+    draft = value;
+  }
+
   void notes(String value) {
     notes = value;
   }
@@ -110,6 +122,24 @@ final class Editors {
     El card = Card.flush(Card.toolbar("orders.sql", null), CodeEditor.embedded(withCompletions));
     // docs:end code-editor-embedded
     return Frame.of(card.wFull());
+  }
+
+  static El placeholderAndReadOnly(Editors state) {
+    // docs:start code-editor-placeholder
+    El draft = CodeEditor.codeEditor(
+            state.app, state.draft, "Type a query", state.draftEditor, Sql.of(), state::draft)
+        .key("draft")
+        .label("Query")
+        .lines(3)
+        .wFull();
+    El definition = CodeEditor.codeEditor(
+            state.app, state.definition, state.definitionEditor, Sql.of(), null)
+        .key("definition")
+        .label("Definition")
+        .lines(4)
+        .wFull();
+    // docs:end code-editor-placeholder
+    return Frame.of(draft, definition);
   }
 
   static El find(Editors state) {

@@ -73,7 +73,8 @@ class DocsExamplesTest {
       Map.entry("form-divided", List.of("view")),
       Map.entry("resize", List.of("wide", "narrow")),
       Map.entry("theming", List.of("system")),
-      Map.entry("customers", List.of("loaded", "invalid", "saved")));
+      Map.entry("customers", List.of("loaded", "invalid", "saved")),
+      Map.entry("code-editor-placeholder", List.of("view")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -139,6 +140,7 @@ class DocsExamplesTest {
             520,
             300));
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
+    editors(all, "code-editor-placeholder", Editors::placeholderAndReadOnly, 520, 180);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
         "highlighter",

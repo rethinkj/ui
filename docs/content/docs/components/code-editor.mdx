@@ -22,6 +22,20 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 - Passing `state.app` enables the built-in find bar and line commands. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
 - Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
 
+## Placeholder and read-only
+
+Pass a placeholder after the value to show a hint while the editor is empty. As in a [text area](/docs/components/text-field#text-areas), it is also the label unless `.label(...)` sets another, and a tree dump then shows it as `placeholder="..."`.
+
+An editor that only shows its code takes a `CodeEditor.State` with `readOnly(true)` and `null` for `onChange`. Its text can be selected, copied, and searched with the find bar, but not changed, and the tree dump marks it `readonly`. With a `null` handler and no `readOnly(true)`, the editor is disabled instead.
+
+```java snippet="code-editor-read-only"
+```
+
+```java snippet="code-editor-placeholder"
+```
+
+<Shot src="examples/docs/code-editor-placeholder/view-{theme}" alt="An empty SQL editor that says Type a query, above an editor that shows the statement of a view and cannot be changed" />
+
 ## Embedded in a card
 
 By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/components/card) or panel, wrap it with `CodeEditor.embedded(editor)` to remove the outer border and corners so it sits edge-to-edge with a top accent line on focus:
@@ -79,6 +93,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
+| `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
 
 ## Keyboard commands
 

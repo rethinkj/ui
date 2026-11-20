@@ -1,0 +1,1 @@
+- `CodeEditor.codeEditor(app, value, placeholder, state, highlighter, onChange)` shows a placeholder while the editor is empty, as a code area does, and `CodeEditor.State.readOnly(true)` makes an editor read-only without a handler: pass `null` for `onChange` in place of `value -> {}` followed by `.readOnly()`.

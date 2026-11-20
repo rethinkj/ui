@@ -143,6 +143,7 @@ public final class CodeEditor {
     private int blockTo;
     private boolean occurrences = true;
     private boolean findBar = true;
+    private boolean readOnly;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
     private int nextFrom = -1;
     private int nextTo = -1;
@@ -171,6 +172,16 @@ public final class CodeEditor {
      */
     public State occurrences(boolean on) {
       occurrences = on;
+      return this;
+    }
+
+    /**
+     * Whether the editor only shows its string, as a field made {@link El#readOnly}: it takes the
+     * focus, and its text can be selected, copied and found, but not changed, so that it needs no
+     * handler. Off unless set.
+     */
+    public State readOnly(boolean on) {
+      readOnly = on;
       return this;
     }
 
@@ -269,7 +280,8 @@ public final class CodeEditor {
    * @param highlighter colors the tokens, or null for none; it is also the key the field keeps
    *     its colors by ({@link El#highlight}), so pass the same object again, or one equal to it,
    *     such as {@link Sql#of} of the same theme
-   * @param onChange receives the new string after each edit; null disables the editor
+   * @param onChange receives the new string after each edit; null disables the editor, unless the
+   *     state makes it {@link State#readOnly read-only}
    */
   public static El codeEditor(
       String value, State state, Highlighter highlighter, Consumer<String> onChange) {
@@ -284,6 +296,22 @@ public final class CodeEditor {
    */
   public static El codeEditor(
       App<?> app, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
+    return codeEditor(app, value, null, state, highlighter, onChange);
+  }
+
+  /**
+   * The editor with a placeholder, as that of {@link TextField#codeArea}.
+   *
+   * @param placeholder shown while the code is empty, and the label unless {@code .label(...)}
+   *     sets another; null for none
+   */
+  public static El codeEditor(
+      App<?> app,
+      String value,
+      String placeholder,
+      State state,
+      Highlighter highlighter,
+      Consumer<String> onChange) {
     Theme theme = Theme.CURRENT.get();
     Theme.Code code = theme.code();
     String word =
@@ -299,12 +327,15 @@ public final class CodeEditor {
         .fill(theme.surface().band())
         .border(0, theme.size().stroke(), 0, 0, theme.border().divider())
         .margin(0, theme.space().m(), 0, 0);
-    El editor = TextField.codeArea(value, null, onChange)
+    El editor = TextField.codeArea(value, placeholder, state.readOnly ? text -> {} : onChange)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
           state.caret = caret;
           state.anchor = anchor;
         });
+    if (state.readOnly) { // before the find bar, which then offers no replacing
+      editor.readOnly();
+    }
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
