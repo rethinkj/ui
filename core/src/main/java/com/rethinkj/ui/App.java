@@ -3569,6 +3569,7 @@ public final class App<S> {
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
+    selectedByBuild.retainAll(kept); // a row that layout left out tells nothing
     Editor waiting = focusWaits() ? editors.get(focusId) : null;
     editors.values().removeIf(editor -> {
       if (editor == waiting || kept.contains(editor)) {
