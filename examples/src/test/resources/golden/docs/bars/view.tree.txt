@@ -42,10 +42,12 @@ el 0,0 720x160
         text label="error_circle" "\u{F3F0}" 180,138 16x16
         text "prod-eu" 200,139 45x15
     el 251,134 234x24
-      el role=separator 253,138 1x16
-      el label="20 rows in 48 ms" 258,134 124x24
-        text label="checkmark_circle" "\u{F297}" 262,138 16x16
-        text "20 rows in 48 ms" 282,139 96x15
+      el 251,134 0x24
+      el 251,134 234x24
+        el role=separator 253,138 1x16
+        el label="20 rows in 48 ms" 258,134 124x24
+          text label="checkmark_circle" "\u{F297}" 262,138 16x16
+          text "20 rows in 48 ms" 282,139 96x15
     el 487,134 225x24
       el label="3 changes" 487,134 86x24
         text label="edit" "\u{F3DC}" 491,138 16x16

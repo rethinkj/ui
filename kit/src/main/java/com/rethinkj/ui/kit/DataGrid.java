@@ -3303,7 +3303,7 @@ public final class DataGrid {
       return false;
     }
     float rowHeight = b.g.rowHeight();
-    int page = Math.max(1, (int) (b.body.height() / rowHeight));
+    int page = Math.max(1, (int) ((b.body.height() - b.body.coverY()) / rowHeight));
     boolean has = sel.row() >= 0 && sel.row() < b.rows;
     int inView = Math.clamp((long) Math.ceil(b.body.scrollY() / rowHeight), 0, b.rows - 1);
     int row = has ? sel.row() : inView;

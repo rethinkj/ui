@@ -121,4 +121,30 @@ class StatusBarTest {
     float[] start = StructureTest.rect(StructureTest.line(narrow, LONG));
     assertTrue(start[0] + start[2] <= caret[0], "the start ends before the end begins: " + narrow);
   }
+
+  @Test
+  void theHairlineBeforeTheMessageLeavesWithIt() throws IOException {
+    for (int width : new int[] {160, 200}) {
+      App<Object> app = new App<>(
+          new Object(),
+          s -> col()
+              .wFull()
+              .hFull()
+              .child(el().grow(1))
+              .child(StatusBar.statusBar(
+                      List.of(StatusBar.text("localhost")),
+                      StatusBar.text("Saved 3 changes to public.orders"),
+                      List.of(StatusBar.text("Ln 4, Col 12")))
+                  .key("bar")));
+      Script.run("size " + width + " 60\nframe", app, Path.of("target/status-bar-test"));
+      String dump = app.tree().dump();
+      // The bar clips the message to the line of its parts.
+      float[] part = StructureTest.rect(StructureTest.line(dump, "label=\"Ln 4, Col 12\""));
+      float bottom = part[1] + part[3];
+      boolean hairline = StructureTest.rect(StructureTest.line(dump, "role=separator"))[1] < bottom;
+      boolean message = StructureTest.rect(StructureTest.line(dump, MESSAGE))[1] < bottom;
+      assertEquals(width == 200, message, "a sliver of the message is not shown: " + dump);
+      assertEquals(message, hairline, "the hairline goes with the message: " + dump);
+    }
+  }
 }
