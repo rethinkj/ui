@@ -1246,7 +1246,8 @@ final class Editor {
   /**
    * {@link #place} for a multi-line field, which scrolls as a scroll area: the wheel and the bars
    * move it, and an edit or a move of the caret since the last call scrolls just far enough to
-   * show the caret's row whole and the caret with {@link #MARGIN} to spare sideways. Then the rows
+   * show the caret's row whole, a selection the app made below what covers the field's top ({@link
+   * El#coveredTop}), and the caret with {@link #MARGIN} to spare sideways. Then the rows
    * in view are laid out, and the selection is drawn on those.
    */
   private void placeLines(boolean focused, boolean caretOn) {
@@ -1264,11 +1265,21 @@ final class Editor {
       el.scrollTo(leftX, leftY);
     }
     boolean revealed = (focused || asked) && reveal;
+    // The app's selection, such as a find bar's match, comes into view below what covers the top.
+    double covered = asked ? el.coveredContent() * scale : 0;
     asked = false;
     if (revealed) {
       reveal = false;
       float x = t.x(shownCaret);
-      double top = t.caretTop(shownCaret);
+      double upper; // the tops of the first row and the last to show
+      double top;
+      if (covered > 0) { // the selection, to its last character, before a wrap that it ends at
+        upper = t.caretTop(start()); // first: measuring a line can move the rows after it
+        top = t.caretTop(Math.max(start(), end() - 1));
+      } else {
+        top = t.caretTop(shownCaret);
+        upper = top;
+      }
       double sx = el.scrollX() * scale;
       double sy = el.scrollY() * scale;
       float width = t.contentWidth();
@@ -1282,8 +1293,9 @@ final class Editor {
         }
       }
       float lineHeight = t.lineHeight();
-      if (top < sy) {
-        sy = top;
+      covered = Math.min(covered, Math.max(0, t.contentHeight() - lineHeight)); // a row in view
+      if (upper - covered < sy) {
+        sy = upper - covered;
       } else if (top + lineHeight > sy + t.contentHeight()) {
         sy = top + lineHeight - t.contentHeight();
       }

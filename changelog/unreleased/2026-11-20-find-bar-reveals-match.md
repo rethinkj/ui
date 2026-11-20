@@ -1,0 +1,1 @@
+- The find bar no longer covers the match it goes to: Enter, F3 and the bar's arrows scroll the match into view below the bar, even on a field's first line. While the bar is open, the field can scroll above its first line by the bar's height. The new `El.coveredTop(height)` does the same for anything else that lies over the top of a multi-line field.

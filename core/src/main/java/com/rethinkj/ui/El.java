@@ -137,6 +137,7 @@ public final class El {
   // measureScrolls.
   private float coverX;
   private float coverY;
+  private float coveredTop; // see #coveredTop
   private float shiftX;
   private float shiftY;
   // A virtual list: its rows, and the index of the row that is its first child.
@@ -1701,6 +1702,34 @@ public final class El {
     }
     t.visibleLines(0);
     return this;
+  }
+
+  /**
+   * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
+   * such as a find bar: as far as that reaches into its content box, the field can scroll above
+   * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
+   * 0 unless set.
+   */
+  public El coveredTop(float height) {
+    editableOnly("coveredTop");
+    if (!(height >= 0)) {
+      throw new IllegalArgumentException("coveredTop must be 0 or more, was " + height);
+    }
+    coveredTop = height;
+    return this;
+  }
+
+  /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */
+  float coveredContent() {
+    return coveredTop > 0 && text != null && text.multiline()
+        ? Math.max(0, coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero())
+        : 0;
+  }
+
+  /** The least vertical offset: 0, or less for a field that can scroll above its first row. */
+  private double minScrollY() {
+    float covered = coveredContent();
+    return covered > 0 ? -covered : 0; // never -0.0, which a test of the top would see
   }
 
   /**
@@ -3346,8 +3375,9 @@ public final class El {
   }
 
   /**
-   * The vertical offset of this scroll area: how far its content is moved up, 0 at the top. It is
-   * a double, exact for the integers of a list of rows billions of pixels tall.
+   * The vertical offset of this scroll area: how far its content is moved up, 0 at the top, less
+   * for a field scrolled above its first row ({@link #coveredTop}). It is a double, exact for the
+   * integers of a list of rows billions of pixels tall.
    */
   public double scrollY() {
     return scrollY;
@@ -3356,7 +3386,8 @@ public final class El {
   /** Whether the offset along one axis can still move in the direction of {@code delta}. */
   boolean canScroll(boolean horizontal, float delta) {
     double offset = horizontal ? scrollX : scrollY;
-    return delta > 0 ? offset < (horizontal ? maxScrollX : maxScrollY) : delta < 0 && offset > 0;
+    double min = horizontal ? 0 : minScrollY();
+    return delta > 0 ? offset < (horizontal ? maxScrollX : maxScrollY) : delta < 0 && offset > min;
   }
 
   /**
@@ -3544,7 +3575,7 @@ public final class El {
    */
   boolean scrollTo(double x, double y) {
     double newX = Math.clamp(x, 0, maxScrollX);
-    double newY = Math.clamp(y, 0, maxScrollY);
+    double newY = Math.clamp(y, minScrollY(), maxScrollY);
     boolean changed = newX != scrollX || newY != scrollY;
     scrollX = newX;
     scrollY = newY;
@@ -3636,7 +3667,7 @@ public final class El {
     }
     double view = vertical ? height : width;
     double max = vertical ? maxScrollY : maxScrollX;
-    double offset = vertical ? scrollY : scrollX;
+    double offset = Math.max(vertical ? scrollY : scrollX, 0); // not above a field's first row
     float thumb =
         (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()), track);
     float at = start + (float) ((track - thumb) * (offset / max));

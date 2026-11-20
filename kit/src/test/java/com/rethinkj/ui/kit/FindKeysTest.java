@@ -146,6 +146,29 @@ class FindKeysTest {
   }
 
   @Test
+  void aMatchInTheFirstLineScrollsOutFromUnderTheBar() throws IOException {
+    Doc doc = new Doc(TEXT);
+    App<Doc> app = app(doc);
+    // The text fits the editor: only the room the open bar leaves above the first line scrolls.
+    String tree =
+        run(app, "frame\nfocus #query\nkey End\nkey ArrowLeft\nkey ArrowLeft\nkey F control");
+    assertEquals("1 of 4", count(tree));
+    assertFirstLineBelowTheBar(tree);
+    tree = run(app, "key Enter\nkey Enter\nkey Enter\nkey Enter");
+    assertEquals("1 of 4", count(tree), "round to the first");
+    assertFirstLineBelowTheBar(tree);
+    tree = run(app, "key Escape");
+    assertFalse(
+        line(tree, "query").contains(" scroll "), "no room above without the bar:\n" + tree);
+  }
+
+  private static void assertFirstLineBelowTheBar(String tree) {
+    float[] row = StructureTest.rect(line(tree, "line-0"));
+    float[] bar = StructureTest.rect(line(tree, "find"));
+    assertTrue(row[1] >= bar[1] + bar[3], "the first line below the bar:\n" + tree);
+  }
+
+  @Test
   void typingSearchesFromWhereTheBarOpened() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);

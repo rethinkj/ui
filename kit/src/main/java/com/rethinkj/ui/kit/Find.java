@@ -31,7 +31,9 @@ import java.util.regex.PatternSyntaxException;
  *
  * <p>Control+F opens it with the selected text, or the word at the caret, as the text to find,
  * Control+H with the replacement too, Control+G with the line to go to; Escape closes it and gives
- * the focus back to the field, with the last match selected. While it shows, every match in view
+ * the focus back to the field, with the last match selected. A match the bar goes to scrolls into
+ * view below it, also in the first lines, for which the field scrolls above its first row while
+ * the bar shows ({@link El#coveredTop}). While it shows, every match in view
  * has {@code code().match()} behind it and the current one, the selection, {@code
  * code().current()} with a line of {@code accent().edge()} under it. Enter and F3 go to the next
  * match, Shift+Enter and Shift+F3 to the previous,
@@ -254,6 +256,10 @@ public final class Find {
     if (!state.open) {
       return field;
     }
+    // A match comes into view below the bar, also in the first line, a step xs clear of it.
+    // shortcut: the whole width counts as covered, so a match left of the bar scrolls down too;
+    // ask the bar's left edge when that should stay put.
+    field.coveredTop(barHeight(theme, state) + 2 * theme.space().xs());
     return field.overlay(bar(theme, app, state, text, editable));
   }
 
