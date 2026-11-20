@@ -778,7 +778,7 @@ public final class Text implements Measure {
   /**
    * A line that is wider than the box, shortened to the most graphemes that fit with {@link
    * #ELLIPSIS} after them, shaped anew so that the ellipsis kerns with what it follows. Where not
-   * even the ellipsis fits, it is the ellipsis alone, which the box clips.
+   * even the ellipsis fits, the line is empty: nothing of a text draws outside its box.
    */
   private Line shorten(Span span, float baseline) {
     // shortcut: a right-to-left run is one cluster (see Font#shape), so the line ends before it
@@ -804,8 +804,11 @@ public final class Text implements Measure {
       // The ranges of the kept part stay; the ellipsis has the text's color and font.
       Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
       GlyphRun run = shortened.run;
-      if (run.width() <= placedWidth + SLACK || i == 0) {
+      if (run.width() <= placedWidth + SLACK) {
         return new Line(run, run.width(), baseline, shortened.colors, 0);
+      }
+      if (i == 0) {
+        return new Line(run.slice(0, 0), 0, baseline);
       }
     }
   }

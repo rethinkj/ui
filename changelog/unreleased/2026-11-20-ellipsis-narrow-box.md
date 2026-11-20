@@ -1,0 +1,1 @@
+- A text with `ellipsis()` whose box is too narrow for the `…` itself, down to 0 px, now draws nothing instead of an `…` outside its box.

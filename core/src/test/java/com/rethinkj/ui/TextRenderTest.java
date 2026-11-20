@@ -104,9 +104,8 @@ class TextRenderTest {
       boolean fits = t.string().equals("Köln");
       assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
       Text.Line line = t.lines().getFirst();
-      assertTrue(
-          line.width() <= text.width() + 0.01f || text.width() < 10,
-          line.width() + " in " + text.width());
+      // A box narrower than the ellipsis holds an empty line: nothing draws outside it.
+      assertTrue(line.width() <= text.width() + 0.01f, line.width() + " in " + text.width());
     }
     assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
   }
