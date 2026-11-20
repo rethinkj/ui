@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.Button.Variant;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.stream.IntStream;
@@ -241,6 +242,94 @@ class DataGridTest {
     assertEquals(orders.selection.firstRowInView(), read[0]);
     assertEquals(orders.selection.lastRowInView(), read[1]);
     assertEquals(3, read[0], "the cursor's row at the top");
+  }
+
+  @Test
+  void theRowsInViewAreToldWhenTheyChangeAndBuildTheViewOnce() throws IOException {
+    Orders orders = new Orders(T, 1_000_000); // the cursor on row 2
+    List<String> told = new ArrayList<>();
+    orders.more = o -> o.onRowsInView((first, last) -> told.add(first + "-" + last));
+    int[] builds = {0};
+    App<Orders> app = new App<>(orders, o -> {
+          builds[0]++;
+          return o.view();
+        })
+        .provide(Theme.CURRENT, o -> o.theme);
+    run(app, "frame\nframe");
+    assertEquals(List.of("0-6"), told, "when it first shows; row 7 is partly under the bar");
+    DataGrid.Selection selection = orders.selection;
+
+    app.wheel(280, 120, 0, 4); // row 0 leaves, row 7 comes whole
+    assertToldOnce(app, builds, told, "1-7");
+    app.wheel(280, 120, 0, 24); // a row on, within the rows built
+    assertToldOnce(app, builds, told, "2-8");
+    assertEquals(List.of(2, 8), List.of(selection.firstRowInView(), selection.lastRowInView()));
+    int before = builds[0];
+    app.wheel(280, 120, 0, 4); // neither row changes
+    app.frame();
+    app.frame();
+    assertEquals(before, builds[0], "no rebuild");
+    assertEquals("2-8", told.getLast());
+
+    selection.scrollToRow(500_000);
+    app.invalidate();
+    app.frame();
+    app.frame();
+    assertEquals("500000-500006", told.getLast());
+    before = builds[0];
+    app.frame();
+    assertEquals(before, builds[0], "settled");
+    assertEquals(500_000 * 24.0, find(app, "rows").scrollY(), "not back at the cursor's row");
+
+    selection.scrollToRow(999_999);
+    app.invalidate();
+    app.frame();
+    app.frame();
+    assertEquals("999993-999999", told.getLast(), "above the bar sideways, as the getters say");
+  }
+
+  @Test
+  void rowsBuiltAndRowsInViewDueTogetherCostOneRebuild() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    List<String> told = new ArrayList<>();
+    orders.more = o -> o.loading(row -> true, (first, last) -> told.add("built " + first))
+        .onRowsInView((first, last) -> told.add("view " + first));
+    int[] builds = {0};
+    App<Orders> app = new App<>(orders, o -> {
+          builds[0]++;
+          return o.view();
+        })
+        .provide(Theme.CURRENT, o -> o.theme);
+    run(app, "frame\nmove 280,120\nframe\nframe");
+    for (int step = 1; step <= 3; step++) {
+      int before = builds[0];
+      told.clear();
+      app.wheel(280, 120, 0, 48); // two rows, as a step of the wheel; the pointer rests on them
+      app.frame();
+      while (app.handlersWaiting()) {
+        app.frame();
+      }
+      assertEquals(
+          List.of("view " + 2 * step, "built " + Math.max(2 * step - El.OVERSCAN, 0)), told);
+      assertEquals(before + 1, builds[0], "one rebuild for both");
+    }
+  }
+
+  /**
+   * The frame of a scroll tells {@code rows} in the next one, which is due at once, as {@link
+   * El#onRowsBuilt} does; that builds the view once, and the one after not.
+   */
+  private static void assertToldOnce(App<?> app, int[] builds, List<String> told, String rows) {
+    int before = builds[0];
+    int tellings = told.size();
+    app.frame();
+    assertEquals(app.time(), app.nextChange(), "due at once");
+    app.frame();
+    assertEquals(rows, told.getLast());
+    assertEquals(tellings + 1, told.size());
+    assertEquals(before + 1, builds[0], "one rebuild");
+    app.frame();
+    assertEquals(before + 1, builds[0]);
   }
 
   @Test

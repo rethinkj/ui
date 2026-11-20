@@ -26,6 +26,7 @@ description: Render lists of up to a million rows efficiently using virtual scro
 | `revealRow(index)` | Scrolls to keep `index` visible whenever it changes |
 | `reveal(key, x, y, w, h)` | Scrolls to keep a rectangle visible whenever `key` changes |
 | `onRowsBuilt((first, last) -> …)` | Notifies you which row indices were built (useful for lazy data loading) |
+| `onRowsInView((first, last) -> …)` | Notifies you when the first or last row wholly in view changes (for a status line such as "Rows 201–223") |
 | `scrollState(ScrollState)` | Preserves scroll position across view switches |
 | `scrollbars(theme.scrollbars())` | Adds draggable scrollbars |
 | `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |

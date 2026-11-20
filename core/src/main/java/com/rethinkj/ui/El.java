@@ -151,6 +151,7 @@ public final class El {
   private float builtFrom; // the part the rows that exist were built for
   private float builtTo;
   private RowsHandler onRowsBuilt;
+  private RowsHandler onRowsInView;
   private SizeHandler onResize;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
@@ -266,7 +267,10 @@ public final class El {
     void select(int caret, int anchor);
   }
 
-  /** Told the first and the last row, both included, that a virtual list has built. */
+  /**
+   * Told the first and the last row, both included, that a virtual list has built ({@link
+   * #onRowsBuilt}) or has wholly in view ({@link #onRowsInView}).
+   */
   @FunctionalInterface
   public interface RowsHandler {
     void accept(int first, int last);
@@ -1094,12 +1098,34 @@ public final class El {
    * a table asks for, so an app that fetches its rows in pages starts fetching here. It runs as
    * the handlers of input do: after the input of the frame that built the rows, or in the next
    * {@link App#frame} when the rebuild at the end of one built them, which {@link
-   * App#nextChange} then says is due at once. A list without rows tells nothing.
+   * App#nextChange} then says is due at once. The handlers of all lists that are due together,
+   * and those of {@link #onRowsInView}, run as one input, on one tree. A list without rows tells
+   * nothing.
    *
    * @param handler told the rows, or null for none
    */
   public El onRowsBuilt(RowsHandler handler) {
     this.onRowsBuilt = handler;
+    return this;
+  }
+
+  /**
+   * Tells {@code handler} the first and the last row of this {@link #rows virtual list} that are
+   * wholly in view whenever a frame shows others than it told: after scrolling, by less than the
+   * rows it has built ({@link #onRowsBuilt}) too, after a change of its size or of the number of
+   * rows, and when the list first shows; not on every frame or rebuild of the view. A row partly
+   * under a bar along the bottom ({@link #coverY}) is not whole. With -1 and -1 where no row is
+   * whole or the list has none. It runs as {@link #onRowsBuilt} does, as the handlers of input do:
+   * after the input of the frame that placed the rows, or in the next {@link App#frame} when the
+   * end of one placed them, as after a scroll, which {@link App#nextChange} then says is due at
+   * once. The view built after it shows the rows in view, as a status line "Rows 201–223" or
+   * buttons that page through the rows. Handlers of both kinds that are due together run as one
+   * input, followed by one rebuild.
+   *
+   * @param handler told the rows, or null for none
+   */
+  public El onRowsInView(RowsHandler handler) {
+    this.onRowsInView = handler;
     return this;
   }
 
@@ -3978,6 +4004,11 @@ public final class El {
     return onRowsBuilt;
   }
 
+  /** The handler of {@link #onRowsInView}, or null. */
+  RowsHandler onRowsInView() {
+    return onRowsInView;
+  }
+
   /** The key of {@link #reveal}, or null. */
   Object revealKey() {
     return revealKey;
@@ -4114,6 +4145,21 @@ public final class El {
       top = bottom = rowAt(from);
     }
     return Math.clamp(last ? bottom : top, 0, Math.max(rowCount - 1, 0));
+  }
+
+  /**
+   * The first and the last row wholly inside the list's border box above what a bar along its
+   * bottom covers, the first in the high 32 bits, or -1 and -1 where none is: for {@link
+   * #onRowsInView}.
+   */
+  long rowsInView() {
+    double from = scrollY - rowsTop(); // the content at the top of the border box
+    long first = Math.max(rowAfter(from), 0); // below a padding taller than a row too
+    long last = Math.min(rowAt(from + (height - coverY)) - 1, rowCount - 1L);
+    if (rowCount == 0 || last < first) {
+      first = last = -1;
+    }
+    return first << 32 | last & 0xFFFFFFFFL;
   }
 
   /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */

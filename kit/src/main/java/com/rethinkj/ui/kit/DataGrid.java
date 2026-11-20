@@ -1314,7 +1314,8 @@ public final class DataGrid {
      * the view's build scrolled it, for a status line built after the grid: with {@link
      * #lastRowInView} what it shows as "Rows 201–223", and where a button that goes a page back or
      * on scrolls ({@link #scrollToRow}). A row partly under the bar along the bottom is not whole.
-     * Reading it builds nothing: a view shows the rows in view as of its build.
+     * Reading it builds nothing: a view shows the rows in view as of its build, and {@link
+     * Options#onRowsInView} builds it again when they change.
      *
      * @return the row, from 0; -1 before the grid was laid out, without rows, or where no row
      *     fits whole
@@ -1757,6 +1758,7 @@ public final class DataGrid {
     List<Menu.Item> menuItems = List.of();
     IntPredicate loaded;
     El.RowsHandler onRows;
+    El.RowsHandler onRowsInView;
     CellHandler onEdit;
     IntConsumer onActivate;
     Commit onCommit;
@@ -1927,6 +1929,21 @@ public final class DataGrid {
     public Options loading(IntPredicate loaded, El.RowsHandler onRows) {
       this.loaded = loaded;
       this.onRows = onRows;
+      return this;
+    }
+
+    /**
+     * Tells {@code handler} the first and the last row wholly in view whenever they change, as
+     * {@link Selection#firstRowInView} and {@link Selection#lastRowInView} give them, so that the
+     * view built after it shows them, as a status line "Rows 201–223" or buttons that page and
+     * turn off at the first or the last row: after each scroll that changes them, by a single row
+     * too, after {@link Selection#scrollToRow}, a new size or number of rows, and when the grid
+     * first shows; -1 and -1 where no row is whole. Each change costs a rebuild of the view,
+     * shared with the handler of {@link #loading} where that is due too, and a scroll that
+     * changes neither row costs none ({@link El#onRowsInView}). It needs no {@link #select}.
+     */
+    public Options onRowsInView(El.RowsHandler handler) {
+      this.onRowsInView = handler;
       return this;
     }
 
@@ -2375,6 +2392,9 @@ public final class DataGrid {
     }
     if (options.onRows != null) {
       body.onRowsBuilt(options.onRows);
+    }
+    if (options.onRowsInView != null) {
+      body.onRowsInView(options.onRowsInView);
     }
     if (sel != null) {
       body.onPointerDown((clicks, modifiers) -> sel.pressedCell = false); // beside the cells
