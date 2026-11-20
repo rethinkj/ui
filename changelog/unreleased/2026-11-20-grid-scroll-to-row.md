@@ -1,0 +1,1 @@
+- `DataGrid.Selection.scrollToRow(row)` scrolls a grid so that a row is at the top at the next build, as far as the end allows, without changing the selection, and `firstRowInView()` and `lastRowInView()` tell the rows wholly in view, so that an app can page through a long result with buttons and show "Rows 201–223".

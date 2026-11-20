@@ -163,6 +163,47 @@ class DataGridTest {
   }
 
   @Test
+  void scrollToRowPutsTheRowAtTheTopAndTheCursorStaysUntilAKeyMovesIt() throws IOException {
+    Orders orders = new Orders(T, 1_000_000); // the cursor on row 2
+    App<Orders> app = start(orders);
+    run(app, "key Tab\nframe");
+    DataGrid.Selection selection = orders.selection;
+    assertEquals(0, selection.firstRowInView());
+    assertEquals(PAGE - 1, selection.lastRowInView());
+
+    selection.scrollToRow(500_000);
+    app.invalidate();
+    app.frame();
+    El rows = find(app, "rows");
+    assertEquals(500_000 - El.OVERSCAN, rows.firstRow(), "the overscan above it, then the row");
+    assertEquals(500_000 * 24.0, rows.scrollY(), "the row at the top");
+    assertEquals(500_000, selection.firstRowInView());
+    assertEquals(500_000 + PAGE - 1, selection.lastRowInView());
+    for (int i = 0; i < 2; i++) {
+      app.invalidate();
+      app.frame();
+    }
+    assertEquals(500_000 * 24.0, find(app, "rows").scrollY(), "not back at the cursor");
+    assertEquals(2, orders.selected());
+    assertEquals(List.of(), orders.log, "the selection is as it was");
+
+    app.wheel(280, 120, 0, 240); // without building the view, the rows in view follow
+    app.frame();
+    assertEquals(500_010, selection.firstRowInView());
+
+    assertEquals(3, key(app, orders, "ArrowDown"));
+    assertInView(app, 3);
+
+    selection.scrollToRow(999_999);
+    app.invalidate();
+    app.frame();
+    rows = find(app, "rows");
+    assertEquals(1_000_000 * 24.0 + 10 - rows.height(), rows.scrollY(), "as far as the end goes");
+    assertEquals(999_999, selection.lastRowInView());
+    assertEquals(999_993, selection.firstRowInView(), "above the 10 pixels for the bar sideways");
+  }
+
+  @Test
   void keysInOneFrameEachMoveTheSelectionOn() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
