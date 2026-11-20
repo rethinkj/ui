@@ -155,7 +155,7 @@ class RowsTest {
   }
 
   @Test
-  void scrollingWithinTheOverscanBuildsNothingAndAShowingRowBuildsTheRowsAnew() {
+  void scrollingWithinTheOverscanBuildsNothingAndAShowingRowBuildsOnlyTheNewRows() {
     Data data = new Data(1_000_000);
     App<Data> app = start(data, 28, 200, 300);
     El list = app.tree();
@@ -170,12 +170,15 @@ class RowsTest {
     assertEquals(1, data.views);
     assertRows(list, 0, 14);
     assertEquals(-90, list.children().getFirst().y());
+    El kept = list.children().get(5);
 
     app.wheel(100, 150, 0, 10); // 100 to 400: row 14 shows
     assertTrue(app.frame());
-    assertEquals(range(0, 18), data.built, "rows 3 to 14 show");
+    assertEquals(range(14, 18), data.built, "rows 3 to 14 show; rows 0 to 13 exist");
     assertEquals(1, data.views, "only the rows were built");
+    assertRows(list, 0, 18);
     assertEquals(-100, list.children().getFirst().y());
+    assertSame(kept, list.children().get(5), "kept as it was");
   }
 
   // Changing data

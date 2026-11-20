@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
+import java.util.function.IntPredicate;
 import java.util.function.ObjDoubleConsumer;
 import java.util.function.Predicate;
 
@@ -144,12 +145,18 @@ public final class El {
   private RowHeights heights; // rows as high as their content; null for rows of rowHeight
   private RowBuilder rowBuilder;
   private boolean spans; // the row function takes the part of the rows in view sideways
-  private float spanFrom; // the part the rows were built for, in their coordinates
+  private float spanFrom; // the part rows are built for, in their coordinates
   private float spanTo;
+  private float builtFrom; // the part the rows that exist were built for
+  private float builtTo;
   private RowsHandler onRowsBuilt;
   private SizeHandler onResize;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+  // A row: whether the last makeRows of its list kept it as it was, and for rows of one height,
+  // where layout put its top in the list's content.
+  private boolean kept;
+  private double contentTop;
   private boolean fixedX;
   private El across; // the nearest scroll area around that scrolls sideways; see #fix
   private Object revealKey; // see #reveal
@@ -911,9 +918,10 @@ public final class El {
    * <p>{@link App} calls {@code row} with a row's index, from 0, for the rows inside the list's
    * visible part, which is its border box inside the window, and {@link #OVERSCAN} more on each
    * side: after every rebuild of the view, and when scrolling shows a row that does not exist yet.
-   * That builds the list's rows anew, but not the view; scrolling within the rows that exist
-   * builds nothing. {@code row} runs on the app's thread during {@link App#frame}, so it has to be
-   * cheap, and like the view it only reads the state and returns a new element each time. Each row
+   * That builds the rows that do not exist, but not the view: the rows that exist and stay near
+   * the visible part are kept, and scrolling within them builds nothing. {@code row} runs on the
+   * app's thread during {@link App#frame}, so it has to be cheap, and like the view it only reads
+   * the state and returns a new element each time. Each row
    * is laid out on its own, with the list's inner width and {@code rowHeight}, at {@code index *
    * rowHeight} below the top of the list's content box; the size, margin and position the row's
    * element sets are replaced.
@@ -3763,24 +3771,62 @@ public final class El {
   }
 
   /**
-   * Replaces the rows of this virtual list by those from {@code from} to {@code to}, exclusive,
-   * as its row function builds them. {@link #layoutRows} lays them out.
+   * Gives this virtual list the rows from {@code from} to {@code to}, exclusive. A row it has
+   * already stays as it is, unless {@code anew} holds for its index or the rows were built for
+   * another part sideways or laid out at another width; its row function builds the others.
+   * {@link #layoutRows} lays out the new rows and moves the kept ones.
    */
-  void makeRows(int from, int to) {
+  void makeRows(int from, int to, IntPredicate anew) {
+    List<El> had = List.copyOf(children);
+    int hadFrom = firstRow;
+    boolean keeps = rowsBuilt
+        && !had.isEmpty()
+        && spanFrom == builtFrom
+        && spanTo == builtTo
+        && Len.px(rowWidth()).equals(had.getFirst().style.width);
     children.clear();
     for (int i = from; i < to; i++) {
-      El row = rowBuilder.row(i, spanFrom, spanTo);
-      if (row == null) {
-        throw new IllegalStateException("The row function of a list returned null for row " + i);
+      if (keeps && i >= hadFrom && i - hadFrom < had.size() && !anew.test(i)) {
+        El row = had.get(i - hadFrom);
+        row.kept = true;
+        children.add(row);
+      } else {
+        children.add(newRow(i));
       }
-      if (row.position == 0) {
-        row.position(i + 1, rowCount);
-      }
-      fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
-      children.add(row);
     }
     firstRow = from;
+    builtFrom = spanFrom;
+    builtTo = spanTo;
     rowsBuilt = true;
+  }
+
+  /**
+   * Builds the row that is the child with this index anew, where the one it replaces is shown;
+   * {@link #layoutRow} lays it out.
+   */
+  void remakeRow(int index) {
+    El row = newRow(firstRow + index);
+    El old = children.set(index, row);
+    row.shiftX = old.shiftX;
+    row.shiftY = old.shiftY;
+  }
+
+  private El newRow(int index) {
+    El row = rowBuilder.row(index, spanFrom, spanTo);
+    if (row == null) {
+      throw new IllegalStateException("The row function of a list returned null for row " + index);
+    }
+    if (row.position == 0) {
+      row.position(index + 1, rowCount);
+    }
+    fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
+    row.kept = false;
+    return row;
+  }
+
+  /** Whether this row of a virtual list was kept by the list's last {@link #makeRows} as it was. */
+  boolean isKept() {
+    return kept;
   }
 
   /**
@@ -3868,15 +3914,21 @@ public final class El {
   }
 
   /**
-   * Lays out each row that {@link #makeRows} made on its own, with the list's inner width and the
-   * row height, and places it below the previous one.
+   * Lays out each row that {@link #makeRows} built on its own, with the list's inner width and the
+   * row height, and places it below the previous one; a row it kept only moves to its place.
    */
   void layoutRows(float scale, boolean systemFonts) {
     // Rows that turn out higher or lower above the one at the top move it: the offset follows.
     int anchor = heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rowCount);
     double before = heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
-      layoutRow(i, scale, systemFonts);
+      El row = children.get(i);
+      if (row.kept) { // laid out before; placed from the first row that exists, as layoutRow does
+        double top = heights == null ? row.contentTop : rowsTop() + rowTop(firstRow + i);
+        row.place(rowsLeft(), (float) (top - rowTop(firstRow)), rowWidth(), row.height);
+      } else {
+        layoutRow(i, scale, systemFonts);
+      }
     }
     if (heights != null) {
       measureScroll();
@@ -3890,17 +3942,28 @@ public final class El {
     return heights != null;
   }
 
-  /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
-  void layoutRow(int index, float scale, boolean systemFonts) {
-    float left = style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
-    float inner = Math.max(
+  /** The left of the rows, the left of the content box. */
+  private float rowsLeft() {
+    return style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
+  }
+
+  /** The width of the rows: the width of the content box, without the scrollbar's. */
+  private float rowWidth() {
+    return Math.max(
         width
-            - left
+            - rowsLeft()
             - style.paddingRight.pixelsOrZero()
             - style.borderRight.pixelsOrZero()
             - style.scrollbarWidth,
         0);
+  }
+
+  /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
+  void layoutRow(int index, float scale, boolean systemFonts) {
+    float left = rowsLeft();
+    float inner = rowWidth();
     El row = children.get(index);
+    row.kept = false; // laid out anew
     row.style.width = Len.px(inner);
     if (heights != null) { // as high as its content or its own height, measured and kept
       scaleText(row, scale, systemFonts);
@@ -3923,7 +3986,8 @@ public final class El {
     double top = rowsTop() + (firstRow + index) * (double) rowHeight;
     double whole = Math.floor(top);
     Flex.layout(row, inner, rowHeight, 0, (float) (top - whole));
-    row.place(left, (float) (whole + row.y - rowTop(firstRow)), inner, row.height);
+    row.contentTop = whole + row.y;
+    row.place(left, (float) (row.contentTop - rowTop(firstRow)), inner, row.height);
   }
 
   /**

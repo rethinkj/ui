@@ -3836,16 +3836,30 @@ public final class App<S> {
     for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
       int asking = El.autofocuses();
-      el.makeRows(range[0], range[1]);
+      el.makeRows(range[0], range[1], lookedRows(id)::contains);
       tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
       for (El row : el.children()) {
-        attachEditors(row, path);
+        if (!row.isKept()) { // a kept row has its editors
+          attachEditors(row, path);
+        }
       }
       el.layoutRows(scale, systemFonts);
+      // The row under the pointer is found after layout, as rowLooks finds it, and built anew.
+      for (Object at : pointedIds()) {
+        int row = Animator.rowIn(at, id);
+        int index = row - el.firstRow();
+        if (el.hasRow(row) && el.children().get(index).isKept()) {
+          el.remakeRow(index);
+          attachEditors(el.children().get(index), path);
+          el.layoutRow(index, scale, systemFonts);
+        }
+      }
       rowLooks(el, id); // after layout, which says which row is under the pointer
       for (El row : el.children()) {
-        Overlays.layout(row, width, height); // after the looks, which may attach overlays
+        if (!row.isKept()) {
+          Overlays.layout(row, width, height); // after the looks, which may attach overlays
+        }
       }
       // As openAndClose for the rest, where a row asked for the focus.
       if (El.autofocuses() != asking) {
@@ -3899,6 +3913,30 @@ public final class App<S> {
     path.removeLast();
   }
 
+  /**
+   * The rows of the list with identity {@code list} that a look shown, the focus or a press is
+   * in. The list builds them anew instead of keeping them, so that they show the looks of the
+   * moment, from the targets their row function gives; the row under the pointer too, once the
+   * rows are laid out.
+   */
+  private Set<Integer> lookedRows(Object list) {
+    List<Object> ids = new ArrayList<>(shown.hovered());
+    ids.addAll(shown.rested());
+    ids.addAll(shown.within());
+    ids.add(shown.focused());
+    ids.add(shown.pressed());
+    ids.add(focusId);
+    ids.add(pressedId());
+    Set<Integer> rows = new HashSet<>();
+    for (Object id : ids) {
+      int row = Animator.rowIn(id, list);
+      if (row >= 0) {
+        rows.add(row);
+      }
+    }
+    return rows;
+  }
+
   /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */
   private void tellRows(El list, Object id, int first, int last) {
     El.RowsHandler handler = list.onRowsBuilt();
@@ -3920,7 +3958,8 @@ public final class App<S> {
   /**
    * Applies the looks of the moment to the rows a list has just built, as {@link #applyLooks} does
    * for the rest of the tree, and lays out again each row that took one. The rows are laid out
-   * first, so that the pointer finds the row it is over now, after a scroll or a movement too.
+   * first, so that the pointer finds the row it is over now, after a scroll or a movement too. A
+   * row the list kept has none of these looks ({@link #lookedRows}).
    */
   private void rowLooks(El list, Object listId) {
     List<Object> under = pointedIds();
@@ -3931,6 +3970,9 @@ public final class App<S> {
     Object press = shown.pressed();
     for (int i = 0; i < list.children().size(); i++) {
       El row = list.children().get(i);
+      if (row.isKept()) {
+        continue;
+      }
       Object rowId = Animator.row(listId, list.firstRow() + i);
       boolean took = false;
       for (Object id : under) {

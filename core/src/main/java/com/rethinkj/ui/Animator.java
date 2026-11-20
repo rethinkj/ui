@@ -186,6 +186,19 @@ final class Animator {
     return new Id((Id) list, index);
   }
 
+  /**
+   * The index of the row of the virtual list with identity {@code list} that the element with this
+   * identity is or is in, or -1 if it is in none of its rows.
+   */
+  static int rowIn(Object identity, Object list) {
+    for (Id id = (Id) identity; id != null; id = id.parent()) {
+      if (id.part() instanceof Integer row && list.equals(id.parent())) {
+        return row;
+      }
+    }
+    return -1;
+  }
+
   /** Whether {@code ancestor} is the identity of an element above the one of {@code identity}. */
   static boolean isBelow(Object identity, Object ancestor) {
     for (Id id = identity == null ? null : ((Id) identity).parent(); id != null; id = id.parent()) {
@@ -265,7 +278,8 @@ final class Animator {
    * Takes the rows a virtual list of the current tree has just built ({@link El#makeRows}): each
    * gets the entries of the row with the same index that the list had, so that what moves goes on
    * moving, and the entries of the other rows it had are forgotten. A row moves with its list at
-   * once, without springing, since its place among the rows that exist changes as they do.
+   * once, without springing, since its place among the rows that exist changes as they do. A row
+   * the list kept keeps its entries, and only its place changes.
    */
   void rows(El list, Object identity, double now) {
     Id id = (Id) identity;
@@ -275,6 +289,9 @@ final class Animator {
     }
     Map<Id, Entry> before = new HashMap<>();
     for (int row = entry.rowsFrom; row < entry.rowsTo; row++) {
+      if (list.hasRow(row) && list.children().get(row - list.firstRow()).isKept()) {
+        continue;
+      }
       Id rowId = new Id(id, row);
       Entry old = entries.get(rowId);
       if (old != null) {
@@ -286,7 +303,16 @@ final class Animator {
     Map<Id, Entry> next = new HashMap<>();
     Id[] ids = ids(list, id);
     for (int i = 0; i < ids.length; i++) {
-      visit(list.children().get(i), ids[i], false, true, next, now);
+      El row = list.children().get(i);
+      Entry kept = row.isKept() ? current.get(ids[i]) : null;
+      if (kept == null) {
+        visit(row, ids[i], false, true, next, now);
+      } else { // at once, as visit moves a row; what is inside it stays where it was
+        kept.tracks[0].set(row.x());
+        kept.tracks[1].set(row.y());
+        kept.tracks[2].set(row.width());
+        kept.tracks[3].set(row.height());
+      }
     }
     entries = current;
     entries.putAll(next);

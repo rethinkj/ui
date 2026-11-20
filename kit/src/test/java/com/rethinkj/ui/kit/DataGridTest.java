@@ -64,7 +64,7 @@ class DataGridTest {
   void aMillionRowsOfTwentyColumnsAskOnlyForTheCellsThatExist() throws IOException {
     Orders orders = new Orders(T, 1_000_000, 20);
     App<Orders> app = start(orders);
-    assertAskedForExistingRows(orders, app);
+    assertAskedForExistingRows(orders, app, 0);
     El rows = find(app, "rows");
     assertEquals(199, rows.height(), "down to the bottom of the grid");
     assertTrue(
@@ -73,26 +73,27 @@ class DataGridTest {
 
     orders.asked.clear();
     run(app, "scroll #rows row 654321\nframe");
-    assertAskedForExistingRows(orders, app);
+    assertAskedForExistingRows(orders, app, 654_321 - El.OVERSCAN);
     assertEquals(654_321 - El.OVERSCAN, find(app, "rows").firstRow());
+    rows = find(app, "rows");
+    int kept = rows.firstRow() + rows.children().size();
     orders.asked.clear();
-    app.wheel(280, 120, 0, 300); // past the overscan: builds the rows anew, not the view
+    app.wheel(280, 120, 0, 300); // past the overscan: builds the new rows, not the view
     app.frame();
-    assertAskedForExistingRows(orders, app);
+    assertAskedForExistingRows(orders, app, kept);
   }
 
   /**
-   * Every cell that exists was asked for once since the last clear, and no other: the rows that
-   * exist, each with the cells of the columns in view sideways and some more, not all 20.
+   * Every cell of the rows from {@code from} on that exist was asked for once since the last
+   * clear, and no other: those rows, each with the cells of the columns in view sideways and some
+   * more, not all 20.
    */
-  private static void assertAskedForExistingRows(Orders orders, App<?> app) {
+  private static void assertAskedForExistingRows(Orders orders, App<?> app, int from) {
     El rows = find(app, "rows");
-    List<Integer> exist = IntStream.range(
-            rows.firstRow(), rows.firstRow() + rows.children().size())
-        .boxed()
-        .toList();
+    int end = rows.firstRow() + rows.children().size();
+    List<Integer> exist = IntStream.range(from, end).boxed().toList();
     assertEquals(exist, List.copyOf(new TreeSet<>(orders.asked)));
-    long cells = rows.children().stream()
+    long cells = rows.children().subList(from - rows.firstRow(), rows.children().size()).stream()
         .flatMap(r -> r.children().stream())
         .filter(c -> "gridcell".equals(c.role()))
         .count();
