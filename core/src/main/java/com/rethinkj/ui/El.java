@@ -1735,7 +1735,7 @@ public final class El {
    * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
    * such as a find bar: as far as that reaches into its content box, the field can scroll above
    * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
-   * 0 unless set.
+   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set.
    */
   public El coveredTop(float height) {
     editableOnly("coveredTop");
@@ -3715,11 +3715,12 @@ public final class El {
       return null;
     }
     double view = vertical ? height : width;
-    double max = vertical ? maxScrollY : maxScrollX;
-    double offset = Math.max(vertical ? scrollY : scrollX, 0); // not above a field's first row
-    float thumb =
-        (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()), track);
-    float at = start + (float) ((track - thumb) * (offset / max));
+    double min = vertical ? minScrollY() : 0; // a field can scroll above its first row
+    double range = (vertical ? maxScrollY : maxScrollX) - min;
+    double offset = (vertical ? scrollY : scrollX) - min;
+    float thumb = (float)
+        Math.clamp(track * view / (view + range), Math.min(scrollbars.minThumb(), track), track);
+    float at = start + (float) ((track - thumb) * (offset / range));
     float t = scrollbars.thickness();
     int color = scrollbars.thumb();
     return vertical
@@ -3757,7 +3758,8 @@ public final class El {
   /**
    * Scrolls so that the thumb of a bar of the last frame starts at {@code start}, in window
    * coordinates along its axis: the offset is in proportion to where the thumb is between the ends
-   * of its track, so that both ends reach the ends of the content exactly.
+   * of its track, so that both ends reach the ends of the content exactly: for a field covered at
+   * the top, the start of the track is as far above its first row as it can scroll.
    *
    * @return whether the offset changed
    */
@@ -3771,7 +3773,11 @@ public final class El {
     double share = free > 0
         ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0)
         : 0;
-    return vertical ? scrollTo(scrollX, share * maxScrollY) : scrollTo(share * maxScrollX, scrollY);
+    if (!vertical) {
+      return scrollTo(share * maxScrollX, scrollY);
+    }
+    double min = minScrollY();
+    return scrollTo(scrollX, min + share * (maxScrollY - min));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
