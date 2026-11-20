@@ -727,11 +727,6 @@ public record Theme(
     }
   }
 
-  /** The line along a field's bottom: a sharp shadow {@code stroke} below its box. */
-  static Shadow fieldEdge(float stroke, int color) {
-    return new Shadow(0, stroke, 0, 0, color);
-  }
-
   /** A copy of a line {@code dx} to its right: a sharp shadow, as a tree's guide of a level. */
   static Shadow lineCopy(float dx, int color) {
     return new Shadow(dx, 0, 0, 0, color);

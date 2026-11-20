@@ -67,7 +67,7 @@ public final class TextField {
     return frame(
             theme, El.text(value).editable(onChange), theme.type().body(), placeholder, onChange)
         .h(theme.size().control())
-        .padding(0, m, theme.size().stroke(), m); // the bottom's padding stands in for its border
+        .padding(0, m, 0, m);
   }
 
   /**
@@ -117,8 +117,7 @@ public final class TextField {
         .codeWords();
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     Scrollbars bars = theme.scrollbars();
-    area.style().paddingBottom =
-        Len.px(theme.space().s() + theme.size().stroke() + bars.thickness() + bars.margin());
+    area.style().paddingBottom = Len.px(theme.space().s() + bars.thickness() + bars.margin());
     return area;
   }
 
@@ -133,7 +132,7 @@ public final class TextField {
         .padding(
             theme.space().s(),
             theme.space().m(),
-            theme.space().s() + theme.size().stroke(),
+            theme.space().s(),
             theme.space().m())
         .scrollbars(theme.scrollbars());
   }
@@ -228,13 +227,10 @@ public final class TextField {
 
   /**
    * The frame of a field: {@code frame} on top and at the sides, and {@code edge} along the
-   * bottom, the line a field is recognized by. The edge is a sharp shadow one stroke below the
-   * box, so that it follows the lower corners; a field has no bottom border and pads its bottom
-   * by a stroke instead, which keeps its content where a frame all round would.
+   * bottom, the line a field is recognized by, inside its box as the other sides.
    */
   static El edge(Theme theme, El field, int frame, int edge) {
-    float w = theme.size().stroke();
-    return field.border(w, w, 0, w, frame).shadow(Theme.fieldEdge(w, edge));
+    return field.border(theme.size().stroke(), frame).borderColors(frame, frame, edge, frame);
   }
 
   /**

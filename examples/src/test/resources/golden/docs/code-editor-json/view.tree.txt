@@ -1,6 +1,6 @@
 el 0,0 520x200
   text #document role=textbox label="Document" "{\n  \"id\": 1042,\n  \"customer\": \"Ada Lovelace\",\n  \"paid\": true,\n  \"total\": 129.5,\n  \"coupon\": null,\n  \"items\": [{\"sku\": \"A-17\", \"quantity\": 2}]\n}" 12,12 496x146 lines 1-8/8
-    el #rail 13,13 38x145
+    el #rail 13,13 38x144
     el #gutter 13,17 37x128
       el #line-0 13,17 37x16
         el 19,25 12x0

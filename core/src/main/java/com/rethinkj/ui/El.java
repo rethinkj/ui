@@ -28,6 +28,9 @@ public final class El {
   /** How many rows a {@link #rows virtual list} builds beyond its visible part, on each side. */
   public static final int OVERSCAN = 3;
 
+  /** What {@link #wantedRows} gives when no rows are wanted. */
+  static final int[] NO_ROWS = {};
+
   private static final int SELECTED = 1;
   private static final int DISABLED = 2;
   private static final int CHECKED = 4; // with NOT_CHECKED: mixed
@@ -60,6 +63,7 @@ public final class El {
   private float radiusBottomRight;
   private float radiusBottomLeft;
   private int borderColor;
+  private int[] borderColors; // null while every side has borderColor
   private List<Shadow> shadows = List.of();
   private List<Segment> segments = List.of();
   private Measure measure;
@@ -757,6 +761,24 @@ public final class El {
     style.borderBottom = Len.px(bottom);
     style.borderLeft = Len.px(left);
     this.borderColor = argb;
+    this.borderColors = null;
+    return this;
+  }
+
+  /**
+   * Gives each side of the border its own color, in the order of CSS's {@code border-color}, as
+   * a field's strong line along the bottom of a quiet frame: {@code border(1,
+   * frame).borderColors(frame, frame, line, frame)}. Call it after {@link #border}, which sets one
+   * color again. A rounded corner takes the color of the top or the bottom side in that side's
+   * rows, and of the left or the right side above or below them. With {@link #motion} the sides in the top's color spring as
+   * one border color does; the others change at once.
+   *
+   * @param top the color as 0xAARRGGBB, also {@link #borderColor()}
+   */
+  public El borderColors(int top, int right, int bottom, int left) {
+    this.borderColor = top;
+    boolean one = top == right && top == bottom && top == left;
+    this.borderColors = one ? null : new int[] {top, right, bottom, left};
     return this;
   }
 
@@ -3052,8 +3074,27 @@ public final class El {
     return shadows;
   }
 
+  /** The border's color; of the top side when {@link #borderColors} gave the sides their own. */
   public int borderColor() {
     return borderColor;
+  }
+
+  /**
+   * The color of each side, top, right, bottom, left, as {@link #borderColors} gave them, where a
+   * side in the top's color has {@link #borderColor()} of the moment, which motion springs; null
+   * while every side has that color.
+   */
+  public int[] borderColors() {
+    if (borderColors == null) {
+      return null;
+    }
+    int[] colors = borderColors.clone();
+    for (int side = 0; side < 4; side++) {
+      if (colors[side] == borderColors[0]) {
+        colors[side] = borderColor;
+      }
+    }
+    return colors;
   }
 
   /**
@@ -3858,7 +3899,7 @@ public final class El {
 
   /**
    * The rows this virtual list should have, as {@code {from, to}} with {@code to} exclusive, or
-   * null when it has them: those in its visible part, which is its border box inside the window,
+   * none (an empty array) when it has them: those in its visible part, which is its border box inside the window,
    * and {@link #OVERSCAN} more on each side. A list that has every row in view keeps its rows, so
    * that scrolling by less than the overscan builds nothing.
    *
@@ -3894,7 +3935,7 @@ public final class El {
    * Like {@link #wantedRows(float, float, float, float, float, float)}.
    *
    * @param anew whether to want the rows that a list built anew would, also when it has them;
-   *     then null where those are built for another part sideways than the rows it has
+   *     then none where those are built for another part sideways than the rows it has
    */
   int[] wantedRows(
       float left,
@@ -3905,7 +3946,7 @@ public final class El {
       float windowHeight,
       boolean anew) {
     if (rowBuilder == null) {
-      return null;
+      return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(top, 0);
@@ -3930,7 +3971,7 @@ public final class El {
     boolean resized =
         !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
     if (rowsBuilt && !resized && (anew ? sideways : has)) {
-      return null;
+      return NO_ROWS;
     }
     if (spans) {
       spanFrom = start;

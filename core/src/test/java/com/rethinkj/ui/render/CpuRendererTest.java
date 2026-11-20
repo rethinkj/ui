@@ -56,6 +56,44 @@ class CpuRendererTest {
   }
 
   @Test
+  void eachSideOfABorderInItsOwnColorIsDrawnAsABorderAllInThatColor() {
+    // A translucent rounded box at a scale of 2 with four colors and a right border wider than half
+    // of it: the top
+    // and the bottom border's rows, also of the corners, are those of a border all in their color,
+    // the rows between left and right of the middle between the inner edges those of the sides.
+    int[] colors = {RED, 0xFF00FF00, BLUE, 0xFFFFFF00};
+    Pixels[] images = new Pixels[5];
+    for (int i = 0; i < 5; i++) {
+      El box = el().size(40, 20).radius(6).fill(0xFFFFFFFF).opacity(0.5f);
+      box.border(1, 24, 1, 1, i < 4 ? colors[i] : RED);
+      if (i == 4) {
+        box.borderColors(colors[0], colors[1], colors[2], colors[3]);
+      }
+      El root = el().size(40, 20).child(box);
+      Flex.layout(root, 40, 20);
+      images[i] = CpuRenderer.render(Scene.of(root, 2), 80, 40, 2);
+    }
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 80; x++) {
+        int side = y < 2 ? 0 : y >= 38 ? 2 : x >= 17 ? 1 : 3; // the middle: (1 + 40 - 24) / 2
+        assertEquals(images[side].argb(x, y), images[4].argb(x, y), "at " + x + "," + y);
+      }
+    }
+  }
+
+  @Test
+  void aTransparentSideIsNoBorderAsOneTransparentColorIs() {
+    El square = el().size(20, 20).fill(0xFFFFFFFF).border(1, 0).borderColors(0, 0, BLUE, 0);
+    El root = el().size(20, 20).child(square);
+    Flex.layout(root, 20, 20);
+
+    Pixels image = CpuRenderer.render(Scene.of(root, 1), 20, 20, 1);
+
+    assertEquals(0xFFFFFFFF, image.argb(10, 0), "the fill reaches the top");
+    assertEquals(BLUE, image.argb(10, 19), "the bottom border");
+  }
+
+  @Test
   void anArcCoversThePixelAtItsCenterByThePartOfATurnItSweeps() {
     El half = el().size(21, 21).radius(10.5f).fill(RED).arc(0, 0.5f);
     El quarter = el().absolute(30, 0).size(21, 21).radius(10.5f).fill(RED).arc(0, 0.25f);

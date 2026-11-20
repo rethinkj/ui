@@ -1,0 +1,1 @@
+- `El.borderColors(top, right, bottom, left)` gives each side of a border its own color. Text fields, text areas, selects and combo boxes now draw their strong bottom line inside their box instead of one pixel below it, so a field and a button of the same height end on one line, and a field's own `.shadow(...)` no longer replaces the line.
