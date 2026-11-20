@@ -1,0 +1,1 @@
+- The rows of a virtual list (`El.rows`) whose `cycle` changes its width now keep the width layout gave the list. Before, they could take the width the cycle showed in the previous frame.
