@@ -185,8 +185,9 @@ public final class Card {
    * Then the texts at the end are shortened to one line with an {@link El#ellipsis ellipsis}, in
    * proportion to their widths, while the other parts at the end, such as buttons, keep their size
    * and stay inside the card. A text at the end that the app gives {@code shrink(0)} keeps its
-   * size too, and one with a minimum width is shortened only down to it. Parts that keep their size
-   * and are wider together than the card still run past its edge.
+   * size too, and one with a minimum width is shortened only down to it. Where the card is narrower
+   * than the parts that keep their size, with the footer's padding and gaps, they still run past
+   * its edge.
    *
    * @param start at the left; null for none
    * @param end at the right, in the order shown
