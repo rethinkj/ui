@@ -776,8 +776,9 @@ public final class Menu {
       }
       case "ArrowLeft", "Escape" -> {
         if (level > 0) {
+          int opener = state.submenu(level - 1);
           state.openSubmenu(level - 1, -1);
-          state.highlightByKey(level - 1, state.active(level - 1));
+          state.highlightByKey(level - 1, opener);
         } else if (k.name().equals("Escape")) {
           state.close(); // a bar that has the keys keeps them
         } else if (bar != null) {
