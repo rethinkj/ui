@@ -68,12 +68,7 @@ public final class StatusBar {
     Theme theme = Theme.CURRENT.get();
     El left = end(theme, start).shrink(1).minSize(0, 0).clip();
     // Grows from nothing into the room the ends leave, so it never pushes them, and is cut first.
-    El room = row()
-        .grow(1)
-        .basis(0)
-        .minSize(0, 0)
-        .align(Style.Align.CENTER)
-        .clip();
+    El room = row().grow(1).basis(0).minSize(0, 0).align(Style.Align.CENTER).clip();
     if (message != null) {
       room.h(theme.size().control()).wrap();
       El shown = row().grow(1).basis(0).gap(theme.space().xs()).align(Style.Align.CENTER);
