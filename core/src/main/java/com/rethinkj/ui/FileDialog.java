@@ -66,8 +66,8 @@ public record FileDialog(
    *
    * @param paths the files or folders, in the order the system gives them; empty when the user
    *     cancelled the dialog
-   * @param filter the index of the filter chosen; -1 when the user cancelled the dialog, and where
-   *     the system does not say, as the portals of Linux do not
+   * @param filter the index of the filter chosen; -1 when the user cancelled the dialog or the
+   *     index is not known, as on Linux, where SDL does not report it
    */
   public record Choice(List<Path> paths, int filter) {
     public Choice {

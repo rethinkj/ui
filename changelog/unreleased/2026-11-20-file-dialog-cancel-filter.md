@@ -1,1 +1,1 @@
-- Fixed: on Windows, a file dialog that the user cancelled reported filter 0, the first filter's index, in `FileDialog.Choice.filter()`, so a cancel looked like a choice made with that filter. A cancel reports -1 now, as on Linux.
+- Fixed: on Windows, a file dialog that the user cancelled reported the index of the filter it showed in `FileDialog.Choice.filter()`, 0 unless the user had switched filters, so a cancel looked like a choice made with that filter. A cancel reports -1 now, as on Linux.
