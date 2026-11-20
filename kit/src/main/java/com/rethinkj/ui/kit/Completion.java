@@ -256,10 +256,8 @@ public final class Completion {
         } else {
           follow(state, text, v);
         }
-        // Typing puts the caret after what it put in, Delete leaves it, Backspace moves it back.
-        int grown = v.length() - text.length();
         state.edited = v;
-        state.editedCaret = grown > 0 || state.back ? at + grown : at;
+        state.editedCaret = caretAfter(text, v, at, state.back);
         onEdit.accept(v);
       });
     }
@@ -296,6 +294,26 @@ public final class Completion {
     list.style().maxHeight = Len.px(
         ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
     return field.overlay(Popup.frame(theme, list));
+  }
+
+  /**
+   * Where an edit from {@code before} to {@code after} puts a caret that was at {@code at}: after
+   * what typing put in, before what a deletion took, and where Backspace leaves it when the
+   * deletion fits on both sides of it, as in a run of equal characters.
+   */
+  static int caretAfter(String before, String after, int at, boolean back) {
+    int grown = after.length() - before.length();
+    if (grown >= 0) {
+      return at + grown;
+    }
+    int to = at + grown; // where it is if what went ended at it
+    boolean ended = to >= 0
+        && after.regionMatches(0, before, 0, to)
+        && after.regionMatches(to, before, at, before.length() - at);
+    boolean started = at - grown <= before.length()
+        && after.regionMatches(0, before, 0, at)
+        && after.regionMatches(at, before, at - grown, after.length() - at);
+    return ended && (back || !started) ? to : at;
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */

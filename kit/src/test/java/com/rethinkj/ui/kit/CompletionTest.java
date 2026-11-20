@@ -156,7 +156,7 @@ class CompletionTest {
   }
 
   @Test
-  void backspaceInsideAWordAsksForThePartBeforeTheCaret() throws IOException {
+  void aDeletionInsideAWordAsksForThePartBeforeTheCaret() throws IOException {
     TextLibraries.assumeLoaded();
     List<String> asked = new ArrayList<>();
     App<Query> app = app(word -> {
@@ -170,6 +170,13 @@ class CompletionTest {
     run(app, "key Backspace");
     assertEquals("SELECT coo", app.state().sql);
     assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|oo");
+
+    run(app, "key A control\ntype \"SELECT count\"\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft");
+    run(app, "key ArrowRight shift\nkey ArrowRight shift\nkey Space control");
+    asked.clear();
+    run(app, "key Delete");
+    assertEquals("SELECT cot", app.state().sql);
+    assertEquals(List.of("co"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "co|t");
   }
 
   @Test
