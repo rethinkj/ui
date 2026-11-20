@@ -3125,7 +3125,7 @@ public final class App<S> {
     takeDue();
     while (!queued.isEmpty()) {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
-        rebuild(handled); // after invalidate alone with its rows: an action may look for them
+        build(handled); // after invalidate alone with its rows: an action may look for them
         drawn = true;
         if (!selectedByBuild.isEmpty()) {
           // A FieldState's selection the build applied reaches onSelect as a handler's input
@@ -3160,6 +3160,7 @@ public final class App<S> {
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
+    stale |= !resized.isEmpty(); // told by a build between inputs: the rebuild below runs them
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -3180,10 +3181,10 @@ public final class App<S> {
       // scrolls a list does, or an onHoverFor handler ran: the looks are those of what the
       // pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
-        rebuild(false);
+        rebuild();
         // A caret that the app's string moved, or of a new field: its handler is told, once.
         if (tellSelections()) {
-          rebuild(false);
+          rebuild();
         }
         List<El> path = pointed();
         stale = !wanted(path, Animator.identities(path)).equals(shown);
@@ -3221,15 +3222,15 @@ public final class App<S> {
   }
 
   /**
-   * Builds the view as {@link #build} does; at the end of a frame, then runs the {@link
-   * El#onResize} handlers its layout told a new size, as handlers of input, and builds again from
-   * what they changed, until no size changes or after {@link #RESIZE_ROUNDS} rounds in the frame:
-   * a toolbar shows what fits a new width in the frame that has it. Between two inputs, whose
-   * rows may not be built yet, the handlers wait in the queue as input does.
+   * Builds the view at the end of a frame, after its input, as {@link #build} does; then runs the
+   * {@link El#onResize} handlers that layout, or a build between the inputs, told a new size, as
+   * handlers of input, and builds again from what they changed, until no size changes or after
+   * {@link #RESIZE_ROUNDS} rounds in the frame: a toolbar shows what fits a new width in the frame
+   * that has it, and input goes to the tree as it was shown.
    */
-  private void rebuild(boolean between) {
-    build(between);
-    while (!between && resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+  private void rebuild() {
+    build(false);
+    while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
       resizeRounds++;
       ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
       resized.clear();
@@ -3249,7 +3250,7 @@ public final class App<S> {
         }
         follow.clear();
       }
-      build(between);
+      build(false);
     }
     queued.addAll(resized); // a view that has not settled goes on in the next frame
     resized.clear();

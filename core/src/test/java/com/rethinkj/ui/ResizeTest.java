@@ -58,7 +58,7 @@ class ResizeTest {
     app.post(() -> width[0] = 80);
     app.post(() -> width[0] = width[0] > 80 ? 100 : width[0]); // the queue goes on after a rebuild
     app.frame();
-    assertEquals(4, told[0], "once as input, three rounds at the end, the rest in the next frame");
+    assertEquals(3, told[0], "three rounds at the end of the frame, the rest in the next");
   }
 
   @Test
