@@ -245,7 +245,7 @@ public final class Split {
     // Moves the line by a distance from where it is in the view the drag began in, or in the view
     // a key goes to, which is built after the key before it.
     DoubleConsumer move = delta -> {
-      float room = Math.max(size(split, across) - stroke, 0);
+      float room = Math.max(inner(split, across) - stroke, 0);
       float size =
           Math.max(minFirst, Math.min(size(one, across) + (float) delta, room - minSecond));
       onMove.accept(
@@ -314,5 +314,21 @@ public final class Split {
 
   private static float size(El el, boolean across) {
     return across ? el.width() : el.height();
+  }
+
+  /** The size of the content box along the split, which the parts share. */
+  private static float inner(El el, boolean across) {
+    Style s = el.style();
+    return across
+        ? el.width()
+            - s.paddingLeft.pixelsOrZero()
+            - s.paddingRight.pixelsOrZero()
+            - s.borderLeft.pixelsOrZero()
+            - s.borderRight.pixelsOrZero()
+        : el.height()
+            - s.paddingTop.pixelsOrZero()
+            - s.paddingBottom.pixelsOrZero()
+            - s.borderTop.pixelsOrZero()
+            - s.borderBottom.pixelsOrZero();
   }
 }

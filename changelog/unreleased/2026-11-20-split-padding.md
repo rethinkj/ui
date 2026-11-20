@@ -1,0 +1,1 @@
+- `Split.split` and `Split.cards` with padding (or a border) keep the divider within their content box: dragging it to the end now stores the size the first part shows, instead of one larger by the padding that a wider window would then grow the part to.

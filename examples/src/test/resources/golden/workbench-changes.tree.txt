@@ -35,7 +35,7 @@ el 0,0 1000x600
       text label="maximize" "\u{F533}" 925,14 12x12
     el role=button label="Close" window=close 954,0 46x40
       text label="dismiss" "\u{F367}" 971,14 12x12
-  el 0,40 1000x531
+  el 8,40 984x523
     el #first 8,40 260x523
       el 8,40 260x523
         el 9,41 258x40
