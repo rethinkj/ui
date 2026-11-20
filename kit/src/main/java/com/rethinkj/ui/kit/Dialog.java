@@ -58,7 +58,9 @@ import java.util.stream.Stream;
  * {@link El#onKey} handlers of the first get no keys: Escape goes to the focused element of the
  * second, as a combo box that closes its list, and else calls the second's {@code onDismiss};
  * Enter acts in the second, never on the default button of the first. When the second closes, the
- * focus goes back to the element that had it before the second opened.
+ * focus goes back to the element that had it before the second opened, found by its place among
+ * its siblings: one before which the build that closes the second adds or removes siblings needs
+ * a {@link El#key}.
  */
 public final class Dialog {
 
