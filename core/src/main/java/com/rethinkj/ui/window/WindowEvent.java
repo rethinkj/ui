@@ -39,8 +39,16 @@ public sealed interface WindowEvent {
    * the pointer at {@code x, y}. Positive {@code dy} scrolls up, away from the user; positive {@code
    * dx} scrolls right. Systems that flip the direction ("natural scrolling") are already accounted
    * for, and so is Shift: a wheel that turns only up and down turns sideways while it is held.
+   *
+   * @param modifiers the modifiers held, as in {@link Key#modifiers}
    */
-  record Wheel(float dx, float dy, float x, float y) implements WindowEvent {}
+  record Wheel(float dx, float dy, float x, float y, int modifiers) implements WindowEvent {
+
+    /** A turn of the wheel without modifiers. */
+    public Wheel(float dx, float dy, float x, float y) {
+      this(dx, dy, x, y, 0);
+    }
+  }
 
   /** A key went down, or repeats while held; {@link Key} lists the names. */
   record KeyDown(Key key) implements WindowEvent {}

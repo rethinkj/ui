@@ -522,8 +522,9 @@ class ScriptTest {
     assertFailure("size 200 120\nframe\nleave\nsnap out\n", "line 3 (leave)");
     assertEquals(
         "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
-            + " logical pixels that are positive to scroll down or right, for example `wheel #list"
-            + " 0 40`. A target is a position x,y in logical pixels such as 90,60, or a selector"
+            + " logical pixels that are positive to scroll down or right, and any of shift,"
+            + " control, alt and meta that are held, for example `wheel #list 0 40` or `wheel"
+            + " #canvas 0 -48 control`. A target is a position x,y in logical pixels such as 90,60, or a selector"
             + " of #key, role=<role>, label=\"<text>\", text=\"<string>\" and states as a"
             + " .tree.txt writes them (selected, checked=false, expanded, level=2,"
             + " value=\"<text>\") such as role=switch label=\"Lights\", and after a selector"

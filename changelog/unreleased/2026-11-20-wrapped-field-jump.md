@@ -1,0 +1,1 @@
+- A jump to the caret in a long multi-line field that wraps, such as `App.select` or the find bar's next match, now shows the caret's row whole, also where the rows above it were not measured yet.

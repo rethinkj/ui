@@ -5,7 +5,7 @@ package com.rethinkj.ui.kit;
 
 /**
  * The icons of the default icon font, {@link com.rethinkj.ui.text.Font#icons()} (Fluent
- * UI System Icons), that the kit names: 118 of them, for a database tool, the parts of a
+ * UI System Icons), that the kit names: 120 of them, for a database tool, the parts of a
  * window and the data in a table. {@link Icon#icon} shows one.
  *
  * <p>Each symbol is Fluent's icon of the same name: {@link #CHEVRON_RIGHT} is {@code
@@ -43,6 +43,8 @@ public enum Symbol {
   CHECKBOX_CHECKED(0, 0xF27C, 0xF28D, 0xF28E, 0, 0, 0),
   CHECKMARK(0xF293, 0xE305, 0xF294, 0xF295, 0xF296, 0xF8D4, 0xE306),
   CHECKMARK_CIRCLE(0xE307, 0xF297, 0xF298, 0xF299, 0xF0C14, 0xF8E8, 0xF29A),
+  CHEVRON_DOUBLE_DOWN(0, 0xF284, 0xE329, 0, 0, 0, 0),
+  CHEVRON_DOUBLE_UP(0, 0xE32C, 0xE32D, 0, 0, 0, 0),
   CHEVRON_DOWN(0xF2A1, 0xF2A2, 0xF2A3, 0xF2A4, 0xF2A5, 0xF0320, 0xF2A6),
   CHEVRON_LEFT(0xF2A8, 0xF2A9, 0xF2AA, 0xF2AB, 0xF2AC, 0xF0321, 0xF2AD),
   CHEVRON_RIGHT(0xF2AE, 0xF2AF, 0xF2B0, 0xF2B1, 0xF2B2, 0xF0322, 0xF2B3),
