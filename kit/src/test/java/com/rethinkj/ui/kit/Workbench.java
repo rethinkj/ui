@@ -85,6 +85,15 @@ final class Workbench {
             .grow(1));
   }
 
+  /** As {@link #splitView}, between cards, the split padded but at its top as a window's. */
+  El paddedCardsView() {
+    float m = theme.space().m();
+    return window(Split.cards(
+            Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 120, editorPane(), 160)
+        .grow(1)
+        .padding(0, m, m, m));
+  }
+
   /** The editor over its results, at least 40 high each. */
   El columnView() {
     return window(

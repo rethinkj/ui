@@ -147,12 +147,20 @@ public final class Tooltip {
     Theme theme = Theme.CURRENT.get();
     Consumer<El> show = e -> {
       if (e.overlays().stream().noneMatch(o -> WHOLE.equals(o.key()) || KEY.equals(o.key()))) {
-        e.overlay(panel(theme, text(theme, text), text, options()).key(WHOLE).whenShortened());
+        e.overlay(whole(theme, text));
       }
     };
     return anchor
         .whenHoveredFor(theme.motion().tooltipDelay(), show)
         .whenFocusVisibleFor(theme.motion().tooltipDelay(), show);
+  }
+
+  /**
+   * The overlay of {@link #whenShortened} at once, without a delay: for an anchor the keys
+   * highlight without giving it the focus, as a menu's item.
+   */
+  static El whole(Theme theme, String text) {
+    return panel(theme, text(theme, text), text, options()).key(WHOLE).whenShortened();
   }
 
   private static El tooltip(Theme theme, El anchor, Supplier<El> panel) {
