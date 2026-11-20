@@ -194,6 +194,14 @@ class DataGridTest {
     assertEquals(3, key(app, orders, "ArrowDown"));
     assertInView(app, 3);
 
+    selection.select(40, 0); // in one handler: the rows go to 80 all the same
+    selection.scrollToRow(80);
+    app.invalidate();
+    app.frame();
+    assertEquals(80 * 24.0, find(app, "rows").scrollY());
+    assertEquals(41, key(app, orders, "ArrowDown"));
+    assertInView(app, 41);
+
     selection.scrollToRow(999_999);
     app.invalidate();
     app.frame();

@@ -1080,6 +1080,11 @@ public final class DataGrid {
     final ScrollState rowsScroll = new ScrollState(); // the rows, up and down
     final ScrollState gridScroll = new ScrollState(); // header and rows, sideways
     int scrollRow = -1; // the row that scrollToRow puts at the top at the next build, -1 for none
+    // The row the rows were last told to keep in view, and the cursor's row when scrollToRow
+    // scrolled away from it: until the cursor moves on, the rows keep that row instead.
+    int revealed = -1;
+    int heldRow = -1;
+    boolean holding;
     // The rows of the last grid built with it and of the one before, which tell what is in view
     // until the last is laid out.
     El rows;
@@ -1332,8 +1337,8 @@ public final class DataGrid {
 
     /** The first and the last row wholly in view, or null for none. */
     private int[] inView() {
-      El list = rows != null && rows.height() <= 0 && rowsBefore != null ? rowsBefore : rows;
-      if (list == null || list.rowCount() == 0) {
+      El list = rows != null && !rows.isPlaced() && rowsBefore != null ? rowsBefore : rows;
+      if (list == null || !list.isPlaced() || list.rowCount() == 0) {
         return null;
       }
       double high = list.rowHeight();
@@ -2342,13 +2347,17 @@ public final class DataGrid {
       if (sel.scrollRow >= 0) {
         sel.rowsScroll.scrollTo(sel.rowsScroll.x(), sel.scrollRow * (double) g.rowHeight());
         sel.scrollRow = -1;
+        sel.holding = true; // a cursor moved before it in the same handler does not scroll back
+        sel.heldRow = sel.row();
       }
       body.scrollState(sel.rowsScroll);
       sel.rowsBefore = sel.rows;
       sel.rows = body;
     }
-    if (sel != null && sel.row() >= 0) {
-      body.revealRow(sel.row());
+    if (sel != null) {
+      sel.holding &= sel.row() == sel.heldRow;
+      sel.revealed = sel.holding ? sel.revealed : sel.row();
+      body.revealRow(sel.revealed);
     }
     if (options.onRows != null) {
       body.onRowsBuilt(options.onRows);
