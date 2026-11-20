@@ -122,6 +122,7 @@ class DocsExamplesTest {
     overlays(all, "toast", Overlays::toast, 420, 200);
     overlays(all, "command-palette", Overlays::palette, 640, 360);
     grids(all, "grid", Grids::basic, 520, 300);
+    grids(all, "grid-open", Grids::opened, 360, 260);
     grids(all, "grid-sort", Grids::sorted, 520, 300);
     grids(all, "grid-fit", Grids::fitted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);

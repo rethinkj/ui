@@ -15,6 +15,7 @@ import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -39,6 +40,7 @@ final class Grids {
 
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+  final DataGrid.Selection picked = new DataGrid.Selection(DataGrid.Mode.ROWS);
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
@@ -147,6 +149,30 @@ final class Grids {
         .grow(1);
     // docs:end grid-fit
     return Frame.of(Card.flush(grid).wFull().grow(1));
+  }
+
+  // docs:start grid-open-handler
+  void open(int row) {
+    said = "Opened order " + value(row, 0);
+  }
+  // docs:end grid-open-handler
+
+  static El opened(Grids state) {
+    // docs:start grid-open
+    List<Column> columns = List.of(
+        new Column("id", 80, DataType.INTEGER, row -> value(row, 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(row, 1)));
+    El grid = DataGrid.dataGrid(
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(state.picked) // the grid takes the focus and its keys
+                .onActivate(state::open)) // Enter, a double press
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-open
+    return Frame.of(Card.flush(grid).wFull().grow(1), Label.label(state.said).key("said"));
   }
 
   static El sorted(Grids state) {

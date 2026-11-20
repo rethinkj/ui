@@ -1,0 +1,5 @@
+size 360 260
+frame
+press #cell-2-1 clicks 2
+frame
+snap opened

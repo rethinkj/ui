@@ -67,7 +67,8 @@ import java.util.function.ObjLongConsumer;
  * selects all, and the rows and columns follow the cursor. Control+C and Control+Insert copy the
  * selection as tab-separated text ({@link #copyText}). Enter, F2, a double press and typing edit
  * the cursor's cell in an editor the grid lays over it ({@link Options#onCommit}, {@link
- * Editing}), or ask the app to ({@link Options#onEdit}); pasting, clearing, NULL, new and deleted
+ * Editing}), or ask the app to ({@link Options#onEdit}); where nothing edits it, Enter and a
+ * double press open the cell's row ({@link Options#onActivate}). Pasting, clearing, NULL, new and deleted
  * rows and what changed go through the app as well, and {@link GridChanges} keeps those changes
  * until the app writes them. The header filters columns ({@link Options#filters}) and chooses,
  * moves and hides them ({@link Options#columns}). The grid is one stop for Tab.
@@ -1676,6 +1677,7 @@ public final class DataGrid {
     IntPredicate loaded;
     El.RowsHandler onRows;
     CellHandler onEdit;
+    IntConsumer onActivate;
     Commit onCommit;
     Consumer<List<CellValue>> onPaste;
     IntConsumer onInsertRow;
@@ -1853,6 +1855,18 @@ public final class DataGrid {
      */
     public Options onEdit(CellHandler handler) {
       this.onEdit = handler;
+      return this;
+    }
+
+    /**
+     * Tells {@code handler} the row the user opens, as a list of results or of choices opens one:
+     * Enter on the cursor's row, or a double press on one of the row's cells or on its number.
+     * Where Enter or a double press edits the cell ({@link #onCommit}, {@link #onEdit}), it edits
+     * instead. Rows not loaded yet ({@link #loading}) do not open. It needs {@link #select}, which
+     * gives the grid its presses and keys; null for none.
+     */
+    public Options onActivate(IntConsumer handler) {
+      this.onActivate = handler;
       return this;
     }
 
@@ -3036,13 +3050,23 @@ public final class DataGrid {
         sel.select(row, column, rows);
       }
     });
-    if (clicks == 2 && modifiers == 0 && !rows) {
-      if (GridEdit.editable(b, row, column)) {
+    if (clicks == 2 && modifiers == 0) {
+      if (!rows && b.edits && GridEdit.editable(b, row, column)) {
         GridEdit.start(b, row, column, null, false);
-      } else if (b.o.onEdit != null && row < b.rowCount) {
+      } else if (!rows && b.o.onEdit != null && row < b.rowCount) {
         b.o.onEdit.accept(row, column);
+      } else if (opens(b, row)) {
+        b.o.onActivate.accept(row);
       }
     }
+  }
+
+  /** Whether Enter or a double press on {@code row} opens it through {@link Options#onActivate}. */
+  private static boolean opens(Build b, int row) {
+    return b.o.onActivate != null
+        && row >= 0
+        && row < b.rowCount
+        && (b.o.loaded == null || b.o.loaded.test(row));
   }
 
   /** Extends the selection to the cell under the pointer, whose movement may scroll the grid. */
@@ -3151,6 +3175,10 @@ public final class DataGrid {
         && sel.row() >= 0
         && sel.row() < b.rowCount) {
       b.o.onEdit.accept(sel.row(), Math.clamp(sel.column(), 0, n - 1));
+      return true;
+    }
+    if (mods == 0 && name.equals("Enter") && opens(b, sel.row())) {
+      b.o.onActivate.accept(sel.row());
       return true;
     }
     if (control && !shift && name.equals("V") || shift && !control && name.equals("Insert")) {

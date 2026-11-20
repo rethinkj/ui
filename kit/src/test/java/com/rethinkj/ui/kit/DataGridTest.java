@@ -192,6 +192,36 @@ class DataGridTest {
     assertEquals(List.of(), orders.log);
   }
 
+  @Test
+  void enterAndADoublePressOpenARowUnlessTheyEditTheCell() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    orders.more = o -> o.rowNumbers().onActivate(row -> orders.log.add("open " + row));
+    App<Orders> app = start(orders);
+    run(app, "press #cell-4-1 clicks 2\nframe\nkey ArrowDown\nkey Enter\nframe");
+    run(app, "press #number-2 clicks 2\nframe");
+    assertEquals(
+        List.of("select 4", "open 4", "select 5", "open 5", "select 2", "open 2"), orders.log);
+
+    orders.log.clear();
+    orders.more = o -> o.rowNumbers()
+        .onActivate(row -> orders.log.add("open " + row))
+        .onEdit((row, column) -> orders.log.add("edit " + row + " " + column));
+    run(
+        app,
+        "frame\npress #cell-4-1 clicks 2\nframe\nkey Enter\nframe\npress #number-6 clicks 2\nframe");
+    assertEquals(List.of("select 4", "edit 4 1", "edit 4 1", "select 6", "open 6"), orders.log);
+
+    orders.log.clear();
+    orders.editable = true; // editable columns, which the grid edits only with onCommit
+    orders.more = o -> o.onActivate(row -> orders.log.add("open " + row))
+        .loading(row -> row != 4, (first, last) -> {});
+    run(app, "frame\npress #cell-3-1 clicks 2\nframe\npress #cell-4-1 clicks 2\nkey Enter\nframe");
+    assertEquals(
+        List.of("select 3", "open 3", "select 4"),
+        orders.log,
+        "3 is not edited without onCommit, 4 not loaded");
+  }
+
   private static int key(App<Orders> app, Orders orders, String name) {
     app.keyDown(new Key(name));
     app.keyUp(new Key(name));

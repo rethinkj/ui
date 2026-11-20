@@ -1,0 +1,92 @@
+el 0,0 360x260
+  el 12,12 336x212
+    el #orders role=grid label="Orders" 13,13 334x210 focused
+      el #content 13,13 334x210
+        el #header 13,13 334x25
+          el #column-0 role=columnheader label="id" 13,13 79x24 pos=1/2
+            text label="number_symbol" "\u{F57C}" 57,17 16x16
+            text "id" 77,17 11x16
+          el 92,13 1x24
+          el #column-1 role=columnheader label="customer" 93,13 119x24 pos=2/2
+            text label="text_case_title" "\u{ECEC}" 97,17 16x16
+            text "customer" 117,17 60x16
+          el 212,13 1x24
+        el #rows 13,38 334x185 rows 0-10/1000 thumb-y 339,40 6x24
+          el #row-0 role=row 13,38 334x24 pos=1/1000
+            el #cell-0-0 role=gridcell 13,38 79x23 pos=1/2
+              text "1000" 60,42 28x16
+            el 92,38 1x23
+            el #cell-0-1 role=gridcell 93,38 119x23 pos=2/2
+              text "Ada" 97,42 24x16
+            el 212,38 1x23
+          el #row-1 role=row 13,62 334x24 pos=2/1000
+            el #cell-1-0 role=gridcell 13,62 79x23 pos=1/2
+              text "1001" 60,66 28x16
+            el 92,62 1x23
+            el #cell-1-1 role=gridcell 93,62 119x23 pos=2/2
+              text "Brendan" 97,66 53x16
+            el 212,62 1x23
+          el #row-2 role=row 13,86 334x24 selected current pos=3/1000
+            el #cell-2-0 role=gridcell 13,86 79x23 pos=1/2
+              text "1002" 60,90 28x16
+            el 92,86 1x23
+            el #cell-2-1 role=gridcell 93,86 119x23 pos=2/2
+              text "Chen" 97,90 33x16
+            el 212,86 1x23
+          el #row-3 role=row 13,110 334x24 pos=4/1000
+            el #cell-3-0 role=gridcell 13,110 79x23 pos=1/2
+              text "1003" 60,114 28x16
+            el 92,110 1x23
+            el #cell-3-1 role=gridcell 93,110 119x23 pos=2/2
+              text "Dagny" 97,114 38x16
+            el 212,110 1x23
+          el #row-4 role=row 13,134 334x24 pos=5/1000
+            el #cell-4-0 role=gridcell 13,134 79x23 pos=1/2
+              text "1004" 60,138 28x16
+            el 92,134 1x23
+            el #cell-4-1 role=gridcell 93,134 119x23 pos=2/2
+              text "Emeka" 97,138 41x16
+            el 212,134 1x23
+          el #row-5 role=row 13,158 334x24 pos=6/1000
+            el #cell-5-0 role=gridcell 13,158 79x23 pos=1/2
+              text "1005" 60,162 28x16
+            el 92,158 1x23
+            el #cell-5-1 role=gridcell 93,158 119x23 pos=2/2
+              text "Farah" 97,162 34x16
+            el 212,158 1x23
+          el #row-6 role=row 13,182 334x24 pos=7/1000
+            el #cell-6-0 role=gridcell 13,182 79x23 pos=1/2
+              text "1006" 60,186 28x16
+            el 92,182 1x23
+            el #cell-6-1 role=gridcell 93,182 119x23 pos=2/2
+              text "Gus" 97,186 25x16
+            el 212,182 1x23
+          el #row-7 role=row 13,206 334x24 pos=8/1000
+            el #cell-7-0 role=gridcell 13,206 79x23 pos=1/2
+              text "1007" 60,210 28x16
+            el 92,206 1x23
+            el #cell-7-1 role=gridcell 93,206 119x23 pos=2/2
+              text "Ada" 97,210 24x16
+            el 212,206 1x23
+          el #row-8 role=row 13,230 334x24 pos=9/1000
+            el #cell-8-0 role=gridcell 13,230 79x23 pos=1/2
+              text "1008" 60,234 28x16
+            el 92,230 1x23
+            el #cell-8-1 role=gridcell 93,230 119x23 pos=2/2
+              text "Brendan" 97,234 53x16
+            el 212,230 1x23
+          el #row-9 role=row 13,254 334x24 pos=10/1000
+            el #cell-9-0 role=gridcell 13,254 79x23 pos=1/2
+              text "1009" 60,258 28x16
+            el 92,254 1x23
+            el #cell-9-1 role=gridcell 93,254 119x23 pos=2/2
+              text "Chen" 97,258 33x16
+            el 212,254 1x23
+          el #row-10 role=row 13,278 334x24 pos=11/1000
+            el #cell-10-0 role=gridcell 13,278 79x23 pos=1/2
+              text "1010" 60,282 28x16
+            el 92,278 1x23
+            el #cell-10-1 role=gridcell 93,278 119x23 pos=2/2
+              text "Dagny" 97,282 38x16
+            el 212,278 1x23
+  text #said "Opened order 1002" 12,232 121x16

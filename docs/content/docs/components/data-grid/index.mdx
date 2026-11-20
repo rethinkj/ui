@@ -60,6 +60,7 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | --- | --- |
 | `select(Selection)` | Enables cursor and selection (required by most other features). See [Selection](/docs/components/data-grid/selection) |
 | `onSelect(Runnable)` | Called whenever the selection changes |
+| `onActivate(row -> …)` | Opens a row on Enter or double-click. See [Opening a row](#opening-a-row) |
 | `rowNumbers()` | Adds a row-number gutter column that selects whole rows |
 | `frozen(int columns)` | Keeps the first `N` columns fixed while scrolling horizontally |
 | `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Enables Ctrl+C tab-separated copy. See [Copying](/docs/components/data-grid/selection#copying) |
@@ -73,6 +74,21 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `filters(filters, onFilter)`, `filterable(columns)` | Per-column filter popovers. See [Filters](/docs/components/data-grid/filters) |
 | `changes(GridChanges)` | Full inline editing with pending changes and undo/redo. See [Editing](/docs/components/data-grid/editing) |
 | `onEdit`, `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `status`, `errors`, `history`, `appendRow()` | Lower-level editing hooks |
+
+## Opening a row
+
+`onActivate(row -> …)` reports the row a user opens with **Enter** or a double-click on one of its cells or its number, such as a result to show in full or the entry a picker dialog takes. It needs `select(...)`. Where Enter or a double-click edits the cell (`onCommit`, `onEdit`), the grid edits instead, and rows that are not loaded yet do not open.
+
+```java snippet="grid-open"
+```
+
+```java snippet="grid-open-handler"
+```
+
+A script opens a row the same way a user does:
+
+```text file="examples/src/test/resources/docs/grid-open.txt"
+```
 
 ## Lazy-loaded rows
 
@@ -91,6 +107,7 @@ The grid is a single Tab stop:
 | Ctrl+A | Select all |
 | Ctrl+C, Ctrl+Insert | Copy selection |
 | Enter, F2, typing | Start editing active cell |
+| Enter | Open the cursor's row where nothing edits the cell (`onActivate`) |
 | Menu key, Shift+F10 | Open context menu at cursor |
 
 ## In a tree dump
@@ -100,4 +117,4 @@ The grid is a single Tab stop:
 ```text file="examples/src/test/resources/golden/docs/grid/selected.tree.txt" start="#row-2" count="9"
 ```
 
-Example script actions: `press #cell-2-1`, `press #column-1`, or target `#row-2`.
+Example script actions: `press #cell-2-1`, `press #column-1`, `press #cell-2-1 clicks 2` (double-click), or target `#row-2`.
