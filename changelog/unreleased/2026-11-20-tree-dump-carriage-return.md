@@ -1,0 +1,1 @@
+- The element tree writes a carriage return in a label, placeholder, value or text as `\r`, so each element keeps to one line, and a script reads `\r` back in its quoted text and selectors.

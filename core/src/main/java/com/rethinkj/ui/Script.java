@@ -1646,7 +1646,7 @@ public final class Script {
           i = codePoint.end() - 1;
         } else {
           c = text.charAt(i);
-          out.append(c == 'n' ? '\n' : c == 't' ? '\t' : c);
+          out.append(c == 'n' ? '\n' : c == 'r' ? '\r' : c == 't' ? '\t' : c);
         }
       } else {
         out.append(c);
