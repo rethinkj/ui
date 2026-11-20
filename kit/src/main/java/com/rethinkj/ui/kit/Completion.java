@@ -415,6 +415,7 @@ public final class Completion {
         && inserted.codePointCount(0, inserted.length()) == 1
         && CodeWords.isWordChar(inserted.codePointAt(0), state.wordCharacters)) {
       state.typed = change.newEnd(); // the build after it may open the list
+      state.triggered = state.openAfter.contains(inserted); // a word character of openAfter's
       state.highlight = 0; // what it shows changes
     } else if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
