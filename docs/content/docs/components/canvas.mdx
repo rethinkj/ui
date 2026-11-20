@@ -29,7 +29,7 @@ Keep a `Canvas.Viewport` and the nodes in your app state and pass `Canvas.canvas
 | `viewport` | The diagram point at the canvas's top left and the zoom; `fit()`, `zoomIn()`, `zoomOut()`, `zoomBy(steps, x, y)` and `panTo(left, top)` change it |
 | `nodes` | `Canvas.Node(key, label, x, y, width, height, pinned)`, in diagram coordinates at 100 % |
 | `content` | Builds a node's element at the zoom of the moment, sized `width × zoom` by `height × zoom` |
-| `onMove` | Receives a dragged node, moved and pinned (`null` fixes the nodes) |
+| `onMove` | Receives a dragged node, moved and pinned, and the node as it was when Escape cancels the drag (`null` fixes the nodes) |
 
 Zoom does not scale a picture: the canvas lays its nodes out again at their sizes times the zoom, so text stays sharp. The `content` function multiplies its own sizes by the zoom and is the level of detail: zoomed out, a node can show less, as the tables above drop their columns below 75 %. The zoom moves in the steps of `Viewport.ZOOMS`, 25 % to 200 %.
 

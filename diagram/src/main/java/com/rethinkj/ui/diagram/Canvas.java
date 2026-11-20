@@ -167,7 +167,11 @@ public final class Canvas {
      */
     public void zoomBy(int steps, float x, float y) {
       float before = zoom();
-      step = Math.clamp((long) step + steps, 0, ZOOMS.size() - 1);
+      int next = Math.clamp((long) step + steps, 0, ZOOMS.size() - 1);
+      if (next == step) {
+        return; // at that end already: a fit goes on
+      }
+      step = next;
       float after = zoom();
       left += x / before - x / after;
       top += y / before - y / after;
@@ -238,7 +242,9 @@ public final class Canvas {
    * @param nodes the nodes, each with a key of its own; later ones lie on top
    * @param content builds what each node shows at the zoom of the moment
    * @param onMove told a node moved and pinned while the user drags it, and the node as it was
-   *     when the drag is cancelled; null fixes the nodes
+   *     when the drag is cancelled, which may be unpinned. It is the node of the view the drag
+   *     began in: an app that changes a node during a drag takes only the position and the pin
+   *     from it. Null fixes the nodes.
    */
   public static El canvas(
       Viewport viewport, List<Node> nodes, NodeContent content, Consumer<Node> onMove) {
@@ -308,9 +314,12 @@ public final class Canvas {
       default -> {}
     }
     float zoom = viewport.zoom();
-    viewport.panTo(
-        viewport.left - (drag.dx() - viewport.draggedDx) / zoom,
-        viewport.top - (drag.dy() - viewport.draggedDy) / zoom);
+    if (drag.dx() != viewport.draggedDx || drag.dy() != viewport.draggedDy) {
+      // Only a movement pans: a release in place leaves a fit made during the drag going on.
+      viewport.panTo(
+          viewport.left - (drag.dx() - viewport.draggedDx) / zoom,
+          viewport.top - (drag.dy() - viewport.draggedDy) / zoom);
+    }
     viewport.draggedDx = drag.dx();
     viewport.draggedDy = drag.dy();
   }
