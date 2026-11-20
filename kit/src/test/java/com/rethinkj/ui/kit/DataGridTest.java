@@ -194,13 +194,13 @@ class DataGridTest {
     assertEquals(3, key(app, orders, "ArrowDown"));
     assertInView(app, 3);
 
-    selection.select(40, 0); // in one handler: the rows go to 80 all the same
+    selection.select(4, 0); // in one handler: the rows go to 80, and back with the cursor
     selection.scrollToRow(80);
     app.invalidate();
     app.frame();
     assertEquals(80 * 24.0, find(app, "rows").scrollY());
-    assertEquals(41, key(app, orders, "ArrowDown"));
-    assertInView(app, 41);
+    assertEquals(3, key(app, orders, "ArrowUp"));
+    assertInView(app, 3);
 
     selection.scrollToRow(999_999);
     app.invalidate();
@@ -209,6 +209,15 @@ class DataGridTest {
     assertEquals(1_000_000 * 24.0 + 10 - rows.height(), rows.scrollY(), "as far as the end goes");
     assertEquals(999_999, selection.lastRowInView());
     assertEquals(999_993, selection.firstRowInView(), "above the 10 pixels for the bar sideways");
+  }
+
+  @Test
+  void aNewGridOpensAtTheRowScrolledToRatherThanAtTheCursor() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    orders.selection.select(400, 0);
+    orders.selection.scrollToRow(80);
+    App<Orders> app = start(orders);
+    assertEquals(80 * 24.0, find(app, "rows").scrollY());
   }
 
   @Test

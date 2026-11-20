@@ -1080,9 +1080,8 @@ public final class DataGrid {
     final ScrollState rowsScroll = new ScrollState(); // the rows, up and down
     final ScrollState gridScroll = new ScrollState(); // header and rows, sideways
     int scrollRow = -1; // the row that scrollToRow puts at the top at the next build, -1 for none
-    // The row the rows were last told to keep in view, and the cursor's row when scrollToRow
-    // scrolled away from it: until the cursor moves on, the rows keep that row instead.
-    int revealed = -1;
+    // The cursor's row when scrollToRow scrolled away from it: until the cursor moves on, the
+    // rows keep no row in view, so that the next row it moves to shows.
     int heldRow = -1;
     boolean holding;
     // The rows of the last grid built with it and of the one before, which tell what is in view
@@ -1294,9 +1293,9 @@ public final class DataGrid {
     /**
      * Scrolls the rows at the next build so that this row is at their top, or as far as the end
      * of the rows allows, as buttons that page through a long result do; the selection and the
-     * scrolling sideways stay as they are. Later builds do not scroll back to the cursor; once it
-     * moves to another row, the grid shows that row as always. A grid built for the first time
-     * shows its cursor's row instead.
+     * scrolling sideways stay as they are, also where the cursor moved in the same handler.
+     * Later builds do not scroll back to the cursor; once it moves to another row, the grid shows
+     * that row as always.
      *
      * @param row the row, from 0; one beyond the last scrolls to the end
      * @throws IllegalArgumentException if {@code row} is negative
@@ -2356,8 +2355,7 @@ public final class DataGrid {
     }
     if (sel != null) {
       sel.holding &= sel.row() == sel.heldRow;
-      sel.revealed = sel.holding ? sel.revealed : sel.row();
-      body.revealRow(sel.revealed);
+      body.revealRow(sel.holding ? -1 : sel.row());
     }
     if (options.onRows != null) {
       body.onRowsBuilt(options.onRows);
