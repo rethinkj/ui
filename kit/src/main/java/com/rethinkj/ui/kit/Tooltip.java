@@ -191,7 +191,12 @@ public final class Tooltip {
 
   /** The tooltip's overlay, for components that decide in their own look whether it shows. */
   static El panel(Theme theme, String text) {
-    return panel(theme, text(theme, text), text, options());
+    return panel(theme, text, options());
+  }
+
+  /** As {@link #panel(Theme, String)}, with a shortcut, a description, a kind or another side. */
+  static El panel(Theme theme, String text, Options options) {
+    return panel(theme, text(theme, text), text, options);
   }
 
   private static El text(Theme theme, String text) {

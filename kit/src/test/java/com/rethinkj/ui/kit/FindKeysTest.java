@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -420,6 +421,56 @@ class FindKeysTest {
     assertEquals(TEXT.indexOf("orders of"), doc.editor.anchor(), "whole words, case matched");
     run(app, "key D control\nkey D control");
     assertEquals(TEXT.indexOf("orders"), doc.editor.anchor(), "round past UPDATE's to the first");
+  }
+
+  @Test
+  void f8GoesFromDiagnosticToDiagnosticAndShowsItsMessage() throws IOException {
+    Doc doc = new Doc(TEXT);
+    int name = TEXT.indexOf("name");
+    int orders = TEXT.indexOf("Orders");
+    int update = TEXT.indexOf("UPDATE");
+    doc.editor.diagnostics(
+        TEXT,
+        List.of(
+            new CodeEditor.Diagnostic(update, update + 6, CodeEditor.Severity.WARNING, "No WHERE"),
+            new CodeEditor.Diagnostic(name, name + 4, CodeEditor.Severity.ERROR, "No column name"),
+            new CodeEditor.Diagnostic(
+                orders, orders + 6, CodeEditor.Severity.WARNING, "Orders is not orders")));
+    App<Doc> app = app(doc);
+    String tree = run(app, "frame\nfocus #query\nkey F8");
+    assertTrue(line(tree, "query").contains(" focused caret " + name + " "), tree);
+    assertTrue(tree.contains("role=tooltip label=\"No column name\""), tree);
+    tree = run(app, "key F8");
+    assertEquals(orders, caret(doc));
+    assertTrue(tree.contains("role=tooltip label=\"Orders is not orders\""), tree);
+    run(app, "key F8");
+    assertEquals(update, caret(doc));
+    tree = run(app, "key F8");
+    assertEquals(name, caret(doc), "round to the first");
+    tree = run(app, "key F8 shift");
+    assertEquals(update, caret(doc), "and back round to the last");
+    assertTrue(tree.contains("role=tooltip label=\"No WHERE\""), tree);
+    tree = run(app, "key F8 shift");
+    assertEquals(orders, caret(doc));
+
+    tree = run(app, "key Escape");
+    assertFalse(tree.contains("role=tooltip"), "Escape hides the message:\n" + tree);
+    assertEquals(orders, caret(doc));
+    run(app, "key F8");
+    tree = run(app, "key ArrowLeft");
+    assertFalse(tree.contains("role=tooltip"), "and so does leaving the diagnostic:\n" + tree);
+
+    // With the find bar open, Escape closes the bar first, then the message.
+    run(app, "key Home control\nkey F control\nfocus #query\nkey F8");
+    tree = run(app, "key Escape");
+    assertFalse(tree.contains("role=search"), tree);
+    assertTrue(tree.contains("role=tooltip label=\"No column name\""), tree);
+    tree = run(app, "key Escape");
+    assertFalse(tree.contains("role=tooltip"), tree);
+
+    doc.editor.noDiagnostics();
+    run(app, "frame\nkey F8");
+    assertEquals(name, caret(doc), "without diagnostics F8 does nothing");
   }
 
   @Test

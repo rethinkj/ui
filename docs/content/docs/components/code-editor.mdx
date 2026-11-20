@@ -19,7 +19,7 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 - `state.sql` is the document string, updated via `onChange`.
 - `state.editor` is a `CodeEditor.State` stored in your app state (one per tab/editor) to preserve cursor, selection, scroll position, and undo history across tab switches.
 - `Sql.of()` highlights standard SQL (and `Sql.of(Sql.Dialect.MYSQL)` supports MySQL/MariaDB syntax). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
-- Passing `state.app` enables the built-in find bar and line commands. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
+- Passing `state.app` enables the built-in find bar, line commands and F8 to go to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
 - Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
 
 ## Placeholder and read-only
@@ -51,6 +51,8 @@ The left gutter displays a marker column and line numbers. You can attach:
 - **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
 - **Diagnostics (`diagnostics(text, list)`):** Underlines errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
+
+With the app passed, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** to the previous one, wrapping around at the ends. The message then shows below the cursor, in the look of the marker's tooltip, until the cursor leaves the diagnostic or **Escape** hides it. Escape still closes an open completion list or find bar first. Without diagnostics, the keys do nothing.
 
 ```java snippet="code-editor-marks"
 ```
@@ -112,6 +114,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move lines up or down |
 | Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
 | Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
+| F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
 Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
 
@@ -119,7 +122,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements:
+`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. A message that F8 shows is an overlay of the editor, `role=tooltip` with the message as its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
 ```
