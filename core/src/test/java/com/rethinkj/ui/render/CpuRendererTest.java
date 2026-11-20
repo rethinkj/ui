@@ -57,23 +57,26 @@ class CpuRendererTest {
 
   @Test
   void eachSideOfABorderInItsOwnColorIsDrawnAsABorderAllInThatColor() {
-    // A translucent field with a blue bottom, at a scale of 2: the bottom border's rows, also of
-    // the round corners, are those of a blue border, every other pixel those of a red one.
-    Pixels[] images = new Pixels[3];
-    for (int i = 0; i < 3; i++) {
-      El field = el().size(40, 20).radius(6).fill(0xFFFFFFFF).opacity(0.5f);
-      field.border(1, i == 2 ? BLUE : RED);
-      if (i == 0) {
-        field.borderColors(RED, RED, BLUE, RED);
+    // A translucent rounded box at a scale of 2 with four colors and a right border wider than half
+    // of it: the top
+    // and the bottom border's rows, also of the corners, are those of a border all in their color,
+    // the rows between left and right of the middle between the inner edges those of the sides.
+    int[] colors = {RED, 0xFF00FF00, BLUE, 0xFFFFFF00};
+    Pixels[] images = new Pixels[5];
+    for (int i = 0; i < 5; i++) {
+      El box = el().size(40, 20).radius(6).fill(0xFFFFFFFF).opacity(0.5f);
+      box.border(1, 24, 1, 1, i < 4 ? colors[i] : RED);
+      if (i == 4) {
+        box.borderColors(colors[0], colors[1], colors[2], colors[3]);
       }
-      El root = el().size(40, 20).child(field);
+      El root = el().size(40, 20).child(box);
       Flex.layout(root, 40, 20);
       images[i] = CpuRenderer.render(Scene.of(root, 2), 80, 40, 2);
     }
     for (int y = 0; y < 40; y++) {
       for (int x = 0; x < 80; x++) {
-        int like = images[y >= 38 ? 2 : 1].argb(x, y);
-        assertEquals(like, images[0].argb(x, y), "at " + x + "," + y);
+        int side = y < 2 ? 0 : y >= 38 ? 2 : x >= 17 ? 1 : 3; // the middle: (1 + 40 - 24) / 2
+        assertEquals(images[side].argb(x, y), images[4].argb(x, y), "at " + x + "," + y);
       }
     }
   }
