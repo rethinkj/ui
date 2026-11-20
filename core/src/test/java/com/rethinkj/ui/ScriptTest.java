@@ -296,6 +296,37 @@ class ScriptTest {
   }
 
   @Test
+  void atNamesAPointNearTheEdgesOfItsElement() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(
+        log,
+        l -> el().size(100, 100)
+            .child(el().absolute(0, 0)
+                .size(100, 60)
+                .clip()
+                .child(el().absolute(20, 30) // shows from 30 to 60, where its parent clips it
+                    .size(60, 40)
+                    .key("box")
+                    .onPress((clicks, modifiers, x, y) -> l.add(clicks + " " + x + "," + y)))));
+    Script.run("""
+        size 100 100
+        frame
+        press #box at top+2
+        press #box at right-1.5 clicks 2
+        down #box at left+3,bottom-28
+        up #box at bottom-28,left+3
+        frame
+        """, app, out);
+    assertEquals(List.of("1 30.0,2.0", "2 58.5,15.0", "1 3.0,12.0"), log);
+
+    String start = "size 100 100\nframe\npress ";
+    assertFailure(start + "#box at bottom-2\n", "That point of #box is clipped away", app);
+    assertFailure(start + "#box at middle\n", "Write `at` and an edge after a selector", app);
+    assertFailure(start + "#box at top+2,bottom-2\n", "Write `at` and an edge", app);
+    assertFailure(start + "50,50 at top+2\n", "Write `at` and an edge", app);
+  }
+
+  @Test
   void downAndUpPressOnlyWhenTheyMeetTheSameElement() throws IOException {
     App<Lights> app = switchApp();
     Script.run("size 200 120\nframe\ndown #switch\nup 10,10\nframe\n", app, out);
@@ -489,7 +520,9 @@ class ScriptTest {
             + " 0 40`. A target is a position x,y in logical pixels such as 90,60, or a selector"
             + " of #key, role=<role>, label=\"<text>\", text=\"<string>\" and states as a"
             + " .tree.txt writes them (selected, checked=false, expanded, level=2,"
-            + " value=\"<text>\") such as role=switch label=\"Lights\".",
+            + " value=\"<text>\") such as role=switch label=\"Lights\", and after a selector"
+            + " `at` with an edge or two for a point near them instead of the center, such as `at"
+            + " top+2` or `at right-4,bottom-2`.",
         failure("wheel #list 40\n"));
     assertFailure(
         "size 200 120\nframe\npress name=Lights\n",
@@ -542,7 +575,9 @@ class ScriptTest {
             + " position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
             + " label=\"<text>\", text=\"<string>\" and states as a .tree.txt writes them"
             + " (selected, checked=false, expanded, level=2, value=\"<text>\") such as"
-            + " role=switch label=\"Lights\".",
+            + " role=switch label=\"Lights\", and after a selector `at` with an edge or two for a"
+            + " point near them instead of the center, such as `at top+2` or"
+            + " `at right-4,bottom-2`.",
         failure("size 200 120\nframe\npress #switch clicks two\n"));
     assertFailure("size 200 120\nframe\nup #switch shift\n", "shift is not a target");
 

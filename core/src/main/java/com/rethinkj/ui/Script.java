@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
  * press #name clicks 2               # a double press, which selects a word in a field
  * press #name shift                  # with Shift held, which extends a field's selection
  * press #row-3 right                 # the secondary button, which opens a context menu
+ * move #row-3 at top+2               # 2 pixels below the top edge of #row-3, centered across
  * compose "ni"                       # an input method's composition in the focused field
  * clipboard "SELECT 1"               # puts text on the app's clipboard
  * down #resize-1                     # pointer down; a move before the up drags an El.onDrag
@@ -88,7 +89,15 @@ public final class Script {
       "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
           + " label=\"<text>\", text=\"<string>\" and states as a .tree.txt writes them (selected,"
           + " checked=false, expanded, level=2, value=\"<text>\") such as role=switch"
-          + " label=\"Lights\"";
+          + " label=\"Lights\", and after a selector `at` with an edge or two for a point near"
+          + " them instead of the center, such as `at top+2` or `at right-4,bottom-2`";
+  /** How to write the point that {@code at} names. */
+  private static final String AT =
+      "Write `at` and an edge after a selector, with a distance in logical pixels: `at top+2` is 2"
+          + " pixels below the top of the element's rectangle in a .tree.txt, `at bottom-2` 2"
+          + " above its bottom, and `at right-4,bottom-2` near its bottom right corner. With only"
+          + " top or bottom, the point is centered between left and right, and the other way"
+          + " round.";
   /** A state of a selector, as {@link El#dump} writes it, but the value; =true may be added. */
   private static final Pattern STATE = Pattern.compile(
       "disabled|readonly|password|revealed|invalid|busy|selected|current|grabbed|modified|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
@@ -102,6 +111,9 @@ public final class Script {
   private static final Pattern SIGNED = Pattern.compile("-?\\d+(\\.\\d+)?");
   private static final Pattern POSITION =
       Pattern.compile("(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)");
+  /** An edge after {@code at}: across or along, and the distance from it. */
+  private static final Pattern EDGE =
+      Pattern.compile("(?:(left|right)|top|bottom)([+-]\\d+(?:\\.\\d+)?)");
 
   private Script() {}
 
@@ -681,10 +693,19 @@ public final class Script {
   }
 
   /**
-   * An element of the last frame with the window position of its border box, and the center of
-   * the part of it that its clips leave.
+   * An element of the last frame with the window position of its border box, the center of the
+   * part of it that its clips leave, and that part.
    */
-  private record Found(El el, float left, float top, float x, float y) {}
+  private record Found(
+      El el,
+      float left,
+      float top,
+      float x,
+      float y,
+      float seenLeft,
+      float seenTop,
+      float seenRight,
+      float seenBottom) {}
 
   /** A target's point in logical pixels of the window it was found in. */
   private record Aim(Win win, float x, float y) {
@@ -1289,10 +1310,19 @@ public final class Script {
       return Double.parseDouble(word);
     }
 
-    /** The point a target stands for, in logical pixels: a position, or an element's center. */
+    /**
+     * The point a target stands for, in logical pixels: a position, an element's center, or a
+     * point near its edges that {@code at} names.
+     */
     float[] point(List<String> target, El root) {
+      int at = target.indexOf("at");
+      String edges = at < 0 ? null : at == target.size() - 2 ? target.getLast() : "";
+      target = at < 0 ? target : target.subList(0, at);
       String text = String.join(" ", target);
       Matcher position = POSITION.matcher(text);
+      if (edges != null && (target.isEmpty() || position.matches())) {
+        throw fail(AT);
+      }
       if (position.matches()) {
         float x = Float.parseFloat(position.group(1));
         return new float[] {x, Float.parseFloat(position.group(2))};
@@ -1336,7 +1366,8 @@ public final class Script {
       Predicate<Found> matching = found -> tests.stream().allMatch(t -> t.test(found.el));
       List<Found> matches = all.stream().filter(matching).toList();
       if (matches.size() == 1) {
-        return new float[] {matches.getFirst().x, matches.getFirst().y};
+        Found found = matches.getFirst();
+        return edges == null ? new float[] {found.x, found.y} : near(found, edges, text);
       }
       if (matches.isEmpty() && clipped.stream().anyMatch(matching)) {
         throw fail(
@@ -1439,6 +1470,39 @@ public final class Script {
           + "  Add #key, role=, label= or a state to the selector until it matches one, or press"
           + " a position x,y inside one of these rectangles.");
     }
+
+    /** The point that {@code at <edges>} names, from the edges of the element's rectangle. */
+    float[] near(Found found, String edges, String text) {
+      float[] point = {found.x, found.y};
+      boolean[] named = new boolean[2];
+      for (String part : edges.split(",", -1)) {
+        Matcher edge = EDGE.matcher(part);
+        int axis = !edge.matches() ? -1 : edge.group(1) != null ? 0 : 1;
+        if (axis < 0 || named[axis]) {
+          throw fail(AT);
+        }
+        named[axis] = true;
+        boolean far = part.startsWith("right") || part.startsWith("bottom");
+        float size = axis == 0 ? found.el.width() : found.el.height();
+        point[axis] = (axis == 0 ? found.left : found.top)
+            + (far ? size : 0)
+            + Float.parseFloat(edge.group(2));
+      }
+      float x = point[0];
+      float y = point[1];
+      boolean inside = x >= found.left
+          && x < found.left + found.el.width()
+          && y >= found.top
+          && y < found.top + found.el.height();
+      boolean seen =
+          x >= found.seenLeft && x < found.seenRight && y >= found.seenTop && y < found.seenBottom;
+      if (inside && !seen) {
+        throw fail("That point of " + text + " is clipped away in the last frame, for example"
+            + " scrolled out of its scroll area, so it would reach what lies there instead. Bring"
+            + " it into view first, or name a point of the part that shows.");
+      }
+      return point;
+    }
   }
 
   /**
@@ -1514,14 +1578,16 @@ public final class Script {
     float visibleTop = Math.max(top, clipTop);
     float visibleRight = Math.min(right, clipRight);
     float visibleBottom = Math.min(bottom, clipBottom);
-    Found found = new Found(
-        el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
+    float x = (visibleLeft + visibleRight) / 2;
+    float y = (visibleTop + visibleBottom) / 2;
     List<Text.Box> rows = el.rangeBoxes();
     if (rows != null && !rows.isEmpty()) { // a range: the middle of its first row
       Text.Box row = rows.getFirst();
-      found = new Found(
-          el, left, top, left + row.x() + row.width() / 2, top + row.y() + row.height() / 2);
+      x = left + row.x() + row.width() / 2;
+      y = top + row.y() + row.height() / 2;
     }
+    Found found =
+        new Found(el, left, top, x, y, visibleLeft, visibleTop, visibleRight, visibleBottom);
     boolean visible = left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop;
     (visible ? all : clipped).add(found);
     Style s = el.style();
