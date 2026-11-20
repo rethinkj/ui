@@ -1315,7 +1315,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 })
                 .key("copy-preview"),
             commit),
-        commit,
+        // no default button: Enter in the statements must not write them
         () -> previewing = null);
   }
 

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -303,6 +304,22 @@ class WorkbenchTest {
         "1.00",
         s.tables().get(1).changes.cell(0, 3),
         "another tab of the table shows what was written");
+  }
+
+  /** The preview of the statements commits on a press of its button only, not on Enter. */
+  @Test
+  void enterInThePreviewCommitsNothing() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    orders.changes.set(0, 3, "1.00");
+    s.previewing = orders;
+    changed(app);
+    Script.run("size 1000 600\nfocus #statements\nkey Enter\nframe\nawait\nframe", app, out);
+    assertNull(orders.committing);
+    assertEquals(1, orders.changes.count(), "nothing written");
+    assertSame(orders, s.previewing, "the preview is still open");
   }
 
   /**
