@@ -300,16 +300,6 @@ class WindowsScriptTest {
     assertEquals(List.of(), told, "a task of the frame after the first");
     Script.run("frame\nframe", app, out);
     assertEquals(List.of("main", "A"), told);
-
-    // Set after A has shown, between steps or from a handler: in A's next frame, as in a loop.
-    a.onShown(() -> told.add("between"));
-    Script.run("frame", app, out);
-    assertEquals(List.of("main", "A", "between"), told);
-    a.app().request(() -> a.onShown(() -> told.add("handler")));
-    Script.run("frame", app, out);
-    assertEquals(List.of("main", "A", "between"), told);
-    Script.run("frame", app, out);
-    assertEquals(List.of("main", "A", "between", "handler"), told);
   }
 
   @Test

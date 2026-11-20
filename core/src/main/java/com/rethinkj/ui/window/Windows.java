@@ -174,12 +174,12 @@ public interface Windows {
      * next frame. A window that is minimized or hidden shows no frame, and the handler waits until
      * one is shown. It suits what has to wait until the app can be seen to work, such as telling
      * an updater that a new version started, closing a splash screen, or measuring the time to the
-     * first frame. Set later, as from a handler, it runs in the window's next frame. In a script, a
-     * window shows its first frame at the first {@code frame} step that draws it, and the handler
-     * runs in the next one.
+     * first frame. In a script, a window shows its first frame at the first {@code frame} step
+     * that draws it, and the handler runs in the next one.
      *
-     * <p>The first window of a {@link WindowLoop} has its handle before {@link WindowLoop#run}, in
-     * {@code loop.windows().of(app)}.
+     * <p>Set it before the window's first frame: right after {@link Windows#open}, in the same
+     * handler, or for the first window of a {@link WindowLoop} before {@link WindowLoop#run}, from
+     * {@code loop.windows().of(app)}. A handler set after that does not run.
      *
      * @param handler the handler, or null for none
      */

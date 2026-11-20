@@ -297,9 +297,6 @@ public final class WindowLoop {
     @Override
     public void onShown(Runnable handler) {
       onShown = handler;
-      if (shown && handler != null) {
-        app.post(handler);
-      }
     }
 
     @Override

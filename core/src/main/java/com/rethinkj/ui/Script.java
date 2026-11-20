@@ -736,7 +736,7 @@ public final class Script {
     boolean sized;
     boolean open = true;
     boolean fresh; // opened since the last frame step
-    boolean told; // a frame step after the one that drew it first queued its onShown handler
+    boolean shown; // a frame step has drawn it
     boolean dropTarget = true;
     Runnable onClose;
     Runnable onClosed;
@@ -851,7 +851,6 @@ public final class Script {
     @Override
     public void onShown(Runnable handler) {
       onShown = handler;
-      told = false; // queued in the next frame step, as a loop's in its next frame
     }
 
     @Override
@@ -1053,15 +1052,6 @@ public final class Script {
      * {@link com.rethinkj.ui.window.WindowLoop#run}.
      */
     void frame() {
-      // A window that showed a frame in an earlier step runs its onShown handler in this one.
-      for (Win w : open()) {
-        if (!w.told && w.app.tree() != null) {
-          w.told = true;
-          if (w.onShown != null) {
-            w.app.request(w.onShown);
-          }
-        }
-      }
       Set<Win> due = new HashSet<>(open());
       for (int round = 0; round < 3 && !due.isEmpty(); round++) {
         Set<Win> again = new HashSet<>();
@@ -1083,6 +1073,15 @@ public final class Script {
           }
         }
         due = again;
+      }
+      // Every open window has drawn now; it shows, so its handler runs in the next frame step.
+      for (Win w : open()) {
+        if (!w.shown) {
+          w.shown = true;
+          if (w.onShown != null) {
+            w.app.request(w.onShown);
+          }
+        }
       }
     }
 
