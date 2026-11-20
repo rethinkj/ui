@@ -360,15 +360,16 @@ class PixelGridTest {
       // edge.
       float[] widths = {px(st.borderTop), px(st.borderRight), px(st.borderBottom), px(st.borderLeft)
       };
-      boolean colored = el.borderColor() >>> 24 == 0xFF;
+      int[] sides = el.borderColors();
       boolean filled = el.fill() >>> 24 == 0xFF;
       int[] runs = new int[4];
       int[] colors = new int[4];
       boolean any = false;
       for (int side = 0; side < 4; side++) {
-        boolean bordered = colored && widths[side] > 0;
+        int color = sides != null ? sides[side] : el.borderColor();
+        boolean bordered = color >>> 24 == 0xFF && widths[side] > 0;
         runs[side] = bordered ? stroke(widths[side], scale) : 0;
-        colors[side] = bordered ? el.borderColor() : filled ? el.fill() : 0;
+        colors[side] = bordered ? color : filled ? el.fill() : 0;
         any |= colors[side] != 0;
       }
       shadowed = !el.shadows().isEmpty(); // a gradient outside, which is no edge's blend

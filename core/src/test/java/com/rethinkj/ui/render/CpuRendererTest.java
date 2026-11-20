@@ -56,6 +56,29 @@ class CpuRendererTest {
   }
 
   @Test
+  void eachSideOfABorderInItsOwnColorIsDrawnAsABorderAllInThatColor() {
+    // A translucent field with a blue bottom, at a scale of 2: the bottom border's rows, also of
+    // the round corners, are those of a blue border, every other pixel those of a red one.
+    Pixels[] images = new Pixels[3];
+    for (int i = 0; i < 3; i++) {
+      El field = el().size(40, 20).radius(6).fill(0xFFFFFFFF).opacity(0.5f);
+      field.border(1, i == 2 ? BLUE : RED);
+      if (i == 0) {
+        field.borderColors(RED, RED, BLUE, RED);
+      }
+      El root = el().size(40, 20).child(field);
+      Flex.layout(root, 40, 20);
+      images[i] = CpuRenderer.render(Scene.of(root, 2), 80, 40, 2);
+    }
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 80; x++) {
+        Pixels like = y >= 38 ? images[2] : images[1];
+        assertEquals(like.argb(x, y), images[0].argb(x, y), "at " + x + "," + y);
+      }
+    }
+  }
+
+  @Test
   void anArcCoversThePixelAtItsCenterByThePartOfATurnItSweeps() {
     El half = el().size(21, 21).radius(10.5f).fill(RED).arc(0, 0.5f);
     El quarter = el().absolute(30, 0).size(21, 21).radius(10.5f).fill(RED).arc(0, 0.25f);

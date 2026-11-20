@@ -1,12 +1,12 @@
 el 0,0 520x180
   text #draft role=textbox label="Query" placeholder="Type a query" "" 12,12 496x66 lines 1-1/1
-    el #rail 13,13 38x65
+    el #rail 13,13 38x64
     el #gutter 13,17 37x48
       el #line-0 13,17 37x16
         el 19,25 12x0
         text "1" 35,17 7x16
   text #definition role=textbox label="Definition" "CREATE VIEW paid_orders AS\nSELECT id, total\nFROM orders\nWHERE status = 'paid';" 12,86 496x82 readonly lines 1-4/4
-    el #rail 13,87 38x81
+    el #rail 13,87 38x80
     el #gutter 13,91 37x64
       el #line-0 13,91 37x16
         el 19,99 12x0

@@ -559,8 +559,6 @@ public final class CodeEditor {
     float stroke = theme.size().stroke();
     editor.radius(0).border(stroke, 0, 0, 0, theme.border().divider()).shadow().wFull();
     editor.style().paddingRight = Len.px(theme.space().l());
-    // Without the field's frame, no stroke of padding stands in for its bottom border.
-    editor.style().paddingBottom = Len.px(editor.style().paddingBottom.value() - stroke);
     if (editor.onEdit() != null) {
       int hover = Theme.over(theme.surface().raised(), theme.surface().hover());
       editor

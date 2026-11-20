@@ -20,7 +20,7 @@ final class SelectionFrame {
         .disabled(!enabled)
         .w(theme.size().field())
         .h(theme.size().control())
-        .padding(0, theme.space().m(), theme.size().stroke(), theme.space().m())
+        .padding(0, theme.space().m(), 0, theme.space().m())
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
         .radius(theme.radius().medium())
