@@ -56,7 +56,8 @@ public final class StatusBar {
   /**
    * The bar: {@code start} at the left, then the message in the room that is left, and {@code
    * end} at the right, which keeps its size. When the window is narrow the message is cut first,
-   * then the start. It is as wide as what it is in and {@link #height} high.
+   * then the start; a message with less room than a control's width is not shown, nor is the
+   * hairline before it. It is as wide as what it is in and {@link #height} high.
    *
    * @param start the parts and groups at the left, in the order shown; null ones are left out
    * @param message a part that says what just happened, such as {@code text("Saved")}; null for
@@ -67,18 +68,19 @@ public final class StatusBar {
     Theme theme = Theme.CURRENT.get();
     El left = end(theme, start).shrink(1).minSize(0, 0).clip();
     // Grows from nothing into the room the ends leave, so it never pushes them, and is cut first.
-    El room = row()
-        .grow(1)
-        .basis(0)
-        .minSize(0, 0)
-        .gap(theme.space().xs())
-        .align(Style.Align.CENTER)
-        .clip();
+    El room = row().grow(1).basis(0).minSize(0, 0).align(Style.Align.CENTER).clip();
     if (message != null) {
+      room.h(theme.size().control()).wrap();
+      El shown = row().grow(1).basis(0).gap(theme.space().xs()).align(Style.Align.CENTER);
+      float least = theme.size().control();
       if (!left.children().isEmpty()) {
-        room.child(separator(theme));
+        shown.child(separator(theme));
+        least += theme.size().stroke() + 3 * theme.space().xs(); // its margins and the gap
       }
-      room.child(message.shrink(1).minSize(0, 0));
+      shown.minSize(least, 0).child(message.shrink(1).minSize(0, 0));
+      // Behind a strut as high as the room, a message with less than a control's width wraps
+      // below it, out of the clip, and takes its hairline along instead of leaving it alone.
+      room.child(el().h(theme.size().control())).child(shown);
     }
     return row()
         .role("status")

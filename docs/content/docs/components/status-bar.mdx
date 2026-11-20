@@ -3,7 +3,7 @@ title: StatusBar
 description: Bottom window bar for connection status, messages, cursor position, and quick menus.
 ---
 
-`StatusBar.statusBar` renders a horizontal bar along the bottom of a window with left-aligned items, an optional center message, and right-aligned items. When the window narrows, the message truncates first, then left items, while right items keep their size. Truncated items show their full text in a tooltip.
+`StatusBar.statusBar` renders a horizontal bar along the bottom of a window with left-aligned items, an optional center message, and right-aligned items. When the window narrows, the message truncates first and, once less than a control's width of it fits, leaves together with the hairline before it; then left items truncate, while right items keep their size. Truncated items show their full text in a tooltip.
 
 For a bar at the bottom of a single card, use `Card.footer` ([Card](/docs/components/card)).
 
