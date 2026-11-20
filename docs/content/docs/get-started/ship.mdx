@@ -88,7 +88,7 @@ target\dist\Lights\Lights.exe --script lights.txt --out target\packaged | more
 </Tab>
 </Tabs>
 
-On Windows, `Lights.exe` is a GUI program: PowerShell and cmd neither wait for it nor show what it prints. Piping its output, as above, makes them wait for the script and print the paths of the images and trees.
+On Windows, `Lights.exe` is a GUI program: at an interactive prompt, PowerShell and cmd neither wait for it nor show what it prints. Piping its output, as above, makes them wait for the script and print the paths of the images and trees.
 
 ## Optional: App icon
 
@@ -98,12 +98,13 @@ Without `--icon`, the launcher and an installer show jpackage's own icon. Save y
 
 Java 25 supports an ahead-of-time (AOT) class cache ([JEP 514](https://openjdk.org/jeps/514)) to make startup faster.
 
-1. Build the app image while keeping the `java` binary (remove `--strip-native-commands` from `--jlink-options`):
+1. Close the app, then build the app image again while keeping the `java` binary (remove `--strip-native-commands` from `--jlink-options`):
 
 <Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
 <Tab value="Linux">
 
 ```sh
+rm -rf target/dist
 jpackage --type app-image --name Lights \
   --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights \
   --add-modules java.base \
@@ -116,6 +117,7 @@ jpackage --type app-image --name Lights \
 <Tab value="PowerShell">
 
 ```powershell
+Remove-Item -Recurse -Force target\dist
 jpackage --type app-image --name Lights `
   --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights `
   --add-modules java.base `
@@ -128,6 +130,7 @@ jpackage --type app-image --name Lights `
 <Tab value="cmd">
 
 ```bat
+rmdir /s /q target\dist
 jpackage --type app-image --name Lights ^
   --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights ^
   --add-modules java.base ^
@@ -153,9 +156,10 @@ echo 'java-options=-XX:AOTCache=$APPDIR/lights.aot' >> target/dist/Lights/lib/ap
 <Tab value="PowerShell">
 
 ```powershell
+$saved = $env:JAVA_TOOL_OPTIONS
 $env:JAVA_TOOL_OPTIONS = '-XX:AOTCacheOutput=target\dist\Lights\app\lights.aot'
-target\dist\Lights\Lights.exe
-Remove-Item Env:JAVA_TOOL_OPTIONS
+target\dist\Lights\Lights.exe | Out-Host
+$env:JAVA_TOOL_OPTIONS = $saved
 Add-Content target\dist\Lights\app\Lights.cfg 'java-options=-XX:AOTCache=$APPDIR\lights.aot'
 ```
 
@@ -165,9 +169,7 @@ Use `Add-Content`, not `>>`: Windows PowerShell 5.1 writes `>>` as UTF-16, and t
 <Tab value="cmd">
 
 ```bat
-set JAVA_TOOL_OPTIONS=-XX:AOTCacheOutput=target\dist\Lights\app\lights.aot
-target\dist\Lights\Lights.exe
-set JAVA_TOOL_OPTIONS=
+cmd /d /c "set JAVA_TOOL_OPTIONS=-XX:AOTCacheOutput=target\dist\Lights\app\lights.aot&& target\dist\Lights\Lights.exe"
 echo java-options=-XX:AOTCache=$APPDIR\lights.aot>> target\dist\Lights\app\Lights.cfg
 ```
 
@@ -180,7 +182,7 @@ If your app runs heavy initialization before opening its first window, you can a
 
 ## Optional: Pre-extract native libraries
 
-By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`:
+By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`. Close the app first, since Windows does not delete the files of a running app:
 
 <Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
 <Tab value="Linux">
