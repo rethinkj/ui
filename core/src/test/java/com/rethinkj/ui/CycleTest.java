@@ -8,8 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ObjDoubleConsumer;
 import org.junit.jupiter.api.Test;
 
 /** {@link El#cycle}: looks that go round on the app's clock while their element is shown. */
@@ -192,6 +194,8 @@ class CycleTest {
 
   @Test
   void aRowThatScrollingKeepsInViewCyclesFromWhatLayoutGaveIt() {
+    TextLibraries.assumeLoaded();
+    ObjDoubleConsumer<El> halve = (e, phase) -> e.opacity(e.opacity() / 2);
     App<Object> app = new App<>(
         new Object(),
         state -> col()
@@ -201,14 +205,23 @@ class CycleTest {
             .rows(
                 1000,
                 20,
-                i -> el().key("row-" + i).cycle(1, (e, phase) -> e.opacity(e.opacity() / 2))));
+                i -> i % 2 == 0 // the cycle on the row, or on a range of its field
+                    ? el().key("row-" + i).cycle(1, halve)
+                    : El.text("row " + i)
+                        .editable(e -> {})
+                        .readOnly()
+                        .multiline()
+                        .key("row-" + i)
+                        .child(el().range(0, 3).cycle(1, halve))));
     app.resize(100, 100, 1);
     app.frame();
-    app.wheel(50, 50, 0, 70); // row 8 shows; row 3 was in view and still is
+    app.wheel(50, 50, 0, 70); // row 8 shows; rows 3 and 4 were in view and still are
     app.frame();
-    El row = app.tree().children().get(3);
-    assertEquals("row-3", row.key());
-    assertEquals(0.5f, row.opacity());
+    El odd = app.tree().children().get(3);
+    El even = app.tree().children().get(4);
+    assertEquals("row-3", odd.key());
+    assertEquals(0.5f, odd.children().getFirst().opacity());
+    assertEquals(0.5f, even.opacity());
   }
 
   @Test

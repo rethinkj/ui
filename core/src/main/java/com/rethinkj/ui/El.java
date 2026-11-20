@@ -3772,9 +3772,9 @@ public final class El {
 
   /**
    * Gives this virtual list the rows from {@code from} to {@code to}, exclusive. A row it has
-   * already stays as it is, unless {@code anew} holds for its index, it has a {@link #cycle} or the
-   * rows were built for another part sideways or laid out at another width; its row function
-   * builds the others.
+   * already stays as it is, unless {@code anew} holds for its index, it or one of its ranges has a
+   * {@link #cycle} or the rows were built for another part sideways or laid out at another width;
+   * its row function builds the others.
    * {@link #layoutRows} lays out the new rows and moves the kept ones.
    */
   void makeRows(int from, int to, IntPredicate anew) {
@@ -3788,8 +3788,7 @@ public final class El {
     children.clear();
     for (int i = from; i < to; i++) {
       El row = keeps && i >= hadFrom && i - hadFrom < had.size() ? had.get(i - hadFrom) : null;
-      // Placed again, a row with a cycle would take the values its cycle gave for its own.
-      if (row != null && row.cycle == null && !anew.test(i)) {
+      if (row != null && !row.placesCycles() && !anew.test(i)) {
         row.kept = true;
         children.add(row);
       } else {
@@ -3824,6 +3823,22 @@ public final class El {
     fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
     row.kept = false;
     return row;
+  }
+
+  /**
+   * Whether placing this element again would make a cycle on it or on one of its ranges take the
+   * values the cycle gave as what layout gave.
+   */
+  private boolean placesCycles() {
+    if (cycle != null) {
+      return true;
+    }
+    for (El child : children) {
+      if (child.rangeFrom >= 0 && child.cycle != null) { // placed with it, by placeRanges
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Whether this row of a virtual list was kept by the list's last {@link #makeRows} as it was. */
