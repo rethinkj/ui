@@ -41,7 +41,16 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 <Shot src="examples/docs/code-editor-json/view-{theme}" alt="A JSON document in the code editor, its member names, strings, numbers and literals each in a color of their own" />
 
-Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html).
+### Formatting JSON
+
+The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. It returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`. A handler runs outside the view, so it takes the texts the view read with `Texts.CURRENT.get()`:
+
+```java snippet="code-editor-json-format"
+```
+
+The editor then shows `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. `Json.format` takes untrusted text: a value nested however deep needs no deeper stack, and one whose formatted text would be longer than 64 Mi characters gives the kind `TOO_LARGE`.
+
+Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
 
 ## Placeholder and read-only
 

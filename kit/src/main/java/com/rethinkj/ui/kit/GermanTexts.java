@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.kit.DataGrid.Filter;
 
 /**
@@ -377,6 +378,18 @@ public class GermanTexts implements Texts {
   @Override
   public String results(String total, boolean one) {
     return total + " Treffer";
+  }
+
+  @Override
+  public String formatProblem(Formatted.Kind kind) {
+    return switch (kind) {
+      case UNEXPECTED -> "Hier nicht erwartet";
+      case UNEXPECTED_END -> "Der Text endet zu früh";
+      case UNCLOSED_STRING -> "Eine Zeichenkette ohne schließendes Anführungszeichen";
+      case INVALID_ESCAPE -> "Keine gültige Escape-Sequenz";
+      case INVALID_NUMBER -> "Keine gültige Zahl";
+      case TOO_LARGE -> "Zu groß zum Formatieren";
+    };
   }
 
   @Override

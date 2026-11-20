@@ -1,5 +1,6 @@
 package com.rethinkj.ui.json;
 
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.kit.Theme;
@@ -27,6 +28,34 @@ public record Json(Theme.Code colors) implements Highlighter {
   public static Json of() {
     Theme theme = Theme.CURRENT.get();
     return new Json(theme.code());
+  }
+
+  /**
+   * Formats JSON as RFC 8259 writes it, such as a minified value from a database before an editor
+   * shows it: each member and element on a line of its own, indented by four spaces a level as
+   * the editor's tabs and guides, with a space after each colon, {@code {}} and {@code []} for an
+   * empty object and array, and no line feed at the end. The tokens stay as they are written:
+   * numbers to the last digit, strings with their escapes, and the members in their order, also
+   * one whose name another has too. Formatting the formatted text gives the same text.
+   *
+   * <pre>{@code
+   * Json.format("{\"id\":1,\"tags\":[]}").text()   // {\n    "id": 1,\n    "tags": []\n}
+   * }</pre>
+   *
+   * <p>Text that is not JSON gives no text but its first problem ({@link Formatted.Problem}), at
+   * its place as the code editor counts, so that the app can show it as the editor's {@code
+   * CodeEditor.Diagnostic} with the message {@code Texts.formatProblem} gives its kind. Between the
+   * tokens may stand spaces, tabs, line feeds and carriage returns, and nothing else.
+   *
+   * <p>It reads text an app cannot trust, such as a database's: a value nested however deep needs
+   * no deeper stack, and one whose formatted text would be longer than 64 Mi characters, such as
+   * thousands of nested arrays, whose indentation grows with each, gives {@link
+   * Formatted.Kind#TOO_LARGE}. It needs no native libraries.
+   *
+   * @param json the text, as JSON
+   */
+  public static Formatted format(String json) {
+    return JsonFormatter.format(json);
   }
 
   private static final String PUNCTUATION = "{}[]:,";
@@ -119,12 +148,12 @@ public record Json(Theme.Code colors) implements Highlighter {
     return i;
   }
 
-  private static boolean isDigit(char c) {
+  static boolean isDigit(char c) {
     return c >= '0' && c <= '9';
   }
 
   /** Whether the word from {@code from} to {@code to} is {@code true}, {@code false} or null. */
-  private static boolean isLiteral(String line, int from, int to) {
+  static boolean isLiteral(String line, int from, int to) {
     return switch (to - from) {
       case 4 -> line.startsWith("true", from) || line.startsWith("null", from);
       case 5 -> line.startsWith("false", from);
