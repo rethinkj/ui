@@ -42,10 +42,10 @@ public final class SchemaDiagram {
   final Canvas.Viewport viewport = new Canvas.Viewport();
   final List<Node> tables = new ArrayList<>(List.of(
       table("customers", 0, 0),
-      table("orders", 240, 40),
+      table("orders", 240, 0),
       table("order_items", 480, 0),
-      table("products", 720, 40),
-      table("suppliers", 960, 0)));
+      table("products", 360, 180),
+      table("suppliers", 120, 180)));
 
   SchemaDiagram() {
     viewport.fit();
