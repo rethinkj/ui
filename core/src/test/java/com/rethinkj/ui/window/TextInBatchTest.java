@@ -20,6 +20,7 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -154,7 +155,8 @@ class TextInBatchTest {
    * A character without a key, as an input method, the emoji panel or SendInput's {@code
    * KEYEVENTF_UNICODE} sends it, that arrives alone while the loop waits with nothing to do, for an
    * element that takes no text, so that text input is off and SDL queues no event of it: the next
-   * frame still shows it.
+   * frame still shows it. It counts only where nothing else ended that wait, as the pointer, a
+   * window or the system may: then the test sends another character in the next such wait.
    */
   @Test
   void aCharacterWithoutAKeyWakesTheWaitingLoop() {
@@ -170,73 +172,138 @@ class TextInBatchTest {
                   .focusable()
                   .autofocus()
                   .onTypeAhead(s -> f.name = s)));
-      AtomicBoolean sent = new AtomicBoolean();
+      // The character sent last, and the one that alone ended the wait it was sent in.
+      AtomicReference<Sent> sent = new AtomicReference<>();
+      AtomicReference<Sent> alone = new AtomicReference<>();
       AtomicBoolean shown = new AtomicBoolean();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (sent.get() && form.name.equals("é")) {
+        Sent it = alone.get();
+        if (it != null && form.name.endsWith(String.valueOf(it.character()))) {
           shown.set(true);
           loop.get().stop();
         }
       }));
-      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
-      AtomicBoolean done = new AtomicBoolean();
-      AtomicReference<String> posted = new AtomicReference<>("not yet");
       // The waits the loop announced, and whether the last was one for events alone.
       AtomicLong waits = new AtomicLong();
       AtomicBoolean idle = new AtomicBoolean();
       loop.get().waits((millis, holdBack) -> {
         idle.set(millis == -1);
         waits.incrementAndGet();
-        if (millis == -1 && !sent.getAndSet(true)) {
-          // From another thread once the loop waits in SDL for events alone: until then, events
-          // of the window's opening that are still pending would deliver the character without a
-          // wait, and a wait with a timeout would deliver it when it ends.
-          Thread waiting = Thread.currentThread();
-          Thread.ofPlatform().daemon().start(() -> {
-            while (!inIdleWait(waiting, waits, idle)) {
+      });
+      AtomicBoolean ready = new AtomicBoolean(true); // to send the next character
+      loop.get().listener(event -> {
+        String text = switch (event) {
+          case WindowEvent.KeyText(String t) -> t;
+          case WindowEvent.TextInput(String t) -> t;
+          default -> null;
+        };
+        Sent it = sent.get();
+        if (it != null && String.valueOf(it.character()).equals(text)) {
+          // Taken right after the wait it was sent in, which no event that SDL queued ended.
+          if (waits.get() == it.inWait() && QUEUED.get() == it.queued()) {
+            alone.set(it);
+          } else {
+            ready.set(true);
+          }
+        }
+      });
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      AtomicBoolean done = new AtomicBoolean();
+      AtomicReference<String> posted = new AtomicReference<>("none");
+      Thread waiting = Thread.currentThread(); // the loop's
+      assumeTrue(Sdl.addEventWatch(Counting.WATCH, MemorySegment.NULL), "Skipped: no event watch");
+      try {
+        // From another thread once the loop waits in SDL for events alone: until then, events of
+        // the window's opening that are still pending would deliver the character without a
+        // wait, and a wait with a timeout would deliver it when it ends.
+        Thread.ofPlatform().daemon().start(() -> {
+          for (int i = 0; i < CHARACTERS.length(); i++) {
+            long queued;
+            long inWait;
+            do {
               if (done.get()) {
                 return;
               }
               Thread.onSpinWait();
-            }
+              queued = QUEUED.get();
+              inWait = ready.get() ? idleWait(waiting, waits, idle) : -1;
+            } while (inWait < 0);
+            ready.set(false);
+            char character = CHARACTERS.charAt(i);
+            sent.set(new Sent(character, inWait, queued)); // before the loop can take it
             try {
-              int ok = (int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) 'é', 1L);
-              posted.set(ok != 0 ? "yes" : "PostMessage failed");
+              int ok = (int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) character, 1L);
+              posted.set(ok != 0 ? (i + 1) + " sent" : "PostMessage failed");
             } catch (Throwable t) {
               posted.set(t.toString());
             }
-          });
-        }
-      });
-      try {
+          }
+        });
         Desktop.run(
             loop.get(),
             () -> "a frame after the character; posted: " + posted.get() + ", typed: \"" + form.name
                 + "\"");
       } finally {
         done.set(true);
+        Sdl.removeEventWatch(Counting.WATCH, MemorySegment.NULL);
       }
       assertTrue(shown.get(), "a frame showed the character, not a loop that ended otherwise");
     }
   }
 
+  /** The characters the test sends, one per try, each different, so that a frame shows which. */
+  private static final String CHARACTERS = "éèêëàâäôöü";
+
   /**
-   * Whether the loop's thread waits in SDL for an event ({@link Sdl#waitEventTimeout}) in the wait
-   * it announced last, and that one waits for events alone: no wait was announced since.
+   * A character sent to the window while the loop waited for events alone.
+   *
+   * @param inWait which of the loop's waits it was
+   * @param queued {@link #QUEUED} before the wait was seen
    */
-  private static boolean inIdleWait(Thread thread, AtomicLong waits, AtomicBoolean idle) {
+  private record Sent(char character, long inWait, long queued) {}
+
+  /**
+   * The events SDL queued, but the loop's wakes and the sentinel that SDL queues and takes back
+   * whenever it is polled: a wait that ended with an event other than a wake counts here.
+   */
+  private static final AtomicLong QUEUED = new AtomicLong();
+
+  private static final int EVENT_POLL_SENTINEL = 0x7F00;
+  private static final int EVENT_USER = 0x8000; // and up: the type of Window.wake's event
+
+  /** {@link Sdl#EVENT_FILTER}, called by SDL for each event as it queues it. */
+  private static boolean queued(MemorySegment userdata, MemorySegment event) {
+    int type = event.reinterpret(Sdl.EVENT_SIZE).get(JAVA_INT, Sdl.EVENT_TYPE);
+    if (type != EVENT_POLL_SENTINEL && type < EVENT_USER) {
+      QUEUED.incrementAndGet();
+    }
+    return true;
+  }
+
+  /** The watch that counts the queued events, made on first use. */
+  private static final class Counting {
+    static final MemorySegment WATCH =
+        Window.upcall(MethodHandles.lookup(), TextInBatchTest.class, "queued", Sdl.EVENT_FILTER);
+  }
+
+  /**
+   * Which of the loop's waits its thread waits in, in SDL for an event ({@link
+   * Sdl#waitEventTimeout}), when that is the one it announced last and that one waits for events
+   * alone; -1 when it does not.
+   */
+  private static long idleWait(Thread thread, AtomicLong waits, AtomicBoolean idle) {
     long announced = waits.get();
     if (!idle.get()) {
-      return false;
+      return -1;
     }
     for (StackTraceElement frame : thread.getStackTrace()) {
       if (frame.getClassName().equals(Sdl.class.getName())
           && frame.getMethodName().equals("waitEventTimeout")) {
-        return waits.get() == announced;
+        return waits.get() == announced ? announced : -1;
       }
     }
-    return false;
+    return -1;
   }
 
   @Test
