@@ -97,6 +97,8 @@ System title-bar clicks on frameless windows do not trigger these observers.
 
 Scrolling the mouse wheel scrolls the innermost scroll container under the cursor that can still scroll in that direction, bubbling outward if it is already at the edge. Holding **Shift** scrolls horizontally. To scroll from a handler, call `app.scrollTo(area, x, y)` or `app.scrollToRow(list, row)`.
 
+To handle the wheel yourself, as a canvas that zooms with **Ctrl**+wheel and pans without it, give the element `onWheel((deltaX, deltaY, modifiers, x, y) -> …)`. It gets the distances in logical pixels (positive down or right), the modifiers held (`Key.CONTROL`, `SHIFT`, `ALT`, `META`) and the pointer's position inside the element, and returns `true` to take the wheel. Handlers are asked from the innermost element outward, each before its own scrolling; a scroll container inside the element that can still move takes the wheel first. When no handler takes it, the wheel scrolls as without them.
+
 ## In a tree dump
 
 The focused element ends with `focused`, and the hovered element ends with `hovered`:
