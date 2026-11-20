@@ -1,0 +1,17 @@
+el 0,0 318x120
+  el #card 0,0 318x120
+    el 1,1 316x89
+    el 1,90 316x29
+      text "About 1,000,000 rows, as the server estimates" 17,97 0x16
+      el 29,105 0x0
+      text "Read 200 rows in 28 ms" 41,97 109x16
+      text "Rows 1–7" 162,97 41x16
+      el 215,95 86x20
+        el role=button label="First page" 215,95 20x20
+          text label="arrow_up" "\u{F1B4}" 217,97 16x16
+        el role=button label="Previous page" 237,95 20x20
+          text label="chevron_up" "\u{F2B5}" 239,97 16x16
+        el role=button label="Next page" 259,95 20x20
+          text label="chevron_down" "\u{F2A2}" 261,97 16x16
+        el role=button label="Last page" 281,95 20x20
+          text label="arrow_down" "\u{F147}" 283,97 16x16
