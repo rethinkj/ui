@@ -62,7 +62,7 @@ The editor does not wrap lines, so a minified value, such as one from a database
 ```java snippet="code-editor-json-format"
 ```
 
-The editor then shows `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. `Json.format` takes untrusted text: a value nested however deep needs no deeper stack, and one whose formatted text would be longer than 64 Mi characters gives the kind `TOO_LARGE`.
+The editor then shows `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. In an editor that can change its text, **Ctrl+Alt+L** formats it with `Json.format` as one step for Ctrl+Z, and keeps the cursor at the same token. Invalid JSON stays as it is: its problem shows as an error diagnostic with its message above the cursor, until the text changes. `Json.format` takes untrusted text: a value nested however deep needs no deeper stack, and one whose formatted text would be longer than 64 Mi characters gives the kind `TOO_LARGE`.
 
 Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
 
@@ -120,6 +120,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - `Object line(String line, Object state, Spans out)` receives the line without `\n`, the previous line's end state (`null` for line 0), and a `Spans` builder. Return a value object (enum, record, `Boolean.TRUE`, or `null`) so state changes can be compared with `equals`.
 - Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
 - Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
+- Override `formatter()` to enable **Ctrl+Alt+L** formatting: return a function from the editor's text, with line feeds only, to a `Formatted`, such as `Json::format`. For a text it cannot format, it returns the first problem, at its place in that text, instead of throwing. The cursor stays at the same token when the formatter changes only white space, as `Json::format` does. `null`, the default, means the language has no formatter, and the command does nothing.
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
 ### Spans
@@ -160,9 +161,10 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move lines up or down |
 | Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
 | Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
+| Ctrl+Alt+L | `FORMAT` | Format the whole text using `formatter()`, or show why it cannot |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
-Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
+Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops, such as Xfce and Cinnamon, lock the screen on Ctrl+Alt+L before the app sees it; a menu item still formats there. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
 
 Also supports all standard [multi-line text field shortcuts](/docs/concepts/text-fields): auto-indent on Enter, Tab indentation (**Ctrl+M** toggles Tab between indent and focus navigation), smart Home, and Ctrl+Z / Ctrl+Y undo/redo.
 

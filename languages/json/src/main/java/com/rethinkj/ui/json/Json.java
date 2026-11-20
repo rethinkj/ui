@@ -4,6 +4,7 @@ import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.kit.Theme;
+import java.util.function.Function;
 
 /**
  * A {@link Highlighter} of JSON as RFC 8259 writes it, in the colors of {@link Theme.Code}: the
@@ -165,5 +166,11 @@ public record Json(Theme.Code colors) implements Highlighter {
   @Override
   public boolean marksBrackets() {
     return true;
+  }
+
+  /** {@link #format}, which the code editor's Control+Alt+L runs. */
+  @Override
+  public Function<String, Formatted> formatter() {
+    return Json::format;
   }
 }

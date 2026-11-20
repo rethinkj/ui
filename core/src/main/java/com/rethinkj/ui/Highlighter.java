@@ -1,5 +1,7 @@
 package com.rethinkj.ui;
 
+import java.util.function.Function;
+
 /**
  * Colors a text line by line, as a tokenizer does for code: given with {@link El#highlight}.
  *
@@ -44,6 +46,19 @@ public interface Highlighter {
    * //}, which a code editor comments lines out with; null, the default, for a language without.
    */
   default String lineComment() {
+    return null;
+  }
+
+  /**
+   * Formats a whole text of the language, which a code editor's format command runs on its
+   * string; null, the default, for a language without. The function gets the string as the editor
+   * shows it, with line feeds only, and returns the formatted text, or, for a text it cannot
+   * format, the first problem at the place the editor counts, without throwing: {@code Json}
+   * returns {@code Json::format}. The editor keeps the caret and the selection at the same
+   * characters that are not white space, counted from the start: exactly where the formatter
+   * changes white space only, and only near them where it changes other characters.
+   */
+  default Function<String, Formatted> formatter() {
     return null;
   }
 }
