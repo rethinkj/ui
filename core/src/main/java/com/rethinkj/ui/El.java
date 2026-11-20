@@ -1245,7 +1245,7 @@ public final class El {
           Math.min(child.rangeFrom, length), Math.min(child.rangeTo, length), 0);
       if (rows.isEmpty()) {
         child.rangeBoxes = List.of();
-        child.place(left, top, 0, 0);
+        child.placeAgain(left, top, 0, 0);
         continue;
       }
       float x0 = Float.POSITIVE_INFINITY;
@@ -1267,7 +1267,7 @@ public final class El {
             row.height() / scale));
       }
       child.rangeBoxes = List.copyOf(boxes);
-      child.place(left + x0 / scale, top + y0 / scale, (x1 - x0) / scale, (y1 - y0) / scale);
+      child.placeAgain(left + x0 / scale, top + y0 / scale, (x1 - x0) / scale, (y1 - y0) / scale);
     }
   }
 
@@ -3772,9 +3772,8 @@ public final class El {
 
   /**
    * Gives this virtual list the rows from {@code from} to {@code to}, exclusive. A row it has
-   * already stays as it is, unless {@code anew} holds for its index, it or one of its ranges has a
-   * {@link #cycle} or the rows were built for another part sideways or laid out at another width;
-   * its row function builds the others.
+   * already stays as it is, unless {@code anew} holds for its index or the rows were built for
+   * another part sideways or laid out at another width; its row function builds the others.
    * {@link #layoutRows} lays out the new rows and moves the kept ones.
    */
   void makeRows(int from, int to, IntPredicate anew) {
@@ -3788,7 +3787,7 @@ public final class El {
     children.clear();
     for (int i = from; i < to; i++) {
       El row = keeps && i >= hadFrom && i - hadFrom < had.size() ? had.get(i - hadFrom) : null;
-      if (row != null && !row.placesCycles() && !anew.test(i)) {
+      if (row != null && !anew.test(i)) {
         row.kept = true;
         children.add(row);
       } else {
@@ -3823,22 +3822,6 @@ public final class El {
     fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
     row.kept = false;
     return row;
-  }
-
-  /**
-   * Whether placing this element again would make a cycle on it or on one of its ranges take the
-   * values the cycle gave as what layout gave.
-   */
-  private boolean placesCycles() {
-    if (cycle != null) {
-      return true;
-    }
-    for (El child : children) {
-      if (child.rangeFrom >= 0 && child.cycle != null) { // placed with it, by placeRanges
-        return true;
-      }
-    }
-    return false;
   }
 
   /** Whether this row of a virtual list was kept by the list's last {@link #makeRows} as it was. */
@@ -3942,7 +3925,7 @@ public final class El {
       El row = children.get(i);
       if (row.kept) { // laid out before; placed from the first row that exists, as layoutRow does
         double top = heights == null ? row.contentTop : rowsTop() + rowTop(firstRow + i);
-        row.place(rowsLeft(), (float) (top - rowTop(firstRow)), rowWidth(), row.height);
+        row.placeAgain(rowsLeft(), (float) (top - rowTop(firstRow)), rowWidth(), row.height);
       } else {
         layoutRow(i, scale, systemFonts);
       }
@@ -3992,7 +3975,8 @@ public final class El {
       row.place(left, (float) (rowsTop() + rowTop(firstRow + index) - first), inner, high);
       for (int i = index + 1; moved && i < children.size(); i++) { // those below follow
         El below = children.get(i);
-        below.place(left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner, below.height);
+        below.placeAgain(
+            left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner, below.height);
       }
       return;
     }
@@ -4149,6 +4133,20 @@ public final class El {
     this.placed = true;
     this.cycleBased = false; // layout or motion placed it anew
     placeRanges(); // layout measured and placed the text before its box
+  }
+
+  /**
+   * Places this element again, as {@link #place} does. If a {@link #cycle} changed it since, it
+   * first takes back the opacity and fill layout and motion gave it, which the cycle starts from
+   * again at its next frame.
+   */
+  private void placeAgain(float x, float y, float width, float height) {
+    if (cycleBased) {
+      opacity = baseOpacity;
+      targetOpacity = baseTargetOpacity;
+      fill = baseFill;
+    }
+    place(x, y, width, height);
   }
 
   /** False until layout has placed this element; elements with {@code display: none} stay so. */

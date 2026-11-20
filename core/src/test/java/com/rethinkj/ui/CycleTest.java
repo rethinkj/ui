@@ -11,6 +11,7 @@ import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.ObjDoubleConsumer;
 import org.junit.jupiter.api.Test;
 
@@ -196,32 +197,40 @@ class CycleTest {
   void aRowThatScrollingKeepsInViewCyclesFromWhatLayoutGaveIt() {
     TextLibraries.assumeLoaded();
     ObjDoubleConsumer<El> halve = (e, phase) -> e.opacity(e.opacity() / 2);
+    IntFunction<El> field = i -> El.text("row " + i)
+        .editable(e -> {})
+        .readOnly()
+        .multiline()
+        .child(el().key("range").range(0, 3).cycle(1, halve));
     App<Object> app = new App<>(
         new Object(),
-        state -> col()
-            .key("list")
-            .w(100)
-            .h(100)
-            .rows(
-                1000,
-                20,
-                i -> i % 2 == 0 // the cycle on the row, or on a range of its field
-                    ? el().key("row-" + i).cycle(1, halve)
-                    : El.text("row " + i)
-                        .editable(e -> {})
-                        .readOnly()
-                        .multiline()
-                        .key("row-" + i)
-                        .child(el().range(0, 3).cycle(1, halve))));
-    app.resize(100, 100, 1);
+        state -> col().key("list").w(100).h(120).rows(1000, 20, i -> switch (i
+            % 3) { // the cycle on the row, on a range of it or of a field in it
+          case 0 -> el().key("row-" + i).cycle(1, halve);
+          case 1 -> field.apply(i).key("row-" + i);
+          default -> el().key("row-" + i).child(field.apply(i).grow(1));
+        }));
+    app.resize(100, 120, 1);
     app.frame();
-    app.wheel(50, 50, 0, 70); // row 8 shows; rows 3 and 4 were in view and still are
+    app.wheel(50, 50, 0, 70); // row 9 shows; rows 3 to 5 were in view and still are
     app.frame();
-    El odd = app.tree().children().get(3);
-    El even = app.tree().children().get(4);
-    assertEquals("row-3", odd.key());
-    assertEquals(0.5f, odd.children().getFirst().opacity());
-    assertEquals(0.5f, even.opacity());
+    assertEquals("row-3", app.tree().children().get(3).key());
+    assertEquals(0.5f, app.tree().children().get(3).opacity());
+    assertEquals(0.5f, find(app.tree().children().get(4), "range").opacity());
+    assertEquals(0.5f, find(app.tree().children().get(5), "range").opacity());
+  }
+
+  private static El find(El el, String key) {
+    if (key.equals(el.key())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = find(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   @Test
