@@ -177,7 +177,7 @@ public interface Windows {
      * first frame. In a script, a window shows its first frame at the first {@code frame} step
      * that draws it, and the handler runs in the next one.
      *
-     * <p>Set it before the window's first frame: right after {@link Windows#open}, in the same
+     * <p>Set it before the window has shown a frame: right after {@link Windows#open}, in the same
      * handler, or for the first window of a {@link WindowLoop} before {@link WindowLoop#run}, from
      * {@code loop.windows().of(app)}. A handler set after that does not run.
      *

@@ -1052,6 +1052,7 @@ public final class Script {
      * {@link com.rethinkj.ui.window.WindowLoop#run}.
      */
     void frame() {
+      List<Runnable> told = new ArrayList<>(); // the onShown handlers of windows first drawn now
       Set<Win> due = new HashSet<>(open());
       for (int round = 0; round < 3 && !due.isEmpty(); round++) {
         Set<Win> again = new HashSet<>();
@@ -1062,6 +1063,13 @@ public final class Script {
           }
           w.fresh = false;
           w.app.frame();
+          if (!w.shown) { // it shows: a handler set later, as by another window's frame, is late
+            w.shown = true;
+            Runnable handler = w.onShown;
+            if (handler != null) {
+              told.add(() -> w.app.request(handler));
+            }
+          }
           if (w.app.ranHandlers()) {
             for (int j = 0; j < wins.size(); j++) {
               Win other = wins.get(j);
@@ -1074,15 +1082,7 @@ public final class Script {
         }
         due = again;
       }
-      // Every open window has drawn now; it shows, so its handler runs in the next frame step.
-      for (Win w : open()) {
-        if (!w.shown) {
-          w.shown = true;
-          if (w.onShown != null) {
-            w.app.request(w.onShown);
-          }
-        }
-      }
+      told.forEach(Runnable::run); // after the rounds: the handlers run in the next frame step
     }
 
     @Override

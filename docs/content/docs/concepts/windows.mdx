@@ -30,7 +30,7 @@ It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html)
 
 ## Knowing a window was shown
 
-`onShown(handler)` runs once the window has shown its first frame on the screen, on the UI thread in the window's next frame. A minimized or hidden window shows no frame, so its handler waits until one is shown. Use it to tell an updater that a new version runs, to close a splash screen, or to measure the time to the first frame. Set it before the window's first frame, right after `open`; a handler set later does not run. The first window of a `WindowLoop` has its handle before `run()`:
+`onShown(handler)` runs once the window has shown its first frame on the screen, on the UI thread in the window's next frame. A minimized or hidden window shows no frame, so its handler waits until one is shown. Use it to tell an updater that a new version runs, to close a splash screen, or to measure the time to the first frame. Set it before the window has shown a frame, right after `open`; a handler set later does not run. The first window of a `WindowLoop` has its handle before `run()`:
 
 ```java snippet="window-shown"
 ```
