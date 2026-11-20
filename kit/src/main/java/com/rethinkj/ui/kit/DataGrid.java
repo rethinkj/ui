@@ -1317,8 +1317,7 @@ public final class DataGrid {
      *     fits whole
      */
     public int firstRowInView() {
-      int[] view = inView();
-      return view == null ? -1 : view[0];
+      return inView()[0];
     }
 
     /**
@@ -1330,22 +1329,22 @@ public final class DataGrid {
      *     fits whole
      */
     public int lastRowInView() {
-      int[] view = inView();
-      return view == null ? -1 : view[1];
+      return inView()[1];
     }
 
-    /** The first and the last row wholly in view, or null for none. */
+    /** The first and the last row wholly in view, or -1 and -1 for none. */
     private int[] inView() {
+      int[] none = {-1, -1};
       El list = rows != null && !rows.isPlaced() && rowsBefore != null ? rowsBefore : rows;
       if (list == null || !list.isPlaced() || list.rowCount() == 0) {
-        return null;
+        return none;
       }
       double high = list.rowHeight();
       double top = list.scrollY();
       long first = (long) Math.ceil(top / high);
       long last =
-          Math.min((long) Math.floor((top + list.height()) / high) - 1, list.rowCount() - 1);
-      return last < first ? null : new int[] {(int) first, (int) last};
+          Math.min((long) Math.floor((top + list.height()) / high) - 1, list.rowCount() - 1L);
+      return last < first ? none : new int[] {(int) first, (int) last};
     }
 
     /** Selects this cell alone, or its row in {@link Mode#ROWS}, with cursor and anchor on it. */
