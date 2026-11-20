@@ -69,6 +69,7 @@ class DocsExamplesTest {
       Map.entry("grid", List.of("selected")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
+      Map.entry("form-divided", List.of("view")),
       Map.entry("resize", List.of("wide", "narrow")),
       Map.entry("theming", List.of("system")),
       Map.entry("customers", List.of("loaded", "invalid", "saved")));
@@ -97,6 +98,7 @@ class DocsExamplesTest {
     layouts(all, "form", Layouts::form, 480, 260);
     layouts(all, "form-groups", Layouts::formGroups, 480, 300);
     layouts(all, "form-cards", Layouts::formCards, 440, 260);
+    layouts(all, "form-divided", Layouts::formDivided, 480, 204);
     layouts(all, "dividers", Layouts::dividers, 280, 140);
     layouts(all, "navigation", Layouts::navigation, 440, 220); // wide, for the tile's crop
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);

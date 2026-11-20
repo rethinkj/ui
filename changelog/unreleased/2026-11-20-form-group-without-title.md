@@ -1,0 +1,1 @@
+- `Form.group(null, entries...)` makes a group without heading or label: its fields keep the form's label column and are set apart by the spacing between groups and, with `.divided()`, a hairline.

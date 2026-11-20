@@ -60,7 +60,8 @@ import java.util.Objects;
  * controls of all groups start at one x; forms in separate cards share one by {@link #labelWidth}.
  * A {@link Group} is {@code role=group} with its title as its label, its heading in {@link
  * Theme.Type#strong} at {@code level=4} with an optional muted description, {@link
- * Theme.Spacing#m} above its fields; groups lie two steps of spacing further apart than fields
+ * Theme.Spacing#m} above its fields; a group with a null title has neither heading nor label, for
+ * parts of a form that need no name. Groups lie two steps of spacing further apart than fields
  * ({@code xl} beside, {@code xxl} above), with a {@link Divider} in the middle where a group is
  * {@link Group#divided}. In a {@link Row} each field keeps its label, help, error and marker:
  * beside, the first label stands in the column and each further one before its control; above,
@@ -158,8 +159,10 @@ public final class Form {
    * Fields and rows under a heading, which share the form's label column with the rest. Made by
    * {@link Form#group}.
    *
-   * @param title the heading, also the group's label in a tree dump
-   * @param description muted text below the heading that wraps; null for none
+   * @param title the heading, also the group's label in a tree dump; null for a group without
+   *     either, set apart from the rest only by its spacing and, {@link #divided}, a hairline
+   * @param description muted text below the heading, or above the fields without one, that
+   *     wraps; null for none
    * @param isDivided whether a {@link Divider} sets the group apart from what comes before it
    * @param level the heading's level in a tree dump
    * @param entries the fields and rows; null entries are left out
@@ -202,7 +205,9 @@ public final class Form {
 
   /**
    * Fields and rows under a heading of level 4, below a card's title ({@link Card#header}); a
-   * group holds no groups.
+   * group holds no groups. A null title makes a group without heading or label, which still sets
+   * its fields apart: {@code group(null, field("User", user), field("Password", password))
+   * .divided()}.
    */
   public static Group group(String title, Entry... entries) {
     return new Group(
@@ -295,7 +300,8 @@ public final class Form {
         case Group g -> {
           if (!groups) {
             throw new IllegalArgumentException(
-                "The group \"" + g.title() + "\" is inside a group; a group holds fields and rows");
+                (g.title() == null ? "A group" : "The group \"" + g.title() + "\"")
+                    + " is inside a group; a group holds fields and rows");
           }
           List<Entry> inside = present(g.entries(), false);
           if (!inside.isEmpty()) {
@@ -307,11 +313,12 @@ public final class Form {
     return out;
   }
 
-  /** A group: its heading and description, then its entries. */
+  /** A group: its heading and description, if it has them, then its entries. */
   private static El group(Theme theme, Labels labels, float column, float gap, Group group) {
-    El head = col()
-        .gap(theme.space().xs())
-        .child(label(Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
+    El head = col().gap(theme.space().xs());
+    if (group.title() != null) {
+      head.child(label(Label.Variant.STRONG, group.title()).role("heading").level(group.level()));
+    }
     if (group.description() != null) {
       head.child(label(Label.Variant.MUTED, group.description()).wrapText());
     }
@@ -319,7 +326,8 @@ public final class Form {
     for (Entry entry : group.entries()) {
       fields.child(entry(theme, labels, column, entry));
     }
-    return col().role("group").label(group.title()).gap(theme.space().m()).children(head, fields);
+    El el = col().role("group").label(group.title()).gap(theme.space().m());
+    return head.children().isEmpty() ? el.child(fields) : el.children(head, fields);
   }
 
   /** A field or a row of fields. */

@@ -46,6 +46,7 @@ final class Layouts {
   String host = "localhost";
   String port = "5432";
   String user = "";
+  String password = "";
   boolean autoSave = true;
   int page = 1; // Tables, the first item under the heading Database
   int filter;
@@ -144,6 +145,10 @@ final class Layouts {
 
   void user(String value) {
     user = value;
+  }
+
+  void password(String value) {
+    password = value;
   }
 
   void page(int index) {
@@ -270,6 +275,23 @@ final class Layouts {
                 Form.field("Password", TextField.passwordField("", null, value -> {})))
             .divided());
     // docs:end form-groups
+    return Frame.of(Card.card(form).w(440));
+  }
+
+  static El formDivided(Layouts state) {
+    // docs:start form-divided
+    El form = Form.form(
+        Form.Labels.BESIDE,
+        Form.field("Host", TextField.textField(state.host, "localhost", state::host)),
+        Form.field("Port", TextField.textField(state.port, "5432", state::port).w(72)),
+        // No title: no heading, only a hairline above, and the form's label column.
+        Form.group(
+                null,
+                Form.field("User", TextField.textField(state.user, "Role", state::user)),
+                Form.field(
+                    "Password", TextField.passwordField(state.password, null, state::password)))
+            .divided());
+    // docs:end form-divided
     return Frame.of(Card.card(form).w(440));
   }
 

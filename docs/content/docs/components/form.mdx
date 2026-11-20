@@ -26,7 +26,7 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 | `.required()` | Displays `*` next to the label |
 | `.grow()` | Allows a field inside `Form.row` to expand into remaining space |
 | `Form.row(fields...)` | Places multiple fields side by side on one row (wraps automatically when narrow) |
-| `Form.group(title, entries...)` | Groups fields under a heading (`role=group`, `level=4`) with optional `.description(text)`, `.divided()`, and `.level(n)` |
+| `Form.group(title, entries...)` | Groups fields under a heading (`role=group`, `level=4`) with optional `.description(text)`, `.divided()`, and `.level(n)`; a `null` title leaves out the heading |
 | `Form.labelWidth(entries...)`, `Form.form(labels, labelWidth, entries...)` | Aligns label columns across separate forms/cards |
 | `Form.buttons(buttons...)` | Right-aligned action button row |
 
@@ -42,6 +42,13 @@ Javadoc: [`Form`](/api/com/rethinkj/ui/kit/Form.html).
 With `Labels.BESIDE`, all groups share one aligned label column. In narrow containers, `Form.row` wraps cleanly onto separate lines:
 
 <Shot src="kit/structure-form-groups-narrow-{theme}-1x" alt="The same form narrow: the port and its label on a line of their own below the host" />
+
+A group with a `null` title has no heading and no label: it sets its fields apart by the wider spacing between groups and, with `.divided()`, a hairline, and keeps the form's label column:
+
+<Shot src="examples/docs/form-divided/view-{theme}" alt="Host and port, a hairline, then user and password, all controls starting at one x, without headings" />
+
+```java snippet="form-divided"
+```
 
 To place each group inside its own card while keeping labels aligned, compute the shared label width once:
 
@@ -66,4 +73,9 @@ Each field labels its control; errors add `invalid` and `error="…"`, warnings 
 ```
 
 ```text file="examples/src/test/resources/golden/docs/form-groups/view.tree.txt" start="role=group label=\"Server\"" count="3"
+```
+
+A group without a title is `role=group` without a label or heading:
+
+```text file="examples/src/test/resources/golden/docs/form-divided/view.tree.txt" start="role=separator" count="2"
 ```
