@@ -678,6 +678,13 @@ class ThemeTest {
           c.guide());
       assertEquals(c, older);
     }
+    Theme.Code dark = Theme.Code.DARK;
+    assertEquals(
+        dark.property(),
+        new Theme.Code(
+                dark.keyword(), dark.string(), dark.number(), dark.comment(), dark.operator(), 0, 0)
+            .property(),
+        "light strings without a caret line's tint: the dark one's");
   }
 
   /** A theme made without danger colors takes those of its lightness. */

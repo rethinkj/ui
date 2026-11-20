@@ -565,8 +565,8 @@ public record Theme(
         BLUE_366);
 
     /**
-     * The colors of code with the color of members' names of {@link #DARK} where the caret's line
-     * is light on dark, else of {@link #LIGHT}.
+     * The colors of code with the color of members' names of {@link #DARK} where the strings are
+     * light, for a dark surface, else of {@link #LIGHT}.
      */
     public Code(
         int keyword,
@@ -594,12 +594,13 @@ public record Theme(
           occurrence,
           block,
           guide,
-          alpha(line, 1) == WHITE ? DARK.property : LIGHT.property);
+          lightness(string) > 0.5 ? DARK.property : LIGHT.property);
     }
 
     /**
-     * The colors of code with the tint of a marked block, the guides and the color of members' names
-     * of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     * The colors of code with the tint of a marked block and the guides of {@link #DARK} where the
+     * caret's line is light on dark, else of {@link #LIGHT}, and the color of members' names of
+     * the one whose strings are as light.
      */
     public Code(
         int keyword,
@@ -629,8 +630,8 @@ public record Theme(
 
     /**
      * The colors of code with the backgrounds of a find, of a word's occurrences, the tint of a
-     * marked block, the guides and the color of members' names of {@link #DARK} where the caret's
-     * line is light on dark, else of {@link #LIGHT}.
+     * marked block and the guides of {@link #DARK} where the caret's line is light on dark, else of
+     * {@link #LIGHT}, and the color of members' names of the one whose strings are as light.
      */
     public Code(
         int keyword, int string, int number, int comment, int operator, int line, int bracket) {
