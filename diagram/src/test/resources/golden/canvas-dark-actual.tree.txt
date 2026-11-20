@@ -1,0 +1,14 @@
+el 0,0 400x260
+  el #board role=graphics-document label="Diagram" 0,0 400x260 value="Zoom 100%"
+    el #orders role=graphics-object label="orders" 40,40 140x60
+      el 40,40 140x60
+        text "orders" 45,45 130x17
+        text "3 columns" 45,64 130x15
+    el #customers role=graphics-object label="customers" 240,40 140x60
+      el 240,40 140x60
+        text "customers" 245,45 130x17
+        text "3 columns" 245,64 130x15
+    el #items role=graphics-object label="items" 40,160 140x60
+      el 40,160 140x60
+        text "items" 45,165 130x17
+        text "3 columns" 45,184 130x15
