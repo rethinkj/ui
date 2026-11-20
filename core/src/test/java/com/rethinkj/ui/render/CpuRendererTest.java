@@ -79,6 +79,18 @@ class CpuRendererTest {
   }
 
   @Test
+  void aTransparentSideIsNoBorderAsOneTransparentColorIs() {
+    El square = el().size(20, 20).fill(0xFFFFFFFF).border(1, 0).borderColors(0, 0, BLUE, 0);
+    El root = el().size(20, 20).child(square);
+    Flex.layout(root, 20, 20);
+
+    Pixels image = CpuRenderer.render(Scene.of(root, 1), 20, 20, 1);
+
+    assertEquals(0xFFFFFFFF, image.argb(10, 0), "the fill reaches the top");
+    assertEquals(BLUE, image.argb(10, 19), "the bottom border");
+  }
+
+  @Test
   void anArcCoversThePixelAtItsCenterByThePartOfATurnItSweeps() {
     El half = el().size(21, 21).radius(10.5f).fill(RED).arc(0, 0.5f);
     El quarter = el().absolute(30, 0).size(21, 21).radius(10.5f).fill(RED).arc(0, 0.25f);

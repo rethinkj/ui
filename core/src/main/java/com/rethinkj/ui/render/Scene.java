@@ -637,18 +637,22 @@ public final class Scene {
       shadow(shadows.get(i), left, top, width, height, radii, opacity, clip);
     }
     int[] colors = el.borderColors();
-    // Sides all transparent are no border, as one transparent color is.
+    // A transparent side is no border, as one transparent color is, and all of them none at all.
     if (colors != null && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0 && inside) {
       // The whole rectangle once per side, each clipped to its part, so that every pixel is drawn
       // once: the top border's rows, the bottom border's rows and the left and right halves
       // between them, also of the corners. The cuts lie on physical pixels unless a spring moves
       // the element or the scene has no scale; shortcut: then a faint seam can show along them.
+      float[] sides = borders.clone();
+      for (int side = 0; side < 4; side++) {
+        sides[side] = colors[side] >>> 24 != 0 ? sides[side] : 0;
+      }
       float bottom = top + height;
-      float split = Math.min(top + borders[0], bottom);
-      float end = Math.max(bottom - borders[2], split);
+      float split = Math.min(top + sides[0], bottom);
+      float end = Math.max(bottom - sides[2], split);
       // Between the inner edges of the left and the right border, so that each stays whole.
       float middle =
-          colors[1] == colors[3] ? left + width : left + (borders[3] + width - borders[1]) / 2;
+          colors[1] == colors[3] ? left + width : left + (sides[3] + width - sides[1]) / 2;
       if (!free) {
         middle = edge(middle);
       }
@@ -662,7 +666,7 @@ public final class Scene {
         float[] part = parts[side];
         int own = clip(part[0], part[1], part[2], part[3], SQUARE, clip);
         if (own >= 0) {
-          rect(left, top, width, height, radii, borders, el.fill(), colors[side], opacity, own);
+          rect(left, top, width, height, radii, sides, el.fill(), colors[side], opacity, own);
           arc(el);
         }
       }
