@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -51,32 +50,28 @@ final class Golden {
     }
   }
 
-  static void assertMatches(String name, Pixels pixels, String tree) {
+  private static void assertMatches(String name, Pixels pixels, String tree) throws IOException {
     Path image = STORED.resolve(name + ".png");
     Path text = STORED.resolve(name + ".tree.txt");
-    try {
-      if (Boolean.getBoolean("golden.update")) {
-        Files.createDirectories(STORED);
-        Files.write(image, Png.encode(pixels));
-        Files.writeString(text, tree);
-        return;
-      }
-      if (!Files.exists(image) || !Files.exists(text)) {
-        fail("No stored result for '" + name + "'. Run with -Dgolden.update=true to create it.");
-      }
-      assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
-      Pixels expected = Png.decode(Files.readAllBytes(image));
-      if (expected.width() == pixels.width()
-          && expected.height() == pixels.height()
-          && Arrays.equals(expected.rgba(), pixels.rgba())) {
-        return;
-      }
-      Files.createDirectories(FAILED);
-      Files.write(FAILED.resolve(name + ".expected.png"), Png.encode(expected));
-      Files.write(FAILED.resolve(name + ".actual.png"), Png.encode(pixels));
-      fail("Image of '" + name + "' changed. See " + FAILED.toAbsolutePath());
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    if (Boolean.getBoolean("golden.update")) {
+      Files.createDirectories(STORED);
+      Files.write(image, Png.encode(pixels));
+      Files.writeString(text, tree);
+      return;
     }
+    if (!Files.exists(image) || !Files.exists(text)) {
+      fail("No stored result for '" + name + "'. Run with -Dgolden.update=true to create it.");
+    }
+    assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
+    Pixels expected = Png.decode(Files.readAllBytes(image));
+    if (expected.width() == pixels.width()
+        && expected.height() == pixels.height()
+        && Arrays.equals(expected.rgba(), pixels.rgba())) {
+      return;
+    }
+    Files.createDirectories(FAILED);
+    Files.write(FAILED.resolve(name + ".expected.png"), Png.encode(expected));
+    Files.write(FAILED.resolve(name + ".actual.png"), Png.encode(pixels));
+    fail("Image of '" + name + "' changed. See " + FAILED.toAbsolutePath());
   }
 }
