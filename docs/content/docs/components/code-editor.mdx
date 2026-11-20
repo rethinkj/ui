@@ -106,7 +106,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - `Object line(String line, Object state, Spans out)` receives the line without `\n`, the previous line's end state (`null` for line 0), and a `Spans` builder. Return a value object (enum, record, `Boolean.TRUE`, or `null`) so state changes can be compared with `equals`.
 - Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
 - Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
-- Override `formatter()` to enable **Ctrl+Alt+L** formatting: return a function from the editor's text, with line feeds only, to a `Formatted`, such as `Json::format`. For a text it cannot format, it returns the first problem, at its place in that text, instead of throwing. `null`, the default, means the language has no formatter, and the command does nothing.
+- Override `formatter()` to enable **Ctrl+Alt+L** formatting: return a function from the editor's text, with line feeds only, to a `Formatted`, such as `Json::format`. For a text it cannot format, it returns the first problem, at its place in that text, instead of throwing. The cursor stays at the same token when the formatter changes only white space, as `Json::format` does. `null`, the default, means the language has no formatter, and the command does nothing.
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
 ### Spans

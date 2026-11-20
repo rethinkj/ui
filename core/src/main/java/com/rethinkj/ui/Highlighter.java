@@ -54,7 +54,9 @@ public interface Highlighter {
    * string; null, the default, for a language without. The function gets the string as the editor
    * shows it, with line feeds only, and returns the formatted text, or, for a text it cannot
    * format, the first problem at the place the editor counts, without throwing: {@code Json}
-   * returns {@code Json::format}.
+   * returns {@code Json::format}. The editor keeps the caret and the selection at the same
+   * characters that are not white space, counted from the start: exactly where the formatter
+   * changes white space only, and only near them where it changes other characters.
    */
   default Function<String, Formatted> formatter() {
     return null;
