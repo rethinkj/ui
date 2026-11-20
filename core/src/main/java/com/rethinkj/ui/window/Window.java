@@ -425,6 +425,10 @@ public final class Window implements AutoCloseable {
   private final boolean underPointer;
   private final Placement placement;
   // Where the window is when it is neither maximized nor minimized, for placement().
+  // Where moveTo moved the window last, until keepInWorkArea or keepReachable has seen it.
+  private int askedX;
+  private int askedY;
+  private boolean asked;
   private int normalX;
   private int normalY;
   private float normalWidth;
@@ -1357,6 +1361,9 @@ public final class Window implements AutoCloseable {
     checkOpen();
     Sdl.setWindowPosition(sdl, x, y);
     rethrow();
+    askedX = x;
+    askedY = y;
+    asked = true;
   }
 
   /** The position of the content's top left corner on the desktop, in screen coordinates. */
@@ -1392,7 +1399,8 @@ public final class Window implements AutoCloseable {
    * @return whether the window moved
    */
   public boolean keepReachable() {
-    return keep(false);
+    asked = false; // moved by it, or by the user since
+    return keep();
   }
 
   /**
@@ -1406,50 +1414,77 @@ public final class Window implements AutoCloseable {
    * @return whether the window moved
    */
   boolean keepInWorkArea() {
-    return keep(true);
-  }
-
-  private boolean keep(boolean wholly) {
     checkOpen();
-    if (!knowsPositions()
-        || (Sdl.getWindowFlags(sdl)
-                & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN))
-            != 0) {
+    if (!placeable()) {
       return false;
     }
-    if (wholly) {
-      Sdl.syncWindow(sdl); // X11 makes the last move of the drag later
-    }
-    int[] frame = frame(); // top, left, bottom, right
-    int[] outer = outer();
-    int display = displayOf(outer);
-    int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
-    if (area == null) {
-      return false;
-    }
-    int[] by;
-    if (wholly) {
+    // Where the app moved it last, as the drag did: X11 may not have moved it there yet.
+    int[] at = asked ? new int[] {askedX, askedY} : null;
+    asked = false;
+    boolean moved = false;
+    // Twice at most: on a display of another scale it changes its size as it arrives, frame and
+    // all.
+    for (int round = 0; round < 2; round++) {
+      Sdl.syncWindow(sdl); // X11 moves and sizes it later
+      int[] frame = frame();
+      int[] outer = outer(at, frame);
+      at = null;
+      int display = displayOf(outer);
+      int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
+      if (area == null) {
+        return moved;
+      }
       if (outer[2] > area[2] || outer[3] > area[3]) {
         Sdl.setWindowSize(
             sdl,
             Math.min(outer[2], area[2]) - frame[1] - frame[3],
             Math.min(outer[3], area[3]) - frame[0] - frame[2]);
         Sdl.syncWindow(sdl);
-        outer = outer(); // at least as large as its minimum size
+        int[] content = {outer[0] + frame[1], outer[1] + frame[0]}; // stays where it was
+        frame = frame();
+        outer = outer(content, frame); // at least as large as its minimum size
       }
-      by = inside(outer, area);
-    } else {
-      int[] bar = frame[0] > 0
-          ? new int[] {outer[0], outer[1], outer[2], frame[0]}
-          : dragArea(outer[0] + frame[1], outer[1] + frame[0]);
-      by = reachable(bar, area, units(REACHABLE));
+      int[] by = inside(outer, area);
+      if (by[0] == 0 && by[1] == 0) {
+        return moved;
+      }
+      Sdl.setWindowPosition(sdl, outer[0] + frame[1] + by[0], outer[1] + frame[0] + by[1]);
+      rethrow();
+      moved = true;
     }
+    return moved;
+  }
+
+  private boolean keep() {
+    checkOpen();
+    if (!placeable()) {
+      return false;
+    }
+    int[] frame = frame(); // top, left, bottom, right
+    int[] outer = outer(null, frame);
+    int display = displayOf(outer);
+    int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
+    if (area == null) {
+      return false;
+    }
+    int[] bar = frame[0] > 0
+        ? new int[] {outer[0], outer[1], outer[2], frame[0]}
+        : dragArea(outer[0] + frame[1], outer[1] + frame[0]);
+    int[] by = reachable(bar, area, units(REACHABLE));
     if (by[0] == 0 && by[1] == 0) {
       return false;
     }
     Sdl.setWindowPosition(sdl, outer[0] + frame[1] + by[0], outer[1] + frame[0] + by[1]);
     rethrow();
     return true;
+  }
+
+  /** Whether the app may move the window: not on Wayland, nor while maximized or minimized. */
+  private boolean placeable() {
+    return knowsPositions()
+        && (Sdl.getWindowFlags(sdl)
+                & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN))
+            == 0;
   }
 
   /** The system's frame around the content: top, left, bottom and right; none if frameless. */
@@ -1461,10 +1496,17 @@ public final class Window implements AutoCloseable {
   /** x, y, width and height of the window on the screen, frame and all. */
   int[] outer() {
     checkOpen();
-    int[] frame = frame();
+    return outer(null, frame());
+  }
+
+  /**
+   * Like {@link #outer()}, with this frame, and with the content's top left corner at {@code at}
+   * in place of where SDL has it, unless null.
+   */
+  private int[] outer(int[] at, int[] frame) {
     Sdl.getWindowPosition(sdl, ints);
-    int x = ints.get(JAVA_INT, 0);
-    int y = ints.get(JAVA_INT, 4);
+    int x = at != null ? at[0] : ints.get(JAVA_INT, 0);
+    int y = at != null ? at[1] : ints.get(JAVA_INT, 4);
     Sdl.getWindowSize(sdl, ints);
     int w = ints.get(JAVA_INT, 0);
     int h = ints.get(JAVA_INT, 4);
@@ -1483,8 +1525,9 @@ public final class Window implements AutoCloseable {
       if (b == null) {
         continue;
       }
-      long across = Math.min(rect[0] + rect[2], b[0] + b[2]) - (long) Math.max(rect[0], b[0]);
-      long down = Math.min(rect[1] + rect[3], b[1] + b[3]) - (long) Math.max(rect[1], b[1]);
+      long across =
+          Math.min((long) rect[0] + rect[2], (long) b[0] + b[2]) - Math.max(rect[0], b[0]);
+      long down = Math.min((long) rect[1] + rect[3], (long) b[1] + b[3]) - Math.max(rect[1], b[1]);
       if (across > 0 && down > 0 && across * down > most) {
         most = across * down;
         best = display;
@@ -1638,9 +1681,11 @@ public final class Window implements AutoCloseable {
    * @return the move across and down
    */
   static int[] inside(int[] window, int[] area) {
-    int x = Math.clamp(window[0], area[0], Math.max(area[0], area[0] + area[2] - window[2]));
-    int y = Math.clamp(window[1], area[1], Math.max(area[1], area[1] + area[3] - window[3]));
-    return new int[] {x - window[0], y - window[1]};
+    long x =
+        Math.clamp(window[0], area[0], Math.max(area[0], (long) area[0] + area[2] - window[2]));
+    long y =
+        Math.clamp(window[1], area[1], Math.max(area[1], (long) area[1] + area[3] - window[3]));
+    return new int[] {(int) (x - window[0]), (int) (y - window[1])};
   }
 
   /**

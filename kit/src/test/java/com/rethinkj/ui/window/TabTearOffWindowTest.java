@@ -159,6 +159,7 @@ class TabTearOffWindowTest {
             if (millis == -1) { // the release and its frame are over
               if (d.groups.groups().size() == 2) {
                 Window b = d.groups.groups().get(1).window().window();
+                Sdl.syncWindow(b.sdlWindow()); // X11 moves it later
                 torn[0] = b.outer();
                 // Of the display it lies mostly on, which may be one beside the first.
                 torn[1] = Sdl.displayBounds(Window.displayOf(torn[0]), true);

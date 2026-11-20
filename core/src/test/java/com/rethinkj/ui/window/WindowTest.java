@@ -132,10 +132,12 @@ class WindowTest {
     assumeTrue(Window.knowsPositions());
     try (Window window = Window.open(TITLE, 300, 200)) {
       Desktop.settle();
-      int[] area = Sdl.displayBounds(Window.displayOf(window.outer()), true);
-      Sdl.setWindowSize(window.sdlWindow(), area[2] + 200, area[3] + 100);
-      window.moveTo(area[0] + area[2] - 50, area[1] + area[3] - 50);
+      int[] first = Sdl.displayBounds(Window.displayOf(window.outer()), true);
+      Sdl.setWindowSize(window.sdlWindow(), first[2] + 200, first[3] + 100);
+      window.moveTo(first[0] + first[2] - 50, first[1] + first[3] - 50);
       Desktop.settle();
+      // Of the display it lies mostly on now, which may be one beside the first.
+      int[] area = Sdl.displayBounds(Window.displayOf(window.outer()), true);
       assertTrue(window.keepInWorkArea());
       Desktop.settle();
       int[] outer = window.outer();

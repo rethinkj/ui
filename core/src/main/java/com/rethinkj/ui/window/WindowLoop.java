@@ -159,7 +159,9 @@ public final class WindowLoop {
   private boolean tracking;
   private float[] polled;
   private boolean captured; // the loop captured the pointer for a press that moved on
-  private Entry releasedIn; // the window whose app got the release, until it draws
+  // The windows whose apps got a release, until they draw: one batch may hold the releases of
+  // presses in two windows.
+  private final Set<Entry> releasedIn = new HashSet<>();
   private boolean focusAfterRelease;
 
   /**
@@ -255,7 +257,7 @@ public final class WindowLoop {
       if (isOpen()) {
         window.moveTo(x, y);
         // During the press, or in the frame that handles its release, whose drag step ends it.
-        moved = pressed != null || releasedIn != null;
+        moved = pressed != null || !releasedIn.isEmpty();
       }
     }
 
@@ -330,7 +332,8 @@ public final class WindowLoop {
       Entry entry = new Entry(window, app, presenter, true);
       // During a press, or in the frame that handles its release, where a step that came with the
       // release tears a tab off.
-      entry.focusAfterPress = options.isUnderPointer() && (pressed != null || releasedIn != null);
+      entry.focusAfterPress =
+          options.isUnderPointer() && (pressed != null || !releasedIn.isEmpty());
       add(entry);
       if (running) {
         start(entry);
@@ -661,8 +664,7 @@ public final class WindowLoop {
           e.fresh = false;
           e.input = false;
           draw(e, false);
-          if (e == releasedIn) {
-            releasedIn = null;
+          if (releasedIn.remove(e)) {
             focusAfterRelease = true;
           }
           for (Entry other : invalidateOthers(e)) {
@@ -889,6 +891,9 @@ public final class WindowLoop {
    */
   private void shut(Entry e, List<Throwable> to) {
     entries.remove(e);
+    if (releasedIn.remove(e)) { // closed before it drew the release: that is over too
+      focusAfterRelease = true;
+    }
     e.app.onPost(null);
     if (e.window.isOpen()) {
       e.window.listener(null);
@@ -1129,7 +1134,7 @@ public final class WindowLoop {
   }
 
   private void released(Entry in) {
-    releasedIn = in;
+    releasedIn.add(in);
     pressed = null;
     tracking = false;
     polled = null;
