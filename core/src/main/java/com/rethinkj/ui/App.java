@@ -1075,7 +1075,8 @@ public final class App<S> {
     boolean outside = !(px >= 0 && py >= 0 && px < width && py < height);
     Windows.Place place = place(px, py, outside);
     drop(d, Drag.Phase.MOVE, over(place, outside), place.x(), place.y());
-    return false; // the handler that ran asked for the rebuild
+    handled = true; // as after a step: the handler, maybe another window's, may change the state
+    return false;
   }
 
   /**
