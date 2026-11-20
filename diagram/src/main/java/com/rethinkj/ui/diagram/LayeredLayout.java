@@ -338,7 +338,7 @@ public final class LayeredLayout {
         }
       }
       free.sort(Comparator.comparingDouble((Integer i) -> cross(boxes[i]))
-          .thenComparingDouble(i -> main(boxes[i]))
+          .thenComparingDouble(i -> along(boxes[i]))
           .thenComparingInt(i -> i));
       for (int i : free) {
         boxes[i] = clear(boxes[i], obstacles);
@@ -385,7 +385,8 @@ public final class LayeredLayout {
           && b.y() < a.y() + a.height() + margin;
     }
 
-    private double main(Box box) {
+    /** Where a box lies along the layers, the axis they follow each other on. */
+    private double along(Box box) {
       return across ? box.x() : box.y();
     }
 
