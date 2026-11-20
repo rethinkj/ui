@@ -36,6 +36,7 @@ class JsonEditorTest {
   static final class Doc {
     String text;
     final CodeEditor.State editor = new CodeEditor.State();
+    int maxLength = -1;
     App<Doc> app;
 
     Doc(String text) {
@@ -54,6 +55,7 @@ class JsonEditorTest {
                 CodeEditor.codeEditor(s.app, s.text, s.editor, Json.of(), value -> s.text = value)
                     .key("json")
                     .lines(8)
+                    .maxLength(s.maxLength < 0 ? Integer.MAX_VALUE : s.maxLength)
                     .wFull()));
     doc.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -67,26 +69,29 @@ class JsonEditorTest {
   }
 
   @Test
-  void controlAltLFormatsAsOneStepWithTheCaretAtTheSameToken() throws IOException {
+  void controlAltLFormatsAsOneStepWithTheSelectionAtTheSameTokens() throws IOException {
     String minified = "{\"id\":1,\"tags\":[\"a\",\"b\"]}";
     Doc doc = new Doc(minified);
     App<Doc> app = app(doc);
     run(
         app,
-        "frame\nfocus #json\nkey Home control\n" + "key ArrowRight\n".repeat(8) + "type \" \"");
-    String typed = "{\"id\":1, \"tags\":[\"a\",\"b\"]}";
+        "frame\nfocus #json\nkey Home control\n" + "key ArrowRight\n".repeat(7) + "type \"2\"\n"
+            + "key ArrowRight\n" + "key ArrowRight shift\n".repeat(6));
+    String typed = "{\"id\":12,\"tags\":[\"a\",\"b\"]}";
     assertEquals(typed, doc.text);
     run(app, "key L control alt");
     String formatted = """
         {
-            "id": 1,
+            "id": 12,
             "tags": [
                 "a",
                 "b"
             ]
         }""";
     assertEquals(formatted, doc.text);
-    assertEquals(formatted.indexOf("\"tags\""), doc.editor.caret(), "before the same token");
+    int tags = formatted.indexOf("\"tags\"");
+    assertEquals(tags, doc.editor.anchor(), "\"tags\" stays selected, without the indentation");
+    assertEquals(tags + 6, doc.editor.caret());
     run(app, "key Z control");
     assertEquals(typed, doc.text, "one Control+Z takes the format back, and not the typing");
     run(app, "key Z control");
@@ -106,6 +111,12 @@ class JsonEditorTest {
     assertFalse(tree.contains("underline"), "gone with the text it was about:\n" + tree);
     run(app, "key L control alt");
     assertEquals("{\n    \"a\": 1\n}", doc.text);
+
+    Doc small = new Doc("[1,2]");
+    small.maxLength = 8;
+    tree = run(app(small), "frame\nfocus #json\nkey L control alt");
+    assertEquals("[1,2]", small.text, "not cut at the field's limit");
+    assertTrue(tree.contains("role=tooltip label=\"Too large to format\""), tree);
   }
 
   @Test

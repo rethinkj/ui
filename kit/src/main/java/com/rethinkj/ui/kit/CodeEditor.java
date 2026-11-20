@@ -329,6 +329,7 @@ public final class CodeEditor {
       if (problem != null && !value.equals(problemOf)) { // at once for the same string object
         problem = null;
         problemOf = null;
+        shown = -1; // its message goes with it, not on to a diagnostic at the same place
       }
       List<Diagnostic> about = aboutValue(value);
       if (problem == null) {
@@ -472,8 +473,8 @@ public final class CodeEditor {
         return true;
       }
       Command command = command(k);
-      if (command == null) {
-        return false;
+      if (command == null || (command == Command.FORMAT && state.formatter == null)) {
+        return false; // Control+Alt+L stays the app's where the language has no formatter
       }
       run(app, state, command);
       return true;
@@ -786,11 +787,23 @@ public final class CodeEditor {
       return null;
     }
     Formatted formatted = state.formatter.apply(text);
+    int max = editor.maxLength();
+    if (formatted.valid()
+        && max >= 0
+        && formatted.text().codePointCount(0, formatted.text().length()) > max) {
+      // The field would cut the formatted text at its limit.
+      formatted = new Formatted(null, new Formatted.Problem(0, 0, Formatted.Kind.TOO_LARGE));
+    }
     if (formatted.valid()) {
       String to = formatted.text();
       return to.equals(text)
           ? null
-          : new LineEdits.Edit(0, text.length(), to, same(text, to, caret), same(text, to, anchor));
+          : new LineEdits.Edit(
+              0,
+              text.length(),
+              to,
+              same(text, to, caret, caret <= anchor),
+              same(text, to, anchor, anchor <= caret));
     }
     int at = Math.min(formatted.problem().from(), text.length());
     state.problem = formatted.problem();
@@ -804,24 +817,43 @@ public final class CodeEditor {
 
   /**
    * Where position {@code at} of {@code text} is in {@code formatted}, the same characters with
-   * other white space: after as many characters that are not white space, and before the next
-   * such character where white space or the start of the text is before {@code at}.
+   * other white space between some of them: at its place in white space that stayed as it was,
+   * such as in a string; else right after the character before it that is not white space, where
+   * white space only follows {@code at}, and right before the next one, where white space only
+   * precedes it; between two such characters, or inside white space, before the next one if
+   * {@code after}.
    */
-  private static int same(String text, String formatted, int at) {
+  private static int same(String text, String formatted, int at, boolean after) {
     int count = 0;
+    int from = 0; // the white space around at, from to to
     for (int i = 0; i < at; i++) {
-      count += Character.isWhitespace(text.charAt(i)) ? 0 : 1;
-    }
-    int i = 0;
-    for (; i < formatted.length() && count > 0; i++) {
-      count -= Character.isWhitespace(formatted.charAt(i)) ? 0 : 1;
-    }
-    if (at == 0 || Character.isWhitespace(text.charAt(at - 1))) {
-      while (i < formatted.length() && Character.isWhitespace(formatted.charAt(i))) {
-        i++;
+      if (!Character.isWhitespace(text.charAt(i))) {
+        count++;
+        from = i + 1;
       }
     }
-    return i;
+    int to = at;
+    while (to < text.length() && Character.isWhitespace(text.charAt(to))) {
+      to++;
+    }
+    int start = 0; // the white space at the same place in formatted, start to end
+    for (; start < formatted.length() && count > 0; start++) {
+      count -= Character.isWhitespace(formatted.charAt(start)) ? 0 : 1;
+    }
+    int end = start;
+    while (end < formatted.length() && Character.isWhitespace(formatted.charAt(end))) {
+      end++;
+    }
+    if (to - from == end - start && text.regionMatches(from, formatted, start, to - from)) {
+      return start + at - from;
+    }
+    if (at == from && at < to) {
+      return start;
+    }
+    if (at == to && at > from) {
+      return end;
+    }
+    return after ? end : start;
   }
 
   private static void selectNext(
