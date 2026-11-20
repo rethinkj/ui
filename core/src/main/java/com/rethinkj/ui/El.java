@@ -3568,9 +3568,11 @@ public final class El {
   }
 
   /**
-   * How much of the bottom of this scroll area the strips of horizontal bars cover, in logical
-   * pixels as the last layout placed them, 0 where none does: the content scrolls that much
-   * further, so that its end shows above them, and a row under them is not wholly in view.
+   * How much of the bottom of this area, where it scrolls up and down, the strips that layout
+   * keeps for horizontal bars cover, its own or those of the areas around it, in logical pixels
+   * as the last layout placed them; 0 where none does or the area does not scroll up and down.
+   * The content scrolls that much further, so that its end shows above them, and a row under them
+   * is not wholly in view.
    */
   public float coverY() {
     return coverY;

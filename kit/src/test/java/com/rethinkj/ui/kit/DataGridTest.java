@@ -209,6 +209,8 @@ class DataGridTest {
     assertEquals(1_000_000 * 24.0 + 10 - rows.height(), rows.scrollY(), "as far as the end goes");
     assertEquals(999_999, selection.lastRowInView());
     assertEquals(999_993, selection.firstRowInView(), "above the 10 pixels for the bar sideways");
+    selection.reset();
+    assertEquals(999_993, selection.firstRowInView(), "until the next build");
   }
 
   @Test

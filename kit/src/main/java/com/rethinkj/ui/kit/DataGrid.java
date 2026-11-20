@@ -1335,8 +1335,8 @@ public final class DataGrid {
 
     /**
      * The first and the last row wholly in view, or -1 and -1 for none: at the offset the rows
-     * have, or that the build of the view gave them before layout, as the rows of the last frame
-     * are high and covered by a bar along their bottom.
+     * have, or that the build of the view gave them before layout, as high and covered by a bar
+     * along their bottom as the rows of the last frame.
      */
     private int[] inView() {
       int[] none = {-1, -1};
@@ -1347,7 +1347,9 @@ public final class DataGrid {
       double high = rows.rowHeight();
       double view = placed.height() - placed.coverY();
       double end = rows.rowCount() * high + placed.coverY() - placed.height();
-      double top = Math.clamp(rowsScroll.y(), 0, Math.max(0, end)); // as the rows will clamp it
+      double top = rows == placed
+          ? rows.scrollY()
+          : Math.clamp(rowsScroll.y(), 0, Math.max(0, end)); // as the new rows will clamp it
       long first = (long) Math.ceil(top / high);
       long last = Math.min((long) Math.floor((top + view) / high) - 1, rows.rowCount() - 1L);
       return last < first ? none : new int[] {(int) first, (int) last};
