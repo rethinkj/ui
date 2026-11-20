@@ -1,0 +1,1 @@
+- A read-only multi-line field, such as a `CodeEditor` with `State.readOnly(true)` or a code area made `readOnly()`, no longer swallows Enter and Shift+Enter: it inserts no line break, so the key goes on to the `onKey` handlers of the elements around it. In a dialog with a `defaultButton`, Enter in such a field now presses that button.
