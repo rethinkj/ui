@@ -1,0 +1,24 @@
+el 0,0 560x300
+  el role=button label="Arrange" 4,4 76x24
+    text "Arrange" 17,8 50x16
+  el role=graphics-document label="Diagram" 4,32 552x264 value="Zoom 75%"
+    el #customers role=graphics-object label="customers" 40,98 120x54
+      el 40,98 120x54
+        text "customers" 47,105 106x13
+        text "id, name, created_at" 47,120 106x11
+    el #orders role=graphics-object label="orders" 220,98 120x54
+      el 220,98 120x54
+        text "orders" 227,105 106x13
+        text "id, name, created_at" 227,120 106x11
+    el #items role=graphics-object label="order_items" 400,137 120x54
+      el 400,137 120x54
+        text "order_items" 407,144 106x13
+        text "id, name, created_at" 407,159 106x11
+    el #products role=graphics-object label="products" 220,176 120x54
+      el 220,176 120x54
+        text "products" 227,183 106x13
+        text "id, name, created_at" 227,198 106x11
+    el #suppliers role=graphics-object label="suppliers" 40,176 120x54
+      el 40,176 120x54
+        text "suppliers" 47,183 106x13
+        text "id, name, created_at" 47,198 106x11
