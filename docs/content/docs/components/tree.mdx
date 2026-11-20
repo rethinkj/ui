@@ -30,6 +30,7 @@ Pass `new Tree.Options<Node>()` to `Tree.tree(model, options)`:
 | `select(selected, onSelect)` | Tracks selection (`onSelect` fires only when selection changes; required for keyboard focus) |
 | `onActivate(handler)` | Runs on **Enter** or double-click (for example, opening a table) |
 | `toggleOnDoublePress(predicate)` | Controls whether double-click also expands/collapses a node (all nodes by default) |
+| `drag(dragging, canDrag, canDrop, onDrop)` | Lets the user drag nodes and drop them before, after or into others (see [Drag and drop](#drag-and-drop)) |
 
 Right-clicking selects the row before opening a `Menu.contextMenu(tree, menuState, items)`. Inside a card, wrap the tree in `Card.inset(tree)`. Expand/collapse chevrons require `rethinkj-ui-icons`.
 
@@ -69,6 +70,36 @@ In narrow containers, trailing `detail` text truncates first (then hides), follo
 
 <Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
 
+## Drag and drop
+
+`drag(dragging, canDrag, canDrop, onDrop)` lets the user move nodes. Keep one `Tree.Dragging` per tree in your state. `canDrag` says which nodes can be dragged, `canDrop` whether a `Tree.Move` is allowed, and `onDrop` receives the move on release. The tree changes nothing itself: your app moves the node in its model.
+
+```java snippet="tree-drag"
+```
+
+A `Tree.Move` has the dragged `node`, the `target` it was dropped on, and a `place`: `BEFORE` or `AFTER` the target among its siblings, or `INTO` the target. The model has no parents, so the target tells where the node goes. The tree never offers a move into the node itself or one of its descendants, and never asks `canDrop` about one.
+
+- The middle half of a row that can take the node means `INTO`; the tree outlines the row.
+- Above that it means `BEFORE` the row's node, below it `AFTER` the node, or `BEFORE` the first child of an open node. A line shows the place.
+- In the lower part of the last row inside an open node, the pointer's horizontal position picks the level: over the row it means after that row's node, one indent further left after its parent. So "after the last child" and "after the open node itself" are different drops.
+- Below all rows means `AFTER` the last root.
+- Where `canDrop` says no, nothing shows and a release does nothing.
+
+<Shot src="kit/tree-{theme}-drop-line" alt="A schema tree while the table changes is dragged: its label muted, and a line in the accent's color below notification_preferences, at the level of the tables" />
+
+<Shot src="kit/tree-{theme}-drop-into" alt="The same drag over the schema public, whose row is outlined in the accent's color" />
+
+Near the top or bottom edge the tree scrolls while the pointer waits there. A closed node opens after the pointer rests on it for the theme's `submenuDelay` where the node could go into it. **Escape** cancels the drag. A click or double-click without dragging selects, opens and activates as before. Select the moved node in `onDrop`, so the rows follow it to its new place.
+
+A script drags with `down`, `move` and `up`. A row's center means `INTO` where the node may go there, else the place below the row. For other places, aim at a point near a row's top or bottom edge, taken from its position in the tree dump:
+
+```text
+down role=treeitem label="orders"
+move role=treeitem label="audit"
+up role=treeitem label="audit"
+frame
+```
+
 ## Keyboard
 
 | Key | Action |
@@ -81,7 +112,7 @@ In narrow containers, trailing `detail` text truncates first (then hides), follo
 
 ## In a tree dump
 
-`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`) and chevrons (`#mark-<index>` or `#mark-<key>`):
+`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`) and chevrons (`#mark-<index>` or `#mark-<key>`). While a node is dragged its row is `grabbed`, and the line or outline that shows where it goes is `#marker` inside a row:
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```

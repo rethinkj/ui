@@ -5,6 +5,8 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.Cursor;
+import com.rethinkj.ui.Drag;
+import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 /**
@@ -59,6 +62,14 @@ import java.util.function.Predicate;
  * node opened at the bottom shows what it holds. The tree is one stop for Tab. Like a list of
  * rows, it needs a height of its own or room to {@link El#grow}.
  *
+ * <p>With {@link Options#drag} the user drags nodes onto others, and the app moves them ({@link
+ * Move}): the middle half of a row that can take the node means into its node, the rest of the
+ * row before or after it, below the rows after the last root. The rows keep where they were
+ * scrolled to and do not follow the selection meanwhile; near the top or the bottom the tree
+ * scrolls along while the pointer waits there, and a closed node the pointer rests on, where it
+ * could take the node, opens after the theme's {@link Theme.Motion#submenuDelay}. Escape gives
+ * the drag up.
+ *
  * <p>Each level is indented by {@link Theme.Spacing#l}, and a hairline in {@link
  * Theme.Borders#divider} runs below the mark of every open node through the rows it holds. The
  * selected row has a short bar in the accent's edge at its start, as a {@link NavList}'s item, and
@@ -76,7 +87,10 @@ import java.util.function.Predicate;
  * with the message as its label and as {@code error="<message>"}, and its action is {@code
  * role=button} with its text as the label. A label, a loading text or a message longer than its
  * row ends in an ellipsis, and a tooltip after the theme's delay shows it whole. A muted row
- * ({@link Model#muted}) says nothing more in a dump: only its label's color differs.
+ * ({@link Model#muted}) says nothing more in a dump: only its label's color differs. The row of
+ * a node being dragged is {@code grabbed}, with its label muted, and the line in the accent's
+ * edge that shows where it goes, or the outline around the row it goes into, is {@code #marker}
+ * in a row.
  */
 public final class Tree {
 
@@ -219,6 +233,77 @@ public final class Tree {
     void toggle(N node, boolean open);
   }
 
+  /** Where a dropped node goes, from the node it is dropped on ({@link Move#target}). */
+  public enum Place {
+    /** Before the target, among its siblings. */
+    BEFORE,
+    /** After the target, among its siblings: below the target's children, where it is open. */
+    AFTER,
+    /** Into the target, among its children; where among them is the app's to say. */
+    INTO
+  }
+
+  /**
+   * A node dropped on another, or one that would be: {@code node} goes before, after or into
+   * {@code target}, as {@code place} says. Nodes have no parents in the {@link Model}, so the
+   * target says where: its parent is the new one of the node, or the target itself for {@link
+   * Place#INTO}. The tree never asks about or reports a move of a node into itself or into one
+   * of its descendants.
+   *
+   * @param node the node dragged
+   * @param target the node it is dropped on
+   * @param place where it goes from there
+   * @param <N> the app's type of node
+   */
+  public record Move<N>(N node, N target, Place place) {
+    public Move {
+      Objects.requireNonNull(node, "node");
+      Objects.requireNonNull(target, "target");
+      Objects.requireNonNull(place, "place");
+    }
+  }
+
+  /**
+   * What a tree keeps of a drag of its nodes while it lasts: where the node would go and how far
+   * the tree has scrolled along. The app makes one for each tree, keeps it in its state, and
+   * gives it to {@link Options#drag} at every build of the view; the tree alone changes it.
+   */
+  public static final class Dragging {
+    Object node; // the node dragged; null while none is
+    // What the tree kept in view when the drag began, which it keeps meanwhile, so that rows that
+    // open do not scroll it away: the selected row, and the number of rows its reveal counts.
+    int selectedRow;
+    int rowCount;
+    int offset; // added to the number of rows it counts, so that the drag's rows count as before
+    boolean ended; // a drag ended since the last build
+    int scrolls; // the steps it scrolled along near an edge, for its reveal
+    float scrollTo; // where the last of them scrolled to, in the content
+    boolean along; // it scrolled along during this drag
+    int edge; // the edge the pointer waits near: -1 the top, 1 the bottom, 0 neither
+    double edgeSince; // since when, on the app's clock, or since it last scrolled
+    Object resting; // the closed node the pointer rests on, which opens after a while
+    double restingSince;
+    int markRow = -1; // the row that shows where the node goes, -1 for none
+    boolean into; // into that row's node, else a line at its top or bottom
+    boolean top;
+    int depth; // the level of the line
+
+    void unmark() {
+      markRow = -1;
+      edge = 0;
+      resting = null;
+    }
+
+    void clear() {
+      unmark();
+      ended |= node != null;
+      node = null;
+    }
+  }
+
+  /** What a row's drag carries: the node, for the tree's drop handler from the first step on. */
+  private record Carried(Dragging dragging, Object node) {}
+
   /**
    * Which nodes are open and selected, and what the user's input does, as {@code new
    * Tree.Options<Node>().open(...).select(...)}. Without any, the tree shows its roots, closed,
@@ -233,6 +318,10 @@ public final class Tree {
     private Consumer<? super N> onSelect;
     private Consumer<? super N> onActivate;
     private Predicate<? super N> toggleOnDoublePress = node -> true;
+    private Dragging dragging;
+    private Predicate<? super N> canDrag;
+    private Predicate<? super Move<N>> canDrop;
+    private Consumer<? super Move<N>> onDrop;
 
     /**
      * @param isOpen whether a node is open; asked for the nodes that are not leaves, from the
@@ -273,6 +362,29 @@ public final class Tree {
       this.toggleOnDoublePress = Objects.requireNonNull(toggles, "toggles");
       return this;
     }
+
+    /**
+     * Lets the user drag nodes and drop them before, after or into others; the app moves them.
+     * A press without a drag selects and activates as before.
+     *
+     * @param dragging what the tree keeps of a drag, which the app holds; one for each tree
+     * @param canDrag whether the user may drag a node
+     * @param canDrop whether a node may go where the pointer is; asked on the steps of the drag
+     *     for what the pointer may mean there, never for a move into the node itself or one of
+     *     its descendants
+     * @param onDrop told the move when the user drops a node where {@code canDrop} allows it
+     */
+    public Options<N> drag(
+        Dragging dragging,
+        Predicate<? super N> canDrag,
+        Predicate<? super Move<N>> canDrop,
+        Consumer<? super Move<N>> onDrop) {
+      this.dragging = Objects.requireNonNull(dragging, "dragging");
+      this.canDrag = Objects.requireNonNull(canDrag, "canDrag");
+      this.canDrop = Objects.requireNonNull(canDrop, "canDrop");
+      this.onDrop = Objects.requireNonNull(onDrop, "onDrop");
+      return this;
+    }
   }
 
   private Tree() {}
@@ -285,15 +397,30 @@ public final class Tree {
     Consumer<? super N> onSelect = options.onSelect;
     Consumer<? super N> onActivate = options.onActivate;
     Predicate<? super N> toggleOnDoublePress = options.toggleOnDoublePress;
+    Dragging dragging = options.dragging;
+    // While a node is dragged the tree keeps in view what it did when the drag began.
+    boolean held = dragging != null && dragging.node != null;
     Rows<N> rows = new Rows<>(model, isOpen, options.selected);
+    if (dragging != null && dragging.ended) { // the rows it opened or moved count as they were
+      dragging.offset = dragging.rowCount - rows.count;
+      dragging.ended = false;
+    }
+    int counted = rows.count + (dragging == null ? 0 : dragging.offset);
+    if (dragging != null && !held) { // what the tree keeps in view, until a drag begins
+      dragging.selectedRow = rows.selected;
+      dragging.rowCount = counted;
+    }
     float height = theme.grid().rowHeight();
     float mark = theme.space().xl(); // the mark's width, which takes presses
     float indent = theme.space().l();
     boolean presses = onSelect != null || onToggle != null || onActivate != null;
     // The rows are built after the tree's focus look has run, so they can read what it found.
     boolean[] focused = {false};
-    El tree = col().role("tree").scrollbars(theme.scrollbars()).revealRow(rows.selected);
-    tree.rows(rows.count, height, i -> {
+    El tree = col()
+        .role("tree")
+        .scrollbars(theme.scrollbars())
+        .revealRow(held ? dragging.selectedRow : rows.selected);
+    IntFunction<El> build = i -> {
       int depth = rows.depth(i);
       El r = row()
           .radius(theme.radius().medium())
@@ -316,6 +443,7 @@ public final class Tree {
         return whole(theme, r, loading, null, text, height);
       }
       N node = rows.node(i);
+      boolean grabbed = held && node.equals(dragging.node);
       String key = model.key(node);
       String id = key == null ? Integer.toString(i) : key;
       boolean leaf = model.isLeaf(node);
@@ -354,7 +482,8 @@ public final class Tree {
       if (icon != null) {
         r.child(icon);
       }
-      Label.Variant variant = model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
+      Label.Variant variant =
+          grabbed || model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
       String detail = model.detail(node);
       if (detail == null) {
         El name = Label.label(variant, label).ellipsis().minSize(0, 0);
@@ -370,8 +499,18 @@ public final class Tree {
                 .radius(theme.space().xs() / 2)
                 .fill(theme.accent().edge()))
             .fill(focused[0] ? theme.grid().selected() : theme.grid().selectedInactive());
-      } else if (presses) {
+      } else if (presses && !grabbed) { // the dragged row is the one hovered meanwhile
         r.whenHovered(e -> e.fill(theme.surface().hover()));
+      }
+      if (dragging != null && options.canDrag.test(node)) {
+        // The tree's drop handler does the rest, with the rows of the latest build.
+        r.grabbed(grabbed).dragPayload(new Carried(dragging, node)).onDrag(d -> {
+          if (d.phase() == Drag.Phase.START && dragging.node == null) { // not over the tree
+            begin(dragging, node);
+          } else if (d.phase() == Drag.Phase.END || d.phase() == Drag.Phase.CANCEL) {
+            dragging.clear();
+          }
+        });
       }
       // The rows are built after the view, so a context menu given to the tree is there: the
       // row a secondary press lands on is selected before the menu opens.
@@ -395,15 +534,23 @@ public final class Tree {
               }
             }
           });
-    });
-    if (rows.selected >= 0) {
+    };
+    tree.rows(rows.count, height, i -> marked(theme, dragging, i, height, build.apply(i)));
+    int scrolls = dragging == null ? 0 : dragging.scrolls;
+    if (held) {
+      // Scrolls along near an edge, and else nowhere: the key stays the one the tree had, if any.
+      if (dragging.along || dragging.selectedRow >= 0) {
+        tree.reveal(List.of(dragging.rowCount, scrolls), 0, dragging.scrollTo, 0, 1);
+      }
+    } else if (rows.selected >= 0) {
       // When nodes open or close, the number of rows changes: the tree shows the selected node's
       // children below it as far as the view has room, as one just opened by Right or the mark.
-      int end = rows.selected + 1;
-      while (end < rows.count && rows.depth(end) > rows.depth(rows.selected)) {
-        end++;
-      }
-      tree.reveal(rows.count, 0, rows.selected * height, 0, (end - rows.selected) * height);
+      int end = rows.end(rows.selected);
+      tree.reveal(
+          List.of(counted, scrolls), 0, rows.selected * height, 0, (end - rows.selected) * height);
+    }
+    if (dragging != null) {
+      tree.onDrop(d -> drop(theme, model, options, rows, tree, height, d));
     }
     if (onSelect == null) {
       return tree;
@@ -421,6 +568,202 @@ public final class Tree {
             onSelect.accept(rows.node(to));
           }
         });
+  }
+
+  /** How many rows a second the tree scrolls along while a drag waits near its top or bottom. */
+  private static final double ALONG = 10;
+
+  /**
+   * Adds to a row what shows where a dragged node goes, if it is this row's: a line along its top
+   * or bottom from the level the node goes to, or an outline around it for into it.
+   */
+  private static El marked(Theme theme, Dragging dragging, int row, float height, El r) {
+    if (dragging == null || dragging.node == null || row != dragging.markRow) {
+      return r;
+    }
+    float line = theme.size().indicator();
+    El marker = el().key("marker");
+    if (dragging.into) {
+      marker.absolute(0, 0).wFull().h(height).radius(theme.radius().medium());
+      marker.border(line, theme.accent().edge());
+    } else {
+      // Across the boundary with the row above, which this row covers: the first row has none.
+      float y = !dragging.top ? height - line : row == 0 ? 0 : -line / 2;
+      float left = theme.space().s() + dragging.depth * theme.space().l();
+      marker.absolute(left, y).h(line).radius(line / 2).fill(theme.accent().edge());
+      marker.style().right = Len.px(theme.space().s());
+    }
+    return r.child(marker); // last, so that the row's other parts keep their places
+  }
+
+  /**
+   * Where a node dropped at a point of the tree's content goes, and which row shows it: the
+   * middle half of a node's row means into it, where it may go there; the rest of the row's upper
+   * half, or all of it, before the node, and of its lower half after it, or before its first
+   * child where it shows its children; below the rows, after the last root.
+   *
+   * @param move what a release would report
+   * @param target the row of the move's target
+   * @param row the row that shows it
+   * @param into whether the outline of that row shows it, else a line
+   * @param top whether the line runs along the row's top, else its bottom
+   * @param depth the level of the line
+   */
+  private record Aim<N>(Move<N> move, int target, int row, boolean into, boolean top, int depth) {}
+
+  /** A step of a drag of a node over the tree: the marker, scrolling along, opening, the drop. */
+  private static <N> void drop(
+      Theme theme, Model<N> model, Options<N> o, Rows<N> rows, El tree, float height, Drop d) {
+    Dragging g = o.dragging;
+    if (!(d.payload() instanceof Carried c) || c.dragging() != g) {
+      return; // something else's drag
+    }
+    if (d.phase() == Drop.Phase.LEAVE) {
+      g.unmark();
+      return;
+    }
+    @SuppressWarnings("unchecked") // the payload of a row of this tree
+    N node = (N) c.node();
+    if (g.node == null) { // the first step, before the row's drag handler has its own
+      begin(g, node);
+    }
+    if (d.phase() == Drop.Phase.DROP) {
+      g.unmark();
+      Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height);
+      if (aim != null) {
+        o.onDrop.accept(aim.move());
+      }
+      return;
+    }
+    // Near the top or the bottom the tree scrolls along, by the time the pointer waits there.
+    double scrollY = tree.scrollY();
+    double y = d.y() - scrollY;
+    double end = Math.max(0, rows.count * height - tree.height()); // the farthest it scrolls
+    float near = Math.min(height, tree.height() / 2);
+    int edge = y < near && scrollY > 0 ? -1 : y > tree.height() - near && scrollY < end ? 1 : 0;
+    double shift = 0; // how far the rows move under the pointer with this step
+    boolean waited = d.time() > g.edgeSince; // false without a clock, whose time is NaN
+    if (edge == 0 || edge != g.edge || !waited) {
+      g.edge = edge;
+      g.edgeSince = d.time();
+    } else {
+      double by = Math.min(tree.height(), (d.time() - g.edgeSince) * ALONG * height);
+      g.edgeSince = d.time();
+      g.scrolls++;
+      g.along = true;
+      shift = edge < 0 ? -Math.min(by, scrollY) : Math.min(by, end - scrollY);
+      // A pixel the reveal shows at the top or the bottom: as far as the aim below expects.
+      g.scrollTo = (float) (scrollY + shift + (edge < 0 ? 0 : tree.height() - 1));
+    }
+    // Where the node would go once the rows have moved, which the next frame shows.
+    Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y() + shift, height);
+    g.markRow = aim == null ? -1 : aim.row();
+    if (aim != null) {
+      g.into = aim.into();
+      g.top = aim.top();
+      g.depth = aim.depth();
+    }
+    // A closed node that the pointer rests on, where it would drop the node into it, opens.
+    N into = aim != null && aim.into() ? aim.move().target() : null;
+    if (into == null || o.onToggle == null || o.isOpen.test(into)) {
+      g.resting = null;
+    } else if (!into.equals(g.resting)) {
+      g.resting = into;
+      g.restingSince = d.time();
+    } else if (d.time() - g.restingSince >= theme.motion().submenuDelay()) {
+      g.resting = null;
+      o.onToggle.toggle(into, true);
+    }
+  }
+
+  /** Notes that a drag of {@code node} began. */
+  private static void begin(Dragging g, Object node) {
+    g.node = node;
+    g.along = false;
+  }
+
+  /** Where a node dropped at {@code x}, {@code y} of the tree's content goes; null for nowhere. */
+  private static <N> Aim<N> aim(
+      Theme theme,
+      Model<N> model,
+      Options<N> o,
+      Rows<N> rows,
+      N node,
+      double x,
+      double y,
+      float height) {
+    int count = rows.count;
+    if (count == 0) {
+      return null;
+    }
+    // The node's own row and those of its descendants take nothing: it cannot go into itself.
+    int from = rows.indexOf(node);
+    int to = from < 0 ? -1 : rows.end(from);
+    if (y >= count * height) { // below the rows: after the last root
+      int root = count - 1;
+      while (rows.depth(root) > 0) {
+        root--;
+      }
+      Move<N> move = new Move<>(node, rows.node(root), Place.AFTER);
+      return allowed(o, new Aim<>(move, root, count - 1, false, false, 0), from, to);
+    }
+    int i = (int) Math.max(0, Math.floor(y / height));
+    double part = y / height - i;
+    N at = rows.node(i);
+    if (at != null && !model.isLeaf(at) && part >= 0.25 && part < 0.75) {
+      Move<N> move = new Move<>(node, at, Place.INTO);
+      Aim<N> into = allowed(o, new Aim<>(move, i, i, true, false, 0), from, to);
+      if (into != null) {
+        return into;
+      }
+    }
+    Move<N> move;
+    int target;
+    int row = i + 1; // the row whose top the line runs along
+    boolean top = true;
+    int depth;
+    if (part < 0.5) { // before the row's node
+      if (at == null) {
+        return null;
+      }
+      move = new Move<>(node, at, Place.BEFORE);
+      target = row = i;
+      depth = rows.depth(i);
+    } else if (i + 1 < count && rows.depth(i + 1) > rows.depth(i)) { // before its first child
+      N first = rows.node(i + 1);
+      if (first == null) {
+        return null;
+      }
+      move = new Move<>(node, first, Place.BEFORE);
+      target = i + 1;
+      depth = rows.depth(i + 1);
+    } else {
+      // After the row's node, or after one of its ancestors down to the level of the next row:
+      // the pointer's place across the levels says which, one indent each, from the left.
+      boolean last = i + 1 == count;
+      int above = at == null ? rows.parentRow(i) : i;
+      double level = Math.floor((x - theme.space().s()) / theme.space().l());
+      depth = Math.clamp((long) level, last ? 0 : rows.depth(i + 1), rows.depth(above));
+      target = above;
+      while (rows.depth(target) > depth) {
+        target = rows.parentRow(target);
+      }
+      move = new Move<>(node, rows.node(target), Place.AFTER);
+      if (last) { // along the bottom of the last row
+        row = i;
+        top = false;
+      }
+    }
+    return allowed(o, new Aim<>(move, target, row, false, top, depth), from, to);
+  }
+
+  /**
+   * The aim, or null where its target is the dragged node or one of its descendants, in the rows
+   * {@code from} to {@code to}, or where the app does not allow the move.
+   */
+  private static <N> Aim<N> allowed(Options<N> o, Aim<N> aim, int from, int to) {
+    boolean inside = aim.target() >= from && aim.target() < to;
+    return inside || !o.canDrop.test(aim.move()) ? null : aim;
   }
 
   /**
@@ -668,6 +1011,25 @@ public final class Tree {
 
     int depth(int row) {
       return depths[row];
+    }
+
+    /** The row after the node's in its row and the rows of its descendants shown. */
+    int end(int row) {
+      int end = row + 1;
+      while (end < count && depths[end] > depths[row]) {
+        end++;
+      }
+      return end;
+    }
+
+    /** The row of a node, or -1 where it is not shown. */
+    int indexOf(Object node) {
+      for (int i = 0; i < count; i++) {
+        if (node.equals(nodes[i])) {
+          return i;
+        }
+      }
+      return -1;
     }
 
     /** The row of the node's parent, or the row itself at the top. */

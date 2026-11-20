@@ -5,6 +5,7 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -740,6 +741,193 @@ class TreeTest {
     assertFalse(app.tree().dump().contains("role=tooltip"));
   }
 
+  // Dragging
+
+  /**
+   * Folders and files by name, keyed by name, which the tree lets the user drag: docs holds
+   * drafts, which holds b.txt, then a.txt and as many more files as the test asks for; music
+   * holds c.mp3; notes.txt lies at the top. Drops are logged, not made.
+   */
+  private static final class Folders implements Tree.Model<String> {
+    final java.util.Map<String, List<String>> folders = new java.util.HashMap<>();
+    final java.util.Set<String> open = new java.util.HashSet<>(List.of("docs", "drafts"));
+    final Tree.Dragging dragging = new Tree.Dragging();
+    final List<String> log = new ArrayList<>();
+    final List<Tree.Move<String>> asked = new ArrayList<>();
+    java.util.function.Predicate<Tree.Move<String>> allows = move -> true;
+    String selected;
+
+    Folders(int files) {
+      List<String> docs = new ArrayList<>(List.of("drafts", "a.txt"));
+      for (int i = 0; i < files; i++) {
+        docs.add(String.format("f%03d.txt", i));
+      }
+      folders.put("docs", docs);
+      folders.put("drafts", List.of("b.txt"));
+      folders.put("music", List.of("c.mp3"));
+    }
+
+    @Override
+    public List<String> roots() {
+      return List.of("docs", "music", "notes.txt");
+    }
+
+    @Override
+    public Tree.Children<String> children(String node) {
+      return Tree.ready(folders.get(node));
+    }
+
+    @Override
+    public boolean isLeaf(String node) {
+      return !folders.containsKey(node);
+    }
+
+    @Override
+    public String label(String node) {
+      return node;
+    }
+
+    @Override
+    public String key(String node) {
+      return node;
+    }
+
+    El view() {
+      return Tree.tree(
+              this,
+              new Tree.Options<String>()
+                  .open(open::contains, (node, on) -> {
+                    log.add((on ? "open " : "close ") + node);
+                    if (on) {
+                      open.add(node);
+                    } else {
+                      open.remove(node);
+                    }
+                  })
+                  .select(selected, node -> {
+                    log.add("select " + node);
+                    selected = node;
+                  })
+                  .onActivate(node -> log.add("activate " + node))
+                  .drag(
+                      dragging,
+                      node -> true,
+                      move -> asked.add(move) && allows.test(move),
+                      move -> log.add(move.node() + " " + move.place() + " " + move.target())))
+          .key("tree")
+          .wFull()
+          .hFull();
+    }
+  }
+
+  // The rows of new Folders(0), 24 high from the top of the window: docs, drafts, b.txt, a.txt,
+  // music, notes.txt. A level of the tree is 12 wide from 4 on: x 20 is the first's.
+
+  @Test
+  void aDropReportsTheNodeTheTargetAndWhereItGoes() throws IOException {
+    Folders folders = new Folders(0);
+    App<Folders> app = new App<>(folders, Folders::view);
+    run(app, """
+        frame
+        down #row-a.txt
+        move #row-music
+        up #row-music
+        frame
+        down #row-notes.txt
+        move 200,74
+        up 200,74
+        frame
+        down #row-notes.txt
+        move 200,70
+        up 200,70
+        frame
+        down #row-notes.txt
+        move 20,70
+        up 20,70
+        frame
+        down #row-a.txt
+        move 200,200
+        up 200,200
+        frame
+        press #row-a.txt
+        frame
+        press #row-drafts clicks 2
+        frame""");
+    assertEquals(
+        List.of(
+            "a.txt INTO music", // the middle of a closed folder
+            "notes.txt BEFORE a.txt", // the top of a row
+            "notes.txt AFTER b.txt", // the bottom of the last child of drafts
+            "notes.txt AFTER drafts", // there, at the level of drafts
+            "a.txt AFTER notes.txt", // below the rows: after the last root
+            "select a.txt", // a press without a drag
+            "select drafts",
+            "close drafts",
+            "activate drafts"),
+        folders.log);
+    assertNull(find(app, "marker"));
+  }
+
+  @Test
+  void aNodeGoesNeitherIntoItselfNorIntoItsDescendantsNorWhereTheAppSaysNo() throws IOException {
+    Folders folders = new Folders(0);
+    folders.allows = move -> !move.target().equals("music");
+    App<Folders> app = new App<>(folders, Folders::view);
+    run(app, "frame\ndown #row-docs\nmove #row-drafts\nframe");
+    assertTrue(dumpLine(app, "row-docs").contains(" grabbed"));
+    for (String over :
+        List.of("#row-drafts", "#row-b.txt", "#row-a.txt", "#row-docs", "#row-music")) {
+      run(app, "move " + over + "\nframe");
+      assertNull(find(app, "marker"), "nothing shows over " + over);
+    }
+    run(app, "move 200,122\nframe"); // the top of notes.txt
+    assertNotNull(find(app, "marker"), "a line above notes.txt");
+    run(app, "move #row-b.txt\nup #row-b.txt\nframe");
+    assertEquals(List.of(), folders.log);
+    List<String> inside = List.of("docs", "drafts", "b.txt", "a.txt");
+    assertTrue(
+        folders.asked.stream().noneMatch(move -> inside.contains(move.target())),
+        "never asked about a move into docs itself: " + folders.asked);
+    assertFalse(app.tree().dump().contains("grabbed"));
+  }
+
+  @Test
+  void aClosedNodeOpensWhileThePointerRestsOnItAndEscapeGivesTheDragUp() throws IOException {
+    Folders folders = new Folders(0);
+    App<Folders> app = new App<>(folders, Folders::view);
+    run(app, "frame\ndown #row-a.txt\nmove #row-music\nframe\nadvance 0.2\nframe");
+    assertEquals(List.of(), folders.log, "not yet");
+    run(app, "advance 0.1\nframe"); // the theme's submenu delay, without a move
+    assertEquals(List.of("open music"), folders.log);
+    assertTrue(app.tree().dump().contains("#row-c.mp3"));
+    run(app, "key Escape\nup #row-music\nframe");
+    assertEquals(List.of("open music"), folders.log, "nothing moved");
+    assertNull(find(app, "marker"));
+  }
+
+  @Test
+  void theTreeScrollsAlongNearAnEdgeAndNotToTheSelection() throws IOException {
+    Folders folders = new Folders(100);
+    folders.open.remove("drafts");
+    folders.selected = "docs";
+    App<Folders> app = new App<>(folders, Folders::view);
+    run(app, "frame\nwheel #tree 0 10000\nframe"); // the end of the rows, docs out of view
+    double end = find(app, "tree").scrollY();
+    assertTrue(end > 2000);
+    run(app, "down #row-f099.txt\nmove #row-music\nframe\nadvance 0.3\nframe");
+    assertEquals(List.of("open music"), folders.log);
+    assertEquals(end, find(app, "tree").scrollY(), "the selection above stays out of view");
+    run(app, "move 140,5\nframe\nadvance 0.5\nframe"); // waits at the top
+    double along = find(app, "tree").scrollY();
+    assertEquals(end - 120, along, 0.01, "half a second of ten rows a second");
+    // The line shows where the rows went, at the pointer: below f084.txt, the top of f085.txt.
+    El marked = find(app, "row-f085.txt");
+    assertTrue(marked.children().stream().anyMatch(c -> "marker".equals(c.key())));
+    run(app, "up 140,5\nframe");
+    assertEquals("f099.txt AFTER f084.txt", folders.log.getLast());
+    assertEquals(along, find(app, "tree").scrollY(), "where the drag left it");
+  }
+
   // Images
 
   @ParameterizedTest
@@ -750,7 +938,7 @@ class TreeTest {
     String script = Files.readString(Path.of("src/test/resources/scripts/tree.txt"));
     List<Path> files = Script.run(script, catalog.app(), folder);
     Golden.assertSnaps("tree-" + name + "-", files);
-    assertEquals(10, files.size());
+    assertEquals(14, files.size());
     assertEquals(
         List.of(
             "select localhost",

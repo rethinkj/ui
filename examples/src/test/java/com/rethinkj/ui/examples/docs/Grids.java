@@ -59,6 +59,7 @@ final class Grids {
   final Set<String> open = new HashSet<>(List.of("shop", "public"));
   Node selected;
   String said = "";
+  final Tree.Dragging dragging = new Tree.Dragging(); // what the tree keeps of a drag
 
   void resizeFitted(int column, float width) {
     fitted[column] = width;
@@ -543,6 +544,25 @@ final class Grids {
   }
   // docs:end tree-handlers
 
+  // docs:start tree-drag
+  static boolean movable(Node node) { // the tables
+    return node.icon() == Symbol.TABLE;
+  }
+
+  /** A table goes before or after another table, or into a schema. */
+  static boolean fits(Tree.Move<Node> move) {
+    Symbol target = move.target().icon();
+    return move.place() == Tree.Place.INTO ? target == Symbol.FOLDER : target == Symbol.TABLE;
+  }
+
+  void move(Tree.Move<Node> move) {
+    // The app takes the node out of its list and puts it before, after or into the target.
+    said =
+        "move " + move.node().name() + " " + move.place() + " " + move.target().name();
+    selected = move.node(); // the rows follow it to where it went
+  }
+  // docs:end tree-drag
+
   static El tree(Grids state) {
     // docs:start tree
     El tree = Tree.tree(
@@ -550,7 +570,8 @@ final class Grids {
             new Tree.Options<Node>()
                 .open(node -> state.open.contains(node.name()), state::expand) // open or close
                 .select(state.selected, state::selected) // the selection
-                .onActivate(state::activate)) // Enter, a double press
+                .onActivate(state::activate) // Enter, a double press
+                .drag(state.dragging, Grids::movable, Grids::fits, state::move)) // drag and drop
         .key("schema")
         .label("Schema")
         .grow(1);
