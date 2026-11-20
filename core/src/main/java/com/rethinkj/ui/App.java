@@ -184,8 +184,8 @@ public final class App<S> {
   // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
   private final List<BooleanSupplier> follow = new ArrayList<>();
   // The El#onResize handlers the last layout told a new size, which rebuild runs before the frame
-  // draws, and how many times a frame builds again for them; those of later rounds wait for the
-  // next frame.
+  // draws, and how many times a frame builds again for them; those of later rounds wait here for
+  // the next frame's first round.
   private final List<BooleanSupplier> resized = new ArrayList<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
@@ -1618,7 +1618,7 @@ public final class App<S> {
    * few times at most), so that what they change shows in the same step instead of one step late.
    */
   public boolean handlersWaiting() {
-    return !queued.isEmpty();
+    return !queued.isEmpty() || !resized.isEmpty();
   }
 
   /**
@@ -1631,7 +1631,7 @@ public final class App<S> {
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (!queued.isEmpty() || cycling || rowsWanted) {
+    if (!queued.isEmpty() || !resized.isEmpty() || cycling || rowsWanted) {
       // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, or rows that the
       // measured heights of a list show and the last frame had no passes left for
       return time;
@@ -3162,7 +3162,7 @@ public final class App<S> {
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
-    stale |= resizeDue; // sizes that builds between inputs changed: the rebuild tells them
+    stale |= resizeDue || !resized.isEmpty(); // sizes changed in the input or the last frame
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -3232,30 +3232,39 @@ public final class App<S> {
    */
   private void rebuild() {
     build(false, true);
-    while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
-      resizeRounds++;
-      ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
-      resized.clear();
-      dispatching = true;
-      try {
-        while (!told.isEmpty()) {
-          told.poll().getAsBoolean();
-        }
-      } catch (RuntimeException | Error e) {
-        handled = true; // as in frame: the next input gets a tree built anew
-        throw e;
-      } finally {
-        dispatching = false;
-        queued.addAll(told); // those after one that threw
-        for (int i = follow.size() - 1; i >= 0; i--) {
-          queued.addFirst(follow.get(i));
-        }
-        follow.clear();
+    List<BooleanSupplier> asked = new ArrayList<>(); // what the handlers asked for, in order
+    try {
+      while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+        resizeRounds++;
+        tellResized(asked);
+        build(false, true);
       }
-      build(false, true);
+    } finally {
+      for (int i = asked.size() - 1; i >= 0; i--) {
+        queued.addFirst(asked.get(i)); // first in the next frame
+      }
     }
-    queued.addAll(resized); // a view that has not settled goes on in the next frame
+    // A view that has not settled keeps them in resized: the next frame's first round.
+  }
+
+  /** Runs the handlers in {@link #resized} as handlers of input, and what they ask for later. */
+  private void tellResized(List<BooleanSupplier> asked) {
+    ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
     resized.clear();
+    dispatching = true;
+    try {
+      while (!told.isEmpty()) {
+        told.poll().getAsBoolean();
+      }
+    } catch (RuntimeException | Error e) {
+      handled = true; // as in frame: the next input gets a tree built anew
+      throw e;
+    } finally {
+      dispatching = false;
+      resized.addAll(told); // those after one that threw
+      asked.addAll(follow);
+      follow.clear();
+    }
   }
 
   /**
