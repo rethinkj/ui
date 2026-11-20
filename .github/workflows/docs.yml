@@ -8,6 +8,7 @@ on:
     paths:
       - 'docs/**'
       - 'examples/src/test/java/com/rethinkj/ui/examples/docs/**'
+      - 'examples/src/main/java/com/rethinkj/ui/examples/**'
       - 'examples/src/test/resources/docs/**'
       - '*/src/test/resources/golden/**'
       - 'languages/*/src/test/resources/golden/**'
@@ -26,6 +27,7 @@ on:
     paths:
       - 'docs/**'
       - 'examples/src/test/java/com/rethinkj/ui/examples/docs/**'
+      - 'examples/src/main/java/com/rethinkj/ui/examples/**'
       - 'examples/src/test/resources/docs/**'
       - '*/src/test/resources/golden/**'
       - 'languages/*/src/test/resources/golden/**'
