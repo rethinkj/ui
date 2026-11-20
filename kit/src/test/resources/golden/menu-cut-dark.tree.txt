@@ -17,7 +17,7 @@ overlay right start gap 5 on #item-1 role=menuitem label="Move to" 305,49 115x24
       el 5,54 630x24
         el 13,66 16x0
         text "Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest / Primary" 37,58 590x16
-    el #subitem-1 role=menuitem label="Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest / Secondary" 5,78 630x24
+    el #subitem-1 role=menuitem label="Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest / Secondary" 5,78 630x24 hovered
       el 5,78 630x24
         el 13,90 16x0
         text "Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest / Secondary" 37,82 590x16

@@ -694,10 +694,11 @@ public final class Menu {
         .disabled(!enabled)
         .current(lit) // the highlight, which a dump would otherwise show only as a color
         .child(content);
-    // A text cut short shows whole in a tooltip: after a rest of the pointer, or at once where
-    // the keys highlight it, since the menu keeps the focus.
-    Tooltip.whenShortened(el, item.label());
-    if (lit && state.keyed(level)) {
+    // A text cut short shows whole in a tooltip: at once where the keys highlight it, since the
+    // menu keeps the focus, else after a rest of the pointer; never both at a level.
+    if (!state.keyed(level)) {
+      Tooltip.whenShortened(el, item.label());
+    } else if (lit) {
       el.overlay(Tooltip.whole(theme, item.label()));
     }
     if (item.checked()) {
@@ -776,6 +777,7 @@ public final class Menu {
       case "ArrowLeft", "Escape" -> {
         if (level > 0) {
           state.openSubmenu(level - 1, -1);
+          state.highlightByKey(level - 1, state.active(level - 1));
         } else if (k.name().equals("Escape")) {
           state.close(); // a bar that has the keys keeps them
         } else if (bar != null) {

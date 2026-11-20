@@ -411,7 +411,7 @@ class MenuTest {
         "size 640 240\nframe\npress 300,20 right\nframe\nadvance 1\nframe\n"
             + "press label=\"Move to\"\nframe\nadvance 1\nframe\nsnap cut\n"
             + "move #subitem-1\nframe\nadvance 1\nframe\nsnap hovered\n"
-            + "leave\nframe\nkey ArrowDown\nframe\nadvance 1\nframe\nsnap "
+            + "key ArrowDown\nframe\nadvance 1\nframe\nsnap "
             + image,
         app,
         out);
@@ -422,6 +422,7 @@ class MenuTest {
     assertTrue(hovered.contains("role=tooltip label=\"" + secondary + "\""), hovered);
     String tree = java.nio.file.Files.readString(out.resolve(image + ".tree.txt"));
     assertTrue(tree.contains("role=tooltip label=\"" + primary + "\""), "the keys show it too");
+    assertEquals(1, tree.split("role=tooltip", -1).length - 1, "not the pointer's as well");
     Golden.assertMatches(
         image,
         com.rethinkj.ui.render.Png.decode(
