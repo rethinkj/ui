@@ -145,11 +145,14 @@ class StructureTest {
                 "Files were in use, as by a virus scanner.",
                 Button.button(Button.Variant.SECONDARY, "Try again", () -> p[0]++),
                 Button.button(Button.Variant.SECONDARY, "Dismiss", () -> p[1]++))));
-    Script.run(
-        "size 300 400\nframe\npress role=button label=\"Try again\"\n"
-            + "press role=button label=\"Dismiss\"\nframe\nsnap narrow",
-        app,
-        out);
+    Script.run("""
+        size 300 400
+        frame
+        press role=button label="Try again"
+        press role=button label="Dismiss"
+        frame
+        snap narrow
+        """, app, out);
     String tree = Files.readString(out.resolve("narrow.tree.txt"));
     float[] note = rect(line(tree, "role=note"));
     float[] again = rect(line(tree, "label=\"Try again\""));
