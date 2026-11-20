@@ -16,13 +16,29 @@ package com.rethinkj.ui;
  *     border box as the last frame of its window shows it, plus its own horizontal scroll offset;
  *     NaN for {@link Phase#LEAVE}
  * @param y the same downwards
+ * @param time the clock of the element's app ({@link App#time}) at this step, in seconds, which
+ *     tells how long the pointer has stayed somewhere; NaN where nobody gave one
  */
-public record Drop(Phase phase, Object payload, double x, double y) {
+public record Drop(Phase phase, Object payload, double x, double y, double time) {
+
+  /**
+   * How long, in seconds of the app's clock, the pointer of a drag that carries a payload rests
+   * over an element with {@link El#onDrop} before the element gets {@link Phase#OVER} again, and
+   * again after each such span while it rests, as a browser repeats {@code dragover}.
+   */
+  public static final double REPEAT = 0.05;
+
+  /** A step that knows nothing of the clock, as in a test of a drop handler. */
+  public Drop(Phase phase, Object payload, double x, double y) {
+    this(phase, payload, x, y, Double.NaN);
+  }
 
   public enum Phase {
     /**
      * The pointer moved over the element, or onto it: the time to show where the payload would
-     * go. Comes on every step of the drag while the pointer stays there.
+     * go. Comes on every step of the drag while the pointer stays there, and every {@link
+     * Drop#REPEAT} seconds while it rests there, so that the element can open what the pointer
+     * rests on or scroll along while the pointer waits near its edge.
      */
     OVER,
     /**

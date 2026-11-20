@@ -21,8 +21,9 @@ import java.util.Set;
  * connected either, and refuses the first connection: its row then says why, with Try again,
  * which asks once more and gets its databases. localhost/postgres has the system's schema
  * pg_catalog, in muted text. The schema localhost/shop/public has a few hundred tables, or as many
- * as the test asks for. The view puts the tree in a panel with a margin, which leaves room for the
- * focus ring.
+ * as the test asks for. Every node can be dragged, before or after one of its kind or into one of
+ * the kind above, as a table into a schema; drops are logged, not made. The view puts the tree in
+ * a panel with a margin, which leaves room for the focus ring.
  */
 final class Catalog implements Tree.Model<Catalog.Node> {
 
@@ -110,6 +111,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   int attempts; // connections to backup, of which only the first is refused
   boolean keyed; // whether the rows are keyed by the nodes' paths
   java.util.function.Predicate<Node> toggles = node -> true; // which a double press opens
+  final Tree.Dragging dragging = new Tree.Dragging();
   App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
@@ -332,7 +334,15 @@ final class Catalog implements Tree.Model<Catalog.Node> {
               selected = node;
             })
             .onActivate(node -> log.add("activate " + node))
-            .toggleOnDoublePress(toggles));
+            .toggleOnDoublePress(toggles)
+            .drag(dragging, node -> true, Catalog::fits, move -> log.add("move " + move)));
+  }
+
+  /** Whether a node may go there: among the nodes of its kind, or into one of the kind above. */
+  static boolean fits(Tree.Move<Node> move) {
+    int kind = move.node().kind.ordinal();
+    int at = move.target().kind.ordinal();
+    return move.place() == Tree.Place.INTO ? at == kind - 1 : at == kind;
   }
 
   App<Catalog> app() {

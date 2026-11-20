@@ -77,3 +77,19 @@ frame
 advance 0.25                        # and its fade
 frame
 snap long                           # the name ends in an ellipsis; the tooltip shows it whole
+
+size 280 300
+leave
+frame
+advance 1                           # the tooltip fades
+frame
+down role=treeitem label="changes"  # drags the table changes of audit
+move role=treeitem label="notification_preferences"
+frame                               # not into a table: after it, a line before logins
+snap drop-line
+move role=treeitem label="public"   # into the schema public of shop: its row outlined
+frame
+snap drop-into
+key Escape                          # gives the drag up: nothing moves
+up role=treeitem label="public"
+frame
