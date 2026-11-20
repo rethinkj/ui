@@ -1,0 +1,15 @@
+el 0,0 460x140
+  el 12,12 320x42
+    el 12,12 320x42
+      el 12,12 320x42
+        el 12,12 279x42
+          el 12,12 279x16
+            text "Host" 12,12 29x16
+          el 12,30 279x24
+            text role=textbox label="Host" "localhost" 12,30 279x24
+        el 299,12 33x42
+          el 299,12 33x16
+            text "Color" 299,12 33x16
+          el 299,30 33x24
+            el role=button label="Color" 299,30 24x24 expanded=false value="Orange"
+              el 303,34 16x16

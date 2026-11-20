@@ -3,6 +3,8 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Side;
+import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -83,15 +85,24 @@ public final class HuePicker {
             onSelect == null ? null : state::toggle)
         .value(selected == null ? none : name(selected))
         .expanded(state.isOpen());
+    if (!state.isOpen()) {
+      return button;
+    }
     // Around the row, whose own key handler chooses with the arrows.
     El row = el().child(swatches(selected, none, onSelect, state::close)).onKey(k -> {
       if (!k.name().equals("Enter") || k.modifiers() != 0) {
         return false;
       }
-      state.close();
+      if (!k.repeat()) { // the held Enter that opened it does not close it
+        state.close();
+      }
       return true;
     });
-    return Popover.popover(button, state, Texts.CURRENT.get().color(), row);
+    // Holds the focus in the row, also after a press on the panel around it.
+    return button.overlay(Popover.panel(state, Texts.CURRENT.get().color(), row)
+        .keepFocus()
+        .holdFocus()
+        .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
   }
 
   /** A picker of the value of a {@link Prop}; a prop that cannot be written disables it. */
