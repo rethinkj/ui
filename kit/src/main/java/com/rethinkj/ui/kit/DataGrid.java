@@ -1293,9 +1293,9 @@ public final class DataGrid {
     /**
      * Scrolls the rows at the next build so that this row is at their top, or as far as the end
      * of the rows allows, as buttons that page through a long result do; the selection and the
-     * scrolling sideways stay as they are, also where the cursor moved in the same handler.
-     * Later builds do not scroll back to the cursor; once it moves to another row, the grid shows
-     * that row as always.
+     * scrolling sideways stay as they are. It wins over the cursor's row, also where the cursor
+     * moved in the same handler, whose column still shows sideways as always. Later builds do not
+     * scroll back to the cursor; once it moves to another row, the grid shows that row.
      *
      * @param row the row, from 0; one beyond the last scrolls to the end
      * @throws IllegalArgumentException if {@code row} is negative
