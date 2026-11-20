@@ -4147,6 +4147,7 @@ public final class App<S> {
         heldRows.put(id, () -> handler.accept(first, last)); // see tellInView
         return;
       }
+      heldRows.remove(id); // of a handler since gone: these rows are newer
       queued.add(
           () -> { // after the input of this frame, or in the next one
             handler.accept(first, last);
