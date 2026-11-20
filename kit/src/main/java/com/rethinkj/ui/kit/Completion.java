@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
@@ -35,7 +36,8 @@ import java.util.function.Function;
  *     word -> state.suggest(word));
  * }</pre>
  *
- * <p>A word is what {@link El#codeWords} takes for one: letters, digits and {@code _}. The app's
+ * <p>A word is what {@link El#codeWords} takes for one: letters, digits and {@code _}, and the
+ * characters the field's highlighter adds ({@link Highlighter#wordCharacters}). The app's
  * function gets the part of it before the caret, maybe empty after Control+Space, and returns the
  * entries to show, in order; the kit shows them as they come and filters nothing. What stands
  * before the word, such as {@code orders.}, the app reads from its own text at the caret. Entries
@@ -86,6 +88,7 @@ public final class Completion {
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
+    private String wordCharacters = ""; // the field's language's, as of the last build
     private boolean loading; // set by the app: what suggest returns is not all there yet
     // completeInBackground: the word asked for, the work that finds its entries, and the entries
     // found last, which show until the next arrive.
@@ -199,7 +202,8 @@ public final class Completion {
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
     caret = Math.clamp(caret, 0, text.length());
-    int from = CodeWords.start(text, caret);
+    state.wordCharacters = field.text().wordCharacters();
+    int from = CodeWords.start(text, caret, state.wordCharacters);
     // A character typed into a word opens the list from the word's second character, one of
     // openAfter's at once; an undo that brings one back leaves the caret elsewhere, or a
     // selection, and opens nothing.
@@ -225,7 +229,8 @@ public final class Completion {
     if (state.highlight >= entries.size()) {
       state.highlight = 0;
     }
-    int to = CodeWords.end(text, caret); // the whole word, also its part after the caret
+    int to = CodeWords.end(
+        text, caret, state.wordCharacters); // the whole word, also its part after the caret
     Consumer<Integer> take = i -> {
       state.close();
       String chosen = entries.get(i).insert();
@@ -408,7 +413,7 @@ public final class Completion {
     String inserted = after.substring(change.start(), change.newEnd());
     if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
-        && CodeWords.isWordChar(inserted.codePointAt(0))) {
+        && CodeWords.isWordChar(inserted.codePointAt(0), state.wordCharacters)) {
       state.typed = change.newEnd(); // the build after it may open the list
       state.highlight = 0; // what it shows changes
     } else if (insertion
@@ -420,7 +425,7 @@ public final class Completion {
     } else if (inserted.isEmpty()
         && !insertion
         && state.open
-        && CodeWords.start(after, change.start()) < change.start()) {
+        && CodeWords.start(after, change.start(), state.wordCharacters) < change.start()) {
       state.highlight = 0;
     } else {
       state.close();

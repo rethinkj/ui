@@ -536,6 +536,14 @@ public final class Text implements Measure {
     return highlighter;
   }
 
+  /**
+   * The characters the {@link El#highlight highlighter}'s language adds to the words of code
+   * ({@link Highlighter#wordCharacters}); none without a highlighter.
+   */
+  public String wordCharacters() {
+    return highlighter == null ? "" : highlighter.wordCharacters();
+  }
+
   Object highlightKey() {
     return highlightKey;
   }

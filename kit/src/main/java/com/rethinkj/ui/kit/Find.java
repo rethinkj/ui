@@ -322,8 +322,8 @@ public final class Find {
       if (s < e && oneLine && !found) {
         chosen = text.substring(s, e);
       } else if (s == e && !wasOpen) {
-        int from = CodeWords.start(text, s);
-        int to = CodeWords.end(text, s);
+        int from = CodeWords.start(text, s, field.text().wordCharacters());
+        int to = CodeWords.end(text, s, field.text().wordCharacters());
         chosen = from < to ? text.substring(from, to) : null;
         origin = from;
       }

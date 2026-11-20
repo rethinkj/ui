@@ -24,7 +24,8 @@ import java.util.function.IntPredicate;
  * ({@link BreakIterator#getCharacterInstance}), so it never splits a surrogate pair, a letter from
  * its combining mark or an emoji sequence, and Backspace removes a whole grapheme. Words come from
  * {@link BreakIterator#getWordInstance}: a segment with a letter or a digit is a word; in a field of
- * {@link El#codeWords}, a run of letters, digits and {@code _} is. The JDK's
+ * {@link El#codeWords}, a run of letters, digits and {@code _} is, and of the characters the
+ * highlighter's language adds ({@link Highlighter#wordCharacters}). The JDK's
  * grapheme iterator reads its whole text when it is set, so a multi-line field asks it about the
  * line of a position alone, which a line feed bounds on both sides.
  *
@@ -1410,7 +1411,10 @@ final class Editor {
   private int wordStart() {
     return masked()
         ? 0
-        : snap(el.isCodeWords() ? codeWordLeft(text, caret) : wordLeft(text, caret));
+        : snap(
+            el.isCodeWords()
+                ? codeWordLeft(text, caret, el.text().wordCharacters())
+                : wordLeft(text, caret));
   }
 
   /** Where Ctrl+Right goes from the caret; to the end in a masked field. */
@@ -1420,7 +1424,7 @@ final class Editor {
     }
     return snapUp(
         el.isCodeWords()
-            ? codeWordRight(text, caret, WORD_ENDS)
+            ? codeWordRight(text, caret, WORD_ENDS, el.text().wordCharacters())
             : wordRight(text, caret, WORD_ENDS));
   }
 
@@ -1429,7 +1433,8 @@ final class Editor {
     if (masked()) {
       return new int[] {0, text.length()};
     }
-    int[] word = el.isCodeWords() ? codeWord(text, hit) : word(text, hit);
+    int[] word =
+        el.isCodeWords() ? codeWord(text, hit, el.text().wordCharacters()) : word(text, hit);
     return new int[] {snap(word[0]), snapUp(word[1])};
   }
 
@@ -1671,15 +1676,15 @@ final class Editor {
   }
 
   /** {@link #wordLeft} with the words of code. */
-  static int codeWordLeft(String text, int index) {
-    IntPredicate word = CodeWords::isWordChar;
+  static int codeWordLeft(String text, int index, String extra) {
+    IntPredicate word = c -> CodeWords.isWordChar(c, extra);
     return backOver(text, backOver(text, Math.clamp(index, 0, text.length()), word.negate()), word);
   }
 
   /** {@link #wordRight} with the words of code. */
-  static int codeWordRight(String text, int index, boolean ends) {
+  static int codeWordRight(String text, int index, boolean ends, String extra) {
     int at = Math.clamp(index, 0, text.length());
-    IntPredicate word = CodeWords::isWordChar;
+    IntPredicate word = c -> CodeWords.isWordChar(c, extra);
     return ends
         ? forwardOver(text, forwardOver(text, at, word.negate()), word)
         : forwardOver(text, forwardOver(text, at, word), word.negate());
@@ -1689,14 +1694,14 @@ final class Editor {
    * {@link #word} with the words of code: the run of word characters at {@code index}, a run of
    * spaces and tabs, or else the one character there, such as a point or a line feed.
    */
-  static int[] codeWord(String text, int index) {
+  static int[] codeWord(String text, int index, String extra) {
     if (text.isEmpty()) {
       return new int[] {0, 0};
     }
     index = clusterStart(text, Math.clamp(index, 0, text.length() - 1));
     int c = text.codePointAt(index);
-    IntPredicate kind =
-        CodeWords.isWordChar(c) ? CodeWords::isWordChar : blank(c) ? Editor::blank : null;
+    IntPredicate word = w -> CodeWords.isWordChar(w, extra);
+    IntPredicate kind = word.test(c) ? word : blank(c) ? Editor::blank : null;
     if (kind != null) {
       return new int[] {backOver(text, index, kind), forwardOver(text, index, kind)};
     }

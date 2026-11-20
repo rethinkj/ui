@@ -1851,8 +1851,9 @@ public final class El {
 
   /**
    * Makes the keys and presses that go by words in an {@link #editable} field take the words of
-   * code: a word is a run of letters, digits and {@code _}, and everything else separates words,
-   * so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
+   * code: a word is a run of letters, digits, marks and {@code _}, and of the characters the
+   * {@link #highlight highlighter}'s language adds ({@link Highlighter#wordCharacters}), and
+   * everything else separates words, so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
    * and Control+Backspace after it deletes only that. Other fields take words as text has them,
    * where a point between letters does not end a word.
    */

@@ -63,50 +63,57 @@ class EditorTest {
   @Test
   void codeWordsEndAtPointsAndOtherPunctuation() {
     String sql = "FROM shop.public.orders_2026 o";
-    assertArrayEquals(new int[] {10, 16}, Editor.codeWord(sql, 12), "a double press on public");
+    assertArrayEquals(new int[] {10, 16}, Editor.codeWord(sql, 12, ""), "a double press on public");
     assertArrayEquals(
         new int[] {5, 23},
         Editor.word(sql, 12),
         "text's words do not end at a point between letters");
-    assertArrayEquals(new int[] {17, 28}, Editor.codeWord(sql, 20), "_ and digits belong to it");
-    assertArrayEquals(new int[] {9, 10}, Editor.codeWord(sql, 9), "the point on its own");
-    assertArrayEquals(new int[] {28, 29}, Editor.codeWord(sql, 28), "a space");
-    assertArrayEquals(new int[] {1, 5}, Editor.codeWord("a  \t b", 3), "spaces and tabs");
-    assertArrayEquals(new int[] {0, 2}, Editor.codeWord("e\u0301.", 1), "a mark with its letter");
+    assertArrayEquals(
+        new int[] {17, 28}, Editor.codeWord(sql, 20, ""), "_ and digits belong to it");
+    assertArrayEquals(new int[] {9, 10}, Editor.codeWord(sql, 9, ""), "the point on its own");
+    assertArrayEquals(new int[] {28, 29}, Editor.codeWord(sql, 28, ""), "a space");
+    assertArrayEquals(new int[] {1, 5}, Editor.codeWord("a  \t b", 3, ""), "spaces and tabs");
+    assertArrayEquals(
+        new int[] {0, 2}, Editor.codeWord("e\u0301.", 1, ""), "a mark with its letter");
     assertArrayEquals(
         new int[] {0, 3},
-        Editor.codeWord("a\uD835\uDC00", 2),
+        Editor.codeWord("a\uD835\uDC00", 2, ""),
         "inside a surrogate pair: the letter of the pair");
-    assertArrayEquals(new int[] {0, 0}, Editor.codeWord("", 0));
+    assertArrayEquals(new int[] {0, 0}, Editor.codeWord("", 0, ""));
 
-    assertEquals(17, Editor.codeWordLeft(sql, 28), "Control+Backspace after orders_2026");
-    assertEquals(10, Editor.codeWordLeft(sql, 17), "over the point to the start of public");
-    assertEquals(5, Editor.codeWordLeft(sql, 7), "from inside a word to its start");
-    assertEquals(0, Editor.codeWordLeft("  ", 2));
-    assertEquals(0, Editor.codeWordLeft("(a", 1), "nothing but punctuation before a word");
+    assertEquals(17, Editor.codeWordLeft(sql, 28, ""), "Control+Backspace after orders_2026");
+    assertEquals(10, Editor.codeWordLeft(sql, 17, ""), "over the point to the start of public");
+    assertEquals(5, Editor.codeWordLeft(sql, 7, ""), "from inside a word to its start");
+    assertEquals(0, Editor.codeWordLeft("  ", 2, ""));
+    assertEquals(0, Editor.codeWordLeft("(a", 1, ""), "nothing but punctuation before a word");
 
     // Linux: to the end of the word; Windows: to the start of the next one.
-    assertEquals(9, Editor.codeWordRight(sql, 5, true));
-    assertEquals(16, Editor.codeWordRight(sql, 9, true), "over the point to the end of public");
-    assertEquals(10, Editor.codeWordRight(sql, 5, false), "the start of public");
-    assertEquals(17, Editor.codeWordRight(sql, 12, false));
-    assertEquals(sql.length(), Editor.codeWordRight(sql, 29, false), "the last goes to the end");
-    assertEquals(3, Editor.codeWordRight("t  ", 1, true), "no word left: the end");
+    assertEquals(9, Editor.codeWordRight(sql, 5, true, ""));
+    assertEquals(16, Editor.codeWordRight(sql, 9, true, ""), "over the point to the end of public");
+    assertEquals(10, Editor.codeWordRight(sql, 5, false, ""), "the start of public");
+    assertEquals(17, Editor.codeWordRight(sql, 12, false, ""));
+    assertEquals(
+        sql.length(), Editor.codeWordRight(sql, 29, false, ""), "the last goes to the end");
+    assertEquals(3, Editor.codeWordRight("t  ", 1, true, ""), "no word left: the end");
   }
 
   @Test
   void codeWordsEndOnlyBetweenGraphemes() {
-    assertEquals(2, Editor.codeWordLeft("❤️foo", 5), "the variation selector stays with its heart");
-    assertArrayEquals(new int[] {0, 4}, Editor.codeWord("👍🏽!", 2), "the modifier with its emoji");
-    assertArrayEquals(new int[] {0, 4}, Editor.codeWord("👍🏽!", 0));
-    assertArrayEquals(new int[] {0, 5}, Editor.codeWord("👩‍💻!", 3), "a ZWJ sequence");
-    assertArrayEquals(new int[] {1, 3}, Editor.codeWord(".e\u0301", 2), "a mark with its letter");
-    assertEquals(2, Editor.codeWordLeft(".\u0301a", 3), "a mark after a point goes with it");
+    assertEquals(
+        2, Editor.codeWordLeft("❤️foo", 5, ""), "the variation selector stays with its heart");
     assertArrayEquals(
-        new int[] {0, 2}, Editor.codeWord(";\u200Dabc", 0), "a joiner joins no letter");
-    assertArrayEquals(new int[] {0, 2}, Editor.codeWord("a\u200D😀", 0), "nor an emoji after one");
+        new int[] {0, 4}, Editor.codeWord("👍🏽!", 2, ""), "the modifier with its emoji");
+    assertArrayEquals(new int[] {0, 4}, Editor.codeWord("👍🏽!", 0, ""));
+    assertArrayEquals(new int[] {0, 5}, Editor.codeWord("👩‍💻!", 3, ""), "a ZWJ sequence");
     assertArrayEquals(
-        new int[] {0, 1}, Editor.codeWord("\n\u0301", 0), "a line break takes no mark");
+        new int[] {1, 3}, Editor.codeWord(".e\u0301", 2, ""), "a mark with its letter");
+    assertEquals(2, Editor.codeWordLeft(".\u0301a", 3, ""), "a mark after a point goes with it");
+    assertArrayEquals(
+        new int[] {0, 2}, Editor.codeWord(";\u200Dabc", 0, ""), "a joiner joins no letter");
+    assertArrayEquals(
+        new int[] {0, 2}, Editor.codeWord("a\u200D😀", 0, ""), "nor an emoji after one");
+    assertArrayEquals(
+        new int[] {0, 1}, Editor.codeWord("\n\u0301", 0, ""), "a line break takes no mark");
 
     Random random = new Random(3);
     String[] parts = {
@@ -137,10 +144,10 @@ class EditorTest {
       }
       String s = text.toString();
       for (int at : stops(s)) {
-        assertBoundary(s, Editor.codeWordLeft(s, at));
-        assertBoundary(s, Editor.codeWordRight(s, at, true));
-        assertBoundary(s, Editor.codeWordRight(s, at, false));
-        int[] word = Editor.codeWord(s, at);
+        assertBoundary(s, Editor.codeWordLeft(s, at, ""));
+        assertBoundary(s, Editor.codeWordRight(s, at, true, ""));
+        assertBoundary(s, Editor.codeWordRight(s, at, false, ""));
+        int[] word = Editor.codeWord(s, at, "");
         assertBoundary(s, word[0]);
         assertBoundary(s, word[1]);
         int c = at < s.length() ? s.codePointAt(at) : 'a';
