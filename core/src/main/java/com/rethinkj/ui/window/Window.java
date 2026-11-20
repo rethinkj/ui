@@ -2474,6 +2474,8 @@ public final class Window implements AutoCloseable {
     // on a touch screen: two quick presses on neighboring rows would be one. An environment
     // variable of the same name still wins.
     Sdl.setHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS, String.valueOf(doubleClickRadius()));
+    // SDL drops the click that activates a window; native apps act on it. The environment wins.
+    Sdl.setHint(Sdl.HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     String id;
     String name;
     synchronized (LOCK) {

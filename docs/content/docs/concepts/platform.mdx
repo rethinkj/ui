@@ -21,6 +21,8 @@ description: Configure frameless windows, save window placement, set icons and t
 
 See [`Window.Options`](/api/com/rethinkj/ui/window/Window.Options.html) for all options.
 
+A click on a window that does not have the focus activates it and acts at once, as in native apps. To have such a click only activate the window, start the app with the environment variable `SDL_MOUSE_FOCUS_CLICKTHROUGH=0`.
+
 ## Open where the user left it
 
 Save `window.placement()` before closing and pass it to `options.placement(...)` on the next launch:

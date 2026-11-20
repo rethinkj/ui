@@ -1,0 +1,1 @@
+- A click on a window that does not have the focus now acts at once, as in native apps: it activates the window and reaches the title bar button, menu or row under the pointer, where before it only activated the window. Set the environment variable `SDL_MOUSE_FOCUS_CLICKTHROUGH=0` to keep the old behavior.
