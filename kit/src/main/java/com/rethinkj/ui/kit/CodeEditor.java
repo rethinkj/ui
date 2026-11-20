@@ -400,7 +400,7 @@ public final class CodeEditor {
     state.editor = editor;
     state.lineComment = highlighter == null ? null : highlighter.lineComment();
     editor.onKey(k -> {
-      if (diagnosticKey(app, state, editor, diagnostics, k)) {
+      if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
         return true;
       }
       Command command = command(k);
@@ -597,11 +597,16 @@ public final class CodeEditor {
 
   /**
    * F8 and Shift+F8, which put the caret at the start of the next diagnostic or the one before and
-   * show its message, and Escape, which hides the message; whether the key was one of them.
+   * show its message, and Escape, which hides the message where it shows; whether the key was one
+   * of them.
    */
   private static boolean diagnosticKey(
-      App<?> app, State state, El editor, List<Diagnostic> diagnostics, Key k) {
-    if (k.name().equals("Escape") && k.modifiers() == 0 && state.shown >= 0) {
+      App<?> app, State state, El editor, List<Diagnostic> diagnostics, El message, Key k) {
+    if (k.name().equals("Escape")
+        && k.modifiers() == 0
+        && message != null
+        && app.tree().shownOverlays().contains(message)) { // not while scrolled away
+      state.shown = -1;
       state.shown = -1;
       return true;
     }
