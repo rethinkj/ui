@@ -62,6 +62,7 @@ class FindKeysTest {
     final Find.State find = new Find.State();
     boolean readOnly;
     boolean area; // a plain text area with a find bar, not a code editor
+    boolean position; // the caret's line and column below the editor
     App<Doc> app;
 
     Doc(String text) {
@@ -90,7 +91,11 @@ class FindKeysTest {
           field.readOnly();
         }
       }
-      return col().wFull().hFull().padding(12).fill(t.surface().window()).child(field);
+      El page = col().wFull().hFull().padding(12).fill(t.surface().window()).child(field);
+      if (s.position) { // after the editor's build, as a status bar below it
+        page.child(El.text(s.editor.line() + ":" + s.editor.column()).key("position"));
+      }
+      return page;
     });
     doc.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -122,6 +127,23 @@ class FindKeysTest {
   private static String count(String tree) {
     String line = line(tree, "count");
     return line.substring(line.indexOf('"') + 1, line.indexOf('"', line.indexOf('"') + 1));
+  }
+
+  @Test
+  void lineAndColumnCountFromOneAndATabAsOneCharacter() throws IOException {
+    Doc doc = new Doc("SELECT 1\r\n\tFROM t");
+    doc.position = true;
+    App<Doc> app = app(doc);
+    String tree = run(app, """
+        frame
+        focus #query
+        key ArrowDown
+        key End""");
+    assertTrue(line(tree, "position").contains("\"2:8\""), tree); // after the tab and FROM t
+    tree = run(app, """
+        key Enter
+        type \"x\"""");
+    assertTrue(line(tree, "position").contains("\"3:3\""), tree); // Enter kept the tab
   }
 
   @Test

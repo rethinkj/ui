@@ -1,0 +1,1 @@
+- `CodeEditor.State.line()` and `column()` give the caret's line and column, both from 1, such as for a status bar. The column counts the `char`s before the caret on its line, as the editor's positions do, so a tab counts as one.

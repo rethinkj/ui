@@ -1,0 +1,1 @@
+- `Json.format` writes a line separator (U+2028) or paragraph separator (U+2029) in a string as `\u2028` or `\u2029`, since the code editor turns both into a line feed, which broke the string. An app that shows JSON without formatting it escapes both itself.

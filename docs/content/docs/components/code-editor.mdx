@@ -57,7 +57,7 @@ Javadoc: [`Sql`](/api/com/rethinkj/ui/sql/Sql.html).
 
 ### Formatting JSON
 
-The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. It returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`. A handler runs outside the view, so it takes the texts the view read with `Texts.CURRENT.get()`:
+The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. A multi-line field turns a line separator (U+2028) or paragraph separator (U+2029) into a line feed, which breaks a JSON string that holds one as it is, so `Json.format` writes both as `\u2028` and `\u2029`. An app that shows JSON without formatting it replaces both characters in its strings with these escapes itself. `Json.format` returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`. A handler runs outside the view, so it takes the texts the view read with `Texts.CURRENT.get()`:
 
 ```java snippet="code-editor-json-format"
 ```
@@ -102,6 +102,11 @@ With the app passed, **F8** moves the cursor to the start of the next diagnostic
 ```
 
 All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are UTF-16 offsets in the editor's normalized displayed text, where CRLF (`\r\n`) is normalized to LF (`\n`). To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
+
+`line()` and `column()` on `CodeEditor.State` give the cursor's line and column, both counted from 1, such as for a [StatusBar](/docs/components/status-bar). The column counts characters as the positions do, so a tab is one character however wide it shows. They are about the text of the editor's last build, so read them after building the editor, as for a status bar below it.
+
+```java snippet="code-editor-position"
+```
 
 ## Inserting text
 
