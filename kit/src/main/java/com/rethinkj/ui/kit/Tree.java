@@ -408,6 +408,10 @@ public final class Tree {
       dragging.ended = false;
     }
     int counted = rows.count + (dragging == null ? 0 : dragging.offset);
+    if (dragging != null && !held) { // what the tree keeps in view, until a drag begins
+      dragging.selectedRow = rows.selected;
+      dragging.rowCount = counted;
+    }
     float height = theme.grid().rowHeight();
     float mark = theme.space().xl(); // the mark's width, which takes presses
     float indent = theme.space().l();
@@ -504,7 +508,7 @@ public final class Tree {
         // The tree's drop handler does the rest, with the rows of the latest build.
         r.grabbed(grabbed).dragPayload(new Carried(dragging, node)).onDrag(d -> {
           if (d.phase() == Drag.Phase.START && dragging.node == null) { // not over the tree
-            begin(dragging, node, rows, counted, tree);
+            begin(dragging, node, tree);
           } else if (d.phase() == Drag.Phase.END || d.phase() == Drag.Phase.CANCEL) {
             dragging.clear();
           }
@@ -545,7 +549,7 @@ public final class Tree {
           List.of(counted, scrolls), 0, rows.selected * height, 0, (end - rows.selected) * height);
     }
     if (dragging != null) {
-      tree.onDrop(d -> drop(theme, model, options, rows, counted, tree, height, d));
+      tree.onDrop(d -> drop(theme, model, options, rows, tree, height, d));
     }
     if (onSelect == null) {
       return tree;
@@ -608,14 +612,7 @@ public final class Tree {
 
   /** A step of a drag of a node over the tree: the marker, scrolling along, opening, the drop. */
   private static <N> void drop(
-      Theme theme,
-      Model<N> model,
-      Options<N> o,
-      Rows<N> rows,
-      int counted,
-      El tree,
-      float height,
-      Drop d) {
+      Theme theme, Model<N> model, Options<N> o, Rows<N> rows, El tree, float height, Drop d) {
     Dragging g = o.dragging;
     if (!(d.payload() instanceof Carried c) || c.dragging() != g) {
       return; // something else's drag
@@ -627,7 +624,7 @@ public final class Tree {
     @SuppressWarnings("unchecked") // the payload of a row of this tree
     N node = (N) c.node();
     if (g.node == null) { // the first step, before the row's drag handler has its own
-      begin(g, node, rows, counted, tree);
+      begin(g, node, tree);
     }
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();
@@ -651,8 +648,9 @@ public final class Tree {
       double by = Math.min(tree.height(), (d.time() - g.edgeSince) * ALONG * height);
       g.edgeSince = d.time();
       g.scrolls++;
-      g.scrollTo = (float) (edge < 0 ? scrollY - by : scrollY + tree.height() + by - 1);
       shift = edge < 0 ? -Math.min(by, scrollY) : Math.min(by, end - scrollY);
+      // A pixel the reveal shows at the top or the bottom: as far as the aim below expects.
+      g.scrollTo = (float) (scrollY + shift + (edge < 0 ? 0 : tree.height() - 1));
     }
     // Where the node would go once the rows have moved, which the next frame shows.
     Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y() + shift, height);
@@ -675,11 +673,9 @@ public final class Tree {
     }
   }
 
-  /** Notes that a drag of {@code node} began, and what the tree keeps in view meanwhile. */
-  private static void begin(Dragging g, Object node, Rows<?> rows, int counted, El tree) {
+  /** Notes that a drag of {@code node} began, with the rows where they are. */
+  private static void begin(Dragging g, Object node, El tree) {
     g.node = node;
-    g.selectedRow = rows.selected;
-    g.rowCount = counted;
     g.scrollTo = (float) tree.scrollY();
   }
 
