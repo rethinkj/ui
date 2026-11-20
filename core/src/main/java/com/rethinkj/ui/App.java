@@ -189,7 +189,7 @@ public final class App<S> {
   private final List<BooleanSupplier> resized = new ArrayList<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
-  private boolean resizeDue; // a build between inputs gave other sizes, which it did not tell
+  private boolean resizeDue; // a build before the frame's last gave other sizes, not told
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -3127,7 +3127,7 @@ public final class App<S> {
     takeDue();
     while (!queued.isEmpty()) {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
-        build(handled); // after invalidate alone with its rows: an action may look for them
+        build(handled, false); // after invalidate alone with its rows: an action may look for them
         drawn = true;
         if (!selectedByBuild.isEmpty()) {
           // A FieldState's selection the build applied reaches onSelect as a handler's input
@@ -3162,7 +3162,7 @@ public final class App<S> {
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
-    stale |= resizeDue || !resized.isEmpty(); // from builds between inputs: the rebuild tells them
+    stale |= resizeDue; // sizes that builds between inputs changed: the rebuild tells them
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -3225,13 +3225,13 @@ public final class App<S> {
 
   /**
    * Builds the view at the end of a frame, after its input, as {@link #build} does; then runs the
-   * {@link El#onResize} handlers that layout, or a build between the inputs, told a new size, as
-   * handlers of input, and builds again from what they changed, until no size changes or after
-   * {@link #RESIZE_ROUNDS} rounds in the frame: a toolbar shows what fits a new width in the frame
-   * that has it, and input goes to the tree as it was shown.
+   * {@link El#onResize} handlers that layout told a new size, as handlers of input, and builds
+   * again from what they changed, until no size changes or after {@link #RESIZE_ROUNDS} rounds in
+   * the frame: a toolbar shows what fits a new width in the frame that has it, and input goes to
+   * the tree as it was shown.
    */
   private void rebuild() {
-    build(false);
+    build(false, true);
     while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
       resizeRounds++;
       ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
@@ -3252,7 +3252,7 @@ public final class App<S> {
         }
         follow.clear();
       }
-      build(false);
+      build(false, true);
     }
     queued.addAll(resized); // a view that has not settled goes on in the next frame
     resized.clear();
@@ -3267,8 +3267,10 @@ public final class App<S> {
    *     row, the rows, the carets and the bars are then left to {@link #settle}, before the next
    *     input that needs them: most keys need only the elements around the focus, and the rows
    *     are most of what a rebuild of a data grid costs.
+   * @param last whether this is the frame's last build, after its input, which tells the {@link
+   *     El#onResize} handlers; another only notes that sizes changed, for the last to tell
    */
-  private void build(boolean between) {
+  private void build(boolean between, boolean last) {
     List<Object> ids = Animator.identities(pointed());
     El built = WindowState.CURRENT.with(
         new WindowState(active, maximized, scale), () -> view.apply(state));
@@ -3284,7 +3286,7 @@ public final class App<S> {
     Map<Object, Long> sizes = new HashMap<>();
     int told = resized.size();
     tellSizes(root, new ArrayList<>(), sizes);
-    if (between) { // its rows may be missing: the frame's last build tells these from its own tree
+    if (!last) { // the input after it may change the tree: the last build tells from its own
       resizeDue |= !sizes.equals(toldSizes); // also an element that left, to be forgotten
       resized.subList(told, resized.size()).clear();
     } else {

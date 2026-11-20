@@ -1110,8 +1110,9 @@ public final class El {
    * into a menu. It runs as the handlers of input do, right after the layout that gave the size,
    * and the view built from what it changed is laid out again, which may tell it again, up to
    * three times before the {@link App#frame} ends: the frame that brings a new size shows the view
-   * that fits it. A view that has not settled by then goes on in the next frame. Not told inside
-   * the rows of a virtual list, nor for the sizes motion passes through.
+   * that fits it. A view that has not settled by then goes on in the next frame, as does what the
+   * handler asks for, such as {@link App#focus(El)}. Not told inside the rows of a virtual list,
+   * nor for the sizes motion passes through.
    *
    * @param handler told the width and height, or null for none
    */
