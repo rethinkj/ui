@@ -1,4 +1,5 @@
-# Builds the documentation site (docs/) and the Javadoc of core, kit and the languages (at /api/)
+# Builds the documentation site (docs/) and the Javadoc of core, kit, the languages and diagram
+# (at /api/)
 # and, on the default branch, publishes both to GitHub Pages at ui.rethinkj.com. Elsewhere it only
 # builds, so that a pull request shows a broken page early.
 name: Docs
@@ -18,10 +19,12 @@ on:
       - 'core/src/main/**'
       - 'kit/src/main/**'
       - 'languages/*/src/main/**'
+      - 'diagram/src/main/**'
       - 'pom.xml'
       - 'core/pom.xml'
       - 'kit/pom.xml'
       - 'languages/**/pom.xml'
+      - 'diagram/pom.xml'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
@@ -37,10 +40,12 @@ on:
       - 'core/src/main/**'
       - 'kit/src/main/**'
       - 'languages/*/src/main/**'
+      - 'diagram/src/main/**'
       - 'pom.xml'
       - 'core/pom.xml'
       - 'kit/pom.xml'
       - 'languages/**/pom.xml'
+      - 'diagram/pom.xml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -77,7 +82,7 @@ jobs:
       - name: Javadoc
         working-directory: .
         run: |
-          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,languages/json,languages/sql -am javadoc:aggregate
+          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,languages/json,languages/sql,diagram -am javadoc:aggregate
           mkdir -p docs/public/api
           cp -R target/reports/apidocs/. docs/public/api/
       - run: npm run build
