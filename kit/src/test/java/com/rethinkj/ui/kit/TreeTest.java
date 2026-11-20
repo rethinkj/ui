@@ -919,7 +919,11 @@ class TreeTest {
     run(app, "move 140,5\nframe\nadvance 0.5\nframe"); // waits at the top
     double along = find(app, "tree").scrollY();
     assertEquals(end - 120, along, 0.01, "half a second of ten rows a second");
-    run(app, "key Escape\nup 140,5\nframe");
+    // The line shows where the rows went, at the pointer: below f084.txt, the top of f085.txt.
+    El marked = find(app, "row-f085.txt");
+    assertTrue(marked.children().stream().anyMatch(c -> "marker".equals(c.key())));
+    run(app, "up 140,5\nframe");
+    assertEquals("f099.txt AFTER f084.txt", folders.log.getLast());
     assertEquals(along, find(app, "tree").scrollY(), "where the drag left it");
   }
 

@@ -503,7 +503,9 @@ public final class Tree {
       if (dragging != null && options.canDrag.test(node)) {
         // The tree's drop handler does the rest, with the rows of the latest build.
         r.grabbed(grabbed).dragPayload(new Carried(dragging, node)).onDrag(d -> {
-          if (d.phase() == Drag.Phase.END || d.phase() == Drag.Phase.CANCEL) {
+          if (d.phase() == Drag.Phase.START && dragging.node == null) { // not over the tree
+            begin(dragging, node, rows, counted, tree);
+          } else if (d.phase() == Drag.Phase.END || d.phase() == Drag.Phase.CANCEL) {
             dragging.clear();
           }
         });
@@ -625,31 +627,23 @@ public final class Tree {
     @SuppressWarnings("unchecked") // the payload of a row of this tree
     N node = (N) c.node();
     if (g.node == null) { // the first step, before the row's drag handler has its own
-      g.node = node;
-      g.selectedRow = rows.selected;
-      g.rowCount = counted;
-      g.scrollTo = (float) tree.scrollY();
+      begin(g, node, rows, counted, tree);
     }
-    Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height);
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();
+      Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height);
       if (aim != null) {
         o.onDrop.accept(aim.move());
       }
       return;
     }
-    g.markRow = aim == null ? -1 : aim.row();
-    if (aim != null) {
-      g.into = aim.into();
-      g.top = aim.top();
-      g.depth = aim.depth();
-    }
     // Near the top or the bottom the tree scrolls along, by the time the pointer waits there.
-    double y = d.y() - tree.scrollY();
     double scrollY = tree.scrollY();
-    int edge = y < height && scrollY > 0
-        ? -1
-        : y > tree.height() - height && scrollY + tree.height() < rows.count * height ? 1 : 0;
+    double y = d.y() - scrollY;
+    double end = Math.max(0, rows.count * height - tree.height()); // the farthest it scrolls
+    float near = Math.min(height, tree.height() / 2);
+    int edge = y < near && scrollY > 0 ? -1 : y > tree.height() - near && scrollY < end ? 1 : 0;
+    double shift = 0; // how far the rows move under the pointer with this step
     if (edge == 0 || edge != g.edge || !(d.time() > g.edgeSince)) { // NaN: no clock, no scroll
       g.edge = edge;
       g.edgeSince = d.time();
@@ -658,6 +652,15 @@ public final class Tree {
       g.edgeSince = d.time();
       g.scrolls++;
       g.scrollTo = (float) (edge < 0 ? scrollY - by : scrollY + tree.height() + by - 1);
+      shift = edge < 0 ? -Math.min(by, scrollY) : Math.min(by, end - scrollY);
+    }
+    // Where the node would go once the rows have moved, which the next frame shows.
+    Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y() + shift, height);
+    g.markRow = aim == null ? -1 : aim.row();
+    if (aim != null) {
+      g.into = aim.into();
+      g.top = aim.top();
+      g.depth = aim.depth();
     }
     // A closed node that the pointer rests on, where it would drop the node into it, opens.
     N into = aim != null && aim.into() ? aim.move().target() : null;
@@ -670,6 +673,14 @@ public final class Tree {
       g.resting = null;
       o.onToggle.toggle(into, true);
     }
+  }
+
+  /** Notes that a drag of {@code node} began, and what the tree keeps in view meanwhile. */
+  private static void begin(Dragging g, Object node, Rows<?> rows, int counted, El tree) {
+    g.node = node;
+    g.selectedRow = rows.selected;
+    g.rowCount = counted;
+    g.scrollTo = (float) tree.scrollY();
   }
 
   /** Where a node dropped at {@code x}, {@code y} of the tree's content goes; null for nowhere. */
@@ -700,21 +711,19 @@ public final class Tree {
     int i = (int) Math.max(0, Math.floor(y / height));
     double part = y / height - i;
     N at = rows.node(i);
-    boolean takes = false;
-    if (at != null && !model.isLeaf(at)) {
+    if (at != null && !model.isLeaf(at) && part >= 0.25 && part < 0.75) {
       Move<N> move = new Move<>(node, at, Place.INTO);
       Aim<N> into = allowed(o, new Aim<>(move, i, i, true, false, 0), from, to);
-      if (into != null && part >= 0.25 && part < 0.75) {
+      if (into != null) {
         return into;
       }
-      takes = into != null;
     }
     Move<N> move;
     int target;
     int row = i + 1; // the row whose top the line runs along
     boolean top = true;
     int depth;
-    if (part < (takes ? 0.25 : 0.5)) { // before the row's node
+    if (part < 0.5) { // before the row's node
       if (at == null) {
         return null;
       }

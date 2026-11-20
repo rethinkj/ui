@@ -84,9 +84,10 @@ class DropTest {
     assertEquals(List.of("1 OVER 50", "1 OVER 50"), s.log);
     assertEquals(List.of(0.0, Drop.REPEAT), s.times);
     assertEquals(1, s.drags.size(), "the drag's own handler only gets the steps of the pointer");
-    app.pointerUp(150, 10);
+    app.pointerLeave(); // out of the window
     app.frame();
-    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing to wait for after the drop");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing to repeat outside");
+    assertEquals(List.of("1 OVER 50", "1 OVER 50", "1 LEAVE"), s.log);
   }
 
   @Test

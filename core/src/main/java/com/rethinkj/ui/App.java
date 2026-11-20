@@ -439,10 +439,17 @@ public final class App<S> {
     return false;
   }
 
-  /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
+  /**
+   * The pointer left the window: from the next {@link #frame} on, nothing is hovered, and the drop
+   * handler of this window that a drag rests over gets {@link Drop.Phase#LEAVE}.
+   */
   public void pointerLeave() {
     enqueue(() -> {
       pointerIn = false;
+      Dragging d = dragging;
+      if (resting(d) && d.overApp == this) { // no OVER again where the pointer was
+        drop(d, Drag.Phase.MOVE, null, Float.NaN, Float.NaN);
+      }
       return false;
     });
   }
