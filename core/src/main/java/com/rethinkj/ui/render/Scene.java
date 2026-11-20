@@ -274,8 +274,12 @@ import java.util.Map;
  * clamp(0.5 - t scale, 0, 1)} a rectangle's ramp:
  *
  * <pre>
+ * when |p - a| &lt;= |p - b|, from a:
  * t        = clamp(dot(p - a, b - a) / dot(b - a, b - a), 0, 1), or 0 when a = b
  * d        = |p - a - (b - a) t|
+ * otherwise the same from b, so that a far end costs no precision near the other:
+ * t        = clamp(dot(p - b, a - b) / dot(b - a, b - a), 0, 1), or 0 when a = b
+ * d        = |p - b + (b - a) t|
  * coverage = (coverage(d - width / 2) - coverage(d + width / 2)) * clip coverage
  * output   = color * coverage, blended as a rectangle's fill
  * </pre>

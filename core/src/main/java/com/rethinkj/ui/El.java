@@ -818,8 +818,8 @@ public final class El {
    * corner of its border box, in the order given: the edges of a diagram, the marks of a chart.
    * They come before its text and children, which lie on top, and are clipped as its children
    * are, so with {@link #clip} they stay inside its box. They take no presses; what takes a press
-   * is still the element's box. A line along the pixel grid is sharpest with its edges on pixel
-   * boundaries: one 1 pixel wide at {@code y = 10.5}, not at 10.
+   * is still the element's box. A line along the pixel grid is sharpest with its edges on physical
+   * pixel boundaries: at scale 1, one 1 pixel wide at {@code y = 10.5}, not at 10.
    */
   public El segments(Segment... segments) {
     this.segments = List.of(segments);

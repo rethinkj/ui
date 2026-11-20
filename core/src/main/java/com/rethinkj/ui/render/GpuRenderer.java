@@ -519,11 +519,15 @@ public final class GpuRenderer implements AutoCloseable {
           let b = instance.rect.zw - a;
           let half = bitcast<f32>(instance.shape.x) / 2.0;
           let squared = dot(b, b);
+          // From the end nearer the pixel, so a far end costs no precision near the other.
+          let u = point - a;
+          let v = point - instance.rect.zw;
+          let near = dot(u, u) <= dot(v, v);
           var t = 0.0;
           if squared > 0.0 {
-            t = clamp(dot(point - a, b) / squared, 0.0, 1.0);
+            t = clamp(select(-dot(v, b), dot(u, b), near) / squared, 0.0, 1.0);
           }
-          let d = length(point - a - b * t);
+          let d = length(select(v + b * t, u - b * t, near));
           var line_cover = coverage(d - half) - coverage(d + half);
           if instance.clip != 0u {
             line_cover *= clip_coverage(instance.clip, point);

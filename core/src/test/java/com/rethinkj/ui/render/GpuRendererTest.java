@@ -550,14 +550,18 @@ class GpuRendererTest {
 
   /**
    * How many instances draw into each pixel, at most: those whose pixels, bounded as the CPU
-   * renderer bounds them, include it. A rectangle reaches a pixel beyond its edges; a glyph covers
-   * exactly the pixels of its texels.
+   * renderer bounds them, include it. A rectangle reaches a pixel beyond its edges, a line a pixel
+   * beyond the box around its ends grown by half its width; a glyph covers exactly the pixels of
+   * its texels.
    */
   private static int[] layers(Case c) {
     int[] layers = new int[c.width * c.height];
     Scene s = c.scene;
     for (int i = 0; i < s.count(); i++) {
-      if (!(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
+      boolean line = s.getInt(i, Scene.KIND) == Scene.LINE;
+      if (line
+          ? !(s.get(i, Scene.LINE_WIDTH) > 0)
+          : !(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
         continue;
       }
       int clip = s.clipOf(i);
@@ -587,17 +591,22 @@ class GpuRendererTest {
         y1 = Math.min(y1, c.height);
       } else {
         // A shadow reaches three deviations beyond its shape.
-        double reach = s.getInt(i, Scene.KIND) != Scene.SHADOW
-            ? 0
-            : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
-        double left = Math.max(s.get(i, Scene.X) - reach, s.clipGet(clip, Scene.X));
-        double top = Math.max(s.get(i, Scene.Y) - reach, s.clipGet(clip, Scene.Y));
+        double reach = line
+            ? s.get(i, Scene.LINE_WIDTH) / 2
+            : s.getInt(i, Scene.KIND) != Scene.SHADOW
+                ? 0
+                : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
+        double x = s.get(i, Scene.X);
+        double y = s.get(i, Scene.Y);
+        // A rectangle's other corner; a line's other end.
+        double x2 = line ? s.get(i, Scene.X2) : x + s.get(i, Scene.WIDTH);
+        double y2 = line ? s.get(i, Scene.Y2) : y + s.get(i, Scene.HEIGHT);
+        double left = Math.max(Math.min(x, x2) - reach, s.clipGet(clip, Scene.X));
+        double top = Math.max(Math.min(y, y2) - reach, s.clipGet(clip, Scene.Y));
         double right = Math.min(
-            s.get(i, Scene.X) + s.get(i, Scene.WIDTH) + reach,
-            s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
+            Math.max(x, x2) + reach, s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
         double bottom = Math.min(
-            s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT) + reach,
-            s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
+            Math.max(y, y2) + reach, s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
         x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
         y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
         x1 = Math.min((int) Math.ceil(right * c.scale) + 1, c.width);

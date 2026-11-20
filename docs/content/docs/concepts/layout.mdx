@@ -64,7 +64,7 @@ Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw
 - Lines lie over the element's fill and under its text and children.
 - They are clipped like its children, so `clip()` keeps them inside its box.
 - They take no presses: what takes a press is the element's box.
-- A 1-pixel line along the grid is sharpest between pixels, as at `y = 70.5`; at a whole number it spreads over two rows.
+- A line along the grid is sharpest with its edges on physical pixel boundaries. At scale 1, a 1-pixel line lies at `y = 70.5`; at a whole number it spreads over two rows.
 
 ## Scrollbars
 

@@ -358,17 +358,27 @@ final class ReferenceCpuRenderer {
     }
     double ax = scene.get(i, Scene.X);
     double ay = scene.get(i, Scene.Y);
-    double bx = scene.get(i, Scene.X2) - ax;
-    double by = scene.get(i, Scene.Y2) - ay;
+    double ex = scene.get(i, Scene.X2);
+    double ey = scene.get(i, Scene.Y2);
+    double bx = ex - ax;
+    double by = ey - ay;
     double length = bx * bx + by * by;
     int clip = scene.clipOf(i);
     for (int py = 0; py < height; py++) {
       for (int px = 0; px < width; px++) {
         double x = (px + 0.5) / scale;
         double y = (py + 0.5) / scale;
-        double t = length > 0 ? Math.clamp(((x - ax) * bx + (y - ay) * by) / length, 0, 1) : 0;
-        double dx = x - ax - bx * t;
-        double dy = y - ay - by * t;
+        // From the end nearer the pixel, so a far end costs no precision near the other.
+        double ux = x - ax;
+        double uy = y - ay;
+        double vx = x - ex;
+        double vy = y - ey;
+        boolean near = ux * ux + uy * uy <= vx * vx + vy * vy;
+        double t = length > 0
+            ? Math.clamp(near ? (ux * bx + uy * by) / length : -(vx * bx + vy * by) / length, 0, 1)
+            : 0;
+        double dx = near ? ux - bx * t : vx + bx * t;
+        double dy = near ? uy - by * t : vy + by * t;
         double d = StrictMath.sqrt(dx * dx + dy * dy);
         double coverage = coverage(d - half, scale) - coverage(d + half, scale);
         if (clip != 0) {
