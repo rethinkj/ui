@@ -230,7 +230,9 @@ public final class App<S> {
   private boolean scrolled; // something scrolled since the rows and bars were placed
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
-  private boolean answerHeld; // edit with an anchor: its field, maybe in a row, takes the answer
+  // The next build between inputs builds the rows too: a field, maybe in one, waits for the app's
+  // answer to an edit with an anchor, or told its selection, after which actions may look for it.
+  private boolean rowsKept;
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
@@ -3234,6 +3236,7 @@ public final class App<S> {
               told |= editor.tell();
             }
             handled |= told;
+            rowsKept |= told;
             return told;
           });
         }
@@ -3431,8 +3434,8 @@ public final class App<S> {
     handled = false;
     changedOutside = false;
     scrolled = false;
-    rowsPending = between && !answerHeld && (focusId == null || animator.inRow(focusId) == null);
-    answerHeld = false;
+    rowsPending = between && !rowsKept && (focusId == null || animator.inRow(focusId) == null);
+    rowsKept = false;
     endPresses(false);
     if (rowsPending) {
       caretOverlays =
@@ -3698,7 +3701,7 @@ public final class App<S> {
       }
       now.editor().request(from, to, text, caret, anchor, ask);
       handled |= now.editor().answerPending();
-      answerHeld |= ask && now.editor().answerPending();
+      rowsKept |= ask && now.editor().answerPending();
       return true;
     });
   }

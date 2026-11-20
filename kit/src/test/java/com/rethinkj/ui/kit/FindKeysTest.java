@@ -541,6 +541,43 @@ class FindKeysTest {
   }
 
   @Test
+  void commandsFromOutsideReachAnEditorInAListRowTwiceInOneFrame() throws IOException {
+    Doc doc = new Doc("abc\nde");
+    doc.editor.select(5, 6);
+    App<Doc> app = new App<>(
+        doc,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(El.el().key("toolbar").focusable().h(24).onKey(key -> switch (key.name()) {
+              case "F6" -> command(s, CodeEditor.Command.DELETE_LINES);
+              case "F7" -> command(s, CodeEditor.Command.DUPLICATE_LINES);
+              default -> false;
+            }))
+            .child(El.el()
+                .h(200)
+                .wFull()
+                .rows(
+                    1,
+                    100,
+                    index -> codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
+                        .key("query")
+                        .lines(4)
+                        .wFull())));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+    // The first answer's selection reaches onSelect, whose rebuild keeps the row for the second.
+    Script.run(
+        "size 640 240\nframe\nfocus #toolbar\nframe\nkey F6 down\nkey F7 down\nframe", app, out);
+    assertEquals("abc\nabc", doc.text);
+  }
+
+  private static boolean command(Doc doc, CodeEditor.Command command) {
+    CodeEditor.run(doc.app, doc.editor, command);
+    return true;
+  }
+
+  @Test
   void eachLineCommandIsOneStepOfTheHistory() throws IOException {
     Function<String, String> undoAfter = steps -> {
       Doc doc = new Doc(TEXT);
