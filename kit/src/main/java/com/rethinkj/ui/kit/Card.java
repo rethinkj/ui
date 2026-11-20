@@ -207,7 +207,12 @@ public final class Card {
     }
     row.child(el().grow(1));
     for (El part : end) {
-      if (part.text() != null && !part.isFocusable()) {
+      // A status text, not a field or a link; one the app gives shrink(0) stays as it is.
+      boolean status = part.text() != null
+          && !part.isFocusable()
+          && !part.isEditable()
+          && part.onPress() == null;
+      if (status && part.style().shrink > 0) {
         if (Len.AUTO.equals(part.style().minWidth)) {
           part.style().minWidth = Len.ZERO;
         }

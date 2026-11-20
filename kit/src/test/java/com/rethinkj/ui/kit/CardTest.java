@@ -95,6 +95,7 @@ class CardTest {
     float start = rect(line(middle, START))[2];
     assertTrue(start > 0 && start < rect(line(wide, START))[2], middle);
     assertEquals(rect(line(wide, READ))[2], rect(line(middle, READ))[2], middle);
+    assertEquals(rect(line(wide, ROWS))[2], rect(line(middle, ROWS))[2], middle);
     assertFalse(read.text().shortened() || rows.text().shortened(), middle);
 
     // Then the texts are shortened, and the buttons stay inside the card.
