@@ -1,1 +1,0 @@
-- Fixed a `cycle` on a range of a multiline field (`El.range`) whose look changes the opacity or fill by what it was: each scroll of the window made it change from the value the cycle had given, not from the one layout gave, so it drifted further every time.
