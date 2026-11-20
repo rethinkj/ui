@@ -3261,11 +3261,11 @@ public final class App<S> {
 
   /** Runs the handlers in {@link #resized} as handlers of input; what they ask for waits. */
   private void tellResized() {
-    List<BooleanSupplier> told = List.copyOf(resized.values());
     dispatching = true;
     try {
-      for (BooleanSupplier handler : told) {
-        handler.getAsBoolean();
+      for (Object id : List.copyOf(resized.keySet())) {
+        resized.get(id).getAsBoolean();
+        resized.remove(id); // told: a throw leaves only it and those after it
       }
     } catch (RuntimeException | Error e) {
       handled = true; // as in frame: the next input gets a tree built anew
@@ -3275,7 +3275,6 @@ public final class App<S> {
       asked.addAll(follow);
       follow.clear();
     }
-    resized.clear();
   }
 
   /**
