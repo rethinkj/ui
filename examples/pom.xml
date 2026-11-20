@@ -49,6 +49,12 @@
       <artifactId>rethinkj-ui-json</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- The canvas of the SchemaDiagram and of the documentation's examples. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-diagram</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.rethinkj.ui</groupId>
       <artifactId>rethinkj-ui-fonts</artifactId>
