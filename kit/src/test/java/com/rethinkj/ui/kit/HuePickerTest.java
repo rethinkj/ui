@@ -72,7 +72,9 @@ class HuePickerTest {
     Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
     assertEquals(
         1, app.state().dismissed, "Escape goes to the dialog only once the popover is closed");
-    Script.run(open + "key Tab shift\nframe\n", app, out);
+    Script.run(open, app, out);
+    assertTrue(app.state().popover.isOpen());
+    Script.run("key Tab shift\nframe\n", app, out);
     assertFalse(app.state().popover.isOpen(), "Shift+Tab out of it closes it");
   }
 }
