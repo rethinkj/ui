@@ -1270,18 +1270,20 @@ final class Editor {
     // The app's selection, such as a find bar's match, comes into view below what covers the top.
     double covered = asked ? el.coveredContent() * scale : 0;
     asked = false;
-    int kept = -1; // the position whose row the jump placed
+    int kept = -1; // the position whose row the jump placed the view by
     if (revealed) {
       reveal = false;
-      kept = scrollToCaret(t, shownCaret, covered, caretWidth);
+      kept = scrollToCaret(t, shownCaret, covered, caretWidth, -1);
     }
-    double keptTop = kept < 0 ? 0 : t.caretTop(kept);
     float shift = t.layOut();
-    if (revealed) { // rows laid out above the row placed measured: it moved, the view follows it
-      for (double now = t.caretTop(kept); now != keptTop; now = t.caretTop(kept)) {
-        el.measureScroll();
-        el.scrollTo(el.scrollX(), el.scrollY() + (now - keptTop) / scale);
-        keptTop = now;
+    if (revealed) { // the rows laid out measured other heights: jump again, until nothing moves
+      while (true) {
+        double x = el.scrollX();
+        double y = el.scrollY();
+        scrollToCaret(t, shownCaret, covered, caretWidth, kept);
+        if (el.scrollX() == x && el.scrollY() == y) {
+          break;
+        }
         t.layOut(); // ends: each line is measured once
       }
     } else if (shift != 0) { // rows above the view were measured: what is in view stays
@@ -1316,11 +1318,12 @@ final class Editor {
   /**
    * Scrolls a multi-line field just far enough to show the caret's row whole, or with {@code
    * covered} the selection below what covers the field's top, and sideways the caret with {@link
-   * #MARGIN} to spare.
+   * #MARGIN} to spare. A selection taller than the room for it is placed by {@code kept}'s row
+   * where that is a position, so that jumping again does not swap its ends.
    *
    * @return the position whose row the view is placed by: the first or the last row to show
    */
-  private int scrollToCaret(Text t, int shownCaret, double covered, float caretWidth) {
+  private int scrollToCaret(Text t, int shownCaret, double covered, float caretWidth, int kept) {
     float scale = t.scale();
     float x = t.x(shownCaret);
     // The first row and the last to show: the selection, to its last character, before a wrap
@@ -1343,16 +1346,19 @@ final class Editor {
     }
     float lineHeight = t.lineHeight();
     covered = Math.clamp(t.contentHeight() - lineHeight, 0, covered); // a row stays in view
-    int kept = first;
-    if (upper - covered < sy) {
+    int placed = first;
+    if (kept >= 0 && top + lineHeight - upper > t.contentHeight() - covered) {
+      placed = kept;
+      sy = kept == first ? upper - covered : top + lineHeight - t.contentHeight();
+    } else if (upper - covered < sy) {
       sy = upper - covered;
     } else if (top + lineHeight > sy + t.contentHeight()) {
       sy = top + lineHeight - t.contentHeight();
-      kept = last;
+      placed = last;
     }
     el.measureScroll(); // with the caret's line, which may be the widest so far
     el.scrollTo(sx / scale, sy / scale);
-    return kept;
+    return placed;
   }
 
   /** The caret's offset from the left of the content box, in logical pixels, as drawn. */
