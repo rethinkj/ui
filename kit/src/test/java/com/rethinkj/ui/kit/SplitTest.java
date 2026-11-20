@@ -238,6 +238,8 @@ class SplitTest {
     app.state().sidebar = Position.share(0.75f);
     run(app, "size 480 200\nframe");
     assertParts(app, 319, 160);
+    run(app, "size 250 200\nframe\nkey Tab\nkey ArrowRight\nframe");
+    assertEquals(Position.share(0.75f), app.state().sidebar, "a line that cannot move keeps it");
     run(app, "size 1001 200\nframe");
     assertParts(app, 750, 250);
   }
