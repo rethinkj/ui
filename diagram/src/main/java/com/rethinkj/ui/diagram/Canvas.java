@@ -187,7 +187,12 @@ public final class Canvas {
     }
 
     void fitIfDue(List<Node> nodes, float margin) {
-      if (!fitting || width <= 0 || height <= 0 || width == fittedWidth && height == fittedHeight) {
+      // Not while a node is dragged: its drag works at the zoom it began at.
+      if (!fitting
+          || dragged != null
+          || width <= 0
+          || height <= 0
+          || width == fittedWidth && height == fittedHeight) {
         return;
       }
       fittedWidth = width;
