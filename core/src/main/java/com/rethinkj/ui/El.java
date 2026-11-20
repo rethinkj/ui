@@ -2448,6 +2448,16 @@ public final class El {
     return this;
   }
 
+  /** The width layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutWidth() {
+    return cycleBased ? baseWidth : width;
+  }
+
+  /** The height layout or motion gave this element, not the one a {@link #cycle} shows. */
+  float laidOutHeight() {
+    return cycleBased ? baseHeight : height;
+  }
+
   /** The look of {@link #cycle}, or null. */
   ObjDoubleConsumer<El> cycle() {
     return cycle;
@@ -4064,10 +4074,13 @@ public final class El {
     return style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
   }
 
-  /** The width of the rows: the width of the content box, without the scrollbar's. */
+  /**
+   * The width of the rows: the width of the content box as layout gave it, not as a {@link #cycle}
+   * shows it, without the scrollbar's.
+   */
   private float rowWidth() {
     return Math.max(
-        width
+        laidOutWidth()
             - rowsLeft()
             - style.paddingRight.pixelsOrZero()
             - style.borderRight.pixelsOrZero()

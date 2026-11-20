@@ -188,8 +188,8 @@ final class Overlays {
     l.anchor = anchor;
     l.anchorX = x;
     l.anchorY = y;
-    float w = overlay.width();
-    float h = overlay.height();
+    float w = overlay.laidOutWidth(); // placing it anew ends what its cycle shows
+    float h = overlay.laidOutHeight();
     float left;
     float top;
     if (l.centered) {
