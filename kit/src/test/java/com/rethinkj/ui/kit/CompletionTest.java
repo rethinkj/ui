@@ -156,6 +156,16 @@ class CompletionTest {
   }
 
   @Test
+  void backspaceInsideAWordKeepsTheListForThePartBeforeTheCaret() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    run(app, "frame\npress #query\ntype \"SELECT cux\"\nkey ArrowLeft\ntype \"s\"");
+    String tree = run(app, "key Backspace");
+    assertEquals("SELECT cux", app.state().sql);
+    assertTrue(tree.contains("label=\"customers\""), tree);
+  }
+
+  @Test
   void controlSpaceOpensEscapeClosesAndAPressTakes() throws IOException {
     TextLibraries.assumeLoaded();
     App<Query> app = app();

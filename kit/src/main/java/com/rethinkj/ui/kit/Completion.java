@@ -85,7 +85,9 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    private String edited; // the string after it, until the build that answers it
+    // The string an edit proposed and where its caret went, until the build that answers it.
+    private String edited;
+    private int editedCaret;
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
@@ -202,25 +204,26 @@ public final class Completion {
       String background,
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
+    // The build that answers an edit comes before onSelect tells its caret: an edit the app took
+    // as it was has the caret where the edit put it.
+    if (text.equals(state.edited)) {
+      caret = state.editedCaret;
+    }
+    state.edited = null;
     caret = Math.clamp(caret, 0, text.length());
     state.wordCharacters = field.text().wordCharacters();
     int from = CodeWords.start(text, caret, state.wordCharacters);
     // A character typed into a word opens the list from the word's second character, one of
     // openAfter's at once; an undo that brings one back leaves the caret elsewhere, or a
     // selection, and opens nothing.
-    // The build that answers the edit comes before onSelect tells its caret: the next one decides.
-    if (state.typed >= 0 && state.typed != caret && text.equals(state.edited)) {
-      state.edited = null;
-    } else {
-      if (state.typed >= 0
-          && !state.open
-          && state.typed == caret
-          && (state.triggered || caret - from >= 2)) {
-        state.open();
-      }
-      state.typed = -1;
-      state.triggered = false;
+    if (state.typed >= 0
+        && !state.open
+        && state.typed == caret
+        && (state.triggered || caret - from >= 2)) {
+      state.open();
     }
+    state.typed = -1;
+    state.triggered = false;
     state.history = false;
     String word = text.substring(from, caret);
     List<Entry> entries = !state.open
@@ -415,20 +418,20 @@ public final class Completion {
    */
   static void follow(State state, String before, String after) {
     TextChange change = TextChange.between(before, after);
+    state.edited = after;
+    state.editedCaret = change.newEnd();
     boolean insertion = change.start() == change.oldEnd();
     String inserted = after.substring(change.start(), change.newEnd());
     if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
         && CodeWords.isWordChar(inserted.codePointAt(0), state.wordCharacters)) {
       state.typed = change.newEnd(); // the build after it may open the list
-      state.edited = after;
       state.triggered = state.openAfter.contains(inserted); // a word character of openAfter's
       state.highlight = 0; // what it shows changes
     } else if (insertion
         && inserted.codePointCount(0, inserted.length()) == 1
         && state.openAfter.contains(inserted)) {
       state.typed = change.newEnd();
-      state.edited = after;
       state.triggered = true;
       state.highlight = 0;
     } else if (inserted.isEmpty()

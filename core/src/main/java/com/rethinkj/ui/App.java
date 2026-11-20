@@ -231,7 +231,7 @@ public final class App<S> {
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   // The next build between inputs builds the rows too: a field, maybe in one, waits for the app's
-  // answer to App.edit, or told its selection, after which actions may look for it.
+  // answer to an edit an app asked for, or told its selection, after which actions may look for it.
   private boolean rowsKept;
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
@@ -3810,6 +3810,7 @@ public final class App<S> {
       }
       step.accept(now.editor());
       handled |= now.editor().answerPending();
+      rowsKept |= now.editor().answerPending();
       return true;
     });
   }
@@ -3828,6 +3829,7 @@ public final class App<S> {
       }
       edit.accept(state.editor);
       handled |= state.editor.answerPending();
+      rowsKept |= state.editor.answerPending();
       return true;
     });
   }
