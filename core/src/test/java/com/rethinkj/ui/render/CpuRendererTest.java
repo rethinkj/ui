@@ -72,8 +72,8 @@ class CpuRendererTest {
     }
     for (int y = 0; y < 40; y++) {
       for (int x = 0; x < 80; x++) {
-        Pixels like = y >= 38 ? images[2] : images[1];
-        assertEquals(like.argb(x, y), images[0].argb(x, y), "at " + x + "," + y);
+        int like = images[y >= 38 ? 2 : 1].argb(x, y);
+        assertEquals(like, images[0].argb(x, y), "at " + x + "," + y);
       }
     }
   }
