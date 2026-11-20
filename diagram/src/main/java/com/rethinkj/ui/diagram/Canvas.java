@@ -119,6 +119,12 @@ public final class Canvas {
     private float fittedHeight;
     // The node being dragged, which the canvas builds also outside it, or its drag would end.
     private String dragged;
+    // Where the dragged node is, and the pointer's distance at the last step: each step adds its
+    // own movement at the zoom of that step, so that a zoom during the drag moves nothing.
+    private double draggedX;
+    private double draggedY;
+    private float draggedDx;
+    private float draggedDy;
 
     /** A viewport at 100 % with the diagram's origin at the canvas's top left. */
     public Viewport() {}
@@ -290,17 +296,29 @@ public final class Canvas {
   }
 
   private static void move(Viewport viewport, Node node, Consumer<Node> onMove, Drag drag) {
-    // The zoom of now, not of the view the press came in: a fit may have changed it since.
-    float zoom = viewport.zoom();
     switch (drag.phase()) {
-      case START -> viewport.dragged = node.key();
-      case END, CANCEL -> viewport.dragged = null;
+      case START -> {
+        viewport.dragged = node.key();
+        viewport.draggedX = node.x();
+        viewport.draggedY = node.y();
+        viewport.draggedDx = 0;
+        viewport.draggedDy = 0;
+      }
+      case CANCEL -> {
+        viewport.dragged = null;
+        onMove.accept(node);
+        return;
+      }
+      case END -> viewport.dragged = null;
       default -> {}
     }
-    onMove.accept(
-        drag.phase() == Drag.Phase.CANCEL
-            ? node
-            : node.movedTo(node.x() + drag.dx() / zoom, node.y() + drag.dy() / zoom));
+    // The zoom of now, not of the view the press came in: a fit or a key may have changed it.
+    float zoom = viewport.zoom();
+    viewport.draggedX += (drag.dx() - viewport.draggedDx) / zoom;
+    viewport.draggedY += (drag.dy() - viewport.draggedDy) / zoom;
+    viewport.draggedDx = drag.dx();
+    viewport.draggedDy = drag.dy();
+    onMove.accept(node.movedTo(viewport.draggedX, viewport.draggedY));
   }
 
   private static boolean key(Viewport viewport, Key key) {
