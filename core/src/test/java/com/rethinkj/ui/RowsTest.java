@@ -10,11 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -267,6 +271,49 @@ class RowsTest {
       tops[i] = list.children().get(i).y();
     }
     return tops;
+  }
+
+  @Test
+  void rowsTakeTheWidthOfAListThatSpringsToANewWidthInEveryFrame() throws IOException {
+    float[] width = {40};
+    App<Data> app = new App<>(
+        new Data(100),
+        d -> row()
+            .child(el().key("open").size(20, 20).onPress(() -> width[0] = 180))
+            .child(col()
+                .key("list")
+                .w(width[0])
+                .hFull()
+                .motion(Spring.SETTLE)
+                .rows(d.count, 28, i -> el().key("row-" + i).fill(WHITE))));
+    StringBuilder script = new StringBuilder("size 300 100\nframe\npress #open\nframe\n");
+    for (int i = 0; i < 16; i++) {
+      script.append("advance 0.05\nframe\nsnap f").append(i).append('\n');
+    }
+    Script.run(script.toString(), app, out);
+
+    Pattern size = Pattern.compile("^\\s*el #(list|row-\\d+) (?:.* )?[-\\d.]+,[-\\d.]+ ([\\d.]+)x");
+    List<Float> widths = new ArrayList<>();
+    for (int i = 0; i < 16; i++) {
+      String listWidth = null;
+      int rows = 0;
+      for (String line : Files.readAllLines(out.resolve("f" + i + ".tree.txt"))) {
+        Matcher matcher = size.matcher(line);
+        if (!matcher.find()) {
+          continue;
+        }
+        if (matcher.group(1).equals("list")) {
+          listWidth = matcher.group(2);
+          widths.add(Float.parseFloat(listWidth));
+        } else {
+          assertEquals(listWidth, matcher.group(2), "frame " + i + ": " + line);
+          rows++;
+        }
+      }
+      assertTrue(rows > 0, "frame " + i + " has rows");
+    }
+    assertTrue(widths.getFirst() > 40 && widths.getFirst() < 180, "springing: " + widths);
+    assertEquals(180, widths.getLast(), "at rest: " + widths);
   }
 
   // Input
