@@ -1,0 +1,1 @@
+- `Tree` indents its rows by at most half its width: deeper rows stay at that indent, so their chevrons and names stay visible in a narrow tree at any depth. The drop line while dragging and the level a drop picks from the pointer's horizontal position follow the same indent.

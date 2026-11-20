@@ -70,8 +70,11 @@ import java.util.function.Predicate;
  * could take the node, opens after the theme's {@link Theme.Motion#submenuDelay}. Escape gives
  * the drag up.
  *
- * <p>Each level is indented by {@link Theme.Spacing#l}, and a hairline in {@link
- * Theme.Borders#divider} runs below the mark of every open node through the rows it holds. The
+ * <p>Each level is indented by {@link Theme.Spacing#l}, up to as many levels as fit into half the
+ * width of the rows: deeper rows stay at that indent, so that their marks and names stay in view,
+ * and the dump still gives their level. At the end of a branch, a drag's line at that indent below
+ * such a row means after the row's node. A hairline in {@link Theme.Borders#divider} runs below the
+ * mark of every open node through the rows it holds, of as many ancestors as the indent shows. The
  * selected row has a short bar in the accent's edge at its start, as a {@link NavList}'s item, and
  * a mark that opens and closes its node brightens to the primary text color under the pointer.
  *
@@ -286,7 +289,7 @@ public final class Tree {
     int markRow = -1; // the row that shows where the node goes, -1 for none
     boolean into; // into that row's node, else a line at its top or bottom
     boolean top;
-    int depth; // the level of the line
+    int level; // the indent of the line, in levels as shown
 
     void unmark() {
       markRow = -1;
@@ -422,13 +425,14 @@ public final class Tree {
         .revealRow(held ? dragging.selectedRow : rows.selected);
     IntFunction<El> build = i -> {
       int depth = rows.depth(i);
+      int shown = Math.min(depth, deepest(theme, tree));
       El r = row()
           .radius(theme.radius().medium())
-          .padding(0, theme.space().s(), 0, theme.space().s() + depth * indent)
+          .padding(0, theme.space().s(), 0, theme.space().s() + shown * indent)
           .gap(theme.space().s())
           .align(Style.Align.CENTER);
-      if (depth > 0) {
-        r.child(guides(theme, depth, mark, indent, height));
+      if (shown > 0) {
+        r.child(guides(theme, shown, mark, indent, height));
       }
       if (rows.nodes[i] instanceof Pending pending) { // the children of the row's parent
         r.key("row-" + i).child(el().w(mark).shrink(0));
@@ -589,7 +593,7 @@ public final class Tree {
     } else {
       // Across the boundary with the row above, which this row covers: the first row has none.
       float y = !dragging.top ? height - line : row == 0 ? 0 : -line / 2;
-      float left = theme.space().s() + dragging.depth * theme.space().l();
+      float left = theme.space().s() + dragging.level * theme.space().l();
       marker.absolute(left, y).h(line).radius(line / 2).fill(theme.accent().edge());
       marker.style().right = Len.px(theme.space().s());
     }
@@ -607,9 +611,9 @@ public final class Tree {
    * @param row the row that shows it
    * @param into whether the outline of that row shows it, else a line
    * @param top whether the line runs along the row's top, else its bottom
-   * @param depth the level of the line
+   * @param level the indent of the line, in levels as shown
    */
-  private record Aim<N>(Move<N> move, int target, int row, boolean into, boolean top, int depth) {}
+  private record Aim<N>(Move<N> move, int target, int row, boolean into, boolean top, int level) {}
 
   /** A step of a drag of a node over the tree: the marker, scrolling along, opening, the drop. */
   private static <N> void drop(
@@ -629,7 +633,7 @@ public final class Tree {
     }
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();
-      Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height);
+      Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y(), height, deepest(theme, tree));
       if (aim != null) {
         o.onDrop.accept(aim.move());
       }
@@ -656,12 +660,13 @@ public final class Tree {
       g.scrollTo = (float) (scrollY + shift + (edge < 0 ? 0 : tree.height() - 1));
     }
     // Where the node would go once the rows have moved, which the next frame shows.
-    Aim<N> aim = aim(theme, model, o, rows, node, d.x(), d.y() + shift, height);
+    Aim<N> aim =
+        aim(theme, model, o, rows, node, d.x(), d.y() + shift, height, deepest(theme, tree));
     g.markRow = aim == null ? -1 : aim.row();
     if (aim != null) {
       g.into = aim.into();
       g.top = aim.top();
-      g.depth = aim.depth();
+      g.level = aim.level();
     }
     // A closed node that the pointer rests on, where it would drop the node into it, opens.
     N into = aim != null && aim.into() ? aim.move().target() : null;
@@ -691,7 +696,8 @@ public final class Tree {
       N node,
       double x,
       double y,
-      float height) {
+      float height,
+      int deepest) {
     int count = rows.count;
     if (count == 0) {
       return null;
@@ -721,14 +727,14 @@ public final class Tree {
     int target;
     int row = i + 1; // the row whose top the line runs along
     boolean top = true;
-    int depth;
+    int level;
     if (part < 0.5) { // before the row's node
       if (at == null) {
         return null;
       }
       move = new Move<>(node, at, Place.BEFORE);
       target = row = i;
-      depth = rows.depth(i);
+      level = Math.min(rows.depth(i), deepest);
     } else if (i + 1 < count && rows.depth(i + 1) > rows.depth(i)) { // before its first child
       N first = rows.node(i + 1);
       if (first == null) {
@@ -736,14 +742,19 @@ public final class Tree {
       }
       move = new Move<>(node, first, Place.BEFORE);
       target = i + 1;
-      depth = rows.depth(i + 1);
+      level = Math.min(rows.depth(i + 1), deepest);
     } else {
       // After the row's node, or after one of its ancestors down to the level of the next row:
       // the pointer's place across the levels says which, one indent each, from the left.
       boolean last = i + 1 == count;
       int above = at == null ? rows.parentRow(i) : i;
-      double level = Math.floor((x - theme.space().s()) / theme.space().l());
-      depth = Math.clamp((long) level, last ? 0 : rows.depth(i + 1), rows.depth(above));
+      int high = rows.depth(above);
+      double steps = Math.floor((x - theme.space().s()) / theme.space().l());
+      int depth = Math.clamp((long) steps, last ? 0 : rows.depth(i + 1), high);
+      if (depth >= deepest) { // the levels at the deepest indent look alike: the row above's
+        depth = high;
+      }
+      level = Math.min(depth, deepest);
       target = above;
       while (rows.depth(target) > depth) {
         target = rows.parentRow(target);
@@ -754,7 +765,7 @@ public final class Tree {
         top = false;
       }
     }
-    return allowed(o, new Aim<>(move, target, row, false, top, depth), from, to);
+    return allowed(o, new Aim<>(move, target, row, false, top, level), from, to);
   }
 
   /**
@@ -764,6 +775,14 @@ public final class Tree {
   private static <N> Aim<N> allowed(Options<N> o, Aim<N> aim, int from, int to) {
     boolean inside = aim.target() >= from && aim.target() < to;
     return inside || !o.canDrop.test(aim.move()) ? null : aim;
+  }
+
+  /**
+   * The most levels a row is indented by, as many as fit into half the width of the rows: deeper
+   * rows stay at that indent, so that their marks and names stay in view.
+   */
+  private static int deepest(Theme theme, El tree) {
+    return (int) (tree.rowWidth() / 2 / theme.space().l());
   }
 
   /**
