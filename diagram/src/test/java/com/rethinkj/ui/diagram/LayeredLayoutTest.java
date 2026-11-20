@@ -121,6 +121,18 @@ class LayeredLayoutTest {
     assertEquals(180, at(arranged, "stock.items").x());
     assertEquals(40 + 96, at(arranged, "stock.items").y());
 
+    // An edge between clusters joins nothing: two stock nodes that only a sales node refers to
+    // are packed side by side, not laid out in a layer.
+    List<Node> apart = LayeredLayout.arrange(
+        List.of(
+            new Node("sales.orders", null, 0, 0, 100, 100),
+            new Node("stock.a", null, 0, 0, 100, 100),
+            new Node("stock.b", null, 0, 0, 100, 100)),
+        List.of(new Edge("sales.orders", "stock.a"), new Edge("sales.orders", "stock.b")),
+        bySchema);
+    assertEquals(at(apart, "stock.a").y(), at(apart, "stock.b").y());
+    assertEquals(132, at(apart, "stock.b").x() - at(apart, "stock.a").x());
+
     // With a pin in each, each cluster follows its own.
     List<Node> pinned = new ArrayList<>(nodes);
     pinned.set(2, at(nodes, "sales.customers").movedTo(0, 0));
