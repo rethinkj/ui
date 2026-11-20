@@ -152,6 +152,7 @@ public final class CodeEditor {
     private final Find.State find = new Find.State();
     private int caret;
     private int anchor;
+    private String text = ""; // the string of the editor's last build
     private List<Marker> markers = List.of();
     private List<Diagnostic> diagnostics = List.of();
     private String diagnosed; // the text the diagnostics are about
@@ -213,6 +214,42 @@ public final class CodeEditor {
     /** The caret, as an index into the string. */
     public int caret() {
       return caret;
+    }
+
+    /**
+     * The caret's line, from 1: the number of line breaks before it, plus one, which the gutter
+     * shows next to it. Like {@link #column}, it is about the string of the editor's last build, so
+     * a view reads it after building the editor, as for a status bar below it.
+     */
+    public int line() {
+      return position()[0];
+    }
+
+    /**
+     * The caret's column, from 1: the characters before it on its line, plus one. A character is
+     * one {@code char} of the string, as in every position the editor reports, so a tab counts as
+     * one however wide it shows, and an emoji outside the Basic Multilingual Plane as two.
+     */
+    public int column() {
+      return position()[1];
+    }
+
+    // The caret's line and column in the editor's string, whose line breaks are as it shows them.
+    private int[] position() {
+      int line = 1;
+      int start = 0;
+      int at = 0;
+      for (int i = 0; i < text.length() && at < caret; i++, at++) {
+        char c = text.charAt(i);
+        if (c == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+          i++;
+        }
+        if (c == '\n' || c == '\r' || c == '\u2028' || c == '\u2029') {
+          line++;
+          start = at + 1;
+        }
+      }
+      return new int[] {line, at - start + 1};
     }
 
     /** The other end of the selection; the caret's position when nothing is selected. */
@@ -418,6 +455,7 @@ public final class CodeEditor {
         .fill(theme.surface().band())
         .border(0, theme.size().stroke(), 0, 0, theme.border().divider())
         .margin(0, theme.space().m(), 0, 0);
+    state.text = value;
     El editor = TextField.codeArea(value, placeholder, state.readOnly ? text -> {} : onChange)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {

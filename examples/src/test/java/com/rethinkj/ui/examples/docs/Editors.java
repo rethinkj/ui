@@ -15,6 +15,7 @@ import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Texts;
@@ -203,6 +204,13 @@ final class Editors {
     // docs:end code-editor-placeholder
     return Frame.of(draft, definition);
   }
+
+  // docs:start code-editor-position
+  /** The cursor's line and column, such as "Ln 3, Col 9", for the window's status bar. */
+  static El cursorPosition(Editors state) {
+    return StatusBar.text("Ln " + state.editor.line() + ", Col " + state.editor.column());
+  }
+  // docs:end code-editor-position
 
   static El json(Editors state) {
     // docs:start code-editor-json

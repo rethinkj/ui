@@ -103,6 +103,11 @@ With the app passed, **F8** moves the cursor to the start of the next diagnostic
 
 All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are UTF-16 offsets in the editor's normalized displayed text, where CRLF (`\r\n`) is normalized to LF (`\n`). To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
 
+`line()` and `column()` on `CodeEditor.State` give the cursor's line and column, both counted from 1, such as for a [StatusBar](/docs/components/status-bar). The column counts characters as the positions do, so a tab is one character however wide it shows. They are about the text of the editor's last build, so read them after building the editor, as for a status bar below it.
+
+```java snippet="code-editor-position"
+```
+
 ## Inserting text
 
 To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the selection, or inserts at the cursor, and puts the cursor after the text, or, with `replaceSelection(text, caret)`, at `caret` in the text, such as between the parentheses of `()`. To insert at a place you computed, such as a line below the one with the cursor, call `replace(from, to, text, caret)`: it replaces exactly the characters `from` to `to`, and Ctrl+Z brings back the selection from before. The edit runs right after the handler, goes to `onChange` like typed text, and is one step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
