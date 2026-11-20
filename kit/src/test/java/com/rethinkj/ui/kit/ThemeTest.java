@@ -659,32 +659,24 @@ class ThemeTest {
     assertTrue(lightness(d.hover()) - lightness(d.pressed()) >= 2, at);
   }
 
-  /** Code colors made without a color for members' names take that of their lightness. */
+  /** Code colors made without a color for members' names color them as strings. */
   @Test
-  void codeColorsWithoutAPropertyColorTakeThatOfTheirLightness() {
-    for (Theme.Code c : List.of(Theme.Code.DARK, Theme.Code.LIGHT)) {
-      Theme.Code older = new Theme.Code(
-          c.keyword(),
-          c.string(),
-          c.number(),
-          c.comment(),
-          c.operator(),
-          c.line(),
-          c.bracket(),
-          c.match(),
-          c.current(),
-          c.occurrence(),
-          c.block(),
-          c.guide());
-      assertEquals(c, older);
-    }
-    Theme.Code dark = Theme.Code.DARK;
-    assertEquals(
-        dark.property(),
-        new Theme.Code(
-                dark.keyword(), dark.string(), dark.number(), dark.comment(), dark.operator(), 0, 0)
-            .property(),
-        "light strings without a caret line's tint: the dark one's");
+  void codeColorsWithoutAPropertyColorColorNamesAsStrings() {
+    Theme.Code c = Theme.Code.DARK;
+    Theme.Code older = new Theme.Code(
+        c.keyword(),
+        c.string(),
+        c.number(),
+        c.comment(),
+        c.operator(),
+        c.line(),
+        c.bracket(),
+        c.match(),
+        c.current(),
+        c.occurrence(),
+        c.block(),
+        c.guide());
+    assertEquals(c.string(), older.property());
   }
 
   /** A theme made without danger colors takes those of its lightness. */
