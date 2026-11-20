@@ -980,7 +980,8 @@ public final class Window implements AutoCloseable {
   /** SDL_EventFilter: SDL calls this for every event as it queues it. */
   private static boolean watch(MemorySegment userdata, MemorySegment event) {
     try {
-      // Events pushed on other threads, such as wake(), are only there to end a wait.
+      // Events that other threads push are only there to end a wait (wake() adds its own past
+      // this watch).
       if (Thread.currentThread() != thread || failure != null) {
         return true;
       }

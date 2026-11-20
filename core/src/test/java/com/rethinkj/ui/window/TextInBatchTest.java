@@ -6,6 +6,7 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
@@ -170,9 +171,11 @@ class TextInBatchTest {
                   .autofocus()
                   .onTypeAhead(s -> f.name = s)));
       AtomicBoolean sent = new AtomicBoolean();
+      AtomicBoolean shown = new AtomicBoolean();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
         if (sent.get() && form.name.equals("é")) {
+          shown.set(true);
           loop.get().stop();
         }
       }));
@@ -214,6 +217,7 @@ class TextInBatchTest {
       } finally {
         done.set(true);
       }
+      assertTrue(shown.get(), "a frame showed the character, not a loop that ended otherwise");
     }
   }
 
