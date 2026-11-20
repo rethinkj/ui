@@ -22,6 +22,7 @@ import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -178,13 +179,19 @@ class TextInBatchTest {
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       AtomicBoolean done = new AtomicBoolean();
       AtomicReference<String> posted = new AtomicReference<>("not yet");
+      // The waits the loop announced, and whether the last was one for events alone.
+      AtomicLong waits = new AtomicLong();
+      AtomicBoolean idle = new AtomicBoolean();
       loop.get().waits((millis, holdBack) -> {
+        idle.set(millis == -1);
+        waits.incrementAndGet();
         if (millis == -1 && !sent.getAndSet(true)) {
-          // From another thread once the loop waits in SDL: until then, events of the window's
-          // opening that are still pending would deliver the character without a wait.
+          // From another thread once the loop waits in SDL for events alone: until then, events
+          // of the window's opening that are still pending would deliver the character without a
+          // wait, and a wait with a timeout would deliver it when it ends.
           Thread waiting = Thread.currentThread();
           Thread.ofPlatform().daemon().start(() -> {
-            while (!inWait(waiting)) {
+            while (!inIdleWait(waiting, waits, idle)) {
               if (done.get()) {
                 return;
               }
@@ -210,12 +217,19 @@ class TextInBatchTest {
     }
   }
 
-  /** Whether the thread waits in SDL for an event ({@link Sdl#waitEventTimeout}). */
-  private static boolean inWait(Thread thread) {
+  /**
+   * Whether the loop's thread waits in SDL for an event ({@link Sdl#waitEventTimeout}) in the wait
+   * it announced last, and that one waits for events alone: no wait was announced since.
+   */
+  private static boolean inIdleWait(Thread thread, AtomicLong waits, AtomicBoolean idle) {
+    long announced = waits.get();
+    if (!idle.get()) {
+      return false;
+    }
     for (StackTraceElement frame : thread.getStackTrace()) {
       if (frame.getClassName().equals(Sdl.class.getName())
           && frame.getMethodName().equals("waitEventTimeout")) {
-        return true;
+        return waits.get() == announced;
       }
     }
     return false;
