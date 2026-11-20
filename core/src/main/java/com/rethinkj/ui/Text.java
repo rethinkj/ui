@@ -319,7 +319,10 @@ public final class Text implements Measure {
     return ellipsis;
   }
 
-  /** Whether layout shortened a line to fit the box, so that it ends in {@link #ELLIPSIS}. */
+  /**
+   * Whether layout shortened a line to fit the box, so that it ends in {@link #ELLIPSIS}, or is
+   * empty where not even that fits.
+   */
   public boolean shortened() {
     return shortened;
   }
@@ -745,11 +748,14 @@ public final class Text implements Measure {
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
       int line = lineOf(underlineFrom);
       float from = x(underlineFrom);
-      composition = new Box(
-          from,
-          baseline(line) + Math.round(font().descent() * size * scale / 2),
-          x(underlineTo) - from,
-          Math.max(1, Math.round(scale)));
+      // A line the ellipsis left empty shows no underline either.
+      composition = lines.get(line).glyphs().count() == 0
+          ? null
+          : new Box(
+              from,
+              baseline(line) + Math.round(font().descent() * size * scale / 2),
+              x(underlineTo) - from,
+              Math.max(1, Math.round(scale)));
     }
   }
 
@@ -778,7 +784,7 @@ public final class Text implements Measure {
   /**
    * A line that is wider than the box, shortened to the most graphemes that fit with {@link
    * #ELLIPSIS} after them, shaped anew so that the ellipsis kerns with what it follows. Where not
-   * even the ellipsis fits, it is the ellipsis alone, which the box clips.
+   * even the ellipsis fits, the line is empty: nothing of a text draws outside its box.
    */
   private Line shorten(Span span, float baseline) {
     // shortcut: a right-to-left run is one cluster (see Font#shape), so the line ends before it
@@ -804,8 +810,11 @@ public final class Text implements Measure {
       // The ranges of the kept part stay; the ellipsis has the text's color and font.
       Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
       GlyphRun run = shortened.run;
-      if (run.width() <= placedWidth + SLACK || i == 0) {
+      if (run.width() <= placedWidth + SLACK) {
         return new Line(run, run.width(), baseline, shortened.colors, 0);
+      }
+      if (i == 0) {
+        return new Line(run.slice(0, 0), 0, baseline);
       }
     }
   }

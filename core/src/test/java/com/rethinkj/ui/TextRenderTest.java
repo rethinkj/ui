@@ -6,6 +6,7 @@ import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.layout.Flex;
@@ -104,11 +105,19 @@ class TextRenderTest {
       boolean fits = t.string().equals("Köln");
       assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
       Text.Line line = t.lines().getFirst();
-      assertTrue(
-          line.width() <= text.width() + 0.01f || text.width() < 10,
-          line.width() + " in " + text.width());
+      // A box narrower than the ellipsis holds an empty line: nothing draws outside it.
+      assertTrue(line.width() <= text.width() + 0.01f, line.width() + " in " + text.width());
     }
     assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
+  }
+
+  @Test
+  void aBoxTooNarrowForTheEllipsisShowsNothingOfItsText() {
+    El text = El.text("Window title").ellipsis().underline(0, 1).minSize(0, 0);
+    Headless.render(row().w(0).child(text), 40, 20, 1, PINNED);
+    assertEquals(0, text.width());
+    assertEquals(0, text.text().lines().getFirst().width());
+    assertNull(text.text().composition(), "no underline either");
   }
 
   private static void collectTexts(El el, List<El> into) {
