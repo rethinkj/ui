@@ -319,7 +319,10 @@ public final class Text implements Measure {
     return ellipsis;
   }
 
-  /** Whether layout shortened a line to fit the box, so that it ends in {@link #ELLIPSIS}. */
+  /**
+   * Whether layout shortened a line to fit the box, so that it ends in {@link #ELLIPSIS}, or is
+   * empty where not even that fits.
+   */
   public boolean shortened() {
     return shortened;
   }
@@ -745,11 +748,14 @@ public final class Text implements Measure {
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
       int line = lineOf(underlineFrom);
       float from = x(underlineFrom);
-      composition = new Box(
-          from,
-          baseline(line) + Math.round(font().descent() * size * scale / 2),
-          x(underlineTo) - from,
-          Math.max(1, Math.round(scale)));
+      // A line the ellipsis left empty shows no underline either.
+      composition = lines.get(line).width() == 0
+          ? null
+          : new Box(
+              from,
+              baseline(line) + Math.round(font().descent() * size * scale / 2),
+              x(underlineTo) - from,
+              Math.max(1, Math.round(scale)));
     }
   }
 
