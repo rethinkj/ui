@@ -804,6 +804,10 @@ public final class Window implements AutoCloseable {
     }
     // A character without its key, as one sent as VK_PACKET, is plain text, as SDL would give it.
     queue(charOfKey ? new KeyText(text) : new TextInput(text));
+    // SDL queued no event of it, and only an event in its queue ends its wait: without a key
+    // before it, as from an input method, the emoji panel or SendInput, the loop would take it
+    // only with the next event.
+    wake();
   }
 
   /** A key down of a character sent as such ({@code VK_PACKET}), which SDL reports no key of. */

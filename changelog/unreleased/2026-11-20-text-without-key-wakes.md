@@ -1,0 +1,1 @@
+- On Windows, a character that arrives without a key, as from an input method, the emoji panel or a tool that types with `SendInput`, now reaches an element that takes no text, such as a tree's type-to-find, at once while nothing moves in the window. It used to wait for the next event, such as a move of the pointer.

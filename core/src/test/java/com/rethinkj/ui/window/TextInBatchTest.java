@@ -1,6 +1,7 @@
 package com.rethinkj.ui.window;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
@@ -20,6 +21,8 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +34,8 @@ import org.junit.jupiter.api.Test;
  * keyboard layout ({@code TranslateMessage}) while SDL handles the batch; the press is put into
  * SDL's queue before them. Posted keys come before the characters Windows makes of them, unlike
  * a keyboard's, whose character follows its key; which key's character a field takes is {@code
- * KeyTextTest}'s. Windows only; skipped where the window gets no keyboard focus.
+ * KeyTextTest}'s. Also characters without a key, which Windows sends to the window without SDL
+ * knowing of them. Windows only; skipped where the window gets no keyboard focus.
  */
 class TextInBatchTest {
 
@@ -141,6 +145,54 @@ class TextInBatchTest {
           () -> app.state().name.equals("abc"),
           "the keys after the click are in the field");
       assertEquals("abc", app.state().name);
+    }
+  }
+
+  /**
+   * A character without a key, as an input method, the emoji panel or SendInput's {@code
+   * KEYEVENTF_UNICODE} sends it, that arrives alone while the loop waits with nothing to do, for an
+   * element that takes no text, so that text input is off and SDL queues no event of it: the next
+   * frame still shows it.
+   */
+  @Test
+  void aCharacterWithoutAKeyWakesTheWaitingLoop() {
+    try (Window window = Window.open(TITLE, 240, 100)) {
+      Form form = new Form();
+      App<Form> app = new App<>(
+          form,
+          f -> col()
+              .wFull()
+              .hFull()
+              .child(el().key("target")
+                  .size(160, 50)
+                  .focusable()
+                  .autofocus()
+                  .onTypeAhead(s -> f.name = s)));
+      AtomicBoolean sent = new AtomicBoolean();
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
+        if (sent.get() && form.name.equals("é")) {
+          loop.get().stop();
+        }
+      }));
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      loop.get().waits((millis, holdBack) -> {
+        if (millis == -1 && !sent.getAndSet(true)) {
+          // A moment later, from another thread: the events of the window's opening may still end
+          // this wait, and the character has to come while the loop waits for the next.
+          Thread.ofPlatform().daemon().start(() -> {
+            try {
+              Thread.sleep(300);
+              if ((int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) 'é', 1L) == 0) {
+                throw new AssertionError("PostMessage failed");
+              }
+            } catch (Throwable t) {
+              throw new AssertionError(t);
+            }
+          });
+        }
+      });
+      Desktop.run(loop.get(), () -> "a frame after the character, typed: \"" + form.name + "\"");
     }
   }
 
