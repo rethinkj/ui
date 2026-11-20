@@ -3,6 +3,7 @@ package com.rethinkj.ui.examples.docs;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
@@ -16,6 +17,7 @@ import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
+import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.render.Pixels;
 import java.util.List;
 import java.util.Locale;
@@ -114,6 +116,30 @@ final class Editors {
   void document(String value) {
     document = value;
   }
+
+  // docs:start code-editor-json-format
+  /** A JSON value of a database's column, in an editor that only reads it. */
+  String cell = "";
+
+  final CodeEditor.State cellEditor = new CodeEditor.State().readOnly(true);
+
+  /** Shows the value formatted; JSON that is not valid as it is, with its first problem. */
+  void show(String value) {
+    Formatted formatted = Json.format(value);
+    if (formatted.valid()) {
+      cell = formatted.text();
+      cellEditor.noDiagnostics();
+      return;
+    }
+    Formatted.Problem problem = formatted.problem();
+    String message = Texts.CURRENT.get().formatProblem(problem.kind());
+    cell = value;
+    cellEditor.diagnostics(
+        value,
+        List.of(new CodeEditor.Diagnostic(
+            problem.from(), problem.to(), CodeEditor.Severity.ERROR, message)));
+  }
+  // docs:end code-editor-json-format
 
   void notes(String value) {
     notes = value;

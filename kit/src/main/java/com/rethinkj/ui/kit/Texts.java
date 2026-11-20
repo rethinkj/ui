@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.Context;
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.kit.DataGrid.Filter;
 import java.util.Locale;
 import java.util.StringJoiner;
@@ -361,6 +362,23 @@ public interface Texts {
   /** How many matches there are: {@code 1 result}, {@code 17 results}, {@code 1000+ results}. */
   default String results(String total, boolean one) {
     return total + (one ? " result" : " results");
+  }
+
+  // Code
+
+  /**
+   * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
+   * code editor says it.
+   */
+  default String formatProblem(Formatted.Kind kind) {
+    return switch (kind) {
+      case UNEXPECTED -> "Not expected here";
+      case UNEXPECTED_END -> "The text ends too early";
+      case UNCLOSED_STRING -> "A string without its closing quote";
+      case INVALID_ESCAPE -> "Not a valid escape";
+      case INVALID_NUMBER -> "Not a valid number";
+      case TOO_LARGE -> "Too large to format";
+    };
   }
 
   // Data grid
