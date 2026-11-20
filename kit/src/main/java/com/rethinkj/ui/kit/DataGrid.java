@@ -1084,6 +1084,8 @@ public final class DataGrid {
     // rows keep no row in view, so that the next row it moves to shows.
     int heldRow = -1;
     boolean holding;
+    int revealed = -1; // the row the last build told the rows to keep in view, -1 for none
+    boolean revealing; // the last build told them another one, which layout scrolls to
     // The rows of the last grid built with it and of the one before, which tell what is in view
     // until the last is laid out.
     El rows;
@@ -1347,9 +1349,13 @@ public final class DataGrid {
       double high = rows.rowHeight();
       double view = placed.height() - placed.coverY();
       double end = rows.rowCount() * high + placed.coverY() - placed.height();
-      double top = rows == placed
-          ? rows.scrollY()
-          : Math.clamp(rowsScroll.y(), 0, Math.max(0, end)); // as the new rows will clamp it
+      double top = rows == placed ? rows.scrollY() : rowsScroll.y();
+      if (rows != placed && revealing && revealed < rows.rowCount()) {
+        double above = revealed * high - top; // as layout will show the row, nearest first
+        double below = above + high - view;
+        top += above < 0 ? above : below > 0 ? Math.min(below, above) : 0;
+      }
+      top = Math.clamp(top, 0, Math.max(0, end)); // as the rows clamp it
       long first = (long) Math.ceil(top / high);
       long last = Math.min((long) Math.floor((top + view) / high) - 1, rows.rowCount() - 1L);
       return last < first ? none : new int[] {(int) first, (int) last};
@@ -2362,7 +2368,10 @@ public final class DataGrid {
     }
     if (sel != null) {
       sel.holding &= sel.row() == sel.heldRow;
-      body.revealRow(sel.holding ? -1 : sel.row());
+      int reveal = sel.holding ? -1 : sel.row();
+      sel.revealing = reveal >= 0 && reveal != sel.revealed;
+      sel.revealed = reveal;
+      body.revealRow(reveal);
     }
     if (options.onRows != null) {
       body.onRowsBuilt(options.onRows);

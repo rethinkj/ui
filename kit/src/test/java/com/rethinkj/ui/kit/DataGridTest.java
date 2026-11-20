@@ -225,7 +225,7 @@ class DataGridTest {
           return col().wFull().hFull().children(grid);
         })
         .provide(Theme.CURRENT, o -> o.theme);
-    run(app, "frame");
+    run(app, "frame\nkey Tab\nframe");
     orders.selection.scrollToRow(200);
     app.invalidate();
     app.frame();
@@ -235,6 +235,12 @@ class DataGridTest {
     assertEquals(orders.selection.firstRowInView(), read[0]);
     assertEquals(orders.selection.lastRowInView(), read[1]);
     assertEquals(200, read[0]);
+
+    run(app, "key ArrowDown\nframe"); // from row 2 back into view
+    assertEquals(3, orders.selected());
+    assertEquals(orders.selection.firstRowInView(), read[0]);
+    assertEquals(orders.selection.lastRowInView(), read[1]);
+    assertEquals(3, read[0], "the cursor's row at the top");
   }
 
   @Test
