@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,6 +13,7 @@ import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -404,5 +406,81 @@ class AppTest {
     app.pointerUp(50, 5);
     app.frame();
     assertEquals(1, app.state()[0], "a row built again with its identity takes no press over");
+  }
+
+  @Test
+  void aFrameTellsHowLongItsInputItsViewAndRowFunctionsAndTheRestTook() {
+    // The handler, the view, the rows, and a measure of layout before and after the last press, as
+    // each measures itself; then the presses.
+    long[] spent = new long[6];
+    App<long[]> app = new App<>(spent, s -> {
+      long start = System.nanoTime();
+      El view = col()
+          .size(100, 100)
+          .child(el().key("button").size(100, 20).onPress(() -> {
+            long press = System.nanoTime();
+            busy();
+            s[0] += System.nanoTime() - press;
+            s[5]++;
+          }))
+          .child(el().key("list").wFull().h(60).rows(1000, 20, i -> {
+            long row = System.nanoTime();
+            El built = el().key("row-" + i).h(20).child(i == 0 ? measured(s) : el());
+            s[2] += System.nanoTime() - row;
+            return built;
+          }))
+          .child(measured(s));
+      busy();
+      s[1] += System.nanoTime() - start;
+      return view;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    Arrays.fill(spent, 0);
+
+    app.pointerDown(50, 10);
+    app.pointerUp(50, 10);
+    // After the handler the view is built again before the press, which lays out the rows.
+    app.pointerDown(50, 10);
+    app.pointerUp(50, 10);
+    long start = System.nanoTime();
+    app.frame();
+    long whole = System.nanoTime() - start;
+
+    App.Timing timing = app.timing();
+    assertTrue(spent[0] > 0 && spent[1] > 0 && spent[2] > 0, "all of them ran");
+    assertTrue(spent[3] > 0 && spent[4] > 0, "laid out between the presses and after them");
+    assertTrue(
+        timing.input() >= spent[0] + spent[3],
+        "the handler is input, and so is the layout the next press needs: " + timing);
+    assertTrue(timing.build() >= spent[1] + spent[2], "the view and the rows are built: " + timing);
+    assertTrue(timing.layout() >= spent[4], "laying out after the input is layout: " + timing);
+    assertTrue(
+        timing.input() + timing.build() + timing.layout() <= whole,
+        "the parts do not overlap: " + timing + " of " + whole);
+
+    app.frame();
+    assertEquals(0, app.timing().build(), "a frame with nothing new builds nothing");
+  }
+
+  /**
+   * An element whose layout takes a millisecond, which it adds to {@code spent[3]} before the
+   * second press and to {@code spent[4]} after it.
+   */
+  private static El measured(long[] spent) {
+    return el().measure((width, height, availableWidth, availableHeight) -> {
+      long start = System.nanoTime();
+      busy();
+      spent[spent[5] < 2 ? 3 : 4] += System.nanoTime() - start;
+      return new Measure.Size(10, 10, Float.NaN);
+    });
+  }
+
+  /** Keeps the thread busy for a millisecond, so that a part of a frame cannot round to 0. */
+  private static void busy() {
+    long start = System.nanoTime();
+    while (System.nanoTime() - start < 1_000_000) {
+      Thread.onSpinWait();
+    }
   }
 }

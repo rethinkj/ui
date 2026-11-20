@@ -136,7 +136,39 @@ public final class WindowLoop {
     default boolean presented() {
       return true;
     }
+
+    /**
+     * How much of the last {@link #present} went to drawing, in nanoseconds; the rest it spent
+     * showing the frame, as waiting for the display. -1 unless a presenter says otherwise: all of
+     * it counts as drawing ({@link Frame#draw}).
+     */
+    default long drawNanos() {
+      return -1;
+    }
   }
+
+  /**
+   * How long a frame of a window took, in nanoseconds of {@link System#nanoTime}, as {@link
+   * #frames} tells it. The parts do not overlap; input arrives between frames and waits for the
+   * next, which runs it.
+   *
+   * @param window the window
+   * @param input handling the app's input and tasks ({@link App.Timing#input})
+   * @param build the app's view and row functions ({@link App.Timing#build})
+   * @param layout the rest of the app's frame ({@link App.Timing#layout})
+   * @param draw making the {@link App#scene} and drawing it ({@link Presenter#drawNanos})
+   * @param present the rest of {@link Presenter#present}: showing the frame, which the display
+   *     may hold back until its next refresh
+   * @param interval the time since the window's previous frame began, 0 for its first
+   */
+  public record Frame(
+      Windows.Handle window,
+      long input,
+      long build,
+      long layout,
+      long draw,
+      long present,
+      long interval) {}
 
   // The windows in the order they opened, and the same front first, as far as the loop knows.
   private final List<Entry> entries = new ArrayList<>();
@@ -146,6 +178,7 @@ public final class WindowLoop {
   private final LoopWindows windows = new LoopWindows();
   private Function<Window, Presenter> presenters;
   private WindowListener listener;
+  private Consumer<Frame> frames;
   private Consumer<SystemAppearance> appearance;
   private Waits waits = (millis, holdBack) -> {};
   private ToDoubleFunction<Window> refreshRates = Window::refreshRate;
@@ -185,6 +218,7 @@ public final class WindowLoop {
     float scale = -1;
     long presented;
     long started;
+    long shownStarted; // when the last frame the window showed began to be built, for Frame
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
@@ -444,6 +478,35 @@ public final class WindowLoop {
    */
   public WindowLoop listener(WindowListener listener) {
     this.listener = listener;
+    return this;
+  }
+
+  /**
+   * Tells {@code listener} how long each frame took that a window showed, once the loop is done
+   * with it, on the windows' thread; for an app that keeps to a budget. A frame that changes
+   * nothing is not drawn, and so not told. To measure input as it comes, the listener may give
+   * the window the next input with {@link Window#post}, which the loop handles as the system's,
+   * one frame per refresh of the display however fast it comes:
+   *
+   * <pre>{@code
+   * loop.frames(frame -> {
+   *   if (app.tree().scrollY() < times.size() * WindowLoop.WHEEL_STEP) {
+   *     return; // a frame the window asked for before the step's
+   *   }
+   *   times.add(frame.input() + frame.build() + frame.layout() + frame.draw());
+   *   if (times.size() <= 300) {
+   *     window.post(new WindowEvent.Wheel(0, -1, 200, 150)); // the next step towards the end
+   *   } else {
+   *     loop.stop();
+   *   }
+   * });
+   * }</pre>
+   *
+   * @param listener the listener, or null for none
+   * @return this loop
+   */
+  public WindowLoop frames(Consumer<Frame> listener) {
+    this.frames = listener;
     return this;
   }
 
@@ -1158,14 +1221,34 @@ public final class WindowLoop {
     resize(e);
     long now = System.nanoTime();
     App<?> app = e.app;
+    Frame frame = null;
     if (app.frame() || always || e.presenter.pending()) {
       if (!e.isOpen()) {
         return; // a handler of the frame closed it
       }
-      e.presenter.present(app.scene(), e.width, e.height, e.scale);
+      long built = System.nanoTime();
+      Scene scene = app.scene();
+      long drawing = System.nanoTime();
+      e.presenter.present(scene, e.width, e.height, e.scale);
       e.presented = System.nanoTime();
       e.started = now;
       e.showing = e.presenter.presented();
+      if (e.showing && frames != null) {
+        long drew = e.presenter.drawNanos();
+        long shown = drew < 0 ? 0 : Math.max(0, e.presented - drawing - drew);
+        App.Timing timing = app.timing();
+        frame = new Frame(
+            e,
+            timing.input(),
+            timing.build(),
+            timing.layout(),
+            e.presented - built - shown,
+            shown,
+            e.shown ? now - e.shownStarted : 0);
+      }
+      if (e.showing) {
+        e.shownStarted = now;
+      }
       if (!e.shown && e.showing) {
         e.shown = true;
         if (e.onShown != null) {
@@ -1187,6 +1270,10 @@ public final class WindowLoop {
       e.window.drawn();
     }
     textInput(e);
+    Consumer<Frame> told = frames;
+    if (told != null && frame != null) {
+      told.accept(frame);
+    }
   }
 
   /**

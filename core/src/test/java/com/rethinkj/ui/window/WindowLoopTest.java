@@ -214,6 +214,70 @@ class WindowLoopTest {
     }
   }
 
+  /**
+   * Steps of the wheel that the frames' listener posts to the window, each once the one before is
+   * drawn, scroll a list of a million rows a step per frame as the system's would, and build its
+   * rows without running the view for each, as a task posted to the app would. Each frame shown is
+   * told, with its parts.
+   */
+  @Test
+  void wheelStepsPostedAfterEachFrameScrollAsTheSystemsAndEachFrameIsTold() {
+    try (Window window = Window.open(TITLE, 240, 200)) {
+      Desktop.settle();
+      int[] views = new int[1];
+      App<Object> app = new App<>(new Object(), s -> {
+        views[0]++;
+        return el().key("list")
+            .wFull()
+            .hFull()
+            .rows(1_000_000, 24, i -> el().key("row-" + i).h(24));
+      });
+      List<WindowLoop.Frame> steps = new ArrayList<>(); // the first frame, then each step's
+      List<Double> offsets = new ArrayList<>();
+      int[] viewsBefore = new int[1];
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {}).frames(frame -> {
+        double offset = app.tree().scrollY();
+        if (offset < steps.size() * WindowLoop.WHEEL_STEP) {
+          return; // a frame the window asked for before the step's
+        }
+        steps.add(frame);
+        offsets.add(offset);
+        if (steps.size() == 1) {
+          viewsBefore[0] = views[0];
+        }
+        if (steps.size() <= 10) {
+          window.post(new WindowEvent.Wheel(0, -1, 120, 100)); // a step towards the end
+        } else {
+          loop.get().stop();
+        }
+      }));
+      Desktop.run(loop.get(), () -> "ten steps, " + offsets);
+
+      List<Double> expected = new ArrayList<>();
+      for (int i = 0; i <= 10; i++) {
+        expected.add((double) (i * WindowLoop.WHEEL_STEP));
+      }
+      assertEquals(expected, offsets, "a step per frame");
+      assertTrue(views[0] - viewsBefore[0] < 10, "a step builds no view: " + views[0]);
+      assertEquals(0, steps.getFirst().interval(), "the first frame has none before it");
+      for (WindowLoop.Frame frame : steps) {
+        assertSame(loop.get().windows().of(app), frame.window());
+        assertTrue(
+            frame.input() >= 0
+                && frame.build() >= 0
+                && frame.layout() >= 0
+                && frame.draw() >= 0
+                && frame.present() == 0, // a presenter that says nothing of it only draws
+            frame.toString());
+      }
+      assertTrue(steps.getLast().interval() > 0, steps.getLast().toString());
+      assertTrue(
+          steps.subList(1, steps.size()).stream().anyMatch(frame -> frame.build() > 0),
+          "the rows that came into view were built");
+    }
+  }
+
   @Test
   void inputWaitsForTheRefreshAfterTheLastFrameAndInputAfterAPauseNot() {
     long refresh = 16_000_000;

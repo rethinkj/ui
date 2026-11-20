@@ -176,6 +176,22 @@ public final class App<S> {
   public record InputArea(
       float x, float y, float width, float height, float cursor, boolean password) {}
 
+  /**
+   * How long the parts of a {@link #frame} took, in nanoseconds of {@link System#nanoTime}; they
+   * do not overlap and add up to the whole frame. A frame first handles the input and the tasks
+   * that arrived, one after the other, and then makes what it shows of the state they left: what
+   * the frame does before that line is input, what it does after it is layout, and the view and
+   * row functions are build wherever they run.
+   *
+   * @param input handling the input and the tasks: their handlers, finding their elements, and
+   *     what the next of them needs, as a tree laid out anew after a handler changed the state
+   * @param build running the view function and the row functions of the virtual lists
+   * @param layout the rest, after the input: laying out, the looks of the moment, motion,
+   *     overlays, carets and bars, and the handlers the frame runs on its own, as {@link
+   *     El#onResize}, {@link El#onShownFor} and {@link El#onHoverFor}
+   */
+  public record Timing(long input, long build, long layout) {}
+
   private final S state;
   private Function<S, El> view;
   // Input in the order it came, dispatched by frame(). Each returns whether it may have changed
@@ -237,6 +253,8 @@ public final class App<S> {
   private long keyPressFrame; // the frame that dispatched that key
   private double keyPressUntil; // once the key is up: when the look ends
   private long frames; // the frames run, for keyPressFrame
+  private long buildNanos; // the view and row functions took during the frame that runs
+  private Timing timing = new Timing(0, 0, 0);
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
@@ -660,8 +678,13 @@ public final class App<S> {
     float left = parentX + el.x();
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
-    if (range != null && el.rowsHaveKeyHooks(range[0], range[1])) {
-      return true;
+    if (range != null) {
+      long start = System.nanoTime();
+      boolean hooks = el.rowsHaveKeyHooks(range[0], range[1]); // runs the row function
+      buildNanos += System.nanoTime() - start;
+      if (hooks) {
+        return true;
+      }
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
@@ -3054,7 +3077,8 @@ public final class App<S> {
 
   /**
    * Moves the app's clock forward. A windowed runner calls this once per frame with the time since
-   * the last one; tests step it by hand. Nothing else reads a clock.
+   * the last one; tests step it by hand. Nothing else reads a clock, except to tell how long a
+   * frame took ({@link #timing}).
    */
   public void advance(double seconds) {
     if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
@@ -3114,6 +3138,8 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    long start = System.nanoTime();
+    buildNanos = 0;
     frames++;
     resizeRounds = 0;
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
@@ -3161,6 +3187,8 @@ public final class App<S> {
         follow.clear();
       }
     }
+    long inputEnd = System.nanoTime();
+    long inputBuild = buildNanos;
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
@@ -3229,6 +3257,8 @@ public final class App<S> {
       cycling = El.cycles(root, time, width, height, true);
       drawn |= cycling;
     }
+    long input = inputEnd - start - inputBuild;
+    timing = new Timing(input, buildNanos, System.nanoTime() - start - input - buildNanos);
     return drawn;
   }
 
@@ -3278,6 +3308,15 @@ public final class App<S> {
   }
 
   /**
+   * How long the parts of the last {@link #frame} took, for an app that keeps to a budget; all 0
+   * before the first. A {@link com.rethinkj.ui.window.WindowLoop} adds drawing and presenting
+   * ({@link com.rethinkj.ui.window.WindowLoop#frames}).
+   */
+  public Timing timing() {
+    return timing;
+  }
+
+  /**
    * Builds the view from the state, gives it the looks of the moment and its fields their editing
    * state, lays it out, hands it to the animator and builds the rows of its virtual lists; then
    * finds the focus in it again and places the fields' carets and the scrollbars.
@@ -3291,8 +3330,10 @@ public final class App<S> {
    */
   private void build(boolean between, boolean last) {
     List<Object> ids = Animator.identities(pointed());
+    long start = System.nanoTime();
     El built = WindowState.CURRENT.with(
         new WindowState(active, maximized, scale), () -> view.apply(state));
+    buildNanos += System.nanoTime() - start;
     El.fix(built);
     shown = applyLooks(built, ids);
     root = built;
@@ -3907,7 +3948,9 @@ public final class App<S> {
     for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
       int asking = El.autofocuses();
+      long start = System.nanoTime();
       el.makeRows(range[0], range[1], lookedRows(id)::contains);
+      buildNanos += System.nanoTime() - start;
       tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
       for (El row : el.children()) {
@@ -3921,7 +3964,9 @@ public final class App<S> {
         int row = Animator.rowIn(at, id);
         int index = row - el.firstRow();
         if (el.hasRow(row) && el.children().get(index).isKept()) {
+          long remade = System.nanoTime();
           el.remakeRow(index);
+          buildNanos += System.nanoTime() - remade;
           attachEditors(el.children().get(index), path);
           el.layoutRow(index, scale, systemFonts);
         }

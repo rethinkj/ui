@@ -5,6 +5,7 @@
     "selectors",
     "tree-dump",
     "stored-images",
+    "frame-times",
     "agent-recipe"
   ]
 }

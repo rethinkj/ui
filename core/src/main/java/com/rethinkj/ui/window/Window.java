@@ -803,7 +803,7 @@ public final class Window implements AutoCloseable {
       return;
     }
     // A character without its key, as one sent as VK_PACKET, is plain text, as SDL would give it.
-    post(charOfKey ? new KeyText(text) : new TextInput(text));
+    queue(charOfKey ? new KeyText(text) : new TextInput(text));
   }
 
   /** A key down of a character sent as such ({@code VK_PACKET}), which SDL reports no key of. */
@@ -811,8 +811,23 @@ public final class Window implements AutoCloseable {
     charOfKey = false;
   }
 
+  /**
+   * Hands the window an event as if the system had reported it, after those that came before: the
+   * delivery under way, as from a listener, or else the next {@link #pollEvents} or {@link
+   * #waitEvents} delivers it, without waiting, and the window treats it as its own, as it does a
+   * click on a part of its frame. For an app that measures or
+   * drives its window, as with steps of the wheel ({@link WindowLoop#frames}).
+   *
+   * @throws IllegalStateException if the window is closed, or this is not the windows' thread
+   */
+  public void post(WindowEvent event) {
+    Objects.requireNonNull(event, "event");
+    checkOpen();
+    queue(event);
+  }
+
   /** Queues an event of this window for {@link #dispatch}. */
-  void post(WindowEvent event) {
+  void queue(WindowEvent event) {
     // A redraw shows the newest state, so it replaces one of this window that is still pending,
     // and is live only if both are. On X11 every step of a resize brings one, and drawing each
     // would leave the loop ever further behind the window's size.
@@ -970,7 +985,7 @@ public final class Window implements AutoCloseable {
       if (type == Sdl.EVENT_DISPLAY_CURRENT_MODE_CHANGED) { // its refresh rate, for every window
         for (Window window : windows.values()) {
           if (window.open) {
-            window.post(new DisplayChanged());
+            window.queue(new DisplayChanged());
           }
         }
         return true;
@@ -1018,7 +1033,7 @@ public final class Window implements AutoCloseable {
           pointerWindow = this;
           showCursor();
         }
-        post(new PointerMove(pointerX, pointerY));
+        queue(new PointerMove(pointerX, pointerY));
       }
       case Sdl.EVENT_MOUSE_BUTTON_DOWN, Sdl.EVENT_MOUSE_BUTTON_UP -> {
         PointerButton button = switch (e.get(JAVA_BYTE, Sdl.BUTTON_BUTTON)) {
@@ -1041,14 +1056,14 @@ public final class Window implements AutoCloseable {
             dragFirst = false; // a click in between: the next on a drag area is a first one
             textSoon();
           }
-          post(new PointerDown(x, y, button, clicks, modifiers(Sdl.getModState())));
+          queue(new PointerDown(x, y, button, clicks, modifiers(Sdl.getModState())));
         } else {
-          post(new PointerUp(x, y, button));
+          queue(new PointerUp(x, y, button));
         }
       }
       // As the system reports it, so that natural scrolling is already applied.
       case Sdl.EVENT_MOUSE_WHEEL ->
-        post(wheel(
+        queue(wheel(
             e.get(JAVA_FLOAT, Sdl.WHEEL_X),
             e.get(JAVA_FLOAT, Sdl.WHEEL_Y),
             logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
@@ -1063,9 +1078,9 @@ public final class Window implements AutoCloseable {
           if (!MODIFIER_KEYS.contains(key)) {
             textSoon();
           }
-          post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
+          queue(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
-          post(new KeyUp(new Key(key, modifiers, false)));
+          queue(new KeyUp(new Key(key, modifiers, false)));
         }
       }
       case Sdl.EVENT_TEXT_INPUT -> {
@@ -1076,14 +1091,14 @@ public final class Window implements AutoCloseable {
         if (text != null && !text.isEmpty() && !controlKey) {
           // The text of a key while text input is on only in case: as on Windows (systemChar),
           // it goes where the key went.
-          post(textSoon && afterKeyDown ? new KeyText(text) : new TextInput(text));
+          queue(textSoon && afterKeyDown ? new KeyText(text) : new TextInput(text));
         }
       }
       case Sdl.EVENT_TEXT_EDITING -> {
         String text = Sdl.string(e.get(ADDRESS, Sdl.EDITING_TEXT));
         text = text == null ? "" : text;
         int start = e.get(JAVA_INT, Sdl.EDITING_START);
-        post(new TextEditing(text, compositionCursor(text, start)));
+        queue(new TextEditing(text, compositionCursor(text, start)));
       }
       case Sdl.EVENT_WINDOW_RESIZED,
           Sdl.EVENT_WINDOW_PIXEL_SIZE_CHANGED,
@@ -1098,17 +1113,17 @@ public final class Window implements AutoCloseable {
           if (shell != null) {
             shell.scaleChanged(scale); // icons for the new scale
           }
-          post(new ScaleChanged(scale));
+          queue(new ScaleChanged(scale));
         }
         if (width != oldWidth || height != oldHeight) {
-          post(new Resized(width, height));
+          queue(new Resized(width, height));
         }
       }
       case Sdl.EVENT_WINDOW_MOVED -> {
         dragFirst = false;
         rememberNormal();
       }
-      case Sdl.EVENT_WINDOW_DISPLAY_CHANGED -> post(new DisplayChanged());
+      case Sdl.EVENT_WINDOW_DISPLAY_CHANGED -> queue(new DisplayChanged());
       case Sdl.EVENT_WINDOW_MINIMIZED, Sdl.EVENT_WINDOW_MAXIMIZED, Sdl.EVENT_WINDOW_RESTORED -> {
         long flags = Sdl.getWindowFlags(sdl);
         boolean nowMinimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
@@ -1116,22 +1131,22 @@ public final class Window implements AutoCloseable {
         if (nowMinimized != minimized || nowMaximized != maximized) {
           minimized = nowMinimized;
           maximized = nowMaximized;
-          post(new StateChanged(minimized, maximized));
+          queue(new StateChanged(minimized, maximized));
         }
       }
-      case Sdl.EVENT_WINDOW_EXPOSED -> post(new Redraw(e.get(JAVA_INT, Sdl.WINDOW_DATA1) != 0));
+      case Sdl.EVENT_WINDOW_EXPOSED -> queue(new Redraw(e.get(JAVA_INT, Sdl.WINDOW_DATA1) != 0));
       case Sdl.EVENT_WINDOW_MOUSE_LEAVE -> {
         pointerIn = false;
         if (pointerWindow == this) {
           pointerWindow = null;
         }
         if (win32 == null || !win32.pointerOnMaximize()) {
-          post(new PointerLeave());
+          queue(new PointerLeave());
         }
       }
-      case Sdl.EVENT_WINDOW_FOCUS_GAINED -> post(new FocusChanged(true));
-      case Sdl.EVENT_WINDOW_FOCUS_LOST -> post(new FocusChanged(false));
-      case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
+      case Sdl.EVENT_WINDOW_FOCUS_GAINED -> queue(new FocusChanged(true));
+      case Sdl.EVENT_WINDOW_FOCUS_LOST -> queue(new FocusChanged(false));
+      case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> queue(new CloseRequested());
       // SDL sends it for a left press that it handed to the system; Windows takes double clicks
       // on a drag area itself.
       case Sdl.EVENT_WINDOW_HIT_TEST -> {
@@ -1147,7 +1162,7 @@ public final class Window implements AutoCloseable {
         dropText = null;
       }
       case Sdl.EVENT_DROP_POSITION ->
-        post(new FileDragOver(
+        queue(new FileDragOver(
             logical(e.get(JAVA_FLOAT, Sdl.DROP_X)), logical(e.get(JAVA_FLOAT, Sdl.DROP_Y))));
       case Sdl.EVENT_DROP_FILE -> {
         String file = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
@@ -1168,9 +1183,9 @@ public final class Window implements AutoCloseable {
       }
       case Sdl.EVENT_DROP_COMPLETE -> {
         if (dropFiles.isEmpty() && dropText == null) {
-          post(new FileDragLeave());
+          queue(new FileDragLeave());
         } else {
-          post(new FileDrop(
+          queue(new FileDrop(
               logical(e.get(JAVA_FLOAT, Sdl.DROP_X)),
               logical(e.get(JAVA_FLOAT, Sdl.DROP_Y)),
               dropFiles,
@@ -2131,7 +2146,7 @@ public final class Window implements AutoCloseable {
     appearance = now;
     for (Window window : windows.values()) {
       if (window.open) {
-        window.post(new AppearanceChanged(now));
+        window.queue(new AppearanceChanged(now));
       }
     }
   }

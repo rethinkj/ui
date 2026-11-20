@@ -13,6 +13,7 @@ By default, `WindowLoop` runs your app in an SDL window. If you want to embed re
 | `clipboard(clipboard)`, `dialogs(dialogs)`, `windows(windows)` | Connects system clipboard, file dialogs, message boxes, and multi-window support. Without them, the app uses an in-memory clipboard and `Dialogs.NONE`, and opening new windows throws an exception. |
 | `nextChange()` | Returns the absolute app-clock timestamp of the next scheduled visual change (cursor blink, hover delay, or `after` timer), or positive infinity when idle. Compute the sleep duration as `Math.max(0, app.nextChange() - app.time())` |
 | `onPost(wake)` | Registers a callback invoked on the posting thread whenever a background task posts work; use it to wake your event loop. |
+| `timing()` | Returns how long the parts of the last `frame()` took, in nanoseconds: `input`, `build` and `layout`. See [Frame times](/docs/testing/frame-times). |
 | `handlersWaiting()` | Returns `true` if queued handlers (such as `onRowsBuilt` after a list built other rows) need another frame immediately. |
 | `invalidate()` | Marks the view dirty when state changed outside this app's handlers (for example, call this on sibling windows sharing the same state when `ranHandlers()` is `true`). |
 | `inputArea()` | Returns `InputArea(x, y, width, height, cursor, password)` in logical pixels for the focused text field (or `null`), used to position IME windows and toggle text input. |

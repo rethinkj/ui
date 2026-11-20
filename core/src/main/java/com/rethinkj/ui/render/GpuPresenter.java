@@ -84,6 +84,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   private Surface.AlphaMode alphaMode;
   private boolean pending;
   private boolean presented;
+  private long drawNanos;
   /** True when the surface asked to be configured again, even if the size is the same. */
   private boolean stale = true;
 
@@ -195,6 +196,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     ready();
     pending = false;
     presented = false;
+    drawNanos = 0;
     int pixelWidth = window.pixelWidth();
     int pixelHeight = window.pixelHeight();
     if (pixelWidth <= 0 || pixelHeight <= 0 || window.isMinimized()) {
@@ -230,7 +232,9 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
       }
       return;
     }
+    long start = System.nanoTime();
     renderer.draw(scene, frame.view(), scale);
+    drawNanos = System.nanoTime() - start;
     frame.present();
     presented = true;
     frames++;
@@ -247,6 +251,16 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   @Override
   public boolean presented() {
     return presented;
+  }
+
+  /**
+   * The time the renderer took to record and submit the frame's commands; configuring the
+   * surface, waiting for a frame to draw into and presenting it are left out, as that is where
+   * the display holds the frame back.
+   */
+  @Override
+  public long drawNanos() {
+    return drawNanos;
   }
 
   /** How many frames were drawn and presented. */

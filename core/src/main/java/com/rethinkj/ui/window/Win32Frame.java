@@ -265,7 +265,7 @@ final class Win32Frame {
    * in its own queue, and it knows nothing of these.
    */
   private void post(WindowEvent event) {
-    window.post(event);
+    window.queue(event);
     Window.wake();
   }
 
