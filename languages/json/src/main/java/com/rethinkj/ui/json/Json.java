@@ -37,7 +37,10 @@ public record Json(Theme.Code colors) implements Highlighter {
    * the editor's tabs and guides, with a space after each colon, {@code {}} and {@code []} for an
    * empty object and array, and no line feed at the end. The tokens stay as they are written:
    * numbers to the last digit, strings with their escapes, and the members in their order, also
-   * one whose name another has too. Formatting the formatted text gives the same text.
+   * one whose name another has too. Only a line separator (U+2028) or paragraph separator (U+2029)
+   * in a string, which JSON allows as it is, is written as <code>&#92;u2028</code> or
+   * <code>&#92;u2029</code>, since a multi-line field, such as the code editor, turns both into a
+   * line feed, which would break the string. Formatting the formatted text gives the same text.
    *
    * <pre>{@code
    * Json.format("{\"id\":1,\"tags\":[]}").text()   // {\n    "id": 1,\n    "tags": []\n}

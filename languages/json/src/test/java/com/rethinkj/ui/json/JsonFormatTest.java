@@ -61,10 +61,11 @@ class JsonFormatTest {
         "[\n    12345678901234567890.123,\n    -0,\n    1E+2,\n    0.5e-7\n]",
         format("[12345678901234567890.123,-0,1E+2,0.5e-7]"),
         "numbers to the last digit");
+    assertEquals("{\n    \"😀\": \"𝄞\"\n}", format("{\"😀\":\"𝄞\"}"), "beyond the BMP");
     assertEquals(
-        "{\n    \"😀\": \"𝄞\u2028\"\n}",
-        format("{\"😀\":\"𝄞\u2028\"}"),
-        "beyond the BMP, and a line separator in a string, which JSON allows");
+        "{\n    \"a\\u2028\": \"\\u2029b\\u2028\\u2028\"\n}",
+        format("{\"a\u2028\":\"\u2029b\u2028\u2028\"}"),
+        "a line or paragraph separator in a string, which a multi-line field turns into a line feed");
     assertEquals("42", format(" 42 "), "a single value");
     assertEquals("\"x\"", format("\"x\""));
     assertEquals("null", format("null"));

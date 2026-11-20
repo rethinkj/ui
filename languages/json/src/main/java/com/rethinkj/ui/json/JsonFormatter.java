@@ -154,15 +154,29 @@ final class JsonFormatter {
     }
   }
 
-  /** The string or number as it is written, then {@code state}; unless it is invalid. */
+  /**
+   * The string or number as it is written, then {@code state}; unless it is invalid. A line or
+   * paragraph separator in a string is escaped, since a multi-line field turns it into a line feed.
+   */
   private int copy(int state) {
     if (invalid != null) {
       problem = invalid;
       return ERROR;
     }
+    int from = start;
+    for (int i = start; i < at; i++) {
+      char c = text.charAt(i);
+      if (c == '\u2028' || c == '\u2029') {
+        length += 5;
+        if (out != null) {
+          out.append(text, from, i).append(c == '\u2028' ? "\\u2028" : "\\u2029");
+        }
+        from = i + 1;
+      }
+    }
     length += at - start;
     if (out != null) {
-      out.append(text, start, at);
+      out.append(text, from, at);
     }
     return state;
   }
