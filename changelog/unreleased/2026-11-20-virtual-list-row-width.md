@@ -1,0 +1,1 @@
+- The rows of a virtual list (`El.rows`) now have the list's width in every frame while the list springs to a new width. Before, they kept the width the list had when they were built.

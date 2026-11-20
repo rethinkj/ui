@@ -53,6 +53,7 @@ class DocsExamplesTest {
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
       Map.entry("status", List.of("view")),
       Map.entry("bars", List.of("view")),
+      Map.entry("cards-window", List.of("view")),
       Map.entry("choices", List.of("view")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("dialog-stack", List.of("stacked")),
@@ -106,6 +107,7 @@ class DocsExamplesTest {
     layouts(all, "navigation", Layouts::navigation, 440, 220); // wide, for the tile's crop
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
     layouts(all, "split", Layouts::split, 520, 240);
+    layouts(all, "cards-window", Layouts::cardsWindow, 520, 280);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
     layouts(all, "tabs-line", Layouts::tabsLine, 480, 180);
     layouts(all, "status", Layouts::status, 460, 420);

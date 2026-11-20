@@ -3,7 +3,7 @@ title: Lists of many rows
 description: Render lists of up to a million rows efficiently using virtual scrolling.
 ---
 
-[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scrollable element into a virtual list. It only builds the visible rows (plus a small buffer), so rendering a million rows is just as fast as rendering twenty, and scrolling keeps the rows that stay in view where it can instead of building them again. [DataGrid](/docs/components/data-grid), [Tree](/docs/components/tree), and [Markdown](/docs/components/markdown) all use this mechanism.
+[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scrollable element into a virtual list. It only builds the visible rows (plus a small buffer), so rendering a million rows is just as fast as rendering twenty, and scrolling keeps the rows that stay in view where it can instead of building them again. A list whose width springs builds its rows again in each frame, so that they keep its width. [DataGrid](/docs/components/data-grid), [Tree](/docs/components/tree), and [Markdown](/docs/components/markdown) all use this mechanism.
 
 ```java snippet="rows"
 ```
