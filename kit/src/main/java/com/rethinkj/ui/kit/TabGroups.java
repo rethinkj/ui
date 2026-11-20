@@ -44,7 +44,9 @@ import java.util.function.ObjIntConsumer;
  *       follows the pointer until the release. Its options are {@link
  *       Window.Options#underPointer}: no opening animation, and the keyboard focus stays with the
  *       window the drag began in until the release. Where the release lands outside every bar the
- *       window stays there and takes the focus; over a bar of a group the tab goes there, before
+ *       window stays there, moved wholly into the work area of its display where the release left
+ *       it reaching beyond (not on Wayland, which places windows itself), and takes the focus;
+ *       over a bar of a group the tab goes there, before
  *       the tab the marker shows, and its window closes. The window under the pointer that takes
  *       it is raised.
  *   <li>The only tab of a window drags the whole window, from the first step, and docks the same

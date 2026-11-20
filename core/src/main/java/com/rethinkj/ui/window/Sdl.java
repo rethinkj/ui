@@ -291,6 +291,9 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_WINDOW_POSITION =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
+  /** {@code bool SDL_SyncWindow(SDL_Window *window)} */
+  static final FunctionDescriptor SDL_SYNC_WINDOW = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+
   static final FunctionDescriptor SDL_SET_WINDOW_POSITION =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT);
   static final FunctionDescriptor SDL_GET_WINDOW_DISPLAY_SCALE =
@@ -477,6 +480,7 @@ final class Sdl {
         bind("SDL_SetWindowMinimumSize", SDL_SET_WINDOW_MINIMUM_SIZE);
     static final MethodHandle SET_WINDOW_POSITION =
         bind("SDL_SetWindowPosition", SDL_SET_WINDOW_POSITION);
+    static final MethodHandle SYNC_WINDOW = bind("SDL_SyncWindow", SDL_SYNC_WINDOW);
     static final MethodHandle FLASH_WINDOW = bind("SDL_FlashWindow", SDL_FLASH_WINDOW);
     static final MethodHandle REMOVE_EVENT_WATCH =
         bind("SDL_RemoveEventWatch", SDL_REMOVE_EVENT_WATCH);
@@ -778,6 +782,18 @@ final class Sdl {
   static boolean setWindowPosition(MemorySegment window, int x, int y) {
     try {
       return (boolean) Manage.SET_WINDOW_POSITION.invokeExact(window, x, y);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * Waits, for a limited time, until the system has applied the moves and sizes asked for, which
+   * X11 does later; false if it has not by then.
+   */
+  static boolean syncWindow(MemorySegment window) {
+    try {
+      return (boolean) Manage.SYNC_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }

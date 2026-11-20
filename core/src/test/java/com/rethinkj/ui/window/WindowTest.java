@@ -126,6 +126,29 @@ class WindowTest {
     }
   }
 
+  /** A torn-off window, larger than the work area and let go near its far corner, as one. */
+  @Test
+  void aWindowLargerThanTheWorkAreaComesWhollyIntoIt() {
+    assumeTrue(Window.knowsPositions());
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      int[] area = Sdl.displayBounds(Window.displayOf(window.outer()), true);
+      Sdl.setWindowSize(window.sdlWindow(), area[2] + 200, area[3] + 100);
+      window.moveTo(area[0] + area[2] - 50, area[1] + area[3] - 50);
+      Desktop.settle();
+      assertTrue(window.keepInWorkArea());
+      Desktop.settle();
+      int[] outer = window.outer();
+      String where = outer[0] + "," + outer[1] + " " + outer[2] + "x" + outer[3];
+      assertTrue(
+          outer[0] >= area[0]
+              && outer[1] >= area[1]
+              && outer[0] + outer[2] <= area[0] + area[2]
+              && outer[1] + outer[3] <= area[1] + area[3],
+          where + " in the work area " + area[2] + "x" + area[3]);
+    }
+  }
+
   @Test
   void opensAndClosesAFramelessWindow() {
     Window window = Window.open(TITLE, 320, 200, Window.options().frameless());

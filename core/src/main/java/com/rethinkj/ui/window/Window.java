@@ -1396,11 +1396,12 @@ public final class Window implements AutoCloseable {
   }
 
   /**
-   * Like {@link #keepReachable}, but moves the window wholly into that work area, frame and all,
-   * or, where it is larger, its top left corner to the area's: for a window that opened under the
-   * pointer during a press ({@link Options#underPointer}), as a torn-off tab's, which {@link
-   * WindowLoop} moves so when the press ends. Let go near an edge, it would reach beyond it, its
-   * close button out of reach.
+   * Like {@link #keepReachable}, but moves the window wholly into that work area, frame and all:
+   * for a window that opened under the pointer during a press ({@link Options#underPointer}), as
+   * a torn-off tab's, which {@link WindowLoop} moves so when the press ends. Let go near an edge,
+   * it would reach beyond it, its close button out of reach. A window larger than the work area
+   * first becomes as small as the area, or as its minimum size, and where it is still larger, its
+   * top left corner goes to the area's.
    *
    * @return whether the window moved
    */
@@ -1416,35 +1417,80 @@ public final class Window implements AutoCloseable {
             != 0) {
       return false;
     }
-    Sdl.getWindowPosition(sdl, ints);
-    int x = ints.get(JAVA_INT, 0);
-    int y = ints.get(JAVA_INT, 4);
-    int w = units(width);
-    int h = units(height);
-    int[] frame = Sdl.windowBordersSize(sdl); // top, left, bottom, right
-    if (frame == null || frameless) {
-      frame = new int[4];
+    if (wholly) {
+      Sdl.syncWindow(sdl); // X11 makes the last move of the drag later
     }
-    int[] outer = {x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]};
-    int display = Sdl.displayForRect(outer[0], outer[1], outer[2], outer[3]);
+    int[] frame = frame(); // top, left, bottom, right
+    int[] outer = outer();
+    int display = displayOf(outer);
     int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
     if (area == null) {
       return false;
     }
     int[] by;
     if (wholly) {
+      if (outer[2] > area[2] || outer[3] > area[3]) {
+        Sdl.setWindowSize(
+            sdl,
+            Math.min(outer[2], area[2]) - frame[1] - frame[3],
+            Math.min(outer[3], area[3]) - frame[0] - frame[2]);
+        Sdl.syncWindow(sdl);
+        outer = outer(); // at least as large as its minimum size
+      }
       by = inside(outer, area);
     } else {
-      int[] bar =
-          frame[0] > 0 ? new int[] {outer[0], outer[1], outer[2], frame[0]} : dragArea(x, y);
+      int[] bar = frame[0] > 0
+          ? new int[] {outer[0], outer[1], outer[2], frame[0]}
+          : dragArea(outer[0] + frame[1], outer[1] + frame[0]);
       by = reachable(bar, area, units(REACHABLE));
     }
     if (by[0] == 0 && by[1] == 0) {
       return false;
     }
-    Sdl.setWindowPosition(sdl, x + by[0], y + by[1]);
+    Sdl.setWindowPosition(sdl, outer[0] + frame[1] + by[0], outer[1] + frame[0] + by[1]);
     rethrow();
     return true;
+  }
+
+  /** The system's frame around the content: top, left, bottom and right; none if frameless. */
+  private int[] frame() {
+    int[] frame = frameless ? null : Sdl.windowBordersSize(sdl);
+    return frame == null ? new int[4] : frame;
+  }
+
+  /** x, y, width and height of the window on the screen, frame and all. */
+  int[] outer() {
+    checkOpen();
+    int[] frame = frame();
+    Sdl.getWindowPosition(sdl, ints);
+    int x = ints.get(JAVA_INT, 0);
+    int y = ints.get(JAVA_INT, 4);
+    Sdl.getWindowSize(sdl, ints);
+    int w = ints.get(JAVA_INT, 0);
+    int h = ints.get(JAVA_INT, 4);
+    return new int[] {x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]};
+  }
+
+  /**
+   * The display a rectangle on the screen lies mostly on, as x, y, width and height; where it
+   * lies on none, the nearest. 0 if there is none.
+   */
+  static int displayOf(int[] rect) {
+    int best = 0;
+    long most = 0;
+    for (int display : Sdl.displays()) {
+      int[] b = Sdl.displayBounds(display, false);
+      if (b == null) {
+        continue;
+      }
+      long across = Math.min(rect[0] + rect[2], b[0] + b[2]) - (long) Math.max(rect[0], b[0]);
+      long down = Math.min(rect[1] + rect[3], b[1] + b[3]) - (long) Math.max(rect[1], b[1]);
+      if (across > 0 && down > 0 && across * down > most) {
+        most = across * down;
+        best = display;
+      }
+    }
+    return best != 0 ? best : Sdl.displayForRect(rect[0], rect[1], rect[2], rect[3]);
   }
 
   /**

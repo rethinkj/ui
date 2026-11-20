@@ -328,7 +328,9 @@ public final class WindowLoop {
         throw e;
       }
       Entry entry = new Entry(window, app, presenter, true);
-      entry.focusAfterPress = options.isUnderPointer() && pressed != null;
+      // During a press, or in the frame that handles its release, where a step that came with the
+      // release tears a tab off.
+      entry.focusAfterPress = options.isUnderPointer() && (pressed != null || releasedIn != null);
       add(entry);
       if (running) {
         start(entry);
