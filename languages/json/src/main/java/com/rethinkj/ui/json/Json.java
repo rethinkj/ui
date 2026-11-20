@@ -40,7 +40,9 @@ public record Json(Theme.Code colors) implements Highlighter {
    * one whose name another has too. Only a line separator (U+2028) or paragraph separator (U+2029)
    * in a string, which JSON allows as it is, is written as <code>&#92;u2028</code> or
    * <code>&#92;u2029</code>, since a multi-line field, such as the code editor, turns both into a
-   * line feed, which would break the string. Formatting the formatted text gives the same text.
+   * line feed, which would break the string. An app that passes JSON to such a field without
+   * formatting it escapes both in its strings itself. Formatting the formatted text gives the same
+   * text.
    *
    * <pre>{@code
    * Json.format("{\"id\":1,\"tags\":[]}").text()   // {\n    "id": 1,\n    "tags": []\n}
