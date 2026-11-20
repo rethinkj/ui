@@ -21,7 +21,7 @@ el 0,0 720x400
 overlay edge top center gap 72 on 0,0 720x400
   el #palette role=dialog label="Command palette" 80,72 560x320
     el 89,81 542x32
-      text #query-1 role=textbox label="Command" "" 89,81 542x32 focused caret 0
+      text #query-1 role=textbox label="Command" placeholder="Type a command, @ to open a table" "" 89,81 542x32 focused caret 0
       text label="search" "\u{EA7C}" 97,89 16x16
     el #options role=listbox label="Commands" 89,117 542x266 rows 0-12/22 thumb-y 623,119 6x113.14
       el #option-0 role=option label="File: New query" 89,117 534x28 selected pos=1/22

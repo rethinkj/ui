@@ -31,13 +31,13 @@ el 0,0 440x472
               el 99,124 316x24
                 el 99,124 316x24
                   el 99,124 194x24
-                    text #host role=textbox label="Host" "db.example.com" 99,124 194x24
+                    text #host role=textbox label="Host" placeholder="Name or address" "db.example.com" 99,124 194x24
                   el 301,124 114x24
                     el 301,124 34x24
                       text "Port" 301,128 25x16
                       text "*" 328,128 7x16
                     el 343,124 72x24
-                      text #port role=textbox label="Port" "543" 343,124 72x24
+                      text #port role=textbox label="Port" placeholder="5432" "543" 343,124 72x24
             el 25,156 390x24
               el 25,156 66x24
                 text "Database" 25,160 57x16
@@ -56,7 +56,7 @@ el 0,0 440x472
                 text "User" 25,224 30x16
                 text "*" 57,224 7x16
               el 99,220 316x42
-                text #user role=textbox label="User" "postgres" 99,220 316x24 invalid error="postgres connects only to localhost" focused caret 8
+                text #user role=textbox label="User" placeholder="Role" "postgres" 99,220 316x24 invalid error="postgres connects only to localhost" focused caret 8
                 text "postgres connects only to localhost" 99,246 316x16
             el 25,270 390x24
               el 25,270 66x24

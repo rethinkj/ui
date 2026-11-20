@@ -3,7 +3,7 @@ el 0,0 640x360
 overlay edge top center gap 72 on 0,0 640x360
   el #palette role=dialog label="Command palette" 40,72 560x82
     el 49,81 542x32
-      text #query-1 role=textbox label="Command" "@ord" 49,81 542x32 focused caret 4
+      text #query-1 role=textbox label="Command" placeholder="Type a command, @ to open a table" "@ord" 49,81 542x32 focused caret 4
       text label="search" "\u{EA7C}" 57,89 16x16
     el #options role=listbox label="Commands" 49,117 542x28 rows 0-0/1
       el #option-0 role=option label="orders" 49,117 542x28 selected pos=1/1

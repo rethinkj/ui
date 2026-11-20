@@ -65,7 +65,7 @@ Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** 
 
 ## In a tree dump
 
-`text` element with `role=textbox`, label, quoted string, and active states (`disabled`, `readonly`, `password`, `revealed`, `invalid`). When focused, shows `focused caret <n>` (and `anchor <n>` if selected), plus `lines <first>-<last>/<count>` and `(line:col)` for multi-line fields:
+`text` element with `role=textbox`, label, `placeholder="..."` when the field has a label other than its placeholder (as in a [Form](/docs/components/form)), quoted string, and active states (`disabled`, `readonly`, `password`, `revealed`, `invalid`). When focused, shows `focused caret <n>` (and `anchor <n>` if selected), plus `lines <first>-<last>/<count>` and `(line:col)` for multi-line fields:
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```

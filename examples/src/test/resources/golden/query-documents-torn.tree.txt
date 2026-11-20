@@ -31,4 +31,4 @@ el 0,0 480x300
       el #panel role=tabpanel label="Query" 9,66 462x225
         el #content-1 9,66 462x225
           el 9,66 462x225
-            text #text role=textbox label="Query" "SELECT id, name\nFROM customers\nWHERE active;" 21,78 438x201 lines 1-3/3
+            text #text role=textbox label="Query" placeholder="Empty" "SELECT id, name\nFROM customers\nWHERE active;" 21,78 438x201 lines 1-3/3

@@ -10,4 +10,4 @@ el 0,0 300x160
       el 12,83 276x16
         text "Due" 12,83 25x16
       el 12,101 276x24
-        text #due role=textbox label="Due" "" 12,101 200x24
+        text #due role=textbox label="Due" placeholder="2026-11-13" "" 12,101 200x24

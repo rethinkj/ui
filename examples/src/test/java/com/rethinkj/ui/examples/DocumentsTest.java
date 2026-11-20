@@ -170,7 +170,8 @@ class DocumentsTest {
         """, s.app, folder);
     String notes = Files.readString(folder.resolve("notes.tree.txt"));
     assertTrue(
-        notes.contains("label=\"Notes\" \"Coffee, bread\"") && !notes.contains("caret 13"),
+        notes.contains("label=\"Notes\" placeholder=\"Empty\" \"Coffee, bread\"")
+            && !notes.contains("caret 13"),
         "Notes' caret is its own, not Readme's: " + notes);
     assertEquals(
         "Tabs that move, tear off and dock.\nDrag one out of the bar.",

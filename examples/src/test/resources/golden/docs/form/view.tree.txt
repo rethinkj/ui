@@ -6,18 +6,18 @@ el 0,0 480x260
           text "Host" 29,33 29x16
           text "*" 60,33 7x16
         el 75,29 360x24
-          text role=textbox label="Host" "localhost" 75,29 200x24
+          text role=textbox label="Host" placeholder="localhost" "localhost" 75,29 200x24
       el 29,61 406x42
         el 29,61 38x24
           text "Port" 29,65 25x16
         el 75,61 360x42
-          text role=textbox label="Port" "5432" 75,61 80x24
+          text role=textbox label="Port" placeholder="5432" "5432" 75,61 80x24
           text "The server's TCP port." 75,87 360x16
       el 29,111 406x42
         el 29,111 38x24
           text "User" 29,115 30x16
         el 75,111 360x42
-          text role=textbox label="User" "" 75,111 200x24 invalid error="A user is required."
+          text role=textbox label="User" placeholder="Role" "" 75,111 200x24 invalid error="A user is required."
           text "A user is required." 75,137 360x16
     el 29,165 406x24
       el role=button label="Cancel" 277,165 70x24

@@ -364,6 +364,11 @@ public final class Text implements Measure {
     return placeholderShown;
   }
 
+  /** The {@link El#placeholder} of a field, or null if it has none. */
+  public String placeholder() {
+    return placeholder;
+  }
+
   /** The color of the placeholder, as 0xAARRGGBB. */
   public int placeholderColor() {
     return placeholderColor;

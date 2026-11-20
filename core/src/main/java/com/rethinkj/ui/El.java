@@ -4098,7 +4098,8 @@ public final class El {
    * hovered}, that of the element that has the keyboard focus with {@code
    * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label;
-   * an {@link #image}'s starts with {@code image}.
+   * a field's {@link #placeholder} comes before it as {@code placeholder="..."} unless it is
+   * empty or the label too. An {@link #image}'s line starts with {@code image}.
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
    * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string, also
@@ -4192,6 +4193,13 @@ public final class El {
     }
     if (label != null) {
       out.append(" label=").append(quote(label));
+    }
+    // A field without a label of its own takes its placeholder as label; that is not repeated.
+    if (text != null
+        && text.placeholder() != null
+        && !text.placeholder().isEmpty()
+        && !text.placeholder().equals(label)) {
+      out.append(" placeholder=").append(quote(text.placeholder()));
     }
     if (text != null) {
       out.append(' ').append(quoteText(text.string()));

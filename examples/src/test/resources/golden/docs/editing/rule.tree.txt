@@ -14,7 +14,7 @@ el 0,0 380x260
       el 12,76 60x24
         text "Due" 12,80 25x16
       el 80,76 203x42
-        text #due role=textbox label="Due" "2026-11-01" 80,76 120x24 invalid error="Not before the order, 2026-11-13" focused caret 10
+        text #due role=textbox label="Due" placeholder="2026-11-30" "2026-11-01" 80,76 120x24 invalid error="Not before the order, 2026-11-13" focused caret 10
         text "Not before the order, 2026-11-13" 80,102 203x16
     el 12,126 271x24
       el 12,126 60x24

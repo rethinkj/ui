@@ -31,4 +31,4 @@ el 0,0 480x300
       el #panel role=tabpanel label="Notes" 9,66 462x225
         el #content-3 9,66 462x225
           el 9,66 462x225
-            text #text role=textbox label="Notes" "Coffee, bread" 21,78 438x201 lines 1-1/1
+            text #text role=textbox label="Notes" placeholder="Empty" "Coffee, bread" 21,78 438x201 lines 1-1/1

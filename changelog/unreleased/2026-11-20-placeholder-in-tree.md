@@ -1,0 +1,1 @@
+- The tree dump shows a field's placeholder as `placeholder="..."` after its label when the two differ, as for a field in a `Form`, and `Text.placeholder()` returns it. Stored `.tree.txt` files with such fields need rewriting once, for example with `-Dgolden.update=true`.

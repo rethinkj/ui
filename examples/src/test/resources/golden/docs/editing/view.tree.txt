@@ -14,7 +14,7 @@ el 0,0 380x260
       el 12,76 60x24
         text "Due" 12,80 25x16
       el 80,76 200x24
-        text #due role=textbox label="Due" "" 80,76 120x24
+        text #due role=textbox label="Due" placeholder="2026-11-30" "" 80,76 120x24
     el 12,108 268x24
       el 12,108 60x24
         text "Paid" 12,112 26x16

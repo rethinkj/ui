@@ -21,7 +21,7 @@ el 0,0 560x220
             el 439,66 25x24
               text "Port" 439,70 25x16
             el 472,66 72x24
-              text #port role=textbox label="Port" "54x" 472,66 72x24 invalid error="Digits only"
+              text #port role=textbox label="Port" placeholder="5432" "54x" 472,66 72x24 invalid error="Digits only"
         el 61,92 483x34
           el 61,92 483x16
             text label="warning" "\u{F868}" 61,92 16x16

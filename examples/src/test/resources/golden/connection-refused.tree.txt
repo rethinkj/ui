@@ -31,13 +31,13 @@ el 0,0 440x472
               el 99,124 316x42
                 el 99,124 316x24
                   el 99,124 194x24
-                    text #host role=textbox label="Host" "localhost" 99,124 194x24
+                    text #host role=textbox label="Host" placeholder="Name or address" "localhost" 99,124 194x24
                   el 301,124 114x24
                     el 301,124 34x24
                       text "Port" 301,128 25x16
                       text "*" 328,128 7x16
                     el 343,124 72x24
-                      text #port role=textbox label="Port" "5433" 343,124 72x24 invalid error="No server answers on port 5433" focused caret 4
+                      text #port role=textbox label="Port" placeholder="5432" "5433" 343,124 72x24 invalid error="No server answers on port 5433" focused caret 4
                 el 99,150 316x16
                   text "No server answers on port 5433" 99,150 316x16
             el 25,174 390x24
@@ -58,7 +58,7 @@ el 0,0 440x472
                 text "User" 25,242 30x16
                 text "*" 57,242 7x16
               el 99,238 316x24
-                text #user role=textbox label="User" "admin" 99,238 316x24
+                text #user role=textbox label="User" placeholder="Role" "admin" 99,238 316x24
             el 25,270 390x24
               el 25,270 66x24
                 text "Password" 25,274 60x16

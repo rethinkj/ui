@@ -12,20 +12,20 @@ el 0,0 720x470
           el 84,57 376x75
             el 84,57 376x57
               el 84,57 263x57
-                text #beside-host role=textbox label="Host" "db.example.com" 84,57 263x24
+                text #beside-host role=textbox label="Host" placeholder="Name or address" "db.example.com" 84,57 263x24
                 text "A name or an address the server answers on" 84,83 263x31
               el 355,57 105x24
                 el 355,57 25x24
                   text "Port" 355,61 25x16
                 el 388,57 72x24
-                  text #beside-port role=textbox label="Port" "54x" 388,57 72x24 invalid error="Digits only"
+                  text #beside-port role=textbox label="Port" placeholder="5432" "54x" 388,57 72x24 invalid error="Digits only"
             el 84,116 376x16
               text "Digits only" 84,116 376x16
         el 16,140 444x24
           el 16,140 60x24
             text "Database" 16,144 58x15
           el 84,140 376x24
-            text #beside-database role=textbox label="Database" "" 84,140 200x24
+            text #beside-database role=textbox label="Database" placeholder="Name" "" 84,140 200x24
     el role=separator 16,180 444x1
     el role=group label="Login" 16,197 444x79
       el 16,197 444x15
@@ -35,7 +35,7 @@ el 0,0 720x470
           el 16,220 60x24
             text "User" 16,224 29x16
           el 84,220 376x24
-            text #beside-user role=textbox label="User" "" 84,220 200x24
+            text #beside-user role=textbox label="User" placeholder="Role" "" 84,220 200x24
         el 16,252 444x24
           el 16,252 60x24
             text "Password" 16,256 60x16
@@ -54,20 +54,20 @@ el 0,0 720x470
                 text "Host" 484,57 29x16
                 text "*" 515,57 6x16
               el 484,75 220x57
-                text #above-host role=textbox label="Host" "db.example.com" 484,75 220x24
+                text #above-host role=textbox label="Host" placeholder="Name or address" "db.example.com" 484,75 220x24
                 text "A name or an address the server answers on" 484,101 220x31
             el 484,144 72x41
               el 484,144 72x15
                 text "Port" 484,144 25x15
               el 484,161 72x24
-                text #above-port role=textbox label="Port" "54x" 484,161 72x24 invalid error="Digits only"
+                text #above-port role=textbox label="Port" placeholder="5432" "54x" 484,161 72x24 invalid error="Digits only"
           el 484,187 220x16
             text "Digits only" 484,187 220x16
         el 484,215 220x41
           el 484,215 220x15
             text "Database" 484,215 58x15
           el 484,232 220x24
-            text #above-database role=textbox label="Database" "" 484,232 200x24
+            text #above-database role=textbox label="Database" placeholder="Name" "" 484,232 200x24
     el role=separator 484,280 220x1
     el role=group label="Login" 484,305 220x119
       el 484,305 220x16
@@ -77,7 +77,7 @@ el 0,0 720x470
           el 484,329 220x15
             text "User" 484,329 29x15
           el 484,346 220x24
-            text #above-user role=textbox label="User" "" 484,346 200x24
+            text #above-user role=textbox label="User" placeholder="Role" "" 484,346 200x24
         el 484,382 220x42
           el 484,382 220x16
             text "Password" 484,382 60x16

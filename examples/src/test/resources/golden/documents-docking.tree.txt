@@ -50,4 +50,4 @@ el 0,0 640x360
       el #panel role=tabpanel label="Readme" 9,66 622x285
         el #content-0 9,66 622x285
           el 9,66 622x285
-            text #text role=textbox label="Readme" "Tabs that move, tear off and dock.\nDrag one out of the bar." 21,78 598x261 lines 1-2/2
+            text #text role=textbox label="Readme" placeholder="Empty" "Tabs that move, tear off and dock.\nDrag one out of the bar." 21,78 598x261 lines 1-2/2
