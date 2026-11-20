@@ -116,6 +116,8 @@ final class Editor {
   private boolean reveal;
   // App.select asked: a multi-line field scrolls the selection into view also without the focus.
   private boolean asked;
+  // App.edit with a selection: onSelect hears it once the app answered, in the app's string.
+  private boolean held;
   // The caret and anchor the element's onSelect handler was told last; -1 before the first.
   private int toldCaret = -1;
   private int toldAnchor = -1;
@@ -151,20 +153,24 @@ final class Editor {
   /**
    * Takes the element of a new tree: its handler and settings, and its string, which is the app's
    * answer to the edits since the last tree. Then shows the composition in its text.
+   *
+   * @return whether onSelect is to hear the selection before more input: the app refused or
+   *     changed the edits, which moved it, or it was held for the answer
    */
-  void attach(El el) {
+  boolean attach(El el) {
     this.el = el;
     Text t = el.text();
     if (!t.multiline()) {
       lines = null;
-      answer(t.value());
+      boolean moved = answer(t.value());
       t.compose(composition.isEmpty() ? null : shown());
-      return;
+      return moved;
     }
     String value = t.value();
-    answer(value == proposed || value == text ? value : normalized(value));
+    boolean moved = answer(value == proposed || value == text ? value : normalized(value));
     t.edited(text, lines());
     showComposition();
+    return moved;
   }
 
   /** The app's string with line feeds only; the same object while the app's string is. */
@@ -211,9 +217,14 @@ final class Editor {
    * element, as {@link #attach} describes. {@link App} builds the view again between two edits
    * that reach a field in the same frame, so that the second builds on what the app made of the
    * first.
+   *
+   * @return whether the app refused or changed the edits, or the selection was held for them
    */
-  private void answer(String value) {
+  private boolean answer(String value) {
+    boolean moved = false;
     if (proposed != null) {
+      moved = held || !value.equals(proposed);
+      held = false;
       // The answer is usually the proposal itself, which the first comparison finds at once.
       if (!value.equals(proposed) && value.equals(before.text)) {
         // Refused: as if the edits had not happened.
@@ -251,6 +262,7 @@ final class Editor {
     text = value;
     caret = snap(caret);
     anchor = snap(anchor);
+    return moved;
   }
 
   /** The lines are found again in a string that no edit led to. */
@@ -343,7 +355,7 @@ final class Editor {
    * @return whether it was told
    */
   boolean tell() {
-    if (caret == toldCaret && anchor == toldAnchor) {
+    if (held || (caret == toldCaret && anchor == toldAnchor)) {
       return false;
     }
     toldCaret = caret;
@@ -358,10 +370,13 @@ final class Editor {
 
   /**
    * An edit the app asks for ({@link App#edit}): {@code from} to {@code to} replaced by {@code
-   * inserted}, with the caret at {@code newCaret} of the new string after it, as one step of the
-   * history, handed to the app as typed text is. Nothing in a field that takes no edits.
+   * inserted}, with the caret at {@code newCaret} and the anchor at {@code newAnchor} of the new
+   * string after it, as one step of the history, handed to the app as typed text is. With {@code
+   * ask}, a multi-line field scrolls it into view also without the focus, as {@link #select} does,
+   * and the handler of its selection hears it once the app answered. Nothing in a field that takes
+   * no edits.
    */
-  void request(int from, int to, String inserted, int newCaret) {
+  void request(int from, int to, String inserted, int newCaret, int newAnchor, boolean ask) {
     if (!editable()) {
       return;
     }
@@ -369,17 +384,27 @@ final class Editor {
     from = Math.clamp(from, 0, text.length());
     to = Math.clamp(to, from, text.length());
     String fitted = fit(fitLines(inserted), from, to);
-    if (newCaret > from) { // where the app put it, moved as the line breaks and the limit moved it
-      int offset = newCaret - from;
-      newCaret = offset <= inserted.length()
-          ? from + Math.min(fitIndex(inserted, offset), fitted.length())
-          : newCaret - inserted.length() + fitted.length();
-    }
-    inserted = fitted;
-    int length = text.length() - (to - from) + inserted.length();
-    newCaret = Math.clamp(newCaret, 0, length);
+    int length = text.length() - (to - from) + fitted.length();
+    newCaret = fitted(newCaret, from, inserted, fitted, length);
+    newAnchor = fitted(newAnchor, from, inserted, fitted, length);
     run = null;
-    edit(from, to - from, inserted, newCaret, newCaret, null, false);
+    edit(from, to - from, fitted, newCaret, newAnchor, null, false);
+    asked |= ask;
+    held |= ask;
+  }
+
+  /**
+   * Where the app put a position after replacing from {@code from} by {@code inserted}, moved as
+   * the line breaks and the limit moved it in {@code fitted}, in a string of {@code length}.
+   */
+  private static int fitted(int at, int from, String inserted, String fitted, int length) {
+    if (at > from) {
+      int offset = at - from;
+      at = offset <= inserted.length()
+          ? from + Math.min(fitIndex(inserted, offset), fitted.length())
+          : at - inserted.length() + fitted.length();
+    }
+    return Math.clamp(at, 0, length);
   }
 
   /** A selection the app asks for ({@link App#select}), which scrolls into view as a key's does. */

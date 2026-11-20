@@ -63,6 +63,7 @@ class FindKeysTest {
     boolean readOnly;
     boolean area; // a plain text area with a find bar, not a code editor
     boolean position; // the caret's line and column below the editor
+    boolean refuse; // the app keeps its text once
     App<Doc> app;
 
     Doc(String text) {
@@ -83,7 +84,7 @@ class FindKeysTest {
                 .wFull(),
             s.find);
       } else {
-        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> s.text = v)
+        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
             .key("query")
             .lines(6)
             .wFull();
@@ -100,6 +101,14 @@ class FindKeysTest {
     doc.app = app;
     app.textRendering(TextRendering.LINUX);
     return app;
+  }
+
+  private static void change(Doc doc, String value) {
+    if (doc.refuse) {
+      doc.refuse = false;
+    } else {
+      doc.text = value;
+    }
   }
 
   /** Runs the steps and returns the tree of the frame after them. */
@@ -509,6 +518,26 @@ class FindKeysTest {
     doc.editor.noDiagnostics();
     run(app, "frame\nkey F8");
     assertEquals(name, caret(doc), "without diagnostics F8 does nothing");
+  }
+
+  @Test
+  void aLineCommandTheAppRefusesLeavesTheSelectionWhereItWas() throws IOException {
+    Doc doc = new Doc(TEXT);
+    App<Doc> app = app(doc);
+    run(app, "frame\nfocus #query\nkey ArrowDown\nkey ArrowRight\nkey ArrowDown shift");
+    int caret = caret(doc);
+    int anchor = doc.editor.anchor();
+    doc.refuse = true;
+    String tree = run(app, "key ArrowDown alt");
+    assertEquals(TEXT, doc.text);
+    assertEquals(caret, caret(doc));
+    assertEquals(anchor, doc.editor.anchor());
+    assertTrue(line(tree, "query").contains(" caret " + caret + " "), tree);
+    doc.refuse = true;
+    run(app, "key ArrowDown alt down\nkey K control shift\nkey ArrowDown alt up");
+    String[] lines = TEXT.split("\n");
+    assertEquals(
+        String.join("\n", lines[0], lines[3]), doc.text, "a key in the same frame finds them too");
   }
 
   @Test

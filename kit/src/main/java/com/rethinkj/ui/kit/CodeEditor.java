@@ -719,7 +719,6 @@ public final class CodeEditor {
         && message != null
         && app.tree().shownOverlays().contains(message)) { // not while scrolled away
       state.shown = -1;
-      state.shown = -1;
       return true;
     }
     if (!k.name().equals("F8") || (k.modifiers() & ~Key.SHIFT) != 0 || diagnostics.isEmpty()) {
@@ -814,10 +813,7 @@ public final class CodeEditor {
     if (edit == null) {
       return;
     }
-    app.edit(editor, edit.from(), edit.to(), edit.text(), edit.caret());
-    app.select(editor, edit.caret(), edit.anchor());
-    state.caret = edit.caret();
-    state.anchor = edit.anchor();
+    app.edit(editor, edit.from(), edit.to(), edit.text(), edit.caret(), edit.anchor());
   }
 
   /**

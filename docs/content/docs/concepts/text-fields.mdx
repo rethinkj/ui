@@ -45,7 +45,7 @@ To preserve cursor, selection, scroll position, and undo history across tab swit
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`).
 
-From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)` (add an `anchor` to select with the edit: if the app refuses it, the selection stays as it was), `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
 
 ## Finding the word at the cursor
 

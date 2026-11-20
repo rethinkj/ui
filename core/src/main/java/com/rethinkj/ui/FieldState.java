@@ -82,7 +82,8 @@ public final class FieldState {
    */
   public void replaceSelection(String text, int caret) {
     checkCaret(text, caret);
-    edit(editor -> editor.request(editor.start(), editor.end(), text, editor.start() + caret));
+    edit(editor -> editor.request(
+        editor.start(), editor.end(), text, editor.start() + caret, editor.start() + caret, false));
   }
 
   /**
@@ -108,7 +109,7 @@ public final class FieldState {
     checkCaret(text, caret);
     edit(editor -> {
       int at = Math.min(from, editor.text().length()); // the caret goes into the text where it is
-      editor.request(at, to, text, at + caret);
+      editor.request(at, to, text, at + caret, at + caret, false);
     });
   }
 
