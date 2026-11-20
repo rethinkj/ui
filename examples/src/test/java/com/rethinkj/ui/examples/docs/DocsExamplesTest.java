@@ -55,6 +55,7 @@ class DocsExamplesTest {
       Map.entry("bars", List.of("view")),
       Map.entry("choices", List.of("view")),
       Map.entry("hue-button", List.of("open")),
+      Map.entry("dialog-stack", List.of("stacked")),
       Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("toolbar", List.of("view", "more")),
       Map.entry("tooltip", List.of("shown")),
@@ -117,6 +118,7 @@ class DocsExamplesTest {
     overlays(all, "tooltip-content", Overlays::tooltipContent, 360, 160);
     overlays(all, "tooltip-kind", Overlays::tooltipKind, 360, 120);
     overlays(all, "dialog", Overlays::dialog, 420, 260);
+    overlays(all, "dialog-stack", Overlays::dialogStack, 440, 320);
     overlays(all, "toast", Overlays::toast, 420, 200);
     overlays(all, "command-palette", Overlays::palette, 640, 360);
     grids(all, "grid", Grids::basic, 520, 300);

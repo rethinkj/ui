@@ -13,6 +13,7 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Callout;
+import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.FilterList;
@@ -41,6 +42,14 @@ final class Overlays {
   final CommandPalette.State palette = new CommandPalette.State();
   boolean autocommit = true;
   boolean renaming;
+  boolean connecting;
+  boolean addingProperty;
+  String connection = "";
+  final List<String> properties = new ArrayList<>();
+  int property;
+  String value = "";
+  final ComboBox.State propertyBox = new ComboBox.State();
+  static final List<String> PROPERTIES = List.of("sslmode", "connectTimeout", "applicationName");
   String name = "orders";
   String newName = "";
   String dropped;
@@ -118,6 +127,48 @@ final class Overlays {
 
   void cancel() {
     renaming = false;
+  }
+
+  void newConnection() {
+    connection = "";
+    properties.clear();
+    connecting = true;
+  }
+
+  void connection(String name) {
+    connection = name;
+  }
+
+  void connect() {
+    said = "connect " + connection;
+    connecting = false;
+  }
+
+  void cancelConnection() {
+    connecting = false;
+  }
+
+  void addProperty() {
+    property = 0;
+    value = "";
+    addingProperty = true;
+  }
+
+  void property(int index) {
+    property = index;
+  }
+
+  void value(String text) {
+    value = text;
+  }
+
+  void propertyAdded() {
+    properties.add(PROPERTIES.get(property) + "=" + value);
+    addingProperty = false;
+  }
+
+  void cancelProperty() {
+    addingProperty = false;
   }
 
   void save() {
@@ -293,6 +344,51 @@ final class Overlays {
         .children(Label.label(state.name), open)
         .overlay(dialog);
     // docs:end dialog
+    return root;
+  }
+
+  /** A form dialog that asks for a property of the connection in a second dialog over it. */
+  static El dialogStack(Overlays state) {
+    Theme theme = Theme.CURRENT.get();
+    El root = Frame.of(Button.button(SECONDARY, "New connection…", state::newConnection));
+    // docs:start dialog-stack
+    El connect = Button.button(PRIMARY, "Connect", state::connect);
+    El form = !state.connecting
+        ? null
+        : Dialog.dialog(
+            "New connection",
+            col()
+                .w(320)
+                .gap(theme.space().m())
+                .align(Style.Align.START)
+                .children(
+                    TextField.textField(state.connection, "Name", state::connection)
+                        .label("Name"),
+                    state.properties.isEmpty()
+                        ? null
+                        : Label.label(String.join(", ", state.properties)),
+                    Button.button(SECONDARY, "Add property…", state::addProperty)
+                        .key("add-property")), // the focus finds it after a line comes above
+            List.of(Button.button(SECONDARY, "Cancel", state::cancelConnection), connect),
+            connect,
+            state::cancelConnection);
+    El add = Button.button(PRIMARY, "Add", state.value.isBlank() ? null : state::propertyAdded);
+    El property = !state.addingProperty
+        ? null
+        : Dialog.dialog(
+                "Add property",
+                col()
+                    .gap(theme.space().m())
+                    .children(
+                        ComboBox.comboBox(
+                            PROPERTIES, state.property, state.propertyBox, state::property),
+                        TextField.textField(state.value, "Value", state::value).label("Value")),
+                List.of(Button.button(SECONDARY, "Cancel", state::cancelProperty), add),
+                add,
+                state::cancelProperty)
+            .key("property"); // the form has the key "dialog"
+    root.overlay(form).overlay(property); // the second last, so that it lies on top
+    // docs:end dialog-stack
     return root;
   }
 

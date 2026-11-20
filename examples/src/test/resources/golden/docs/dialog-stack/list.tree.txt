@@ -1,0 +1,51 @@
+el 0,0 440x340
+  el role=button label="New connection…" 12,12 140x24
+    text "New connection…" 25,16 114x16
+overlay center modal scrim on 0,0 440x340
+  el #dialog role=dialog label="New connection" 43,92 354x157
+    el 60,140 320x92
+      el #dialog-content 56,136 334x70
+        el 60,140 320x56
+          text role=textbox label="Name" "staging" 60,140 200x24
+          el #add-property role=button label="Add property…" 60,172 120x24
+            text "Add property…" 73,176 94x16
+      el 60,208 320x24
+        el role=button label="Cancel" 222,208 70x24
+          text "Cancel" 235,212 44x16
+        el role=button label="Connect" 300,208 80x24
+          text "Connect" 313,212 54x16
+    el 60,109 320x19
+      text role=heading label="New connection" "New connection" 60,109 125x19 level=2
+overlay center modal scrim on 0,0 440x340
+  el #property role=dialog label="Add property" 103,92 234x157
+    el 120,140 200x92
+      el #dialog-content 116,136 214x70
+        el 120,140 200x56
+          el role=combobox label="sslmode" 120,140 200x24 expanded
+            text role=textbox label="sslmode" "" 120,140 200x24 focused caret 0
+            el role=button label="Close" 296,140 24x24
+              text label="chevron_down" "\u{F2A2}" 300,144 16x16
+          text role=textbox label="Value" "" 120,172 200x24
+      el 120,208 200x24
+        el role=button label="Cancel" 191,208 70x24
+          text "Cancel" 204,212 44x16
+        el role=button label="Add" 269,208 51x24 disabled
+          text "Add" 282,212 25x16
+    el 120,109 200x19
+      text role=heading label="Add property" "Add property" 120,109 102x19 level=2
+overlay bottom stretch gap 2 on role=combobox label="sslmode" 120,140 200x24
+  el #choices 120,166 200x82
+    el #options role=listbox label="sslmode" 125,171 190x72 rows 0-2/3
+      el #option-0 role=option label="sslmode" 125,171 190x24 selected pos=1/3
+        el 125,171 190x24
+          el 133,175 16x16
+            text label="checkmark" "\u{E305}" 133,175 16x16
+          text "sslmode" 157,175 150x16
+      el #option-1 role=option label="connectTimeout" 125,195 190x24 pos=2/3
+        el 125,195 190x24
+          el 133,207 16x0
+          text "connectTimeout" 157,199 150x16
+      el #option-2 role=option label="applicationName" 125,219 190x24 pos=3/3
+        el 125,219 190x24
+          el 133,231 16x0
+          text "applicationName" 157,223 150x16

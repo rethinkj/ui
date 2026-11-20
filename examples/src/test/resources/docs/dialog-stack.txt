@@ -1,0 +1,42 @@
+# docs:start dialog-stack-script
+size 440 340
+frame
+press role=button label="New connection…"
+frame
+advance 0.3
+frame
+type "staging"          # into Name, where the form opens
+press #add-property     # opens Add property over the form; a press leaves the focus in Name
+frame
+advance 0.3
+frame
+key ArrowDown alt       # opens the combo box's list
+frame
+advance 0.3
+frame
+snap list
+key Escape              # closes the list, and only the list
+frame
+advance 0.3
+frame
+snap stacked
+key Escape              # closes Add property, and only that dialog
+frame
+advance 0.3
+frame
+snap back               # the focus is back in Name
+key Tab                 # to Add property…
+key Enter               # which opens Add property again
+frame
+advance 0.3
+frame
+key Tab                 # to Value
+key Enter               # Add is disabled while Value is empty; Connect does not get it
+frame
+type "require"
+key Enter               # presses Add, the default button of the dialog on top
+frame
+advance 0.3
+frame
+snap added              # the form is still open, the focus back on Add property…
+# docs:end dialog-stack-script

@@ -54,7 +54,10 @@ import java.util.stream.Stream;
  *
  * <p>Its key is {@code dialog}. Two dialogs open at once, as a question over a dialog, are
  * siblings among the root's overlays and need keys of their own: chain {@code .key("discard")}
- * onto the second, which then lies over the first with its own scrim.
+ * onto the second, which then lies over the first with its own scrim. Keys go to the one on top
+ * alone: Escape closes what is open in it, such as a combo box's list, before it calls its {@code
+ * onDismiss}, and Enter acts in it, never on the default button of the one below. When it closes,
+ * the focus goes back to where it was in the one below.
  */
 public final class Dialog {
 
