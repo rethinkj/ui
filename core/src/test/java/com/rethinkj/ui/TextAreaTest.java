@@ -718,14 +718,22 @@ class TextAreaTest {
   void aJumpInALongWrappedTextShowsTheCaretsRowAfterTheRowsAboveAreMeasured() {
     // Words of 13 characters, one to a row of 24: each line takes more rows than its length tells.
     String line = "abcdefghijkl ".repeat(8) + "\n";
-    String text = line.repeat(200);
-    App<Model> app = focused(text, f -> f.wrapText());
+    App<Model> app = focused(line.repeat(200), f -> f.wrapText());
     int caret = line.length() * 150 + 40;
     app.select(field(app), caret, caret);
     app.frame();
-    app.frame();
     float top = field(app).text().caret().y();
     assertTrue(top >= 0 && top + 18 <= 90, "the caret's row in view: " + top);
+
+    // Spaces at a row's end take no room: each line takes fewer rows than its length tells. The
+    // match comes into view below what covers the field's top.
+    line = "x" + " ".repeat(200) + "\n";
+    app = focused(line.repeat(200), f -> f.wrapText().coveredTop(29));
+    int start = line.length() * 150;
+    app.select(field(app), start + 1, start);
+    app.frame();
+    top = field(app).text().caret().y();
+    assertTrue(top >= 29 && top + 18 <= 90, "the match's row below the cover: " + top);
   }
 
   private static int caretLine(App<Model> app) {
