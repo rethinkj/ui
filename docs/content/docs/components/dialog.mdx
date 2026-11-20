@@ -23,7 +23,7 @@ Control visibility from your state by attaching `root.overlay(open ? dialog : nu
 | `title` | Dialog heading and accessibility label |
 | `content` | Body element (set its width, e.g. `.w(320)`, to size the dialog) |
 | `buttons` | Bottom-right action buttons (omitted if empty and no `start(...)` items exist) |
-| `defaultButton` | Button triggered when pressing **Enter** in a single-line field (while enabled) |
+| `defaultButton` | Button triggered when pressing **Enter** in a single-line or read-only field (while enabled) |
 | `onDismiss` | Handler called on **Escape** or clicking the backdrop |
 
 For a standalone dialog window, register `root.onKey(Dialog.enterPresses(button))` on the container holding the form, passing the button element from the same view build.
@@ -77,7 +77,7 @@ If the dialog content is taller than the window, the body scrolls automatically 
 | Key | Action |
 | --- | --- |
 | Tab, Shift+Tab | Cycle focus inside the dialog |
-| Enter | Click `defaultButton` (from single-line fields) |
+| Enter | Click `defaultButton` (from single-line and read-only fields) |
 | Escape | Call `onDismiss` |
 | Page Up, Page Down | Scroll overflowing dialog content |
 

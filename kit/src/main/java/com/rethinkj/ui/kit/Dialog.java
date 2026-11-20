@@ -31,10 +31,10 @@ import java.util.stream.Stream;
  * inside it, and nothing outside it takes the pointer, the wheel or the keys. Escape and a press
  * on the scrim call {@code onDismiss}. Enter in a field presses the default button, if the dialog
  * has one and it is enabled; Enter on a focused button presses that button, and a multi-line field
- * keeps Enter for its line breaks. When it closes, the focus goes back to where it was, such as
- * the button that opened it. In a tree dump it is an overlay {@code center modal scrim}, {@code
- * role=dialog} with its title as the label; the title, in {@link Theme.Type#dialog}, is {@code
- * role=heading} at {@code level=2}
+ * that can be edited keeps Enter for its line breaks. When it closes, the focus goes back to where
+ * it was, such as the button that opened it. In a tree dump it is an overlay {@code center modal
+ * scrim}, {@code role=dialog} with its title as the label; the title, in {@link
+ * Theme.Type#dialog}, is {@code role=heading} at {@code level=2}
  * with the title as its label.
  *
  * <p>{@link #options()} add an element before the title (a color mark, an icon), elements at the
@@ -277,9 +277,10 @@ public final class Dialog {
    * form that has a default button, such as the root of a window that is a dialog itself: {@code
    * root.onKey(Dialog.enterPresses(connect))}. Keys reach it from the focused element up, after
    * the focused element: a focused button, checkbox or select presses itself on Enter, and a
-   * multi-line field takes Enter for a line break, so only Enter in a single-line field, or with
-   * the focus elsewhere, reaches it. A repeat of a held Enter presses nothing again; a disabled
-   * button (without a handler) is not pressed and the handler does not take the key.
+   * multi-line field that can be edited takes Enter for a line break, so only Enter in a
+   * single-line or read-only field, or with the focus elsewhere, reaches it. A repeat of a held
+   * Enter presses nothing again; a disabled button (without a handler) is not pressed and the
+   * handler does not take the key.
    *
    * @param button the button to press, from the same build of the view as the handler
    */

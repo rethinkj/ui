@@ -106,8 +106,8 @@ class ElTest {
   }
 
   @Test
-  void escapesQuotesInLabels() {
-    assertEquals("el label=\"say \\\"hi\\\"\"\n", el().label("say \"hi\"").dump());
+  void escapesQuotesAndCarriageReturnsInLabels() {
+    assertEquals("el label=\"say \\\"hi\\\"\\r\"\n", el().label("say \"hi\"\r").dump());
   }
 
   @Test

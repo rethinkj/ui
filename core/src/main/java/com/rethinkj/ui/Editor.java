@@ -482,8 +482,9 @@ final class Editor {
    *
    * @return whether the key was the field's: its own keys, and keys that type, whose text comes
    *     separately; Enter, Escape, Tab and shortcuts with Control, Alt or Meta that the field does
-   *     not know go on to the handlers. A multi-line field takes Enter, which breaks the line, but
-   *     not Control+Enter, and Tab only when it {@link El#tabIndents indents} with it
+   *     not know go on to the handlers. A multi-line field that can be edited takes Enter, which
+   *     breaks the line, but not Control+Enter, and Tab only when it {@link El#tabIndents indents}
+   *     with it
    */
   boolean key(Key key, Clipboard clipboard) {
     String name = key.name();
@@ -607,9 +608,10 @@ final class Editor {
         if (other != 0) {
           return false; // Control+Enter runs what the app runs with it
         }
-        if (editable()) {
-          replace("\n" + (el.tabIndents() ? indentBefore(start()) : ""), null);
+        if (!editable()) {
+          return false; // a read-only field breaks no line: Enter is the app's
         }
+        replace("\n" + (el.tabIndents() ? indentBefore(start()) : ""), null);
         return true;
       }
       case "ArrowUp", "ArrowDown", "PageUp", "PageDown" -> {

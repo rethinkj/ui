@@ -15,7 +15,7 @@ Fields appear in this order:
 1. **Type:** `el` (container), `text`, or `image`.
 2. **Key:** `#key` if `.key(...)` was set.
 3. **Role and label:** `role=...` and `label="..."` if set (kit components set both), then a text field's `placeholder="..."` unless it is empty or the label too.
-4. **Text content:** Quoted string for `text` elements (`\n`, `\t`, and private-use icon code points like `\u{E305}`). Strings over 200 characters show the first 100 and last 40 characters plus total length.
+4. **Text content:** Quoted string for `text` elements (`\n`, `\r`, `\t`, and private-use icon code points like `\u{E305}`). Strings over 200 characters show the first 100 and last 40 characters plus total length.
 5. **Window chrome:** `window=<part>` for custom title bar parts (`drag`, `minimize`, `maximize`, `close`, `control`, or `content`).
 6. **Bounds:** `x,y widthxheight` in window coordinates (accounting for parent scroll offsets).
 7. **States:** Active states in fixed order (table below), followed by `value="<text>"`, `error="<message>"` (`El.errorMessage`), and `warning="<message>"` (`El.warningMessage`).

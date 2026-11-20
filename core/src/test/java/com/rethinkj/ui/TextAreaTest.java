@@ -72,9 +72,20 @@ class TextAreaTest {
   }
 
   @Test
-  void aReadOnlyFieldTakesEnterAndChangesNothing() {
-    App<Model> app = focused("ab", f -> f.readOnly());
+  void aReadOnlyFieldLeavesEnterToTheHandlers() {
+    List<String> seen = new ArrayList<>();
+    App<Model> app = Areas.start(
+        "ab",
+        El::readOnly,
+        1,
+        root -> root.onKey(k -> {
+          seen.add(k.name() + (k.modifiers() == SHIFT ? "+shift" : ""));
+          return true;
+        }));
+    focus(app);
     key(app, "Enter");
+    key(app, "NumpadEnter", SHIFT);
+    assertEquals(List.of("Enter", "NumpadEnter+shift"), seen, "an ancestor's Enter runs");
     assertEquals("|ab", show(app));
     assertEquals(List.of(), app.state().edits);
   }
