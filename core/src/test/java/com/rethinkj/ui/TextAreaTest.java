@@ -13,11 +13,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Fields.Model;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The keys of a multi-line field ({@link El#multiline}): line breaks, moving by rows, Home and
@@ -756,5 +760,33 @@ class TextAreaTest {
   private static int caretLine(App<Model> app) {
     Editor editor = field(app).editor();
     return editor.lineIndex().line(editor.caret());
+  }
+
+  @Test
+  void aPressInTheFrameOfAJumpBelowTheCoverPutsTheCaretUnderThePointer(@TempDir Path out)
+      throws IOException {
+    // F3 jumps to line 30, as a find bar's next match: the pointer then presses at 30, left of a
+    // bar that covers the field's top. The press sees the view after the jump, and the jump alone
+    // keeps the match below the cover: the row pressed stays under the pointer.
+    AtomicReference<App<Model>> app = new AtomicReference<>();
+    app.set(Areas.start(
+        "line\n".repeat(40),
+        f -> f.coveredTop(29),
+        1,
+        root -> root.onKey(k -> {
+          if (!k.name().equals("F3")) {
+            return false;
+          }
+          app.get().select(field(app.get()), 30 * 5 + 4, 30 * 5);
+          return true;
+        })));
+    focus(app.get());
+    Script.run("size 320 240\nframe\nkey F3\npress 30,30\nframe", app.get(), out);
+    Text.Box caret = field(app.get()).text().caret();
+    float pointer = 30 - 14; // in the content box, inside a padding of 4 at 10,10
+    assertTrue(
+        caret.y() <= pointer && pointer < caret.y() + caret.height(),
+        "the caret's row under the pointer: " + caret);
+    assertEquals(26, caretLine(app.get()), "the press, on the first row the jump left in view");
   }
 }
