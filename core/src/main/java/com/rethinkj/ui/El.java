@@ -3818,7 +3818,7 @@ public final class El {
     if (spans) {
       float margin = (shownTo - shown) / 2;
       float start = Math.max(shown - margin, 0);
-      if (anew && (start != spanFrom || shownTo + margin != spanTo)) {
+      if (anew && rowsBuilt && (start != spanFrom || shownTo + margin != spanTo)) {
         return null; // cells of another part sideways, which only a rebuild of the view builds
       }
       spanFrom = start;
