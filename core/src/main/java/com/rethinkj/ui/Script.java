@@ -575,6 +575,18 @@ public final class Script {
               Files.writeString(browsed, String.join("\n", desk.opened) + "\n");
               written.add(browsed);
             }
+            // The open windows front first: the title as `window` takes it, and the files' prefix.
+            if (each == open.getFirst() && open.size() > 1) {
+              Path windows = folder.resolve(name + ".windows.txt").normalize();
+              Files.writeString(
+                  windows,
+                  String.join(
+                      "",
+                      desk.front.stream()
+                          .map(w -> El.quote(w.title) + " " + slug(w.title) + "\n")
+                          .toList()));
+              written.add(windows);
+            }
           }
         }
         default ->
