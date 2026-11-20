@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
@@ -305,12 +307,13 @@ class DataGridTest {
       int before = builds[0];
       told.clear();
       app.wheel(280, 120, 0, 48); // two rows, as a step of the wheel; the pointer rests on them
-      app.frame();
-      while (app.handlersWaiting()) {
+      for (int frame = 0; frame < 4; frame++) {
         app.frame();
       }
+      assertFalse(app.handlersWaiting());
       assertEquals(
-          List.of("view " + 2 * step, "built " + Math.max(2 * step - El.OVERSCAN, 0)), told);
+          Set.of("view " + 2 * step, "built " + Math.max(2 * step - El.OVERSCAN, 0)),
+          Set.copyOf(told));
       assertEquals(before + 1, builds[0], "one rebuild for both");
     }
   }

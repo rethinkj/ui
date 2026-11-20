@@ -1115,9 +1115,8 @@ public final class El {
    * rows it has built ({@link #onRowsBuilt}) too, after a change of its size or of the number of
    * rows, and when the list first shows; not on every frame or rebuild of the view. A row partly
    * under a bar along the bottom ({@link #coverY}) is not whole. With -1 and -1 where no row is
-   * whole or the list has none. It runs as {@link #onRowsBuilt} does, as the handlers of input do:
-   * after the input of the frame that placed the rows, or in the next {@link App#frame} when the
-   * end of one placed them, as after a scroll, which {@link App#nextChange} then says is due at
+   * whole or the list has none. It runs as the handlers of input do, in the {@link App#frame}
+   * after the one that showed the rows, which {@link App#nextChange} then says is due at
    * once. The view built after it shows the rows in view, as a status line "Rows 201–223" or
    * buttons that page through the rows. Handlers of both kinds that are due together run as one
    * input, followed by one rebuild.
@@ -4156,7 +4155,7 @@ public final class El {
     double from = scrollY - rowsTop(); // the content at the top of the border box
     long first = Math.max(rowAfter(from), 0); // below a padding taller than a row too
     long last = Math.min(rowAt(from + (height - coverY)) - 1, rowCount - 1L);
-    if (rowCount == 0 || last < first) {
+    if (last < first) { // also without rows
       first = last = -1;
     }
     return first << 32 | last & 0xFFFFFFFFL;

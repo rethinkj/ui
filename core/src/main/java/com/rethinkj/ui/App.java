@@ -296,11 +296,12 @@ public final class App<S> {
   private final Map<Object, Long> toldRows = new HashMap<>();
   private final Set<Object> rowLists = new HashSet<>(); // those it found, while it walks
   // Likewise the rows in view each list with an onRowsInView handler told last, and those lists
-  // as the last walk of fillRows found them, to tell once the rows have settled.
+  // as the last walk of fillRows found them, to tell once the frame has settled.
   private final Map<Object, Long> toldInView = new HashMap<>();
   private final Map<Object, El> inViewLists = new LinkedHashMap<>();
-  // The onRowsBuilt and onRowsInView handlers due, which run as one input: one rebuild for all.
-  private final ArrayDeque<Runnable> rowTells = new ArrayDeque<>();
+  // The onRowsBuilt and onRowsInView handlers due at the tail of queued, which run as one input:
+  // one rebuild for all of them; null before the first.
+  private RowTells rowTells;
   // The sizes the El#onResize handlers were told, by identity, of the elements of the last build.
   private Map<Object, Long> toldSizes = new HashMap<>();
   private int ringColor = FOCUS_RING;
@@ -3322,6 +3323,7 @@ public final class App<S> {
     if (drawn) {
       El.placeBars(root);
     }
+    tellInView(); // the rows as the frame shows them
     drawn |= hover();
     if ((drawn || cycling) && root != null) { // El#cycle: after everything that places elements
       cycling = El.cycles(root, time, width, height, true);
@@ -3867,15 +3869,14 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     rowsWanted = false;
     rowKeyHooks = false;
+    inViewLists.clear();
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
     if (!rowGoals.isEmpty() && followRowGoals()) {
+      inViewLists.clear();
       built |= fillRows(root, new ArrayList<>(), 0, 0, -far, far, false); // the rows there
     }
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
-    inViewLists.forEach(this::tellInView);
-    toldInView.keySet().retainAll(inViewLists.keySet());
-    inViewLists.clear();
     // After scrolling, movement and new rows, the overlays follow their anchors.
     caretOverlays = Overlays.place(root, width, height);
     if (built) {
@@ -4021,7 +4022,7 @@ public final class App<S> {
       rowLists.add(Animator.identities(path).getLast());
     }
     if (el.onRowsInView() != null) {
-      inViewLists.put(Animator.identities(path).getLast(), el); // the second walk's, where one
+      inViewLists.put(Animator.identities(path).getLast(), el);
     }
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
@@ -4146,39 +4147,56 @@ public final class App<S> {
     }
   }
 
-  /** Queues a handler of {@link #tellRows} or {@link #tellInView} with those queued before it. */
+  /**
+   * Queues a handler of {@link #tellRows} or {@link #tellInView}: with those before it where they
+   * are last in the queue, else after what is queued.
+   */
   private void tellLater(Runnable tell) {
-    if (rowTells.isEmpty()) {
-      queued.add(this::tellRowsNow);
+    if (rowTells == null || queued.peekLast() != rowTells) {
+      rowTells = new RowTells();
+      queued.add(rowTells);
     }
     rowTells.add(tell);
   }
 
-  private boolean tellRowsNow() {
-    if (rowTells.isEmpty()) { // an earlier one ran them, as a handler made more due
-      return false;
+  /** Handlers of rows that run as one input. */
+  private final class RowTells implements BooleanSupplier {
+    private final ArrayDeque<Runnable> tells = new ArrayDeque<>();
+
+    void add(Runnable tell) {
+      tells.add(tell);
     }
-    handled = true;
-    try {
-      while (!rowTells.isEmpty()) {
-        rowTells.poll().run();
+
+    @Override
+    public boolean getAsBoolean() {
+      handled = true;
+      try {
+        while (!tells.isEmpty()) {
+          tells.poll().run();
+        }
+      } finally {
+        if (!tells.isEmpty()) { // one threw: the rest run first in the next frame
+          queued.addFirst(this);
+        }
       }
-    } finally {
-      if (!rowTells.isEmpty()) { // one threw: the rest run first in the next frame
-        queued.addFirst(this::tellRowsNow);
-      }
+      return true;
     }
-    return true;
   }
 
-  /** Queues the {@link El#onRowsInView} handler of a list that shows other rows than it told. */
-  private void tellInView(Object id, El list) {
-    El.RowsHandler handler = list.onRowsInView();
-    long rows = list.rowsInView();
-    Long before = toldInView.put(id, rows);
-    if (before == null || before != rows) {
-      tellLater(() -> handler.accept((int) (rows >> 32), (int) rows));
-    }
+  /**
+   * Queues the {@link El#onRowsInView} handlers of the lists that show other rows than they told,
+   * at the end of a frame: not the rows of a layout between its inputs that it does not show.
+   */
+  private void tellInView() {
+    toldInView.keySet().retainAll(inViewLists.keySet());
+    inViewLists.forEach((id, list) -> {
+      El.RowsHandler handler = list.onRowsInView();
+      long rows = list.rowsInView();
+      Long before = toldInView.put(id, rows);
+      if (before == null || before != rows) {
+        tellLater(() -> handler.accept((int) (rows >> 32), (int) rows));
+      }
+    });
   }
 
   /**
