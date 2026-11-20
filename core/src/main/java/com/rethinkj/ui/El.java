@@ -28,6 +28,9 @@ public final class El {
   /** How many rows a {@link #rows virtual list} builds beyond its visible part, on each side. */
   public static final int OVERSCAN = 3;
 
+  /** What {@link #wantedRows} gives when no rows are wanted. */
+  static final int[] NO_ROWS = {};
+
   private static final int SELECTED = 1;
   private static final int DISABLED = 2;
   private static final int CHECKED = 4; // with NOT_CHECKED: mixed
@@ -3943,7 +3946,7 @@ public final class El {
       float windowHeight,
       boolean anew) {
     if (rowBuilder == null) {
-      return new int[0];
+      return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(top, 0);
@@ -3968,7 +3971,7 @@ public final class El {
     boolean resized =
         !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
     if (rowsBuilt && !resized && (anew ? sideways : has)) {
-      return new int[0];
+      return NO_ROWS;
     }
     if (spans) {
       spanFrom = start;

@@ -4150,7 +4150,7 @@ public final class App<S> {
       animator.rows(el, id, time);
       range = el.measuresRows()
           ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
-          : new int[0];
+          : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
