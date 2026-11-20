@@ -353,7 +353,7 @@ final class ReferenceCpuRenderer {
   private static void line(
       Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double half = scene.get(i, Scene.LINE_WIDTH) / 2;
-    if (!(half > 0)) {
+    if (Double.isNaN(half) || half <= 0) {
       return;
     }
     double ax = scene.get(i, Scene.X);

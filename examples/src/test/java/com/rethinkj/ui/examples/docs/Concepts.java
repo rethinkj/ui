@@ -547,7 +547,7 @@ final class Concepts {
     }
   }
 
-  static El lines(Concepts state) {
+  static El lines() {
     Theme theme = Theme.CURRENT.get();
     // docs:start lines
     float[] queries = {14, 32, 24, 46, 38, 58}; // per minute, drawn as a line chart

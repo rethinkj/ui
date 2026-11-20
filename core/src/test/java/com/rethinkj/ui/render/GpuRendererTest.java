@@ -568,7 +568,7 @@ class GpuRendererTest {
     for (int i = 0; i < s.count(); i++) {
       boolean line = s.getInt(i, Scene.KIND) == Scene.LINE;
       if (line
-          ? !(s.get(i, Scene.LINE_WIDTH) > 0)
+          ? s.get(i, Scene.LINE_WIDTH) <= 0
           : !(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
         continue;
       }
