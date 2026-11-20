@@ -37,6 +37,8 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 
 `null` children are ignored, so conditional expressions like `changed ? callout(...) : null` work cleanly.
 
+In a card too narrow for its footer, `start` gives way first. Then the texts at the end are shortened with an ellipsis, while buttons and other controls at the end keep their size and stay inside the card. A text at the end with `shrink(0)` keeps its size.
+
 ## In a tree dump
 
 Normal cards have no role; `pressable` cards use `role=button` with `selected` and `disabled` states. Card header titles use `role=heading level=3`:

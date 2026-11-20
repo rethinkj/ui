@@ -1,0 +1,1 @@
+- In a card too narrow for its `Card.footer`, buttons and other controls at the end now keep their size and stay inside the card, where they could be pushed past its edge before. The start gives way first, then the texts at the end are shortened with an ellipsis; a text at the end with `shrink(0)` keeps its size.
