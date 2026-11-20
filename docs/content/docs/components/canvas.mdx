@@ -52,7 +52,7 @@ Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and
 
 An `Edge(from, to)` goes from a node to the one it refers to, such as a table's foreign key to the table it references, and the one referred to comes first, on the left. Edges to keys that are not among the nodes, such as tables you filter away, and edges from a node to itself are left out. The layout breaks cycles, reduces crossings and runs most edges straight. Parts that no edge connects, and clusters, are packed in rows.
 
-A pinned node stays where it is: each cluster moves so that its pinned nodes lie where it would put them, and a node that would overlap one moves past it. Nodes never overlap, but where pins bring clusters together, their areas can meet. To arrange everything, unpin the nodes first. The places of unpinned nodes going in do not matter, so the same input always gives the same output. `LayeredLayout.options()` changes the rest:
+A pinned node stays where it is: each cluster moves so that its pinned nodes lie where it would put them, and a node that would overlap one moves past it. Unpinned nodes keep clear of all others, while pinned ones stay put even on top of each other, so where pins bring clusters together, the clusters' areas can overlap. To arrange everything, unpin the nodes first. The places of unpinned nodes going in do not matter, so the same input always gives the same output. `LayeredLayout.options()` changes the rest:
 
 | Option | Description |
 | --- | --- |

@@ -34,22 +34,29 @@ import java.util.function.Function;
  * <p>A {@link Node#pinned pinned} node stays where it is, and the others are placed around it: each
  * cluster is moved so that its pinned nodes lie where it would put them, and a node that would
  * overlap one moves past it along its layer, down from left to right and right from top to bottom.
- * Clusters then keep their gap only where the pins let them: unpinned nodes keep clear of every
- * other node, but the clusters' areas can meet. A layout without pins starts at the diagram's origin. The places of unpinned nodes going in do
- * not matter, so that arranging twice gives the same as once, and the same input always gives the
- * same output.
+ * Unpinned nodes keep clear of every other node, while pinned ones stay put even on top of each
+ * other, so that where pins bring clusters together, the clusters' areas can overlap. A layout
+ * without pins starts at the diagram's origin. The places of unpinned nodes going in do not matter,
+ * so that arranging twice gives the same as once, and the same input always gives the same output.
  */
 public final class LayeredLayout {
 
   // The width to height that the rows of packed parts and clusters aim for.
   private static final double ASPECT = 1.6;
+  // How many sweeps order the layers and how many rounds place them: fewer for a part with many
+  // vertices, so that the work stays bounded, but never fewer than the least.
   private static final int ORDER_SWEEPS = 12;
+  private static final int LEAST_SWEEPS = 4;
   private static final int PLACE_ROUNDS = 8;
+  private static final int LEAST_ROUNDS = 2;
+  private static final int VISITS = 16_000;
   // How hard a part of a long edge holds its line against a node, and how little a node without
   // neighbors on that side holds its place.
   private static final double BEND_WEIGHT = 2;
   private static final double FREE_WEIGHT = 1e-3;
   private static final double EPSILON = 1e-6;
+  // A placement round that moves no vertex further than this ends the rounds.
+  private static final double SETTLED = 0.01;
 
   private LayeredLayout() {}
 
@@ -629,28 +636,32 @@ public final class LayeredLayout {
       extent = new double[count];
       for (int v = 0; v < count; v++) {
         layerOf[v] = layering.get(v);
-        before[v] = distinct(joinedBefore.get(v));
-        beforeWeight[v] = counts(joinedBefore.get(v), before[v]);
-        after[v] = distinct(joinedAfter.get(v));
-        afterWeight[v] = counts(joinedAfter.get(v), after[v]);
+        int[][] joined = counted(joinedBefore.get(v));
+        before[v] = joined[0];
+        beforeWeight[v] = joined[1];
+        joined = counted(joinedAfter.get(v));
+        after[v] = joined[0];
+        afterWeight[v] = joined[1];
         extent[v] = isBend(v) ? 0 : diagram.crossSize(members.get(v));
       }
     }
 
-    private static int[] distinct(List<Integer> joined) {
-      return joined.stream().mapToInt(Integer::intValue).distinct().toArray();
-    }
-
-    private static int[] counts(List<Integer> joined, int[] distinct) {
-      Map<Integer, Integer> count = new HashMap<>();
-      for (int vertex : joined) {
-        count.merge(vertex, 1, Integer::sum);
+    /** The distinct vertices, in order, and how often each comes. */
+    private static int[][] counted(List<Integer> joined) {
+      int[] sorted = new int[joined.size()];
+      for (int k = 0; k < sorted.length; k++) {
+        sorted[k] = joined.get(k);
       }
-      int[] counts = new int[distinct.length];
-      for (int k = 0; k < distinct.length; k++) {
-        counts[k] = count.get(distinct[k]);
+      Arrays.sort(sorted);
+      int distinct = 0;
+      int[] counts = new int[sorted.length];
+      for (int k = 0; k < sorted.length; k++) {
+        if (k == 0 || sorted[k] != sorted[k - 1]) {
+          sorted[distinct++] = sorted[k];
+        }
+        counts[distinct - 1]++;
       }
-      return counts;
+      return new int[][] {Arrays.copyOf(sorted, distinct), Arrays.copyOf(counts, distinct)};
     }
 
     private boolean isBend(int v) {
@@ -682,7 +693,10 @@ public final class LayeredLayout {
       number();
       int[][] best = copy(layers);
       long fewest = crossings();
-      for (int sweep = 0; sweep < ORDER_SWEEPS && fewest > 0; sweep++) {
+      // Until no crossings are left, or a sweep down and one up bring no fewer.
+      int stale = 0;
+      int sweeps = Math.clamp(2L * VISITS / layerOf.length, LEAST_SWEEPS, ORDER_SWEEPS);
+      for (int sweep = 0; sweep < sweeps && fewest > 0 && stale < 2; sweep++) {
         boolean down = sweep % 2 == 0;
         for (int k = 1; k < count; k++) {
           int l = down ? k : count - 1 - k;
@@ -692,6 +706,9 @@ public final class LayeredLayout {
         if (crossings < fewest) {
           fewest = crossings;
           best = copy(layers);
+          stale = 0;
+        } else {
+          stale++;
         }
       }
       layers = best;
@@ -720,7 +737,7 @@ public final class LayeredLayout {
      */
     private void sortByBarycenter(int[] layer, int[][] neighbors, int[][] weights) {
       double[] key = new double[layer.length];
-      Integer[] sorted = new Integer[layer.length];
+      int[] sorted = new int[layer.length];
       for (int k = 0; k < layer.length; k++) {
         sorted[k] = k;
         int[] of = neighbors[layer[k]];
@@ -733,7 +750,16 @@ public final class LayeredLayout {
         }
         key[k] = edges == 0 ? k : sum / edges;
       }
-      Arrays.sort(sorted, Comparator.comparingDouble(k -> key[k]));
+      // Insertion sort, stable: the layers come nearly sorted from the sweep before.
+      for (int k = 1; k < sorted.length; k++) {
+        int moving = sorted[k];
+        int at = k;
+        while (at > 0 && key[sorted[at - 1]] > key[moving]) {
+          sorted[at] = sorted[at - 1];
+          at--;
+        }
+        sorted[at] = moving;
+      }
       int[] was = layer.clone();
       for (int k = 0; k < layer.length; k++) {
         layer[k] = was[sorted[k]];
@@ -753,28 +779,44 @@ public final class LayeredLayout {
         long[] tree = new long[layers[l + 1].length + 1];
         long seen = 0;
         for (int v : layers[l]) {
+          int[] to = after[v];
+          if (to.length == 1) {
+            total += afterWeight[v][0] * (seen - count(tree, position[to[0]]));
+            add(tree, position[to[0]], afterWeight[v][0]);
+            seen += afterWeight[v][0];
+            continue;
+          }
           // Each segment's lower end in the high half, its number of edges in the low half.
-          long[] ends = new long[after[v].length];
+          long[] ends = new long[to.length];
           for (int k = 0; k < ends.length; k++) {
-            ends[k] = ((long) position[after[v][k]] << 32) | afterWeight[v][k];
+            ends[k] = ((long) position[to[k]] << 32) | afterWeight[v][k];
           }
           Arrays.sort(ends);
           for (long segment : ends) {
             int end = (int) (segment >>> 32);
             long edges = segment & 0xFFFF_FFFFL;
-            long notAfter = 0;
-            for (int i = end + 1; i > 0; i -= i & -i) {
-              notAfter += tree[i];
-            }
-            total += edges * (seen - notAfter);
-            for (int i = end + 1; i < tree.length; i += i & -i) {
-              tree[i] += edges;
-            }
+            total += edges * (seen - count(tree, end));
+            add(tree, end, edges);
             seen += edges;
           }
         }
       }
       return total;
+    }
+
+    /** The edges counted so far that end at this place or before it. */
+    private static long count(long[] tree, int place) {
+      long sum = 0;
+      for (int i = place + 1; i > 0; i -= i & -i) {
+        sum += tree[i];
+      }
+      return sum;
+    }
+
+    private static void add(long[] tree, int place, long edges) {
+      for (int i = place + 1; i < tree.length; i += i & -i) {
+        tree[i] += edges;
+      }
     }
 
     /**
@@ -792,12 +834,16 @@ public final class LayeredLayout {
           center[layer[k]] = at;
         }
       }
-      for (int round = 0; round < PLACE_ROUNDS; round++) {
+      // Until a round moves nothing by more than a hundredth of a pixel.
+      double moved = Double.POSITIVE_INFINITY;
+      int rounds = Math.clamp(VISITS / layerOf.length, LEAST_ROUNDS, PLACE_ROUNDS);
+      for (int round = 0; round < rounds && moved > SETTLED; round++) {
+        moved = 0;
         for (int l = 1; l < layers.length; l++) {
-          placeLayer(layers[l], before);
+          moved = Math.max(moved, placeLayer(layers[l], before));
         }
         for (int l = layers.length - 2; l >= 0; l--) {
-          placeLayer(layers[l], after);
+          moved = Math.max(moved, placeLayer(layers[l], after));
         }
       }
     }
@@ -810,8 +856,10 @@ public final class LayeredLayout {
     /**
      * The centers nearest to the neighbors' medians, weighted, that keep the layer's order and
      * separations: pool adjacent violators over the centers less their offsets.
+     *
+     * @return how far the vertex that moved furthest moved
      */
-    private void placeLayer(int[] layer, int[][] neighbors) {
+    private double placeLayer(int[] layer, int[][] neighbors) {
       int count = layer.length;
       double[] offset = new double[count];
       double[] target = new double[count];
@@ -842,13 +890,16 @@ public final class LayeredLayout {
           blocks--;
         }
       }
+      double moved = 0;
       for (int b = 0; b < blocks; b++) {
         int end = b + 1 < blocks ? start[b + 1] : count;
         double at = sumTarget[b] / sumWeight[b];
         for (int k = start[b]; k < end; k++) {
+          moved = Math.max(moved, Math.abs(at + offset[k] - center[layer[k]]));
           center[layer[k]] = at + offset[k];
         }
       }
+      return moved;
     }
 
     private double weight(int v, int[] neighbors) {
