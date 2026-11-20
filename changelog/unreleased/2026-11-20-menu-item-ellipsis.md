@@ -1,0 +1,1 @@
+- A `Menu` item whose text is wider than the room in the window now ends in an ellipsis and shows its whole text in a tooltip, after a rest of the pointer or at once when the keys highlight it, as the rows of a `Tree` do. Its label in a tree dump stays the whole text.

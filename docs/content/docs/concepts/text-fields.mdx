@@ -37,7 +37,7 @@ To preserve cursor, selection, scroll position, and undo history across tab swit
 | `maxLength(n)` | Maximum length in Unicode code points |
 | `masked()` | Password field (displays `•`) |
 | `placeholder(text, argb)` | Placeholder text shown when empty |
-| `codeWords()` | Treats letters, digits, and `_` as words for Ctrl+Arrow and double-click |
+| `codeWords()` | Treats letters, digits, and `_` as words for Ctrl+Arrow and double-click, and the characters the highlighter's language adds (`Highlighter.wordCharacters()`, such as `$`) |
 | `highlight(key, highlighter)` | Syntax highlighting (colors, fonts, backgrounds, underlines) |
 | `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
@@ -45,11 +45,11 @@ To preserve cursor, selection, scroll position, and undo history across tab swit
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`).
 
-From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)` (add an `anchor` to select with the edit: if the app refuses it, the selection stays as it was), `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
 
 ## Finding the word at the cursor
 
-For autocomplete or rename actions, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return the start and end offsets of the identifier (`letters`, `digits`, `_`) at `index`:
+For autocomplete or rename actions, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return the start and end offsets of the identifier (`letters`, `digits`, `_`) at `index`. For a language with more word characters, pass them as a third argument, as from `field.text().wordCharacters()`:
 
 ```java snippet="code-words"
 ```

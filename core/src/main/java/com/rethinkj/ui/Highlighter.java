@@ -50,6 +50,16 @@ public interface Highlighter {
   }
 
   /**
+   * The characters that belong to a word of the language besides letters, decimal digits, marks
+   * and {@code _}, such as {@code "$"} for JavaScript's {@code $gt}; none, the default. A field
+   * with {@link El#codeWords} takes them into its words for Control+Arrow and a double press, and
+   * the kit's completion, find bar and code editor into theirs ({@link CodeWords}).
+   */
+  default String wordCharacters() {
+    return "";
+  }
+
+  /**
    * Formats a whole text of the language, which a code editor's format command runs on its
    * string; null, the default, for a language without. The function gets the string as the editor
    * shows it, with line feeds only, and returns the formatted text, or, for a text it cannot

@@ -373,4 +373,60 @@ class FieldStateTest {
     choose(app, 0);
     assertSame(lines, field(app).editor().lineIndex(), "the lines are not counted again");
   }
+
+  /** A field whose selection the app set and whose row layout then left out hears nothing. */
+  static final class Rows {
+    final FieldState top = new FieldState();
+    final FieldState inRow = new FieldState();
+    String text = "abc";
+    boolean collapsed;
+    App<Rows> app;
+    El field;
+    El list;
+  }
+
+  @Test
+  void aSelectionSetInARowThatLayoutLeavesOutTellsNothing() {
+    TextLibraries.assumeLoaded();
+    Rows rows = new Rows();
+    RowHeights heights = new RowHeights(index -> index == 0 ? 1200 : 20);
+    rows.app = new App<>(rows, r -> {
+      r.field = El.text(r.text)
+          .editable(value -> r.text = value)
+          .fieldState(r.top)
+          .onSelect((caret, anchor) -> {})
+          .h(24)
+          .onKey(key -> {
+            if (!key.name().equals("F6")) {
+              return false;
+            }
+            r.collapsed = true; // the first row shrinks, so that the rows in view lie below it
+            r.top.select(0, 3);
+            r.inRow.select(1, 0);
+            return true;
+          });
+      r.list = el().wFull().h(200).rows(100, heights, index -> {
+        if (index != 0) {
+          return el().h(20);
+        }
+        El inRow = El.text("word").h(20).editable(value -> {}).fieldState(r.inRow);
+        inRow.onSelect((caret, anchor) -> r.app.select(inRow, 4, 0));
+        return col().h(r.collapsed ? 20 : 1200).child(inRow);
+      });
+      return col().wFull().hFull().child(r.field).child(r.list);
+    });
+    App<Rows> app = rows.app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(400, 240, 1);
+    app.frame();
+    app.focus(rows.field);
+    app.frame();
+    app.wheel(30, 50, 0, 1000);
+    app.frame();
+    assertTrue(rows.list.hasRow(0), "scrolled into the first row");
+    app.keyDown(new Key("F6"));
+    app.textInput("z");
+    app.frame();
+    assertEquals("z", rows.text);
+  }
 }

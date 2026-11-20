@@ -4,11 +4,14 @@ import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.render.Png;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A pannable, zoomable area on which nodes, any elements, lie at positions in diagram
@@ -41,8 +44,13 @@ import java.util.function.Consumer;
  * DiagramTexts#diagram} unless the app gives another, and its zoom as the value ({@link
  * DiagramTexts#zoom}). Each node is {@code role=graphics-object} with its key and label, and the
  * value {@link DiagramTexts#pinned} when it is pinned.
+ *
+ * <p>{@link #png} saves the whole diagram as an image.
  */
 public final class Canvas {
+
+  // The most physical pixels of an image of png(): 16 megapixels, 256 MB while it is drawn.
+  private static final double PNG_PIXELS = 1 << 24;
 
   private Canvas() {}
 
@@ -213,16 +221,11 @@ public final class Canvas {
       if (nodes.isEmpty()) {
         return;
       }
-      double minX = Double.POSITIVE_INFINITY;
-      double minY = Double.POSITIVE_INFINITY;
-      double maxX = Double.NEGATIVE_INFINITY;
-      double maxY = Double.NEGATIVE_INFINITY;
-      for (Node node : nodes) {
-        minX = Math.min(minX, node.x());
-        minY = Math.min(minY, node.y());
-        maxX = Math.max(maxX, node.x() + node.width());
-        maxY = Math.max(maxY, node.y() + node.height());
-      }
+      double[] bounds = bounds(nodes);
+      double minX = bounds[0];
+      double minY = bounds[1];
+      double maxX = bounds[2];
+      double maxY = bounds[3];
       step = 0;
       for (int i = ZOOMS.size() - 1; i > 0; i--) {
         float zoom = ZOOMS.get(i);
@@ -235,6 +238,70 @@ public final class Canvas {
       left = (minX + maxX) / 2 - width / 2 / zoom();
       top = (minY + maxY) / 2 - height / 2 / zoom();
     }
+  }
+
+  /** The left, top, right and bottom edge of the nodes, of which there is at least one. */
+  private static double[] bounds(List<Node> nodes) {
+    double minX = Double.POSITIVE_INFINITY;
+    double minY = Double.POSITIVE_INFINITY;
+    double maxX = Double.NEGATIVE_INFINITY;
+    double maxY = Double.NEGATIVE_INFINITY;
+    for (Node node : nodes) {
+      minX = Math.min(minX, node.x());
+      minY = Math.min(minY, node.y());
+      maxX = Math.max(maxX, node.x() + node.width());
+      maxY = Math.max(maxY, node.y() + node.height());
+    }
+    return new double[] {minX, minY, maxX, maxY};
+  }
+
+  /**
+   * The whole diagram as a PNG image, not only the part a canvas shows: cropped to the nodes with a
+   * margin of {@link Theme.Spacing#xl}, at a zoom of 100 %, in the theme of {@link Theme#CURRENT}
+   * where it is called. Its scale is 2, or 1 where that would give more than 16 megapixels. It is
+   * drawn without a window, as {@link Headless#render} draws, and the app decides where the bytes
+   * go. A handler runs outside the view's theme, so it gives the theme again:
+   *
+   * <pre>{@code
+   * byte[] image = Theme.CURRENT.with(state.theme, () -> Canvas.png(
+   *     state.tables, viewport -> canvas(viewport, state.tables, Tables::card, null)));
+   * }</pre>
+   *
+   * @param nodes the nodes, whose extent is the diagram's; none give an image of the margin alone
+   * @param view builds the canvas at the viewport it is given, as the app's view does: everything
+   *     it draws is in the image. Its size is set to the image's.
+   * @throws IllegalArgumentException if the image would have more than 16 megapixels at a scale of
+   *     1 as well, which is checked before anything is built
+   */
+  public static byte[] png(List<Node> nodes, Function<Viewport, El> view) {
+    double[] bounds = nodes.isEmpty() ? new double[4] : bounds(nodes);
+    float margin = Theme.CURRENT.get().space().xl();
+    // At least a pixel, as a PNG has.
+    float width = (float) Math.max(1, Math.ceil(bounds[2] - bounds[0] + 2 * margin));
+    float height = (float) Math.max(1, Math.ceil(bounds[3] - bounds[1] + 2 * margin));
+    int scale = pngScale(width, height);
+    Viewport viewport = new Viewport();
+    viewport.panTo(bounds[0] - margin, bounds[1] - margin);
+    viewport.width = width;
+    viewport.height = height;
+    El canvas =
+        view.apply(viewport).size(width, height).minSize(width, height).maxSize(width, height);
+    return Png.encode(Headless.render(canvas, width, height, scale).pixels());
+  }
+
+  /** 2, or 1 where an image of this logical size would have too many pixels at 2. */
+  static int pngScale(double width, double height) {
+    for (int scale = 2; scale >= 1; scale--) {
+      // In doubles, so that a size too large for an int or a float is too large here too.
+      if (width * scale * height * scale <= PNG_PIXELS) {
+        return scale;
+      }
+    }
+    throw new IllegalArgumentException("A diagram of "
+        + width
+        + " by "
+        + height
+        + " pixels is too large for an image: it has more than 16 megapixels");
   }
 
   /**

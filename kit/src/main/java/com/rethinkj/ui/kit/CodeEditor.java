@@ -442,13 +442,15 @@ public final class CodeEditor {
       Consumer<String> onChange) {
     Theme theme = Theme.CURRENT.get();
     Theme.Code code = theme.code();
-    String word =
-        state.occurrences && !state.find.isOpen() ? word(value, state.caret, state.anchor) : null;
+    String extra = highlighter == null ? "" : highlighter.wordCharacters();
+    String word = state.occurrences && !state.find.isOpen()
+        ? word(value, state.caret, state.anchor, extra)
+        : null;
     // Where the word at the caret starts, which is not marked: only its other occurrences are.
     int own = word == null
         ? -1
         : state.caret == state.anchor
-            ? CodeWords.start(value, Math.min(state.caret, value.length()))
+            ? CodeWords.start(value, Math.min(state.caret, value.length()), extra)
             : Math.min(state.caret, state.anchor);
     List<Diagnostic> diagnostics = state.diagnosticsOf(value);
     El rail = El.el()
@@ -482,7 +484,7 @@ public final class CodeEditor {
           if (word != null) {
             int n = word.length();
             for (int at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + n)) {
-              if (start + at != own && whole(text, at, at + n)) {
+              if (start + at != own && whole(text, at, at + n, extra)) {
                 out.background(at, at + n, code.occurrence());
               }
             }
@@ -719,7 +721,6 @@ public final class CodeEditor {
         && message != null
         && app.tree().shownOverlays().contains(message)) { // not while scrolled away
       state.shown = -1;
-      state.shown = -1;
       return true;
     }
     if (!k.name().equals("F8") || (k.modifiers() & ~Key.SHIFT) != 0 || diagnostics.isEmpty()) {
@@ -756,18 +757,18 @@ public final class CodeEditor {
   }
 
   /** The word at the caret, if nothing or exactly a word is selected; else null. */
-  static String word(String text, int caret, int anchor) {
+  static String word(String text, int caret, int anchor, String extra) {
     int s = Math.clamp(Math.min(caret, anchor), 0, text.length());
     int e = Math.clamp(Math.max(caret, anchor), 0, text.length());
     if (s == e) {
-      s = CodeWords.start(text, s);
-      e = CodeWords.end(text, e);
+      s = CodeWords.start(text, s, extra);
+      e = CodeWords.end(text, e, extra);
     }
-    if (s == e || !whole(text, s, e)) {
+    if (s == e || !whole(text, s, e, extra)) {
       return null;
     }
     for (int i = s; i < e; i = text.offsetByCodePoints(i, 1)) {
-      if (!CodeWords.isWordChar(text.codePointAt(i))) {
+      if (!CodeWords.isWordChar(text.codePointAt(i), extra)) {
         return null;
       }
     }
@@ -775,9 +776,9 @@ public final class CodeEditor {
   }
 
   /** Whether no code-word character lies right before {@code from} or after {@code to}. */
-  static boolean whole(String text, int from, int to) {
-    return (from == 0 || !CodeWords.isWordChar(text.codePointBefore(from)))
-        && (to == text.length() || !CodeWords.isWordChar(text.codePointAt(to)));
+  static boolean whole(String text, int from, int to, String extra) {
+    return (from == 0 || !CodeWords.isWordChar(text.codePointBefore(from), extra))
+        && (to == text.length() || !CodeWords.isWordChar(text.codePointAt(to), extra));
   }
 
   /**
@@ -814,10 +815,7 @@ public final class CodeEditor {
     if (edit == null) {
       return;
     }
-    app.edit(editor, edit.from(), edit.to(), edit.text(), edit.caret());
-    app.select(editor, edit.caret(), edit.anchor());
-    state.caret = edit.caret();
-    state.anchor = edit.anchor();
+    app.edit(editor, edit.from(), edit.to(), edit.text(), edit.caret(), edit.anchor());
   }
 
   /**
@@ -899,7 +897,8 @@ public final class CodeEditor {
     int e = Math.max(caret, anchor);
     int[] next;
     if (s == e) {
-      next = new int[] {CodeWords.start(text, s), CodeWords.end(text, s)};
+      String extra = editor.text().wordCharacters();
+      next = new int[] {CodeWords.start(text, s, extra), CodeWords.end(text, s, extra)};
       if (next[0] == next[1]) {
         return;
       }

@@ -1,0 +1,1 @@
+- Added: `DataGrid.Column.cellTooltip(row -> text)` gives a cell a tooltip of its own, such as a timestamp as the database returns it beside the local time the cell shows. It stands after a failed cell's error and the icon's tooltip and before the full text of a truncated cell, each on a line of its own; copy and edit keep the cell's text.
