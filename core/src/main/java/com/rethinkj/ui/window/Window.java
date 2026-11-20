@@ -1418,18 +1418,26 @@ public final class Window implements AutoCloseable {
     if (!placeable()) {
       return false;
     }
-    // Where the app moved it last, as the drag did: X11 may not have moved it there yet.
-    int[] at = asked ? new int[] {askedX, askedY} : null;
+    // Where the app moved it last, as the drag did: X11 may not have moved it there yet, and
+    // may not say so. Elsewhere a move is made when asked, and the window is where it says.
+    int[] at = asked && handle instanceof WindowHandle.Xlib ? new int[] {askedX, askedY} : null;
     asked = false;
     boolean moved = false;
+    int display = 0;
     // Twice at most: on a display of another scale it changes its size as it arrives, frame and
     // all.
     for (int round = 0; round < 2; round++) {
-      Sdl.syncWindow(sdl); // X11 moves and sizes it later
+      if (!Sdl.syncWindow(sdl) && moved) { // X11 moves and sizes it later
+        return true; // where it is is not known yet: a second move could undo the first
+      }
       int[] frame = frame();
       int[] outer = outer(at, frame);
+      // Measured where it may not be: if it fits there, it is measured again where it is.
+      boolean unsure = at != null;
       at = null;
-      int display = displayOf(outer);
+      if (!moved) { // after a move, the display it was moved into, which X11 may not show yet
+        display = displayOf(outer);
+      }
       int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
       if (area == null) {
         return moved;
@@ -1443,9 +1451,13 @@ public final class Window implements AutoCloseable {
         int[] content = {outer[0] + frame[1], outer[1] + frame[0]}; // stays where it was
         frame = frame();
         outer = outer(content, frame); // at least as large as its minimum size
+        unsure = true;
       }
       int[] by = inside(outer, area);
       if (by[0] == 0 && by[1] == 0) {
+        if (unsure) {
+          continue;
+        }
         return moved;
       }
       Sdl.setWindowPosition(sdl, outer[0] + frame[1] + by[0], outer[1] + frame[0] + by[1]);

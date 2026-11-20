@@ -690,8 +690,9 @@ public final class WindowLoop {
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
         // A window opened under the pointer during a press that came in the same pass as the
-        // release still follows it: it waits for the release of that press.
-        boolean up = pressed == null;
+        // release still follows it: it waits for the release of that press, and for the frames
+        // of the other releases still due, whose steps may still move it.
+        boolean up = pressed == null && releasedIn.isEmpty();
         for (Entry e : List.copyOf(entries)) {
           if (!e.isOpen()) {
             continue;
