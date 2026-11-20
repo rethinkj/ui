@@ -815,8 +815,11 @@ public final class Window implements AutoCloseable {
    * Hands the window an event as if the system had reported it, after those that came before: the
    * delivery under way, as from a listener, or else the next {@link #pollEvents} or {@link
    * #waitEvents} delivers it, without waiting, and the window treats it as its own, as it does a
-   * click on a part of its frame. For an app that measures or
-   * drives its window, as with steps of the wheel ({@link WindowLoop#frames}).
+   * click on a part of its frame. For an app that measures or drives its window, as with steps of
+   * the wheel ({@link WindowLoop#frames}). An event tells what happened and changes nothing of the
+   * window: a posted {@link WindowEvent.Resized} or {@link WindowEvent.ScaleChanged} leaves its
+   * size and scale as they are, which a {@link WindowLoop} reads from the window; {@link #resize}
+   * changes the size.
    *
    * @throws IllegalStateException if the window is closed, or this is not the windows' thread
    */
