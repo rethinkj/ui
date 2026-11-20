@@ -18,6 +18,7 @@ final class FrameTimes {
 
   private FrameTimes() {}
 
+  // docs:start frame-times
   static El rows(Object state) {
     return col()
         .wFull()
@@ -25,7 +26,6 @@ final class FrameTimes {
         .rows(1_000_000, 24, index -> row().h(24).child(text("Row " + index)));
   }
 
-  // docs:start frame-times
   static void measure() {
     App<Object> app = new App<>(new Object(), FrameTimes::rows); // a million rows
     List<Long> times = new ArrayList<>();
@@ -49,10 +49,11 @@ final class FrameTimes {
       return; // the window closed before the first step
     }
     List<Long> steps = times.subList(1, times.size()).stream().sorted().toList(); // not the first
+    int count = steps.size();
     System.out.printf(
         "median %.2f ms, p99 %.2f ms, max %.2f ms%n",
-        steps.get(steps.size() / 2) / 1e6,
-        steps.get(steps.size() * 99 / 100) / 1e6,
+        (steps.get((count - 1) / 2) + steps.get(count / 2)) / 2e6,
+        steps.get(Math.ceilDiv(count * 99, 100) - 1) / 1e6, // the nearest rank
         steps.getLast() / 1e6);
   }
   // docs:end frame-times
