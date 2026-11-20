@@ -703,7 +703,10 @@ public final class Window implements AutoCloseable {
       try (Arena arena = Arena.ofConfined()) {
         MemorySegment event = arena.allocate(Sdl.EVENT_SIZE, 8);
         event.set(JAVA_INT, Sdl.EVENT_TYPE, wakeType);
-        Sdl.pushEvent(event);
+        // Past the event watch, which ignores it and runs under a lock of SDL's: the window's
+        // thread wakes from inside it too (systemChar), and waiting here for that lock while
+        // holding LOCK could leave the two threads waiting for each other.
+        Sdl.addEvent(event);
       }
     }
   }

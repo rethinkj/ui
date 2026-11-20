@@ -177,6 +177,7 @@ class TextInBatchTest {
       }));
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       AtomicBoolean done = new AtomicBoolean();
+      AtomicReference<String> posted = new AtomicReference<>("not yet");
       loop.get().waits((millis, holdBack) -> {
         if (millis == -1 && !sent.getAndSet(true)) {
           // From another thread once the loop waits in SDL: until then, events of the window's
@@ -190,17 +191,19 @@ class TextInBatchTest {
               Thread.onSpinWait();
             }
             try {
-              if ((int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) 'é', 1L) == 0) {
-                throw new AssertionError("PostMessage failed");
-              }
+              int ok = (int) POST_MESSAGE.invokeExact(hwnd, WM_CHAR, (long) 'é', 1L);
+              posted.set(ok != 0 ? "yes" : "PostMessage failed");
             } catch (Throwable t) {
-              throw new AssertionError(t);
+              posted.set(t.toString());
             }
           });
         }
       });
       try {
-        Desktop.run(loop.get(), () -> "a frame after the character, typed: \"" + form.name + "\"");
+        Desktop.run(
+            loop.get(),
+            () -> "a frame after the character; posted: " + posted.get() + ", typed: \"" + form.name
+                + "\"");
       } finally {
         done.set(true);
       }

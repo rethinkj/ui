@@ -53,6 +53,9 @@ final class Sdl {
   static final int HITTEST_RESIZE_BOTTOMLEFT = 8;
   static final int HITTEST_RESIZE_LEFT = 9;
 
+  // SDL_EventAction
+  static final int ADDEVENT = 0;
+
   // SDL_EventType
   static final int EVENT_FIRST = 0;
   static final int EVENT_LAST = 0xFFFF;
@@ -396,6 +399,13 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
   static final FunctionDescriptor SDL_POLL_EVENT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_PUSH_EVENT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /**
+   * {@code int SDL_PeepEvents(SDL_Event *events, int numevents, SDL_EventAction action, Uint32
+   * minType, Uint32 maxType)}
+   */
+  static final FunctionDescriptor SDL_PEEP_EVENTS =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT);
+
   static final FunctionDescriptor SDL_REGISTER_EVENTS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
   static final FunctionDescriptor SDL_CREATE_SYSTEM_CURSOR =
       FunctionDescriptor.of(ADDRESS, JAVA_INT);
@@ -459,6 +469,7 @@ final class Sdl {
         bind("SDL_WaitEventTimeout", SDL_WAIT_EVENT_TIMEOUT);
     static final MethodHandle POLL_EVENT = bind("SDL_PollEvent", SDL_POLL_EVENT);
     static final MethodHandle PUSH_EVENT = bind("SDL_PushEvent", SDL_PUSH_EVENT);
+    static final MethodHandle PEEP_EVENTS = bind("SDL_PeepEvents", SDL_PEEP_EVENTS);
     static final MethodHandle REGISTER_EVENTS = bind("SDL_RegisterEvents", SDL_REGISTER_EVENTS);
     static final MethodHandle GET_SYSTEM_THEME = bind("SDL_GetSystemTheme", SDL_GET_SYSTEM_THEME);
     static final MethodHandle SET_APP_METADATA = bind("SDL_SetAppMetadata", SDL_SET_APP_METADATA);
@@ -1222,6 +1233,18 @@ final class Sdl {
   static boolean pushEvent(MemorySegment event) {
     try {
       return (boolean) H.PUSH_EVENT.invokeExact(event);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * Puts an event into the queue and ends a wait for one, like {@link #pushEvent}, but without
+   * calling the event watch, so that it takes no lock but the queue's. Thread-safe.
+   */
+  static boolean addEvent(MemorySegment event) {
+    try {
+      return (int) H.PEEP_EVENTS.invokeExact(event, 1, ADDEVENT, 0, 0) == 1;
     } catch (Throwable t) {
       throw failed(t);
     }
