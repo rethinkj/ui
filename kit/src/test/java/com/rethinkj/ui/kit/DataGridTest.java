@@ -38,9 +38,10 @@ class DataGridTest {
 
   private static final Theme T = Theme.DARK;
   // The grid of Orders.view: 544 by 224 at 8,8, with a header of 24 and a line of 1 over 199
-  // pixels of rows, which show 8 rows whole. Layout sees at most 2^20 pixels of the 24 000 000 of
-  // a million rows, so that its floats add up to the pixel.
-  private static final int PAGE = 8;
+  // pixels of rows, of which the bar sideways covers the last 10, so that 7 rows show whole. Layout
+  // sees at most 2^20 pixels of the 24 000 000 of a million rows, so that its floats add up to the
+  // pixel.
+  private static final int PAGE = 7;
 
   @TempDir
   Path out;
@@ -71,7 +72,7 @@ class DataGridTest {
     El rows = find(app, "rows");
     assertEquals(199, rows.height(), "down to the bottom of the grid");
     assertTrue(
-        rows.children().size() <= PAGE + 1 + 2 * El.OVERSCAN,
+        rows.children().size() <= PAGE + 2 + 2 * El.OVERSCAN,
         "" + rows.children().size());
 
     orders.asked.clear();
@@ -155,11 +156,11 @@ class DataGridTest {
         List.of(
             "select 3",
             "select 2",
-            "select 10",
-            "select 18",
-            "select 10",
+            "select 9",
+            "select 16",
+            "select 9",
             "select 999999",
-            "select 999991",
+            "select 999992",
             "select 0"),
         orders.log,
         "told only of changes");
@@ -172,7 +173,7 @@ class DataGridTest {
     run(app, "key Tab\nframe");
     DataGrid.Selection selection = orders.selection;
     assertEquals(0, selection.firstRowInView());
-    assertEquals(PAGE - 2, selection.lastRowInView(), "row 7 is partly under the bar sideways");
+    assertEquals(PAGE - 1, selection.lastRowInView(), "row 7 is partly under the bar sideways");
 
     selection.scrollToRow(500_000);
     app.invalidate();
@@ -181,7 +182,7 @@ class DataGridTest {
     assertEquals(500_000 - El.OVERSCAN, rows.firstRow(), "the overscan above it, then the row");
     assertEquals(500_000 * 24.0, rows.scrollY(), "the row at the top");
     assertEquals(500_000, selection.firstRowInView());
-    assertEquals(500_000 + PAGE - 2, selection.lastRowInView());
+    assertEquals(500_000 + PAGE - 1, selection.lastRowInView());
     for (int i = 0; i < 2; i++) {
       app.invalidate();
       app.frame();
@@ -350,8 +351,8 @@ class DataGridTest {
     App<Orders> app = start(orders);
     run(app, "key Tab\nkey ArrowDown\nkey ArrowDown\nkey PageDown\nkey ArrowUp\nframe");
     assertEquals(2 + 2 + PAGE - 1, orders.selected());
-    assertEquals(List.of("select 3", "select 4", "select 12", "select 11"), orders.log);
-    assertInView(app, 11);
+    assertEquals(List.of("select 3", "select 4", "select 11", "select 10"), orders.log);
+    assertInView(app, 10);
   }
 
   @Test
