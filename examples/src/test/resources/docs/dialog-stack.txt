@@ -10,7 +10,7 @@ press #add-property     # opens Add property over the form; a press leaves the f
 frame
 advance 0.3
 frame
-key ArrowDown alt       # opens the combo box's list
+key Enter               # the focused combo box takes it and opens its list
 frame
 advance 0.3
 frame

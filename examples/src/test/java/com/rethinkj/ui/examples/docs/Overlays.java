@@ -140,7 +140,6 @@ final class Overlays {
   }
 
   void connect() {
-    said = "connect " + connection;
     connecting = false;
   }
 
