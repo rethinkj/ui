@@ -130,6 +130,10 @@ public final class Text implements Measure {
   private int tabSize = 4;
   private Style.Align align = Style.Align.START;
   private float[] lineX = {}; // per line placed: where its pen starts, after the alignment
+  // Per line placed that the ellipsis shortened: where in its paragraph what it shows ends, and
+  // where its ellipsis starts from its pen; lineEnd is infinite for a line not shortened.
+  private int[] lineShown = {};
+  private float[] lineEnd = {};
   private Highlighter highlighter;
   private Object highlightKey;
   private Decorator decorator;
@@ -725,11 +729,14 @@ public final class Text implements Measure {
     List<Line> placed = new ArrayList<>();
     shortened = false;
     lineX = new float[spans.size()];
+    lineShown = new int[spans.size()];
+    lineEnd = new float[spans.size()];
     for (Span span : spans) {
+      lineEnd[placed.size()] = Float.POSITIVE_INFINITY;
       float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
       Line line;
       if (ellipsis && (!field || unfocused) && (span.cut || span.width > placedWidth + SLACK)) {
-        line = shorten(span, baseline);
+        line = shorten(span, baseline, placed.size());
         shortened = true;
       } else {
         Para para = paras[span.paragraph];
@@ -747,14 +754,19 @@ public final class Text implements Measure {
     lines = List.copyOf(placed);
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
       int line = lineOf(underlineFrom);
+      // Only under what the line shows: not under characters the ellipsis cut, nor under the `…`,
+      // which the shortened line kerns anew with the last character it keeps.
+      boolean cut = lineEnd[line] != Float.POSITIVE_INFINITY;
+      int shown = cut ? fromGlyphs(starts[spans.get(line).paragraph] + lineShown[line]) : -1;
+      int to = cut ? Math.min(underlineTo, shown) : underlineTo;
       float from = x(underlineFrom);
-      // A line the ellipsis left empty shows no underline either.
-      composition = lines.get(line).glyphs().count() == 0
+      float end = cut && to == shown ? lineX[line] + lineEnd[line] : x(to);
+      composition = to <= underlineFrom || lines.get(line).glyphs().count() == 0
           ? null
           : new Box(
               from,
               baseline(line) + Math.round(font().descent() * size * scale / 2),
-              x(underlineTo) - from,
+              end - from,
               Math.max(1, Math.round(scale)));
     }
   }
@@ -786,7 +798,7 @@ public final class Text implements Measure {
    * #ELLIPSIS} after them, shaped anew so that the ellipsis kerns with what it follows. Where not
    * even the ellipsis fits, the line is empty: nothing of a text draws outside its box.
    */
-  private Line shorten(Span span, float baseline) {
+  private Line shorten(Span span, float baseline, int index) {
     // shortcut: a right-to-left run is one cluster (see Font#shape), so the line ends before it
     // rather than inside it; cut inside it when right-to-left text needs it.
     Para para = paras[span.paragraph];
@@ -811,9 +823,13 @@ public final class Text implements Measure {
       Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
       GlyphRun run = shortened.run;
       if (run.width() <= placedWidth + SLACK) {
+        lineShown[index] = span.from + kept.length();
+        lineEnd[index] = shortened.pen(kept.length());
         return new Line(run, run.width(), baseline, shortened.colors, 0);
       }
       if (i == 0) {
+        lineShown[index] = span.from;
+        lineEnd[index] = 0;
         return new Line(run.slice(0, 0), 0, baseline);
       }
     }

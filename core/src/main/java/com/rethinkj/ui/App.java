@@ -52,8 +52,8 @@ import java.util.function.Predicate;
  * view: two ArrowDown in one frame move a selection by two rows, a key after the press that
  * opened a menu goes to the menu, a press after one that dismissed a menu finds no menu there, and
  * a second edit of a field builds on what the app made of the first. Handlers of the app are
- * those of presses, secondary presses (also from the Menu key), drags, keys, text and edits, and
- * the {@link El#onDismiss} handlers that a press or the wheel outside an overlay calls; all of
+ * those of presses, secondary presses (also from the Menu key), drags, keys, the wheel, text and
+ * edits, and the {@link El#onDismiss} handlers that a press or the wheel outside an overlay calls; all of
  * them run in the order of the input, each in the tree the one before left. The rows of the
  * virtual lists in such a tree, those inside overlays too, and its scrollbars are built before an
  * input that needs them: a press, a release, a secondary press, Tab, a focus or a scroll the app
@@ -61,8 +61,8 @@ import java.util.function.Predicate;
  * the rows that their own scrolling brings into view. Other keys do with the rows that exist, so
  * a key handler there sees its list without rows. Input that no handler of the app took costs no
  * rebuild: a pointer move, a key that nobody handles or that only moves a field's caret, a focus
- * moved by Tab, a wheel that dismisses nothing. A key handler that returns false counts as having
- * changed nothing. The {@link El#onHoverFor} handlers are not input: the frame runs them after
+ * moved by Tab, a wheel that dismisses nothing and that no wheel handler takes. A key or wheel
+ * handler that returns false counts as having changed nothing. The {@link El#onHoverFor} handlers are not input: the frame runs them after
  * all input, once the pointer has rested long enough on the tree as it is then.
  *
  * <p>The view only states where things end up. When a rebuild gives an element with {@link
@@ -2574,9 +2574,23 @@ public final class App<S> {
    * {@code overflow-y: scroll}, such as a row of tabs) sideways, positive to the right. The next
    * {@link #frame} shows it. Outside the overlays that are open, the wheel calls the {@link
    * El#onDismiss} handlers of those above the pointer and scrolls what is under it in the same
-   * tree; outside a {@link El#modal} one it does nothing.
+   * tree; outside a {@link El#modal} one it does nothing. The same as {@link #wheel(float, float,
+   * float, float, int)} without modifiers.
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
+    wheel(x, y, deltaX, deltaY, 0);
+  }
+
+  /**
+   * Like {@link #wheel(float, float, float, float)}, with these modifiers held. Before anything
+   * scrolls, the {@link El#onWheel} handlers under the pointer are asked, the innermost first,
+   * each before its own scrolling and only while no scroll area inside it can move with the
+   * wheel; the first that takes the wheel ends it, and when none does, it scrolls as without them.
+   *
+   * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
+   *     {@link Key#META}
+   */
+  public void wheel(float x, float y, float deltaX, float deltaY, int modifiers) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
       throw new IllegalArgumentException(
           "wheel deltas must be finite, were " + deltaX + ", " + deltaY);
@@ -2591,6 +2605,20 @@ public final class App<S> {
       }
       List<El> areas = hit(x, y).reversed();
       boolean sideways = deltaX == 0;
+      for (El el : areas) {
+        if (el.onWheel() != null) {
+          double[] at = content(el, x, y);
+          if (el.onWheel().wheel(deltaX, deltaY, modifiers, at[0], at[1])) {
+            handled = true;
+            return true;
+          }
+        }
+        if (el.canScroll(true, deltaX)
+            || el.canScroll(false, deltaY)
+            || sideways && scrollsSideways(el, deltaY)) {
+          break; // it scrolls: the handlers around it are not asked
+        }
+      }
       scrolled |=
           scroll(areas, true, deltaX, false) | scroll(areas, false, deltaY, sideways); // not ||
       return false;
@@ -2605,14 +2633,18 @@ public final class App<S> {
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
             : area.scrollTo(area.scrollX(), area.scrollY() + delta);
       }
-      if (sideways
-          && area.style().overflowX == Style.Overflow.SCROLL
-          && area.style().overflowY != Style.Overflow.SCROLL
-          && area.canScroll(true, delta)) {
+      if (sideways && scrollsSideways(area, delta)) {
         return area.scrollTo(area.scrollX() + delta, area.scrollY());
       }
     }
     return false;
+  }
+
+  /** Whether an area that scrolls only sideways can move by this vertical delta sideways. */
+  private static boolean scrollsSideways(El area, float delta) {
+    return area.style().overflowX == Style.Overflow.SCROLL
+        && area.style().overflowY != Style.Overflow.SCROLL
+        && area.canScroll(true, delta);
   }
 
   /**

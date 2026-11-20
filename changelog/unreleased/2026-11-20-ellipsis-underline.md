@@ -1,0 +1,1 @@
+- An `underline(from, to)` on a text that `ellipsis()` shortens now covers only the characters the line still shows: a range the ellipsis cut draws nothing, one it cut partly ends at the last character shown, and none reaches under the `…` or outside the box.

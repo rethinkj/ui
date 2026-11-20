@@ -1025,7 +1025,12 @@ public final class WindowLoop {
       case PointerLeave leave -> app.pointerLeave();
       // The window's dy is positive away from the user, the app's towards the end.
       case Wheel wheel ->
-        app.wheel(wheel.x(), wheel.y(), wheel.dx() * WHEEL_STEP, -wheel.dy() * WHEEL_STEP);
+        app.wheel(
+            wheel.x(),
+            wheel.y(),
+            wheel.dx() * WHEEL_STEP,
+            -wheel.dy() * WHEEL_STEP,
+            wheel.modifiers());
       case KeyDown down ->
         app.keyDown(down.key(), opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
       case KeyUp up -> app.keyUp(up.key());

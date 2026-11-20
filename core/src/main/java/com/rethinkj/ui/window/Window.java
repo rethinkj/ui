@@ -1078,7 +1078,7 @@ public final class Window implements AutoCloseable {
             e.get(JAVA_FLOAT, Sdl.WHEEL_Y),
             logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
             logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_Y)),
-            (Sdl.getModState() & Sdl.KMOD_SHIFT) != 0));
+            modifiers(Sdl.getModState())));
       case Sdl.EVENT_KEY_DOWN, Sdl.EVENT_KEY_UP -> {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
@@ -1212,8 +1212,10 @@ public final class Window implements AutoCloseable {
    * The wheel's event. With Shift held, a wheel that turns only up and down scrolls sideways, as
    * in the system's own apps on Windows and in GTK's on Linux: towards the user is to the right.
    */
-  static Wheel wheel(float dx, float dy, float x, float y, boolean shift) {
-    return shift && dx == 0 && dy != 0 ? new Wheel(-dy, 0, x, y) : new Wheel(dx, dy, x, y);
+  static Wheel wheel(float dx, float dy, float x, float y, int modifiers) {
+    return (modifiers & Key.SHIFT) != 0 && dx == 0 && dy != 0
+        ? new Wheel(-dy, 0, x, y, modifiers)
+        : new Wheel(dx, dy, x, y, modifiers);
   }
 
   /**
