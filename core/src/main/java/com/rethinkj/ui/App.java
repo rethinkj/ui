@@ -189,7 +189,7 @@ public final class App<S> {
   private final List<BooleanSupplier> resized = new ArrayList<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
-  private boolean resizeDue; // a build between inputs gave new sizes, which it did not tell
+  private boolean resizeDue; // a build between inputs gave other sizes, which it did not tell
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -3285,7 +3285,7 @@ public final class App<S> {
     int told = resized.size();
     tellSizes(root, new ArrayList<>(), sizes);
     if (between) { // its rows may be missing: the frame's last build tells these from its own tree
-      resizeDue |= resized.size() > told;
+      resizeDue |= !sizes.equals(toldSizes); // also an element that left, to be forgotten
       resized.subList(told, resized.size()).clear();
     } else {
       toldSizes = sizes;
