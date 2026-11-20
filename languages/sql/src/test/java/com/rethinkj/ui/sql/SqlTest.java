@@ -1,4 +1,4 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.sql;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,6 +10,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Theme;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

@@ -78,6 +78,7 @@ jobs:
             */target/surefire-reports
             */target/golden
             languages/*/target/surefire-reports
+            languages/*/target/golden
             core/target/gpu-vs-cpu
           retention-days: 7
           if-no-files-found: ignore

@@ -30,7 +30,7 @@ import java.util.function.Function;
  *
  * <pre>{@code
  * El editor =
- *     codeEditor(state.sql, state.editor, Sql.of(), value -> state.sql = value);
+ *     codeEditor(state.sql, state.editor, highlighter, value -> state.sql = value);
  * Completion.complete(app, editor, state.editor.caret(), state.completion,
  *     word -> state.suggest(word));
  * }</pre>

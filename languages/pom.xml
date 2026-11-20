@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The parent of the language modules: each language, a Highlighter on kit, in a module of its own. -->
+<!-- The parent of the language modules: each language, a Highlighter on kit, in a module of its own.
+     What all of them build and test with is here. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -19,5 +20,82 @@
 
   <modules>
     <module>json</module>
+    <module>sql</module>
   </modules>
+
+  <dependencies>
+    <!-- The default fonts, for the tests that lay out text. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-fonts</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- The tests run on the class path, where core is an unnamed module. -->
+          <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+          <systemPropertyVariables>
+            <!-- Stored images are compared on Linux and Windows: one text rendering for both. -->
+            <rethinkj.ui.textRendering>linux</rethinkj.ui.textRendering>
+            <rethinkj.ui.natives.cache>${project.build.directory}/natives-cache</rethinkj.ui.natives.cache>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- The native libraries, for the tests that lay out text; without them, those are skipped. -->
+    <profile>
+      <id>natives-windows-x64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>natives-linux-x64</id>
+      <activation>
+        <os>
+          <name>Linux</name>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>

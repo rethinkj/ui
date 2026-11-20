@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.TitleBar.titleBar;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.AppIcon;
@@ -20,6 +21,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toast;
 import com.rethinkj.ui.render.GpuPresenter;
+import com.rethinkj.ui.sql.Sql;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
@@ -139,6 +141,14 @@ public final class Manual {
     return images.get(key);
   }
   // docs:end manual-images
+
+  /** Colors the code blocks that say they are SQL, in the theme's colors for code. */
+  static Highlighter highlighter(String language) {
+    return switch (language.toLowerCase(Locale.ROOT)) {
+      case "sql", "pgsql", "postgresql" -> Sql.of();
+      default -> null;
+    };
+  }
 
   /**
    * The changelog: the entries under {@code changelog/unreleased}, newest first and grouped by
@@ -333,7 +343,8 @@ public final class Manual {
                 .onLink(state::link)
                 .copy(state.app == null ? null : state.app.clipboard())
                 .state(doc.selection())
-                .images(source -> state.image(doc, source)))
+                .images(source -> state.image(doc, source))
+                .languages(Manual::highlighter))
         .key("doc-" + state.doc)
         .grow(1)
         .minSize(0, 0);

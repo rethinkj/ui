@@ -130,11 +130,13 @@ export function cleanMeta(meta) {
 
 /**
  * The stored image a name stands for: `kit/tree-dark-open` is
- * `kit/src/test/resources/golden/tree-dark-open.png`.
+ * `kit/src/test/resources/golden/tree-dark-open.png`, and a language module is a level deeper:
+ * `languages/sql/find-dark-2x-replace`.
  */
 export function goldenPath(name) {
-  const [module, ...rest] = name.split('/');
-  return path.join(ROOT, module, 'src/test/resources/golden', rest.join('/') + '.png');
+  const parts = name.split('/');
+  const module = parts[0] === 'languages' ? 2 : 1;
+  return path.join(ROOT, ...parts.slice(0, module), 'src/test/resources/golden', parts.slice(module).join('/') + '.png');
 }
 
 /**

@@ -16,11 +16,16 @@ Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Option
 
 Parse the source once with `Markdown.parse(source)` and store the `MarkdownDocument` in your app state.
 
+Code blocks are colored only by the highlighters the app passes to `languages`, such as `Sql` from the module `rethinkj-ui-sql` (see [CodeEditor](/docs/components/code-editor#sql)):
+
+```java snippet="markdown-languages"
+```
+
 | Option | Description |
 | --- | --- |
 | `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor); open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
-| `languages(language -> highlighter)` | Custom syntax highlighters for fenced code blocks (`sql`, `pgsql`, `postgresql` use `Sql` by default) |
+| `languages(language -> highlighter)` | The highlighter for a fenced code block's language, as written after the fence, or `null` to leave the block uncolored |
 | `copy(clipboard)` | Enables code-block copy buttons (and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set) |
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 

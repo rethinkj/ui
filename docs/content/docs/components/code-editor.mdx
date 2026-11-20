@@ -9,7 +9,7 @@ For plain notes or prose, use a [text area](/docs/components/text-field#text-are
 
 Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
-<Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked and underlined, keywords in color and a bracket pair highlighted" />
+<Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked and underlined, keywords in color and a bracket pair highlighted" />
 
 ## Example
 
@@ -18,9 +18,23 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 - `state.sql` is the document string, updated via `onChange`.
 - `state.editor` is a `CodeEditor.State` stored in your app state (one per tab/editor) to preserve cursor, selection, scroll position, and undo history across tab switches.
-- `Sql.of()` highlights standard SQL (and `Sql.of(Sql.Dialect.MYSQL)` supports MySQL/MariaDB syntax). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
+- `Sql.of()` highlights standard SQL (see [SQL](#sql)). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
 - Passing `state.app` enables the built-in find bar, line commands and F8 to go to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
 - Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
+
+## SQL
+
+`Sql.of()` highlights SQL as PostgreSQL writes it, and `Sql.of(Sql.Dialect.MYSQL)` as MySQL and MariaDB do. `Sql` is in its own module, `rethinkj-ui-sql`, in the package `com.rethinkj.ui.sql`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-sql</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`Sql`](/api/com/rethinkj/ui/sql/Sql.html).
 
 ## JSON
 
@@ -70,7 +84,7 @@ An editor that only shows its code takes a `CodeEditor.State` with `readOnly(tru
 
 By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/components/card) or panel, wrap it with `CodeEditor.embedded(editor)` to remove the outer border and corners so it sits edge-to-edge with a top accent line on focus:
 
-<Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
+<Shot src="languages/sql/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 
 ```java snippet="code-editor-embedded"
 ```

@@ -10,6 +10,7 @@ on:
       - 'examples/src/test/java/com/rethinkj/ui/examples/docs/**'
       - 'examples/src/test/resources/docs/**'
       - '*/src/test/resources/golden/**'
+      - 'languages/*/src/test/resources/golden/**'
       - 'changelog/**'
       - 'fonts/src/main/resources/**'
       - 'assets/**'
@@ -27,6 +28,7 @@ on:
       - 'examples/src/test/java/com/rethinkj/ui/examples/docs/**'
       - 'examples/src/test/resources/docs/**'
       - '*/src/test/resources/golden/**'
+      - 'languages/*/src/test/resources/golden/**'
       - 'changelog/**'
       - 'fonts/src/main/resources/**'
       - 'assets/**'
@@ -73,7 +75,7 @@ jobs:
       - name: Javadoc
         working-directory: .
         run: |
-          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,languages/json -am javadoc:aggregate
+          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,languages/json,languages/sql -am javadoc:aggregate
           mkdir -p docs/public/api
           cp -R target/reports/apidocs/. docs/public/api/
       - run: npm run build
