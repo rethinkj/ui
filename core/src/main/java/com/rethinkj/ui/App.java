@@ -888,16 +888,15 @@ public final class App<S> {
   }
 
   /**
-   * For Tab moving the focus from the end of {@code path} to {@code to}: runs the {@link
-   * El#onDismiss} handlers of the overlays it leaves, the topmost first, as a press outside them
-   * would. A modal overlay keeps the focus, so Tab never leaves one.
+   * For Tab moving the focus from the element with identity {@code from} to the one with {@code
+   * to}: runs the {@link El#onDismiss} handlers of the overlays it leaves, the topmost first, as a
+   * press outside them would. A modal overlay keeps the focus, so Tab never leaves one.
    */
-  private void leaveOverlays(List<El> path, El to) {
-    List<El> into = new ArrayList<>();
-    pathTo(root, to, into);
+  private void leaveOverlays(Object from, Object to) {
     for (El overlay : root.shownOverlays().reversed()) {
-      if (path.contains(overlay)
-          && !into.contains(overlay)
+      Object id = animator.identity(overlay);
+      if (within(from, id)
+          && !within(to, id)
           && overlay.onDismiss() != null
           && !overlay.isModal()
           && !overlay.isExiting()
@@ -906,6 +905,11 @@ public final class App<S> {
         handled = true;
       }
     }
+  }
+
+  /** Whether the element with identity {@code id} is the one with {@code scope} or inside it. */
+  private static boolean within(Object id, Object scope) {
+    return id != null && (id.equals(scope) || Animator.isBelow(id, scope));
   }
 
   /** The topmost modal overlay that is open and not leaving, or null. */
@@ -1286,6 +1290,7 @@ public final class App<S> {
     if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
       settle();
       wake();
+      Object from = focusId; // by identity: entering a list may build rows anew
       List<El> order = focusables();
       order.removeIf(el -> el.skipsTab() && el != focused);
       if (!order.isEmpty()) {
@@ -1296,7 +1301,7 @@ public final class App<S> {
         if (el.editor() != null && !el.text().multiline()) {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
-        leaveOverlays(path, el);
+        leaveOverlays(from, animator.identity(el));
         return focus(el, true);
       }
     }

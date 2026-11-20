@@ -46,11 +46,10 @@ class HuePickerTest {
     TextLibraries.assumeLoaded();
     final class Editor {
       final Popover.State popover = new Popover.State();
-      int saves;
       int dismissed;
 
       El view() {
-        El save = Button.button(Button.Variant.PRIMARY, "Save", () -> saves++);
+        El save = Button.button(Button.Variant.PRIMARY, "Save", () -> {});
         El panel = Form.form(
             Form.Labels.BESIDE,
             Form.row(
@@ -66,7 +65,9 @@ class HuePickerTest {
     App<Editor> app = new App<>(new Editor(), Editor::view);
     String open =
         "size 640 400\nframe\npress role=button label=\"Color\"\nframe\nadvance 1\nframe\n";
-    Script.run(open + "key Tab\nframe\n", app, out);
+    Script.run(open, app, out);
+    assertTrue(app.state().popover.isOpen());
+    Script.run("key Tab\nframe\n", app, out);
     assertFalse(app.state().popover.isOpen(), "Tab out of it closes it");
     Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
     assertEquals(

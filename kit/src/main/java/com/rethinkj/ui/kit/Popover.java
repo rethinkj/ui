@@ -21,7 +21,7 @@ import java.util.List;
  * }</pre>
  *
  * <p>As it opens, the focus goes to its first {@link El#autofocus} or focusable element, or to
- * the popover itself where it has none, as one that only shows information; when it closes, the focus goes back to where it was, such as the button that opened it (see the focus
+ * the popover itself where it has none, as one that only shows information; when it closes, the focus goes back to where it was, such as the button that opened it, unless Tab took it elsewhere (see the focus
  * rules of overlays in core). A press outside it, Escape and Tab or Shift+Tab out of it close it;
  * Tab walks it right after its anchor. It has the look of a menu: the popup surface, the control border, the medium
  * radius, {@code elevation().popup()} and the fade. It has no arrow to its anchor, since the core
