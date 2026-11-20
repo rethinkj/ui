@@ -1721,9 +1721,11 @@ public final class El {
 
   /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */
   float coveredContent() {
-    return coveredTop > 0 && text != null && text.multiline()
-        ? Math.max(0, coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero())
-        : 0;
+    if (coveredTop <= 0 || text == null || !text.multiline()) {
+      return 0;
+    }
+    float covered = coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero();
+    return covered > 0 ? covered : 0; // 0 also for a NaN padding
   }
 
   /** The least vertical offset: 0, or less for a field that can scroll above its first row. */
