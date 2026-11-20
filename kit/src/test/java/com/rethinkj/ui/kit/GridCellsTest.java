@@ -212,9 +212,9 @@ class GridCellsTest {
     assertEquals(List.of(999_999, 6), List.of(s.row(), s.column()));
     assertCursorRowInView(app, 999_999);
     run(app, "key PageUp\nframe");
-    assertEquals(999_991, s.row(), "a page is the 8 rows in view");
+    assertEquals(999_992, s.row(), "a page is the 7 rows wholly in view");
     run(app, "key Home shift control\nframe"); // from the anchor up to the first cell
-    assertEquals(List.of(new Range(0, 0, 999_991, 6)), s.ranges());
+    assertEquals(List.of(new Range(0, 0, 999_992, 6)), s.ranges());
     run(app, "key A control\nframe");
     assertEquals(List.of(new Range(0, 0, 999_999, ALL)), s.ranges(), "one range");
     assertEquals(1_000_000, s.rowCount());

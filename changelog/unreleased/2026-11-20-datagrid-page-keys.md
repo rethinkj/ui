@@ -1,0 +1,1 @@
+- Page Down and Page Up in a `DataGrid` now move by as many rows as fit above the horizontal scrollbar: the row partly under the scrollbar no longer counts toward the page.
