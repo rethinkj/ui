@@ -11,6 +11,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Text;
+import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Range;
 import java.io.IOException;
@@ -208,6 +209,37 @@ class GridDetailTest {
     orders.widths[1] = 250;
     run(app, "frame");
     assertEquals(own, find(app, "cell-4-1").overlays().getFirst().label());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "error, icon",
+    "error, own",
+    "error, cut",
+    "icon, own",
+    "icon, cut",
+    "own, cut",
+  })
+  void aCellsTooltipsStandInTheOrderErrorIconOwnCut(String first, String second)
+      throws IOException {
+    List<String> on = List.of(first, second);
+    String value = "2026-11-14T11:59:32+01:00";
+    CellIcon link = CellIcon.before(Symbol.LINK, Icon.Variant.ACCENT).tooltip("icon");
+    Column column = new Column(
+            "placed_at", on.contains("cut") ? 80 : 400, DataGrid.Align.LEFT, true, i -> value)
+        .cellIcon(on.contains("icon") ? i -> link : null)
+        .cellTooltip(on.contains("own") ? i -> "own" : null);
+    DataGrid.Options options = DataGrid.options();
+    if (on.contains("error")) {
+      options
+          .status(i -> DataGrid.Status.UNCHANGED, (i, c) -> DataGrid.Status.ERROR)
+          .errors((i, c) -> "error");
+    }
+    App<Column> app =
+        new App<>(column, c -> DataGrid.dataGrid(List.of(c), 1, options).wFull().hFull());
+    run(app, "frame\nmove #cell-0-0\nframe\nadvance 0.5\nframe");
+    String expected = String.join("\n", on).replace("cut", value);
+    assertEquals(expected, find(app, "cell-0-0").overlays().getFirst().label());
   }
 
   @Test
