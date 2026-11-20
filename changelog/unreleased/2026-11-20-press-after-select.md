@@ -1,0 +1,1 @@
+- A press in the same frame as `App.select`, such as a click right after F3 in a find bar, now lands on the row under the pointer: the field scrolls to the selection before the press hit tests, and no longer scrolls the pressed row below `El.coveredTop` afterward.
