@@ -451,9 +451,9 @@ class FindKeysTest {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);
     run(app, "frame\nfocus #query\nkey End\nkey ArrowLeft\nkey ArrowLeft");
-    assertEquals("orders", CodeEditor.word(doc.text, caret(doc), caret(doc)));
-    assertEquals(null, CodeEditor.word("a.b", 1, 2), "a selection that is no word");
-    assertEquals("b", CodeEditor.word("a.b", 2, 3));
+    assertEquals("orders", CodeEditor.word(doc.text, caret(doc), caret(doc), ""));
+    assertEquals(null, CodeEditor.word("a.b", 1, 2, ""), "a selection that is no word");
+    assertEquals("b", CodeEditor.word("a.b", 2, 3, ""));
   }
 
   @Test

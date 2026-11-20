@@ -126,6 +126,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
 - Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
 - Override `formatter()` to enable **Ctrl+Alt+L** formatting: return a function from the editor's text, with line feeds only, to a `Formatted`, such as `Json::format`. For a text it cannot format, it returns the first problem, at its place in that text, instead of throwing. The cursor stays at the same token when the formatter changes only white space, as `Json::format` does. `null`, the default, means the language has no formatter, and the command does nothing.
+- Override `wordCharacters()` to name the characters that belong to a word of the language besides letters, digits and `_`, such as `"$"` for JavaScript. Ctrl+Arrow, double-click, highlighted occurrences, the word the first Ctrl+D selects, the find bar's word at the cursor and [Completion](/docs/components/completion) then take `$gt` as one word.
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
 ### Spans
