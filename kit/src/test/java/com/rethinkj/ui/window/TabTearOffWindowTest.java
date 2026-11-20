@@ -113,20 +113,22 @@ class TabTearOffWindowTest {
   @Test
   void aTabLetGoNearTheEdgeOfTheScreenOpensWhollyInTheWorkArea() {
     assumeWindows();
-    assumeTrue(Window.knowsPositions(), "Skipped: the compositor places the windows");
     try (Window a =
         Window.open("rethinkj tab tear-off test", 400, 160, Window.options().position(100, 200))) {
+      // Asked with a window open: before, SDL knows no video driver.
+      assumeTrue(Window.knowsPositions(), "Skipped: the compositor places the windows");
       Docs d = new Docs();
       d.app = new App<>(d, s -> s.view(s.groups.main()));
       WindowLoop loop = new WindowLoop(a, d.app, (scene, w, h, sc) -> {})
           .presenters(w -> (scene, wi, h, sc) -> {});
       settle();
-      int[] area = Sdl.displayBounds(Sdl.displayForRect(a.x(), a.y(), 1, 1), true);
+      int[] from = Sdl.displayBounds(Sdl.displayForRect(a.x(), a.y(), 1, 1), true);
       // 10 pixels inside the work area's bottom right corner, in the main window's pixels.
-      float right = (area[0] + area[2] - 10 - a.x()) / a.unitsPerLogical();
-      float bottom = (area[1] + area[3] - 10 - a.y()) / a.unitsPerLogical();
+      float right = (from[0] + from[2] - 10 - a.x()) / a.unitsPerLogical();
+      float bottom = (from[1] + from[3] - 10 - a.y()) / a.unitsPerLogical();
       int[] step = new int[1];
       int[] torn = new int[4];
+      int[][] area = new int[1][];
       loop.waits((millis, holdBack) -> {
         if (millis != -1) {
           return;
@@ -151,6 +153,9 @@ class TabTearOffWindowTest {
             torn[1] = b.y();
             torn[2] = b.units(b.width());
             torn[3] = b.units(b.height());
+            // Of the display it lies mostly on, which may be one beside the first.
+            area[0] =
+                Sdl.displayBounds(Sdl.displayForRect(torn[0], torn[1], torn[2], torn[3]), true);
             loop.stop();
           }
         }
@@ -158,10 +163,11 @@ class TabTearOffWindowTest {
       run(loop, () -> "b torn off and let go: " + d.log + " " + d.groups.groups());
 
       assertEquals(2, d.groups.groups().size(), "b stays in a window of its own");
-      String where = Arrays.toString(torn) + " in " + Arrays.toString(area);
-      assertTrue(torn[0] >= area[0] && torn[1] >= area[1], where);
-      assertTrue(torn[0] + torn[2] <= area[0] + area[2], "its right edge: " + where);
-      assertTrue(torn[1] + torn[3] <= area[1] + area[3], "its bottom edge: " + where);
+      int[] in = area[0];
+      String where = Arrays.toString(torn) + " in " + Arrays.toString(in);
+      assertTrue(torn[0] >= in[0] && torn[1] >= in[1], where);
+      assertTrue(torn[0] + torn[2] <= in[0] + in[2], "its right edge: " + where);
+      assertTrue(torn[1] + torn[3] <= in[1] + in[3], "its bottom edge: " + where);
     }
   }
 

@@ -685,18 +685,23 @@ public final class WindowLoop {
       }
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
+        // A window opened under the pointer during a press that came in the same pass as the
+        // release still follows it: it waits for the release of that press.
+        boolean up = pressed == null;
         for (Entry e : List.copyOf(entries)) {
           if (!e.isOpen()) {
             continue;
           }
           if (e.focusAfterPress) { // opened under the pointer, as a torn-off tab: wholly in view
-            e.window.keepInWorkArea();
+            if (up) {
+              e.window.keepInWorkArea();
+            }
           } else if (e.moved) { // the app moved it during the press, maybe off screen
             e.window.keepReachable();
           }
         }
         for (Entry e : List.copyOf(entries)) {
-          if (e.focusAfterPress) {
+          if (e.focusAfterPress && up) {
             e.focusAfterPress = false;
             e.raise(); // if it is still open: shown without the focus, it takes it now
           }
