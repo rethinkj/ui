@@ -150,10 +150,15 @@ final class Editor {
 
   /**
    * Takes the element of a new tree: its handler and settings, and its string, which is the app's
-   * answer to the edits since the last tree. Then shows the composition in its text.
+   * answer to the edits since the last tree. Then shows the composition in its text; a field that
+   * no longer takes edits ends it, as losing the focus does.
    */
   void attach(El el) {
     this.el = el;
+    if (!editable() && !composition.isEmpty()) {
+      composition = "";
+      changed = true;
+    }
     Text t = el.text();
     if (!t.multiline()) {
       lines = null;
