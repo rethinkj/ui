@@ -749,7 +749,7 @@ public final class Text implements Measure {
       int line = lineOf(underlineFrom);
       float from = x(underlineFrom);
       // A line the ellipsis left empty shows no underline either.
-      composition = lines.get(line).width() == 0
+      composition = lines.get(line).glyphs().count() == 0
           ? null
           : new Box(
               from,
