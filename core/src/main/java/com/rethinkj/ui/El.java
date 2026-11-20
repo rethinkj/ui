@@ -2300,7 +2300,7 @@ public final class El {
    *
    * <p>Only elements with a look cause a rebuild when the pointer reaches or leaves them: moving
    * the pointer over plain elements rebuilds nothing. In the rows of a virtual list ({@link #rows})
-   * the list builds only the rows that gain or lose the look, not the view.
+   * the look moves from row to row as the list builds rows anew, without a rebuild of the view.
    *
    * @param look changes the element, or null for none
    */
@@ -3776,6 +3776,22 @@ public final class El {
       float clipRight,
       float windowWidth,
       float windowHeight) {
+    return wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight, false);
+  }
+
+  /**
+   * Like {@link #wantedRows(float, float, float, float, float, float)}.
+   *
+   * @param anew whether to want the rows that a list built anew would, also when it has them
+   */
+  int[] wantedRows(
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float windowWidth,
+      float windowHeight,
+      boolean anew) {
     if (rowBuilder == null) {
       return null;
     }
@@ -3791,7 +3807,8 @@ public final class El {
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
-    if (rowsBuilt
+    if (!anew
+        && rowsBuilt
         && first >= firstRow
         && end <= firstRow + children.size()
         && (!spans || shown >= spanFrom && shownTo <= spanTo)) {

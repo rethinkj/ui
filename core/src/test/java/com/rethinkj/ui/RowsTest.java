@@ -340,7 +340,10 @@ class RowsTest {
     assertEquals(HOVER, find(app.tree(), "row-6").fill());
     assertEquals(WHITE, find(app.tree(), "row-5").fill());
     assertEquals(views, data.views, "without building the view");
-    assertEquals(List.of(5, 6), data.built, "only the row that had the look and the one under it");
+    assertEquals(
+        List.of(5, 14, 6),
+        data.built,
+        "the row with the look, a new one, the one under the pointer");
 
     app.wheel(100, 154, 0, 28); // row 7, whose handler may change what the view shows
     app.frame();

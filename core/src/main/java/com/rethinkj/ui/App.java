@@ -3949,13 +3949,10 @@ public final class App<S> {
     path.add(el);
     float left = parentX + el.x();
     float top = parentY + el.y();
-    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
-    if (range == null
-        && !relooking.isEmpty()
+    boolean relook = !relooking.isEmpty()
         && el.isVirtualList()
-        && relooking.contains(Animator.identities(path).getLast())) {
-      range = new int[] {el.firstRow(), el.firstRow() + el.children().size()}; // the rows it has
-    }
+        && relooking.contains(Animator.identities(path).getLast());
+    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height, relook);
     boolean built = range != null;
     if (el.onRowsBuilt() != null) {
       rowLists.add(Animator.identities(path).getLast());
@@ -4180,6 +4177,7 @@ public final class App<S> {
       }
       lists.add(in.listId());
     }
+    animator.present(time); // the sizes of the moment, which a rebuild's update gives
     relooking.addAll(lists);
     boolean built;
     try {
