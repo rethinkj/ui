@@ -24,18 +24,19 @@ import java.util.function.Function;
  *
  * <p>An {@link Edge} goes from a node to one it refers to, such as a table's foreign key to the
  * table it references, and the one referred to comes first: left of it, or above it {@link
- * Direction#TOP_TO_BOTTOM top to bottom}. The layout breaks cycles, puts each node in the layer
- * after the longest chain of nodes it refers to, orders the nodes of each layer so that few edges
- * cross, and places them so that most edges run straight. Nodes that no edge connects with the
- * others are packed in rows beside them; so are the {@link Options#cluster clusters}, each laid out
- * on its own.
+ * Direction#TOP_TO_BOTTOM top to bottom}. The layout breaks cycles and puts each node in the layer
+ * after the longest chain of nodes it refers to; a node that refers to none but that others refer
+ * to moves up to the layer just before the first of those. It orders the nodes of each layer so
+ * that few edges cross, and places them so that most edges run straight. Nodes that no edge
+ * connects with the others are packed in rows beside them; so are the {@link Options#cluster
+ * clusters}, each laid out on its own.
  *
- * <p>A {@link Node#pinned pinned} node stays where it is, and the others are placed around it: the
- * layout is moved so that pinned nodes lie where it would put them, and a node that would overlap
- * one moves past it, down a layer from left to right or right of it from top to bottom. A layout
- * without pins starts at the diagram's origin. The places of unpinned nodes going in do not matter,
- * so that arranging twice gives the same as once, and the same input always gives the same
- * output.
+ * <p>A {@link Node#pinned pinned} node stays where it is, and the others are placed around it: each
+ * cluster is moved so that its pinned nodes lie where it would put them, and a node that would
+ * overlap one moves past it along its layer, down from left to right and right from top to bottom.
+ * A layout without pins starts at the diagram's origin. The places of unpinned nodes going in do
+ * not matter, so that arranging twice gives the same as once, and the same input always gives the
+ * same output.
  */
 public final class LayeredLayout {
 
@@ -110,7 +111,8 @@ public final class LayeredLayout {
     /**
      * The cluster of each node, such as a table's schema: each cluster is laid out on its own, only
      * with the edges inside it, and the clusters are packed in rows in the order they first occur
-     * among the nodes. Null, from all nodes by default, is a cluster too.
+     * among the nodes. Null, from all nodes by default, is a cluster too. It must not depend on a
+     * node's place, or arranging again moves nodes from one cluster to another.
      */
     public Options cluster(Function<Node, String> cluster) {
       this.cluster = Objects.requireNonNull(cluster, "cluster");
@@ -287,9 +289,9 @@ public final class LayeredLayout {
     }
 
     /**
-     * Moves the layout so that the pinned nodes lie where it put them, by the median of their
-     * offsets, puts them back where they are, and moves each unpinned node that overlaps one, or
-     * one placed before it, past it.
+     * Moves each cluster so that its pinned nodes lie where it put them, by the median of their
+     * offsets, and a cluster without any by the median of all; puts the pinned nodes back where
+     * they are, and moves each unpinned node that overlaps one, or one placed before it, past it.
      */
     private void keepPins() {
       List<Integer> pinned = new ArrayList<>();
@@ -301,15 +303,17 @@ public final class LayeredLayout {
       if (pinned.isEmpty()) {
         return;
       }
-      double[] dx = new double[pinned.size()];
-      double[] dy = new double[pinned.size()];
-      for (int k = 0; k < pinned.size(); k++) {
-        int i = pinned.get(k);
-        dx[k] = nodes.get(i).x() - boxes[i].x();
-        dy[k] = nodes.get(i).y() - boxes[i].y();
+      double[] all = shift(pinned);
+      double[][] shifts = new double[clusters.size()][];
+      for (int c = 0; c < clusters.size(); c++) {
+        List<Integer> own = new ArrayList<>();
+        for (int i : clusters.get(c)) {
+          if (nodes.get(i).pinned()) {
+            own.add(i);
+          }
+        }
+        shifts[c] = own.isEmpty() ? all : shift(own);
       }
-      double shiftX = median(dx);
-      double shiftY = median(dy);
       List<Box> obstacles = new ArrayList<>();
       List<Integer> free = new ArrayList<>();
       for (int i = 0; i < nodes.size(); i++) {
@@ -318,7 +322,8 @@ public final class LayeredLayout {
           boxes[i] = new Box(node.x(), node.y(), node.width(), node.height());
           obstacles.add(boxes[i]);
         } else {
-          boxes[i] = boxes[i].at(boxes[i].x() + shiftX, boxes[i].y() + shiftY);
+          double[] shift = shifts[clusterOf[i]];
+          boxes[i] = boxes[i].at(boxes[i].x() + shift[0], boxes[i].y() + shift[1]);
           free.add(i);
         }
       }
@@ -331,10 +336,23 @@ public final class LayeredLayout {
       }
     }
 
+    /** The median offset of these pinned nodes from where the layout put them. */
+    private double[] shift(List<Integer> pinned) {
+      double[] dx = new double[pinned.size()];
+      double[] dy = new double[pinned.size()];
+      for (int k = 0; k < pinned.size(); k++) {
+        int i = pinned.get(k);
+        dx[k] = nodes.get(i).x() - boxes[i].x();
+        dy[k] = nodes.get(i).y() - boxes[i].y();
+      }
+      return new double[] {median(dx), median(dy)};
+    }
+
     /** The box moved along the cross axis until no obstacle is nearer than the smallest gap. */
     private Box clear(Box box, List<Box> obstacles) {
-      double margin =
-          Math.min(options.nodeGap, Math.min(options.layerGap, options.clusterGap)) - EPSILON;
+      // A little less than the smallest gap, for the rounding of the layout, but never an overlap.
+      double margin = Math.max(
+          0, Math.min(options.nodeGap, Math.min(options.layerGap, options.clusterGap)) - EPSILON);
       Box at = box;
       boolean moved = true;
       while (moved) {
@@ -395,6 +413,10 @@ public final class LayeredLayout {
     final List<Integer> layering = new ArrayList<>();
     final List<List<Integer>> joinedBefore = new ArrayList<>();
     final List<List<Integer>> joinedAfter = new ArrayList<>();
+    // The shared bends of the long arcs from a node, by layer after it, and to a node, by layer
+    // before it.
+    final Map<Integer, List<Integer>> bendsAfter = new HashMap<>();
+    final Map<Integer, List<Integer>> bendsBefore = new HashMap<>();
     int[] layerOf;
     int[][] before;
     int[][] after;
@@ -416,9 +438,7 @@ public final class LayeredLayout {
       for (int v = 0; v < size; v++) {
         addVertex(layer[v]);
       }
-      for (int[] arc : arcs) {
-        connect(arc[0], arc[1]);
-      }
+      connectAll(arcs);
       freeze();
       order();
       placeAcross();
@@ -538,15 +558,57 @@ public final class LayeredLayout {
       return layering.size() - 1;
     }
 
-    /** Connects two vertices through a bend in each layer between them. */
-    private void connect(int from, int to) {
+    /**
+     * Connects each arc's ends through a bend in each layer between them. The long arcs of a node
+     * share their bends, on the end with more of them, so that a node that many others refer to
+     * from far away, or that refers to many, costs a bend per layer, not one per edge and layer.
+     */
+    private void connectAll(List<int[]> arcs) {
+      int[] longOut = new int[size];
+      int[] longIn = new int[size];
+      for (int[] arc : arcs) {
+        if (layering.get(arc[1]) - layering.get(arc[0]) > 1) {
+          longOut[arc[0]]++;
+          longIn[arc[1]]++;
+        }
+      }
+      for (int[] arc : arcs) {
+        if (longOut[arc[0]] >= longIn[arc[1]]) {
+          connectDown(arc[0], arc[1]);
+        } else {
+          connectUp(arc[0], arc[1]);
+        }
+      }
+    }
+
+    private void connectDown(int from, int to) {
+      List<Integer> shared = bendsAfter.computeIfAbsent(from, vertex -> new ArrayList<>());
       int at = from;
-      for (int layer = layering.get(from) + 1; layer < layering.get(to); layer++) {
-        int bend = addVertex(layer);
-        link(at, bend);
-        at = bend;
+      int span = layering.get(to) - layering.get(from) - 1;
+      for (int k = 0; k < span; k++) {
+        if (k == shared.size()) {
+          int bend = addVertex(layering.get(from) + 1 + k);
+          link(at, bend);
+          shared.add(bend);
+        }
+        at = shared.get(k);
       }
       link(at, to);
+    }
+
+    private void connectUp(int from, int to) {
+      List<Integer> shared = bendsBefore.computeIfAbsent(to, vertex -> new ArrayList<>());
+      int at = to;
+      int span = layering.get(to) - layering.get(from) - 1;
+      for (int k = 0; k < span; k++) {
+        if (k == shared.size()) {
+          int bend = addVertex(layering.get(to) - 1 - k);
+          link(bend, at);
+          shared.add(bend);
+        }
+        at = shared.get(k);
+      }
+      link(from, at);
     }
 
     private void link(int from, int to) {

@@ -109,11 +109,9 @@ class LayeredLayoutTest {
         new Edge("stock.items", "stock.products"),
         new Edge("sales.orders", "stock.products"));
 
-    List<Node> arranged = LayeredLayout.arrange(
-        nodes,
-        edges,
-        LayeredLayout.options()
-            .cluster(node -> node.key().substring(0, node.key().indexOf('.'))));
+    LayeredLayout.Options bySchema = LayeredLayout.options()
+        .cluster(node -> node.key().substring(0, node.key().indexOf('.')));
+    List<Node> arranged = LayeredLayout.arrange(nodes, edges, bySchema);
     // Each cluster is one layered row, without the edge between them; the second is below the
     // first, a cluster gap after it.
     assertEquals(0, at(arranged, "sales.customers").x());
@@ -122,6 +120,15 @@ class LayeredLayoutTest {
     assertEquals(0, at(arranged, "stock.products").x());
     assertEquals(180, at(arranged, "stock.items").x());
     assertEquals(40 + 96, at(arranged, "stock.items").y());
+
+    // With a pin in each, each cluster follows its own.
+    List<Node> pinned = new ArrayList<>(nodes);
+    pinned.set(2, at(nodes, "sales.customers").movedTo(0, 0));
+    pinned.set(3, at(nodes, "stock.products").movedTo(460, 0));
+    List<Node> around = LayeredLayout.arrange(pinned, edges, bySchema);
+    assertEquals(180, at(around, "sales.orders").x());
+    assertEquals(640, at(around, "stock.items").x());
+    assertEquals(0, at(around, "stock.items").y());
   }
 
   @Test
