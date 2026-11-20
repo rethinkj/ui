@@ -3567,8 +3567,12 @@ public final class El {
     return coverX;
   }
 
-  /** How much of the bottom of this scroll area the strips of horizontal bars cover. */
-  float coverY() {
+  /**
+   * How much of the bottom of this scroll area the strips of horizontal bars cover, in logical
+   * pixels as the last layout placed them, 0 where none does: the content scrolls that much
+   * further, so that its end shows above them, and a row under them is not wholly in view.
+   */
+  public float coverY() {
     return coverY;
   }
 

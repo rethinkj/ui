@@ -1308,10 +1308,11 @@ public final class DataGrid {
     }
 
     /**
-     * The first row wholly in view in the grid built with it, as the last frame showed it: with
-     * {@link #lastRowInView} what a status line shows as "Rows 201–223", and where a button that
-     * goes a page back or on scrolls ({@link #scrollToRow}). Reading it builds nothing: a view
-     * shows the rows in view as of its build.
+     * The first row wholly in view in the grid built with it, as the last frame showed it, or as
+     * the view's build scrolled it, for a status line built after the grid: with {@link
+     * #lastRowInView} what it shows as "Rows 201–223", and where a button that goes a page back or
+     * on scrolls ({@link #scrollToRow}). A row partly under the bar along the bottom is not whole.
+     * Reading it builds nothing: a view shows the rows in view as of its build.
      *
      * @return the row, from 0; -1 before the grid was laid out, without rows, or where no row
      *     fits whole
@@ -1321,7 +1322,7 @@ public final class DataGrid {
     }
 
     /**
-     * The last row wholly in view in the grid built with it, as the last frame showed it; see
+     * The last row wholly in view in the grid built with it, as {@link #firstRowInView} tells; see
      * {@link #firstRowInView}. The row a grid appends ({@link Options#appendRow}) counts as
      * one beyond the app's last.
      *
@@ -1332,18 +1333,23 @@ public final class DataGrid {
       return inView()[1];
     }
 
-    /** The first and the last row wholly in view, or -1 and -1 for none. */
+    /**
+     * The first and the last row wholly in view, or -1 and -1 for none: at the offset the rows
+     * have, or that the build of the view gave them before layout, as the rows of the last frame
+     * are high and covered by a bar along their bottom.
+     */
     private int[] inView() {
       int[] none = {-1, -1};
-      El list = rows != null && !rows.isPlaced() && rowsBefore != null ? rowsBefore : rows;
-      if (list == null || !list.isPlaced() || list.rowCount() == 0) {
+      El placed = rows != null && rows.isPlaced() ? rows : rowsBefore;
+      if (rows == null || placed == null || !placed.isPlaced() || rows.rowCount() == 0) {
         return none;
       }
-      double high = list.rowHeight();
-      double top = list.scrollY();
+      double high = rows.rowHeight();
+      double view = placed.height() - placed.coverY();
+      double end = rows.rowCount() * high + placed.coverY() - placed.height();
+      double top = Math.clamp(rowsScroll.y(), 0, Math.max(0, end)); // as the rows will clamp it
       long first = (long) Math.ceil(top / high);
-      long last =
-          Math.min((long) Math.floor((top + list.height()) / high) - 1, list.rowCount() - 1L);
+      long last = Math.min((long) Math.floor((top + view) / high) - 1, rows.rowCount() - 1L);
       return last < first ? none : new int[] {(int) first, (int) last};
     }
 

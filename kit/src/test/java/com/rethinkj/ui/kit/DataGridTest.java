@@ -169,7 +169,7 @@ class DataGridTest {
     run(app, "key Tab\nframe");
     DataGrid.Selection selection = orders.selection;
     assertEquals(0, selection.firstRowInView());
-    assertEquals(PAGE - 1, selection.lastRowInView());
+    assertEquals(PAGE - 2, selection.lastRowInView(), "row 7 is partly under the bar sideways");
 
     selection.scrollToRow(500_000);
     app.invalidate();
@@ -178,7 +178,7 @@ class DataGridTest {
     assertEquals(500_000 - El.OVERSCAN, rows.firstRow(), "the overscan above it, then the row");
     assertEquals(500_000 * 24.0, rows.scrollY(), "the row at the top");
     assertEquals(500_000, selection.firstRowInView());
-    assertEquals(500_000 + PAGE - 1, selection.lastRowInView());
+    assertEquals(500_000 + PAGE - 2, selection.lastRowInView());
     for (int i = 0; i < 2; i++) {
       app.invalidate();
       app.frame();
@@ -209,6 +209,30 @@ class DataGridTest {
     assertEquals(1_000_000 * 24.0 + 10 - rows.height(), rows.scrollY(), "as far as the end goes");
     assertEquals(999_999, selection.lastRowInView());
     assertEquals(999_993, selection.firstRowInView(), "above the 10 pixels for the bar sideways");
+  }
+
+  @Test
+  void aViewReadsTheRowsInViewThatItsBuildScrollsTo() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    int[] read = new int[3];
+    App<Orders> app = new App<>(orders, o -> {
+          El grid = o.grid().key("orders").grow(1);
+          read[0] = o.selection.firstRowInView(); // as a status line below the grid reads them
+          read[1] = o.selection.lastRowInView();
+          read[2]++;
+          return col().wFull().hFull().children(grid);
+        })
+        .provide(Theme.CURRENT, o -> o.theme);
+    run(app, "frame");
+    orders.selection.scrollToRow(200);
+    app.invalidate();
+    app.frame();
+    int builds = read[2];
+    app.frame();
+    assertEquals(builds, read[2], "nothing builds the view again");
+    assertEquals(orders.selection.firstRowInView(), read[0]);
+    assertEquals(orders.selection.lastRowInView(), read[1]);
+    assertEquals(200, read[0]);
   }
 
   @Test

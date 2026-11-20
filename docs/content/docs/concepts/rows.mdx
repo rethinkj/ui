@@ -29,6 +29,7 @@ description: Render lists of up to a million rows efficiently using virtual scro
 | `scrollState(ScrollState)` | Preserves scroll position across view switches |
 | `scrollbars(theme.scrollbars())` | Adds draggable scrollbars |
 | `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |
+| `coverY()` | After layout, how much of the list's bottom a horizontal scrollbar covers |
 
 Give the list a height (or `grow(1)`) and give each row a key (such as `row-<index>`). In headless scripts, scroll to a row before clicking it (`scroll #rows row 765432`), since only built rows appear in the tree.
 
