@@ -24,7 +24,7 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 
 ## JSON
 
-`Json.of()` highlights JSON as RFC 8259 defines it: member names, strings, numbers, `true`, `false` and `null`, and brackets, where only the brackets outside strings are matched. Member names take the `property` color of `Theme.Code`. Invalid JSON is colored as far as it goes. JSON has no comments, so Ctrl+/ does nothing.
+`Json.of()` highlights JSON as RFC 8259 defines it: member names, strings, numbers, `true`, `false` and `null`, and brackets, where only the brackets outside strings are matched. A member name takes the `property` color of `Theme.Code` when its colon is on the same line. Invalid JSON is colored as far as it goes. JSON has no comments, so Ctrl+/ does nothing.
 
 `Json` is in its own module, `rethinkj-ui-json`, in the package `com.rethinkj.ui.json`:
 
