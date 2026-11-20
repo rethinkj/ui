@@ -428,8 +428,10 @@ public final class Find {
     if (fieldKey(app, state, k)) {
       return true;
     }
-    // The editor's own commands act on the editor, not on the bar's fields.
-    return mods != 0 && CodeEditor.command(k) != null;
+    // The editor's own commands act on the editor, not on the bar's fields; Control+Alt+L, which
+    // the editor takes only where it formats, stays the app's.
+    CodeEditor.Command command = CodeEditor.command(k);
+    return mods != 0 && command != null && command != CodeEditor.Command.FORMAT;
   }
 
   /** The query or a switch changed: the search starts again from where the bar opened. */
