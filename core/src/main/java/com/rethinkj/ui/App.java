@@ -439,10 +439,17 @@ public final class App<S> {
     return false;
   }
 
-  /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
+  /**
+   * The pointer left the window: from the next {@link #frame} on, nothing is hovered, and the drop
+   * handler of this window that a drag rests over gets {@link Drop.Phase#LEAVE}.
+   */
   public void pointerLeave() {
     enqueue(() -> {
       pointerIn = false;
+      Dragging d = dragging;
+      if (resting(d) && d.overApp == this) { // no OVER again where the pointer was
+        drop(d, Drag.Phase.MOVE, null, Float.NaN, Float.NaN);
+      }
       return false;
     });
   }
@@ -976,6 +983,7 @@ public final class App<S> {
     final float y;
     boolean started; // moved beyond the threshold
     boolean over; // ended or cancelled, in the frames that ran its steps
+    double at; // the time of its last step, or of the last OVER repeated while it rests
     float dx; // the distance of the last step
     float dy;
 
@@ -997,6 +1005,7 @@ public final class App<S> {
   private boolean step(Dragging d, Drag.Phase phase, float dx, float dy) {
     d.dx = dx;
     d.dy = dy;
+    d.at = time;
     if (d.over) {
       return false;
     }
@@ -1011,15 +1020,9 @@ public final class App<S> {
     float px = d.x + dx;
     float py = d.y + dy;
     boolean outside = !(px >= 0 && py >= 0 && px < width && py < height);
-    Windows.Place place = windows.place(this, px, py);
-    if (place == null) { // no runner: this window alone, at the origin of the screen
-      place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
-    }
+    Windows.Place place = place(px, py, outside);
     if (d.payload != null) {
-      App<?> over = place.window() != null
-          ? place.window().app()
-          : windows.of(this) == null && !outside ? this : null;
-      drop(d, now, over, place.x(), place.y());
+      drop(d, now, over(place, outside), place.x(), place.y());
     }
     d.handler.accept(new Drag(
         now,
@@ -1035,6 +1038,45 @@ public final class App<S> {
         place.window() == null ? Float.NaN : place.y()));
     handled = true;
     return true;
+  }
+
+  /** Where a point of this window lies among the runner's windows. */
+  private Windows.Place place(float px, float py, boolean outside) {
+    Windows.Place place = windows.place(this, px, py);
+    if (place == null) { // no runner: this window alone, at the origin of the screen
+      place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
+    }
+    return place;
+  }
+
+  /** The app of the window under a drag's pointer, or null. */
+  private App<?> over(Windows.Place place, boolean outside) {
+    return place.window() != null
+        ? place.window().app()
+        : windows.of(this) == null && !outside ? this : null;
+  }
+
+  /**
+   * Whether a drag rests over a drop handler, with its next {@link Drop.Phase#OVER} due at {@code
+   * at} plus {@link Drop#REPEAT}.
+   */
+  private static boolean resting(Dragging d) {
+    return d != null && d.started && !d.over && d.overApp != null;
+  }
+
+  /** Tells the drop handler a drag rests over that the pointer is still there, if it is due. */
+  private boolean repeat(Dragging d) {
+    if (d != dragging || !resting(d) || time < d.at + Drop.REPEAT) {
+      return false; // it moved, ended or left since
+    }
+    d.at = time;
+    float px = d.x + d.dx;
+    float py = d.y + d.dy;
+    boolean outside = !(px >= 0 && py >= 0 && px < width && py < height);
+    Windows.Place place = place(px, py, outside);
+    drop(d, Drag.Phase.MOVE, over(place, outside), place.x(), place.y());
+    handled = true; // as after a step: the handler, maybe another window's, may change the state
+    return false;
   }
 
   /**
@@ -1057,7 +1099,7 @@ public final class App<S> {
       d.overApp = null;
       d.overId = null;
       d.overHandler = null;
-      left.accept(new Drop(Drop.Phase.LEAVE, d.payload, Double.NaN, Double.NaN));
+      left.accept(new Drop(Drop.Phase.LEAVE, d.payload, Double.NaN, Double.NaN, from.time));
       from.touched();
     }
     if (target != null) {
@@ -1069,7 +1111,8 @@ public final class App<S> {
         d.overId = id;
         d.overHandler = handler;
       }
-      handler.accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, d.payload, at[0], at[1]));
+      handler.accept(
+          new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, d.payload, at[0], at[1], over.time));
       over.touched();
     }
   }
@@ -1547,7 +1590,7 @@ public final class App<S> {
     target
         .el
         .onFileDrop()
-        .accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, payload, at[0], at[1]));
+        .accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, payload, at[0], at[1], time));
     handled = true;
     return true;
   }
@@ -1560,7 +1603,7 @@ public final class App<S> {
     if (left == null) {
       return false;
     }
-    left.accept(new Drop(Drop.Phase.LEAVE, null, Double.NaN, Double.NaN));
+    left.accept(new Drop(Drop.Phase.LEAVE, null, Double.NaN, Double.NaN, time));
     handled = true;
     return true;
   }
@@ -1651,8 +1694,9 @@ public final class App<S> {
   /**
    * The time on the app's clock at which the last frame changes without input or movement: when
    * the caret of the focused field turns on or off, when the pointer will have rested long enough
-   * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
-   * an action asked for with {@link #after} is due; the current time while the last frame showed
+   * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, when
+   * an action asked for with {@link #after} is due, or when a drag that rests over a drop handler
+   * tells it again ({@link Drop#REPEAT}); the current time while the last frame showed
    * an element with an {@link El#cycle} or left rows to build that the measured heights of a list
    * ({@link El#rows(int, RowHeights, java.util.function.IntFunction)}) show. Positive infinity when nothing will; then an
    * idle window can wait for input alone.
@@ -1669,6 +1713,9 @@ public final class App<S> {
     }
     if (!timers.isEmpty()) {
       next = Math.min(next, timers.peek().at());
+    }
+    if (resting(dragging)) {
+      next = Math.min(next, dragging.at + Drop.REPEAT);
     }
     if (blinking == null || !active) {
       return next;
@@ -1711,7 +1758,10 @@ public final class App<S> {
     }
   }
 
-  /** Queues the actions of {@link #after} that are due, as tasks, after what is queued. */
+  /**
+   * Queues the actions of {@link #after} that are due, as tasks, after what is queued, and the
+   * repeated {@link Drop.Phase#OVER} of a drag that rests over a drop handler.
+   */
   private void takeDue() {
     while (!timers.isEmpty() && timers.peek().at() <= time) {
       Runnable action = timers.poll().action();
@@ -1720,6 +1770,10 @@ public final class App<S> {
         action.run();
         return true;
       });
+    }
+    Dragging d = dragging;
+    if (resting(d) && time >= d.at + Drop.REPEAT) {
+      queued.add(() -> repeat(d)); // after the input, which may move it on
     }
   }
 

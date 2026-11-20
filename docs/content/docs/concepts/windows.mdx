@@ -39,6 +39,8 @@ It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html)
 
 Attach `El.dragPayload(object)` to a draggable element (`onDrag`) and `El.onDrop(drop -> …)` to drop targets in any window (`OVER`, `LEAVE`, and `DROP` phases). Each `Drag` event includes screen coordinates, `outside()` (whether the pointer left the origin window), and which window is currently under the cursor — allowing tear-off windows to follow the mouse. A window opened with `Window.Options.underPointer()` during the drag moves fully into the work area of its display when the drag ends (not on Wayland), so one let go near an edge of the screen keeps its close button within reach, unless its minimum size is larger than the work area. A window that only follows the pointer with its last tab keeps just its title bar on the screen, as a system title bar does.
 
+While the pointer rests over a drop target, the target gets `OVER` again every `Drop.REPEAT` seconds (0.05) of the app clock, and `Drop.time()` gives that clock. A target uses it to open what the pointer rests on, or to scroll while the pointer waits near its edge; a script repeats it with `advance` and `frame`.
+
 To accept files or text dragged from external applications, use `El.onFileDrop`.
 
 ## Platform notes

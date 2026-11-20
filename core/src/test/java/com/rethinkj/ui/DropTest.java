@@ -18,6 +18,7 @@ class DropTest {
   static final class Slots {
     int chip; // the slot that holds the chip
     final List<String> log = new ArrayList<>();
+    final List<Double> times = new ArrayList<>();
     final List<Drag> drags = new ArrayList<>();
   }
 
@@ -28,6 +29,7 @@ class DropTest {
         int slot = i;
         El box = el().key("slot-" + i).size(100, 100).onDrop(d -> {
           s.log.add(slot + " " + d.phase() + (Double.isNaN(d.x()) ? "" : " " + (int) d.x()));
+          s.times.add(d.time());
           if (d.phase() == Drop.Phase.DROP && d.payload().equals("chip")) {
             s.chip = slot;
           }
@@ -65,6 +67,27 @@ class DropTest {
     assertEquals(250, end.screenX(), "without a runner, the place in the window");
     assertFalse(end.outside());
     assertNull(end.window(), "no runner, no window");
+  }
+
+  @Test
+  void aDragThatRestsOverATargetTellsItAgainOnTheClock() {
+    App<Slots> app = slots();
+    Slots s = app.state();
+    app.pointerDown(10, 10);
+    app.pointerMove(150, 10);
+    app.frame();
+    assertEquals(Drop.REPEAT, app.nextChange(), "an idle window wakes for it");
+    app.advance(Drop.REPEAT / 2);
+    app.frame(); // not due yet
+    app.advance(Drop.REPEAT / 2);
+    app.frame();
+    assertEquals(List.of("1 OVER 50", "1 OVER 50"), s.log);
+    assertEquals(List.of(0.0, Drop.REPEAT), s.times);
+    assertEquals(1, s.drags.size(), "the drag's own handler only gets the steps of the pointer");
+    app.pointerLeave(); // out of the window
+    app.frame();
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing to repeat outside");
+    assertEquals(List.of("1 OVER 50", "1 OVER 50", "1 LEAVE"), s.log);
   }
 
   @Test
