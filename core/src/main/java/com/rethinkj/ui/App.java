@@ -183,13 +183,16 @@ public final class App<S> {
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
   // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
   private final List<BooleanSupplier> follow = new ArrayList<>();
-  // The El#onResize handlers the last layout told a new size, which rebuild runs before the frame
-  // draws, and how many times a frame builds again for them; those of later rounds wait here for
-  // the next frame's first round.
-  private final List<BooleanSupplier> resized = new ArrayList<>();
+  // The El#onResize handlers the last layout told a new size, by the element's identity, which
+  // rebuild runs before the frame draws, and how many times a frame builds again for them. What
+  // they ask for, such as a focus, runs first in the next frame, in the order asked.
+  private final Map<Object, BooleanSupplier> resized = new LinkedHashMap<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
-  private boolean resizeDue; // a build before the frame's last gave other sizes, not told
+  private final List<BooleanSupplier> asked = new ArrayList<>();
+  // A build before the frame's last gave other sizes, or a view did not settle: the next rebuild
+  // tells them.
+  private boolean resizeDue;
   // What post() took on any thread, until the app's thread moves it into queued.
   private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
   private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
@@ -1618,7 +1621,7 @@ public final class App<S> {
    * few times at most), so that what they change shows in the same step instead of one step late.
    */
   public boolean handlersWaiting() {
-    return !queued.isEmpty() || !resized.isEmpty();
+    return !queued.isEmpty() || resizeDue;
   }
 
   /**
@@ -1631,7 +1634,7 @@ public final class App<S> {
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (!queued.isEmpty() || !resized.isEmpty() || cycling || rowsWanted) {
+    if (!queued.isEmpty() || resizeDue || cycling || rowsWanted) {
       // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, or rows that the
       // measured heights of a list show and the last frame had no passes left for
       return time;
@@ -3113,7 +3116,6 @@ public final class App<S> {
   public boolean frame() {
     frames++;
     resizeRounds = 0;
-    resizeDue = false;
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -3162,7 +3164,7 @@ public final class App<S> {
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
-    stale |= resizeDue || !resized.isEmpty(); // sizes changed in the input or the last frame
+    stale |= resizeDue; // sizes changed in the input, or a view has not settled
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -3182,14 +3184,21 @@ public final class App<S> {
       // Twice when the first build moved other elements under the still pointer, as a key that
       // scrolls a list does, or an onHoverFor handler ran: the looks are those of what the
       // pointer is over in the tree on screen.
-      for (int pass = 0; pass < 2 && stale; pass++) {
-        rebuild();
-        // A caret that the app's string moved, or of a new field: its handler is told, once.
-        if (tellSelections()) {
+      try {
+        for (int pass = 0; pass < 2 && stale; pass++) {
           rebuild();
+          // A caret that the app's string moved, or of a new field: its handler is told, once.
+          if (tellSelections()) {
+            rebuild();
+          }
+          List<El> path = pointed();
+          stale = !wanted(path, Animator.identities(path)).equals(shown);
         }
-        List<El> path = pointed();
-        stale = !wanted(path, Animator.identities(path)).equals(shown);
+      } finally {
+        for (int i = asked.size() - 1; i >= 0; i--) {
+          queued.addFirst(asked.get(i)); // first in the next frame, as after their handler
+        }
+        asked.clear();
       }
       stale = false;
       drawn = true;
@@ -3231,37 +3240,35 @@ public final class App<S> {
    * the tree as it was shown.
    */
   private void rebuild() {
+    resizeDue = false;
     build(false, true);
-    List<BooleanSupplier> asked = new ArrayList<>(); // what the handlers asked for, in order
-    try {
-      while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
-        resizeRounds++;
-        tellResized(asked);
-        build(false, true);
-      }
-    } finally {
-      for (int i = asked.size() - 1; i >= 0; i--) {
-        queued.addFirst(asked.get(i)); // first in the next frame
-      }
+    while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+      resizeRounds++;
+      tellResized();
+      build(false, true);
     }
-    // A view that has not settled keeps them in resized: the next frame's first round.
+    if (!resized.isEmpty()) { // not settled: the next frame's last build tells them from its tree
+      toldSizes.keySet().removeAll(resized.keySet());
+      resized.clear();
+      resizeDue = true;
+    }
   }
 
-  /** Runs the handlers in {@link #resized} as handlers of input, and what they ask for later. */
-  private void tellResized(List<BooleanSupplier> asked) {
-    ArrayDeque<BooleanSupplier> told = new ArrayDeque<>(resized);
+  /** Runs the handlers in {@link #resized} as handlers of input; what they ask for waits. */
+  private void tellResized() {
+    Map<Object, BooleanSupplier> told = new LinkedHashMap<>(resized);
     resized.clear();
     dispatching = true;
     try {
-      while (!told.isEmpty()) {
-        told.poll().getAsBoolean();
+      for (BooleanSupplier handler : told.values()) {
+        handler.getAsBoolean();
       }
     } catch (RuntimeException | Error e) {
       handled = true; // as in frame: the next input gets a tree built anew
+      toldSizes.keySet().removeAll(told.keySet()); // the next build tells them again
       throw e;
     } finally {
       dispatching = false;
-      resized.addAll(told); // those after one that threw
       asked.addAll(follow);
       follow.clear();
     }
@@ -3293,11 +3300,10 @@ public final class App<S> {
     Overlays.layout(root, width, height);
     // The sizes layout gave, before motion takes them along; an element that left is forgotten.
     Map<Object, Long> sizes = new HashMap<>();
-    int told = resized.size();
     tellSizes(root, new ArrayList<>(), sizes);
     if (!last) { // the input after it may change the tree: the last build tells from its own
       resizeDue |= !sizes.equals(toldSizes); // also an element that left, to be forgotten
-      resized.subList(told, resized.size()).clear();
+      resized.clear();
     } else {
       toldSizes = sizes;
     }
@@ -3959,7 +3965,7 @@ public final class App<S> {
       sizes.put(id, size);
       Long before = toldSizes.get(id);
       if (before == null || before != size) {
-        resized.add(() -> {
+        resized.put(id, () -> {
           handler.accept(w, h);
           handled = true;
           return true;
