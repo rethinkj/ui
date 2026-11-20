@@ -736,7 +736,7 @@ public final class Script {
     boolean sized;
     boolean open = true;
     boolean fresh; // opened since the last frame step
-    boolean shown; // a frame step has drawn it
+    boolean told; // a frame step has drawn it and queued its onShown handler
     boolean dropTarget = true;
     Runnable onClose;
     Runnable onClosed;
@@ -851,9 +851,7 @@ public final class Script {
     @Override
     public void onShown(Runnable handler) {
       onShown = handler;
-      if (shown && handler != null) {
-        app.request(handler);
-      }
+      told = false; // queued at the end of the next frame step, as a loop's in its next frame
     }
 
     @Override
@@ -1079,8 +1077,8 @@ public final class Script {
       }
       // Every open window has drawn now; it shows, so its handler runs in the next frame step.
       for (Win w : open()) {
-        if (!w.shown) {
-          w.shown = true;
+        if (!w.told) {
+          w.told = true;
           if (w.onShown != null) {
             w.app.request(w.onShown);
           }

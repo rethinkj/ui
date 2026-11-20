@@ -301,7 +301,10 @@ class WindowsScriptTest {
     Script.run("frame\nframe", app, out);
     assertEquals(List.of("main", "A"), told);
 
-    a.onShown(() -> told.add("late")); // the window shows already
+    // From a handler of the frame after A has shown: in A's next frame, as in a loop.
+    a.app().request(() -> a.onShown(() -> told.add("late")));
+    Script.run("frame", app, out);
+    assertEquals(List.of("main", "A"), told);
     Script.run("frame", app, out);
     assertEquals(List.of("main", "A", "late"), told);
   }
