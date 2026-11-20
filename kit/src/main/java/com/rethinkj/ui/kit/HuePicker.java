@@ -98,11 +98,15 @@ public final class HuePicker {
       }
       return true;
     });
-    // Holds the focus in the row, also after a press on the panel around it.
-    return button.overlay(Popover.panel(state, Texts.CURRENT.get().color(), row)
-        .keepFocus()
-        .holdFocus()
-        .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
+    // Holds the focus in the row, also after a press on the panel around it; in one group with
+    // the button, whose press closes it once, also in a dialog.
+    return button
+        .dismissGroup(state)
+        .overlay(Popover.panel(state, Texts.CURRENT.get().color(), row)
+            .keepFocus()
+            .holdFocus()
+            .dismissGroup(state)
+            .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
   }
 
   /** A picker of the value of a {@link Prop}; a prop that cannot be written disables it. */

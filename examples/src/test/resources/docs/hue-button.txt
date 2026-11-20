@@ -31,8 +31,3 @@ frame
 key ArrowRight
 frame
 snap padding
-press role=button label="Color"
-frame
-advance 0.3
-frame
-snap repressed
