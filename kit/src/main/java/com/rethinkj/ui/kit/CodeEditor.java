@@ -327,9 +327,9 @@ public final class CodeEditor {
      */
     private List<Diagnostic> diagnosticsOf(String value) {
       if (problem != null && !value.equals(problemOf)) { // at once for the same string object
+        shown = shown == problem.from() ? -1 : shown; // its message goes, not on to another
         problem = null;
         problemOf = null;
-        shown = -1; // its message goes with it, not on to a diagnostic at the same place
       }
       List<Diagnostic> about = aboutValue(value);
       if (problem == null) {
@@ -473,8 +473,9 @@ public final class CodeEditor {
         return true;
       }
       Command command = command(k);
-      if (command == null || (command == Command.FORMAT && state.formatter == null)) {
-        return false; // Control+Alt+L stays the app's where the language has no formatter
+      boolean formats = state.formatter != null && editor.onEdit() != null && !editor.isReadOnly();
+      if (command == null || (command == Command.FORMAT && !formats)) {
+        return false; // Control+Alt+L stays the app's where the editor cannot format
       }
       run(app, state, command);
       return true;
@@ -787,6 +788,9 @@ public final class CodeEditor {
       return null;
     }
     Formatted formatted = state.formatter.apply(text);
+    if (formatted.valid() && formatted.text().equals(text)) {
+      return null;
+    }
     int max = editor.maxLength();
     if (formatted.valid()
         && max >= 0
@@ -796,14 +800,12 @@ public final class CodeEditor {
     }
     if (formatted.valid()) {
       String to = formatted.text();
-      return to.equals(text)
-          ? null
-          : new LineEdits.Edit(
-              0,
-              text.length(),
-              to,
-              same(text, to, caret, caret <= anchor),
-              same(text, to, anchor, anchor <= caret));
+      return new LineEdits.Edit(
+          0,
+          text.length(),
+          to,
+          same(text, to, caret, caret <= anchor),
+          same(text, to, anchor, anchor <= caret));
     }
     int at = Math.min(formatted.problem().from(), text.length());
     state.problem = formatted.problem();
@@ -818,10 +820,9 @@ public final class CodeEditor {
   /**
    * Where position {@code at} of {@code text} is in {@code formatted}, the same characters with
    * other white space between some of them: at its place in white space that stayed as it was,
-   * such as in a string; else right after the character before it that is not white space, where
-   * white space only follows {@code at}, and right before the next one, where white space only
-   * precedes it; between two such characters, or inside white space, before the next one if
-   * {@code after}.
+   * such as in a string; else right after the character before it that is not white space where
+   * white space follows {@code at} only, or where none does and not {@code after}; else right
+   * before the next one. So a selection keeps its order.
    */
   private static int same(String text, String formatted, int at, boolean after) {
     int count = 0;
@@ -847,13 +848,7 @@ public final class CodeEditor {
     if (to - from == end - start && text.regionMatches(from, formatted, start, to - from)) {
       return start + at - from;
     }
-    if (at == from && at < to) {
-      return start;
-    }
-    if (at == to && at > from) {
-      return end;
-    }
-    return after ? end : start;
+    return at == from && (at < to || !after) ? start : end;
   }
 
   private static void selectNext(
