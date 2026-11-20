@@ -918,8 +918,8 @@ public final class El {
    * <p>{@link App} calls {@code row} with a row's index, from 0, for the rows inside the list's
    * visible part, which is its border box inside the window, and {@link #OVERSCAN} more on each
    * side: after every rebuild of the view, and when scrolling shows a row that does not exist yet.
-   * That builds the rows that do not exist yet, but not the view, and keeps most of those that do;
-   * scrolling within the rows that exist builds nothing. {@code row} runs on the
+   * That builds the rows that do not exist yet, but not the view, and keeps those that do where it
+   * can; scrolling within the rows that exist builds nothing. {@code row} runs on the
    * app's thread during {@link App#frame}, so it has to be cheap, and like the view it only reads
    * the state and returns a new element each time. Each row
    * is laid out on its own, with the list's inner width and {@code rowHeight}, at {@code index *
