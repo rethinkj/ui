@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +34,7 @@ class CompletionTest {
 
   static final class Query {
     String sql = "";
+    Highlighter highlighter;
     final CodeEditor.State editor = new CodeEditor.State();
     final Completion.State completion = new Completion.State();
     App<Query> app;
@@ -56,7 +59,7 @@ class CompletionTest {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
-      El editor = codeEditor(s.sql, s.editor, null, v -> s.sql = v)
+      El editor = codeEditor(s.sql, s.editor, s.highlighter, v -> s.sql = v)
           .key("query")
           .lines(4)
           .wFull();
@@ -94,6 +97,37 @@ class CompletionTest {
     assertFalse(state.isOpen(), "the word gone, it closes");
     Completion.follow(state, "SELECT ", "SELECT customers");
     assertFalse(state.isOpen(), "a paste opens nothing");
+  }
+
+  @Test
+  void aLanguagesWordCharactersBelongToItsWords() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<String> asked = new ArrayList<>();
+    App<Query> app = app(word -> {
+      asked.add(word);
+      return List.of(new Completion.Entry("$gt"));
+    });
+    app.state().highlighter =
+        new Highlighter() { // JavaScript's operators, such as $gt
+          @Override
+          public Object line(String line, Object state, com.rethinkj.ui.Spans out) {
+            return null;
+          }
+
+          @Override
+          public String wordCharacters() {
+            return "$";
+          }
+        };
+    run(app, "frame\npress #query\ntype \"{ $g\"");
+    assertTrue(asked.contains("$g"), asked::toString);
+
+    run(app, "key Escape\ntype \"t\"\nkey Escape\nframe\nkey ArrowLeft control");
+    assertEquals(2, app.state().editor.caret(), "Control+Left stops before the $");
+
+    run(app, "press #query at right-20 clicks 2"); // past the end of the line: on $gt
+    assertEquals(2, app.state().editor.anchor());
+    assertEquals(5, app.state().editor.caret(), "a double press selects $gt");
   }
 
   @Test

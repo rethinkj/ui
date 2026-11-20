@@ -72,7 +72,9 @@ class WindowsScriptTest {
       return row()
           .wFull()
           .hFull()
-          .child(el().key("count-" + count).size(40, 40).onPress(() -> count++));
+          .child(el().key("count-" + count).size(40, 40).onPress(() -> count++))
+          .child(
+              el().key("front").size(20, 40).onPress(() -> app.windows().of(app).raise()));
     }
 
     void drop(int index, Drop d) {
@@ -218,12 +220,19 @@ class WindowsScriptTest {
         press #count-0
         frame
         snap counted
+        press #front       # brings the main window to the front
+        frame
+        snap raised
         window main
         close              # nothing happens: the request is the app's, which closes only Chip
         """, app, out);
 
     assertTrue(tree("counted").contains("#count-1"), tree("counted"));
     assertTrue(tree("chip-counted").contains("#count-1"));
+    assertEquals(
+        "\"Chip\" chip\n\"main\" main\n", Files.readString(out.resolve("counted.windows.txt")));
+    assertEquals(
+        "\"main\" main\n\"Chip\" chip\n", Files.readString(out.resolve("raised.windows.txt")));
   }
 
   @Test

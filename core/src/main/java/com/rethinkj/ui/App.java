@@ -230,6 +230,9 @@ public final class App<S> {
   private boolean scrolled; // something scrolled since the rows and bars were placed
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
+  // The next build between inputs builds the rows too: a field, maybe in one, waits for the app's
+  // answer to an edit with an anchor, or told its selection, after which actions may look for it.
+  private boolean rowsKept;
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
@@ -3292,6 +3295,7 @@ public final class App<S> {
               told |= editor.tell();
             }
             handled |= told;
+            rowsKept |= told;
             return told;
           });
         }
@@ -3489,7 +3493,8 @@ public final class App<S> {
     handled = false;
     changedOutside = false;
     scrolled = false;
-    rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
+    rowsPending = between && !rowsKept && (focusId == null || animator.inRow(focusId) == null);
+    rowsKept = false;
     endPresses(false);
     if (rowsPending) {
       caretOverlays =
@@ -3590,7 +3595,9 @@ public final class App<S> {
           editor.returned();
         }
       }
-      editor.attach(el);
+      if (editor.attach(el)) {
+        selectedByBuild.add(editor); // its handler hears the app's answer before more input
+      }
       if (state != null && state.caret >= 0) {
         editor.select(state.caret, state.anchor);
         state.caret = -1;
@@ -3621,6 +3628,7 @@ public final class App<S> {
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
+    selectedByBuild.retainAll(kept); // a row that layout left out tells nothing
     Editor waiting = focusWaits() ? editors.get(focusId) : null;
     editors.values().removeIf(editor -> {
       if (editor == waiting || kept.contains(editor)) {
@@ -3723,6 +3731,22 @@ public final class App<S> {
    * @param caret the caret's position in the string after the edit
    */
   public void edit(El field, int from, int to, String text, int caret) {
+    edit(field, from, to, text, caret, caret, false);
+  }
+
+  /**
+   * {@link #edit(El, int, int, String, int)} that selects from {@code anchor} to {@code caret} of
+   * the new string after the edit and scrolls it into view as {@link #select} does. A refused edit
+   * leaves the selection as it was, with the string: for a command that changes lines and keeps
+   * them selected.
+   *
+   * @param anchor the anchor's position in the string after the edit
+   */
+  public void edit(El field, int from, int to, String text, int caret, int anchor) {
+    edit(field, from, to, text, caret, anchor, true);
+  }
+
+  private void edit(El field, int from, int to, String text, int caret, int anchor, boolean ask) {
     Objects.requireNonNull(text, "text");
     if (from < 0 || to < from) {
       throw new IllegalArgumentException(
@@ -3735,8 +3759,9 @@ public final class App<S> {
       if (now == null || now.editor() == null) {
         return false;
       }
-      now.editor().request(from, to, text, caret);
+      now.editor().request(from, to, text, caret, anchor, ask);
       handled |= now.editor().answerPending();
+      rowsKept |= ask && now.editor().answerPending();
       return true;
     });
   }

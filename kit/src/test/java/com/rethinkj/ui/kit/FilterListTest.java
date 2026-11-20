@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -64,7 +63,7 @@ class FilterListTest {
     final CountDownLatch first = new CountDownLatch(1);
     final CountDownLatch last = new CountDownLatch(1);
     final CountDownLatch release = new CountDownLatch(1);
-    final AtomicInteger interrupted = new AtomicInteger();
+    final CountDownLatch interrupted = new CountDownLatch(2);
     App<Finder> app;
 
     List<FilterList.Entry> find(String text) {
@@ -73,7 +72,7 @@ class FilterListTest {
         try {
           release.await();
         } catch (InterruptedException e) {
-          interrupted.incrementAndGet();
+          interrupted.countDown();
         }
       }
       return List.of(FilterList.entry(text, () -> {}));
@@ -127,7 +126,8 @@ class FilterListTest {
       tree = run(f.app, "key Escape\nframe\nawait");
       assertFalse(f.palette.isOpen(), tree);
       assertFalse(tree.contains("role=listbox"), tree);
-      assertEquals(2, f.interrupted.get(), "both waiting searches were interrupted");
+      assertTrue(
+          f.interrupted.await(5, TimeUnit.SECONDS), "both waiting searches were interrupted");
     } finally {
       f.palette.close();
       f.release.countDown();

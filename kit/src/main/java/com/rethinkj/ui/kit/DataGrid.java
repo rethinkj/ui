@@ -207,6 +207,9 @@ public final class DataGrid {
    *     index, or null for none, such as the size of a value shown shortened or a unit: called as
    *     {@code cell} is, after it and for loaded rows only; null for the function means no details
    *     ({@link #detail(IntFunction)})
+   * @param cellTooltip the tooltip of the cell in the row with this index, or null for none: called
+   *     for a loaded row once the pointer has rested on its cell for the theme's delay; null for
+   *     the function means no tooltips of the column's own ({@link #cellTooltip(IntFunction)})
    */
   public record Column(
       String title,
@@ -222,12 +225,47 @@ public final class DataGrid {
       DataType type,
       Editing editing,
       GridTable.Cells<?, ?> cells,
-      IntFunction<String> detail) {
+      IntFunction<String> detail,
+      IntFunction<String> cellTooltip) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
       Objects.requireNonNull(type, "type");
       Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column without a {@link #cellTooltip}. */
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Symbol icon,
+        Icon.Variant iconVariant,
+        String typeName,
+        IntFunction<CellIcon> cellIcon,
+        DataType type,
+        Editing editing,
+        GridTable.Cells<?, ?> cells,
+        IntFunction<String> detail) {
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          null);
     }
 
     /** A column without a {@link #detail}. */
@@ -374,7 +412,8 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          detail);
+          detail,
+          cellTooltip);
     }
 
     /** This column, sortable or not. */
@@ -393,7 +432,8 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          detail);
+          detail,
+          cellTooltip);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -404,8 +444,21 @@ public final class DataGrid {
     /** This column with {@code symbol} before the title in the header; null for none. */
     public Column icon(Symbol symbol, Icon.Variant variant) {
       return new Column(
-          title, width, align, mono, sortable, cell, symbol, variant, typeName, cellIcon, type,
-          editing, cells, detail);
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          symbol,
+          variant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          cellTooltip);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
@@ -424,7 +477,8 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          detail);
+          detail,
+          cellTooltip);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
@@ -443,7 +497,8 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          detail);
+          detail,
+          cellTooltip);
     }
 
     /**
@@ -470,7 +525,34 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          details);
+          details,
+          cellTooltip);
+    }
+
+    /**
+     * This column with a tooltip on each cell for which {@code tooltips} gives one, shown after
+     * the theme's delay: the value in a second form, such as a timestamp as the database returns
+     * it beside the local time the cell shows. It follows a failed cell's error and the icon's
+     * tooltip and precedes the text a cut cell hides, each on a line of its own. A copy and the
+     * editor take the cell's text.
+     */
+    public Column cellTooltip(IntFunction<String> tooltips) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          tooltips);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -525,7 +607,8 @@ public final class DataGrid {
           type,
           editing,
           cells,
-          detail);
+          detail,
+          cellTooltip);
     }
   }
 
@@ -2072,7 +2155,8 @@ public final class DataGrid {
 
     /**
      * Shows what is wrong with a failed cell ({@link Status#ERROR}) in its tooltip, before
-     * anything else the tooltip says: the message of a refused write, say.
+     * anything else the tooltip says ({@link Column#cellTooltip}): the message of a refused write,
+     * say.
      */
     public Options errors(CellMessage messages) {
       this.cellError = Objects.requireNonNull(messages, "messages");
@@ -3100,9 +3184,10 @@ public final class DataGrid {
     String error =
         status == Status.ERROR && b.o.cellError != null ? b.o.cellError.message(i, c) : null;
     String told = icon == null ? null : icon.tooltip();
-    // What is wrong first, then what the icon says.
-    String own = error == null ? told : told == null ? error : error + "\n" + told;
-    if (value != null || alone || own != null || detail != null) {
+    // What is wrong first, then what the icon says, then what the column says once it is due.
+    String own = lines(error, told);
+    IntFunction<String> tooltips = loaded && !append ? column.cellTooltip() : null;
+    if (value != null || alone || own != null || detail != null || tooltips != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
       // the column cuts it short, with the detail where that or the detail is cut.
       String whole = value == null ? "NULL" : value;
@@ -3114,12 +3199,16 @@ public final class DataGrid {
         boolean shortened =
             measured != null && value != null && natural(measured) > valueRoom + 0.5f;
         String cut = shortened || hidden ? named : null;
-        return own == null
-            ? (alone && cut == null ? whole : cut)
-            : cut == null ? own : own + "\n" + cut;
+        String said = lines(own, tooltips == null ? null : tooltips.apply(i));
+        return said == null ? (alone && cut == null ? whole : cut) : lines(said, cut);
       });
     }
     return box;
+  }
+
+  /** Both texts on lines of their own, or the one that is not null. */
+  private static String lines(String first, String second) {
+    return first == null ? second : second == null ? first : first + "\n" + second;
   }
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */

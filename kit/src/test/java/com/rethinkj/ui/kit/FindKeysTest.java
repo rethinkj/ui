@@ -63,6 +63,7 @@ class FindKeysTest {
     boolean readOnly;
     boolean area; // a plain text area with a find bar, not a code editor
     boolean position; // the caret's line and column below the editor
+    boolean refuse; // the app keeps its text once
     App<Doc> app;
 
     Doc(String text) {
@@ -83,7 +84,7 @@ class FindKeysTest {
                 .wFull(),
             s.find);
       } else {
-        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> s.text = v)
+        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
             .key("query")
             .lines(6)
             .wFull();
@@ -100,6 +101,14 @@ class FindKeysTest {
     doc.app = app;
     app.textRendering(TextRendering.LINUX);
     return app;
+  }
+
+  private static void change(Doc doc, String value) {
+    if (doc.refuse) {
+      doc.refuse = false;
+    } else {
+      doc.text = value;
+    }
   }
 
   /** Runs the steps and returns the tree of the frame after them. */
@@ -442,9 +451,9 @@ class FindKeysTest {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);
     run(app, "frame\nfocus #query\nkey End\nkey ArrowLeft\nkey ArrowLeft");
-    assertEquals("orders", CodeEditor.word(doc.text, caret(doc), caret(doc)));
-    assertEquals(null, CodeEditor.word("a.b", 1, 2), "a selection that is no word");
-    assertEquals("b", CodeEditor.word("a.b", 2, 3));
+    assertEquals("orders", CodeEditor.word(doc.text, caret(doc), caret(doc), ""));
+    assertEquals(null, CodeEditor.word("a.b", 1, 2, ""), "a selection that is no word");
+    assertEquals("b", CodeEditor.word("a.b", 2, 3, ""));
   }
 
   @Test
@@ -509,6 +518,63 @@ class FindKeysTest {
     doc.editor.noDiagnostics();
     run(app, "frame\nkey F8");
     assertEquals(name, caret(doc), "without diagnostics F8 does nothing");
+  }
+
+  @Test
+  void aLineCommandTheAppRefusesLeavesTheSelectionWhereItWas() throws IOException {
+    Doc doc = new Doc(TEXT);
+    App<Doc> app = app(doc);
+    run(app, "frame\nfocus #query\nkey ArrowDown\nkey ArrowRight\nkey ArrowDown shift");
+    int caret = caret(doc);
+    int anchor = doc.editor.anchor();
+    doc.refuse = true;
+    String tree = run(app, "key ArrowDown alt");
+    assertEquals(TEXT, doc.text);
+    assertEquals(caret, caret(doc));
+    assertEquals(anchor, doc.editor.anchor());
+    assertTrue(line(tree, "query").contains(" caret " + caret + " "), tree);
+    doc.refuse = true;
+    run(app, "key ArrowDown alt down\nkey K control shift\nkey ArrowDown alt up");
+    String[] lines = TEXT.split("\n");
+    assertEquals(
+        String.join("\n", lines[0], lines[3]), doc.text, "a key in the same frame finds them too");
+  }
+
+  @Test
+  void commandsFromOutsideReachAnEditorInAListRowTwiceInOneFrame() throws IOException {
+    Doc doc = new Doc("abc\nde");
+    doc.editor.select(5, 6);
+    App<Doc> app = new App<>(
+        doc,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(El.el().key("toolbar").focusable().h(24).onKey(key -> switch (key.name()) {
+              case "F6" -> command(s, CodeEditor.Command.DELETE_LINES);
+              case "F7" -> command(s, CodeEditor.Command.DUPLICATE_LINES);
+              default -> false;
+            }))
+            .child(El.el()
+                .h(200)
+                .wFull()
+                .rows(
+                    1,
+                    100,
+                    index -> codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
+                        .key("query")
+                        .lines(4)
+                        .wFull())));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+    // The first answer's selection reaches onSelect, whose rebuild keeps the row for the second.
+    Script.run(
+        "size 640 240\nframe\nfocus #toolbar\nframe\nkey F6 down\nkey F7 down\nframe", app, out);
+    assertEquals("abc\nabc", doc.text);
+  }
+
+  private static boolean command(Doc doc, CodeEditor.Command command) {
+    CodeEditor.run(doc.app, doc.editor, command);
+    return true;
   }
 
   @Test

@@ -62,6 +62,7 @@ public final class El {
   private int borderColor;
   private int[] borderColors; // null while every side has borderColor
   private List<Shadow> shadows = List.of();
+  private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
   private Image image;
@@ -845,6 +846,30 @@ public final class El {
   /** How much of a turn the {@link #arc} covers; 1, the whole element, without one. */
   public float arcSweep() {
     return arcSweep;
+  }
+
+  /**
+   * Draws straight lines over this element's fill and image, in logical pixels from the top left
+   * corner of its border box, in the order given: the edges of a diagram, the marks of a chart.
+   * They come before its text and children, which lie on top, and are clipped as its children
+   * are, so with {@link #clip} they stay inside its box. They take no presses; what takes a press
+   * is still the element's box. A line along the pixel grid is sharpest with its edges on physical
+   * pixel boundaries: at scale 1, one 1 pixel wide at {@code y = 10.5}, not at 10.
+   */
+  public El segments(Segment... segments) {
+    this.segments = List.of(segments);
+    return this;
+  }
+
+  /** As {@link #segments(Segment...)}, from a list. */
+  public El segments(List<Segment> segments) {
+    this.segments = List.copyOf(segments);
+    return this;
+  }
+
+  /** The lines this element draws ({@link #segments(Segment...)}); empty without any. */
+  public List<Segment> segments() {
+    return segments;
   }
 
   /** For {@link Animator}: the opacity of the moment while this element springs to its own. */
@@ -1886,8 +1911,9 @@ public final class El {
 
   /**
    * Makes the keys and presses that go by words in an {@link #editable} field take the words of
-   * code: a word is a run of letters, digits and {@code _}, and everything else separates words,
-   * so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
+   * code: a word is a run of letters, digits, marks and {@code _}, and of the characters the
+   * {@link #highlight highlighter}'s language adds ({@link Highlighter#wordCharacters}), and
+   * everything else separates words, so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
    * and Control+Backspace after it deletes only that. Other fields take words as text has them,
    * where a point between letters does not end a word.
    */
@@ -4157,10 +4183,11 @@ public final class El {
   }
 
   /**
-   * The width of the rows: the width of the content box as layout gave it, not as a {@link #cycle}
-   * shows it, without the scrollbar's.
+   * The width of the rows of a virtual list ({@link #rows(int, float, IntFunction)}): the width
+   * of the content box as layout gave it, not as a {@link #cycle} shows it, without the
+   * scrollbar's.
    */
-  private float rowWidth() {
+  public float rowWidth() {
     return Math.max(
         laidOutWidth()
             - rowsLeft()

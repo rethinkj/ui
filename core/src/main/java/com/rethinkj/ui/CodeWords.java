@@ -4,7 +4,9 @@ import java.util.Objects;
 
 /**
  * Code-word characters and their contiguous runs, without native libraries: Unicode letters,
- * decimal digits, combining marks and {@code _}. Points, spaces and other punctuation end a run.
+ * decimal digits, combining marks and {@code _}, and the characters a language adds, such as
+ * {@code $} in JavaScript ({@link Highlighter#wordCharacters}). Points, spaces and other
+ * punctuation end a run.
  *
  * <p>Positions are UTF-16 indexes on code-point boundaries, from 0 to the string's length. The
  * scans stop at the first non-word code point; they neither skip punctuation nor snap to grapheme
@@ -28,6 +30,14 @@ public final class CodeWords {
   }
 
   /**
+   * Whether a code point is a letter, decimal digit, combining mark or {@code _}, or one of a
+   * language's {@code wordCharacters}, such as {@code "$"}.
+   */
+  public static boolean isWordChar(int codePoint, String wordCharacters) {
+    return isWordChar(codePoint) || wordCharacters.indexOf(codePoint) >= 0;
+  }
+
+  /**
    * The start of the run immediately before {@code index}, or {@code index} if no word character
    * precedes it. From inside a run, scans only its part before the index.
    *
@@ -35,10 +45,20 @@ public final class CodeWords {
    * @throws IndexOutOfBoundsException if the index is outside the string
    */
   public static int start(String text, int index) {
+    return start(text, index, "");
+  }
+
+  /**
+   * {@link #start(String, int)} with a language's {@code wordCharacters}, such as {@code "$"}.
+   *
+   * @param index a UTF-16 index on a code-point boundary
+   * @throws IndexOutOfBoundsException if the index is outside the string
+   */
+  public static int start(String text, int index, String wordCharacters) {
     Objects.checkFromToIndex(index, index, text.length());
     while (index > 0) {
       int c = text.codePointBefore(index);
-      if (!isWordChar(c)) {
+      if (!isWordChar(c, wordCharacters)) {
         break;
       }
       index -= Character.charCount(c);
@@ -54,10 +74,20 @@ public final class CodeWords {
    * @throws IndexOutOfBoundsException if the index is outside the string
    */
   public static int end(String text, int index) {
+    return end(text, index, "");
+  }
+
+  /**
+   * {@link #end(String, int)} with a language's {@code wordCharacters}, such as {@code "$"}.
+   *
+   * @param index a UTF-16 index on a code-point boundary
+   * @throws IndexOutOfBoundsException if the index is outside the string
+   */
+  public static int end(String text, int index, String wordCharacters) {
     Objects.checkFromToIndex(index, index, text.length());
     while (index < text.length()) {
       int c = text.codePointAt(index);
-      if (!isWordChar(c)) {
+      if (!isWordChar(c, wordCharacters)) {
         break;
       }
       index += Character.charCount(c);

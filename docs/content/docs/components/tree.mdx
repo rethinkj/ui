@@ -70,6 +70,8 @@ In narrow containers, trailing `detail` text truncates first (then hides), follo
 
 <Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
 
+Each level indents the row further, but never by more than half the width of its rows: deeper rows stay at that indent, so their chevrons and names stay visible however deep they are. Their `level` in a tree dump is still their real depth.
+
 ## Drag and drop
 
 `drag(dragging, canDrag, canDrop, onDrop)` lets the user move nodes. Keep one `Tree.Dragging` per tree in your state. `canDrag` says which nodes can be dragged, `canDrop` whether a `Tree.Move` is allowed, and `onDrop` receives the move on release. The tree changes nothing itself: your app moves the node in its model.
@@ -81,7 +83,7 @@ A `Tree.Move` has the dragged `node`, the `target` it was dropped on, and a `pla
 
 - The middle half of a row that can take the node means `INTO`; the tree outlines the row.
 - Above that it means `BEFORE` the row's node, below it `AFTER` the node, or `BEFORE` the first child of an open node. A line shows the place.
-- In the lower part of the last row inside an open node, the pointer's horizontal position picks the level: over the row it means after that row's node, one indent further left after its parent. So "after the last child" and "after the open node itself" are different drops.
+- In the lower part of the last row inside an open node, the pointer's horizontal position picks the level: over the row it means after that row's node, one indent further left after its parent. So "after the last child" and "after the open node itself" are different drops. Rows deeper than the indent shows stay at its deepest place, and a line there means after the row above it.
 - Below all rows means `AFTER` the last root.
 - Where `canDrop` says no, nothing shows and a release does nothing.
 

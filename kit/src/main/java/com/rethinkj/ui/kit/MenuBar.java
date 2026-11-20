@@ -118,7 +118,7 @@ public final class MenuBar {
         title = index;
       }
       if (highlight) {
-        menu.highlight(0, Menu.step(menus.get(index).submenu(), -1, 1));
+        menu.highlightByKey(0, Menu.step(menus.get(index).submenu(), -1, 1));
       }
     }
 
@@ -264,7 +264,7 @@ public final class MenuBar {
       case "ArrowUp" -> {
         state.open(state.title, menus, true);
         List<Menu.Item> items = menus.get(state.title).submenu();
-        state.menu.highlight(0, Menu.step(items, items.size(), -1));
+        state.menu.highlightByKey(0, Menu.step(items, items.size(), -1));
       }
       case "Escape", "Tab" -> state.close();
       default -> {

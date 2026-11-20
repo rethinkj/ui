@@ -1,0 +1,1 @@
+- Added: `El.segments(Segment...)` draws anti-aliased straight lines with round ends in an element's box, the same on the GPU and the CPU, clipped like its children and without taking presses; for the edges of diagrams and the marks of charts.

@@ -644,6 +644,44 @@ public final class Examples {
   }
 
   /**
+   * Line segments on a dark panel: horizontal and vertical ones on and between pixels, diagonal
+   * ones thinner than a pixel and wide, a dot, translucent ones across each other, a crow's foot,
+   * and lines that a rounded clip cuts.
+   */
+  public static El lines() {
+    int ink = 0xFFE5E7EB;
+    int accent = 0xFF60A5FA;
+    El clipped = el().absolute(150, 60)
+        .size(80, 50)
+        .radius(12)
+        .fill(0xFF26262E)
+        .clip()
+        .segments(
+            new Segment(-10, 25, 90, 25, 3, accent),
+            new Segment(-10, -10, 90, 60, 6, 0xFFF97316),
+            new Segment(40, -20, 40, 70, 1, ink));
+    return el().size(240, 120)
+        .fill(0xFF1B1C1F)
+        .segments(
+            new Segment(8, 8.5f, 112, 8.5f, 1, ink),
+            new Segment(8, 16, 112, 16, 1, ink),
+            new Segment(8, 24, 112, 24, 0.5f, ink),
+            new Segment(8, 32, 112, 32, 4, accent),
+            new Segment(120.5f, 8, 120.5f, 52, 1, ink),
+            new Segment(130, 8, 130, 52, 2, accent),
+            new Segment(8, 44, 112, 112, 1, ink),
+            new Segment(20, 44, 124, 112, 0.3f, ink),
+            new Segment(40, 44, 100, 70, 8, 0x8060A5FA),
+            new Segment(40, 70, 100, 44, 8, 0x80F97316),
+            new Segment(150, 20, 150, 20, 6, ink),
+            new Segment(170, 30, 200, 30, 1.5f, accent),
+            new Segment(190, 30, 200, 20, 1.5f, accent),
+            new Segment(190, 30, 200, 40, 1.5f, accent),
+            new Segment(186, 22, 186, 38, 1.5f, accent))
+        .child(clipped);
+  }
+
+  /**
    * The shapes of corners and sides, on light and dark: borders of different widths with and
    * without rounded corners, a border on one side, four different radii, a clip with them over
    * text, a shadow under them and a focus ring with a gap around a button in the accent ({@code
