@@ -69,6 +69,8 @@ public final class CpuRenderer {
         shadow(scene, i, frame, width, height, scale, blends, scratch);
       } else if (kind == Scene.IMAGE) {
         image(scene, i, frame, width, height, scale, blends, scratch);
+      } else if (kind == Scene.LINE) {
+        line(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends, scratch);
       }
@@ -638,6 +640,59 @@ public final class CpuRenderer {
     private static double value(byte[] texels, int at, int channel) {
       int b = texels[at] & 0xFF;
       return channel == 3 ? b / 255.0 : Scene.linear(b);
+    }
+  }
+
+  /** Draws a line segment: a capsule, over the box around its ends grown by half its width. */
+  private static void line(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double half = scene.get(i, Scene.LINE_WIDTH) / 2;
+    if (!(half > 0)) {
+      return;
+    }
+    double ax = scene.get(i, Scene.X);
+    double ay = scene.get(i, Scene.Y);
+    double bx = scene.get(i, Scene.X2) - ax;
+    double by = scene.get(i, Scene.Y2) - ay;
+    double length = bx * bx + by * by;
+    Box shape = new Box(
+        ax + bx / 2,
+        ay + by / 2,
+        Math.abs(bx) / 2 + half,
+        Math.abs(by) / 2 + half,
+        null,
+        null,
+        null);
+    Box clip = Box.clip(scene, scene.clipOf(i));
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
+      return;
+    }
+    double[] color = color(scene, i, Scene.COLOR);
+    for (int py = bounds.top; py < bounds.bottom; py++) {
+      double y = (py + 0.5) / scale;
+      for (int px = bounds.left; px < bounds.right; px++) {
+        double x = (px + 0.5) / scale;
+        double t = length > 0 ? Math.clamp(((x - ax) * bx + (y - ay) * by) / length, 0, 1) : 0;
+        double dx = x - ax - bx * t;
+        double dy = y - ay - by * t;
+        double d = StrictMath.sqrt(dx * dx + dy * dy);
+        double cover = coverage(d - half, scale) - coverage(d + half, scale);
+        if (clip != null) {
+          cover *= bounds.clipWhole ? 1 : clip.coverage(x, y, scale);
+        }
+        if (cover <= 0) {
+          continue;
+        }
+        blend(
+            frame,
+            (py * width + px) * 4,
+            color[0] * cover,
+            color[1] * cover,
+            color[2] * cover,
+            color[3] * cover,
+            blends);
+      }
     }
   }
 

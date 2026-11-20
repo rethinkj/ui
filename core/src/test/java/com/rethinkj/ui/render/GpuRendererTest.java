@@ -151,6 +151,7 @@ class GpuRendererTest {
     cases.add(view("clips", clips(), 160, 100, s));
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
+    cases.add(view("lines", Examples.lines(), 240, 120, s));
     cases.add(nestedClips(s));
     cases.add(bars("bars-hovered", s));
     cases.add(text("shadows", shadows(), 240, 160, s));

@@ -59,6 +59,8 @@ final class ReferenceCpuRenderer {
         shadow(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.IMAGE) {
         image(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.LINE) {
+        line(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -348,6 +350,46 @@ final class ReferenceCpuRenderer {
   }
 
   /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */
+  private static void line(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double half = scene.get(i, Scene.LINE_WIDTH) / 2;
+    if (!(half > 0)) {
+      return;
+    }
+    double ax = scene.get(i, Scene.X);
+    double ay = scene.get(i, Scene.Y);
+    double bx = scene.get(i, Scene.X2) - ax;
+    double by = scene.get(i, Scene.Y2) - ay;
+    double length = bx * bx + by * by;
+    int clip = scene.clipOf(i);
+    for (int py = 0; py < height; py++) {
+      for (int px = 0; px < width; px++) {
+        double x = (px + 0.5) / scale;
+        double y = (py + 0.5) / scale;
+        double t = length > 0 ? Math.clamp(((x - ax) * bx + (y - ay) * by) / length, 0, 1) : 0;
+        double dx = x - ax - bx * t;
+        double dy = y - ay - by * t;
+        double d = StrictMath.sqrt(dx * dx + dy * dy);
+        double coverage = coverage(d - half, scale) - coverage(d + half, scale);
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, x, y, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.COLOR + 12) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.COLOR + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
   private static void shadow(
       Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double w = scene.get(i, Scene.WIDTH);

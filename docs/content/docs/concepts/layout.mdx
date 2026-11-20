@@ -45,11 +45,26 @@ Note: `Len.pixelsOrZero()` returns a fixed pixel value, or `0` for percentages, 
 | `shadow(Shadow...)` | Drop shadows (like CSS `box-shadow`) |
 | `opacity(value)` | Element opacity (`0` to `1`) |
 | `arc(start, sweep)` | Draws the fill and border only within an arc, in turns clockwise from the top: a ring or a pie |
+| `segments(Segment...)` | Draws straight lines over the fill (see [Drawing lines](#drawing-lines)) |
 | `clip()` | Clips children to the rounded border box |
 | `scroll()`, `scrollBoth()`, `scrollbars(look)` | Enables vertical or 2D scrolling with optional scrollbars |
 | `fixedX()` | Freezes an element horizontally inside a horizontal scroll area (for frozen table columns). Place it after scrolled elements and give it an opaque fill |
 
 Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw hex colors (see [Themes](/docs/concepts/themes)).
+
+## Drawing lines
+
+`segments(...)` draws anti-aliased straight lines in an element, for the edges of a diagram or the marks of a chart. A [`Segment`](/api/com/rethinkj/ui/Segment.html) runs from `x1, y1` to `x2, y2`, in pixels from the element's top left corner, with a width and a color, and has round ends:
+
+```java snippet="lines"
+```
+
+<Shot src="examples/docs/lines/view-{theme}" alt="A rounded card with a line chart of six points rising from left to right over a thin axis" />
+
+- Lines lie over the element's fill and under its text and children.
+- They are clipped like its children, so `clip()` keeps them inside its box.
+- They take no presses: what takes a press is the element's box.
+- A 1-pixel line along the grid is sharpest between pixels, as at `y = 70.5`; at a whole number it spreads over two rows.
 
 ## Scrollbars
 

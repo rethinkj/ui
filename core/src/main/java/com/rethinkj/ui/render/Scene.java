@@ -4,6 +4,7 @@ import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
@@ -24,11 +25,12 @@ import java.util.Map;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of four kinds,
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of five kinds,
  * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
- * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2) or an image ({@link #IMAGE}, 3). All kinds share one
- * ordered list, so boxes, text, shadows and images overlap in the order of the tree. The byte offsets are the constants below. A
- * rounded rectangle with a fill and a border:
+ * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2), an image ({@link #IMAGE}, 3) or a line segment
+ * ({@link #LINE}, 4). All kinds share one ordered list, so boxes, text, shadows, images and lines
+ * overlap in the order of the tree. The byte offsets are the constants below. A rounded rectangle
+ * with a fill and a border:
  *
  * <pre>
  *  0  x            f32   left edge of the rectangle
@@ -250,6 +252,39 @@ import java.util.Map;
  * photo shown at a fraction of its size samples the levels near its texels' size, and so neither
  * flickers as it moves nor frays at its edges.
  *
+ * <p>A line segment ({@link El#segments}): a capsule, the points within half its width of the
+ * straight line between two points.
+ *
+ * <pre>
+ *  0  x1           f32   one end
+ *  4  y1           f32
+ *  8  x2           f32   the other end
+ * 12  y2           f32
+ * 16  width        f32   more than 0
+ * 20  unused       f32   0
+ * 24  clip         u32   as for a rectangle
+ * 28  kind         u32   4, LINE
+ * 32  color       f32 x 4   r, g, b, a
+ * 48  unused       f32 x 12  0
+ * </pre>
+ *
+ * <p>As WGSL it is read as an {@code Instance}, its ends in {@code rect} and its width in the
+ * slot of a rectangle's radius. For a pixel whose center is {@code p}, with {@code a} and {@code
+ * b} the ends, {@code d} is its distance from the line between them and {@code coverage(t) =
+ * clamp(0.5 - t scale, 0, 1)} a rectangle's ramp:
+ *
+ * <pre>
+ * t        = clamp(dot(p - a, b - a) / dot(b - a, b - a), 0, 1), or 0 when a = b
+ * d        = |p - a - (b - a) t|
+ * coverage = (coverage(d - width / 2) - coverage(d + width / 2)) * clip coverage
+ * output   = color * coverage, blended as a rectangle's fill
+ * </pre>
+ *
+ * <p>That is the part of a pixel-wide window across the pixel's center that the line covers, so a
+ * line thinner than a pixel takes about as much of it as it lies over, never a whole pixel at its
+ * middle; from a pixel wide on, the second term is 0 and its edges are a rectangle's. Renderers
+ * draw it over the box around its ends grown by half its width and a physical pixel.
+ *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
@@ -331,6 +366,10 @@ import java.util.Map;
  * <p>An element's shadows come right before its own rectangle, the last of them first, so that the
  * first lies on top, as in CSS; with the element's clip and opacity.
  *
+ * <p>An element's line segments come after its rectangle and its image and before its text and
+ * children, in their order, from its border box as drawn, so they move with its snapped edges;
+ * with the clip it gives its children and its opacity. The ends are not snapped.
+ *
  * <p>A scene built for a scale ({@link #of(El, float)}) puts the boxes at rest on the physical
  * pixel grid: each edge of a border box at {@code round(x * scale)} physical pixels, halves up;
  * each side's border, the focus ring, its gap and sides of at most {@link #HAIRLINE} logical
@@ -378,6 +417,13 @@ public final class Scene {
   public static final int SHADOW = 2;
   /** The {@link #KIND} of an image. */
   public static final int IMAGE = 3;
+  /** The {@link #KIND} of a line segment. */
+  public static final int LINE = 4;
+
+  // The slots of a line segment that differ from a rectangle's: its other end and its width.
+  public static final int X2 = 8;
+  public static final int Y2 = 12;
+  public static final int LINE_WIDTH = 16;
 
   // The slots of an image that differ from a rectangle's.
   public static final int IMAGE_SIZE = 16;
@@ -612,6 +658,9 @@ public final class Scene {
       inner = clip(left, top, left + width, top + height, radii, clip);
     }
     if (inner >= 0) { // else everything below is clipped away
+      for (Segment segment : el.segments()) {
+        segment(segment, left, top, opacity, inner);
+      }
       // A fill cut to an arc lies behind none of the content, or behind a part not known here.
       float content = el.arcSweep() == 1 || el.fill() >>> 24 == 0
           ? over(el.fill(), opacity, behind)
@@ -672,6 +721,43 @@ public final class Scene {
             clip);
       }
     }
+  }
+
+  /**
+   * A line of an element from its border box's top left corner at {@code left, top}, unless it is
+   * transparent or lies outside its clip.
+   */
+  private void segment(Segment segment, float left, float top, float opacity, int clip) {
+    float x1 = left + segment.x1();
+    float y1 = top + segment.y1();
+    float x2 = left + segment.x2();
+    float y2 = top + segment.y2();
+    // What the renderers draw: half the width and a pixel beyond the ends, under 2 logical
+    // pixels at scales from 0.5.
+    float reach = segment.width() / 2 + 2;
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    if (segment.color() >>> 24 == 0
+        || Math.min(x1, x2) - reach >= clipX + clipGet(clip, WIDTH)
+        || Math.max(x1, x2) + reach <= clipX
+        || Math.min(y1, y2) - reach >= clipY + clipGet(clip, HEIGHT)
+        || Math.max(y1, y2) + reach <= clipY) {
+      return;
+    }
+    long offset = next();
+    put(offset + X, x1);
+    put(offset + Y, y1);
+    put(offset + X2, x2);
+    put(offset + Y2, y2);
+    put(offset + LINE_WIDTH, segment.width());
+    put(offset + LINE_WIDTH + 4, 0);
+    data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, LINE);
+    color(offset + COLOR, segment.color(), opacity);
+    for (int slot = COLOR + 16; slot < STRIDE; slot += 4) {
+      put(offset + slot, 0);
+    }
+    count++;
   }
 
   /**

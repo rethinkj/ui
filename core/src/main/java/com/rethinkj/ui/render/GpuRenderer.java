@@ -97,7 +97,8 @@ public final class GpuRenderer implements AutoCloseable {
       }
 
       // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
-      // rounded rectangle, a glyph or a shadow. The slots in which they differ are declared as u32
+      // rounded rectangle, a glyph, a shadow, an image or a line, whose ends are in rect and its
+      // width in shape.x. The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -122,6 +123,7 @@ public final class GpuRenderer implements AutoCloseable {
       const GLYPH: u32 = 1u;
       const SHADOW: u32 = 2u;
       const IMAGE: u32 = 3u;
+      const LINE: u32 = 4u;
 
       struct Clip {
         rect: vec4f,
@@ -166,7 +168,8 @@ public final class GpuRenderer implements AutoCloseable {
       // A quad, in physical pixels, within the instance's clip and one pixel beyond it. For a
       // rectangle, over the rectangle and one pixel larger on every side: the smoothed edge
       // reaches half a pixel beyond the shape. For a shadow, the same over its shape grown by
-      // three deviations. For a glyph, exactly over its texels.
+      // three deviations. For a line, over the box around its ends grown by half its width. For a
+      // glyph, exactly over its texels.
       @vertex
       fn vs_main(@builtin(vertex_index) vertex: u32,
           @builtin(instance_index) index: u32) -> Varyings {
@@ -182,14 +185,22 @@ public final class GpuRenderer implements AutoCloseable {
               (clip.rect.xy + clip.rect.zw) * globals.scale + 1.0);
         } else {
           var rect = instance.rect;
+          empty = !(rect.z > 0.0 && rect.w > 0.0);
           if instance.kind == SHADOW {
             let reach = 3.0 * deviation(instance);
             rect = vec4f(rect.xy - reach, rect.zw + 2.0 * reach);
           }
+          if instance.kind == LINE {
+            // shortcut: a long diagonal line covers a large box mostly empty; a quad along the
+            // line would save those fragments where many long diagonals need it.
+            let half = bitcast<f32>(instance.shape.x) / 2.0;
+            let start = min(rect.xy, rect.zw) - half;
+            rect = vec4f(start, max(rect.xy, rect.zw) + half - start);
+            empty = !(half > 0.0);
+          }
           let pad = 1.0 / globals.scale;
           low = (max(rect.xy, clip.rect.xy) - pad) * globals.scale;
           high = (min(rect.xy + rect.zw, clip.rect.xy + clip.rect.zw) + pad) * globals.scale;
-          empty = !(instance.rect.z > 0.0 && instance.rect.w > 0.0);
         }
         // No further than a pixel beyond the target: the fragments are the same, and a quad that
         // reaches a billion pixels out, as a scrim's, is one a software rasterizer may drop.
@@ -502,6 +513,25 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return image_sample(instance, in.position.xy) * instance.fill * image_cover;
+        }
+        if instance.kind == LINE {
+          let a = instance.rect.xy;
+          let b = instance.rect.zw - a;
+          let half = bitcast<f32>(instance.shape.x) / 2.0;
+          let squared = dot(b, b);
+          var t = 0.0;
+          if squared > 0.0 {
+            t = clamp(dot(point - a, b) / squared, 0.0, 1.0);
+          }
+          let d = length(point - a - b * t);
+          var line_cover = coverage(d - half) - coverage(d + half);
+          if instance.clip != 0u {
+            line_cover *= clip_coverage(instance.clip, point);
+          }
+          if line_cover <= 0.0 {
+            discard;
+          }
+          return instance.fill * line_cover;
         }
         if instance.kind == SHADOW {
           let half_size = instance.rect.zw / 2.0;
