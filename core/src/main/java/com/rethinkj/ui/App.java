@@ -231,7 +231,7 @@ public final class App<S> {
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   // The next build between inputs builds the rows too: a field, maybe in one, waits for the app's
-  // answer to an edit with an anchor, or told its selection, after which actions may look for it.
+  // answer to an edit an app asked for, or told its selection, after which actions may look for it.
   private boolean rowsKept;
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
@@ -3702,15 +3702,18 @@ public final class App<S> {
   }
 
   /**
-   * Tells the {@link El#onSelect} handlers of the fields whose caret or selection changed.
+   * Tells the {@link El#onSelect} handlers of the fields whose caret or selection changed. An
+   * editor kept while its field is not in the tree, as the focused one whose row {@link
+   * #focusWaits}, is told once its field is back.
    *
    * @return whether a handler was told, which the next input should find in the view
    */
   private boolean tellSelections() {
     selectedByBuild.clear(); // told with the others
     boolean told = false;
-    for (Editor editor : List.copyOf(editors.values())) {
-      told |= editor.tell();
+    for (Map.Entry<Object, Editor> entry : List.copyOf(editors.entrySet())) {
+      Editor editor = entry.getValue();
+      told |= animator.element(entry.getKey()) == editor.element() && editor.tell();
     }
     handled |= told;
     return told;
@@ -3761,7 +3764,7 @@ public final class App<S> {
       }
       now.editor().request(from, to, text, caret, anchor, ask);
       handled |= now.editor().answerPending();
-      rowsKept |= ask && now.editor().answerPending();
+      rowsKept |= now.editor().answerPending();
       return true;
     });
   }
@@ -3810,6 +3813,7 @@ public final class App<S> {
       }
       step.accept(now.editor());
       handled |= now.editor().answerPending();
+      rowsKept |= now.editor().answerPending();
       return true;
     });
   }
@@ -3828,6 +3832,7 @@ public final class App<S> {
       }
       edit.accept(state.editor);
       handled |= state.editor.answerPending();
+      rowsKept |= state.editor.answerPending();
       return true;
     });
   }

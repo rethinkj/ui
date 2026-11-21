@@ -6,6 +6,7 @@ import static com.rethinkj.ui.Fields.key;
 import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -383,6 +384,8 @@ class FieldStateTest {
     App<Rows> app;
     El field;
     El list;
+    El inRowField;
+    int told;
   }
 
   @Test
@@ -428,5 +431,69 @@ class FieldStateTest {
     app.textInput("z");
     app.frame();
     assertEquals("z", rows.text);
+  }
+
+  @Test
+  void aFocusedFieldWhoseRowLayoutLeavesOutIsToldOnlyOnceItIsBack() {
+    Rows rows = focusInARowThatLayoutLeftOut();
+    int before = rows.told;
+    rows.app.textInput("z");
+    rows.app.frame();
+    assertTrue(rows.list.hasRow(0), "typing brings the row back");
+    assertTrue(rows.told > before, "told once it is back");
+  }
+
+  @Test
+  void aFieldWhoseRowLayoutLeftOutIsNotToldWhenItLosesTheFocus() {
+    Rows rows = focusInARowThatLayoutLeftOut();
+    int before = rows.told;
+    rows.app.pointerDown(30, 220); // below the list: the focus leaves the field
+    rows.app.frame();
+    assertEquals(before, rows.told);
+  }
+
+  /** A focused field whose row shrank out of the rows in view, with a selection set meanwhile. */
+  private static Rows focusInARowThatLayoutLeftOut() {
+    TextLibraries.assumeLoaded();
+    Rows rows = new Rows();
+    RowHeights heights = new RowHeights(index -> index == 0 ? 1200 : 20);
+    rows.app = new App<>(rows, r -> {
+      r.list = el().wFull().h(200).rows(100, heights, index -> {
+        if (index != 0) {
+          return el().h(20);
+        }
+        El inRow = El.text("word").h(20).editable(value -> {}).fieldState(r.inRow);
+        inRow.onSelect((caret, anchor) -> {
+          r.told++;
+          r.app.select(inRow, caret, anchor);
+        });
+        inRow.onKey(key -> {
+          if (!key.name().equals("F6")) {
+            return false;
+          }
+          r.collapsed = true; // the row shrinks out of the rows in view, with the focus in it
+          r.inRow.select(1, 0);
+          return true;
+        });
+        r.inRowField = inRow;
+        return col().h(r.collapsed ? 20 : 1200).child(inRow);
+      });
+      return col().wFull().hFull().child(r.list);
+    });
+    App<Rows> app = rows.app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(400, 240, 1);
+    app.frame();
+    app.focus(rows.inRowField);
+    app.frame();
+    app.wheel(30, 50, 0, 1000);
+    app.frame();
+    assertTrue(rows.list.hasRow(0), "scrolled within the first row");
+    int before = rows.told;
+    app.keyDown(new Key("F6"));
+    app.frame();
+    assertFalse(rows.list.hasRow(0), "the shrunk row is out of view");
+    assertEquals(before, rows.told, "not told while its row is gone");
+    return rows;
   }
 }
