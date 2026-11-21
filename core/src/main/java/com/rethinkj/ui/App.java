@@ -248,9 +248,7 @@ public final class App<S> {
   private float scale = 1;
   private boolean stale = true;
   private El root;
-  private Object pressed; // the identity of the element a press is on, until the pointer is up
-  private int pressClicks; // the presses in quick succession that the one on pressed completes
-  private int pressModifiers; // the modifiers held when it went down
+  private Capture capture = IDLE; // what the pointer holds between down and up
   private Object keyPressed; // the element Enter or Space pressed, while its pressed look shows
   private String keyPressKey; // the key that pressed it, until it is up
   private long keyPressFrame; // the frame that dispatched that key
@@ -258,8 +256,6 @@ public final class App<S> {
   private long frames; // the frames run, for keyPressFrame
   private long buildNanos; // the view and row functions took during the frame that runs
   private Timing timing = new Timing(0, 0, 0);
-  private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
-  private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
   private Hot hot; // the bar that the last frame shows hovered or dragged
   private boolean pointerIn;
@@ -320,7 +316,6 @@ public final class App<S> {
   private Consumer<Drop> fileOverHandler; // its onFileDrop, which gets the LEAVE
   private Windows windows = Windows.NONE;
   private boolean ran; // a handler ran in this frame; see ranHandlers()
-  private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
@@ -421,28 +416,32 @@ public final class App<S> {
     pointerIn = true; // the frame looks at what is under the pointer anyway
     pointerX = x;
     pointerY = y;
-    if (rowsPending && (selecting != null || grab != null || dragging != null)) {
+    if (rowsPending
+        && (dragging() != null || capture instanceof Selecting || capture instanceof Grab)) {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
     }
-    if (selecting != null) {
-      return drag(selecting, x, y);
-    }
-    Grab g = grab; // never at the same time as the others
-    if (g != null) {
-      El area = animator.element(g.id());
-      scrolled |= area != null && area.dragThumb(g.vertical(), (g.vertical() ? y : x) - g.grip());
-      return false;
-    }
-    Dragging d = dragging; // never at the same time as selecting: a press starts one or neither
-    if (d != null) {
-      float dx = x - d.x;
-      float dy = y - d.y;
-      if (d.started) {
-        return step(d, Drag.Phase.MOVE, dx, dy);
-      } else if (Math.max(Math.abs(dx), Math.abs(dy)) > Drag.THRESHOLD) {
-        d.started = true;
-        return step(d, Drag.Phase.START, dx, dy);
+    return switch (capture) {
+      case Selecting(Object field) -> drag(field, x, y);
+      case Grab(Object id, boolean vertical, float grip) -> {
+        El area = animator.element(id);
+        scrolled |= area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
+        yield false;
       }
+      case Press p -> p.drag() != null && pull(p.drag(), x, y);
+      case ActiveDrag a -> pull(a.drag(), x, y);
+      case Idle _ -> false;
+    };
+  }
+
+  /** Moves a drag on to the pointer, or starts it once the pointer has moved beyond the threshold. */
+  private boolean pull(Dragging d, float x, float y) {
+    float dx = x - d.x;
+    float dy = y - d.y;
+    if (d.started) {
+      return step(d, Drag.Phase.MOVE, dx, dy);
+    } else if (Math.max(Math.abs(dx), Math.abs(dy)) > Drag.THRESHOLD) {
+      d.started = true;
+      return step(d, Drag.Phase.START, dx, dy);
     }
     return false;
   }
@@ -454,7 +453,7 @@ public final class App<S> {
   public void pointerLeave() {
     enqueue(() -> {
       pointerIn = false;
-      Dragging d = dragging;
+      Dragging d = dragging();
       if (resting(d) && d.overApp == this) { // no OVER again where the pointer was
         drop(d, Drag.Phase.MOVE, null, Float.NaN, Float.NaN);
       }
@@ -510,16 +509,17 @@ public final class App<S> {
   private boolean down(float x, float y, int clicks, int modifiers) {
     typingSoon = null;
     boolean changed = anyPointerDown(x, y);
-    if (dragging != null && dragging.started) { // the last release got lost
-      changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
+    Dragging lost = startedDrag();
+    if (lost != null) { // the last release got lost
+      changed = step(lost, Drag.Phase.CANCEL, lost.dx, lost.dy);
     }
-    dragging = null;
-    selecting = null; // likewise: a selection whose release got lost ends where it is
-    grab = null; // and a thumb's drag
+    // Likewise a selection or a thumb's drag whose release got lost ends where it is; a press holds
+    // until this one replaces it below.
+    capture = capture instanceof Press p ? p.withoutDrag() : IDLE;
     settle();
     restAfterPress(x, y);
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
-      pressed = null;
+      capture = IDLE;
       return changed;
     }
     List<El> hit = hit(x, y);
@@ -530,18 +530,17 @@ public final class App<S> {
       boolean vertical = bar == area.verticalBar();
       float along = vertical ? y : x;
       float start = vertical ? bar.thumbY() : bar.thumbX();
-      pressed = null;
       if (onThumb(bar, vertical, x, y)) {
-        grab = new Grab(id, vertical, along - start);
+        capture = new Grab(id, vertical, along - start);
       } else {
+        capture = IDLE;
         scrolled |= area.page(vertical, along < start ? -1 : 1);
       }
       return changed;
     }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       El field = hit.getLast(); // a leaf, so nothing inside it takes the press
-      pressed = null;
-      selecting = Animator.identities(hit).getLast();
+      capture = new Selecting(Animator.identities(hit).getLast());
       focus(field, false);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
@@ -553,12 +552,15 @@ public final class App<S> {
       return true;
     }
     Target target = target(x, y);
-    pressed = target == null ? null : target.id();
-    pressClicks = clicks;
-    pressModifiers = modifiers;
-    dragging = target == null || target.el.onDrag() == null
-        ? null
-        : new Dragging(target.id(), target.el.onDrag(), target.el.dragPayload(), x, y);
+    capture = target == null
+        ? IDLE
+        : new Press(
+            target.id(),
+            clicks,
+            modifiers,
+            target.el.onDrag() == null
+                ? null
+                : new Dragging(target.id(), target.el.onDrag(), target.el.dragPayload(), x, y));
     if (!keepsFocus(hit)) {
       Target focus = target(x, y, El::isFocusable);
       focus(focus == null ? null : focus.el, false);
@@ -583,29 +585,28 @@ public final class App<S> {
 
   private boolean up(float x, float y) {
     settle();
-    if (grab != null) {
-      grab = null;
-      return false;
-    }
-    if (selecting != null) {
-      Object field = selecting;
-      selecting = null;
-      return drag(field, x, y);
-    }
-    Dragging d = dragging;
-    dragging = null;
-    boolean changed = false;
-    if (d != null && d.started) {
-      changed = step(d, Drag.Phase.END, x - d.x, y - d.y);
-    } else if (pressed != null) {
-      Target target = target(x, y);
-      if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-        double[] at = content(target.el, x, y);
-        target.el.onPress().press(pressClicks, pressModifiers, at[0], at[1]);
-        handled = changed = true;
+    Capture held = capture;
+    // A press holds while its handlers run, without its drag; all else ends before them.
+    capture = held instanceof Press p ? p.withoutDrag() : IDLE;
+    boolean changed = switch (held) {
+      case Selecting(Object field) -> drag(field, x, y);
+      case ActiveDrag(Dragging drag) -> step(drag, Drag.Phase.END, x - drag.x, y - drag.y);
+      case Press(Object id, int clicks, int modifiers, Dragging drag) -> {
+        if (drag != null && drag.started) {
+          yield step(drag, Drag.Phase.END, x - drag.x, y - drag.y);
+        }
+        Target target = target(x, y);
+        if (target != null && target.id().equals(id) && target.el.onPress() != null) {
+          double[] at = content(target.el, x, y);
+          target.el.onPress().press(clicks, modifiers, at[0], at[1]);
+          handled = true;
+          yield true;
+        }
+        yield false;
       }
-    }
-    pressed = null;
+      case Grab _, Idle _ -> false;
+    };
+    capture = IDLE;
     return changed;
   }
 
@@ -989,10 +990,53 @@ public final class App<S> {
   }
 
   /**
+   * What the pointer holds from a press of its primary button until the button is up, one at a
+   * time; {@link #endPresses} ends it once its element leaves the tree.
+   */
+  private sealed interface Capture {}
+
+  private static final Capture IDLE = new Idle();
+
+  /** Nothing: between presses, or after one that went to no element. */
+  private record Idle() implements Capture {}
+
+  /**
+   * A press on an element: its identity, the presses in quick succession it completes, the
+   * modifiers held when it went down, and the drag it may become, null for an element without a
+   * drag handler.
+   */
+  private record Press(Object id, int clicks, int modifiers, Dragging drag) implements Capture {
+    Press withoutDrag() {
+      return new Press(id, clicks, modifiers, null);
+    }
+  }
+
+  /** A drag that has started and goes on after its element has left the tree. */
+  private record ActiveDrag(Dragging drag) implements Capture {}
+
+  /** A press selecting in the text field with this identity. */
+  private record Selecting(Object id) implements Capture {}
+
+  /**
    * A press on the thumb of a scroll area's bar: the area's identity, which bar, and how far from
    * the thumb's start the pointer holds it along the bar.
    */
-  private record Grab(Object id, boolean vertical, float grip) {}
+  private record Grab(Object id, boolean vertical, float grip) implements Capture {}
+
+  /** The drag the pointer holds, started or not, or null. */
+  private Dragging dragging() {
+    return switch (capture) {
+      case Press p -> p.drag();
+      case ActiveDrag a -> a.drag();
+      case Idle _, Selecting _, Grab _ -> null;
+    };
+  }
+
+  /** The drag the pointer holds once it has started, or null. */
+  private Dragging startedDrag() {
+    Dragging d = dragging();
+    return d != null && d.started ? d : null;
+  }
 
   /** A bar that shows another color than at rest. */
   private record Hot(El area, boolean vertical, int color) {}
@@ -1099,7 +1143,7 @@ public final class App<S> {
 
   /** Tells the drop handler a drag rests over that the pointer is still there, if it is due. */
   private boolean repeat(Dragging d) {
-    if (d != dragging || !resting(d) || time < d.at + Drop.REPEAT) {
+    if (d != dragging() || !resting(d) || time < d.at + Drop.REPEAT) {
       return false; // it moved, ended or left since
     }
     d.at = time;
@@ -1240,12 +1284,12 @@ public final class App<S> {
   }
 
   private boolean keyDownAt(Key key) {
-    if (dragging != null && dragging.started && key.name().equals("Escape")) {
+    Dragging drag = startedDrag();
+    if (drag != null && key.name().equals("Escape")) {
       // Escape gives up a drag, as in browsers and editors; the release that follows presses
       // nothing.
-      boolean changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
-      dragging = null;
-      pressed = null;
+      boolean changed = step(drag, Drag.Phase.CANCEL, drag.dx, drag.dy);
+      capture = IDLE;
       return changed;
     }
     List<El> path = focusPath();
@@ -1749,8 +1793,9 @@ public final class App<S> {
     if (!timers.isEmpty()) {
       next = Math.min(next, timers.peek().at());
     }
-    if (resting(dragging)) {
-      next = Math.min(next, dragging.at + Drop.REPEAT);
+    Dragging drag = dragging();
+    if (resting(drag)) {
+      next = Math.min(next, drag.at + Drop.REPEAT);
     }
     if (blinking == null || !active) {
       return next;
@@ -1806,7 +1851,7 @@ public final class App<S> {
         return true;
       });
     }
-    Dragging d = dragging;
+    Dragging d = dragging();
     if (resting(d) && time >= d.at + Drop.REPEAT) {
       queued.add(() -> repeat(d)); // after the input, which may move it on
     }
@@ -4057,11 +4102,15 @@ public final class App<S> {
    *     then has left the tree, while before that it may only be still to come
    */
   private void endPresses(boolean rowsBuilt) {
-    if (gone(pressed, rowsBuilt)) {
-      pressed = null;
-      if (dragging != null && !dragging.started) {
-        dragging = null;
-      }
+    Object held = switch (capture) {
+      case Press p -> p.id();
+      case Selecting s -> s.id();
+      case Grab g -> g.id();
+      case Idle _, ActiveDrag _ -> null;
+    };
+    if (gone(held, rowsBuilt)) {
+      Dragging drag = startedDrag();
+      capture = drag == null ? IDLE : new ActiveDrag(drag);
     }
     if (gone(secondary, rowsBuilt)) {
       secondary = null;
@@ -4069,12 +4118,6 @@ public final class App<S> {
     if (gone(keyPressed, rowsBuilt)) {
       keyPressed = null;
       keyPressKey = null;
-    }
-    if (gone(selecting, rowsBuilt)) {
-      selecting = null;
-    }
-    if (grab != null && gone(grab.id(), rowsBuilt)) {
-      grab = null;
     }
   }
 
@@ -4802,6 +4845,7 @@ public final class App<S> {
     marked = null;
     barArea = null;
     Hot now = null;
+    Grab grab = capture instanceof Grab g ? g : null;
     El grabbed = grab == null ? null : animator.element(grab.id());
     El last = under.isEmpty() ? null : under.getLast();
     if (grabbed != null) {
@@ -4812,8 +4856,8 @@ public final class App<S> {
           grabbed.scrollbars() == null ? 0 : grabbed.scrollbars().thumbDragged());
     } else if (pointerIn
         && last != null
-        && selecting == null
-        && (dragging == null || !dragging.started)) {
+        && !(capture instanceof Selecting)
+        && startedDrag() == null) {
       Scrollbars.Bar bar = last.barAt(pointerX, pointerY);
       if (bar != null) {
         barArea = last;
@@ -4879,14 +4923,22 @@ public final class App<S> {
    * between presses.
    */
   private Object pressedId() {
-    return pressed != null ? pressed : selecting != null ? selecting : keyPressed;
+    return switch (capture) {
+      case Press p -> p.id();
+      case Selecting s -> s.id();
+      case Idle _, ActiveDrag _, Grab _ -> keyPressed;
+    };
   }
 
   /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */
   private Object held() {
-    return selecting != null
-        ? selecting
-        : dragging != null && dragging.started ? dragging.id : grab != null ? grab.id() : null;
+    return switch (capture) {
+      case Selecting s -> s.id();
+      case Grab g -> g.id();
+      case Press p -> p.drag() != null && p.drag().started ? p.drag().id : null;
+      case ActiveDrag a -> a.drag().id;
+      case Idle _ -> null;
+    };
   }
 
   /**
