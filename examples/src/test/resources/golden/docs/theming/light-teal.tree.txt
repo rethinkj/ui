@@ -2,7 +2,7 @@ el 0,0 420x200
   el 12,12 390x146
     text "Appearance" 29,29 356x16
     el #mode role=radiogroup 29,53 185x24
-      el #thumb 142,56 69x18
+      el #thumb 86,56 54x18
       el #choice-0 role=radio label="Dark" 32,56 52x18 checked=false
         text "Dark" 44,57 28x16
       el #choice-1 role=radio label="Light" 86,56 54x18 checked
