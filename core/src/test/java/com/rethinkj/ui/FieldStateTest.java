@@ -594,6 +594,7 @@ class FieldStateTest {
 
   static final class Panel {
     String text = "";
+    int rows = 20;
     boolean open = true;
     boolean grown; // the row above is tall, which pushes the draft's out of view
     boolean growOnEdit;
@@ -602,17 +603,14 @@ class FieldStateTest {
     El other;
   }
 
-  @Test
-  void anEditWaitingInARowOfAListThatFadesOutLeavesNothingToANewDraft() {
-    TextLibraries.assumeLoaded();
-    Panel panel = new Panel();
+  private static App<Panel> panelApp(Panel panel) {
     App<Panel> app = new App<>(panel, p -> {
       p.other = el().h(20).focusable();
       El root = col().wFull().hFull().child(p.other);
       if (p.open) {
         p.list = el().wFull()
             .h(100)
-            .rows(20, new RowHeights(i -> i == 0 && p.grown ? 2000 : 24), i -> {
+            .rows(p.rows, new RowHeights(i -> i == 0 && p.grown ? 2000 : 24), i -> {
               if (i != 5) {
                 return el().h(i == 0 && p.grown ? 2000 : 24);
               }
@@ -629,6 +627,14 @@ class FieldStateTest {
     app.textRendering(TextRendering.LINUX);
     app.resize(300, 200, 1);
     app.frame();
+    return app;
+  }
+
+  @Test
+  void anEditWaitingInARowOfAListThatFadesOutLeavesNothingToANewDraft() {
+    TextLibraries.assumeLoaded();
+    Panel panel = new Panel();
+    App<Panel> app = panelApp(panel);
     app.focus(panel.field);
     app.frame();
     app.textInput("h");
@@ -657,5 +663,30 @@ class FieldStateTest {
     app.keyDown(new Key("Z", Key.CONTROL, false));
     app.frame();
     assertEquals("", panel.text, "nothing of the closed draft's history");
+  }
+
+  @Test
+  void aDroppedEditorEndsItsPendingSelection() {
+    TextLibraries.assumeLoaded();
+    for (boolean shrink : new boolean[] {true, false}) {
+      Panel panel = new Panel();
+      App<Panel> app = panelApp(panel);
+      app.focus(panel.field);
+      app.frame();
+      El edited = panel.field;
+      panel.growOnEdit = true;
+      app.textInput("x"); // its answer leaves the row out
+      app.frame();
+      assertFalse(panel.list.hasRow(5), "the row is out of view");
+      assertTrue(edited.isSelectionPending(), "the edit still waits for its answer");
+      if (shrink) {
+        panel.rows = 3; // past the row
+      } else {
+        panel.open = false; // the list fades out, with the focus still on the row
+      }
+      app.invalidate();
+      app.frame();
+      assertFalse(edited.isSelectionPending(), "shrink " + shrink + ": editor dropped for good");
+    }
   }
 }

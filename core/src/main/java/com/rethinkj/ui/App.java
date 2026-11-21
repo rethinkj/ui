@@ -3061,7 +3061,11 @@ public final class App<S> {
         Editor was = editors.put(id, editor);
         if (was != editor) { // back in the tree, maybe where another field was
           if (was != null) {
-            was.leave();
+            if (was.element().fieldState() == null) {
+              was.drop();
+            } else {
+              was.leave();
+            }
           }
           editor.returned();
         }
@@ -3088,17 +3092,23 @@ public final class App<S> {
    * gone, follows the focus with the caret, and places the caret, selection and scroll of every
    * field for its new layout. The editor of a focused field whose row scrolled out of the rows
    * that exist stays, with the focus, for when the row comes back, and so does one whose
-   * selection is pending ({@link El#isSelectionPending}) while its row is out of a list that is
-   * not leaving; the editors of other fields in such rows go with them, as
-   * everything else the app keeps of a row. A field that fades out
-   * ({@link El#isExiting}) has lost its editor, and with it its caret, selection and composition.
+   * selection is pending ({@link El#isSelectionPending}) while its row is out, both of a list that
+   * is not leaving; the editors of other fields in such rows go with them, as
+   * everything else the app keeps of a row. An editor without a {@link FieldState} that is
+   * forgotten here ends its pending selection ({@link Editor#drop}), as it cannot come back. A
+   * field that fades out ({@link El#isExiting}) has lost its editor, and with it its caret,
+   * selection and composition.
    */
   private void placeEditors() {
     List<Editor> shown = new ArrayList<>();
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
-    Editor waiting = focus.waits() ? editors.get(focus.id()) : null;
+    // The focused field's editor waits for its row, but not in a list that is leaving or gone;
+    // false: a list in a row that is out of an outer list's rows comes back
+    Editor waiting = focus.waits() && !gone(animator.inRow(focus.id()).listId(), false)
+        ? editors.get(focus.id())
+        : null;
     editors.entrySet().removeIf(entry -> {
       Editor editor = entry.getValue();
       FieldState state = editor.element().fieldState();
@@ -3110,7 +3120,9 @@ public final class App<S> {
               && !gone(animator.inRow(entry.getKey()).listId(), true))) {
         return false; // an edit's answer, or onSelect's hearing of it, waits for its row
       }
-      if (state == null || state.app == this) { // not taken by another app's tree meanwhile
+      if (state == null) {
+        editor.drop(); // gone for good; its element may be fading out
+      } else if (state.app == this) { // not taken by another app's tree meanwhile
         editor.leave(); // its element may be fading out
       }
       return true;
