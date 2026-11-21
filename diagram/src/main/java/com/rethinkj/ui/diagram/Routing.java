@@ -27,13 +27,13 @@ import java.util.TreeSet;
  * between facing sides, a C around the outer sides of two nodes above each other or of one node
  * with itself, and where each of these crosses a node, a detour with four bends along a row
  * above or below a node, its legs moved past the nodes they would cross: a stub past them, or
- * half a lane where only that is free. A C needs its ends at least a {@link EdgeStyle#marker}
- * apart, so that its markers do not lie on each other: one from a port to the same port goes
- * around its node. Where a C on either side costs as much, it goes on the side of its nodes where
- * fewer other edges end, on the right where as many do. A straight edge between the same two
- * points as one before it bumps out to the nearest depth, a lane at a time, below and then above,
- * where it crosses no more nodes than the line and lies on no other edge's line; where there is
- * none, or the gap has no room for its bends, it stays on the line.
+ * half a lane where only that is free. A C with markers needs its ends at least a {@link
+ * EdgeStyle#marker} apart, so that its markers do not lie on each other: one from a port to the
+ * same port goes around its node. Where a C on either side costs as much, it goes on the side of
+ * its nodes where fewer other edges end, on the right where as many do. A straight edge between
+ * the same two points as one before it bumps out to the nearest depth, a lane at a time, below
+ * and then above, where it crosses no more nodes than the line and lies on no other edge's line;
+ * where there is none, or the gap has no room for its bends, it stays on the line.
  *
  * <p>Then the runs between two bends that lie closer than {@link EdgeStyle#lane} beside each other
  * and overlap, also only at an end, as edges that meet at one port do, are spread a lane apart:
@@ -275,7 +275,10 @@ final class Routing {
     double stub = style.stub();
     double px = fromSide > 0 ? from.x() + from.width() : from.x();
     double qx = toSide > 0 ? to.x() + to.width() : to.x();
-    if (fromSide == toSide && Math.abs(y1 - y2) < Math.max(style.marker() - EPSILON, EPSILON)) {
+    // A C needs its ends a marker apart where it has markers, so that they do not lie on each
+    // other.
+    double apart = reach[0] + reach[1] > 0 ? style.marker() : 0;
+    if (fromSide == toSide && Math.abs(y1 - y2) < Math.max(apart - EPSILON, EPSILON)) {
       return null; // it would come back on itself
     }
     Path best = null;

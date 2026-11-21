@@ -306,10 +306,14 @@ public final class Canvas {
     /** The edges' routes among these nodes, routed again only when one of them changed. */
     List<Routing.Route> routes(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
       if (!nodes.equals(routedNodes) || !edges.equals(routedEdges) || !style.equals(routedStyle)) {
-        routedNodes = List.copyOf(nodes);
-        routedEdges = List.copyOf(edges);
+        // Kept only once all of it worked, so that a failure leaves the last routes as they were.
+        List<Node> copiedNodes = List.copyOf(nodes);
+        List<Edge> copiedEdges = List.copyOf(edges);
+        List<Routing.Route> routed = Routing.route(copiedNodes, copiedEdges, style);
+        routedNodes = copiedNodes;
+        routedEdges = copiedEdges;
         routedStyle = style;
-        routes = Routing.route(routedNodes, routedEdges, style);
+        routes = routed;
       }
       return routes;
     }

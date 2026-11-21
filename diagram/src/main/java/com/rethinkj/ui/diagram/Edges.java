@@ -113,30 +113,6 @@ final class Edges {
       this.color = color;
       this.bands = bands;
     }
-
-    Edge edge() {
-      return edge;
-    }
-
-    float[][] points() {
-      return points;
-    }
-
-    float[] radii() {
-      return radii;
-    }
-
-    float width() {
-      return width;
-    }
-
-    int color() {
-      return color;
-    }
-
-    float[][] bands() {
-      return bands;
-    }
   }
 
   /** An edge in the canvas, or null where it lies outside. */
@@ -195,7 +171,7 @@ final class Edges {
     for (boolean vertical : new boolean[] {true, false}) {
       List<float[]> runs = new ArrayList<>(); // across, low, high, edge, run
       for (int e = 0; e < drawn.size(); e++) {
-        float[][] points = drawn.get(e).points();
+        float[][] points = drawn.get(e).points;
         for (int k = 0; k + 1 < points.length; k++) {
           float[] a = points[k];
           float[] b = points[k + 1];
@@ -216,12 +192,10 @@ final class Edges {
           if (apart > 0 && s[1] < r[2] && s[2] > r[1]) {
             Drawn lower = drawn.get((int) r[3]);
             Drawn upper = drawn.get((int) s[3]);
-            float[] below = lower.bands()[(int) r[4]];
-            float[] above = upper.bands()[(int) s[4]];
-            below[1] =
-                Math.clamp(apart / 2, lower.width() / 2, Math.max(below[1], lower.width() / 2));
-            above[0] =
-                Math.clamp(apart / 2, upper.width() / 2, Math.max(above[0], upper.width() / 2));
+            float[] below = lower.bands[(int) r[4]];
+            float[] above = upper.bands[(int) s[4]];
+            below[1] = Math.clamp(apart / 2, lower.width / 2, Math.max(below[1], lower.width / 2));
+            above[0] = Math.clamp(apart / 2, upper.width / 2, Math.max(above[0], upper.width / 2));
           }
         }
       }
@@ -230,20 +204,21 @@ final class Edges {
 
   private static void add(
       El canvas, Drawn shown, View view, EdgeStyle style, Theme theme, DiagramTexts texts) {
-    Edge edge = shown.edge();
-    float[][] points = shown.points();
-    float[] radii = shown.radii();
-    float width = shown.width();
-    int color = shown.color();
+    Edge edge = shown.edge;
+    float[][] points = shown.points;
+    float[] radii = shown.radii;
+    float width = shown.width;
+    int color = shown.color;
     int n = points.length;
     float marker = style.marker() * view.zoom();
-    // A marker's strokes no wider than a fifth of it, so that its bars keep a gap and its circle a
-    // hole when zoomed out, also where the line is highlighted and wider.
-    float stroke = Math.clamp(marker / 5, Math.min(style.width(), width), width);
+    // A marker's strokes no wider than its line or a fifth of it, but a pixel at least, so that its
+    // bars keep a gap and its circle a hole when zoomed out, also where the line is highlighted.
+    float stroke = Math.clamp(marker / 5, 1, width);
     // None where they would be too small to tell apart.
     boolean legible = marker >= style.smallestMarker();
     Marker fromMarker = legible ? edge.fromMarker() : Marker.NONE;
     Marker toMarker = legible ? edge.toMarker() : Marker.NONE;
+    bendHovers(canvas, shown, style);
     List<El> circles = new ArrayList<>();
     for (int k = 0; k + 1 < n; k++) {
       float[] a = points[k];
@@ -260,8 +235,8 @@ final class Edges {
       float start = a[along] + direction * tucked(radii[k]);
       float end = b[along] - direction * tucked(radii[k + 1]);
       float across = a[1 - along];
-      float before = shown.bands()[k][0];
-      float after = shown.bands()[k][1];
+      float before = shown.bands[k][0];
+      float after = shown.bands[k][1];
       float originX = vertical ? across - before : low;
       float originY = vertical ? low : across - before;
       float lineAt = Math.min(start, end) - low;
@@ -350,6 +325,37 @@ final class Edges {
       points.add(points.getFirst().clone()); // both ends in one place: a run of no length
     }
     return points.toArray(float[][]::new);
+  }
+
+  /**
+   * Under the runs, a box over each bend too wide for the bands of its runs to reach its middle,
+   * which shows the edge's tooltip there.
+   */
+  private static void bendHovers(El canvas, Drawn shown, EdgeStyle style) {
+    Edge edge = shown.edge;
+    float half = Math.max(shown.width, style.hit()) / 2;
+    float[][] points = shown.points;
+    for (int k = 1; k + 1 < points.length; k++) {
+      float radius = shown.radii[k];
+      if (edge.label() == null || HALF_BEND * radius <= half) {
+        continue;
+      }
+      // The box between the points where the bend leaves its runs, which holds the whole arc.
+      float[] corner = points[k];
+      float inX = Math.signum(corner[0] - points[k - 1][0]);
+      float inY = Math.signum(corner[1] - points[k - 1][1]);
+      float outX = Math.signum(points[k + 1][0] - corner[0]);
+      float outY = Math.signum(points[k + 1][1] - corner[1]);
+      float x1 = corner[0] - inX * radius;
+      float y1 = corner[1] - inY * radius;
+      float x2 = corner[0] + outX * radius;
+      float y2 = corner[1] + outY * radius;
+      canvas.child(Tooltip.tooltip(
+          el().absolute(Math.min(x1, x2), Math.min(y1, y2))
+              .size(Math.abs(x2 - x1), Math.abs(y2 - y1)),
+          edge.label(),
+          Tooltip.options().description(edge.description())));
+    }
   }
 
   /**
