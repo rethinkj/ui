@@ -212,6 +212,8 @@ public final class Completion {
     // as it was has the caret where the edit put it.
     if (text.equals(state.edited)) {
       caret = state.editedCaret;
+    } else {
+      state.edited = null; // refused or changed: onSelect tells the caret, if it moved
     }
     caret = Math.clamp(caret, 0, text.length());
     state.wordCharacters = field.text().wordCharacters();
