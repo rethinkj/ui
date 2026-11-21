@@ -1,0 +1,1 @@
+- The find bar's whole-word search and repeated Ctrl+D in the code editor honor the word characters of the field's language (`Highlighter.wordCharacters()`): with `$` among them, a whole-word search for `gt` no longer matches inside `$gt`.

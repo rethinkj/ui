@@ -175,7 +175,8 @@ public final class Find {
     }
 
     private Search.Query search() {
-      return new Search.Query(query, matchCase, wholeWord, regex);
+      String words = field == null ? "" : field.text().wordCharacters();
+      return new Search.Query(query, matchCase, wholeWord, regex, words);
     }
 
     private For target(int length) {

@@ -14,8 +14,8 @@ import java.util.regex.PatternSyntaxException;
  * does not find the {@code e} of an {@code e} with a combining accent. Without {@code matchCase}
  * letters are compared by Unicode's simple case folding, as {@link Pattern#UNICODE_CASE} does it:
  * {@code ä} finds {@code Ä} and {@code ß} finds {@code ẞ}, but {@code ß} does not find {@code SS},
- * which is two characters. A whole word has no letter, number, mark or {@code _} right before or
- * after it. Its regex uses all Unicode numbers ({@code N}), including letter numbers and other
+ * which is two characters. A whole word has no letter, number, mark, {@code _} or word character of
+ * the field's language ({@link com.rethinkj.ui.Text#wordCharacters}) right before or after it. Its regex uses all Unicode numbers ({@code N}), including letter numbers and other
  * numbers such as superscripts, rather than only the decimal digits of {@link
  * com.rethinkj.ui.CodeWords}. This keeps whole-word searches from matching inside those numeric
  * names; the matches must still lie on grapheme boundaries.
@@ -24,8 +24,17 @@ final class Search {
 
   private Search() {}
 
-  /** What to look for, as the find bar's field and switches say. */
-  record Query(String text, boolean matchCase, boolean wholeWord, boolean regex) {
+  /**
+   * What to look for, as the find bar's field and switches say.
+   *
+   * @param wordCharacters the characters the field's language adds to a word, such as {@code "$"}
+   */
+  record Query(
+      String text, boolean matchCase, boolean wholeWord, boolean regex, String wordCharacters) {
+
+    Query(String text, boolean matchCase, boolean wholeWord, boolean regex) {
+      this(text, matchCase, wholeWord, regex, "");
+    }
 
     /** The pattern, or null for an empty text. */
     Pattern compile() throws PatternSyntaxException {
@@ -34,7 +43,9 @@ final class Search {
       }
       String body = regex ? text : Pattern.quote(text);
       if (wholeWord) {
-        body = "(?<![\\p{L}\\p{M}\\p{N}_])(?:" + body + ")(?![\\p{L}\\p{M}\\p{N}_])";
+        // \Q...\E, as \x{...} in a lookbehind misses a character outside the BMP
+        String word = "[\\p{L}\\p{M}\\p{N}_" + Pattern.quote(wordCharacters) + "]";
+        body = "(?<!" + word + ")(?:" + body + ")(?!" + word + ")";
       }
       int flags = matchCase ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
       return Pattern.compile(body, flags | (regex ? Pattern.MULTILINE : 0));

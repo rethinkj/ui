@@ -46,6 +46,11 @@ class FindKeysTest {
     public String lineComment() {
       return "--";
     }
+
+    @Override
+    public String wordCharacters() {
+      return "$"; // as PostgreSQL's names may hold
+    }
   };
 
   @TempDir
@@ -467,6 +472,14 @@ class FindKeysTest {
     assertEquals(TEXT.indexOf("orders of"), doc.editor.anchor(), "whole words, case matched");
     run(app, "key D control\nkey D control");
     assertEquals(TEXT.indexOf("orders"), doc.editor.anchor(), "round past UPDATE's to the first");
+  }
+
+  @Test
+  void controlDSkipsAWordThatGoesOnInAWordCharacterOfTheLanguage() throws IOException {
+    Doc doc = new Doc("gt $gt gt$ gt");
+    App<Doc> app = app(doc);
+    run(app, "frame\nfocus #query\nkey Home\nkey D control\nkey D control");
+    assertEquals(11, doc.editor.anchor());
   }
 
   @Test

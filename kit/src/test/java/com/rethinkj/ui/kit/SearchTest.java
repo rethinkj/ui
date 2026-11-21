@@ -67,6 +67,16 @@ class SearchTest {
         List.of("8:id"),
         found("id² Ⅳid id", word),
         "whole-word regex boundaries include other numbers and letter numbers");
+    assertEquals(
+        List.of("8:gt"),
+        found("$gt gt$ gt", new Search.Query("gt", true, true, false, "$")),
+        "and the language's word characters");
+    assertEquals(
+        List.of("0:gt"),
+        found(
+            "gt ]gt gt\\ -gt \uD83D\uDE80gt",
+            new Search.Query("gt", true, true, false, "]\\-\uD83D\uDE80")),
+        "which a character class would take as its syntax");
   }
 
   @Test

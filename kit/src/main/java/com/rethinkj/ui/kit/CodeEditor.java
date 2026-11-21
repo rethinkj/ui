@@ -904,7 +904,8 @@ public final class CodeEditor {
     } else {
       boolean ours = s == state.nextFrom && e == state.nextTo;
       state.nextWords = ours && state.nextWords;
-      Search.Query query = new Search.Query(text.substring(s, e), true, state.nextWords, false);
+      Search.Query query = new Search.Query(
+          text.substring(s, e), true, state.nextWords, false, editor.text().wordCharacters());
       try {
         next = Search.next(
             query.compile(), text, 0, text.length(), e, Search.deadline(Find.SYNC_MILLIS));
