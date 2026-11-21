@@ -395,6 +395,10 @@ public final class ErDiagram {
         .child(Button.button(Button.Variant.GHOST, texts.fit(), state.viewport::fit))
         .child(Button.button(Button.Variant.GHOST, texts.arrange(), state::arrange))
         .child(Button.button(Button.Variant.GHOST, texts.arrangeAll(), () -> {
+          if (state.viewport.dragging() != null) {
+            // Escape would put the dragged table back without telling onPins.
+            return;
+          }
           state.arrangeAll();
           told.accept(state.pins());
         }));

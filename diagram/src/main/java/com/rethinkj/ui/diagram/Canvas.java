@@ -721,8 +721,11 @@ public final class Canvas {
       }
       case CANCEL -> {
         // Still dragging while told, so that a caller tells a cancel from the end of a drag.
-        onMove.accept(node);
-        viewport.dragged = null;
+        try {
+          onMove.accept(node);
+        } finally {
+          viewport.dragged = null;
+        }
         return;
       }
       case END -> viewport.dragged = null;
