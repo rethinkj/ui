@@ -4,7 +4,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.invoke.MethodHandles;
 
 /** A window on X11: the resize synchronization, the first frame's reveal and the background. */
 final class X11Backend implements WindowBackend {
@@ -23,20 +22,9 @@ final class X11Backend implements WindowBackend {
   private boolean syncConfigured;
   private boolean unseen; // transparent to the compositor until the first frame (see X11)
 
-  /** The upcall stub, made on first use and kept for the life of the process. */
-  private static final class Upcalls {
-    static final MemorySegment EVENT =
-        Window.upcall(MethodHandles.lookup(), X11Backend.class, "event", Sdl.EVENT_FILTER);
-  }
-
   X11Backend(MemorySegment display, long xwindow) {
     this.display = display;
     this.xwindow = xwindow;
-  }
-
-  /** The SDL_X11EventHook that {@link Window#start} sets. */
-  static MemorySegment eventHook() {
-    return Upcalls.EVENT;
   }
 
   @Override
@@ -86,10 +74,10 @@ final class X11Backend implements WindowBackend {
   }
 
   /**
-   * SDL_X11EventHook: notes the window manager's requests to synchronize a resize, and the time of
-   * each press.
+   * SDL_X11EventHook, through {@code Window.x11Event}: notes the window manager's requests to
+   * synchronize a resize, and the time of each press.
    */
-  private static boolean event(MemorySegment userdata, MemorySegment xevent) {
+  static boolean event(MemorySegment xevent) {
     try {
       MemorySegment e = xevent.reinterpret(X11.EVENT_SIZE);
       int type = e.get(JAVA_INT, X11.EVENT_TYPE);

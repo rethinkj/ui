@@ -404,6 +404,8 @@ public final class Window implements AutoCloseable {
         upcall(MethodHandles.lookup(), Window.class, "hitTest", Sdl.HIT_TEST);
     static final MemorySegment WATCH =
         upcall(MethodHandles.lookup(), Window.class, "watch", Sdl.EVENT_FILTER);
+    static final MemorySegment X11_EVENT =
+        upcall(MethodHandles.lookup(), Window.class, "x11Event", Sdl.EVENT_FILTER);
   }
 
   // ---- One window
@@ -1972,6 +1974,11 @@ public final class Window implements AutoCloseable {
     return backend.reveal(open);
   }
 
+  /** SDL_X11EventHook; see {@link X11Backend#event}. */
+  private static boolean x11Event(MemorySegment userdata, MemorySegment xevent) {
+    return X11Backend.event(xevent);
+  }
+
   /**
    * Sets who the app is, for windows opened after this: an id that the system groups the app's
    * windows by and finds its settings and icon with, and the app's name. It is the same for the
@@ -2382,7 +2389,7 @@ public final class Window implements AutoCloseable {
       throw new IllegalStateException("SDL_AddEventWatch failed: " + error);
     }
     if ("x11".equals(Sdl.getCurrentVideoDriver())) {
-      Sdl.setX11EventHook(X11Backend.eventHook(), MemorySegment.NULL);
+      Sdl.setX11EventHook(Upcalls.X11_EVENT, MemorySegment.NULL);
     }
     int registered = Sdl.registerEvents(1);
     synchronized (LOCK) {
