@@ -88,6 +88,11 @@ public interface DiagramTexts {
     return "unique";
   }
 
+  /** The short mark in a column's row for a unique column. */
+  default String uniqueMark() {
+    return "UQ";
+  }
+
   /** A column that may be null, in the column's label. */
   default String nullable() {
     return "nullable";
@@ -121,6 +126,11 @@ public interface DiagramTexts {
   /** The placeholder of the field that filters tables by name. */
   default String filterTables() {
     return "Filter tables";
+  }
+
+  /** Shown on the canvas when a filter matches no table: {@code No tables match “foo”}. */
+  default String noTablesMatch(String filter) {
+    return "No tables match “" + filter + "”";
   }
 
   /** The action that zooms so that the whole diagram shows. */

@@ -74,7 +74,7 @@ If your canvas has edges, pass them too: `Canvas.png(nodes, edges, view)`. Then 
 
 Drag empty space or turn the wheel to pan the canvas, and hold **Ctrl** while turning the wheel to zoom around the pointer, one step per step of the wheel. Drag a node to move it, or press **Escape** to cancel the drag and move it back. If an element inside a node has its own press or drag handler (such as a button), dragging from that element does not move the node. To select a node on a press and still let users drag it, use `onPointerDown` in its content: it leaves the drag to the node. While the canvas has focus, **+** and **-** zoom in and out around the center, and **0** fits all nodes into view.
 
-`Viewport.reveal(key)` pans as little as needed to show the node with that key, for example after a key moves the selection to another node. Like `fit()`, it takes effect in the next build that knows the canvas size, using the node's position and size in that build.
+`Viewport.reveal(key)` pans as little as needed to show the node with that key, for example after a key moves the selection to another node. Like `fit()`, it takes effect in the next build that knows the canvas size, using the node's position and size in that build. When the nodes lie too far apart to fit even at 25 %, so that the view between them would be empty, `fit()` reveals the first node.
 
 ## Areas
 

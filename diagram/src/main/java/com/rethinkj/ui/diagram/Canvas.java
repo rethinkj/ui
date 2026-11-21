@@ -326,27 +326,36 @@ public final class Canvas {
 
     /**
      * Pans as little as it takes to show the whole node with this key with a margin of {@link
-     * Theme.Spacing#xl}, as the keys that move between nodes need; a node larger than the canvas
-     * shows from its top left. As {@link #fit} does, the canvas does it in its next build that
-     * knows its size, after a fit that is due, with the node where that build has it, so that an
-     * app can call it before the node moves or grows; a node that build does not have is left, and
-     * a {@link #panTo} before that build drops it.
+     * Theme.Spacing#xl}, as the keys that move between nodes need, unless the whole node shows
+     * already; a node larger than the canvas shows from its top left. As {@link #fit} does, the
+     * canvas does it in its next build that knows its size, after a fit that is due, with the node
+     * where that build has it, so that an app can call it before the node moves or grows; a node
+     * that build does not have is left, and a {@link #panTo} before that build drops it.
+     *
+     * @param node the node's key, or null to drop a reveal that is not done yet
      */
     public void reveal(String node) {
-      revealing = Objects.requireNonNull(node, "node");
+      revealing = node;
     }
 
-    void revealIfDue(List<Node> nodes, float margin) {
+    /** Reveals the node if that is due, and tells whether it had the node to reveal. */
+    boolean revealIfDue(List<Node> nodes, float margin) {
       if (revealing == null || width <= 0 || height <= 0) {
-        return;
+        return false;
       }
       Node node =
           nodes.stream().filter(n -> n.key().equals(revealing)).findFirst().orElse(null);
       revealing = null;
       if (node == null) {
-        return;
+        return false;
       }
       float zoom = zoom();
+      if (node.x() >= left
+          && node.y() >= top
+          && node.x() + node.width() <= left + width / zoom
+          && node.y() + node.height() <= top + height / zoom) {
+        return true;
+      }
       margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
       double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);
@@ -354,6 +363,12 @@ public final class Canvas {
       if (Math.abs(x - left) * zoom >= 0.5 || Math.abs(y - top) * zoom >= 0.5) {
         panTo(x, y);
       }
+      return true;
+    }
+
+    /** Whether the node is at least partly in view. */
+    private boolean shows(Node node) {
+      return inside(node, left, top, left + width / zoom(), top + height / zoom());
     }
 
     /** Where a view of this extent starts that shows from {@code from} to {@code to}. */
@@ -367,9 +382,10 @@ public final class Canvas {
     /**
      * Shows all nodes at the largest zoom in the range of {@link #ZOOMS} at which they fit into the
      * canvas with a margin of {@link Theme.Spacing#xl}, centered, which may lie between steps; at
-     * the furthest zoom where they fit at none. The canvas does it in its next build that knows its
-     * size, so that an app can call it before the first, and again whenever its size changes, until
-     * the viewport is panned or zoomed.
+     * the furthest zoom where they fit at none, and should that show none of them, as {@link
+     * #reveal} the first. The canvas does it in its next build that knows its size, so that an app
+     * can call it before the first, and again whenever its size changes, until the viewport is
+     * panned or zoomed.
      */
     public void fit() {
       fitting = true;
@@ -434,19 +450,20 @@ public final class Canvas {
       return true;
     }
 
-    void fitIfDue(List<Node> nodes, float margin) {
+    /** Fits the nodes in if that is due, and tells whether it did. */
+    boolean fitIfDue(List<Node> nodes, float margin) {
       // Not while a node is dragged: its drag works at the zoom it began at.
       if (!fitting
           || dragged != null
           || width <= 0
           || height <= 0
           || width == fittedWidth && height == fittedHeight) {
-        return;
+        return false;
       }
       fittedWidth = width;
       fittedHeight = height;
       if (nodes.isEmpty()) {
-        return;
+        return false;
       }
       double[] bounds = bounds(nodes);
       double minX = bounds[0];
@@ -461,6 +478,7 @@ public final class Canvas {
           : (float) Math.clamp(fit, ZOOMS.getFirst(), ZOOMS.getLast());
       left = (minX + maxX) / 2 - width / 2.0 / zoom;
       top = (minY + maxY) / 2 - height / 2.0 / zoom;
+      return true;
     }
   }
 
@@ -634,9 +652,16 @@ public final class Canvas {
       Consumer<Node> onMove) {
     Theme theme = Theme.CURRENT.get();
     DiagramTexts texts = DiagramTexts.CURRENT.get();
-    viewport.fitIfDue(
+    boolean fitted = viewport.fitIfDue(
         areas.isEmpty() ? nodes : joined(areas, nodes), theme.space().xl());
-    viewport.revealIfDue(nodes, theme.space().xl());
+    boolean revealed = viewport.revealIfDue(nodes, theme.space().xl());
+    if (fitted && !revealed && !nodes.isEmpty() && nodes.stream().noneMatch(viewport::shows)) {
+      // At the furthest zoom, the middle of nodes far apart can show none of them: show the first,
+      // and keep fitting, so that a larger canvas fits them all.
+      viewport.reveal(nodes.getFirst().key());
+      viewport.revealIfDue(nodes, theme.space().xl());
+      viewport.fitting = true;
+    }
     float zoom = viewport.zoom();
     double left = viewport.left;
     double top = viewport.top;
