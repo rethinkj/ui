@@ -1195,7 +1195,7 @@ public final class DataGrid {
     String draft; // null for NULL
     String original; // the value the editing began with
     String error; // what the app or the type said is wrong with the draft, null for nothing
-    boolean multiline; // in the larger field of several lines
+    GridEdit.CellEditMode editMode; // how the open editor edits, null while none is open
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
     Runnable handOn; // the last grid built with it that edits: hands the draft on (commitEdit)
@@ -1360,7 +1360,7 @@ public final class DataGrid {
       editRow = editColumn = -1;
       editKeyed = false;
       draft = original = error = null;
-      multiline = false;
+      editMode = null;
       choices.close();
     }
 

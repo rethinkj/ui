@@ -482,6 +482,20 @@ class GridEditTest {
     assertEquals("commit 0,5 pending", ledger.log.getLast(), "Escape changed nothing");
   }
 
+  @Test
+  void aRefusedChoiceLeavesTheListOpenOnItWithTheMessage() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.refuse = "Not now";
+    App<Ledger> app = start(ledger);
+    run(app, "press #cell-0-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
+    run(app, "press #item-1\nframe\nadvance 1\nframe"); // a press closes the list first
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=menu"), "the list stays open: " + dump);
+    assertTrue(line(app, "item-1").contains(" current"), "on the refused choice: " + dump);
+    assertTrue(dump.contains("role=alert label=\"Not now\""), dump);
+    assertEquals(0, ledger.selection.row(), "the cursor stays");
+  }
+
   /** More choices than a menu shows at once: the editor is a field that filters them. */
   @Test
   void aLongEnumerationFiltersItsChoicesAsTyped() throws IOException {

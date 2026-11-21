@@ -54,25 +54,6 @@ final class GridEdit {
         };
   }
 
-  /** Whether the column chooses from a list: an enumeration's. */
-  static boolean choosing(Column c) {
-    return c.editing().editor() == null && !c.editing().choices().isEmpty();
-  }
-
-  /**
-   * Whether the choices are more than a menu shows without scrolling ({@link ComboBox#ROWS}):
-   * then the editor is a field that filters them, as a combo box's, since typing narrows a long
-   * list faster than the menu's first letters go through it.
-   */
-  static boolean searching(Column c) {
-    return choosing(c) && c.editing().choices().size() > ComboBox.ROWS;
-  }
-
-  /** Whether the column switches in the cell, without an editor. */
-  static boolean switching(Column c) {
-    return c.type() == DataType.BOOLEAN && c.editing().editor() == null && !choosing(c);
-  }
-
   /** Whether typing may lead to {@code text}, which a number column refuses otherwise. */
   static boolean accepts(Column c, String text) {
     if (c.cells() != null) {
@@ -151,13 +132,16 @@ final class GridEdit {
    * field of several lines with {@code multiline}; switches a boolean instead.
    */
   static void start(Build b, int row, int column, String typed, boolean multiline) {
-    Selection sel = b.sel;
-    Column c = b.columns.get(column);
-    if (switching(c)) {
-      toggle(b, row, column);
-      return;
-    }
     String value = value(b, row, column);
+    String draft = typed != null ? typed : value;
+    boolean breaks = draft != null && (draft.indexOf('\n') >= 0 || draft.indexOf('\r') >= 0);
+    CellEditMode.of(b.columns.get(column), multiline || breaks).start(b, row, column, value, typed);
+  }
+
+  /** Opens the editor over a cell in a mode, with the value and draft it begins with. */
+  private static Selection open(
+      Build b, int row, int column, String value, String draft, CellEditMode mode) {
+    Selection sel = b.sel;
     sel.editRow = row;
     sel.editColumn = column;
     keep(b, row);
@@ -165,30 +149,10 @@ final class GridEdit {
     sel.error = null;
     sel.edits++;
     sel.field = new FieldState(); // caret and history of this editor, in one field or the other
-    sel.draft = typed != null ? typed : value;
-    sel.multiline = c.editing().editor() == null
-        && textLike(c)
-        && (multiline
-            || sel.draft != null && (sel.draft.indexOf('\n') >= 0 || sel.draft.indexOf('\r') >= 0));
+    sel.draft = draft;
+    sel.editMode = mode;
     sel.choices.close();
-    if (searching(c)) {
-      int at = entryOf(c, value);
-      sel.search.reset(at);
-      sel.search.none = at < 0; // a value not among the entries: nothing until a key moves
-      if (typed != null) {
-        sel.search.typed(typed, true);
-      }
-      sel.draft = value;
-    } else if (choosing(c)) {
-      List<Menu.Item> items = choiceItems(b, c);
-      int at = typed == null ? indexOf(c, value) : Menu.startingWith(items, -1, typed);
-      if (typed != null && at < 0) {
-        at = indexOf(c, value);
-      }
-      sel.choices.open();
-      sel.choices.highlight(0, at);
-      sel.draft = value;
-    }
+    return sel;
   }
 
   /** Remembers the key of the edited row, where the rows have keys. */
@@ -238,9 +202,10 @@ final class GridEdit {
     int row = sel.editRow;
     int column = sel.editColumn;
     Column c = b.columns.get(column);
+    CellEditMode mode = sel.editMode; // the app's handler may close the editor
     String value = normalize(c, sel.draft);
     boolean same = Objects.equals(value, sel.original); // nothing changed: nothing to check
-    String error = c.editing().editor() == null && !same ? check(c, value) : null;
+    String error = same ? null : mode.check(c, value);
     boolean appended = false;
     // The row to append; by its key where the rows have keys, as b may be older than the rows.
     boolean append = sel.editKeyed ? sel.editKey == Selection.APPEND : row >= b.rowCount;
@@ -254,11 +219,7 @@ final class GridEdit {
     if (error != null) {
       sel.error = error;
       sel.edits++; // the editor takes the focus back from a press elsewhere, which moved it
-      if (choosing(c) && !searching(c)) { // the list stays open on the refused choice
-        sel.choices.open();
-        sel.choices.highlight(0, indexOf(c, value));
-      }
-
+      mode.refused(b, c, value);
       if (appended) {
         sel.original = null; // the row is the app's now, and empty
         if (sel.editKeyed) {
@@ -372,24 +333,24 @@ final class GridEdit {
       }
       case "Enter", "NumpadEnter" -> {
         if (mods == Key.ALT) {
-          if (sel.multiline || c.editing().editor() != null || !textLike(c)) {
+          if (!(sel.editMode instanceof CellEditMode.InlineText) || !textLike(c)) {
             return false;
           }
-          sel.multiline = true;
+          sel.editMode = CellEditMode.MULTILINE;
           return true;
         }
         if (mods == Key.CONTROL) {
           commit(b, Move.NONE);
           return true;
         }
-        if (sel.multiline || mods != 0 && mods != Key.SHIFT) {
+        if (sel.editMode instanceof CellEditMode.MultilineText || mods != 0 && mods != Key.SHIFT) {
           return false;
         }
         commit(b, mods == 0 ? Move.DOWN : Move.UP);
         return true;
       }
       case "Tab" -> {
-        if (sel.multiline || (mods & ~Key.SHIFT) != 0) {
+        if (sel.editMode instanceof CellEditMode.MultilineText || (mods & ~Key.SHIFT) != 0) {
           return false;
         }
         commit(b, mods == 0 ? Move.RIGHT : Move.LEFT);
@@ -417,13 +378,7 @@ final class GridEdit {
       return;
     }
     if (sel.isEditing()) {
-      // Typed before its field had the focus, in the frame that opened it: it goes on the end.
-      Column c = b.columns.get(sel.editColumn);
-      String draft = (sel.draft == null ? "" : sel.draft) + text;
-      if (c.editing().editor() == null && !choosing(c) && accepts(c, draft)) {
-        sel.draft = draft;
-        sel.error = null;
-      }
+      sel.editMode.typedInto(sel, b.columns.get(sel.editColumn), text);
       return;
     }
     int row = sel.row();
@@ -431,15 +386,7 @@ final class GridEdit {
     if (!b.edits || !editable(b, row, column)) {
       return;
     }
-    Column c = b.columns.get(column);
-    if (switching(c)) {
-      return; // Space switches it, and nothing else types into it
-    }
-    if (c.editing().editor() != null) {
-      start(b, row, column, null, false);
-    } else if (choosing(c) || accepts(c, text)) {
-      start(b, row, column, text, false);
-    }
+    CellEditMode.of(b.columns.get(column), false).typed(b, row, column, text);
   }
 
   /** The keys of the grid that edit, while no editor is open; whether it took the key. */
@@ -492,11 +439,15 @@ final class GridEdit {
         start(b, row, column, null, false);
         return true;
       }
-      if (mods == Key.ALT && name.equals("Enter") && c.editing().editor() == null && textLike(c)) {
+      if (mods == Key.ALT
+          && name.equals("Enter")
+          && CellEditMode.of(c, true) instanceof CellEditMode.MultilineText) {
         start(b, row, column, null, true);
         return true;
       }
-      if (mods == 0 && name.equals("Space") && switching(c)) {
+      if (mods == 0
+          && name.equals("Space")
+          && CellEditMode.of(c, false) instanceof CellEditMode.Toggle) {
         toggle(b, row, column);
         return true;
       }
@@ -689,6 +640,219 @@ final class GridEdit {
     items.addAll(mine);
   }
 
+  // The modes
+
+  /**
+   * How a column's cells edit, resolved from the column once, as the editing starts, and held in
+   * the {@link Selection} while the editor is open: each mode starts the edit, takes typed text,
+   * builds the editor over the cell and what hangs on its anchor, and checks and refuses a value
+   * its own way.
+   */
+  sealed interface CellEditMode {
+    CellEditMode TOGGLE = new Toggle();
+    CellEditMode CHOICE_SEARCH = new ChoiceSearch();
+    CellEditMode CHOICE_MENU = new ChoiceMenu();
+    CellEditMode CUSTOM = new Custom();
+    CellEditMode INLINE = new InlineText();
+    CellEditMode MULTILINE = new MultilineText();
+
+    /** The mode of a column's cells, in the field of several lines with {@code multiline}. */
+    static CellEditMode of(Column c, boolean multiline) {
+      DataGrid.Editing editing = c.editing();
+      if (editing.editor() != null) {
+        return CUSTOM;
+      }
+      if (!editing.choices().isEmpty()) {
+        return editing.choices().size() > ComboBox.ROWS ? CHOICE_SEARCH : CHOICE_MENU;
+      }
+      if (c.type() == DataType.BOOLEAN) {
+        return TOGGLE;
+      }
+      return multiline && textLike(c) ? MULTILINE : INLINE;
+    }
+
+    /** Opens the editor over a cell, with its value or with {@code typed} in place of it. */
+    default void start(Build b, int row, int column, String value, String typed) {
+      open(b, row, column, value, typed != null ? typed : value, this);
+    }
+
+    /** Text typed while the grid has the focus and no editor is open: it may open this one. */
+    default void typed(Build b, int row, int column, String text) {
+      if (accepts(b.columns.get(column), text)) {
+        start(b, row, column, value(b, row, column), text);
+      }
+    }
+
+    /** Text typed into the open editor before its field had the focus, in its first frame. */
+    default void typedInto(Selection sel, Column c, String text) {}
+
+    /** Puts the editor over its cell, in the {@code box} the modes share. */
+    El editor(Build b, Column c, int column, El box);
+
+    /** What hangs on the anchor over the cell, as it takes the focus; null for nothing. */
+    default El overlay(Build b, Column c, float height) {
+      return null;
+    }
+
+    /** What is wrong with a changed value before it is handed on, or null when it fits. */
+    default String check(Column c, String value) {
+      return GridEdit.check(c, value);
+    }
+
+    /** Shows that the app or the type refused {@code value}, beyond the editor's message. */
+    default void refused(Build b, Column c, String value) {}
+
+    /**
+     * A boolean, which switches in the cell without an editor ({@link GridEdit#toggle}); Space
+     * switches it, and nothing else types into it.
+     */
+    record Toggle() implements CellEditMode {
+      @Override
+      public void start(Build b, int row, int column, String value, String typed) {
+        toggle(b, row, column);
+      }
+
+      @Override
+      public void typed(Build b, int row, int column, String text) {}
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return box; // never open: start switches it instead
+      }
+    }
+
+    /**
+     * Choices more than a menu shows without scrolling ({@link ComboBox#ROWS}): a field that
+     * filters them, as a combo box's, since typing narrows a long list faster than the menu's
+     * first letters go through it.
+     */
+    record ChoiceSearch() implements CellEditMode {
+      @Override
+      public void start(Build b, int row, int column, String value, String typed) {
+        Selection sel = open(b, row, column, value, value, this);
+        int at = entryOf(b.columns.get(column), value);
+        sel.search.reset(at);
+        sel.search.none = at < 0; // a value not among the entries: nothing until a key moves
+        if (typed != null) {
+          sel.search.typed(typed, true);
+        }
+      }
+
+      @Override
+      public void typed(Build b, int row, int column, String text) {
+        start(b, row, column, value(b, row, column), text);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return searchEditor(b, c, column, box);
+      }
+
+      @Override
+      public El overlay(Build b, Column c, float height) {
+        return search(b, c);
+      }
+    }
+
+    /** An enumeration's few choices, in a menu whose first letters go through them. */
+    record ChoiceMenu() implements CellEditMode {
+      @Override
+      public void start(Build b, int row, int column, String value, String typed) {
+        Selection sel = open(b, row, column, value, value, this);
+        Column c = b.columns.get(column);
+        List<Menu.Item> items = choiceItems(b, c);
+        int at = typed == null ? indexOf(c, value) : Menu.startingWith(items, -1, typed);
+        if (typed != null && at < 0) {
+          at = indexOf(c, value);
+        }
+        sel.choices.open();
+        sel.choices.highlight(0, at);
+      }
+
+      @Override
+      public void typed(Build b, int row, int column, String text) {
+        start(b, row, column, value(b, row, column), text);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        shown(b, c, box)
+            .gap(b.theme.space().xs())
+            .child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
+        return place(b, box, column, cell(b, c), false, Side.TOP); // the list lies below it
+      }
+
+      @Override
+      public El overlay(Build b, Column c, float height) {
+        return b.sel.choices.isOpen() ? choices(b, c) : null;
+      }
+
+      @Override
+      public void refused(Build b, Column c, String value) {
+        b.sel.choices.open(); // the list stays open on the refused choice
+        b.sel.choices.highlight(0, indexOf(c, value));
+      }
+    }
+
+    /** The app's own editor ({@link DataGrid.Editing#editor}), which checks its values itself. */
+    record Custom() implements CellEditMode {
+      @Override
+      public void typed(Build b, int row, int column, String text) {
+        start(b, row, column, value(b, row, column), null);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return customEditor(b, c, column, box);
+      }
+
+      @Override
+      public String check(Column c, String value) {
+        return null;
+      }
+    }
+
+    /** The field of one line in the cell, for text and for numbers, dates and times. */
+    record InlineText() implements CellEditMode {
+      @Override
+      public void typedInto(Selection sel, Column c, String text) {
+        append(sel, c, text);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return inlineEditor(b, c, column, box);
+      }
+    }
+
+    /** The field of several lines below the cell, for a long text or one with line breaks. */
+    record MultilineText() implements CellEditMode {
+      @Override
+      public void typedInto(Selection sel, Column c, String text) {
+        append(sel, c, text);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return place(b, shown(b, c, box), column, cell(b, c), false, null);
+      }
+
+      @Override
+      public El overlay(Build b, Column c, float height) {
+        return multiline(b, c, height);
+      }
+    }
+  }
+
+  /** Puts typed text on the end of the draft, where the column takes it. */
+  private static void append(Selection sel, Column c, String text) {
+    String draft = (sel.draft == null ? "" : sel.draft) + text;
+    if (accepts(c, draft)) {
+      sel.draft = draft;
+      sel.error = null;
+    }
+  }
+
   // The editor
 
   /**
@@ -704,153 +868,198 @@ final class GridEdit {
     Column c = b.columns.get(column);
     float stroke = theme.size().stroke();
     float w = g.cursorWidth();
-    float pad = Math.max(theme.space().s() - w, 0);
-    boolean right = c.align() == DataGrid.Align.RIGHT;
-    Theme.TextStyle style = c.mono() ? theme.type().mono() : theme.type().body();
-    float cell = Math.max(c.width() - stroke, 0);
     El box = row()
         .key("editor")
         .h(g.rowHeight() - stroke)
         .align(Style.Align.CENTER)
-        .justify(right ? Style.Content.END : Style.Content.START)
-        .padding(0, pad)
+        .justify(c.align() == DataGrid.Align.RIGHT ? Style.Content.END : Style.Content.START)
+        .padding(0, pad(theme, w))
         .fill(theme.surface().raised())
         .radius(theme.radius().small())
         .border(w, sel.error == null ? theme.accent().edge() : theme.status().danger())
         .keepFocus()
         .onPress(() -> {}) // a press on its edge neither drags nor takes the focus
         .onKey(k -> editKey(b, k));
-    float width = cell;
-    if (searching(c)) {
-      // A field that filters the choices below it; it shows the value while nothing is typed.
-      El field = El.text(sel.search.query)
-          .editable(v -> sel.search.typed(v, true))
-          .key("field")
-          .label(b.texts.edit(c.title()))
-          .font(style.font().get())
-          .fontSize(style.size())
-          .color(theme.text().primary())
-          .placeholder(
-              sel.draft == null ? "NULL" : DataGrid.oneLine(sel.draft),
-              theme.text().muted())
-          .selectionColor(theme.accent().selection())
-          .hFull()
-          .minSize(0, 0)
-          .grow(1)
-          .focusRing(0)
-          .autofocus(sel.edits)
-          .onKey(k -> searchKey(b, c, k));
-      box.gap(theme.space().xs())
-          .dismissGroup(sel.search)
-          .child(field)
-          .child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
-    } else if (c.editing().editor() != null) {
-      box.child(c.editing()
-          .editor()
-          .editor(sel.draft, v -> {
-            sel.draft = v;
-            sel.error = null;
-          })
-          .autofocus(sel.edits));
-    } else if (choosing(c) || sel.multiline) {
-      // The list or the field of several lines edits it; here it shows what they hold.
-      El shown = DataGrid.text(
-          theme,
-          c.mono(),
-          sel.draft == null ? "NULL" : DataGrid.oneLine(sel.draft),
-          sel.draft == null ? theme.text().muted() : theme.text().primary());
-      box.child(right ? shown : shown.grow(1));
-      if (choosing(c)) {
-        box.gap(theme.space().xs()).child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
-      }
-    } else {
-      String text = sel.draft == null ? "" : sel.draft;
-      float caret =
-          theme.space().xs(); // room for the caret after the text, which then never scrolls
-      float wide =
-          DataGrid.natural(El.text(text).font(style.font().get()).fontSize(style.size())) + caret;
-      float frame = 2 * (pad + w);
-      // Longer than the cell: a button at the right opens the field of several lines.
-      boolean longer = textLike(c) && wide + frame > cell;
-      float button = theme.size().icon() + 2 * stroke;
-      float extra = longer ? button + theme.space().xs() : 0;
-      width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
-      El field = El.text(text)
-          .editable(v -> edit(c, sel, v))
-          .key("field")
-          .fieldState(sel.field)
-          .label(b.texts.edit(c.title()))
-          .font(style.font().get())
-          .fontSize(style.size())
-          .color(theme.text().primary())
-          .selectionColor(theme.accent().selection())
-          .hFull()
-          .minSize(0, 0)
-          .focusRing(0) // the editor's edge says where the keys go
-          .autofocus(sel.edits);
-      if (sel.draft == null) {
-        field.value("NULL");
-        if (c.editing().nullable()) {
-          field.placeholder("NULL", theme.text().muted());
-        }
-      } else if (text.isEmpty() && c.editing().nullable() && textLike(c)) {
-        field.placeholder(
-            b.texts.empty(), theme.text().muted()); // not NULL: Control+0 makes it that
-      }
-      El fitted = field;
-      if (right) {
-        // As wide as the text, at the right, where the cell's text ends: it does not jump. An
-        // invisible copy of the text, no line high, gives the width as layout measures the text
-        // at the window's scale and with its hinting, which a measure here cannot know (the
-        // field, measured 0 wide, came out narrower than its text and scrolled its first
-        // character away); the field below it takes that width, the caret's room included.
-        El copy = El.text(text)
-            .font(style.font().get())
-            .fontSize(style.size())
-            .padding(0, caret, 0, 0)
-            .h(0)
-            .minSize(0, 0)
-            .opacity(0);
-        fitted = col().key("fit").hFull().minSize(0, 0).clip().children(copy, field.wFull());
-        fitted.style().maxWidth = Len.px(Math.max(width - frame - extra, 0));
-        box.padding(0, Math.max(pad - caret, 0), 0, pad);
-      } else {
-        field.grow(1);
-      }
-      box.child(fitted);
-      if (longer) {
-        int hover = theme.surface().hover();
-        box.gap(theme.space().xs())
-            .child(row()
-                .key("expand")
-                .role("button")
-                .label(b.texts.editInLines())
-                .size(button, button)
-                .shrink(0)
-                .center()
-                .radius(theme.radius().small())
-                .cursor(Cursor.POINTER)
-                .keepFocus() // the caret stays in the field
-                .onPress(() -> sel.multiline = true)
-                .whenHovered(e -> e.fill(hover))
-                .child(Icon.icon(Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
-      }
-    }
-    box.absolute(right ? b.xs[column + 1] - stroke - width : b.xs[column], 0).w(width);
+    return sel.editMode.editor(b, c, column, box);
+  }
+
+  /** The room between the editor's edge and its text. */
+  private static float pad(Theme theme, float edge) {
+    return Math.max(theme.space().s() - edge, 0);
+  }
+
+  private static Theme.TextStyle style(Theme theme, Column c) {
+    return c.mono() ? theme.type().mono() : theme.type().body();
+  }
+
+  /** The width of a cell inside its line. */
+  private static float cell(Build b, Column c) {
+    return Math.max(c.width() - b.theme.size().stroke(), 0);
+  }
+
+  /**
+   * Puts the editor over its cell, {@code width} wide; a press outside it hands it on with {@code
+   * pressOutside}, and a refused value's message shows on {@code alert}'s side, none for null.
+   */
+  private static El place(
+      Build b, El box, int column, float width, boolean pressOutside, Side alert) {
+    Selection sel = b.sel;
+    Theme theme = b.theme;
+    boolean right = b.columns.get(column).align() == DataGrid.Align.RIGHT;
+    box.absolute(right ? b.xs[column + 1] - theme.size().stroke() - width : b.xs[column], 0)
+        .w(width);
     if (column < b.frozen) {
       box.fixedX();
     }
-    if (!sel.multiline && !choosing(c)) {
+    if (pressOutside) {
       box.onPressOutside(() -> commit(b, Move.NONE));
     }
-    if (sel.error != null && !sel.multiline) {
-      // Above the cell where the list of choices lies below it.
-      Side side = choosing(c) ? Side.TOP : Side.BOTTOM;
+    if (sel.error != null && alert != null) {
       box.invalid(true)
           .overlay(alert(theme, sel.error)
-              .side(side, Style.Align.START, theme.space().xs()));
+              .side(alert, Style.Align.START, theme.space().xs()));
     }
     return box;
+  }
+
+  /** The editor of a long enumeration: a field that filters the choices below it. */
+  private static El searchEditor(Build b, Column c, int column, El box) {
+    Theme theme = b.theme;
+    Selection sel = b.sel;
+    Theme.TextStyle style = style(theme, c);
+    // It shows the value while nothing is typed.
+    El field = El.text(sel.search.query)
+        .editable(v -> sel.search.typed(v, true))
+        .key("field")
+        .label(b.texts.edit(c.title()))
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(theme.text().primary())
+        .placeholder(
+            sel.draft == null ? "NULL" : DataGrid.oneLine(sel.draft),
+            theme.text().muted())
+        .selectionColor(theme.accent().selection())
+        .hFull()
+        .minSize(0, 0)
+        .grow(1)
+        .focusRing(0)
+        .autofocus(sel.edits)
+        .onKey(k -> searchKey(b, c, k));
+    box.gap(theme.space().xs())
+        .dismissGroup(sel.search)
+        .child(field)
+        .child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
+    return place(b, box, column, cell(b, c), false, Side.TOP); // the list lies below it
+  }
+
+  /** The editor of the app's own, which hands its value on as it changes. */
+  private static El customEditor(Build b, Column c, int column, El box) {
+    Selection sel = b.sel;
+    box.child(c.editing()
+        .editor()
+        .editor(sel.draft, v -> {
+          sel.draft = v;
+          sel.error = null;
+        })
+        .autofocus(sel.edits));
+    return place(b, box, column, cell(b, c), true, Side.BOTTOM);
+  }
+
+  /** What the list of an enumeration or the field of several lines holds, which edit it. */
+  private static El shown(Build b, Column c, El box) {
+    Theme theme = b.theme;
+    String draft = b.sel.draft;
+    El shown = DataGrid.text(
+        theme,
+        c.mono(),
+        draft == null ? "NULL" : DataGrid.oneLine(draft),
+        draft == null ? theme.text().muted() : theme.text().primary());
+    return box.child(c.align() == DataGrid.Align.RIGHT ? shown : shown.grow(1));
+  }
+
+  /**
+   * The field of one line: its text where the cell's is, growing up to the grid's edge for a long
+   * value, with a button for the field of several lines then.
+   */
+  private static El inlineEditor(Build b, Column c, int column, El box) {
+    Theme theme = b.theme;
+    Selection sel = b.sel;
+    float stroke = theme.size().stroke();
+    float w = b.g.cursorWidth();
+    float pad = pad(theme, w);
+    boolean right = c.align() == DataGrid.Align.RIGHT;
+    Theme.TextStyle style = style(theme, c);
+    float cell = cell(b, c);
+    String text = sel.draft == null ? "" : sel.draft;
+    float caret = theme.space().xs(); // room for the caret after the text, which then never scrolls
+    float wide =
+        DataGrid.natural(El.text(text).font(style.font().get()).fontSize(style.size())) + caret;
+    float frame = 2 * (pad + w);
+    // Longer than the cell: a button at the right opens the field of several lines.
+    boolean longer = textLike(c) && wide + frame > cell;
+    float button = theme.size().icon() + 2 * stroke;
+    float extra = longer ? button + theme.space().xs() : 0;
+    float width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
+    El field = El.text(text)
+        .editable(v -> edit(c, sel, v))
+        .key("field")
+        .fieldState(sel.field)
+        .label(b.texts.edit(c.title()))
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(theme.text().primary())
+        .selectionColor(theme.accent().selection())
+        .hFull()
+        .minSize(0, 0)
+        .focusRing(0) // the editor's edge says where the keys go
+        .autofocus(sel.edits);
+    if (sel.draft == null) {
+      field.value("NULL");
+      if (c.editing().nullable()) {
+        field.placeholder("NULL", theme.text().muted());
+      }
+    } else if (text.isEmpty() && c.editing().nullable() && textLike(c)) {
+      field.placeholder(b.texts.empty(), theme.text().muted()); // not NULL: Control+0 makes it that
+    }
+    El fitted = field;
+    if (right) {
+      // As wide as the text, at the right, where the cell's text ends: it does not jump. An
+      // invisible copy of the text, no line high, gives the width as layout measures the text
+      // at the window's scale and with its hinting, which a measure here cannot know (the
+      // field, measured 0 wide, came out narrower than its text and scrolled its first
+      // character away); the field below it takes that width, the caret's room included.
+      El copy = El.text(text)
+          .font(style.font().get())
+          .fontSize(style.size())
+          .padding(0, caret, 0, 0)
+          .h(0)
+          .minSize(0, 0)
+          .opacity(0);
+      fitted = col().key("fit").hFull().minSize(0, 0).clip().children(copy, field.wFull());
+      fitted.style().maxWidth = Len.px(Math.max(width - frame - extra, 0));
+      box.padding(0, Math.max(pad - caret, 0), 0, pad);
+    } else {
+      field.grow(1);
+    }
+    box.child(fitted);
+    if (longer) {
+      int hover = theme.surface().hover();
+      box.gap(theme.space().xs())
+          .child(row()
+              .key("expand")
+              .role("button")
+              .label(b.texts.editInLines())
+              .size(button, button)
+              .shrink(0)
+              .center()
+              .radius(theme.radius().small())
+              .cursor(Cursor.POINTER)
+              .keepFocus() // the caret stays in the field
+              .onPress(() -> sel.editMode = CellEditMode.MULTILINE)
+              .whenHovered(e -> e.fill(hover))
+              .child(Icon.icon(Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
+    }
+    return place(b, box, column, width, true, Side.BOTTOM);
   }
 
   /** How wide an editor of this column may grow: to the edge of the grid's part in view. */
@@ -884,13 +1093,12 @@ final class GridEdit {
   static void anchor(Build b, El content) {
     Selection sel = b.sel;
     Column c = b.columns.get(sel.editColumn);
-    boolean search = searching(c);
-    boolean list = choosing(c) && (search || sel.choices.isOpen());
-    if (!sel.multiline && !list) {
-      return;
-    }
     float stroke = b.theme.size().stroke();
     float height = b.g.rowHeight() - stroke;
+    El overlay = sel.editMode.overlay(b, c, height);
+    if (overlay == null) {
+      return;
+    }
     double top =
         b.g.rowHeight() + stroke + (double) sel.editRow * b.g.rowHeight() - sel.rowsScroll.y();
     El anchor = el().key("edit-anchor")
@@ -899,8 +1107,7 @@ final class GridEdit {
     if (sel.editColumn < b.frozen) {
       anchor.fixedX();
     }
-    content.child(
-        anchor.overlay(search ? search(b, c) : list ? choices(b, c) : multiline(b, c, height)));
+    content.child(anchor.overlay(overlay));
   }
 
   /** The choices of an enumeration, and NULL where the column allows it, after a line. */
