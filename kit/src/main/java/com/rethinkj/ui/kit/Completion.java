@@ -92,6 +92,7 @@ public final class Completion {
     private int toldCaret = -1;
     private int toldAnchor = -1;
     private boolean back;
+    private List<Entry> shown = List.of(); // the entries of the last build that decided
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
@@ -208,11 +209,10 @@ public final class Completion {
       String background,
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
-    // The build that answers an edit comes before onSelect tells its caret: an edit the app took
-    // as it was has the caret where the edit put it.
-    if (text.equals(state.edited)) {
-      caret = state.editedCaret;
-    } else {
+    // The build that answers an edit comes before onSelect tells the caret the edit moved, and
+    // the app's state, which suggest may read, still has the one before: the build after decides.
+    boolean waiting = text.equals(state.edited) && state.editedCaret != caret;
+    if (!text.equals(state.edited)) {
       state.edited = null; // refused or changed: onSelect tells the caret, if it moved
     }
     caret = Math.clamp(caret, 0, text.length());
@@ -221,21 +221,24 @@ public final class Completion {
     // A character typed into a word opens the list from the word's second character, one of
     // openAfter's at once; an undo that brings one back leaves the caret elsewhere, or a
     // selection, and opens nothing.
-    if (state.typed >= 0
-        && !state.open
-        && state.typed == caret
-        && (state.triggered || caret - from >= 2)) {
-      state.open();
+    if (!waiting) {
+      if (state.typed >= 0
+          && !state.open
+          && state.typed == caret
+          && (state.triggered || caret - from >= 2)) {
+        state.open();
+      }
+      state.typed = -1;
+      state.triggered = false;
     }
-    state.typed = -1;
-    state.triggered = false;
     state.history = false;
     String word = text.substring(from, caret);
-    List<Entry> entries = !state.open
-        ? List.of()
+    List<Entry> entries = waiting || !state.open
+        ? waiting ? state.shown : List.of()
         : background == null ? suggest.apply(word) : ask(app, state, background, word, suggest);
+    state.shown = entries;
     boolean loading = state.work != null || state.loading; // read after suggest, which may set it
-    if (entries.isEmpty() && !loading) {
+    if (entries.isEmpty() && !loading && !waiting) {
       // A list with nothing to show is closed, or it would show wherever the caret went next,
       // as after a number typed, Home, a press or a find bar's match.
       state.close();

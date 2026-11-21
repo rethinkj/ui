@@ -69,6 +69,14 @@ class CompletionTest {
           .hFull()
           .padding(12)
           .fill(t.surface().window())
+          .onKey(
+              key -> { // an edit of the app's at the end that leaves the caret where it is
+                if (key.name().equals("F6")) {
+                  s.app.edit(editor, s.sql.length(), s.sql.length(), "s", s.editor.caret());
+                  return true;
+                }
+                return false;
+              })
           .child(
               s.plain
                   ? editor
@@ -195,6 +203,19 @@ class CompletionTest {
   }
 
   @Test
+  void anEditOfTheAppThatLeavesTheCaretKeepsTheWordToReplace() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    run(
+        app,
+        "frame\npress #query\ntype \"SELECT cu FROM order\"\nkey Home"
+            + "\nkey ArrowRight".repeat(9));
+    run(app, "key Space control\nkey F6"); // SELECT cu| FROM orders
+    run(app, "key Enter");
+    assertEquals("SELECT customers FROM orders", app.state().sql);
+  }
+
+  @Test
   void controlSpaceOpensEscapeClosesAndAPressTakes() throws IOException {
     TextLibraries.assumeLoaded();
     App<Query> app = app();
@@ -309,8 +330,14 @@ class CompletionTest {
   @Test
   void aDotOpensTheListAndAnEntryPutsInItsOwnText() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Query> app = app(word ->
-        List.of(new Completion.Entry("order date", Symbol.TABLE, "timestamp", "\"order date\"")));
+    List<Query> self = new ArrayList<>();
+    App<Query> app = app(word -> {
+      Query q = self.getFirst(); // the qualifier before the caret, as the app keeps it
+      return q.sql.substring(0, Math.min(q.editor.caret(), q.sql.length())).endsWith("o.")
+          ? List.of(new Completion.Entry("order date", Symbol.TABLE, "timestamp", "\"order date\""))
+          : List.of();
+    });
+    self.add(app.state());
     app.state().completion.openAfter(".");
     String tree = run(app, "frame\npress #query\ntype \"o.\"");
     assertTrue(tree.contains("role=option label=\"order date\""), tree);
