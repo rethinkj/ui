@@ -137,6 +137,29 @@ class RoutingTest {
   }
 
   @Test
+  void aBumpKeepsOffAnotherEdgesLine() {
+    List<Node> nodes =
+        List.of(new Node("a", null, 0, 0, 120, 28), new Node("b", null, 240, 0, 120, 28));
+    List<Edge> keys = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+      keys.add(new Edge(
+          "fk" + i,
+          null,
+          new Port("a", 14),
+          new Port("b", 14),
+          Marker.ZERO_OR_MANY,
+          Marker.ZERO_OR_ONE));
+    }
+    keys.add(new Edge("other", null, new Port("a", 14), new Port("b", 14), Marker.ONE, Marker.ONE));
+    List<Routing.Route> routes = Routing.route(nodes, keys, STYLE);
+
+    // The other markers end 8 above the three: the bumps go a lane below, then two, not onto it.
+    assertEquals(10, routes.get(3).points().getFirst().y());
+    assertEquals(28, routes.get(1).points().get(2).y());
+    assertEquals(38, routes.get(2).points().get(2).y());
+  }
+
+  @Test
   void anEdgeTooShortForItsMarkersGoesAround() {
     List<Node> nodes =
         List.of(new Node("a", null, 0, 0, 100, 40), new Node("b", null, 130, 0, 100, 40));

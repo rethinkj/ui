@@ -51,7 +51,7 @@ An edge runs from one `Canvas.Port(node, y)` to another: a node's key and the mi
 - Each edge leaves a node on its left or right side, whichever faces the other end, and bends at right angles with rounded corners. It goes around the nodes in the way where it finds a free path. Its ends run straight for as far as their markers need; where two nodes face each other too closely for that, the edge goes around them.
 - Every edge gets a lane of its own beside the others, also where several end at the same port. There they join when they show the same marker; with different markers, they end beside each other, so that each shows its own.
 - An edge from a node to itself loops on one side of it. Where both sides are as good, it takes the one where fewer other edges end. One from a port back to the same port goes around the node, or, where its two markers differ and so end beside each other, loops between them.
-- Two edges between the same two points at one height do not lie on each other: later ones bump out by a lane, below and above in turn, or on the other side where a node is in the way. Where the gap between the nodes has no room for a bump's bends and markers, they share the line.
+- Two edges between the same two points at one height do not lie on each other: later ones bump out a lane at a time, below and then above, to the nearest place where neither a node nor another edge is in the way. Where the gap between the nodes has no room for a bump's bends and markers, they share the line.
 
 | Field | Description |
 | --- | --- |

@@ -31,9 +31,9 @@ import java.util.TreeSet;
  * apart, so that its markers do not lie on each other: one from a port to the same port goes
  * around its node. Where a C on either side costs as much, it goes on the side of its nodes where
  * fewer other edges end, on the right where as many do. A straight edge between the same two
- * points as one before it bumps out, below and above in turn, a lane further for every two, or on
- * the other side where that crosses fewer nodes; where both cross more nodes than the line, or the
- * gap has no room for its bends, it stays on the line.
+ * points as one before it bumps out to the nearest depth, a lane at a time, below and then above,
+ * where it crosses no more nodes than the line and lies on no other edge's line; where there is
+ * none, or the gap has no room for its bends, it stays on the line.
  *
  * <p>Then the runs between two bends that lie closer than {@link EdgeStyle#lane} beside each other
  * and overlap, also only at an end, as edges that meet at one port do, are spread a lane apart:
@@ -79,6 +79,7 @@ final class Routing {
     Path[] paths = new Path[edges.size()];
     Path[] others = new Path[edges.size()]; // the C on the other side, where it is as good
     Map<List<Double>, Integer> straights = new HashMap<>(); // per line, how many lie on it
+    double[][] reaches = new double[edges.size()][]; // of the straight edges that bump out
     for (int i = 0; i < paths.length; i++) {
       Edge edge = edges.get(i);
       Node from = byKey.get(edge.from().node());
@@ -108,16 +109,8 @@ final class Routing {
       if (best.xs.length == 2) {
         List<Double> line =
             List.of(Math.min(best.xs[0], best.xs[1]), Math.max(best.xs[0], best.xs[1]), y1);
-        int before = straights.merge(line, 1, Integer::sum) - 1;
-        if (before > 0) {
-          // Below and above in turn, a lane further out for every two, or on the other side where
-          // that crosses fewer nodes; on the line where both cross more.
-          int out = (before + 1) / 2 * (before % 2 == 1 ? 1 : -1);
-          Path bumped = cheaper(
-              bump(best, out, reach, obstacles, style), bump(best, -out, reach, obstacles, style));
-          if (bumped != null && bumped.hits <= best.hits) {
-            best = bumped;
-          }
+        if (straights.merge(line, 1, Integer::sum) > 1) {
+          reaches[i] = reach; // to bump out once all edges have their routes
         }
       }
       paths[i] = best;
@@ -130,6 +123,11 @@ final class Routing {
       }
     }
     freeSides(paths, others, edges);
+    for (int i = 0; i < paths.length; i++) {
+      if (reaches[i] != null) {
+        paths[i] = bumped(paths, i, reaches[i], obstacles, style);
+      }
+    }
     // Spreading never makes a route cross a node it did not: such a route keeps its place.
     double[][][] placed = new double[paths.length][][];
     for (int i = 0; i < paths.length; i++) {
@@ -449,6 +447,50 @@ final class Routing {
     int leg = obstacles.first(path.xs[run], path.ys[run], path.xs[run + 1], path.ys[run + 1]);
     int out = obstacles.first(path.xs[port], path.ys[port], path.xs[run], path.ys[port]);
     return leg < 0 ? out : out < 0 ? leg : Math.min(leg, out);
+  }
+
+  /**
+   * Where the straight route {@code i} bumps out to, on a line that an earlier edge lies on: the
+   * nearest depth, a lane at a time, below and then above, whose crossbar crosses no more nodes
+   * than the line and lies on no other edge's horizontal run; the line itself where there is none.
+   */
+  private static Path bumped(
+      Path[] paths, int i, double[] reach, Obstacles obstacles, EdgeStyle style) {
+    Path straight = paths[i];
+    for (int depth = 1; depth <= paths.length + 1; depth++) {
+      Path chosen = null;
+      for (int side : new int[] {1, -1}) {
+        Path bump = bump(straight, side * depth, reach, obstacles, style);
+        if (bump != null && bump.hits <= straight.hits && !taken(bump, paths, style.lane())) {
+          chosen = cheaper(chosen, bump);
+        }
+      }
+      if (chosen != null) {
+        return chosen;
+      }
+    }
+    return straight;
+  }
+
+  /** Whether a bump's crossbar lies within half a lane of another route's horizontal run. */
+  private static boolean taken(Path bump, Path[] paths, double lane) {
+    double y = bump.ys[2];
+    double from = Math.min(bump.xs[2], bump.xs[3]);
+    double to = Math.max(bump.xs[2], bump.xs[3]);
+    for (Path path : paths) {
+      if (path == null || path == bump) {
+        continue;
+      }
+      for (int run = 0; run + 1 < path.xs.length; run += 2) { // the horizontal ones
+        double[] span = path.span(run);
+        if (Math.abs(path.ys[run] - y) < lane / 2 - EPSILON
+            && span[0] < to - EPSILON
+            && span[1] > from + EPSILON) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
