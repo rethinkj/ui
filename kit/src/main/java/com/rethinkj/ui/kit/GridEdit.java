@@ -712,8 +712,7 @@ final class GridEdit {
     default void refused(Build b, Column c, String value) {}
 
     /**
-     * A boolean, which switches in the cell without an editor ({@link GridEdit#toggle}); Space
-     * switches it, and nothing else types into it.
+     * A boolean, which switches in the cell without an editor ({@link GridEdit#toggle}).
      */
     record Toggle() implements CellEditMode {
       @Override
@@ -722,7 +721,9 @@ final class GridEdit {
       }
 
       @Override
-      public void typed(Build b, int row, int column, String text) {}
+      public void typed(Build b, int row, int column, String text) {
+        // Space switches it, and nothing else types into it.
+      }
 
       @Override
       public El editor(Build b, Column c, int column, El box) {
