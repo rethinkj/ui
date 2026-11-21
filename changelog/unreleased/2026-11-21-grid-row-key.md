@@ -1,0 +1,1 @@
+- `DataGrid.options().rowKey(IntToLongFunction)` lets a read-only grid key its rows so the selection follows them across inserts, removals, and reorders without scrolling back to the cursor, and anchors the rows' scroll position to the first row in view when rows change above it; grids keyed through `Options.changes` keep the same scroll behavior too.

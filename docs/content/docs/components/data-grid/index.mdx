@@ -71,6 +71,7 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `select(Selection)` | Enables cursor and selection (required by most other features). See [Selection](/docs/components/data-grid/selection) |
 | `onSelect(Runnable)` | Called whenever the selection changes |
 | `onActivate(row -> …)` | Opens a row on Enter or double-click. See [Opening a row](#opening-a-row) |
+| `rowKey(row -> …)` | Gives each row a stable `long` key so the selection follows moved rows without scrolling back and the viewport stays anchored. See [Selection](/docs/components/data-grid/selection#selection-api) |
 | `rowNumbers()` | Adds a row-number gutter column that selects whole rows |
 | `frozen(int columns)` | Keeps the first `N` columns fixed while scrolling horizontally |
 | `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Enables Ctrl+C tab-separated copy. See [Copying](/docs/components/data-grid/selection#copying) |

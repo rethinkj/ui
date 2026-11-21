@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
+import java.util.function.IntToLongFunction;
 import java.util.function.ObjLongConsumer;
 import java.util.regex.Pattern;
 
@@ -1209,9 +1210,11 @@ public final class DataGrid {
    * Mode#ROWS} every range holds whole rows. The methods change it as the grid's input does, so
    * that an app can select from its own handlers too.
    *
-   * <p>Where the grid knows its rows' keys ({@link Options#changes}), it follows the rows it is on
-   * when the app sorts, filters, inserts or removes rows between two builds, up to {@link
-   * #FOLLOWED_ROWS} selected rows; without keys it stays on its places.
+   * <p>Where the grid knows its rows' keys ({@link Options#rowKey} or {@link Options#changes}), it
+   * follows the rows it is on when the app sorts, filters, inserts or removes rows between two
+   * builds, up to {@link #FOLLOWED_ROWS} selected rows, without scrolling back to the cursor, and
+   * anchors the rows' scroll position to the first row in view; without keys it stays on its
+   * places.
    *
    * <p>It also keeps where the grid is scrolled to ({@link ScrollState}), so that a grid built
    * with it comes back to the same rows and columns after it was out of the tree, as the grid of
@@ -1225,6 +1228,7 @@ public final class DataGrid {
     // The cursor's row when scrollToRow scrolled away from it: until the cursor moves on, the
     // rows keep no row in view, so that the next row it moves to shows.
     int heldRow = -1;
+    int heldColumn = -1; // and its column, where following moved rows held it; -1 for any
     boolean holding;
     int revealed = -1; // the row the last build told the rows to keep in view, -1 for none
     boolean revealing; // the last build told them another one, which layout scrolls to
@@ -1248,21 +1252,25 @@ public final class DataGrid {
     final GridFilter.State filter = new GridFilter.State();
     final GridColumns.State columns = new GridColumns.State();
     boolean pressedCell; // the last press on the rows was on a cell or a row number: drags select
-    // With rows told apart by keys (Options.changes): the rows the selection was on when the
-    // last build began, their places and keys, so that it follows them when the app moves its
-    // rows. 0 is the cursor's, 1 the anchor's, 2 and 3 the rows around the cursor, then the rows
-    // of range i from keptFrom[i]: all of them, or with more than FOLLOWED_ROWS the ends and
-    // SAMPLES rows between, which only tell that the rows moved. -1 for no row.
+    // With rows told apart by keys (Options.rowKey, Options.changes): the rows the selection was
+    // on when the last build began, their places and keys, so that it follows them when the app
+    // moves its rows. 0 is the cursor's, 1 the anchor's, 2 and 3 the rows around the cursor, then
+    // the rows of range i from keptFrom[i]: all of them, or with more than FOLLOWED_ROWS the ends
+    // and SAMPLES rows between, which only tell that the rows moved. -1 for no row.
     private List<Object> keptAt; // the selection they were taken of, null to take them anew
     private int[] keptRows = {};
     private long[] keptKeys = {};
     private int[] keptFrom = {};
     private boolean keptAll;
+    // Keys of rows built since the last build (plus the first row in view at keep), so that
+    // follow anchors the scroll offset to the first row in view even after wheel or bar scrolling.
+    private final java.util.TreeMap<Integer, Long> builtKeys = new java.util.TreeMap<>();
 
     /**
      * The most selected rows that follow their rows by key when the app sorts, filters, inserts
-     * or removes rows of a grid with {@link Options#changes}; a selection of more rows collapses
-     * to the cursor then, so that a million selected rows stay one range and cost nothing.
+     * or removes rows of a grid with {@link Options#rowKey} or {@link Options#changes}; a
+     * selection of more rows collapses to the cursor then, so that a million selected rows stay one
+     * range and cost nothing.
      */
     public static final int FOLLOWED_ROWS = 10_000;
 
@@ -1393,6 +1401,10 @@ public final class DataGrid {
     public void reset() {
       clear();
       scrollRow = -1;
+      holding = false;
+      heldRow = heldColumn = -1;
+      keptAt = null;
+      builtKeys.clear();
       rowsScroll.scrollTo(0, 0);
       gridScroll.scrollTo(0, 0);
     }
@@ -1617,27 +1629,32 @@ public final class DataGrid {
     }
 
     /**
-     * Before a build, where the rows have keys: when the selection is as the last build left it
-     * but the rows it was on have moved, as when the app sorted, filtered, inserted or removed
-     * rows, puts cursor, anchor and ranges on the same rows. A selection that changed meanwhile
-     * is taken as it is, for the rows as they are now.
+     * Before a build, where the rows have keys: anchors the rows' scroll position to the key of
+     * the first row in view, and when the selection is as the last build left it but the rows it
+     * was on have moved, as when the app sorted, filtered, inserted or removed rows, puts cursor,
+     * anchor and ranges on the same rows without revealing the cursor. A selection that changed
+     * meanwhile is taken as it is, for the rows as they are now.
      *
      * @param count the app's rows
      * @param rows the rows shown, with the row to append
      */
     void follow(
-        java.util.function.IntToLongFunction key,
+        IntToLongFunction key,
         java.util.function.LongToIntFunction place,
         int count,
-        int rows) {
+        int rows,
+        float rowHeight) {
       if (key == null) {
         keptAt = null;
+        builtKeys.clear();
         return;
       }
+      anchorScroll(key, count, rows, rowHeight);
       if (keptAt == null || !keptAt.equals(snapshot()) || !moved(key, count, rows)) {
         return;
       }
       keptAt = null; // taken anew in keep
+      int before = row;
       int n = keptRows.length;
       int[] to = places(key, place, count, rows);
       boolean whole = !ranges.isEmpty() && ranges.getLast().wholeRows();
@@ -1685,10 +1702,79 @@ public final class DataGrid {
       if (selected && carried.isEmpty() && row >= 0) {
         select(row, column, whole); // its rows are gone, or too many to follow
       }
+      if (row >= 0 && row != before) {
+        holding = true; // following a moved row is not a user move and does not reveal
+        heldRow = row;
+        heldColumn = column;
+      }
+    }
+
+    /**
+     * Shifts the vertical scroll offset so that the row built last nearest the first row wholly in
+     * view stays on its key, where rows came or went but those built kept their order, unlike
+     * after a sort.
+     */
+    private void anchorScroll(IntToLongFunction key, int count, int rows, float rowHeight) {
+      // At the top the rows stay at the top, so that rows the app adds there show.
+      if (scrollRow >= 0
+          || builtKeys.isEmpty()
+          || rows == 0
+          || rowHeight <= 0
+          || rowsScroll.y() <= 0) {
+        return;
+      }
+      int top = (int) Math.ceil(rowsScroll.y() / rowHeight); // the first row wholly in view
+      int nearest = java.util.Collections.min(
+          builtKeys.keySet(), java.util.Comparator.comparingInt(r -> Math.abs(r - top)));
+      if (keyAt(key, count, nearest) == builtKeys.get(nearest)) {
+        return; // the rows at the top did not move
+      }
+      java.util.Map<Long, Integer> now = new java.util.HashMap<>(); // where each is now, -1 gone
+      builtKeys.values().forEach(k -> now.put(k, -1));
+      now.remove(APPEND);
+      for (int r = 0, left = now.size(); r < count && left > 0; r++) { // one pass over the rows
+        Integer was = now.get(key.applyAsLong(r));
+        if (was != null && was < 0) {
+          now.put(key.applyAsLong(r), r);
+          left--;
+        }
+      }
+      int last = -1;
+      int oldPlace = -1;
+      int newPlace = -1;
+      for (var built : builtKeys.entrySet()) {
+        Integer p = now.get(built.getValue());
+        if (p == null || p < 0) {
+          continue;
+        }
+        if (p <= last) {
+          return; // reordered, as by a sort: the offset stays
+        }
+        last = p;
+        int distance = Math.abs(built.getKey() - top);
+        if (oldPlace < 0 // nearest first, and of two as near the one below, in view
+            || distance < Math.abs(oldPlace - top)
+            || distance == Math.abs(oldPlace - top) && built.getKey() > top) {
+          oldPlace = built.getKey();
+          newPlace = p;
+        }
+      }
+      if (oldPlace >= 0 && newPlace != oldPlace) {
+        double nextY = Math.max(0, rowsScroll.y() + (newPlace - oldPlace) * (double) rowHeight);
+        rowsScroll.scrollTo(rowsScroll.x(), nextY);
+      }
+    }
+
+    /** Remembers a row's key as layout builds it, bounding the cache to rows near the viewport. */
+    void recordKey(int row, long key) {
+      if (builtKeys.size() > 512) {
+        builtKeys.keySet().removeIf(r -> Math.abs(r - row) > 256);
+      }
+      builtKeys.put(row, key);
     }
 
     /** Whether a row kept is no longer where it was. */
-    private boolean moved(java.util.function.IntToLongFunction key, int count, int rows) {
+    private boolean moved(IntToLongFunction key, int count, int rows) {
       for (int i = 0; i < keptRows.length; i++) {
         int p = keptRows[i];
         if (p >= 0 && (p >= rows || keyAt(key, count, p) != keptKeys[i])) {
@@ -1700,10 +1786,7 @@ public final class DataGrid {
 
     /** Where each row kept is now, -1 where it is gone. */
     private int[] places(
-        java.util.function.IntToLongFunction key,
-        java.util.function.LongToIntFunction place,
-        int count,
-        int rows) {
+        IntToLongFunction key, java.util.function.LongToIntFunction place, int count, int rows) {
       int n = keptRows.length;
       int[] to = new int[n];
       java.util.Map<Long, Integer> found = new java.util.HashMap<>();
@@ -1734,17 +1817,25 @@ public final class DataGrid {
       return to;
     }
 
-    private static long keyAt(java.util.function.IntToLongFunction key, int count, int place) {
+    static long keyAt(IntToLongFunction key, int count, int place) {
       return place < count ? key.applyAsLong(place) : APPEND;
     }
 
     /**
-     * After a build's changes of the columns, where the rows have keys: remembers the keys of the
-     * rows the selection is on, unless it is as when they were taken.
+     * After a build's changes of the columns, where the rows have keys: remembers the key of the
+     * first row in view and the keys of the rows the selection is on, unless it is as when they
+     * were taken.
      */
-    void keep(java.util.function.IntToLongFunction key, int count, int rows) {
+    void keep(IntToLongFunction key, int count, int rows, float rowHeight) {
       if (key == null) {
         return;
+      }
+      builtKeys.clear();
+      if (rows > 0 && rowHeight > 0) {
+        int top = scrollRow >= 0
+            ? Math.min(scrollRow, rows - 1)
+            : (int) Math.clamp((long) Math.floor(rowsScroll.y() / rowHeight), 0, rows - 1);
+        builtKeys.put(top, keyAt(key, count, top));
       }
       List<Object> now = snapshot();
       if (now.equals(keptAt)) {
@@ -1872,9 +1963,9 @@ public final class DataGrid {
     Layout layout;
     IntConsumer onFreeze;
     Fit fit;
-    // With changes: the key of the row shown at a place, the place of a key, -1 for none, and
-    // the number of rows there are now, which a handler may have changed since the build.
-    java.util.function.IntToLongFunction rowKey;
+    // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
+    // none, and the number of rows there are now, which a handler may have changed since the build.
+    IntToLongFunction rowKey;
     java.util.function.LongToIntFunction rowPlace;
     java.util.function.IntSupplier rowsNow;
     int[] full; // with a layout: the index among all columns of each shown one
@@ -1945,6 +2036,20 @@ public final class DataGrid {
      */
     public Options fitColumns(Fit fit) {
       this.fit = Objects.requireNonNull(fit, "fit");
+      return this;
+    }
+
+    /**
+     * Gives each row a stable key, for a grid that does not edit through {@link #changes}: the
+     * selection follows its rows by key when the app inserts, removes, sorts or filters rows
+     * between builds (up to {@link Selection#FOLLOWED_ROWS} selected rows), without scrolling back
+     * to the cursor, and the rows' scroll position stays anchored to the first row in view when
+     * rows are added or removed above it. Needs {@link #select}; {@code null} turns keying off.
+     */
+    public Options rowKey(IntToLongFunction key) {
+      this.rowKey = key;
+      this.rowPlace = null;
+      this.rowsNow = null;
       return this;
     }
 
@@ -2433,11 +2538,26 @@ public final class DataGrid {
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
     }
+    if (options.rowKey != null && options.rowPlace == null) {
+      IntToLongFunction key = options.rowKey;
+      options.rowPlace = target -> {
+        for (int r = 0; r < rowCount; r++) {
+          if (key.applyAsLong(r) == target) {
+            return r;
+          }
+        }
+        return -1;
+      };
+    }
+    if (options.rowKey != null && options.rowsNow == null) {
+      options.rowsNow = () -> rowCount;
+    }
     if (options.selection != null) { // without a layout the columns shown are the app's
       int rows = rowCount + (options.appendRow ? 1 : 0);
-      options.selection.follow(options.rowKey, options.rowPlace, rowCount, rows);
+      float rowHeight = theme.grid().rowHeight();
+      options.selection.follow(options.rowKey, options.rowPlace, rowCount, rows, rowHeight);
       options.selection.showing(options.full, all);
-      options.selection.keep(options.rowKey, rowCount, rows);
+      options.selection.keep(options.rowKey, rowCount, rows, rowHeight);
     }
     Build b = new Build(theme, columns, rowCount, options);
     b.all = allColumns;
@@ -2477,13 +2597,15 @@ public final class DataGrid {
         sel.scrollRow = -1;
         sel.holding = true; // a cursor moved before it in the same handler does not scroll back
         sel.heldRow = sel.row();
+        sel.heldColumn = -1;
       }
       body.scrollState(sel.rowsScroll);
       sel.rowsBefore = sel.rows;
       sel.rows = body;
     }
     if (sel != null) {
-      sel.holding &= sel.row() == sel.heldRow;
+      sel.holding &=
+          sel.row() == sel.heldRow && (sel.heldColumn < 0 || sel.column() == sel.heldColumn);
       int reveal = sel.holding ? -1 : sel.row();
       sel.revealing = reveal >= 0 && reveal != sel.revealed;
       sel.revealed = reveal;
@@ -2992,6 +3114,9 @@ public final class DataGrid {
     Theme theme = b.theme;
     Theme.Grid g = b.g;
     Selection sel = b.sel;
+    if (sel != null && b.o.rowKey != null) {
+      sel.recordKey(i, Selection.keyAt(b.o.rowKey, b.rowCount, i));
+    }
     boolean append = i >= b.rowCount; // the empty row after the last, to add one
     boolean loaded = append || b.o.loaded == null || b.o.loaded.test(i);
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);

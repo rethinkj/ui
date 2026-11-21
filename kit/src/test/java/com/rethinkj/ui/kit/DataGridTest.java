@@ -218,6 +218,105 @@ class DataGridTest {
   }
 
   @Test
+  void rowKeyFollowsSelectionAndAnchorsScrollWithoutRevealing() throws IOException {
+    List<Long> keys = new ArrayList<>();
+    for (long i = 0; i < 100; i++) {
+      keys.add(i);
+    }
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.ROWS);
+    selection.select(10, 0);
+    App<List<Long>> app = new App<>(
+            keys,
+            rows -> col()
+                .wFull()
+                .hFull()
+                .padding(T.space().m())
+                .child(DataGrid.dataGrid(
+                        List.of(new DataGrid.Column(
+                            "id",
+                            120,
+                            DataGrid.DataType.INTEGER,
+                            r -> String.valueOf(rows.get(r)))),
+                        rows.size(),
+                        DataGrid.options().select(selection).rowKey(rows::get))
+                    .key("orders")
+                    .grow(1)))
+        .provide(Theme.CURRENT, rows -> T);
+    run(app, "frame\nwheel #rows 0 864\nframe");
+    int firstBefore = selection.firstRowInView();
+    long topKey = keys.get(firstBefore);
+    double scrollBefore = find(app, "rows").scrollY();
+    assertEquals(10, selection.row());
+    assertTrue(firstBefore > 30, "scrolled well past the cursor: " + firstBefore);
+
+    // Inserting above moves the cursor and anchors the viewport to topKey without revealing row 11.
+    keys.add(0, 1000L);
+    app.invalidate();
+    app.frame();
+    assertEquals(11, selection.row(), "cursor followed key 10");
+    assertEquals(10L, keys.get(selection.row()));
+    assertEquals(scrollBefore + 24.0, find(app, "rows").scrollY(), "shifted by one row, no reveal");
+    assertEquals(firstBefore + 1, selection.firstRowInView());
+    assertEquals(topKey, keys.get(selection.firstRowInView()));
+
+    // Removing rows above shifts the viewport back to keep topKey at the top.
+    keys.remove(0);
+    keys.remove(0);
+    app.invalidate();
+    app.frame();
+    assertEquals(9, selection.row(), "cursor followed key 10");
+    assertEquals(10L, keys.get(selection.row()));
+    assertEquals(scrollBefore - 24.0, find(app, "rows").scrollY(), "shifted back by two rows");
+    assertEquals(firstBefore - 1, selection.firstRowInView());
+    assertEquals(topKey, keys.get(selection.firstRowInView()));
+
+    // A keyboard move afterwards still reveals the cursor row.
+    run(app, "focus #orders\nframe\nkey ArrowDown\nframe");
+    assertEquals(10, selection.row());
+    assertEquals(11L, keys.get(selection.row()));
+    assertInView(app, 10);
+
+    // Scroll anchoring works with scrollToRow and with no selection either.
+    selection.clear();
+    selection.scrollToRow(40);
+    app.invalidate();
+    app.frame();
+    long topKey2 = keys.get(40);
+    assertEquals(40 * 24.0, find(app, "rows").scrollY());
+    keys.add(0, 2000L);
+    app.invalidate();
+    app.frame();
+    assertEquals(-1, selection.row());
+    assertEquals(41 * 24.0, find(app, "rows").scrollY());
+    assertEquals(topKey2, keys.get(selection.firstRowInView()));
+
+    // A sort parts the top row from its neighbors: the offset stays.
+    java.util.Collections.reverse(keys);
+    app.invalidate();
+    app.frame();
+    assertEquals(41 * 24.0, find(app, "rows").scrollY());
+
+    // Rows gone above and right below the top in one refresh: the top row stays.
+    long topKey3 = keys.get(41);
+    keys.remove(42);
+    keys.remove(0);
+    app.invalidate();
+    app.frame();
+    assertEquals(40 * 24.0, find(app, "rows").scrollY());
+    assertEquals(topKey3, keys.get(selection.firstRowInView()));
+
+    // Scrolled into a row, the anchor is the first row wholly in view, not the clipped one.
+    run(app, "wheel #rows 0 5\nframe");
+    long topKey4 = keys.get(selection.firstRowInView());
+    double scrolled = find(app, "rows").scrollY();
+    keys.remove((int) Math.floor(scrolled / 24)); // the clipped row
+    app.invalidate();
+    app.frame();
+    assertEquals(scrolled - 24, find(app, "rows").scrollY());
+    assertEquals(topKey4, keys.get(selection.firstRowInView()));
+  }
+
+  @Test
   void aViewReadsTheRowsInViewThatItsBuildScrollsTo() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     int[] read = new int[3];
