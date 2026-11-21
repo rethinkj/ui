@@ -1861,10 +1861,10 @@ public final class El {
    * when the field is new or the app's string moved them. The handler runs after the input that
    * moved them, as a handler of input does, and the next input sees the view built from what it
    * stored: the line of the caret for {@link #decorate}, the word before it for completions. After
-   * an edit, it runs once the app answered the edit with the next tree, so the positions are always
-   * those of the app's string: a refused edit tells nothing, a changed one where it ended up. The
-   * build that answers the edit still has what the handler stored before it; when the handler
-   * hears a new selection, the view is built once more. For the caret's
+   * an edit, it runs once the app answered the edit with the next tree, also when the selection
+   * stayed, so the positions are always those of the app's string: after a refused edit those it
+   * went back to. The build that answers the edit still has what the handler stored before it;
+   * the view is built once more after the handler. For the caret's
    * rectangle, place an overlay {@link #atCaret}.
    */
   public El onSelect(SelectHandler handler) {

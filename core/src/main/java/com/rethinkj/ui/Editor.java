@@ -228,6 +228,7 @@ final class Editor {
   private boolean answer(String value) {
     boolean moved = proposed != null;
     if (proposed != null) {
+      toldCaret = -1; // the handler hears the selection after every answer, also one it had
       // The answer is usually the proposal itself, which the first comparison finds at once.
       if (!value.equals(proposed) && value.equals(before.text)) {
         // Refused: as if the edits had not happened.
@@ -353,8 +354,8 @@ final class Editor {
 
   /**
    * Tells the element's {@link El#onSelect} handler the caret and the anchor if they changed since
-   * it was last told. Not while an edit waits for the app's answer: the positions are those of the
-   * proposed string, which the app may refuse or change.
+   * it was last told, or the app answered an edit since. Not while an edit waits for the app's
+   * answer: the positions are those of the proposed string, which the app may refuse or change.
    *
    * @return whether it was told
    */

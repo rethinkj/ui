@@ -69,14 +69,17 @@ class CompletionTest {
           .hFull()
           .padding(12)
           .fill(t.surface().window())
-          .onKey(
-              key -> { // an edit of the app's at the end that leaves the caret where it is
-                if (key.name().equals("F6")) {
-                  s.app.edit(editor, s.sql.length(), s.sql.length(), "s", s.editor.caret());
-                  return true;
-                }
-                return false;
-              })
+          .onKey(key -> switch (key.name()) { // edits of the app's at the end
+            case "F6" -> { // an s, the caret where it is
+              s.app.edit(editor, s.sql.length(), s.sql.length(), "s", s.editor.caret());
+              yield true;
+            }
+            case "F7" -> { // the last character gone
+              s.editor.replace(s.sql.length() - 1, s.sql.length(), "", 0);
+              yield true;
+            }
+            default -> false;
+          })
           .child(
               s.plain
                   ? editor
@@ -213,6 +216,27 @@ class CompletionTest {
     run(app, "key Space control\nkey F6"); // SELECT cu| FROM orders
     run(app, "key Enter");
     assertEquals("SELECT customers FROM orders", app.state().sql);
+
+    String tree =
+        run(app, "key A control\ntype \"SELECT cu\"\nkey Escape\nkey F6\nkey Space control");
+    assertEquals("SELECT cus", app.state().sql);
+    assertTrue(tree.contains("label=\"customers\""), "the list for cu, the caret before the s");
+  }
+
+  @Test
+  void anEntryProviderSlicesTheAppsTextAtTheAppsCaret() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Query> self = new ArrayList<>();
+    App<Query> app = app(word -> {
+      Query q = self.getFirst();
+      String before = q.sql.substring(0, q.editor.caret()); // throws for a caret beyond the text
+      return CompletionTest.suggest(before.substring(before.lastIndexOf(' ') + 1));
+    });
+    self.add(app.state());
+    run(app, "frame\npress #query\ntype \"SELECT cus\"");
+    String tree = run(app, "key F7");
+    assertEquals("SELECT cu", app.state().sql);
+    assertTrue(tree.contains("label=\"customers\""), tree);
   }
 
   @Test

@@ -85,14 +85,10 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    // The string an edit proposed and where its caret went, until onSelect tells the answered
-    // caret; the caret and anchor onSelect told last; and whether this input's key is Backspace.
-    private String edited;
-    private int editedCaret;
-    private int toldCaret = -1;
-    private int toldAnchor = -1;
-    private boolean back;
-    private List<Entry> shown = List.of(); // the entries of the last build that decided
+    // An edit went to the app, until onSelect tells the selection after its answer; and the
+    // entries of the last build that decided.
+    private boolean edited;
+    private List<Entry> shown = List.of();
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
     private String openAfter = "";
@@ -209,12 +205,9 @@ public final class Completion {
       String background,
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
-    // The build that answers an edit comes before onSelect tells the caret the edit moved, and
-    // the app's state, which suggest may read, still has the one before: the build after decides.
-    boolean waiting = text.equals(state.edited) && state.editedCaret != caret;
-    if (!text.equals(state.edited)) {
-      state.edited = null; // refused or changed: onSelect tells the caret, if it moved
-    }
+    // The builds that answer an edit come before onSelect tells its selection: the app's state,
+    // which suggest may read, still has the one before. The build after decides.
+    boolean waiting = state.edited;
     caret = Math.clamp(caret, 0, text.length());
     state.wordCharacters = field.text().wordCharacters();
     int from = CodeWords.start(text, caret, state.wordCharacters);
@@ -255,39 +248,27 @@ public final class Completion {
     };
     Consumer<String> onEdit = field.onEdit();
     if (onEdit != null) {
-      int at = caret;
       field.editable(v -> {
         if (state.history) {
           state.close(); // a step of the history brings text back; nobody typed it
         } else {
           follow(state, text, v);
         }
-        // After what it put in or before what it took, as of the selection's end; Delete without
-        // a selection leaves it. Without a told anchor, a deletion shows which side it took.
-        boolean told = state.toldCaret == at;
-        int anchor = told ? state.toldAnchor : at;
-        int grown = v.length() - text.length();
-        state.edited = v;
-        state.editedCaret = !told && grown < 0
-            ? deleted(text, v, at, state.back)
-            : at == anchor && grown < 0 && !state.back ? at : Math.max(at, anchor) + grown;
+        state.edited = true;
         onEdit.accept(v);
       });
     }
     El.SelectHandler ownSelect = field.onSelect();
-    field.onSelect((told, anchor) -> {
-      state.edited = null;
-      state.toldCaret = told;
-      state.toldAnchor = anchor;
+    field.onSelect((caretNow, anchor) -> {
+      state.edited = false;
       if (ownSelect != null) {
-        ownSelect.select(told, anchor);
+        ownSelect.select(caretNow, anchor);
       }
     });
     field.onKeyFirst(k -> {
       // The field's keys for undo and redo; onEdit does not say where an edit came from.
       state.history = (k.modifiers() & ~Key.SHIFT) == Key.CONTROL
           && (k.name().equals("Z") || k.name().equals("Y"));
-      state.back = k.name().equals("Backspace");
       return key(k, state, entries, take);
     });
     if (!state.open) {
@@ -316,23 +297,6 @@ public final class Completion {
     list.style().maxHeight = Len.px(
         ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
     return field.overlay(Popup.frame(theme, list));
-  }
-
-  /**
-   * Where a deletion from {@code before} to {@code after} leaves a caret that was at {@code at}:
-   * before what went if that ended at it, else at it; Backspace decides when both fit, as in a run
-   * of equal characters.
-   */
-  private static int deleted(String before, String after, int at, boolean back) {
-    int to = at + after.length() - before.length();
-    boolean ended = to >= 0
-        && after.regionMatches(0, before, 0, to)
-        && after.regionMatches(to, before, at, before.length() - at);
-    boolean started = at + before.length() - after.length() <= before.length()
-        && after.regionMatches(0, before, 0, at)
-        && after.regionMatches(
-            at, before, at + before.length() - after.length(), after.length() - at);
-    return ended && (back || !started) ? to : at;
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */
