@@ -360,9 +360,14 @@ public final class Canvas {
       fittedWidth = -1;
     }
 
-    /** The edges' routes among these nodes, routed again only when one of them changed. */
+    /**
+     * The edges' routes among these nodes, routed again only when something routing reads changed:
+     * a node's key, position or size, an edge's key, ports or markers, or the style.
+     */
     List<Routing.Route> routes(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
-      if (!nodes.equals(routedNodes) || !edges.equals(routedEdges) || !style.equals(routedStyle)) {
+      if (!sameNodes(nodes, routedNodes)
+          || !sameEdges(edges, routedEdges)
+          || !style.equals(routedStyle)) {
         // Kept only once all of it worked, so that a failure leaves the last routes as they were.
         List<Node> copiedNodes = List.copyOf(nodes);
         List<Edge> copiedEdges = List.copyOf(edges);
@@ -373,6 +378,44 @@ public final class Canvas {
         routes = routed;
       }
       return routes;
+    }
+
+    private static boolean sameNodes(List<Node> nodes, List<Node> routed) {
+      if (routed == null || nodes.size() != routed.size()) {
+        return false;
+      }
+      int i = 0;
+      for (Node a : nodes) { // the copy routed is random access, the caller's list may not be
+        Node b = routed.get(i++);
+        if (a != b
+            && (!a.key().equals(b.key())
+                || Double.compare(a.x(), b.x()) != 0
+                || Double.compare(a.y(), b.y()) != 0
+                || Float.compare(a.width(), b.width()) != 0
+                || Float.compare(a.height(), b.height()) != 0)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private static boolean sameEdges(List<Edge> edges, List<Edge> routed) {
+      if (routed == null || edges.size() != routed.size()) {
+        return false;
+      }
+      int i = 0;
+      for (Edge a : edges) { // the copy routed is random access, the caller's list may not be
+        Edge b = routed.get(i++);
+        if (a != b
+            && (!a.key().equals(b.key())
+                || !a.from().equals(b.from())
+                || !a.to().equals(b.to())
+                || a.fromMarker() != b.fromMarker()
+                || a.toMarker() != b.toMarker())) {
+          return false;
+        }
+      }
+      return true;
     }
 
     void fitIfDue(List<Node> nodes, float margin) {
@@ -443,7 +486,7 @@ public final class Canvas {
    *     1 as well, which is checked before anything is built
    */
   public static byte[] png(List<Node> nodes, Function<Viewport, El> view) {
-    return png(nodes.isEmpty() ? new double[4] : bounds(nodes), view);
+    return png(nodes.isEmpty() ? new double[4] : bounds(nodes), new Viewport(), view);
   }
 
   /**
@@ -463,36 +506,38 @@ public final class Canvas {
       List<Node> areas, List<Node> nodes, List<Edge> edges, Function<Viewport, El> view) {
     List<Node> all = areas.isEmpty() ? nodes : joined(areas, nodes);
     double[] bounds = all.isEmpty() ? new double[4] : bounds(all);
-    EdgeStyle style = EdgeStyle.CURRENT.get();
-    List<Routing.Route> routes = Routing.route(nodes, edges, style);
-    for (int i = 0; i < routes.size(); i++) {
-      Routing.Route route = routes.get(i);
-      if (route != null) {
-        // How far its markers and its line reach beyond its points at most.
-        Edge edge = edges.get(i);
-        double reach = Math.max(Edges.reach(edge.fromMarker()), Edges.reach(edge.toMarker()))
-                * style.marker()
-            + (edge.emphasis() == Emphasis.HIGHLIGHTED ? style.highlightedWidth() : style.width())
-                / 2;
-        for (Routing.Point point : route.points()) {
-          bounds[0] = Math.min(bounds[0], point.x() - reach);
-          bounds[1] = Math.min(bounds[1], point.y() - reach);
-          bounds[2] = Math.max(bounds[2], point.x() + reach);
-          bounds[3] = Math.max(bounds[3], point.y() + reach);
+    Viewport viewport = new Viewport();
+    if (!edges.isEmpty()) {
+      EdgeStyle style = EdgeStyle.CURRENT.get();
+      List<Routing.Route> routes = viewport.routes(nodes, edges, style);
+      for (int i = 0; i < routes.size(); i++) {
+        Routing.Route route = routes.get(i);
+        if (route != null) {
+          // How far its markers and its line reach beyond its points at most.
+          Edge edge = edges.get(i);
+          double reach = Math.max(Edges.reach(edge.fromMarker()), Edges.reach(edge.toMarker()))
+                  * style.marker()
+              + (edge.emphasis() == Emphasis.HIGHLIGHTED ? style.highlightedWidth() : style.width())
+                  / 2;
+          for (Routing.Point point : route.points()) {
+            bounds[0] = Math.min(bounds[0], point.x() - reach);
+            bounds[1] = Math.min(bounds[1], point.y() - reach);
+            bounds[2] = Math.max(bounds[2], point.x() + reach);
+            bounds[3] = Math.max(bounds[3], point.y() + reach);
+          }
         }
       }
     }
-    return png(bounds, view);
+    return png(bounds, viewport, view);
   }
 
   /** The diagram from the left, top, right and bottom edge given, with the margin, as a PNG. */
-  private static byte[] png(double[] bounds, Function<Viewport, El> view) {
+  private static byte[] png(double[] bounds, Viewport viewport, Function<Viewport, El> view) {
     float margin = Theme.CURRENT.get().space().xl();
     // At least a pixel, as a PNG has.
     float width = (float) Math.max(1, Math.ceil(bounds[2] - bounds[0] + 2 * margin));
     float height = (float) Math.max(1, Math.ceil(bounds[3] - bounds[1] + 2 * margin));
     int scale = pngScale(width, height);
-    Viewport viewport = new Viewport();
     viewport.panTo(bounds[0] - margin, bounds[1] - margin);
     viewport.width = width;
     viewport.height = height;

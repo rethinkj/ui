@@ -38,7 +38,7 @@ Each foreign key is an edge from the row of its first column to the row of the f
 
 <Shot src="examples/docs/er-diagram/selected-{theme}" alt="The table order outlined in the accent color, its four edges and the rows at their ends highlighted, the unrelated tables dimmed" />
 
-A press on a table selects it, and a press on empty space clears the selection. The selected table is outlined in the accent, its edges and the rows at both ends stand out, and the tables not related to it are dimmed towards the canvas's color. `state.select(key)` selects from the app, with the table's key `schema.table`.
+A press on a table selects it, and a press on empty space clears the selection. The selected table is outlined in the accent, its edges and the rows at both ends stand out, and the tables not related to it are dimmed towards the canvas's color. `state.select(key)` selects from the app, with the table's key `schema.table`. A part that contains a `.` or starts with `"` is written in double quotes, with any `"` inside doubled, as in `a."b.c"`.
 
 ## Modes, filter and levels of detail
 

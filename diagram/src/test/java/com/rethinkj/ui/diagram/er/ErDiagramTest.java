@@ -317,6 +317,66 @@ class ErDiagramTest {
   }
 
   @Test
+  void quotesDottedNamesSoCollidingKeysStayDistinct() throws IOException {
+    List<Schema> schemas = List.of(
+        new Schema(
+            "a",
+            List.of(new Table(
+                "b.c",
+                List.of(
+                    id(), new Column("c_id", "bigint", false), new Column("bc_col", "text", true)),
+                List.of(
+                    new ForeignKey("bc_to_c", List.of("c_id"), "a.b", "c", List.of("id"), null))))),
+        new Schema(
+            "a.b",
+            List.of(new Table("c", List.of(id(), new Column("ab_col", "text", true)), List.of()))),
+        new Schema(
+            "",
+            List.of(
+                new Table("x.y", List.of(id()), List.of()),
+                new Table("\"q\"", List.of(id()), List.of()))),
+        new Schema("x", List.of(new Table("y", List.of(id()), List.of()))));
+    ErDiagram.State state = new ErDiagram.State();
+    String aBc = "a.\"b.c\"";
+    String abC = "\"a.b\".c";
+    state.select(aBc);
+    state.mode(abC, ErDiagram.Mode.COLLAPSED);
+    state.pins(Map.of(aBc, new ErDiagram.Pin(20, 40), "\"x.y\"", new ErDiagram.Pin(500, 40)));
+    App<ErDiagram.State> app =
+        new App<>(state, s -> ErDiagram.erDiagram(s, schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 900 500\nframe\nsnap dotted\n", app, out);
+    String tree = Files.readString(out.resolve("dotted.tree.txt"));
+    assertTrue(
+        tree.contains("#" + aBc + " role=graphics-object label=\"b.c, 3 columns, references c\""),
+        tree);
+    assertTrue(
+        tree.contains(
+            "#" + abC + " role=graphics-object label=\"c, 2 columns, referenced by b.c\""),
+        tree);
+    assertTrue(tree.contains("#\"x.y\" role=graphics-object label=\"x.y, 1 column\""), tree);
+    assertTrue(
+        tree.contains("#\"\"\"q\"\"\" role=graphics-object label=\"\\\"q\\\", 1 column\""), tree);
+    assertTrue(tree.contains("#x.y role=graphics-object label=\"y, 1 column\""), tree);
+    assertTrue(
+        line(tree, "#" + aBc + "/bc_to_c").contains("value=\"Highlighted\""),
+        "edge to the selected table's target: " + tree);
+    assertEquals(1, tree.lines().filter(l -> l.contains(" selected")).count(), tree);
+    assertTrue(tree.contains("label=\"bc_col,"), "a.\"b.c\" shows all columns: " + tree);
+    assertFalse(tree.contains("label=\"ab_col,"), "\"a.b\".c is collapsed: " + tree);
+    assertEquals(aBc, state.selected());
+    assertEquals(ErDiagram.Mode.ALL, state.mode(aBc));
+    assertEquals(ErDiagram.Mode.COLLAPSED, state.mode(abC));
+    assertEquals(
+        Map.of(aBc, new ErDiagram.Pin(20, 40), "\"x.y\"", new ErDiagram.Pin(500, 40)),
+        state.pins());
+    // Both pinned tables sit at y=40 in diagram coordinates, so they share the same top y.
+    int aBcY = boxY(line(tree, "#" + aBc));
+    int xyY = boxY(line(tree, "#\"x.y\""));
+    assertEquals(aBcY, xyY, "pinned tables share their pinned y: " + tree);
+  }
+
+  @Test
   void savesTheWholeDiagramAsPng() {
     ErDiagram.State state = new ErDiagram.State();
     state.select("shop.order");
@@ -328,5 +388,12 @@ class ErDiagramTest {
   /** The line of the element with this key in a tree dump, or nothing. */
   private static String line(String tree, String key) {
     return tree.lines().filter(l -> l.contains(key + " ")).findFirst().orElse("");
+  }
+
+  /** The top y coordinate of a tree dump line such as {@code ... 10,20 100x50}. */
+  private static int boxY(String line) {
+    var matcher = Pattern.compile(" (\\d+),(\\d+) \\d+x\\d+").matcher(line);
+    assertTrue(matcher.find(), "no bounds in: " + line);
+    return Integer.parseInt(matcher.group(2));
   }
 }

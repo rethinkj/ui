@@ -1,0 +1,1 @@
+- A `Canvas` routes its edges about three times faster, and no longer routes them again when only a node's label or pin or an edge's label, description or emphasis changes, so selecting a table in a large `ErDiagram` no longer stalls. `Canvas.png` routes once instead of twice.

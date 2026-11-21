@@ -114,7 +114,8 @@ public final class ErDiagram {
    * What a diagram shows apart from its schemas: the viewport, the modes, the filter, the selection
    * and where each table lies. The app keeps one per diagram and may change it, as the diagram does
    * on input. Tables are named by their keys, {@code schema.table}, or the table's name alone in a
-   * schema without a name.
+   * schema without a name. A part that contains a {@code .} or starts with {@code "} is written in
+   * double quotes, with any {@code "} inside doubled, as in {@code a."b.c"}.
    */
   public static final class State {
 
@@ -286,7 +287,15 @@ public final class ErDiagram {
   }
 
   private static String key(String schema, String table) {
-    return schema.isEmpty() ? table : schema + "." + table;
+    return schema.isEmpty() ? quote(table) : quote(schema) + "." + quote(table);
+  }
+
+  /** Quotes a schema or table name as SQL does where a dot or leading quote would collide. */
+  private static String quote(String name) {
+    if (name.indexOf('.') >= 0 || name.startsWith("\"")) {
+      return "\"" + name.replace("\"", "\"\"") + "\"";
+    }
+    return name;
   }
 
   /** All tables of the schemas, by their keys, with their relations among them. */
