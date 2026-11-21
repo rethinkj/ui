@@ -88,6 +88,11 @@ public interface DiagramTexts {
     return "unique";
   }
 
+  /** The short mark in a column's row for a unique column. */
+  default String uniqueMark() {
+    return "UQ";
+  }
+
   /** A column that may be null, in the column's label. */
   default String nullable() {
     return "nullable";

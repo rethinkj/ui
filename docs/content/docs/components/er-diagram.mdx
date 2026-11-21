@@ -32,7 +32,7 @@ The schemas are plain records that your app fills from its catalog, without JDBC
 
 A table's header has its name and a chevron that switches the table from all columns to keys only, to collapsed and back. Each column's row has the key icon in the warning color for the primary key, the link icon for a foreign key, `UQ` for a unique column, and the type, muted, with `?` where the column may be null. The row's tooltip shows its default and its foreign keys with `ON DELETE`.
 
-Each foreign key is an edge from the row of its first column to the row of the first column it refers to, or to the header where that row does not show. At the table that refers, the crow's foot is `||` where the key is unique, as it holds the whole primary key or a unique column, and `|<` otherwise; at the table referred to, `||` where the key is not null and `o|` where it may be. The edge's tooltip is the constraint's name and its `ON DELETE`.
+Each foreign key is an edge from the row of its first column to the row of the first column it refers to, or to the header where that row does not show. At the table that refers, the crow's foot is `||` where the key is unique, as it holds the whole primary key or a unique column, and `|<` otherwise; at the table referred to, `||` where the key is not null and `o|` where it may be. The edge's tooltip is the constraint's name, or its columns where it has none, and its `ON DELETE`.
 
 ## Selection
 
@@ -54,7 +54,7 @@ Zoomed out below `ErStyle.skeleton`, 75 % by default, rows are bars, keys in the
 
 ## Arrange and pins
 
-Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table comes, goes or changes its height, as with its mode or its columns, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them when a drag ends, after a Shift+arrow step, or on **Arrange all** (and nothing when Escape cancels a drag), and `state.pins(pins)` gives them back, as after a restart.
+Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table comes, goes or changes its height, as with its mode or its columns, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them when a drag ends, after a Shift+arrow step, or on **Arrange all** (and nothing when Escape cancels a drag), and `state.pins(pins)` gives them back, as after a restart. A build drops the pins and the selection of tables that the schemas no longer hold, so give the pins back with the schemas they belong to.
 
 ## Keyboard
 

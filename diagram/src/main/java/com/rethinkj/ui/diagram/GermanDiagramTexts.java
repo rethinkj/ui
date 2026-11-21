@@ -73,6 +73,11 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String uniqueMark() {
+    return "UQ";
+  }
+
+  @Override
   public String nullable() {
     return "nullbar";
   }

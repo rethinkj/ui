@@ -489,6 +489,77 @@ class ErDiagramTest {
   }
 
   @Test
+  void keysDuplicateAndUnnamedForeignKeysApart() throws IOException {
+    List<Schema> schemas = List.of(new Schema(
+        "shop",
+        List.of(
+            new Table("customer", List.of(id()), List.of()),
+            new Table(
+                "order",
+                List.of(
+                    id(),
+                    new Column("customer_id", "bigint", false),
+                    new Column("billing_id", "bigint", true),
+                    new Column("shipping_id", "bigint", true),
+                    new Column("other_id", "bigint", true)),
+                List.of(
+                    new ForeignKey("dup_fk", "customer_id", "customer", "id"),
+                    new ForeignKey("dup_fk", "billing_id", "customer", "id"),
+                    new ForeignKey("", "shipping_id", "customer", "id"),
+                    new ForeignKey("2", "other_id", "customer", "id"),
+                    new ForeignKey("dup_fk/1", "id", "customer", "id"))))));
+    App<ErDiagram.State> app = new App<>(
+        new ErDiagram.State(),
+        state -> ErDiagram.erDiagram(state, schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 900 500\nframe\nsnap edges\n", app, out);
+    String tree = Files.readString(out.resolve("edges.tree.txt"));
+    assertEquals(5, tree.lines().filter(l -> l.contains("role=graphics-symbol")).count(), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk role=graphics-symbol label=\"dup_fk\""), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk/1/1 role=graphics-symbol label=\"dup_fk\""), tree);
+    assertTrue(
+        tree.contains("#shop.order/2/2 role=graphics-symbol"
+            + " label=\"order(shipping_id) → customer(id)\""),
+        tree);
+    assertTrue(tree.contains("#shop.order/2 role=graphics-symbol label=\"2\""), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk/1 role=graphics-symbol label=\"dup_fk/1\""), tree);
+  }
+
+  @Test
+  void prunesPinsAndSelectionWhenTablesAreRemoved() throws IOException {
+    class MutableBoard {
+      final ErDiagram.State diagram = new ErDiagram.State();
+      List<Schema> schemas = SCHEMAS;
+    }
+    MutableBoard board = new MutableBoard();
+    ErDiagram.Pin customerPin = new ErDiagram.Pin(20, 40);
+    ErDiagram.Pin addressPin = new ErDiagram.Pin(300, 40);
+    board.diagram.pins(Map.of("shop.customer", customerPin, "shop.address", addressPin));
+    board.diagram.select("shop.address");
+    App<MutableBoard> app = new App<>(
+        board, b -> ErDiagram.erDiagram(b.diagram, b.schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 900 500\nframe\n", app, out);
+    assertEquals(
+        Map.of("shop.customer", customerPin, "shop.address", addressPin), board.diagram.pins());
+    assertEquals("shop.address", board.diagram.selected());
+
+    board.schemas =
+        List.of(new Schema("shop", List.of(SCHEMAS.getFirst().tables().getFirst())));
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(Map.of("shop.customer", customerPin), board.diagram.pins());
+    assertNull(board.diagram.selected());
+
+    board.diagram.select("shop.customer");
+    List<Schema> withoutCustomer =
+        List.of(new Schema("shop", List.of(SCHEMAS.getFirst().tables().getLast())));
+    Theme.CURRENT.with(Theme.LIGHT, () -> ErDiagram.png(board.diagram, withoutCustomer));
+    assertEquals(Map.of("shop.customer", customerPin), board.diagram.pins());
+    assertEquals("shop.customer", board.diagram.selected());
+  }
+
+  @Test
   void savesTheWholeDiagramAsPng() {
     ErDiagram.State state = new ErDiagram.State();
     state.select("shop.order");

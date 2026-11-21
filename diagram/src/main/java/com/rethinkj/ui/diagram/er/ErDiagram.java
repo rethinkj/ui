@@ -199,7 +199,10 @@ public final class ErDiagram {
       followed = null;
     }
 
-    /** The tables the user put somewhere, by their keys. */
+    /**
+     * The tables the user put somewhere, by their keys. Pins of tables that are gone are dropped
+     * at the next build.
+     */
     public Map<String, Pin> pins() {
       Map<String, Pin> pins = new LinkedHashMap<>();
       places.forEach((table, place) -> {
@@ -304,6 +307,10 @@ public final class ErDiagram {
     return filter.strip().toLowerCase(Locale.ROOT);
   }
 
+  private static boolean named(ForeignKey foreignKey) {
+    return foreignKey.name() != null && !foreignKey.name().isEmpty();
+  }
+
   /** All tables of the schemas, by their keys, with their relations among them. */
   private static Map<String, Shown> model(List<Schema> schemas, State state, ErStyle style) {
     Map<String, Shown> tables = new LinkedHashMap<>();
@@ -316,6 +323,14 @@ public final class ErDiagram {
         }
       }
     }
+    Set<String> used = new HashSet<>(tables.keySet());
+    // The keys of named foreign keys, which no key made up for another may take.
+    Set<String> names = new HashSet<>();
+    tables
+        .values()
+        .forEach(child -> child.table.foreignKeys().stream()
+            .filter(ErDiagram::named)
+            .forEach(foreignKey -> names.add(child.key + "/" + foreignKey.name())));
     for (Shown child : tables.values()) {
       List<ForeignKey> foreignKeys = child.table.foreignKeys();
       for (int i = 0; i < foreignKeys.size(); i++) {
@@ -323,11 +338,13 @@ public final class ErDiagram {
         Shown parent = tables.get(key(
             foreignKey.schema() == null ? child.schema : foreignKey.schema(), foreignKey.table()));
         if (parent != null) {
-          Relation relation = new Relation(
-              child.key + "/" + (foreignKey.name() == null ? i : foreignKey.name()),
-              child,
-              foreignKey,
-              parent);
+          String key = child.key + "/" + (named(foreignKey) ? foreignKey.name() : i);
+          boolean own = named(foreignKey);
+          while (!own && names.contains(key) || !used.add(key)) {
+            key += "/" + i;
+            own = false;
+          }
+          Relation relation = new Relation(key, child, foreignKey, parent);
           child.out.add(relation);
           parent.in.add(relation);
         }
@@ -387,6 +404,10 @@ public final class ErDiagram {
     DiagramTexts texts = DiagramTexts.CURRENT.get();
     ErStyle style = ErStyle.CURRENT.get();
     Map<String, Shown> tables = model(schemas, state, style);
+    state.places.keySet().retainAll(tables.keySet());
+    if (state.selected != null && !tables.containsKey(state.selected)) {
+      state.select(null);
+    }
     arrange(state, tables, style);
     Diagram diagram = new Diagram(state, tables, state.selected, style);
     String filter = normalize(state.filter);
@@ -583,9 +604,16 @@ public final class ErDiagram {
         foreignKey.columns().forEach(c -> lit.add(List.of(relation.child.key, c)));
         foreignKey.referencedColumns().forEach(c -> lit.add(List.of(relation.parent.key, c)));
       }
-      String label = foreignKey.name() != null
+      String label = named(foreignKey)
           ? foreignKey.name()
-          : child.name() + " → " + relation.parent.table.name();
+          : child.name()
+              + "("
+              + String.join(", ", foreignKey.columns())
+              + ") → "
+              + relation.parent.table.name()
+              + "("
+              + String.join(", ", foreignKey.referencedColumns())
+              + ")";
       return new Edge(
           relation.key,
           label,
@@ -817,7 +845,7 @@ public final class ErDiagram {
               .minSize(0, 0)
               .grow(1));
       if (column.unique() && !column.primaryKey()) {
-        row.child(text("UQ").fontSize(small).color(muted).shrink(0));
+        row.child(text(texts.uniqueMark()).fontSize(small).color(muted).shrink(0));
       }
       row.child(text(column.type() + (column.nullable() ? "?" : ""))
           .fontSize(small)
@@ -858,7 +886,7 @@ public final class ErDiagram {
       }
       for (ForeignKey foreignKey : foreignKeys) {
         StringBuilder line = new StringBuilder();
-        if (foreignKey.name() != null) {
+        if (named(foreignKey)) {
           line.append(foreignKey.name()).append(' ');
         }
         line.append("→ ")
@@ -878,7 +906,9 @@ public final class ErDiagram {
     /** A column as a bar, in the warning color for a key, where the zoom leaves text unreadable. */
     private El bar(Shown table, Column column, float zoom, IntUnaryOperator tone) {
       float inner = (style.width() - 2 * theme.space().s()) * zoom;
-      float width = Math.min(inner * 0.6f, column.name().length() * 7 * zoom);
+      float width = Math.min(
+          inner * style.barShare(), column.name().length() * style.barPerCharacter() * zoom);
+      float height = style.barHeight() * zoom;
       int color =
           key(table.table, column) ? theme.status().warning() : theme.border().strong();
       return row()
@@ -886,8 +916,8 @@ public final class ErDiagram {
           .shrink(0)
           .padding(0, theme.space().s() * zoom)
           .align(Style.Align.CENTER)
-          .child(el().size(width, Math.max(2, style.row() * zoom / 4))
-              .radius(style.row() * zoom / 8)
+          .child(el().size(width, Math.max(2, height))
+              .radius(height / 2)
               .fill(tone.applyAsInt(color)));
     }
   }
