@@ -836,6 +836,12 @@ class GridEditTest {
     run(app, "key End\ntype \"!\"\nkey Enter\nframe");
     assertEquals("commit 0,1 Ada Lovelace!", ledger.log.getLast());
     assertEquals(1, ledger.selection.row());
+
+    run(app, "key F2\nframe\nframe");
+    app.post(() -> ledger.custom = null); // the app takes its editor away while it is open
+    run(app, "await\nframe");
+    assertNotNull(CellEditorTest.find(app, "field"), "the grid's own field takes over");
+    assertEquals("Grace Lovelace", ledger.selection.draft(), "with the draft");
   }
 
   /** The app adds a row in a handler and hands the editor of the row to append on at once. */

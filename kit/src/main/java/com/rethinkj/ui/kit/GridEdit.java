@@ -180,6 +180,12 @@ final class GridEdit {
         sel.editRow = place;
       }
     }
+    if (sel.isEditing() && sel.editColumn < b.columns.size()) {
+      // The app builds its columns anew: the mode follows a change of the column's editing.
+      CellEditMode mode = CellEditMode.of(
+          b.columns.get(sel.editColumn), sel.editMode instanceof CellEditMode.MultilineText);
+      sel.editMode = mode instanceof CellEditMode.Toggle ? CellEditMode.INLINE : mode;
+    }
     return sel.isEditing();
   }
 
@@ -643,8 +649,9 @@ final class GridEdit {
   // The modes
 
   /**
-   * How a column's cells edit, resolved from the column once, as the editing starts, and held in
-   * the {@link Selection} while the editor is open: each mode starts the edit, takes typed text,
+   * How a column's cells edit, resolved from the column ({@link #of}) as the editing starts and
+   * held in the {@link Selection} while the editor is open, which {@link GridEdit#follow} keeps to
+   * the column as the app builds it anew: each mode starts the edit, takes typed text,
    * builds the editor over the cell and what hangs on its anchor, and checks and refuses a value
    * its own way.
    */
