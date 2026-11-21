@@ -91,7 +91,7 @@ final class Edges {
     // The boxes over bends and markers first, under every edge's runs, so that a run's band takes
     // the pointer where they overlap.
     for (Drawn shown : drawn) {
-      bendHovers(canvas, shown, style);
+      bendHovers(canvas, shown);
       markerHovers(canvas, shown, view, style);
     }
     for (Drawn shown : drawn) {
@@ -343,12 +343,15 @@ final class Edges {
    * Under the runs, a box over each bend too wide for the bands of its runs to reach its middle,
    * which shows the edge's tooltip there.
    */
-  private static void bendHovers(El canvas, Drawn shown, EdgeStyle style) {
+  private static void bendHovers(El canvas, Drawn shown) {
     Edge edge = shown.edge;
-    float half = Math.max(shown.width, style.hit()) / 2;
     float[][] points = shown.points;
     for (int k = 1; k + 1 < points.length; k++) {
       float radius = shown.radii[k];
+      // The bands of its runs as narrowed beside other runs.
+      float[] before = shown.bands[k - 1];
+      float[] after = shown.bands[k];
+      float half = Math.min(Math.min(before[0], before[1]), Math.min(after[0], after[1]));
       if (edge.label() == null || HALF_BEND * radius <= half) {
         continue;
       }

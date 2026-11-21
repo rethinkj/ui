@@ -2,10 +2,12 @@ el #board role=graphics-document label="Diagram" 0,0 600x300 value="Zoom 100%" h
   el 390,53 12x11
   el 218,73 22x11
   el 160,73 14x11
+  el 200,203 6x6
   el 218,113 22x11
   el 160,203 14x11
   el 410,243 23x11
   el 410,223 23x11
+  el 189,202 6x6
   el 223,92 17x12
   el 160,202 15x12
   el #item_fk role=graphics-symbol label="item_order_fk" 432,125 38x8 value="Dimmed"

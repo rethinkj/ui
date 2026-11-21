@@ -425,6 +425,13 @@ final class Routing {
         fromSide, toSide, new double[] {px, c1, c1, c2, c2, qx}, new double[] {y1, y1, y, y, y2, y2
         });
     if (fromSide == -toSide && fromSide * (qx - px) > 0 && fromSide * (c2 - c1) < 0) {
+      // Facing ports closer than two stubs: legs as close as their markers and bends allow.
+      path.move(1, px + fromSide * need1);
+      path.move(3, qx + toSide * need2);
+      c1 = path.xs[1];
+      c2 = path.xs[3];
+    }
+    if (fromSide == -toSide && fromSide * (qx - px) > 0 && fromSide * (c2 - c1) < 0) {
       return null; // between facing sides too close for its legs: it would run back over itself
     }
     if (fromSide == toSide
