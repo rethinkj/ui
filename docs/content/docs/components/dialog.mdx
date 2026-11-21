@@ -3,7 +3,7 @@ title: Dialog
 description: Centered modal dialog over a dimmed backdrop with title, scrollable content, and action buttons.
 ---
 
-`Dialog.dialog` displays a centered modal overlay over a dimmed backdrop (scrim). When it opens, focus moves to the first field Tab can reach. If there is no such field (such as in a dialog of read-only `Properties`), focus moves to `defaultButton`, or, without one, to the first button. It traps keyboard focus inside while open and restores previous focus when closed. Use it for confirmations and short forms.
+`Dialog.dialog` displays a centered modal overlay over a dimmed backdrop (scrim). When it opens, focus moves to the first field Tab can reach. If there is no such field (such as in a dialog of read-only `Properties`), focus moves to `defaultButton` if it can take focus, else to the first button that can. It traps keyboard focus inside while open and restores previous focus when closed. Use it for confirmations and short forms.
 
 For lightweight non-blocking overlays, use [Popover](/docs/components/popover). For brief status messages, use [Toast](/docs/components/toast).
 
