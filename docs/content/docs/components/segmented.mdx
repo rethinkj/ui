@@ -1,9 +1,9 @@
 ---
 title: Segmented
-description: Connected button group for choosing one of two to five views or modes.
+description: Pill-shaped track for choosing one of two to five views or modes.
 ---
 
-`Segmented.segmented` displays a compact horizontal group of connected buttons with the selected option highlighted. Use it to switch between 2–5 modes (such as Dark / Light / System, or Rows / Cells). For longer option text, use [Radio](/docs/components/radio).
+`Segmented.segmented` displays two to five options in a rounded track; the selected one sits on a raised pill that slides to the next selection. Use it to switch between 2–5 modes (such as Dark / Light / System, or Rows / Cells). For longer option text, use [Radio](/docs/components/radio).
 
 Javadoc: [`Segmented`](/api/com/rethinkj/ui/kit/Segmented.html).
 
@@ -15,6 +15,10 @@ Javadoc: [`Segmented`](/api/com/rethinkj/ui/kit/Segmented.html).
 ```
 
 Call `Segmented.segmented(choices, selected, onSelect)`. Passing a `null` handler disables it.
+
+## Sizes
+
+By default it is as high as a button or a text field, so it fits a toolbar or a form row. Pass `Segmented.Size.LARGE` as the last argument for a control that stands on its own, such as on a settings page: it is as high as a large button, with more room around the pill.
 
 ## Values instead of indexes
 
@@ -35,5 +39,5 @@ One Tab stop. **Arrow keys** move selection (wrapping around), **Home/End** jump
 
 Uses `role=radiogroup` with `role=radio` options (`checked` or `checked=false`):
 
-```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Select\"" count="5"
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Select\"" count="6"
 ```

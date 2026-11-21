@@ -8,9 +8,10 @@ el 0,0 320x260
       el 12,32 16x16
       text "Tabs" 36,32 29x16
   el role=radiogroup label="Select" 12,56 120x24
-    el role=radio label="Rows" 15,59 58x18 checked
+    el #thumb 15,59 58x18
+    el #choice-0 role=radio label="Rows" 15,59 58x18 checked
       text "Rows" 27,60 34x16
-    el role=radio label="Cells" 75,59 54x18 checked=false
+    el #choice-1 role=radio label="Cells" 75,59 54x18 checked=false
       text "Cells" 87,60 30x16
   el role=combobox label="Driver" 12,88 200x24 expanded=false
     text "PostgreSQL" 21,92 162x16

@@ -888,37 +888,42 @@ el 0,0 140x40
 # segmented, rest
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el role=radio label="Rows" 13,11 57x18 checked
+    el #thumb 13,11 57x18
+    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
       text "Rows" 25,12 33x16
-    el role=radio label="Cells" 72,11 55x18 checked=false
+    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
 # segmented, hover
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el role=radio label="Rows" 13,11 57x18 checked hovered
+    el #thumb 13,11 57x18
+    el #choice-0 role=radio label="Rows" 13,11 57x18 checked hovered
       text "Rows" 25,12 33x16
-    el role=radio label="Cells" 72,11 55x18 checked=false
+    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
 # segmented, pressed
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el role=radio label="Rows" 13,11 57x18 checked hovered
+    el #thumb 13,11 57x18
+    el #choice-0 role=radio label="Rows" 13,11 57x18 checked hovered
       text "Rows" 25,12 33x16
-    el role=radio label="Cells" 72,11 55x18 checked=false
+    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
 # segmented, focused
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24 focused
-    el role=radio label="Rows" 13,11 57x18 checked
+    el #thumb 13,11 57x18
+    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
       text "Rows" 25,12 33x16
-    el role=radio label="Cells" 72,11 55x18 checked=false
+    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
 # segmented, disabled
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24 disabled
-    el role=radio label="Rows" 13,11 57x18 checked
+    el #thumb 13,11 57x18
+    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
       text "Rows" 25,12 33x16
-    el role=radio label="Cells" 72,11 55x18 checked=false
+    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
 # combo box, rest
 el 0,0 140x40

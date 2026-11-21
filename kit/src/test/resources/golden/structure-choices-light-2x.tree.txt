@@ -1,10 +1,11 @@
 el 0,0 400x560
   el role=radiogroup label="Theme" 16,16 187x24
-    el role=radio label="Light" 19,19 54x18 checked=false
+    el #thumb 75,19 53x18
+    el #choice-0 role=radio label="Light" 19,19 54x18 checked=false
       text "Light" 31,20 30x16
-    el role=radio label="Dark" 75,19 53x18 checked
+    el #choice-1 role=radio label="Dark" 75,19 53x18 checked
       text "Dark" 87,20 29x16
-    el role=radio label="System" 130,19 70x18 checked=false
+    el #choice-2 role=radio label="System" 130,19 70x18 checked=false
       text "System" 142,20 46x16
   el role=radiogroup label="Line endings" 12,50 108x60
     el role=radio label="LF" 16,52 100x16 checked
