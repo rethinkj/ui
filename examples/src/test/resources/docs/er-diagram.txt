@@ -1,0 +1,16 @@
+# The ER diagram of the shop (SchemaDiagram): fitted in, then order selected, then zoomed out.
+size 1040 720
+frame
+snap view
+
+press #public.order at top+12   # its header: selects it and focuses the canvas
+frame
+snap selected
+
+key -
+frame
+snap skeleton                   # rows as bars
+
+key -
+frame
+snap names                      # only the names

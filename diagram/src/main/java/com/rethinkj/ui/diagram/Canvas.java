@@ -8,6 +8,8 @@ import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.window.WindowLoop;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -32,14 +34,16 @@ import java.util.function.Function;
  * <p>{@link Edge Edges} between the nodes' {@link Port ports} lie under the nodes, routed at right
  * angles around them ({@link #canvas(Viewport, List, List, NodeContent, Consumer)}).
  *
- * <p>Dragging empty space pans. Dragging a node reports it moved and {@link Node#pinned pinned} to
- * {@code onMove}, while the pointer moves, and as it was when the drag is cancelled. While the
- * canvas has the focus, {@code +} and {@code -} zoom in and out by a step around its center and
+ * <p>Dragging empty space and the wheel pan, and Control+wheel zooms by a step for each step of the
+ * wheel ({@link WindowLoop#WHEEL_STEP}) around the pointer. Dragging a node reports it moved and
+ * {@link Node#pinned pinned} to {@code onMove}, while the pointer moves, and as it was when the
+ * drag is cancelled. While the canvas has the focus, {@code +} and {@code -} zoom in and out by a step around its center and
  * {@code 0} fits all nodes in ({@link Viewport#fit}). The canvas fills itself with {@link
  * Theme.Surfaces#window} and clips its nodes. It needs a size of its own or room to grow.
  *
  * <p>A node takes the pointer as a whole: content with a press or drag handler of its own keeps
- * the pointer there, and the node does not move. A canvas learns its size when layout gives it a
+ * the pointer there, and the node does not move. Content that selects itself on a press takes it
+ * with {@link El#onPointerDown}, which leaves the drag to the node. A canvas learns its size when layout gives it a
  * new one; one that shows another viewport in the same place needs another {@link El#key}, such as
  * the diagram's name, or the new viewport learns no size and the canvas shows no nodes.
  *
@@ -224,6 +228,8 @@ public final class Canvas {
     private double draggedY;
     private float draggedDx;
     private float draggedDy;
+    // The wheel's turn with Control held that has not zoomed a step yet, in logical pixels.
+    private double wheeled;
     // The routes of the last build with edges and what they were routed from, so that a pan, a zoom
     // or a hover does not route them again.
     private List<Node> routedNodes;
@@ -290,6 +296,32 @@ public final class Canvas {
     /** Zooms out by a step around the canvas's center. */
     public void zoomOut() {
       zoomBy(-1, width / 2, height / 2);
+    }
+
+    /**
+     * Pans as little as it takes to show the whole node with a margin of {@link Theme.Spacing#xl},
+     * as the keys that move between nodes need; a node larger than the canvas shows from its top
+     * left. Before the canvas knows its size it does nothing.
+     */
+    public void reveal(Node node) {
+      if (width <= 0 || height <= 0) {
+        return;
+      }
+      float zoom = zoom();
+      double margin = Theme.CURRENT.get().space().xl() / zoom;
+      double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
+      double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);
+      if (x != left || y != top) {
+        panTo(x, y);
+      }
+    }
+
+    /** Where a view of this extent starts that shows from {@code from} to {@code to}. */
+    private static double revealed(double start, double extent, double from, double to) {
+      if (to - from > extent || from < start) {
+        return from;
+      }
+      return to > start + extent ? to - extent : start;
     }
 
     /**
@@ -395,7 +427,17 @@ public final class Canvas {
    * edges' sizes are those of {@link EdgeStyle#CURRENT} where it is called.
    */
   public static byte[] png(List<Node> nodes, List<Edge> edges, Function<Viewport, El> view) {
-    double[] bounds = nodes.isEmpty() ? new double[4] : bounds(nodes);
+    return png(List.of(), nodes, edges, view);
+  }
+
+  /**
+   * As {@link #png(List, List, Function)}, for a canvas with these areas under its nodes ({@link
+   * #canvas(Viewport, List, List, List, NodeContent, Consumer)}), which the image takes in too.
+   */
+  public static byte[] png(
+      List<Node> areas, List<Node> nodes, List<Edge> edges, Function<Viewport, El> view) {
+    List<Node> all = areas.isEmpty() ? nodes : joined(areas, nodes);
+    double[] bounds = all.isEmpty() ? new double[4] : bounds(all);
     EdgeStyle style = EdgeStyle.CURRENT.get();
     List<Routing.Route> routes = Routing.route(nodes, edges, style);
     for (int i = 0; i < routes.size(); i++) {
@@ -484,9 +526,31 @@ public final class Canvas {
       List<Edge> edges,
       NodeContent content,
       Consumer<Node> onMove) {
+    return canvas(viewport, List.of(), nodes, edges, content, onMove);
+  }
+
+  /**
+   * A canvas with areas under its edges and nodes, such as a frame around a group of nodes. An
+   * area is built as a node is, by {@code content}, and lies where its node says, but the edges do
+   * not go around it and the user does not move it: a drag on it pans. {@link Viewport#fit} and
+   * {@link #png(List, List, List, Function)} take it in. In a tree dump it is {@code role=group}
+   * with its key and label.
+   *
+   * @param areas the areas, each with a key of its own among the nodes and edges; later ones lie on
+   *     top
+   * @see #canvas(Viewport, List, List, NodeContent, Consumer)
+   */
+  public static El canvas(
+      Viewport viewport,
+      List<Node> areas,
+      List<Node> nodes,
+      List<Edge> edges,
+      NodeContent content,
+      Consumer<Node> onMove) {
     Theme theme = Theme.CURRENT.get();
     DiagramTexts texts = DiagramTexts.CURRENT.get();
-    viewport.fitIfDue(nodes, theme.space().xl());
+    viewport.fitIfDue(
+        areas.isEmpty() ? nodes : joined(areas, nodes), theme.space().xl());
     float zoom = viewport.zoom();
     double left = viewport.left;
     double top = viewport.top;
@@ -504,7 +568,13 @@ public final class Canvas {
           viewport.height = height;
         })
         .onKey(key -> key(viewport, key))
+        .onWheel((dx, dy, modifiers, x, y) -> wheel(viewport, dx, dy, modifiers, x, y))
         .onDrag(drag -> pan(viewport, left, top, drag));
+    for (Node area : areas) {
+      if (inside(area, left, top, right, bottom)) {
+        canvas.child(placed(area, left, top, zoom).role("group").child(content.build(area, zoom)));
+      }
+    }
     if (!edges.isEmpty() && right > left && bottom > top) {
       EdgeStyle style = EdgeStyle.CURRENT.get();
       Edges.add(
@@ -515,26 +585,11 @@ public final class Canvas {
           style);
     }
     for (Node node : nodes) {
-      boolean inside = right > left
-          && bottom > top
-          && node.x() < right
-          && node.x() + node.width() > left
-          && node.y() < bottom
-          && node.y() + node.height() > top;
-      if (!inside && !node.key().equals(viewport.dragged)) {
+      if (!inside(node, left, top, right, bottom) && !node.key().equals(viewport.dragged)) {
         continue;
       }
-      float x = Math.round((node.x() - left) * zoom);
-      float y = Math.round((node.y() - top) * zoom);
-      El box = el().key(node.key())
-          .role("graphics-object")
-          .label(node.label())
-          // Rounded at both edges, so that nodes that touch still touch at every zoom.
-          .absolute(x, y)
-          .size(
-              Math.round((node.x() + node.width() - left) * zoom) - x,
-              Math.round((node.y() + node.height() - top) * zoom) - y)
-          .child(content.build(node, zoom));
+      El box =
+          placed(node, left, top, zoom).role("graphics-object").child(content.build(node, zoom));
       if (node.pinned()) {
         box.value(texts.pinned());
       }
@@ -543,6 +598,55 @@ public final class Canvas {
       canvas.child(box);
     }
     return canvas;
+  }
+
+  private static boolean inside(Node node, double left, double top, double right, double bottom) {
+    return right > left
+        && bottom > top
+        && node.x() < right
+        && node.x() + node.width() > left
+        && node.y() < bottom
+        && node.y() + node.height() > top;
+  }
+
+  /** The node's element, with its key and label, where the canvas shows it at this zoom. */
+  private static El placed(Node node, double left, double top, float zoom) {
+    float x = Math.round((node.x() - left) * zoom);
+    float y = Math.round((node.y() - top) * zoom);
+    return el().key(node.key())
+        .label(node.label())
+        // Rounded at both edges, so that nodes that touch still touch at every zoom.
+        .absolute(x, y)
+        .size(
+            Math.round((node.x() + node.width() - left) * zoom) - x,
+            Math.round((node.y() + node.height() - top) * zoom) - y);
+  }
+
+  private static List<Node> joined(List<Node> first, List<Node> second) {
+    List<Node> all = new ArrayList<>(first);
+    all.addAll(second);
+    return all;
+  }
+
+  /**
+   * Zooms by a step for each step of the wheel with Control held, around the pointer, and pans by
+   * the wheel's distance without it. The steps of a precise wheel add up until they make one.
+   */
+  private static boolean wheel(
+      Viewport viewport, double dx, double dy, int modifiers, double x, double y) {
+    if ((modifiers & Key.CONTROL) == 0) {
+      float zoom = viewport.zoom();
+      viewport.panTo(viewport.left + dx / zoom, viewport.top + dy / zoom);
+      return true;
+    }
+    viewport.wheeled += dy;
+    // Towards the user, as the wheel scrolls down, zooms out.
+    int steps = (int) (viewport.wheeled / WindowLoop.WHEEL_STEP);
+    if (steps != 0) {
+      viewport.wheeled -= steps * (double) WindowLoop.WHEEL_STEP;
+      viewport.zoomBy(-steps, (float) x, (float) y);
+    }
+    return true;
   }
 
   /** Pans by each step's movement at the zoom of that step; a cancel goes back to the start. */

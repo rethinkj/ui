@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.examples.SchemaDiagram;
 import com.rethinkj.ui.examples.Snaps;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.Font;
@@ -80,7 +81,8 @@ class DocsExamplesTest {
       Map.entry("code-editor-json", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
-      Map.entry("canvas-edges", List.of("view")));
+      Map.entry("canvas-edges", List.of("view")),
+      Map.entry("er-diagram", List.of("view", "selected", "skeleton", "names")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -124,6 +126,9 @@ class DocsExamplesTest {
     all.put(
         "canvas-edges",
         new Example(t -> new App<>(new DiagramEdges(), DiagramEdges::view), 560, 280));
+    all.put(
+        "er-diagram",
+        new Example(t -> new App<>(new SchemaDiagram(), SchemaDiagram::window), 1040, 720));
     overlays(all, "menu", Overlays::menus, 360, 260);
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);

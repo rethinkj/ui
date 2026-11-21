@@ -42,4 +42,109 @@ public interface DiagramTexts {
   default String dimmed() {
     return "Dimmed";
   }
+
+  /** The label of an {@link com.rethinkj.ui.diagram.er.ErDiagram}'s canvas. */
+  default String erDiagram() {
+    return "Entity relationship diagram";
+  }
+
+  /** A count of tables, as a schema's frame shows it: {@code 1 table}, {@code 8 tables}. */
+  default String tables(int count) {
+    return count == 1 ? "1 table" : count + " tables";
+  }
+
+  /** A count of columns, as a collapsed table shows it: {@code 6 columns}. */
+  default String columns(int count) {
+    return count == 1 ? "1 column" : count + " columns";
+  }
+
+  /** The row of a table that shows only its keys, for the columns it hides: {@code +3 columns}. */
+  default String moreColumns(int count) {
+    return "+" + columns(count);
+  }
+
+  /** What a table refers to, in its label: {@code references customer, address}. */
+  default String references(String tables) {
+    return "references " + tables;
+  }
+
+  /** What refers to a table, in its label: {@code referenced by order_item}. */
+  default String referencedBy(String tables) {
+    return "referenced by " + tables;
+  }
+
+  /** A column of the primary key, in the column's label. */
+  default String primaryKey() {
+    return "primary key";
+  }
+
+  /** A column of a foreign key, in the column's label. */
+  default String foreignKey() {
+    return "foreign key";
+  }
+
+  /** A column with a unique constraint of its own, in the column's label. */
+  default String unique() {
+    return "unique";
+  }
+
+  /** A column that may be null, in the column's label. */
+  default String nullable() {
+    return "nullable";
+  }
+
+  /** A column's default, in its tooltip: {@code Default now()}. */
+  default String defaultValue(String value) {
+    return "Default " + value;
+  }
+
+  /** What a foreign key does when the row it refers to is deleted: {@code ON DELETE CASCADE}. */
+  default String onDelete(String rule) {
+    return "ON DELETE " + rule;
+  }
+
+  /** The choice that shows all columns of every table. */
+  default String allColumns() {
+    return "All columns";
+  }
+
+  /** The choice that shows only the key columns of every table. */
+  default String keysOnly() {
+    return "Keys only";
+  }
+
+  /** The choice that shows every table collapsed to its name. */
+  default String collapsed() {
+    return "Collapsed";
+  }
+
+  /** The placeholder of the field that filters tables by name. */
+  default String filterTables() {
+    return "Filter tables";
+  }
+
+  /** The action that zooms so that the whole diagram shows. */
+  default String fit() {
+    return "Fit";
+  }
+
+  /** The action that lays out the tables that the user did not move. */
+  default String arrange() {
+    return "Arrange";
+  }
+
+  /** The action that lays out all tables, also those the user moved. */
+  default String arrangeAll() {
+    return "Arrange all";
+  }
+
+  /** The button that collapses a table to its name. */
+  default String collapse() {
+    return "Collapse";
+  }
+
+  /** The button that shows a collapsed table's columns. */
+  default String expand() {
+    return "Expand";
+  }
 }

@@ -72,7 +72,11 @@ A canvas with edges passes them too, `Canvas.png(nodes, edges, view)`, so that t
 
 ## Pointer and keyboard
 
-Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
+Dragging empty space and the wheel pan, and **Ctrl**+wheel zooms a step for each step of the wheel around the pointer. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. Content that selects its node on a press uses `onPointerDown`, which leaves the drag to the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in. `Viewport.reveal(node)` pans as little as it takes to show a node, as keys that move between nodes need.
+
+## Areas
+
+`Canvas.canvas(viewport, areas, nodes, edges, content, onMove)` lays areas under the edges and nodes, such as a frame around a group of nodes. `content` builds them as it builds nodes. The edges do not go around them, a drag on them pans, and `fit()` and `Canvas.png(areas, nodes, edges, view)` take them in. In a tree dump an area is `role=group`.
 
 ## Arrange
 

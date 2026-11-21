@@ -155,6 +155,35 @@ class CanvasTest {
   }
 
   @Test
+  void theWheelPansAndZoomsAroundThePointerWithControl() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    String script = """
+        size 400 260
+        frame
+        wheel 100,60 30 40
+        frame
+        wheel 100,60 0 24 control
+        frame
+        wheel 100,60 0 24 control
+        frame
+        """;
+    Script.run(script, app, out);
+    Canvas.Viewport viewport = app.state().viewport;
+    // Panned by 30, 40 at 100 %; then two half steps towards the user make one step out, to 75 %,
+    // that keeps the point under the pointer, 130,100, in place.
+    assertEquals(0.75f, viewport.zoom());
+    // zoomBy works in floats for the pointer's place.
+    assertEquals(130 - 100 / 0.75, viewport.left(), 1e-4);
+    assertEquals(100 - 60 / 0.75, viewport.top(), 1e-4);
+  }
+
+  @Test
   void savesTheWholeDiagramAsPng() throws IOException {
     Board board = new Board();
     byte[] png = Theme.CURRENT.with(

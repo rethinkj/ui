@@ -1,0 +1,77 @@
+---
+title: ErDiagram
+description: Entity relationship diagram of database schemas, from the optional diagram module.
+---
+
+`ErDiagram.erDiagram` shows the tables of a database's schemas as cards on a [canvas](/docs/components/canvas), with an edge for each foreign key and a bar to filter, switch the tables' mode and arrange them. It is in the optional module `rethinkj-ui-diagram`, package `com.rethinkj.ui.diagram.er`. Javadoc: [`ErDiagram`](/api/com/rethinkj/ui/diagram/er/ErDiagram.html).
+
+<Shot src="examples/docs/er-diagram/view-{theme}" alt="Nine tables of a shop in the schema frames public and billing, with crow's-foot edges between their key columns" />
+
+## Example
+
+Keep an `ErDiagram.State` in your app state and pass the schemas:
+
+```java snippet="er-diagram"
+```
+
+The schemas are plain records that your app fills from its catalog, without JDBC in the module: a `Schema` has `Table`s, a `Table` has `Column`s and `ForeignKey`s.
+
+```java snippet="er-schema"
+```
+
+| Record | Fields | From `DatabaseMetaData` |
+| --- | --- | --- |
+| `Schema` | `name`, `tables`; an empty name gets no frame | `getTables` |
+| `Table` | `name`, `columns`, `foreignKeys` | `getTables` |
+| `Column` | `name`, `type`, `nullable`, `primaryKey`, `unique`, `defaultValue` | `getColumns`, `getPrimaryKeys`, `getIndexInfo` |
+| `ForeignKey` | `name`, `columns`, `schema` (null for the same), `table`, `referencedColumns`, `onDelete` | `getImportedKeys` |
+
+`erDiagram(state, schemas, onPins, actions...)` takes your own actions for the end of the bar, such as an export. `ErDiagram.png(state, schemas)` returns the whole diagram as PNG bytes without a selection, as [`Canvas.png`](/docs/components/canvas#saving-as-an-image) does; give it your theme with `Theme.CURRENT.with(...)`.
+
+## Tables and edges
+
+A table's header has its name and a chevron that collapses it. Each column's row has the key icon in the warning color for the primary key, the link icon for a foreign key, `UQ` for a unique column, and the type, muted, with `?` where the column may be null. The row's tooltip shows its default and its foreign keys with `ON DELETE`.
+
+Each foreign key is an edge from the row of its first column to the row of the first column it refers to, or to the header where that row does not show. At the table that refers, the crow's foot is `||` where the key is unique, as the whole primary key or a unique column, and `|<` otherwise; at the table referred to, `||` where the key is not null and `o|` where it may be. The edge's tooltip is the constraint's name and its `ON DELETE`.
+
+## Selection
+
+<Shot src="examples/docs/er-diagram/selected-{theme}" alt="The table order outlined in the accent color, its four edges and the rows at their ends highlighted, the unrelated tables dimmed" />
+
+A press on a table selects it, and a press on empty space clears the selection. The selected table is outlined in the accent, its edges and the rows at both ends stand out, and the tables not related to it are dimmed towards the canvas's color. `state.select(key)` selects from the app, with the table's key `schema.table`.
+
+## Modes, filter and levels of detail
+
+The bar switches all tables between **All columns**, **Keys only**, with a row `+n columns` that shows a table's other columns, and **Collapsed**. The chevron collapses a single table; `state.mode(key, mode)` sets one from the app. The filter shows only the tables whose names contain its text.
+
+Zoomed out below `ErStyle.skeleton`, 75 % by default, rows are bars, keys in the warning color; below `ErStyle.names`, 50 %, a table shows only its name:
+
+<Shot src="examples/docs/er-diagram/skeleton-{theme}" alt="The diagram at 50 percent, the columns drawn as bars" />
+
+<Shot src="examples/docs/er-diagram/names-{theme}" alt="The diagram at 25 percent, each table only its name" />
+
+`ErStyle` holds the sizes and thresholds, such as a table's width and its rows' height; give another with `app.provide(ErStyle.CURRENT, ...)`. The colors come from the theme.
+
+## Arrange and pins
+
+Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table without a place comes, when the mode of all tables changes, and with **Arrange**. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them after each change, and `state.pins(pins)` gives them back, as after a restart.
+
+## Keyboard
+
+While the canvas has the focus:
+
+| Key | Action |
+| --- | --- |
+| Arrows | Select the nearest table in that direction |
+| Shift+arrows | Move the selected table and pin it |
+| Enter | Collapse or expand the selected table |
+| `]`, `[` | Step forward and back through the tables the selected one is related to |
+| Escape | Clear the selection |
+| `+`, `-`, `0`, wheel, Ctrl+wheel | Zoom, fit, pan and zoom around the pointer, as on any canvas |
+
+## In a tree dump
+
+The canvas is `role=graphics-document` labeled "Entity relationship diagram". Each table is `role=graphics-object` with its key and a label that names its columns and relations, each column `role=listitem` with its type and keys, and each schema's frame `role=group`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+
+```text file="examples/src/test/resources/golden/docs/er-diagram/selected.tree.txt" start="el #public.order role=graphics-object" count="3"
+```
