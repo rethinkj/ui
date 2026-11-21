@@ -1,0 +1,1 @@
+- A `DataGrid` with `fitColumns` and rows loaded in pages through `loading(loaded, onRows)` fits its columns once the rows in view arrive, also when the user scrolled away from rows still loading; before, the fit could stay pending.

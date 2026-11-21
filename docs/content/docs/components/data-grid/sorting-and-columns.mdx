@@ -33,6 +33,7 @@ Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongsi
 ```
 
 - Auto-fitting runs on the first frame with loaded rows, and that frame already shows the fitted widths.
+- With rows loaded in pages through `loading(loaded, onRows)`, it waits for the rows the grid shows, also after the user scrolls away from rows still loading.
 - Columns the user manually resized are left untouched; hidden columns auto-fit when first shown.
 
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />

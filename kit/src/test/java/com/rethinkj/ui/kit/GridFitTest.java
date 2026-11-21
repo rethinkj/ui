@@ -131,6 +131,25 @@ class GridFitTest {
   }
 
   @Test
+  void scrolledOffRowsStillLoadingTheFitRunsOnceTheRowsInViewLoad() throws IOException {
+    Fit fit = new Fit();
+    Orders orders = fitted(Orders.cells(T), fit);
+    boolean[] further = {false}; // only the rows scrolled to load, those at the top never do
+    orders.more = orders.more.andThen(
+        o -> o.loading(i -> further[0] && i >= 100, (first, last) -> {}))::apply;
+    App<Orders> app = orders.app();
+    run(app, "frame\nframe\nwheel #rows 0 4000\nframe\nframe");
+    assertTrue(find(app, "rows").firstRow() >= 100, "scrolled past the top rows");
+    assertTrue(fit.isPending());
+
+    app.post(() -> further[0] = true);
+    run(app, "await\nframe\nframe\nframe");
+    assertFalse(fit.isPending(), "fitted to the rows in view");
+    assertEquals(7, resizes(orders).size(), "" + orders.log);
+    assertFalse(app.tree().dump().contains("#fit-"), "nothing more to fit");
+  }
+
+  @Test
   void aResetFitsEveryColumnAgainAsForANewResult() throws IOException {
     Fit fit = new Fit();
     Orders orders = fitted(new Orders(T, 1_000_000), fit);
