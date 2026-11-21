@@ -150,6 +150,30 @@ class GridFitTest {
   }
 
   @Test
+  void aResetWithFewerRowsThanTheViewShowedFitsToTheRowsShownThen() throws IOException {
+    Fit fit = new Fit();
+    Orders orders = fitted(Orders.cells(T), fit);
+    App<Orders> app = orders.app();
+    run(app, "frame\nframe");
+    assertFalse(fit.isPending());
+    run(app, "wheel #rows 0 4000\nframe\nframe");
+    assertTrue(find(app, "rows").firstRow() >= 100, "scrolled past the rows that stay");
+    app.post(() -> {
+      fit.reset(); // a refresh with other columns, its pages still to come
+      orders.loaded = 0;
+    });
+    run(app, "await\nframe\nframe");
+    assertTrue(fit.isPending());
+    app.post(() -> {
+      orders.count = 100; // fewer rows than those the fit looked at, loaded at once
+      orders.loaded = 1000;
+    });
+    run(app, "await\nframe\nframe\nframe");
+    assertFalse(fit.isPending(), "fitted to the rows that stay");
+    assertTrue(resizes(orders).size() > 7, "" + orders.log);
+  }
+
+  @Test
   void aResetFitsEveryColumnAgainAsForANewResult() throws IOException {
     Fit fit = new Fit();
     Orders orders = fitted(new Orders(T, 1_000_000), fit);
