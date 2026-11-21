@@ -23,6 +23,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 
 /**
@@ -33,6 +34,52 @@ import java.util.function.Predicate;
 final class GridEdit {
 
   private GridEdit() {}
+
+  /**
+   * What a {@link Selection} holds of the editing: the cell being edited, -1 for none, what its
+   * editor holds, and a refused switch of a boolean.
+   */
+  static final class State {
+    int row = -1;
+    int column = -1;
+    // With rows told apart by keys (Options.changes): the key of the edited row, which the
+    // editor follows wherever the rows move, or Selection.APPEND for the row to append.
+    boolean keyed;
+    long key;
+    String draft; // null for NULL
+    String original; // the value the editing began with
+    String error; // what the app or the type said is wrong with the draft, null for nothing
+    CellEditMode mode; // how the open editor edits, null while none is open
+    int edits; // the editors opened so far: each new one takes the focus by this key
+    float gridWidth; // the grid's width, as layout last told it, for an editor that grows
+    Runnable handOn; // the last grid built with it that edits: hands the draft on (commitEdit)
+    FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
+    final Menu.State choices = new Menu.State(); // an enumeration's list
+    final FilterList.State search = new FilterList.State(); // a long enumeration's filter
+    // A switch of a boolean that was refused, and its cell, until the next key or press.
+    String refused;
+    int refusedRow = -1;
+    int refusedColumn = -1;
+
+    /** Closes the editor without handing on what it holds. */
+    void cancel() {
+      row = column = -1;
+      keyed = false;
+      draft = original = error = null;
+      mode = null;
+      choices.close();
+    }
+
+    /** Puts the editor on its column's new place, or closes it where its column is gone. */
+    void onColumnsChanged(IntUnaryOperator to) {
+      if (row >= 0) {
+        column = to.applyAsInt(column);
+        if (column < 0) {
+          cancel();
+        }
+      }
+    }
+  }
 
   /** Where the cursor goes after the editor handed its value on. */
   enum Move {
@@ -142,25 +189,26 @@ final class GridEdit {
   private static Selection open(
       Build b, int row, int column, String value, String draft, CellEditMode mode) {
     Selection sel = b.sel;
-    sel.editRow = row;
-    sel.editColumn = column;
+    sel.edit.row = row;
+    sel.edit.column = column;
     keep(b, row);
-    sel.original = value;
-    sel.error = null;
-    sel.edits++;
-    sel.field = new FieldState(); // caret and history of this editor, in one field or the other
-    sel.draft = draft;
-    sel.editMode = mode;
-    sel.choices.close();
+    sel.edit.original = value;
+    sel.edit.error = null;
+    sel.edit.edits++;
+    sel.edit.field =
+        new FieldState(); // caret and history of this editor, in one field or the other
+    sel.edit.draft = draft;
+    sel.edit.mode = mode;
+    sel.edit.choices.close();
     return sel;
   }
 
   /** Remembers the key of the edited row, where the rows have keys. */
   private static void keep(Build b, int row) {
     Selection sel = b.sel;
-    sel.editKeyed = b.o.rowKey != null;
-    if (sel.editKeyed) {
-      sel.editKey = row >= b.rowCount ? Selection.APPEND : b.o.rowKey.applyAsLong(row);
+    sel.edit.keyed = b.o.rowKey != null;
+    if (sel.edit.keyed) {
+      sel.edit.key = row >= b.rowCount ? Selection.APPEND : b.o.rowKey.applyAsLong(row);
     }
   }
 
@@ -170,23 +218,23 @@ final class GridEdit {
    */
   static boolean follow(Build b) {
     Selection sel = b.sel;
-    if (sel.isEditing() && sel.editKeyed) {
-      int place = sel.editKey == Selection.APPEND
+    if (sel.isEditing() && sel.edit.keyed) {
+      int place = sel.edit.key == Selection.APPEND
           ? b.o.rowsNow.getAsInt()
-          : b.o.rowPlace.applyAsInt(sel.editKey);
+          : b.o.rowPlace.applyAsInt(sel.edit.key);
       if (place < 0) {
         sel.cancelEdit();
       } else {
-        sel.editRow = place;
+        sel.edit.row = place;
       }
     }
     if (sel.isEditing()
-        && sel.editColumn < b.columns.size()
-        && !(sel.editMode instanceof CellEditMode.MultilineText)) {
+        && sel.edit.column < b.columns.size()
+        && !(sel.edit.mode instanceof CellEditMode.MultilineText)) {
       // The app builds its columns anew: the mode follows a change of the column's editing,
       // except in the field of several lines, which stays open until it hands on or closes.
-      CellEditMode mode = CellEditMode.of(b.columns.get(sel.editColumn), false);
-      sel.editMode = mode instanceof CellEditMode.Toggle ? CellEditMode.INLINE : mode;
+      CellEditMode mode = CellEditMode.of(b.columns.get(sel.edit.column), false);
+      sel.edit.mode = mode instanceof CellEditMode.Toggle ? CellEditMode.INLINE : mode;
     }
     return sel.isEditing();
   }
@@ -207,16 +255,16 @@ final class GridEdit {
     if (!follow(b)) {
       return;
     }
-    int row = sel.editRow;
-    int column = sel.editColumn;
+    int row = sel.edit.row;
+    int column = sel.edit.column;
     Column c = b.columns.get(column);
-    CellEditMode mode = sel.editMode; // the app's handler may close the editor
-    String value = normalize(c, sel.draft);
-    boolean same = Objects.equals(value, sel.original); // nothing changed: nothing to check
+    CellEditMode mode = sel.edit.mode; // the app's handler may close the editor
+    String value = normalize(c, sel.edit.draft);
+    boolean same = Objects.equals(value, sel.edit.original); // nothing changed: nothing to check
     String error = same ? null : mode.check(c, value);
     boolean appended = false;
     // The row to append; by its key where the rows have keys, as b may be older than the rows.
-    boolean append = sel.editKeyed ? sel.editKey == Selection.APPEND : row >= b.rowCount;
+    boolean append = sel.edit.keyed ? sel.edit.key == Selection.APPEND : row >= b.rowCount;
     if (error == null && !same) {
       if (append) { // after the last row there is now, which follow found
         b.o.onInsertRow.accept(row - 1);
@@ -225,13 +273,13 @@ final class GridEdit {
       error = b.o.onCommit.commit(row, column, value);
     }
     if (error != null) {
-      sel.error = error;
-      sel.edits++; // the editor takes the focus back from a press elsewhere, which moved it
+      sel.edit.error = error;
+      sel.edit.edits++; // the editor takes the focus back from a press elsewhere, which moved it
       mode.refused(b, c, value);
       if (appended) {
-        sel.original = null; // the row is the app's now, and empty
-        if (sel.editKeyed) {
-          sel.editKey = b.o.rowKey.applyAsLong(row); // no longer the row to append
+        sel.edit.original = null; // the row is the app's now, and empty
+        if (sel.edit.keyed) {
+          sel.edit.key = b.o.rowKey.applyAsLong(row); // no longer the row to append
         }
       }
       return;
@@ -304,9 +352,9 @@ final class GridEdit {
       error = b.o.onCommit.commit(row, column, next);
     }
     Selection sel = b.sel;
-    sel.refused = error;
-    sel.refusedRow = row;
-    sel.refusedColumn = column;
+    sel.edit.refused = error;
+    sel.edit.refusedRow = row;
+    sel.edit.refusedColumn = column;
   }
 
   /** The message of a refused value, below the editor or the switched cell. */
@@ -329,7 +377,7 @@ final class GridEdit {
     if (!sel.isEditing()) {
       return false;
     }
-    Column c = b.columns.get(sel.editColumn);
+    Column c = b.columns.get(sel.edit.column);
     int mods = k.modifiers();
     switch (k.name()) {
       case "Escape" -> {
@@ -341,24 +389,24 @@ final class GridEdit {
       }
       case "Enter", "NumpadEnter" -> {
         if (mods == Key.ALT) {
-          if (!(sel.editMode instanceof CellEditMode.InlineText) || !textLike(c)) {
+          if (!(sel.edit.mode instanceof CellEditMode.InlineText) || !textLike(c)) {
             return false;
           }
-          sel.editMode = CellEditMode.MULTILINE;
+          sel.edit.mode = CellEditMode.MULTILINE;
           return true;
         }
         if (mods == Key.CONTROL) {
           commit(b, Move.NONE);
           return true;
         }
-        if (sel.editMode instanceof CellEditMode.MultilineText || mods != 0 && mods != Key.SHIFT) {
+        if (sel.edit.mode instanceof CellEditMode.MultilineText || mods != 0 && mods != Key.SHIFT) {
           return false;
         }
         commit(b, mods == 0 ? Move.DOWN : Move.UP);
         return true;
       }
       case "Tab" -> {
-        if (sel.editMode instanceof CellEditMode.MultilineText || (mods & ~Key.SHIFT) != 0) {
+        if (sel.edit.mode instanceof CellEditMode.MultilineText || (mods & ~Key.SHIFT) != 0) {
           return false;
         }
         commit(b, mods == 0 ? Move.RIGHT : Move.LEFT);
@@ -368,8 +416,8 @@ final class GridEdit {
         if (mods != Key.CONTROL || !c.editing().nullable()) {
           return false;
         }
-        sel.draft = null;
-        sel.error = null;
+        sel.edit.draft = null;
+        sel.edit.error = null;
         return true;
       }
       default -> {
@@ -386,7 +434,7 @@ final class GridEdit {
       return;
     }
     if (sel.isEditing()) {
-      sel.editMode.typedInto(sel, b.columns.get(sel.editColumn), text);
+      sel.edit.mode.typedInto(sel, b.columns.get(sel.edit.column), text);
       return;
     }
     int row = sel.row();
@@ -741,10 +789,10 @@ final class GridEdit {
       public void start(Build b, int row, int column, String value, String typed) {
         Selection sel = open(b, row, column, value, value, this);
         int at = entryOf(b.columns.get(column), value);
-        sel.search.reset(at);
-        sel.search.none = at < 0; // a value not among the entries: nothing until a key moves
+        sel.edit.search.reset(at);
+        sel.edit.search.none = at < 0; // a value not among the entries: nothing until a key moves
         if (typed != null) {
-          sel.search.typed(typed, true);
+          sel.edit.search.typed(typed, true);
         }
       }
 
@@ -775,8 +823,8 @@ final class GridEdit {
         if (typed != null && at < 0) {
           at = indexOf(c, value);
         }
-        sel.choices.open();
-        sel.choices.highlight(0, at);
+        sel.edit.choices.open();
+        sel.edit.choices.highlight(0, at);
       }
 
       @Override
@@ -794,13 +842,13 @@ final class GridEdit {
 
       @Override
       public El overlay(Build b, Column c, float height) {
-        return b.sel.choices.isOpen() ? choices(b, c) : null;
+        return b.sel.edit.choices.isOpen() ? choices(b, c) : null;
       }
 
       @Override
       public void refused(Build b, Column c, String value) {
-        b.sel.choices.open(); // the list stays open on the refused choice
-        b.sel.choices.highlight(0, indexOf(c, value));
+        b.sel.edit.choices.open(); // the list stays open on the refused choice
+        b.sel.edit.choices.highlight(0, indexOf(c, value));
       }
     }
 
@@ -856,10 +904,10 @@ final class GridEdit {
 
   /** Puts typed text on the end of the draft, where the column takes it. */
   private static void append(Selection sel, Column c, String text) {
-    String draft = (sel.draft == null ? "" : sel.draft) + text;
+    String draft = (sel.edit.draft == null ? "" : sel.edit.draft) + text;
     if (accepts(c, draft)) {
-      sel.draft = draft;
-      sel.error = null;
+      sel.edit.draft = draft;
+      sel.edit.error = null;
     }
   }
 
@@ -886,11 +934,12 @@ final class GridEdit {
         .padding(0, pad(theme, w))
         .fill(theme.surface().raised())
         .radius(theme.radius().small())
-        .border(w, sel.error == null ? theme.accent().edge() : theme.status().danger())
+        .border(
+            w, sel.edit.error == null ? theme.accent().edge() : theme.status().danger())
         .keepFocus()
         .onPress(() -> {}) // a press on its edge neither drags nor takes the focus
         .onKey(k -> editKey(b, k));
-    return sel.editMode.editor(b, c, column, box);
+    return sel.edit.mode.editor(b, c, column, box);
   }
 
   /** The room between the editor's edge and its text. */
@@ -924,9 +973,9 @@ final class GridEdit {
     if (pressOutside) {
       box.onPressOutside(() -> commit(b, Move.NONE));
     }
-    if (sel.error != null && alert != null) {
+    if (sel.edit.error != null && alert != null) {
       box.invalid(true)
-          .overlay(alert(theme, sel.error)
+          .overlay(alert(theme, sel.edit.error)
               .side(alert, Style.Align.START, theme.space().xs()));
     }
     return box;
@@ -938,25 +987,25 @@ final class GridEdit {
     Selection sel = b.sel;
     Theme.TextStyle style = style(theme, c);
     // It shows the value while nothing is typed.
-    El field = El.text(sel.search.query)
-        .editable(v -> sel.search.typed(v, true))
+    El field = El.text(sel.edit.search.query)
+        .editable(v -> sel.edit.search.typed(v, true))
         .key("field")
         .label(b.texts.edit(c.title()))
         .font(style.font().get())
         .fontSize(style.size())
         .color(theme.text().primary())
         .placeholder(
-            sel.draft == null ? "NULL" : DataGrid.oneLine(sel.draft),
+            sel.edit.draft == null ? "NULL" : DataGrid.oneLine(sel.edit.draft),
             theme.text().muted())
         .selectionColor(theme.accent().selection())
         .hFull()
         .minSize(0, 0)
         .grow(1)
         .focusRing(0)
-        .autofocus(sel.edits)
+        .autofocus(sel.edit.edits)
         .onKey(k -> searchKey(b, c, k));
     box.gap(theme.space().xs())
-        .dismissGroup(sel.search)
+        .dismissGroup(sel.edit.search)
         .child(field)
         .child(Icon.icon(Select.OPENS, Icon.Variant.MUTED));
     return place(b, box, column, cell(b, c), false, Side.TOP); // the list lies below it
@@ -967,18 +1016,18 @@ final class GridEdit {
     Selection sel = b.sel;
     box.child(c.editing()
         .editor()
-        .editor(sel.draft, v -> {
-          sel.draft = v;
-          sel.error = null;
+        .editor(sel.edit.draft, v -> {
+          sel.edit.draft = v;
+          sel.edit.error = null;
         })
-        .autofocus(sel.edits));
+        .autofocus(sel.edit.edits));
     return place(b, box, column, cell(b, c), true, Side.BOTTOM);
   }
 
   /** What the list of an enumeration or the field of several lines holds, which edit it. */
   private static El shown(Build b, Column c, El box) {
     Theme theme = b.theme;
-    String draft = b.sel.draft;
+    String draft = b.sel.edit.draft;
     El shown = DataGrid.text(
         theme,
         c.mono(),
@@ -1000,7 +1049,7 @@ final class GridEdit {
     boolean right = c.align() == DataGrid.Align.RIGHT;
     Theme.TextStyle style = style(theme, c);
     float cell = cell(b, c);
-    String text = sel.draft == null ? "" : sel.draft;
+    String text = sel.edit.draft == null ? "" : sel.edit.draft;
     float caret = theme.space().xs(); // room for the caret after the text, which then never scrolls
     float wide =
         DataGrid.natural(El.text(text).font(style.font().get()).fontSize(style.size())) + caret;
@@ -1014,7 +1063,7 @@ final class GridEdit {
     El field = El.text(text)
         .editable(v -> edit(c, sel, v))
         .key("field")
-        .fieldState(sel.field)
+        .fieldState(sel.edit.field)
         .label(b.texts.edit(c.title()))
         .font(style.font().get())
         .fontSize(style.size())
@@ -1023,8 +1072,8 @@ final class GridEdit {
         .hFull()
         .minSize(0, 0)
         .focusRing(0) // the editor's edge says where the keys go
-        .autofocus(sel.edits);
-    if (sel.draft == null) {
+        .autofocus(sel.edit.edits);
+    if (sel.edit.draft == null) {
       field.value("NULL");
       if (c.editing().nullable()) {
         field.placeholder("NULL", theme.text().muted());
@@ -1066,7 +1115,7 @@ final class GridEdit {
               .radius(theme.radius().small())
               .cursor(Cursor.POINTER)
               .keepFocus() // the caret stays in the field
-              .onPress(() -> sel.editMode = CellEditMode.MULTILINE)
+              .onPress(() -> sel.edit.mode = CellEditMode.MULTILINE)
               .whenHovered(e -> e.fill(hover))
               .child(Icon.icon(Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
     }
@@ -1076,7 +1125,7 @@ final class GridEdit {
   /** How wide an editor of this column may grow: to the edge of the grid's part in view. */
   private static float room(Build b, int column, boolean right) {
     Selection sel = b.sel;
-    if (sel.gridWidth <= 0) {
+    if (sel.edit.gridWidth <= 0) {
       return 0;
     }
     double scroll = column < b.frozen ? 0 : sel.gridScroll.x();
@@ -1084,15 +1133,15 @@ final class GridEdit {
       double left = scroll + (column < b.frozen ? 0 : b.fixedWidth());
       return (float) (b.xs[column + 1] - b.theme.size().stroke() - left);
     }
-    return (float) (scroll + sel.gridWidth - b.room - b.xs[column]);
+    return (float) (scroll + sel.edit.gridWidth - b.room - b.xs[column]);
   }
 
   private static void edit(Column c, Selection sel, String text) {
     if (!accepts(c, text)) {
       return; // refused: the field shows the draft as it was
     }
-    sel.draft = text;
-    sel.error = null;
+    sel.edit.draft = text;
+    sel.edit.error = null;
   }
 
   /**
@@ -1103,19 +1152,19 @@ final class GridEdit {
    */
   static void anchor(Build b, El content) {
     Selection sel = b.sel;
-    Column c = b.columns.get(sel.editColumn);
+    Column c = b.columns.get(sel.edit.column);
     float stroke = b.theme.size().stroke();
     float height = b.g.rowHeight() - stroke;
-    El overlay = sel.editMode.overlay(b, c, height);
+    El overlay = sel.edit.mode.overlay(b, c, height);
     if (overlay == null) {
       return;
     }
     double top =
-        b.g.rowHeight() + stroke + (double) sel.editRow * b.g.rowHeight() - sel.rowsScroll.y();
+        b.g.rowHeight() + stroke + (double) sel.edit.row * b.g.rowHeight() - sel.rowsScroll.y();
     El anchor = el().key("edit-anchor")
-        .absolute(b.xs[sel.editColumn], (float) top)
+        .absolute(b.xs[sel.edit.column], (float) top)
         .size(Math.max(c.width() - stroke, 1), height);
-    if (sel.editColumn < b.frozen) {
+    if (sel.edit.column < b.frozen) {
       anchor.fixedX();
     }
     content.child(anchor.overlay(overlay));
@@ -1127,12 +1176,12 @@ final class GridEdit {
     List<Menu.Item> items = new ArrayList<>();
     for (String choice : c.editing().choices()) {
       items.add(Menu.item(choice, () -> choose(b, choice, Move.NONE))
-          .checked(choice.equals(sel.original)));
+          .checked(choice.equals(sel.edit.original)));
     }
     if (c.editing().nullable()) {
       items.add(Menu.separator());
       items.add(Menu.item("NULL", () -> choose(b, null, Move.NONE))
-          .checked(sel.original == null && sel.isEditing()));
+          .checked(sel.edit.original == null && sel.isEditing()));
     }
     return items;
   }
@@ -1152,7 +1201,7 @@ final class GridEdit {
   }
 
   private static void choose(Build b, String value, Move move) {
-    b.sel.draft = value;
+    b.sel.edit.draft = value;
     commit(b, move);
   }
 
@@ -1168,24 +1217,24 @@ final class GridEdit {
     List<FilterList.Entry> entries = new ArrayList<>();
     for (String choice : c.editing().choices()) {
       entries.add(FilterList.entry(choice, () -> choose(b, choice, Move.NONE))
-          .checked(choice.equals(sel.original)));
+          .checked(choice.equals(sel.edit.original)));
     }
     if (c.editing().nullable()) {
-      entries.add(
-          FilterList.entry("NULL", () -> choose(b, null, Move.NONE)).checked(sel.original == null));
+      entries.add(FilterList.entry("NULL", () -> choose(b, null, Move.NONE))
+          .checked(sel.edit.original == null));
     }
-    FilterList.Shown shown = FilterList.shown(sel.search, FilterList.Entries.of(entries));
+    FilterList.Shown shown = FilterList.shown(sel.edit.search, FilterList.Entries.of(entries));
     return Popup.frame(theme, col())
         .key("choices")
         .minSize(theme.size().field(), 0) // as a combo box's, wider than a narrow column
         .padding(theme.space().s())
         .keepFocus()
-        .dismissGroup(sel.search)
+        .dismissGroup(sel.edit.search)
         .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
         .onDismiss(sel::cancelEdit)
         .child(FilterList.list(
             theme,
-            sel.search,
+            sel.edit.search,
             shown,
             ComboBox.ROWS,
             theme.size().control(),
@@ -1196,7 +1245,7 @@ final class GridEdit {
   /** The keys of the field of a long enumeration: the list's, Enter and Tab, Escape. */
   private static boolean searchKey(Build b, Column c, Key k) {
     Selection sel = b.sel;
-    FilterList.State s = sel.search;
+    FilterList.State s = sel.edit.search;
     int mods = k.modifiers();
     boolean enter = mods == 0 && (k.name().equals("Enter") || k.name().equals("NumpadEnter"));
     boolean tab = k.name().equals("Tab") && (mods & ~Key.SHIFT) == 0;
@@ -1230,14 +1279,14 @@ final class GridEdit {
   private static El choices(Build b, Column c) {
     Selection sel = b.sel;
     List<Menu.Item> items = choiceItems(b, c);
-    El menu = Menu.menu(sel.choices, items).side(Side.BOTTOM, Style.Align.STRETCH, 0);
+    El menu = Menu.menu(sel.edit.choices, items).side(Side.BOTTOM, Style.Align.STRETCH, 0);
     Predicate<Key> own = menu.onKey();
     return menu.onDismiss(sel::cancelEdit).onKey(k -> {
       int mods = k.modifiers();
       boolean enter = mods == 0 && k.name().equals("Enter");
       boolean tab = k.name().equals("Tab") && (mods & ~Key.SHIFT) == 0;
       if (enter || tab) {
-        int active = sel.choices.active();
+        int active = sel.edit.choices.active();
         if (active < 0 || items.get(active).isSeparator()) {
           sel.cancelEdit();
         } else {
@@ -1267,8 +1316,8 @@ final class GridEdit {
     Theme.TextStyle style = c.mono() ? theme.type().mono() : theme.type().body();
     String label = b.texts.edit(c.title());
     El area = TextField.textArea(
-            sel.draft == null ? "" : sel.draft,
-            sel.draft == null && c.editing().nullable() ? "NULL" : null,
+            sel.edit.draft == null ? "" : sel.edit.draft,
+            sel.edit.draft == null && c.editing().nullable() ? "NULL" : null,
             v -> edit(c, sel, v))
         .key("text")
         .label(label)
@@ -1277,11 +1326,11 @@ final class GridEdit {
         .lines(6)
         .w(Math.max(c.width(), 2 * theme.size().field()))
         .autofocus()
-        .fieldState(sel.field); // goes on from the caret and history of the field it replaces
-    if (sel.draft == null) {
+        .fieldState(sel.edit.field); // goes on from the caret and history of the field it replaces
+    if (sel.edit.draft == null) {
       area.value("NULL");
     }
-    if (sel.error != null) {
+    if (sel.edit.error != null) {
       TextField.invalid(area);
     }
     El panel = Popup.frame(theme, col())
@@ -1294,11 +1343,11 @@ final class GridEdit {
         .padding(theme.space().m())
         .gap(theme.space().s())
         .child(area);
-    if (sel.error != null) {
-      panel.child(Label.label(sel.error)
+    if (sel.edit.error != null) {
+      panel.child(Label.label(sel.edit.error)
           .key("error")
           .role("alert")
-          .label(sel.error)
+          .label(sel.edit.error)
           .color(theme.status().danger()));
     }
     return panel

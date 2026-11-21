@@ -9,7 +9,6 @@ import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.ScrollState;
@@ -1244,44 +1243,11 @@ public final class DataGrid {
     int moves;
     int edgeColumn = -1;
     boolean start; // the keys put the cursor on a frozen column: the rest scrolls to its start
-    // The cell being edited, -1 for none, and what its editor holds.
-    int editRow = -1;
-    int editColumn = -1;
-    // With rows told apart by keys (Options.changes): the key of the edited row, which the
-    // editor follows wherever the rows move, or APPEND for the row to append.
-    boolean editKeyed;
-    long editKey;
-    static final long APPEND = Long.MIN_VALUE;
-    String draft; // null for NULL
-    String original; // the value the editing began with
-    String error; // what the app or the type said is wrong with the draft, null for nothing
-    GridEdit.CellEditMode editMode; // how the open editor edits, null while none is open
-    int edits; // the editors opened so far: each new one takes the focus by this key
-    float gridWidth; // the grid's width, as layout last told it, for an editor that grows
-    Runnable handOn; // the last grid built with it that edits: hands the draft on (commitEdit)
-    FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
-    final Menu.State choices = new Menu.State(); // an enumeration's list
-    final FilterList.State search = new FilterList.State(); // a long enumeration's filter
-    // The filter being set in its popover: its column, -1 for none, and what it holds.
-    int filterColumn = -1;
-    final Popover.State filtering = new Popover.State();
-    Filter.Kind filterKind;
-    String filterValue = "";
-    String filterTo = "";
-    final java.util.Set<String> filterValues = new java.util.LinkedHashSet<>();
-    final Menu.State filterKinds = new Menu.State();
-    // The header: its context menu and the column it opened on, and a column dragged along it
-    // with where it would go, -1 for none.
-    final Menu.State headerMenu = new Menu.State();
-    int headerColumn = -1;
-    int dragColumn = -1;
-    int dropAt = -1;
+    static final long APPEND = Long.MIN_VALUE; // the key of the row to append
+    final GridEdit.State edit = new GridEdit.State();
+    final GridFilter.State filter = new GridFilter.State();
+    final GridColumns.State columns = new GridColumns.State();
     boolean pressedCell; // the last press on the rows was on a cell or a row number: drags select
-    int[] shown; // the app's column of each one shown, as the last build had them
-    // A switch of a boolean that was refused, and its cell, until the next key or press.
-    String refused;
-    int refusedRow = -1;
-    int refusedColumn = -1;
     // With rows told apart by keys (Options.changes): the rows the selection was on when the
     // last build began, their places and keys, so that it follows them when the app moves its
     // rows. 0 is the cursor's, 1 the anchor's, 2 and 3 the rows around the cursor, then the rows
@@ -1372,22 +1338,22 @@ public final class DataGrid {
 
     /** Whether an editor is open over a cell ({@link Options#onCommit}). */
     public boolean isEditing() {
-      return editRow >= 0;
+      return edit.row >= 0;
     }
 
     /** The row of the cell being edited, -1 for none. */
     public int editingRow() {
-      return editRow;
+      return edit.row;
     }
 
     /** The column of the cell being edited, -1 for none. */
     public int editingColumn() {
-      return editColumn;
+      return edit.column;
     }
 
     /** What the open editor holds, null for NULL or when none is open. */
     public String draft() {
-      return draft;
+      return edit.draft;
     }
 
     /**
@@ -1404,10 +1370,10 @@ public final class DataGrid {
       if (!isEditing()) {
         return true;
       }
-      if (handOn == null) {
+      if (edit.handOn == null) {
         return false; // no grid built with it edits: nothing can take the value
       }
-      handOn.run();
+      edit.handOn.run();
       return !isEditing();
     }
 
@@ -1417,11 +1383,7 @@ public final class DataGrid {
      * Options#onCommit(Commit)} while an editor is open, as its row would then be another.
      */
     public void cancelEdit() {
-      editRow = editColumn = -1;
-      editKeyed = false;
-      draft = original = error = null;
-      editMode = null;
-      choices.close();
+      edit.cancel();
     }
 
     /**
@@ -1593,14 +1555,16 @@ public final class DataGrid {
      * Carries what holds columns shown, cursor, anchor, ranges, the editor and the popovers, over
      * to the same columns of the app's where the columns shown have changed, as when a layout hid
      * or moved one ({@link Options#columns}). What was on a column that is no longer shown goes:
-     * the cursor, the anchor, a range's part, an editor without handing anything on.
+     * the cursor, the anchor, a range's part, an editor without handing anything on. This is the
+     * one place that tells the editor, the filter's popover and the header of the change, each in
+     * its {@code onColumnsChanged}.
      *
      * @param layout the app's column of each one shown now, null without a layout
      * @param all the number of the app's columns, which a build without a layout shows in order
      */
     void showing(int[] layout, int all) {
-      int[] before = shown;
-      shown = layout;
+      int[] before = columns.shown;
+      columns.shown = layout;
       if (before == layout) {
         return;
       }
@@ -1632,36 +1596,24 @@ public final class DataGrid {
           carried.add(r);
           continue;
         }
-        BitSet columns = new BitSet();
+        BitSet kept = new BitSet();
         for (int c = r.left(); c <= Math.min(r.right(), was.length - 1); c++) {
           if (to.applyAsInt(c) >= 0) {
-            columns.set(to.applyAsInt(c));
+            kept.set(to.applyAsInt(c));
           }
         }
-        for (int c = columns.nextSetBit(0); c >= 0; c = columns.nextSetBit(c)) {
-          int end = columns.nextClearBit(c);
+        for (int c = kept.nextSetBit(0); c >= 0; c = kept.nextSetBit(c)) {
+          int end = kept.nextClearBit(c);
           carried.add(new Range(r.top(), c, r.bottom(), end - 1));
           c = end;
         }
       }
       ranges.clear();
       ranges.addAll(carried);
-      if (isEditing()) {
-        editColumn = to.applyAsInt(editColumn);
-        if (editColumn < 0) {
-          cancelEdit();
-        }
-      }
-      filterColumn = to.applyAsInt(filterColumn);
-      if (filterColumn < 0) {
-        filtering.close();
-      }
-      headerColumn = to.applyAsInt(headerColumn);
-      if (headerColumn < 0) {
-        headerMenu.close();
-      }
       edgeColumn = to.applyAsInt(edgeColumn);
-      dragColumn = -1;
+      edit.onColumnsChanged(to);
+      filter.onColumnsChanged(to);
+      columns.onColumnsChanged(to);
     }
 
     /**
@@ -2497,19 +2449,21 @@ public final class DataGrid {
     }
     if (sel != null
         && sel.isEditing()
-        && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
+        && (!b.edits || sel.edit.row >= b.rows || sel.edit.column >= columns.size())) {
       sel.cancelEdit(); // the rows or columns it was on are gone
     }
     if (b.edits) {
-      sel.handOn = () -> GridEdit.commit(b, GridEdit.Move.NONE);
+      sel.edit.handOn = () -> GridEdit.commit(b, GridEdit.Move.NONE);
     }
-    if (sel != null && !sel.headerMenu.isOpen()) {
-      sel.headerColumn = -1;
+    if (sel != null && !sel.columns.menu.isOpen()) {
+      sel.columns.menuColumn = -1;
     }
     if (sel != null
-        && (!sel.filtering.isOpen() || sel.filterColumn >= columns.size() || !b.filtering())) {
-      sel.filtering.close(); // dismissed, or its column is gone
-      sel.filterColumn = -1;
+        && (!sel.filter.popover.isOpen()
+            || sel.filter.column >= columns.size()
+            || !b.filtering())) {
+      sel.filter.popover.close(); // dismissed, or its column is gone
+      sel.filter.column = -1;
     }
     El body = col()
         .key("rows")
@@ -2577,7 +2531,7 @@ public final class DataGrid {
       return grid;
     }
     if (b.edits) {
-      grid.onResize((width, height) -> sel.gridWidth = width)
+      grid.onResize((width, height) -> sel.edit.gridWidth = width)
           .onText(text -> GridEdit.typed(b, text));
     }
     return grid.focusable()
@@ -3075,9 +3029,9 @@ public final class DataGrid {
     }
     // The editor lies over the cells, and the frozen ones over it unless it is one of them; it is
     // there wherever its cell is, also scrolled out of the part the row was built for.
-    boolean editing = sel != null && sel.editRow == i && b.edits;
-    if (editing && sel.editColumn >= b.frozen) {
-      r.child(GridEdit.editor(b, i, sel.editColumn));
+    boolean editing = sel != null && sel.edit.row == i && b.edits;
+    if (editing && sel.edit.column >= b.frozen) {
+      r.child(GridEdit.editor(b, i, sel.edit.column));
     }
     List<El> pinned = new ArrayList<>(); // with the row's fill, which hovering changes
     if (b.numbers > 0) {
@@ -3111,8 +3065,8 @@ public final class DataGrid {
       }
       r.children(pinRow(b, cell, b.xs[c]), pinRow(b, after, b.xs[c + 1] - stroke));
     }
-    if (editing && sel.editColumn < b.frozen) {
-      r.child(GridEdit.editor(b, i, sel.editColumn));
+    if (editing && sel.edit.column < b.frozen) {
+      r.child(GridEdit.editor(b, i, sel.edit.column));
     }
     if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
       r.child(pinRow(
@@ -3173,14 +3127,17 @@ public final class DataGrid {
         }
       }
     }
-    if (sel != null && sel.refused != null && sel.refusedRow == i && sel.refusedColumn == c) {
+    if (sel != null
+        && sel.edit.refused != null
+        && sel.edit.refusedRow == i
+        && sel.edit.refusedColumn == c) {
       // A switch that was refused: the edge and the message of a refused editor.
       float w = b.g.cursorWidth();
       box.invalid(true)
           .border(w, theme.status().danger())
           .radius(theme.radius().small())
           .padding(0, Math.max(theme.space().s() - w, 0))
-          .overlay(GridEdit.alert(theme, sel.refused)
+          .overlay(GridEdit.alert(theme, sel.edit.refused)
               .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
     String value = loaded && !append ? column.cell().apply(i) : null;
@@ -3321,7 +3278,7 @@ public final class DataGrid {
 
   private static void down(Build b, int row, int column, boolean rows, int clicks, int modifiers) {
     Selection sel = b.sel;
-    sel.refused = null;
+    sel.edit.refused = null;
     sel.pressedCell = true;
     if (sel.isEditing()) {
       return; // the press handed the value on, and the app refused it: the editor stays
@@ -3424,7 +3381,7 @@ public final class DataGrid {
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();
-    sel.refused = null;
+    sel.edit.refused = null;
     if (sel.isEditing()) {
       // What the editor left goes on and moves nothing here; before the editor has the focus,
       // in the frame that opened it, or while its row is scrolled away, its keys come here.

@@ -22,8 +22,11 @@ import com.rethinkj.ui.kit.DataGrid.Filter.Spec;
 import com.rethinkj.ui.kit.DataGrid.Filter.TextMatch;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 
@@ -36,6 +39,25 @@ import java.util.regex.PatternSyntaxException;
 final class GridFilter {
 
   private GridFilter() {}
+
+  /** What a {@link Selection} holds of the popover that sets a filter: its column, -1 for none. */
+  static final class State {
+    int column = -1;
+    final Popover.State popover = new Popover.State();
+    Kind kind;
+    String value = "";
+    String to = "";
+    final Set<String> values = new LinkedHashSet<>();
+    final Menu.State kinds = new Menu.State();
+
+    /** Puts the popover on its column's new place, or closes it where its column is gone. */
+    void onColumnsChanged(IntUnaryOperator to) {
+      column = to.applyAsInt(column);
+      if (column < 0) {
+        popover.close();
+      }
+    }
+  }
 
   /** What the popover holds: nothing, which clears the column's filter, a filter, or an error. */
   private sealed interface Draft {}
@@ -97,7 +119,7 @@ final class GridFilter {
     Selection sel = b.sel;
     Column c = b.columns.get(column);
     Filter set = filterOf(b, column);
-    boolean open = sel.filterColumn == column && sel.filtering.isOpen();
+    boolean open = sel.filter.column == column && sel.filter.popover.isOpen();
     El icon = Icon.icon(Symbol.FILTER, Icon.Variant.MUTED);
     if (set != null) {
       icon.color(theme.accent().edge());
@@ -134,20 +156,20 @@ final class GridFilter {
     Selection sel = b.sel;
     Column c = b.columns.get(column);
     Filter set = filterOf(b, column);
-    sel.filterColumn = column;
-    sel.filtering.open();
-    sel.filterKinds.close();
+    sel.filter.column = column;
+    sel.filter.popover.open();
+    sel.filter.kinds.close();
     Spec spec = set != null ? set.spec() : null;
-    sel.filterKind = spec != null ? kind(spec) : kinds(c).getFirst();
-    sel.filterValue = switch (spec) {
+    sel.filter.kind = spec != null ? kind(spec) : kinds(c).getFirst();
+    sel.filter.value = switch (spec) {
       case TextMatch text -> text.value();
       case RegexMatch regex -> regex.expression();
       case Between range -> range.from();
       case null, default -> "";
     };
-    sel.filterTo = spec instanceof Between range ? range.to() : "";
-    sel.filterValues.clear();
-    sel.filterValues.addAll(spec instanceof OneOf oneOf ? oneOf.values() : values(c));
+    sel.filter.to = spec instanceof Between range ? range.to() : "";
+    sel.filter.values.clear();
+    sel.filter.values.addAll(spec instanceof OneOf oneOf ? oneOf.values() : values(c));
   }
 
   /** The kind of filter that keeps what {@code spec} does, as the popover offers it. */
@@ -162,9 +184,9 @@ final class GridFilter {
   }
 
   private static void close(Selection sel) {
-    sel.filtering.close();
-    sel.filterKinds.close();
-    sel.filterColumn = -1;
+    sel.filter.popover.close();
+    sel.filter.kinds.close();
+    sel.filter.column = -1;
   }
 
   /**
@@ -172,8 +194,8 @@ final class GridFilter {
    * is {@link Invalid}, so the popover says so and applies nothing.
    */
   private static Draft made(Texts texts, Selection sel, Column c, int column) {
-    Kind kind = sel.filterKind;
-    String value = sel.filterValue;
+    Kind kind = sel.filter.kind;
+    String value = sel.filter.value;
     if (kind == Kind.EQUALS && ordered(c) && !value.isBlank()) {
       String error = GridEdit.check(c, value.strip()); // equality needs a value
       if (error != null) {
@@ -186,13 +208,13 @@ final class GridFilter {
         case CONTAINS, STARTS_WITH, EQUALS -> value.isEmpty() ? null : new TextMatch(kind, value);
         case MATCHES -> value.isEmpty() ? null : new RegexMatch(value);
         case BETWEEN ->
-          value.isBlank() && sel.filterTo.isBlank()
+          value.isBlank() && sel.filter.to.isBlank()
               ? null
-              : new Between(value.strip(), sel.filterTo.strip());
+              : new Between(value.strip(), sel.filter.to.strip());
         case ONE_OF -> {
           List<String> kept = new ArrayList<>();
           for (String choice : values(c)) {
-            if (sel.filterValues.contains(choice)) {
+            if (sel.filter.values.contains(choice)) {
               kept.add(choice);
             }
           }
@@ -213,8 +235,8 @@ final class GridFilter {
 
   /** Whether the popover holds equality with nothing to be equal to, which it does not apply. */
   private static boolean incomplete(Selection sel, Column c) {
-    return sel.filterKind == Kind.EQUALS
-        && (ordered(c) ? sel.filterValue.isBlank() : sel.filterValue.isEmpty());
+    return sel.filter.kind == Kind.EQUALS
+        && (ordered(c) ? sel.filter.value.isBlank() : sel.filter.value.isEmpty());
   }
 
   /** Hands the app the filters with this column's as the popover holds it, and closes it. */
@@ -250,14 +272,14 @@ final class GridFilter {
         .gap(theme.space().s())
         .child(Select.select(
                 kinds.stream().map(texts::filterKind).toList(),
-                kinds.indexOf(sel.filterKind),
-                sel.filterKinds,
-                i -> sel.filterKind = kinds.get(i))
+                kinds.indexOf(sel.filter.kind),
+                sel.filter.kinds,
+                i -> sel.filter.kind = kinds.get(i))
             .key("kind")
             .w(width));
-    switch (sel.filterKind) {
+    switch (sel.filter.kind) {
       case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
-        El field = textField(sel.filterValue, texts.value(), v -> sel.filterValue = v)
+        El field = textField(sel.filter.value, texts.value(), v -> sel.filter.value = v)
             .key("value")
             .w(width)
             .autofocus();
@@ -267,19 +289,19 @@ final class GridFilter {
         content.child(row()
             .gap(theme.space().s())
             .children(
-                textField(sel.filterValue, texts.from(), v -> sel.filterValue = v)
+                textField(sel.filter.value, texts.from(), v -> sel.filter.value = v)
                     .key("from")
                     .w((width - theme.space().s()) / 2)
                     .autofocus(),
-                textField(sel.filterTo, texts.to(), v -> sel.filterTo = v)
+                textField(sel.filter.to, texts.to(), v -> sel.filter.to = v)
                     .key("to")
                     .w((width - theme.space().s()) / 2)));
       case ONE_OF -> {
         El list = col().key("values").gap(theme.space().xs());
         for (String value : values(c)) {
-          list.child(Checkbox.checkbox(sel.filterValues.contains(value), value, () -> {
-                if (!sel.filterValues.remove(value)) {
-                  sel.filterValues.add(value);
+          list.child(Checkbox.checkbox(sel.filter.values.contains(value), value, () -> {
+                if (!sel.filter.values.remove(value)) {
+                  sel.filter.values.add(value);
                 }
               })
               .key("value-" + value));
@@ -306,7 +328,7 @@ final class GridFilter {
                 filterOf(b, column) == null ? null : () -> apply(b, column, null)),
             button(Button.Variant.PRIMARY, texts.apply(), apply)));
     El panel = Popover.panel(
-        sel.filtering,
+        sel.filter.popover,
         texts.filter(c.title()),
         col()
             .gap(theme.space().m())

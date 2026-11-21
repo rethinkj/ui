@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.DataGrid.SortKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.IntUnaryOperator;
 
 /**
  * The columns of a data grid as the header changes them: its context menu, the chooser of
@@ -26,6 +27,27 @@ import java.util.Locale;
 final class GridColumns {
 
   private GridColumns() {}
+
+  /**
+   * What a {@link Selection} holds of the header: its context menu and the column it opened on,
+   * a column dragged along it with where it would go, -1 for none, and the columns shown.
+   */
+  static final class State {
+    final Menu.State menu = new Menu.State();
+    int menuColumn = -1;
+    int dragColumn = -1;
+    int dropAt = -1;
+    int[] shown; // the app's column of each one shown, as the last build had them
+
+    /** Puts the menu on its column's new place, or closes it where its column is gone. */
+    void onColumnsChanged(IntUnaryOperator to) {
+      menuColumn = to.applyAsInt(menuColumn);
+      if (menuColumn < 0) {
+        menu.close();
+      }
+      dragColumn = -1;
+    }
+  }
 
   /** What a header cell takes besides sorting: its menu, its chooser and its drag. */
   static void cell(Build b, int index, El cell) {
@@ -40,14 +62,14 @@ final class GridColumns {
         || o.onFreeze != null
         || o.onResize != null) { // as items(b, index) has some
       cell.onSecondaryPress((x, y) -> {
-        sel.headerColumn = index;
-        sel.headerMenu.openAt(x, y);
+        sel.columns.menuColumn = index;
+        sel.columns.menu.openAt(x, y);
       });
     }
     Layout l = b.o.layout;
     if (l != null) {
       if (index >= b.frozen) {
-        cell.onDrag(d -> drag(b, index, d)).grabbed(sel.dragColumn == index);
+        cell.onDrag(d -> drag(b, index, d)).grabbed(sel.columns.dragColumn == index);
       }
     }
   }
@@ -59,11 +81,11 @@ final class GridColumns {
       return;
     }
     int n = b.columns.size();
-    if (sel.headerColumn < 0 || sel.headerColumn >= n) {
-      sel.headerMenu.close();
+    if (sel.columns.menuColumn < 0 || sel.columns.menuColumn >= n) {
+      sel.columns.menu.close();
     } else {
       header.onSecondaryPress((x, y) -> {}); // beside the cells it opens nothing
-      Menu.contextMenu(header, sel.headerMenu, items(b, sel.headerColumn));
+      Menu.contextMenu(header, sel.columns.menu, items(b, sel.columns.menuColumn));
     }
     Layout l = b.o.layout;
     int at = l == null || !l.chooser.isOpen() || l.from < 0 ? -1 : l.shownNear(l.from, b.o.full);
@@ -80,10 +102,10 @@ final class GridColumns {
       }
       header.child(anchor);
     }
-    if (sel.dragColumn >= 0 && sel.dropAt >= b.frozen && sel.dropAt <= n) {
+    if (sel.columns.dragColumn >= 0 && sel.columns.dropAt >= b.frozen && sel.columns.dropAt <= n) {
       float line = b.theme.size().indicator();
       header.child(el().key("marker")
-          .absolute(b.xs[sel.dropAt] - line / 2, 0)
+          .absolute(b.xs[sel.columns.dropAt] - line / 2, 0)
           .size(line, b.g.rowHeight())
           .fill(b.theme.accent().edge()));
     }
@@ -157,7 +179,7 @@ final class GridColumns {
   private static void drag(Build b, int index, Drag d) {
     Selection sel = b.sel;
     if (d.phase() == Drag.Phase.CANCEL) {
-      sel.dragColumn = -1;
+      sel.columns.dragColumn = -1;
       return;
     }
     double x = b.xs[index] + d.x();
@@ -169,14 +191,14 @@ final class GridColumns {
       }
     }
     if (d.phase() == Drag.Phase.END) {
-      sel.dragColumn = -1;
+      sel.columns.dragColumn = -1;
       if (at != index && at != index + 1) {
         b.o.layout.moveBefore(b.o.full[index], at < n ? b.o.full[at] : -1);
       }
       return;
     }
-    sel.dragColumn = index;
-    sel.dropAt = at;
+    sel.columns.dragColumn = index;
+    sel.columns.dropAt = at;
   }
 
   /** {@link DataGrid#columnsButton}. */
