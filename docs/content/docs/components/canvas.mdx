@@ -45,6 +45,25 @@ The canvas learns its size from layout when that size changes. To show another d
 
 Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
 
+## Arrange
+
+`LayeredLayout.arrange(nodes, edges)` places the nodes in layers, so that the edges between them run one way. It is a plain function: it returns the nodes in the same order at new places, and your app keeps them as it keeps a drag. Javadoc: [`LayeredLayout`](/api/com/rethinkj/ui/diagram/LayeredLayout.html).
+
+<Shot src="examples/docs/canvas-arrange/view-{theme}" alt="Five tables arranged in three layers by their foreign keys" />
+
+```java snippet="canvas-arrange"
+```
+
+An `Edge(from, to)` goes from a node to the one it refers to, such as a table's foreign key to the table it references, and the one referred to comes first, on the left. Edges to keys that are not among the nodes, such as tables you filter away, and edges from a node to itself are left out. The layout breaks cycles, reduces crossings and runs most edges straight. Parts that no edge connects, and clusters, are packed in rows.
+
+A pinned node stays where it is: each cluster moves so that its pinned nodes lie where it would put them, and a node that would overlap one moves past it. Unpinned nodes keep clear of all others, while pinned ones stay put even on top of each other, so where pins bring clusters together, the clusters' areas can overlap. To arrange everything, unpin the nodes first. The places of unpinned nodes going in do not matter, so the same input always gives the same output. `LayeredLayout.options()` changes the rest:
+
+| Option | Description |
+| --- | --- |
+| `direction(direction)` | `LEFT_TO_RIGHT` (the default) or `TOP_TO_BOTTOM`, with the nodes referred to on top, for trees |
+| `gaps(layer, node, cluster)` | The room between layers, between the nodes of a layer and between clusters: 80, 32 and 96 |
+| `cluster(node -> name)` | Lays out each cluster, such as each schema, on its own with the edges inside it |
+
 ## In a tree dump
 
 The canvas is `role=graphics-document` with its zoom as `value`, and each node `role=graphics-object` with its key and label; a pinned node has the value `Pinned`. Its texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:

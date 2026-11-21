@@ -15,7 +15,7 @@
   <artifactId>rethinkj-ui-diagram</artifactId>
 
   <name>rethinkj UI :: Diagram</name>
-  <description>Diagrams for rethinkj-ui-kit: a pannable, zoomable canvas of nodes.</description>
+  <description>Diagrams for rethinkj-ui-kit: a pannable, zoomable canvas of nodes and a layered layout.</description>
 
   <dependencies>
     <dependency>

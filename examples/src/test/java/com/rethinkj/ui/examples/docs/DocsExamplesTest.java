@@ -78,7 +78,8 @@ class DocsExamplesTest {
       Map.entry("customers", List.of("loaded", "invalid", "saved")),
       Map.entry("code-editor-placeholder", List.of("view")),
       Map.entry("code-editor-json", List.of("view")),
-      Map.entry("canvas", List.of("view")));
+      Map.entry("canvas", List.of("view")),
+      Map.entry("canvas-arrange", List.of("view")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -117,6 +118,8 @@ class DocsExamplesTest {
     layouts(all, "details", Layouts::details, 520, 280);
     layouts(all, "toolbar", Layouts::toolbar, 600, 100);
     all.put("canvas", new Example(t -> new App<>(new Diagrams(), Diagrams::view), 560, 280));
+    all.put(
+        "canvas-arrange", new Example(t -> new App<>(new Arranging(), Arranging::view), 560, 300));
     overlays(all, "menu", Overlays::menus, 360, 260);
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);
