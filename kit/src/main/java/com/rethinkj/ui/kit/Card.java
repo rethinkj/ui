@@ -10,6 +10,7 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import java.util.Arrays;
 
 /**
  * A surface set off from what it lies on, which holds what belongs together: a header with a title,
@@ -26,9 +27,10 @@ import com.rethinkj.ui.Style;
  * }</pre>
  *
  * <p>A body that runs to the edges, such as a data grid, goes into a {@link #flush} card, whose
- * parts lie edge to edge and whose rounded corners clip them: a {@link #toolbar} at the top, the
- * body, a {@link #footer} at the bottom, with a {@link Divider#divider} where a hairline belongs. A
- * list with rounded rows, such as a {@link Tree}, goes into it through {@link #inset}:
+ * parts lie edge to edge and whose rounded corners clip them: a {@link #toolbar} at the top (with
+ * {@link #spacer} where leading controls belong at the start), the body, a {@link #footer} at the
+ * bottom, with a {@link Divider#divider} where a hairline belongs. A list with rounded rows, such
+ * as a {@link Tree}, goes into it through {@link #inset}:
  *
  * <pre>{@code
  * Card.flush(
@@ -65,6 +67,9 @@ public final class Card {
 
   /** The shrink factor of a footer's start, against the texts' 1. */
   private static final float START_SHRINK = 1e9f;
+
+  /** Sentinel returned by {@link #spacer()}, replaced by a fresh growing element in a toolbar. */
+  private static final El SPACER = el().grow(1);
 
   private Card() {}
 
@@ -125,34 +130,51 @@ public final class Card {
   }
 
   /**
+   * A space that takes the room left over in a {@link #toolbar}: actions before it sit at the
+   * start, after the title and secondary text; actions after it sit at the end.
+   */
+  public static El spacer() {
+    return SPACER;
+  }
+
+  /**
    * The top row of a {@link #flush} card: its title as a heading in {@link Theme.Type#heading}
    * (level 3 in a tree dump), a secondary text beside it in muted text, such as a count of rows,
    * and the actions at the right, such as a filter field and buttons, inside the card's padding.
+   * With {@link #spacer()} among the actions, what comes before it sits at the start, right after
+   * the title and secondary text, and what comes after it sits at the end; without a spacer, all
+   * actions sit at the end. Where the bar is too narrow for all of it, the title is shortened with
+   * an ellipsis first, and what follows it moves along; the actions keep their size.
    *
+   * @param title the heading at the start; null for none
    * @param secondary beside the title; null for none
    * @param actions in the order shown
    */
   public static El toolbar(String title, String secondary, El... actions) {
     Theme theme = Theme.CURRENT.get();
-    Theme.TextStyle style = theme.type().heading();
     El bar = row()
         .padding(theme.space().m(), theme.space().xl())
         .gap(theme.space().m())
-        .align(Style.Align.CENTER)
-        .child(El.text(title)
-            .font(style.font().get())
-            .fontSize(style.size())
-            .color(theme.text().primary())
-            .role("heading")
-            .level(3)
-            .ellipsis()
-            .minSize(0, 0));
+        .align(Style.Align.CENTER);
+    if (title != null) {
+      Theme.TextStyle style = theme.type().heading();
+      bar.child(El.text(title)
+          .font(style.font().get())
+          .fontSize(style.size())
+          .color(theme.text().primary())
+          .role("heading")
+          .level(3)
+          .ellipsis()
+          .minSize(0, 0));
+    }
     if (secondary != null) {
       bar.child(label(Label.Variant.MUTED, secondary).shrink(0));
     }
-    bar.child(el().grow(1));
+    if (!Arrays.asList(actions).contains(SPACER)) {
+      bar.child(el().grow(1));
+    }
     for (El action : actions) {
-      bar.child(action.shrink(0));
+      bar.child(action == SPACER ? el().grow(1) : action.shrink(0));
     }
     return bar;
   }
