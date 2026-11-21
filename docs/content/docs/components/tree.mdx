@@ -30,7 +30,7 @@ Pass `new Tree.Options<Node>()` to `Tree.tree(model, options)`:
 | `select(selected, onSelect)` | Tracks selection (`onSelect` fires only when selection changes; required for keyboard focus) |
 | `onActivate(handler)` | Runs on **Enter** or double-click (for example, opening a table) |
 | `toggleOnDoublePress(predicate)` | Controls whether double-click also expands/collapses a node (all nodes by default) |
-| `drag(dragging, canDrag, canDrop, onDrop)` | Lets the user drag nodes and drop them before, after or into others (see [Drag and drop](#drag-and-drop)) |
+| `drag(dragging, canDrag, canDrop, onDrop)` | Lets users drag and drop nodes before, after, or into other nodes (see [Drag and drop](#drag-and-drop)) |
 
 Right-clicking selects the row before opening a `Menu.contextMenu(tree, menuState, items)`. Inside a card, wrap the tree in `Card.inset(tree)`. Expand/collapse chevrons require `rethinkj-ui-icons`.
 
@@ -70,30 +70,30 @@ In narrow containers, trailing `detail` text truncates first (then hides), follo
 
 <Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
 
-Each level indents the row further, but never by more than half the width of its rows: deeper rows stay at that indent, so their chevrons and names stay visible however deep they are. Their `level` in a tree dump is still their real depth.
+Each nesting level indents a row further, up to half the row width. Deeper rows stay at that maximum indent so their chevrons and labels remain visible at any depth. In a tree dump, `level` still reports the real depth.
 
 ## Drag and drop
 
-`drag(dragging, canDrag, canDrop, onDrop)` lets the user move nodes. Keep one `Tree.Dragging` per tree in your state. `canDrag` says which nodes can be dragged, `canDrop` whether a `Tree.Move` is allowed, and `onDrop` receives the move on release. The tree changes nothing itself: your app moves the node in its model.
+`drag(dragging, canDrag, canDrop, onDrop)` lets users move nodes by dragging. Store one `Tree.Dragging` per tree in your app state. `canDrag` decides which nodes can be dragged, `canDrop` decides whether a `Tree.Move` is allowed, and `onDrop` receives the move on drop. The tree does not modify your data. Your app moves the node in its model.
 
 ```java snippet="tree-drag"
 ```
 
-A `Tree.Move` has the dragged `node`, the `target` it was dropped on, and a `place`: `BEFORE` or `AFTER` the target among its siblings, or `INTO` the target. The model has no parents, so the target tells where the node goes. The tree never offers a move into the node itself or one of its descendants, and never asks `canDrop` about one.
+A `Tree.Move` contains the dragged `node`, the `target` node, and a `place`: `BEFORE` or `AFTER` the target among its siblings, or `INTO` the target. Because the model has no parent links, `target` tells you where the node goes. The tree never offers a move into the dragged node itself or any of its descendants, and it never calls `canDrop` for one.
 
-- The middle half of a row that can take the node means `INTO`; the tree outlines the row.
-- Above that it means `BEFORE` the row's node, below it `AFTER` the node, or `BEFORE` the first child of an open node. A line shows the place.
-- In the lower part of the last row inside an open node, the pointer's horizontal position picks the level: over the row it means after that row's node, one indent further left after its parent. So "after the last child" and "after the open node itself" are different drops. Rows deeper than the indent shows stay at its deepest place, and a line there means after the row above it.
+- Hovering over the middle half of a row that can accept the node means `INTO`. The tree outlines that row.
+- Above that zone means `BEFORE` the row's node. Below it means `AFTER` the node, or `BEFORE` the first child if the node is open. A line marks the drop position.
+- In the lower part of the last row inside an open node, the pointer's horizontal position picks the target level. Over the row, it drops after that row's node. One indent to the left, it drops after the parent node. This lets you choose between "after the last child" and "after the open node itself". For rows deeper than the maximum indent, the line stays at that deepest indent, and a drop there goes after the row above the line.
 - Below all rows means `AFTER` the last root.
-- Where `canDrop` says no, nothing shows and a release does nothing.
+- When `canDrop` returns `false`, no drop indicator appears and releasing the pointer does nothing.
 
 <Shot src="kit/tree-{theme}-drop-line" alt="A schema tree while the table changes is dragged: its label muted, and a line in the accent's color below notification_preferences, at the level of the tables" />
 
 <Shot src="kit/tree-{theme}-drop-into" alt="The same drag over the schema public, whose row is outlined in the accent's color" />
 
-Near the top or bottom edge the tree scrolls while the pointer waits there. A closed node opens after the pointer rests on it for the theme's `submenuDelay` where the node could go into it. **Escape** cancels the drag. A click or double-click without dragging selects, opens and activates as before. Select the moved node in `onDrop`, so the rows follow it to its new place.
+Holding the pointer near the top or bottom edge scrolls the tree. If a closed node can accept the dragged node, resting the pointer on it for the theme's `submenuDelay` expands it. **Escape** cancels the drag. Clicking or double-clicking without dragging still selects, expands, and activates rows as before. Select the moved node in `onDrop` so the tree follows it to its new position.
 
-A script drags with `down`, `move` and `up`. A row's center means `INTO` where the node may go there, else the place below the row. For other places, aim near a row's top or bottom edge with `at` (see [A point near an edge](/docs/testing/selectors#a-point-near-an-edge)):
+In a script, drag with `down`, `move`, and `up`. Aiming at a row's center means `INTO` when the node can drop there. Otherwise, it targets the position below the row. For other drop positions, aim near a row's top or bottom edge with `at` (see [A point near an edge](/docs/testing/selectors#a-point-near-an-edge)):
 
 ```text
 down role=treeitem label="orders"
@@ -102,7 +102,7 @@ up role=treeitem label="audit" at top+2   # before audit
 frame
 ```
 
-`at bottom-2` aims at the place below a row, as the rules above give it. In the last row inside an open node, add a distance from the left for the level, as in `at left+20,bottom-2`.
+Use `at bottom-2` to aim below a row, following the rules above. On the last row inside an open node, add a horizontal offset from the left to pick the target level, such as `at left+20,bottom-2`.
 
 ## Keyboard
 
@@ -116,7 +116,7 @@ frame
 
 ## In a tree dump
 
-`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`) and chevrons (`#mark-<index>` or `#mark-<key>`). While a node is dragged its row is `grabbed`, and the line or outline that shows where it goes is `#marker` inside a row:
+`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`) and chevrons (`#mark-<index>` or `#mark-<key>`). While you drag a node, its row is marked `grabbed`, and the drop line or outline appears as `#marker` inside a row:
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```

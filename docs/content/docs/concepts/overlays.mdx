@@ -31,7 +31,7 @@ Overlays are automatically constrained to fit inside the window (respecting marg
 
 | Method | Description |
 | --- | --- |
-| `onDismiss(handler)` | Called when clicking outside (or, for a non-modal overlay, scrolling outside it or pressing Tab or Shift+Tab to move the focus out of it). Non-modal overlays without `onDismiss` pass outside clicks through |
+| `onDismiss(handler)` | Called when clicking outside. For a non-modal overlay, it also runs when scrolling outside or when pressing Tab or Shift+Tab moves focus out of the overlay. Non-modal overlays without `onDismiss` pass outside clicks through |
 | `modal()` | Blocks input outside the overlay and traps Tab navigation inside |
 | `scrim(argb)` | Draws a dimmed backdrop behind the overlay |
 | `keepFocus()` | Opens without stealing keyboard focus (for toasts) |

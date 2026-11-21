@@ -5,7 +5,7 @@ description: Package your app with its own Java runtime using jpackage.
 
 Use `jpackage` (included with JDK 25) to bundle your app into a standalone app image containing a native launcher, a minimal Java runtime, and your JARs. End users do not need Java installed.
 
-The commands below assume you started from the Maven project in [Installation](/docs/get-started). Where Windows needs other commands, the tabs show them for PowerShell and cmd.
+The commands below assume you started from the Maven project in [Installation](/docs/get-started). When a step differs on Windows, the tabs show PowerShell and cmd commands.
 
 ## 1. Build the app image
 
@@ -88,11 +88,11 @@ target\dist\Lights\Lights.exe --script lights.txt --out target\packaged | more
 </Tab>
 </Tabs>
 
-On Windows, `Lights.exe` is a GUI program: at an interactive prompt, PowerShell and cmd neither wait for it nor show what it prints. Piping its output, as above, makes them wait for the script and print the paths of the images and trees.
+On Windows, `Lights.exe` is a GUI program. An interactive PowerShell or cmd prompt does not wait for it or show its output. Piping the output as shown above makes the prompt wait for the script and print the image and tree paths.
 
 ## Optional: App icon
 
-Without `--icon`, the launcher and an installer show jpackage's own icon. Save your window's `WindowIcon` to a file in a build step and pass that to `--icon`: on Windows the bytes of `icon.ico()` as `Lights.ico`, on Linux a PNG, the bytes of `Png.encode(icon.image(256))`.
+Without `--icon`, the launcher and installer use the default `jpackage` icon. To use your own icon, save your window's `WindowIcon` to a file in a build step and pass it to `--icon`. On Windows, write the bytes from `icon.ico()` to `Lights.ico`. On Linux, write a PNG from the bytes of `Png.encode(icon.image(256))`.
 
 ## Optional: Faster startup with an AOT cache
 
@@ -163,7 +163,7 @@ $env:JAVA_TOOL_OPTIONS = $saved
 Add-Content target\dist\Lights\app\Lights.cfg 'java-options=-XX:AOTCache=$APPDIR\lights.aot'
 ```
 
-Use `Add-Content`, not `>>`: Windows PowerShell 5.1 writes `>>` as UTF-16, and the launcher skips such a line.
+Use `Add-Content`, not `>>`. Windows PowerShell 5.1 writes `>>` output as UTF-16, and the launcher skips that line.
 
 </Tab>
 <Tab value="cmd">
@@ -182,7 +182,7 @@ If your app runs heavy initialization before opening its first window, you can a
 
 ## Optional: Pre-extract native libraries
 
-By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`. Close the app first, since Windows does not delete the files of a running app:
+By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`. Close the app first, because Windows cannot delete files while the app is running:
 
 <Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
 <Tab value="Linux">
@@ -238,6 +238,6 @@ jpackage --type app-image --name Lights ^
 </Tab>
 </Tabs>
 
-`$APPDIR` points to the app's JAR directory inside the image. On Windows, `tar` comes with the system and unpacks the JAR; `unzip` usually does not. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.
+`$APPDIR` points to the app's JAR directory inside the image. Windows includes `tar` (which can unpack JAR files), while `unzip` is usually not installed. Remember to include the third-party license files from `META-INF/rethinkj-ui/natives/<platform>/licenses/` when distributing your app.
 
-This rebuild drops an AOT cache. To use both, add the AOT section's `--jlink-options` to this `jpackage` command, then record the cache again as in its step 2.
+Rebuilding the app image removes any AOT cache. To use both pre-extracted native libraries and an AOT cache, add `--jlink-options` from the AOT section to this `jpackage` command, then record the cache again as shown in step 2 of the AOT section.

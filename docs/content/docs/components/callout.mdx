@@ -16,7 +16,7 @@ Javadoc: [`Callout`](/api/com/rethinkj/ui/kit/Callout.html).
 
 Call `Callout.callout(kind, title, text, actions...)` with `Kind.INFO`, `WARNING`, `DANGER`, or `SUCCESS` (`text` may be `null`). Colors come from `theme.callout()`.
 
-Action buttons sit to the right of the text when there is enough space, and automatically wrap below the text in narrow containers. Where they do not fit side by side even there, they stack under each other at the right.
+Action buttons sit to the right of the text when there is enough space, and automatically wrap below the text in narrow containers. If they still do not fit side by side below the text, they stack vertically on the right.
 
 <Shot src="kit/structure-callouts-{theme}-2x" alt="Callouts of the kinds success, info and danger with their actions beside the text, and a warning in a narrow card whose two buttons went below the text" />
 

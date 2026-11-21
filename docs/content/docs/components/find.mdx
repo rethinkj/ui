@@ -23,7 +23,7 @@ Store a `Find.State` in your app state. `Find.find(app, field, findState)` wraps
 
 You can also trigger find actions from a menu: `Find.open(findState)`, `openReplace(findState)`, `goToLine(findState)`, `goToLine(findState, "42")`, `next(findState)`, and `previous(findState)`.
 
-When the bar goes to a match, the match scrolls into view below the bar, even on the first line: while the bar is open, the field can scroll above its first line by the bar's height ([`coveredTop`](/docs/concepts/text-fields#options)).
+When the bar jumps to a match, the match scrolls into view below the bar, even on the first line. While the bar is open, the field can scroll above its first line by the bar's height ([`coveredTop`](/docs/concepts/text-fields#options)).
 
 Regex replacements support capture groups (`$1`, `${name}`). Large documents are searched on a background thread, and runaway regular expressions time out safely.
 

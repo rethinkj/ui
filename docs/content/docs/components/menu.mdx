@@ -23,7 +23,7 @@ Store a `Menu.State` in your app state, toggle it from the button handler (`stat
 ```java snippet="context-menu"
 ```
 
-`Menu.contextMenu(target, menuState, items)` opens on right-click, or on the **Menu** key / **Shift+F10** when focused inside `target` (positioned near the `current` or `selected` item). If `target` already handles right-click (for example, to select a row first), call `state.context.openAt(x, y)` inside your handler. A text field inside `target` opens [its own menu](/docs/components/text-field#context-menu) instead, except in the rows of a virtual list.
+`Menu.contextMenu(target, menuState, items)` opens on right-click, or on the **Menu** key / **Shift+F10** when focused inside `target` (positioned near the `current` or `selected` item). If `target` already handles right-click (for example, to select a row first), call `state.context.openAt(x, y)` inside your handler. A text field inside `target` opens [its own menu](/docs/components/text-field#context-menu) instead, unless it is inside a virtual list row.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 
@@ -42,7 +42,7 @@ Store a `Menu.State` in your app state, toggle it from the button handler (`stat
 | `Menu.separator()` | Horizontal divider line |
 | `Menu.submenu(label, items)` | Nested submenu opening beside the item |
 
-An item's text that is wider than the room in the window ends in an ellipsis, and a tooltip shows it whole: after the pointer rests on the item, or at once when the keys highlight it. Its label in a tree dump is the whole text.
+If an item's text is too wide for the window, it truncates with an ellipsis. A tooltip shows the full text after you hover over the item, or immediately when you highlight it with the keyboard. In a tree dump, the item's label is still the full text.
 
 `Menu.Item` is a record (`isSeparator()`, `isEnabled()`), and `Menu.shortcutText(key)` formats a `Key` for display.
 

@@ -3,7 +3,7 @@ title: Lists of many rows
 description: Render lists of up to a million rows efficiently using virtual scrolling.
 ---
 
-[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scrollable element into a virtual list. It only builds the visible rows (plus a small buffer), so rendering a million rows is just as fast as rendering twenty, and scrolling keeps the rows that stay in view where it can instead of building them again. A list whose width springs builds its rows again in each frame, so that they keep its width. [DataGrid](/docs/components/data-grid), [Tree](/docs/components/tree), and [Markdown](/docs/components/markdown) all use this mechanism.
+[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scrollable element into a virtual list. It only builds the visible rows (plus a small buffer), so rendering a million rows is just as fast as rendering twenty. When you scroll, it reuses rows that stay in view when possible instead of rebuilding them. If the list's width is animating with a spring, it rebuilds its rows on each frame so they match the new width. [DataGrid](/docs/components/data-grid), [Tree](/docs/components/tree), and [Markdown](/docs/components/markdown) all use this mechanism.
 
 ```java snippet="rows"
 ```
@@ -26,11 +26,11 @@ description: Render lists of up to a million rows efficiently using virtual scro
 | `revealRow(index)` | Scrolls to keep `index` visible whenever it changes |
 | `reveal(key, x, y, w, h)` | Scrolls to keep a rectangle visible whenever `key` changes |
 | `onRowsBuilt((first, last) -> …)` | Notifies you which row indices were built (useful for lazy data loading) |
-| `onRowsInView((first, last) -> …)` | Notifies you when the first or last row wholly in view changes (for a status line such as "Rows 201–223") |
+| `onRowsInView((first, last) -> …)` | Notifies you when the first or last row fully in view changes (useful for a status line like "Rows 201–223") |
 | `scrollState(ScrollState)` | Preserves scroll position across view switches |
 | `scrollbars(theme.scrollbars())` | Adds draggable scrollbars |
 | `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |
-| `coverY()` | After layout, how much of the list's bottom a horizontal scrollbar covers |
+| `coverY()` | After layout, returns how much of the list's bottom a horizontal scrollbar covers |
 
 Give the list a height (or `grow(1)`) and give each row a key (such as `row-<index>`). In headless scripts, scroll to a row before clicking it (`scroll #rows row 765432`), since only built rows appear in the tree.
 

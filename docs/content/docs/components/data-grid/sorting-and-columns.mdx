@@ -32,10 +32,10 @@ Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongsi
 ```java snippet="grid-fit"
 ```
 
-- Auto-fitting runs on the first frame with loaded rows, and that frame already shows the fitted widths.
-- With rows loaded in pages through `loading(loaded, onRows)`, it waits for the rows the grid shows, also after the user scrolls away from rows still loading.
+- Auto-fitting runs on the first frame with loaded rows, and the fitted widths appear on that same frame.
+- When loading rows in pages with `loading(loaded, onRows)`, auto-fitting waits for the visible rows to load. This also applies if the user scrolls away from rows that are still loading.
 - Columns the user manually resized are left untouched; hidden columns auto-fit when first shown.
-- **Fit all columns**, which `onResize` adds to the header menu below **Fit width**, fits every shown column at once, as its own **Fit width** would, including manually resized columns. It measures the header and the rows that exist, so without rows each column takes its header's width.
+- `onResize` adds **Fit all columns** to the header menu below **Fit width**. It fits every visible column at once (just like **Fit width** on each column), including columns the user resized manually. It measures each header and the existing rows, so if there are no rows, each column fits its header width.
 
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />
 

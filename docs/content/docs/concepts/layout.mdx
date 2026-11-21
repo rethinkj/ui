@@ -42,10 +42,10 @@ Note: `Len.pixelsOrZero()` returns a fixed pixel value, or `0` for percentages, 
 | `fill(argb)` | Background color (`0xAARRGGBB`) |
 | `radius(px)`, `radius(tl, tr, br, bl)` | Rounded corner radius |
 | `border(width, argb)`, `border(top, right, bottom, left, argb)` | Border width and color |
-| `borderColors(top, right, bottom, left)` | A color per side of the border, after `border(...)` |
+| `borderColors(top, right, bottom, left)` | Sets a separate color for each border side (call after `border(...)`) |
 | `shadow(Shadow...)` | Drop shadows (like CSS `box-shadow`) |
 | `opacity(value)` | Element opacity (`0` to `1`) |
-| `arc(start, sweep)` | Draws the fill and border only within an arc, in turns clockwise from the top: a ring or a pie |
+| `arc(start, sweep)` | Draws only an arc of the fill and border (such as a ring or pie), measured in turns clockwise from the top |
 | `segments(Segment...)` | Draws straight lines over the fill (see [Drawing lines](#drawing-lines)) |
 | `clip()` | Clips children to the rounded border box |
 | `scroll()`, `scrollBoth()`, `scrollbars(look)` | Enables vertical or 2D scrolling with optional scrollbars |
@@ -55,17 +55,17 @@ Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw
 
 ## Drawing lines
 
-`segments(...)` draws anti-aliased straight lines in an element, for the edges of a diagram or the marks of a chart. A [`Segment`](/api/com/rethinkj/ui/Segment.html) runs from `x1, y1` to `x2, y2`, in pixels from the element's top left corner, with a width and a color, and has round ends:
+`segments(...)` draws anti-aliased straight lines inside an element (for example, diagram edges or chart lines). Each [`Segment`](/api/com/rethinkj/ui/Segment.html) runs from `x1, y1` to `x2, y2`, measured in pixels from the element's top-left corner. Every segment has a width, a color, and round ends:
 
 ```java snippet="lines"
 ```
 
 <Shot src="examples/docs/lines/view-{theme}" alt="A rounded card with a line chart of six points rising from left to right over a thin axis" />
 
-- Lines lie over the element's fill and under its text and children.
-- They are clipped like its children, so `clip()` keeps them inside its box.
-- They take no presses: what takes a press is the element's box.
-- A line along the grid is sharpest with its edges on physical pixel boundaries. At scale 1, a 1-pixel line lies at `y = 70.5`; at a whole number it spreads over two rows.
+- Lines draw over the element's fill and under its text and children.
+- Lines are clipped just like children, so `clip()` keeps them inside the element's box.
+- Lines do not receive clicks. The element's box handles clicks instead.
+- A horizontal or vertical line is sharpest when its edges land on physical pixel boundaries. At scale 1, put a 1-pixel line at `y = 70.5`. At a whole number, it spreads across two rows.
 
 ## Scrollbars
 
@@ -126,11 +126,11 @@ Use `El.measure(measure)` for leaf elements that compute their own size dynamica
 <Shot src="examples/docs/resize/narrow-{theme}" alt="The same bar in a narrower window: the three buttons show only their icons" caption="When narrower than 300 px, the bar shows icons only." />
 
 - Fires on the first build and whenever the element's laid-out size changes.
-- Runs like an event handler right after layout, and the view is built again before the frame ends (up to three times), so the first frame at a new size already shows the layout that fits it.
+- Runs like an event handler right after layout, then rebuilds the view before the frame ends (up to three times). As a result, the first frame at a new size already shows the updated layout.
 - Keep the element's size independent of its own contents (e.g., `wFull()`) to avoid resize loops.
 - Not called inside virtual list rows (`rows`) or during intermediate animation frames (`motion`).
 
-In scripts, `size` resizes the window, and the next `frame` already shows the view that fits; `advance` lets the springs finish:
+In scripts, `size` resizes the window and the next `frame` already shows the updated view. Call `advance` to let spring animations finish:
 
 ```text snippet="resize-script"
 ```

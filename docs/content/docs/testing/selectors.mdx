@@ -36,7 +36,7 @@ Commands act on the center of the element's visible area (or the middle of the f
 
 ## A point near an edge
 
-After a selector, `at` names a point near an edge of the element: the edge, `left`, `right`, `top` or `bottom`, and a distance from it in logical pixels. Two edges, one across and one along, separated by a comma, name a point near a corner:
+After a selector, `at` targets a point near an edge of the element. Write an edge (`left`, `right`, `top`, or `bottom`) followed by an offset in logical pixels. To target a point near a corner, combine `left` or `right` with `top` or `bottom`, separated by a comma:
 
 ```text
 move role=treeitem label="audit" at top+2   # 2 pixels below the top edge, centered across
@@ -45,7 +45,7 @@ press #header-2 at right-3                  # 3 pixels left of the right edge, c
 move #row-7 at left+20,bottom-2             # near the bottom left corner
 ```
 
-The edges are those of the element's rectangle in the tree dump. The point moves with the element when the layout shifts, so the script keeps working without coordinates. A distance away from the element, such as `at bottom+4`, names a point just outside it. A point inside the element that does not show fails, such as one its scroll area hides or a scrollbar lies over, since it would reach what shows there instead.
+The edges come from the element's bounds in the tree dump. The point moves with the element when the layout shifts, so your script keeps working without coordinates. An offset away from the element, such as `at bottom+4`, targets a point just outside it. If a point inside the element is not visible (for example, hidden by a scroll area or covered by a scrollbar), the command fails because it would hit what is visible there instead.
 
 ## Virtual lists
 

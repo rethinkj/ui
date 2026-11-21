@@ -1,16 +1,22 @@
 ---
 title: Frame times
-description: Measure how long the frames of a real window take, drawing included, with input fed to it as the system would.
+description: Measure frame times in a real window, including drawing, by sending input like the system does.
 ---
 
-A script runs your app without a window, so `app.frame()` there measures input, build and layout, but not drawing. To keep an app within a budget with drawing, run it in a real window, feed it input, and read each frame's times with `WindowLoop.frames`:
+A script runs your app without a window, so `app.frame()` measures input, build, and layout, but not drawing. To check your frame budget with drawing included, run your app in a real window, send it input, and read each frame's times with `WindowLoop.frames`:
 
 ```java snippet="frame-times"
 ```
 
-- The listener gets a [`WindowLoop.Frame`](/api/com/rethinkj/ui/window/WindowLoop.Frame.html) for each frame a window shows, on the window's thread, in nanoseconds: `input` (handling the input and tasks that arrived, with their handlers and the layout the next of them needs), `build` (the view and row functions), `layout` (the rest of `app.frame()` after the input, also handlers such as `onResize` or `onHoverFor` that the frame runs on its own), `draw` (the scene and drawing it), `present` (showing it), and `interval` (since the window's previous frame began).
-- `window.post(event)` hands the window a `WindowEvent` as if the system had reported it. The loop treats it as real input: input that comes faster than the display is drawn once per refresh, and a wheel step builds the rows of the list, not the view. Posting `app.wheel(…)` as a task with `app.post` instead rebuilds the whole view for each step, as every task does.
-- Call `post` on the window's thread, as the listener does. A frame that changes nothing is not drawn and not told, so feed input that changes something, such as a list with room to scroll, or the loop waits.
-- The listener also gets the frames a window asks for itself, as when it is uncovered. The example skips those by the list's offset, so that each time is one step's.
-- Leave `present` out of a budget: it includes the wait for the display's next refresh.
-- Without a window, `app.timing()` gives the `input`, `build` and `layout` of the last `app.frame()`.
+- The listener receives a [`WindowLoop.Frame`](/api/com/rethinkj/ui/window/WindowLoop.Frame.html) on the window's thread for each frame a window displays. All times are in nanoseconds:
+  - `input` — handling the input and tasks that arrived, with their handlers and the layout that runs before each next one
+  - `build` — running the view and row functions
+  - `layout` — the rest of `app.frame()` after input, including handlers the frame runs on its own (such as `onResize` or `onHoverFor`)
+  - `draw` — building the scene and drawing it
+  - `present` — showing the frame
+  - `interval` — time since the window's previous frame began
+- `window.post(event)` sends a `WindowEvent` to the window as if the system reported it. The loop treats it like real input: events that arrive faster than the display refresh rate are drawn once per refresh, and a wheel step builds only the list's rows instead of the whole view. Posting `app.wheel(…)` as a task with `app.post` instead rebuilds the whole view on every step, as all tasks do.
+- Call `window.post` on the window's thread, just as the listener does. If a frame changes nothing, it is not drawn and the listener is not called. Send input that changes something (such as scrolling a list that has room to scroll), or the loop will wait.
+- The listener also receives frames the window requests on its own, such as when it is uncovered. The example checks the list's scroll offset to skip those frames so each recorded time measures one step.
+- Leave `present` out of your frame budget because it includes waiting for the display's next refresh.
+- Without a window, `app.timing()` returns the `input`, `build`, and `layout` times from the last `app.frame()`.

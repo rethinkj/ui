@@ -1,9 +1,9 @@
 ---
 title: Canvas
-description: Pannable, zoomable area of nodes at diagram coordinates, from the optional diagram module.
+description: Pannable, zoomable area for placing nodes in diagram coordinates, from the optional diagram module.
 ---
 
-`Canvas.canvas` lays nodes, any elements, at positions in diagram coordinates on an area that the user pans and zooms. It is the base of the diagrams in the optional module `rethinkj-ui-diagram`, package `com.rethinkj.ui.diagram`:
+`Canvas.canvas` places nodes (any elements) at diagram coordinates in an area that users can pan and zoom. It is the base for diagrams in the optional `rethinkj-ui-diagram` module (package `com.rethinkj.ui.diagram`):
 
 ```xml
 <dependency>
@@ -22,80 +22,80 @@ Javadoc: [`Canvas`](/api/com/rethinkj/ui/diagram/Canvas.html).
 ```java snippet="canvas"
 ```
 
-Keep a `Canvas.Viewport` and the nodes in your app state and pass `Canvas.canvas(viewport, nodes, content, onMove)`:
+Keep a `Canvas.Viewport` and your nodes in your app state, and call `Canvas.canvas(viewport, nodes, content, onMove)`:
 
 | Parameter | Description |
 | --- | --- |
-| `viewport` | The diagram point at the canvas's top left and the zoom; `fit()`, `zoomIn()`, `zoomOut()`, `zoomBy(steps, x, y)` and `panTo(left, top)` change it |
-| `nodes` | `Canvas.Node(key, label, x, y, width, height, pinned)`, in diagram coordinates at 100 % |
-| `content` | Builds a node's element at the zoom of the moment, sized `width × zoom` by `height × zoom` |
-| `onMove` | Receives a dragged node, moved and pinned, and the node as it was when Escape cancels the drag (`null` fixes the nodes) |
+| `viewport` | Stores the zoom level and the diagram point at the top-left corner of the canvas. Change it with `fit()`, `zoomIn()`, `zoomOut()`, `zoomBy(steps, x, y)`, and `panTo(left, top)` |
+| `nodes` | List of `Canvas.Node(key, label, x, y, width, height, pinned)` items, in diagram coordinates at 100% zoom |
+| `content` | Builds each node's element for the current zoom level, sized `width × zoom` by `height × zoom` |
+| `onMove` | Called with the moved, pinned node when a user drags it, or with the original node if Escape cancels the drag (pass `null` to lock nodes in place) |
 
-Zoom does not scale a picture: the canvas lays its nodes out again at their sizes times the zoom, so text stays sharp. The `content` function multiplies its own sizes by the zoom and is the level of detail: zoomed out, a node can show less, as the tables above drop their columns below 75 %. The zoom moves in the steps of `Viewport.ZOOMS`, 25 % to 200 %.
+Zooming does not scale a static image. Instead, the canvas lays out each node again at its size multiplied by the zoom, so text stays sharp. Your `content` function scales its own sizes by the zoom and can change the level of detail. For example, the tables above hide their columns below 75%. Zoom levels follow the steps in `Viewport.ZOOMS`, from 25% to 200%.
 
-The canvas builds only the nodes that lie inside it, so a large diagram stays fast. Pins are plain values in your state: the canvas only reports that the user moved a node.
+The canvas only builds nodes inside the visible area, so large diagrams stay fast. Pins are plain values in your app state. The canvas only reports that the user moved a node.
 
-The canvas learns its size from layout when that size changes. To show another diagram in the same place with a new `Viewport`, give the canvas another key, such as `canvas(...).key(diagram.name())`; with the same key the new viewport learns no size and shows no nodes.
+The canvas records its size from layout whenever that size changes. If you switch to a different diagram with a new `Viewport` in the same spot, give the canvas a new key, such as `canvas(...).key(diagram.name())`. If you reuse the same key, the new viewport never gets a size and shows no nodes.
 
 ## Edges
 
-Pass a list of `Canvas.Edge` to draw lines between the nodes, under them:
+Pass a list of `Canvas.Edge` items to draw connecting lines under the nodes:
 
 ```java snippet="canvas-edges"
 ```
 
 <Shot src="examples/docs/canvas-edges/view-{theme}" alt="Three tables with a straight gray edge from customer to order and a highlighted blue edge with two bends from address to order, each with crow's foot markers" />
 
-An edge runs from one `Canvas.Port(node, y)` to another: a node's key and the middle of a row in it, from the node's top at 100 %. The canvas routes the edges again whenever the nodes, the edges or their style change, so they follow a node while it is dragged; a pan, a zoom or a hover reuses the routes:
+An edge connects two `Canvas.Port(node, y)` points, where `node` is the node's key and `y` is the offset from the node's top at 100% zoom (such as the center of a row). The canvas recalculates edge routes whenever the nodes, edges, or edge style change, so edges follow a node while you drag it. Panning, zooming, and hovering reuse the existing routes:
 
-- Each edge leaves a node on its left or right side, whichever faces the other end, and bends at right angles with rounded corners. It goes around the nodes in the way where it finds a free path. Its ends run straight for as far as their markers need; where two nodes face each other too closely for that, the edge goes around them.
-- Every edge gets a lane of its own beside the others, also where several end at the same port. There they join when they show the same marker; with different markers, they end beside each other, so that each shows its own.
-- An edge from a node to itself loops on one side of it. Where both sides are as good, it takes the one where fewer other edges end. One from a port back to the same port goes around the node, or, where its two markers differ and so end beside each other, loops between them.
-- Two edges between the same two points at one height do not lie on each other: later ones bump out a lane at a time, below and then above, to the nearest place where neither a node nor another edge is in the way. Where the gap between the nodes has no room for a bump's bends and markers, they share the line.
+- Each edge leaves a node on its left or right side (whichever faces the other end) and bends at right angles with rounded corners. It routes around nodes in the way whenever it can find a clear path. Each end stays straight long enough for its marker. If two facing nodes are too close for that, the edge routes around them.
+- Each edge gets its own lane beside the others, even when multiple edges end at the same port. Edges at the same port join together if they have the same marker. If they have different markers, they end side by side so each marker stays visible.
+- An edge from a node to itself loops on one side of the node. If both sides are equally good, it picks the side where fewer other edges end. An edge from a port back to the same port goes around the node. However, if its two markers differ, they end side by side and the edge loops between them.
+- Two edges between the same two points at the same height do not overlap. Each extra edge steps out one lane at a time (trying below first, then above) to the nearest spot that is clear of nodes and other edges. If the gap between the nodes is too narrow for those bends and markers, the edges share the same line.
 
 | Field | Description |
 | --- | --- |
-| `key` | Unique among the canvas's nodes and edges |
-| `label` | The text of its tooltip and its label in a tree dump; `null` for neither |
+| `key` | Unique key across all nodes and edges on the canvas |
+| `label` | Text used for the tooltip and tree dump label (pass `null` for neither) |
 | `from`, `to` | The ports it connects |
 | `fromMarker`, `toMarker` | `NONE`, `ONE` (`\|\|`), `ZERO_OR_ONE` (`o\|`), `ONE_OR_MANY` (`\|<`), `ZERO_OR_MANY` (`o<`), or `ARROW` |
-| `emphasis` | `NORMAL` in the strong border color, `HIGHLIGHTED` in the accent color and wider, `DIMMED` mixed towards the canvas color |
-| `description` | A muted line below the label in the tooltip, such as `ON DELETE SET NULL`; `null` for none |
+| `emphasis` | `NORMAL` (strong border color), `HIGHLIGHTED` (wider, in the accent color), or `DIMMED` (blended toward the canvas color) |
+| `description` | Optional muted second line in the tooltip, such as `ON DELETE SET NULL` (pass `null` for none) |
 
-The edges' sizes, such as the bend radius, the space between lanes and the markers' length, are in `EdgeStyle`. Zoomed out so far that a marker would be smaller than `smallestMarker`, edges show none. Give the canvas other sizes with `app.provide(EdgeStyle.CURRENT, ...)`. Edges have no colors of their own: they take the theme's.
+Edge sizes (such as bend radius, lane spacing, and marker length) come from `EdgeStyle`. When zoomed out so far that a marker would be smaller than `smallestMarker`, edges hide their markers. Use `app.provide(EdgeStyle.CURRENT, ...)` to change these sizes. Edges have no colors of their own. They use colors from the theme.
 
 ## Saving as an image
 
-`Canvas.png(nodes, view)` returns the whole diagram as PNG bytes, not only the part a canvas shows, and your app decides where they go. `view` builds the canvas at the viewport it is given, as your view does, such as `viewport -> canvas(viewport, nodes, Tables::card, null)`, so that everything the canvas draws is in the image. The image is cropped to the nodes with a margin, at 100 % and a scale of 2, and drawn without a window or a GPU. It takes the theme of `Theme.CURRENT` where it is called; a handler runs outside the view's, so it gives your theme again: `Theme.CURRENT.with(state.theme, () -> Canvas.png(...))`. Above 16 megapixels it falls back to a scale of 1, and a diagram too large for that as well throws an `IllegalArgumentException` before anything is drawn.
+`Canvas.png(nodes, view)` exports the entire diagram as PNG bytes, not just the visible viewport. Your app decides where to save or send those bytes. Your `view` function builds the canvas using the viewport it receives, just like your normal view (for example, `viewport -> canvas(viewport, nodes, Tables::card, null)`), so everything the canvas draws appears in the image. The image is cropped around the nodes with a margin. It renders at 100% zoom and scale 2, without needing a window or a GPU. It reads the theme from `Theme.CURRENT` where you call it. Because event handlers run outside your view's theme scope, wrap the call with your theme: `Theme.CURRENT.with(state.theme, () -> Canvas.png(...))`. If the image would exceed 16 megapixels, it falls back to scale 1. If the diagram is still too large at scale 1, it throws an `IllegalArgumentException` before drawing anything.
 
-A canvas with edges passes them too, `Canvas.png(nodes, edges, view)`, so that the image takes in the edges with their markers, also an edge that loops outside the nodes. An app with an `EdgeStyle` of its own gives it around the whole call, as it gives the theme, so that the image is cropped for the same edges it draws: `EdgeStyle.CURRENT.with(style, () -> Canvas.png(...))`.
+If your canvas has edges, pass them with `Canvas.png(nodes, edges, view)`. The image then shows the edges with their markers, and its crop also includes an edge that loops outside the nodes. If your app uses a custom `EdgeStyle`, wrap the whole call with it just like the theme: `EdgeStyle.CURRENT.with(style, () -> Canvas.png(...))`. That way, the crop fits the edges the image draws.
 
 ## Pointer and keyboard
 
-Dragging empty space pans. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in.
+Drag empty space to pan the canvas. Drag a node to move it, or press **Escape** to cancel the drag and move it back. If an element inside a node has its own press or drag handler (such as a button), dragging from that element does not move the node. While the canvas has focus, **+** and **-** zoom in and out around the center, and **0** fits all nodes into view.
 
 ## Arrange
 
-`LayeredLayout.arrange(nodes, edges)` places the nodes in layers, so that the edges between them run one way. It is a plain function: it returns the nodes in the same order at new places, and your app keeps them as it keeps a drag. Javadoc: [`LayeredLayout`](/api/com/rethinkj/ui/diagram/LayeredLayout.html).
+`LayeredLayout.arrange(nodes, edges)` arranges nodes in layers so that edges flow in one direction. It returns a list of the same nodes in the same order at their new positions. Store the result in your app state just like positions from a drag. Javadoc: [`LayeredLayout`](/api/com/rethinkj/ui/diagram/LayeredLayout.html).
 
 <Shot src="examples/docs/canvas-arrange/view-{theme}" alt="Five tables arranged in three layers by their foreign keys" />
 
 ```java snippet="canvas-arrange"
 ```
 
-An `Edge(from, to)` goes from a node to the one it refers to, such as a table's foreign key to the table it references, and the one referred to comes first, on the left. Edges to keys that are not among the nodes, such as tables you filter away, and edges from a node to itself are left out. The layout breaks cycles, reduces crossings and runs most edges straight. Parts that no edge connects, and clusters, are packed in rows.
+An `Edge(from, to)` points from a node to the node it references (for example, from a table with a foreign key to the referenced table). The referenced node (`to`) is placed first, on the left. Edges using keys not in `nodes` (such as filtered-out tables) and self-edges (from a node to itself) are ignored. The layout breaks cycles, reduces edge crossings, and keeps most edges straight. Unconnected parts and clusters are packed into rows.
 
-A pinned node stays where it is: each cluster moves so that its pinned nodes lie where it would put them, and a node that would overlap one moves past it. Unpinned nodes keep clear of all others, while pinned ones stay put even on top of each other, so where pins bring clusters together, the clusters' areas can overlap. To arrange everything, unpin the nodes first. The places of unpinned nodes going in do not matter, so the same input always gives the same output. `LayeredLayout.options()` changes the rest:
+A pinned node stays where it is. Each cluster shifts to line up with its pinned nodes, and any unpinned node that would overlap a pinned node moves past it. Unpinned nodes stay clear of all other nodes. Pinned nodes stay put even if they overlap each other, so cluster areas can overlap when pinned nodes bring clusters together. To arrange everything, unpin the nodes first. The starting positions of unpinned nodes do not matter, so the same input always gives the same output. Use `LayeredLayout.options()` to configure the layout:
 
 | Option | Description |
 | --- | --- |
-| `direction(direction)` | `LEFT_TO_RIGHT` (the default) or `TOP_TO_BOTTOM`, with the nodes referred to on top, for trees |
-| `gaps(layer, node, cluster)` | The room between layers, between the nodes of a layer and between clusters: 80, 32 and 96 |
-| `cluster(node -> name)` | Lays out each cluster, such as each schema, on its own with the edges inside it |
+| `direction(direction)` | `LEFT_TO_RIGHT` (default) or `TOP_TO_BOTTOM` (places referenced nodes on top, useful for trees) |
+| `gaps(layer, node, cluster)` | Spacing between layers, between nodes in a layer, and between clusters (defaults: 80, 32, and 96) |
+| `cluster(node -> name)` | Groups nodes into clusters (such as schemas) and lays out each cluster separately using only its internal edges |
 
 ## In a tree dump
 
-The canvas is `role=graphics-document` with its zoom as `value`, and each node `role=graphics-object` with its key and label; a pinned node has the value `Pinned`. The first run of each edge is `role=graphics-symbol` with its key and label, and the value `Highlighted` or `Dimmed` for that emphasis. Its texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The canvas uses `role=graphics-document` with its zoom as `value`. Each node uses `role=graphics-object` with its key and label, and a pinned node has the value `Pinned`. The first segment of each edge uses `role=graphics-symbol` with its key and label, and has the value `Highlighted` or `Dimmed` for that emphasis. These texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/canvas/view.tree.txt" start="el role=graphics-document" count="2"
 ```

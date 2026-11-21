@@ -55,12 +55,12 @@ Line breaks and tabs inside cells display as `⏎` and `⇥`. Overflowing text t
 
 ## Tooltips
 
-`column.cellTooltip(row -> text)` shows a cell's value in a second form on hover, such as a timestamp as the database returns it beside the local time the cell shows. Copying and editing use the cell's text.
+`column.cellTooltip(row -> text)` shows a tooltip when you hover over a cell. For example, a cell can display local time while the tooltip shows the timestamp returned by the database. Copying and editing still use the cell's text.
 
 ```java snippet="grid-tooltip"
 ```
 
-A cell shows one tooltip with a line for each part that applies, in this order: the error of a failed cell, the icon's tooltip, the column's tooltip, and the full text where the cell truncates it.
+A cell combines all applicable parts into one tooltip, one line each, in this order: a failed cell's error, the icon's tooltip, the column's tooltip, and the full text when the cell is truncated.
 
 ## Options
 
@@ -81,14 +81,16 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `fitColumns(Fit)` | Auto-fits all column widths once per result. See [Fitting columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
 | `columns(Layout)`, `onFreeze(count -> …)` | Reorder, hide, show, and freeze columns |
 | `loading(loaded, onRows)` | Shows `…` for unloaded rows and notifies you when visible rows need loading |
-| `onRowsInView((first, last) -> …)` | Notifies you when the first or last row wholly in view changes. See [Selection API](/docs/components/data-grid/selection#selection-api) |
+| `onRowsInView((first, last) -> …)` | Notifies you when the first or last row fully in view changes. See [Selection API](/docs/components/data-grid/selection#selection-api) |
 | `filters(filters, onFilter)`, `filterable(columns)` | Per-column filter popovers. See [Filters](/docs/components/data-grid/filters) |
 | `changes(GridChanges)` | Full inline editing with pending changes and undo/redo. See [Editing](/docs/components/data-grid/editing) |
 | `onEdit`, `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `status`, `errors`, `history`, `appendRow()` | Lower-level editing hooks |
 
 ## Opening a row
 
-`onActivate(row -> …)` reports the row a user opens with **Enter** or a double-click on one of its cells or its number, such as a result to show in full or the entry a picker dialog takes. It needs `select(...)`. Where Enter or a double-click edits the cell (`onCommit`, `onEdit`), the grid edits instead, and rows that are not loaded yet do not open.
+`onActivate(row -> …)` runs when the user presses **Enter** on a row or double-clicks a cell or row number. Use it, for example, to show a row in full or choose an entry in a picker dialog.
+
+It requires `select(...)`. If **Enter** or a double-click edits the cell (`onCommit`, `onEdit`), the grid edits the cell instead. Unloaded rows do not trigger `onActivate`.
 
 ```java snippet="grid-open"
 ```
@@ -112,13 +114,13 @@ The grid is a single Tab stop:
 | Key | Action |
 | --- | --- |
 | Arrow keys | Move cursor |
-| Page Up, Page Down | Jump by as many rows as fit above the horizontal scrollbar |
+| Page Up, Page Down | Jump by the number of rows that fit above the horizontal scrollbar |
 | Home, End (with Ctrl) | First/last cell in row (or in entire grid with Ctrl) |
 | Shift + navigation | Extend selection |
 | Ctrl+A | Select all |
 | Ctrl+C, Ctrl+Insert | Copy selection |
 | Enter, F2, typing | Start editing active cell |
-| Enter | Open the cursor's row where nothing edits the cell (`onActivate`) |
+| Enter | Open the cursor's row when Enter does not edit the cell (`onActivate`) |
 | Menu key, Shift+F10 | Open context menu at cursor |
 
 ## In a tree dump

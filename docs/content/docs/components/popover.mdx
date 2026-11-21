@@ -27,11 +27,13 @@ Store a `Popover.State` in your app state (`isOpen()`, `open()`, `close()`, `tog
 
 ## Placement
 
-The side and the alignment are what the popover prefers. Where it does not fit into the window below its anchor, it goes above it; where it does not fit at `START` or `END`, it aligns with the other end of the anchor, so a popover on a button at the right edge opens to the left. In a dialog, it also keeps inside the dialog along the anchor: at `START` or `END` it takes the end that fits there, else it moves into the dialog as far as the window lets it, over the dialog's middle where it is wider than the dialog.
+The side and alignment are preferences. If the popover does not fit in the window below its anchor, it opens above the anchor instead. If it does not fit at `START` or `END`, it flips to the opposite end of the anchor. For example, a popover on a button at the right edge opens to the left.
+
+Inside a dialog, the popover also stays inside the dialog along the anchor. With `START` or `END`, it picks the end that fits inside the dialog. Otherwise, it shifts into the dialog as far as the window allows, centering over the dialog when it is wider than the dialog.
 
 ## Keyboard
 
-Opening moves focus to the first focusable element inside the popover; **Escape** closes it and restores previous focus. **Tab** walks the popover right after its anchor; **Tab** or **Shift+Tab** out of it closes it and leaves the focus where it went.
+Opening moves focus to the first focusable element inside the popover; **Escape** closes it and restores previous focus. In the **Tab** order, the popover comes right after its anchor. Pressing **Tab** or **Shift+Tab** out of the popover closes it and leaves focus on the element it moved to.
 
 ## In a tree dump
 

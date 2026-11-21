@@ -175,7 +175,7 @@ Add the Maven Central Snapshots repository and dependencies under group `com.ret
 </profiles>
 ```
 
-Run your app with `--enable-native-access=ALL-UNNAMED` (or `--enable-native-access=com.rethinkj.ui` on the module path). For the glibc that Linux needs, see [Platforms and native libraries](https://ui.rethinkj.com/docs/reference/platforms). See [Installation](https://ui.rethinkj.com/docs/get-started) for Gradle setup and a complete project template.
+Run your app with `--enable-native-access=ALL-UNNAMED` (or `--enable-native-access=com.rethinkj.ui` on the module path). See [Platforms and native libraries](https://ui.rethinkj.com/docs/reference/platforms) for Linux glibc requirements. See [Installation](https://ui.rethinkj.com/docs/get-started) for Gradle setup and a complete project template.
 
 ## Building and running the examples
 

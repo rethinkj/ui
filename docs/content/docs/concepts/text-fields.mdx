@@ -25,31 +25,33 @@ To inspect what changed between two strings, call `TextChange.between(before, af
 
 By default, `App` tracks a field's cursor, selection, scroll offset, undo history (100 steps), and IME composition per element key, and discards them when the field leaves the tree (such as switching tabs).
 
-To preserve cursor, selection, scroll position, and undo history across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. Active IME composition is not preserved and ends if the field leaves the tree. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`, and replace it from a handler, such as a button that inserts a snippet, with `fieldState.replaceSelection(text)`: one undo step, applied right after the handler. The cursor goes after the text, or with `replaceSelection(text, caret)` to `caret` in it. To put text at a place you computed instead of the selection, call `fieldState.replace(from, to, text, caret)`: it replaces exactly the characters `from` to `to`, and Ctrl+Z brings back the selection from before.
+To preserve cursor, selection, scroll position, and undo history across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. Active IME composition is not preserved and ends if the field leaves the tree. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`.
+
+From a handler (such as a button that inserts a snippet), call `fieldState.replaceSelection(text)`. It replaces the selection right after the handler, as one undo step. The cursor moves to the end of the inserted text, or to `caret` within it when you call `replaceSelection(text, caret)`. To replace a specific range instead of the selection, call `fieldState.replace(from, to, text, caret)`. It replaces characters `from` to `to`, and Ctrl+Z restores the previous selection.
 
 ## Options
 
 | Method | Description |
 | --- | --- |
 | `multiline()`, `lines(n)`, `fitLines()` | Multi-line mode; fixed height of `n` lines; or auto-height to fit all lines |
-| `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling; a single-line field without a width is as wide as its text, up to the room its layout gives it |
+| `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling. A single-line field without a set width grows to fit its text, up to the space its layout allows |
 | `readOnly()`, `editable(null)` | Read-only (selectable/copyable) vs. disabled |
 | `maxLength(n)` | Maximum length in Unicode code points |
 | `masked()` | Password field (displays `•`) |
 | `placeholder(text, argb)` | Placeholder text shown when empty |
-| `codeWords()` | Treats letters, digits, and `_` as words for Ctrl+Arrow and double-click, and the characters the highlighter's language adds (`Highlighter.wordCharacters()`, such as `$`) |
+| `codeWords()` | Treats letters, digits, `_`, and any extra characters from the highlighter (`Highlighter.wordCharacters()`, such as `$`) as word characters for Ctrl+Arrow and double-click |
 | `highlight(key, highlighter)` | Syntax highlighting (colors, fonts, backgrounds, underlines) |
 | `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
-| `coveredTop(height)` | Multi-line only: something lies over the field's top, such as a find bar. The field can scroll that far above its first line, where its scrollbar's thumb is at the top, and a selection made with `app.select` scrolls into view below it |
+| `coveredTop(height)` | Multi-line only: tells the field that something (such as a find bar) covers its top `height`. The field can scroll that far above its first line (where the scrollbar thumb sits at the top), and `app.select` scrolls selections into view below it |
 
-See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`). `onSelect` hears the selection after every edit once the app has answered it, so its positions always fit the app's string: after an edit the app refuses, the selection it went back to. The build that answers an edit still sees the caret your handler stored before it; the build after the handler ran sees the new one.
+See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
 
-From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)` (add an `anchor` to select with the edit: if the app refuses it, the selection stays as it was), `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit. If your app rejects the edit, the selection stays unchanged.
 
 ## Finding the word at the cursor
 
-For autocomplete or rename actions, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return the start and end offsets of the identifier (`letters`, `digits`, `_`) at `index`. For a language with more word characters, pass them as a third argument, as from `field.text().wordCharacters()`:
+For autocomplete or rename actions, `CodeWords.start(text, index)` and `CodeWords.end(text, index)` return the start and end offsets of the identifier (`letters`, `digits`, `_`) at `index`. For a language with extra word characters, pass them as a third argument (for example, from `field.text().wordCharacters()`):
 
 ```java snippet="code-words"
 ```
@@ -77,8 +79,8 @@ A read-only multi-line text field lets users select and copy paragraphs. To plac
 
 - **Navigation & selection:** Arrow keys, Home, End, Page Up/Down (with **Shift** to select and **Ctrl** to jump by word), double-click to select a word, triple-click to select a line.
 - **Editing:** Backspace, Delete, **Ctrl+A** (select all), **Ctrl+C/X/V** (copy/cut/paste), **Ctrl+Z** (undo), **Ctrl+Y** / **Ctrl+Shift+Z** (redo).
-- **Multi-line:** **Enter** inserts a newline (auto-indenting when `tabIndents` is enabled); **Ctrl+Enter** bubbles to your app's `onKey` handlers, and so does **Enter** in a read-only field.
-- **IME:** Input methods compose inline with an underline (shown as `composing "…"` in tree dumps). Making the field read-only ends a composition in progress, as losing the focus does.
+- **Multi-line:** **Enter** inserts a newline (auto-indenting when `tabIndents` is enabled). **Ctrl+Enter** bubbles to your app's `onKey` handlers, and **Enter** also bubbles in a read-only field.
+- **IME:** Input methods compose inline with an underline (shown as `composing "…"` in tree dumps). Making the field read-only ends any active composition, just like losing focus.
 
 ## In a tree dump
 

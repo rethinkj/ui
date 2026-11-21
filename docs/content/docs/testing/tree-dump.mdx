@@ -14,7 +14,7 @@ Fields appear in this order:
 
 1. **Type:** `el` (container), `text`, or `image`.
 2. **Key:** `#key` if `.key(...)` was set.
-3. **Role and label:** `role=...` and `label="..."` if set (kit components set both), then a text field's `placeholder="..."` unless it is empty or the label too.
+3. **Role and label:** `role=...` and `label="..."` if set (kit components set both). Text fields also add `placeholder="..."` after the label, unless the placeholder is empty or matches the label.
 4. **Text content:** Quoted string for `text` elements (`\n`, `\r`, `\t`, and private-use icon code points like `\u{E305}`). Strings over 200 characters show the first 100 and last 40 characters plus total length.
 5. **Window chrome:** `window=<part>` for custom title bar parts (`drag`, `minimize`, `maximize`, `close`, `control`, or `content`).
 6. **Bounds:** `x,y widthxheight` in window coordinates (accounting for parent scroll offsets).
@@ -45,7 +45,7 @@ States follow WAI-ARIA naming. They are semantic metadata — setting a state do
 | `sort=ascending`, `sort=descending` | Sorted table column | `sortAscending()`, `sortDescending()` |
 | `value="<text>"` | Current value (such as a slider value or changed row status) | `value(text)` |
 
-The tree row from the example on [States and roles](/docs/concepts/states) dumps like this:
+The tree row from the example on [States and roles](/docs/concepts/states) looks like this in a tree dump:
 
 ```text file="examples/src/test/resources/golden/docs/states/view.tree.txt" start="#row-3" count="1"
 ```
@@ -90,7 +90,7 @@ A multi-line editor adds visible line numbers (`lines 1-3/3`), any underlined di
 text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 29 (3:9)
 ```
 
-A field in a form is labeled by the form, so its placeholder follows the label:
+In a form, the form provides the field's label, so the placeholder appears after the label:
 
 ```text file="examples/src/test/resources/golden/connection-empty.tree.txt" start="#user" count="1"
 ```

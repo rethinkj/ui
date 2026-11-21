@@ -35,7 +35,7 @@ Store the value and a `ValueField.Draft` in your state:
 | `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30` (also accepts `T`) |
 | `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
 | `BYTES` | `Long` | Decimal units (`817 B`, `1.2 MB`, `12 MB`); parses plain bytes, SI (`KB`–`EB`), and binary (`KiB`–`EiB`); rejects negatives |
-| `DURATION` | `Duration` | The unit that fits the size (`850 ns`, `12 ms`, `1.4 s`, `2 min 3 s`, `1 h 5 min`, `3 d 4 h`); parses sums of units (`1 h 30 min`, `1.5 h`, `us` for `µs`); rejects a number without a unit |
+| `DURATION` | `Duration` | Units that fit the value (`850 ns`, `12 ms`, `1.4 s`, `2 min 3 s`, `1 h 5 min`, `3 d 4 h`); parses sums of numbers with units (`1 h 30 min`, `1.5 h`, `us` for `µs`); rejects numbers without a unit |
 | `BOOLEAN` | `Boolean` | `true`/`false` (also parses `t`, `1`, `yes`, `on` and opposites) |
 | `choice(values, label)` | Any (e.g., enum) | Matches values by unique display label (`Format.choice(List.of(Status.values()), Status::label)`) |
 | `of(text, parse, message)` | Any custom type | Custom formatter/parser (`Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`) |
@@ -51,12 +51,12 @@ Store formats in `static final` constants. Use `format.text(value)` and `format.
 
 ## Durations
 
-`DURATION` writes a `java.time.Duration` in the unit that fits its size, with one decimal below 10 of a unit, so a column of query times reads at a glance. A `DataGrid` column of it aligns right like numbers and sorts by the value ([Rows of records](/docs/components/data-grid/typed)).
+`DURATION` formats a `java.time.Duration` in the unit that fits its size, with one decimal place below 10 of a unit. This makes columns such as query times easy to scan. A `DataGrid` column using `DURATION` aligns right like numbers and sorts by duration value ([Rows of records](/docs/components/data-grid/typed)).
 
 ```java snippet="format-duration"
 ```
 
-Like `BYTES`, the text is rounded: `1.4 s` reads back as 1400 ms, while the value stays as it was until the user edits it.
+Like `BYTES`, the formatted text is rounded. Parsing `1.4 s` returns 1400 ms, while the underlying value stays unchanged until the user edits it.
 
 ## Fixed-precision time formats
 
