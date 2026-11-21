@@ -809,7 +809,7 @@ public final class App<S> {
       }
     }
     if (press) {
-      for (Object id : List.copyOf(focus.opened())) {
+      for (Object id : focus.opened()) {
         El holder = animator.element(id);
         if (holder != null
             && holder.holdsFocus()
@@ -3936,6 +3936,9 @@ public final class App<S> {
    */
   private boolean focusRested(El focus) {
     double due = this.focus.visibleAt(focus);
+    if (Double.isNaN(due)) {
+      return false;
+    }
     if (due > time) {
       restDue = Math.min(restDue, due);
       return false;

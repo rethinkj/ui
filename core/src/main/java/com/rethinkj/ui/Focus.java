@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -83,8 +82,8 @@ final class Focus {
   }
 
   /** The identities of the overlays of the last tree, in the order they opened. */
-  Set<Object> opened() {
-    return opened.keySet();
+  List<Object> opened() {
+    return List.copyOf(opened.keySet());
   }
 
   /**
@@ -204,10 +203,13 @@ final class Focus {
     return false;
   }
 
-  /** When the {@link El#whenFocusVisibleFor} look of {@code el}, the focused element, is due. */
+  /**
+   * When the {@link El#whenFocusVisibleFor} look of {@code el}, the focused element, is due; NaN
+   * when it has none or shows none now, as without a ring or after a key.
+   */
   double visibleAt(El el) {
     if (el == null || el.focusRestLook() == null || !ring || keyed) {
-      return Double.POSITIVE_INFINITY;
+      return Double.NaN;
     }
     return since + el.focusRestDelay();
   }
