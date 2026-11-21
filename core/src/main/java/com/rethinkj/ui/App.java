@@ -3619,7 +3619,8 @@ public final class App<S> {
    * gone, follows the focus with the caret, and places the caret, selection and scroll of every
    * field for its new layout. The editor of a focused field whose row scrolled out of the rows
    * that exist stays, with the focus, for when the row comes back, and so does one whose
-   * selection is pending ({@link El#isSelectionPending}) while its row is out; the editors of other fields in such rows go with them, as
+   * selection is pending ({@link El#isSelectionPending}) while its row is out of a list that is
+   * not leaving; the editors of other fields in such rows go with them, as
    * everything else the app keeps of a row. A field that fades out
    * ({@link El#isExiting}) has lost its editor, and with it its caret, selection and composition.
    */
@@ -3634,7 +3635,10 @@ public final class App<S> {
       FieldState state = editor.element().fieldState();
       if (editor == waiting
           || kept.contains(editor)
-          || (state == null && editor.selectionPending() && waits(entry.getKey()))) {
+          || (state == null
+              && editor.selectionPending()
+              && waits(entry.getKey())
+              && !gone(animator.inRow(entry.getKey()).listId(), true))) {
         return false; // an edit's answer, or onSelect's hearing of it, waits for its row
       }
       if (state == null || state.app == this) { // not taken by another app's tree meanwhile

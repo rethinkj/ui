@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
@@ -589,5 +590,72 @@ class FieldStateTest {
     app.keyDown(new Key("Z", Key.CONTROL, false));
     app.frame();
     assertEquals("", drafts.text, "nothing of the closed draft's history");
+  }
+
+  static final class Panel {
+    String text = "";
+    boolean open = true;
+    boolean grown; // the row above is tall, which pushes the draft's out of view
+    boolean growOnEdit;
+    El field;
+    El list;
+    El other;
+  }
+
+  @Test
+  void anEditWaitingInARowOfAListThatFadesOutLeavesNothingToANewDraft() {
+    TextLibraries.assumeLoaded();
+    Panel panel = new Panel();
+    App<Panel> app = new App<>(panel, p -> {
+      p.other = el().h(20).focusable();
+      El root = col().wFull().hFull().child(p.other);
+      if (p.open) {
+        p.list = el().wFull()
+            .h(100)
+            .rows(20, new RowHeights(i -> i == 0 && p.grown ? 2000 : 24), i -> {
+              if (i != 5) {
+                return el().h(i == 0 && p.grown ? 2000 : 24);
+              }
+              p.field = El.text(p.text).key("draft").h(24).wFull().editable(value -> {
+                p.text = value;
+                p.grown |= p.growOnEdit;
+              });
+              return p.field;
+            });
+        root.child(el().key("panel").motion(Spring.SNAP).child(p.list));
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 200, 1);
+    app.frame();
+    app.focus(panel.field);
+    app.frame();
+    app.textInput("h");
+    app.frame();
+    panel.growOnEdit = true;
+    app.textInput("i"); // its answer leaves the row out
+    app.frame();
+    assertFalse(panel.list.hasRow(5), "the row is out of view");
+    panel.growOnEdit = false;
+    app.focus(panel.other); // the focus no longer keeps the draft's editor
+    app.frame();
+    panel.open = false; // the panel fades out
+    app.invalidate();
+    app.frame();
+    while (app.isMoving()) {
+      app.advance(1.0 / 60);
+      app.frame();
+    }
+    panel.open = true; // a new, empty draft under the same keys
+    panel.text = "";
+    panel.grown = false;
+    app.invalidate();
+    app.frame();
+    app.focus(panel.field);
+    app.frame();
+    app.keyDown(new Key("Z", Key.CONTROL, false));
+    app.frame();
+    assertEquals("", panel.text, "nothing of the closed draft's history");
   }
 }
