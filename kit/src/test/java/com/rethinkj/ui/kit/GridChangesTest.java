@@ -2,10 +2,17 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.CellValue;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.Filter;
+import com.rethinkj.ui.kit.DataGrid.Filter.Between;
+import com.rethinkj.ui.kit.DataGrid.Filter.NullCheck;
+import com.rethinkj.ui.kit.DataGrid.Filter.OneOf;
+import com.rethinkj.ui.kit.DataGrid.Filter.RegexMatch;
+import com.rethinkj.ui.kit.DataGrid.Filter.TextMatch;
 import com.rethinkj.ui.kit.DataGrid.Range;
 import com.rethinkj.ui.kit.DataGrid.Status;
 import com.rethinkj.ui.kit.GridChanges.Kind;
@@ -15,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.regex.PatternSyntaxException;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -269,33 +277,33 @@ class GridChangesTest {
 
   @Test
   void filtersKeepWhatTheySay() {
-    DataGrid.Filter contains = DataGrid.Filter.of(0, DataGrid.Filter.Kind.CONTAINS, "LOVE");
+    Filter contains = new Filter(0, new TextMatch(Filter.Kind.CONTAINS, "LOVE"));
     assertEquals(true, contains.matches("Ada Lovelace"));
     assertEquals(false, contains.matches(null), "NULL contains nothing");
     assertEquals(
-        true,
-        DataGrid.Filter.of(0, DataGrid.Filter.Kind.STARTS_WITH, "ada").matches("Ada Lovelace"));
-    assertEquals(
-        true,
-        DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "^a.a\\b").matches("Ada Lovelace"));
-    assertEquals(
-        false,
-        DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "(").matches("("),
-        "not a regular expression: nothing");
-    DataGrid.Filter range = DataGrid.Filter.between(0, "9", "100");
+        true, new Filter(0, new TextMatch(Filter.Kind.STARTS_WITH, "ada")).matches("Ada Lovelace"));
+    Filter regex = new Filter(0, new RegexMatch("^a.a\\b"));
+    assertEquals(true, regex.matches("Ada Lovelace"));
+    assertEquals(regex, new Filter(0, new RegexMatch("^a.a\\b")), "equal by the expression");
+    assertEquals(regex.hashCode(), new Filter(0, new RegexMatch("^a.a\\b")).hashCode());
+    assertThrows(
+        PatternSyntaxException.class,
+        () -> new RegexMatch("("),
+        "compiled once, when it is made, not for each cell");
+    assertThrows(IllegalArgumentException.class, () -> new TextMatch(Filter.Kind.BETWEEN, "1"));
+    Filter range = new Filter(0, new Between("9", "100"));
     assertEquals(true, range.matches("10.5"), "as numbers, not as text");
     assertEquals(false, range.matches("100.01"));
     assertEquals(
         true,
-        DataGrid.Filter.between(0, "2026-01-01", "").matches("2026-03-01 08:00"),
+        new Filter(0, new Between("2026-01-01", "")).matches("2026-03-01 08:00"),
         "dates as text, an open end");
-    assertEquals(true, DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).matches("paid"));
-    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.IS_NULL, "").matches(null));
-    assertEquals(false, DataGrid.Filter.of(0, DataGrid.Filter.Kind.NOT_NULL, "").matches(null));
+    Filter oneOf = new Filter(0, new OneOf(List.of("paid", "shipped")));
+    assertEquals(true, oneOf.matches("paid"));
+    assertEquals(true, new Filter(0, new NullCheck(true)).matches(null));
+    assertEquals(false, new Filter(0, new NullCheck(false)).matches(null));
     assertEquals("amount 9 – 100", range.describe("amount"));
-    assertEquals(
-        "status in paid, shipped",
-        DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).describe("status"));
+    assertEquals("status in paid, shipped", oneOf.describe("status"));
   }
 
   // Pasted text

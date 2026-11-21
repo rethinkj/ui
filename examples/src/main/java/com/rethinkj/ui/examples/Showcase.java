@@ -176,7 +176,8 @@ public final class Showcase {
   final Selection selection = new Selection(Mode.CELLS);
   final Menu.State gridMenu = new Menu.State();
   // Leaves out the refunded orders; the rows the filters keep, and the changes to them, by id.
-  List<Filter> gridFilters = List.of(Filter.oneOf(6, List.of("paid", "pending", "shipped")));
+  List<Filter> gridFilters =
+      List.of(new Filter(6, new Filter.OneOf(List.of("paid", "pending", "shipped"))));
   List<Samples.Order> kept = keep();
   final GridChanges changes = new GridChanges(new GridChanges.Rows() {
     @Override

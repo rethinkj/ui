@@ -24,11 +24,20 @@ Call `DataGrid.filterBar(columns, filters, onFilter)` to render a row of removab
 
 ## `Filter` API
 
+A `Filter` is a column and a `Spec`, a sealed type with one record per shape of filter:
+
+| Spec | Keeps |
+| --- | --- |
+| `new TextMatch(Kind, value)` | Text that `CONTAINS`, `STARTS_WITH` or `EQUALS` the value, whatever the case |
+| `new RegexMatch(expression)` | Text in which a case-insensitive regular expression finds a match; compiled once, it throws `PatternSyntaxException` for an invalid expression |
+| `new Between(from, to)` | A range, as numbers where both ends are (leave either end empty for an open end) |
+| `new OneOf(values)` | Any listed value |
+| `new NullCheck(isNull)` | `NULL`, or not `NULL` |
+
+Filters are equal when their column and spec are, a `RegexMatch` by its expression. To translate a filter to SQL, switch over `filter.spec()`.
+
 | Method | Description |
 | --- | --- |
-| `Filter.of(column, Kind, value)` | `CONTAINS`, `STARTS_WITH`, `EQUALS`, `MATCHES` (case-insensitive regex), `IS_NULL`, `NOT_NULL` |
-| `Filter.between(column, from, to)` | Range filter (leave either end empty for open-ended bounds) |
-| `Filter.oneOf(column, values)` | Keep rows matching any listed value |
 | `filter.matches(cell)` | Returns `true` if a cell's text matches (for in-memory filtering) |
 | `filter.describe(title)` | Human-readable summary used on filter badges |
 

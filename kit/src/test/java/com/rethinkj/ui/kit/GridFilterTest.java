@@ -61,7 +61,8 @@ class GridFilterTest {
     assertTrue(dump.contains("role=dialog label=\"Filter customer\""), dump);
     assertEquals("value", app.focused().key());
     run(app, "type \"ada\"\nkey Enter\nframe");
-    assertEquals(List.of(Filter.of(1, Filter.Kind.CONTAINS, "ada")), ledger.filters);
+    assertEquals(
+        List.of(new Filter(1, new Filter.TextMatch(Filter.Kind.CONTAINS, "ada"))), ledger.filters);
     run(app, "leave\nadvance 1\nframe");
     assertTrue(
         line(app, "filter-1").contains("value=\"customer contains ada\""),
@@ -80,14 +81,15 @@ class GridFilterTest {
     run(app, "key ArrowRight\nkey ArrowRight\nkey ArrowDown alt\nframe\nadvance 1\nframe");
     assertEquals("from", app.focused().key(), "Alt+Down opens the cursor's column's filter");
     run(app, "type \"10\"\nkey Tab\ntype \"100\"\nkey Enter\nframe");
-    assertEquals(List.of(Filter.between(3, "10", "100")), ledger.filters);
+    assertEquals(List.of(new Filter(3, new Filter.Between("10", "100"))), ledger.filters);
 
     run(
         app,
         "advance 1\nframe\nkey ArrowRight\nkey ArrowRight\nkey ArrowDown alt\nframe\n"
             + "advance 1\nframe\npress #value-paid\npress #value-refunded\nframe\n"
             + "press label=\"Apply\"\nframe");
-    assertEquals(Filter.oneOf(5, List.of("pending", "shipped")), ledger.filters.getLast());
+    assertEquals(
+        new Filter(5, new Filter.OneOf(List.of("pending", "shipped"))), ledger.filters.getLast());
     assertEquals(2, ledger.filters.size());
 
     run(
@@ -95,7 +97,7 @@ class GridFilterTest {
         "advance 1\nframe\nkey End\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
             + "press #kind\nframe\nadvance 1\nframe\npress label=\"Is NULL\"\nframe\n"
             + "press label=\"Apply\"\nframe");
-    assertEquals(Filter.of(7, Filter.Kind.IS_NULL, ""), ledger.filters.getLast());
+    assertEquals(new Filter(7, new Filter.NullCheck(true)), ledger.filters.getLast());
     run(app, "advance 1\nframe");
     assertTrue(app.tree().dump().contains("label=\"Clear all\""), app.tree().dump());
     run(app, "press label=\"Clear all\"\nframe");

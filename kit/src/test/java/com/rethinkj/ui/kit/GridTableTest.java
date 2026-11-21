@@ -267,20 +267,23 @@ class GridTableTest {
 
     // 9.00 is between 8.5 and 10, which as texts it is not.
     List<Item> kept = s.items.stream()
-        .filter(table.filter(columns, List.of(Filter.between(2, "8.5", "10"))))
+        .filter(table.filter(columns, List.of(new Filter(2, new Filter.Between("8.5", "10")))))
         .toList();
     assertEquals(List.of(8L, 9L), kept.stream().map(Item::id).toList());
     assertEquals(
         13,
         s.items.stream()
-            .filter(table.filter(columns, List.of(Filter.oneOf(4, List.of("game")))))
+            .filter(
+                table.filter(columns, List.of(new Filter(4, new Filter.OneOf(List.of("game"))))))
             .count());
+    assertTrue(new Filter(2, new Filter.TextMatch(Filter.Kind.EQUALS, "10"))
+        .matches(new BigDecimal("10.00"), Format.DECIMAL));
+    assertTrue(new Filter(3, new Filter.NullCheck(true)).matches(null, Format.DATE));
+    assertFalse(new Filter(1, new Filter.TextMatch(Filter.Kind.CONTAINS, "x"))
+        .matches("item", Format.TEXT));
     assertTrue(
-        Filter.of(2, Filter.Kind.EQUALS, "10").matches(new BigDecimal("10.00"), Format.DECIMAL));
-    assertTrue(Filter.of(3, Filter.Kind.IS_NULL, "").matches(null, Format.DATE));
-    assertFalse(Filter.of(1, Filter.Kind.CONTAINS, "x").matches("item", Format.TEXT));
-    assertTrue(
-        Filter.of(1, Filter.Kind.EQUALS, "ITEM").matches("item", Format.TEXT),
+        new Filter(1, new Filter.TextMatch(Filter.Kind.EQUALS, "ITEM"))
+            .matches("item", Format.TEXT),
         "text compares whatever the case, as the text filter does");
   }
 

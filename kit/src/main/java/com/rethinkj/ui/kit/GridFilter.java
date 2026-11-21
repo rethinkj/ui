@@ -13,13 +13,18 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.DataGrid.Build;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Filter;
+import com.rethinkj.ui.kit.DataGrid.Filter.Between;
 import com.rethinkj.ui.kit.DataGrid.Filter.Kind;
+import com.rethinkj.ui.kit.DataGrid.Filter.NullCheck;
+import com.rethinkj.ui.kit.DataGrid.Filter.OneOf;
+import com.rethinkj.ui.kit.DataGrid.Filter.RegexMatch;
+import com.rethinkj.ui.kit.DataGrid.Filter.Spec;
+import com.rethinkj.ui.kit.DataGrid.Filter.TextMatch;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
@@ -31,6 +36,15 @@ import java.util.regex.PatternSyntaxException;
 final class GridFilter {
 
   private GridFilter() {}
+
+  /** What the popover holds: nothing, which clears the column's filter, a filter, or an error. */
+  private sealed interface Draft {}
+
+  private record Empty() implements Draft {}
+
+  private record Valid(Filter filter) implements Draft {}
+
+  private record Invalid(String message) implements Draft {}
 
   /** The column's filter among the grid's, or null. */
   private static Filter filterOf(Build b, int column) {
@@ -123,11 +137,28 @@ final class GridFilter {
     sel.filterColumn = column;
     sel.filtering.open();
     sel.filterKinds.close();
-    sel.filterKind = set != null ? set.kind() : kinds(c).getFirst();
-    sel.filterValue = set != null ? set.value() : "";
-    sel.filterTo = set != null ? set.to() : "";
+    Spec spec = set != null ? set.spec() : null;
+    sel.filterKind = spec != null ? kind(spec) : kinds(c).getFirst();
+    sel.filterValue = switch (spec) {
+      case TextMatch text -> text.value();
+      case RegexMatch regex -> regex.expression();
+      case Between range -> range.from();
+      case null, default -> "";
+    };
+    sel.filterTo = spec instanceof Between range ? range.to() : "";
     sel.filterValues.clear();
-    sel.filterValues.addAll(set != null && set.kind() == Kind.ONE_OF ? set.values() : values(c));
+    sel.filterValues.addAll(spec instanceof OneOf oneOf ? oneOf.values() : values(c));
+  }
+
+  /** The kind of filter that keeps what {@code spec} does, as the popover offers it. */
+  private static Kind kind(Spec spec) {
+    return switch (spec) {
+      case TextMatch text -> text.kind();
+      case RegexMatch _ -> Kind.MATCHES;
+      case Between _ -> Kind.BETWEEN;
+      case OneOf _ -> Kind.ONE_OF;
+      case NullCheck(boolean isNull) -> isNull ? Kind.IS_NULL : Kind.NOT_NULL;
+    };
   }
 
   private static void close(Selection sel) {
@@ -136,41 +167,43 @@ final class GridFilter {
     sel.filterColumn = -1;
   }
 
-  /** The filter the popover holds, null for none, or the message of what is wrong with it. */
-  private static Object made(Texts texts, Selection sel, Column c, int column) {
+  /**
+   * What the popover holds: a regular expression is compiled here, once, and one that is none
+   * is {@link Invalid}, so the popover says so and applies nothing.
+   */
+  private static Draft made(Texts texts, Selection sel, Column c, int column) {
     Kind kind = sel.filterKind;
-    if (kind == Kind.EQUALS && ordered(c) && !sel.filterValue.isBlank()) {
-      String error = GridEdit.check(c, sel.filterValue.strip()); // equality needs a value
+    String value = sel.filterValue;
+    if (kind == Kind.EQUALS && ordered(c) && !value.isBlank()) {
+      String error = GridEdit.check(c, value.strip()); // equality needs a value
       if (error != null) {
-        return error;
+        return new Invalid(error);
       }
     }
-    return switch (kind) {
-      case CONTAINS, STARTS_WITH, EQUALS ->
-        sel.filterValue.isEmpty() ? null : Filter.of(column, kind, sel.filterValue);
-      case MATCHES -> {
-        try {
-          Pattern.compile(sel.filterValue);
-          yield sel.filterValue.isEmpty() ? null : Filter.of(column, kind, sel.filterValue);
-        } catch (PatternSyntaxException e) {
-          yield texts.notARegularExpression();
-        }
-      }
-      case BETWEEN ->
-        sel.filterValue.isBlank() && sel.filterTo.isBlank()
-            ? null
-            : Filter.between(column, sel.filterValue.strip(), sel.filterTo.strip());
-      case ONE_OF -> {
-        List<String> kept = new ArrayList<>();
-        for (String value : values(c)) {
-          if (sel.filterValues.contains(value)) {
-            kept.add(value);
+    Spec spec;
+    try {
+      spec = switch (kind) {
+        case CONTAINS, STARTS_WITH, EQUALS -> value.isEmpty() ? null : new TextMatch(kind, value);
+        case MATCHES -> value.isEmpty() ? null : new RegexMatch(value);
+        case BETWEEN ->
+          value.isBlank() && sel.filterTo.isBlank()
+              ? null
+              : new Between(value.strip(), sel.filterTo.strip());
+        case ONE_OF -> {
+          List<String> kept = new ArrayList<>();
+          for (String choice : values(c)) {
+            if (sel.filterValues.contains(choice)) {
+              kept.add(choice);
+            }
           }
+          yield kept.size() == values(c).size() ? null : new OneOf(kept);
         }
-        yield kept.size() == values(c).size() ? null : Filter.oneOf(column, kept);
-      }
-      case IS_NULL, NOT_NULL -> Filter.of(column, kind, "");
-    };
+        case IS_NULL, NOT_NULL -> new NullCheck(kind == Kind.IS_NULL);
+      };
+    } catch (PatternSyntaxException e) {
+      return new Invalid(texts.notARegularExpression());
+    }
+    return spec == null ? new Empty() : new Valid(new Filter(column, spec));
   }
 
   /** Whether the column's filters compare values, as numbers and dates do. */
@@ -209,9 +242,9 @@ final class GridFilter {
     Column c = b.columns.get(column);
     List<Kind> kinds = kinds(c);
     Texts texts = b.texts;
-    Object made = made(texts, sel, c, column);
-    String error = made instanceof String message ? message : null;
-    Filter filter = made instanceof Filter f ? f : null;
+    Draft draft = made(texts, sel, c, column);
+    String error = draft instanceof Invalid(String message) ? message : null;
+    Filter filter = draft instanceof Valid(Filter made) ? made : null;
     float width = theme.size().field();
     El content = col()
         .gap(theme.space().s())

@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import java.util.function.ObjLongConsumer;
+import java.util.regex.Pattern;
 
 /**
  * A table of query results: a header with the column titles over rows of cells, as dense as a
@@ -692,18 +694,21 @@ public final class DataGrid {
   /**
    * A filter on a column, which the header's filter sets ({@link Options#filters}) and the app
    * applies, in SQL or with {@link #matches} to its own rows; the grid filters nothing itself.
+   * Filters of the same column that keep the same are equal.
    *
    * @param column the column, as the grid counts them
-   * @param kind what it keeps
-   * @param value the text of {@link Kind#CONTAINS}, {@link Kind#STARTS_WITH}, {@link
-   *     Kind#EQUALS} and {@link Kind#MATCHES}, or the lower end of {@link Kind#BETWEEN}, empty
-   *     for none
-   * @param to the upper end of {@link Kind#BETWEEN}, empty for none; else empty
-   * @param values what {@link Kind#ONE_OF} keeps; else empty
+   * @param spec what it keeps
    */
-  public record Filter(int column, Kind kind, String value, String to, List<String> values) {
+  public record Filter(int column, Spec spec) {
 
-    /** What a filter keeps. */
+    public Filter {
+      Objects.requireNonNull(spec, "spec");
+    }
+
+    /**
+     * The kinds of filter, as the header's popover offers them and {@link Texts#filterKind}
+     * names them; a {@link TextMatch} takes the first three.
+     */
     public enum Kind {
       /** Text with the value in it, whatever the case. */
       CONTAINS,
@@ -711,68 +716,115 @@ public final class DataGrid {
       STARTS_WITH,
       /** The value, whatever the case. */
       EQUALS,
-      /** Text in which the value, a regular expression, finds a match, whatever the case. */
+      /** Text in which a regular expression finds a match ({@link RegexMatch}). */
       MATCHES,
-      /** From the value to {@code to}, both included, as numbers where both are numbers. */
+      /** A range ({@link Between}). */
       BETWEEN,
-      /** One of the values. */
+      /** One of the values ({@link OneOf}). */
       ONE_OF,
       IS_NULL,
       NOT_NULL
     }
 
-    public Filter {
-      Objects.requireNonNull(kind, "kind");
-      value = value == null ? "" : value;
-      to = to == null ? "" : to;
-      values = List.copyOf(values);
+    /** What a filter keeps: one type for each shape of filter. */
+    public sealed interface Spec permits TextMatch, RegexMatch, Between, OneOf, NullCheck {}
+
+    /**
+     * Text with {@code value} in it, beginning with it or equal to it, whatever the case.
+     *
+     * @param kind {@link Kind#CONTAINS}, {@link Kind#STARTS_WITH} or {@link Kind#EQUALS}
+     * @param value the text, null for empty
+     */
+    public record TextMatch(Kind kind, String value) implements Spec {
+      /**
+       * @throws IllegalArgumentException for another kind
+       */
+      public TextMatch {
+        if (kind != Kind.CONTAINS && kind != Kind.STARTS_WITH && kind != Kind.EQUALS) {
+          throw new IllegalArgumentException("Not a kind of text: " + kind);
+        }
+        value = value == null ? "" : value;
+      }
     }
 
-    /** A filter of text: one of the first four kinds, or NULL or not. */
-    public static Filter of(int column, Kind kind, String value) {
-      return new Filter(column, kind, value, "", List.of());
+    /**
+     * Text in which a regular expression finds a match, whatever the case. The expression is
+     * compiled once, when this is made, and two of them are equal where their expressions are.
+     */
+    public static final class RegexMatch implements Spec {
+      private final Pattern pattern;
+
+      /**
+       * @param expression a regular expression of {@link Pattern}
+       * @throws java.util.regex.PatternSyntaxException if it is none
+       */
+      public RegexMatch(String expression) {
+        pattern = Pattern.compile(expression, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+      }
+
+      public String expression() {
+        return pattern.pattern();
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        return o instanceof RegexMatch other && other.expression().equals(expression());
+      }
+
+      @Override
+      public int hashCode() {
+        return expression().hashCode();
+      }
+
+      @Override
+      public String toString() {
+        return "RegexMatch[expression=" + expression() + "]";
+      }
     }
 
-    /** A filter of a range, either end empty for none. */
-    public static Filter between(int column, String from, String to) {
-      return new Filter(column, Kind.BETWEEN, from, to, List.of());
+    /**
+     * From {@code from} to {@code to}, both included, as numbers where both are numbers.
+     *
+     * @param from the lower end, empty or null for none
+     * @param to the upper end, empty or null for none
+     */
+    public record Between(String from, String to) implements Spec {
+      public Between {
+        from = from == null ? "" : from;
+        to = to == null ? "" : to;
+      }
     }
 
-    /** A filter of values. */
-    public static Filter oneOf(int column, List<String> values) {
-      return new Filter(column, Kind.ONE_OF, "", "", values);
+    /** One of {@code values}. */
+    public record OneOf(List<String> values) implements Spec {
+      public OneOf {
+        values = List.copyOf(values);
+      }
     }
+
+    /** NULL, or not NULL. */
+    public record NullCheck(boolean isNull) implements Spec {}
 
     /** Whether a cell's value, null for NULL, passes. */
     public boolean matches(String cell) {
-      if (kind == Kind.IS_NULL || kind == Kind.NOT_NULL) {
-        return cell == null == (kind == Kind.IS_NULL);
-      }
       if (cell == null) {
-        return false;
+        return spec instanceof NullCheck(boolean isNull) && isNull;
       }
-      String low = cell.toLowerCase(java.util.Locale.ROOT);
-      String want = value.toLowerCase(java.util.Locale.ROOT);
-      return switch (kind) {
-        case CONTAINS -> low.contains(want);
-        case STARTS_WITH -> low.startsWith(want);
-        case EQUALS -> low.equals(want);
-        case MATCHES -> {
-          try {
-            yield java.util.regex.Pattern.compile(
-                    value,
-                    java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE)
-                .matcher(cell)
-                .find();
-          } catch (java.util.regex.PatternSyntaxException e) {
-            yield false;
-          }
+      return switch (spec) {
+        case TextMatch(Kind kind, String value) -> {
+          String low = cell.toLowerCase(Locale.ROOT);
+          String want = value.toLowerCase(Locale.ROOT);
+          yield switch (kind) {
+            case CONTAINS -> low.contains(want);
+            case STARTS_WITH -> low.startsWith(want);
+            default -> low.equals(want); // EQUALS, the only other kind a TextMatch takes
+          };
         }
-        case BETWEEN ->
-          (value.isBlank() || compare(cell, value) >= 0)
-              && (to.isBlank() || compare(cell, to) <= 0);
-        case ONE_OF -> values.contains(cell);
-        default -> true;
+        case RegexMatch regex -> regex.pattern.matcher(cell).find();
+        case Between(String from, String to) ->
+          (from.isBlank() || compare(cell, from) >= 0) && (to.isBlank() || compare(cell, to) <= 0);
+        case OneOf(List<String> values) -> values.contains(cell);
+        case NullCheck(boolean isNull) -> !isNull;
       };
     }
 
@@ -784,20 +836,26 @@ public final class DataGrid {
      * text kinds and others look at the value's text, as {@link #matches(String)} does.
      */
     public <V> boolean matches(V cell, Format<V> format) {
-      if (cell == null || kind == Kind.IS_NULL || kind == Kind.NOT_NULL) {
+      if (cell == null || spec instanceof NullCheck) {
         return matches(cell == null ? null : format.text(cell));
       }
-      if (cell instanceof Comparable<?>
-          && !(cell instanceof String) // text compares whatever the case, below
-          && (kind == Kind.EQUALS || kind == Kind.BETWEEN)) {
-        Format.Parsed<V> low = value.isBlank() ? null : format.parseText(value.strip());
-        Format.Parsed<V> high = to.isBlank() ? null : format.parseText(to.strip());
-        if (kind == Kind.EQUALS) { // needs a value of the format: no open end here
-          return low != null && low.valid() && compareValues(cell, low.value()) == 0;
-        }
-        if ((low == null || low.valid()) && (high == null || high.valid())) {
-          return (low == null || compareValues(cell, low.value()) >= 0)
-              && (high == null || compareValues(cell, high.value()) <= 0);
+      if (cell instanceof Comparable<?> && !(cell instanceof String)) { // text: whatever the case
+        switch (spec) {
+          case TextMatch(Kind kind, String value)
+          when kind == Kind.EQUALS -> {
+            // needs a value of the format: no open end here
+            Format.Parsed<V> want = value.isBlank() ? null : format.parseText(value.strip());
+            return want != null && want.valid() && compareValues(cell, want.value()) == 0;
+          }
+          case Between(String from, String to) -> {
+            Format.Parsed<V> low = from.isBlank() ? null : format.parseText(from.strip());
+            Format.Parsed<V> high = to.isBlank() ? null : format.parseText(to.strip());
+            if ((low == null || low.valid()) && (high == null || high.valid())) {
+              return (low == null || compareValues(cell, low.value()) >= 0)
+                  && (high == null || compareValues(cell, high.value()) <= 0);
+            }
+          }
+          default -> {}
         }
       }
       return matches(format.text(cell));
@@ -822,21 +880,23 @@ public final class DataGrid {
      */
     public String describe(String title) {
       Texts texts = Texts.CURRENT.get();
-      return switch (kind) {
-        case CONTAINS -> texts.contains(title, value);
-        case STARTS_WITH -> texts.startsWith(title, value);
-        case EQUALS -> title + " = " + value;
-        case MATCHES -> texts.matches(title, value);
-        case BETWEEN ->
+      return switch (spec) {
+        case TextMatch(Kind kind, String value) ->
+          switch (kind) {
+            case CONTAINS -> texts.contains(title, value);
+            case STARTS_WITH -> texts.startsWith(title, value);
+            default -> title + " = " + value;
+          };
+        case RegexMatch regex -> texts.matches(title, regex.expression());
+        case Between(String from, String to) ->
           to.isBlank()
-              ? title + " ≥ " + value
-              : value.isBlank() ? title + " ≤ " + to : title + " " + value + " – " + to;
-        case ONE_OF ->
+              ? title + " ≥ " + from
+              : from.isBlank() ? title + " ≤ " + to : title + " " + from + " – " + to;
+        case OneOf(List<String> values) ->
           values.size() == 1
               ? title + " = " + values.getFirst()
               : texts.oneOf(title, String.join(", ", values));
-        case IS_NULL -> texts.isNull(title);
-        case NOT_NULL -> texts.isNotNull(title);
+        case NullCheck(boolean isNull) -> isNull ? texts.isNull(title) : texts.isNotNull(title);
       };
     }
   }
@@ -2253,7 +2313,7 @@ public final class DataGrid {
       List<Filter> shownFilters = new ArrayList<>();
       for (Filter f : filters) {
         if (f.column() < all && shown[f.column()] >= 0) {
-          shownFilters.add(new Filter(shown[f.column()], f.kind(), f.value(), f.to(), f.values()));
+          shownFilters.add(new Filter(shown[f.column()], f.spec()));
         } else {
           hiddenFilters.add(f);
         }
@@ -2264,7 +2324,7 @@ public final class DataGrid {
         onFilter = next -> {
           List<Filter> mapped = new ArrayList<>(hiddenFilters);
           for (Filter f : next) {
-            mapped.add(new Filter(full[f.column()], f.kind(), f.value(), f.to(), f.values()));
+            mapped.add(new Filter(full[f.column()], f.spec()));
           }
           to.accept(List.copyOf(mapped));
         };
@@ -3235,7 +3295,7 @@ public final class DataGrid {
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */
   static String statusName(Status status) {
-    return status.name().toLowerCase(java.util.Locale.ROOT);
+    return status.name().toLowerCase(Locale.ROOT);
   }
 
   /** The color of the mark at the start of a row in this status. */

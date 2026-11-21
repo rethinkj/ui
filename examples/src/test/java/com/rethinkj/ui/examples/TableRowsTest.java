@@ -23,11 +23,13 @@ class TableRowsTest {
 
   private static final List<List<Filter>> FILTERS = List.of(
       List.of(),
-      List.of(Filter.oneOf(2, List.of("paid", "pending"))),
-      List.of(Filter.between(3, "100", "900")),
-      List.of(Filter.of(5, Filter.Kind.CONTAINS, "ada"), Filter.oneOf(4, List.of("true"))),
-      List.of(Filter.of(6, Filter.Kind.IS_NULL, "")),
-      List.of(Filter.of(5, Filter.Kind.EQUALS, "nobody@example.com")));
+      List.of(new Filter(2, new Filter.OneOf(List.of("paid", "pending")))),
+      List.of(new Filter(3, new Filter.Between("100", "900"))),
+      List.of(
+          new Filter(5, new Filter.TextMatch(Filter.Kind.CONTAINS, "ada")),
+          new Filter(4, new Filter.OneOf(List.of("true")))),
+      List.of(new Filter(6, new Filter.NullCheck(true))),
+      List.of(new Filter(5, new Filter.TextMatch(Filter.Kind.EQUALS, "nobody@example.com"))));
 
   /** Every row the filters keep, as a scan of all of them finds it, in the order shown. */
   private static List<Long> scan(TableRows rows) {
@@ -94,7 +96,7 @@ class TableRowsTest {
   void aFilterOfAMillionRowsLooksAtOnePeriod() {
     TableRows rows = new TableRows(new TableRows.Stored());
     rows.base = 1_000_000;
-    rows.filters = List.of(Filter.oneOf(2, List.of("pending")));
+    rows.filters = List.of(new Filter(2, new Filter.OneOf(List.of("pending"))));
     rows.refresh();
     assertEquals(250_000, rows.count(), "every fourth order is pending");
     assertEquals("pending", rows.cell(249_999, 2));

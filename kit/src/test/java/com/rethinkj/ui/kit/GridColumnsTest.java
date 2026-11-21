@@ -89,7 +89,7 @@ class GridColumnsTest {
         app,
         "move #column-3\nframe\npress #filter-3\nframe\nadvance 1\nframe\ntype \"5\"\n"
             + "key Tab\ntype \"50\"\nkey Enter\nframe");
-    assertEquals(List.of(Filter.between(3, "5", "50")), ledger.filters);
+    assertEquals(List.of(new Filter(3, new Filter.Between("5", "50"))), ledger.filters);
     run(
         app,
         "focus #ledger\nkey Home\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe\n"
