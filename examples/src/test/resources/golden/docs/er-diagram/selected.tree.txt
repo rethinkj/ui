@@ -34,340 +34,342 @@ el 0,0 1040x720
         el role=button label="Arrange all" 931,37 92x24
           text "Arrange all" 944,41 66x16
       el 9,65 1022x1
-      el role=graphics-document label="Entity relationship diagram" 9,66 1022x645 value="Zoom 75%" focused
-        el #public/ role=group label="public, 8 tables" 52,90 936x411
-          el 52,90 936x411
-            el 53,91 934x21
-              text label="database" "\u{F0D7}" 59,97 9x9
-              text "public · 8 tables" 70,96 70x11
-        el #billing/ role=group label="billing, 1 table" 52,516 216x171
-          el 52,516 216x171
-            el 53,517 214x21
-              text label="database" "\u{F0D7}" 59,523 9x9
-              text "billing · 1 table" 70,522 62x11
-        el 276,214 4x4
-        el 297,176 13x9
-        el 250,213 11x9
-        el 777,299 13x9
-        el 490,314 11x9
-        el 297,332 13x9
-        el 250,333 17x9
-        el 57,351 13x9
-        el 53,333 17x9
-        el 537,417 13x9
-        el 490,314 11x9
-        el 537,435 13x9
-        el 490,452 11x9
-        el 268,218 4x4
-        el 537,230 13x9
-        el 250,214 11x9
-        el 537,248 13x9
-        el 490,154 11x9
-        el 537,266 13x9
-        el 490,162 18x9
-        el 777,282 13x9
-        el 730,212 11x9
-        el 250,602 11x9
-        el 539,212 11x9
-        el #public.address/address_customer_fk role=graphics-symbol label="address_customer_fk" 281,177 29x8 value="Dimmed"
-          el 283,180 27x1
-        el 276,182 8x34
-          el 279,184 1x31
-        el 250,214 28x4
-          el 250,217 27x1
-        el 279,180 9x9
-        el 271,209 9x9
-        el #public.order_item/order_item_product_fk role=graphics-symbol label="order_item_product_fk" 754,300 36x8 value="Dimmed"
-          el 756,303 34x1
-        el 749,305 8x12
-          el 752,307 1x9
-        el 490,315 261x8
-          el 490,318 260x1
-        el 752,303 9x9
-        el 744,310 9x9
-        el #public.product/product_category_fk role=graphics-symbol label="product_category_fk" 280,333 30x8 value="Dimmed"
-          el 280,336 30x1
-        el 276,337 8x1
-          el 279,337 1x1
-        el 250,334 30x8
-          el 250,337 30x1
-        el 260,334 6x7
-        el #public.category/category_parent_fk role=graphics-symbol label="category_parent_fk" 49,352 21x8 value="Dimmed"
-          el 51,355 19x1
-        el 44,339 8x15
-          el 47,341 1x12
-        el 49,334 21x8
-          el 51,337 19x1
-        el 47,347 9x9
-        el 47,337 9x9
-        el 54,334 6x7
-        el #public.product_tag/product_tag_product_fk role=graphics-symbol label="product_tag_product_fk" 506,418 44x8 value="Dimmed"
-          el 508,421 42x1
-        el 501,320 8x100
-          el 504,322 1x97
-        el 490,315 13x8
-          el 490,318 12x1
+      el role=graphics-document label="Entity relationship diagram" 9,66 1022x645 value="Zoom 77%" focused
+        el #public/ role=group label="public, 8 tables" 39,82 962x422
+          el 39,82 962x422
+            el 40,83 960x22
+              text label="database" "\u{F0D7}" 46,89 9x9
+              text "public · 8 tables" 57,88 70x11
+        el #billing/ role=group label="billing, 1 table" 39,519 222x176
+          el 39,519 222x176
+            el 40,520 220x22
+              text label="database" "\u{F0D7}" 46,526 9x9
+              text "billing · 1 table" 57,525 62x11
+        el 270,209 4x4
+        el 291,170 13x9
+        el 243,208 11x9
+        el 784,297 13x9
+        el 489,312 11x9
+        el 291,330 13x9
+        el 243,332 18x9
+        el 45,350 13x9
+        el 40,332 18x9
+        el 538,417 13x9
+        el 489,312 11x9
+        el 538,436 13x9
+        el 489,453 11x9
+        el 262,213 4x4
+        el 538,224 13x10
+        el 243,208 11x10
+        el 538,243 13x10
+        el 489,147 11x10
+        el 538,261 13x10
+        el 489,155 18x10
+        el 784,278 13x10
+        el 736,206 11x10
+        el 243,607 11x10
+        el 540,206 11x10
+        el #public.address/address_customer_fk role=graphics-symbol label="address_customer_fk" 275,171 29x8 value="Dimmed"
+          el 277,174 27x1
+        el 270,176 8x35
+          el 273,178 1x32
+        el 243,209 29x4
+          el 243,212 28x1
+        el 273,174 9x9
+        el 265,204 9x9
+        el #public.order_item/order_item_product_fk role=graphics-symbol label="order_item_product_fk" 760,298 37x8 value="Dimmed"
+          el 762,301 35x1
+        el 755,303 8x12
+          el 758,305 1x9
+        el 489,313 268x8
+          el 489,316 267x1
+        el 758,301 9x9
+        el 750,308 9x9
+        el #public.product/product_category_fk role=graphics-symbol label="product_category_fk" 274,331 30x8 value="Dimmed"
+          el 274,334 30x1
+        el 270,335 8x1
+          el 273,335 1x2
+        el 243,333 30x8
+          el 243,336 31x1
+        el 273,334 3x3
+        el 271,334 3x3
+        el 253,333 7x7
+        el #public.category/category_parent_fk role=graphics-symbol label="category_parent_fk" 36,351 22x8 value="Dimmed"
+          el 38,354 20x1
+        el 31,338 8x15
+          el 34,340 1x12
+        el 36,333 22x8
+          el 38,336 20x1
+        el 34,346 9x9
+        el 34,336 9x9
+        el 41,333 7x7
+        el #public.product_tag/product_tag_product_fk role=graphics-symbol label="product_tag_product_fk" 506,418 45x8 value="Dimmed"
+          el 508,421 43x1
+        el 501,318 8x102
+          el 504,320 1x99
+        el 489,313 14x8
+          el 489,316 13x1
         el 504,413 9x9
-        el 496,318 9x9
-        el #public.product_tag/product_tag_tag_fk role=graphics-symbol label="product_tag_tag_fk" 521,436 29x8 value="Dimmed"
-          el 523,439 27x1
-        el 516,441 8x14
-          el 519,443 1x11
-        el 490,453 28x8
-          el 490,456 27x1
-        el 519,439 9x9
-        el 511,448 9x9
-        el #public.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 528,230 22x8 value="Highlighted"
-          el 530,233 20x2
-        el 524,235 7x27
-          el 526,237 2x23
-        el 273,259 253x8
-          el 275,262 249x2
-        el 268,219 8x43
-          el 271,221 2x39
-        el 250,217 21x5
-          el 250,217 19x2
-        el 526,233 10x10
-        el 518,254 10x10
-        el 271,254 10x10
-        el 263,217 10x10
-        el #public.order/order_shipping_address_fk role=graphics-symbol label="order_shipping_address_fk" 521,248 29x8 value="Highlighted"
-          el 523,251 27x2
-        el 516,159 8x92
-          el 519,161 2x88
-        el 490,154 29x8
-          el 490,157 27x2
-        el 519,243 10x10
-        el 511,157 10x10
-        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 513,267 37x7 value="Highlighted"
-          el 515,269 35x2
-        el 508,167 8x102
-          el 511,169 2x98
-        el 490,162 21x8
-          el 490,165 19x2
-        el 511,261 10x10
-        el 503,165 10x10
-        el 500,163 7x6
-        el #public.order_item/order_item_order_fk role=graphics-symbol label="order_item_order_fk" 761,282 29x8 value="Highlighted"
-          el 763,285 27x2
-        el 756,217 8x68
-          el 759,219 2x64
-        el 730,212 29x8
-          el 730,215 27x2
-        el 759,277 10x10
-        el 751,215 10x10
-        el #billing.invoice/invoice_order_fk role=graphics-symbol label="invoice_order_fk" 250,602 284x8 value="Highlighted"
-          el 250,605 282x2
-        el 531,217 8x388
-          el 534,219 2x384
-        el 536,212 14x8
-          el 538,215 12x2
-        el 526,597 10x10
-        el 534,215 10x10
-        el #public.customer role=graphics-object label="customer, 4 columns, referenced by address, order" 70,185 180x96
-          el role=list 70,185 180x96
-            el 71,186 178x24
-              text label="table" "\u{EBF4}" 75,192 12x12
-              text "customer" 90,192 140x12
-              text role=button label="Keys only" "\u{F2A1}" 233,192 12x12
-            el role=listitem label="id, bigint, primary key" 71,210 178x18
-              text label="key" "\u{E740}" 74,213 12x12
-              text "id" 89,213 130x12
-              text "bigint" 222,214 24x11
-            el role=listitem label="email, text, unique" 71,228 178x18
-              el 74,231 12x12
-              text "email" 89,231 121x12
-              text "UQ" 213,232 14x11
-              text "text" 230,232 16x11
-            el role=listitem label="name, text" 71,246 178x18
-              el 74,249 12x12
-              text "name" 89,249 138x12
-              text "text" 230,250 16x11
-            el role=listitem label="created_at, timestamptz" 71,264 178x18
-              el 74,267 12x12
-              text "created_at" 89,267 101x12
-              text "timestamptz" 193,268 53x11
-        el #public.address role=graphics-object label="address, 6 columns, references customer, referenced by order" 310,129 180x132
-          el role=list 310,129 180x132
-            el 311,130 178x24
-              text label="table" "\u{EBF4}" 315,136 12x12
-              text "address" 330,136 140x12
-              text role=button label="Keys only" "\u{F2A1}" 473,136 12x12
-            el role=listitem label="id, bigint, primary key" 311,154 178x18
-              text label="key" "\u{E740}" 314,157 12x12
-              text "id" 329,157 130x12
-              text "bigint" 462,158 24x11
-            el role=listitem label="customer_id, bigint, foreign key" 311,172 178x18
-              text label="link" "\u{E770}" 314,175 12x12
-              text "customer_id" 329,175 130x12
-              text "bigint" 462,176 24x11
-            el role=listitem label="line1, text" 311,190 178x18
-              el 314,193 12x12
-              text "line1" 329,193 138x12
-              text "text" 470,194 16x11
-            el role=listitem label="city, text" 311,208 178x18
-              el 314,211 12x12
-              text "city" 329,211 138x12
-              text "text" 470,212 16x11
-            el role=listitem label="postal_code, text, nullable" 311,226 178x18
-              el 314,229 12x12
-              text "postal_code" 329,229 133x12
-              text "text?" 465,230 21x11
-            el role=listitem label="country, char(2)" 311,244 178x18
-              el 314,247 12x12
-              text "country" 329,247 125x12
-              text "char(2)" 457,248 29x11
-        el #public.order role=graphics-object label="order, 6 columns, references customer, address, referenced by order_item, invoice" 550,183 180x132
-          el role=list 550,183 180x132 selected
-            el 551,184 178x24
-              text label="table" "\u{EBF4}" 555,190 12x12
-              text "order" 570,190 140x12
-              text role=button label="Keys only" "\u{F2A1}" 713,190 12x12
-            el role=listitem label="id, bigint, primary key" 551,208 178x18
-              text label="key" "\u{E740}" 554,211 12x12
-              text "id" 569,211 130x12
-              text "bigint" 702,212 24x11
-            el role=listitem label="customer_id, bigint, foreign key" 551,226 178x18
-              text label="link" "\u{E770}" 554,229 12x12
-              text "customer_id" 569,229 130x12
-              text "bigint" 702,230 24x11
-            el role=listitem label="shipping_address_id, bigint, foreign key" 551,244 178x18
-              text label="link" "\u{E770}" 554,247 12x12
-              text "shipping_address_id" 569,247 130x12
-              text "bigint" 702,248 24x11
-            el role=listitem label="billing_address_id, bigint, foreign key, nullable" 551,262 178x18
-              text label="link" "\u{E770}" 554,265 12x12
-              text "billing_address_id" 569,265 125x12
-              text "bigint?" 697,266 29x11
-            el role=listitem label="status, order_status" 551,280 178x18
-              el 554,283 12x12
-              text "status" 569,283 102x12
-              text "order_status" 674,284 52x11
-            el role=listitem label="created_at, timestamptz" 551,298 178x18
-              el 554,301 12x12
-              text "created_at" 569,301 101x12
-              text "timestamptz" 673,302 53x11
-        el #public.order_item role=graphics-object label="order_item, 4 columns, references order, product" 790,253 180x96
-          el role=list 790,253 180x96
-            el 791,254 178x24
-              text label="table" "\u{EBF4}" 795,260 12x12
-              text "order_item" 810,260 140x12
-              text role=button label="Keys only" "\u{F2A1}" 953,260 12x12
-            el role=listitem label="order_id, bigint, primary key, foreign key" 791,278 178x18
-              text label="key" "\u{E740}" 794,281 12x12
-              text "order_id" 809,281 130x12
-              text "bigint" 942,282 24x11
-            el role=listitem label="product_id, bigint, primary key, foreign key" 791,296 178x18
-              text label="key" "\u{E740}" 794,299 12x12
-              text "product_id" 809,299 130x12
-              text "bigint" 942,300 24x11
-            el role=listitem label="quantity, integer" 791,314 178x18
-              el 794,317 12x12
-              text "quantity" 809,317 125x12
-              text "integer" 937,318 29x11
-            el role=listitem label="unit_price, numeric(10,2)" 791,332 178x18
-              el 794,335 12x12
-              text "unit_price" 809,335 98x12
-              text "numeric(10,2)" 910,336 56x11
-        el #public.product role=graphics-object label="product, 5 columns, references category, referenced by order_item, product_tag" 310,285 180x114
-          el role=list 310,285 180x114
-            el 311,286 178x24
-              text label="table" "\u{EBF4}" 315,292 12x12
-              text "product" 330,292 140x12
-              text role=button label="Keys only" "\u{F2A1}" 473,292 12x12
-            el role=listitem label="id, bigint, primary key" 311,310 178x18
-              text label="key" "\u{E740}" 314,313 12x12
-              text "id" 329,313 130x12
-              text "bigint" 462,314 24x11
-            el role=listitem label="category_id, bigint, foreign key, nullable" 311,328 178x18
-              text label="link" "\u{E770}" 314,331 12x12
-              text "category_id" 329,331 125x12
-              text "bigint?" 457,332 29x11
-            el role=listitem label="sku, text, unique" 311,346 178x18
-              el 314,349 12x12
-              text "sku" 329,349 121x12
-              text "UQ" 453,350 14x11
-              text "text" 470,350 16x11
-            el role=listitem label="name, text" 311,364 178x18
-              el 314,367 12x12
-              text "name" 329,367 138x12
-              text "text" 470,368 16x11
-            el role=listitem label="price, numeric(10,2)" 311,382 178x18
-              el 314,385 12x12
-              text "price" 329,385 98x12
-              text "numeric(10,2)" 430,386 56x11
-        el #public.category role=graphics-object label="category, 3 columns, references category, referenced by product, category" 70,305 180x78
-          el role=list 70,305 180x78
-            el 71,306 178x24
-              text label="table" "\u{EBF4}" 75,312 12x12
-              text "category" 90,312 140x12
-              text role=button label="Keys only" "\u{F2A1}" 233,312 12x12
-            el role=listitem label="id, bigint, primary key" 71,330 178x18
-              text label="key" "\u{E740}" 74,333 12x12
-              text "id" 89,333 130x12
-              text "bigint" 222,334 24x11
-            el role=listitem label="parent_id, bigint, foreign key, nullable" 71,348 178x18
-              text label="link" "\u{E770}" 74,351 12x12
-              text "parent_id" 89,351 125x12
-              text "bigint?" 217,352 29x11
-            el role=listitem label="name, text" 71,366 178x18
-              el 74,369 12x12
-              text "name" 89,369 138x12
-              text "text" 230,370 16x11
-        el #public.tag role=graphics-object label="tag, 2 columns, referenced by product_tag" 310,423 180x60
-          el role=list 310,423 180x60
-            el 311,424 178x24
-              text label="table" "\u{EBF4}" 315,430 12x12
-              text "tag" 330,430 140x12
-              text role=button label="Keys only" "\u{F2A1}" 473,430 12x12
-            el role=listitem label="id, bigint, primary key" 311,448 178x18
-              text label="key" "\u{E740}" 314,451 12x12
-              text "id" 329,451 130x12
-              text "bigint" 462,452 24x11
-            el role=listitem label="name, text, unique" 311,466 178x18
-              el 314,469 12x12
-              text "name" 329,469 121x12
-              text "UQ" 453,470 14x11
-              text "text" 470,470 16x11
-        el #public.product_tag role=graphics-object label="product_tag, 2 columns, references product, tag" 550,388 180x60
-          el role=list 550,388 180x60
-            el 551,389 178x24
-              text label="table" "\u{EBF4}" 555,395 12x12
-              text "product_tag" 570,395 140x12
-              text role=button label="Collapse" "\u{F2A1}" 713,395 12x12
-            el role=listitem label="product_id, bigint, primary key, foreign key" 551,413 178x18
-              text label="key" "\u{E740}" 554,416 12x12
-              text "product_id" 569,416 130x12
-              text "bigint" 702,417 24x11
-            el role=listitem label="tag_id, bigint, primary key, foreign key" 551,431 178x18
-              text label="key" "\u{E740}" 554,434 12x12
-              text "tag_id" 569,434 130x12
-              text "bigint" 702,435 24x11
-        el #billing.invoice role=graphics-object label="invoice, 5 columns, references order" 70,555 180x114
-          el role=list 70,555 180x114
-            el 71,556 178x24
-              text label="table" "\u{EBF4}" 75,562 12x12
-              text "invoice" 90,562 140x12
-              text role=button label="Keys only" "\u{F2A1}" 233,562 12x12
-            el role=listitem label="id, bigint, primary key" 71,580 178x18
-              text label="key" "\u{E740}" 74,583 12x12
-              text "id" 89,583 130x12
-              text "bigint" 222,584 24x11
-            el role=listitem label="order_id, bigint, foreign key, unique" 71,598 178x18
-              text label="link" "\u{E770}" 74,601 12x12
-              text "order_id" 89,601 113x12
-              text "UQ" 205,602 14x11
-              text "bigint" 222,602 24x11
-            el role=listitem label="number, text, unique" 71,616 178x18
-              el 74,619 12x12
-              text "number" 89,619 121x12
-              text "UQ" 213,620 14x11
-              text "text" 230,620 16x11
-            el role=listitem label="issued_at, date" 71,634 178x18
-              el 74,637 12x12
-              text "issued_at" 89,637 135x12
-              text "date" 227,638 19x11
-            el role=listitem label="total, numeric(12,2)" 71,652 178x18
-              el 74,655 12x12
-              text "total" 89,655 98x12
-              text "numeric(12,2)" 190,656 56x11
+        el 496,316 9x9
+        el #public.product_tag/product_tag_tag_fk role=graphics-symbol label="product_tag_tag_fk" 522,437 29x8 value="Dimmed"
+          el 524,440 27x1
+        el 517,442 8x14
+          el 520,444 1x11
+        el 489,454 30x8
+          el 489,457 29x1
+        el 520,440 9x9
+        el 512,449 9x9
+        el #public.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 529,225 22x8 value="Highlighted"
+          el 531,228 20x2
+        el 524,230 8x28
+          el 527,232 2x24
+        el 267,255 260x8
+          el 269,258 256x2
+        el 262,214 8x44
+          el 265,216 2x40
+        el 243,212 22x5
+          el 243,212 20x2
+        el 527,228 10x10
+        el 519,250 10x10
+        el 265,250 10x10
+        el 257,212 10x10
+        el #public.order/order_shipping_address_fk role=graphics-symbol label="order_shipping_address_fk" 521,244 30x8 value="Highlighted"
+          el 523,247 28x2
+        el 516,153 8x94
+          el 519,155 2x90
+        el 489,148 30x8
+          el 489,151 28x2
+        el 519,239 10x10
+        el 511,151 10x10
+        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 513,263 38x7 value="Highlighted"
+          el 515,265 36x2
+        el 508,161 8x104
+          el 511,163 2x100
+        el 489,156 22x8
+          el 489,159 20x2
+        el 511,257 10x10
+        el 503,159 10x10
+        el 499,157 7x6
+        el #public.order_item/order_item_order_fk role=graphics-symbol label="order_item_order_fk" 767,279 30x8 value="Highlighted"
+          el 769,282 28x2
+        el 762,212 8x70
+          el 765,214 2x66
+        el 736,207 29x8
+          el 736,210 27x2
+        el 765,274 10x10
+        el 757,210 10x10
+        el #billing.invoice/invoice_order_fk role=graphics-symbol label="invoice_order_fk" 243,608 291x8 value="Highlighted"
+          el 243,611 289x2
+        el 532,212 7x399
+          el 534,214 2x395
+        el 536,207 15x8
+          el 538,210 13x2
+        el 526,603 10x10
+        el 534,210 10x10
+        el #public.customer role=graphics-object label="customer, 4 columns, referenced by address, order" 58,179 185x99
+          el role=list 58,179 185x99
+            el 59,180 183x25
+              text label="table" "\u{EBF4}" 63,186 12x12
+              text "customer" 78,186 145x12
+              text role=button label="Keys only" "\u{F2A1}" 226,186 12x12
+            el role=listitem label="id, bigint, primary key" 59,205 183x18
+              text label="key" "\u{E740}" 62,208 12x12
+              text "id" 77,208 135x12
+              text "bigint" 215,208 24x11
+            el role=listitem label="email, text, unique" 59,223 183x19
+              el 62,226 12x13
+              text "email" 77,226 126x12
+              text "UQ" 206,227 14x11
+              text "text" 223,227 16x11
+            el role=listitem label="name, text" 59,242 183x18
+              el 62,245 12x12
+              text "name" 77,245 143x12
+              text "text" 223,245 16x11
+            el role=listitem label="created_at, timestamptz" 59,260 183x19
+              el 62,263 12x12
+              text "created_at" 77,263 106x12
+              text "timestamptz" 186,264 53x11
+        el #public.address role=graphics-object label="address, 6 columns, references customer, referenced by order" 304,122 185x136
+          el role=list 304,122 185x136
+            el 305,123 183x25
+              text label="table" "\u{EBF4}" 309,129 12x12
+              text "address" 324,129 145x12
+              text role=button label="Keys only" "\u{F2A1}" 472,129 12x12
+            el role=listitem label="id, bigint, primary key" 305,148 183x18
+              text label="key" "\u{E740}" 308,151 12x12
+              text "id" 323,151 135x12
+              text "bigint" 461,151 24x11
+            el role=listitem label="customer_id, bigint, foreign key" 305,166 183x19
+              text label="link" "\u{E770}" 308,169 12x12
+              text "customer_id" 323,169 135x12
+              text "bigint" 461,170 24x11
+            el role=listitem label="line1, text" 305,185 183x18
+              el 308,188 12x12
+              text "line1" 323,188 143x12
+              text "text" 469,188 16x11
+            el role=listitem label="city, text" 305,203 183x19
+              el 308,206 12x12
+              text "city" 323,206 143x12
+              text "text" 469,207 16x11
+            el role=listitem label="postal_code, text, nullable" 305,222 183x18
+              el 308,225 12x12
+              text "postal_code" 323,225 138x12
+              text "text?" 464,225 21x11
+            el role=listitem label="country, char(2)" 305,240 183x19
+              el 308,243 12x12
+              text "country" 323,243 129x12
+              text "char(2)" 455,244 30x11
+        el #public.order role=graphics-object label="order, 6 columns, references customer, address, referenced by order_item, invoice" 551,177 185x136
+          el role=list 551,177 185x136 selected
+            el 552,178 183x25
+              text label="table" "\u{EBF4}" 556,184 12x12
+              text "order" 571,184 145x12
+              text role=button label="Keys only" "\u{F2A1}" 719,184 12x12
+            el role=listitem label="id, bigint, primary key" 552,203 183x18
+              text label="key" "\u{E740}" 555,206 12x12
+              text "id" 570,206 135x12
+              text "bigint" 708,206 24x11
+            el role=listitem label="customer_id, bigint, foreign key" 552,221 183x19
+              text label="link" "\u{E770}" 555,224 12x12
+              text "customer_id" 570,224 135x12
+              text "bigint" 708,225 24x11
+            el role=listitem label="shipping_address_id, bigint, foreign key" 552,240 183x18
+              text label="link" "\u{E770}" 555,243 12x12
+              text "shipping_address_id" 570,243 135x12
+              text "bigint" 708,243 24x11
+            el role=listitem label="billing_address_id, bigint, foreign key, nullable" 552,258 183x19
+              text label="link" "\u{E770}" 555,261 12x12
+              text "billing_address_id" 570,261 130x12
+              text "bigint?" 703,262 29x11
+            el role=listitem label="status, order_status" 552,277 183x18
+              el 555,280 12x12
+              text "status" 570,280 106x12
+              text "order_status" 679,280 53x11
+            el role=listitem label="created_at, timestamptz" 552,295 183x19
+              el 555,298 12x12
+              text "created_at" 570,298 106x12
+              text "timestamptz" 679,299 53x11
+        el #public.order_item role=graphics-object label="order_item, 4 columns, references order, product" 797,249 185x98
+          el role=list 797,249 185x98
+            el 798,250 183x25
+              text label="table" "\u{EBF4}" 802,256 12x12
+              text "order_item" 817,256 145x12
+              text role=button label="Keys only" "\u{F2A1}" 965,256 12x12
+            el role=listitem label="order_id, bigint, primary key, foreign key" 798,275 183x18
+              text label="key" "\u{E740}" 801,278 12x12
+              text "order_id" 816,278 135x12
+              text "bigint" 954,278 24x11
+            el role=listitem label="product_id, bigint, primary key, foreign key" 798,293 183x19
+              text label="key" "\u{E740}" 801,296 12x12
+              text "product_id" 816,296 135x12
+              text "bigint" 954,297 24x11
+            el role=listitem label="quantity, integer" 798,312 183x18
+              el 801,315 12x12
+              text "quantity" 816,315 130x12
+              text "integer" 949,315 29x11
+            el role=listitem label="unit_price, numeric(10,2)" 798,330 183x19
+              el 801,333 12x12
+              text "unit_price" 816,333 100x12
+              text "numeric(10,2)" 919,334 59x11
+        el #public.product role=graphics-object label="product, 5 columns, references category, referenced by order_item, product_tag" 304,282 185x117
+          el role=list 304,282 185x117
+            el 305,283 183x25
+              text label="table" "\u{EBF4}" 309,289 12x12
+              text "product" 324,289 145x12
+              text role=button label="Keys only" "\u{F2A1}" 472,289 12x12
+            el role=listitem label="id, bigint, primary key" 305,308 183x18
+              text label="key" "\u{E740}" 308,311 12x12
+              text "id" 323,311 135x12
+              text "bigint" 461,311 24x11
+            el role=listitem label="category_id, bigint, foreign key, nullable" 305,326 183x19
+              text label="link" "\u{E770}" 308,329 12x12
+              text "category_id" 323,329 130x12
+              text "bigint?" 456,330 29x11
+            el role=listitem label="sku, text, unique" 305,345 183x18
+              el 308,348 12x12
+              text "sku" 323,348 126x12
+              text "UQ" 452,348 14x11
+              text "text" 469,348 16x11
+            el role=listitem label="name, text" 305,363 183x19
+              el 308,366 12x12
+              text "name" 323,366 143x12
+              text "text" 469,367 16x11
+            el role=listitem label="price, numeric(10,2)" 305,382 183x18
+              el 308,385 12x12
+              text "price" 323,385 100x12
+              text "numeric(10,2)" 426,385 59x11
+        el #public.category role=graphics-object label="category, 3 columns, references category, referenced by product, category" 58,302 185x80
+          el role=list 58,302 185x80
+            el 59,303 183x25
+              text label="table" "\u{EBF4}" 63,309 12x12
+              text "category" 78,309 145x12
+              text role=button label="Keys only" "\u{F2A1}" 226,309 12x12
+            el role=listitem label="id, bigint, primary key" 59,328 183x18
+              text label="key" "\u{E740}" 62,331 12x12
+              text "id" 77,331 135x12
+              text "bigint" 215,331 24x11
+            el role=listitem label="parent_id, bigint, foreign key, nullable" 59,346 183x19
+              text label="link" "\u{E770}" 62,349 12x12
+              text "parent_id" 77,349 130x12
+              text "bigint?" 210,350 29x11
+            el role=listitem label="name, text" 59,365 183x18
+              el 62,368 12x12
+              text "name" 77,368 143x12
+              text "text" 223,368 16x11
+        el #public.tag role=graphics-object label="tag, 2 columns, referenced by product_tag" 304,424 185x62
+          el role=list 304,424 185x62
+            el 305,425 183x25
+              text label="table" "\u{EBF4}" 309,431 12x12
+              text "tag" 324,431 145x12
+              text role=button label="Keys only" "\u{F2A1}" 472,431 12x12
+            el role=listitem label="id, bigint, primary key" 305,450 183x18
+              text label="key" "\u{E740}" 308,453 12x12
+              text "id" 323,453 135x12
+              text "bigint" 461,453 24x11
+            el role=listitem label="name, text, unique" 305,468 183x19
+              el 308,471 12x13
+              text "name" 323,471 126x12
+              text "UQ" 452,472 14x11
+              text "text" 469,472 16x11
+        el #public.product_tag role=graphics-object label="product_tag, 2 columns, references product, tag" 551,388 185x62
+          el role=list 551,388 185x62
+            el 552,389 183x25
+              text label="table" "\u{EBF4}" 556,395 12x12
+              text "product_tag" 571,395 145x12
+              text role=button label="Collapse" "\u{F2A1}" 719,395 12x12
+            el role=listitem label="product_id, bigint, primary key, foreign key" 552,414 183x18
+              text label="key" "\u{E740}" 555,417 12x12
+              text "product_id" 570,417 135x12
+              text "bigint" 708,417 24x11
+            el role=listitem label="tag_id, bigint, primary key, foreign key" 552,432 183x19
+              text label="key" "\u{E740}" 555,435 12x12
+              text "tag_id" 570,435 135x12
+              text "bigint" 708,436 24x11
+        el #billing.invoice role=graphics-object label="invoice, 5 columns, references order" 58,559 185x118
+          el role=list 58,559 185x118
+            el 59,560 183x25
+              text label="table" "\u{EBF4}" 63,566 12x12
+              text "invoice" 78,566 145x12
+              text role=button label="Keys only" "\u{F2A1}" 226,566 12x12
+            el role=listitem label="id, bigint, primary key" 59,585 183x18
+              text label="key" "\u{E740}" 62,588 12x12
+              text "id" 77,588 135x12
+              text "bigint" 215,588 24x11
+            el role=listitem label="order_id, bigint, foreign key, unique" 59,603 183x19
+              text label="link" "\u{E770}" 62,606 12x12
+              text "order_id" 77,606 118x12
+              text "UQ" 198,607 14x11
+              text "bigint" 215,607 24x11
+            el role=listitem label="number, text, unique" 59,622 183x18
+              el 62,625 12x12
+              text "number" 77,625 126x12
+              text "UQ" 206,625 14x11
+              text "text" 223,625 16x11
+            el role=listitem label="issued_at, date" 59,640 183x19
+              el 62,643 12x12
+              text "issued_at" 77,643 140x12
+              text "date" 220,644 19x11
+            el role=listitem label="total, numeric(12,2)" 59,659 183x18
+              el 62,662 12x12
+              text "total" 77,662 100x12
+              text "numeric(12,2)" 180,662 59x11

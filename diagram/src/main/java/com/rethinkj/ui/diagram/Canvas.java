@@ -25,8 +25,8 @@ import java.util.function.Function;
  * }</pre>
  *
  * <p>Diagram coordinates are logical pixels at a zoom of 100 %. The viewport says which diagram
- * point lies at the canvas's top left and the zoom, one of {@link Viewport#ZOOMS}. The canvas
- * places each node with its size multiplied by the zoom and builds its content at that size
+ * point lies at the canvas's top left and the zoom, within the range of {@link Viewport#ZOOMS}. The
+ * canvas places each node with its size multiplied by the zoom and builds its content at that size
  * ({@link NodeContent}), with no transform, so that text stays sharp at every zoom. It builds only
  * the nodes that lie inside it, so that a large diagram stays fast; in the first build, before
  * layout gave it a size, that is none.
@@ -203,14 +203,12 @@ public final class Canvas {
    */
   public static final class Viewport {
 
-    /** The zooms the canvas has, from the furthest out to the nearest in. */
+    /** The zoom steps the canvas moves along, from the furthest out to the nearest in. */
     public static final List<Float> ZOOMS = List.of(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f);
-
-    private static final int ACTUAL = ZOOMS.indexOf(1f);
 
     private double left;
     private double top;
-    private int step = ACTUAL;
+    private float zoom = 1f;
     // The canvas's size in the last layout; 0 before the first.
     private float width;
     private float height;
@@ -255,9 +253,11 @@ public final class Canvas {
       return top;
     }
 
-    /** The zoom, one of {@link #ZOOMS}. */
+    /**
+     * The zoom, within the range of {@link #ZOOMS}; {@link #fit} can land between its steps.
+     */
     public float zoom() {
-      return ZOOMS.get(step);
+      return zoom;
     }
 
     /**
@@ -282,19 +282,33 @@ public final class Canvas {
     /**
      * Zooms by this many steps of {@link #ZOOMS}, in when positive, and keeps the diagram point
      * under {@code x}, {@code y} in place: the pointer's place in the canvas for the wheel, its
-     * center for the keys. Past either end it stays at that end.
+     * center for the keys. From a zoom between steps, the first step goes to the next step in that
+     * direction. Past either end it stays at that end.
      *
      * @param x from the canvas's left, in logical pixels
      * @param y from its top
      */
     public void zoomBy(int steps, float x, float y) {
-      float before = zoom();
-      int next = Math.clamp((long) step + steps, 0, ZOOMS.size() - 1);
-      if (next == step) {
+      if (steps == 0) {
+        return;
+      }
+      int below = 0;
+      int atOrBelow = 0;
+      for (float z : ZOOMS) {
+        if (z < zoom) {
+          below++;
+        }
+        if (z <= zoom) {
+          atOrBelow++;
+        }
+      }
+      long target = steps > 0 ? (long) atOrBelow - 1 + steps : (long) below + steps;
+      float after = ZOOMS.get(Math.clamp(target, 0, ZOOMS.size() - 1));
+      if (after == zoom) {
         return; // at that end already: a fit goes on
       }
-      step = next;
-      float after = zoom();
+      float before = zoom;
+      zoom = after;
       left += x / before - x / after;
       top += y / before - y / after;
       fitting = false;
@@ -336,7 +350,8 @@ public final class Canvas {
       margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
       double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);
-      if (x != left || y != top) {
+      // A pan of less than half a pixel is rounding at a fitted edge, and would end the fit.
+      if (Math.abs(x - left) * zoom >= 0.5 || Math.abs(y - top) * zoom >= 0.5) {
         panTo(x, y);
       }
     }
@@ -350,10 +365,11 @@ public final class Canvas {
     }
 
     /**
-     * Shows all nodes at the nearest zoom at which they fit into the canvas with a margin of
-     * {@link Theme.Spacing#xl}, centered; at the furthest zoom where they fit at none. The canvas
-     * does it in its next build that knows its size, so that an app can call it before the first,
-     * and again whenever its size changes, until the viewport is panned or zoomed.
+     * Shows all nodes at the largest zoom in the range of {@link #ZOOMS} at which they fit into the
+     * canvas with a margin of {@link Theme.Spacing#xl}, centered, which may lie between steps; at
+     * the furthest zoom where they fit at none. The canvas does it in its next build that knows its
+     * size, so that an app can call it before the first, and again whenever its size changes, until
+     * the viewport is panned or zoomed.
      */
     public void fit() {
       fitting = true;
@@ -437,17 +453,14 @@ public final class Canvas {
       double minY = bounds[1];
       double maxX = bounds[2];
       double maxY = bounds[3];
-      step = 0;
-      for (int i = ZOOMS.size() - 1; i > 0; i--) {
-        float zoom = ZOOMS.get(i);
-        if ((maxX - minX) * zoom + 2 * margin <= width
-            && (maxY - minY) * zoom + 2 * margin <= height) {
-          step = i;
-          break;
-        }
-      }
-      left = (minX + maxX) / 2 - width / 2 / zoom();
-      top = (minY + maxY) / 2 - height / 2 / zoom();
+      // Nodes without extent divide by 0: an infinity, or NaN where the canvas has no room either.
+      double fit =
+          Math.min((width - 2.0 * margin) / (maxX - minX), (height - 2.0 * margin) / (maxY - minY));
+      zoom = Double.isNaN(fit)
+          ? ZOOMS.getLast()
+          : (float) Math.clamp(fit, ZOOMS.getFirst(), ZOOMS.getLast());
+      left = (minX + maxX) / 2 - width / 2.0 / zoom;
+      top = (minY + maxY) / 2 - height / 2.0 / zoom;
     }
   }
 

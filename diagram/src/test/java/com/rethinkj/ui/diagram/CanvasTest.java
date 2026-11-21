@@ -127,13 +127,45 @@ class CanvasTest {
     assertTrue(line(pinned, "#orders").contains(" value=\"Pinned\""), pinned);
     assertFalse(line(pinned, "#items").contains(" value="), pinned);
 
-    // From 40,0 to 560,220: 520 by 220, which fits 280 by 260 less the margins at 25 %, centered;
-    // 400 by 260, before the canvas became narrower, at 50 %.
-    assertEquals(0.25f, state.viewport.zoom());
-    assertEquals(300 - 140 / 0.25, state.viewport.left(), 1e-9);
-    assertEquals(110 - 130 / 0.25, state.viewport.top(), 1e-9);
+    // From 40,0 to 560,220: 520 by 220, which fits 280 by 260 less the margins at 248/520 (~48 %),
+    // centered; 400 by 260, before the canvas became narrower, at 368/520 (~71 %).
+    float expectedZoom = 248f / 520f;
+    assertEquals(expectedZoom, state.viewport.zoom(), 1e-6f);
+    assertEquals(300 - 140.0 / expectedZoom, state.viewport.left(), 1e-9);
+    assertEquals(110 - 130.0 / expectedZoom, state.viewport.top(), 1e-9);
     String fitted = app.tree().dump();
-    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 25%\""), fitted);
+    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 48%\""), fitted);
+  }
+
+  @Test
+  void fitLandsBetweenStepsAndZoomMovesToTheNextStep() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    Canvas.Viewport viewport = app.state().viewport;
+    viewport.fit();
+    // 520 by 220 in 400 by 260 less the margins: 368/520, between 50 % and 75 %.
+    Script.run("size 400 260\nframe\nfocus #board\n", app, out);
+    assertEquals(368f / 520f, viewport.zoom(), 1e-6f);
+    viewport.zoomIn();
+    assertEquals(0.75f, viewport.zoom());
+
+    Script.run("key 0\nframe\n", app, out);
+    viewport.zoomOut();
+    assertEquals(0.5f, viewport.zoom());
+
+    Script.run("key 0\nframe\n", app, out);
+    viewport.zoomBy(2, 200, 130); // the first step goes to 75 %
+    assertEquals(1f, viewport.zoom());
+
+    // Nodes without extent fit at the nearest zoom.
+    viewport.fit();
+    viewport.fitIfDue(List.of(new Node("dot", null, 10, 20, 0, 0)), 16);
+    assertEquals(Canvas.Viewport.ZOOMS.getLast(), viewport.zoom());
   }
 
   @Test

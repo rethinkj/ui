@@ -15,7 +15,7 @@ description: Pannable, zoomable area for placing nodes in diagram coordinates, f
 
 Javadoc: [`Canvas`](/api/com/rethinkj/ui/diagram/Canvas.html).
 
-<Shot src="examples/docs/canvas/view-{theme}" alt="Four tables on a canvas, fitted in at 75 percent" />
+<Shot src="examples/docs/canvas/view-{theme}" alt="Four tables on a canvas, fitted in at 83 percent" />
 
 ## Example
 
@@ -31,7 +31,7 @@ Keep a `Canvas.Viewport` and your nodes in your app state, and call `Canvas.canv
 | `content` | Builds each node's element for the current zoom level, sized `width × zoom` by `height × zoom` |
 | `onMove` | Called with the moved, pinned node when a user drags it, or with the original node if Escape cancels the drag (pass `null` to lock nodes in place). `viewport.dragging()` is the node's key during moves and on cancel, and `null` when the drag ends |
 
-Zooming does not scale a static image. Instead, the canvas lays out each node again at its size multiplied by the zoom, so text stays sharp. Your `content` function scales its own sizes by the zoom and can change the level of detail. For example, the tables above hide their columns below 75%. Zoom levels follow the steps in `Viewport.ZOOMS`, from 25% to 200%.
+Zooming does not scale a static image. Instead, the canvas lays out each node again at its size multiplied by the zoom, so text stays sharp. Your `content` function scales its own sizes by the zoom and can change the level of detail. For example, the tables above hide their columns below 75%. `fit()` chooses the zoom at which everything fits, from 25% to 200%, while **+**, **-**, and **Ctrl**+wheel move along the steps in `Viewport.ZOOMS`.
 
 The canvas only builds nodes inside the visible area, so large diagrams stay fast. Pins are plain values in your app state. The canvas only reports that the user moved a node.
 

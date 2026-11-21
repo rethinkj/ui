@@ -8,6 +8,7 @@ frame
 snap selected
 
 key -
+key -
 frame
 snap skeleton                   # rows as bars
 

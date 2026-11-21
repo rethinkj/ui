@@ -31,7 +31,7 @@ public record ErStyle(
     float names) {
 
   /** The module's style. */
-  public static final ErStyle DEFAULT = new ErStyle(240, 32, 24, 24, 28, 8, 0.6f, 0.75f, 0.5f);
+  public static final ErStyle DEFAULT = new ErStyle(240, 32, 24, 24, 28, 8, 0.6f, 0.6f, 0.5f);
 
   /** The style a diagram reads, {@link #DEFAULT} unless the app gives another. */
   public static final Context<ErStyle> CURRENT = new Context<>(DEFAULT);

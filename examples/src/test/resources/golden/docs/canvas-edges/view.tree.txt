@@ -1,34 +1,34 @@
-el role=graphics-document label="Diagram" 0,0 560x280 value="Zoom 100%"
-  el 298,88 22x11
-  el 240,88 14x11
-  el 297,111 23x12
-  el 240,213 23x12
-  el #order-customer role=graphics-symbol label="order_customer_fk" 240,90 80x8
-    el 240,93 80x1
-  el 299,90 8x8
-  el #order-billing role=graphics-symbol label="order_billing_fk" 282,113 38x8 value="Highlighted"
-    el 285,116 35x2
-  el 276,119 8x98
-    el 279,122 2x92
-  el 240,215 38x8
-    el 240,218 35x2
-  el 279,116 14x14
-  el 267,206 14x14
-  el 298,113 9x9
-  el 253,215 9x9
-  el #customer role=graphics-object label="customer" 80,49 160x80
-    el 80,49 160x80
-      text "customer" 81,50 158x31
-      text "id" 81,81 158x24
-      text "name" 81,105 158x23
-  el #order role=graphics-object label="order" 320,25 160x104
-    el 320,25 160x104
-      text "order" 321,26 158x31
-      text "id" 321,57 158x24
-      text "customer_id" 321,81 158x23
-      text "billing_id" 321,104 158x24
-  el #address role=graphics-object label="address" 80,175 160x80
-    el 80,175 160x80
-      text "address" 81,176 158x31
-      text "id" 81,207 158x24
-      text "city" 81,231 158x23
+el role=graphics-document label="Diagram" 0,0 560x280 value="Zoom 108%"
+  el 299,84 24x11
+  el 237,84 15x11
+  el 298,109 25x12
+  el 237,219 25x12
+  el #order-customer role=graphics-symbol label="order_customer_fk" 237,86 86x8
+    el 237,89 86x1
+  el 300,85 8x9
+  el #order-billing role=graphics-symbol label="order_billing_fk" 282,111 41x8 value="Highlighted"
+    el 285,114 38x2
+  el 276,117 8x106
+    el 279,120 2x100
+  el 237,221 41x8
+    el 237,224 38x2
+  el 279,114 14x14
+  el 267,212 14x14
+  el 299,110 10x10
+  el 251,220 10x10
+  el #customer role=graphics-object label="customer" 64,42 173x86
+    el 64,42 173x86
+      text "customer" 65,43 171x34
+      text "id" 65,77 171x25
+      text "name" 65,102 171x25
+  el #order role=graphics-object label="order" 323,16 173x112
+    el 323,16 173x112
+      text "order" 324,17 171x34
+      text "id" 324,51 171x25
+      text "customer_id" 324,76 171x26
+      text "billing_id" 324,102 171x25
+  el #address role=graphics-object label="address" 64,178 173x86
+    el 64,178 173x86
+      text "address" 65,179 171x34
+      text "id" 65,213 171x25
+      text "city" 65,238 171x25
