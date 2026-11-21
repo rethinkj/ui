@@ -44,7 +44,7 @@ el 0,0 1040x720
           el 364,431 72x57
             el 365,432 70x7
               text label="database" "\u{F0D7}" 367,431 9x9
-              text "billing · 1 table" 377,430 56x11
+              text "billing" 377,430 25x11
         el #public.address/address_customer_fk role=graphics-symbol label="address_customer_fk" 441,316 9x8 value="Dimmed"
           el 441,319 9x1
         el 437,320 8x11
@@ -135,28 +135,28 @@ el 0,0 1040x720
         el 524,330 4x4
         el #public.customer role=graphics-object label="customer, 4 columns, referenced by address, order" 370,321 60x32
           el role=list 370,321 60x32
-            text "customer" 372,331 56x12
+            text "customer" 374,331 52x12
         el #public.address role=graphics-object label="address, 6 columns, references customer, referenced by order" 450,302 60x44
           el role=list 450,302 60x44
-            text "address" 452,318 56x12
+            text "address" 454,318 52x12
         el #public.order role=graphics-object label="order, 6 columns, references customer, address, referenced by order_item, invoice" 530,320 60x44
           el role=list 530,320 60x44 selected
-            text "order" 532,336 56x12
+            text "order" 534,336 52x12
         el #public.order_item role=graphics-object label="order_item, 4 columns, references order, product" 610,343 60x32
           el role=list 610,343 60x32
-            text "order_item" 612,353 56x12
+            text "order_item" 614,353 52x12
         el #public.product role=graphics-object label="product, 5 columns, references category, referenced by order_item, product_tag" 450,354 60x38
           el role=list 450,354 60x38
-            text "product" 452,367 56x12
+            text "product" 454,367 52x12
         el #public.category role=graphics-object label="category, 3 columns, references category, referenced by product, category" 370,361 60x26
           el role=list 370,361 60x26
-            text "category" 372,368 56x12
+            text "category" 374,368 52x12
         el #public.tag role=graphics-object label="tag, 2 columns, referenced by product_tag" 450,400 60x20
           el role=list 450,400 60x20
-            text "tag" 452,404 56x12
+            text "tag" 454,404 52x12
         el #public.product_tag role=graphics-object label="product_tag, 2 columns, references product, tag" 530,388 60x20
           el role=list 530,388 60x20
-            text "product_tag" 532,392 56x12
+            text "product_tag" 534,392 52x12
         el #billing.invoice role=graphics-object label="invoice, 5 columns, references order" 370,444 60x38
           el role=list 370,444 60x38
-            text "invoice" 372,457 56x12
+            text "invoice" 374,457 52x12
