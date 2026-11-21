@@ -313,8 +313,6 @@ public final class App<S> {
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
-  // Editors a build gave a FieldState's selection, whose onSelect hears it before the next input.
-  private final List<Editor> selectedByBuild = new ArrayList<>();
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
   private Browser browser = Browser.NONE;
@@ -2134,7 +2132,12 @@ public final class App<S> {
    * now, because it is out of the range that exists, or on an element inside such a row.
    */
   private boolean focusWaits() {
-    Animator.InRow in = focusId == null ? null : animator.inRow(focusId);
+    return focusId != null && waits(focusId);
+  }
+
+  /** Whether the element of this identity is in a row of a virtual list that it lacks now. */
+  private boolean waits(Object id) {
+    Animator.InRow in = animator.inRow(id);
     return in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row());
   }
 
@@ -3284,21 +3287,19 @@ public final class App<S> {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
         build(handled, false); // after invalidate alone with its rows: an action may look for them
         drawn = true;
-        if (!selectedByBuild.isEmpty()) {
-          // A FieldState's selection the build applied reaches onSelect as a handler's input
-          // would, before the next input: what the handler asks for and changes comes first.
-          List<Editor> selected = List.copyOf(selectedByBuild);
-          selectedByBuild.clear();
-          queued.addFirst(() -> {
-            boolean told = false;
-            for (Editor editor : selected) {
-              told |= editor.tell();
-            }
-            handled |= told;
-            rowsKept |= told;
-            return told;
-          });
-        }
+      }
+      if (focusWaits()) {
+        drawn |= settle(); // the focused row that a scroll of this frame brought back takes input
+      }
+      if (untold()) {
+        // A selection a build applied or moved, also one of rows that scrolling filled: a
+        // FieldState's, or the app's answer to an edit. It reaches onSelect as a handler's input
+        // would, before the next input: what the handler asks for and changes comes first.
+        queued.addFirst(() -> {
+          boolean told = tellSelections();
+          rowsKept |= told;
+          return told;
+        });
       }
       dispatching = true;
       try {
@@ -3327,6 +3328,7 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
+      stale |= tellSelections(); // of fields in those rows, which the rebuild then shows
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
     // tree built between inputs, which may lack the rows under the pointer and would end their
@@ -3595,13 +3597,10 @@ public final class App<S> {
           editor.returned();
         }
       }
-      if (editor.attach(el)) {
-        selectedByBuild.add(editor); // its handler hears the app's answer before more input
-      }
+      editor.attach(el);
       if (state != null && state.caret >= 0) {
         editor.select(state.caret, state.anchor);
         state.caret = -1;
-        selectedByBuild.add(editor);
       }
       el.editor(editor);
       el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
@@ -3619,8 +3618,9 @@ public final class App<S> {
    * After a rebuild, or after a virtual list built rows: forgets the editors of fields that are
    * gone, follows the focus with the caret, and places the caret, selection and scroll of every
    * field for its new layout. The editor of a focused field whose row scrolled out of the rows
-   * that exist stays, with the focus, for when the row comes back; the editors of other fields in
-   * such rows go with them, as everything else the app keeps of a row. A field that fades out
+   * that exist stays, with the focus, for when the row comes back, and so does one whose edit
+   * waits for the app's answer while its row is out; the editors of other fields in such rows go with them, as
+   * everything else the app keeps of a row. A field that fades out
    * ({@link El#isExiting}) has lost its editor, and with it its caret, selection and composition.
    */
   private void placeEditors() {
@@ -3628,13 +3628,15 @@ public final class App<S> {
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
-    selectedByBuild.retainAll(kept); // a row that layout left out tells nothing
     Editor waiting = focusWaits() ? editors.get(focusId) : null;
-    editors.values().removeIf(editor -> {
-      if (editor == waiting || kept.contains(editor)) {
-        return false;
-      }
+    editors.entrySet().removeIf(entry -> {
+      Editor editor = entry.getValue();
       FieldState state = editor.element().fieldState();
+      if (editor == waiting
+          || kept.contains(editor)
+          || (state == null && editor.answerPending() && waits(entry.getKey()))) {
+        return false; // an edit's answer waits for its row, as a FieldState's editor does
+      }
       if (state == null || state.app == this) { // not taken by another app's tree meanwhile
         editor.leave(); // its element may be fading out
       }
@@ -3709,14 +3711,27 @@ public final class App<S> {
    * @return whether a handler was told, which the next input should find in the view
    */
   private boolean tellSelections() {
-    selectedByBuild.clear(); // told with the others
     boolean told = false;
     for (Map.Entry<Object, Editor> entry : List.copyOf(editors.entrySet())) {
-      Editor editor = entry.getValue();
-      told |= animator.element(entry.getKey()) == editor.element() && editor.tell();
+      told |= inTree(entry) && entry.getValue().tell();
     }
     handled |= told;
     return told;
+  }
+
+  /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
+  private boolean untold() {
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      if (inTree(entry) && entry.getValue().untold()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether the field of an editor is the element of the tree for its identity. */
+  private boolean inTree(Map.Entry<Object, Editor> entry) {
+    return animator.element(entry.getKey()) == entry.getValue().element();
   }
 
   /**

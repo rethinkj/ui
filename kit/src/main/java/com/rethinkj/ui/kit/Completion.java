@@ -85,9 +85,9 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    // An edit went to the app, until onSelect tells the selection after its answer; and the
-    // entries of the last build that decided.
-    private boolean edited;
+    // The field an edit went to the app in, until the app heard the selection after its answer,
+    // also in a build without the completions; and the entries of the last build that decided.
+    private El edited;
     private List<Entry> shown = List.of();
     private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
@@ -165,7 +165,9 @@ public final class Completion {
    * @param field an {@link El#editable} field, such as a {@link CodeEditor}
    * @param caret where the field's caret is, as its {@link El#onSelect} handler told the app
    * @param suggest the entries for the part of the word before the caret, called on the app's
-   *     thread on every build while the list is open; while more are on their way, it sets {@link
+   *     thread on every build while the list is open, but not while an edit of the field waits for
+   *     the app: from the edit until its {@link El#onSelect} heard the selection after the app's
+   *     answer ({@link El#isSelectionPending}); while more are on their way, it sets {@link
    *     State#loading}
    * @return the field
    */
@@ -207,7 +209,10 @@ public final class Completion {
     String text = field.text().string();
     // The builds that answer an edit come before onSelect tells its selection: the app's state,
     // which suggest may read, still has the one before. The build after decides.
-    boolean waiting = state.edited;
+    boolean waiting = state.edited != null && state.edited.isSelectionPending();
+    if (!waiting) {
+      state.edited = null;
+    }
     caret = Math.clamp(caret, 0, text.length());
     state.wordCharacters = field.text().wordCharacters();
     int from = CodeWords.start(text, caret, state.wordCharacters);
@@ -254,13 +259,13 @@ public final class Completion {
         } else {
           follow(state, text, v);
         }
-        state.edited = true;
+        state.edited = field;
         onEdit.accept(v);
       });
     }
     El.SelectHandler ownSelect = field.onSelect();
     field.onSelect((caretNow, anchor) -> {
-      state.edited = false;
+      state.edited = null;
       if (ownSelect != null) {
         ownSelect.select(caretNow, anchor);
       }

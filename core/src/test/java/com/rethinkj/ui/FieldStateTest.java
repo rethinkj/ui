@@ -386,6 +386,7 @@ class FieldStateTest {
     El list;
     El inRowField;
     int told;
+    int toldAtKey = -1; // what the handler of F8 found
   }
 
   @Test
@@ -434,13 +435,16 @@ class FieldStateTest {
   }
 
   @Test
-  void aFocusedFieldWhoseRowLayoutLeavesOutIsToldOnlyOnceItIsBack() {
+  void aFocusedFieldWhoseRowLayoutLeavesOutIsToldOnceScrollingBringsItBack() {
     Rows rows = focusInARowThatLayoutLeftOut();
     int before = rows.told;
-    rows.app.textInput("z");
+    rows.app.wheel(30, 50, 0, -1000);
     rows.app.frame();
-    assertTrue(rows.list.hasRow(0), "typing brings the row back");
+    assertTrue(rows.list.hasRow(0), "scrolled back");
     assertTrue(rows.told > before, "told once it is back");
+    rows.app.keyDown(new Key("F8"));
+    rows.app.frame();
+    assertTrue(rows.toldAtKey > before, "before the next key");
   }
 
   @Test
@@ -468,6 +472,10 @@ class FieldStateTest {
           r.app.select(inRow, caret, anchor);
         });
         inRow.onKey(key -> {
+          if (key.name().equals("F8")) {
+            r.toldAtKey = r.told;
+            return true;
+          }
           if (!key.name().equals("F6")) {
             return false;
           }
@@ -495,5 +503,91 @@ class FieldStateTest {
     assertFalse(rows.list.hasRow(0), "the shrunk row is out of view");
     assertEquals(before, rows.told, "not told while its row is gone");
     return rows;
+  }
+
+  static final class Moves {
+    final FieldState state = new FieldState();
+    String text = "";
+    int caret = -1;
+    int caretAtKey = -1; // what the handler of F8 found
+    boolean moved;
+    El field;
+  }
+
+  @Test
+  void aSelectionTheFramesLastBuildAppliesIsToldBeforeTheNextKey() {
+    TextLibraries.assumeLoaded();
+    Moves moves = new Moves();
+    App<Moves> app = new App<>(moves, m -> {
+      m.field = El.text(m.text)
+          .h(24)
+          .editable(value -> m.text = value)
+          .fieldState(m.state)
+          .onSelect((caret, anchor) -> {
+            m.caret = caret;
+            if (caret == 3 && !m.moved) {
+              m.moved = true;
+              m.state.select(0, 0); // the frame's last build applies it
+            }
+          })
+          .onKey(key -> {
+            if (!key.name().equals("F8")) {
+              return false;
+            }
+            m.caretAtKey = m.caret;
+            return true;
+          });
+      return col().wFull().hFull().child(m.field);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 100, 1);
+    app.frame();
+    app.focus(moves.field);
+    app.frame();
+    app.textInput("abc");
+    app.frame();
+    app.keyDown(new Key("F8"));
+    app.frame();
+    assertEquals(0, moves.caretAtKey);
+  }
+
+  static final class Drafts {
+    String text = "";
+    boolean open = true;
+    El field;
+  }
+
+  @Test
+  void anEditThatClosesItsFieldLeavesNothingToANewFieldUnderItsKey() {
+    TextLibraries.assumeLoaded();
+    Drafts drafts = new Drafts();
+    App<Drafts> app = new App<>(drafts, d -> {
+      El root = col().wFull().hFull();
+      if (d.open) {
+        d.field = El.text(d.text).key("draft").h(24).editable(value -> {
+          d.text = value.endsWith("!") ? "" : value; // the draft is sent and closed
+          d.open = !value.endsWith("!");
+        });
+        root.child(d.field);
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 100, 1);
+    app.frame();
+    app.focus(drafts.field);
+    app.frame();
+    app.textInput("hi");
+    app.frame();
+    app.textInput("!");
+    app.frame();
+    drafts.open = true; // a new draft
+    app.invalidate();
+    app.frame();
+    app.focus(drafts.field);
+    app.frame();
+    app.keyDown(new Key("Z", Key.CONTROL, false));
+    app.frame();
+    assertEquals("", drafts.text, "nothing of the closed draft's history");
   }
 }

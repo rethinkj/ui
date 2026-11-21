@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
+import com.rethinkj.ui.Key;
+import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -38,6 +40,7 @@ class CompletionTest {
     final CodeEditor.State editor = new CodeEditor.State();
     final Completion.State completion = new Completion.State();
     boolean plain; // the editor without completions
+    boolean plainOnEdit; // an edit leaves out the completions
     App<Query> app;
   }
 
@@ -60,7 +63,10 @@ class CompletionTest {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
-      El editor = codeEditor(s.sql, s.editor, s.highlighter, v -> s.sql = v)
+      El editor = codeEditor(s.sql, s.editor, s.highlighter, v -> {
+            s.sql = v;
+            s.plain |= s.plainOnEdit;
+          })
           .key("query")
           .lines(4)
           .wFull();
@@ -421,5 +427,121 @@ class CompletionTest {
     release.countDown();
     tree = run(catalog.app, "await");
     assertTrue(tree.contains("label=\"customers\"") && !tree.contains("#loading"), tree);
+  }
+
+  @Test
+  void anEditAnsweredInABuildWithoutTheCompletionsEndsTheirWait() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    String tree = run(app, "frame\npress #query\ntype \"SELECT s\"\nframe\ntype \"t\"");
+    assertTrue(tree.contains("label=\"status\"") && !tree.contains("label=\"select\""), tree);
+    app.state().plainOnEdit = true; // the build that answers the next edit has no completions
+    run(app, "key Backspace");
+    app.state().plain = false;
+    app.state().plainOnEdit = false;
+    app.invalidate();
+    tree = run(app, "frame");
+    assertEquals("SELECT s", app.state().sql);
+    assertTrue(tree.contains("label=\"select\""), "the entries for s, not those for st: " + tree);
+  }
+
+  static final class Rows {
+    String sql = "";
+    int caret;
+    boolean growOnEdit; // an edit makes the row above tall, which pushes the field's out of view
+    boolean grown;
+    boolean plain; // the field without completions
+    final Completion.State completion = new Completion.State();
+    App<Rows> app;
+    El field;
+    El other;
+
+    // The entries for the app's text sliced at the app's caret: they throw for one beyond it.
+    List<Completion.Entry> suggest(String word) {
+      String before = sql.substring(0, caret);
+      return CompletionTest.suggest(before.substring(before.lastIndexOf(' ') + 1));
+    }
+  }
+
+  private static boolean shows(El el, El field) {
+    return el == field || el.children().stream().anyMatch(child -> shows(child, field));
+  }
+
+  /** A field in a list row with the list for "st" open, and Backspace, whose answer leaves the row out. */
+  private static Rows backspaceThatLeavesItsRowOut() {
+    TextLibraries.assumeLoaded();
+    Rows rows = new Rows();
+    rows.app = new App<>(rows, r -> {
+      El list = El.el()
+          .wFull()
+          .h(200)
+          .rows(100, new RowHeights(index -> index == 0 && r.grown ? 2000 : 24), index -> {
+            if (index != 5) {
+              return El.el().h(index == 0 && r.grown ? 2000 : 24);
+            }
+            El field = El.text(r.sql)
+                .h(24)
+                .wFull()
+                .editable(value -> {
+                  r.sql = value;
+                  r.grown |= r.growOnEdit;
+                })
+                .onSelect((caret, anchor) -> r.caret = caret);
+            r.field = field;
+            return r.plain
+                ? field
+                : Completion.complete(r.app, field, r.caret, r.completion, r::suggest);
+          });
+      r.other = El.el().h(20).focusable();
+      return col().wFull().hFull().child(r.other).child(list);
+    });
+    App<Rows> app = rows.app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(420, 240, 1);
+    app.frame();
+    app.focus(rows.field);
+    app.frame();
+    app.textInput("SELECT s");
+    app.frame();
+    app.textInput("t");
+    app.frame();
+    assertTrue(rows.completion.isOpen(), "the list for st");
+    rows.growOnEdit = true;
+    app.keyDown(new Key("Backspace"));
+    app.frame();
+    assertFalse(shows(app.tree(), rows.field), "the row is out of view");
+    rows.growOnEdit = false;
+    return rows;
+  }
+
+  @Test
+  void aKeyAfterAnEditsRowScrolledBackTakesTheAnsweredEntries() {
+    Rows rows = backspaceThatLeavesItsRowOut();
+    // Back to it, with no list in view to close, and the next key in the same frame.
+    rows.app.wheel(30, 120, 0, 2100);
+    rows.app.keyDown(new Key("Enter"));
+    rows.app.frame();
+    assertEquals("SELECT select", rows.sql, "the first entry for s, not status for st");
+  }
+
+  @Test
+  void anEditWhoseFieldLostTheFocusOutOfTheTreeIsAnsweredWhenItIsBack() {
+    for (boolean plain : new boolean[] {false, true}) {
+      Rows rows = backspaceThatLeavesItsRowOut();
+      App<Rows> app = rows.app;
+      app.focus(rows.other); // the focus no longer keeps the field's editor
+      app.frame();
+      rows.plain = plain; // back with its completions, or without, which then hear nothing
+      app.wheel(30, 120, 0, 2100);
+      app.frame();
+      rows.plain = false;
+      app.invalidate();
+      app.frame();
+      app.focus(rows.field);
+      app.frame();
+      app.keyDown(new Key("Enter"));
+      app.frame();
+      assertEquals("SELECT select", rows.sql, "plain " + plain + ": not status for st");
+    }
   }
 }

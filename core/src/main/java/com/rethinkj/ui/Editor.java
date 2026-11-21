@@ -153,11 +153,8 @@ final class Editor {
    * Takes the element of a new tree: its handler and settings, and its string, which is the app's
    * answer to the edits since the last tree. Then shows the composition in its text; a field that
    * no longer takes edits ends it, as losing the focus does.
-   *
-   * @return whether onSelect is to hear the selection before more input: it was held for the
-   *     app's answer to the edits
    */
-  boolean attach(El el) {
+  void attach(El el) {
     this.el = el;
     if (!editable() && !composition.isEmpty()) {
       composition = "";
@@ -166,16 +163,14 @@ final class Editor {
     Text t = el.text();
     if (!t.multiline()) {
       lines = null;
-      boolean moved = answer(t.value());
+      answer(t.value());
       t.compose(composition.isEmpty() ? null : shown());
-      return moved;
+      return;
     }
     String value = t.value();
-    boolean moved =
-        answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
+    answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
     t.edited(text, lines());
     showComposition();
-    return moved;
   }
 
   /** The app's string with line feeds only; the same object while the app's string is. */
@@ -217,16 +212,23 @@ final class Editor {
     return proposed != null;
   }
 
+  /** Whether an edit waits for the app's answer, or onSelect has yet to hear the selection. */
+  boolean selectionPending() {
+    return proposed != null || untold();
+  }
+
+  /** Whether onSelect has yet to hear the selection, which {@link #tell} tells now. */
+  boolean untold() {
+    return proposed == null && (caret != toldCaret || anchor != toldAnchor);
+  }
+
   /**
    * Takes the app's answer to the edits since the last answer: the string the view now gives the
    * element, as {@link #attach} describes. {@link App} builds the view again between two edits
    * that reach a field in the same frame, so that the second builds on what the app made of the
    * first.
-   *
-   * @return whether the selection was held for the answer, as {@link #tell} holds it
    */
-  private boolean answer(String value) {
-    boolean moved = proposed != null;
+  private void answer(String value) {
     if (proposed != null) {
       toldCaret = -1; // the handler hears the selection after every answer, also one it had
       // The answer is usually the proposal itself, which the first comparison finds at once.
@@ -266,7 +268,6 @@ final class Editor {
     text = value;
     caret = snap(caret);
     anchor = snap(anchor);
-    return moved;
   }
 
   /** The lines are found again in a string that no edit led to. */
@@ -360,7 +361,7 @@ final class Editor {
    * @return whether it was told
    */
   boolean tell() {
-    if (proposed != null || (caret == toldCaret && anchor == toldAnchor)) {
+    if (!untold()) {
       return false;
     }
     toldCaret = caret;

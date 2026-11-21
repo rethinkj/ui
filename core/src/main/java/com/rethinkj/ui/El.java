@@ -1864,9 +1864,11 @@ public final class El {
    * an edit, it runs once the app answered the edit with the next tree, also when the selection
    * stayed, so the positions are always those of the app's string: after a refused edit those it
    * went back to. The build that answers the edit still has what the handler stored before it;
-   * the view is built once more after the handler. A field in a row of a virtual list that layout
-   * left out of the tree is not told; once its row is back, it is told after the next input or
-   * rebuild. For the caret's rectangle, place an overlay {@link #atCaret}.
+   * the view is built once more after the handler. A selection that a build applied or moved, a
+   * {@link FieldState}'s or the app's answer to an edit, is told before the next input. A field in
+   * a row of a virtual list that layout left out of the tree is not told; it is told once its row
+   * is back, also when scrolling brought it. For the caret's rectangle, place an overlay {@link
+   * #atCaret}.
    */
   public El onSelect(SelectHandler handler) {
     editableOnly("onSelect");
@@ -3370,6 +3372,17 @@ public final class El {
   /** Whether {@link #tabIndents} indents with spaces rather than tabs. */
   boolean tabSpaces() {
     return tabIndents == 2;
+  }
+
+  /**
+   * Whether the app has yet to hear where this {@link #editable} field's caret and selection are:
+   * an edit of the field waits for the app's answer, or its {@link #onSelect} handler has yet to
+   * hear the selection after it. An element of an earlier tree answers for the field it became.
+   * For a component that reads the caret the app stored, such as completions after an edit; false
+   * for a field that was never in a tree.
+   */
+  public boolean isSelectionPending() {
+    return editor != null && editor.selectionPending();
   }
 
   /** For {@link App}: the editing state of a field, which it keeps across rebuilds. */
