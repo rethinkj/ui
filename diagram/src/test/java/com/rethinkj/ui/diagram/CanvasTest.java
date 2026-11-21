@@ -4,6 +4,8 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -11,7 +13,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.diagram.Canvas.Edge;
+import com.rethinkj.ui.diagram.Canvas.Emphasis;
+import com.rethinkj.ui.diagram.Canvas.Marker;
 import com.rethinkj.ui.diagram.Canvas.Node;
+import com.rethinkj.ui.diagram.Canvas.Port;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
@@ -207,6 +213,38 @@ class CanvasTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> Canvas.png(huge, viewport -> fail("built before the size was checked")));
+  }
+
+  @Test
+  void routesReuseTheCacheWhenOnlyLabelsPinsOrEmphasisChange() {
+    Canvas.Viewport viewport = new Canvas.Viewport();
+    Node a = new Node("a", "Orders", 0, 0, 120, 60, false);
+    Node b = new Node("b", "Customers", 240, 0, 120, 60, false);
+    Edge edge = new Edge(
+        "e",
+        "orders.customer_id",
+        new Port("a", 30),
+        new Port("b", 30),
+        Marker.ONE_OR_MANY,
+        Marker.ONE,
+        Emphasis.NORMAL,
+        "foreign key");
+
+    List<Routing.Route> first = viewport.routes(List.of(a, b), List.of(edge), EdgeStyle.DEFAULT);
+    Node relabeled = new Node("a", "Renamed", 0, 0, 120, 60, true);
+    Edge highlighted = new Edge(
+        "e",
+        "renamed",
+        new Port("a", 30),
+        new Port("b", 30),
+        Marker.ONE_OR_MANY,
+        Marker.ONE,
+        Emphasis.HIGHLIGHTED,
+        "other");
+    assertSame(
+        first, viewport.routes(List.of(relabeled, b), List.of(highlighted), EdgeStyle.DEFAULT));
+    assertNotSame(
+        first, viewport.routes(List.of(a.movedTo(20, 0), b), List.of(edge), EdgeStyle.DEFAULT));
   }
 
   /** The line of the element with this key in a tree dump, or nothing. */

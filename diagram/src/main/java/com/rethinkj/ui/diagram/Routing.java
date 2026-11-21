@@ -97,13 +97,37 @@ final class Routing {
       Path best = null;
       for (int[] sides : SIDES) {
         best = cheaper(
-            best, best(from, y1, sides[0], to, y2, sides[1], reach, obstacles, style, false));
+            best,
+            best(
+                from,
+                y1,
+                sides[0],
+                to,
+                y2,
+                sides[1],
+                reach,
+                obstacles,
+                style,
+                false,
+                Double.POSITIVE_INFINITY));
       }
       boolean detours = best == null || best.cost >= CRAMPED; // crosses a node, or cramped
       if (detours) {
         for (int[] sides : SIDES) {
           best = cheaper(
-              best, best(from, y1, sides[0], to, y2, sides[1], reach, obstacles, style, true));
+              best,
+              best(
+                  from,
+                  y1,
+                  sides[0],
+                  to,
+                  y2,
+                  sides[1],
+                  reach,
+                  obstacles,
+                  style,
+                  true,
+                  best == null ? Double.POSITIVE_INFINITY : best.cost));
         }
       }
       if (best.xs.length == 2) {
@@ -116,7 +140,18 @@ final class Routing {
       paths[i] = best;
       if (best.sameSide()) {
         int side = -best.fromSide;
-        Path other = best(from, y1, side, to, y2, side, reach, obstacles, style, detours);
+        Path other = best(
+            from,
+            y1,
+            side,
+            to,
+            y2,
+            side,
+            reach,
+            obstacles,
+            style,
+            detours,
+            best.cost + 2 * EPSILON);
         if (other != null && other.sameSide() && Math.abs(other.cost - best.cost) <= EPSILON) {
           others[i] = other;
         }
@@ -293,7 +328,8 @@ final class Routing {
    * The best route that leaves {@code from} on side {@code fromSide} and enters {@code to} on
    * side {@code toSide}, or null for none: straight, or through a channel in the middle of where
    * it may lie, or where that crosses a node, beside one of the nodes there; and with {@code
-   * detours}, also along a row above or below a node.
+   * detours}, also along a row above or below a node, stopping once no remaining row can beat
+   * {@code limit}.
    */
   private static Path best(
       Node from,
@@ -305,7 +341,8 @@ final class Routing {
       double[] reach,
       Obstacles obstacles,
       EdgeStyle style,
-      boolean detours) {
+      boolean detours,
+      double limit) {
     double stub = style.stub();
     double px = fromSide > 0 ? from.x() + from.width() : from.x();
     double qx = toSide > 0 ? to.x() + to.width() : to.x();
@@ -380,23 +417,30 @@ final class Routing {
     }
     if (detours) {
       // The rows by the least a detour along them costs, its legs at the stubs and crossing
-      // nothing; past the first that costs no more than the best so far, none can be better.
-      double least = Math.abs(px + fromSide * stub - (qx + toSide * stub)) + 6 * stub;
-      double[] rows = obstacles.rows;
-      Integer[] order = new Integer[rows.length];
-      double[] bound = new double[rows.length];
-      for (int i = 0; i < rows.length; i++) {
-        order[i] = i;
-        bound[i] = least + Math.abs(rows[i] - y1) + Math.abs(rows[i] - y2);
-      }
-      Arrays.sort(order, (a, b) -> Double.compare(bound[a], bound[b])); // stable: then by row
-      for (int i : order) {
-        if (best != null && bound[i] >= best.cost - EPSILON) {
-          break;
+      // nothing; past the first that cannot beat the best so far or the caller's limit, none can
+      // be better. Shorter legs (down to need1 and need2) can cost less than least, so the check
+      // against the caller's limit uses the true minimum across all leg lengths.
+      double floor =
+          need1 + need2 + Math.abs(px + fromSide * need1 - (qx + toSide * need2)) + 4 * stub;
+      if (floor + Math.abs(y1 - y2) < limit) {
+        double least = Math.abs(px + fromSide * stub - (qx + toSide * stub)) + 6 * stub;
+        double[] rows = obstacles.rows;
+        Integer[] order = new Integer[rows.length];
+        double[] bound = new double[rows.length];
+        for (int i = 0; i < rows.length; i++) {
+          order[i] = i;
+          bound[i] = least + Math.abs(rows[i] - y1) + Math.abs(rows[i] - y2);
         }
-        best = cheaper(
-            best,
-            detour(fromSide, px, y1, toSide, qx, y2, rows[i], need1, need2, obstacles, style));
+        Arrays.sort(order, (a, b) -> Double.compare(bound[a], bound[b])); // stable: then by row
+        for (int i : order) {
+          if (best != null && bound[i] >= best.cost - EPSILON
+              || floor + Math.abs(rows[i] - y1) + Math.abs(rows[i] - y2) >= limit) {
+            break;
+          }
+          best = cheaper(
+              best,
+              detour(fromSide, px, y1, toSide, qx, y2, rows[i], need1, need2, obstacles, style));
+        }
       }
     }
     return best;
@@ -798,6 +842,8 @@ final class Routing {
     private final List<Integer> large = new ArrayList<>();
     private final int[] seen; // the visit that last saw each node
     private int visit;
+    private int[] buffer = new int[16]; // reused by near(), valid only until the next call
+    private int size;
 
     Obstacles(List<Node> nodes, double stub) {
       this.nodes = nodes;
@@ -832,7 +878,9 @@ final class Routing {
     /** How many nodes the run from one point to the other crosses. */
     int count(double x1, double y1, double x2, double y2) {
       int count = 0;
-      for (int i : near(x1, y1, x2, y2)) {
+      int found = near(x1, y1, x2, y2);
+      for (int k = 0; k < found; k++) {
+        int i = buffer[k];
         if (crosses(x1, y1, x2, y2, nodes.get(i))) {
           count++;
         }
@@ -843,7 +891,9 @@ final class Routing {
     /** The index of the first node, in the nodes' order, that the run crosses; -1 for none. */
     int first(double x1, double y1, double x2, double y2) {
       int first = -1;
-      for (int i : near(x1, y1, x2, y2)) {
+      int found = near(x1, y1, x2, y2);
+      for (int k = 0; k < found; k++) {
+        int i = buffer[k];
         if ((first < 0 || i < first) && crosses(x1, y1, x2, y2, nodes.get(i))) {
           first = i;
         }
@@ -851,32 +901,46 @@ final class Routing {
       return first;
     }
 
-    /** The nodes in the cells the run covers, each once. */
-    private List<Integer> near(double x1, double y1, double x2, double y2) {
+    private void put(int i) {
+      if (size == buffer.length) {
+        buffer = Arrays.copyOf(buffer, size * 2);
+      }
+      buffer[size++] = i;
+    }
+
+    /** The nodes in the cells the run covers, each once, into {@link #buffer}; their count. */
+    private int near(double x1, double y1, double x2, double y2) {
+      size = 0;
       double left = cell(Math.min(x1, x2));
       double right = cell(Math.max(x1, x2));
       double top = cell(Math.min(y1, y2));
       double bottom = cell(Math.max(y1, y2));
       if (!filed(left, right, top, bottom, Math.max(MOST, cells.size()))) {
-        List<Integer> all = new ArrayList<>(nodes.size());
         for (int i = 0; i < nodes.size(); i++) {
-          all.add(i);
+          put(i);
         }
-        return all;
+        return size;
       }
-      List<Integer> near = new ArrayList<>(large);
+      for (int k = 0; k < large.size(); k++) {
+        put(large.get(k));
+      }
       visit++;
       for (long x = (long) left; x <= (long) right; x++) {
         for (long y = (long) top; y <= (long) bottom; y++) {
-          for (int i : cells.getOrDefault(key(x, y), List.of())) {
+          List<Integer> in = cells.get(key(x, y));
+          if (in == null) {
+            continue;
+          }
+          for (int k = 0; k < in.size(); k++) {
+            int i = in.get(k);
             if (seen[i] != visit) {
               seen[i] = visit;
-              near.add(i);
+              put(i);
             }
           }
         }
       }
-      return near;
+      return size;
     }
 
     /** The index of the cell a coordinate lies in, as a whole number. */
@@ -895,7 +959,9 @@ final class Routing {
     }
 
     private static long key(long x, long y) {
-      return x << 32 ^ (y & 0xFFFFFFFFL);
+      // Multiply by an odd constant (a bijection on long) so Long.hashCode spreads x and y across
+      // buckets instead of collapsing them to x ^ y.
+      return ((x << 32) ^ (y & 0xFFFFFFFFL)) * 0x9E3779B97F4A7C15L;
     }
   }
 
