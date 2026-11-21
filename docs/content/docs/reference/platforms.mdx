@@ -3,7 +3,7 @@ title: Platforms and native libraries
 description: Supported operating systems, native libraries, troubleshooting, and platform differences.
 ---
 
-rethinkj UI supports **Windows 11+** and **Linux** (both x64) with **JDK 25**. On Linux, the native libraries need **glibc 2.38 or later**, as on Ubuntu 24.04, Debian 13 or Fedora 39 and later. They do not load on Ubuntu 22.04 or Debian 12.
+rethinkj UI supports **Windows 11+** and **Linux** (both x64) with **JDK 25**. On Linux, the native libraries require **glibc 2.38 or later** (for example, Ubuntu 24.04+, Debian 13+, or Fedora 39+). They do not load on Ubuntu 22.04 or Debian 12.
 
 It uses native libraries for windows, GPU rendering, and text:
 - **SDL 3** for windows, input, clipboard, and dialogs
@@ -44,7 +44,7 @@ Required JVM flags:
 | --- | --- |
 | Warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` (classpath) or `--enable-native-access=com.rethinkj.ui` (module path) to your JVM arguments. |
 | `UnsatisfiedLinkError`: No native libraries on the class path | The natives JAR for your OS is missing from the runtime classpath. |
-| `UnsatisfiedLinkError` naming a `GLIBC_` version that is not found | The system's glibc is older than the native libraries need; see the version at the top of this page. |
+| `UnsatisfiedLinkError` naming a `GLIBC_` version that is not found | Your system's glibc is older than the native libraries require. See the required version at the top of this page. |
 | Linux library fails to load from cache | The cache directory is on a `noexec` filesystem. Set `-Drethinkj.ui.natives.cache=<path>` to an executable directory. |
 | No GPU adapter found | No Vulkan (Linux) or Direct3D 12 (Windows) GPU driver is available. Headless scripts and `Headless.render` still work using the CPU renderer. Note: GPU initialization happens on the first frame inside `WindowLoop.run`, not in `new GpuPresenter`. |
 | CMake fails on Windows (building from source) | Install **C++ CMake tools for Windows** in Visual Studio, or pass `$env:CMAKE = '<folder>\bin\cmake.exe'`. |
@@ -76,7 +76,7 @@ sudo apt install build-essential cmake pkg-config xz-utils libx11-dev libxext-de
   libxkbcommon-dev libegl-dev libdbus-1-dev
 ```
 
-The built libraries depend on the `glibc` version of the build machine: built on a newer one, they may need a newer glibc than the published natives JAR.
+The built libraries depend on the `glibc` version of the build machine. If you build on a machine with a newer `glibc`, the libraries may require a newer glibc than the published natives JAR.
 
 </Tab>
 <Tab value="Windows">

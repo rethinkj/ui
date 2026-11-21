@@ -57,15 +57,15 @@ For typed values, use `ValueField.valueField(format, value, draft, onChange)` wi
 
 ## Keyboard
 
-Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** to select, **Ctrl** by word), Backspace/Delete, **Ctrl+A/C/X/V/Z/Y**. Tabbing into a single-line field selects all text. In multi-line fields, **Enter** inserts a newline and **Ctrl+Enter** bubbles to app key handlers; in a read-only field, Enter bubbles too.
+Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** to select, **Ctrl** by word), Backspace/Delete, **Ctrl+A/C/X/V/Z/Y**. Tabbing into a single-line field selects all text. In multi-line fields, **Enter** inserts a newline and **Ctrl+Enter** bubbles to app key handlers. In a read-only field, **Enter** bubbles too.
 
 ## Context menu
 
-A right-click in a field, the **Menu** key or **Shift+F10** opens its menu: **Cut**, **Copy**, **Paste** and **Select all**, with their keys. They act as the keys do, so **Ctrl+Z** takes back a cut or a paste. An item that would do nothing is disabled: Cut and Copy without a selection, Paste with an empty clipboard, Cut and Paste in a read-only field. A password field that hides its string has no Cut and Copy. A [CodeEditor](/docs/components/code-editor) given the app adds **Find** and **Replace**.
+Right-clicking a field, or pressing the **Menu** key or **Shift+F10**, opens its context menu. The menu contains **Cut**, **Copy**, **Paste**, and **Select all**, along with their keyboard shortcuts. Each item works like its shortcut, so **Ctrl+Z** undoes a cut or paste. Items that cannot act are disabled: **Cut** and **Copy** when nothing is selected, **Paste** when the clipboard is empty, and **Cut** and **Paste** in a read-only field. A password field that hides its text omits **Cut** and **Copy**. A [CodeEditor](/docs/components/code-editor) created with the app also adds **Find** and **Replace**.
 
-A field with a secondary-press handler of your own, such as `Menu.contextMenu(field, state, items)`, opens your menu instead. A right-click on a field opens the field's menu, not a context menu of an element around it.
+If you attach your own right-click handler to a field, such as `Menu.contextMenu(field, state, items)`, your menu opens instead. Outside the rows of a virtual list, right-clicking a field opens the field's own menu rather than a parent element's context menu.
 
-In scripts: `press #name right`, then `frame`, `advance 1` and `press label="Copy"`. The menu is `role=menu` with `role=menuitem` items, as any [Menu](/docs/components/menu).
+In scripts, open and use the menu with `press #name right`, then `frame`, `advance 1`, and `press label="Copy"`. Like any [Menu](/docs/components/menu), it appears as `role=menu` with `role=menuitem` items.
 
 ## With a Prop
 
@@ -73,7 +73,7 @@ In scripts: `press #name right`, then `frame`, `advance 1` and `press label="Cop
 
 ## In a tree dump
 
-`text` element with `role=textbox`, label, `placeholder="..."` when the field has a label other than its placeholder (as in a [Form](/docs/components/form)), quoted string, and active states (`disabled`, `readonly`, `password`, `revealed`, `invalid`). When focused, shows `focused caret <n>` (and `anchor <n>` if selected), plus `lines <first>-<last>/<count>` and `(line:col)` for multi-line fields:
+`text` element with `role=textbox`, label, optional `placeholder="..."` (shown when the label differs from the placeholder, as in a [Form](/docs/components/form)), quoted string, and active states (`disabled`, `readonly`, `password`, `revealed`, `invalid`). When focused, shows `focused caret <n>` (and `anchor <n>` if selected), plus `lines <first>-<last>/<count>` and `(line:col)` for multi-line fields:
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```

@@ -19,12 +19,12 @@ Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.
 - `state.sql` is the document string, updated via `onChange`.
 - `state.editor` is a `CodeEditor.State` stored in your app state (one per tab/editor) to preserve cursor, selection, scroll position, and undo history across tab switches.
 - `Sql.of()` highlights standard SQL (see [SQL](#sql)). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
-- Passing `state.app` enables the built-in find bar, line commands and F8 to go to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
+- Passing `state.app` enables the built-in find bar, line commands, and F8 to jump to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
 - Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
 
 ## SQL
 
-`Sql.of()` highlights SQL as PostgreSQL writes it, and `Sql.of(Sql.Dialect.MYSQL)` as MySQL and MariaDB do. `Sql` is in its own module, `rethinkj-ui-sql`, in the package `com.rethinkj.ui.sql`:
+`Sql.of()` highlights PostgreSQL SQL, and `Sql.of(Sql.Dialect.MYSQL)` highlights MySQL and MariaDB SQL. `Sql` lives in its own module, `rethinkj-ui-sql`, in package `com.rethinkj.ui.sql`:
 
 ```xml
 <dependency>
@@ -38,9 +38,9 @@ Javadoc: [`Sql`](/api/com/rethinkj/ui/sql/Sql.html).
 
 ## JSON
 
-`Json.of()` highlights JSON as RFC 8259 defines it: member names, strings, numbers, `true`, `false` and `null`, and brackets, where only the brackets outside strings are matched. A member name takes the `property` color of `Theme.Code` when its colon is on the same line. Invalid JSON is colored as far as it goes. JSON has no comments, so Ctrl+/ does nothing.
+`Json.of()` highlights JSON according to RFC 8259: member names, strings, numbers, `true`, `false`, `null`, and brackets. Only brackets outside strings are matched. A member name uses the `property` color from `Theme.Code` when its colon is on the same line. Invalid JSON is highlighted as far as possible. Because JSON has no comments, Ctrl+/ does nothing.
 
-`Json` is in its own module, `rethinkj-ui-json`, in the package `com.rethinkj.ui.json`:
+`Json` lives in its own module, `rethinkj-ui-json`, in package `com.rethinkj.ui.json`:
 
 ```xml
 <dependency>
@@ -57,20 +57,20 @@ Javadoc: [`Sql`](/api/com/rethinkj/ui/sql/Sql.html).
 
 ### Formatting JSON
 
-The editor does not wrap lines, so a minified value, such as one from a database's column, is best formatted before it shows. `Json.format` puts each member and element on a line of its own, indented by four spaces, and keeps numbers, escapes and the order of members as they are written. A multi-line field turns a line separator (U+2028) or paragraph separator (U+2029) into a line feed, which breaks a JSON string that holds one as it is, so `Json.format` writes both as `\u2028` and `\u2029`. An app that shows JSON without formatting it replaces both characters in its strings with these escapes itself. `Json.format` returns a `Formatted`: the formatted text, or, for invalid JSON, the first problem with its place and kind, which the app can show as a [diagnostic](#gutter-markers-and-diagnostics) with the message of `Texts.formatProblem`. A handler runs outside the view, so it takes the texts the view read with `Texts.CURRENT.get()`:
+The editor does not wrap lines, so format minified JSON (such as a database column value) before displaying it. `Json.format` puts each member and array element on its own line with four-space indentation. It keeps numbers, escape sequences, and member order as written. Multi-line text fields convert line separators (U+2028) and paragraph separators (U+2029) into line feeds, which breaks JSON strings that contain them directly. To avoid this, `Json.format` escapes them as `\u2028` and `\u2029`. If your app displays JSON without formatting it, replace those two characters in strings with these escapes yourself. `Json.format` returns a `Formatted` result with either the formatted text or, for invalid JSON, the first problem's position and kind. You can show that problem as a [diagnostic](#gutter-markers-and-diagnostics) with `Texts.formatProblem`. Because event handlers run outside the view, pass the texts you read in the view with `Texts.CURRENT.get()`:
 
 ```java snippet="code-editor-json-format"
 ```
 
-The editor then shows `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. In an editor that can change its text, **Ctrl+Alt+L** formats it with `Json.format` as one step for Ctrl+Z, and keeps the cursor at the same token. Invalid JSON stays as it is: its problem shows as an error diagnostic with its message above the cursor, until the text changes. `Json.format` takes untrusted text: a value nested however deep needs no deeper stack, and one whose formatted text would be longer than 64 Mi characters gives the kind `TOO_LARGE`.
+You can then show `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. In an editable editor, **Ctrl+Alt+L** formats the text with `Json.format` as one undo step (Ctrl+Z) and keeps the cursor on the same token. If the JSON is invalid, the text stays unchanged, and the problem appears as an error diagnostic with its message above the cursor until the text changes. `Json.format` is safe for untrusted text. Deeply nested values do not use extra call stack, and input whose formatted text would exceed 64 Mi characters returns the `TOO_LARGE` kind.
 
 Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
 
 ## Placeholder and read-only
 
-Pass a placeholder after the value to show a hint while the editor is empty. As in a [text area](/docs/components/text-field#text-areas), it is also the label unless `.label(...)` sets another, and a tree dump then shows it as `placeholder="..."`.
+Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. If you set a different label, the tree dump shows the placeholder as `placeholder="..."`.
 
-An editor that only shows its code takes a `CodeEditor.State` with `readOnly(true)` and `null` for `onChange`. Its text can be selected, copied, and searched with the find bar, but not changed, and the tree dump marks it `readonly`. With a `null` handler and no `readOnly(true)`, the editor is disabled instead.
+To make a read-only editor, call `readOnly(true)` on `CodeEditor.State` and pass `null` for `onChange`. Users can still select, copy, and search the text with the find bar, but cannot change it. In a tree dump, it is marked `readonly`. If you pass `null` for `onChange` without `readOnly(true)`, the editor is disabled instead.
 
 ```java snippet="code-editor-read-only"
 ```
@@ -96,21 +96,21 @@ The left gutter displays a marker column and line numbers. You can attach:
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
 - **Diagnostics (`diagnostics(text, list)`):** Underlines errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
 
-With the app passed, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** to the previous one, wrapping around at the ends. The message then shows above the cursor, in the look of the marker's tooltip, while the editor has the focus, until the cursor leaves the diagnostic or **Escape** hides it. Escape still closes an open completion list or find bar first. Without diagnostics, the keys do nothing.
+When you pass the app, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** moves to the previous one, wrapping around at both ends. The diagnostic message appears above the cursor (styled like the marker's tooltip) while the editor has focus. It stays visible until the cursor leaves the diagnostic or you press **Escape**. **Escape** closes an open completion list or find bar first. If there are no diagnostics, these keys do nothing.
 
 ```java snippet="code-editor-marks"
 ```
 
 All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are UTF-16 offsets in the editor's normalized displayed text, where CRLF (`\r\n`) is normalized to LF (`\n`). To jump the cursor to a diagnostic, call `select(caret, anchor)` on `CodeEditor.State`.
 
-`line()` and `column()` on `CodeEditor.State` give the cursor's line and column, both counted from 1, such as for a [StatusBar](/docs/components/status-bar). The column counts characters as the positions do, so a tab is one character however wide it shows. They are about the text of the editor's last build, so read them after building the editor, as for a status bar below it.
+`line()` and `column()` on `CodeEditor.State` return the cursor's line and column numbers, starting at 1 (for example, for a [StatusBar](/docs/components/status-bar)). Columns count characters the same way positions do, so a tab counts as one character no matter how wide it looks. Both values reflect the text from the editor's last build, so read them after building the editor (such as in a status bar below it).
 
 ```java snippet="code-editor-position"
 ```
 
 ## Inserting text
 
-To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the selection, or inserts at the cursor, and puts the cursor after the text, or, with `replaceSelection(text, caret)`, at `caret` in the text, such as between the parentheses of `()`. To insert at a place you computed, such as a line below the one with the cursor, call `replace(from, to, text, caret)`: it replaces exactly the characters `from` to `to`, and Ctrl+Z brings back the selection from before. The edit runs right after the handler, goes to `onChange` like typed text, and is one step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
+To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the current selection (or inserts at the cursor) and puts the cursor after the inserted text. To place the cursor at `caret` inside `text` instead (such as between the parentheses of `()`), call `replaceSelection(text, caret)`. To edit a range you calculated (such as a line below the cursor), call `replace(from, to, text, caret)`. It replaces the exact characters from `from` to `to`, and Ctrl+Z restores the previous selection. The edit runs right after the handler, calls `onChange` like typed text, and counts as one undo step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
 
 ```java snippet="code-editor-insert"
 ```
@@ -125,8 +125,8 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - `Object line(String line, Object state, Spans out)` receives the line without `\n`, the previous line's end state (`null` for line 0), and a `Spans` builder. Return a value object (enum, record, `Boolean.TRUE`, or `null`) so state changes can be compared with `equals`.
 - Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
 - Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
-- Override `formatter()` to enable **Ctrl+Alt+L** formatting: return a function from the editor's text, with line feeds only, to a `Formatted`, such as `Json::format`. For a text it cannot format, it returns the first problem, at its place in that text, instead of throwing. The cursor stays at the same token when the formatter changes only white space, as `Json::format` does. `null`, the default, means the language has no formatter, and the command does nothing.
-- Override `wordCharacters()` to name the characters that belong to a word of the language besides letters, digits and `_`, such as `"$"` for JavaScript. Ctrl+Arrow, double-click, highlighted occurrences, the word the first Ctrl+D selects and the next ones it finds, the find bar's word at the cursor and its whole-word search, and [Completion](/docs/components/completion) then take `$gt` as one word.
+- Override `formatter()` to enable **Ctrl+Alt+L** formatting. Return a function (such as `Json::format`) that takes the editor's text with line feeds only and returns a `Formatted`. If the text cannot be formatted, the function returns the first problem and its position in the text instead of throwing. When the formatter only changes whitespace (as `Json::format` does), the cursor stays on the same token. The default is `null`, which means the language has no formatter and the command does nothing.
+- Override `wordCharacters()` to specify extra characters that count as part of a word besides letters, digits, and `_` (such as `"$"` for JavaScript). Word-based features then treat `$gt` as a single word: Ctrl+Arrow, double-click, word-occurrence highlights, Ctrl+D (both the first selection and next matches), the find bar's word at the cursor and whole-word search, and [Completion](/docs/components/completion).
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
 ### Spans
@@ -149,8 +149,8 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `caret()`, `anchor()` | Current cursor and selection anchor offsets |
 | `select(caret, anchor)` | Sets cursor/selection and scrolls it into view on the next build |
 | `replaceSelection(text)` | Replaces the selection with `text` right after the handler, as one undo step |
-| `replaceSelection(text, caret)` | The same, with the cursor at `caret` in `text`, from 0 to its length |
-| `replace(from, to, text, caret)` | Replaces the characters `from` to `to` with `text` in the same way, with the cursor at `caret` in `text` |
+| `replaceSelection(text, caret)` | Same as above, placing the cursor at `caret` inside `text` (from 0 to its length) |
+| `replace(from, to, text, caret)` | Replaces characters from `from` to `to` with `text` in the same way, placing the cursor at `caret` inside `text` |
 | `diagnostics(text, list)`, `noDiagnostics()` | Sets or clears `CodeEditor.Diagnostic(from, to, severity, message)` items for `text` |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
@@ -167,16 +167,16 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move lines up or down |
 | Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
 | Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
-| Ctrl+Alt+L | `FORMAT` | Format the whole text using `formatter()`, or show why it cannot |
+| Ctrl+Alt+L | `FORMAT` | Format all text using `formatter()`, or show why formatting failed |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
-Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops, such as Xfce and Cinnamon, lock the screen on Ctrl+Alt+L before the app sees it; a menu item still formats there. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
+Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
 
 Also supports all standard [multi-line text field shortcuts](/docs/concepts/text-fields): auto-indent on Enter, Tab indentation (**Ctrl+M** toggles Tab between indent and focus navigation), smart Home, and Ctrl+Z / Ctrl+Y undo/redo.
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. A message that F8 shows is an overlay of the editor, `role=tooltip` with the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
 ```

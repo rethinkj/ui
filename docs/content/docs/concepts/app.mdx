@@ -60,7 +60,7 @@ You can also drive an `App` directly from Java code (for example in unit tests).
 | `resize(width, height, scale)` | Sets window size in logical pixels and display scale factor |
 | `pointerMove(x, y)` | Moves the mouse pointer (logical pixels) |
 | `pointerDown(x, y)`, `pointerDown(x, y, clicks, modifiers)`, `pointerUp(x, y)` | Primary mouse button down/up (`clicks = 2` for double-click, `modifiers` from `Key`) |
-| `wheel(x, y, deltaX, deltaY)`, `wheel(x, y, deltaX, deltaY, modifiers)` | Mouse wheel scroll at position (positive scrolls down or right), optionally with modifiers from `Key` held |
+| `wheel(x, y, deltaX, deltaY)`, `wheel(x, y, deltaX, deltaY, modifiers)` | Mouse wheel scroll at position (positive scrolls down or right), with optional modifiers from `Key` |
 | `keyDown(key)`, `keyUp(key)` | Key press/release using web key names and modifiers, e.g., `new Key("S", Key.CONTROL, false)` |
 | `textInput(text)` | Sends typed text |
 | `frame()` | Dispatches queued input, rebuilds the view, and renders; returns `true` if visuals changed |

@@ -14,7 +14,7 @@ Create text elements with `El.text("…")`. Text is shaped with HarfBuzz (suppor
 | --- | --- |
 | `font(Font)`, `fontSize(px)`, `color(argb)` | Font, size, and color (default: [`Font.sans()`](/api/com/rethinkj/ui/text/Font.html), 14 px, black) |
 | `wrapText()` | Wraps lines to fit width; breaks long unbreakable words (like URLs or file paths) between characters |
-| `ellipsis()` | Truncates overflowing text with `…`, or shows nothing where not even `…` fits (set a width or `minSize(0, 0)` in flex layouts); an `underline(from, to)` covers only the characters still shown |
+| `ellipsis()` | Truncates overflowing text with `…`, or shows nothing if even `…` does not fit (set a width or `minSize(0, 0)` in flex layouts). Any `underline(from, to)` covers only the characters still shown |
 | `maxLines(n)` | Limits wrapped text to `n` lines (adds `…` on the last line when combined with `ellipsis()`) |
 | `textAlign(Style.Align.CENTER)` | Horizontal line alignment (`START`, `CENTER`, `END`) |
 | `fontFeatures("+calt")` | Enables or disables OpenType features using HarfBuzz syntax |

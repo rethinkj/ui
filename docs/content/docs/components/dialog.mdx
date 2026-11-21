@@ -3,7 +3,7 @@ title: Dialog
 description: Centered modal dialog over a dimmed backdrop with title, scrollable content, and action buttons.
 ---
 
-`Dialog.dialog` displays a centered modal overlay over a dimmed backdrop (scrim). It opens with focus on the first field Tab reaches; with none, as in a dialog of read-only `Properties`, on `defaultButton`, else on the first button. It traps keyboard focus inside while open and restores previous focus when closed. Use it for confirmations and short forms.
+`Dialog.dialog` displays a centered modal overlay over a dimmed backdrop (scrim). When it opens, focus moves to the first field Tab can reach. If there is no such field (such as in a dialog of read-only `Properties`), focus moves to `defaultButton` if it can take focus, else to the first button that can. It traps keyboard focus inside while open and restores previous focus when closed. Use it for confirmations and short forms.
 
 For lightweight non-blocking overlays, use [Popover](/docs/components/popover). For brief status messages, use [Toast](/docs/components/toast).
 
@@ -32,18 +32,18 @@ Custom frameless title bars remain usable behind a dialog so users can still mov
 
 ## A dialog over a dialog
 
-A dialog can open a second one over itself, such as a form that asks for a detail or a "Discard changes?" prompt. Attach both to the root, the second one last so it lies on top. Every dialog has the key `"dialog"`, so chain a unique `.key(...)` on the second one:
+A dialog can open a second dialog on top of itself, such as a detail form or a "Discard changes?" prompt. Attach both dialogs to the root, with the second one last so it appears on top. Every dialog uses the key `"dialog"` by default, so give the second one a unique `.key(...)`:
 
 <Shot src="examples/docs/dialog-stack/stacked-{theme}" alt="An Add property dialog with a combo box and a Value field over a wider New connection dialog, both over a dimmed window" />
 
 ```java snippet="dialog-stack"
 ```
 
-Keys go to the dialog on top; while it is covered, the `onKey` handlers of the one below get none:
+Keyboard input goes only to the top dialog. While it is open, `onKey` handlers on the dialog below do not run:
 
-- **Escape** goes to the focused element first, so a focused combo box with its list open closes the list. An Escape that nothing in the top dialog takes calls the top dialog's `onDismiss` only; the one below stays open.
-- **Enter** stays in the top dialog: the focused control takes it, as a combo box that opens its list, or it presses the top dialog's default button. It never presses the default button of the dialog below, not even while the top dialog's is disabled.
-- **Focus:** when the top dialog closes, the focus goes back to the element that had it before the top dialog opened. That is the button that opened it if the button had the focus, as after Tab and Enter; a pointer press on a button leaves the focus where it was, such as in a field. The focus finds that element by its place among its siblings: if the build that closes the top dialog adds or removes siblings before it, as the line of properties in the example does, give the element a key (see [keys for identity](/docs/concepts/app#rules-for-your-view-function)).
+- **Escape** goes to the focused element first. For example, if a combo box list is open, Escape closes that list. If nothing in the top dialog handles Escape, only the top dialog's `onDismiss` runs and the dialog below stays open.
+- **Enter** stays in the top dialog. Either the focused control handles it (for example, a combo box opening its list), or it triggers the top dialog's default button. It never triggers the lower dialog's default button, even when the top dialog's default button is disabled.
+- **Focus:** When the top dialog closes, focus returns to the element that had focus before it opened. If the button that opened it had focus (for example, after Tab and Enter), focus returns to that button. Clicking a button leaves focus where it was (for example, in a field). Focus finds that element by its position among its siblings. If the build that closes the top dialog adds or removes siblings before it (as the line of properties in the example does), give the element a key (see [keys for identity](/docs/concepts/app#rules-for-your-view-function)).
 
 The script that checks these rules:
 

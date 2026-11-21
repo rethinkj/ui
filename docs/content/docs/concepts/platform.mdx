@@ -1,6 +1,6 @@
 ---
 title: Windows, icons and dialogs
-description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, open native file dialogs and web addresses.
+description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and open native file dialogs and web addresses.
 ---
 
 `Window` creates desktop windows on Windows and Linux, and `WindowLoop` runs your app inside them. For the full API, see [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
@@ -21,7 +21,7 @@ description: Configure frameless windows, save window placement, set icons and t
 
 See [`Window.Options`](/api/com/rethinkj/ui/window/Window.Options.html) for all options.
 
-A click on a window that does not have the focus activates it and acts at once, as in native apps. To have such a click only activate the window, start the app with the environment variable `SDL_MOUSE_FOCUS_CLICKTHROUGH=0`.
+Clicking an inactive window activates it and triggers the click immediately, just like in native apps. If you want the first click to only activate the window, start your app with the environment variable `SDL_MOUSE_FOCUS_CLICKTHROUGH=0`.
 
 ## Open where the user left it
 
@@ -38,7 +38,7 @@ Save `window.placement()` before closing and pass it to `options.placement(...)`
 
 In a frameless window, mark your custom title bar elements with `El.windowPart(part)` so dragging, edge resizing, double-click maximize, and Windows 11 snap layouts work natively. The kit's [TitleBar](/docs/components/title-bar) does this automatically.
 
-Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maximized()` (for example, to show a Restore icon or dim an inactive title bar), and `scale()` to measure text at the scale layout will use (`text.scale(scale)` before `measure`). Window parts continue to work even when a modal dialog is open.
+Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maximized()` (for example, to show a Restore icon or dim an inactive title bar). You can also read `scale()` to measure text at the window's layout scale (call `text.scale(scale)` before `measure`). Window parts continue to work even when a modal dialog is open.
 
 | [`WindowPart`](/api/com/rethinkj/ui/WindowPart.html) | Behavior |
 | --- | --- |
@@ -51,7 +51,7 @@ Inside your view, read `WindowState.CURRENT.get()` to check `active()` and `maxi
 
 Call `Window.identity(id, name)` before opening your first window. On Windows, this groups your windows under their own taskbar icon instead of `java.exe`; on Linux, it sets the app ID for Wayland and X11.
 
-Create icons with `WindowIcon.of(pixels...)` or `WindowIcon.of(size -> view)`. `AppIcon.appIcon(size, color, symbol)` creates a rounded-square icon from any kit symbol. For packaging, `icon.ico()` returns the icon as the bytes of a Windows `.ico` file (see [Ship your app](/docs/get-started/ship#optional-app-icon)).
+Create icons with `WindowIcon.of(pixels...)` or `WindowIcon.of(size -> view)`. `AppIcon.appIcon(size, color, symbol)` creates a rounded-square icon from any kit symbol. For packaging, `icon.ico()` returns the icon as Windows `.ico` file bytes (see [Ship your app](/docs/get-started/ship#optional-app-icon)).
 
 ## Taskbar indicators (Windows)
 
@@ -87,7 +87,7 @@ On Windows, call `window.frameDark(boolean)` to match a standard framed window's
 | `chooseFolder(title)` | Pick a directory |
 | `.filter("SQL", "sql")`, `.in(folder)` | Add file extension filters and initial directory |
 
-The `Choice` result contains the selected paths (empty if cancelled) and the index of the chosen filter (-1 if cancelled or not known, as on Linux). On Linux, file dialogs use the XDG Desktop Portal (falling back to `zenity`).
+The `Choice` result contains the selected paths (empty if canceled) and the index of the chosen filter (-1 if canceled or unknown, such as on Linux). On Linux, file dialogs use the XDG Desktop Portal (falling back to `zenity`).
 
 ## Native message boxes
 
@@ -103,11 +103,11 @@ Because native message boxes block all windows, prefer the kit's [Dialog](/docs/
 ```java snippet="open-uri"
 ```
 
-`app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It hands the address to the system and returns; a failure the system reports arrives in `onError` as a posted task. Any other scheme, such as `file:` or `mailto:` from a document's link, goes to `onError` without opening anything. No error does not mean that a browser started or the page loaded.
+`app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It passes the address to the OS and returns right away. If the OS reports a failure, `onError` runs later as a posted task. Any other scheme, such as a `file:` or `mailto:` link, also goes to `onError` as a posted task, and nothing opens. Getting no error does not guarantee that a browser started or that the page loaded.
 
 ## Headless scripts
 
-In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. They open no browser: `snap` writes the addresses the app opened. See [Scripts](/docs/testing/scripts).
+In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. They do not open a browser. Instead, `snap` writes out the addresses the app opened. See [Scripts](/docs/testing/scripts).
 
 ## Clipboard
 

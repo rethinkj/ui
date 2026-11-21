@@ -37,7 +37,7 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 
 `null` children are ignored, so conditional expressions like `changed ? callout(...) : null` work cleanly.
 
-In a card too narrow for its footer, `start` gives way first. Then the texts at the end are shortened with an ellipsis, while buttons and other controls at the end keep their size and stay inside the card. A text at the end with `shrink(0)` keeps its size.
+If a card is too narrow for its footer, `start` shrinks first. Next, text items at the end are shortened with an ellipsis, while buttons and other controls at the end keep their size and stay inside the card. If a text item at the end has `shrink(0)`, it keeps its size. If the card is narrower than the parts that keep their size, plus the footer's padding and gaps, those parts run past its edge.
 
 ## In a tree dump
 

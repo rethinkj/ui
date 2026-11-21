@@ -30,16 +30,16 @@ It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html)
 
 ## Knowing a window was shown
 
-`onShown(handler)` runs once the window has shown its first frame on the screen, on the UI thread in the window's next frame. A minimized or hidden window shows no frame, so its handler waits until one is shown. Use it to tell an updater that a new version runs, to close a splash screen, or to measure the time to the first frame. Set it before the window has shown a frame, right after `open`; a handler set later does not run. The first window of a `WindowLoop` has its handle before `run()`:
+`onShown(handler)` runs on the UI thread in the frame after the window shows its first frame on screen. A minimized or hidden window shows no frame, so its handler waits until a frame appears. Use it to tell an updater that a new version started, close a splash screen, or measure time to the first frame. Set the handler right after `open`, before the window shows a frame. A handler set later does not run. For the first window of a `WindowLoop`, its handle is available before `run()`:
 
 ```java snippet="window-shown"
 ```
 
 ## Dragging between windows
 
-Attach `El.dragPayload(object)` to a draggable element (`onDrag`) and `El.onDrop(drop -> …)` to drop targets in any window (`OVER`, `LEAVE`, and `DROP` phases). Each `Drag` event includes screen coordinates, `outside()` (whether the pointer left the origin window), and which window is currently under the cursor — allowing tear-off windows to follow the mouse. A window opened with `Window.Options.underPointer()` during the drag moves fully into the work area of its display when the drag ends (not on Wayland), so one let go near an edge of the screen keeps its close button within reach, unless its minimum size is larger than the work area. A window that only follows the pointer with its last tab keeps just its title bar on the screen, as a system title bar does.
+Attach `El.dragPayload(object)` to a draggable element (`onDrag`) and `El.onDrop(drop -> …)` to drop targets in any window (`OVER`, `LEAVE`, and `DROP` phases). Each `Drag` event includes screen coordinates, `outside()` (whether the pointer left the origin window), and which window is currently under the cursor — allowing tear-off windows to follow the mouse. When a drag ends, any window opened with `Window.Options.underPointer()` during the drag moves fully inside its display's work area (except on Wayland, or if its minimum size is larger than the work area). This keeps the close button reachable if you drop the window near a screen edge. A window that follows the pointer with its last tab keeps only its title bar on screen, like a system title bar.
 
-While the pointer rests over a drop target, the target gets `OVER` again every `Drop.REPEAT` seconds (0.05) of the app clock, and `Drop.time()` gives that clock. A target uses it to open what the pointer rests on, or to scroll while the pointer waits near its edge; a script repeats it with `advance` and `frame`.
+While the pointer stays over a drop target, the target receives `OVER` again every `Drop.REPEAT` seconds (0.05) on the app clock. `Drop.time()` returns that clock time. A drop target can use this to open an item the pointer hovers over, or to scroll while the pointer waits near an edge. In scripts, trigger these repeats with `advance` and `frame`.
 
 To accept files or text dragged from external applications, use `El.onFileDrop`.
 
