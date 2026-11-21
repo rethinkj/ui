@@ -32,4 +32,14 @@ public interface DiagramTexts {
   default String pinned() {
     return "Pinned";
   }
+
+  /** The value of an edge that stands out, {@link Canvas.Emphasis#HIGHLIGHTED}. */
+  default String highlighted() {
+    return "Highlighted";
+  }
+
+  /** The value of an edge that steps back, {@link Canvas.Emphasis#DIMMED}. */
+  default String dimmed() {
+    return "Dimmed";
+  }
 }

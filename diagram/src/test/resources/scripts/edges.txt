@@ -1,0 +1,12 @@
+# The edges (EdgesTest): five tables at 100 %.
+frame
+snap view              # straight, a jog with an arrow (dimmed), two to address's id in their own
+                       # lanes (one highlighted), a self-reference on the right, every marker
+
+move #billing_fk       # the highlighted edge's first run, left of "order"
+frame
+advance 1              # the tooltip shows after the theme's delay
+frame
+advance 0.25           # past the theme's fade
+frame
+snap tooltip           # its tooltip, with the description below

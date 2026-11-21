@@ -1,0 +1,80 @@
+el #board role=graphics-document label="Diagram" 0,0 600x300 value="Zoom 100%" hovered
+  el #item_fk role=graphics-symbol label="item_order_fk" 432,125 38x8 value="Dimmed"
+    el 436,128 34x1
+  el 427,60 8x67
+    el 430,64 1x60
+  el 390,55 39x8
+    el 390,58 36x1
+  el 390,53 12x11
+  el 430,116 13x13
+  el 418,58 13x13
+  el #customer_fk role=graphics-symbol label="order_customer_fk" 160,75 80x8
+    el 160,78 80x1
+  el 218,73 22x11
+  el 160,73 14x11
+  el 219,75 8x8
+  el #shipping_fk role=graphics-symbol label="order_shipping_fk" 207,115 33x8
+    el 211,118 29x1
+  el 218,113 22x11
+  el 202,120 8x87
+    el 205,124 1x80
+  el 160,208 44x5
+    el 160,208 41x1
+  el 160,203 14x11
+  el 205,118 13x13
+  el 193,196 13x13
+  el 219,115 8x8
+  el #parent_fk role=graphics-symbol label="category_parent_fk" 410,245 29x8
+    el 410,248 26x1
+  el 410,243 23x11
+  el 437,230 8x17
+    el 440,234 1x10
+  el 410,225 29x8
+    el 410,228 26x1
+  el 410,223 23x11
+  el 428,236 13x13
+  el 428,228 13x13
+  el 424,245 8x8
+  el 424,225 8x8
+  el #billing_fk role=graphics-symbol label="order_billing_fk" 197,94 43x8 value="Highlighted"
+    el 200,97 40x2
+  el 223,92 17x12
+  el 191,100 8x106
+    el 194,103 2x100
+  el 160,204 33x5
+    el 160,207 30x2
+  el 160,202 15x12
+  el 194,97 14x14
+  el 182,195 14x14
+  el #customer role=graphics-object label="customer" 20,40 140x68
+    el 20,40 140x68
+      text "customer" 21,41 138x27
+      text "column 1" 21,68 138x20
+      text "column 2" 21,88 138x19
+  el #order role=graphics-object label="order" 240,20 150x108
+    el 240,20 150x108
+      text "order" 241,21 148x28
+      text "column 1" 241,49 148x19
+      text "column 2" 241,68 148x20
+      text "column 3" 241,88 148x19
+      text "column 4" 241,107 148x20
+  el #address role=graphics-object label="address" 20,170 140x68
+    el 20,170 140x68
+      text "address" 21,171 138x27
+      text "column 1" 21,198 138x20
+      text "column 2" 21,218 138x19
+  el #item role=graphics-object label="item" 470,90 110x68
+    el 470,90 110x68
+      text "item" 471,91 108x27
+      text "column 1" 471,118 108x20
+      text "column 2" 471,138 108x19
+  el #category role=graphics-object label="category" 280,190 130x68
+    el 280,190 130x68
+      text "category" 281,191 128x27
+      text "column 1" 281,218 128x20
+      text "column 2" 281,238 128x19
+overlay bottom center gap 4 on #billing_fk role=graphics-symbol label="order_billing_fk" 197,94 43x8
+  el #tooltip role=tooltip label="order_billing_fk" 146,106 146x42
+    el 155,111 128x32
+      text "order_billing_fk" 155,111 128x15
+      text "ON DELETE RESTRICT" 155,128 128x15

@@ -37,6 +37,33 @@ The canvas builds only the nodes that lie inside it, so a large diagram stays fa
 
 The canvas learns its size from layout when that size changes. To show another diagram in the same place with a new `Viewport`, give the canvas another key, such as `canvas(...).key(diagram.name())`; with the same key the new viewport learns no size and shows no nodes.
 
+## Edges
+
+Pass a list of `Canvas.Edge` to draw lines between the nodes, under them:
+
+```java snippet="canvas-edges"
+```
+
+<Shot src="examples/docs/canvas-edges/view-{theme}" alt="Three tables with a straight gray edge from customer to order and a highlighted blue edge with two bends from address to order, each with crow's foot markers" />
+
+An edge runs from one `Canvas.Port(node, y)` to another: a node's key and the middle of a row in it, from the node's top at 100 %. The canvas routes the edges again in each build, so they follow a node while it is dragged:
+
+- Each edge leaves a node on its left or right side, whichever faces the other end, and bends at right angles with rounded corners. It goes around the nodes in the way where it finds a free path. Its ends run straight for as far as their markers need; where two nodes face each other too closely for that, the edge goes around them.
+- Every edge gets a lane of its own beside the others, also where several end at the same port. There they join when they show the same marker; with different markers, they end beside each other, so that each shows its own.
+- An edge from a node to itself loops on one side of it. Where both sides are as good, it takes the one where fewer other edges end. One from a port back to the same port goes around the node, or, where its two markers differ and so end beside each other, loops between them.
+- Two edges between the same two points at one height do not lie on each other: later ones bump out by a lane, below and above in turn, or on the other side where a node is in the way. Where the gap between the nodes has no room for a bump's bends and markers, they share the line.
+
+| Field | Description |
+| --- | --- |
+| `key` | Unique among the canvas's nodes and edges |
+| `label` | The text of its tooltip and its label in a tree dump; `null` for neither |
+| `from`, `to` | The ports it connects |
+| `fromMarker`, `toMarker` | `NONE`, `ONE` (`\|\|`), `ZERO_OR_ONE` (`o\|`), `ONE_OR_MANY` (`\|<`), `ZERO_OR_MANY` (`o<`), or `ARROW` |
+| `emphasis` | `NORMAL` in the strong border color, `HIGHLIGHTED` in the accent color and wider, `DIMMED` mixed towards the canvas color |
+| `description` | A muted line below the label in the tooltip, such as `ON DELETE SET NULL`; `null` for none |
+
+The edges' sizes, such as the bend radius, the space between lanes and the markers' length, are in `EdgeStyle`. Zoomed out so far that a marker would be smaller than `smallestMarker`, edges show none. Give the canvas other sizes with `app.provide(EdgeStyle.CURRENT, ...)`. Edges have no colors of their own: they take the theme's.
+
 ## Saving as an image
 
 `Canvas.png(nodes, view)` returns the whole diagram as PNG bytes, not only the part a canvas shows, and your app decides where they go. `view` builds the canvas at the viewport it is given, as your view does, such as `viewport -> canvas(viewport, nodes, Tables::card, null)`, so that everything the canvas draws is in the image. The image is cropped to the nodes with a margin, at 100 % and a scale of 2, and drawn without a window or a GPU. It takes the theme of `Theme.CURRENT` where it is called; a handler runs outside the view's, so it gives your theme again: `Theme.CURRENT.with(state.theme, () -> Canvas.png(...))`. Above 16 megapixels it falls back to a scale of 1, and a diagram too large for that as well throws an `IllegalArgumentException` before anything is drawn.
@@ -66,7 +93,7 @@ A pinned node stays where it is: each cluster moves so that its pinned nodes lie
 
 ## In a tree dump
 
-The canvas is `role=graphics-document` with its zoom as `value`, and each node `role=graphics-object` with its key and label; a pinned node has the value `Pinned`. Its texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The canvas is `role=graphics-document` with its zoom as `value`, and each node `role=graphics-object` with its key and label; a pinned node has the value `Pinned`. The first run of each edge is `role=graphics-symbol` with its key and label, and the value `Highlighted` or `Dimmed` for that emphasis. Its texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/canvas/view.tree.txt" start="el role=graphics-document" count="2"
 ```

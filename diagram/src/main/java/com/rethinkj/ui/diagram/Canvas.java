@@ -29,6 +29,9 @@ import java.util.function.Function;
  * the nodes that lie inside it, so that a large diagram stays fast; in the first build, before
  * layout gave it a size, that is none.
  *
+ * <p>{@link Edge Edges} between the nodes' {@link Port ports} lie under the nodes, routed at right
+ * angles around them ({@link #canvas(Viewport, List, List, NodeContent, Consumer)}).
+ *
  * <p>Dragging empty space pans. Dragging a node reports it moved and {@link Node#pinned pinned} to
  * {@code onMove}, while the pointer moves, and as it was when the drag is cancelled. While the
  * canvas has the focus, {@code +} and {@code -} zoom in and out by a step around its center and
@@ -94,6 +97,93 @@ public final class Canvas {
   }
 
   /**
+   * Where an edge meets a node: at the height of a row inside it, on the side that faces the other
+   * end, left or right, which the canvas picks.
+   *
+   * @param node the key of the node
+   * @param y the row's middle, from the node's top at a zoom of 100 %
+   */
+  public record Port(String node, float y) {
+
+    public Port {
+      Objects.requireNonNull(node, "node");
+      if (!Float.isFinite(y)) {
+        throw new IllegalArgumentException("a port's height must be finite, was " + y);
+      }
+    }
+  }
+
+  /**
+   * What an edge shows where it meets a node. The crow's foot set reads from the line towards the
+   * node: a bar is one, a circle zero, a crow's foot many.
+   */
+  public enum Marker {
+    /** None: the line ends at the node. */
+    NONE,
+    /** {@code ||}: exactly one. */
+    ONE,
+    /** {@code o|}: zero or one. */
+    ZERO_OR_ONE,
+    /** {@code |<}: one or many. */
+    ONE_OR_MANY,
+    /** {@code o<}: zero or many. */
+    ZERO_OR_MANY,
+    /** A plain arrowhead pointing at the node. */
+    ARROW
+  }
+
+  /** How an edge stands out among the others. */
+  public enum Emphasis {
+    /** In the theme's strong border color. */
+    NORMAL,
+    /** In the accent color, wider ({@link EdgeStyle#highlightedWidth}) and on top of the others. */
+    HIGHLIGHTED,
+    /** In the strong border color mixed towards the canvas's ({@link EdgeStyle#dimming}). */
+    DIMMED
+  }
+
+  /**
+   * A line between the ports of two nodes, or of one node with itself. The canvas routes it with
+   * right angles and rounded bends around the nodes in the way, gives each edge a lane of its own
+   * beside the others, also where several meet at one port, and loops one from a node to itself on
+   * the side where fewer other edges end when both sides are as good.
+   *
+   * @param key unique among the canvas's nodes and edges; the element of its first run has it
+   * @param label what the edge is, for the tree dump and screen readers, and the text of its
+   *     tooltip; null for neither
+   * @param from where it starts
+   * @param to where it ends
+   * @param fromMarker what it shows at {@code from}
+   * @param toMarker what it shows at {@code to}
+   * @param emphasis how it stands out
+   * @param description a muted line below the label in its tooltip, null for none
+   */
+  public record Edge(
+      String key,
+      String label,
+      Port from,
+      Port to,
+      Marker fromMarker,
+      Marker toMarker,
+      Emphasis emphasis,
+      String description) {
+
+    public Edge {
+      Objects.requireNonNull(key, "key");
+      Objects.requireNonNull(from, "from");
+      Objects.requireNonNull(to, "to");
+      Objects.requireNonNull(fromMarker, "fromMarker");
+      Objects.requireNonNull(toMarker, "toMarker");
+      Objects.requireNonNull(emphasis, "emphasis");
+    }
+
+    /** A {@link Emphasis#NORMAL} edge without a description. */
+    public Edge(String key, String label, Port from, Port to, Marker fromMarker, Marker toMarker) {
+      this(key, label, from, to, fromMarker, toMarker, Emphasis.NORMAL, null);
+    }
+  }
+
+  /**
    * Builds what a node shows, at the size the zoom gives it: its {@link Node#width} and {@link
    * Node#height} times {@code zoom}. It is the canvas's level of detail: a node can show less when
    * zoomed out, such as only its name.
@@ -134,6 +224,12 @@ public final class Canvas {
     private double draggedY;
     private float draggedDx;
     private float draggedDy;
+    // The routes of the last build with edges and what they were routed from, so that a pan, a zoom
+    // or a hover does not route them again.
+    private List<Node> routedNodes;
+    private List<Edge> routedEdges;
+    private EdgeStyle routedStyle;
+    private List<Routing.Route> routes;
 
     /** A viewport at 100 % with the diagram's origin at the canvas's top left. */
     public Viewport() {
@@ -205,6 +301,17 @@ public final class Canvas {
     public void fit() {
       fitting = true;
       fittedWidth = -1;
+    }
+
+    /** The edges' routes among these nodes, routed again only when one of them changed. */
+    List<Routing.Route> routes(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
+      if (!nodes.equals(routedNodes) || !edges.equals(routedEdges) || !style.equals(routedStyle)) {
+        routedNodes = List.copyOf(nodes);
+        routedEdges = List.copyOf(edges);
+        routedStyle = style;
+        routes = Routing.route(routedNodes, routedEdges, style);
+      }
+      return routes;
     }
 
     void fitIfDue(List<Node> nodes, float margin) {
@@ -315,6 +422,29 @@ public final class Canvas {
    */
   public static El canvas(
       Viewport viewport, List<Node> nodes, NodeContent content, Consumer<Node> onMove) {
+    return canvas(viewport, nodes, List.of(), content, onMove);
+  }
+
+  /**
+   * A canvas with edges between its nodes, which lie under the nodes, routed anew in each build
+   * from where the nodes are, so that they follow a node that the user drags. An edge whose node
+   * is not among the nodes is not drawn. Hovering an edge with a label shows its tooltip; pressing
+   * or dragging it does what it does on empty space. The edges' sizes are those of {@link
+   * EdgeStyle#CURRENT}.
+   *
+   * <p>In a tree dump the first run of each edge is {@code role=graphics-symbol} with its key and
+   * label, and the value {@link DiagramTexts#highlighted} or {@link DiagramTexts#dimmed} when it
+   * has that emphasis.
+   *
+   * @param edges the edges; later ones of the same emphasis lie on top
+   * @see #canvas(Viewport, List, NodeContent, Consumer)
+   */
+  public static El canvas(
+      Viewport viewport,
+      List<Node> nodes,
+      List<Edge> edges,
+      NodeContent content,
+      Consumer<Node> onMove) {
     Theme theme = Theme.CURRENT.get();
     DiagramTexts texts = DiagramTexts.CURRENT.get();
     viewport.fitIfDue(nodes, theme.space().xl());
@@ -336,6 +466,15 @@ public final class Canvas {
         })
         .onKey(key -> key(viewport, key))
         .onDrag(drag -> pan(viewport, left, top, drag));
+    if (!edges.isEmpty() && right > left && bottom > top) {
+      EdgeStyle style = EdgeStyle.CURRENT.get();
+      Edges.add(
+          canvas,
+          edges,
+          viewport.routes(nodes, edges, style),
+          new Edges.View(left, top, zoom, viewport.width, viewport.height),
+          style);
+    }
     for (Node node : nodes) {
       boolean inside = right > left
           && bottom > top

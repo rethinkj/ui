@@ -21,4 +21,14 @@ public class GermanDiagramTexts implements DiagramTexts {
   public String pinned() {
     return "Angeheftet";
   }
+
+  @Override
+  public String highlighted() {
+    return "Hervorgehoben";
+  }
+
+  @Override
+  public String dimmed() {
+    return "Abgeblendet";
+  }
 }
