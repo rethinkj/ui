@@ -35,12 +35,12 @@ el 0,0 1040x720
           text "Arrange all" 944,41 66x16
       el 9,65 1022x1
       el role=graphics-document label="Entity relationship diagram" 9,66 1022x645 value="Zoom 50%" focused
-        el #public role=group label="public, 8 tables" 208,190 624x274
+        el #public/ role=group label="public, 8 tables" 208,190 624x274
           el 208,190 624x274
             el 209,191 622x14
               text label="database" "\u{F0D7}" 213,194 9x9
               text "public · 8 tables" 223,193 70x11
-        el #billing role=group label="billing, 1 table" 208,474 144x114
+        el #billing/ role=group label="billing, 1 table" 208,474 144x114
           el 208,474 144x114
             el 209,475 142x14
               text label="database" "\u{F0D7}" 213,478 9x9

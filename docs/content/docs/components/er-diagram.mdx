@@ -54,7 +54,7 @@ Zoomed out below `ErStyle.skeleton`, 75 % by default, rows are bars, keys in the
 
 ## Arrange and pins
 
-Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table without a place comes, when the mode of a table or of all tables changes, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them after each change, and `state.pins(pins)` gives them back, as after a restart.
+Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table comes, goes or changes its height, as with its mode or its columns, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them after each change, and `state.pins(pins)` gives them back, as after a restart.
 
 ## Keyboard
 
@@ -71,7 +71,7 @@ While the canvas has the focus:
 
 ## In a tree dump
 
-The canvas is `role=graphics-document` labeled "Entity relationship diagram". Each table is `role=graphics-object` with its key and a label that names its columns and relations, each column `role=listitem` with its type and keys, and each schema's frame `role=group`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The canvas is `role=graphics-document` labeled "Entity relationship diagram". Each table is `role=graphics-object` with its key and a label that names its columns and relations, each column `role=listitem` with its type and keys, and each schema's frame `role=group` with the key `schema/`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/er-diagram/selected.tree.txt" start="el #public.order role=graphics-object" count="3"
 ```

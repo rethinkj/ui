@@ -2,6 +2,7 @@ package com.rethinkj.ui.diagram.er;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -101,7 +102,7 @@ class ErDiagramTest {
     String tree = Files.readString(out.resolve("selected.tree.txt"));
     assertTrue(tree.contains("role=graphics-document label=\"Entity relationship diagram\""), tree);
     assertTrue(
-        tree.contains("#shop role=group label=\"shop, 4 tables\""), "the schema's frame: " + tree);
+        tree.contains("#shop/ role=group label=\"shop, 4 tables\""), "the schema's frame: " + tree);
     assertTrue(
         tree.contains("#shop.order role=graphics-object"
             + " label=\"order, 4 columns, references customer, address\""),
@@ -162,7 +163,7 @@ class ErDiagramTest {
     Script.run("key Escape\nframe\n", app, out);
     assertNull(board.diagram.selected());
     Script.run("key ArrowDown\nframe\n", app, out);
-    assertTrue(board.diagram.selected() != null, "an arrow selects a table where none is");
+    assertNotNull(board.diagram.selected(), "an arrow selects a table where none is");
 
     board.diagram.arrangeAll();
     assertTrue(board.diagram.pins().isEmpty(), "Arrange all unpins");

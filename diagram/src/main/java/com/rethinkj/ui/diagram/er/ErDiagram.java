@@ -72,15 +72,16 @@ import java.util.function.IntUnaryOperator;
  * Control+wheel pan and zoom as on any canvas.
  *
  * <p>Tables that are not pinned are placed by {@link LayeredLayout}, each schema on its own: at
- * first, when a table comes that has no place yet, when the mode of a table or of all changes, and
- * with the action Arrange; the filter does not move them. Arrange all unpins every table first. Pins are plain positions: the app gives
+ * first, when a table comes, goes or changes its height, as with its mode or its columns, and with
+ * the action Arrange; the filter does not move them. Arrange all unpins every table first. Pins are plain positions: the app gives
  * them with {@link State#pins(Map)} and is told each change.
  *
  * <p>In a tree dump the canvas is {@code role=graphics-document} labeled {@link
  * DiagramTexts#erDiagram}, each table {@code role=graphics-object} with its key, {@code
  * schema.table}, and a label such as {@code order, 6 columns, references customer, address}, each
  * column {@code role=listitem} with a label such as {@code id, bigint, primary key}, each schema's
- * frame {@code role=group}, and each foreign key {@code role=graphics-symbol} with its name.
+ * frame {@code role=group} with the key {@code schema/}, and each foreign key {@code
+ * role=graphics-symbol} with its name.
  *
  * <p>Limits: tables are {@link ErStyle#width} wide, and a long name or type is shortened with an
  * ellipsis. A pinned table stays where it is, also where a table beside it grows over it.
@@ -125,6 +126,9 @@ public final class ErDiagram {
     // Where each table lies, pinned or placed by the layout.
     private final Map<String, Place> places = new HashMap<>();
     private boolean arrangeDue = true;
+    // The height of each table when they were last arranged, to arrange them again when one
+    // changes.
+    private Map<String, Float> arranged = Map.of();
     // Whether the next build pans to the first table shown, after the filter changed.
     private boolean revealFirst;
     // The table that ] and [ step around, and the index of the one they stepped to.
@@ -146,11 +150,10 @@ public final class ErDiagram {
       return mode;
     }
 
-    /** Shows all tables in this mode, also those that had their own, and arranges them again. */
+    /** Shows all tables in this mode, also those that had their own. */
     public void mode(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
       modes.clear();
-      arrangeDue = true;
     }
 
     /** The mode of the table with this key. */
@@ -158,7 +161,7 @@ public final class ErDiagram {
       return modes.getOrDefault(table, mode);
     }
 
-    /** Shows the table with this key in this mode, and arranges the tables again. */
+    /** Shows the table with this key in this mode. */
     public void mode(String table, Mode mode) {
       Objects.requireNonNull(mode, "mode");
       if (mode == this.mode) {
@@ -166,7 +169,6 @@ public final class ErDiagram {
       } else {
         modes.put(table, mode);
       }
-      arrangeDue = true;
     }
 
     /** The text that the names of the tables shown contain, ignoring case; empty for all. */
@@ -318,11 +320,17 @@ public final class ErDiagram {
     return tables;
   }
 
-  /** Places the tables that are not pinned, when that is due or a table has no place yet. */
+  /**
+   * Places the tables that are not pinned, when that is due or a table came, went or changed its
+   * height, as with its mode or its columns.
+   */
   private static void arrange(State state, Map<String, Shown> tables, ErStyle style) {
-    if (!state.arrangeDue && state.places.keySet().containsAll(tables.keySet())) {
+    Map<String, Float> heights = new HashMap<>();
+    tables.values().forEach(table -> heights.put(table.key, table.height));
+    if (!state.arrangeDue && heights.equals(state.arranged)) {
       return;
     }
+    state.arranged = heights;
     List<Node> nodes = new ArrayList<>();
     List<LayeredLayout.Edge> edges = new ArrayList<>();
     for (Shown table : tables.values()) {
@@ -556,8 +564,9 @@ public final class ErDiagram {
         frameSizes.merge(schema, 1, Integer::sum);
       }
       float pad = style.frame();
+      // Keyed apart from the tables, of which one in a schema without a name may have its name.
       bounds.forEach((schema, box) -> frames.add(new Node(
-          schema,
+          schema + "/",
           schema + ", " + texts.tables(frameSizes.get(schema)),
           box[0] - pad,
           box[1] - pad - style.frameLabel(),
@@ -577,6 +586,7 @@ public final class ErDiagram {
     }
 
     private El frame(Node node, float zoom) {
+      String schema = node.key().substring(0, node.key().length() - 1);
       float size = readable(theme.type().small().size(), zoom);
       return col()
           .wFull()
@@ -589,7 +599,7 @@ public final class ErDiagram {
               .gap(theme.space().xs() * zoom)
               .align(Style.Align.CENTER)
               .child(Icon.icon(Symbol.DATABASE, Icon.Variant.MUTED, size))
-              .child(text(node.key() + " · " + texts.tables(frameSizes.get(node.key())))
+              .child(text(schema + " · " + texts.tables(frameSizes.get(schema)))
                   .fontSize(size)
                   .color(theme.text().muted())
                   .ellipsis()
