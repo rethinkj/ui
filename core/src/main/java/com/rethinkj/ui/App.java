@@ -233,13 +233,7 @@ public final class App<S> {
   private long frames; // the frames run, for keyPressFrame
   private long buildNanos; // the view and row functions took during the frame that runs
   private Timing timing = new Timing(0, 0, 0);
-  private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
-  private Hot hot; // the bar that the last frame shows hovered or dragged
-  private boolean pointerIn;
-  private float pointerX;
-  private float pointerY;
-  private List<El> under = List.of(); // the elements under the pointer in the current tree
-  private El marked; // the one of them a press would go to, marked for the dump
+  private final Hover hover = new Hover(); // where the pointer is and what it is over
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private final Set<Object> relooking = new HashSet<>(); // lists that build their rows anew
   private El focused; // in the current tree
@@ -387,9 +381,7 @@ public final class App<S> {
   }
 
   private boolean move(float x, float y) {
-    pointerIn = true; // the frame looks at what is under the pointer anyway
-    pointerX = x;
-    pointerY = y;
+    hover.move(x, y); // the frame looks at what is under the pointer anyway
     if (rowsPending
         && (dragging() != null || capture instanceof Selecting || capture instanceof Grab)) {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
@@ -426,7 +418,7 @@ public final class App<S> {
    */
   public void pointerLeave() {
     enqueue(() -> {
-      pointerIn = false;
+      hover.leave();
       Dragging d = dragging();
       if (resting(d) && d.overApp == this) { // no OVER again where the pointer was
         drop(d, Drag.Phase.MOVE, null, Float.NaN, Float.NaN);
@@ -1012,11 +1004,8 @@ public final class App<S> {
     return d != null && d.started ? d : null;
   }
 
-  /** A bar that shows another color than at rest. */
-  private record Hot(El area, boolean vertical, int color) {}
-
   /** Whether the point lies across the strip of a bar at the place of its thumb. */
-  private static boolean onThumb(Scrollbars.Bar bar, boolean vertical, float x, float y) {
+  static boolean onThumb(Scrollbars.Bar bar, boolean vertical, float x, float y) {
     float along = vertical ? y : x;
     float start = vertical ? bar.thumbY() : bar.thumbX();
     return along >= start && along <= start + (vertical ? bar.thumbHeight() : bar.thumbWidth());
@@ -1844,7 +1833,7 @@ public final class App<S> {
    * dragged element, wherever the pointer is.
    */
   public El hovered() {
-    return under.isEmpty() ? null : under.getLast();
+    return hover.hovered();
   }
 
   /**
@@ -1865,15 +1854,7 @@ public final class App<S> {
    * During a {@link El#onDrag drag} the dragged element decides, wherever the pointer is.
    */
   public Cursor cursor() {
-    if (barArea != null) {
-      return Cursor.DEFAULT;
-    }
-    for (El el : under.reversed()) {
-      if (el.cursor() != null) {
-        return el.cursor();
-      }
-    }
-    return Cursor.DEFAULT;
+    return hover.cursor();
   }
 
   /**
@@ -3115,7 +3096,7 @@ public final class App<S> {
     if (drawn) {
       El.placeBars(root);
     }
-    drawn |= hover();
+    drawn |= updateHover();
     if ((drawn || cycling) && root != null) { // El#cycle: after everything that places elements
       cycling = El.cycles(root, time, width, height, true);
       drawn |= cycling;
@@ -3694,7 +3675,7 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
-    if (pointerIn) {
+    if (hover.in()) {
       // The rows' looks follow what the pointer is over, and a modal overlay or a bar above a row
       // takes it: those of a tree just built are not placed yet.
       Overlays.place(root, width, height);
@@ -4517,57 +4498,12 @@ public final class App<S> {
    *
    * @return whether a thumb changed its color
    */
-  private boolean hover() {
-    under = pointed();
-    if (marked != null) {
-      marked.hovered(false);
-    }
-    marked = null;
-    barArea = null;
-    Hot now = null;
+  private boolean updateHover() {
+    List<El> under = pointed();
     Grab grab = capture instanceof Grab g ? g : null;
     El grabbed = grab == null ? null : animator.element(grab.id());
-    El last = under.isEmpty() ? null : under.getLast();
-    if (grabbed != null) {
-      barArea = grabbed;
-      now = new Hot(
-          grabbed,
-          grab.vertical(),
-          grabbed.scrollbars() == null ? 0 : grabbed.scrollbars().thumbDragged());
-    } else if (pointerIn
-        && last != null
-        && !(capture instanceof Selecting)
-        && startedDrag() == null) {
-      Scrollbars.Bar bar = last.barAt(pointerX, pointerY);
-      if (bar != null) {
-        barArea = last;
-        boolean vertical = bar == last.verticalBar();
-        if (onThumb(bar, vertical, pointerX, pointerY)) {
-          now = new Hot(last, vertical, last.scrollbars().thumbHovered());
-        }
-      }
-    }
-    if (hot != null && !hot.equals(now) && hot.area().scrollbars() != null) {
-      hot.area().barColor(hot.vertical(), hot.area().scrollbars().thumb());
-    }
-    if (now != null) {
-      now.area().barColor(now.vertical(), now.color());
-    }
-    boolean changed = !Objects.equals(now, hot);
-    hot = now;
-    if (barArea != null) { // a press would go to its bar
-      marked = barArea;
-      barArea.hovered(true);
-      return changed;
-    }
-    for (El el : under.reversed()) {
-      if (takesPress(el) || el.takesEdits()) {
-        marked = el;
-        el.hovered(true);
-        break;
-      }
-    }
-    return changed;
+    boolean free = !(capture instanceof Selecting) && startedDrag() == null;
+    return hover.update(under, grabbed, grab != null && grab.vertical(), free);
   }
 
   /**
@@ -4582,7 +4518,7 @@ public final class App<S> {
     if (el != null && pathTo(root, el, path)) {
       return fromOverlay(path);
     }
-    return pointerIn ? hit(pointerX, pointerY) : List.of();
+    return hover.in() ? hit(hover.x(), hover.y()) : List.of();
   }
 
   /**
@@ -4594,7 +4530,7 @@ public final class App<S> {
     if (held != null) {
       return Animator.lineage(held);
     }
-    return pointerIn ? Animator.identities(hit(pointerX, pointerY)) : List.of();
+    return hover.in() ? Animator.identities(hit(hover.x(), hover.y())) : List.of();
   }
 
   /**
@@ -4705,7 +4641,7 @@ public final class App<S> {
     return target(x, y, App::takesPress);
   }
 
-  private static boolean takesPress(El el) {
+  static boolean takesPress(El el) {
     return el.onPress() != null || el.onDrag() != null;
   }
 
