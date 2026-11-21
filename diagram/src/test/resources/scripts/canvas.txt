@@ -15,6 +15,9 @@ frame
 snap panned            # 40 to the left and 20 up: "archive" shows at the right edge
 
 down #orders
+move 220,70
+frame
+snap dragged           # "orders" dragged over "customers", drawn on top
 move 150,100
 up 150,100
 frame

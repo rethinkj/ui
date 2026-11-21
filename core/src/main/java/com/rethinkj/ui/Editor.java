@@ -491,6 +491,21 @@ final class Editor {
     leftY = el.scrollY();
   }
 
+  /**
+   * Its field left the tree for good: leaves it as {@link #leave} does, and ends any pending
+   * answer or selection, so that kept elements of the field no longer report {@link
+   * El#isSelectionPending}.
+   */
+  void drop() {
+    leave();
+    before = null;
+    undoBefore = null;
+    redoBefore = null;
+    proposed = null;
+    toldCaret = caret;
+    toldAnchor = anchor;
+  }
+
   /** The field it was attached to last. */
   El element() {
     return el;

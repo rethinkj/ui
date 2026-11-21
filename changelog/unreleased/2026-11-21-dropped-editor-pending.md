@@ -1,0 +1,1 @@
+- `El.isSelectionPending()` turns false when a text field without a `FieldState` leaves the tree for good, such as when its virtual list shrinks past its row or leaves the tree, so `Completion` no longer keeps waiting on that element with stale entries.
