@@ -93,7 +93,6 @@ public final class Select {
         .disabled(!enabled)
         .w(theme.size().field())
         .h(theme.size().control())
-        .shrink(0)
         // As a button's: room for the content to move down while pressed, in the same box.
         .padding(theme.size().stroke(), theme.space().m())
         .gap(theme.space().s())
