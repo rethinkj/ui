@@ -1009,7 +1009,8 @@ final class GridEdit {
     boolean longer = textLike(c) && wide + frame > cell;
     float button = theme.size().icon() + 2 * stroke;
     float extra = longer ? button + theme.space().xs() : 0;
-    float width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
+    float grown = Math.min(wide + frame + extra, room(b, column, right));
+    float width = Math.max(cell, grown); // the room may be less than the cell: no clamp
     El field = El.text(text)
         .editable(v -> edit(c, sel, v))
         .key("field")
