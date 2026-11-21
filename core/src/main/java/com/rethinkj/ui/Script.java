@@ -164,14 +164,14 @@ public final class Script {
    * @throws Failure at the first line that is wrong or cannot run, naming the line
    */
   public static List<Path> run(String script, App<?> app, Path out) throws IOException {
-    boolean held = app.holdPosts;
-    app.holdPosts = true; // what other threads post arrives where the script awaits it
+    boolean held = app.scheduler.holdPosts;
+    app.scheduler.holdPosts = true; // what other threads post arrives where the script awaits it
     // A script that goes on where one before it ended finds its windows, which stay the app's.
     Desk desk = app.windows() instanceof Desk d && d.first.app == app ? d : new Desk(app);
     try {
       return steps(script, desk, out);
     } finally {
-      app.holdPosts = held;
+      app.scheduler.holdPosts = held;
     }
   }
 
@@ -446,7 +446,8 @@ public final class Script {
           Duration timeout = Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE));
           try {
             if (progress) {
-              App.awaitProgress(desk.open().stream().map(each -> each.app).toList(), timeout);
+              Scheduler.awaitProgress(
+                  desk.open().stream().map(each -> each.app.scheduler).toList(), timeout);
             } else {
               for (Win each : desk.open()) {
                 if (work == null) {
@@ -1131,7 +1132,7 @@ public final class Script {
       // A script's images do not depend on the platform: its windows draw text as the first.
       app.textRendering(first.app.textRendering());
       app.clipboard(first.app.clipboard());
-      app.holdPosts = true;
+      app.scheduler.holdPosts = true;
       app.windows(this);
       app.dialogs(dialogs);
       app.browser(browser);

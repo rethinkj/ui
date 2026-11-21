@@ -434,7 +434,7 @@ class PostTest {
       return "done";
     });
     first.await();
-    app.holdPosts = true; // as a script does, so that the frame takes nothing on its own
+    app.scheduler.holdPosts = true; // as a script does, so that the frame takes nothing on its own
     app.awaitProgress(LONG); // takes 1 for the next frame
     on.countDown();
     second.await(); // 2 is posted after the take: it does not change what was taken

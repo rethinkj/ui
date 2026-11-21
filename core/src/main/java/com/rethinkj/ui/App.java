@@ -17,18 +17,13 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -194,35 +189,17 @@ public final class App<S> {
 
   private final S state;
   private Function<S, El> view;
-  // Input in the order it came, dispatched by frame(). Each returns whether it may have changed
-  // something that the next rebuild shows.
-  private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
-  // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
-  private final List<BooleanSupplier> follow = new ArrayList<>();
+  // The queue of input, posted tasks, background work and timers.
+  final Scheduler scheduler = new Scheduler(() -> handled = true);
   // The El#onResize handlers the last layout told a new size, by the element's identity, which
   // rebuild runs before the frame draws, and how many times a frame builds again for them. What
-  // they ask for, such as a focus, runs first in the next frame, in the order asked.
+  // they ask for, such as a focus, runs first in the next frame, in the order asked (Scheduler).
   private final Map<Object, BooleanSupplier> resized = new LinkedHashMap<>();
   private static final int RESIZE_ROUNDS = 3;
   private int resizeRounds; // in this frame
-  private final List<BooleanSupplier> asked = new ArrayList<>();
   // A build before the frame's last gave other sizes, or a view did not settle: the next rebuild
   // tells them.
   private boolean resizeDue;
-  // What post() took on any thread, until the app's thread moves it into queued.
-  private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
-  private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
-  private volatile Runnable wake;
-  boolean holdPosts; // for Script: posted tasks join the queue only at await()
-  private final Set<Work> running = new LinkedHashSet<>(); // of background(); guarded by itself
-  // Counts what joined the queue, posted, enqueued or taken: a report takes the place of a report
-  // of its work that waits only while nothing joined after that one (Work.Progress#report).
-  private final AtomicLong joined = new AtomicLong();
-  private final AtomicLong reports = new AtomicLong(); // made by the app's work so far
-  private long reportsTaken; // reports when the app last took what was posted
-  // Notified at each report and each end of work, of every app: awaitProgress waits for several.
-  private static final Object REPORTED = new Object();
-  private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean keyUntaken; // nothing took the key that keyDownAt dispatched last
   // The focused element took text when the last key was dispatched: its text goes in (keyText).
@@ -321,9 +298,6 @@ public final class App<S> {
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
-  // Actions to run when the clock reaches their time, the earliest first; see after().
-  private final PriorityQueue<Timer> timers = new PriorityQueue<>();
-  private long timersAsked;
   private boolean active = true; // the window has the system's keyboard focus
   private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
@@ -1196,7 +1170,7 @@ public final class App<S> {
 
   /** A drop handler of this app ran, maybe in another app's frame: build the view again. */
   private void touched() {
-    if (dispatching) {
+    if (scheduler.dispatching()) {
       handled = true;
     } else {
       stale = true;
@@ -1767,7 +1741,7 @@ public final class App<S> {
    * few times at most), so that what they change shows in the same step instead of one step late.
    */
   public boolean handlersWaiting() {
-    return !queued.isEmpty() || resizeDue;
+    return scheduler.waiting() || resizeDue;
   }
 
   /**
@@ -1781,7 +1755,7 @@ public final class App<S> {
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (!queued.isEmpty() || resizeDue || cycling || rowsWanted) {
+    if (scheduler.waiting() || resizeDue || cycling || rowsWanted) {
       // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, or rows that the
       // measured heights of a list show and the last frame had no passes left for
       return time;
@@ -1790,9 +1764,7 @@ public final class App<S> {
     if (keyPressed != null && keyPressKey == null) {
       next = Math.min(next, keyPressUntil);
     }
-    if (!timers.isEmpty()) {
-      next = Math.min(next, timers.peek().at());
-    }
+    next = Math.min(next, scheduler.nextDue());
     Dragging drag = dragging();
     if (resting(drag)) {
       next = Math.min(next, drag.at + Drop.REPEAT);
@@ -1826,34 +1798,19 @@ public final class App<S> {
       throw new IllegalArgumentException(
           "seconds must be 0 or a positive finite number, was " + seconds);
     }
-    timers.add(new Timer(time + seconds, timersAsked++, Objects.requireNonNull(action, "action")));
-  }
-
-  /** An action asked for with {@link #after}, due at a time of the clock. */
-  private record Timer(double at, long order, Runnable action) implements Comparable<Timer> {
-    @Override
-    public int compareTo(Timer other) {
-      int byTime = Double.compare(at, other.at);
-      return byTime != 0 ? byTime : Long.compare(order, other.order);
-    }
+    scheduler.after(time + seconds, action);
   }
 
   /**
-   * Queues the actions of {@link #after} that are due, as tasks, after what is queued, and the
-   * repeated {@link Drop.Phase#OVER} of a drag that rests over a drop handler.
+   * Queues what other threads posted, unless a script holds it, the actions of {@link #after}
+   * that are due, as tasks, after what is queued, and the repeated {@link Drop.Phase#OVER} of a
+   * drag that rests over a drop handler.
    */
   private void takeDue() {
-    while (!timers.isEmpty() && timers.peek().at() <= time) {
-      Runnable action = timers.poll().action();
-      queued.add(() -> {
-        handled = true; // before it runs, as for a task
-        action.run();
-        return true;
-      });
-    }
+    scheduler.takeArrived(time);
     Dragging d = dragging();
     if (resting(d) && time >= d.at + Drop.REPEAT) {
-      queued.add(() -> repeat(d)); // after the input, which may move it on
+      scheduler.add(() -> repeat(d)); // after the input, which may move it on
     }
   }
 
@@ -2770,15 +2727,7 @@ public final class App<S> {
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
   private void enqueue(BooleanSupplier input) {
-    joined.incrementAndGet();
-    if (dispatching) {
-      follow.add(input);
-      return;
-    }
-    if (!holdPosts) {
-      takePosted(); // what other threads posted before this input comes before it
-    }
-    queued.add(input);
+    scheduler.enqueue(input);
   }
 
   // ---- Work off the app's thread
@@ -2810,33 +2759,7 @@ public final class App<S> {
    * and wait: they run if the app runs frames again, and are dropped with the app otherwise.
    */
   public void post(Runnable task) {
-    Objects.requireNonNull(task, "task");
-    offer(() -> {
-      handled = true; // before it runs: a task that throws may have changed something
-      task.run();
-      return true;
-    });
-  }
-
-  /** Posts a task; returns the count of {@link #joined} that it made. */
-  private long offer(BooleanSupplier task) {
-    posted.add(task);
-    long count = joined.incrementAndGet();
-    Runnable w = wake;
-    if (w != null && woken.compareAndSet(false, true)) {
-      w.run();
-    }
-    return count;
-  }
-
-  /** Moves what other threads posted into the queue; on the app's thread. */
-  private void takePosted() {
-    woken.set(false); // before the tasks are taken: one posted after them wakes again
-    reportsTaken = reports.get(); // before: a report made during the take counts as not taken
-    joined.incrementAndGet(); // what is taken keeps its value: a later report is posted anew
-    for (BooleanSupplier task; (task = posted.poll()) != null; ) {
-      queued.add(task);
-    }
+    scheduler.post(task);
   }
 
   /**
@@ -2847,7 +2770,7 @@ public final class App<S> {
    * a window.
    */
   public void onPost(Runnable wake) {
-    this.wake = wake;
+    scheduler.onPost(wake);
   }
 
   /**
@@ -2894,7 +2817,7 @@ public final class App<S> {
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
     Objects.requireNonNull(compute, "compute");
-    return start(null, name, work -> compute, onResult, onFailure);
+    return scheduler.start(null, name, work -> compute, onResult, onFailure);
   }
 
   /**
@@ -2940,7 +2863,7 @@ public final class App<S> {
       Consumer<? super P> onProgress,
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
-    return start(null, name, compute, onProgress, onResult, onFailure);
+    return scheduler.start(null, name, compute, onProgress, onResult, onFailure);
   }
 
   /**
@@ -2951,169 +2874,7 @@ public final class App<S> {
    * @param name what the lane stands for, such as the connection's name
    */
   public Lane lane(String name) {
-    return new Lane(this, name);
-  }
-
-  <T, P> Work start(
-      Lane lane,
-      String name,
-      Work.Reporting<? extends T, P> compute,
-      Consumer<? super P> onProgress,
-      Consumer<? super T> onResult,
-      Consumer<? super Exception> onFailure) {
-    Objects.requireNonNull(compute, "compute");
-    Objects.requireNonNull(onProgress, "onProgress");
-    return start(
-        lane,
-        name,
-        work -> {
-          Reporter<P> progress = new Reporter<>(work, onProgress);
-          return () -> compute.call(progress);
-        },
-        onResult,
-        onFailure);
-  }
-
-  <T> Work start(
-      Lane lane,
-      String name,
-      Function<Work, Callable<? extends T>> computation,
-      Consumer<? super T> onResult,
-      Consumer<? super Exception> onFailure) {
-    Objects.requireNonNull(name, "name");
-    Objects.requireNonNull(onResult, "onResult");
-    Objects.requireNonNull(onFailure, "onFailure");
-    Work work = new Work(name, this, lane);
-    Callable<? extends T> compute = computation.apply(work);
-    synchronized (running) {
-      running.add(work);
-    }
-    work.thread = Thread.ofVirtual().name(name).unstarted(() -> {
-      T result = null;
-      Throwable failure = null;
-      try {
-        result = compute.call();
-      } catch (Throwable t) {
-        failure = t;
-      }
-      T r = result;
-      Throwable f = failure;
-      work.ended = true; // before the delivery is posted: no report comes after it
-      try {
-        offer(() -> {
-          if (work.cancelled) {
-            return false; // costs no rebuild
-          }
-          work.delivered = true; // before the handlers: a report that waits does not run
-          handled = true;
-          if (f == null) {
-            onResult.accept(r);
-          } else if (f instanceof Exception e) {
-            onFailure.accept(e);
-          } else if (f instanceof Error e) {
-            throw e;
-          } else {
-            throw new IllegalStateException(name + " threw", f);
-          }
-          return true;
-        });
-      } finally {
-        work.end(); // after the offer: onEnd, and await(), find its delivery posted
-        if (lane != null) {
-          lane.next(); // after the end: the app hears of it before the next piece's answers
-        }
-      }
-    });
-    if (lane == null) {
-      work.thread.start();
-    } else {
-      lane.submit(work);
-    }
-    return work;
-  }
-
-  /** The {@link Work.Progress} of one work, which posts its reports. */
-  private final class Reporter<P> implements Work.Progress<P> {
-
-    private final Work work;
-    private final Consumer<? super P> onProgress;
-    private Report<P> last; // the report posted last; guarded by this
-
-    Reporter(Work work, Consumer<? super P> onProgress) {
-      this.work = work;
-      this.onProgress = onProgress;
-    }
-
-    @Override
-    public void report(P value) {
-      if (work.cancelled || work.ended) {
-        return; // dropped where it is made
-      }
-      synchronized (this) {
-        Report<P> waiting = last;
-        if (waiting != null && waiting.joined == joined.get()) {
-          waiting.value = value; // nothing joined the queue after it, and it was not taken
-        } else {
-          Report<P> report = new Report<>(value);
-          last = report;
-          report.joined = offer(() -> run(report)); // run() waits for this lock
-        }
-      }
-      reports.incrementAndGet();
-      synchronized (REPORTED) {
-        REPORTED.notifyAll();
-      }
-    }
-
-    private boolean run(Report<P> report) {
-      P value;
-      synchronized (this) {
-        value = report.value;
-      }
-      if (work.cancelled || work.delivered) {
-        return false; // the reports ended with the work, and cost no rebuild
-      }
-      handled = true;
-      onProgress.accept(value);
-      return true;
-    }
-
-    @Override
-    public boolean isCancelled() {
-      return work.cancelled;
-    }
-  }
-
-  /** A report in the queue, whose value newer reports may take. */
-  private static final class Report<P> {
-    P value;
-    long joined; // the count of joined right after it was posted
-
-    Report(P value) {
-      this.value = value;
-    }
-  }
-
-  /** A cancelled work got an {@link Work#onEnd} handler: {@link #await} waits for its end. */
-  void waitFor(Work work) {
-    synchronized (running) {
-      running.add(work);
-    }
-  }
-
-  /**
-   * The work has posted its delivery, ended or was cancelled: {@link #await} waits no longer for
-   * it.
-   */
-  void finished(Work work) {
-    synchronized (running) {
-      if (running.remove(work)) {
-        running.notifyAll();
-      }
-    }
-    synchronized (REPORTED) {
-      REPORTED.notifyAll(); // awaitProgress need not wait for a report of work that ended
-    }
+    return new Lane(scheduler, name);
   }
 
   /**
@@ -3132,7 +2893,7 @@ public final class App<S> {
    * @throws InterruptedException if the thread is interrupted while it waits
    */
   public void await(Duration timeout) throws InterruptedException {
-    awaitWork(work -> true, timeout);
+    scheduler.await(work -> true, timeout);
   }
 
   /**
@@ -3149,29 +2910,7 @@ public final class App<S> {
    */
   public void await(String name, Duration timeout) throws InterruptedException {
     Objects.requireNonNull(name, "name");
-    awaitWork(work -> work.name().equals(name), timeout);
-  }
-
-  private void awaitWork(Predicate<Work> waited, Duration timeout) throws InterruptedException {
-    if (dispatching) {
-      throw new IllegalStateException("await blocks the app's thread: call it between frames");
-    }
-    long nanos = timeout.toNanos();
-    long start = System.nanoTime();
-    synchronized (running) {
-      while (running.stream().anyMatch(waited)) {
-        long left = nanos - (System.nanoTime() - start);
-        if (left <= 0) {
-          List<String> names = running.stream().filter(waited).map(Work::name).toList();
-          throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
-              + " still runs: " + String.join(", ", names) + ". Work that App.background started"
-              + " ends when it has delivered or is cancelled, and cancelled work with an onEnd"
-              + " handler when its computation has returned.");
-        }
-        TimeUnit.NANOSECONDS.timedWait(running, left);
-      }
-    }
-    takePosted();
+    scheduler.await(work -> work.name().equals(name), timeout);
   }
 
   /**
@@ -3191,54 +2930,7 @@ public final class App<S> {
    * @throws InterruptedException if the thread is interrupted while it waits
    */
   public void awaitProgress(Duration timeout) throws InterruptedException {
-    awaitProgress(List.of(this), timeout);
-  }
-
-  /** {@link #awaitProgress(Duration)} for the apps of a {@link Script}: a report of any will do. */
-  static void awaitProgress(List<? extends App<?>> apps, Duration timeout)
-      throws InterruptedException {
-    for (App<?> app : apps) {
-      if (app.dispatching) {
-        throw new IllegalStateException(
-            "awaitProgress blocks the app's thread: call it between frames");
-      }
-    }
-    long nanos = timeout.toNanos();
-    long start = System.nanoTime();
-    synchronized (REPORTED) {
-      while (!reportWaits(apps)) {
-        List<String> names = new ArrayList<>();
-        for (App<?> app : apps) {
-          synchronized (app.running) {
-            app.running.forEach(work -> names.add(work.name()));
-          }
-        }
-        if (names.isEmpty()) {
-          throw new IllegalStateException("No work of the app runs, and nothing it reported waits"
-              + " to be let in. Waiting for progress needs work that App.background started with"
-              + " a Work.Progress and that still runs; its end is what await waits for.");
-        }
-        long left = nanos - (System.nanoTime() - start);
-        if (left <= 0) {
-          throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
-              + " has reported nothing new: " + String.join(", ", names) + " still runs. Work"
-              + " reports on the Work.Progress that App.background hands it.");
-        }
-        TimeUnit.NANOSECONDS.timedWait(REPORTED, left);
-      }
-    }
-    for (App<?> app : apps) {
-      app.takePosted();
-    }
-  }
-
-  private static boolean reportWaits(List<? extends App<?>> apps) {
-    for (App<?> app : apps) {
-      if (app.reports.get() > app.reportsTaken) {
-        return true;
-      }
-    }
-    return false;
+    Scheduler.awaitProgress(List.of(scheduler), timeout);
   }
 
   /** For {@link Script}: the innermost virtual list at this point, or null. */
@@ -3324,11 +3016,8 @@ public final class App<S> {
     Object wasFocused = focusId;
     boolean hadRing = ring;
     boolean drawn = false;
-    if (!holdPosts) {
-      takePosted();
-    }
     takeDue();
-    while (!queued.isEmpty()) {
+    while (scheduler.waiting()) {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
         build(handled, false); // after invalidate alone with its rows: an action may look for them
         drawn = true;
@@ -3340,25 +3029,21 @@ public final class App<S> {
         // A selection a build applied or moved, also one of rows that scrolling filled: a
         // FieldState's, or the app's answer to an edit. It reaches onSelect as a handler's input
         // would, before the next input: what the handler asks for and changes comes first.
-        queued.addFirst(() -> {
+        scheduler.addFirst(() -> {
           boolean told = tellSelections();
           rowsKept |= told;
           return told;
         });
       }
-      dispatching = true;
+      scheduler.beginHandler();
       try {
-        stale |= queued.poll().getAsBoolean();
+        stale |= scheduler.poll().getAsBoolean();
         stale |= tellSelections();
       } catch (RuntimeException | Error e) {
         handled = true; // it may have changed the state: the next input gets a tree built anew
         throw e;
       } finally {
-        dispatching = false;
-        for (int i = follow.size() - 1; i >= 0; i--) {
-          queued.addFirst(follow.get(i));
-        }
-        follow.clear();
+        scheduler.endHandler();
       }
     }
     long inputEnd = System.nanoTime();
@@ -3404,10 +3089,7 @@ public final class App<S> {
           stale = !wanted(path, Animator.identities(path)).equals(shown);
         }
       } finally {
-        for (int i = asked.size() - 1; i >= 0; i--) {
-          queued.addFirst(asked.get(i)); // first in the next frame, as after their handler
-        }
-        asked.clear();
+        scheduler.takeAsked();
       }
       stale = false;
       drawn = true;
@@ -3473,7 +3155,7 @@ public final class App<S> {
 
   /** Runs the handlers in {@link #resized} as handlers of input; what they ask for waits. */
   private void tellResized() {
-    dispatching = true;
+    scheduler.beginHandler();
     try {
       for (Object id : List.copyOf(resized.keySet())) {
         resized.get(id).getAsBoolean();
@@ -3483,9 +3165,7 @@ public final class App<S> {
       handled = true; // as in frame: the next input gets a tree built anew
       throw e;
     } finally {
-      dispatching = false;
-      asked.addAll(follow);
-      follow.clear();
+      scheduler.endResizeHandler();
     }
   }
 
@@ -4301,7 +3981,7 @@ public final class App<S> {
         return;
       }
       heldRows.remove(id); // of a handler since gone: these rows are newer
-      queued.add(
+      scheduler.add(
           () -> { // after the input of this frame, or in the next one
             handler.accept(first, last);
             handled = true;
@@ -4324,7 +4004,7 @@ public final class App<S> {
       Long before = toldInView.put(id, rows);
       boolean moved = before == null || before != rows;
       if (built != null || moved) {
-        queued.add(() -> {
+        scheduler.add(() -> {
           handled = true;
           try {
             if (built != null) {
@@ -4340,7 +4020,7 @@ public final class App<S> {
       }
     });
     for (Runnable built : heldRows.values()) { // of a list gone since
-      queued.add(() -> {
+      scheduler.add(() -> {
         built.run();
         handled = true;
         return true;
