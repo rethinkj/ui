@@ -286,5 +286,25 @@ class RoutingTest {
     double loopX = loop.points().get(1).x();
     assertTrue(loopX <= 0 - style.lane() / 2
         || loopX >= 240 + style.lane() / 2 && loopX <= 272 - style.lane() / 2);
+
+    // A second edge between the same ports bumps out where its legs too keep clear of the cards
+    // between: into the gap below the line, not around the upper card 2 px beside it.
+    List<Node> between = List.of(
+        new Node("a", null, 0, 175, 240, 32),
+        new Node("b", null, 544, 175, 240, 32),
+        new Node("top", null, 272, 146, 240, 32),
+        new Node("bottom", null, 272, 210, 240, 32));
+    List<Edge> twice = List.of(
+        new Edge("one", null, new Port("a", 16), new Port("b", 16), Marker.ONE, Marker.ONE),
+        new Edge("two", null, new Port("a", 16), new Port("b", 16), Marker.ONE, Marker.ONE),
+        new Edge(
+            "other",
+            null,
+            new Port("a", 16),
+            new Port("b", 16),
+            Marker.ONE_OR_MANY,
+            Marker.ZERO_OR_ONE));
+    assertEquals(
+        206, Routing.route(between, twice, style).get(1).points().get(2).y(), 1e-6);
   }
 }

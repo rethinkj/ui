@@ -625,7 +625,8 @@ final class Routing {
   /**
    * Where the straight route {@code i} bumps out to, on a line that an earlier edge lies on: the
    * nearest depth, a lane at a time, below and then above, whose crossbar crosses no more nodes
-   * than the line and lies on no other edge's horizontal run; the line itself where there is none.
+   * than the line and lies on no other edge's horizontal run, and that keeps half a lane from the
+   * nodes it passes where one does; the line itself where there is none.
    */
   private static Path bumped(
       Path[] paths, int i, double[] reach, Obstacles obstacles, EdgeStyle style) {
@@ -648,9 +649,8 @@ final class Routing {
         }
       }
       if (chosen != null) {
-        if (!obstacles.close(
-            chosen.xs[2], chosen.ys[2], chosen.xs[3], chosen.ys[3], style.lane() / 2)) {
-          return chosen;
+        if (chosen.cost - chosen.hits * HIT < CRAMPED) {
+          return chosen; // clear of the nodes it passes, also along its legs
         }
         fallback = cheaper(fallback, chosen);
       }
