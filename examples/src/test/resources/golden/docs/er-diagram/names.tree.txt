@@ -53,14 +53,20 @@ el 0,0 1040x720
           el 430,331 11x1
         el 440,319 3x3
         el 438,329 3x3
-        el #public.order_item/order_item_product_fk role=graphics-symbol label="order_item_product_fk" 598,357 12x8 value="Dimmed"
-          el 598,360 12x1
-        el 594,361 8x4
-          el 597,361 1x5
-        el 510,362 87x8
-          el 510,365 88x1
-        el 597,360 3x3
-        el 595,363 3x3
+        el #public.order_item/order_item_product_fk role=graphics-symbol label="order_item_product_fk" 603,357 7x8 value="Dimmed"
+          el 603,360 7x1
+        el 599,361 8x10
+          el 602,361 1x11
+        el 518,368 84x8
+          el 518,371 85x1
+        el 517,366 4x5
+          el 517,366 1x6
+        el 510,362 7x8
+          el 510,365 8x1
+        el 602,360 3x3
+        el 600,369 3x3
+        el 517,369 3x3
+        el 515,365 3x3
         el #public.product/product_category_fk role=graphics-symbol label="product_category_fk" 430,368 20x8 value="Dimmed"
           el 430,371 20x1
         el #public.category/category_parent_fk role=graphics-symbol label="category_parent_fk" 363,375 7x7 value="Dimmed"
@@ -73,7 +79,7 @@ el 0,0 1040x720
         el 362,371 3x3
         el #public.product_tag/product_tag_product_fk role=graphics-symbol label="product_tag_product_fk" 516,396 14x7 value="Dimmed"
           el 516,399 14x1
-        el 512,366 8x33
+        el 512,366 5x33
           el 515,366 1x34
         el 510,362 5x8
           el 510,365 6x1
@@ -89,19 +95,19 @@ el 0,0 1040x720
         el 518,409 3x3
         el #public.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 523,334 7x6 value="Highlighted"
           el 523,336 7x2
-        el 522,337 2x10
-          el 522,337 2x10
-        el 438,345 85x3
-          el 438,346 85x2
-        el 434,332 8x15
-          el 437,332 2x15
+        el 522,337 2x13
+          el 522,337 2x13
+        el 438,349 85x5
+          el 438,349 85x2
+        el 434,332 8x18
+          el 437,332 2x18
         el 430,331 8x5
           el 430,331 8x2
         el 522,336 4x4
-        el 520,344 4x4
-        el 437,344 4x4
+        el 520,347 4x4
+        el 437,347 4x4
         el 435,331 4x4
-        el #public.order/order_shipping_address_fk role=graphics-symbol label="order_shipping_address_fk" 520,340 10x5 value="Highlighted"
+        el #public.order/order_shipping_address_fk role=graphics-symbol label="order_shipping_address_fk" 520,340 10x6 value="Highlighted"
           el 520,342 10x2
         el 519,312 3x31
           el 519,312 2x31
@@ -109,7 +115,7 @@ el 0,0 1040x720
           el 510,311 10x2
         el 519,340 4x4
         el 517,311 4x4
-        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 518,348 12x5 value="Highlighted"
+        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 518,346 12x4 value="Highlighted"
           el 518,348 12x2
         el 514,314 5x35
           el 517,314 2x35

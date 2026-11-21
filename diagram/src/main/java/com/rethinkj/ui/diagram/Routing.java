@@ -22,13 +22,15 @@ import java.util.TreeSet;
  * marker's height where edges with different markers meet at one port, or less where that would
  * leave the node, and runs straight for {@link EdgeStyle#stub} before it bends, or where there is
  * less room, as far as its marker and a bend take. Of the shapes that allows, it takes the one
- * that crosses the fewest nodes, then the shortest, counting each bend as a stub's length: a
- * straight line between ports at one height with room for both markers, a Z through the gap
- * between facing sides, a C around the outer sides of two nodes above each other or of one node
- * with itself, and where each of these crosses a node, a detour with four bends along a row
- * above or below a node, its legs moved past the nodes they would cross: a stub past them, or
- * half a lane where only that is free. A C with markers needs its ends at least a {@link
- * EdgeStyle#marker} apart, so that its markers do not lie on each other: one from a port to the
+ * that crosses the fewest nodes, keeps at least half a lane from the nodes it passes where it can,
+ * then the shortest, counting each bend as a stub's length: a straight line between ports at one
+ * height with room for both markers, a Z through the gap between facing sides, a C around the
+ * outer sides of two nodes above each other or of one node with itself, each channel cleared from
+ * nodes beside it into any narrower gap, and where each of these crosses a node or passes closer
+ * than half a lane to one, a detour with four bends along a row above or below a node, its legs
+ * moved past the nodes they would cross (a stub past them, or half a lane where only that is free)
+ * and both legs and crossbar kept a stub from the nodes beside them or centered in any narrower gap
+ * within their bounds. A C with markers needs its ends at least a {@link EdgeStyle#marker} apart, so that its markers do not lie on each other: one from a port to the
  * same port goes around its node. Where a C on either side costs as much, it goes on the side of
  * its nodes where fewer other edges end, on the right where as many do. A straight edge between
  * the same two points as one before it bumps out to the nearest depth, a lane at a time, below
@@ -50,7 +52,8 @@ import java.util.TreeSet;
 final class Routing {
 
   private static final double HIT = 1e9; // what crossing a node costs, beyond any length
-  private static final double CRAMPED = 1e6; // what markers on each other cost, beyond lengths
+  private static final double CRAMPED =
+      1e6; // what cramped markers or a close node cost, beyond lengths
   private static final double EPSILON = 1e-6;
 
   private Routing() {}
@@ -97,26 +100,14 @@ final class Routing {
       Path best = null;
       for (int[] sides : SIDES) {
         best = cheaper(
-            best,
-            best(
-                from,
-                y1,
-                sides[0],
-                to,
-                y2,
-                sides[1],
-                reach,
-                obstacles,
-                style,
-                false,
-                Double.POSITIVE_INFINITY));
+            best, bestChannel(from, y1, sides[0], to, y2, sides[1], reach, obstacles, style));
       }
       boolean detours = best == null || best.cost >= CRAMPED; // crosses a node, or cramped
       if (detours) {
         for (int[] sides : SIDES) {
           best = cheaper(
               best,
-              best(
+              bestDetour(
                   from,
                   y1,
                   sides[0],
@@ -126,7 +117,6 @@ final class Routing {
                   reach,
                   obstacles,
                   style,
-                  true,
                   best == null ? Double.POSITIVE_INFINITY : best.cost));
         }
       }
@@ -140,18 +130,7 @@ final class Routing {
       paths[i] = best;
       if (best.sameSide()) {
         int side = -best.fromSide;
-        Path other = best(
-            from,
-            y1,
-            side,
-            to,
-            y2,
-            side,
-            reach,
-            obstacles,
-            style,
-            detours,
-            best.cost + 2 * EPSILON);
+        Path other = bestChannel(from, y1, side, to, y2, side, reach, obstacles, style);
         if (other != null && other.sameSide() && Math.abs(other.cost - best.cost) <= EPSILON) {
           others[i] = other;
         }
@@ -271,11 +250,11 @@ final class Routing {
     for (int i = 0; i < paths.length; i++) {
       if (paths[i] != null) {
         int hits = paths[i].hits;
-        paths[i].price(obstacles, style.stub());
+        obstacles.price(paths[i], style);
         if (paths[i].hits > hits) {
           System.arraycopy(placed[i][0], 0, paths[i].xs, 0, paths[i].xs.length);
           System.arraycopy(placed[i][1], 0, paths[i].ys, 0, paths[i].ys.length);
-          paths[i].price(obstacles, style.stub());
+          obstacles.price(paths[i], style);
         }
       }
     }
@@ -325,13 +304,12 @@ final class Routing {
   }
 
   /**
-   * The best route that leaves {@code from} on side {@code fromSide} and enters {@code to} on
-   * side {@code toSide}, or null for none: straight, or through a channel in the middle of where
-   * it may lie, or where that crosses a node, beside one of the nodes there; and with {@code
-   * detours}, also along a row above or below a node, stopping once no remaining row can beat
-   * {@code limit}.
+   * The best straight or one-channel route that leaves {@code from} on side {@code fromSide} and
+   * enters {@code to} on side {@code toSide}, or null for none: straight, or through a channel in
+   * the middle of where it may lie, or where that crosses or passes close to a node, cleared into
+   * its gap or beside one of the nodes there.
    */
-  private static Path best(
+  private static Path bestChannel(
       Node from,
       double y1,
       int fromSide,
@@ -340,9 +318,7 @@ final class Routing {
       int toSide,
       double[] reach,
       Obstacles obstacles,
-      EdgeStyle style,
-      boolean detours,
-      double limit) {
+      EdgeStyle style) {
     double stub = style.stub();
     double px = fromSide > 0 ? from.x() + from.width() : from.x();
     double qx = toSide > 0 ? to.x() + to.width() : to.x();
@@ -354,7 +330,7 @@ final class Routing {
     double gap = fromSide * (qx - px);
     if (y1 == y2 && fromSide == -toSide && gap > 0) {
       best = new Path(fromSide, toSide, new double[] {px, qx}, new double[] {y1, y2});
-      best.price(obstacles, stub);
+      obstacles.price(best, style);
       if (apart > 0 && gap < reach[0] + reach[1] + style.marker() / 2) {
         best.cost += CRAMPED; // its markers would lie on each other: any other free way first
       }
@@ -387,59 +363,51 @@ final class Routing {
               : Double.isInfinite(wantHi) ? wantLo : (wantLo + wantHi) / 2,
           lo,
           hi);
-      Path through = channel(fromSide, px, y1, toSide, qx, y2, middle, lo, hi, obstacles, stub);
+      Path through = channel(fromSide, px, y1, toSide, qx, y2, middle, lo, hi, obstacles, style);
       best = cheaper(best, through);
-      if (through.hits > 0) {
-        // Of those that cost as much, the one nearest the middle.
+      if (through.cost >= CRAMPED) {
         double top = Math.min(y1, y2);
         double bottom = Math.max(y1, y2);
-        Path beside = null;
-        double distance = Double.POSITIVE_INFINITY;
-        TreeSet<Double> xs = new TreeSet<>(); // each once, in order
-        for (Node node : obstacles.nodes) {
-          if (node.y() < bottom && node.y() + node.height() > top) { // beside the channel
-            xs.add(node.x() - stub);
-            xs.add(node.x() + node.width() + stub);
+        if (through.hits == 0) {
+          double cleared = Math.clamp(obstacles.clear(true, middle, top, bottom, stub), lo, hi);
+          if (cleared != middle) {
+            best = cheaper(
+                best, channel(fromSide, px, y1, toSide, qx, y2, cleared, lo, hi, obstacles, style));
           }
         }
-        for (double x : xs.subSet(lo, true, hi, true)) {
-          Path path = channel(fromSide, px, y1, toSide, qx, y2, x, lo, hi, obstacles, stub);
-          double off = Math.abs(x - middle);
-          if (beside == null
-              || path.cost < beside.cost - EPSILON
-              || path.cost <= beside.cost + EPSILON && off < distance) {
-            beside = path;
-            distance = off;
+        if (best.cost >= CRAMPED) {
+          // Of those that cost as much, the one nearest the middle.
+          double margin = style.lane() / 2;
+          Path beside = null;
+          double distance = Double.POSITIVE_INFINITY;
+          TreeSet<Double> raw = new TreeSet<>(); // deduplicate before clearing
+          for (Node node : obstacles.nodes) {
+            if (node.y() - margin < bottom && node.y() + node.height() + margin > top) {
+              double left = node.x() - stub;
+              if (left >= lo - stub && left <= hi + stub) {
+                raw.add(left);
+              }
+              double right = node.x() + node.width() + stub;
+              if (right >= lo - stub && right <= hi + stub) {
+                raw.add(right);
+              }
+            }
           }
-        }
-        best = cheaper(best, beside);
-      }
-    }
-    if (detours) {
-      // The rows by the least a detour along them costs, its legs at the stubs and crossing
-      // nothing; past the first that cannot beat the best so far or the caller's limit, none can
-      // be better. Shorter legs (down to need1 and need2) can cost less than least, so the check
-      // against the caller's limit uses the true minimum across all leg lengths.
-      double floor =
-          need1 + need2 + Math.abs(px + fromSide * need1 - (qx + toSide * need2)) + 4 * stub;
-      if (floor + Math.abs(y1 - y2) < limit) {
-        double least = Math.abs(px + fromSide * stub - (qx + toSide * stub)) + 6 * stub;
-        double[] rows = obstacles.rows;
-        Integer[] order = new Integer[rows.length];
-        double[] bound = new double[rows.length];
-        for (int i = 0; i < rows.length; i++) {
-          order[i] = i;
-          bound[i] = least + Math.abs(rows[i] - y1) + Math.abs(rows[i] - y2);
-        }
-        Arrays.sort(order, (a, b) -> Double.compare(bound[a], bound[b])); // stable: then by row
-        for (int i : order) {
-          if (best != null && bound[i] >= best.cost - EPSILON
-              || floor + Math.abs(rows[i] - y1) + Math.abs(rows[i] - y2) >= limit) {
-            break;
+          TreeSet<Double> xs = new TreeSet<>(); // each once, in order
+          for (double x : raw) {
+            xs.add(obstacles.clear(true, x, top, bottom, stub));
           }
-          best = cheaper(
-              best,
-              detour(fromSide, px, y1, toSide, qx, y2, rows[i], need1, need2, obstacles, style));
+          for (double x : xs.subSet(lo, true, hi, true)) {
+            Path path = channel(fromSide, px, y1, toSide, qx, y2, x, lo, hi, obstacles, style);
+            double off = Math.abs(x - middle);
+            if (beside == null
+                || path.cost < beside.cost - EPSILON
+                || path.cost <= beside.cost + EPSILON && off < distance) {
+              beside = path;
+              distance = off;
+            }
+          }
+          best = cheaper(best, beside);
         }
       }
     }
@@ -447,8 +415,64 @@ final class Routing {
   }
 
   /**
+   * The best detour along a row above or below a node that leaves {@code from} on {@code fromSide}
+   * and enters {@code to} on {@code toSide} and beats {@code limit}, or null for none.
+   */
+  private static Path bestDetour(
+      Node from,
+      double y1,
+      int fromSide,
+      Node to,
+      double y2,
+      int toSide,
+      double[] reach,
+      Obstacles obstacles,
+      EdgeStyle style,
+      double limit) {
+    double stub = style.stub();
+    double px = fromSide > 0 ? from.x() + from.width() : from.x();
+    double qx = toSide > 0 ? to.x() + to.width() : to.x();
+    double need1 = reach[0] + style.radius();
+    double need2 = reach[1] + style.radius();
+    // The true minimum horizontal length and bend cost across all valid leg positions, and per row
+    // the minimum vertical length across all places clear() can move the crossbar to.
+    double floor =
+        need1 + need2 + Math.abs(px + fromSide * need1 - (qx + toSide * need2)) + 4 * stub;
+    if (floor + Math.abs(y1 - y2) >= limit) {
+      return null;
+    }
+    double[] rows = obstacles.rows;
+    double[] rowLo = obstacles.rowLo;
+    double[] rowHi = obstacles.rowHi;
+    double mid = (y1 + y2) / 2;
+    Integer[] order = new Integer[rows.length];
+    double[] bound = new double[rows.length];
+    int count = 0;
+    for (int i = 0; i < rows.length; i++) {
+      double nearest = Math.clamp(mid, rowLo[i], rowHi[i]);
+      double b = floor + Math.abs(nearest - y1) + Math.abs(nearest - y2);
+      if (b < limit) {
+        order[count++] = i;
+        bound[i] = b;
+      }
+    }
+    Arrays.sort(order, 0, count, (a, b) -> Double.compare(bound[a], bound[b])); // stable: by row
+    Path best = null;
+    for (int k = 0; k < count; k++) {
+      int i = order[k];
+      if (best != null && bound[i] >= best.cost - EPSILON || bound[i] >= limit) {
+        break;
+      }
+      best = cheaper(
+          best, detour(fromSide, px, y1, toSide, qx, y2, rows[i], need1, need2, obstacles, style));
+    }
+    return best;
+  }
+
+  /**
    * A detour along the row at {@code y}: out of each port by a stub, or as far beyond as it takes
-   * to pass the nodes its legs would cross.
+   * to pass the nodes its legs would cross, its legs and crossbar centered in any narrower gap
+   * between the nodes beside them.
    */
   private static Path detour(
       int fromSide,
@@ -486,17 +510,8 @@ final class Routing {
     }
     path.bounds(1, side(fromSide, px, need1));
     path.bounds(3, side(toSide, qx, need2));
-    // Where a node lies within a stub of a port, a leg as close as its marker and bend allow.
-    shorter(path, 1, px + fromSide * need1, obstacles);
-    shorter(path, 3, qx + toSide * need2, obstacles);
-    // Each round moves a leg past one more node, outwards, so it ends.
-    for (int round = 0; round <= obstacles.nodes.size(); round++) {
-      boolean moved = past(path, 1, fromSide, obstacles, style);
-      moved |= past(path, 3, toSide, obstacles, style);
-      if (!moved) {
-        break;
-      }
-    }
+    placeLeg(path, 1, fromSide, px + fromSide * need1, obstacles, style);
+    placeLeg(path, 3, toSide, qx + toSide * need2, obstacles, style);
     if (fromSide == -toSide && fromSide * (qx - px) > 0) {
       // Between facing sides, its legs stay in order with room between them, also when spread.
       if (fromSide * (path.xs[3] - path.xs[1]) <= 0) {
@@ -504,31 +519,81 @@ final class Routing {
       }
       apart(path, px + fromSide * need1, qx - fromSide * need2, style.lane());
     }
-    path.price(obstacles, stub);
+    // Keep each leg and the crossbar clear of the nodes beside them: a stub where they leave room,
+    // midway between them where they do not.
+    clearLeg(path, 1, obstacles, stub);
+    clearLeg(path, 3, obstacles, stub);
+    double row = path.ys[2];
+    double cleared = obstacles.clear(false, row, path.xs[2], path.xs[3], stub);
+    if (cleared != row) {
+      path.move(2, cleared);
+      clearLeg(path, 1, obstacles, stub);
+      clearLeg(path, 3, obstacles, stub);
+    }
+    obstacles.price(path, style);
     return path;
   }
 
-  /** Moves a detour's leg to {@code x} where it crosses a node now and there it does not. */
-  private static void shorter(Path path, int run, double x, Obstacles obstacles) {
+  /**
+   * Moves a detour's leg within its bounds to keep {@code stub} from the nodes beside it where the
+   * gap allows, or midway between them where it does not, never adding a node crossing.
+   */
+  private static void clearLeg(Path path, int run, Obstacles obstacles, double stub) {
     double at = path.xs[run];
-    if (crossed(path, run, obstacles) >= 0) {
-      path.move(run, x);
-      if (crossed(path, run, obstacles) >= 0) {
-        path.move(run, at);
+    double[] bound = path.bounds[run];
+    double target = Math.clamp(
+        obstacles.clear(true, at, path.ys[run], path.ys[run + 1], stub), bound[0], bound[1]);
+    if (target == at) {
+      return;
+    }
+    int before = legHits(path, run, obstacles);
+    path.move(run, target);
+    if (legHits(path, run, obstacles) > before) {
+      path.move(run, at);
+    }
+  }
+
+  private static int legHits(Path path, int run, Obstacles obstacles) {
+    int port = run == 1 ? 0 : 5;
+    return obstacles.count(path.xs[run], path.ys[run], path.xs[run + 1], path.ys[run + 1])
+        + obstacles.count(path.xs[port], path.ys[port], path.xs[run], path.ys[port]);
+  }
+
+  /**
+   * Places a detour's leg {@code run}: if it or its port run crosses or grazes a node, tries
+   * {@code near} (as close to the port as its marker and bend allow), and if it still crosses a
+   * node, moves it outwards past each node it crosses.
+   */
+  private static void placeLeg(
+      Path path, int run, int side, double near, Obstacles obstacles, EdgeStyle style) {
+    int port = run == 1 ? 0 : 5;
+    double margin = style.lane() / 2;
+    int first = crossed(path, run, obstacles);
+    if (first >= 0
+        || obstacles.close(path.xs[port], path.ys[port], path.xs[run], path.ys[port], margin)) {
+      double at = path.xs[run];
+      path.move(run, near);
+      if (crossed(path, run, obstacles) < 0
+          && !obstacles.close(path.xs[port], path.ys[port], path.xs[run], path.ys[port], margin)) {
+        return;
       }
+      path.move(run, at);
+    }
+    for (int round = 0; first >= 0 && round <= obstacles.nodes.size(); round++) {
+      if (!past(path, run, side, first, obstacles, style)) {
+        break;
+      }
+      first = crossed(path, run, obstacles);
     }
   }
 
   /**
-   * Moves the vertical run {@code run} of a detour past the first node that it or the run between
-   * it and its port crosses, on the port's side: a stub beyond it, or where that crosses another
-   * node and half a lane does not, half a lane; whether it moved.
+   * Moves the vertical run {@code run} of a detour past node {@code first} on the port's side: a
+   * stub beyond it, or where that crosses another node and half a lane does not, half a lane;
+   * whether it moved.
    */
-  private static boolean past(Path path, int run, int side, Obstacles obstacles, EdgeStyle style) {
-    int first = crossed(path, run, obstacles);
-    if (first < 0) {
-      return false;
-    }
+  private static boolean past(
+      Path path, int run, int side, int first, Obstacles obstacles, EdgeStyle style) {
     Node node = obstacles.nodes.get(first);
     double edge = side > 0 ? node.x() + node.width() : node.x();
     double beyond = edge + side * style.stub();
@@ -571,6 +636,7 @@ final class Routing {
         ? 0
         : obstacles.rows[obstacles.rows.length - 1] - obstacles.rows[0];
     int deepest = paths.length + 1 + (int) Math.ceil(rows / style.lane());
+    Path fallback = null;
     for (int depth = 1; depth <= deepest; depth++) {
       Path chosen = null;
       for (int side : new int[] {1, -1}) {
@@ -580,10 +646,14 @@ final class Routing {
         }
       }
       if (chosen != null) {
-        return chosen;
+        if (!obstacles.close(
+            chosen.xs[2], chosen.ys[2], chosen.xs[3], chosen.ys[3], style.lane() / 2)) {
+          return chosen;
+        }
+        fallback = cheaper(fallback, chosen);
       }
     }
-    return straight;
+    return fallback != null ? fallback : straight;
   }
 
   /** Whether a bump's crossbar lies within half a lane of another route's horizontal run. */
@@ -639,7 +709,7 @@ final class Routing {
         count > 0
             ? new double[] {y + style.lane(), Double.POSITIVE_INFINITY}
             : new double[] {Double.NEGATIVE_INFINITY, y - style.lane()});
-    path.price(obstacles, stub);
+    obstacles.price(path, style);
     apart(path, px + side * need1, qx - side * need2, style.lane());
     return path;
   }
@@ -690,11 +760,11 @@ final class Routing {
       double lo,
       double hi,
       Obstacles obstacles,
-      double stub) {
+      EdgeStyle style) {
     Path path =
         new Path(fromSide, toSide, new double[] {px, x, x, qx}, new double[] {y1, y1, y2, y2});
     path.bounds(1, new double[] {lo, hi});
-    path.price(obstacles, stub);
+    obstacles.price(path, style);
     return path;
   }
 
@@ -726,17 +796,6 @@ final class Routing {
 
     void bounds(int run, double[] bounds) {
       this.bounds[run] = bounds;
-    }
-
-    /** Counts the nodes it crosses and prices it: by those, then by length and bends. */
-    void price(Obstacles obstacles, double stub) {
-      hits = 0;
-      double length = 0;
-      for (int i = 0; i + 1 < xs.length; i++) {
-        length += Math.abs(xs[i + 1] - xs[i]) + Math.abs(ys[i + 1] - ys[i]);
-        hits += obstacles.count(xs[i], ys[i], xs[i + 1], ys[i + 1]);
-      }
-      cost = hits * HIT + length + (xs.length - 2) * stub;
     }
 
     /** Whether a run is vertical: a route leaves its port horizontally and turns at each bend. */
@@ -828,6 +887,20 @@ final class Routing {
   }
 
   /**
+   * Whether the horizontal or vertical run from one point to the other passes beside the node
+   * closer than {@code margin}, or through it.
+   */
+  private static boolean beside(
+      double x1, double y1, double x2, double y2, Node node, double margin) {
+    double across = y1 == y2 ? 0 : margin;
+    double along = y1 == y2 ? margin : 0;
+    return Math.max(x1, x2) > node.x() - across
+        && Math.min(x1, x2) < node.x() + node.width() + across
+        && Math.max(y1, y2) > node.y() - along
+        && Math.min(y1, y2) < node.y() + node.height() + along;
+  }
+
+  /**
    * The nodes, filed by the cells of a grid about as large as a node, so that a run is checked
    * only against the nodes near it; and the rows a detour may take, above and below each node.
    */
@@ -837,8 +910,15 @@ final class Routing {
 
     final List<Node> nodes;
     final double[] rows; // each once, in order
+    // How far clear() can move each row, up and down: a stub from the nearest node edges beyond it.
+    final double[] rowLo;
+    final double[] rowHi;
     private final double cell;
-    private final Map<Long, List<Integer>> cells = new HashMap<>();
+    // The nodes in each cell, in an open-addressed table by the cell's key, so that a lookup
+    // boxes nothing: an empty slot has no nodes.
+    private final long[] keys;
+    private final int[][] cells;
+    private final int count; // of the cells with nodes
     private final List<Integer> large = new ArrayList<>();
     private final int[] seen; // the visit that last saw each node
     private int visit;
@@ -855,8 +935,27 @@ final class Routing {
         size += Math.max(node.width(), node.height());
       }
       rows = ys.stream().mapToDouble(Double::doubleValue).toArray();
+      double[] tops = nodes.stream().mapToDouble(Node::y).sorted().toArray();
+      double[] bottoms =
+          nodes.stream().mapToDouble(n -> n.y() + n.height()).sorted().toArray();
+      rowLo = new double[rows.length];
+      rowHi = new double[rows.length];
+      int t = 0;
+      int b = 0;
+      for (int i = 0; i < rows.length; i++) {
+        double y = rows[i];
+        while (t < tops.length && tops[t] < y) {
+          t++;
+        }
+        while (b < bottoms.length && bottoms[b] <= y) {
+          b++;
+        }
+        rowLo[i] = t < tops.length ? Math.min(y, tops[t] - stub) : y;
+        rowHi[i] = b > 0 ? Math.max(y, bottoms[b - 1] + stub) : y;
+      }
       cell = Math.max(1, nodes.isEmpty() ? 1 : size / nodes.size());
       seen = new int[nodes.size()];
+      Map<Long, List<Integer>> filed = new HashMap<>();
       for (int i = 0; i < nodes.size(); i++) {
         Node node = nodes.get(i);
         double left = cell(node.x());
@@ -869,10 +968,110 @@ final class Routing {
         }
         for (long x = (long) left; x <= (long) right; x++) {
           for (long y = (long) top; y <= (long) bottom; y++) {
-            cells.computeIfAbsent(key(x, y), k -> new ArrayList<>()).add(i);
+            filed.computeIfAbsent(key(x, y), k -> new ArrayList<>()).add(i);
           }
         }
       }
+      int capacity = Integer.highestOneBit(Math.max(1, filed.size()) * 2) * 2; // at most half full
+      count = filed.size();
+      keys = new long[capacity];
+      cells = new int[capacity][];
+      for (Map.Entry<Long, List<Integer>> entry : filed.entrySet()) {
+        int slot = slot(entry.getKey());
+        while (cells[slot] != null) {
+          slot = (slot + 1) & (capacity - 1);
+        }
+        keys[slot] = entry.getKey();
+        cells[slot] = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
+      }
+    }
+
+    /**
+     * Counts the nodes a path crosses and prices it: by those, then by whether it passes closer
+     * than half a lane to a node, then by length and bends.
+     */
+    void price(Path path, EdgeStyle style) {
+      path.hits = 0;
+      boolean close = false;
+      double length = 0;
+      double margin = style.lane() / 2;
+      for (int i = 0; i + 1 < path.xs.length; i++) {
+        double x1 = path.xs[i];
+        double y1 = path.ys[i];
+        double x2 = path.xs[i + 1];
+        double y2 = path.ys[i + 1];
+        length += Math.abs(x2 - x1) + Math.abs(y2 - y1);
+        int found = near(
+            Math.min(x1, x2) - margin,
+            Math.min(y1, y2) - margin,
+            Math.max(x1, x2) + margin,
+            Math.max(y1, y2) + margin);
+        for (int k = 0; k < found; k++) {
+          Node node = nodes.get(buffer[k]);
+          if (crosses(x1, y1, x2, y2, node)) {
+            path.hits++;
+          } else if (margin > 0 && beside(x1, y1, x2, y2, node, margin)) {
+            close = true;
+          }
+        }
+      }
+      path.cost =
+          path.hits * HIT + (close ? CRAMPED : 0) + length + (path.xs.length - 2) * style.stub();
+    }
+
+    /**
+     * Whether the run from one point to the other passes closer than {@code margin} beside a node
+     * without crossing it.
+     */
+    boolean close(double x1, double y1, double x2, double y2, double margin) {
+      int found = near(
+          Math.min(x1, x2) - margin,
+          Math.min(y1, y2) - margin,
+          Math.max(x1, x2) + margin,
+          Math.max(y1, y2) + margin);
+      for (int k = 0; k < found; k++) {
+        Node node = nodes.get(buffer[k]);
+        if (margin > 0 && !crosses(x1, y1, x2, y2, node) && beside(x1, y1, x2, y2, node, margin)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /**
+     * Where a vertical or horizontal run at {@code at}, reaching from {@code from} to {@code to}
+     * along it, keeps a stub from the nodes beside it where they leave room, or lies midway
+     * between them where they do not; {@code at} where it crosses a node.
+     */
+    double clear(boolean vertical, double at, double from, double to, double stub) {
+      double lo = Math.min(from, to);
+      double hi = Math.max(from, to);
+      int found = vertical
+          ? near(at - 2 * stub, lo, at + 2 * stub, hi)
+          : near(lo, at - 2 * stub, hi, at + 2 * stub);
+      double before = Double.NEGATIVE_INFINITY;
+      double after = Double.POSITIVE_INFINITY;
+      for (int k = 0; k < found; k++) {
+        Node node = nodes.get(buffer[k]);
+        double along = vertical ? node.y() : node.x();
+        double alongEnd = along + (vertical ? node.height() : node.width());
+        if (hi <= along || lo >= alongEnd) {
+          continue; // not beside the run
+        }
+        double across = vertical ? node.x() : node.y();
+        double acrossEnd = across + (vertical ? node.width() : node.height());
+        if (at > across && at < acrossEnd) {
+          return at;
+        }
+        if (acrossEnd <= at) {
+          before = Math.max(before, acrossEnd);
+        } else {
+          after = Math.min(after, across);
+        }
+      }
+      return before + stub <= after - stub
+          ? Math.clamp(at, before + stub, after - stub)
+          : (before + after) / 2;
     }
 
     /** How many nodes the run from one point to the other crosses. */
@@ -915,7 +1114,7 @@ final class Routing {
       double right = cell(Math.max(x1, x2));
       double top = cell(Math.min(y1, y2));
       double bottom = cell(Math.max(y1, y2));
-      if (!filed(left, right, top, bottom, Math.max(MOST, cells.size()))) {
+      if (!filed(left, right, top, bottom, Math.max(MOST, count))) {
         for (int i = 0; i < nodes.size(); i++) {
           put(i);
         }
@@ -927,12 +1126,11 @@ final class Routing {
       visit++;
       for (long x = (long) left; x <= (long) right; x++) {
         for (long y = (long) top; y <= (long) bottom; y++) {
-          List<Integer> in = cells.get(key(x, y));
+          int[] in = cell(key(x, y));
           if (in == null) {
             continue;
           }
-          for (int k = 0; k < in.size(); k++) {
-            int i = in.get(k);
+          for (int i : in) {
             if (seen[i] != visit) {
               seen[i] = visit;
               put(i);
@@ -941,6 +1139,19 @@ final class Routing {
         }
       }
       return size;
+    }
+
+    /** The nodes in the cell with this key; null for none. */
+    private int[] cell(long key) {
+      int slot = slot(key);
+      while (cells[slot] != null && keys[slot] != key) {
+        slot = (slot + 1) & (cells.length - 1);
+      }
+      return cells[slot];
+    }
+
+    private int slot(long key) {
+      return (int) (key ^ (key >>> 32)) & (cells.length - 1);
     }
 
     /** The index of the cell a coordinate lies in, as a whole number. */
@@ -959,8 +1170,8 @@ final class Routing {
     }
 
     private static long key(long x, long y) {
-      // Multiply by an odd constant (a bijection on long) so Long.hashCode spreads x and y across
-      // buckets instead of collapsing them to x ^ y.
+      // Multiply by an odd constant (a bijection on long) so that slot() spreads x and y across
+      // the table instead of collapsing them to x ^ y.
       return ((x << 32) ^ (y & 0xFFFFFFFFL)) * 0x9E3779B97F4A7C15L;
     }
   }
@@ -1218,18 +1429,20 @@ final class Routing {
       double[] span = path.span(run);
       double clear = Double.NEGATIVE_INFINITY;
       double until = Double.POSITIVE_INFINITY;
+      double margin = lane / 2;
       for (Node node : nodes) {
         double from = vertical ? node.y() : node.x();
         double to = from + (vertical ? node.height() : node.width());
-        if (from >= span[1] && from > span[0] || to <= span[0] && to < span[1]) {
+        if (from >= span[1] + margin && from > span[0] - margin
+            || to <= span[0] - margin && to < span[1] + margin) {
           continue; // not beside the run
         }
         double near = vertical ? node.x() : node.y();
         double far = near + (vertical ? node.width() : node.height());
         if (far <= at) {
-          clear = Math.max(clear, far + lane / 2);
+          clear = Math.max(clear, far + margin);
         } else if (near >= at) {
-          until = Math.min(until, near - lane / 2);
+          until = Math.min(until, near - margin);
         }
       }
       double from = Math.min(clear, at);

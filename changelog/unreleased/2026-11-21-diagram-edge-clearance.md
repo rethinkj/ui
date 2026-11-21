@@ -1,0 +1,1 @@
+- Fixed: diagram edges (`Canvas.canvas`, `ErDiagram`) no longer run along a neighboring card's border or through its end markers. Between nodes closer than two stubs, an edge's detour lies in the middle of the gap, and a run that would pass within half a lane of a node takes another way where one is free.

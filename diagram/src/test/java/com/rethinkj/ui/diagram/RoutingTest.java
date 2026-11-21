@@ -1,6 +1,7 @@
 package com.rethinkj.ui.diagram;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.diagram.Canvas.Edge;
 import com.rethinkj.ui.diagram.Canvas.Marker;
@@ -58,9 +59,9 @@ class RoutingTest {
     assertEquals(new Point(300, 46), routes.get(0).points().getLast());
     assertEquals(new Point(300, 54), routes.get(1).points().getLast());
 
-    // A small node just beside the second lane, at 202: the second stays where it was, no nearer
-    // to it, and the first moves to keep a lane between them.
-    List<Node> blocked = List.of(nodes.get(0), nodes.get(1), new Node("c", null, 202, 60, 8, 10));
+    // A small node half a lane beside the second lane, at 205: the second stays where it was, no
+    // nearer to it, and the first moves to keep a lane between them.
+    List<Node> blocked = List.of(nodes.get(0), nodes.get(1), new Node("c", null, 205, 60, 8, 10));
     routes = Routing.route(
         blocked, List.of(edge("first", "a", 20, "b", 50), edge("second", "a", 80, "b", 50)), STYLE);
     assertEquals(190, routes.get(0).points().get(1).x());
@@ -166,13 +167,15 @@ class RoutingTest {
     Edge edge =
         new Edge("e", null, new Port("a", 20), new Port("b", 20), Marker.ZERO_OR_MANY, Marker.ONE);
 
-    // 30 apart, with markers of 8 reaching 16.8 and 10: out of a's right side into the gap, over b
-    // and into its far side.
+    // 30 apart, with markers of 8 reaching 16.8 and 10: out of a's right side into the gap as far
+    // toward its middle as the marker and bend allow, over b and into its far side.
+    double leg =
+        100.0 + (double) (Edges.reach(Marker.ZERO_OR_MANY) * STYLE.marker()) + STYLE.radius();
     assertEquals(
         List.of(
             new Point(100, 20),
-            new Point(124, 20),
-            new Point(124, -24),
+            new Point(leg, 20),
+            new Point(leg, -24),
             new Point(254, -24),
             new Point(254, 20),
             new Point(230, 20)),
@@ -235,10 +238,53 @@ class RoutingTest {
             new Point(400, 100)),
         route.points());
 
-    // With a node a stub past the node above: the leg half a lane past it, in the gap between.
+    // With a node a stub past the node above: the leg centered in the narrow gap between them.
     List<Node> narrow = new ArrayList<>(nodes);
     narrow.add(new Node("narrow", null, 155, 90, 30, 20));
     route = Routing.route(narrow, List.of(edge("e", "a", 20, "b", 20)), STYLE).getFirst();
-    assertEquals(145, route.points().get(1).x());
+    assertEquals(147.5, route.points().get(1).x());
+  }
+
+  @Test
+  void anEdgeKeepsClearOfNeighboringNodesInANarrowGap() {
+    EdgeStyle style = EdgeStyle.DEFAULT; // stub 30, lane 10
+    // Two nodes stacked at the layout's minimum gap, 32: a detour between them lies midway, not
+    // 2 px from one of them.
+    List<Node> stacked = List.of(
+        new Node("from", null, 0, 100, 240, 128),
+        new Node("top", null, 320, 0, 240, 176),
+        new Node("bottom", null, 320, 208, 240, 152),
+        new Node("to", null, 640, 100, 240, 128));
+    Routing.Route route =
+        Routing.route(stacked, List.of(edge("e", "from", 60, "to", 60)), style).getFirst();
+    assertEquals(192, route.points().get(2).y(), 1e-6);
+
+    // A port aligned with a passing node's bottom border (as with collapsed cards) detours into
+    // the gap instead of running along the border.
+    List<Node> collapsed = List.of(
+        new Node("from", null, 0, 8, 240, 32),
+        new Node("top", null, 320, 0, 240, 32),
+        new Node("bottom", null, 320, 64, 240, 32),
+        new Node("to", null, 640, 21, 240, 32));
+    route = Routing.route(collapsed, List.of(edge("e", "from", 16, "to", 11.5f)), style)
+        .getFirst();
+    assertEquals(48, route.points().get(2).y(), 1e-6);
+
+    // Side-by-side nodes at the layout's minimum gap, 32: a detour's vertical leg and a self-loop's
+    // channel center in the gap instead of running 2 px beside the neighbor.
+    List<Node> sideBySide = List.of(
+        new Node("from", null, 0, 0, 240, 128),
+        new Node("beside", null, 272, 0, 240, 128),
+        new Node("to", null, 544, 0, 240, 128));
+    route = Routing.route(sideBySide, List.of(edge("e", "from", 60, "to", 60)), style)
+        .getFirst();
+    assertEquals(256, route.points().get(1).x(), 1e-6);
+
+    Routing.Route loop = Routing.route(
+            sideBySide, List.of(edge("self", "from", 40, "from", 80)), style)
+        .getFirst();
+    double loopX = loop.points().get(1).x();
+    assertTrue(loopX <= 0 - style.lane() / 2
+        || loopX >= 240 + style.lane() / 2 && loopX <= 272 - style.lane() / 2);
   }
 }
