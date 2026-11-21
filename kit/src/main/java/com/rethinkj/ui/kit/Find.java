@@ -537,7 +537,8 @@ public final class Find {
               state.jumpText = null;
               if (found != null
                   && state.field != null
-                  && state.field.text().string().equals(text)) {
+                  && state.field.text().string().equals(text)
+                  && target.equals(state.target(text.length()))) { // same query and words
                 select(state, found);
               }
             },
