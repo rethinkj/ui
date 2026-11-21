@@ -25,7 +25,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | --- | --- |
 | `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor). Open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
-| `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the text after the opening fence), or `null` for no highlighting |
+| `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
 | `copy(clipboard)` | Enables code-block copy buttons (and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set) |
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 

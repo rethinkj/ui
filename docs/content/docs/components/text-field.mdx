@@ -63,7 +63,7 @@ Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** 
 
 Right-clicking a field, or pressing the **Menu** key or **Shift+F10**, opens its context menu. The menu contains **Cut**, **Copy**, **Paste**, and **Select all**, along with their keyboard shortcuts. Each item works like its shortcut, so **Ctrl+Z** undoes a cut or paste. Items that cannot act are disabled: **Cut** and **Copy** when nothing is selected, **Paste** when the clipboard is empty, and **Cut** and **Paste** in a read-only field. A password field that hides its text omits **Cut** and **Copy**. A [CodeEditor](/docs/components/code-editor) created with the app also adds **Find** and **Replace**.
 
-If you attach your own right-click handler to a field, such as `Menu.contextMenu(field, state, items)`, your menu opens instead. Otherwise, right-clicking a field opens the field's own menu rather than a parent element's context menu.
+If you attach your own right-click handler to a field, such as `Menu.contextMenu(field, state, items)`, your menu opens instead. Outside the rows of a virtual list, right-clicking a field opens the field's own menu rather than a parent element's context menu.
 
 In scripts, open and use the menu with `press #name right`, then `frame`, `advance 1`, and `press label="Copy"`. Like any [Menu](/docs/components/menu), it appears as `role=menu` with `role=menuitem` items.
 

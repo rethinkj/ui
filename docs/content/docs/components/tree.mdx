@@ -85,7 +85,7 @@ A `Tree.Move` contains the dragged `node`, the `target` node, and a `place`: `BE
 - Above that zone means `BEFORE` the row's node. Below it means `AFTER` the node, or `BEFORE` the first child if the node is open. A line marks the drop position.
 - In the lower part of the last row inside an open node, the pointer's horizontal position picks the target level. Over the row, it drops after that row's node. One indent to the left, it drops after the parent node. This lets you choose between "after the last child" and "after the open node itself". For rows deeper than the maximum indent, the line stays at that deepest indent, and a drop there goes after the row above the line.
 - Below all rows means `AFTER` the last root.
-- When `canDrop` returns `false`, no drop indicator appears and releasing the pointer does nothing.
+- If `canDrop` rejects `INTO`, the middle of the row means a place before or after it instead. Where `canDrop` allows no place, no drop indicator appears and releasing the pointer does nothing.
 
 <Shot src="kit/tree-{theme}-drop-line" alt="A schema tree while the table changes is dragged: its label muted, and a line in the accent's color below notification_preferences, at the level of the tables" />
 

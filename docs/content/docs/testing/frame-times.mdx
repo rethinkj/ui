@@ -9,7 +9,7 @@ A script runs your app without a window, so `app.frame()` measures input, build,
 ```
 
 - The listener receives a [`WindowLoop.Frame`](/api/com/rethinkj/ui/window/WindowLoop.Frame.html) on the window's thread for each frame a window displays. All times are in nanoseconds:
-  - `input` — handling the input and tasks that arrived, with their handlers and the layout that runs before each next one
+  - `input` — handling the input and tasks that arrived, with their handlers and any layout needed before the next one
   - `build` — running the view and row functions
   - `layout` — the rest of `app.frame()` after input, including handlers the frame runs on its own (such as `onResize` or `onHoverFor`)
   - `draw` — building the scene and drawing it

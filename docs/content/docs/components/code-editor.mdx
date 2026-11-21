@@ -68,7 +68,7 @@ Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/r
 
 ## Placeholder and read-only
 
-Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. In a tree dump, it appears as `placeholder="..."`.
+Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. If you set a different label, the tree dump shows the placeholder as `placeholder="..."`.
 
 To make a read-only editor, call `readOnly(true)` on `CodeEditor.State` and pass `null` for `onChange`. Users can still select, copy, and search the text with the find bar, but cannot change it. In a tree dump, it is marked `readonly`. If you pass `null` for `onChange` without `readOnly(true)`, the editor is disabled instead.
 

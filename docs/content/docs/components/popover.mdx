@@ -29,7 +29,7 @@ Store a `Popover.State` in your app state (`isOpen()`, `open()`, `close()`, `tog
 
 The side and alignment are preferences. If the popover does not fit in the window below its anchor, it opens above the anchor instead. If it does not fit at `START` or `END`, it flips to the opposite end of the anchor. For example, a popover on a button at the right edge opens to the left.
 
-Inside a dialog, the popover also stays inside the dialog along the anchor. With `START` or `END`, it picks the end that fits inside the dialog. Otherwise, it shifts into the dialog as far as the window allows, centering over the dialog when it is wider than the dialog.
+Inside a dialog, the popover also stays inside the dialog along the anchor. With `START` or `END`, it picks the end that fits inside the dialog. If no end fits, it shifts into the dialog as far as the window allows, centering over the dialog when it is wider than the dialog.
 
 ## Keyboard
 

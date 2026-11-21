@@ -35,7 +35,7 @@ Zooming does not scale a static image. Instead, the canvas lays out each node ag
 
 The canvas only builds nodes inside the visible area, so large diagrams stay fast. Pins are plain values in your app state. The canvas only reports that the user moved a node.
 
-The canvas records its size from layout whenever that size changes. If you switch to a different diagram with a new `Viewport` in the same spot, give the canvas a new key, such as `canvas(...).key(diagram.name())`. If you reuse the same key, the new viewport never gets a size and shows no nodes.
+The canvas records its size from layout whenever that size changes. If you switch to a different diagram with a new `Viewport` in the same spot, give the canvas a new key, such as `canvas(...).key(diagram.name())`. If you reuse the same key, the new viewport gets no size and shows no nodes until the canvas size changes.
 
 ## Edges
 
@@ -68,7 +68,7 @@ Edge sizes (such as bend radius, lane spacing, and marker length) come from `Edg
 
 `Canvas.png(nodes, view)` exports the entire diagram as PNG bytes, not just the visible viewport. Your app decides where to save or send those bytes. Your `view` function builds the canvas using the viewport it receives, just like your normal view (for example, `viewport -> canvas(viewport, nodes, Tables::card, null)`), so everything the canvas draws appears in the image. The image is cropped around the nodes with a margin. It renders at 100% zoom and scale 2, without needing a window or a GPU. It reads the theme from `Theme.CURRENT` where you call it. Because event handlers run outside your view's theme scope, wrap the call with your theme: `Theme.CURRENT.with(state.theme, () -> Canvas.png(...))`. If the image would exceed 16 megapixels, it falls back to scale 1. If the diagram is still too large at scale 1, it throws an `IllegalArgumentException` before drawing anything.
 
-If your canvas has edges, pass them with `Canvas.png(nodes, edges, view)`. The image then shows the edges with their markers, and its crop also includes an edge that loops outside the nodes. If your app uses a custom `EdgeStyle`, wrap the whole call with it just like the theme: `EdgeStyle.CURRENT.with(style, () -> Canvas.png(...))`. That way, the crop fits the edges the image draws.
+If your canvas has edges, pass them too: `Canvas.png(nodes, edges, view)`. Then the crop includes the edges and their markers, also an edge that loops outside the nodes. If your app uses a custom `EdgeStyle`, wrap the whole call with it just like the theme: `EdgeStyle.CURRENT.with(style, () -> Canvas.png(...))`. That way, the crop fits the edges the image draws.
 
 ## Pointer and keyboard
 

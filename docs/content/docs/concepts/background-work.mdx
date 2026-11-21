@@ -96,6 +96,6 @@ Use `await progress` to receive the next progress update without waiting for the
 ```text file="examples/src/test/resources/golden/docs/lanes/counted.tree.txt" start="Cancelled" count="3"
 ```
 
-To check one task's result while your test keeps another task paused, wait for it by the name you started it with (for example, `await "save"`). The other task keeps running.
+To check one task's result while your test keeps another task waiting (for example, on a latch), wait for it by the name you started it with, such as `await "save"`. This does not wait for the other task, which keeps running.
 
 In Java tests without scripts, call `app.await(timeout)`, `app.await(name, timeout)`, and `app.awaitProgress(timeout)`.
