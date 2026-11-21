@@ -314,6 +314,18 @@ class DataGridTest {
     app.frame();
     assertEquals(scrolled - 24, find(app, "rows").scrollY());
     assertEquals(topKey4, keys.get(selection.firstRowInView()));
+
+    // A key that leaves a cursor held out of view where it is still shows it.
+    selection.select(3, 0);
+    app.invalidate();
+    run(app, "frame\nwheel #rows 0 864\nframe");
+    keys.subList(0, 3).clear();
+    app.invalidate();
+    app.frame();
+    assertEquals(0, selection.row());
+    assertTrue(selection.firstRowInView() > 0, "held out of view");
+    run(app, "key ArrowUp\nframe");
+    assertInView(app, 0);
   }
 
   @Test

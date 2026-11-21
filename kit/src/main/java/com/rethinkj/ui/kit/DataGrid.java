@@ -3600,6 +3600,9 @@ public final class DataGrid {
     sel.start = b.cells ? c < b.frozen : ends;
     sel.edgeColumn = -1;
     sel.moves++;
+    // Shows the cursor also where it stays, on a row that following keys held out of view;
+    // scrollToRow's hold (no column) lasts until the cursor moves.
+    sel.holding &= sel.heldColumn < 0;
     return true;
   }
 
