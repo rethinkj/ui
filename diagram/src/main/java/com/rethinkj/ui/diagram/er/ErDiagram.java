@@ -10,6 +10,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.diagram.Canvas;
 import com.rethinkj.ui.diagram.Canvas.Edge;
 import com.rethinkj.ui.diagram.Canvas.Emphasis;
@@ -20,11 +21,13 @@ import com.rethinkj.ui.diagram.DiagramTexts;
 import com.rethinkj.ui.diagram.LayeredLayout;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Segmented;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,8 +76,9 @@ import java.util.function.IntUnaryOperator;
  *
  * <p>Tables that are not pinned are placed by {@link LayeredLayout}, each schema on its own: at
  * first, when a table comes, goes or changes its height, as with its mode or its columns, and with
- * the action Arrange; the filter does not move them. Arrange all unpins every table first. Pins are plain positions: the app gives
- * them with {@link State#pins(Map)} and is told each change.
+ * the action Arrange; the filter does not move them. Arrange all unpins every table first; both
+ * fit the view to the tables. Pins are plain positions: the app gives them with {@link
+ * State#pins(Map)} and is told each change.
  *
  * <p>In a tree dump the canvas is {@code role=graphics-document} labeled {@link
  * DiagramTexts#erDiagram}, each table {@code role=graphics-object} with its key, {@code
@@ -131,8 +135,9 @@ public final class ErDiagram {
     // again when one changes.
     private Map<String, Float> arranged = Map.of();
     private float width;
-    // Whether the next build pans to the first table shown, after the filter changed.
-    private boolean revealFirst;
+    // The filter of the last build, as it matches, and the keys of the tables it showed.
+    private String shownFilter = "";
+    private Set<String> shown = Set.of();
     // The table that ] and [ step around, and the index of the one they stepped to.
     private String followed;
     private int follow;
@@ -178,12 +183,12 @@ public final class ErDiagram {
       return filter;
     }
 
-    /** Shows only the tables whose names contain this text, and pans to the first of them. */
+    /**
+     * Shows only the tables whose names contain this text. Where that hides a table shown before,
+     * the next build pans to the first table left, if it lies outside the view.
+     */
     public void filter(String filter) {
-      if (!filter.equals(this.filter)) {
-        this.filter = filter;
-        revealFirst = true;
-      }
+      this.filter = Objects.requireNonNull(filter, "filter");
     }
 
     /** The key of the selected table, null for none. */
@@ -197,7 +202,10 @@ public final class ErDiagram {
       followed = null;
     }
 
-    /** The tables the user put somewhere, by their keys. */
+    /**
+     * The tables the user put somewhere, by their keys. Pins of tables that are gone are dropped
+     * at the next build.
+     */
     public Map<String, Pin> pins() {
       Map<String, Pin> pins = new LinkedHashMap<>();
       places.forEach((table, place) -> {
@@ -218,15 +226,17 @@ public final class ErDiagram {
       arrangeDue = true;
     }
 
-    /** Places the tables that are not pinned anew, in the next build. */
+    /** Places the tables that are not pinned anew and fits the view to them, in the next build. */
     public void arrange() {
       arrangeDue = true;
+      viewport.fit();
     }
 
-    /** Unpins all tables and places them anew, in the next build. */
+    /** Unpins all tables, places them anew and fits the view to them, in the next build. */
     public void arrangeAll() {
       places.clear();
       arrangeDue = true;
+      viewport.fit();
     }
   }
 
@@ -298,6 +308,14 @@ public final class ErDiagram {
     return name;
   }
 
+  private static String normalize(String filter) {
+    return filter.strip().toLowerCase(Locale.ROOT);
+  }
+
+  private static boolean named(ForeignKey foreignKey) {
+    return foreignKey.name() != null && !foreignKey.name().isEmpty();
+  }
+
   /** All tables of the schemas, by their keys, with their relations among them. */
   private static Map<String, Shown> model(List<Schema> schemas, State state, ErStyle style) {
     Map<String, Shown> tables = new LinkedHashMap<>();
@@ -310,6 +328,14 @@ public final class ErDiagram {
         }
       }
     }
+    Set<String> used = new HashSet<>(tables.keySet());
+    // The keys of named foreign keys, which no key made up for another may take.
+    Set<String> names = new HashSet<>();
+    tables
+        .values()
+        .forEach(child -> child.table.foreignKeys().stream()
+            .filter(ErDiagram::named)
+            .forEach(foreignKey -> names.add(child.key + "/" + foreignKey.name())));
     for (Shown child : tables.values()) {
       List<ForeignKey> foreignKeys = child.table.foreignKeys();
       for (int i = 0; i < foreignKeys.size(); i++) {
@@ -317,11 +343,13 @@ public final class ErDiagram {
         Shown parent = tables.get(key(
             foreignKey.schema() == null ? child.schema : foreignKey.schema(), foreignKey.table()));
         if (parent != null) {
-          Relation relation = new Relation(
-              child.key + "/" + (foreignKey.name() == null ? i : foreignKey.name()),
-              child,
-              foreignKey,
-              parent);
+          String key = child.key + "/" + (named(foreignKey) ? foreignKey.name() : i);
+          boolean own = named(foreignKey);
+          while (!own && names.contains(key) || !used.add(key)) {
+            key += "/" + i;
+            own = false;
+          }
+          Relation relation = new Relation(key, child, foreignKey, parent);
           child.out.add(relation);
           parent.in.add(relation);
         }
@@ -369,8 +397,9 @@ public final class ErDiagram {
    *
    * @param state what it shows, from the app's state
    * @param schemas the schemas with their tables, each table with a key of its own
-   * @param onPins told all pins whenever the user moves a table or arranges all, as {@link
-   *     State#pins()} gives them; null for none
+   * @param onPins told all pins when a drag of a table ends (nothing when Escape cancels it), after
+   *     each Shift+arrow step, and on Arrange all, as {@link State#pins()} gives them; null for
+   *     none
    * @param actions the app's own actions at the end of the bar, such as an export
    * @throws IllegalArgumentException if two tables have the same key
    */
@@ -380,12 +409,23 @@ public final class ErDiagram {
     DiagramTexts texts = DiagramTexts.CURRENT.get();
     ErStyle style = ErStyle.CURRENT.get();
     Map<String, Shown> tables = model(schemas, state, style);
+    state.places.keySet().retainAll(tables.keySet());
+    if (state.selected != null && !tables.containsKey(state.selected)) {
+      state.select(null);
+    }
     arrange(state, tables, style);
     Diagram diagram = new Diagram(state, tables, state.selected, style);
-    if (state.revealFirst && !diagram.nodes.isEmpty()) {
-      state.revealFirst = false;
-      state.viewport.reveal(diagram.nodes.getFirst().key());
+    String filter = normalize(state.filter);
+    if (!filter.equals(state.shownFilter) || (!filter.isEmpty() && diagram.nodes.isEmpty())) {
+      // A change that hides a table shows the first one left; any other, or a filter without
+      // match, drops a reveal still due.
+      boolean hides = state.shown.stream()
+          .anyMatch(key -> tables.containsKey(key) && !diagram.shown.containsKey(key));
+      state.viewport.reveal(
+          hides && !diagram.nodes.isEmpty() ? diagram.nodes.getFirst().key() : null);
     }
+    state.shownFilter = filter;
+    state.shown = diagram.shown.keySet();
     Consumer<Map<String, Pin>> told = onPins == null ? pins -> {} : onPins;
 
     El bar = row()
@@ -403,6 +443,10 @@ public final class ErDiagram {
         .child(Button.button(Button.Variant.GHOST, texts.fit(), state.viewport::fit))
         .child(Button.button(Button.Variant.GHOST, texts.arrange(), state::arrange))
         .child(Button.button(Button.Variant.GHOST, texts.arrangeAll(), () -> {
+          if (state.viewport.dragging() != null) {
+            // Escape would put the dragged table back without telling onPins.
+            return;
+          }
           state.arrangeAll();
           told.accept(state.pins());
         }));
@@ -417,12 +461,27 @@ public final class ErDiagram {
             diagram::content,
             node -> {
               state.places.put(node.key(), new Place(node.x(), node.y(), node.pinned()));
-              told.accept(state.pins());
+              if (state.viewport.dragging() == null) {
+                told.accept(state.pins());
+              }
             })
         .label(texts.erDiagram())
         .onPress(() -> state.select(null))
         .onKeyFirst(key -> key(diagram, key, told))
         .onText(typed -> follow(diagram, typed));
+    String stripped = state.filter.strip();
+    if (!stripped.isEmpty() && diagram.nodes.isEmpty()) {
+      canvas.child(el().absolute(0, 0)
+          .wFull()
+          .hFull()
+          .center()
+          .padding(theme.space().l())
+          .inert()
+          .child(Label.label(Label.Variant.MUTED, texts.noTablesMatch(stripped))
+              .key("note")
+              .ellipsis()
+              .minSize(0, 0)));
+    }
     return col()
         .minSize(0, 0)
         .child(bar.shrink(0))
@@ -484,7 +543,7 @@ public final class ErDiagram {
       this.state = state;
       this.tables = tables;
       this.style = style;
-      String filter = state.filter.strip().toLowerCase(Locale.ROOT);
+      String filter = normalize(state.filter);
       for (Shown table : tables.values()) {
         if (table.table.name().toLowerCase(Locale.ROOT).contains(filter)) {
           shown.put(table.key, table);
@@ -550,9 +609,16 @@ public final class ErDiagram {
         foreignKey.columns().forEach(c -> lit.add(List.of(relation.child.key, c)));
         foreignKey.referencedColumns().forEach(c -> lit.add(List.of(relation.parent.key, c)));
       }
-      String label = foreignKey.name() != null
+      String label = named(foreignKey)
           ? foreignKey.name()
-          : child.name() + " → " + relation.parent.table.name();
+          : child.name()
+              + "("
+              + String.join(", ", foreignKey.columns())
+              + ") → "
+              + relation.parent.table.name()
+              + "("
+              + String.join(", ", foreignKey.referencedColumns())
+              + ")";
       return new Edge(
           relation.key,
           label,
@@ -622,12 +688,19 @@ public final class ErDiagram {
 
     /** A size of text in the diagram, which stays readable where the tables show less. */
     private float readable(float size, float zoom) {
-      return size * Math.max(zoom, style.skeleton());
+      return size * Math.max(zoom, style.readable());
     }
 
     private El frame(Node node, float zoom) {
       String schema = frameSchemas.get(node.key());
+      Font font = theme.type().small().font().get();
       float size = readable(theme.type().small().size(), zoom);
+      float pad = theme.space().m() * zoom;
+      float gap = theme.space().xs() * zoom;
+      float room = node.width() * zoom - 2 * theme.size().stroke() - 2 * pad - size - gap;
+      String full = schema + " · " + texts.tables(frameSizes.get(schema));
+      float scale = WindowState.CURRENT.get().scale();
+      String title = font.shape(full, size, scale).width() / scale <= room ? full : schema;
       return col()
           .wFull()
           .hFull()
@@ -635,11 +708,12 @@ public final class ErDiagram {
           .border(theme.size().stroke(), theme.border().subtle())
           .child(row()
               .h(style.frameLabel() * zoom)
-              .padding(0, theme.space().m() * zoom)
-              .gap(theme.space().xs() * zoom)
+              .padding(0, pad)
+              .gap(gap)
               .align(Style.Align.CENTER)
               .child(Icon.icon(Symbol.DATABASE, Icon.Variant.MUTED, size))
-              .child(text(schema + " · " + texts.tables(frameSizes.get(schema)))
+              .child(text(title)
+                  .font(font)
                   .fontSize(size)
                   .color(theme.text().muted())
                   .ellipsis()
@@ -668,11 +742,17 @@ public final class ErDiagram {
         card.border(theme.size().stroke(), tone.applyAsInt(theme.border().subtle()));
       }
       if (zoom < style.names()) {
+        Font font = theme.type().strong().font().get();
+        float inner = table.height * zoom - 2 * theme.size().stroke();
+        float line = font.ascent() + font.descent() + font.lineGap();
         float size = readable(theme.type().strong().size(), zoom);
+        if (inner > 0 && line > 0) {
+          size = Math.min(size, inner / line);
+        }
         return card.justify(Style.Content.CENTER)
-            .padding(0, theme.space().s() * zoom)
+            .padding(0, readable(theme.space().s(), zoom))
             .child(text(table.table.name())
-                .font(theme.type().strong().font().get())
+                .font(font)
                 .fontSize(size)
                 .color(tone.applyAsInt(theme.text().primary()))
                 .ellipsis()
@@ -784,7 +864,7 @@ public final class ErDiagram {
               .minSize(0, 0)
               .grow(1));
       if (column.unique() && !column.primaryKey()) {
-        row.child(text("UQ").fontSize(small).color(muted).shrink(0));
+        row.child(text(texts.uniqueMark()).fontSize(small).color(muted).shrink(0));
       }
       row.child(text(column.type() + (column.nullable() ? "?" : ""))
           .fontSize(small)
@@ -825,7 +905,7 @@ public final class ErDiagram {
       }
       for (ForeignKey foreignKey : foreignKeys) {
         StringBuilder line = new StringBuilder();
-        if (foreignKey.name() != null) {
+        if (named(foreignKey)) {
           line.append(foreignKey.name()).append(' ');
         }
         line.append("→ ")
@@ -845,7 +925,9 @@ public final class ErDiagram {
     /** A column as a bar, in the warning color for a key, where the zoom leaves text unreadable. */
     private El bar(Shown table, Column column, float zoom, IntUnaryOperator tone) {
       float inner = (style.width() - 2 * theme.space().s()) * zoom;
-      float width = Math.min(inner * 0.6f, column.name().length() * 7 * zoom);
+      float width = Math.min(
+          inner * style.barShare(), column.name().length() * style.barPerCharacter() * zoom);
+      float height = style.barHeight() * zoom;
       int color =
           key(table.table, column) ? theme.status().warning() : theme.border().strong();
       return row()
@@ -853,8 +935,8 @@ public final class ErDiagram {
           .shrink(0)
           .padding(0, theme.space().s() * zoom)
           .align(Style.Align.CENTER)
-          .child(el().size(width, Math.max(2, style.row() * zoom / 4))
-              .radius(style.row() * zoom / 8)
+          .child(el().size(width, Math.max(2, height))
+              .radius(height / 2)
               .fill(tone.applyAsInt(color)));
     }
   }
@@ -893,6 +975,10 @@ public final class ErDiagram {
     if (key.modifiers() == Key.SHIFT && (dx != 0 || dy != 0)) {
       if (selected == null) {
         return false;
+      }
+      if (state.viewport.dragging() != null) {
+        // The pointer places the table until the drag ends or Escape puts it back.
+        return true;
       }
       Place place = state.places.get(selected.key);
       state.places.put(

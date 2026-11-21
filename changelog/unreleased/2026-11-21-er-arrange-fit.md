@@ -1,0 +1,1 @@
+- `ErDiagram`: **Arrange** and **Arrange all** (`State.arrange` and `State.arrangeAll`) fit the view to the tables, so it no longer ends up on empty canvas. `Canvas.Viewport.fit()` shows the first node when the nodes lie too far apart to fit even at 25 %, instead of the empty middle between them.

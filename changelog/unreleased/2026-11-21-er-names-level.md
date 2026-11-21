@@ -1,0 +1,1 @@
+- Below `ErStyle.names`, an `ErDiagram` table's name fits whole inside its card, clear of the outline, also when the table is collapsed, and a schema frame whose title does not fit shows the schema's name without the table count.

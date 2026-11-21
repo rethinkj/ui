@@ -127,13 +127,68 @@ class CanvasTest {
     assertTrue(line(pinned, "#orders").contains(" value=\"Pinned\""), pinned);
     assertFalse(line(pinned, "#items").contains(" value="), pinned);
 
-    // From 40,0 to 560,220: 520 by 220, which fits 280 by 260 less the margins at 25 %, centered;
-    // 400 by 260, before the canvas became narrower, at 50 %.
-    assertEquals(0.25f, state.viewport.zoom());
-    assertEquals(300 - 140 / 0.25, state.viewport.left(), 1e-9);
-    assertEquals(110 - 130 / 0.25, state.viewport.top(), 1e-9);
+    // From 40,0 to 560,220: 520 by 220, which fits 280 by 260 less the margins at 248/520 (~48 %),
+    // centered; 400 by 260, before the canvas became narrower, at 368/520 (~71 %).
+    float expectedZoom = 248f / 520f;
+    assertEquals(expectedZoom, state.viewport.zoom(), 1e-6f);
+    assertEquals(300 - 140.0 / expectedZoom, state.viewport.left(), 1e-9);
+    assertEquals(110 - 130.0 / expectedZoom, state.viewport.top(), 1e-9);
     String fitted = app.tree().dump();
-    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 25%\""), fitted);
+    assertTrue(line(fitted, "#board").contains(" value=\"Zoom 48%\""), fitted);
+  }
+
+  @Test
+  void fitLandsBetweenStepsAndZoomMovesToTheNextStep() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    Canvas.Viewport viewport = app.state().viewport;
+    viewport.fit();
+    // 520 by 220 in 400 by 260 less the margins: 368/520, between 50 % and 75 %.
+    Script.run("size 400 260\nframe\nfocus #board\n", app, out);
+    assertEquals(368f / 520f, viewport.zoom(), 1e-6f);
+    viewport.zoomIn();
+    assertEquals(0.75f, viewport.zoom());
+
+    Script.run("key 0\nframe\n", app, out);
+    viewport.zoomOut();
+    assertEquals(0.5f, viewport.zoom());
+
+    Script.run("key 0\nframe\n", app, out);
+    viewport.zoomBy(2, 200, 130); // the first step goes to 75 %
+    assertEquals(1f, viewport.zoom());
+
+    // A line without height in a canvas without room for one fits by its width: 400 less 2 * 130.
+    viewport.fit();
+    viewport.fitIfDue(List.of(new Node("line", null, 0, 0, 520, 0)), 130);
+    assertEquals(140f / 520f, viewport.zoom(), 1e-6f);
+  }
+
+  @Test
+  void aFitThatWouldShowNoNodeShowsTheFirst() throws IOException {
+    Board board = new Board();
+    // Too far apart for 25 %: the middle between them is empty.
+    board.nodes.clear();
+    board.nodes.addAll(List.of(
+        new Node("lower", "lower", 0, 4000, 140, 60), new Node("upper", "upper", 0, 0, 140, 60)));
+    App<Board> app = new App<>(
+        board,
+        state -> Canvas.canvas(state.viewport, state.nodes, CanvasTest::card, state::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    board.viewport.fit();
+    Script.run(
+        "size 400 260\nframe\nframe\nsnap fitted\nsize 400 1100\nframe\nsnap taller\n", app, out);
+    assertTrue(Files.readString(out.resolve("fitted.tree.txt")).contains("#lower "));
+    // Still fitting: a canvas that has room for both shows both.
+    String taller = Files.readString(out.resolve("taller.tree.txt"));
+    assertTrue(taller.contains("#lower ") && taller.contains("#upper "), taller);
   }
 
   @Test
@@ -161,6 +216,24 @@ class CanvasTest {
     assertEquals(1.25f, viewport.zoom());
     assertEquals(40 + 200 - 200 / 1.25, viewport.left(), 1e-9);
     assertEquals(20 + 130 - 130 / 1.25, viewport.top(), 1e-9);
+  }
+
+  @Test
+  void revealLeavesANodeThatShowsWhole() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    Canvas.Viewport viewport = app.state().viewport;
+    viewport.panTo(35, 35);
+    Script.run("size 400 260\nframe\n", app, out);
+    viewport.reveal("orders"); // 5 pixels inside the top left, within the margin
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(35, viewport.left());
+    assertEquals(35, viewport.top());
   }
 
   @Test

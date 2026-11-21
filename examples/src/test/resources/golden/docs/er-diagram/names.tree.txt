@@ -44,22 +44,22 @@ el 0,0 1040x720
           el 364,431 72x57
             el 365,432 70x7
               text label="database" "\u{F0D7}" 367,431 9x9
-              text "billing · 1 table" 377,430 56x11
-        el #public.address/address_customer_fk role=graphics-symbol label="address_customer_fk" 441,316 9x8 value="Dimmed"
-          el 441,319 9x1
-        el 437,320 8x11
-          el 440,320 1x12
-        el 430,328 10x4
-          el 430,331 11x1
-        el 440,319 3x3
-        el 438,329 3x3
+              text "billing" 377,430 25x11
+        el #public.address/address_customer_fk role=graphics-symbol label="address_customer_fk" 440,316 10x8 value="Dimmed"
+          el 440,319 10x1
+        el 436,320 8x11
+          el 439,320 1x12
+        el 430,328 9x4
+          el 430,331 10x1
+        el 439,319 3x3
+        el 437,329 3x3
         el #public.order_item/order_item_product_fk role=graphics-symbol label="order_item_product_fk" 603,357 7x8 value="Dimmed"
           el 603,360 7x1
         el 599,361 8x10
           el 602,361 1x11
         el 518,368 84x8
           el 518,371 85x1
-        el 517,366 4x5
+        el 516,366 5x5
           el 517,366 1x6
         el 510,362 7x8
           el 510,365 8x1
@@ -77,52 +77,52 @@ el 0,0 1040x720
           el 363,371 7x1
         el 362,375 3x3
         el 362,371 3x3
-        el #public.product_tag/product_tag_product_fk role=graphics-symbol label="product_tag_product_fk" 516,396 14x7 value="Dimmed"
-          el 516,399 14x1
-        el 512,366 5x33
-          el 515,366 1x34
-        el 510,362 5x8
-          el 510,365 6x1
-        el 515,397 3x3
-        el 513,365 3x3
-        el #public.product_tag/product_tag_tag_fk role=graphics-symbol label="product_tag_tag_fk" 521,403 9x7 value="Dimmed"
-          el 521,405 9x1
-        el 517,406 6x5
-          el 520,406 1x6
-        el 510,408 10x8
-          el 510,411 11x1
-        el 520,405 3x3
-        el 518,409 3x3
-        el #public.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 523,334 7x6 value="Highlighted"
-          el 523,336 7x2
-        el 522,337 2x13
-          el 522,337 2x13
-        el 438,349 85x5
-          el 438,349 85x2
-        el 434,332 8x18
-          el 437,332 2x18
-        el 430,331 8x5
-          el 430,331 8x2
-        el 522,336 4x4
-        el 520,347 4x4
-        el 437,347 4x4
-        el 435,331 4x4
+        el #public.product_tag/product_tag_product_fk role=graphics-symbol label="product_tag_product_fk" 515,396 15x7 value="Dimmed"
+          el 515,399 15x1
+        el 511,366 5x33
+          el 514,366 1x34
+        el 510,362 4x8
+          el 510,365 5x1
+        el 514,397 3x3
+        el 512,365 3x3
+        el #public.product_tag/product_tag_tag_fk role=graphics-symbol label="product_tag_tag_fk" 520,403 10x7 value="Dimmed"
+          el 520,405 10x1
+        el 516,406 6x5
+          el 519,406 1x6
+        el 510,408 9x8
+          el 510,411 10x1
+        el 519,405 3x3
+        el 517,409 3x3
+        el #public.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 522,334 8x6 value="Highlighted"
+          el 522,336 8x2
+        el 521,337 3x13
+          el 521,337 2x13
+        el 437,349 85x5
+          el 437,349 85x2
+        el 433,332 8x18
+          el 436,332 2x18
+        el 430,331 7x5
+          el 430,331 7x2
+        el 521,336 4x4
+        el 519,347 4x4
+        el 436,347 4x4
+        el 434,331 4x4
         el #public.order/order_shipping_address_fk role=graphics-symbol label="order_shipping_address_fk" 520,340 10x6 value="Highlighted"
           el 520,342 10x2
-        el 519,312 3x31
+        el 519,312 2x31
           el 519,312 2x31
         el 510,308 10x5
           el 510,311 10x2
         el 519,340 4x4
         el 517,311 4x4
-        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 518,346 12x4 value="Highlighted"
-          el 518,348 12x2
-        el 514,314 5x35
-          el 517,314 2x35
-        el 510,313 8x5
-          el 510,313 8x2
-        el 517,346 4x4
-        el 515,313 4x4
+        el #public.order/order_billing_address_fk role=graphics-symbol label="order_billing_address_fk" 517,346 13x4 value="Highlighted"
+          el 517,348 13x2
+        el 513,314 6x35
+          el 516,314 2x35
+        el 510,313 7x5
+          el 510,313 7x2
+        el 516,346 4x4
+        el 514,313 4x4
         el #public.order_item/order_item_order_fk role=graphics-symbol label="order_item_order_fk" 600,350 10x7 value="Highlighted"
           el 600,353 10x2
         el 596,331 8x23
@@ -141,28 +141,28 @@ el 0,0 1040x720
         el 524,330 4x4
         el #public.customer role=graphics-object label="customer, 4 columns, referenced by address, order" 370,321 60x32
           el role=list 370,321 60x32
-            text "customer" 372,331 56x12
+            text "customer" 374,331 52x12
         el #public.address role=graphics-object label="address, 6 columns, references customer, referenced by order" 450,302 60x44
           el role=list 450,302 60x44
-            text "address" 452,318 56x12
+            text "address" 454,318 52x12
         el #public.order role=graphics-object label="order, 6 columns, references customer, address, referenced by order_item, invoice" 530,320 60x44
           el role=list 530,320 60x44 selected
-            text "order" 532,336 56x12
+            text "order" 534,336 52x12
         el #public.order_item role=graphics-object label="order_item, 4 columns, references order, product" 610,343 60x32
           el role=list 610,343 60x32
-            text "order_item" 612,353 56x12
+            text "order_item" 614,353 52x12
         el #public.product role=graphics-object label="product, 5 columns, references category, referenced by order_item, product_tag" 450,354 60x38
           el role=list 450,354 60x38
-            text "product" 452,367 56x12
+            text "product" 454,367 52x12
         el #public.category role=graphics-object label="category, 3 columns, references category, referenced by product, category" 370,361 60x26
           el role=list 370,361 60x26
-            text "category" 372,368 56x12
+            text "category" 374,368 52x12
         el #public.tag role=graphics-object label="tag, 2 columns, referenced by product_tag" 450,400 60x20
           el role=list 450,400 60x20
-            text "tag" 452,404 56x12
+            text "tag" 454,404 52x12
         el #public.product_tag role=graphics-object label="product_tag, 2 columns, references product, tag" 530,388 60x20
           el role=list 530,388 60x20
-            text "product_tag" 532,392 56x12
+            text "product_tag" 534,392 52x12
         el #billing.invoice role=graphics-object label="invoice, 5 columns, references order" 370,444 60x38
           el role=list 370,444 60x38
-            text "invoice" 372,457 56x12
+            text "invoice" 374,457 52x12

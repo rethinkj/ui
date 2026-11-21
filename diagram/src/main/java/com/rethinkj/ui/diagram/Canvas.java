@@ -25,8 +25,8 @@ import java.util.function.Function;
  * }</pre>
  *
  * <p>Diagram coordinates are logical pixels at a zoom of 100 %. The viewport says which diagram
- * point lies at the canvas's top left and the zoom, one of {@link Viewport#ZOOMS}. The canvas
- * places each node with its size multiplied by the zoom and builds its content at that size
+ * point lies at the canvas's top left and the zoom, within the range of {@link Viewport#ZOOMS}. The
+ * canvas places each node with its size multiplied by the zoom and builds its content at that size
  * ({@link NodeContent}), with no transform, so that text stays sharp at every zoom. It builds only
  * the nodes that lie inside it, so that a large diagram stays fast; in the first build, before
  * layout gave it a size, that is none.
@@ -203,14 +203,12 @@ public final class Canvas {
    */
   public static final class Viewport {
 
-    /** The zooms the canvas has, from the furthest out to the nearest in. */
+    /** The zoom steps the canvas moves along, from the furthest out to the nearest in. */
     public static final List<Float> ZOOMS = List.of(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f);
-
-    private static final int ACTUAL = ZOOMS.indexOf(1f);
 
     private double left;
     private double top;
-    private int step = ACTUAL;
+    private float zoom = 1f;
     // The canvas's size in the last layout; 0 before the first.
     private float width;
     private float height;
@@ -255,9 +253,19 @@ public final class Canvas {
       return top;
     }
 
-    /** The zoom, one of {@link #ZOOMS}. */
+    /**
+     * The zoom, within the range of {@link #ZOOMS}; {@link #fit} can land between its steps.
+     */
     public float zoom() {
-      return ZOOMS.get(step);
+      return zoom;
+    }
+
+    /**
+     * The key of the node the user is dragging, or null when none is. Inside {@code onMove}, this
+     * is the node's key while the drag moves or is cancelled, and null once the drag has ended.
+     */
+    public String dragging() {
+      return dragged;
     }
 
     /** Shows the diagram from this point at the canvas's top left, at the same zoom. */
@@ -274,19 +282,33 @@ public final class Canvas {
     /**
      * Zooms by this many steps of {@link #ZOOMS}, in when positive, and keeps the diagram point
      * under {@code x}, {@code y} in place: the pointer's place in the canvas for the wheel, its
-     * center for the keys. Past either end it stays at that end.
+     * center for the keys. From a zoom between steps, the first step goes to the next step in that
+     * direction. Past either end it stays at that end.
      *
      * @param x from the canvas's left, in logical pixels
      * @param y from its top
      */
     public void zoomBy(int steps, float x, float y) {
-      float before = zoom();
-      int next = Math.clamp((long) step + steps, 0, ZOOMS.size() - 1);
-      if (next == step) {
+      if (steps == 0) {
+        return;
+      }
+      int below = 0;
+      int atOrBelow = 0;
+      for (float z : ZOOMS) {
+        if (z < zoom) {
+          below++;
+        }
+        if (z <= zoom) {
+          atOrBelow++;
+        }
+      }
+      long target = steps > 0 ? (long) atOrBelow - 1 + steps : (long) below + steps;
+      float after = ZOOMS.get(Math.clamp(target, 0, ZOOMS.size() - 1));
+      if (after == zoom) {
         return; // at that end already: a fit goes on
       }
-      step = next;
-      float after = zoom();
+      float before = zoom;
+      zoom = after;
       left += x / before - x / after;
       top += y / before - y / after;
       fitting = false;
@@ -304,33 +326,49 @@ public final class Canvas {
 
     /**
      * Pans as little as it takes to show the whole node with this key with a margin of {@link
-     * Theme.Spacing#xl}, as the keys that move between nodes need; a node larger than the canvas
-     * shows from its top left. As {@link #fit} does, the canvas does it in its next build that
-     * knows its size, after a fit that is due, with the node where that build has it, so that an
-     * app can call it before the node moves or grows; a node that build does not have is left, and
-     * a {@link #panTo} before that build drops it.
+     * Theme.Spacing#xl}, as the keys that move between nodes need, unless the whole node shows
+     * already; a node larger than the canvas shows from its top left. As {@link #fit} does, the
+     * canvas does it in its next build that knows its size, after a fit that is due, with the node
+     * where that build has it, so that an app can call it before the node moves or grows; a node
+     * that build does not have is left, and a {@link #panTo} before that build drops it.
+     *
+     * @param node the node's key, or null to drop a reveal that is not done yet
      */
     public void reveal(String node) {
-      revealing = Objects.requireNonNull(node, "node");
+      revealing = node;
     }
 
-    void revealIfDue(List<Node> nodes, float margin) {
+    /** Reveals the node if that is due, and tells whether it had the node to reveal. */
+    boolean revealIfDue(List<Node> nodes, float margin) {
       if (revealing == null || width <= 0 || height <= 0) {
-        return;
+        return false;
       }
       Node node =
           nodes.stream().filter(n -> n.key().equals(revealing)).findFirst().orElse(null);
       revealing = null;
       if (node == null) {
-        return;
+        return false;
       }
       float zoom = zoom();
+      if (node.x() >= left
+          && node.y() >= top
+          && node.x() + node.width() <= left + width / zoom
+          && node.y() + node.height() <= top + height / zoom) {
+        return true;
+      }
       margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
       double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);
-      if (x != left || y != top) {
+      // A pan of less than half a pixel is rounding at a fitted edge, and would end the fit.
+      if (Math.abs(x - left) * zoom >= 0.5 || Math.abs(y - top) * zoom >= 0.5) {
         panTo(x, y);
       }
+      return true;
+    }
+
+    /** Whether the node is at least partly in view. */
+    private boolean shows(Node node) {
+      return inside(node, left, top, left + width / zoom(), top + height / zoom());
     }
 
     /** Where a view of this extent starts that shows from {@code from} to {@code to}. */
@@ -342,10 +380,12 @@ public final class Canvas {
     }
 
     /**
-     * Shows all nodes at the nearest zoom at which they fit into the canvas with a margin of
-     * {@link Theme.Spacing#xl}, centered; at the furthest zoom where they fit at none. The canvas
-     * does it in its next build that knows its size, so that an app can call it before the first,
-     * and again whenever its size changes, until the viewport is panned or zoomed.
+     * Shows all nodes at the largest zoom in the range of {@link #ZOOMS} at which they fit into the
+     * canvas with a margin of {@link Theme.Spacing#xl}, centered, which may lie between steps; at
+     * the furthest zoom where they fit at none, and should that show none of them, as {@link
+     * #reveal} the first. The canvas does it in its next build that knows its size, so that an app
+     * can call it before the first, and again whenever its size changes, until the viewport is
+     * panned or zoomed.
      */
     public void fit() {
       fitting = true;
@@ -410,37 +450,39 @@ public final class Canvas {
       return true;
     }
 
-    void fitIfDue(List<Node> nodes, float margin) {
+    /** Fits the nodes in if that is due, and tells whether it did. */
+    boolean fitIfDue(List<Node> nodes, float margin) {
       // Not while a node is dragged: its drag works at the zoom it began at.
       if (!fitting
           || dragged != null
           || width <= 0
           || height <= 0
           || width == fittedWidth && height == fittedHeight) {
-        return;
+        return false;
       }
       fittedWidth = width;
       fittedHeight = height;
       if (nodes.isEmpty()) {
-        return;
+        return false;
       }
       double[] bounds = bounds(nodes);
       double minX = bounds[0];
       double minY = bounds[1];
       double maxX = bounds[2];
       double maxY = bounds[3];
-      step = 0;
-      for (int i = ZOOMS.size() - 1; i > 0; i--) {
-        float zoom = ZOOMS.get(i);
-        if ((maxX - minX) * zoom + 2 * margin <= width
-            && (maxY - minY) * zoom + 2 * margin <= height) {
-          step = i;
-          break;
-        }
-      }
-      left = (minX + maxX) / 2 - width / 2 / zoom();
-      top = (minY + maxY) / 2 - height / 2 / zoom();
+      double fit = Math.min(
+          ratio(width - 2.0 * margin, maxX - minX), ratio(height - 2.0 * margin, maxY - minY));
+      zoom = (float) Math.clamp(fit, ZOOMS.getFirst(), ZOOMS.getLast());
+      left = (minX + maxX) / 2 - width / 2.0 / zoom;
+      top = (minY + maxY) / 2 - height / 2.0 / zoom;
+      return true;
     }
+  }
+
+  /** The zoom at which an extent fills this room; any zoom fits an extent of 0 into a room of 0. */
+  private static double ratio(double room, double extent) {
+    double fit = room / extent;
+    return Double.isNaN(fit) ? Double.POSITIVE_INFINITY : fit;
   }
 
   /** The left, top, right and bottom edge of the nodes, of which there is at least one. */
@@ -559,9 +601,10 @@ public final class Canvas {
    *     being dragged, which lies above the others
    * @param content builds what each node shows at the zoom of the moment
    * @param onMove told a node moved and pinned while the user drags it, and the node as it was
-   *     when the drag is cancelled, which may be unpinned. It is the node of the view the drag
-   *     began in: an app that changes a node during a drag takes only the position and the pin
-   *     from it. Null fixes the nodes.
+   *     when the drag is cancelled, which may be unpinned. {@link Viewport#dragging()} is the
+   *     node's key during moves and on cancel, and null when the drag ends. It is the node of the
+   *     view the drag began in: an app that changes a node during a drag takes only the position
+   *     and the pin from it. Null fixes the nodes.
    */
   public static El canvas(
       Viewport viewport, List<Node> nodes, NodeContent content, Consumer<Node> onMove) {
@@ -612,9 +655,16 @@ public final class Canvas {
       Consumer<Node> onMove) {
     Theme theme = Theme.CURRENT.get();
     DiagramTexts texts = DiagramTexts.CURRENT.get();
-    viewport.fitIfDue(
+    boolean fitted = viewport.fitIfDue(
         areas.isEmpty() ? nodes : joined(areas, nodes), theme.space().xl());
-    viewport.revealIfDue(nodes, theme.space().xl());
+    boolean revealed = viewport.revealIfDue(nodes, theme.space().xl());
+    if (fitted && !revealed && !nodes.isEmpty() && nodes.stream().noneMatch(viewport::shows)) {
+      // At the furthest zoom, the middle of nodes far apart can show none of them: show the first,
+      // and keep fitting, so that a larger canvas fits them all.
+      viewport.reveal(nodes.getFirst().key());
+      viewport.revealIfDue(nodes, theme.space().xl());
+      viewport.fitting = true;
+    }
     float zoom = viewport.zoom();
     double left = viewport.left;
     double top = viewport.top;
@@ -756,8 +806,12 @@ public final class Canvas {
         viewport.draggedDy = 0;
       }
       case CANCEL -> {
-        viewport.dragged = null;
-        onMove.accept(node);
+        // Still dragging while told, so that a caller tells a cancel from the end of a drag.
+        try {
+          onMove.accept(node);
+        } finally {
+          viewport.dragged = null;
+        }
         return;
       }
       case END -> viewport.dragged = null;

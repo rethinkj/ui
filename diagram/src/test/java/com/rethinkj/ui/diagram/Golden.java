@@ -18,7 +18,7 @@ import java.util.List;
  * see. Run with {@code -Dgolden.update=true} to write the files anew, and look at them before
  * committing.
  */
-final class Golden {
+public final class Golden {
 
   private static final Path STORED = Path.of("src/test/resources/golden");
   private static final Path FAILED = Path.of("target/golden");
@@ -30,7 +30,8 @@ final class Golden {
    * named in {@code stored}, each of which the script has to have written, or all where none is
    * named. Other files, such as clipboards, are left alone.
    */
-  static void assertSnaps(String prefix, List<Path> files, String... stored) throws IOException {
+  public static void assertSnaps(String prefix, List<Path> files, String... stored)
+      throws IOException {
     List<String> snaps = files.stream()
         .map(f -> f.getFileName().toString())
         .filter(f -> f.endsWith(".png"))
@@ -51,7 +52,7 @@ final class Golden {
   }
 
   /** Compares an image without a tree with the stored image {@code <name>}. */
-  static void assertImage(String name, Pixels pixels) throws IOException {
+  public static void assertImage(String name, Pixels pixels) throws IOException {
     assertMatches(name, pixels, null);
   }
 
