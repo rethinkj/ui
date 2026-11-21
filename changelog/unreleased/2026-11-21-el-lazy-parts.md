@@ -1,0 +1,1 @@
+- An `El` takes less memory: the state of a virtual list, of a text field and of the handlers is allocated only for the elements that use it. An element is 416 bytes instead of 600, and the data browser example holds about a quarter less in its elements.

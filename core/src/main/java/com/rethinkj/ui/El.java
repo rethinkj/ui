@@ -70,42 +70,11 @@ public final class El {
   private Text text;
   private Image image;
   private Image.Fit fit = Image.Fit.FILL;
-  private PressAtHandler onPress;
-  private PressAtHandler onPointerDown;
-  private Runnable onAnyPointerDown;
-  private Consumer<Key> onAnyKeyDown;
-  private Runnable onPressOutside;
-  private Consumer<Drag> onDrag;
-  private Object dragPayload;
-  private Consumer<Drop> onDrop;
-  private Consumer<Drop> onFileDrop;
   private int revealRow = -1;
   private boolean focusable;
   private Integer focusRing;
   private float focusRingGap;
-  private Predicate<Key> onKey;
-  private Predicate<Key> onKeyUp;
-  private WheelHandler onWheel;
-  private Consumer<String> onText;
-  private Consumer<String> onTypeAhead;
-  private boolean editable;
-  private Consumer<String> onEdit;
-  private Gutter gutter;
-  private El gutterRail;
-  private SelectHandler onSelect;
-  private FieldMenu fieldMenu;
-  private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
-  private float gutterWidth;
-  private float gutterScale; // the scale gutterWidth was measured at
-  private Object gutterShown; // what the cells were built for: their lines, tops and the caret
-  private boolean gutterBuilt; // the cells were built since App last applied looks to them
-  private boolean readOnly;
-  private int maxLength = -1;
-  private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
-  private boolean codeWords;
-  private FieldState fieldState;
   private ScrollState scrollState;
-  private Editor editor;
   private boolean focused;
   private Spring motion;
   private float opacity = 1;
@@ -143,24 +112,11 @@ public final class El {
   // measureScrolls.
   private float coverX;
   private float coverY;
-  private float coveredTop; // see #coveredTop
   private float shiftX;
   private float shiftY;
-  // A virtual list: its rows, and the index of the row that is its first child.
-  private int rowCount;
-  private float rowHeight;
-  private RowHeights heights; // rows as high as their content; null for rows of rowHeight
-  private RowBuilder rowBuilder;
-  private boolean spans; // the row function takes the part of the rows in view sideways
-  private float spanFrom; // the part rows are built for, in their coordinates
-  private float spanTo;
-  private float builtFrom; // the part the rows that exist were built for
-  private float builtTo;
-  private RowsHandler onRowsBuilt;
-  private RowsHandler onRowsInView;
-  private SizeHandler onResize;
-  private int firstRow;
-  private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+  private Rows rows; // the state of a virtual list, null unless rows(...) made this element one
+  private Field field; // the state of a text field, null unless editable(...) made this one
+  private Handlers handlers; // null until a handler is set
   // A row: whether the last makeRows of its list kept it as it was, and for rows of one height,
   // where layout put its top in the list's content.
   private boolean kept;
@@ -175,19 +131,14 @@ public final class El {
   private List<El> overlays; // null for none; apart from the children
   private Layer layer; // where this element goes as an overlay, null until a call says
   private List<El> shownOverlays = List.of(); // of a root: those placed above it, bottom first
-  private PointHandler onSecondaryPress;
   private Consumer<El> restLook;
   private double restDelay;
-  private Runnable onHoverFor;
-  private double hoverDelay;
   private Object dismissGroup; // see #dismissGroup
   private boolean keepsFocus; // see #keepFocus
   private boolean inert; // see #inert
   private boolean holdsFocus; // see #holdFocus
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
-  private Runnable onShownFor; // see #onShownFor
-  private double shownDelay;
   private boolean skipsTab; // see #skipTab
   private boolean defaultFocus; // see #defaultFocus
   private ObjDoubleConsumer<El> cycle; // see #cycle
@@ -326,7 +277,117 @@ public final class El {
     float anchorY;
   }
 
+  /** The state of a {@link #rows virtual list}: its rows, and the index of its first child. */
+  private static final class Rows {
+    int rowCount;
+    float rowHeight;
+    RowHeights heights; // rows as high as their content; null for rows of rowHeight
+    RowBuilder rowBuilder;
+    boolean spans; // the row function takes the part of the rows in view sideways
+    float spanFrom; // the part rows are built for, in their coordinates
+    float spanTo;
+    float builtFrom; // the part the rows that exist were built for
+    float builtTo;
+    int firstRow;
+    boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+  }
+
+  /** The state of a text field, which {@link #editable} makes, beyond its {@link Text}. */
+  private static final class Field {
+    Gutter gutter;
+    El gutterRail;
+    FieldMenu fieldMenu;
+    float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
+    float gutterWidth;
+    float gutterScale; // the scale gutterWidth was measured at
+    Object gutterShown; // what the cells were built for: their lines, tops and the caret
+    boolean gutterBuilt; // the cells were built since App last applied looks to them
+    boolean readOnly;
+    int maxLength = -1;
+    int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
+    boolean codeWords;
+    FieldState fieldState;
+    Editor editor;
+    float coveredTop; // see El#coveredTop
+  }
+
+  /** The handlers of input and of what the app tells an element. */
+  private static final class Handlers implements Cloneable {
+    private static final Handlers NONE = new Handlers(); // never written
+
+    PressAtHandler onPress;
+    PressAtHandler onPointerDown;
+    Runnable onAnyPointerDown;
+    Consumer<Key> onAnyKeyDown;
+    Runnable onPressOutside;
+    PointHandler onSecondaryPress;
+    Consumer<Drag> onDrag;
+    Object dragPayload;
+    Consumer<Drop> onDrop;
+    Consumer<Drop> onFileDrop;
+    Predicate<Key> onKey;
+    Predicate<Key> onKeyUp;
+    WheelHandler onWheel;
+    Consumer<String> onText;
+    Consumer<String> onTypeAhead;
+    Consumer<String> onEdit;
+    SelectHandler onSelect;
+    SizeHandler onResize;
+    RowsHandler onRowsBuilt;
+    RowsHandler onRowsInView;
+    Runnable onHoverFor;
+    double hoverDelay;
+    Runnable onShownFor; // see El#onShownFor
+    double shownDelay;
+
+    /** A copy of {@code handlers}, which may be null for none, to compare with later. */
+    static Handlers copy(Handlers handlers) {
+      if (handlers == null) {
+        return NONE;
+      }
+      try {
+        return (Handlers) handlers.clone();
+      } catch (CloneNotSupportedException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    /**
+     * Whether {@code after}, which may be null for none, has the handlers of input that {@code
+     * before} has: those a look must leave alone.
+     */
+    boolean sameInput(Handlers after) {
+      Handlers a = after == null ? NONE : after;
+      return onPress == a.onPress
+          && onPointerDown == a.onPointerDown
+          && onAnyPointerDown == a.onAnyPointerDown
+          && onAnyKeyDown == a.onAnyKeyDown
+          && onPressOutside == a.onPressOutside
+          && onDrag == a.onDrag
+          && onKey == a.onKey
+          && onKeyUp == a.onKeyUp
+          && onWheel == a.onWheel
+          && onText == a.onText
+          && onTypeAhead == a.onTypeAhead
+          && onEdit == a.onEdit;
+    }
+  }
+
   private El() {}
+
+  private Rows rows() {
+    if (rows == null) {
+      rows = new Rows();
+    }
+    return rows;
+  }
+
+  private Handlers handlers() {
+    if (handlers == null) {
+      handlers = new Handlers();
+    }
+    return handlers;
+  }
 
   /** A box whose children flow in a row, as in CSS. */
   public static El el() {
@@ -1019,7 +1080,7 @@ public final class El {
   public El rows(int count, float rowHeight, IntFunction<El> row) {
     Objects.requireNonNull(row, "row");
     rows(count, rowHeight, (index, from, to) -> row.apply(index));
-    spans = false;
+    rows.spans = false;
     return this;
   }
 
@@ -1044,10 +1105,12 @@ public final class El {
           "rows makes the rows of this element; it cannot have children of its own as well.");
     }
     scroll();
-    this.rowCount = count;
-    this.rowHeight = rowHeight;
-    this.rowBuilder = Context.captured(Objects.requireNonNull(row, "row"));
-    this.spans = true;
+    RowBuilder builder = Context.captured(Objects.requireNonNull(row, "row"));
+    Rows list = rows();
+    list.rowCount = count;
+    list.rowHeight = rowHeight;
+    list.rowBuilder = builder;
+    list.spans = true;
     // Layout sees all rows as one leaf, as tall as they are together, but no taller than its floats
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
     // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
@@ -1070,41 +1133,43 @@ public final class El {
    */
   public El rows(int count, RowHeights heights, IntFunction<El> row) {
     rows(count, 1, row);
-    this.heights = Objects.requireNonNull(heights, "heights");
+    rows.heights = Objects.requireNonNull(heights, "heights");
     heights.count(count);
     return this;
   }
 
   /** Where a row starts below the top of the content box. */
   private double rowTop(int index) {
-    return heights == null ? index * (double) rowHeight : heights.top(index);
+    return rows.heights == null ? index * (double) rows.rowHeight : rows.heights.top(index);
   }
 
   private double rowSize(int index) {
-    return heights == null ? rowHeight : index >= 0 && index < rowCount ? heights.height(index) : 0;
+    return rows.heights == null
+        ? rows.rowHeight
+        : index >= 0 && index < rows.rowCount ? rows.heights.height(index) : 0;
   }
 
   /** The row at this distance below the top of the content box, or past the last. */
   private long rowAt(double y) {
-    return heights == null ? (long) Math.floor(y / rowHeight) : heights.at(y);
+    return rows.heights == null ? (long) Math.floor(y / rows.rowHeight) : rows.heights.at(y);
   }
 
   /** The first row that starts at or below this distance below the top of the content box. */
   private long rowAfter(double y) {
-    if (heights == null) {
-      return (long) Math.ceil(y / rowHeight);
+    if (rows.heights == null) {
+      return (long) Math.ceil(y / rows.rowHeight);
     }
-    int at = heights.at(y);
-    return heights.top(at) < y ? at + 1L : at;
+    int at = rows.heights.at(y);
+    return rows.heights.top(at) < y ? at + 1L : at;
   }
 
   private double rowsTotal() {
-    return heights == null ? rowCount * (double) rowHeight : heights.total();
+    return rows.heights == null ? rows.rowCount * (double) rows.rowHeight : rows.heights.total();
   }
 
   /** For {@link App#scrollToRow}: the offset that puts this row at the top of the list. */
   double rowOffset(int index) {
-    return rowTop(index);
+    return rows == null ? 0 : rowTop(index);
   }
 
   /**
@@ -1167,7 +1232,7 @@ public final class El {
    * @param handler told the rows, or null for none
    */
   public El onRowsBuilt(RowsHandler handler) {
-    this.onRowsBuilt = handler;
+    handlers().onRowsBuilt = handler;
     return this;
   }
 
@@ -1186,7 +1251,7 @@ public final class El {
    * @param handler told the rows, or null for none
    */
   public El onRowsInView(RowsHandler handler) {
-    this.onRowsInView = handler;
+    handlers().onRowsInView = handler;
     return this;
   }
 
@@ -1204,12 +1269,12 @@ public final class El {
    * @param handler told the width and height, or null for none
    */
   public El onResize(SizeHandler handler) {
-    this.onResize = handler;
+    handlers().onResize = handler;
     return this;
   }
 
   SizeHandler onResize() {
-    return onResize;
+    return handlers == null ? null : handlers.onResize;
   }
 
   /**
@@ -1474,7 +1539,8 @@ public final class El {
    */
   public int[] matchingBracket(int caret) {
     Text t = textOnly("matchingBracket");
-    Editor editor = fieldState == null ? null : fieldState.editor;
+    FieldState state = fieldState();
+    Editor editor = state == null ? null : state.editor;
     Lines lines = editor == null ? null : editor.linesOf(t.value());
     String text =
         lines != null ? editor.text() : t.multiline() ? Editor.multiLine(t.value()) : t.value();
@@ -1564,8 +1630,10 @@ public final class El {
    */
   public El editable(Consumer<String> onEdit) {
     textOnly("editable").field(true);
-    this.editable = true;
-    this.onEdit = onEdit;
+    if (field == null) {
+      field = new Field();
+    }
+    handlers().onEdit = onEdit;
     return this;
   }
 
@@ -1650,8 +1718,8 @@ public final class El {
       throw new IllegalStateException(
           "gutter is for multi-line fields: call it after multiline().");
     }
-    this.gutter = Context.captured(Objects.requireNonNull(cells, "cells"));
-    this.gutterRail = rail;
+    field.gutter = Context.captured(Objects.requireNonNull(cells, "cells"));
+    field.gutterRail = rail;
     if (rail != null && rail.key == null) {
       rail.key("rail");
     }
@@ -1660,20 +1728,20 @@ public final class El {
 
   /** For {@link App}: whether this field has a gutter, whose cells are built after layout. */
   boolean hasGutter() {
-    return gutter != null;
+    return field != null && field.gutter != null;
   }
 
   /** For {@link App}: whether the gutter's cells were built since it last asked. */
   boolean takeGutterBuilt() {
-    boolean built = gutterBuilt;
-    gutterBuilt = false;
+    boolean built = field.gutterBuilt;
+    field.gutterBuilt = false;
     return built;
   }
 
   /** The gutter's cell of line {@code line}. */
   private El gutterCell(int line, boolean caret) {
     Lines lines = text.shownIndex();
-    return gutter.cell(new Gutter.Line(line, lines.start(line), lines.end(line), caret));
+    return field.gutter.cell(new Gutter.Line(line, lines.start(line), lines.end(line), caret));
   }
 
   /**
@@ -1682,22 +1750,23 @@ public final class El {
    */
   private void measureGutter() {
     float scale = text.scale();
-    if (gutterScale == scale) {
+    if (field.gutterScale == scale) {
       return;
     }
-    if (Float.isNaN(gutterLeft)) {
-      gutterLeft = style.paddingLeft.pixelsOrZero();
+    if (Float.isNaN(field.gutterLeft)) {
+      field.gutterLeft = style.paddingLeft.pixelsOrZero();
     }
     El last = gutterCell(text.lineTotal() - 1, false);
     scaleText(last, scale, text.systemFonts());
     Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
-    gutterWidth = (float) Math.ceil(last.width);
-    gutterScale = scale;
-    float after = gutterRail == null
+    field.gutterWidth = (float) Math.ceil(last.width);
+    field.gutterScale = scale;
+    float after = field.gutterRail == null
         ? 0
-        : gutterRail.style.borderRight.pixelsOrZero() + gutterRail.style.marginRight.pixelsOrZero();
-    style.paddingLeft = Len.px(gutterLeft + gutterWidth + after);
-    gutterShown = null;
+        : field.gutterRail.style.borderRight.pixelsOrZero()
+            + field.gutterRail.style.marginRight.pixelsOrZero();
+    style.paddingLeft = Len.px(field.gutterLeft + field.gutterWidth + after);
+    field.gutterShown = null;
   }
 
   /**
@@ -1708,17 +1777,17 @@ public final class El {
    * @return whether the cells were built
    */
   boolean placeGutter(int caretLine) {
-    if (gutter == null || !text.laidOut() || gutterScale == 0) {
+    if (field == null || field.gutter == null || !text.laidOut() || field.gutterScale == 0) {
       return false;
     }
     List<Text.Start> starts = text.lineStarts();
     float scale = text.scale();
     List<Object> shown = List.of(starts, caretLine, scrollX, scrollY, width, height);
-    if (shown.equals(gutterShown)) {
+    if (shown.equals(field.gutterShown)) {
       return false;
     }
-    gutterShown = shown;
-    gutterBuilt = true;
+    field.gutterShown = shown;
+    field.gutterBuilt = true;
     float rowHeight = text.lineHeight() / scale;
     float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
     El column = el().key("gutter").clip();
@@ -1731,32 +1800,33 @@ public final class El {
       if (cell.key == null) {
         cell.key("line-" + start.line());
       }
-      cell.style.width = Len.px(gutterWidth);
+      cell.style.width = Len.px(field.gutterWidth);
       cell.style.height = Len.px(rowHeight);
       scaleText(cell, scale, text.systemFonts());
-      Flex.layout(cell, gutterWidth, rowHeight);
-      cell.place(0, start.top() / scale, gutterWidth, rowHeight);
+      Flex.layout(cell, field.gutterWidth, rowHeight);
+      cell.place(0, start.top() / scale, field.gutterWidth, rowHeight);
       column.children.add(cell);
     }
     // The column stays where the content box is: the scroll that shifts it is added back.
     column.place(
-        style.borderLeft.pixelsOrZero() + gutterLeft + (float) scrollX,
+        style.borderLeft.pixelsOrZero() + field.gutterLeft + (float) scrollX,
         top + (float) scrollY,
-        gutterWidth,
+        field.gutterWidth,
         text.contentHeight() / scale);
     children.clear();
-    if (gutterRail != null) {
+    if (field.gutterRail != null) {
       float borderTop = style.borderTop.pixelsOrZero();
-      float railWidth = gutterLeft + gutterWidth + gutterRail.style.borderRight.pixelsOrZero();
+      float railWidth =
+          field.gutterLeft + field.gutterWidth + field.gutterRail.style.borderRight.pixelsOrZero();
       float railHeight = height - borderTop - style.borderBottom.pixelsOrZero();
-      scaleText(gutterRail, scale, text.systemFonts());
-      Flex.layout(gutterRail, railWidth, railHeight);
-      gutterRail.place(
+      scaleText(field.gutterRail, scale, text.systemFonts());
+      Flex.layout(field.gutterRail, railWidth, railHeight);
+      field.gutterRail.place(
           (float) scrollX + style.borderLeft.pixelsOrZero(),
           (float) scrollY + borderTop,
           railWidth,
           railHeight);
-      children.add(gutterRail);
+      children.add(field.gutterRail);
     }
     children.add(column);
     scrollTo(scrollX, scrollY);
@@ -1805,16 +1875,17 @@ public final class El {
     if (height < 0 || Float.isNaN(height)) {
       throw new IllegalArgumentException("coveredTop must be 0 or more, was " + height);
     }
-    coveredTop = height;
+    field.coveredTop = height;
     return this;
   }
 
   /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */
   float coveredContent() {
-    if (coveredTop <= 0 || text == null || !text.multiline()) {
+    if (field == null || field.coveredTop <= 0 || text == null || !text.multiline()) {
       return 0;
     }
-    float covered = coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero();
+    float covered =
+        field.coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero();
     return covered > 0 ? covered : 0; // 0 also for a NaN padding
   }
 
@@ -1851,7 +1922,7 @@ public final class El {
    */
   public El tabIndents(boolean spaces) {
     editableOnly("tabIndents");
-    this.tabIndents = spaces ? 2 : 1;
+    field.tabIndents = spaces ? 2 : 1;
     return this;
   }
 
@@ -1872,13 +1943,13 @@ public final class El {
    */
   public El onSelect(SelectHandler handler) {
     editableOnly("onSelect");
-    this.onSelect = handler;
+    handlers().onSelect = handler;
     return this;
   }
 
   /** The handler {@link #onSelect} gave, or null; a component that adds its own calls it too. */
   public SelectHandler onSelect() {
-    return onSelect;
+    return handlers == null ? null : handlers.onSelect;
   }
 
   /**
@@ -1892,13 +1963,13 @@ public final class El {
    */
   public El fieldMenu(FieldMenu menu) {
     editableOnly("fieldMenu");
-    this.fieldMenu = Context.captured(menu);
+    field.fieldMenu = Context.captured(menu);
     return this;
   }
 
   /** The menu {@link #fieldMenu} gave, or null; a component that adds items builds on it. */
   public FieldMenu fieldMenu() {
-    return fieldMenu;
+    return field == null ? null : field.fieldMenu;
   }
 
   /**
@@ -1911,12 +1982,12 @@ public final class El {
    */
   public El fieldState(FieldState state) {
     editableOnly("fieldState");
-    this.fieldState = state;
+    field.fieldState = state;
     return this;
   }
 
   FieldState fieldState() {
-    return fieldState;
+    return field == null ? null : field.fieldState;
   }
 
   /**
@@ -1929,12 +2000,12 @@ public final class El {
    */
   public El codeWords() {
     editableOnly("codeWords");
-    this.codeWords = true;
+    field.codeWords = true;
     return this;
   }
 
   boolean isCodeWords() {
-    return codeWords;
+    return field != null && field.codeWords;
   }
 
   /**
@@ -1943,7 +2014,7 @@ public final class El {
    */
   public El readOnly() {
     editableOnly("readOnly");
-    this.readOnly = true;
+    field.readOnly = true;
     return this;
   }
 
@@ -1958,7 +2029,7 @@ public final class El {
     if (codePoints < 0) {
       throw new IllegalArgumentException("maxLength must be 0 or more, was " + codePoints);
     }
-    this.maxLength = codePoints;
+    field.maxLength = codePoints;
     return this;
   }
 
@@ -2047,7 +2118,7 @@ public final class El {
   }
 
   private Text editableOnly(String call) {
-    if (!editable) {
+    if (field == null) {
       throw new IllegalStateException(
           call + " is for text fields, which El.text(\"...\").editable(onEdit) makes; this element"
               + " is not editable.");
@@ -2072,7 +2143,7 @@ public final class El {
    * place where an app changes its state.
    */
   public El onPress(Runnable handler) {
-    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.run();
+    handlers().onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.run();
     return this;
   }
 
@@ -2082,7 +2153,8 @@ public final class El {
    * second of a double press, and so on. Enter and Space give 1.
    */
   public El onPress(IntConsumer handler) {
-    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.accept(clicks);
+    handlers().onPress =
+        handler == null ? null : (clicks, modifiers, x, y) -> handler.accept(clicks);
     return this;
   }
 
@@ -2091,7 +2163,7 @@ public final class El {
    * a table sorts by a second column with Shift. Enter and Space give 1 and no modifiers.
    */
   public El onPress(PressHandler handler) {
-    this.onPress =
+    handlers().onPress =
         handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks, modifiers);
     return this;
   }
@@ -2101,7 +2173,7 @@ public final class El {
    * element's content; see {@link PressAtHandler}.
    */
   public El onPress(PressAtHandler handler) {
-    this.onPress = handler;
+    handlers().onPress = handler;
     return this;
   }
 
@@ -2117,7 +2189,7 @@ public final class El {
    * @param handler told how, or null for none
    */
   public El onPointerDown(PressHandler handler) {
-    this.onPointerDown =
+    handlers().onPointerDown =
         handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks, modifiers);
     return this;
   }
@@ -2127,7 +2199,7 @@ public final class El {
    * element's content; see {@link PressAtHandler}.
    */
   public El onPointerDown(PressAtHandler handler) {
-    this.onPointerDown = handler;
+    handlers().onPointerDown = handler;
     return this;
   }
 
@@ -2143,7 +2215,7 @@ public final class El {
    * @param handler the handler, or null for none
    */
   public El onAnyPointerDown(Runnable handler) {
-    this.onAnyPointerDown = handler;
+    handlers().onAnyPointerDown = handler;
     return this;
   }
 
@@ -2157,7 +2229,7 @@ public final class El {
    * @param handler the handler, or null for none
    */
   public El onAnyKeyDown(Consumer<Key> handler) {
-    this.onAnyKeyDown = handler;
+    handlers().onAnyKeyDown = handler;
     return this;
   }
 
@@ -2172,7 +2244,7 @@ public final class El {
    * @param handler the handler, or null for none
    */
   public El onPressOutside(Runnable handler) {
-    this.onPressOutside = handler;
+    handlers().onPressOutside = handler;
     return this;
   }
 
@@ -2189,7 +2261,7 @@ public final class El {
    * @param handler told where, or null for none
    */
   public El onSecondaryPress(PointHandler handler) {
-    this.onSecondaryPress = handler;
+    handlers().onSecondaryPress = handler;
     return this;
   }
 
@@ -2210,7 +2282,7 @@ public final class El {
    * runs in {@link App#frame}; the wheel scrolls during a drag as before.
    */
   public El onDrag(Consumer<Drag> handler) {
-    this.onDrag = handler;
+    handlers().onDrag = handler;
     return this;
   }
 
@@ -2223,7 +2295,7 @@ public final class El {
    * @param payload the payload, or null for none
    */
   public El dragPayload(Object payload) {
-    this.dragPayload = payload;
+    handlers().dragPayload = payload;
     return this;
   }
 
@@ -2237,7 +2309,7 @@ public final class El {
    * own window, before the drag's handler; its app builds its view again in the same pass.
    */
   public El onDrop(Consumer<Drop> handler) {
-    this.onDrop = handler;
+    handlers().onDrop = handler;
     return this;
   }
 
@@ -2253,7 +2325,7 @@ public final class El {
    * {@link #dragPayload} within the app go to {@link #onDrop} instead.
    */
   public El onFileDrop(Consumer<Drop> handler) {
-    this.onFileDrop = handler;
+    handlers().onFileDrop = handler;
     return this;
   }
 
@@ -2299,7 +2371,7 @@ public final class El {
    * run in {@link App#frame}, like {@link #onPress}.
    */
   public El onKey(Predicate<Key> handler) {
-    this.onKey = handler;
+    handlers().onKey = handler;
     return this;
   }
 
@@ -2313,7 +2385,8 @@ public final class El {
    */
   public El onKeyFirst(Predicate<Key> handler) {
     Objects.requireNonNull(handler, "handler");
-    this.onKey = onKey == null ? handler : handler.or(onKey);
+    Predicate<Key> own = onKey();
+    handlers().onKey = own == null ? handler : handler.or(own);
     return this;
   }
 
@@ -2328,13 +2401,13 @@ public final class El {
    * @param handler told how, or null for none
    */
   public El onWheel(WheelHandler handler) {
-    this.onWheel = handler;
+    handlers().onWheel = handler;
     return this;
   }
 
   /** Like {@link #onKey}, for keys that are released. Released keys do nothing by default. */
   public El onKeyUp(Predicate<Key> handler) {
-    this.onKeyUp = handler;
+    handlers().onKeyUp = handler;
     return this;
   }
 
@@ -2343,7 +2416,7 @@ public final class El {
    * the focus. Text goes to the focused element only, not to its ancestors.
    */
   public El onText(Consumer<String> handler) {
-    this.onText = handler;
+    handlers().onText = handler;
     return this;
   }
 
@@ -2357,7 +2430,7 @@ public final class El {
    * place.
    */
   public El onTypeAhead(Consumer<String> handler) {
-    this.onTypeAhead = handler;
+    handlers().onTypeAhead = handler;
     return this;
   }
 
@@ -2634,8 +2707,8 @@ public final class El {
    * @param handler runs once the pointer has stayed, or null for none
    */
   public El onHoverFor(double seconds, Runnable handler) {
-    this.hoverDelay = delay(seconds);
-    this.onHoverFor = handler;
+    handlers().hoverDelay = delay(seconds);
+    handlers().onHoverFor = handler;
     return this;
   }
 
@@ -2783,18 +2856,18 @@ public final class El {
    * @param handler runs once the time has come, or null for none
    */
   public El onShownFor(double seconds, Runnable handler) {
-    this.shownDelay = delay(seconds);
-    this.onShownFor = handler;
+    handlers().shownDelay = delay(seconds);
+    handlers().onShownFor = handler;
     return this;
   }
 
   /** The handler of {@link #onShownFor}, or null. */
   Runnable onShownFor() {
-    return onShownFor;
+    return handlers == null ? null : handlers.onShownFor;
   }
 
   double shownDelay() {
-    return shownDelay;
+    return handlers == null ? 0 : handlers.shownDelay;
   }
 
   /**
@@ -3015,7 +3088,7 @@ public final class El {
   }
 
   private void noRows() {
-    if (rowBuilder != null) {
+    if (rows != null) {
       throw new IllegalStateException(
           "This element is a list made with rows(...), which builds its children itself.");
     }
@@ -3048,7 +3121,7 @@ public final class El {
    */
   public String role() {
     if (role == null) {
-      return editable ? "textbox" : image != null ? "img" : null;
+      return field != null ? "textbox" : image != null ? "img" : null;
     }
     return role;
   }
@@ -3109,50 +3182,50 @@ public final class El {
    * them the handler given to {@link #onPress} takes; null for none.
    */
   public PressAtHandler onPress() {
-    return onPress;
+    return handlers == null ? null : handlers.onPress;
   }
 
   /** The handler of {@link #onPointerDown}, or null. */
   public PressAtHandler onPointerDown() {
-    return onPointerDown;
+    return handlers == null ? null : handlers.onPointerDown;
   }
 
   /** The handler of {@link #onAnyPointerDown}, or null. */
   public Runnable onAnyPointerDown() {
-    return onAnyPointerDown;
+    return handlers == null ? null : handlers.onAnyPointerDown;
   }
 
   /** The handler of {@link #onAnyKeyDown}, or null. */
   public Consumer<Key> onAnyKeyDown() {
-    return onAnyKeyDown;
+    return handlers == null ? null : handlers.onAnyKeyDown;
   }
 
   /** The handler of {@link #onPressOutside}, or null. */
   public Runnable onPressOutside() {
-    return onPressOutside;
+    return handlers == null ? null : handlers.onPressOutside;
   }
 
   public Consumer<Drag> onDrag() {
-    return onDrag;
+    return handlers == null ? null : handlers.onDrag;
   }
 
   /** The payload of {@link #dragPayload}, or null. */
   public Object dragPayload() {
-    return dragPayload;
+    return handlers == null ? null : handlers.dragPayload;
   }
 
   /** The handler of {@link #onDrop}, or null. */
   public Consumer<Drop> onDrop() {
-    return onDrop;
+    return handlers == null ? null : handlers.onDrop;
   }
 
   /** The handler of {@link #onFileDrop}, or null. */
   public Consumer<Drop> onFileDrop() {
-    return onFileDrop;
+    return handlers == null ? null : handlers.onFileDrop;
   }
 
   public PointHandler onSecondaryPress() {
-    return onSecondaryPress;
+    return handlers == null ? null : handlers.onSecondaryPress;
   }
 
   Consumer<El> restLook() {
@@ -3172,11 +3245,11 @@ public final class El {
   }
 
   Runnable onHoverFor() {
-    return onHoverFor;
+    return handlers == null ? null : handlers.onHoverFor;
   }
 
   double hoverDelay() {
-    return hoverDelay;
+    return handlers == null ? 0 : handlers.hoverDelay;
   }
 
   /** The overlays attached to this element with {@link #overlay}, in that order. */
@@ -3274,7 +3347,7 @@ public final class El {
    * #editable} field that is enabled or read-only.
    */
   public boolean isFocusable() {
-    return focusable || editable && (onEdit != null || readOnly);
+    return focusable || field != null && (onEdit() != null || field.readOnly);
   }
 
   /**
@@ -3326,52 +3399,52 @@ public final class El {
   }
 
   public Predicate<Key> onKey() {
-    return onKey;
+    return handlers == null ? null : handlers.onKey;
   }
 
   public Predicate<Key> onKeyUp() {
-    return onKeyUp;
+    return handlers == null ? null : handlers.onKeyUp;
   }
 
   public WheelHandler onWheel() {
-    return onWheel;
+    return handlers == null ? null : handlers.onWheel;
   }
 
   public Consumer<String> onText() {
-    return onText;
+    return handlers == null ? null : handlers.onText;
   }
 
   public Consumer<String> onTypeAhead() {
-    return onTypeAhead;
+    return handlers == null ? null : handlers.onTypeAhead;
   }
 
   /** Whether {@link #editable} made this a text field, enabled or not. */
   public boolean isEditable() {
-    return editable;
+    return field != null;
   }
 
   /** The handler of an {@link #editable} field, null when it is disabled. */
   public Consumer<String> onEdit() {
-    return onEdit;
+    return handlers == null ? null : handlers.onEdit;
   }
 
   public boolean isReadOnly() {
-    return readOnly;
+    return field != null && field.readOnly;
   }
 
   /** The {@link #maxLength} in code points, or -1 for none. */
   public int maxLength() {
-    return maxLength;
+    return field == null ? -1 : field.maxLength;
   }
 
   /** Whether Tab and Shift+Tab indent in this field; see {@link #tabIndents}. */
   public boolean tabIndents() {
-    return tabIndents != 0;
+    return field != null && field.tabIndents != 0;
   }
 
   /** Whether {@link #tabIndents} indents with spaces rather than tabs. */
   boolean tabSpaces() {
-    return tabIndents == 2;
+    return field != null && field.tabIndents == 2;
   }
 
   /**
@@ -3382,21 +3455,22 @@ public final class El {
    * for a field that was never in a tree.
    */
   public boolean isSelectionPending() {
+    Editor editor = editor();
     return editor != null && editor.selectionPending();
   }
 
   /** For {@link App}: the editing state of a field, which it keeps across rebuilds. */
   Editor editor() {
-    return editor;
+    return field == null ? null : field.editor;
   }
 
   void editor(Editor editor) {
-    this.editor = editor;
+    field.editor = editor;
   }
 
   /** Whether this is a field that takes input: editable, and enabled or read-only. */
   boolean takesEdits() {
-    return editable && isFocusable();
+    return field != null && isFocusable();
   }
 
   public WindowPart windowPart() {
@@ -3461,7 +3535,7 @@ public final class El {
     if (el.text != null) {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
-      if (el.gutter != null) {
+      if (el.hasGutter()) {
         el.measureGutter();
       }
     }
@@ -3502,17 +3576,17 @@ public final class El {
 
   /** Whether {@link #rows} made this a virtual list, whose children are the rows that exist. */
   public boolean isVirtualList() {
-    return rowBuilder != null;
+    return rows != null;
   }
 
   /** The number of rows of a {@link #rows virtual list}, 0 for any other element. */
   public int rowCount() {
-    return rowCount;
+    return rows == null ? 0 : rows.rowCount;
   }
 
   /** The height of each row of a {@link #rows virtual list} in logical pixels. */
   public float rowHeight() {
-    return rowHeight;
+    return rows == null ? 0 : rows.rowHeight;
   }
 
   /**
@@ -3520,12 +3594,13 @@ public final class El {
    * are the rows from this one on, as many as exist.
    */
   public int firstRow() {
-    return firstRow;
+    return rows == null ? 0 : rows.firstRow;
   }
 
   /** Whether the row with this index exists as a child of this virtual list. */
   boolean hasRow(int index) {
-    return index >= firstRow && index < firstRow + children.size();
+    int first = firstRow();
+    return index >= first && index < first + children.size();
   }
 
   /**
@@ -3570,7 +3645,7 @@ public final class El {
       maxScrollY = tall > SLACK ? tall : 0;
       return;
     }
-    if (rowBuilder != null) {
+    if (rows != null) {
       maxScrollX = 0;
       maxScrollY = Math.max(
           rowsTop()
@@ -3677,7 +3752,7 @@ public final class El {
     boolean tall = maxScrollY > 0;
     if (scrollbars != null) {
       float strip = scrollbars.strip();
-      if (style.overflowY == Style.Overflow.SCROLL && (tall || rowBuilder != null)) {
+      if (style.overflowY == Style.Overflow.SCROLL && (tall || rows != null)) {
         coverY = Math.max(wide ? strip : 0, Math.min(bottom, clipBottom) - barTop);
       }
       if (wide) {
@@ -3756,7 +3831,7 @@ public final class El {
       text.scrolled(newX, newY);
     }
     // Rows are placed from the first one that exists, so the offset moves them from there.
-    float shiftY = (float) (rowBuilder == null ? newY : newY - rowTop(firstRow));
+    float shiftY = (float) (rows == null ? newY : newY - rowTop(rows.firstRow));
     for (El child : children) {
       child.shiftX = (float) newX;
       child.shiftY = shiftY;
@@ -3963,39 +4038,40 @@ public final class El {
       float windowWidth,
       float windowHeight,
       boolean anew) {
-    if (rowBuilder == null) {
+    if (rows == null) {
       return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(top, 0);
     double to = Math.max(Math.min(top + height, windowHeight), from);
-    int first = Math.clamp(rowAt(from - row0), 0, rowCount);
-    int end = Math.clamp(rowAfter(to - row0), first, rowCount);
+    int first = Math.clamp(rowAt(from - row0), 0, rows.rowCount);
+    int end = Math.clamp(rowAfter(to - row0), first, rows.rowCount);
     float shown = 0;
     float shownTo = 0;
-    if (spans) { // the part in view sideways, in the coordinates of the content box
+    if (rows.spans) { // the part in view sideways, in the coordinates of the content box
       float origin = left + style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
     float margin = (shownTo - shown) / 2;
     float start = Math.max(shown - margin, 0);
-    boolean has = first >= firstRow
-        && end <= firstRow + children.size()
-        && (!spans || shown >= spanFrom && shownTo <= spanTo);
+    boolean has = first >= rows.firstRow
+        && end <= rows.firstRow + children.size()
+        && (!rows.spans || shown >= rows.spanFrom && shownTo <= rows.spanTo);
     // Anew, none for another part sideways: only a rebuild of the view builds those cells.
-    boolean sideways = spans && (start != spanFrom || shownTo + margin != spanTo);
+    boolean sideways = rows.spans && (start != rows.spanFrom || shownTo + margin != rows.spanTo);
     // Rows laid out at another width, as while the list springs to a new one, are built anew.
     boolean resized =
         !children.isEmpty() && !Len.px(rowWidth()).equals(children.getFirst().style.width);
-    if (rowsBuilt && !resized && (anew ? sideways : has)) {
+    if (rows.rowsBuilt && !resized && (anew ? sideways : has)) {
       return NO_ROWS;
     }
-    if (spans) {
-      spanFrom = start;
-      spanTo = shownTo + margin;
+    if (rows.spans) {
+      rows.spanFrom = start;
+      rows.spanTo = shownTo + margin;
     }
-    return new int[] {Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
+    return new int[] {
+      Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rows.rowCount)
     };
   }
 
@@ -4008,11 +4084,11 @@ public final class El {
    */
   void makeRows(int from, int to, IntPredicate anew) {
     List<El> had = List.copyOf(children);
-    int hadFrom = firstRow;
-    boolean keeps = rowsBuilt
+    int hadFrom = rows.firstRow;
+    boolean keeps = rows.rowsBuilt
         && !had.isEmpty()
-        && spanFrom == builtFrom
-        && spanTo == builtTo
+        && rows.spanFrom == rows.builtFrom
+        && rows.spanTo == rows.builtTo
         && Len.px(rowWidth()).equals(had.getFirst().style.width);
     children.clear();
     for (int i = from; i < to; i++) {
@@ -4025,10 +4101,10 @@ public final class El {
         children.add(newRow(i));
       }
     }
-    firstRow = from;
-    builtFrom = spanFrom;
-    builtTo = spanTo;
-    rowsBuilt = true;
+    rows.firstRow = from;
+    rows.builtFrom = rows.spanFrom;
+    rows.builtTo = rows.spanTo;
+    rows.rowsBuilt = true;
   }
 
   /**
@@ -4036,19 +4112,19 @@ public final class El {
    * {@link #layoutRow} lays it out.
    */
   void remakeRow(int index) {
-    El row = newRow(firstRow + index);
+    El row = newRow(rows.firstRow + index);
     El old = children.set(index, row);
     row.shiftX = old.shiftX;
     row.shiftY = old.shiftY;
   }
 
   private El newRow(int index) {
-    El row = rowBuilder.row(index, spanFrom, spanTo);
+    El row = rows.rowBuilder.row(index, rows.spanFrom, rows.spanTo);
     if (row == null) {
       throw new IllegalStateException("The row function of a list returned null for row " + index);
     }
     if (row.position == 0) {
-      row.position(index + 1, rowCount);
+      row.position(index + 1, rows.rowCount);
     }
     fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
     row.kept = false;
@@ -4088,7 +4164,7 @@ public final class El {
    */
   boolean rowsHaveKeyHooks(int from, int to) {
     for (int i = from; i < to; i++) {
-      El row = rowBuilder.row(i, spanFrom, spanTo);
+      El row = rows.rowBuilder.row(i, rows.spanFrom, rows.spanTo);
       if (row != null && keyHooks(row)) {
         return true;
       }
@@ -4097,7 +4173,7 @@ public final class El {
   }
 
   private static boolean keyHooks(El el) {
-    if (el.onAnyKeyDown != null || el.rowBuilder != null) {
+    if (el.onAnyKeyDown() != null || el.rows != null) {
       return true;
     }
     for (El child : el.children) {
@@ -4125,7 +4201,7 @@ public final class El {
   }
 
   private static void fix(El el, El across) {
-    el.across = el.fixedX || el.rowBuilder != null ? across : null;
+    el.across = el.fixedX || el.rows != null ? across : null;
     // What lies inside a fixed element stays with it: the offset of the area counts once.
     El inside = el.scrollArea && el.style.overflowX == Style.Overflow.SCROLL
         ? el
@@ -4142,12 +4218,12 @@ public final class El {
 
   /** The handler of {@link #onRowsBuilt}, or null. */
   RowsHandler onRowsBuilt() {
-    return onRowsBuilt;
+    return handlers == null ? null : handlers.onRowsBuilt;
   }
 
   /** The handler of {@link #onRowsInView}, or null. */
   RowsHandler onRowsInView() {
-    return onRowsInView;
+    return handlers == null ? null : handlers.onRowsInView;
   }
 
   /** The key of {@link #reveal}, or null. */
@@ -4175,18 +4251,18 @@ public final class El {
    */
   void layoutRows(float scale, boolean systemFonts) {
     // Rows that turn out higher or lower above the one at the top move it: the offset follows.
-    int anchor = heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rowCount);
-    double before = heights == null ? 0 : rowTop(anchor);
+    int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
+    double before = rows.heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
       El row = children.get(i);
       if (row.kept) { // laid out before; placed from the first row that exists, as layoutRow does
-        double top = heights == null ? row.contentTop : rowsTop() + rowTop(firstRow + i);
-        row.place(rowsLeft(), (float) (top - rowTop(firstRow)), rowWidth(), row.height);
+        double top = rows.heights == null ? row.contentTop : rowsTop() + rowTop(rows.firstRow + i);
+        row.place(rowsLeft(), (float) (top - rowTop(rows.firstRow)), rowWidth(), row.height);
       } else {
         layoutRow(i, scale, systemFonts);
       }
     }
-    if (heights != null) {
+    if (rows.heights != null) {
       measureScroll();
       scrollY += rowTop(anchor) - before; // clamped below
     }
@@ -4195,7 +4271,7 @@ public final class El {
 
   /** Whether this is a virtual list whose rows are as high as their content. */
   boolean measuresRows() {
-    return heights != null;
+    return rows.heights != null;
   }
 
   /** The left of the rows, the left of the content box. */
@@ -4225,29 +4301,30 @@ public final class El {
     El row = children.get(index);
     row.kept = false; // laid out anew
     row.style.width = Len.px(inner);
-    if (heights != null) { // as high as its content or its own height, measured and kept
+    if (rows.heights != null) { // as high as its content or its own height, measured and kept
       scaleText(row, scale, systemFonts);
       Flex.layout(row, inner, Measure.MAX_CONTENT);
       float high = row.height;
-      boolean moved = heights.measured(firstRow + index, high) != 0;
+      boolean moved = rows.heights.measured(rows.firstRow + index, high) != 0;
       // From the first row that exists, as rows of one height are; the scroll shift adds the rest.
-      double first = rowTop(firstRow);
-      row.place(left, (float) (rowsTop() + rowTop(firstRow + index) - first), inner, high);
+      double first = rowTop(rows.firstRow);
+      row.place(left, (float) (rowsTop() + rowTop(rows.firstRow + index) - first), inner, high);
       for (int i = index + 1; moved && i < children.size(); i++) { // those below follow
         El below = children.get(i);
-        below.place(left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner, below.height);
+        below.place(
+            left, (float) (rowsTop() + rowTop(rows.firstRow + i) - first), inner, below.height);
       }
       return;
     }
-    row.style.height = Len.px(rowHeight);
+    row.style.height = Len.px(rows.rowHeight);
     scaleText(row, scale, systemFonts);
     // Rounded where the row lies in the content, so that rows of a fractional height share their
     // edges with their neighbors, what fills them included; placed from the first row that exists.
-    double top = rowsTop() + (firstRow + index) * (double) rowHeight;
+    double top = rowsTop() + (rows.firstRow + index) * (double) rows.rowHeight;
     double whole = Math.floor(top);
-    Flex.layout(row, inner, rowHeight, 0, (float) (top - whole));
+    Flex.layout(row, inner, rows.rowHeight, 0, (float) (top - whole));
     row.contentTop = whole + row.y;
-    row.place(left, (float) (row.contentTop - rowTop(firstRow)), inner, row.height);
+    row.place(left, (float) (row.contentTop - rowTop(rows.firstRow)), inner, row.height);
   }
 
   /**
@@ -4282,14 +4359,15 @@ public final class El {
   int rowInView(boolean last) {
     double from = scrollY - rowsTop(); // the content at the top of the border box
     long top = rowAfter(from);
-    long bottom = rowAt(from + height - coverY) - (heights == null ? 1 : 0);
-    if (heights != null && rowTop((int) Math.min(bottom + 1, rowCount)) > from + height - coverY) {
+    long bottom = rowAt(from + height - coverY) - (rows.heights == null ? 1 : 0);
+    if (rows.heights != null
+        && rowTop((int) Math.min(bottom + 1, rows.rowCount)) > from + height - coverY) {
       bottom--; // the row at the bottom edge is not whole
     }
     if (top > bottom) {
       top = bottom = rowAt(from);
     }
-    return Math.clamp(last ? bottom : top, 0, Math.max(rowCount - 1, 0));
+    return Math.clamp(last ? bottom : top, 0, Math.max(rows.rowCount - 1, 0));
   }
 
   /**
@@ -4298,9 +4376,12 @@ public final class El {
    * #onRowsInView}.
    */
   long rowsInView() {
+    if (rows == null) {
+      return -1L; // -1 and -1
+    }
     double from = scrollY - rowsTop(); // the content at the top of the border box
     long first = Math.max(rowAfter(from), 0); // below a padding taller than a row too
-    long last = Math.min(rowAt(from + (height - coverY)) - 1, rowCount - 1L);
+    long last = Math.min(rowAt(from + (height - coverY)) - 1, rows.rowCount - 1L);
     if (last < first) { // also without rows
       first = last = -1;
     }
@@ -4350,36 +4431,14 @@ public final class El {
   void apply(Consumer<El> look, String name) {
     List<El> before = new ArrayList<>(children);
     String keyBefore = key;
-    PressAtHandler press = onPress;
-    PressAtHandler down = onPointerDown;
-    Runnable any = onAnyPointerDown;
-    Consumer<Key> anyKey = onAnyKeyDown;
-    Runnable outside = onPressOutside;
-    Consumer<Drag> drag = onDrag;
-    Predicate<Key> keyDown = onKey;
-    Predicate<Key> up = onKeyUp;
-    WheelHandler wheel = onWheel;
-    Consumer<String> text = onText;
-    Consumer<String> typeAhead = onTypeAhead;
-    Consumer<String> edit = onEdit;
+    Handlers handlersBefore = Handlers.copy(handlers);
     boolean wasFocusable = focusable;
     look.accept(this);
     String changed = !children.equals(before)
         ? "children"
         : !Objects.equals(key, keyBefore)
             ? "key"
-            : onPress != press
-                    || onPointerDown != down
-                    || onAnyPointerDown != any
-                    || onAnyKeyDown != anyKey
-                    || onPressOutside != outside
-                    || onDrag != drag
-                    || onKey != keyDown
-                    || onKeyUp != up
-                    || onWheel != wheel
-                    || onText != text
-                    || onTypeAhead != typeAhead
-                    || onEdit != edit
+            : !handlersBefore.sameInput(handlers)
                 ? "handlers"
                 : focusable != wasFocusable ? "focusable()" : null;
     if (changed != null) {
@@ -4588,14 +4647,14 @@ public final class El {
     if (warningMessage != null) {
       out.append(" warning=").append(quote(warningMessage));
     }
-    if (rowBuilder != null) {
+    if (rows != null) {
       out.append(" rows ");
       if (children.isEmpty()) {
         out.append('-');
       } else {
-        out.append(firstRow).append('-').append(firstRow + children.size() - 1);
+        out.append(rows.firstRow).append('-').append(rows.firstRow + children.size() - 1);
       }
-      out.append('/').append(rowCount);
+      out.append('/').append(rows.rowCount);
     }
     if (text != null && text.multiline() && placed) {
       out.append(" lines ");
@@ -4626,6 +4685,7 @@ public final class El {
     }
     if (focused) {
       out.append(" focused");
+      Editor editor = editor();
       if (editor != null) {
         // A masked field's positions count in its mask, which is what the line quotes.
         out.append(" caret ").append(text.maskIndex(editor.text(), editor.caret()));
@@ -4650,16 +4710,16 @@ public final class El {
 
   /** The states of {@link #dump} but the value, each after a space, in their fixed order. */
   void states(StringBuilder out) {
-    if ((states & DISABLED) != 0 || editable && onEdit == null && !readOnly) {
+    if ((states & DISABLED) != 0 || field != null && onEdit() == null && !field.readOnly) {
       out.append(" disabled");
     }
-    if (readOnly) {
+    if (isReadOnly()) {
       out.append(" readonly");
     }
-    if (editable && text.masked()) {
+    if (field != null && text.masked()) {
       out.append(" password");
     }
-    if (editable && text.revealed()) {
+    if (field != null && text.revealed()) {
       out.append(" revealed");
     }
     if ((states & INVALID) != 0) {
