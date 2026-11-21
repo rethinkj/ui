@@ -219,7 +219,8 @@ public final class Canvas {
     private boolean fitting;
     private float fittedWidth;
     private float fittedHeight;
-    // The node being dragged, which the canvas builds also outside it, or its drag would end.
+    // The node being dragged, which the canvas draws above the others and builds also outside it,
+    // or its drag would end.
     private String dragged;
     // Where the dragged node is, and the pointer's distance at the last step of a drag of a node
     // or of the canvas: each step adds its own movement at the zoom of that step, so that a zoom
@@ -509,7 +510,8 @@ public final class Canvas {
 
   /**
    * @param viewport what part of the diagram it shows, from the app's state
-   * @param nodes the nodes, each with a key of its own; later ones lie on top
+   * @param nodes the nodes, each with a key of its own; later ones lie on top, except a node
+   *     being dragged, which lies above the others
    * @param content builds what each node shows at the zoom of the moment
    * @param onMove told a node moved and pinned while the user drags it, and the node as it was
    *     when the drag is cancelled, which may be unpinned. It is the node of the view the drag
@@ -601,8 +603,10 @@ public final class Canvas {
           new Edges.View(left, top, zoom, viewport.width, viewport.height),
           style);
     }
+    El dragged = null;
     for (Node node : nodes) {
-      if (!inside(node, left, top, right, bottom) && !node.key().equals(viewport.dragged)) {
+      boolean isDragged = node.key().equals(viewport.dragged);
+      if (!inside(node, left, top, right, bottom) && !isDragged) {
         continue;
       }
       El box =
@@ -612,7 +616,14 @@ public final class Canvas {
       }
       // A fixed node takes the drag too, or it would pan the canvas.
       box.onDrag(onMove == null ? drag -> {} : drag -> move(viewport, node, onMove, drag));
-      canvas.child(box);
+      if (isDragged) {
+        dragged = box;
+      } else {
+        canvas.child(box);
+      }
+    }
+    if (dragged != null) {
+      canvas.child(dragged);
     }
     return canvas;
   }

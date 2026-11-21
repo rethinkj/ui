@@ -27,8 +27,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The {@link Canvas}, driven by {@code canvas.txt}, with stored images: at 100 % and 75 %, panned,
- * with a node dragged and pinned, and fitted, also again after a resize; and a node outside it
- * culled; and the whole diagram saved as PNG.
+ * with a node dragged over another and pinned, and fitted, also again after a resize; and a node
+ * outside it culled; and the whole diagram saved as PNG.
  */
 class CanvasTest {
 
@@ -97,7 +97,7 @@ class CanvasTest {
     app.textRendering(TextRendering.LINUX);
     String script = Files.readString(Path.of("src/test/resources/scripts/canvas.txt"));
     List<Path> files = Script.run("size 400 260\n" + script, app, out);
-    Golden.assertSnaps("canvas-dark-", files, "actual", "out", "panned", "pinned");
+    Golden.assertSnaps("canvas-dark-", files, "actual", "out", "panned", "dragged", "pinned");
 
     String actual = Files.readString(out.resolve("actual.tree.txt"));
     String board = line(actual, "#board");
@@ -110,6 +110,9 @@ class CanvasTest {
     assertTrue(zoomedOut.contains("#archive"), "inside at 75 %: " + zoomedOut);
     assertFalse(zoomedOut.contains("3 columns"), "less detail at 75 %: " + zoomedOut);
     assertTrue(Files.readString(out.resolve("panned.tree.txt")).contains("#archive"));
+    String dragged = Files.readString(out.resolve("dragged.tree.txt"));
+    int customers = dragged.indexOf("#customers ");
+    assertTrue(customers >= 0 && dragged.indexOf("#orders ") > customers, dragged);
 
     Board state = app.state();
     assertEquals(new Node("orders", "orders", 120, 90, 140, 60, true), state.node("orders"));

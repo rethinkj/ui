@@ -1,0 +1,1 @@
+- A node dragged on `Canvas.canvas` is now drawn above the other nodes while it is dragged, instead of sliding under nodes that follow it in the list.

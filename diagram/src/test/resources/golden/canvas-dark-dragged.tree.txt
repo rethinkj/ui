@@ -1,0 +1,18 @@
+el 0,0 400x260
+  el #board role=graphics-document label="Diagram" 0,0 400x260 value="Zoom 100%" focused
+    el #customers role=graphics-object label="customers" 200,20 140x60
+      el 200,20 140x60
+        text "customers" 205,25 130x17
+        text "3 columns" 205,44 130x15
+    el #items role=graphics-object label="items" 0,140 140x60
+      el 0,140 140x60
+        text "items" 5,145 130x17
+        text "3 columns" 5,164 130x15
+    el #archive role=graphics-object label="archive" 380,-20 140x60
+      el 380,-20 140x60
+        text "archive" 385,-15 130x17
+        text "3 columns" 385,4 130x15
+    el #orders role=graphics-object label="orders" 150,40 140x60 value="Pinned" hovered
+      el 150,40 140x60
+        text "orders" 155,45 130x17
+        text "3 columns" 155,64 130x15
