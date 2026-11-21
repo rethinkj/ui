@@ -4,4 +4,6 @@ snap system             # System mode: dark until the loop tells the system's se
 press role=radio label="Light"
 press role=radio label="Teal"
 frame
+advance 1               # the chosen pill slides to Light
+frame
 snap light-teal

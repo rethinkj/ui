@@ -1,0 +1,1 @@
+- `Segmented` has a new look: a rounded track with the chosen option on a raised pill that slides to the next choice, instead of an accent-filled segment. `Segmented.Size.LARGE`, passed as the last argument, makes it as high as a large button for a control that stands on its own.

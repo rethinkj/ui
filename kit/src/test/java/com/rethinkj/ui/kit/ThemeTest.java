@@ -76,7 +76,7 @@ class ThemeTest {
         3);
     check(failures, "accent edge", t.accent().edge(), surfaces, 3);
     // A primary button's ring lies a gap away from its accent, on the surfaces, as every ring.
-    // What is on: a checked box, a switch, the chosen choice of a segmented control.
+    // What is on: a checked box, a switch.
     check(
         failures,
         "accent",
@@ -413,7 +413,7 @@ class ThemeTest {
     // An invalid field's edge, on the field's raised fill.
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the
-    // pointer; a segmented control and a navigation list lay the overlays over the panel.
+    // pointer; a navigation list lays the overlays over the panel.
     // The details of a status bar lie on the window, which a part that takes a press hovers.
     check(
         failures,

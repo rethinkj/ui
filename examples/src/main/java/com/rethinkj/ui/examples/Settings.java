@@ -22,6 +22,7 @@ import static com.rethinkj.ui.kit.NumberField.numberField;
 import static com.rethinkj.ui.kit.Radio.radioGroup;
 import static com.rethinkj.ui.kit.Section.page;
 import static com.rethinkj.ui.kit.Section.section;
+import static com.rethinkj.ui.kit.Segmented.Size.LARGE;
 import static com.rethinkj.ui.kit.Segmented.segmented;
 import static com.rethinkj.ui.kit.Select.select;
 import static com.rethinkj.ui.kit.Slider.slider;
@@ -409,7 +410,8 @@ public final class Settings {
                             List.of(Look.values()),
                             state.theme,
                             look -> look.title,
-                            look -> state.theme = look)),
+                            look -> state.theme = look,
+                            LARGE)),
                     Group.row(
                         "Accent color",
                         "Buttons, switches and selections",
@@ -436,7 +438,8 @@ public final class Settings {
                             List.of(Density.values()),
                             state.density,
                             density -> density.title,
-                            density -> state.density = density))),
+                            density -> state.density = density,
+                            LARGE))),
                 state.fontSize == FONT_SIZE
                     ? null
                     : callout(
