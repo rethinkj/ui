@@ -123,6 +123,11 @@ public interface DiagramTexts {
     return "Filter tables";
   }
 
+  /** Shown on the canvas when a filter matches no table: {@code No tables match “foo”}. */
+  default String noTablesMatch(String filter) {
+    return "No tables match “" + filter + "”";
+  }
+
   /** The action that zooms so that the whole diagram shows. */
   default String fit() {
     return "Fit";

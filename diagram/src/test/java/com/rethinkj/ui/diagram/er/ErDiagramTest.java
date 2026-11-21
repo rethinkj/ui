@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.diagram.Canvas;
+import com.rethinkj.ui.diagram.DiagramTexts;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.Font;
@@ -76,6 +78,7 @@ class ErDiagramTest {
 
   static final class Board {
     final ErDiagram.State diagram = new ErDiagram.State();
+    List<Schema> schemas = SCHEMAS;
     Map<String, ErDiagram.Pin> pins = Map.of();
     int pinChanges;
 
@@ -88,8 +91,9 @@ class ErDiagramTest {
   private App<Board> app() {
     App<Board> app = new App<>(
         new Board(),
-        board ->
-            ErDiagram.erDiagram(board.diagram, SCHEMAS, board::onPins).wFull().hFull());
+        board -> ErDiagram.erDiagram(board.diagram, board.schemas, board::onPins)
+            .wFull()
+            .hFull());
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -239,6 +243,114 @@ class ErDiagramTest {
     assertFalse(tree.contains("order_customer_fk"), "no edge to a table filtered out: " + tree);
     assertFalse(tree.contains("label=\"note,"), "not a key: " + tree);
     assertTrue(tree.contains("role=button") && tree.contains("\"+1 column\""), tree);
+  }
+
+  @Test
+  void filterPansOnlyWhenNarrowingToATableOutsideTheView() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Canvas.Viewport viewport = board.diagram.viewport();
+    Script.run("size 900 500\nframe\n", app, out);
+    double fittedLeft = viewport.left();
+    double fittedTop = viewport.top();
+
+    // Narrowing to a table already in view keeps the viewport where it is.
+    board.diagram.filter("ord");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(fittedLeft, viewport.left());
+    assertEquals(fittedTop, viewport.top());
+
+    // Pan away so the match lies outside, then check whitespace, widening and clearing.
+    double awayLeft = fittedLeft + 4000;
+    double awayTop = fittedTop + 4000;
+    viewport.panTo(awayLeft, awayTop);
+    app.invalidate();
+    Script.run("frame\n", app, out);
+
+    board.diagram.filter("ord ");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "adding a space does not pan");
+    assertEquals(awayTop, viewport.top(), "adding a space does not pan");
+
+    board.diagram.filter("orde");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "the same matches do not pan");
+    assertEquals(awayTop, viewport.top(), "the same matches do not pan");
+
+    board.diagram.filter("or");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "widening the filter does not pan");
+    assertEquals(awayTop, viewport.top(), "widening the filter does not pan");
+
+    board.diagram.filter("");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "clearing the filter does not pan");
+    assertEquals(awayTop, viewport.top(), "clearing the filter does not pan");
+
+    // Narrowing to a table outside the view pans to show it.
+    board.diagram.filter("ord");
+    app.invalidate();
+    Script.run("frame\nsnap revealed\n", app, out);
+    assertTrue(
+        viewport.left() != awayLeft || viewport.top() != awayTop,
+        "narrowing to a match outside the view pans");
+    assertTrue(Files.readString(out.resolve("revealed.tree.txt")).contains("#shop.order "));
+  }
+
+  @Test
+  void filterWithoutMatchShowsANoteAndLeavesNoPendingReveal() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Canvas.Viewport viewport = board.diagram.viewport();
+    Script.run("size 900 500\nframe\n", app, out);
+    double awayLeft = viewport.left() + 4000;
+    double awayTop = viewport.top() + 4000;
+    viewport.panTo(awayLeft, awayTop);
+    app.invalidate();
+    Script.run("frame\n", app, out);
+
+    board.diagram.filter("  missing  ");
+    app.invalidate();
+    Script.run("frame\nsnap empty\n", app, out);
+    assertEquals(awayLeft, viewport.left());
+    assertEquals(awayTop, viewport.top());
+    String emptyTree = Files.readString(out.resolve("empty.tree.txt"));
+    String expected = DiagramTexts.ENGLISH.noTablesMatch("missing");
+    assertTrue(
+        emptyTree.contains("#note \"" + expected + "\""),
+        "muted empty-state note on canvas: " + emptyTree);
+
+    // Reloading schemas with a matching table must not trigger a stale reveal.
+    board.schemas =
+        List.of(new Schema("shop", List.of(new Table("missing_item", List.of(id()), List.of()))));
+    app.invalidate();
+    Script.run("frame\nsnap reloaded\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "no pending reveal fires after schema reload");
+    assertEquals(awayTop, viewport.top(), "no pending reveal fires after schema reload");
+    assertFalse(Files.readString(out.resolve("reloaded.tree.txt")).contains("#note "));
+
+    // Widening back from an unmatched filter also does not pan, and removes the note.
+    board.schemas = SCHEMAS;
+    board.diagram.filter("nope");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    board.diagram.filter("");
+    app.invalidate();
+    Script.run("frame\nsnap cleared\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "no pending reveal fires when widened back");
+    assertEquals(awayTop, viewport.top(), "no pending reveal fires when widened back");
+    assertFalse(Files.readString(out.resolve("cleared.tree.txt")).contains("#note "));
+
+    // An empty schema list with no filter shows no note.
+    board.schemas = List.of();
+    app.invalidate();
+    Script.run("frame\nsnap noSchemas\n", app, out);
+    assertFalse(Files.readString(out.resolve("noSchemas.tree.txt")).contains("#note "));
   }
 
   @Test

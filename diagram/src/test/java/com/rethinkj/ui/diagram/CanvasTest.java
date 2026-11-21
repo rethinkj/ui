@@ -164,6 +164,24 @@ class CanvasTest {
   }
 
   @Test
+  void revealLeavesANodeThatShowsWhole() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    Canvas.Viewport viewport = app.state().viewport;
+    viewport.panTo(35, 35);
+    Script.run("size 400 260\nframe\n", app, out);
+    viewport.reveal("orders"); // 5 pixels inside the top left, within the margin
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(35, viewport.left());
+    assertEquals(35, viewport.top());
+  }
+
+  @Test
   void theWheelPansAndZoomsAroundThePointerWithControl() throws IOException {
     App<Board> app = new App<>(
         new Board(),

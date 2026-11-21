@@ -103,6 +103,11 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String noTablesMatch(String filter) {
+    return "Keine Tabelle passt zu „" + filter + "“";
+  }
+
+  @Override
   public String fit() {
     return "Einpassen";
   }

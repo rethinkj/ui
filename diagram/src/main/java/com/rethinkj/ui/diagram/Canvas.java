@@ -312,14 +312,16 @@ public final class Canvas {
 
     /**
      * Pans as little as it takes to show the whole node with this key with a margin of {@link
-     * Theme.Spacing#xl}, as the keys that move between nodes need; a node larger than the canvas
-     * shows from its top left. As {@link #fit} does, the canvas does it in its next build that
-     * knows its size, after a fit that is due, with the node where that build has it, so that an
-     * app can call it before the node moves or grows; a node that build does not have is left, and
-     * a {@link #panTo} before that build drops it.
+     * Theme.Spacing#xl}, as the keys that move between nodes need, unless the whole node shows
+     * already; a node larger than the canvas shows from its top left. As {@link #fit} does, the
+     * canvas does it in its next build that knows its size, after a fit that is due, with the node
+     * where that build has it, so that an app can call it before the node moves or grows; a node
+     * that build does not have is left, and a {@link #panTo} before that build drops it.
+     *
+     * @param node the node's key, or null to drop a reveal that is not done yet
      */
     public void reveal(String node) {
-      revealing = Objects.requireNonNull(node, "node");
+      revealing = node;
     }
 
     void revealIfDue(List<Node> nodes, float margin) {
@@ -333,6 +335,12 @@ public final class Canvas {
         return;
       }
       float zoom = zoom();
+      if (node.x() >= left
+          && node.y() >= top
+          && node.x() + node.width() <= left + width / zoom
+          && node.y() + node.height() <= top + height / zoom) {
+        return;
+      }
       margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
       double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);

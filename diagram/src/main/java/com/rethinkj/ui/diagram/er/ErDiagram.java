@@ -20,6 +20,7 @@ import com.rethinkj.ui.diagram.DiagramTexts;
 import com.rethinkj.ui.diagram.LayeredLayout;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Segmented;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
@@ -131,8 +132,9 @@ public final class ErDiagram {
     // again when one changes.
     private Map<String, Float> arranged = Map.of();
     private float width;
-    // Whether the next build pans to the first table shown, after the filter changed.
-    private boolean revealFirst;
+    // The filter of the last build, as it matches, and the keys of the tables it showed.
+    private String shownFilter = "";
+    private Set<String> shown = Set.of();
     // The table that ] and [ step around, and the index of the one they stepped to.
     private String followed;
     private int follow;
@@ -178,12 +180,12 @@ public final class ErDiagram {
       return filter;
     }
 
-    /** Shows only the tables whose names contain this text, and pans to the first of them. */
+    /**
+     * Shows only the tables whose names contain this text. Where that hides a table shown before,
+     * the next build pans to the first table left, if it lies outside the view.
+     */
     public void filter(String filter) {
-      if (!filter.equals(this.filter)) {
-        this.filter = filter;
-        revealFirst = true;
-      }
+      this.filter = Objects.requireNonNull(filter, "filter");
     }
 
     /** The key of the selected table, null for none. */
@@ -298,6 +300,10 @@ public final class ErDiagram {
     return name;
   }
 
+  private static String normalize(String filter) {
+    return filter.strip().toLowerCase(Locale.ROOT);
+  }
+
   /** All tables of the schemas, by their keys, with their relations among them. */
   private static Map<String, Shown> model(List<Schema> schemas, State state, ErStyle style) {
     Map<String, Shown> tables = new LinkedHashMap<>();
@@ -383,10 +389,17 @@ public final class ErDiagram {
     Map<String, Shown> tables = model(schemas, state, style);
     arrange(state, tables, style);
     Diagram diagram = new Diagram(state, tables, state.selected, style);
-    if (state.revealFirst && !diagram.nodes.isEmpty()) {
-      state.revealFirst = false;
-      state.viewport.reveal(diagram.nodes.getFirst().key());
+    String filter = normalize(state.filter);
+    if (!filter.equals(state.shownFilter) || (!filter.isEmpty() && diagram.nodes.isEmpty())) {
+      // A change that hides a table shows the first one left; any other, or a filter without
+      // match, drops a reveal still due.
+      boolean hides = state.shown.stream()
+          .anyMatch(key -> tables.containsKey(key) && !diagram.shown.containsKey(key));
+      state.viewport.reveal(
+          hides && !diagram.nodes.isEmpty() ? diagram.nodes.getFirst().key() : null);
     }
+    state.shownFilter = filter;
+    state.shown = diagram.shown.keySet();
     Consumer<Map<String, Pin>> told = onPins == null ? pins -> {} : onPins;
 
     El bar = row()
@@ -430,6 +443,19 @@ public final class ErDiagram {
         .onPress(() -> state.select(null))
         .onKeyFirst(key -> key(diagram, key, told))
         .onText(typed -> follow(diagram, typed));
+    String stripped = state.filter.strip();
+    if (!stripped.isEmpty() && diagram.nodes.isEmpty()) {
+      canvas.child(el().absolute(0, 0)
+          .wFull()
+          .hFull()
+          .center()
+          .padding(theme.space().l())
+          .inert()
+          .child(Label.label(Label.Variant.MUTED, texts.noTablesMatch(stripped))
+              .key("note")
+              .ellipsis()
+              .minSize(0, 0)));
+    }
     return col()
         .minSize(0, 0)
         .child(bar.shrink(0))
@@ -491,7 +517,7 @@ public final class ErDiagram {
       this.state = state;
       this.tables = tables;
       this.style = style;
-      String filter = state.filter.strip().toLowerCase(Locale.ROOT);
+      String filter = normalize(state.filter);
       for (Shown table : tables.values()) {
         if (table.table.name().toLowerCase(Locale.ROOT).contains(filter)) {
           shown.put(table.key, table);
