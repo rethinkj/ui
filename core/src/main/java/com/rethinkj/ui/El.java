@@ -312,7 +312,7 @@ public final class El {
   }
 
   /** The handlers of input and of what the app tells an element. */
-  private static final class Handlers implements Cloneable {
+  private static final class Handlers {
     private static final Handlers NONE = new Handlers(); // never written
 
     PressAtHandler onPress;
@@ -340,16 +340,28 @@ public final class El {
     Runnable onShownFor; // see El#onShownFor
     double shownDelay;
 
-    /** A copy of {@code handlers}, which may be null for none, to compare with later. */
+    /**
+     * The handlers {@link #sameInput} compares, copied from {@code handlers}, which may be null for
+     * none, to compare with later.
+     */
     static Handlers copy(Handlers handlers) {
       if (handlers == null) {
         return NONE;
       }
-      try {
-        return (Handlers) handlers.clone();
-      } catch (CloneNotSupportedException e) {
-        throw new AssertionError(e);
-      }
+      Handlers copy = new Handlers();
+      copy.onPress = handlers.onPress;
+      copy.onPointerDown = handlers.onPointerDown;
+      copy.onAnyPointerDown = handlers.onAnyPointerDown;
+      copy.onAnyKeyDown = handlers.onAnyKeyDown;
+      copy.onPressOutside = handlers.onPressOutside;
+      copy.onDrag = handlers.onDrag;
+      copy.onKey = handlers.onKey;
+      copy.onKeyUp = handlers.onKeyUp;
+      copy.onWheel = handlers.onWheel;
+      copy.onText = handlers.onText;
+      copy.onTypeAhead = handlers.onTypeAhead;
+      copy.onEdit = handlers.onEdit;
+      return copy;
     }
 
     /**
