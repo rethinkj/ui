@@ -15,7 +15,7 @@ final class TreeDumper {
     StringBuilder out = new StringBuilder();
     dump(out, root, 0, 0, 0);
     for (El overlay : root.shownOverlays()) {
-      El.Layer l = overlay.layer;
+      El.Layer l = overlay.placement();
       out.append("overlay");
       if (l.centered) {
         out.append(" center");

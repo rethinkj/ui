@@ -128,7 +128,7 @@ public final class El {
   private float revealWidth;
   private float revealHeight;
   private List<El> overlays; // null for none; apart from the children
-  Layer layer; // where this element goes as an overlay, null until a call says
+  private Layer layer; // where this element goes as an overlay, null until a call says
   private List<El> shownOverlays = List.of(); // of a root: those placed above it, bottom first
   private Consumer<El> restLook;
   private double restDelay;
