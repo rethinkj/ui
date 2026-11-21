@@ -397,11 +397,16 @@ public final class Canvas {
   public static byte[] png(List<Node> nodes, List<Edge> edges, Function<Viewport, El> view) {
     double[] bounds = nodes.isEmpty() ? new double[4] : bounds(nodes);
     EdgeStyle style = EdgeStyle.CURRENT.get();
-    // How far a marker and a line reach beyond a route's points at most.
-    double reach = Edges.reach(Marker.ZERO_OR_MANY) * style.marker()
-        + Math.max(style.width(), style.highlightedWidth());
-    for (Routing.Route route : Routing.route(nodes, edges, style)) {
+    List<Routing.Route> routes = Routing.route(nodes, edges, style);
+    for (int i = 0; i < routes.size(); i++) {
+      Routing.Route route = routes.get(i);
       if (route != null) {
+        // How far its markers and its line reach beyond its points at most.
+        Edge edge = edges.get(i);
+        double reach = Math.max(Edges.reach(edge.fromMarker()), Edges.reach(edge.toMarker()))
+                * style.marker()
+            + (edge.emphasis() == Emphasis.HIGHLIGHTED ? style.highlightedWidth() : style.width())
+                / 2;
         for (Routing.Point point : route.points()) {
           bounds[0] = Math.min(bounds[0], point.x() - reach);
           bounds[1] = Math.min(bounds[1], point.y() - reach);

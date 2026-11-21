@@ -159,10 +159,10 @@ class EdgesTest {
             nodes,
             edges,
             viewport -> Canvas.canvas(viewport, nodes, edges, EdgesTest::card, null))));
-    // The loop runs a stub, 30, right of the node, its markers 21 and its line 2 further: to 173,
-    // and down to 81; with a margin of 16 on each side, at a scale of 2.
-    assertEquals(2 * (173 + 2 * 16), image.width());
-    assertEquals(2 * (81 + 2 * 16), image.height());
+    // The loop runs a stub, 30, right of the node, its markers 21 and half its line further: to
+    // 171.5, and down to 79.5; with a margin of 16 on each side, rounded up, at a scale of 2.
+    assertEquals(2 * 204, image.width());
+    assertEquals(2 * 112, image.height());
     Golden.assertImage("edges-png-light", image);
   }
 

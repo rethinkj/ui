@@ -318,7 +318,7 @@ final class Routing {
     if (y1 == y2 && fromSide == -toSide && gap > 0) {
       best = new Path(fromSide, toSide, new double[] {px, qx}, new double[] {y1, y2});
       best.price(obstacles, stub);
-      if (gap < reach[0] + reach[1] + style.marker() / 2) {
+      if (apart > 0 && gap < reach[0] + reach[1] + style.marker() / 2) {
         best.cost += CRAMPED; // its markers would lie on each other: any other free way first
       }
     }

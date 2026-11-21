@@ -1,17 +1,17 @@
 el role=graphics-document label="Diagram" 0,0 560x280 value="Zoom 100%"
-  el #order-customer role=graphics-symbol label="order_customer_fk" 240,90 80x8
-    el 240,93 80x1
   el 298,88 22x11
   el 240,88 14x11
+  el 297,111 23x12
+  el 240,213 23x12
+  el #order-customer role=graphics-symbol label="order_customer_fk" 240,90 80x8
+    el 240,93 80x1
   el 299,90 8x8
   el #order-billing role=graphics-symbol label="order_billing_fk" 282,113 38x8 value="Highlighted"
     el 285,116 35x2
-  el 297,111 23x12
   el 276,119 8x98
     el 279,122 2x92
   el 240,215 38x8
     el 240,218 35x2
-  el 240,213 23x12
   el 279,116 14x14
   el 267,206 14x14
   el 298,113 9x9

@@ -88,6 +88,12 @@ final class Edges {
       }
     }
     bands(drawn, style.hit());
+    // The boxes over bends and markers first, under every edge's runs, so that a run's band takes
+    // the pointer where they overlap.
+    for (Drawn shown : drawn) {
+      bendHovers(canvas, shown, style);
+      markerHovers(canvas, shown, view, style);
+    }
     for (Drawn shown : drawn) {
       add(canvas, shown, view, style, theme, texts);
     }
@@ -218,7 +224,6 @@ final class Edges {
     boolean legible = marker >= style.smallestMarker();
     Marker fromMarker = legible ? edge.fromMarker() : Marker.NONE;
     Marker toMarker = legible ? edge.toMarker() : Marker.NONE;
-    bendHovers(canvas, shown, style);
     List<El> circles = new ArrayList<>();
     for (int k = 0; k + 1 < n; k++) {
       float[] a = points[k];
@@ -272,12 +277,6 @@ final class Edges {
         Tooltip.tooltip(band, edge.label(), Tooltip.options().description(edge.description()));
       }
       canvas.child(band);
-      if (k == 0) {
-        hover(canvas, edge, fromMarker, a, b, marker, stroke);
-      }
-      if (k == n - 2) {
-        hover(canvas, edge, toMarker, b, a, marker, stroke);
-      }
     }
     for (int k = 1; k + 1 < n; k++) {
       if (radii[k] > 0) {
@@ -325,6 +324,19 @@ final class Edges {
       points.add(points.getFirst().clone()); // both ends in one place: a run of no length
     }
     return points.toArray(float[][]::new);
+  }
+
+  /** The boxes over an edge's markers, where they are shown. */
+  private static void markerHovers(El canvas, Drawn shown, View view, EdgeStyle style) {
+    float marker = style.marker() * view.zoom();
+    if (marker < style.smallestMarker()) {
+      return;
+    }
+    float stroke = Math.clamp(marker / 5, 1, shown.width);
+    float[][] points = shown.points;
+    int n = points.length;
+    hover(canvas, shown.edge, shown.edge.fromMarker(), points[0], points[1], marker, stroke);
+    hover(canvas, shown.edge, shown.edge.toMarker(), points[n - 1], points[n - 2], marker, stroke);
   }
 
   /**
