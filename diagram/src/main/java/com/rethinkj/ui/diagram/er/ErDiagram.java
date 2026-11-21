@@ -74,8 +74,9 @@ import java.util.function.IntUnaryOperator;
  *
  * <p>Tables that are not pinned are placed by {@link LayeredLayout}, each schema on its own: at
  * first, when a table comes, goes or changes its height, as with its mode or its columns, and with
- * the action Arrange; the filter does not move them. Arrange all unpins every table first. Pins are plain positions: the app gives
- * them with {@link State#pins(Map)} and is told each change.
+ * the action Arrange; the filter does not move them. Arrange all unpins every table first; both
+ * fit the view to the tables. Pins are plain positions: the app gives them with {@link
+ * State#pins(Map)} and is told each change.
  *
  * <p>In a tree dump the canvas is {@code role=graphics-document} labeled {@link
  * DiagramTexts#erDiagram}, each table {@code role=graphics-object} with its key, {@code
@@ -223,15 +224,17 @@ public final class ErDiagram {
       arrangeDue = true;
     }
 
-    /** Places the tables that are not pinned anew, in the next build. */
+    /** Places the tables that are not pinned anew and fits the view to them, in the next build. */
     public void arrange() {
       arrangeDue = true;
+      viewport.fit();
     }
 
-    /** Unpins all tables and places them anew, in the next build. */
+    /** Unpins all tables, places them anew and fits the view to them, in the next build. */
     public void arrangeAll() {
       places.clear();
       arrangeDue = true;
+      viewport.fit();
     }
   }
 

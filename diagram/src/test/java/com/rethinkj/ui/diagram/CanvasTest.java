@@ -137,6 +137,29 @@ class CanvasTest {
   }
 
   @Test
+  void aFitThatWouldShowNoNodeShowsTheFirst() throws IOException {
+    Board board = new Board();
+    // Too far apart for 25 %: the middle between them is empty.
+    board.nodes.clear();
+    board.nodes.addAll(List.of(
+        new Node("lower", "lower", 0, 4000, 140, 60), new Node("upper", "upper", 0, 0, 140, 60)));
+    App<Board> app = new App<>(
+        board,
+        state -> Canvas.canvas(state.viewport, state.nodes, CanvasTest::card, state::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    board.viewport.fit();
+    Script.run(
+        "size 400 260\nframe\nframe\nsnap fitted\nsize 400 1100\nframe\nsnap taller\n", app, out);
+    assertTrue(Files.readString(out.resolve("fitted.tree.txt")).contains("#lower "));
+    // Still fitting: a canvas that has room for both shows both.
+    String taller = Files.readString(out.resolve("taller.tree.txt"));
+    assertTrue(taller.contains("#lower ") && taller.contains("#upper "), taller);
+  }
+
+  @Test
   void aZoomWhilePanningMovesNothingOnRelease() throws IOException {
     App<Board> app = new App<>(
         new Board(),

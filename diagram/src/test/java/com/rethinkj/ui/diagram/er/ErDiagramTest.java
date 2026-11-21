@@ -414,6 +414,55 @@ class ErDiagramTest {
   }
 
   @Test
+  void arrangeAndArrangeAllFitTheTablesInView() throws IOException {
+    Script.run("""
+        size 900 500
+        frame
+        down #shop.customer at top+8
+        move 2500,2000
+        up 2500,2000
+        frame
+        press role=button label="Arrange"
+        frame
+        snap arranged
+        focus role=graphics-document
+        key 0
+        frame
+        press role=button label="Arrange all"
+        frame
+        snap arranged-all
+        """, app(), out);
+    assertAllTablesInView(Files.readString(out.resolve("arranged.tree.txt")), 4);
+    assertAllTablesInView(Files.readString(out.resolve("arranged-all.tree.txt")), 4);
+  }
+
+  private static void assertAllTablesInView(String tree, int expected) {
+    var canvas = Pattern.compile(" role=graphics-document .* (-?\\d+),(-?\\d+) (\\d+)x(\\d+)")
+        .matcher(tree);
+    assertTrue(canvas.find(), "canvas in tree: " + tree);
+    int left = Integer.parseInt(canvas.group(1));
+    int top = Integer.parseInt(canvas.group(2));
+    int right = left + Integer.parseInt(canvas.group(3));
+    int bottom = top + Integer.parseInt(canvas.group(4));
+    List<int[]> boxes = Pattern.compile(" role=graphics-object .* (-?\\d+),(-?\\d+) (\\d+)x(\\d+)")
+        .matcher(tree)
+        .results()
+        .map(m -> new int[] {
+          Integer.parseInt(m.group(1)),
+          Integer.parseInt(m.group(2)),
+          Integer.parseInt(m.group(3)),
+          Integer.parseInt(m.group(4))
+        })
+        .toList();
+    assertEquals(expected, boxes.size(), "all tables in view: " + tree);
+    for (int[] box : boxes) {
+      assertTrue(
+          box[0] >= left && box[1] >= top && box[0] + box[2] <= right && box[1] + box[3] <= bottom,
+          "table inside canvas: " + tree);
+    }
+  }
+
+  @Test
   void keysAFrameApartFromATableOfItsName() throws IOException {
     List<Schema> schemas = List.of(
         new Schema("shop", List.of(new Table("orders", List.of(id()), List.of()))),
