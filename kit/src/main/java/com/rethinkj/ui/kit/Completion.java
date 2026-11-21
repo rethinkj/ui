@@ -85,8 +85,8 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
-    // The string an edit proposed and where its caret went, until the build that answers it; the
-    // caret and anchor onSelect told last; and whether the key of this input is Backspace.
+    // The string an edit proposed and where its caret went, until onSelect tells the answered
+    // caret; the caret and anchor onSelect told last; and whether this input's key is Backspace.
     private String edited;
     private int editedCaret;
     private int toldCaret = -1;
@@ -213,7 +213,6 @@ public final class Completion {
     if (text.equals(state.edited)) {
       caret = state.editedCaret;
     }
-    state.edited = null;
     caret = Math.clamp(caret, 0, text.length());
     state.wordCharacters = field.text().wordCharacters();
     int from = CodeWords.start(text, caret, state.wordCharacters);
@@ -270,6 +269,7 @@ public final class Completion {
     }
     El.SelectHandler ownSelect = field.onSelect();
     field.onSelect((told, anchor) -> {
+      state.edited = null;
       state.toldCaret = told;
       state.toldAnchor = anchor;
       if (ownSelect != null) {
