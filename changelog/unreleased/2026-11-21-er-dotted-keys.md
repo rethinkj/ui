@@ -1,0 +1,1 @@
+- Fixed: `ErDiagram` no longer throws when two tables' `schema.table` names are equal but their schema and table differ, as with schema `a`, table `b.c` and schema `a.b`, table `c`. A name part that contains a `.` or starts with `"` is now quoted in the table's key, as in SQL: `a."b.c"` and `"a.b".c`. Keys of other names stay the same.
