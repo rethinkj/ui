@@ -381,6 +381,7 @@ public final class Canvas {
    * @param nodes the nodes, whose extent is the diagram's; none give an image of the margin alone
    * @param view builds the canvas at the viewport it is given, as the app's view does: everything
    *     it draws is in the image. Its size is set to the image's.
+   * @see #png(List, List, Function) for a canvas with edges, which can reach beyond the nodes
    * @throws IllegalArgumentException if the image would have more than 16 megapixels at a scale of
    *     1 as well, which is checked before anything is built
    */
@@ -458,8 +459,9 @@ public final class Canvas {
   }
 
   /**
-   * A canvas with edges between its nodes, which lie under the nodes, routed anew in each build
-   * from where the nodes are, so that they follow a node that the user drags. An edge whose node
+   * A canvas with edges between its nodes, which lie under the nodes, routed again whenever the
+   * nodes, the edges or {@link EdgeStyle#CURRENT} change, so that they follow a node that the user
+   * drags; a pan, a zoom or a hover reuses the routes. An edge whose node
    * is not among the nodes is not drawn. Hovering an edge with a label shows its tooltip; pressing
    * or dragging it does what it does on empty space. The edges' sizes are those of {@link
    * EdgeStyle#CURRENT}.

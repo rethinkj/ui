@@ -166,12 +166,13 @@ class RoutingTest {
     Edge edge =
         new Edge("e", null, new Port("a", 20), new Port("b", 20), Marker.ZERO_OR_MANY, Marker.ONE);
 
-    // 30 apart, with markers of 8 reaching 16.8 and 10: over both nodes, out of their far sides.
+    // 30 apart, with markers of 8 reaching 16.8 and 10: out of a's right side into the gap, over b
+    // and into its far side.
     assertEquals(
         List.of(
-            new Point(0, 20),
-            new Point(-24, 20),
-            new Point(-24, -24),
+            new Point(100, 20),
+            new Point(124, 20),
+            new Point(124, -24),
             new Point(254, -24),
             new Point(254, 20),
             new Point(230, 20)),

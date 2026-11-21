@@ -123,28 +123,29 @@ final class Routing {
       }
     }
     freeSides(paths, others, edges);
+    Path[] straight = new Path[paths.length]; // of each edge that bumps out
     for (int i = 0; i < paths.length; i++) {
       if (reaches[i] != null) {
+        straight[i] = paths[i];
         paths[i] = bumped(paths, i, reaches[i], obstacles, style);
       }
     }
-    // Spreading never makes a route cross a node it did not: such a route keeps its place.
-    double[][][] placed = new double[paths.length][][];
-    for (int i = 0; i < paths.length; i++) {
-      if (paths[i] != null) {
-        placed[i] = new double[][] {paths[i].xs.clone(), paths[i].ys.clone()};
-      }
-    }
-    new Lanes(paths, nodes, style.lane()).spread();
-    for (int i = 0; i < paths.length; i++) {
-      if (paths[i] != null) {
-        int hits = paths[i].hits;
-        paths[i].price(obstacles, style.stub());
-        if (paths[i].hits > hits) {
-          System.arraycopy(placed[i][0], 0, paths[i].xs, 0, paths[i].xs.length);
-          System.arraycopy(placed[i][1], 0, paths[i].ys, 0, paths[i].ys.length);
-          paths[i].price(obstacles, style.stub());
+    // Spreading can move another edge onto a bump: such a bump is chosen again among the spread
+    // routes, and they are spread once more, a few times at most.
+    for (int round = 0; round < 3; round++) {
+      spread(paths, nodes, obstacles, style);
+      boolean again = false;
+      for (int i = 0; i < paths.length; i++) {
+        if (straight[i] != null
+            && paths[i] != straight[i]
+            && taken(paths[i], paths, style.lane())) {
+          paths[i] = straight[i];
+          paths[i] = bumped(paths, i, reaches[i], obstacles, style);
+          again = true;
         }
+      }
+      if (!again) {
+        break;
       }
     }
     List<Route> routes = new ArrayList<>(paths.length);
@@ -191,18 +192,26 @@ final class Routing {
       }
       List<Marker> order = new ArrayList<>(others.keySet()); // in their order, then by place
       order.sort(Comparator.comparingDouble(m -> others.get(m)[0] / others.get(m)[1]));
-      // A marker's height apart, or closer where that would put an end off its node or onto its
-      // corner.
+      // A marker's height apart around the port, moved along the side where they would leave the
+      // node or reach its corner, and closer only where the side is too short for that.
+      int count = order.size();
       double apart = style.marker();
+      double center = 0; // from the port
       Node node = byKey.get(port.getKey().get(0));
       if (node != null) {
         double y = (Float) port.getKey().get(1);
-        double room = Math.max(0, Math.min(y, node.height() - y) - style.marker() / 4);
-        apart = Math.min(apart, 2 * room / (order.size() - 1));
+        double top = Math.min(style.marker() / 4, node.height() / 2);
+        double bottom = Math.max(node.height() - style.marker() / 4, top);
+        double span = (count - 1) * apart;
+        if (span > bottom - top) {
+          apart = (bottom - top) / (count - 1);
+          span = bottom - top;
+        }
+        center = Math.clamp(y, top + span / 2, bottom - span / 2) - y;
       }
       for (int[] end : ends) {
         int place = order.indexOf(marker(edges.get(end[0]), end[1]));
-        fanned[end[0]][end[1]] = (place - (order.size() - 1) / 2.0) * apart;
+        fanned[end[0]][end[1]] = center + (place - (count - 1) / 2.0) * apart;
       }
     }
     return fanned;
@@ -210,6 +219,31 @@ final class Routing {
 
   private static Marker marker(Edge edge, int end) {
     return end == 0 ? edge.fromMarker() : edge.toMarker();
+  }
+
+  /**
+   * Spreads the runs into lanes; a route that spreading would make cross a node it did not cross
+   * keeps its place.
+   */
+  private static void spread(Path[] paths, List<Node> nodes, Obstacles obstacles, EdgeStyle style) {
+    double[][][] placed = new double[paths.length][][];
+    for (int i = 0; i < paths.length; i++) {
+      if (paths[i] != null) {
+        placed[i] = new double[][] {paths[i].xs.clone(), paths[i].ys.clone()};
+      }
+    }
+    new Lanes(paths, nodes, style.lane()).spread();
+    for (int i = 0; i < paths.length; i++) {
+      if (paths[i] != null) {
+        int hits = paths[i].hits;
+        paths[i].price(obstacles, style.stub());
+        if (paths[i].hits > hits) {
+          System.arraycopy(placed[i][0], 0, paths[i].xs, 0, paths[i].xs.length);
+          System.arraycopy(placed[i][1], 0, paths[i].ys, 0, paths[i].ys.length);
+          paths[i].price(obstacles, style.stub());
+        }
+      }
+    }
   }
 
   // The sides an edge leaves its from and to nodes on, right (1) or left (-1), in the order that
@@ -278,9 +312,7 @@ final class Routing {
     // A C needs its ends a marker apart where it has markers, so that they do not lie on each
     // other.
     double apart = reach[0] + reach[1] > 0 ? style.marker() : 0;
-    if (fromSide == toSide && Math.abs(y1 - y2) < Math.max(apart - EPSILON, EPSILON)) {
-      return null; // it would come back on itself
-    }
+    boolean close = fromSide == toSide && Math.abs(y1 - y2) < Math.max(apart - EPSILON, EPSILON);
     Path best = null;
     double gap = fromSide * (qx - px);
     if (y1 == y2 && fromSide == -toSide && gap > 0) {
@@ -311,7 +343,7 @@ final class Routing {
       wantHi = hi;
     }
     // Between facing ports at one height a channel is no shape of its own, only a straight line.
-    if (lo <= hi && !(y1 == y2 && fromSide == -toSide)) {
+    if (lo <= hi && !(y1 == y2 && fromSide == -toSide) && !close) {
       double middle = Math.clamp(
           Double.isInfinite(wantLo)
               ? wantHi
@@ -395,8 +427,17 @@ final class Routing {
     if (fromSide == -toSide && fromSide * (qx - px) > 0 && fromSide * (c2 - c1) < 0) {
       return null; // between facing sides too close for its legs: it would run back over itself
     }
+    if (fromSide == toSide
+        && Math.abs(y1 - y2) < Math.max(style.marker(), EPSILON)
+        && Math.min(px, c1) < Math.max(qx, c2)
+        && Math.min(qx, c2) < Math.max(px, c1)) {
+      return null; // out of one side and back into it along the same run
+    }
     path.bounds(1, side(fromSide, px, need1));
     path.bounds(3, side(toSide, qx, need2));
+    // Where a node lies within a stub of a port, a leg as close as its marker and bend allow.
+    shorter(path, 1, px + fromSide * need1, obstacles);
+    shorter(path, 3, qx + toSide * need2, obstacles);
     // Each round moves a leg past one more node, outwards, so it ends.
     for (int round = 0; round <= obstacles.nodes.size(); round++) {
       boolean moved = past(path, 1, fromSide, obstacles, style);
@@ -414,6 +455,17 @@ final class Routing {
     }
     path.price(obstacles, stub);
     return path;
+  }
+
+  /** Moves a detour's leg to {@code x} where it crosses a node now and there it does not. */
+  private static void shorter(Path path, int run, double x, Obstacles obstacles) {
+    double at = path.xs[run];
+    if (crossed(path, run, obstacles) >= 0) {
+      path.move(run, x);
+      if (crossed(path, run, obstacles) >= 0) {
+        path.move(run, at);
+      }
+    }
   }
 
   /**
@@ -460,7 +512,15 @@ final class Routing {
   private static Path bumped(
       Path[] paths, int i, double[] reach, Obstacles obstacles, EdgeStyle style) {
     Path straight = paths[i];
-    for (int depth = 1; depth <= paths.length + 1; depth++) {
+    if (style.lane() <= 0) {
+      return straight;
+    }
+    // Deep enough to pass every row of nodes and every other edge's line.
+    double rows = obstacles.rows.length == 0
+        ? 0
+        : obstacles.rows[obstacles.rows.length - 1] - obstacles.rows[0];
+    int deepest = paths.length + 1 + (int) Math.ceil(rows / style.lane());
+    for (int depth = 1; depth <= deepest; depth++) {
       Path chosen = null;
       for (int side : new int[] {1, -1}) {
         Path bump = bump(straight, side * depth, reach, obstacles, style);

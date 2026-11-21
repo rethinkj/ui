@@ -46,7 +46,7 @@ Pass a list of `Canvas.Edge` to draw lines between the nodes, under them:
 
 <Shot src="examples/docs/canvas-edges/view-{theme}" alt="Three tables with a straight gray edge from customer to order and a highlighted blue edge with two bends from address to order, each with crow's foot markers" />
 
-An edge runs from one `Canvas.Port(node, y)` to another: a node's key and the middle of a row in it, from the node's top at 100 %. The canvas routes the edges again in each build, so they follow a node while it is dragged:
+An edge runs from one `Canvas.Port(node, y)` to another: a node's key and the middle of a row in it, from the node's top at 100 %. The canvas routes the edges again whenever the nodes, the edges or their style change, so they follow a node while it is dragged; a pan, a zoom or a hover reuses the routes:
 
 - Each edge leaves a node on its left or right side, whichever faces the other end, and bends at right angles with rounded corners. It goes around the nodes in the way where it finds a free path. Its ends run straight for as far as their markers need; where two nodes face each other too closely for that, the edge goes around them.
 - Every edge gets a lane of its own beside the others, also where several end at the same port. There they join when they show the same marker; with different markers, they end beside each other, so that each shows its own.
