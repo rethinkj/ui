@@ -46,7 +46,7 @@ Pass a list of `Canvas.Edge` items to draw connecting lines under the nodes:
 
 <Shot src="examples/docs/canvas-edges/view-{theme}" alt="Three tables with a straight gray edge from customer to order and a highlighted blue edge with two bends from address to order, each with crow's foot markers" />
 
-An edge connects two `Canvas.Port(node, y)` points, where `node` is the node's key and `y` is the offset from the node's top at 100% zoom (such as the center of a row). The canvas recalculates edge routes whenever the nodes, edges, or edge style change, so edges follow a node while you drag it. Panning, zooming, and hovering reuse the existing routes:
+An edge connects two `Canvas.Port(node, y)` points, where `node` is the node's key and `y` is the offset from the node's top at 100% zoom (such as the center of a row). The canvas recalculates edge routes whenever the nodes, edges, or edge style change. While you drag a node, only its edges follow it, laid beside the others, which keep their routes until the drag ends; then all edges are routed again. Panning, zooming, and hovering reuse the existing routes:
 
 - Each edge leaves a node on its left or right side (whichever faces the other end) and bends at right angles with rounded corners. It routes around nodes in the way whenever it can find a clear path. Each end stays straight long enough for its marker. If two facing nodes are too close for that, the edge routes around them.
 - Each edge gets its own lane beside the others, even when multiple edges end at the same port. Edges at the same port join together if they have the same marker. If they have different markers, they end side by side so each marker stays visible.
