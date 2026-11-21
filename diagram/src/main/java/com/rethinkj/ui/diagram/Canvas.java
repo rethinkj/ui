@@ -470,16 +470,19 @@ public final class Canvas {
       double minY = bounds[1];
       double maxX = bounds[2];
       double maxY = bounds[3];
-      // Nodes without extent divide by 0: an infinity, or NaN where the canvas has no room either.
-      double fit =
-          Math.min((width - 2.0 * margin) / (maxX - minX), (height - 2.0 * margin) / (maxY - minY));
-      zoom = Double.isNaN(fit)
-          ? ZOOMS.getLast()
-          : (float) Math.clamp(fit, ZOOMS.getFirst(), ZOOMS.getLast());
+      double fit = Math.min(
+          ratio(width - 2.0 * margin, maxX - minX), ratio(height - 2.0 * margin, maxY - minY));
+      zoom = (float) Math.clamp(fit, ZOOMS.getFirst(), ZOOMS.getLast());
       left = (minX + maxX) / 2 - width / 2.0 / zoom;
       top = (minY + maxY) / 2 - height / 2.0 / zoom;
       return true;
     }
+  }
+
+  /** The zoom at which an extent fills this room; any zoom fits an extent of 0 into a room of 0. */
+  private static double ratio(double room, double extent) {
+    double fit = room / extent;
+    return Double.isNaN(fit) ? Double.POSITIVE_INFINITY : fit;
   }
 
   /** The left, top, right and bottom edge of the nodes, of which there is at least one. */

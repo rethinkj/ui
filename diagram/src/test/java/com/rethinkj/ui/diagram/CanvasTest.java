@@ -162,10 +162,10 @@ class CanvasTest {
     viewport.zoomBy(2, 200, 130); // the first step goes to 75 %
     assertEquals(1f, viewport.zoom());
 
-    // Nodes without extent fit at the nearest zoom.
+    // A line without height in a canvas without room for one fits by its width: 400 less 2 * 130.
     viewport.fit();
-    viewport.fitIfDue(List.of(new Node("dot", null, 10, 20, 0, 0)), 16);
-    assertEquals(Canvas.Viewport.ZOOMS.getLast(), viewport.zoom());
+    viewport.fitIfDue(List.of(new Node("line", null, 0, 0, 520, 0)), 130);
+    assertEquals(140f / 520f, viewport.zoom(), 1e-6f);
   }
 
   @Test
