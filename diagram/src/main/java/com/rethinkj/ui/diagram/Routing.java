@@ -644,13 +644,12 @@ final class Routing {
       Path chosen = null;
       for (int side : new int[] {1, -1}) {
         Path bump = bump(straight, side * depth, reach, obstacles, style);
+        if (bump != null && bump.cost >= CRAMPED) {
+          fitLeg(bump, 1, obstacles, style.stub());
+          fitLeg(bump, 3, obstacles, style.stub());
+          obstacles.price(bump, style);
+        }
         if (bump != null && bump.hits <= straight.hits && !taken(bump, paths, style.lane())) {
-          if (bump.cost - bump.hits * HIT >= CRAMPED) {
-            // Legs beside a node move into the gap, within the bounds that keep them in order.
-            clearLeg(bump, 1, obstacles, style.stub());
-            clearLeg(bump, 3, obstacles, style.stub());
-            obstacles.price(bump, style);
-          }
           chosen = cheaper(chosen, bump);
         }
       }
@@ -662,6 +661,24 @@ final class Routing {
       }
     }
     return fallback != null ? fallback : straight;
+  }
+
+  /**
+   * Moves a bump's leg that crosses a node as near its port as its bounds allow, where that crosses
+   * none, and then into the gap between the nodes beside it.
+   */
+  private static void fitLeg(Path path, int run, Obstacles obstacles, double stub) {
+    int port = run == 1 ? 0 : 5;
+    double at = path.xs[run];
+    double[] bounds = path.bounds[run];
+    if (crossed(path, run, obstacles) >= 0) {
+      boolean low = Math.abs(bounds[0] - path.xs[port]) < Math.abs(bounds[1] - path.xs[port]);
+      path.move(run, low ? bounds[0] : bounds[1]);
+      if (crossed(path, run, obstacles) >= 0) {
+        path.move(run, at);
+      }
+    }
+    clearLeg(path, run, obstacles, stub);
   }
 
   /** Whether a bump's crossbar lies within half a lane of another route's horizontal run. */

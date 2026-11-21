@@ -300,5 +300,11 @@ class RoutingTest {
         Routing.route(between, List.of(again, again, again), style).getLast().points();
     assertEquals(248, third.get(2).y(), 1e-6);
     assertEquals(258.5, third.get(4).x(), 1e-6);
+
+    // With a 4 px further right, the leg there first crosses the lower card, then moves clear.
+    List<Node> closer = new ArrayList<>(between);
+    closer.set(0, new Node("a", null, 4, 182, 240, 32));
+    third = Routing.route(closer, List.of(again, again, again), style).getLast().points();
+    assertEquals(248, third.get(2).y(), 1e-6);
   }
 }
