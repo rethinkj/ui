@@ -231,12 +231,15 @@ public final class Canvas {
     private String revealing;
     // The wheel's turn with Control held that has not zoomed a step yet, in logical pixels.
     private double wheeled;
-    // The routes of the last build with edges and what they were routed from, so that a pan, a zoom
-    // or a hover does not route them again.
+    // The routes of the last full build with edges and what they were routed from, so that a pan,
+    // a zoom or a hover does not route them again; kept as the base while a node is dragged.
     private List<Node> routedNodes;
     private List<Edge> routedEdges;
     private EdgeStyle routedStyle;
     private List<Routing.Route> routes;
+    // The rerouted routes of the latest step of a drag and the nodes they were routed from.
+    private List<Node> draggedNodes;
+    private List<Routing.Route> draggedRoutes;
 
     /** A viewport at 100 % with the diagram's origin at the canvas's top left. */
     public Viewport() {
@@ -394,22 +397,62 @@ public final class Canvas {
 
     /**
      * The edges' routes among these nodes, routed again only when something routing reads changed:
-     * a node's key, position or size, an edge's key, ports or markers, or the style.
+     * a node's key, position or size, an edge's key, ports or markers, or the style. While a node
+     * is dragged, only its edges are routed anew against the routes from before the drag, until
+     * release.
      */
     List<Routing.Route> routes(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
-      if (!sameNodes(nodes, routedNodes)
-          || !sameEdges(edges, routedEdges)
-          || !style.equals(routedStyle)) {
-        // Kept only once all of it worked, so that a failure leaves the last routes as they were.
-        List<Node> copiedNodes = List.copyOf(nodes);
-        List<Edge> copiedEdges = List.copyOf(edges);
-        List<Routing.Route> routed = Routing.route(copiedNodes, copiedEdges, style);
-        routedNodes = copiedNodes;
-        routedEdges = copiedEdges;
-        routedStyle = style;
-        routes = routed;
+      boolean sameBase = sameEdges(edges, routedEdges) && style.equals(routedStyle);
+      if (sameBase && sameNodes(nodes, routedNodes)) {
+        draggedNodes = null;
+        draggedRoutes = null;
+        return routes;
       }
+      if (dragged != null && sameBase && onlyMoved(nodes, routedNodes, dragged)) {
+        if (!sameNodes(nodes, draggedNodes)) {
+          // Kept only once all of it worked, so that a failure leaves the last routes as they were.
+          List<Node> copiedNodes = List.copyOf(nodes);
+          List<Routing.Route> rerouted =
+              Routing.reroute(copiedNodes, routedEdges, style, routes, dragged);
+          draggedNodes = copiedNodes;
+          draggedRoutes = rerouted;
+        }
+        return draggedRoutes;
+      }
+      // Kept only once all of it worked, so that a failure leaves the last routes as they were.
+      List<Node> copiedNodes = List.copyOf(nodes);
+      List<Edge> copiedEdges = List.copyOf(edges);
+      List<Routing.Route> routed = Routing.route(copiedNodes, copiedEdges, style);
+      routedNodes = copiedNodes;
+      routedEdges = copiedEdges;
+      routedStyle = style;
+      routes = routed;
+      draggedNodes = null;
+      draggedRoutes = null;
       return routes;
+    }
+
+    private static boolean onlyMoved(List<Node> nodes, List<Node> routed, String moved) {
+      if (routed == null || nodes.size() != routed.size()) {
+        return false;
+      }
+      int i = 0;
+      for (Node a : nodes) { // the copy routed is random access, the caller's list may not be
+        Node b = routed.get(i++);
+        if (a == b) {
+          continue;
+        }
+        if (!a.key().equals(b.key())
+            || Float.compare(a.width(), b.width()) != 0
+            || Float.compare(a.height(), b.height()) != 0) {
+          return false;
+        }
+        if (!a.key().equals(moved)
+            && (Double.compare(a.x(), b.x()) != 0 || Double.compare(a.y(), b.y()) != 0)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     private static boolean sameNodes(List<Node> nodes, List<Node> routed) {

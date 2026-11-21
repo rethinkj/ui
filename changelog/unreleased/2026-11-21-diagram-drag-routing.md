@@ -1,0 +1,1 @@
+- Dragging a node on a `Canvas` with edges now routes only that node's edges against the routes from before the drag, and routes the whole diagram once the drag ends. Other edges keep their lanes during the drag, and each drag step stays fast in large diagrams.

@@ -1,6 +1,7 @@
 package com.rethinkj.ui.diagram;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.diagram.Canvas.Edge;
@@ -317,5 +318,32 @@ class RoutingTest {
     assertEquals(
         118,
         Routing.route(narrowZ, List.of(z), STYLE).getFirst().points().get(1).x());
+  }
+
+  @Test
+  void rerouteSpreadsMovedRunsAroundKeptOnesAndBumpsOffKeptLines() {
+    Node a = new Node("a", null, 0, 0, 100, 100);
+    Node b = new Node("b", null, 300, 0, 100, 100);
+    Node c = new Node("c", null, 40, 200, 100, 100);
+    List<Edge> edges = List.of(edge("kept", "a", 20, "b", 50), edge("moved", "c", 20, "b", 50));
+    List<Routing.Route> before = Routing.route(List.of(a, b, c), edges, STYLE);
+    assertEquals(200, before.get(0).points().get(1).x());
+
+    // Move c into a's column so moved wants the same channel at x = 200: kept stays at 200 and
+    // moved spreads a lane beside it.
+    List<Node> aligned = List.of(a, b, c.movedTo(0, 100));
+    List<Routing.Route> rerouted = Routing.reroute(aligned, edges, STYLE, before, "c");
+    assertSame(before.get(0), rerouted.get(0));
+    assertEquals(STYLE.lane(), Math.abs(rerouted.get(1).points().get(1).x() - 200), 1e-6);
+
+    // Even when listed before a kept straight edge, a rerouted edge that lands on its line bumps
+    // off it instead of lying on it.
+    List<Edge> straight = List.of(edge("moved", "c", 50, "b", 50), edge("kept", "a", 50, "b", 50));
+    List<Routing.Route> straightBefore = Routing.route(List.of(a, b, c), straight, STYLE);
+    List<Routing.Route> bumped =
+        Routing.reroute(List.of(a, b, c.movedTo(0, 0)), straight, STYLE, straightBefore, "c");
+    assertSame(straightBefore.get(1), bumped.get(1));
+    assertEquals(6, bumped.get(0).points().size());
+    assertEquals(60, bumped.get(0).points().get(2).y());
   }
 }

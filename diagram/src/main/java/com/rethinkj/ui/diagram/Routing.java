@@ -44,7 +44,9 @@ import java.util.TreeSet;
  * that crosses less, each within its bounds: clear of its markers and bends and of the nodes
  * beside it. Where the bounds are too narrow for that, they lie as far apart as the tightest
  * allows. A route that spreading would make cross a node it did not cross keeps its place. Runs
- * that end at a port are not moved, so edges that meet at a port join there.
+ * that end at a port are not moved, so edges that meet at a port join there. While a single node
+ * moves, {@link #reroute} routes only that node's edges, keeping all other routes in place and
+ * spreading the rerouted runs around them.
  *
  * <p>Limits: the router does not search all paths, so an edge can still cross a node where the
  * shapes above find no free way; it does not see the markers of other nodes' ports, so a run can
@@ -75,6 +77,23 @@ final class Routing {
    * @return a route for each edge in their order; null for one whose node is not among the nodes
    */
   static List<Route> route(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
+    return route(nodes, edges, style, null, null);
+  }
+
+  /**
+   * Routes only the edges attached to {@code moved} anew, keeping the route of every other edge
+   * from {@code kept} in place and spreading the rerouted runs around them.
+   *
+   * @return a route for each edge in their order; the kept {@link Route} for each edge not attached
+   *     to {@code moved}, and null for a rerouted edge whose node is not among the nodes
+   */
+  static List<Route> reroute(
+      List<Node> nodes, List<Edge> edges, EdgeStyle style, List<Route> kept, String moved) {
+    return route(nodes, edges, style, kept, moved);
+  }
+
+  private static List<Route> route(
+      List<Node> nodes, List<Edge> edges, EdgeStyle style, List<Route> kept, String moved) {
     Map<String, Node> byKey = new HashMap<>();
     for (Node node : nodes) {
       byKey.putIfAbsent(node.key(), node);
@@ -85,7 +104,34 @@ final class Routing {
     Path[] others = new Path[edges.size()]; // the C on the other side, where it is as good
     Map<List<Double>, Integer> straights = new HashMap<>(); // per line, how many lie on it
     double[][] reaches = new double[edges.size()][]; // of the straight edges that bump out
+    boolean[] fixed = kept == null ? null : new boolean[edges.size()];
+    if (kept != null) {
+      // Seed kept straight lines first so a rerouted edge earlier in the list still bumps off one.
+      for (int i = 0; i < edges.size(); i++) {
+        Edge edge = edges.get(i);
+        if (!edge.from().node().equals(moved) && !edge.to().node().equals(moved)) {
+          fixed[i] = true;
+          Route route = kept.get(i);
+          if (route != null) {
+            Path path = fixed(route);
+            paths[i] = path;
+            if (path.xs.length == 2) {
+              straights.merge(
+                  List.of(
+                      Math.min(path.xs[0], path.xs[1]),
+                      Math.max(path.xs[0], path.xs[1]),
+                      path.ys[0]),
+                  1,
+                  Integer::sum);
+            }
+          }
+        }
+      }
+    }
     for (int i = 0; i < paths.length; i++) {
+      if (fixed != null && fixed[i]) {
+        continue;
+      }
       Edge edge = edges.get(i);
       Node from = byKey.get(edge.from().node());
       Node to = byKey.get(edge.to().node());
@@ -149,7 +195,7 @@ final class Routing {
     // Spreading can move another edge onto a bump: such a bump is chosen again among the spread
     // routes, and they are spread once more, a few times at most.
     for (int round = 0; round < 3; round++) {
-      spread(paths, nodes, obstacles, style);
+      spread(paths, fixed, nodes, obstacles, style);
       boolean again = false;
       for (int i = 0; i < paths.length; i++) {
         if (straight[i] != null
@@ -165,10 +211,26 @@ final class Routing {
       }
     }
     List<Route> routes = new ArrayList<>(paths.length);
-    for (Path path : paths) {
-      routes.add(path == null ? null : path.route());
+    for (int i = 0; i < paths.length; i++) {
+      routes.add(
+          fixed != null && fixed[i] ? kept.get(i) : paths[i] == null ? null : paths[i].route());
     }
     return routes;
+  }
+
+  /** A fixed path built from a kept route's points, with sides from its first and last runs. */
+  private static Path fixed(Route route) {
+    List<Point> points = route.points();
+    int n = points.size();
+    double[] xs = new double[n];
+    double[] ys = new double[n];
+    for (int i = 0; i < n; i++) {
+      xs[i] = points.get(i).x();
+      ys[i] = points.get(i).y();
+    }
+    int fromSide = n > 1 && xs[1] < xs[0] ? -1 : 1;
+    int toSide = n > 1 && xs[n - 2] < xs[n - 1] ? -1 : 1;
+    return new Path(fromSide, toSide, xs, ys);
   }
 
   /**
@@ -241,16 +303,22 @@ final class Routing {
    * Spreads the runs into lanes; a route that spreading would make cross a node it did not cross
    * keeps its place.
    */
-  private static void spread(Path[] paths, List<Node> nodes, Obstacles obstacles, EdgeStyle style) {
+  private static void spread(
+      Path[] paths, boolean[] fixed, List<Node> nodes, Obstacles obstacles, EdgeStyle style) {
     double[][][] placed = new double[paths.length][][];
+    boolean any = false;
     for (int i = 0; i < paths.length; i++) {
-      if (paths[i] != null) {
+      if (paths[i] != null && (fixed == null || !fixed[i])) {
         placed[i] = new double[][] {paths[i].xs.clone(), paths[i].ys.clone()};
+        any = true;
       }
     }
-    new Lanes(paths, nodes, style.lane()).spread();
+    if (!any) {
+      return;
+    }
+    new Lanes(paths, fixed, nodes, style.lane()).spread();
     for (int i = 0; i < paths.length; i++) {
-      if (paths[i] != null) {
+      if (placed[i] != null) {
         int hits = paths[i].hits;
         obstacles.price(paths[i], style);
         if (paths[i].hits > hits) {
@@ -1205,21 +1273,32 @@ final class Routing {
   private static final class Lanes {
     private final Path[] paths;
     private final double lane;
-    // Every run between two bends: its path and its index there.
+    // Every run between two bends: its path and its index there, movable runs before fixed ones.
     private final List<int[]> runs = new ArrayList<>();
+    private final int movable; // indices below this may move; the rest stay where they lie
     private final double[] preferred;
     private final double[][] bounds; // where each may lie: its path's bounds, clear of nodes
     private final double[][] key; // the order runs take in a lane, by sortKey
     private final int[] group; // the group of each run, by its index in runs
     private final List<List<Integer>> members = new ArrayList<>();
 
-    Lanes(Path[] paths, List<Node> nodes, double lane) {
+    Lanes(Path[] paths, boolean[] fixed, List<Node> nodes, double lane) {
       this.paths = paths;
       this.lane = lane;
       for (int p = 0; p < paths.length; p++) {
-        if (paths[p] != null) {
+        if (paths[p] != null && (fixed == null || !fixed[p])) {
           for (int run = 1; run + 2 < paths[p].xs.length; run++) {
             runs.add(new int[] {p, run});
+          }
+        }
+      }
+      movable = runs.size();
+      if (fixed != null) {
+        for (int p = 0; p < paths.length; p++) {
+          if (paths[p] != null && fixed[p]) {
+            for (int run = 1; run + 2 < paths[p].xs.length; run++) {
+              runs.add(new int[] {p, run});
+            }
           }
         }
       }
@@ -1229,8 +1308,9 @@ final class Routing {
       key = new double[count][];
       group = new int[count];
       for (int i = 0; i < count; i++) {
-        preferred[i] = position(i);
-        bounds[i] = bounds(i, nodes);
+        double at = position(i);
+        preferred[i] = at;
+        bounds[i] = i < movable ? bounds(i, nodes) : new double[] {at, at};
         key[i] = sortKey(i);
         group[i] = i;
         members.add(new ArrayList<>(List.of(i)));
@@ -1238,7 +1318,7 @@ final class Routing {
     }
 
     void spread() {
-      if (lane <= 0) {
+      if (lane <= 0 || movable == 0) {
         return;
       }
       // Each merge joins two groups and a pass without one ends it, so there are at most as many
@@ -1246,7 +1326,7 @@ final class Routing {
       boolean merged = true;
       while (merged) {
         merged = false;
-        for (int i = 0; i < runs.size(); i++) {
+        for (int i = 0; i < movable; i++) {
           for (int j = i + 1; j < runs.size(); j++) {
             if (group[i] != group[j] && near(i, j)) {
               int keep = group[i];
@@ -1368,7 +1448,7 @@ final class Routing {
         for (int k = 0; k + 1 < n; k++) {
           int a = order.get(k);
           int b = order.get(k + 1);
-          if (!fits(a, at[k + 1]) || !fits(b, at[k])) {
+          if (a >= movable || b >= movable || !fits(a, at[k + 1]) || !fits(b, at[k])) {
             continue;
           }
           int before = crossings(path(a), path(b));
@@ -1427,6 +1507,9 @@ final class Routing {
     }
 
     private void move(int i, double position) {
+      if (i >= movable) {
+        return;
+      }
       int[] run = runs.get(i);
       paths[run[0]].move(run[1], position);
     }

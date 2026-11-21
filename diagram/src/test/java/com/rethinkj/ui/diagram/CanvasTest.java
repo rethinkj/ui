@@ -4,7 +4,9 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -321,6 +323,64 @@ class CanvasTest {
         first, viewport.routes(List.of(relabeled, b), List.of(highlighted), EdgeStyle.DEFAULT));
     assertNotSame(
         first, viewport.routes(List.of(a.movedTo(20, 0), b), List.of(edge), EdgeStyle.DEFAULT));
+  }
+
+  @Test
+  void draggingANodeKeepsOtherEdgesInPlaceUntilRelease() throws IOException {
+    Board board = new Board();
+    board.nodes.clear();
+    board.nodes.addAll(List.of(
+        new Node("orders", "orders", 40, 40, 100, 60),
+        new Node("customers", "customers", 240, 40, 100, 60),
+        new Node("items", "items", 40, 160, 100, 60)));
+    List<Edge> edges = List.of(
+        new Edge(
+            "attached",
+            null,
+            new Port("orders", 30),
+            new Port("customers", 30),
+            Marker.NONE,
+            Marker.NONE),
+        new Edge(
+            "foreign",
+            null,
+            new Port("items", 30),
+            new Port("customers", 40),
+            Marker.NONE,
+            Marker.NONE));
+    App<Board> app = new App<>(
+        board,
+        state -> Canvas.canvas(state.viewport, state.nodes, edges, CanvasTest::card, state::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 400 260\nframe\n", app, out);
+    List<Routing.Route> before = board.viewport.routes(board.nodes, edges, EdgeStyle.DEFAULT);
+
+    // Drag orders across foreign's vertical channel (x = 190): foreign stays in place while
+    // attached follows orders, and an unchanged step reuses the cached drag routes.
+    Script.run("down #orders\nmove 190,130\nframe\n", app, out);
+    assertEquals("orders", board.viewport.dragging());
+    List<Routing.Route> during = board.viewport.routes(board.nodes, edges, EdgeStyle.DEFAULT);
+    assertSame(before.get(1), during.get(1));
+    assertNotEquals(before.get(0), during.get(0));
+    assertEquals(
+        board.node("orders").y() + 30, during.get(0).points().getFirst().y());
+    assertSame(during, board.viewport.routes(board.nodes, edges, EdgeStyle.DEFAULT));
+
+    // Release routes the whole diagram anew, matching Routing.route, so foreign now avoids orders.
+    Script.run("up 190,130\nframe\n", app, out);
+    assertNull(board.viewport.dragging());
+    List<Routing.Route> after = board.viewport.routes(board.nodes, edges, EdgeStyle.DEFAULT);
+    assertEquals(Routing.route(board.nodes, edges, EdgeStyle.DEFAULT), after);
+    assertNotEquals(before.get(1), after.get(1));
+
+    // Cancelling a drag returns orders to its base position and reuses the base routes.
+    Script.run("down #orders\nmove 120,90\nframe\nkey Escape\nframe\n", app, out);
+    assertNull(board.viewport.dragging());
+    assertSame(after, board.viewport.routes(board.nodes, edges, EdgeStyle.DEFAULT));
   }
 
   /** The line of the element with this key in a tree dump, or nothing. */
