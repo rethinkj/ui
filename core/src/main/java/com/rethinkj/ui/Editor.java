@@ -117,8 +117,6 @@ final class Editor {
   private boolean reveal;
   // App.select asked: a multi-line field scrolls the selection into view also without the focus.
   private boolean asked;
-  // App.edit with a selection: onSelect hears it once the app answered, in the app's string.
-  private boolean held;
   // The caret and anchor the element's onSelect handler was told last; -1 before the first.
   private int toldCaret = -1;
   private int toldAnchor = -1;
@@ -156,8 +154,8 @@ final class Editor {
    * answer to the edits since the last tree. Then shows the composition in its text; a field that
    * no longer takes edits ends it, as losing the focus does.
    *
-   * @return whether onSelect is to hear the selection before more input: the app refused or
-   *     changed the edits, which moved it, or it was held for the answer
+   * @return whether onSelect is to hear the selection before more input: it was held for the
+   *     app's answer to the edits
    */
   boolean attach(El el) {
     this.el = el;
@@ -225,13 +223,12 @@ final class Editor {
    * that reach a field in the same frame, so that the second builds on what the app made of the
    * first.
    *
-   * @return whether the app refused or changed the edits, or the selection was held for them
+   * @return whether the selection was held for the answer, as {@link #tell} holds it
    */
   private boolean answer(String value) {
-    boolean moved = false;
+    boolean moved = proposed != null;
     if (proposed != null) {
-      moved = held || !value.equals(proposed);
-      held = false;
+      toldCaret = -1; // the handler hears the selection after every answer, also one it had
       // The answer is usually the proposal itself, which the first comparison finds at once.
       if (!value.equals(proposed) && value.equals(before.text)) {
         // Refused: as if the edits had not happened.
@@ -357,12 +354,13 @@ final class Editor {
 
   /**
    * Tells the element's {@link El#onSelect} handler the caret and the anchor if they changed since
-   * it was last told.
+   * it was last told, or the app answered an edit since. Not while an edit waits for the app's
+   * answer: the positions are those of the proposed string, which the app may refuse or change.
    *
    * @return whether it was told
    */
   boolean tell() {
-    if (held || (caret == toldCaret && anchor == toldAnchor)) {
+    if (proposed != null || (caret == toldCaret && anchor == toldAnchor)) {
       return false;
     }
     toldCaret = caret;
@@ -379,9 +377,8 @@ final class Editor {
    * An edit the app asks for ({@link App#edit}): {@code from} to {@code to} replaced by {@code
    * inserted}, with the caret at {@code newCaret} and the anchor at {@code newAnchor} of the new
    * string after it, as one step of the history, handed to the app as typed text is. With {@code
-   * ask}, a multi-line field scrolls it into view also without the focus, as {@link #select} does,
-   * and the handler of its selection hears it once the app answered. Nothing in a field that takes
-   * no edits.
+   * ask}, a multi-line field scrolls it into view also without the focus, as {@link #select}
+   * does. Nothing in a field that takes no edits.
    */
   void request(int from, int to, String inserted, int newCaret, int newAnchor, boolean ask) {
     if (!editable()) {
@@ -397,7 +394,6 @@ final class Editor {
     run = null;
     edit(from, to - from, fitted, newCaret, newAnchor, null, false);
     asked |= ask;
-    held |= ask;
   }
 
   /**

@@ -623,9 +623,7 @@ public final class Find {
       if (next != null && !(next[0] == s && next[1] == e)) {
         int shift = next[0] >= e ? delta : 0;
         select(state, new int[] {next[0] + shift, next[1] + shift});
-      } else {
-        state.caret = state.anchor = s + with.length();
-      }
+      } // else onSelect tells the caret once the app took the edit
       return;
     }
     go(state, 1);
@@ -668,7 +666,6 @@ public final class Find {
     if (state.inSelection()) {
       state.scopeTo += replaced.text().length() - (replaced.to() - replaced.from());
     }
-    state.caret = state.anchor = end;
   }
 
   /** Goes to the line, and column, the line field holds, and closes the bar. */

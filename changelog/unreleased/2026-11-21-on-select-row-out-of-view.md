@@ -1,0 +1,1 @@
+- A focused text field in a row of a virtual list that layout left out of the tree no longer hears its `onSelect` while the row is gone, so `App.select` on the field from that handler no longer throws `IllegalArgumentException`. It hears the selection after the next input or rebuild once the row is back.

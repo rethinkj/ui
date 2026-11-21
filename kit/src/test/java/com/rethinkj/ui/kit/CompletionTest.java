@@ -37,6 +37,7 @@ class CompletionTest {
     Highlighter highlighter;
     final CodeEditor.State editor = new CodeEditor.State();
     final Completion.State completion = new Completion.State();
+    boolean plain; // the editor without completions
     App<Query> app;
   }
 
@@ -68,11 +69,25 @@ class CompletionTest {
           .hFull()
           .padding(12)
           .fill(t.surface().window())
+          .onKey(key -> switch (key.name()) { // edits of the app's at the end
+            case "F6" -> { // an s, the caret where it is
+              s.app.edit(editor, s.sql.length(), s.sql.length(), "s", s.editor.caret());
+              yield true;
+            }
+            case "F7" -> { // the last character gone
+              s.editor.replace(s.sql.length() - 1, s.sql.length(), "", 0);
+              yield true;
+            }
+            default -> false;
+          })
           .child(
-              background
-                  ? Completion.completeInBackground(
-                      s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
-                  : Completion.complete(s.app, editor, s.editor.caret(), s.completion, suggest));
+              s.plain
+                  ? editor
+                  : background
+                      ? Completion.completeInBackground(
+                          s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
+                      : Completion.complete(
+                          s.app, editor, s.editor.caret(), s.completion, suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -153,6 +168,75 @@ class CompletionTest {
 
     run(app, "key Z control");
     assertEquals("SELECT cu", app.state().sql, "one step of the history");
+  }
+
+  @Test
+  void aDeletionInsideAWordAsksForThePartBeforeTheCaret() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<String> asked = new ArrayList<>();
+    App<Query> app = app(word -> {
+      asked.add(word);
+      return List.of(new Completion.Entry("count"));
+    });
+    run(
+        app,
+        "frame\npress #query\ntype \"SELECT cooo\"\nkey ArrowLeft\nkey ArrowLeft\nkey Space control");
+    asked.clear();
+    run(app, "key Backspace");
+    assertEquals("SELECT coo", app.state().sql);
+    assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|oo");
+
+    run(app, "key A control\ntype \"SELECT coount\"" + "\nkey ArrowLeft".repeat(5));
+    run(app, "key ArrowRight shift\nkey Space control"); // SELECT c[o]ount
+    asked.clear();
+    run(app, "key Delete");
+    assertEquals("SELECT count", app.state().sql);
+    assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|ount");
+
+    app.state().plain = true; // completions come once the selection is there: no anchor told
+    run(app, "key A control\ntype \"SELECT count\"" + "\nkey ArrowLeft".repeat(3));
+    run(app, "key ArrowRight shift\nkey ArrowRight shift"); // SELECT co[un]t
+    app.state().plain = false;
+    app.invalidate();
+    run(app, "frame\nkey Space control");
+    asked.clear();
+    run(app, "key Delete");
+    assertEquals("SELECT cot", app.state().sql);
+    assertEquals(List.of("co"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "co|t");
+  }
+
+  @Test
+  void anEditOfTheAppThatLeavesTheCaretKeepsTheWordToReplace() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    run(
+        app,
+        "frame\npress #query\ntype \"SELECT cu FROM order\"\nkey Home"
+            + "\nkey ArrowRight".repeat(9));
+    run(app, "key Space control\nkey F6"); // SELECT cu| FROM orders
+    run(app, "key Enter");
+    assertEquals("SELECT customers FROM orders", app.state().sql);
+
+    String tree =
+        run(app, "key A control\ntype \"SELECT cu\"\nkey Escape\nkey F6\nkey Space control");
+    assertEquals("SELECT cus", app.state().sql);
+    assertTrue(tree.contains("label=\"customers\""), "the list for cu, the caret before the s");
+  }
+
+  @Test
+  void anEntryProviderSlicesTheAppsTextAtTheAppsCaret() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Query> self = new ArrayList<>();
+    App<Query> app = app(word -> {
+      Query q = self.getFirst();
+      String before = q.sql.substring(0, q.editor.caret()); // throws for a caret beyond the text
+      return CompletionTest.suggest(before.substring(before.lastIndexOf(' ') + 1));
+    });
+    self.add(app.state());
+    run(app, "frame\npress #query\ntype \"SELECT cus\"");
+    String tree = run(app, "key F7");
+    assertEquals("SELECT cu", app.state().sql);
+    assertTrue(tree.contains("label=\"customers\""), tree);
   }
 
   @Test
@@ -270,8 +354,14 @@ class CompletionTest {
   @Test
   void aDotOpensTheListAndAnEntryPutsInItsOwnText() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Query> app = app(word ->
-        List.of(new Completion.Entry("order date", Symbol.TABLE, "timestamp", "\"order date\"")));
+    List<Query> self = new ArrayList<>();
+    App<Query> app = app(word -> {
+      Query q = self.getFirst(); // the qualifier before the caret, as the app keeps it
+      return q.sql.substring(0, Math.min(q.editor.caret(), q.sql.length())).endsWith("o.")
+          ? List.of(new Completion.Entry("order date", Symbol.TABLE, "timestamp", "\"order date\""))
+          : List.of();
+    });
+    self.add(app.state());
     app.state().completion.openAfter(".");
     String tree = run(app, "frame\npress #query\ntype \"o.\"");
     assertTrue(tree.contains("role=option label=\"order date\""), tree);

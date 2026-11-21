@@ -2769,8 +2769,8 @@ public final class DataGrid {
   /**
    * Adds what fits the columns while a fit is due: an empty element whose size handler runs in
    * the frame that builds it, after layout, when the rows that exist are known. It is keyed by
-   * the rows the fit last looked at and how many of them are loaded, so that a grid waiting for
-   * its first page is told again when the page arrives, and not on the frames between.
+   * the rows the fit last looked at, or the grid built since, and how many of them are loaded, so
+   * that a grid waiting for its rows is told again when they arrive, and not on the frames between.
    */
   private static void fitting(Build b, El content) {
     Fit fit = b.o.fit;
@@ -2781,6 +2781,14 @@ public final class DataGrid {
     }
     if (!due || b.rowCount == 0) {
       return; // headers alone are no reason to fit
+    }
+    El.RowsHandler onRows = b.o.onRows;
+    if (onRows != null) {
+      b.body.onRowsBuilt((first, last) -> {
+        fit.first = first; // the fit waits for these rows now, not for those it saw
+        fit.last = last;
+        onRows.accept(first, last);
+      });
     }
     int loaded = 0;
     for (int i = Math.max(fit.first, 0); i <= Math.min(fit.last, b.rowCount - 1); i++) {
