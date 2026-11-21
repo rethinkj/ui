@@ -37,6 +37,7 @@ class CompletionTest {
     Highlighter highlighter;
     final CodeEditor.State editor = new CodeEditor.State();
     final Completion.State completion = new Completion.State();
+    boolean plain; // the editor without completions
     App<Query> app;
   }
 
@@ -69,10 +70,13 @@ class CompletionTest {
           .padding(12)
           .fill(t.surface().window())
           .child(
-              background
-                  ? Completion.completeInBackground(
-                      s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
-                  : Completion.complete(s.app, editor, s.editor.caret(), s.completion, suggest));
+              s.plain
+                  ? editor
+                  : background
+                      ? Completion.completeInBackground(
+                          s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
+                      : Completion.complete(
+                          s.app, editor, s.editor.caret(), s.completion, suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -177,6 +181,17 @@ class CompletionTest {
     run(app, "key Delete");
     assertEquals("SELECT count", app.state().sql);
     assertEquals(List.of("c"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "c|ount");
+
+    app.state().plain = true; // completions come once the selection is there: no anchor told
+    run(app, "key A control\ntype \"SELECT count\"" + "\nkey ArrowLeft".repeat(3));
+    run(app, "key ArrowRight shift\nkey ArrowRight shift"); // SELECT co[un]t
+    app.state().plain = false;
+    app.invalidate();
+    run(app, "frame\nkey Space control");
+    asked.clear();
+    run(app, "key Delete");
+    assertEquals("SELECT cot", app.state().sql);
+    assertEquals(List.of("co"), List.copyOf(new java.util.LinkedHashSet<>(asked)), "co|t");
   }
 
   @Test

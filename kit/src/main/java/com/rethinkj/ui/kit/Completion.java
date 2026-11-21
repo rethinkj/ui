@@ -260,12 +260,14 @@ public final class Completion {
           follow(state, text, v);
         }
         // After what it put in or before what it took, as of the selection's end; Delete without
-        // a selection leaves it.
-        int anchor = state.toldCaret == at ? state.toldAnchor : at;
+        // a selection leaves it. Without a told anchor, a deletion shows which side it took.
+        boolean told = state.toldCaret == at;
+        int anchor = told ? state.toldAnchor : at;
         int grown = v.length() - text.length();
         state.edited = v;
-        state.editedCaret =
-            at == anchor && grown < 0 && !state.back ? at : Math.max(at, anchor) + grown;
+        state.editedCaret = !told && grown < 0
+            ? deleted(text, v, at, state.back)
+            : at == anchor && grown < 0 && !state.back ? at : Math.max(at, anchor) + grown;
         onEdit.accept(v);
       });
     }
@@ -311,6 +313,23 @@ public final class Completion {
     list.style().maxHeight = Len.px(
         ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
     return field.overlay(Popup.frame(theme, list));
+  }
+
+  /**
+   * Where a deletion from {@code before} to {@code after} leaves a caret that was at {@code at}:
+   * before what went if that ended at it, else at it; Backspace decides when both fit, as in a run
+   * of equal characters.
+   */
+  private static int deleted(String before, String after, int at, boolean back) {
+    int to = at + after.length() - before.length();
+    boolean ended = to >= 0
+        && after.regionMatches(0, before, 0, to)
+        && after.regionMatches(to, before, at, before.length() - at);
+    boolean started = at + before.length() - after.length() <= before.length()
+        && after.regionMatches(0, before, 0, at)
+        && after.regionMatches(
+            at, before, at + before.length() - after.length(), after.length() - at);
+    return ended && (back || !started) ? to : at;
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */
