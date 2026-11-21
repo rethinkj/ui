@@ -375,9 +375,9 @@ public final class Canvas {
       if (routed == null || nodes.size() != routed.size()) {
         return false;
       }
-      for (int i = 0; i < nodes.size(); i++) {
-        Node a = nodes.get(i);
-        Node b = routed.get(i);
+      int i = 0;
+      for (Node a : nodes) { // the copy routed is random access, the caller's list may not be
+        Node b = routed.get(i++);
         if (a != b
             && (!a.key().equals(b.key())
                 || Double.compare(a.x(), b.x()) != 0
@@ -394,9 +394,9 @@ public final class Canvas {
       if (routed == null || edges.size() != routed.size()) {
         return false;
       }
-      for (int i = 0; i < edges.size(); i++) {
-        Edge a = edges.get(i);
-        Edge b = routed.get(i);
+      int i = 0;
+      for (Edge a : edges) { // the copy routed is random access, the caller's list may not be
+        Edge b = routed.get(i++);
         if (a != b
             && (!a.key().equals(b.key())
                 || !a.from().equals(b.from())
