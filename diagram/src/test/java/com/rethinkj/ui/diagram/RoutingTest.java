@@ -306,5 +306,16 @@ class RoutingTest {
     closer.set(0, new Node("a", null, 4, 182, 240, 32));
     third = Routing.route(closer, List.of(again, again, again), style).getLast().points();
     assertEquals(248, third.get(2).y(), 1e-6);
+
+    // A Z whose channel would cross a node keeps to the edge of where it may lie, half a lane
+    // beside the node, rather than going around: the cleared position is held to its bounds.
+    List<Node> narrowZ = List.of(
+        new Node("a", null, 0, 0, 100, 40),
+        new Node("b", null, 134, 200, 100, 40),
+        new Node("c", null, 90, 80, 23, 80));
+    Edge z = new Edge("e", null, new Port("a", 20), new Port("b", 20), Marker.NONE, Marker.ONE);
+    assertEquals(
+        118,
+        Routing.route(narrowZ, List.of(z), STYLE).getFirst().points().get(1).x());
   }
 }

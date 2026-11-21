@@ -395,11 +395,11 @@ final class Routing {
               }
             }
           }
-          TreeSet<Double> xs = new TreeSet<>(); // each once, in order
+          TreeSet<Double> xs = new TreeSet<>(); // each once, in order, where the channel may lie
           for (double x : raw) {
-            xs.add(obstacles.clear(true, x, top, bottom, stub));
+            xs.add(Math.clamp(obstacles.clear(true, x, top, bottom, stub), lo, hi));
           }
-          for (double x : xs.subSet(lo, true, hi, true)) {
+          for (double x : xs) {
             Path path = channel(fromSide, px, y1, toSide, qx, y2, x, lo, hi, obstacles, style);
             double off = Math.abs(x - middle);
             if (beside == null
@@ -673,7 +673,7 @@ final class Routing {
     double[] bounds = path.bounds[run];
     if (crossed(path, run, obstacles) >= 0) {
       boolean low = Math.abs(bounds[0] - path.xs[port]) < Math.abs(bounds[1] - path.xs[port]);
-      path.move(run, low ? bounds[0] : bounds[1]);
+      path.move(run, bounds[low ? 0 : 1]);
       if (crossed(path, run, obstacles) >= 0) {
         path.move(run, at);
       }
