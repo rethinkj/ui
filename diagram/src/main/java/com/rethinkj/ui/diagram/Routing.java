@@ -645,6 +645,12 @@ final class Routing {
       for (int side : new int[] {1, -1}) {
         Path bump = bump(straight, side * depth, reach, obstacles, style);
         if (bump != null && bump.hits <= straight.hits && !taken(bump, paths, style.lane())) {
+          if (bump.cost - bump.hits * HIT >= CRAMPED) {
+            // Legs beside a node move into the gap, within the bounds that keep them in order.
+            clearLeg(bump, 1, obstacles, style.stub());
+            clearLeg(bump, 3, obstacles, style.stub());
+            obstacles.price(bump, style);
+          }
           chosen = cheaper(chosen, bump);
         }
       }
