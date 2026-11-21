@@ -180,10 +180,12 @@ final class GridEdit {
         sel.editRow = place;
       }
     }
-    if (sel.isEditing() && sel.editColumn < b.columns.size()) {
-      // The app builds its columns anew: the mode follows a change of the column's editing.
-      CellEditMode mode = CellEditMode.of(
-          b.columns.get(sel.editColumn), sel.editMode instanceof CellEditMode.MultilineText);
+    if (sel.isEditing()
+        && sel.editColumn < b.columns.size()
+        && !(sel.editMode instanceof CellEditMode.MultilineText)) {
+      // The app builds its columns anew: the mode follows a change of the column's editing,
+      // except in the field of several lines, which stays open until it hands on or closes.
+      CellEditMode mode = CellEditMode.of(b.columns.get(sel.editColumn), false);
       sel.editMode = mode instanceof CellEditMode.Toggle ? CellEditMode.INLINE : mode;
     }
     return sel.isEditing();
