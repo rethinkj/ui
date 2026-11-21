@@ -158,12 +158,9 @@ public final class ErDiagram {
       return modes.getOrDefault(table, mode);
     }
 
-    /**
-     * Shows the table with this key in this mode, arranges the tables again and pans to show it.
-     */
+    /** Shows the table with this key in this mode, and arranges the tables again. */
     public void mode(String table, Mode mode) {
       Objects.requireNonNull(mode, "mode");
-      viewport.reveal(table);
       if (mode == this.mode) {
         modes.remove(table);
       } else {
@@ -641,7 +638,7 @@ public final class ErDiagram {
         El more = row().h(style.row() * zoom).shrink(0).padding(0, theme.space().s() * zoom);
         if (!skeleton) {
           more.role("button")
-              .onPress(() -> state.mode(table.key, Mode.ALL))
+              .onPress(() -> switchMode(state, table.key, Mode.ALL))
               .child(text(texts.moreColumns(table.hidden))
                   .fontSize(theme.type().small().size() * zoom)
                   .color(tone.applyAsInt(theme.text().muted())));
@@ -695,7 +692,7 @@ public final class ErDiagram {
           .color(tone.applyAsInt(theme.text().muted()))
           .role("button")
           .label(next)
-          .onPress(() -> state.mode(table.key, next(table))));
+          .onPress(() -> switchMode(state, table.key, next(table))));
     }
 
     private El columnRow(Shown table, Column column, float zoom, IntUnaryOperator tone) {
@@ -812,6 +809,12 @@ public final class ErDiagram {
     }
   }
 
+  /** Switches a table's mode for the user, and shows it where its new size puts it. */
+  private static void switchMode(State state, String table, Mode mode) {
+    state.mode(table, mode);
+    state.viewport.reveal(table);
+  }
+
   /** The mode after a table's: all columns, its keys where it has others, collapsed, and over. */
   private static Mode next(Shown table) {
     return switch (table.mode) {
@@ -866,7 +869,7 @@ public final class ErDiagram {
         if (selected == null) {
           return false;
         }
-        state.mode(selected.key, next(selected));
+        switchMode(state, selected.key, next(selected));
       }
       case "Escape" -> {
         if (selected == null) {

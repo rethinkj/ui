@@ -267,6 +267,7 @@ public final class Canvas {
       this.left = left;
       this.top = top;
       fitting = false;
+      revealing = null;
     }
 
     /**
@@ -305,7 +306,8 @@ public final class Canvas {
      * Theme.Spacing#xl}, as the keys that move between nodes need; a node larger than the canvas
      * shows from its top left. As {@link #fit} does, the canvas does it in its next build that
      * knows its size, after a fit that is due, with the node where that build has it, so that an
-     * app can call it before the node moves or grows; a node that build does not have is left.
+     * app can call it before the node moves or grows; a node that build does not have is left, and
+     * a {@link #panTo} before that build drops it.
      */
     public void reveal(String node) {
       revealing = Objects.requireNonNull(node, "node");
