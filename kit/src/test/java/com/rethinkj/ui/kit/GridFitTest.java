@@ -202,8 +202,14 @@ class GridFitTest {
     Orders orders = new Orders(T, 1_000_000);
     orders.widths[2] = 40; // the email narrowed by hand
     App<Orders> app = orders.app();
-    String fitAll = "press #column-1 right\nframe\nadvance 1\nframe\n"
-        + "press label=\"Fit all columns\"\nframe";
+    String fitAll = """
+        press #column-1 right
+        frame
+        advance 1
+        frame
+        press label="Fit all columns"
+        frame
+        """;
     run(app, "frame\nframe");
     Arrays.fill(orders.reads, 0);
     run(app, fitAll);
