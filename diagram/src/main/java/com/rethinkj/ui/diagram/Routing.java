@@ -22,20 +22,21 @@ import java.util.TreeSet;
  * marker's height where edges with different markers meet at one port, or less where that would
  * leave the node, and runs straight for {@link EdgeStyle#stub} before it bends, or where there is
  * less room, as far as its marker and a bend take. Of the shapes that allows, it takes the one
- * that crosses the fewest nodes, keeps at least half a lane from the nodes it passes where it can,
- * then the shortest, counting each bend as a stub's length: a straight line between ports at one
+ * that crosses the fewest nodes, then one that keeps half a lane from the nodes it passes, then
+ * the shortest, counting each bend as a stub's length: a straight line between ports at one
  * height with room for both markers, a Z through the gap between facing sides, a C around the
- * outer sides of two nodes above each other or of one node with itself, each channel cleared from
- * nodes beside it into any narrower gap, and where each of these crosses a node or passes closer
- * than half a lane to one, a detour with four bends along a row above or below a node, its legs
- * moved past the nodes they would cross (a stub past them, or half a lane where only that is free)
- * and both legs and crossbar kept a stub from the nodes beside them or centered in any narrower gap
- * within their bounds. A C with markers needs its ends at least a {@link EdgeStyle#marker} apart, so that its markers do not lie on each other: one from a port to the
- * same port goes around its node. Where a C on either side costs as much, it goes on the side of
- * its nodes where fewer other edges end, on the right where as many do. A straight edge between
- * the same two points as one before it bumps out to the nearest depth, a lane at a time, below
- * and then above, where it crosses no more nodes than the line and lies on no other edge's line;
- * where there is none, or the gap has no room for its bends, it stays on the line.
+ * outer sides of two nodes above each other or of one node with itself, and where each of these
+ * crosses a node or passes closer than half a lane to one, a detour with four bends along a row
+ * above or below a node, its legs moved past the nodes they would cross: a stub past them, or
+ * half a lane where only that is free. A channel, a detour's legs and its row keep a stub from the
+ * nodes beside them, or lie in the middle of a narrower gap, within the room their markers and
+ * bends need. A C with markers needs its ends at least a {@link EdgeStyle#marker} apart, so that
+ * its markers do not lie on each other: one from a port to the same port goes around its node.
+ * Where a C on either side costs as much, it goes on the side of its nodes where fewer other edges
+ * end, on the right where as many do. A straight edge between the same two points as one before
+ * it bumps out to the nearest depth, a lane at a time, below and then above, where it crosses no
+ * more nodes than the line and lies on no other edge's line; where there is none, or the gap has
+ * no room for its bends, it stays on the line.
  *
  * <p>Then the runs between two bends that lie closer than {@link EdgeStyle#lane} beside each other
  * and overlap, also only at an end, as edges that meet at one port do, are spread a lane apart:
@@ -46,14 +47,15 @@ import java.util.TreeSet;
  * that end at a port are not moved, so edges that meet at a port join there.
  *
  * <p>Limits: the router does not search all paths, so an edge can still cross a node where the
- * shapes above find no free way, and where the room beside a group of runs is narrower than the
- * group, they lie closer than a lane.
+ * shapes above find no free way; it does not see the markers of other nodes' ports, so a run can
+ * cross one; and where the room beside a group of runs is narrower than the group, they lie closer
+ * than a lane.
  */
 final class Routing {
 
   private static final double HIT = 1e9; // what crossing a node costs, beyond any length
-  private static final double CRAMPED =
-      1e6; // what cramped markers or a close node cost, beyond lengths
+  // What markers on each other or a node closer than half a lane cost, beyond lengths.
+  private static final double CRAMPED = 1e6;
   private static final double EPSILON = 1e-6;
 
   private Routing() {}
