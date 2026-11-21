@@ -320,6 +320,27 @@ class FindKeysTest {
   }
 
   @Test
+  void aReplaceTheAppRefusesLeavesTheMatchToReplace() throws IOException {
+    Doc doc = new Doc("a b");
+    App<Doc> app = app(doc);
+    run(app, """
+        frame
+        focus #query
+        key H control
+        type "b"
+        frame
+        advance 0.25
+        frame
+        focus #replace
+        type "c\"""");
+    doc.refuse = true;
+    run(app, "press #replace-one");
+    assertEquals("a b", doc.text);
+    run(app, "press #replace-one");
+    assertEquals("a c", doc.text, "the match stayed selected");
+  }
+
+  @Test
   void findInSelectionKeepsToTheLinesTheBarOpenedWith() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);

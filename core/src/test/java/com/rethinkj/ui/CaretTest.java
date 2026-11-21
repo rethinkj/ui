@@ -66,7 +66,7 @@ class CaretTest {
     app.state().accept = edit -> null;
     type(app, "x");
     assertEquals("abc|", show(app));
-    assertEquals(List.of("3:3", "4:4", "3:3"), told, "the edit's caret, then back");
+    assertEquals(List.of("3:3", "3:3"), told, "never the caret of the refused edit");
   }
 
   @Test
@@ -77,7 +77,7 @@ class CaretTest {
     type(app, "e"); // joins the mark after it into one grapheme
     assertEquals("e\u0301", app.state().value);
     assertEquals("|e\u0301", show(app));
-    assertEquals(List.of(), told, "never 1, between the letter and its mark");
+    assertEquals(List.of("0:0"), told, "never 1, between the letter and its mark");
   }
 
   @Test
@@ -94,9 +94,11 @@ class CaretTest {
     key(app, "Y", Key.CONTROL);
     assertEquals("SELECT name| FROM t", show(app));
     app.state().accept = edit -> null;
+    told.clear();
     app.edit(field(app), 0, 6, "select", 6);
     app.frame();
     assertEquals("SELECT name| FROM t", show(app), "refused like typed text");
+    assertEquals(List.of("11:11"), told, "never the caret of the refused edit");
     app.state().accept = edit -> edit;
     app.edit(field(app), 0, 0, "a\r\nb", 99);
     app.frame();
