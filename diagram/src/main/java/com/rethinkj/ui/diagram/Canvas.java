@@ -385,7 +385,35 @@ public final class Canvas {
    *     1 as well, which is checked before anything is built
    */
   public static byte[] png(List<Node> nodes, Function<Viewport, El> view) {
+    return png(nodes.isEmpty() ? new double[4] : bounds(nodes), view);
+  }
+
+  /**
+   * As {@link #png(List, Function)}, for a canvas with these edges: cropped to the nodes and to the
+   * edges among them with their markers, so that an edge that loops outside the nodes is whole. The
+   * edges' sizes are those of {@link EdgeStyle#CURRENT} where it is called.
+   */
+  public static byte[] png(List<Node> nodes, List<Edge> edges, Function<Viewport, El> view) {
     double[] bounds = nodes.isEmpty() ? new double[4] : bounds(nodes);
+    EdgeStyle style = EdgeStyle.CURRENT.get();
+    // How far a marker and a line reach beyond a route's points at most.
+    double reach = Edges.reach(Marker.ZERO_OR_MANY) * style.marker()
+        + Math.max(style.width(), style.highlightedWidth());
+    for (Routing.Route route : Routing.route(nodes, edges, style)) {
+      if (route != null) {
+        for (Routing.Point point : route.points()) {
+          bounds[0] = Math.min(bounds[0], point.x() - reach);
+          bounds[1] = Math.min(bounds[1], point.y() - reach);
+          bounds[2] = Math.max(bounds[2], point.x() + reach);
+          bounds[3] = Math.max(bounds[3], point.y() + reach);
+        }
+      }
+    }
+    return png(bounds, view);
+  }
+
+  /** The diagram from the left, top, right and bottom edge given, with the margin, as a PNG. */
+  private static byte[] png(double[] bounds, Function<Viewport, El> view) {
     float margin = Theme.CURRENT.get().space().xl();
     // At least a pixel, as a PNG has.
     float width = (float) Math.max(1, Math.ceil(bounds[2] - bounds[0] + 2 * margin));
