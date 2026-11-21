@@ -3463,7 +3463,7 @@ public final class El {
    * an edit of the field waits for the app's answer, or its {@link #onSelect} handler has yet to
    * hear the selection after it. An element of an earlier tree answers for the field it became.
    * For a component that reads the caret the app stored, such as completions after an edit; false
-   * for a field that was never in a tree.
+   * for a field that was never in a tree, or that left it for good without a {@link FieldState}.
    */
   public boolean isSelectionPending() {
     Editor editor = editor();
