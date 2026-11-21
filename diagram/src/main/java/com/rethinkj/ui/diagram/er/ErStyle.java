@@ -21,8 +21,9 @@ import com.rethinkj.ui.Context;
  * @param barHeight the height of a column's bar below {@code skeleton}
  * @param barShare the most of a table's inner width a bar takes, from 0 to 1
  * @param barPerCharacter a bar's width per character of the column's name
- * @param readable the smallest zoom at which table names and frame titles are drawn, so that they
- *     stay readable where the tables show less
+ * @param readable the zoom whose text size table names and frame titles keep when zoomed out
+ *     further, so that they stay readable where the tables show less; a name shrinks only to fit
+ *     its table
  */
 public record ErStyle(
     float width,
