@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -155,7 +156,8 @@ class ErDiagramTest {
     ErDiagram.Pin pin = board.pins.get("shop.customer");
     assertEquals(Map.of("shop.customer", pin), board.pins, "only the nudged table is pinned");
     assertEquals(board.diagram.pins(), board.pins);
-    assertEquals(ErDiagram.Mode.COLLAPSED, board.diagram.mode("shop.customer"));
+    // All columns, then keys only, as customer has a column that is no key.
+    assertEquals(ErDiagram.Mode.KEYS, board.diagram.mode("shop.customer"));
 
     Script.run("key Escape\nframe\n", app, out);
     assertNull(board.diagram.selected());
@@ -179,6 +181,48 @@ class ErDiagramTest {
     assertFalse(tree.contains("order_customer_fk"), "no edge to a table filtered out: " + tree);
     assertFalse(tree.contains("label=\"note,"), "not a key: " + tree);
     assertTrue(tree.contains("role=button") && tree.contains("\"+1 column\""), tree);
+  }
+
+  @Test
+  void aTableThatGrowsMovesTheOthersAside() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    board.diagram.mode(ErDiagram.Mode.COLLAPSED);
+    // Both lie in the first layer, one above the other, and grow by more than the gap between them.
+    Script.run("""
+        size 900 500
+        frame
+        press #shop.customer
+        key Enter
+        frame
+        press #shop.address
+        key Enter
+        frame
+        snap grown
+        """, app, out);
+    assertEquals(ErDiagram.Mode.ALL, board.diagram.mode("shop.address"));
+    List<double[]> boxes = Pattern.compile(" role=graphics-object .* (\\d+),(\\d+) (\\d+)x(\\d+)")
+        .matcher(Files.readString(out.resolve("grown.tree.txt")))
+        .results()
+        .map(m -> new double[] {
+          Double.parseDouble(m.group(1)),
+          Double.parseDouble(m.group(2)),
+          Double.parseDouble(m.group(3)),
+          Double.parseDouble(m.group(4))
+        })
+        .toList();
+    assertEquals(4, boxes.size());
+    for (int i = 0; i < boxes.size(); i++) {
+      for (int j = i + 1; j < boxes.size(); j++) {
+        double[] a = boxes.get(i);
+        double[] b = boxes.get(j);
+        boolean apart = a[0] + a[2] <= b[0]
+            || b[0] + b[2] <= a[0]
+            || a[1] + a[3] <= b[1]
+            || b[1] + b[3] <= a[1];
+        assertTrue(apart, "tables " + i + " and " + j + " overlap");
+      }
+    }
   }
 
   @Test

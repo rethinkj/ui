@@ -167,7 +167,7 @@ el 0,0 1040x720
             el 71,186 178x24
               text label="table" "\u{EBF4}" 75,192 12x12
               text "customer" 90,192 140x12
-              text role=button label="Collapse" "\u{F2A1}" 233,192 12x12
+              text role=button label="Keys only" "\u{F2A1}" 233,192 12x12
             el role=listitem label="id, bigint, primary key" 71,210 178x18
               text label="key" "\u{E740}" 74,213 12x12
               text "id" 89,213 130x12
@@ -190,7 +190,7 @@ el 0,0 1040x720
             el 311,130 178x24
               text label="table" "\u{EBF4}" 315,136 12x12
               text "address" 330,136 140x12
-              text role=button label="Collapse" "\u{F2A1}" 473,136 12x12
+              text role=button label="Keys only" "\u{F2A1}" 473,136 12x12
             el role=listitem label="id, bigint, primary key" 311,154 178x18
               text label="key" "\u{E740}" 314,157 12x12
               text "id" 329,157 130x12
@@ -220,7 +220,7 @@ el 0,0 1040x720
             el 551,184 178x24
               text label="table" "\u{EBF4}" 555,190 12x12
               text "order" 570,190 140x12
-              text role=button label="Collapse" "\u{F2A1}" 713,190 12x12
+              text role=button label="Keys only" "\u{F2A1}" 713,190 12x12
             el role=listitem label="id, bigint, primary key" 551,208 178x18
               text label="key" "\u{E740}" 554,211 12x12
               text "id" 569,211 130x12
@@ -250,7 +250,7 @@ el 0,0 1040x720
             el 791,254 178x24
               text label="table" "\u{EBF4}" 795,260 12x12
               text "order_item" 810,260 140x12
-              text role=button label="Collapse" "\u{F2A1}" 953,260 12x12
+              text role=button label="Keys only" "\u{F2A1}" 953,260 12x12
             el role=listitem label="order_id, bigint, primary key, foreign key" 791,278 178x18
               text label="key" "\u{E740}" 794,281 12x12
               text "order_id" 809,281 130x12
@@ -272,7 +272,7 @@ el 0,0 1040x720
             el 311,286 178x24
               text label="table" "\u{EBF4}" 315,292 12x12
               text "product" 330,292 140x12
-              text role=button label="Collapse" "\u{F2A1}" 473,292 12x12
+              text role=button label="Keys only" "\u{F2A1}" 473,292 12x12
             el role=listitem label="id, bigint, primary key" 311,310 178x18
               text label="key" "\u{E740}" 314,313 12x12
               text "id" 329,313 130x12
@@ -299,7 +299,7 @@ el 0,0 1040x720
             el 71,306 178x24
               text label="table" "\u{EBF4}" 75,312 12x12
               text "category" 90,312 140x12
-              text role=button label="Collapse" "\u{F2A1}" 233,312 12x12
+              text role=button label="Keys only" "\u{F2A1}" 233,312 12x12
             el role=listitem label="id, bigint, primary key" 71,330 178x18
               text label="key" "\u{E740}" 74,333 12x12
               text "id" 89,333 130x12
@@ -317,7 +317,7 @@ el 0,0 1040x720
             el 311,424 178x24
               text label="table" "\u{EBF4}" 315,430 12x12
               text "tag" 330,430 140x12
-              text role=button label="Collapse" "\u{F2A1}" 473,430 12x12
+              text role=button label="Keys only" "\u{F2A1}" 473,430 12x12
             el role=listitem label="id, bigint, primary key" 311,448 178x18
               text label="key" "\u{E740}" 314,451 12x12
               text "id" 329,451 130x12
@@ -346,7 +346,7 @@ el 0,0 1040x720
             el 71,556 178x24
               text label="table" "\u{EBF4}" 75,562 12x12
               text "invoice" 90,562 140x12
-              text role=button label="Collapse" "\u{F2A1}" 233,562 12x12
+              text role=button label="Keys only" "\u{F2A1}" 233,562 12x12
             el role=listitem label="id, bigint, primary key" 71,580 178x18
               text label="key" "\u{E740}" 74,583 12x12
               text "id" 89,583 130x12

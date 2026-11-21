@@ -47,7 +47,7 @@ import java.util.function.IntUnaryOperator;
  * erDiagram(state.diagram, state.schemas, state::savePins).grow(1);
  * }</pre>
  *
- * <p>Each table is a card: a header with its name and a chevron that collapses it, and a row for
+ * <p>Each table is a card: a header with its name and a chevron that switches its mode, and a row for
  * each column with the key icon in the warning color for the primary key, the link icon for a
  * foreign key, {@code UQ} for a unique column, and the type, muted, with {@code ?} after it where
  * the column may be null. A row's tooltip shows its default and its foreign keys with their ON
@@ -58,8 +58,8 @@ import java.util.function.IntUnaryOperator;
  *
  * <p>Each foreign key is an edge from the row of its first column to the row of the first column
  * it refers to, or to the header of a table that does not show that row. Its crow's foot at the
- * table that refers is {@code ||} where the key is unique, as the whole primary key or a unique
- * column, and {@code |<} otherwise; at the table referred to, it is {@code ||} where the key is not
+ * table that refers is {@code ||} where the key is unique, as it holds the whole primary key or a
+ * unique column, and {@code |<} otherwise; at the table referred to, it is {@code ||} where the key is not
  * null and {@code o|} where it may be.
  *
  * <p>A press on a table selects it, a press on empty space clears the selection: the selected table
@@ -67,13 +67,13 @@ import java.util.function.IntUnaryOperator;
  * not related to are dimmed by mixing their colors towards the canvas's. Dragging a table moves and
  * pins it. While the canvas has the focus, the arrow keys select the nearest table in their
  * direction, Shift and an arrow move the selected table by {@link ErStyle#nudge} and pin it, Enter
- * collapses or expands it, Escape clears the selection, and {@code ]} and {@code [} step forward
+ * switches its mode as the chevron does, Escape clears the selection, and {@code ]} and {@code [} step forward
  * and back through the tables it is related to; {@code +}, {@code -}, {@code 0}, the wheel and
  * Control+wheel pan and zoom as on any canvas.
  *
  * <p>Tables that are not pinned are placed by {@link LayeredLayout}, each schema on its own: at
- * first, when a table comes that has no place yet, when the mode of all tables changes, and with
- * the action Arrange. Arrange all unpins every table first. Pins are plain positions: the app gives
+ * first, when a table comes that has no place yet, when the mode of a table or of all changes, and
+ * with the action Arrange; the filter does not move them. Arrange all unpins every table first. Pins are plain positions: the app gives
  * them with {@link State#pins(Map)} and is told each change.
  *
  * <p>In a tree dump the canvas is {@code role=graphics-document} labeled {@link
@@ -83,7 +83,7 @@ import java.util.function.IntUnaryOperator;
  * frame {@code role=group}, and each foreign key {@code role=graphics-symbol} with its name.
  *
  * <p>Limits: tables are {@link ErStyle#width} wide, and a long name or type is shortened with an
- * ellipsis. Expanding a single table does not move the others, which it may then cover.
+ * ellipsis. A pinned table stays where it is, also where a table beside it grows over it.
  */
 public final class ErDiagram {
 
@@ -125,6 +125,8 @@ public final class ErDiagram {
     // Where each table lies, pinned or placed by the layout.
     private final Map<String, Place> places = new HashMap<>();
     private boolean arrangeDue = true;
+    // Whether the next build pans to the first table shown, after the filter changed.
+    private boolean revealFirst;
     // The table that ] and [ step around, and the index of the one they stepped to.
     private String followed;
     private int follow;
@@ -156,7 +158,7 @@ public final class ErDiagram {
       return modes.getOrDefault(table, mode);
     }
 
-    /** Shows the table with this key in this mode, without moving the others. */
+    /** Shows the table with this key in this mode, and arranges the tables again. */
     public void mode(String table, Mode mode) {
       Objects.requireNonNull(mode, "mode");
       if (mode == this.mode) {
@@ -164,6 +166,7 @@ public final class ErDiagram {
       } else {
         modes.put(table, mode);
       }
+      arrangeDue = true;
     }
 
     /** The text that the names of the tables shown contain, ignoring case; empty for all. */
@@ -171,8 +174,12 @@ public final class ErDiagram {
       return filter;
     }
 
+    /** Shows only the tables whose names contain this text, and pans to the first of them. */
     public void filter(String filter) {
-      this.filter = Objects.requireNonNull(filter, "filter");
+      if (!filter.equals(this.filter)) {
+        this.filter = filter;
+        revealFirst = true;
+      }
     }
 
     /** The key of the selected table, null for none. */
@@ -356,9 +363,14 @@ public final class ErDiagram {
     Map<String, Shown> tables = model(schemas, state, style);
     arrange(state, tables, style);
     Diagram diagram = new Diagram(state, tables, state.selected, style);
+    if (state.revealFirst && !diagram.nodes.isEmpty()) {
+      state.revealFirst = false;
+      state.viewport.reveal(diagram.nodes.getFirst());
+    }
     Consumer<Map<String, Pin>> told = onPins == null ? pins -> {} : onPins;
 
     El bar = row()
+        .wrap()
         .padding(theme.space().s(), theme.space().m())
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
@@ -489,9 +501,11 @@ public final class ErDiagram {
       Table child = relation.child.table;
       List<String> primaryKey =
           child.columns().stream().filter(Column::primaryKey).map(Column::name).toList();
-      Column first = child.column(foreignKey.columns().getFirst());
-      boolean unique = Set.copyOf(primaryKey).equals(Set.copyOf(foreignKey.columns()))
-          || foreignKey.columns().size() == 1 && first != null && first.unique();
+      // Unique where its columns hold the whole primary key or a column unique by itself.
+      boolean unique = !primaryKey.isEmpty() && foreignKey.columns().containsAll(primaryKey)
+          || foreignKey.columns().stream()
+              .map(child::column)
+              .anyMatch(column -> column != null && column.unique());
       boolean nullable = foreignKey.columns().stream()
           .map(child::column)
           .anyMatch(column -> column == null || column.nullable());
@@ -668,12 +682,17 @@ public final class ErDiagram {
             .color(tone.applyAsInt(theme.text().muted()))
             .shrink(0));
       }
+      String next = switch (next(table)) {
+        case ALL -> texts.expand();
+        case KEYS -> texts.keysOnly();
+        case COLLAPSED -> texts.collapse();
+      };
       return header.child(Icon.icon(
               collapsed ? Symbol.CHEVRON_RIGHT : Symbol.CHEVRON_DOWN, Icon.Variant.MUTED, icon)
           .color(tone.applyAsInt(theme.text().muted()))
           .role("button")
-          .label(collapsed ? texts.expand() : texts.collapse())
-          .onPress(() -> toggle(state, table)));
+          .label(next)
+          .onPress(() -> state.mode(table.key, next(table))));
     }
 
     private El columnRow(Shown table, Column column, float zoom, IntUnaryOperator tone) {
@@ -790,9 +809,16 @@ public final class ErDiagram {
     }
   }
 
-  private static void toggle(State state, Shown table) {
-    Mode open = state.mode == Mode.COLLAPSED ? Mode.ALL : state.mode;
-    state.mode(table.key, table.mode == Mode.COLLAPSED ? open : Mode.COLLAPSED);
+  /** The mode after a table's: all columns, its keys where it has others, collapsed, and over. */
+  private static Mode next(Shown table) {
+    return switch (table.mode) {
+      case ALL ->
+        table.table.columns().stream().allMatch(column -> key(table.table, column))
+            ? Mode.COLLAPSED
+            : Mode.KEYS;
+      case KEYS -> Mode.COLLAPSED;
+      case COLLAPSED -> Mode.ALL;
+    };
   }
 
   private static boolean key(Diagram diagram, Key key, Consumer<Map<String, Pin>> onPins) {
@@ -837,7 +863,7 @@ public final class ErDiagram {
         if (selected == null) {
           return false;
         }
-        toggle(state, selected);
+        state.mode(selected.key, next(selected));
       }
       case "Escape" -> {
         if (selected == null) {
