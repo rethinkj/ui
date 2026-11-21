@@ -16,10 +16,12 @@ import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** A card's footer in a card too narrow for it. */
+/** A card's footer and toolbar layout. */
 class CardTest {
 
   private static final String START = "\"About 1,000,000 rows, as the server estimates\"";
@@ -110,5 +112,44 @@ class CardTest {
     float[] card = rect(line(narrow, "#card"));
     float[] last = rect(line(narrow, "label=\"Last page\""));
     assertTrue(last[0] + last[2] <= card[0] + card[2], narrow);
+  }
+
+  private String layout(int width, Supplier<El> toolbar) throws IOException {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .fill(Theme.DARK.surface().window())
+            .child(Card.flush(toolbar.get().key("bar"), el().grow(1)).grow(1)));
+    Script.run("size " + width + " 120\nframe", app, out);
+    return app.tree().dump();
+  }
+
+  @Test
+  void toolbarSpacerKeepsStartControlsInPlaceAndAllowsNullTitle() throws IOException {
+    Supplier<El> switcher =
+        () -> Segmented.segmented(List.of("Sessions", "Locks"), 0, i -> {}).key("switcher");
+    Supplier<El> a =
+        () -> Button.button(Button.Variant.GHOST, "Refresh", () -> {}).key("a");
+    Supplier<El> b = () -> Button.button(Button.Variant.GHOST, "Filter", () -> {});
+    Supplier<El> c = () -> Button.button(Button.Variant.SECONDARY, "Export", () -> {});
+
+    String one =
+        layout(700, () -> Card.toolbar("Monitor", null, switcher.get(), Card.spacer(), a.get()));
+    String three = layout(
+        700,
+        () -> Card.toolbar(
+            "Monitor", null, switcher.get(), Card.spacer(), a.get(), b.get(), c.get()));
+    assertEquals(rect(line(one, "#switcher"))[0], rect(line(three, "#switcher"))[0], three);
+    assertTrue(rect(line(three, "#a"))[0] < rect(line(one, "#a"))[0], three);
+
+    String untitled =
+        layout(700, () -> Card.toolbar(null, null, switcher.get(), Card.spacer(), a.get()));
+    assertFalse(untitled.contains("role=heading"), untitled);
+    assertEquals(
+        rect(line(untitled, "#bar"))[0] + Theme.DARK.space().xl(),
+        rect(line(untitled, "#switcher"))[0],
+        untitled);
   }
 }

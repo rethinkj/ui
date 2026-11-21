@@ -22,7 +22,8 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 | `card(content...)`, `card(variant, content...)` | Padded column (`space().xl()` padding, `space().l()` gap) |
 | `header(title, description, actions...)` | Card heading, optional muted description, and right-aligned actions |
 | `flush(parts...)` | Edge-to-edge card without padding, clipped to rounded corners |
-| `toolbar(title, secondary, actions...)` | Top bar for a flush card with heading, secondary text, and actions |
+| `toolbar(title, secondary, actions...)` | Top bar for a flush card with optional heading (`null` for none), secondary text, and actions; actions before `spacer()` sit at the start |
+| `spacer()` | Growing space in `toolbar` that separates start controls from trailing actions |
 | `footer(start, end...)` | Bottom bar for a flush card with a subtle top border |
 | `filters(bar)` | Optional filter bar below a toolbar (`null` is omitted) |
 | `inset(list)` | Adds inner padding around a list like a tree or nav list |
