@@ -14,7 +14,7 @@ package com.rethinkj.ui;
 public final class Work {
 
   private final String name;
-  private final App<?> app;
+  private final Scheduler scheduler; // of the app that started it
   final Lane lane; // the lane it runs on, or null
   volatile boolean cancelled; // read on the app's thread when the delivery's turn comes
   volatile boolean ended; // the delivery is posted: reports made from now on are dropped
@@ -23,9 +23,9 @@ public final class Work {
   private boolean over; // the computation returned or threw, or never will; guarded by this
   private Runnable onEnd; // guarded by this
 
-  Work(String name, App<?> app, Lane lane) {
+  Work(String name, Scheduler scheduler, Lane lane) {
     this.name = name;
-    this.app = app;
+    this.scheduler = scheduler;
     this.lane = lane;
   }
 
@@ -61,7 +61,7 @@ public final class Work {
         return; // await waits for its end, which end() then tells it
       }
     }
-    app.finished(this);
+    scheduler.finished(this);
   }
 
   /**
@@ -88,12 +88,12 @@ public final class Work {
               handler.run();
             };
         if (cancelled) {
-          app.waitFor(this); // forgotten by await at the cancel: wait for the end after all
+          scheduler.waitFor(this); // forgotten by await at the cancel: wait for the end after all
         }
         return;
       }
     }
-    app.post(handler);
+    scheduler.post(handler);
   }
 
   /**
@@ -115,9 +115,9 @@ public final class Work {
       handler = onEnd;
     }
     if (handler != null) {
-      app.post(handler);
+      scheduler.post(handler);
     }
-    app.finished(this);
+    scheduler.finished(this);
   }
 
   @Override

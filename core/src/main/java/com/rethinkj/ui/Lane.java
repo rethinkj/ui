@@ -42,13 +42,13 @@ import java.util.function.Consumer;
  */
 public final class Lane {
 
-  private final App<?> app;
+  private final Scheduler scheduler; // of the app it was made from
   private final String name;
   private Work current; // the piece whose computation runs or may still run; guarded by this
   private final ArrayDeque<Work> waiting = new ArrayDeque<>(); // guarded by this
 
-  Lane(App<?> app, String name) {
-    this.app = app;
+  Lane(Scheduler scheduler, String name) {
+    this.scheduler = scheduler;
     this.name = Objects.requireNonNull(name, "name");
   }
 
@@ -67,7 +67,7 @@ public final class Lane {
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
     Objects.requireNonNull(compute, "compute");
-    return app.start(this, name, work -> compute, onResult, onFailure);
+    return scheduler.start(this, name, work -> compute, onResult, onFailure);
   }
 
   /**
@@ -80,7 +80,7 @@ public final class Lane {
       Consumer<? super P> onProgress,
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
-    return app.start(this, name, compute, onProgress, onResult, onFailure);
+    return scheduler.start(this, name, compute, onProgress, onResult, onFailure);
   }
 
   /**
