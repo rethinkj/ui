@@ -5,7 +5,6 @@ import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -31,29 +30,29 @@ public final class El {
   /** What {@link #wantedRows} gives when no rows are wanted. */
   static final int[] NO_ROWS = {};
 
-  private static final int SELECTED = 1;
-  private static final int DISABLED = 2;
-  private static final int CHECKED = 4; // with NOT_CHECKED: mixed
-  private static final int NOT_CHECKED = 8;
-  private static final int EXPANDED = 16;
-  private static final int COLLAPSED = 32;
-  private static final int ASCENDING = 64;
-  private static final int DESCENDING = 128;
-  private static final int CURRENT = 256;
-  private static final int INVALID = 512;
-  private static final int GRABBED = 1024;
-  private static final int BUSY = 2048;
-  private static final int MODIFIED = 4096;
+  static final int SELECTED = 1;
+  static final int DISABLED = 2;
+  static final int CHECKED = 4; // with NOT_CHECKED: mixed
+  static final int NOT_CHECKED = 8;
+  static final int EXPANDED = 16;
+  static final int COLLAPSED = 32;
+  static final int ASCENDING = 64;
+  static final int DESCENDING = 128;
+  static final int CURRENT = 256;
+  static final int INVALID = 512;
+  static final int GRABBED = 1024;
+  static final int BUSY = 2048;
+  static final int MODIFIED = 4096;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
   private String key;
   private String role;
   private String label;
-  private int states; // the bits below, set by the view; see #dump
-  private int level;
-  private int position; // in its set, from 1; 0 when not set
-  private int setSize;
+  int states; // the bits below, set by the view; see #dump
+  int level;
+  int position; // in its set, from 1; 0 when not set
+  int setSize;
   private String value;
   private String errorMessage;
   private String warningMessage;
@@ -75,7 +74,7 @@ public final class El {
   private Integer focusRing;
   private float focusRingGap;
   private ScrollState scrollState;
-  private boolean focused;
+  boolean focused;
   private Spring motion;
   private float opacity = 1;
   private float targetOpacity = 1; // as the view set it, which motion springs towards
@@ -90,7 +89,7 @@ public final class El {
   private Consumer<El> focusWithinLook; // see #whenFocusWithin
   private Consumer<El> pressLook;
   private Cursor cursor;
-  private boolean hovered;
+  boolean hovered;
   private boolean scrollArea;
   private Scrollbars scrollbars;
   // The bars as the last frame shows them, in window coordinates; null where there is none.
@@ -129,7 +128,7 @@ public final class El {
   private float revealWidth;
   private float revealHeight;
   private List<El> overlays; // null for none; apart from the children
-  private Layer layer; // where this element goes as an overlay, null until a call says
+  Layer layer; // where this element goes as an overlay, null until a call says
   private List<El> shownOverlays = List.of(); // of a root: those placed above it, bottom first
   private Consumer<El> restLook;
   private double restDelay;
@@ -4455,7 +4454,7 @@ public final class El {
                 : focusable != wasFocusable ? "focusable()" : null;
     if (changed != null) {
       StringBuilder line = new StringBuilder();
-      describe(line, 0, 0);
+      TreeDumper.describe(line, this, 0, 0);
       throw new IllegalStateException(
           "The " + name + " look of " + line.toString().strip() + " changed its " + changed
               + ". A look may change only how its element looks and its layout properties; build"
@@ -4542,8 +4541,8 @@ public final class El {
    * the caret and the anchor as positions in it and the composition masked. A {@link #multiline}
    * field adds, before its scroll offset, the lines with a row in view and how many it has, as
    * {@code lines 12-20/100000}, from 1, and after its caret the caret's line and column, as
-   * {@code caret 57 (3:12)}, both from 1. A string longer than {@link #QUOTED} UTF-16 units shows
-   * only its start and its end, with its length (see {@link #quoteText}).
+   * {@code caret 57 (3:12)}, both from 1. A string longer than {@link TreeDumper#QUOTED} UTF-16 units shows
+   * only its start and its end, with its length (see {@link TreeDumper#quoteText}).
    *
    * <p>The {@link #shownOverlays overlays} follow the tree, in the order they are drawn, each
    * under a line that says where it is placed and beside what, followed by its tree indented by
@@ -4554,304 +4553,6 @@ public final class El {
    * deliberately.
    */
   public String dump() {
-    StringBuilder out = new StringBuilder();
-    dump(out, 0, 0, 0);
-    for (El overlay : shownOverlays) {
-      Layer l = overlay.layer;
-      out.append("overlay");
-      if (l.centered) {
-        out.append(" center");
-      } else if (l.edge != null) {
-        out.append(" edge ")
-            .append(l.edge.name().toLowerCase(Locale.ROOT))
-            .append(' ')
-            .append(l.align.name().toLowerCase(Locale.ROOT));
-        if (l.gap != 0) {
-          number(out.append(" gap "), l.gap);
-        }
-      } else {
-        if (!Float.isNaN(l.pointX)) {
-          number(out.append(" at "), l.pointX).append(',');
-          number(out, l.pointY);
-        }
-        out.append(' ')
-            .append(l.side.name().toLowerCase(Locale.ROOT))
-            .append(' ')
-            .append(l.align.name().toLowerCase(Locale.ROOT));
-        if (l.gap != 0) {
-          number(out.append(" gap "), l.gap);
-        }
-      }
-      if (l.modal) {
-        out.append(" modal");
-      }
-      if (l.scrim >>> 24 != 0) {
-        out.append(" scrim");
-      }
-      out.append(" on");
-      El a = l.anchor;
-      if (a.key != null) {
-        out.append(" #").append(a.key);
-      }
-      if (a.role() != null) {
-        out.append(" role=").append(a.role());
-      }
-      if (a.label != null) {
-        out.append(" label=").append(quote(a.label));
-      }
-      number(out.append(' '), l.anchorX).append(',');
-      number(out, l.anchorY).append(' ');
-      number(out, a.width).append('x');
-      number(out, a.height).append('\n');
-      overlay.dump(out, 1, 0, 0);
-    }
-    return out.toString();
-  }
-
-  private void dump(StringBuilder out, int depth, float parentX, float parentY) {
-    float left = parentX + x();
-    float top = parentY + y();
-    describe(out.repeat("  ", depth), left, top);
-    for (El child : children) {
-      child.dump(out, depth + 1, left, top);
-    }
-  }
-
-  /** One line of {@link #dump}, for this element with its border box at this window position. */
-  void describe(StringBuilder out, float left, float top) {
-    out.append(text != null ? "text" : image != null ? "image" : "el");
-    if (key != null) {
-      out.append(" #").append(key);
-    }
-    if (role() != null) {
-      out.append(" role=").append(role());
-    }
-    if (label != null) {
-      out.append(" label=").append(quote(label));
-    }
-    // A field without a label of its own takes its placeholder as label; that is not repeated.
-    if (text != null
-        && text.placeholder() != null
-        && !text.placeholder().isEmpty()
-        && !text.placeholder().equals(label)) {
-      out.append(" placeholder=").append(quote(text.placeholder()));
-    }
-    if (text != null) {
-      out.append(' ').append(quoteText(text.string()));
-    }
-    if (windowPart != null) {
-      out.append(" window=").append(windowPart.name().toLowerCase(Locale.ROOT));
-    }
-    if (placed) {
-      out.append(' ');
-      number(out, left).append(',');
-      number(out, top).append(' ');
-      number(out, width).append('x');
-      number(out, height);
-    }
-    states(out);
-    if (value != null) {
-      out.append(" value=").append(quote(value));
-    }
-    if (errorMessage != null) {
-      out.append(" error=").append(quote(errorMessage));
-    }
-    if (warningMessage != null) {
-      out.append(" warning=").append(quote(warningMessage));
-    }
-    if (rows != null) {
-      out.append(" rows ");
-      if (children.isEmpty()) {
-        out.append('-');
-      } else {
-        out.append(rows.firstRow).append('-').append(rows.firstRow + children.size() - 1);
-      }
-      out.append('/').append(rows.rowCount);
-    }
-    if (text != null && text.multiline() && placed) {
-      out.append(" lines ");
-      int first = text.firstLineInView();
-      if (first < 0) {
-        out.append('-');
-      } else {
-        out.append(first + 1).append('-').append(text.lastLineInView() + 1);
-      }
-      out.append('/').append(text.lineTotal());
-      int[] under = text.underlined();
-      for (int i = 0; i < under.length; i += 2) {
-        out.append(i == 0 ? " underline " : ",").append(under[i]).append('-').append(under[i + 1]);
-      }
-    }
-    if (scrollX != 0 || scrollY != 0) {
-      number(out.append(" scroll "), scrollX).append(',');
-      number(out, scrollY);
-    }
-    if (barX != null) {
-      thumb(out.append(" thumb-x "), barX);
-    }
-    if (barY != null) {
-      thumb(out.append(" thumb-y "), barY);
-    }
-    if (hovered) {
-      out.append(" hovered");
-    }
-    if (focused) {
-      out.append(" focused");
-      Editor editor = editor();
-      if (editor != null) {
-        // A masked field's positions count in its mask, which is what the line quotes.
-        out.append(" caret ").append(text.maskIndex(editor.text(), editor.caret()));
-        if (text.multiline()) {
-          int[] at = editor.lineAndColumn();
-          out.append(" (").append(at[0]).append(':').append(at[1]).append(')');
-        }
-        if (editor.anchor() != editor.caret()) {
-          out.append(" anchor ").append(text.maskIndex(editor.text(), editor.anchor()));
-        }
-        String composing = editor.composition();
-        if (!composing.isEmpty()) {
-          out.append(" composing ").append(quote(text.masked() ? text.mask(composing) : composing));
-        }
-      }
-    }
-    if (exiting) {
-      out.append(" exiting");
-    }
-    out.append('\n');
-  }
-
-  /** The states of {@link #dump} but the value, each after a space, in their fixed order. */
-  void states(StringBuilder out) {
-    if ((states & DISABLED) != 0 || field != null && onEdit() == null && !field.readOnly) {
-      out.append(" disabled");
-    }
-    if (isReadOnly()) {
-      out.append(" readonly");
-    }
-    if (field != null && text.masked()) {
-      out.append(" password");
-    }
-    if (field != null && text.revealed()) {
-      out.append(" revealed");
-    }
-    if ((states & INVALID) != 0) {
-      out.append(" invalid");
-    }
-    if ((states & BUSY) != 0) {
-      out.append(" busy");
-    }
-    if ((states & SELECTED) != 0) {
-      out.append(" selected");
-    }
-    if ((states & CURRENT) != 0) {
-      out.append(" current");
-    }
-    if ((states & GRABBED) != 0) {
-      out.append(" grabbed");
-    }
-    if ((states & MODIFIED) != 0) {
-      out.append(" modified");
-    }
-    switch (states & (CHECKED | NOT_CHECKED)) {
-      case CHECKED -> out.append(" checked");
-      case NOT_CHECKED -> out.append(" checked=false");
-      case CHECKED | NOT_CHECKED -> out.append(" checked=mixed");
-      default -> {}
-    }
-    switch (states & (EXPANDED | COLLAPSED)) {
-      case EXPANDED -> out.append(" expanded");
-      case COLLAPSED -> out.append(" expanded=false");
-      default -> {}
-    }
-    if (level != 0) {
-      out.append(" level=").append(level);
-    }
-    if (position != 0) {
-      out.append(" pos=").append(position).append('/').append(setSize);
-    }
-    switch (states & (ASCENDING | DESCENDING)) {
-      case ASCENDING -> out.append(" sort=ascending");
-      case DESCENDING -> out.append(" sort=descending");
-      default -> {}
-    }
-  }
-
-  private static void thumb(StringBuilder out, Scrollbars.Bar bar) {
-    number(out, bar.thumbX()).append(',');
-    number(out, bar.thumbY()).append(' ');
-    number(out, bar.thumbWidth()).append('x');
-    number(out, bar.thumbHeight());
-  }
-
-  /** The longest string that {@link #quoteText} writes whole, in UTF-16 units. */
-  static final int QUOTED = 200;
-
-  /**
-   * A text element's string as the dump writes it: {@link #quote quoted} whole up to {@link
-   * #QUOTED} UTF-16 units; a longer one as its first 100 and its last 40, each quoted, with
-   * {@code …} between them and its length after them, as in {@code "SELECT …" … "… 1;" length
-   * 104857}, so that a dump stays readable whatever a field holds. No part splits a surrogate
-   * pair.
-   */
-  static String quoteText(String text) {
-    if (text.length() <= QUOTED) {
-      return quote(text);
-    }
-    int head = 100;
-    if (Character.isLowSurrogate(text.charAt(head))) {
-      head--;
-    }
-    int tail = text.length() - 40;
-    if (Character.isLowSurrogate(text.charAt(tail))) {
-      tail++;
-    }
-    return quote(text.substring(0, head)) + " \u2026 " + quote(text.substring(tail)) + " length "
-        + text.length();
-  }
-
-  /**
-   * The text in double quotes, with a backslash before each quote and backslash in it, line feeds
-   * as {@code \n}, carriage returns as {@code \r} and tabs as {@code \t}, so that it stays on one line and shows them, and a
-   * character of a private use area, such as an
-   * icon, as <code>&#92;u{E0EB}</code>, which would otherwise show as nothing or a box.
-   */
-  static String quote(String text) {
-    StringBuilder out = new StringBuilder("\"");
-    text.codePoints().forEach(c -> {
-      if (c == '\\' || c == '"') {
-        out.append('\\').append((char) c);
-      } else if (c == '\n') {
-        out.append("\\n");
-      } else if (c == '\r') {
-        out.append("\\r");
-      } else if (c == '\t') {
-        out.append("\\t");
-      } else if (Character.getType(c) == Character.PRIVATE_USE) {
-        out.append("\\u{")
-            .append(Integer.toHexString(c).toUpperCase(Locale.ROOT))
-            .append('}');
-      } else {
-        out.appendCodePoint(c);
-      }
-    });
-    return out.append('"').toString();
-  }
-
-  // Not String.format: its decimal separator depends on the locale.
-  private static StringBuilder number(StringBuilder out, double value) {
-    long hundredths = Math.round(value * 100.0);
-    if (hundredths < 0) {
-      out.append('-');
-      hundredths = -hundredths;
-    }
-    out.append(hundredths / 100);
-    long fraction = hundredths % 100;
-    if (fraction != 0) {
-      out.append('.').append(fraction / 10);
-      if (fraction % 10 != 0) {
-        out.append(fraction % 10);
-      }
-    }
-    return out;
+    return TreeDumper.dump(this);
   }
 }

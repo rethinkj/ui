@@ -109,7 +109,7 @@ class TextRenderTest {
       // A box narrower than the ellipsis holds an empty line: nothing draws outside it.
       assertTrue(line.width() <= text.width() + 0.01f, line.width() + " in " + text.width());
     }
-    assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
+    assertTrue(frame.tree().contains(TreeDumper.quote(Examples.SANS_SAMPLE)), "the whole string");
   }
 
   @Test

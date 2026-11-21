@@ -135,18 +135,19 @@ class LinesTest {
 
   @Test
   void theDumpShortensLongStrings() {
-    String shortOne = "x".repeat(El.QUOTED);
-    assertEquals("\"" + shortOne + "\"", El.quoteText(shortOne));
+    String shortOne = "x".repeat(TreeDumper.QUOTED);
+    assertEquals("\"" + shortOne + "\"", TreeDumper.quoteText(shortOne));
     String text = "a".repeat(100) + "b".repeat(1000) + "c".repeat(40);
     assertEquals(
-        "\"" + "a".repeat(100) + "\" … \"" + "c".repeat(40) + "\" length 1140", El.quoteText(text));
+        "\"" + "a".repeat(100) + "\" … \"" + "c".repeat(40) + "\" length 1140",
+        TreeDumper.quoteText(text));
     String emoji = "a".repeat(99) + "😀" + "d".repeat(200) + "😀" + "e".repeat(39);
-    String quoted = El.quoteText(emoji);
+    String quoted = TreeDumper.quoteText(emoji);
     assertEquals(
         "\"" + "a".repeat(99) + "\" … \"" + "e".repeat(39) + "\" length 342",
         quoted,
         "no half of a surrogate pair at either cut");
-    assertEquals("\"a\\tb\\nc\"", El.quote("a\tb\nc"));
+    assertEquals("\"a\\tb\\nc\"", TreeDumper.quote("a\tb\nc"));
   }
 
   private static void assertRows(Lines lines, int[] measured, String text, float perRow) {

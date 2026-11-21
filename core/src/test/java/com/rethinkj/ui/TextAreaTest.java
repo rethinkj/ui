@@ -326,7 +326,8 @@ class TextAreaTest {
         app.edit(field(app), at, to, inserted, at + inserted.length());
         app.frame();
         String now = field(app).editor().text();
-        assertEquals(monoRows(now), field(app).text().shownIndex().totalRows(), El.quote(now));
+        assertEquals(
+            monoRows(now), field(app).text().shownIndex().totalRows(), TreeDumper.quote(now));
       }
     }
   }

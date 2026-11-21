@@ -413,7 +413,7 @@ public final class Script {
             StringBuilder rows = new StringBuilder();
             for (Found found : all) {
               if (found.el.isFocusable()) {
-                found.el.describe(rows.append("    "), found.left, found.top);
+                TreeDumper.describe(rows.append("    "), found.el, found.left, found.top);
               }
             }
             throw line.fail(
@@ -584,7 +584,7 @@ public final class Script {
                   String.join(
                       "",
                       desk.front.stream()
-                          .map(w -> El.quote(w.title) + " " + slug(w.title) + "\n")
+                          .map(w -> TreeDumper.quote(w.title) + " " + slug(w.title) + "\n")
                           .toList()));
               written.add(windows);
             }
@@ -1432,7 +1432,7 @@ public final class Script {
         if (!near.isEmpty()) {
           StringBuilder lines = new StringBuilder();
           for (Found found : near.subList(0, Math.min(near.size(), 20))) {
-            found.el.describe(lines.append("    "), found.left, found.top);
+            TreeDumper.describe(lines.append("    "), found.el, found.left, found.top);
           }
           throw fail(near.size() + " elements of the last frame match " + String.join(" ", others)
               + ", but none has the states of " + text + ":\n" + lines
@@ -1454,10 +1454,10 @@ public final class Script {
             roles.add("role=" + found.el.role());
           }
           if (found.el.label() != null) {
-            labels.add("label=" + El.quote(found.el.label()));
+            labels.add("label=" + TreeDumper.quote(found.el.label()));
           }
           if (found.el.text() != null) {
-            texts.add("text=" + El.quoteText(found.el.text().string()));
+            texts.add("text=" + TreeDumper.quoteText(found.el.text().string()));
           }
           for (String state : states(found.el).strip().split(" ")) {
             if (!state.isEmpty() && !state.startsWith("pos=")) { // a position per row says little
@@ -1476,7 +1476,7 @@ public final class Script {
       }
       StringBuilder rows = new StringBuilder();
       for (Found found : matches) {
-        found.el.describe(rows.append("    "), found.left, found.top);
+        TreeDumper.describe(rows.append("    "), found.el, found.left, found.top);
       }
       throw fail(matches.size() + " elements match " + text + ":\n" + rows
           + "  Add #key, role=, label= or a state to the selector until it matches one, or press"
@@ -1623,7 +1623,7 @@ public final class Script {
     String example = null;
     for (Found found : all) {
       if (found.el.isVirtualList()) {
-        found.el.describe(rows.append("    "), found.left, found.top);
+        TreeDumper.describe(rows.append("    "), found.el, found.left, found.top);
         if (example == null) {
           example = found.el.key() != null
               ? "#" + found.el.key()
@@ -1643,7 +1643,7 @@ public final class Script {
   /** The states of {@link El#dump} but the value, with a space before each and after the last. */
   private static String states(El el) {
     StringBuilder out = new StringBuilder();
-    el.states(out);
+    TreeDumper.states(out, el);
     return out.append(' ').toString();
   }
 
@@ -1651,11 +1651,11 @@ public final class Script {
     return words.isEmpty() ? "none" : String.join(" ", words);
   }
 
-  /** A character as {@link El#quote} writes one of a private use area: <code>&#92;u{E0EB}</code>. */
+  /** A character as {@link TreeDumper#quote} writes one of a private use area: <code>&#92;u{E0EB}</code>. */
   private static final Pattern CODE_POINT =
       Pattern.compile("u\\{(10\\p{XDigit}{4}|\\p{XDigit}{1,5})}");
 
-  /** Undoes {@link El#quote}. {@link Line#words} made sure a character follows each backslash. */
+  /** Undoes {@link TreeDumper#quote}. {@link Line#words} made sure a character follows each backslash. */
   private static String unescape(String text) {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < text.length(); i++) {
