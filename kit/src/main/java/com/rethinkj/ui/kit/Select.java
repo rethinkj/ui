@@ -1,6 +1,8 @@
 package com.rethinkj.ui.kit;
 
-import com.rethinkj.ui.Cursor;
+import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Label.label;
+
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
@@ -22,6 +24,9 @@ import java.util.function.IntConsumer;
  * keeps the choice and the menu's {@link Menu.State}. In a tree dump it is {@code role=combobox}
  * with the current choice as the label, and its menu's items are the choices. A long choice ends
  * in an ellipsis before the chevron; the label keeps the full text.
+ *
+ * <p>It looks as a secondary {@link Button} does, with the chevron muted: raised with the control's
+ * shadow, lifted under the pointer, and pressed in while its menu is open.
  */
 public final class Select {
 
@@ -81,7 +86,27 @@ public final class Select {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    El select = SelectionFrame.frame(theme, text, null, enabled).expanded(state.isOpen());
+    Button.Look look = Button.look(theme, Button.Variant.SECONDARY, Button.Tone.NEUTRAL, enabled);
+    El select = row()
+        .role("combobox")
+        .label(text)
+        .disabled(!enabled)
+        .w(theme.size().field())
+        .h(theme.size().control())
+        .shrink(0)
+        // As a button's: room for the content to move down while pressed, in the same box.
+        .padding(theme.size().stroke(), theme.space().m())
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .radius(theme.radius().medium())
+        .fill(look.fill())
+        .border(theme.size().stroke(), look.edge())
+        .shadow(look.rest())
+        .motion(theme.motion().feedback())
+        .expanded(state.isOpen())
+        .children(
+            label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis(),
+            Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return select;
     }
@@ -95,12 +120,12 @@ public final class Select {
       items.add(Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected));
     }
     // As a button: a press leaves the focus where it is, and its menu gives it back there.
+    Button.enable(theme, look, select, open);
+    if (state.isOpen()) {
+      Button.held(theme, select, look);
+    }
     return select
-        .focusable()
         .keepFocus()
-        .focusRing(theme.accent().edge())
-        .cursor(Cursor.POINTER)
-        .onPress(open)
         .onKey(k -> {
           boolean arrow = k.name().equals("ArrowDown") || k.name().equals("ArrowUp");
           if (arrow && k.modifiers() == Key.ALT) {
@@ -133,7 +158,6 @@ public final class Select {
           }
           return true;
         })
-        .whenHovered(e -> SelectionFrame.hovered(theme, e))
         .overlay(
             state.isOpen()
                 ? Menu.menu(state, items)

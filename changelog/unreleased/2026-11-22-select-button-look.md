@@ -1,0 +1,1 @@
+- `Select` has a new look, that of a secondary `Button`: an even edge and the control shadow instead of a text field's stronger bottom edge, lifted under the pointer and pressed in while its list is open, with only the focus ring when focused, so that it sits beside buttons and `Segmented` in a toolbar.

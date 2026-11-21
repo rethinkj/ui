@@ -925,6 +925,31 @@ el 0,0 140x40
       text "Rows" 25,12 33x16
     el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
+# select, rest
+el 0,0 140x40
+  el #c role=combobox label="Rows" 10,8 120x24 expanded=false
+    text "Rows" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# select, hover
+el 0,0 140x40
+  el #c role=combobox label="Rows" 10,8 120x24 expanded=false hovered
+    text "Rows" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# select, pressed
+el 0,0 140x40
+  el #c role=combobox label="Rows" 10,8 120x24 expanded=false hovered
+    text "Rows" 19,13 82x16
+    text label="chevron_down" "\u{F2A2}" 105,13 16x16
+# select, focused
+el 0,0 140x40
+  el #c role=combobox label="Rows" 10,8 120x24 expanded=false focused
+    text "Rows" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# select, disabled
+el 0,0 140x40
+  el #c role=combobox label="Rows" 10,8 120x24 disabled expanded=false
+    text "Rows" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
 # combo box, rest
 el 0,0 140x40
   el #c role=combobox label="shop" 10,8 120x24 expanded=false

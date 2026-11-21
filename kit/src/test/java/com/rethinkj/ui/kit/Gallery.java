@@ -179,6 +179,10 @@ final class Gallery {
           "segmented",
           h -> Segmented.segmented(List.of("Rows", "Cells"), 0, choose(h)).label("Mode")),
       new Row(
+          "select",
+          h -> Select.select(List.of("Rows", "Cells"), 0, new Menu.State(), choose(h))
+              .w(WIDTH - 20)),
+      new Row(
           "combo box",
           h -> ComboBox.comboBox(List.of("analytics", "shop"), 1, new ComboBox.State(), choose(h))
               .w(WIDTH - 20)),

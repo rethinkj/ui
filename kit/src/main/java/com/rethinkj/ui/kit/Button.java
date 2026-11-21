@@ -106,7 +106,7 @@ public final class Button {
   }
 
   /** The colors and shadows of a button: at rest, hovered and pressed, its edge, text and ring. */
-  private record Look(
+  record Look(
       int fill,
       int hover,
       int pressed,
@@ -705,7 +705,7 @@ public final class Button {
   }
 
   /** Makes a button pressable, unless {@code onPress} is null. */
-  private static El enable(Theme theme, Look look, El button, Runnable onPress) {
+  static El enable(Theme theme, Look look, El button, Runnable onPress) {
     if (onPress == null) {
       return button;
     }
@@ -739,13 +739,13 @@ public final class Button {
    * A button that stays pressed in while its menu is open, also under the pointer, and shows no
    * tooltip over the menu.
    */
-  private static void held(Theme theme, El button, Look look) {
+  static void held(Theme theme, El button, Look look) {
     Consumer<El> in = e -> pressed(theme, e.fill(look.pressed()));
     in.accept(button);
     button.whenHovered(in).whenHoveredFor(0, null).whenFocusVisibleFor(0, null);
   }
 
-  private static Look look(Theme theme, Variant variant, Tone tone, boolean enabled) {
+  static Look look(Theme theme, Variant variant, Tone tone, boolean enabled) {
     Theme.Surfaces s = theme.surface();
     List<Shadow> rest = theme.elevation().control();
     List<Shadow> lifted = theme.elevation().controlHover();

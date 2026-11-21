@@ -19,8 +19,8 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 /**
- * A choice that is typed: closed it looks like a {@link Select}, the current choice and a chevron
- * in a text field's frame; open it is a text field with the {@linkplain FilterList filtered list}
+ * A choice that is typed: closed it shows the current choice and a chevron in a text field's
+ * frame; open it is a text field with the {@linkplain FilterList filtered list}
  * of the choices below it, at least as wide as itself, which narrows {@linkplain Fuzzy fuzzily} as
  * one types. Use it where a {@link Select} would list more than a screenful, or where the user
  * knows what to type: a database among dozens, a font, a language. A select stays the control for
@@ -406,7 +406,7 @@ public final class ComboBox {
     return state.entries;
   }
 
-  /** The closed look of {@link #comboBox}: a {@link Select}'s. */
+  /** The closed look of {@link #comboBox}: the current choice and a chevron in a field's frame. */
   private static El closed(Theme theme, String text, El lead, boolean enabled, State state) {
     El box = SelectionFrame.frame(theme, text, lead, enabled).expanded(false);
     if (!enabled) {
