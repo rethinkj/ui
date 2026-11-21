@@ -425,12 +425,22 @@ public final class ErDiagram {
    * The whole diagram as a PNG image, with no table selected, at a zoom of 100 % in the theme of
    * {@link Theme#CURRENT} where it is called, as {@link Canvas#png} saves a canvas. A handler runs
    * outside the view's theme, so it gives the theme again: {@code Theme.CURRENT.with(state.theme, ()
-   * -> ErDiagram.png(state.diagram, state.schemas))}.
+   * -> ErDiagram.png(state.diagram, state.schemas))}, and an app with a style of its own gives it
+   * with {@link ErStyle#CURRENT} as well. It leaves the state as it is.
    *
    * @throws IllegalArgumentException if the image would be too large, as {@link Canvas#png} says
    */
-  public static byte[] png(State state, List<Schema> schemas) {
+  public static byte[] png(State live, List<Schema> schemas) {
     ErStyle style = ErStyle.CURRENT.get();
+    // A copy, as the image may need an arrangement that the view does not, at another style.
+    State state = new State();
+    state.mode = live.mode;
+    state.modes.putAll(live.modes);
+    state.filter = live.filter;
+    state.places.putAll(live.places);
+    state.arrangeDue = live.arrangeDue;
+    state.arranged = live.arranged;
+    state.width = live.width;
     Map<String, Shown> tables = model(schemas, state, style);
     arrange(state, tables, style);
     Diagram diagram = new Diagram(state, tables, null, style);
@@ -568,15 +578,22 @@ public final class ErDiagram {
         frameSizes.merge(schema, 1, Integer::sum);
       }
       float pad = style.frame();
-      // Keyed schema/, and apart from every table and edge, as a table without a schema may be
-      // named so.
+      // Keyed schema/, and apart from every table and relation, as a table without a schema may be
+      // named so: from all of them, so that the filter does not change a frame's key.
       Set<String> taken = new HashSet<>(tables.keySet());
-      edges.forEach(edge -> taken.add(edge.key()));
-      bounds.forEach((schema, box) -> {
-        String key = schema + "/";
-        while (!taken.add(key)) {
-          key += "/";
+      tables.values().forEach(table -> table.out.forEach(relation -> taken.add(relation.key)));
+      Map<String, String> keys = new HashMap<>();
+      tables.values().forEach(table -> {
+        if (!table.schema.isEmpty() && !keys.containsKey(table.schema)) {
+          String key = table.schema + "/";
+          while (!taken.add(key)) {
+            key += "/";
+          }
+          keys.put(table.schema, key);
         }
+      });
+      bounds.forEach((schema, box) -> {
+        String key = keys.get(schema);
         frameSchemas.put(key, schema);
         frames.add(new Node(
             key,

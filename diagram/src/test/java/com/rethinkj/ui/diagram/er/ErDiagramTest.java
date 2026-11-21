@@ -265,6 +265,7 @@ class ErDiagramTest {
     state.select("shop.order");
     byte[] png = Theme.CURRENT.with(Theme.LIGHT, () -> ErDiagram.png(state, SCHEMAS));
     assertTrue(Png.decode(png).width() > 2 * 2 * ErStyle.DEFAULT.width(), "two layers wide");
+    assertTrue(state.pins().isEmpty() && state.selected().equals("shop.order"), "left as it was");
   }
 
   /** The line of the element with this key in a tree dump, or nothing. */
