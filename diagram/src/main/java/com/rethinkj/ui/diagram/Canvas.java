@@ -324,22 +324,23 @@ public final class Canvas {
       revealing = node;
     }
 
-    void revealIfDue(List<Node> nodes, float margin) {
+    /** Reveals the node if that is due, and tells whether it had the node to reveal. */
+    boolean revealIfDue(List<Node> nodes, float margin) {
       if (revealing == null || width <= 0 || height <= 0) {
-        return;
+        return false;
       }
       Node node =
           nodes.stream().filter(n -> n.key().equals(revealing)).findFirst().orElse(null);
       revealing = null;
       if (node == null) {
-        return;
+        return false;
       }
       float zoom = zoom();
       if (node.x() >= left
           && node.y() >= top
           && node.x() + node.width() <= left + width / zoom
           && node.y() + node.height() <= top + height / zoom) {
-        return;
+        return true;
       }
       margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
@@ -347,6 +348,7 @@ public final class Canvas {
       if (x != left || y != top) {
         panTo(x, y);
       }
+      return true;
     }
 
     /** Whether the node is at least partly in view. */
@@ -639,17 +641,14 @@ public final class Canvas {
     DiagramTexts texts = DiagramTexts.CURRENT.get();
     boolean fitted = viewport.fitIfDue(
         areas.isEmpty() ? nodes : joined(areas, nodes), theme.space().xl());
-    if (fitted
-        && viewport.revealing == null
-        && !nodes.isEmpty()
-        && nodes.stream().noneMatch(viewport::shows)) {
+    boolean revealed = viewport.revealIfDue(nodes, theme.space().xl());
+    if (fitted && !revealed && !nodes.isEmpty() && nodes.stream().noneMatch(viewport::shows)) {
       // At the furthest zoom, the middle of nodes far apart can show none of them: show the first,
       // and keep fitting, so that a larger canvas fits them all.
       viewport.reveal(nodes.getFirst().key());
       viewport.revealIfDue(nodes, theme.space().xl());
       viewport.fitting = true;
     }
-    viewport.revealIfDue(nodes, theme.space().xl());
     float zoom = viewport.zoom();
     double left = viewport.left;
     double top = viewport.top;
