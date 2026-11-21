@@ -1,12 +1,12 @@
 el 0,0 360x240
   el role=combobox label="Schema" 12,12 200x24 expanded
     text role=textbox label="public" "sa" 12,12 200x24 focused caret 2
-    el role=button label="Close" 188,12 24x24
-      text label="chevron_down" "\u{F2A2}" 192,16 16x16
+    el role=button label="Close" 183,12 29x24
+      text label="chevron_down" "\u{F2A2}" 187,16 16x16
   el role=combobox label="Host" 12,44 200x24 expanded=false
     text #field-0 role=textbox "localhost" 12,44 200x24
-    el role=button label="Open" 188,44 24x24
-      text label="chevron_down" "\u{F2A2}" 192,48 16x16
+    el role=button label="Open" 183,44 29x24
+      text label="chevron_down" "\u{F2A2}" 187,48 16x16
   el role=combobox label="Database" 12,76 200x24 expanded=false
     el #lead 21,80 16x16
       text label="database" "\u{F0D7}" 21,80 16x16

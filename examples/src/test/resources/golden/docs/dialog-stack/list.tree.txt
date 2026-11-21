@@ -23,8 +23,8 @@ overlay center modal scrim on 0,0 440x340
         el 120,140 200x56
           el role=combobox label="sslmode" 120,140 200x24 expanded
             text role=textbox label="sslmode" "" 120,140 200x24 focused caret 0
-            el role=button label="Close" 296,140 24x24
-              text label="chevron_down" "\u{F2A2}" 300,144 16x16
+            el role=button label="Close" 291,140 29x24
+              text label="chevron_down" "\u{F2A2}" 295,144 16x16
           text role=textbox label="Value" "" 120,172 200x24
       el 120,208 200x24
         el role=button label="Cancel" 191,208 70x24

@@ -5,12 +5,12 @@ el 0,0 360x260
       text label="chevron_down" "\u{F2A2}" 127,16 16x16
     el #database role=combobox label="shop" 160,12 180x24 expanded
       text role=textbox label="shop" "ot" 160,12 180x24 focused caret 2
-      el role=button label="Close" 316,12 24x24
-        text label="chevron_down" "\u{F2A2}" 320,16 16x16
+      el role=button label="Close" 311,12 29x24
+        text label="chevron_down" "\u{F2A2}" 315,16 16x16
   el #host role=combobox label="" 12,44 240x24 expanded=false
     text #field-0 role=textbox "" 12,44 240x24
-    el role=button label="Open" 228,44 24x24
-      text label="chevron_down" "\u{F2A2}" 232,48 16x16
+    el role=button label="Open" 223,44 29x24
+      text label="chevron_down" "\u{F2A2}" 227,48 16x16
   text #status "shop on no host" 12,76 336x16
 overlay bottom stretch gap 2 on #database role=combobox label="shop" 160,12 180x24
   el #choices 160,38 180x130
