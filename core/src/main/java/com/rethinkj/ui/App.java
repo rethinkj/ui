@@ -9,7 +9,6 @@ import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Windows;
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -236,28 +235,7 @@ public final class App<S> {
   private final Hover hover = new Hover(); // where the pointer is and what it is over
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private final Set<Object> relooking = new HashSet<>(); // lists that build their rows anew
-  private El focused; // in the current tree
-  private Object focusId; // its identity, to find it in the next tree
-  // El#onTypeAhead's text so far, typed into the focused element: a move of the focus empties it.
-  private final StringBuilder typeAhead = new StringBuilder();
-  private double typeAheadAt; // when its last character came
-  private boolean ring; // the keyboard or the app moved the focus: draw the ring
-  private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
-  private boolean focusKeyed; // a key went down since then that did not move the focus
-  private boolean reveal; // scroll the focused element into view after the next rebuild
-  private Focus beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
-  private List<Object> askedNext = List.of(); // the others that asked with it, in tree order
-  // The identity of the element that last had the focus in a virtual list, by the list's identity.
-  // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
-  // apps create lists by the thousand.
-  private final Map<Object, Object> remembered = new HashMap<>();
-  // The identities of the elements that had the focus last, the latest first, for focus(container).
-  // shortcut: the last 16 only; a container whose last focus is older gets its first element.
-  private final ArrayDeque<Object> recent = new ArrayDeque<>();
-  // The identity of a container that focus(container) or recovery found no default focus in; until
-  // the focus moves, it goes to the default focus that appears there later, and the place it holds
-  // meanwhile does not count in recent.
-  private Object awaiting;
+  private final Focus focus = new Focus(animator); // the keyboard focus
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -274,7 +252,6 @@ public final class App<S> {
   private final Map<Object, Runnable> heldRows = new HashMap<>();
   // The sizes the El#onResize handlers were told, by identity, of the elements of the last build.
   private Map<Object, Long> toldSizes = new HashMap<>();
-  private int ringColor = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
@@ -296,12 +273,6 @@ public final class App<S> {
   private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   private FieldMenu.Open fieldMenu; // the menu of a field that is open, El#fieldMenu
-  // The overlays of the last tree the view built, in the order they opened, with where the focus
-  // was before each took it; null for one that took none.
-  private final Map<Object, Focus> opened = new LinkedHashMap<>();
-  // For the open overlays that took no focus, such as a toast: where the focus was last outside
-  // each, for when the keyboard moved it inside and the overlay closes.
-  private final Map<Object, Focus> outside = new HashMap<>();
   // When the open overlays with an onShownFor handler opened, by identity; infinite once it ran.
   private final Map<Object, Double> shownSince = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
@@ -312,9 +283,6 @@ public final class App<S> {
   // pointer left its element; a stay that begins within its delay of that shows its look at once.
   private double lookLeft = Double.NEGATIVE_INFINITY;
   private int hoversRun; // onHoverFor handlers run so far
-
-  /** Where the focus was, by identity, and whether it had a ring. */
-  private record Focus(Object id, boolean ring) {}
 
   /**
    * Since when the pointer has been over an element; whether its onHoverFor handler has run;
@@ -507,7 +475,7 @@ public final class App<S> {
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       El field = hit.getLast(); // a leaf, so nothing inside it takes the press
       capture = new Selecting(Animator.identities(hit).getLast());
-      focus(field, false);
+      focus.set(field, false, time);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
       editor.press(
@@ -529,7 +497,7 @@ public final class App<S> {
                 : new Dragging(target.id(), target.el.onDrag(), target.el.dragPayload(), x, y));
     if (!keepsFocus(hit)) {
       Target focus = target(x, y, El::isFocusable);
-      focus(focus == null ? null : focus.el, false);
+      this.focus.set(focus == null ? null : focus.el, false, time);
     }
     Target down = target(x, y, e -> e.onPointerDown() != null);
     if (down != null) {
@@ -600,7 +568,7 @@ public final class App<S> {
     secondary = target == null ? null : target.id();
     if (!keepsFocus(hit(x, y))) {
       Target focus = target(x, y, El::isFocusable);
-      focus(focus == null ? null : focus.el, false);
+      this.focus.set(focus == null ? null : focus.el, false, time);
     }
     return any;
   }
@@ -841,7 +809,7 @@ public final class App<S> {
       }
     }
     if (press) {
-      for (Object id : List.copyOf(opened.keySet())) {
+      for (Object id : focus.opened()) {
         El holder = animator.element(id);
         if (holder != null
             && holder.holdsFocus()
@@ -1221,25 +1189,21 @@ public final class App<S> {
         wakeField();
       }
       if (key.name().equals("Escape")) {
-        typeAhead.setLength(0);
+        focus.clearTypeAhead();
       }
-      keyToText = focused != null
-              && (focused.editor() != null
-                  || focused.onText() != null
-                  || focused.onTypeAhead() != null)
+      keyToText = focus.element() != null
+              && (focus.element().editor() != null
+                  || focus.element().onText() != null
+                  || focus.element().onTypeAhead() != null)
           || fieldWaits();
-      Object before = focusId;
+      Object before = focus.id();
       keyUntaken = false;
       anyKeyDown(key);
       boolean took = keyDownAt(key);
       if (keyUntaken && untaken != null) {
         untaken.run();
       }
-      if (Objects.equals(before, focusId)
-          && !focusKeyed
-          && focused != null
-          && focused.focusRestLook() != null) {
-        focusKeyed = true; // the look of a stay goes
+      if (focus.keyed(before)) {
         handled = true;
       }
       return took;
@@ -1265,11 +1229,11 @@ public final class App<S> {
           return true;
         }
       }
-      if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
+      if (el == focus.element() && el.editor() != null && el.editor().key(key, clipboard)) {
         handled |= el.editor().answerPending(); // it handed an edit to the app
         return true;
       }
-      if (el == focused
+      if (el == focus.element()
           && el.onPress() != null
           && key.modifiers() == 0
           && (key.name().equals("Enter") || key.name().equals("Space"))) {
@@ -1298,19 +1262,19 @@ public final class App<S> {
     if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
       settle();
       wake();
-      Object from = focusId; // by identity: entering a list may build rows anew
+      Object from = focus.id(); // by identity: entering a list may build rows anew
       List<El> order = focusables();
-      order.removeIf(el -> el.skipsTab() && el != focused);
+      order.removeIf(el -> el.skipsTab() && el != focus.element());
       if (!order.isEmpty()) {
         int step = key.modifiers() == Key.SHIFT ? -1 : 1;
-        int at = order.indexOf(focused);
+        int at = order.indexOf(focus.element());
         int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
         El el = enter(order.get(Math.floorMod(next, order.size())), step);
         if (el.editor() != null && !el.text().multiline()) {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
         leaveOverlays(from, animator.identity(el));
-        return focus(el, true);
+        return focus.set(el, true, time);
       }
     }
     if ((key.name().equals("PageUp") || key.name().equals("PageDown")) && key.modifiers() == 0) {
@@ -1372,12 +1336,12 @@ public final class App<S> {
     Objects.requireNonNull(text, "text");
     enqueue(() -> {
       wakeField();
-      if (focused != null && focused.editor() != null) {
-        boolean changed = focused.editor().type(text);
-        handled |= focused.editor().answerPending();
+      if (focus.element() != null && focus.element().editor() != null) {
+        boolean changed = focus.element().editor().type(text);
+        handled |= focus.element().editor().answerPending();
         return changed;
       }
-      return focused != null && giveText(text);
+      return focus.element() != null && giveText(text);
     });
   }
 
@@ -1397,12 +1361,12 @@ public final class App<S> {
       if (keyToText) {
         wakeField();
       }
-      if (!keyToText || focused == null) {
+      if (!keyToText || focus.element() == null) {
         return false;
       }
-      if (focused.editor() != null) {
-        boolean changed = focused.editor().type(text);
-        handled |= focused.editor().answerPending();
+      if (focus.element().editor() != null) {
+        boolean changed = focus.element().editor().type(text);
+        handled |= focus.element().editor().answerPending();
         return changed;
       }
       return giveText(text);
@@ -1411,18 +1375,14 @@ public final class App<S> {
 
   /** Gives text to the focused element's {@link El#onText} or {@link El#onTypeAhead} handler. */
   private boolean giveText(String text) {
-    if (focused.onText() != null) {
-      focused.onText().accept(text);
-    } else if (focused.onTypeAhead() != null) {
-      if (time - typeAheadAt >= TYPE_AHEAD) {
-        typeAhead.setLength(0);
-      }
-      if (typeAhead.isEmpty() && text.isBlank()) {
+    if (focus.element().onText() != null) {
+      focus.element().onText().accept(text);
+    } else if (focus.element().onTypeAhead() != null) {
+      String typed = focus.typeAhead(text, time);
+      if (typed == null) {
         return false;
       }
-      typeAhead.append(text);
-      typeAheadAt = time;
-      focused.onTypeAhead().accept(typeAhead.toString());
+      focus.element().onTypeAhead().accept(typed);
     } else {
       return false;
     }
@@ -1440,8 +1400,9 @@ public final class App<S> {
    */
   public void textComposition(String text, int cursor) {
     Objects.requireNonNull(text, "text");
-    enqueue(() ->
-        focused != null && focused.editor() != null && focused.editor().compose(text, cursor));
+    enqueue(() -> focus.element() != null
+        && focus.element().editor() != null
+        && focus.element().editor().compose(text, cursor));
   }
 
   /** Where cut and copied text go and paste takes it from; {@link Clipboard#inMemory} at first. */
@@ -1604,7 +1565,7 @@ public final class App<S> {
           && field.editor() != null
           && field.editor().editable()) {
         fileLeave();
-        focus(field, false);
+        focus.set(field, false, time);
         float[] at = local(field, x, y);
         Editor editor = field.editor();
         editor.press(
@@ -1693,7 +1654,7 @@ public final class App<S> {
   public InputArea inputArea() {
     // A press on a field that no frame has dispatched yet: text typed right after it reaches the
     // app only while the window's text input is on, so it goes on at the press.
-    El focused = typingSoon != null ? typingSoon : this.focused;
+    El focused = typingSoon != null ? typingSoon : focus.element();
     if (focused == null) {
       return null;
     }
@@ -1823,7 +1784,7 @@ public final class App<S> {
    * it does not.
    */
   public El focused() {
-    return focused;
+    return focus.element();
   }
 
   /**
@@ -1901,15 +1862,14 @@ public final class App<S> {
         if (now == null) {
           return false;
         }
-        boolean fallback = !now.isDefaultFocus() && lastInside(id, order) == null;
-        boolean due = focus(now, true);
+        boolean fallback = !now.isDefaultFocus() && focus.lastInside(id, order) == null;
+        boolean due = focus.set(now, true, time);
         if (fallback) {
-          awaiting = id;
-          recent.remove(focusId);
+          focus.awaitInside(id);
         }
         return due;
       }
-      return (id == null || now != null && order.contains(now)) && focus(now, true);
+      return (id == null || now != null && order.contains(now)) && focus.set(now, true, time);
     });
   }
 
@@ -1918,11 +1878,11 @@ public final class App<S> {
    * id}: the element there that had it last and can still take it, else the first that can.
    */
   private El into(Object id, El scope, List<El> order) {
-    El last = lastInside(id, order);
+    El last = focus.lastInside(id, order);
     if (last != null) {
       return last;
     }
-    El first = firstInside(scope, order);
+    El first = Focus.firstInside(scope, order);
     if (first == null) {
       return null;
     }
@@ -1934,31 +1894,6 @@ public final class App<S> {
   }
 
   /**
-   * The element of {@code order} inside the element with identity {@code id} that had the focus
-   * last, or null.
-   */
-  private El lastInside(Object id, List<El> order) {
-    for (Object last : recent) {
-      El el = Animator.isBelow(last, id) ? animator.element(last) : null;
-      if (el != null && order.contains(el)) {
-        return el;
-      }
-    }
-    return null;
-  }
-
-  /** Puts the focus's identity first in {@link #recent}. */
-  private void noteRecent() {
-    if (!focusId.equals(recent.peekFirst())) {
-      recent.remove(focusId);
-      recent.addFirst(focusId);
-      if (recent.size() > 16) {
-        recent.removeLast();
-      }
-    }
-  }
-
-  /**
    * Sets the color of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
    * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
    * element's border box, or its {@link El#focusRingGap} beyond it, with its corners, or just
@@ -1966,7 +1901,7 @@ public final class App<S> {
    * Scene}).
    */
   public void focusRing(int argb) {
-    ringColor = argb;
+    focus.ringColor(argb);
     stale = true;
   }
 
@@ -2080,61 +2015,17 @@ public final class App<S> {
     return systemFonts;
   }
 
-  /**
-   * Focuses the element of the current tree that {@link #focusables} has, or none.
-   *
-   * @param ring whether the keyboard or the app moved the focus, not the pointer
-   * @return whether a rebuild is due even if the focus ends where it was: to scroll it into view
-   */
-  private boolean focus(El el, boolean ring) {
-    noteOutside();
-    awaiting = null;
-    if (focused != null) {
-      focused.focused(false);
-    }
-    focused = el;
-    focusId = el == null ? null : animator.identity(el);
-    this.ring = ring && el != null;
-    reveal = this.ring;
-    focusSince = time;
-    focusKeyed = false;
-    typeAhead.setLength(0);
-    if (el != null) {
-      el.focused(true);
-      noteRecent(); // here too: another request of the same frame may move it on before a rebuild
-      Animator.InRow in = animator.inRow(focusId);
-      if (in != null) {
-        remembered.put(in.listId(), focusId);
-      }
-    }
-    return ring;
-  }
-
-  /**
-   * Whether the focus is on a row of a virtual list that the list could build but does not have
-   * now, because it is out of the range that exists, or on an element inside such a row.
-   */
-  private boolean focusWaits() {
-    return focusId != null && waits(focusId);
-  }
-
-  /** Whether the element of this identity is in a row of a virtual list that it lacks now. */
-  private boolean waits(Object id) {
-    Animator.InRow in = animator.inRow(id);
-    return in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row());
-  }
-
-  /** Whether the focus {@link #focusWaits} on an editable text field, whose editor stays. */
+  /** Whether the focus {@link Focus#waits} on an editable text field, whose editor stays. */
   private boolean fieldWaits() {
-    if (focused != null || !focusWaits()) {
+    if (focus.element() != null || !focus.waits()) {
       return false;
     }
-    Editor editor = editors.get(focusId);
+    Editor editor = editors.get(focus.id());
     return editor != null && editor.editable();
   }
 
   /**
-   * Brings back the row of an editable field that has the focus and {@link #focusWaits}, so that
+   * Brings back the row of an editable field that has the focus and {@link Focus#waits}, so that
    * text and the keys that edit go into it, as an editor brings its caret back into view on
    * typing.
    */
@@ -2156,10 +2047,10 @@ public final class App<S> {
     };
   }
 
-  /** Brings the row of a focus that {@link #focusWaits} into view, so that Tab goes on there. */
+  /** Brings the row of a focus that {@link Focus#waits} into view, so that Tab goes on there. */
   private void wake() {
-    if (focused == null && focusWaits()) {
-      Animator.InRow in = animator.inRow(focusId);
+    if (focus.element() == null && focus.waits()) {
+      Animator.InRow in = animator.inRow(focus.id());
       in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row()));
       fillRows();
       refocus();
@@ -2172,15 +2063,15 @@ public final class App<S> {
    * first row in view, or the last one of the last row in view for Shift+Tab, rather than to the
    * first row the list built. The row is built and scrolled into view if needed. A {@code step} of
    * 0 focuses into the list as {@link #focus(El)} does: to the element of the row that {@link
-   * #firstInside} picks.
+   * Focus#firstInside} picks.
    */
   private El enter(El next, int step) {
     Animator.InRow in = animator.inRow(animator.identity(next));
-    if (in == null || Animator.isBelow(focusId, in.listId())) {
+    if (in == null || Animator.isBelow(focus.id(), in.listId())) {
       return next;
     }
     El list = in.list();
-    Object last = remembered.get(in.listId());
+    Object last = focus.lastInList(in.listId());
     Animator.InRow was = last == null ? null : animator.inRow(last);
     int row = was != null && was.listId().equals(in.listId()) && was.row() < list.rowCount()
         ? was.row()
@@ -2204,7 +2095,7 @@ public final class App<S> {
       return again;
     }
     if (step == 0) {
-      El chosen = firstInside(rowEl, order);
+      El chosen = Focus.firstInside(rowEl, order);
       return chosen != null ? chosen : next;
     }
     El found = null;
@@ -2225,146 +2116,15 @@ public final class App<S> {
 
   /**
    * Finds the focused element in a new tree by its identity, or where the focus goes when it is
-   * gone or can no longer take it ({@link #recover}), and scrolls it into view if that is due.
+   * gone or can no longer take it ({@link Focus#refocus}), and scrolls it into view if that is due.
    */
   private void refocus() {
-    if (focusId == null) {
-      return;
-    }
-    if (awaiting != null) {
-      El scope = animator.element(awaiting);
-      El now = animator.element(focusId);
-      List<El> order = focusables();
-      El preferred = scope == null ? null : firstInside(scope, order);
-      if (scope == null || now == null || !order.contains(now)) {
-        awaiting = null; // its place is gone: the focus goes where recovery puts it
-      } else if (preferred != null && preferred.isDefaultFocus()) {
-        if (!animator.identity(preferred).equals(focusId)) {
-          focus(preferred, ring); // as a move: noted in the memories, ends the wait
-        }
-        awaiting = null;
-      }
-    }
-    if (focused != null) {
-      focused.focused(false);
-    }
-    El el = animator.element(focusId);
-    if (beforeAsked != null) {
-      Focus before = beforeAsked;
-      List<Object> next = askedNext;
-      beforeAsked = null;
-      askedNext = List.of();
-      List<El> order = focusables();
-      for (int i = 0; (el == null || !order.contains(el)) && i < next.size(); i++) {
-        focusId = next.get(i); // the element asked for cannot take it: the next one that asked
-        el = animator.element(focusId);
-      }
-      if (el == null || !order.contains(el)) { // none can
-        focusId = before.id();
-        ring = before.ring();
-        reveal = false;
-        refocus();
-        return;
-      }
-    }
-    if (el == null && focusWaits()) {
-      focused = null; // kept by its identity until the row exists again
-      reveal = false;
-      return;
-    }
-    List<El> order = focusables();
-    if (el == null || !order.contains(el)) {
-      el = recover(focusId, order);
-      if (el == null) {
-        focused = null;
-        focusId = null;
-        ring = false;
-        reveal = false;
-        return;
-      }
-      focusId = animator.identity(el);
-      reveal = ring; // the ring stays as it was: after a key, the new place shows it
-      focusSince = time;
-      focusKeyed = false;
-      typeAhead.setLength(0);
-      Animator.InRow in = animator.inRow(focusId);
-      if (in != null) {
-        remembered.put(in.listId(), focusId);
-      }
-    }
-    focused = el;
-    el.focused(true);
-    if (awaiting == null) {
-      noteRecent();
-    }
-    if (reveal) {
-      reveal = false;
-      reveal(el);
+    El shown = focus.refocus(this::focusables, time);
+    if (shown != null) {
+      reveal(shown);
       if (fillRows()) {
         refocus(); // its row was built again
       }
-    }
-  }
-
-  /**
-   * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
-   * it: to the nearest of it and its ancestors below the root that is still there and can take the
-   * focus, or else has an element inside it that can, the one that had the focus last, else the
-   * one {@link #firstInside} picks, which waits for a default focus as after {@link #focus(El)};
-   * null if none has.
-   */
-  private El recover(Object lost, List<El> order) {
-    List<Object> lineage = Animator.lineage(lost);
-    for (int i = lineage.size() - 1; i >= 1; i--) {
-      El scope = animator.element(lineage.get(i));
-      if (scope == null || scope.isExiting()) {
-        continue;
-      }
-      if (order.contains(scope)) {
-        return scope;
-      }
-      El last = lastInside(lineage.get(i), order);
-      if (last != null) {
-        return last;
-      }
-      El first = firstInside(scope, order);
-      if (first != null) {
-        awaiting = first.isDefaultFocus() ? null : lineage.get(i);
-        return first;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * The element of {@code order} inside {@code scope} that is {@link El#defaultFocus}, the one the
-   * fewest levels below it and the first in tree order among those, else the first that is {@link
-   * El#autofocus}, else the first; null if none is inside.
-   */
-  private static El firstInside(El scope, List<El> order) {
-    Map<El, Integer> inside = new IdentityHashMap<>();
-    depths(scope, 0, inside);
-    El preferred = null;
-    El asking = null;
-    El first = null;
-    for (El el : order) {
-      Integer depth = inside.get(el);
-      if (depth == null) {
-        continue;
-      }
-      if (el.isDefaultFocus() && (preferred == null || depth < inside.get(preferred))) {
-        preferred = el;
-      }
-      asking = asking == null && el.autofocusKey() != null ? el : asking;
-      first = first == null ? el : first;
-    }
-    return preferred != null ? preferred : asking != null ? asking : first;
-  }
-
-  private static void depths(El el, int depth, Map<El, Integer> into) {
-    into.put(el, depth);
-    for (El child : el.children()) {
-      depths(child, depth + 1, into);
     }
   }
 
@@ -2388,7 +2148,9 @@ public final class App<S> {
    */
   private List<El> focusPath() {
     List<El> path = new ArrayList<>();
-    El end = focused != null ? focused : focusWaits() ? animator.inRow(focusId).list() : null;
+    El end = focus.element() != null
+        ? focus.element()
+        : focus.waits() ? animator.inRow(focus.id()).list() : null;
     if (root != null && (end == null || !pathTo(root, end, path))) {
       path.add(root);
     }
@@ -2994,8 +2756,8 @@ public final class App<S> {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
     ran = false;
-    Object wasFocused = focusId;
-    boolean hadRing = ring;
+    Object wasFocused = focus.id();
+    boolean hadRing = focus.ring();
     boolean drawn = false;
     takeDue();
     while (scheduler.waiting()) {
@@ -3003,7 +2765,7 @@ public final class App<S> {
         build(handled, false); // after invalidate alone with its rows: an action may look for them
         drawn = true;
       }
-      if (focusWaits()) {
+      if (focus.waits()) {
         drawn |= settle(); // the focused row that a scroll of this frame brought back takes input
       }
       if (untold()) {
@@ -3031,9 +2793,9 @@ public final class App<S> {
     long inputBuild = buildNanos;
     stale |= shownFor();
     ran |= handled;
-    stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
+    stale |= handled || !Objects.equals(focus.id(), wasFocused) || focus.ring() != hadRing;
     stale |= resizeDue; // sizes changed in the input, or a view has not settled
-    stale |= blink(focused == null ? null : focused.editor());
+    stale |= blink(focus.element() == null ? null : focus.element().editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
       scrolled = false;
@@ -3201,7 +2963,8 @@ public final class App<S> {
     handled = false;
     changedOutside = false;
     scrolled = false;
-    rowsPending = between && !rowsKept && (focusId == null || animator.inRow(focusId) == null);
+    rowsPending =
+        between && !rowsKept && (focus.id() == null || animator.inRow(focus.id()) == null);
     rowsKept = false;
     endPresses(false);
     if (rowsPending) {
@@ -3309,7 +3072,7 @@ public final class App<S> {
         state.caret = -1;
       }
       el.editor(editor);
-      el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
+      el.text().unfocused(!id.equals(focus.id())); // El#ellipsis shortens it without the focus
     }
     for (El child : el.children()) {
       attachEditors(child, path);
@@ -3335,7 +3098,7 @@ public final class App<S> {
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
-    Editor waiting = focusWaits() ? editors.get(focusId) : null;
+    Editor waiting = focus.waits() ? editors.get(focus.id()) : null;
     editors.entrySet().removeIf(entry -> {
       Editor editor = entry.getValue();
       FieldState state = editor.element().fieldState();
@@ -3343,7 +3106,7 @@ public final class App<S> {
           || kept.contains(editor)
           || (state == null
               && editor.selectionPending()
-              && waits(entry.getKey())
+              && focus.waits(entry.getKey())
               && !gone(animator.inRow(entry.getKey()).listId(), true))) {
         return false; // an edit's answer, or onSelect's hearing of it, waits for its row
       }
@@ -3352,7 +3115,7 @@ public final class App<S> {
       }
       return true;
     });
-    blink(focused == null ? null : focused.editor());
+    blink(focus.element() == null ? null : focus.element().editor());
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
     }
@@ -3416,7 +3179,7 @@ public final class App<S> {
   /**
    * Tells the {@link El#onSelect} handlers of the fields whose caret or selection changed. An
    * editor kept while its field is not in the tree, as the focused one whose row {@link
-   * #focusWaits}, is told once its field is back.
+   * Focus#waits}, is told once its field is back.
    *
    * @return whether a handler was told, which the next input should find in the view
    */
@@ -3873,7 +3636,7 @@ public final class App<S> {
       }
       // As openAndClose for the rest, where a row asked for the focus.
       if (El.autofocuses() != asking) {
-        ask(animator.autofocusInRows(el, id));
+        focus.ask(animator.autofocusInRows(el, id), time);
       }
       animator.rows(el, id, time);
       range = el.measuresRows()
@@ -3936,7 +3699,7 @@ public final class App<S> {
     ids.addAll(shown.within());
     ids.add(shown.focused());
     ids.add(shown.pressed());
-    ids.add(focusId);
+    ids.add(focus.id());
     ids.add(pressedId());
     Set<Integer> rows = new HashSet<>();
     for (Object id : ids) {
@@ -4043,13 +3806,13 @@ public final class App<S> {
           took = true;
         }
       }
-      if (Animator.isBelow(focusId, listId)) {
-        El el = Animator.find(row, rowId, focusId);
+      if (Animator.isBelow(this.focus.id(), listId)) {
+        El el = Animator.find(row, rowId, this.focus.id());
         if (el != null && el.isFocusable() && look(el, El::focusLook, "whenFocused")) {
-          focus = focusId;
+          focus = this.focus.id();
           took = true;
         }
-        for (Object id : Animator.lineage(focusId)) {
+        for (Object id : Animator.lineage(this.focus.id())) {
           if (Animator.isBelow(id, listId)
               && look(Animator.find(row, rowId, id), El::focusWithinLook, "whenFocusWithin")) {
             within.add(id);
@@ -4145,10 +3908,10 @@ public final class App<S> {
       }
     }
     List<Object> rested = rest(path, ids);
-    El focus = focusId == null ? null : animator.element(focusId);
+    El focus = this.focus.id() == null ? null : animator.element(this.focus.id());
     List<Object> within = new ArrayList<>();
-    if (focusId != null) {
-      for (Object id : Animator.lineage(focusId)) {
+    if (this.focus.id() != null) {
+      for (Object id : Animator.lineage(this.focus.id())) {
         El el = animator.element(id);
         if (el != null && el.focusWithinLook() != null) {
           within.add(id);
@@ -4160,7 +3923,7 @@ public final class App<S> {
     return new Looks(
         hovered,
         rested,
-        focus != null && focus.focusLook() != null ? focusId : null,
+        focus != null && focus.focusLook() != null ? this.focus.id() : null,
         focusRested(focus),
         within,
         press != null && press.pressLook() != null ? pressId : null,
@@ -4172,10 +3935,10 @@ public final class App<S> {
    * be, notes that in {@link #restDue}, after {@link #rest} has set it.
    */
   private boolean focusRested(El focus) {
-    if (focus == null || focus.focusRestLook() == null || !ring || focusKeyed) {
+    double due = this.focus.visibleAt(focus);
+    if (Double.isNaN(due)) {
       return false;
     }
-    double due = focusSince + focus.focusRestDelay();
     if (due > time) {
       restDue = Math.min(restDue, due);
       return false;
@@ -4270,87 +4033,6 @@ public final class App<S> {
   }
 
   /**
-   * Before layout of a tree the view has just built: each overlay it no longer has gives the
-   * focus back to where it was before the overlay took it, the newest first, if the focus is
-   * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
-   * {@link El#autofocus} element or else its first focusable one, without a ring, unless it {@link
-   * El#keepFocus keeps the focus} where it is. Unless one did, the first element that asks for the
-   * focus with {@link El#autofocus} takes it.
-   * A modal overlay without one takes the focus away until it closes. An element that {@link
-   * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
-   * #refocus} finds the element after layout.
-   */
-  private void openAndClose(El tree) {
-    boolean took = false;
-    Map<Object, El> now = Animator.overlays(tree);
-    List<Object> before = new ArrayList<>(opened.keySet());
-    for (Object id : before.reversed()) {
-      if (now.containsKey(id)) {
-        continue;
-      }
-      Focus back = opened.remove(id);
-      Focus left = outside.remove(id);
-      boolean inside = focusId != null && (focusId.equals(id) || Animator.isBelow(focusId, id));
-      if (back != null && (focusId == null || inside)) {
-        moveFocus(back.id(), back.ring());
-      } else if (left != null && inside) {
-        moveFocus(left.id(), left.ring());
-      }
-    }
-    for (Map.Entry<Object, El> overlay : now.entrySet()) {
-      Object id = overlay.getKey();
-      if (opened.containsKey(id)
-          && opened.get(id) == null
-          && focusId != null
-          && !focusId.equals(id)
-          && !Animator.isBelow(focusId, id)) {
-        outside.put(id, new Focus(focusId, ring));
-      }
-      if (opened.containsKey(overlay.getKey())) {
-        continue;
-      }
-      Object first = Animator.firstFocusable(overlay.getValue(), overlay.getKey());
-      El el = overlay.getValue();
-      boolean takes =
-          (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal() && !el.isInert());
-      opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
-      if (!takes && focusId != null) {
-        outside.put(overlay.getKey(), new Focus(focusId, ring));
-      }
-      if (takes) {
-        moveFocus(first, false);
-        took = true;
-      }
-    }
-    if (!took) {
-      ask(animator.autofocus(tree));
-    }
-  }
-
-  /**
-   * Moves the focus to the first of these elements that ask for it with {@link El#autofocus}, in
-   * tree order; where that one cannot take it once laid out, {@link #refocus} takes the next that
-   * can, and gives the focus back to where it was when none can.
-   */
-  private void ask(List<Object> asked) {
-    if (asked.isEmpty()) {
-      return;
-    }
-    List<Object> next = new ArrayList<>(asked.subList(1, asked.size()));
-    if (beforeAsked == null) {
-      beforeAsked = new Focus(focusId, ring);
-    } else {
-      next.add(focusId); // asked before, by the rest of the tree
-      next.addAll(askedNext);
-    }
-    askedNext = next;
-    if (!asked.getFirst().equals(focusId)) { // one that has it keeps it, if it still can
-      moveFocus(asked.getFirst(), ring);
-      reveal = true;
-    }
-  }
-
-  /**
    * Runs the {@link El#onShownFor} handlers of the open overlays whose time has come, and notes in
    * {@link #shownDue} when the next one's will.
    *
@@ -4377,39 +4059,6 @@ public final class App<S> {
   }
 
   /**
-   * Before the focus moves: notes where it is for each open overlay that {@link El#keepFocus keeps
-   * the focus} outside it while it is outside, as {@link #openAndClose} does in a rebuild, so that
-   * the overlay gives back the last place, also after several moves between two rebuilds.
-   */
-  private void noteOutside() {
-    if (focusId == null) {
-      return;
-    }
-    for (Map.Entry<Object, Focus> overlay : opened.entrySet()) {
-      Object id = overlay.getKey();
-      if (overlay.getValue() == null && !focusId.equals(id) && !Animator.isBelow(focusId, id)) {
-        outside.put(id, new Focus(focusId, ring));
-      }
-    }
-  }
-
-  /** Moves the focus to the element with this identity, which the next {@link #refocus} finds. */
-  private void moveFocus(Object id, boolean ring) {
-    noteOutside();
-    awaiting = null;
-    if (focused != null) {
-      focused.focused(false);
-    }
-    focused = null;
-    focusId = id;
-    this.ring = ring && id != null;
-    reveal = this.ring;
-    focusSince = time;
-    focusKeyed = false;
-    typeAhead.setLength(0);
-  }
-
-  /**
    * Applies the looks of the moment to the tree the view has just built: the hover looks of the
    * elements with these identities, then those of {@link El#whenHoveredFor} that are due, then,
    * after the focus has followed the overlays that open and close, the focus look, then the
@@ -4431,8 +4080,9 @@ public final class App<S> {
       }
     }
     openFieldMenu(tree);
-    openAndClose(tree); // after the looks, which may attach overlays, and before the focus look
-    El focus = focusId == null ? null : Animator.find(tree, focusId);
+    // After the looks, which may attach overlays, and before the focus look.
+    focus.openAndClose(tree, time);
+    El focus = this.focus.id() == null ? null : Animator.find(tree, this.focus.id());
     boolean focusLook = focus != null
         && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
@@ -4441,8 +4091,8 @@ public final class App<S> {
       delayedLook(focus, focus.focusRestLook(), "whenFocusVisibleFor");
     }
     List<Object> within = new ArrayList<>();
-    if (focusId != null) {
-      for (Object id : Animator.lineage(focusId)) {
+    if (this.focus.id() != null) {
+      for (Object id : Animator.lineage(this.focus.id())) {
         if (look(Animator.find(tree, id), El::focusWithinLook, "whenFocusWithin")) {
           within.add(id);
         }
@@ -4454,7 +4104,7 @@ public final class App<S> {
     return new Looks(
         hovered,
         rested,
-        focusLook ? focusId : null,
+        focusLook ? this.focus.id() : null,
         focusRested,
         within,
         pressLook ? pressId : null,
@@ -4614,7 +4264,13 @@ public final class App<S> {
    * next call.
    */
   public Scene scene() {
-    return Scene.of(root, ring ? focused : null, ringColor, atlas, textRendering, scale)
+    return Scene.of(
+            root,
+            focus.ring() ? focus.element() : null,
+            focus.ringColor(),
+            atlas,
+            textRendering,
+            scale)
         .imageMemory(imageMemory);
   }
 
