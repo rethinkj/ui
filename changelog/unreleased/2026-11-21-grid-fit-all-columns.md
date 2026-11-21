@@ -1,0 +1,1 @@
+- With `onResize` set, a data grid's column header menu has **Fit all columns** below **Fit width**: one press gives every shown column the width its own **Fit width** would, also columns resized by hand and, in a grid without rows, the width of its header. Its text is `Texts.fitAllColumns()`.

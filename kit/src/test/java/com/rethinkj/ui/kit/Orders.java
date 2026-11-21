@@ -137,6 +137,7 @@ final class Orders {
   App<Orders> app;
   final List<String> log = new ArrayList<>();
   final List<Integer> asked = new ArrayList<>(); // the rows whose cells were asked for
+  final int[] reads; // how often each column's cells were asked for
   final List<Integer> askedIcons = new ArrayList<>(); // the rows whose cell icons were asked for
   // The details of the columns that have one, by their index among the base columns.
   final java.util.Map<Integer, IntFunction<String>> details = new java.util.HashMap<>();
@@ -161,6 +162,7 @@ final class Orders {
     this.selection = new Selection(mode);
     selection.select(2, 0);
     this.widths = new float[columns];
+    this.reads = new int[columns];
     for (int c = 0; c < columns; c++) {
       widths[c] = base.get(c % base.size()).width();
     }
@@ -188,6 +190,7 @@ final class Orders {
       Column column = base.get(c % base.size());
       IntFunction<String> cell = column.cell();
       IntFunction<CellIcon> icons = column.cellIcon();
+      int index = c;
       Column made = new Column(
           c < base.size() ? column.title() : column.title() + "_" + c / base.size(),
           widths[c],
@@ -196,6 +199,7 @@ final class Orders {
           c != unsortable,
           i -> {
             asked.add(i);
+            reads[index]++;
             return cell.apply(i);
           },
           bare ? null : column.icon(),

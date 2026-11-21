@@ -196,6 +196,29 @@ class GridFitTest {
   }
 
   @Test
+  void fitAllColumnsFromTheHeaderMenuFitsEachAsItsOwnFitWouldAlsoWithoutRows() throws IOException {
+    Orders fitted = fitted(new Orders(T, 1_000_000), new Fit());
+    run(fitted.app(), "frame\nframe");
+    Orders orders = new Orders(T, 1_000_000);
+    orders.widths[2] = 40; // the email narrowed by hand
+    App<Orders> app = orders.app();
+    String fitAll = "press #column-1 right\nframe\nadvance 1\nframe\n"
+        + "press label=\"Fit all columns\"\nframe";
+    run(app, "frame\nframe");
+    Arrays.fill(orders.reads, 0);
+    run(app, fitAll);
+    assertTrue(Arrays.equals(fitted.widths, orders.widths), Arrays.toString(orders.widths));
+    // The note is as wide as the theme allows from its second row on: the rows after go unread.
+    assertTrue(orders.reads[6] + 5 < orders.reads[5], Arrays.toString(orders.reads));
+
+    Orders none = new Orders(T, 0);
+    App<Orders> noneApp = none.app();
+    run(noneApp, "frame\n" + fitAll);
+    assertEquals(7, resizes(none).size(), "the headers alone: " + none.log);
+    assertTrue(none.widths[6] < 240, "the note's header is short: " + none.widths[6]);
+  }
+
+  @Test
   void withoutAResizeHandlerTheOptionThrowsAsTheWidthsAreTheApps() {
     List<Column> columns = List.of(new Column("id", 64, DataGrid.Align.RIGHT, true, i -> "1"));
     IllegalStateException e = assertThrows(

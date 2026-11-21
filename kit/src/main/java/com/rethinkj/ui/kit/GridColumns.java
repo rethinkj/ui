@@ -131,6 +131,7 @@ final class GridColumns {
     }
     if (o.onResize != null) {
       columns.add(Menu.item(texts.fitWidth(), () -> o.onResize.resize(c, DataGrid.fit(b, c))));
+      columns.add(Menu.item(texts.fitAllColumns(), () -> DataGrid.fitAll(b)));
     }
     if (o.layout != null) {
       Layout l = o.layout;

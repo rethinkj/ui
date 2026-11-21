@@ -416,6 +416,11 @@ public interface Texts {
     return "Fit width";
   }
 
+  /** The menu item that fits every shown column as {@link #fitWidth} fits one. */
+  default String fitAllColumns() {
+    return "Fit all columns";
+  }
+
   /** The menu item that opens the chooser of columns. */
   default String chooseColumns() {
     return "Columns…";

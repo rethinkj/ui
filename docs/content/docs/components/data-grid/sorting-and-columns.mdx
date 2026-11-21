@@ -34,6 +34,7 @@ Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongsi
 
 - Auto-fitting runs on the first frame with loaded rows, and that frame already shows the fitted widths.
 - Columns the user manually resized are left untouched; hidden columns auto-fit when first shown.
+- **Fit all columns**, which `onResize` adds to the header menu below **Fit width**, fits every shown column at once, as its own **Fit width** would, including manually resized columns. It measures the header and the rows that exist, so without rows each column takes its header's width.
 
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />
 
@@ -41,7 +42,7 @@ Pass `options().fitColumns(fit)` (storing a `DataGrid.Fit` in your state alongsi
 
 Store a `DataGrid.Layout` (initialized with all column titles) in your state and pass `options().columns(layout)` to enable:
 - Drag-and-drop column reordering
-- Header context menu (Sort, Filter, Hide, Freeze up to here, Fit width, Columns…)
+- Header context menu (Sort, Filter, Hide, Freeze up to here, Fit width, Fit all columns, Columns…)
 - `DataGrid.columnsButton(layout)` — a toolbar button opening a searchable column chooser popover (Alt+Up/Down reorders columns)
 
 <Shot src="kit/columns-{theme}-chooser" alt="The chooser of columns, with a checkbox per column" />

@@ -2837,6 +2837,18 @@ public final class DataGrid {
     return fit(b, c, rows[0], rows[1], scale(b));
   }
 
+  /** Gives every shown column the width {@link #fit} gives it, in one handler. */
+  static void fitAll(Build b) {
+    int[] rows = existing(b);
+    float scale = scale(b);
+    for (int c = 0; c < b.columns.size(); c++) {
+      float fitted = fit(b, c, rows[0], rows[1], scale);
+      if (fitted != b.columns.get(c).width()) {
+        b.o.onResize.resize(c, fitted);
+      }
+    }
+  }
+
   /** {@link #fit} for the loaded rows from {@code first} to {@code last}, measured at a scale. */
   private static float fit(Build b, int c, int first, int last, float scale) {
     Theme theme = b.theme;
@@ -2844,7 +2856,9 @@ public final class DataGrid {
     float widest = headerWidth(b, c, scale);
     Theme.TextStyle style = column.mono() ? theme.type().mono() : theme.type().body();
     java.util.Set<String> seen = new java.util.HashSet<>(); // cells repeat: shape each once
-    for (int i = first; i <= last; i++) {
+    // Once the rounded width reaches maxColumn, no row can widen the column.
+    float most = b.g.maxColumn() - 2 * theme.space().s() - theme.size().stroke();
+    for (int i = first; i <= last && Math.ceil(widest) < most; i++) {
       if (i >= b.rowCount || b.o.loaded != null && !b.o.loaded.test(i)) {
         continue;
       }

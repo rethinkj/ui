@@ -433,6 +433,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String fitAllColumns() {
+    return "Alle Spalten anpassen";
+  }
+
+  @Override
   public String chooseColumns() {
     return "Spalten…";
   }
