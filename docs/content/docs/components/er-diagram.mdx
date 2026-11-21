@@ -44,7 +44,7 @@ A press on a table selects it, and a press on empty space clears the selection. 
 
 The bar switches all tables between **All columns**, **Keys only**, with a row `+n columns` that shows a table's other columns, and **Collapsed**. The chevron and Enter switch a single table; `state.mode(key, mode)` sets one from the app. The filter shows only the tables whose names contain its text. A change that hides a table pans to the first match where that lies outside the view; clearing or widening the filter keeps the view, and a filter without match says so on the canvas.
 
-Zoomed out below `ErStyle.skeleton`, 60 % by default, rows are bars, keys in the warning color; below `ErStyle.names`, 50 %, a table shows only its name:
+Zoomed out below `ErStyle.skeleton`, 60 % by default, rows are bars, keys in the warning color; below `ErStyle.names`, 50 %, a table shows only its name. Table names and frame titles are drawn at no less than `ErStyle.readable`, 75 %:
 
 <Shot src="examples/docs/er-diagram/skeleton-{theme}" alt="The diagram at 50 percent, the columns drawn as bars" />
 

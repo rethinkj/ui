@@ -11,6 +11,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.diagram.Canvas;
 import com.rethinkj.ui.diagram.DiagramTexts;
+import com.rethinkj.ui.diagram.Golden;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.Font;
@@ -535,6 +536,41 @@ class ErDiagramTest {
     int aBcY = boxY(line(tree, "#" + aBc));
     int xyY = boxY(line(tree, "#\"x.y\""));
     assertEquals(aBcY, xyY, "pinned tables share their pinned y: " + tree);
+  }
+
+  @Test
+  void fitsCollapsedNamesAndFrameTitlesAtMinimumZoom() throws IOException {
+    List<Schema> schemas = List.of(
+        SCHEMAS.getFirst(),
+        new Schema("billing", List.of(new Table("invoice", List.of(id()), List.of()))));
+    ErDiagram.State state = new ErDiagram.State();
+    state.mode(ErDiagram.Mode.COLLAPSED);
+    App<ErDiagram.State> app = new App<>(
+        state,
+        s -> ErDiagram.erDiagram(s, schemas, null)
+            .wFull()
+            .hFull()
+            .fill(Theme.CURRENT.get().surface().window()));
+    app.provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    List<Path> files = Script.run("""
+        size 720 360
+        frame
+        focus role=graphics-document
+        key -
+        key -
+        key -
+        key -
+        frame
+        snap collapsed
+        """, app, out);
+    assertEquals(0.25f, state.viewport().zoom());
+    String tree = Files.readString(out.resolve("collapsed.tree.txt"));
+    assertTrue(tree.contains("#billing/ role=group label=\"billing, 1 table\""), tree);
+    assertTrue(tree.contains("text \"billing\""), tree);
+    assertFalse(tree.contains("billing · 1 table"), tree);
+    assertTrue(tree.contains("text \"shop · 4 tables\""), tree);
+    Golden.assertSnaps("er-dark-", files, "collapsed");
   }
 
   @Test

@@ -38,13 +38,13 @@ el 0,0 1040x720
         el #public/ role=group label="public, 8 tables" 208,190 624x274
           el 208,190 624x274
             el 209,191 622x14
-              text label="database" "\u{F0D7}" 213,195 7x7
-              text "public · 8 tables" 221,194 52x9
+              text label="database" "\u{F0D7}" 213,194 9x9
+              text "public · 8 tables" 223,193 70x11
         el #billing/ role=group label="billing, 1 table" 208,474 144x114
           el 208,474 144x114
             el 209,475 142x14
-              text label="database" "\u{F0D7}" 213,479 7x7
-              text "billing · 1 table" 221,478 47x9
+              text label="database" "\u{F0D7}" 213,478 9x9
+              text "billing · 1 table" 223,477 62x11
         el 357,272 3x3
         el 371,247 9x6
         el 340,272 8x6
@@ -166,7 +166,7 @@ el 0,0 1040x720
         el #public.customer role=graphics-object label="customer, 4 columns, referenced by address, order" 220,253 120x64
           el role=list 220,253 120x64
             el 221,254 118x16
-              text "customer" 224,258 112x9
+              text "customer" 224,256 112x12
             el 221,270 118x12
               el 223,275 7x3
             el 221,282 118x12
@@ -178,7 +178,7 @@ el 0,0 1040x720
         el #public.address role=graphics-object label="address, 6 columns, references customer, referenced by order" 380,216 120x88
           el role=list 380,216 120x88
             el 381,217 118x16
-              text "address" 384,221 112x9
+              text "address" 384,219 112x12
             el 381,233 118x12
               el 383,238 7x3
             el 381,245 118x12
@@ -194,7 +194,7 @@ el 0,0 1040x720
         el #public.order role=graphics-object label="order, 6 columns, references customer, address, referenced by order_item, invoice" 540,251 120x88
           el role=list 540,251 120x88 selected
             el 541,252 118x16
-              text "order" 544,256 112x9
+              text "order" 544,254 112x12
             el 541,268 118x12
               el 543,273 7x3
             el 541,280 118x12
@@ -210,7 +210,7 @@ el 0,0 1040x720
         el #public.order_item role=graphics-object label="order_item, 4 columns, references order, product" 700,298 120x64
           el role=list 700,298 120x64
             el 701,299 118x16
-              text "order_item" 704,303 112x9
+              text "order_item" 704,301 112x12
             el 701,315 118x12
               el 703,320 28x3
             el 701,327 118x12
@@ -222,7 +222,7 @@ el 0,0 1040x720
         el #public.product role=graphics-object label="product, 5 columns, references category, referenced by order_item, product_tag" 380,320 120x76
           el role=list 380,320 120x76
             el 381,321 118x16
-              text "product" 384,325 112x9
+              text "product" 384,323 112x12
             el 381,337 118x12
               el 383,342 7x3
             el 381,349 118x12
@@ -236,7 +236,7 @@ el 0,0 1040x720
         el #public.category role=graphics-object label="category, 3 columns, references category, referenced by product, category" 220,333 120x52
           el role=list 220,333 120x52
             el 221,334 118x16
-              text "category" 224,338 112x9
+              text "category" 224,336 112x12
             el 221,350 118x12
               el 223,355 7x3
             el 221,362 118x12
@@ -246,7 +246,7 @@ el 0,0 1040x720
         el #public.tag role=graphics-object label="tag, 2 columns, referenced by product_tag" 380,412 120x40
           el role=list 380,412 120x40
             el 381,413 118x16
-              text "tag" 384,417 112x9
+              text "tag" 384,415 112x12
             el 381,429 118x12
               el 383,434 7x3
             el 381,441 118x12
@@ -254,7 +254,7 @@ el 0,0 1040x720
         el #public.product_tag role=graphics-object label="product_tag, 2 columns, references product, tag" 540,388 120x40
           el role=list 540,388 120x40
             el 541,389 118x16
-              text "product_tag" 544,393 112x9
+              text "product_tag" 544,391 112x12
             el 541,405 118x12
               el 543,410 35x3
             el 541,417 118x12
@@ -262,7 +262,7 @@ el 0,0 1040x720
         el #billing.invoice role=graphics-object label="invoice, 5 columns, references order" 220,500 120x76
           el role=list 220,500 120x76
             el 221,501 118x16
-              text "invoice" 224,505 112x9
+              text "invoice" 224,503 112x12
             el 221,517 118x12
               el 223,522 7x3
             el 221,529 118x12

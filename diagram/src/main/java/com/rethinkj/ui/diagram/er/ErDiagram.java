@@ -10,6 +10,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.diagram.Canvas;
 import com.rethinkj.ui.diagram.Canvas.Edge;
 import com.rethinkj.ui.diagram.Canvas.Emphasis;
@@ -26,6 +27,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -686,12 +688,19 @@ public final class ErDiagram {
 
     /** A size of text in the diagram, which stays readable where the tables show less. */
     private float readable(float size, float zoom) {
-      return size * Math.max(zoom, style.skeleton());
+      return size * Math.max(zoom, style.readable());
     }
 
     private El frame(Node node, float zoom) {
       String schema = frameSchemas.get(node.key());
+      Font font = theme.type().small().font().get();
       float size = readable(theme.type().small().size(), zoom);
+      float pad = theme.space().m() * zoom;
+      float gap = theme.space().xs() * zoom;
+      float room = node.width() * zoom - 2 * theme.size().stroke() - 2 * pad - size - gap;
+      String full = schema + " · " + texts.tables(frameSizes.get(schema));
+      float scale = WindowState.CURRENT.get().scale();
+      String title = font.shape(full, size, scale).width() / scale <= room ? full : schema;
       return col()
           .wFull()
           .hFull()
@@ -699,11 +708,12 @@ public final class ErDiagram {
           .border(theme.size().stroke(), theme.border().subtle())
           .child(row()
               .h(style.frameLabel() * zoom)
-              .padding(0, theme.space().m() * zoom)
-              .gap(theme.space().xs() * zoom)
+              .padding(0, pad)
+              .gap(gap)
               .align(Style.Align.CENTER)
               .child(Icon.icon(Symbol.DATABASE, Icon.Variant.MUTED, size))
-              .child(text(schema + " · " + texts.tables(frameSizes.get(schema)))
+              .child(text(title)
+                  .font(font)
                   .fontSize(size)
                   .color(theme.text().muted())
                   .ellipsis()
@@ -732,11 +742,17 @@ public final class ErDiagram {
         card.border(theme.size().stroke(), tone.applyAsInt(theme.border().subtle()));
       }
       if (zoom < style.names()) {
+        Font font = theme.type().strong().font().get();
+        float inner = table.height * zoom - 2 * theme.size().stroke();
+        float line = font.ascent() + font.descent() + font.lineGap();
         float size = readable(theme.type().strong().size(), zoom);
+        if (inner > 0 && line > 0) {
+          size = Math.min(size, inner / line);
+        }
         return card.justify(Style.Content.CENTER)
-            .padding(0, theme.space().s() * zoom)
+            .padding(0, readable(theme.space().s(), zoom))
             .child(text(table.table.name())
-                .font(theme.type().strong().font().get())
+                .font(font)
                 .fontSize(size)
                 .color(tone.applyAsInt(theme.text().primary()))
                 .ellipsis()

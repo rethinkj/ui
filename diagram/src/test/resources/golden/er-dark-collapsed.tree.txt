@@ -1,0 +1,70 @@
+el 0,0 720x360
+  el 0,0 720x32
+    el 8,4 200x24
+      text role=textbox label="Filter tables" "" 8,4 200x24
+      text label="search" "\u{EA7C}" 12,8 16x16
+    el role=radiogroup 212,4 273x24
+      el role=radio label="All columns" 215,7 95x18 checked=false
+        text "All columns" 227,8 71x16
+      el role=radio label="Keys only" 312,7 83x18 checked=false
+        text "Keys only" 324,8 59x16
+      el role=radio label="Collapsed" 397,7 85x18 checked
+        text "Collapsed" 409,8 61x16
+    el 489,16 2x0
+    el role=button label="Fit" 495,4 41x24
+      text "Fit" 508,8 15x16
+    el role=button label="Arrange" 540,4 76x24
+      text "Arrange" 553,8 50x16
+    el role=button label="Arrange all" 620,4 92x24
+      text "Arrange all" 633,8 66x16
+  el 0,32 720x1
+  el role=graphics-document label="Entity relationship diagram" 0,33 720x327 value="Zoom 25%" focused
+    el #shop/ role=group label="shop, 4 tables" 284,151 152x59
+      el 284,151 152x59
+        el 285,152 150x7
+          text label="database" "\u{F0D7}" 287,151 9x9
+          text "shop · 4 tables" 297,150 65x11
+    el #billing/ role=group label="billing, 1 table" 284,215 72x27
+      el 284,215 72x27
+        el 285,216 70x7
+          text label="database" "\u{F0D7}" 287,215 9x9
+          text "billing" 297,214 25x11
+    el #shop.order/order_customer_fk role=graphics-symbol label="order_customer_fk" 359,172 11x8
+      el 359,175 11x1
+    el 355,168 8x7
+      el 358,168 1x8
+    el 350,164 8x8
+      el 350,167 9x1
+    el 358,173 3x3
+    el 356,167 3x3
+    el #shop.order/order_billing_fk role=graphics-symbol label="order_billing_fk" 362,172 8x8
+      el 362,175 8x1
+    el 358,176 8x7
+      el 361,176 1x8
+    el 350,180 11x8
+      el 350,183 12x1
+    el 361,175 3x3
+    el 359,181 3x3
+    el #shop.category/category_parent_fk role=graphics-symbol label="category_parent_fk" 350,200 7x6
+      el 350,201 8x1
+    el 354,199 8x2
+      el 357,199 1x3
+    el 350,195 7x5
+      el 350,198 8x1
+    el 355,199 3x3
+    el 355,198 3x3
+    el #shop.customer role=graphics-object label="customer, 2 columns, referenced by order" 290,164 60x8
+      el role=list 290,164 60x8
+        text "customer" 294,165 52x6
+    el #shop.address role=graphics-object label="address, 2 columns, referenced by order" 290,180 60x8
+      el role=list 290,180 60x8
+        text "address" 294,181 52x6
+    el #shop.order role=graphics-object label="order, 4 columns, references customer, address" 370,172 60x8
+      el role=list 370,172 60x8
+        text "order" 374,173 52x6
+    el #shop.category role=graphics-object label="category, 2 columns, references category, referenced by category" 290,196 60x8
+      el role=list 290,196 60x8
+        text "category" 294,197 52x6
+    el #billing.invoice role=graphics-object label="invoice, 1 column" 290,228 60x8
+      el role=list 290,228 60x8
+        text "invoice" 294,229 52x6
