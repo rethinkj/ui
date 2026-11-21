@@ -137,6 +137,29 @@ class CanvasTest {
   }
 
   @Test
+  void aFitThatWouldShowNoNodeShowsTheFirst() throws IOException {
+    Board board = new Board();
+    // Too far apart for 25 %: the middle between them is empty.
+    board.nodes.clear();
+    board.nodes.addAll(List.of(
+        new Node("lower", "lower", 0, 4000, 140, 60), new Node("upper", "upper", 0, 0, 140, 60)));
+    App<Board> app = new App<>(
+        board,
+        state -> Canvas.canvas(state.viewport, state.nodes, CanvasTest::card, state::move)
+            .key("board")
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    board.viewport.fit();
+    Script.run(
+        "size 400 260\nframe\nframe\nsnap fitted\nsize 400 1100\nframe\nsnap taller\n", app, out);
+    assertTrue(Files.readString(out.resolve("fitted.tree.txt")).contains("#lower "));
+    // Still fitting: a canvas that has room for both shows both.
+    String taller = Files.readString(out.resolve("taller.tree.txt"));
+    assertTrue(taller.contains("#lower ") && taller.contains("#upper "), taller);
+  }
+
+  @Test
   void aZoomWhilePanningMovesNothingOnRelease() throws IOException {
     App<Board> app = new App<>(
         new Board(),
@@ -161,6 +184,24 @@ class CanvasTest {
     assertEquals(1.25f, viewport.zoom());
     assertEquals(40 + 200 - 200 / 1.25, viewport.left(), 1e-9);
     assertEquals(20 + 130 - 130 / 1.25, viewport.top(), 1e-9);
+  }
+
+  @Test
+  void revealLeavesANodeThatShowsWhole() throws IOException {
+    App<Board> app = new App<>(
+        new Board(),
+        board -> Canvas.canvas(board.viewport, board.nodes, CanvasTest::card, board::move)
+            .wFull()
+            .hFull());
+    app.textRendering(TextRendering.LINUX);
+    Canvas.Viewport viewport = app.state().viewport;
+    viewport.panTo(35, 35);
+    Script.run("size 400 260\nframe\n", app, out);
+    viewport.reveal("orders"); // 5 pixels inside the top left, within the margin
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(35, viewport.left());
+    assertEquals(35, viewport.top());
   }
 
   @Test

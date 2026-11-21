@@ -73,6 +73,11 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String uniqueMark() {
+    return "UQ";
+  }
+
+  @Override
   public String nullable() {
     return "nullbar";
   }
@@ -100,6 +105,11 @@ public class GermanDiagramTexts implements DiagramTexts {
   @Override
   public String filterTables() {
     return "Tabellen filtern";
+  }
+
+  @Override
+  public String noTablesMatch(String filter) {
+    return "Keine Tabelle passt zu „" + filter + "“";
   }
 
   @Override

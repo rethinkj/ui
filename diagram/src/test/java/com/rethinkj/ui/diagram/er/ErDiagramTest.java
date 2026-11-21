@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.diagram.Canvas;
+import com.rethinkj.ui.diagram.DiagramTexts;
 import com.rethinkj.ui.diagram.Golden;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Png;
@@ -77,13 +79,20 @@ class ErDiagramTest {
 
   static final class Board {
     final ErDiagram.State diagram = new ErDiagram.State();
+    List<Schema> schemas = SCHEMAS;
     Map<String, ErDiagram.Pin> pins = Map.of();
+    int pinChanges;
+
+    void onPins(Map<String, ErDiagram.Pin> pins) {
+      this.pins = pins;
+      pinChanges++;
+    }
   }
 
   private App<Board> app() {
     App<Board> app = new App<>(
         new Board(),
-        board -> ErDiagram.erDiagram(board.diagram, SCHEMAS, pins -> board.pins = pins)
+        board -> ErDiagram.erDiagram(board.diagram, board.schemas, board::onPins)
             .wFull()
             .hFull());
     app.textRendering(TextRendering.LINUX);
@@ -156,6 +165,7 @@ class ErDiagramTest {
         frame
         """, app, out);
     ErDiagram.Pin pin = board.pins.get("shop.customer");
+    assertEquals(1, board.pinChanges);
     assertEquals(Map.of("shop.customer", pin), board.pins, "only the nudged table is pinned");
     assertEquals(board.diagram.pins(), board.pins);
     // All columns, then keys only, as customer has a column that is no key.
@@ -171,6 +181,57 @@ class ErDiagramTest {
   }
 
   @Test
+  void dragTellsOnPinsOnceAtTheEndAndNeverOnEscape() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Script.run("""
+        size 900 500
+        frame
+        down #shop.order at top+8
+        move 100,100
+        frame
+        move 160,140
+        frame
+        """, app, out);
+    assertEquals(0, board.pinChanges, "pointer moves do not tell onPins before the drag ends");
+    assertEquals("shop.order", board.diagram.viewport().dragging());
+    ErDiagram.Pin mid = board.diagram.pins().get("shop.order");
+    assertNotNull(mid, "the table follows the pointer live");
+
+    Script.run("""
+        move 220,180
+        up 220,180
+        frame
+        """, app, out);
+    assertEquals(1, board.pinChanges, "ending the drag tells onPins once");
+    assertNull(board.diagram.viewport().dragging());
+    ErDiagram.Pin dropped = board.pins.get("shop.order");
+    assertEquals(Map.of("shop.order", dropped), board.pins);
+    assertEquals(board.diagram.pins(), board.pins);
+    float zoom = board.diagram.viewport().zoom();
+    assertEquals(mid.x() + 60 / zoom, dropped.x(), 1e-6);
+    assertEquals(mid.y() + 40 / zoom, dropped.y(), 1e-6);
+
+    Script.run("""
+        down #shop.order at top+8
+        move 300,220
+        frame
+        move 360,260
+        frame
+        key ArrowRight shift
+        frame
+        key Escape
+        frame
+        up 360,260
+        frame
+        """, app, out);
+    assertEquals(1, board.pinChanges, "cancelling a drag with Escape tells onPins nothing");
+    assertNull(board.diagram.viewport().dragging());
+    assertEquals(dropped, board.diagram.pins().get("shop.order"), "the table is back where it was");
+    assertEquals(Map.of("shop.order", dropped), board.pins);
+  }
+
+  @Test
   void showsKeysOnlyAndFiltersByName() throws IOException {
     App<Board> app = app();
     Board board = app.state();
@@ -183,6 +244,114 @@ class ErDiagramTest {
     assertFalse(tree.contains("order_customer_fk"), "no edge to a table filtered out: " + tree);
     assertFalse(tree.contains("label=\"note,"), "not a key: " + tree);
     assertTrue(tree.contains("role=button") && tree.contains("\"+1 column\""), tree);
+  }
+
+  @Test
+  void filterPansOnlyWhenNarrowingToATableOutsideTheView() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Canvas.Viewport viewport = board.diagram.viewport();
+    Script.run("size 900 500\nframe\n", app, out);
+    double fittedLeft = viewport.left();
+    double fittedTop = viewport.top();
+
+    // Narrowing to a table already in view keeps the viewport where it is.
+    board.diagram.filter("ord");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(fittedLeft, viewport.left());
+    assertEquals(fittedTop, viewport.top());
+
+    // Pan away so the match lies outside, then check whitespace, widening and clearing.
+    double awayLeft = fittedLeft + 4000;
+    double awayTop = fittedTop + 4000;
+    viewport.panTo(awayLeft, awayTop);
+    app.invalidate();
+    Script.run("frame\n", app, out);
+
+    board.diagram.filter("ord ");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "adding a space does not pan");
+    assertEquals(awayTop, viewport.top(), "adding a space does not pan");
+
+    board.diagram.filter("orde");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "the same matches do not pan");
+    assertEquals(awayTop, viewport.top(), "the same matches do not pan");
+
+    board.diagram.filter("or");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "widening the filter does not pan");
+    assertEquals(awayTop, viewport.top(), "widening the filter does not pan");
+
+    board.diagram.filter("");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "clearing the filter does not pan");
+    assertEquals(awayTop, viewport.top(), "clearing the filter does not pan");
+
+    // Narrowing to a table outside the view pans to show it.
+    board.diagram.filter("ord");
+    app.invalidate();
+    Script.run("frame\nsnap revealed\n", app, out);
+    assertTrue(
+        viewport.left() != awayLeft || viewport.top() != awayTop,
+        "narrowing to a match outside the view pans");
+    assertTrue(Files.readString(out.resolve("revealed.tree.txt")).contains("#shop.order "));
+  }
+
+  @Test
+  void filterWithoutMatchShowsANoteAndLeavesNoPendingReveal() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Canvas.Viewport viewport = board.diagram.viewport();
+    Script.run("size 900 500\nframe\n", app, out);
+    double awayLeft = viewport.left() + 4000;
+    double awayTop = viewport.top() + 4000;
+    viewport.panTo(awayLeft, awayTop);
+    app.invalidate();
+    Script.run("frame\n", app, out);
+
+    board.diagram.filter("  missing  ");
+    app.invalidate();
+    Script.run("frame\nsnap empty\n", app, out);
+    assertEquals(awayLeft, viewport.left());
+    assertEquals(awayTop, viewport.top());
+    String emptyTree = Files.readString(out.resolve("empty.tree.txt"));
+    String expected = DiagramTexts.ENGLISH.noTablesMatch("missing");
+    assertTrue(
+        emptyTree.contains("#note \"" + expected + "\""),
+        "muted empty-state note on canvas: " + emptyTree);
+
+    // Reloading schemas with a matching table must not trigger a stale reveal.
+    board.schemas =
+        List.of(new Schema("shop", List.of(new Table("missing_item", List.of(id()), List.of()))));
+    app.invalidate();
+    Script.run("frame\nsnap reloaded\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "no pending reveal fires after schema reload");
+    assertEquals(awayTop, viewport.top(), "no pending reveal fires after schema reload");
+    assertFalse(Files.readString(out.resolve("reloaded.tree.txt")).contains("#note "));
+
+    // Widening back from an unmatched filter also does not pan, and removes the note.
+    board.schemas = SCHEMAS;
+    board.diagram.filter("nope");
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    board.diagram.filter("");
+    app.invalidate();
+    Script.run("frame\nsnap cleared\n", app, out);
+    assertEquals(awayLeft, viewport.left(), "no pending reveal fires when widened back");
+    assertEquals(awayTop, viewport.top(), "no pending reveal fires when widened back");
+    assertFalse(Files.readString(out.resolve("cleared.tree.txt")).contains("#note "));
+
+    // An empty schema list with no filter shows no note.
+    board.schemas = List.of();
+    app.invalidate();
+    Script.run("frame\nsnap noSchemas\n", app, out);
+    assertFalse(Files.readString(out.resolve("noSchemas.tree.txt")).contains("#note "));
   }
 
   @Test
@@ -243,6 +412,55 @@ class ErDiagramTest {
         """, app(), out);
     assertFalse(Files.readString(out.resolve("away.tree.txt")).contains("#shop.customer "));
     assertTrue(Files.readString(out.resolve("back.tree.txt")).contains("#shop.customer "));
+  }
+
+  @Test
+  void arrangeAndArrangeAllFitTheTablesInView() throws IOException {
+    Script.run("""
+        size 900 500
+        frame
+        down #shop.customer at top+8
+        move 2500,2000
+        up 2500,2000
+        frame
+        press role=button label="Arrange"
+        frame
+        snap arranged
+        focus role=graphics-document
+        key 0
+        frame
+        press role=button label="Arrange all"
+        frame
+        snap arranged-all
+        """, app(), out);
+    assertAllTablesInView(Files.readString(out.resolve("arranged.tree.txt")), 4);
+    assertAllTablesInView(Files.readString(out.resolve("arranged-all.tree.txt")), 4);
+  }
+
+  private static void assertAllTablesInView(String tree, int expected) {
+    var canvas = Pattern.compile(" role=graphics-document .* (-?\\d+),(-?\\d+) (\\d+)x(\\d+)")
+        .matcher(tree);
+    assertTrue(canvas.find(), "canvas in tree: " + tree);
+    int left = Integer.parseInt(canvas.group(1));
+    int top = Integer.parseInt(canvas.group(2));
+    int right = left + Integer.parseInt(canvas.group(3));
+    int bottom = top + Integer.parseInt(canvas.group(4));
+    List<int[]> boxes = Pattern.compile(" role=graphics-object .* (-?\\d+),(-?\\d+) (\\d+)x(\\d+)")
+        .matcher(tree)
+        .results()
+        .map(m -> new int[] {
+          Integer.parseInt(m.group(1)),
+          Integer.parseInt(m.group(2)),
+          Integer.parseInt(m.group(3)),
+          Integer.parseInt(m.group(4))
+        })
+        .toList();
+    assertEquals(expected, boxes.size(), "all tables in view: " + tree);
+    for (int[] box : boxes) {
+      assertTrue(
+          box[0] >= left && box[1] >= top && box[0] + box[2] <= right && box[1] + box[3] <= bottom,
+          "table inside canvas: " + tree);
+    }
   }
 
   @Test
@@ -352,6 +570,77 @@ class ErDiagramTest {
     assertFalse(tree.contains("billing · 1 table"), tree);
     assertTrue(tree.contains("text \"shop · 4 tables\""), tree);
     Golden.assertSnaps("er-dark-", files, "collapsed");
+  }
+
+  @Test
+  void keysDuplicateAndUnnamedForeignKeysApart() throws IOException {
+    List<Schema> schemas = List.of(new Schema(
+        "shop",
+        List.of(
+            new Table("customer", List.of(id()), List.of()),
+            new Table(
+                "order",
+                List.of(
+                    id(),
+                    new Column("customer_id", "bigint", false),
+                    new Column("billing_id", "bigint", true),
+                    new Column("shipping_id", "bigint", true),
+                    new Column("other_id", "bigint", true)),
+                List.of(
+                    new ForeignKey("dup_fk", "customer_id", "customer", "id"),
+                    new ForeignKey("dup_fk", "billing_id", "customer", "id"),
+                    new ForeignKey("", "shipping_id", "customer", "id"),
+                    new ForeignKey("2", "other_id", "customer", "id"),
+                    new ForeignKey("dup_fk/1", "id", "customer", "id"))))));
+    App<ErDiagram.State> app = new App<>(
+        new ErDiagram.State(),
+        state -> ErDiagram.erDiagram(state, schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 900 500\nframe\nsnap edges\n", app, out);
+    String tree = Files.readString(out.resolve("edges.tree.txt"));
+    assertEquals(5, tree.lines().filter(l -> l.contains("role=graphics-symbol")).count(), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk role=graphics-symbol label=\"dup_fk\""), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk/1/1 role=graphics-symbol label=\"dup_fk\""), tree);
+    assertTrue(
+        tree.contains("#shop.order/2/2 role=graphics-symbol"
+            + " label=\"order(shipping_id) → customer(id)\""),
+        tree);
+    assertTrue(tree.contains("#shop.order/2 role=graphics-symbol label=\"2\""), tree);
+    assertTrue(tree.contains("#shop.order/dup_fk/1 role=graphics-symbol label=\"dup_fk/1\""), tree);
+  }
+
+  @Test
+  void prunesPinsAndSelectionWhenTablesAreRemoved() throws IOException {
+    class MutableBoard {
+      final ErDiagram.State diagram = new ErDiagram.State();
+      List<Schema> schemas = SCHEMAS;
+    }
+    MutableBoard board = new MutableBoard();
+    ErDiagram.Pin customerPin = new ErDiagram.Pin(20, 40);
+    ErDiagram.Pin addressPin = new ErDiagram.Pin(300, 40);
+    board.diagram.pins(Map.of("shop.customer", customerPin, "shop.address", addressPin));
+    board.diagram.select("shop.address");
+    App<MutableBoard> app = new App<>(
+        board, b -> ErDiagram.erDiagram(b.diagram, b.schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 900 500\nframe\n", app, out);
+    assertEquals(
+        Map.of("shop.customer", customerPin, "shop.address", addressPin), board.diagram.pins());
+    assertEquals("shop.address", board.diagram.selected());
+
+    board.schemas =
+        List.of(new Schema("shop", List.of(SCHEMAS.getFirst().tables().getFirst())));
+    app.invalidate();
+    Script.run("frame\n", app, out);
+    assertEquals(Map.of("shop.customer", customerPin), board.diagram.pins());
+    assertNull(board.diagram.selected());
+
+    board.diagram.select("shop.customer");
+    List<Schema> withoutCustomer =
+        List.of(new Schema("shop", List.of(SCHEMAS.getFirst().tables().getLast())));
+    Theme.CURRENT.with(Theme.LIGHT, () -> ErDiagram.png(board.diagram, withoutCustomer));
+    assertEquals(Map.of("shop.customer", customerPin), board.diagram.pins());
+    assertEquals("shop.customer", board.diagram.selected());
   }
 
   @Test

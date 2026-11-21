@@ -1,0 +1,1 @@
+- Fixed: `ErDiagram` told `onPins` on every pointer move of a drag. It now tells it once when a drag ends, nothing when Escape cancels the drag, and still once per Shift+arrow step. The new `Canvas.Viewport.dragging()` gives the key of the node being dragged, so an `onMove` handler can tell the end of a drag, where it is null, from a move or a cancel.

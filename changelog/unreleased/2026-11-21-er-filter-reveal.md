@@ -1,0 +1,1 @@
+- `ErDiagram`'s filter pans to its first match only when a change hides a table and that match lies outside the view; clearing it or adding a space keeps the view, and a filter without match says so on the canvas. `Canvas.Viewport.reveal` no longer pans to a node that shows whole, and `reveal(null)` drops a reveal not done yet.

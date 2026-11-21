@@ -29,7 +29,7 @@ Keep a `Canvas.Viewport` and your nodes in your app state, and call `Canvas.canv
 | `viewport` | Stores the zoom level and the diagram point at the top-left corner of the canvas. Change it with `fit()`, `zoomIn()`, `zoomOut()`, `zoomBy(steps, x, y)`, and `panTo(left, top)` |
 | `nodes` | List of `Canvas.Node(key, label, x, y, width, height, pinned)` items, in diagram coordinates at 100% zoom |
 | `content` | Builds each node's element for the current zoom level, sized `width × zoom` by `height × zoom` |
-| `onMove` | Called with the moved, pinned node when a user drags it, or with the original node if Escape cancels the drag (pass `null` to lock nodes in place) |
+| `onMove` | Called with the moved, pinned node when a user drags it, or with the original node if Escape cancels the drag (pass `null` to lock nodes in place). `viewport.dragging()` is the node's key during moves and on cancel, and `null` when the drag ends |
 
 Zooming does not scale a static image. Instead, the canvas lays out each node again at its size multiplied by the zoom, so text stays sharp. Your `content` function scales its own sizes by the zoom and can change the level of detail. For example, the tables above hide their columns below 75%. Zoom levels follow the steps in `Viewport.ZOOMS`, from 25% to 200%.
 
@@ -74,7 +74,7 @@ If your canvas has edges, pass them too: `Canvas.png(nodes, edges, view)`. Then 
 
 Drag empty space or turn the wheel to pan the canvas, and hold **Ctrl** while turning the wheel to zoom around the pointer, one step per step of the wheel. Drag a node to move it, or press **Escape** to cancel the drag and move it back. If an element inside a node has its own press or drag handler (such as a button), dragging from that element does not move the node. To select a node on a press and still let users drag it, use `onPointerDown` in its content: it leaves the drag to the node. While the canvas has focus, **+** and **-** zoom in and out around the center, and **0** fits all nodes into view.
 
-`Viewport.reveal(key)` pans as little as needed to show the node with that key, for example after a key moves the selection to another node. Like `fit()`, it takes effect in the next build that knows the canvas size, using the node's position and size in that build.
+`Viewport.reveal(key)` pans as little as needed to show the node with that key, for example after a key moves the selection to another node. Like `fit()`, it takes effect in the next build that knows the canvas size, using the node's position and size in that build. When the nodes lie too far apart to fit even at 25 %, so that the view between them would be empty, `fit()` reveals the first node.
 
 ## Areas
 
