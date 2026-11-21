@@ -5,7 +5,6 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.App;
@@ -48,6 +47,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -371,8 +371,6 @@ public final class Window implements AutoCloseable {
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
   private static Throwable failure;
-  /** The X server time of the last press of a button on X11, or -1. */
-  private static long x11Press = -1;
 
   private static MemorySegment buffer;
   private static MemorySegment ints;
@@ -406,8 +404,6 @@ public final class Window implements AutoCloseable {
         upcall(MethodHandles.lookup(), Window.class, "hitTest", Sdl.HIT_TEST);
     static final MemorySegment WATCH =
         upcall(MethodHandles.lookup(), Window.class, "watch", Sdl.EVENT_FILTER);
-    static final MemorySegment X11_EVENT =
-        upcall(MethodHandles.lookup(), Window.class, "x11Event", Sdl.EVENT_FILTER);
   }
 
   // ---- One window
@@ -435,17 +431,7 @@ public final class Window implements AutoCloseable {
   private float normalHeight;
   private String title;
   private WindowHandle handle;
-  private long background = Long.MIN_VALUE; // as last set on X11, none yet
-  // X11's _NET_WM_SYNC_REQUEST (see X11): the counter the window manager waits on during a resize,
-  // the value it asked for, and whether the configure that follows the request has come.
-  private long syncCounter;
-  private long syncValue;
-  private boolean syncAsked;
-  private boolean syncConfigured;
-  private boolean unseen; // on X11 transparent to the compositor until the first frame (see X11)
-  private Win32Frame win32;
-  private Win32Shell shell;
-  private boolean cloaked; // on Windows, from before it shows until its first frame is drawn
+  private WindowBackend backend = WindowBackend.NONE;
   private WindowIcon icon;
   private WindowListener listener;
   private Parts parts;
@@ -471,7 +457,6 @@ public final class Window implements AutoCloseable {
   private float dragPressY;
   // The last event was a key pressed with Control and without Alt, whose character Windows types.
   private boolean afterControlKey;
-  private char highSurrogate; // of a WM_CHAR that SDL dropped, until its second half comes
   private boolean charOfKey; // the last event was a key down, which a WM_CHAR belongs to
   private Posted lastKeyDown; // the last key down queued, which a WM_CHAR may show was AltGr
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
@@ -592,14 +577,8 @@ public final class Window implements AutoCloseable {
     }
     applyMinimumSize();
     handle = readHandle();
-    if (handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
-      syncCounter = X11.syncCounter(display, xwindow); // before the window shows
-      X11.opacity(display, xwindow, 0);
-      unseen = true;
-    }
-    if (handle instanceof WindowHandle.Win32 win) {
-      shell = Win32Shell.attach(this, win.hwnd());
-    }
+    backend = WindowBackend.of(this, handle);
+    backend.setUp();
     if (icon != null) {
       applyIcon();
     }
@@ -607,9 +586,7 @@ public final class Window implements AutoCloseable {
       if (!Sdl.setWindowHitTest(sdl, Upcalls.HIT_TEST, MemorySegment.ofAddress(id))) {
         throw new IllegalStateException("SDL_SetWindowHitTest failed: " + Sdl.getError());
       }
-      if (handle instanceof WindowHandle.Win32 win) {
-        win32 = Win32Frame.attach(this, win.hwnd());
-      }
+      backend.frameless();
     }
     if (positioned) {
       Sdl.setWindowPosition(sdl, x, y);
@@ -619,18 +596,12 @@ public final class Window implements AutoCloseable {
       keepReachable(); // a position outside every work area, as of a display gone since
     }
     rememberNormal();
-    if (shell != null) {
-      // SDL shows the window black before the app can draw: DWM keeps it off the screen until
-      // drawn() says that the first frame is in it.
-      cloaked = shell.cloak(true);
-    }
+    backend.cloak();
     if (placement != null && placement.maximized()) {
       Sdl.maximizeWindow(sdl); // shows maximized, restored to where it was
     }
     if (underPointer) {
-      if (shell != null) {
-        shell.transitions(false); // no opening animation before the first frame
-      }
+      backend.noOpeningAnimation();
       // SDL reads the hint as it shows the window: shown, not activated.
       String before = Sdl.getHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN);
       Sdl.setHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
@@ -787,18 +758,10 @@ public final class Window implements AutoCloseable {
       lastKeyDown.event =
           new KeyDown(new Key(key.name(), key.modifiers() | Key.CONTROL, key.repeat()));
     }
-    if (textInput != null || !open) {
-      highSurrogate = 0;
+    String text = backend.charText(c, textInput != null || !open);
+    if (text == null) {
       return;
     }
-    if (Character.isHighSurrogate(c)) {
-      highSurrogate = c; // the second half comes in the next WM_CHAR
-      return;
-    }
-    String text = Character.isLowSurrogate(c) && highSurrogate != 0
-        ? new String(new char[] {highSurrogate, c})
-        : String.valueOf(c);
-    highSurrogate = 0;
     if (c < 0x20
         || c == 0x7F
         || text.length() == 1 && Character.isSurrogate(c)
@@ -968,10 +931,7 @@ public final class Window implements AutoCloseable {
    * #systemChar}).
    */
   private void textSoon() {
-    if (textInput == null
-        && !textSoon
-        && !(handle instanceof WindowHandle.Win32)
-        && Sdl.startTextInput(sdl)) {
+    if (textInput == null && !textSoon && !backend.systemChars() && Sdl.startTextInput(sdl)) {
       textSoon = true;
       passwordInput = false;
     }
@@ -1033,9 +993,7 @@ public final class Window implements AutoCloseable {
     afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {
-        if (win32 != null) {
-          win32.pointerInClient();
-        }
+        backend.pointerInClient();
         pointerIn = true;
         pointerX = logical(e.get(JAVA_FLOAT, Sdl.MOTION_X));
         pointerY = logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y));
@@ -1083,8 +1041,8 @@ public final class Window implements AutoCloseable {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
         if (type == Sdl.EVENT_KEY_DOWN) {
-          afterControlKey = handle instanceof WindowHandle.Win32
-              && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
+          afterControlKey =
+              backend.systemChars() && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
           if (!MODIFIER_KEYS.contains(key)) {
             textSoon();
           }
@@ -1120,9 +1078,7 @@ public final class Window implements AutoCloseable {
         rememberNormal();
         if (scale != oldScale) {
           applyMinimumSize();
-          if (shell != null) {
-            shell.scaleChanged(scale); // icons for the new scale
-          }
+          backend.scaleChanged(scale);
           queue(new ScaleChanged(scale));
         }
         if (width != oldWidth || height != oldHeight) {
@@ -1150,7 +1106,7 @@ public final class Window implements AutoCloseable {
         if (pointerWindow == this) {
           pointerWindow = null;
         }
-        if (win32 == null || !win32.pointerOnMaximize()) {
+        if (!backend.pointerOnMaximize()) {
           queue(new PointerLeave());
         }
       }
@@ -1160,9 +1116,9 @@ public final class Window implements AutoCloseable {
       // SDL sends it for a left press that it handed to the system; Windows takes double clicks
       // on a drag area itself.
       case Sdl.EVENT_WINDOW_HIT_TEST -> {
-        if (handle instanceof WindowHandle.Xlib
-            && zone(pointerX, pointerY) == Sdl.HITTEST_DRAGGABLE) {
-          dragPressed(x11Press);
+        long press = backend.handedPress();
+        if (press != WindowBackend.NO_PRESS && zone(pointerX, pointerY) == Sdl.HITTEST_DRAGGABLE) {
+          dragPressed(press);
         }
       }
       // SDL sends BEGIN, POSITION as the drag moves, then at the release a FILE per file or a
@@ -1447,7 +1403,7 @@ public final class Window implements AutoCloseable {
     }
     // Where the app moved it last, as the drag did: X11 may not have moved it there yet, and
     // may not say so. Elsewhere a move is made when asked, and the window is where it says.
-    int[] at = asked && handle instanceof WindowHandle.Xlib ? new int[] {askedX, askedY} : null;
+    int[] at = asked && backend.movesLater() ? new int[] {askedX, askedY} : null;
     asked = false;
     boolean moved = false;
     int display = 0;
@@ -1600,9 +1556,7 @@ public final class Window implements AutoCloseable {
         != 0) {
       return;
     }
-    // While Windows maximizes a window, it moves and sizes it before SDL has the flag.
-    if (handle instanceof WindowHandle.Win32 win
-        && (Win32.isZoomed(win.hwnd()) || Win32.isIconic(win.hwnd()))) {
+    if (backend.maximizedOrMinimized()) {
       return;
     }
     Sdl.getWindowPosition(sdl, ints);
@@ -1860,10 +1814,7 @@ public final class Window implements AutoCloseable {
   public boolean progress(Progress state, float value) {
     checkOpen();
     Objects.requireNonNull(state, "state");
-    if (shell == null) {
-      return false;
-    }
-    boolean shown = shell.progress(state, Float.isNaN(value) ? 0 : Math.clamp(value, 0f, 1f));
+    boolean shown = backend.progress(state, Float.isNaN(value) ? 0 : Math.clamp(value, 0f, 1f));
     rethrow();
     return shown;
   }
@@ -1892,7 +1843,7 @@ public final class Window implements AutoCloseable {
   }
 
   private boolean applyIcon() {
-    int base = shell != null ? Math.round(32 * scale) : 64;
+    int base = backend.iconSize(scale);
     Pixels first = icon.image(base);
     MemorySegment surface = Sdl.createSurface(first);
     if (surface.equals(MemorySegment.NULL)) {
@@ -1901,8 +1852,7 @@ public final class Window implements AutoCloseable {
     boolean shown;
     try {
       int largest = first.width();
-      // Only Wayland's driver passes alternates on; drawing them for X11 delays the first frame.
-      for (int size : handle instanceof WindowHandle.Wayland ? new int[] {128, 256} : new int[0]) {
+      for (int size : backend.iconAlternates()) {
         Pixels image = icon.image(size);
         if (image.width() <= largest) {
           continue; // an icon of images that has none larger
@@ -1918,9 +1868,7 @@ public final class Window implements AutoCloseable {
     } finally {
       Sdl.destroySurface(surface);
     }
-    if (shell != null) {
-      shell.icon(icon, scale);
-    }
+    backend.icon(icon, scale);
     return shown;
   }
 
@@ -1965,10 +1913,7 @@ public final class Window implements AutoCloseable {
     if (badge != null) {
       Objects.requireNonNull(description, "description");
     }
-    if (shell == null) {
-      return false;
-    }
-    boolean shown = shell.badge(badge, description, scale);
+    boolean shown = backend.badge(badge, description, scale);
     rethrow();
     return shown;
   }
@@ -1986,7 +1931,7 @@ public final class Window implements AutoCloseable {
    */
   public boolean frameDark(boolean dark) {
     checkOpen();
-    return shell != null && shell.frameDark(dark);
+    return backend.frameDark(dark);
   }
 
   /**
@@ -1998,10 +1943,7 @@ public final class Window implements AutoCloseable {
    * WindowEvent.Redraw}).
    */
   void background(int argb) {
-    if (handle instanceof WindowHandle.Xlib(var display, long xwindow) && argb != background) {
-      background = argb;
-      X11.background(display, xwindow, argb);
-    }
+    backend.background(argb);
   }
 
   /**
@@ -2016,18 +1958,7 @@ public final class Window implements AutoCloseable {
    */
   public void drawn() {
     reveal();
-    if (!(handle instanceof WindowHandle.Xlib(var display, long xwindow))) {
-      return;
-    }
-    if (unseen) {
-      unseen = false;
-      X11.opacity(display, xwindow, 0xFFFFFFFFL);
-    }
-    if (syncConfigured) {
-      syncAsked = false;
-      syncConfigured = false;
-      X11.setCounter(display, syncCounter, syncValue);
-    }
+    backend.drawn();
   }
 
   /**
@@ -2038,51 +1969,7 @@ public final class Window implements AutoCloseable {
    * @return false if the window stays hidden, because DWM refused
    */
   boolean reveal() {
-    if (cloaked && open && shell.cloak(false)) {
-      cloaked = false;
-    }
-    return !cloaked;
-  }
-
-  /**
-   * SDL_X11EventHook: notes the window manager's requests to synchronize a resize, and the time of
-   * each press.
-   */
-  private static boolean x11Event(MemorySegment userdata, MemorySegment xevent) {
-    try {
-      MemorySegment e = xevent.reinterpret(X11.EVENT_SIZE);
-      int type = e.get(JAVA_INT, X11.EVENT_TYPE);
-      long press = X11.press(e);
-      if (press >= 0) { // before SDL handles it: its HIT_TEST says nothing of its time
-        x11Press = press;
-      }
-      if (type == X11.CLIENT_MESSAGE) {
-        long value = X11.syncRequest(e);
-        Window window = value < 0 ? null : ofX11(e.get(JAVA_LONG, X11.CLIENT_WINDOW));
-        if (window != null) {
-          window.syncValue = value;
-          window.syncAsked = true;
-          window.syncConfigured = false;
-        }
-      } else if (type == X11.CONFIGURE_NOTIFY) {
-        Window window = ofX11(e.get(JAVA_LONG, X11.CONFIGURE_WINDOW));
-        if (window != null && window.syncAsked) {
-          window.syncConfigured = true;
-        }
-      }
-    } catch (Throwable t) {
-      fail(t);
-    }
-    return true; // SDL handles every event as before
-  }
-
-  private static Window ofX11(long xwindow) {
-    for (Window window : windows.values()) {
-      if (window.handle instanceof WindowHandle.Xlib x && x.window() == xwindow) {
-        return window;
-      }
-    }
-    return null;
+    return backend.reveal(open);
   }
 
   /**
@@ -2301,22 +2188,15 @@ public final class Window implements AutoCloseable {
       pointerWindow = null;
     }
     try {
-      if (win32 != null) {
-        win32.detach();
-      }
-      if (shell != null) {
-        shell.detach();
-        if (SystemDialogs.pending(this)) {
-          // SDL shows a file dialog on a thread of its own, which may not have made it yet: one
-          // shown after its owner is gone stays on the screen without one and never answers. So
-          // the window only hides, and each dialog closes as it appears (closeLingering); the
-          // window goes once all have answered.
-          Sdl.hideWindow(sdl);
-          shell.closeDialogs();
-          lingering.add(this);
-          return;
-        }
-        shell.closeDialogs(); // a file dialog it owns answers as cancelled
+      if (backend.detach()) {
+        // SDL shows a file dialog on a thread of its own, which may not have made it yet: one
+        // shown after its owner is gone stays on the screen without one and never answers. So
+        // the window only hides, and each dialog closes as it appears (closeLingering); the
+        // window goes once all have answered.
+        Sdl.hideWindow(sdl);
+        backend.closeDialogs();
+        lingering.add(this);
+        return;
       }
       destroy();
     } finally {
@@ -2330,13 +2210,8 @@ public final class Window implements AutoCloseable {
   }
 
   private void destroy() {
-    if (syncCounter != 0 && handle instanceof WindowHandle.Xlib(var display, long _)) {
-      X11.destroyCounter(display, syncCounter);
-    }
     Sdl.destroyWindow(sdl);
-    if (shell != null) {
-      shell.destroyIcons();
-    }
+    backend.destroyed();
   }
 
   /**
@@ -2356,7 +2231,7 @@ public final class Window implements AutoCloseable {
       Window window = i.next();
       if (SystemDialogs.pending(window)) {
         if (ask) {
-          window.shell.closeDialogs();
+          window.backend.closeDialogs();
         }
       } else {
         i.remove();
@@ -2429,12 +2304,13 @@ public final class Window implements AutoCloseable {
     return Math.round(logical * scale / density);
   }
 
-  Win32Frame win32() {
-    return win32;
+  WindowBackend backend() {
+    return backend;
   }
 
-  Win32Shell shell() {
-    return shell;
+  /** The windows that have not closed. Only on the windows' thread. */
+  static Collection<Window> all() {
+    return windows.values();
   }
 
   /** The open window with this SDL window ID, or null. Only on the windows' thread. */
@@ -2506,7 +2382,7 @@ public final class Window implements AutoCloseable {
       throw new IllegalStateException("SDL_AddEventWatch failed: " + error);
     }
     if ("x11".equals(Sdl.getCurrentVideoDriver())) {
-      Sdl.setX11EventHook(Upcalls.X11_EVENT, MemorySegment.NULL);
+      Sdl.setX11EventHook(X11Backend.eventHook(), MemorySegment.NULL);
     }
     int registered = Sdl.registerEvents(1);
     synchronized (LOCK) {

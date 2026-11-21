@@ -292,7 +292,8 @@ final class Win32Shell {
     }
     try {
       Window window = Window.failed() ? null : Window.byId((int) data);
-      Win32Shell shell = window == null ? null : window.shell();
+      Win32Shell shell =
+          window != null && window.backend() instanceof Win32Backend b ? b.shell() : null;
       if (shell != null) {
         shell.message(message, wParam);
       }

@@ -200,7 +200,7 @@ class SystemIntegrationTest {
         assertFalse(window.progress(Window.Progress.ERROR, 1), "Linux shows none");
         return;
       }
-      Win32Shell shell = window.shell();
+      Win32Shell shell = ((Win32Backend) window.backend()).shell();
       // The taskbar makes the button after the window shows; the progress waits for it.
       assertTrue(Desktop.pollUntil(() -> shell.progressApplied > 0), "it reached the button");
       for (Window.Progress state : Window.Progress.values()) {

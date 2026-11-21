@@ -111,7 +111,8 @@ final class Win32Frame {
       MemorySegment hwnd, int message, long wParam, long lParam, long id, long data) {
     try {
       Window window = Window.failed() ? null : Window.byId((int) data);
-      Win32Frame frame = window == null ? null : window.win32();
+      Win32Frame frame =
+          window != null && window.backend() instanceof Win32Backend b ? b.frame() : null;
       if (frame != null) {
         long result = frame.message(message, wParam, lParam);
         if (result != PASS) {
