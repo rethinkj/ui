@@ -77,29 +77,46 @@ final class Routing {
    * @return a route for each edge in their order; null for one whose node is not among the nodes
    */
   static List<Route> route(List<Node> nodes, List<Edge> edges, EdgeStyle style) {
-    return route(nodes, edges, style, null, null);
+    return route(nodes, edges, style, null, null, null);
+  }
+
+  private static Map<String, Node> byKey(List<Node> nodes) {
+    Map<String, Node> byKey = new HashMap<>();
+    for (Node node : nodes) {
+      byKey.putIfAbsent(node.key(), node);
+    }
+    return byKey;
   }
 
   /**
    * Routes only the edges attached to {@code moved} anew, keeping the route of every other edge
-   * from {@code kept} in place and spreading the rerouted runs around them.
+   * from {@code kept} in place and spreading the rerouted runs around them. Ends at a shared port
+   * move apart as among {@code keptNodes}, the nodes the kept routes were routed among, so that a
+   * rerouted end does not lie on a kept end with another marker.
    *
    * @return a route for each edge in their order; the kept {@link Route} for each edge not attached
    *     to {@code moved}, and null for a rerouted edge whose node is not among the nodes
    */
   static List<Route> reroute(
-      List<Node> nodes, List<Edge> edges, EdgeStyle style, List<Route> kept, String moved) {
-    return route(nodes, edges, style, kept, moved);
+      List<Node> nodes,
+      List<Edge> edges,
+      EdgeStyle style,
+      List<Node> keptNodes,
+      List<Route> kept,
+      String moved) {
+    return route(nodes, edges, style, keptNodes, kept, moved);
   }
 
   private static List<Route> route(
-      List<Node> nodes, List<Edge> edges, EdgeStyle style, List<Route> kept, String moved) {
-    Map<String, Node> byKey = new HashMap<>();
-    for (Node node : nodes) {
-      byKey.putIfAbsent(node.key(), node);
-    }
+      List<Node> nodes,
+      List<Edge> edges,
+      EdgeStyle style,
+      List<Node> keptNodes,
+      List<Route> kept,
+      String moved) {
+    Map<String, Node> byKey = byKey(nodes);
     Obstacles obstacles = new Obstacles(nodes, style.stub());
-    double[][] fanned = fanned(byKey, edges, style);
+    double[][] fanned = fanned(kept == null ? byKey : byKey(keptNodes), edges, style);
     Path[] paths = new Path[edges.size()];
     Path[] others = new Path[edges.size()]; // the C on the other side, where it is as good
     Map<List<Double>, Integer> straights = new HashMap<>(); // per line, how many lie on it

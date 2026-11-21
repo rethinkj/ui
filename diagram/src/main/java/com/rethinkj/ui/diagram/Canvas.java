@@ -413,7 +413,7 @@ public final class Canvas {
           // Kept only once all of it worked, so that a failure leaves the last routes as they were.
           List<Node> copiedNodes = List.copyOf(nodes);
           List<Routing.Route> rerouted =
-              Routing.reroute(copiedNodes, routedEdges, style, routes, dragged);
+              Routing.reroute(copiedNodes, routedEdges, style, routedNodes, routes, dragged);
           draggedNodes = copiedNodes;
           draggedRoutes = rerouted;
         }
