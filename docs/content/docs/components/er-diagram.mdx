@@ -54,7 +54,7 @@ Zoomed out below `ErStyle.skeleton`, 75 % by default, rows are bars, keys in the
 
 ## Arrange and pins
 
-Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table comes, goes or changes its height, as with its mode or its columns, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them after each change, and `state.pins(pins)` gives them back, as after a restart.
+Tables that the user has not moved are placed by [`LayeredLayout`](/docs/components/canvas#arrange), each schema on its own: at first, when a table comes, goes or changes its height, as with its mode or its columns, and with **Arrange**; the filter does not move them. **Arrange all** unpins every table first. Dragging a table, or Shift and an arrow key, moves and pins it. Pins are plain positions in your state: `onPins` is told all of them when a drag ends, after a Shift+arrow step, or on **Arrange all** (and nothing when Escape cancels a drag), and `state.pins(pins)` gives them back, as after a restart.
 
 ## Keyboard
 

@@ -260,6 +260,14 @@ public final class Canvas {
       return ZOOMS.get(step);
     }
 
+    /**
+     * The key of the node the user is dragging, or null when none is. Inside {@code onMove}, this
+     * is the node's key while the drag moves or is cancelled, and null once the drag has ended.
+     */
+    public String dragging() {
+      return dragged;
+    }
+
     /** Shows the diagram from this point at the canvas's top left, at the same zoom. */
     public void panTo(double left, double top) {
       if (!Double.isFinite(left) || !Double.isFinite(top)) {
@@ -514,9 +522,10 @@ public final class Canvas {
    *     being dragged, which lies above the others
    * @param content builds what each node shows at the zoom of the moment
    * @param onMove told a node moved and pinned while the user drags it, and the node as it was
-   *     when the drag is cancelled, which may be unpinned. It is the node of the view the drag
-   *     began in: an app that changes a node during a drag takes only the position and the pin
-   *     from it. Null fixes the nodes.
+   *     when the drag is cancelled, which may be unpinned. {@link Viewport#dragging()} is the
+   *     node's key during moves and on cancel, and null when the drag ends. It is the node of the
+   *     view the drag began in: an app that changes a node during a drag takes only the position
+   *     and the pin from it. Null fixes the nodes.
    */
   public static El canvas(
       Viewport viewport, List<Node> nodes, NodeContent content, Consumer<Node> onMove) {
@@ -711,8 +720,9 @@ public final class Canvas {
         viewport.draggedDy = 0;
       }
       case CANCEL -> {
-        viewport.dragged = null;
+        // Still dragging while told, so that a caller tells a cancel from the end of a drag.
         onMove.accept(node);
+        viewport.dragged = null;
         return;
       }
       case END -> viewport.dragged = null;

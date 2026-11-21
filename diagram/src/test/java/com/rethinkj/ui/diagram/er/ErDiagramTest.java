@@ -77,14 +77,19 @@ class ErDiagramTest {
   static final class Board {
     final ErDiagram.State diagram = new ErDiagram.State();
     Map<String, ErDiagram.Pin> pins = Map.of();
+    int pinChanges;
+
+    void onPins(Map<String, ErDiagram.Pin> pins) {
+      this.pins = pins;
+      pinChanges++;
+    }
   }
 
   private App<Board> app() {
     App<Board> app = new App<>(
         new Board(),
-        board -> ErDiagram.erDiagram(board.diagram, SCHEMAS, pins -> board.pins = pins)
-            .wFull()
-            .hFull());
+        board ->
+            ErDiagram.erDiagram(board.diagram, SCHEMAS, board::onPins).wFull().hFull());
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -155,6 +160,7 @@ class ErDiagramTest {
         frame
         """, app, out);
     ErDiagram.Pin pin = board.pins.get("shop.customer");
+    assertEquals(1, board.pinChanges);
     assertEquals(Map.of("shop.customer", pin), board.pins, "only the nudged table is pinned");
     assertEquals(board.diagram.pins(), board.pins);
     // All columns, then keys only, as customer has a column that is no key.
@@ -167,6 +173,57 @@ class ErDiagramTest {
 
     board.diagram.arrangeAll();
     assertTrue(board.diagram.pins().isEmpty(), "Arrange all unpins");
+  }
+
+  @Test
+  void dragTellsOnPinsOnceAtTheEndAndNeverOnEscape() throws IOException {
+    App<Board> app = app();
+    Board board = app.state();
+    Script.run("""
+        size 900 500
+        frame
+        down #shop.order at top+8
+        move 100,100
+        frame
+        move 160,140
+        frame
+        """, app, out);
+    assertEquals(0, board.pinChanges, "pointer moves do not tell onPins before the drag ends");
+    assertEquals("shop.order", board.diagram.viewport().dragging());
+    ErDiagram.Pin mid = board.diagram.pins().get("shop.order");
+    assertNotNull(mid, "the table follows the pointer live");
+
+    Script.run("""
+        move 220,180
+        up 220,180
+        frame
+        """, app, out);
+    assertEquals(1, board.pinChanges, "ending the drag tells onPins once");
+    assertNull(board.diagram.viewport().dragging());
+    ErDiagram.Pin dropped = board.pins.get("shop.order");
+    assertEquals(Map.of("shop.order", dropped), board.pins);
+    assertEquals(board.diagram.pins(), board.pins);
+    float zoom = board.diagram.viewport().zoom();
+    assertEquals(mid.x() + 60 / zoom, dropped.x(), 1e-6);
+    assertEquals(mid.y() + 40 / zoom, dropped.y(), 1e-6);
+
+    Script.run("""
+        down #shop.order at top+8
+        move 300,220
+        frame
+        move 360,260
+        frame
+        key ArrowRight shift
+        frame
+        key Escape
+        frame
+        up 360,260
+        frame
+        """, app, out);
+    assertEquals(1, board.pinChanges, "cancelling a drag with Escape tells onPins nothing");
+    assertNull(board.diagram.viewport().dragging());
+    assertEquals(dropped, board.diagram.pins().get("shop.order"), "the table is back where it was");
+    assertEquals(Map.of("shop.order", dropped), board.pins);
   }
 
   @Test
