@@ -158,9 +158,12 @@ public final class ErDiagram {
       return modes.getOrDefault(table, mode);
     }
 
-    /** Shows the table with this key in this mode, and arranges the tables again. */
+    /**
+     * Shows the table with this key in this mode, arranges the tables again and pans to show it.
+     */
     public void mode(String table, Mode mode) {
       Objects.requireNonNull(mode, "mode");
+      viewport.reveal(table);
       if (mode == this.mode) {
         modes.remove(table);
       } else {
@@ -365,7 +368,7 @@ public final class ErDiagram {
     Diagram diagram = new Diagram(state, tables, state.selected, style);
     if (state.revealFirst && !diagram.nodes.isEmpty()) {
       state.revealFirst = false;
-      state.viewport.reveal(diagram.nodes.getFirst());
+      state.viewport.reveal(diagram.nodes.getFirst().key());
     }
     Consumer<Map<String, Pin>> told = onPins == null ? pins -> {} : onPins;
 
@@ -914,7 +917,7 @@ public final class ErDiagram {
   }
 
   private static void reveal(Diagram diagram, Shown table) {
-    diagram.state.viewport.reveal(node(diagram, table));
+    diagram.state.viewport.reveal(table.key);
   }
 
   /** Steps with ] and [ through the tables related to the one where the steps began. */

@@ -228,6 +228,8 @@ public final class Canvas {
     private double draggedY;
     private float draggedDx;
     private float draggedDy;
+    // The key of the node to show in the next build that knows the canvas's size, or null.
+    private String revealing;
     // The wheel's turn with Control held that has not zoomed a step yet, in logical pixels.
     private double wheeled;
     // The routes of the last build with edges and what they were routed from, so that a pan, a zoom
@@ -299,16 +301,28 @@ public final class Canvas {
     }
 
     /**
-     * Pans as little as it takes to show the whole node with a margin of {@link Theme.Spacing#xl},
-     * as the keys that move between nodes need; a node larger than the canvas shows from its top
-     * left. Before the canvas knows its size it does nothing.
+     * Pans as little as it takes to show the whole node with this key with a margin of {@link
+     * Theme.Spacing#xl}, as the keys that move between nodes need; a node larger than the canvas
+     * shows from its top left. As {@link #fit} does, the canvas does it in its next build that
+     * knows its size, after a fit that is due, with the node where that build has it, so that an
+     * app can call it before the node moves or grows; a node that build does not have is left.
      */
-    public void reveal(Node node) {
-      if (width <= 0 || height <= 0) {
+    public void reveal(String node) {
+      revealing = Objects.requireNonNull(node, "node");
+    }
+
+    void revealIfDue(List<Node> nodes, float margin) {
+      if (revealing == null || width <= 0 || height <= 0) {
+        return;
+      }
+      Node node =
+          nodes.stream().filter(n -> n.key().equals(revealing)).findFirst().orElse(null);
+      revealing = null;
+      if (node == null) {
         return;
       }
       float zoom = zoom();
-      double margin = Theme.CURRENT.get().space().xl() / zoom;
+      margin /= zoom;
       double x = revealed(left, width / zoom, node.x() - margin, node.x() + node.width() + margin);
       double y = revealed(top, height / zoom, node.y() - margin, node.y() + node.height() + margin);
       if (x != left || y != top) {
@@ -551,6 +565,7 @@ public final class Canvas {
     DiagramTexts texts = DiagramTexts.CURRENT.get();
     viewport.fitIfDue(
         areas.isEmpty() ? nodes : joined(areas, nodes), theme.space().xl());
+    viewport.revealIfDue(nodes, theme.space().xl());
     float zoom = viewport.zoom();
     double left = viewport.left;
     double top = viewport.top;

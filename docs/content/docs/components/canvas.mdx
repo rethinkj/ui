@@ -72,7 +72,7 @@ A canvas with edges passes them too, `Canvas.png(nodes, edges, view)`, so that t
 
 ## Pointer and keyboard
 
-Dragging empty space and the wheel pan, and **Ctrl**+wheel zooms a step for each step of the wheel around the pointer. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. Content that selects its node on a press uses `onPointerDown`, which leaves the drag to the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in. `Viewport.reveal(node)` pans as little as it takes to show a node, as keys that move between nodes need.
+Dragging empty space and the wheel pan, and **Ctrl**+wheel zooms a step for each step of the wheel around the pointer. Dragging a node moves it; Escape cancels the drag and puts it back. Node content with a press or drag handler of its own, such as a button, keeps the pointer there: a drag that starts on it does not move the node. Content that selects its node on a press uses `onPointerDown`, which leaves the drag to the node. While the canvas has the focus, **+** and **-** zoom in and out around its center and **0** fits all nodes in. `Viewport.reveal(key)` pans as little as it takes to show the node with that key, as keys that move between nodes need. Like `fit()`, it takes effect in the next build that knows the canvas's size, with the node where that build has it.
 
 ## Areas
 

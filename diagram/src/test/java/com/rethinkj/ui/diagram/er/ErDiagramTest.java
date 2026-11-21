@@ -226,6 +226,24 @@ class ErDiagramTest {
   }
 
   @Test
+  void aTableWhoseModeChangesComesIntoView() throws IOException {
+    Script.run("""
+        size 900 500
+        frame
+        press #shop.customer
+        frame
+        wheel role=graphics-document 4000 4000
+        frame
+        snap away
+        key Enter
+        frame
+        snap back
+        """, app(), out);
+    assertFalse(Files.readString(out.resolve("away.tree.txt")).contains("#shop.customer "));
+    assertTrue(Files.readString(out.resolve("back.tree.txt")).contains("#shop.customer "));
+  }
+
+  @Test
   void savesTheWholeDiagramAsPng() {
     ErDiagram.State state = new ErDiagram.State();
     state.select("shop.order");
