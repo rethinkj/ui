@@ -97,8 +97,47 @@ final class Edges {
    * An edge as the canvas shows it: its points, the radius of each bend, its line, and how far the
    * band along each run reaches across it, towards lower and higher coordinates.
    */
-  private record Drawn(
-      Edge edge, float[][] points, float[] radii, float width, int color, float[][] bands) {}
+  private static final class Drawn {
+    private final Edge edge;
+    private final float[][] points;
+    private final float[] radii;
+    private final float width;
+    private final int color;
+    private final float[][] bands;
+
+    Drawn(Edge edge, float[][] points, float[] radii, float width, int color, float[][] bands) {
+      this.edge = edge;
+      this.points = points;
+      this.radii = radii;
+      this.width = width;
+      this.color = color;
+      this.bands = bands;
+    }
+
+    Edge edge() {
+      return edge;
+    }
+
+    float[][] points() {
+      return points;
+    }
+
+    float[] radii() {
+      return radii;
+    }
+
+    float width() {
+      return width;
+    }
+
+    int color() {
+      return color;
+    }
+
+    float[][] bands() {
+      return bands;
+    }
+  }
 
   /** An edge in the canvas, or null where it lies outside. */
   private static Drawn drawn(
@@ -179,8 +218,10 @@ final class Edges {
             Drawn upper = drawn.get((int) s[3]);
             float[] below = lower.bands()[(int) r[4]];
             float[] above = upper.bands()[(int) s[4]];
-            below[1] = Math.max(lower.width() / 2, Math.min(below[1], apart / 2));
-            above[0] = Math.max(upper.width() / 2, Math.min(above[0], apart / 2));
+            below[1] =
+                Math.clamp(apart / 2, lower.width() / 2, Math.max(below[1], lower.width() / 2));
+            above[0] =
+                Math.clamp(apart / 2, upper.width() / 2, Math.max(above[0], upper.width() / 2));
           }
         }
       }
@@ -198,7 +239,7 @@ final class Edges {
     float marker = style.marker() * view.zoom();
     // A marker's strokes no wider than a fifth of it, so that its bars keep a gap and its circle a
     // hole when zoomed out, also where the line is highlighted and wider.
-    float stroke = Math.min(width, Math.max(style.width(), marker / 5));
+    float stroke = Math.clamp(marker / 5, Math.min(style.width(), width), width);
     // None where they would be too small to tell apart.
     boolean legible = marker >= style.smallestMarker();
     Marker fromMarker = legible ? edge.fromMarker() : Marker.NONE;

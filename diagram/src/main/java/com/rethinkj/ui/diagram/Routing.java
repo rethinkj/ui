@@ -196,7 +196,7 @@ final class Routing {
       // A marker's height apart, or closer where that would put an end off its node or onto its
       // corner.
       double apart = style.marker();
-      Node node = byKey.get((String) port.getKey().get(0));
+      Node node = byKey.get(port.getKey().get(0));
       if (node != null) {
         double y = (Float) port.getKey().get(1);
         double room = Math.max(0, Math.min(y, node.height() - y) - style.marker() / 4);
@@ -470,8 +470,10 @@ final class Routing {
     if (room <= 0) {
       return null;
     }
-    double c1 = px + side * Math.min(Math.max(stub, need1), need1 + room / 3);
-    double c2 = qx - side * Math.min(Math.max(stub, need2), need2 + room / 3);
+    double leg1 = Math.max(stub, need1);
+    double leg2 = Math.max(stub, need2);
+    double c1 = px + side * Math.min(leg1, need1 + room / 3);
+    double c2 = qx - side * Math.min(leg2, need2 + room / 3);
     double m = y + count * style.lane();
     Path path = new Path(
         side, straight.toSide, new double[] {px, c1, c1, c2, c2, qx}, new double[] {y, y, m, m, y, y
@@ -1052,7 +1054,9 @@ final class Routing {
           until = Math.min(until, near - lane / 2);
         }
       }
-      return new double[] {Math.max(lo, Math.min(clear, at)), Math.min(hi, Math.max(until, at))};
+      double from = Math.min(clear, at);
+      double to = Math.max(until, at);
+      return new double[] {Math.max(lo, from), Math.min(hi, to)};
     }
   }
 }
