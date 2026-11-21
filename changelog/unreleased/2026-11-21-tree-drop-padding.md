@@ -1,0 +1,1 @@
+- A `Tree` with padding or a border of its own now drops a dragged node where its line shows, and scrolls along to its last row: the drop's point no longer ignores the tree's insets.
