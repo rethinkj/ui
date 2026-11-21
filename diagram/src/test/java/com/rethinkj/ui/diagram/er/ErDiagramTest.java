@@ -245,6 +245,21 @@ class ErDiagramTest {
   }
 
   @Test
+  void keysAFrameApartFromATableOfItsName() throws IOException {
+    List<Schema> schemas = List.of(
+        new Schema("shop", List.of(new Table("orders", List.of(id()), List.of()))),
+        new Schema("", List.of(new Table("shop/", List.of(id()), List.of()))));
+    App<ErDiagram.State> app = new App<>(
+        new ErDiagram.State(),
+        state -> ErDiagram.erDiagram(state, schemas, null).wFull().hFull());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 600 400\nframe\nsnap view\n", app, out);
+    String tree = Files.readString(out.resolve("view.tree.txt"));
+    assertTrue(tree.contains("#shop/ role=graphics-object"), tree);
+    assertTrue(tree.contains("#shop// role=group label=\"shop, 1 table\""), tree);
+  }
+
+  @Test
   void savesTheWholeDiagramAsPng() {
     ErDiagram.State state = new ErDiagram.State();
     state.select("shop.order");

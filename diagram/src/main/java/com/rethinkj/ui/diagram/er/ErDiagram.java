@@ -126,9 +126,10 @@ public final class ErDiagram {
     // Where each table lies, pinned or placed by the layout.
     private final Map<String, Place> places = new HashMap<>();
     private boolean arrangeDue = true;
-    // The height of each table when they were last arranged, to arrange them again when one
-    // changes.
+    // The height of each table and their width when they were last arranged, to arrange them
+    // again when one changes.
     private Map<String, Float> arranged = Map.of();
+    private float width;
     // Whether the next build pans to the first table shown, after the filter changed.
     private boolean revealFirst;
     // The table that ] and [ step around, and the index of the one they stepped to.
@@ -321,16 +322,17 @@ public final class ErDiagram {
   }
 
   /**
-   * Places the tables that are not pinned, when that is due or a table came, went or changed its
-   * height, as with its mode or its columns.
+   * Places the tables that are not pinned, when that is due, a table came, went or changed its
+   * height, as with its mode or its columns, or the style changed their width.
    */
   private static void arrange(State state, Map<String, Shown> tables, ErStyle style) {
     Map<String, Float> heights = new HashMap<>();
     tables.values().forEach(table -> heights.put(table.key, table.height));
-    if (!state.arrangeDue && heights.equals(state.arranged)) {
+    if (!state.arrangeDue && heights.equals(state.arranged) && style.width() == state.width) {
       return;
     }
     state.arranged = heights;
+    state.width = style.width();
     List<Node> nodes = new ArrayList<>();
     List<LayeredLayout.Edge> edges = new ArrayList<>();
     for (Shown table : tables.values()) {
@@ -456,6 +458,8 @@ public final class ErDiagram {
     final List<Edge> edges = new ArrayList<>();
     final List<Node> frames = new ArrayList<>();
     final Map<String, Integer> frameSizes = new HashMap<>();
+    // The schema of each frame, by its key.
+    final Map<String, String> frameSchemas = new HashMap<>();
 
     Diagram(State state, Map<String, Shown> tables, String selected, ErStyle style) {
       this.state = state;
@@ -564,14 +568,24 @@ public final class ErDiagram {
         frameSizes.merge(schema, 1, Integer::sum);
       }
       float pad = style.frame();
-      // Keyed apart from the tables, of which one in a schema without a name may have its name.
-      bounds.forEach((schema, box) -> frames.add(new Node(
-          schema + "/",
-          schema + ", " + texts.tables(frameSizes.get(schema)),
-          box[0] - pad,
-          box[1] - pad - style.frameLabel(),
-          (float) (box[2] - box[0] + 2 * pad),
-          (float) (box[3] - box[1] + 2 * pad + style.frameLabel()))));
+      // Keyed schema/, and apart from every table and edge, as a table without a schema may be
+      // named so.
+      Set<String> taken = new HashSet<>(tables.keySet());
+      edges.forEach(edge -> taken.add(edge.key()));
+      bounds.forEach((schema, box) -> {
+        String key = schema + "/";
+        while (!taken.add(key)) {
+          key += "/";
+        }
+        frameSchemas.put(key, schema);
+        frames.add(new Node(
+            key,
+            schema + ", " + texts.tables(frameSizes.get(schema)),
+            box[0] - pad,
+            box[1] - pad - style.frameLabel(),
+            (float) (box[2] - box[0] + 2 * pad),
+            (float) (box[3] - box[1] + 2 * pad + style.frameLabel())));
+      });
     }
 
     /** What a table or a frame shows at this zoom. */
@@ -586,7 +600,7 @@ public final class ErDiagram {
     }
 
     private El frame(Node node, float zoom) {
-      String schema = node.key().substring(0, node.key().length() - 1);
+      String schema = frameSchemas.get(node.key());
       float size = readable(theme.type().small().size(), zoom);
       return col()
           .wFull()
