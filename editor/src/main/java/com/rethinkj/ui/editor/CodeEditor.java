@@ -102,7 +102,13 @@ public final class CodeEditor {
      * Control+Shift+]: unfolds the folded range at the caret's line, or the innermost folded range
      * around it.
      */
-    UNFOLD
+    UNFOLD,
+    /**
+     * Alt+Enter: opens the menu of quick fixes for the diagnostics at the caret, with the first
+     * fix highlighted. Nothing where there are no fixes at the caret or the editor is not
+     * editable.
+     */
+    QUICK_FIXES
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -120,14 +126,45 @@ public final class CodeEditor {
   public sealed interface Mark permits Diagnostic, Marker, Highlight {}
 
   /**
+   * A quick fix for a {@link Diagnostic}: replaces characters {@code from} to {@code to} by {@code
+   * text} in the string the diagnostic's {@link State#markup markup layer} was computed for, its
+   * positions as the editor shows that string, as a diagnostic's are ({@link State}), with
+   * {@code label} shown in the quick fixes menu (Alt+Enter or the gutter bulb on the caret's line).
+   *
+   * @param label text shown for this fix in the menu
+   * @param from start offset in the markup layer's text, 0 or more
+   * @param to end offset in the markup layer's text, at least {@code from}
+   * @param text replacement text
+   */
+  public record Fix(String label, int from, int to, String text) {
+    public Fix {
+      Objects.requireNonNull(label, "label");
+      Objects.requireNonNull(text, "text");
+      if (from < 0 || to < from) {
+        throw new IllegalArgumentException(
+            "from must be 0 or more and to at least from, were " + from + " and " + to);
+      }
+    }
+  }
+
+  /**
    * Something the app says about characters {@code from} to {@code to} of the string, such as
    * where the database said a query went wrong: a wavy line under them in the severity's status
    * color, and a marker at the start of the line of {@code from} with the message as its tooltip.
+   * May carry {@link Fix quick fixes} offered at the caret via Alt+Enter and the gutter bulb while
+   * the editor's text still equals the revision the diagnostic's markup layer was computed for.
    */
-  public record Diagnostic(int from, int to, Severity severity, String message) implements Mark {
+  public record Diagnostic(int from, int to, Severity severity, String message, List<Fix> fixes)
+      implements Mark {
     public Diagnostic {
       Objects.requireNonNull(severity, "severity");
       Objects.requireNonNull(message, "message");
+      fixes = fixes == null ? List.of() : List.copyOf(fixes);
+    }
+
+    /** A diagnostic with no quick fixes. */
+    public Diagnostic(int from, int to, Severity severity, String message) {
+      this(from, to, severity, message, List.of());
     }
   }
 
@@ -189,6 +226,7 @@ public final class CodeEditor {
       case "L" -> mods == (Key.CONTROL | Key.ALT) ? Command.FORMAT : null;
       case "[" -> mods == controlShift ? Command.FOLD : null;
       case "]" -> mods == controlShift ? Command.UNFOLD : null;
+      case "Enter" -> mods == Key.ALT ? Command.QUICK_FIXES : null;
       default -> null;
     };
   }
@@ -208,6 +246,8 @@ public final class CodeEditor {
   public static final class State {
     private final FieldState field = new FieldState();
     private final Find.State find = new Find.State();
+    private final Menu.State quickFixes = new Menu.State();
+    private List<Fix> fixesShown; // the fixes of the open menu's last build
     private int caret;
     private int anchor;
     private String text = ""; // the string of the editor's last build
@@ -228,6 +268,7 @@ public final class CodeEditor {
     private String value;
     private String lineComment;
     private Function<String, Formatted> formatter;
+    private List<Diagnostic> currentDiagnostics = List.of();
     // FORMAT's problem, shown while the app's string is the one it could not format.
     private Formatted.Problem problem;
     private String problemOf;
@@ -552,7 +593,10 @@ public final class CodeEditor {
     }
 
     private record Marks(
-        List<Diagnostic> diagnostics, List<Marker> markers, List<Highlight> highlights) {}
+        List<Diagnostic> diagnostics,
+        List<Diagnostic> currentDiagnostics,
+        List<Marker> markers,
+        List<Highlight> highlights) {}
 
     private static final class Layer {
       final String text;
@@ -598,7 +642,11 @@ public final class CodeEditor {
           yield from < 0
               ? null
               : new Diagnostic(
-                  from, from + Math.max(0, d.to() - d.from()), d.severity(), d.message());
+                  from,
+                  from + Math.max(0, d.to() - d.from()),
+                  d.severity(),
+                  d.message(),
+                  d.fixes());
         }
         case Marker m -> {
           int at = edits.mapPoint(m.at());
@@ -623,15 +671,22 @@ public final class CodeEditor {
         problemOf = null;
       }
       if (layers.isEmpty() && problem == null) {
-        return new Marks(List.of(), markers, List.of());
+        return new Marks(List.of(), List.of(), markers, List.of());
       }
       List<Diagnostic> diagnostics = new ArrayList<>();
+      List<Diagnostic> current = new ArrayList<>();
       List<Marker> allMarkers = markers.isEmpty() ? new ArrayList<>() : new ArrayList<>(markers);
       List<Highlight> highlights = new ArrayList<>();
       for (Layer layer : layers.values()) {
+        boolean fresh = layer.text.equals(builtText);
         for (Mark mark : layer.marksFor(builtText, this)) { // in the string as the field shows it
           switch (mark) {
-            case Diagnostic d -> diagnostics.add(d);
+            case Diagnostic d -> {
+              diagnostics.add(d);
+              if (fresh && !d.fixes().isEmpty()) {
+                current.add(d);
+              }
+            }
             case Marker m -> allMarkers.add(m);
             case Highlight h -> highlights.add(h);
           }
@@ -641,7 +696,7 @@ public final class CodeEditor {
         String message = Texts.CURRENT.get().formatProblem(problem.kind());
         diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
-      return new Marks(diagnostics, allMarkers, highlights);
+      return new Marks(diagnostics, current, allMarkers, highlights);
     }
   }
 
@@ -727,8 +782,17 @@ public final class CodeEditor {
     editor.folds(state.folds(), state::ask, fold -> foldMark(theme));
     State.Marks marks = state.marksOf(value);
     List<Diagnostic> diagnostics = marks.diagnostics();
+    List<Diagnostic> currentDiagnostics = marks.currentDiagnostics();
     List<Marker> markers = marks.markers();
     List<Highlight> highlights = marks.highlights();
+    boolean editable = app != null && editor.onEdit() != null && !editor.isReadOnly();
+    List<Fix> fixes = editable ? fixesAt(currentDiagnostics, state.caret) : List.of();
+    boolean fixError = !fixes.isEmpty() && fixError(currentDiagnostics, state.caret);
+    // The menu closes when its fixes change, so that Enter never chooses one the user did not see.
+    if (fixes.isEmpty() || (state.fixesShown != null && !fixes.equals(state.fixesShown))) {
+      state.quickFixes.close();
+    }
+    state.fixesShown = state.quickFixes.isOpen() ? fixes : null;
     wireBlocks(theme, state, value, editor);
     int[] pair = editor.matchingBracket(state.caret);
     editor
@@ -760,7 +824,18 @@ public final class CodeEditor {
             }
           }
         })
-        .gutter(line -> cell(app, theme, state, editor, diagnostics, markers, line), rail);
+        .gutter(
+            line -> cell(
+                app,
+                theme,
+                state,
+                editor,
+                diagnostics,
+                markers,
+                !fixes.isEmpty() && editor.onEdit() != null && !editor.isReadOnly(),
+                fixError,
+                line),
+            rail);
     if (!diagnostics.isEmpty()) {
       List<Scrollbars.Mark> ticks = new ArrayList<>(diagnostics.size());
       for (Diagnostic d : diagnostics) {
@@ -773,6 +848,16 @@ public final class CodeEditor {
     if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
       editor.whenFocusWithin(e -> e.overlay(message));
     }
+    if (!fixes.isEmpty() && state.quickFixes.isOpen()) {
+      String revision = state.builtText;
+      List<Menu.Item> items = new ArrayList<>(fixes.size());
+      for (Fix fix : fixes) {
+        items.add(Menu.item(fix.label(), () -> applyFix(app, state, revision, fix)));
+      }
+      editor.overlay(Menu.menu(state.quickFixes, items)
+          .atCaret()
+          .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
+    }
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
     if (app == null) {
@@ -782,19 +867,24 @@ public final class CodeEditor {
     state.value = value;
     state.lineComment = highlighter == null ? null : highlighter.lineComment();
     state.formatter = highlighter == null ? null : highlighter.formatter();
+    state.currentDiagnostics = currentDiagnostics;
     editor.onKey(k -> {
       if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
         return true;
       }
       Command command = command(k);
+      boolean editableNow = editor.onEdit() != null && !editor.isReadOnly();
       boolean formats = state.formatter != null
-          && editor.onEdit() != null
-          && !editor.isReadOnly()
+          && editableNow
           && app.focused() == editor; // not from the find bar, an overlay of the editor
+      boolean fixesHere = editableNow
+          && app.focused() == editor
+          && !fixesAt(state.currentDiagnostics, state.caret).isEmpty();
       if (command == null
           || (command == Command.FORMAT && !formats)
+          || (command == Command.QUICK_FIXES && !fixesHere)
           || ((command == Command.FOLD || command == Command.UNFOLD) && app.focused() != editor)) {
-        return false; // Control+Alt+L stays the app's where the editor cannot format
+        return false; // Control+Alt+L and Alt+Enter stay the app's where not applicable
       }
       run(app, state, command);
       return true;
@@ -814,10 +904,10 @@ public final class CodeEditor {
               Menu.item(texts.replace(), edits ? () -> Find.openReplace(state.find) : null)
                   .shortcut(Key.CONTROL, "H")));
     });
-    // Control+Alt+L, which the editor takes only where it formats, stays the app's.
+    // Control+Alt+L and Alt+Enter, which the editor takes only where applicable, stay the app's.
     return Find.find(app, editor, state.find, k -> {
       Command command = command(k);
-      return command != null && command != Command.FORMAT;
+      return command != null && command != Command.FORMAT && command != Command.QUICK_FIXES;
     });
   }
 
@@ -899,6 +989,8 @@ public final class CodeEditor {
       El editor,
       List<Diagnostic> diagnostics,
       List<Marker> markers,
+      boolean hasFixes,
+      boolean fixError,
       El.Gutter.Line line) {
     Theme.TextStyle mono = theme.type().mono();
     float bar = theme.size().indicator();
@@ -911,7 +1003,9 @@ public final class CodeEditor {
       cell.fill(theme.code().block()).border(0, 0, 0, bar, theme.accent().edge());
     }
     return cell.children(
-        marker(theme, markers, diagnostics, line).w(mono.size()).shrink(0),
+        marker(theme, markers, diagnostics, hasFixes, fixError, state.quickFixes::open, line)
+            .w(mono.size())
+            .shrink(0),
         El.text(String.valueOf(line.index() + 1))
             .font(mono.font().get())
             .fontSize(mono.size())
@@ -988,13 +1082,21 @@ public final class CodeEditor {
   }
 
   /**
-   * The marker of a line: of the diagnostics that start on it, else of the app's first marker on
-   * it; an empty place for one where there is none, so that the numbers stay where they are.
+   * The marker of a line: the intention bulb on the caret's line where there are quick fixes at
+   * the caret, else of the diagnostics that start on it, else of the app's first marker on it; an
+   * empty place for one where there is none, so that the numbers stay where they are.
    */
   private static El marker(
-      Theme theme, List<Marker> markers, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+      Theme theme,
+      List<Marker> markers,
+      List<Diagnostic> diagnostics,
+      boolean hasFixes,
+      boolean fixError,
+      Runnable openFixes,
+      El.Gutter.Line line) {
     Texts texts = Texts.CURRENT.get(); // the gutter builds in the view's values
     float size = theme.type().mono().size();
+    El place = El.row().key("marker").justify(Style.Content.CENTER);
     StringBuilder messages = new StringBuilder();
     StringBuilder errors = new StringBuilder();
     StringBuilder warnings = new StringBuilder();
@@ -1009,7 +1111,23 @@ public final class CodeEditor {
         messages.append(messages.isEmpty() ? "" : "\n").append(d.message);
       }
     }
-    El place = El.row().key("marker").justify(Style.Content.CENTER);
+    if (line.caret() && hasFixes) { // the bulb's tooltip keeps the line's messages
+      String label = texts.quickFixes();
+      place
+          .role("button")
+          .label(label)
+          .cursor(Cursor.POINTER)
+          .onPress(openFixes)
+          .keepFocus()
+          .child(Icon.icon(
+              Symbol.LIGHTBULB, fixError ? Icon.Variant.DANGER : Icon.Variant.WARNING, size));
+      place.errorMessage(error ? errors.toString() : null);
+      place.warningMessage(warnings.isEmpty() ? null : warnings.toString());
+      return Tooltip.tooltip(
+          place,
+          messages.isEmpty() ? label : messages + "\n" + label,
+          Tooltip.options().kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING));
+    }
     if (any) {
       place
           .role("img")
@@ -1174,6 +1292,13 @@ public final class CodeEditor {
     if (editor.onEdit() == null || editor.isReadOnly()) {
       return;
     }
+    if (command == Command.QUICK_FIXES) {
+      if (text.equals(state.builtText)
+          && !fixesAt(state.currentDiagnostics, caret).isEmpty()) {
+        state.quickFixes.openByKey();
+      }
+      return;
+    }
     LineEdits.Edit edit = switch (command) {
       case DUPLICATE_LINES -> LineEdits.duplicate(text, caret, anchor);
       case MOVE_LINES_UP -> LineEdits.move(text, caret, anchor, -1);
@@ -1190,6 +1315,48 @@ public final class CodeEditor {
       return;
     }
     app.edit(editor, edit.from(), edit.to(), edit.text(), edit.caret(), edit.anchor());
+  }
+
+  /** The quick fixes of current-revision diagnostics whose range contains {@code caret}. */
+  private static List<Fix> fixesAt(List<Diagnostic> current, int caret) {
+    List<Fix> fixes = List.of();
+    for (Diagnostic d : current) {
+      int to = Math.max(d.from, d.to);
+      if (caret >= d.from && caret <= to && !d.fixes.isEmpty()) {
+        if (fixes.isEmpty()) {
+          fixes = new ArrayList<>();
+        }
+        fixes.addAll(d.fixes);
+      }
+    }
+    return fixes;
+  }
+
+  /** Whether any current-revision diagnostic with quick fixes at {@code caret} is an error. */
+  private static boolean fixError(List<Diagnostic> current, int caret) {
+    for (Diagnostic d : current) {
+      int to = Math.max(d.from, d.to);
+      if (caret >= d.from && caret <= to && !d.fixes.isEmpty() && d.severity == Severity.ERROR) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Applies {@code fix} as one undoable edit if the field is still editable and on {@code revision}. */
+  private static void applyFix(App<?> app, State state, String revision, Fix fix) {
+    El editor = state.editor;
+    if (editor == null || editor.onEdit() == null || editor.isReadOnly()) {
+      return;
+    }
+    String text = editor.text().string();
+    if (!text.equals(revision)) {
+      return;
+    }
+    int from = Math.min(fix.from(), text.length());
+    int to = Math.min(fix.to(), text.length());
+    int caret = from + fix.text().length();
+    app.edit(editor, from, to, fix.text(), caret, caret);
   }
 
   /**

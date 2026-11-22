@@ -1,0 +1,23 @@
+# Open quick fixes on a misspelled table name with Alt+Enter, apply with Enter, then undo.
+size 520 200 scale 2
+frame
+
+focus #fixes
+key ArrowDown
+key End
+key ArrowLeft
+key Enter alt
+frame
+advance 0.3
+frame
+snap open
+
+key Enter
+frame
+advance 0.3
+frame
+snap applied
+
+key Z control
+frame
+snap undone

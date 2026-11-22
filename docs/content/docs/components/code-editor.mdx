@@ -165,6 +165,15 @@ Marks of the app's own, such as changed lines or the usages of a name, go on the
 ```java snippet="scroll-marks"
 ```
 
+## Quick fixes
+
+A `CodeEditor.Diagnostic` can carry a list of `CodeEditor.Fix(label, from, to, text)` edits whose offsets refer to the `text` passed to `diagnostics` or `markup`, in the same normalized positions as diagnostics (see above). While the editor is editable and its text still matches that revision, moving the cursor onto a diagnostic replaces its gutter icon on the cursor's line with a clickable intention bulb, whose tooltip keeps the line's messages. Press **Alt+Enter** (or click the bulb) to open a menu of the fixes at the cursor; choosing one applies its replacement as a single undo step (**Ctrl+Z**). If the text changes to another revision, the fixes are not offered or applied.
+
+<Shot src="examples/docs/code-editor-fixes/open-{theme}" alt="A SQL query in the code editor with a squiggle under a misspelled table name, an intention bulb in the gutter, and the quick fixes menu open at the cursor" />
+
+```java snippet="code-editor-fixes"
+```
+
 ## Folding
 
 Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, ignoring brackets inside strings and comments when the highlighter marks brackets (such as `Json` and `Sql`). Folded lines show a chevron (`›`) in the gutter and a clickable `…` pill at the end of the line; hovering a line that starts a foldable block reveals its fold chevron (`⌄`). Press **Ctrl+Shift+[** to fold the innermost block around the cursor (moving the cursor to the end of its first line) and **Ctrl+Shift+]** to unfold it. Folding also works in read-only editors.
@@ -252,6 +261,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Ctrl+Alt+L | `FORMAT` | Format all text using `formatter()`, or show why formatting failed |
 | Ctrl+Shift+[ | `FOLD` | Fold the innermost bracket range around the cursor |
 | Ctrl+Shift+] | `UNFOLD` | Unfold the folded range at or around the cursor |
+| Alt+Enter | `QUICK_FIXES` | Open the menu of quick fixes for diagnostics at the cursor |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
 Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
@@ -260,7 +270,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker`, and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
 ```

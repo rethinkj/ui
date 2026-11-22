@@ -123,6 +123,26 @@ final class Editors {
       WHERE placed_at >= CURRENT_DATE - 30;""";
   final CodeEditor.State visionEditor = new CodeEditor.State();
   String selectedVision;
+  String broken = "SELECT id, total\nFROM ordrs\nWHERE status = 'paid';";
+  final CodeEditor.State fixesEditor = new CodeEditor.State();
+
+  // docs:start code-editor-fixes
+  /** Reports an unknown table name with two quick fixes to replace it. */
+  void showFixes() {
+    int from = broken.indexOf("ordrs");
+    int to = from + "ordrs".length();
+    fixesEditor.diagnostics(
+        broken,
+        List.of(new CodeEditor.Diagnostic(
+            from,
+            to,
+            CodeEditor.Severity.ERROR,
+            "relation \"ordrs\" does not exist",
+            List.of(
+                new CodeEditor.Fix("Replace with 'orders'", from, to, "orders"),
+                new CodeEditor.Fix("Replace with 'order_items'", from, to, "order_items")))));
+  }
+  // docs:end code-editor-fixes
 
   // docs:start code-editor-vision
   void showPaidUsages() {
@@ -196,6 +216,7 @@ final class Editors {
   Editors() {
     showRun();
     showVision();
+    showFixes();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -277,6 +298,10 @@ final class Editors {
 
   void report(String value) {
     report = value;
+  }
+
+  void broken(String value) {
+    broken = value;
   }
 
   // docs:start code-editor-json-format
@@ -429,6 +454,16 @@ final class Editors {
         List.of(new Scrollbars.Mark(changeStart, changeEnd, theme.status().success())));
     // docs:end scroll-marks
     return editor;
+  }
+
+  static El fixes(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.broken, state.fixesEditor, Sql.of(), state::broken)
+        .key("fixes")
+        .label("Query")
+        .lines(7)
+        .wFull();
+    return Frame.of(editor);
   }
 
   static El find(Editors state) {

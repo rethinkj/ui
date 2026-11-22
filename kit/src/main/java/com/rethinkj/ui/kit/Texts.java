@@ -456,6 +456,11 @@ public interface Texts {
     return "Unfold";
   }
 
+  /** The gutter bulb button and tooltip that opens quick fixes at the caret. */
+  default String quickFixes() {
+    return "Show quick fixes";
+  }
+
   /** The label of a documentation section that lists parameters. */
   default String parameters() {
     return "Params:";

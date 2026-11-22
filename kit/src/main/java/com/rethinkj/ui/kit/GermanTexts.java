@@ -472,6 +472,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String quickFixes() {
+    return "Schnellkorrekturen anzeigen";
+  }
+
+  @Override
   public String parameters() {
     return "Parameter:";
   }

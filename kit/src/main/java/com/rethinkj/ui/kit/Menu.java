@@ -400,6 +400,12 @@ public final class Menu {
       openAt(Float.NaN, Float.NaN);
     }
 
+    /** Opens the menu with its first enabled item highlighted, as when a key opens it. */
+    public void openByKey() {
+      open();
+      opening = 1;
+    }
+
     /**
      * Opens the menu at a point of the window, for a context menu, with no item highlighted; an
      * {@link El.PointHandler}, so that {@code onSecondaryPress(state::openAt)} opens it.
@@ -537,15 +543,11 @@ public final class Menu {
           anchor.onKey(),
           () -> press.press(1, 0, anchor.width() / 2.0, anchor.height() / 2.0)));
     }
-    if (state.isOpen() && state.opening != 0 && state.active(0) < 0) {
-      state.highlightByKey(0, enabledEnd(items, state.opening > 0));
-    }
+    El menu = state.isOpen()
+        ? menu(state, items).side(Side.BOTTOM, Style.Align.START, theme.space().xs())
+        : null;
     state.opening = 0;
-    return anchor.overlay(
-        state.isOpen()
-            ? menu(state, items)
-                .side(Side.BOTTOM, Style.Align.START, theme.space().xs())
-            : null);
+    return anchor.overlay(menu);
   }
 
   /**
@@ -624,6 +626,12 @@ public final class Menu {
   }
 
   private static El panel(Theme theme, State state, List<Item> items, int level, Bar bar) {
+    if (level == 0 && state.opening != 0) {
+      if (state.active(0) < 0) {
+        state.highlightByKey(0, enabledEnd(items, state.opening > 0));
+      }
+      state.opening = 0;
+    }
     state.fit(level, items);
     El panel = Popup.frame(theme, col())
         .key(level == 0 ? "menu" : "submenu")

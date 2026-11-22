@@ -44,7 +44,8 @@ public class GenerateSymbols {
       chevron_up circle
       clipboard_paste clock code column_single copy cube cut database delete dismiss
       dismiss_circle document document_table edit error_circle eye eye_off filter
-      filter_dismiss folder folder_open history info key key_multiple link lock_closed lock_open
+      filter_dismiss folder folder_open history info key key_multiple lightbulb link lock_closed
+      lock_open
       math_formula maximize more_horizontal more_vertical navigation number_symbol open
       panel_left panel_right pause people person pin play plug_connected plug_disconnected
       question_circle record_stop save search server settings shield split_horizontal
