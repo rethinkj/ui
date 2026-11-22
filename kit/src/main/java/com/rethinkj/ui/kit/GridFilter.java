@@ -286,7 +286,7 @@ final class GridFilter {
       return offset
           ? offsetAbove(time, low.value(), high.value())
           : localAbove(time, low.value(), high.value());
-    } catch (DateTimeException e) {
+    } catch (DateTimeException _) {
       return false; // an offset java.time does not take, such as +19:00: no order to go by
     }
   }

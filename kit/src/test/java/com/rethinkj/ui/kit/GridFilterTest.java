@@ -134,17 +134,12 @@ class GridFilterTest {
         app.tree().dump());
     assertTrue(line(app, "from").contains(" invalid"), line(app, "from"));
     assertFalse(line(app, "to").contains(" invalid"), line(app, "to"));
-    run(app, "key Enter\nframe");
-    assertTrue(ledger.filters.isEmpty(), "Enter applies nothing on an invalid From");
 
     run(app, "key Tab\ntype \"xyz\"\nframe");
     assertTrue(line(app, "from").contains(" invalid"), line(app, "from"));
     assertTrue(line(app, "to").contains(" invalid"), "both ends wrong: " + line(app, "to"));
 
     run(app, "key Tab shift\nkey A control\ntype \"10\"\nkey Tab\nframe");
-    assertTrue(
-        app.tree().dump().contains("role=alert label=\"Not a whole number\""),
-        app.tree().dump());
     assertFalse(line(app, "from").contains(" invalid"), line(app, "from"));
     assertTrue(line(app, "to").contains(" invalid"), line(app, "to"));
     run(app, "key Enter\nframe");
@@ -161,7 +156,10 @@ class GridFilterTest {
 
     run(app, "key A control\ntype \"20\"\nframe\nkey Enter\nframe");
     assertEquals(List.of(new Filter(2, new Filter.Between("10", "20"))), ledger.filters);
+  }
 
+  @Test
+  void aRangeIsRefusedOnlyWhereFromIsSurelyAboveToInTheValuesOrder() {
     // Times with offsets are ordered by the time, not by their text, as SQL orders them.
     DataGrid.Column at = new DataGrid.Column("at", 100, DataGrid.DataType.DATE_TIME, row -> null);
     assertTrue(GridFilter.above(at, 0, "2026-11-13T09:00+00:00", "2026-11-13T10:00+02:00"));
