@@ -1,51 +1,58 @@
 el 0,0 520x250
   text #navigation role=textbox label="Query" "WITH paid_orders AS (\n  SELECT id, total\n  FROM orders\n)\nSELECT id, total\nFROM paid_orders\nWHERE total > (SELECT avg(total) FROM paid_orders);" 12,12 496x146 lines 1-7/7
-    el #rail 13,13 50x144
-    el #gutter 13,17 49x128
-      el #line-0 13,17 49x16
+    el #rail 13,13 56x144
+    el #gutter 13,17 55x128
+      el #line-0 13,17 55x16
         el 19,25 12x0
         text "1" 35,17 7x16
-        el #fold-line-0 role=button label="Fold" 46,19 12x12
-          text label="chevron_down" "\u{F2A1}" 46,19 12x12
-      el #line-1 13,33 49x16
+        el 46,25 2x0
+        el #fold-line-0 role=button label="Fold" 52,19 12x12
+          text label="chevron_down" "\u{F2A1}" 52,19 12x12
+      el #line-1 13,33 55x16
         el 19,41 12x0
         text "2" 35,33 7x16
-        el 46,41 12x0
-      el #line-2 13,49 49x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
         el 19,57 12x0
         text "3" 35,49 7x16
-        el 46,57 12x0
-      el #line-3 13,65 49x16
+        el 46,57 2x0
+        el 52,57 12x0
+      el #line-3 13,65 55x16
         el 19,73 12x0
         text "4" 35,65 7x16
-        el 46,73 12x0
-      el #line-4 13,81 49x16
+        el 46,73 2x0
+        el 52,73 12x0
+      el #line-4 13,81 55x16
         el 19,89 12x0
         text "5" 35,81 7x16
-        el 46,89 12x0
-      el #line-5 13,97 49x16
+        el 46,89 2x0
+        el 52,89 12x0
+      el #line-5 13,97 55x16
         el 19,105 12x0
         text "6" 35,97 7x16
-        el 46,105 12x0
-      el #line-6 13,113 49x16
+        el 46,105 2x0
+        el 52,105 12x0
+      el #line-6 13,113 55x16
         el 19,121 12x0
         text "7" 35,113 7x16
-        el 46,121 12x0
+        el 46,121 2x0
+        el 52,121 12x0
 overlay bottom start gap 2 on #navigation role=textbox label="Query" 12,12 496x146
-  el #usages role=menu label="Usages" 115,115 399x106 focused
-    el #item-0 role=menuitem label="1: WITH paid_orders AS (" 120,120 389x24 current
-      el 120,120 389x24
-        el 128,132 16x0
-        text "1: WITH paid_orders AS (" 152,124 349x16
-    el #item-1 role=menuitem label="6: FROM paid_orders" 120,144 389x24
-      el 120,144 389x24
-        el 128,156 16x0
-        text "6: FROM paid_orders" 152,148 349x16
-    el #item-2 role=menuitem label="7: WHERE total > (SELECT avg(total) FROM paid_orders);" 120,168 389x24
-      el 120,168 389x24
-        el 128,180 16x0
-        text "7: WHERE total > (SELECT avg(total) FROM paid_orders);" 152,172 349x16
-    el #item-3 role=menuitem label="report.sql" 120,192 389x24
-      el 120,192 389x24
-        el 128,204 16x0
-        text "report.sql" 152,196 349x16
+  el #usages role=menu label="Usages" 121,115 399x106 focused
+    el #item-0 role=menuitem label="1: WITH paid_orders AS (" 126,120 389x24 current
+      el 126,120 389x24
+        el 134,132 16x0
+        text "1: WITH paid_orders AS (" 158,124 349x16
+    el #item-1 role=menuitem label="6: FROM paid_orders" 126,144 389x24
+      el 126,144 389x24
+        el 134,156 16x0
+        text "6: FROM paid_orders" 158,148 349x16
+    el #item-2 role=menuitem label="7: WHERE total > (SELECT avg(total) FROM paid_orders);" 126,168 389x24
+      el 126,168 389x24
+        el 134,180 16x0
+        text "7: WHERE total > (SELECT avg(total) FROM paid_orders);" 158,172 349x16
+    el #item-3 role=menuitem label="report.sql" 126,192 389x24
+      el 126,192 389x24
+        el 134,204 16x0
+        text "report.sql" 158,196 349x16
