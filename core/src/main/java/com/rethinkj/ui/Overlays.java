@@ -135,7 +135,7 @@ final class Overlays {
           fieldAnchored[0] = true;
         }
         if (l.rangeFrom >= 0
-            && (el.editor() == null || el.editor().rangeBox(l.rangeFrom, l.rangeTo) == null)) {
+            && (el.editor() == null || el.editor().rangeBox(l.rangeFrom, l.rangeTo).length == 0)) {
           continue; // range is hidden or scrolled out of view
         }
         place(overlay, el, left, top, width, height, within, dialog);
@@ -246,7 +246,7 @@ final class Overlays {
           : l.rangeFrom >= 0 && anchor.editor() != null
               ? anchor.editor().rangeBox(l.rangeFrom, l.rangeTo)
               : null;
-      if (box != null) {
+      if (box != null && box.length == 4) {
         ax = x + box[0];
         ay = y + box[1];
         aw = box[2];

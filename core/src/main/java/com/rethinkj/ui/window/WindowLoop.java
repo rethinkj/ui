@@ -1199,7 +1199,10 @@ public final class WindowLoop {
     Entry to = pressed;
     float into = to.window.unitsPerLogical();
     to.input = true;
-    to.app.pointerMove((at[0] - to.window.x()) / into, (at[1] - to.window.y()) / into);
+    to.app.pointerMove(
+        (at[0] - to.window.x()) / into,
+        (at[1] - to.window.y()) / into,
+        Window.modifiers(Sdl.getModState()));
   }
 
   private void released(Entry in) {
