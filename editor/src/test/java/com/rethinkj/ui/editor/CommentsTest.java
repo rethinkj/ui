@@ -51,11 +51,11 @@ class CommentsTest {
         int close = line.indexOf("*/");
         if (close < 0) {
           if (len > 0) {
-            out.comment(0, len, doc);
+            out.comment(0, len, doc, true);
           }
           return state;
         }
-        out.comment(0, close + 2, doc);
+        out.comment(0, close + 2, doc, true);
         i = close + 2;
       } else {
         int indent = 0;
@@ -63,7 +63,7 @@ class CommentsTest {
           indent++;
         }
         if (line.startsWith("///", indent)) {
-          out.comment(indent, len, true);
+          out.comment(indent, len, true, state == State.DOC_LINE);
           return State.DOC_LINE;
         }
       }
@@ -84,7 +84,7 @@ class CommentsTest {
         if (c == '/' && i + 1 < len) {
           char next = line.charAt(i + 1);
           if (next == '/') {
-            out.comment(i, len, false);
+            out.comment(i, len, false, false);
             return null;
           }
           if (next == '*') {
@@ -93,10 +93,10 @@ class CommentsTest {
                 && !(i + 3 < len && line.charAt(i + 3) == '/');
             int close = line.indexOf("*/", i + (doc ? 3 : 2));
             if (close < 0) {
-              out.comment(i, len, doc);
+              out.comment(i, len, doc, false);
               return doc ? State.DOC_BLOCK : State.BLOCK;
             }
-            out.comment(i, close + 2, doc);
+            out.comment(i, close + 2, doc, false);
             i = close + 2;
             continue;
           }
@@ -131,14 +131,15 @@ class CommentsTest {
          */
           /// First markdown doc line
           /// Second markdown doc line
+        /** separate */
         void run() {} // trailing""";
     CLike lang = new CLike("c", null);
     Comments scanned = Comments.scan(text, lang, null);
     assertTrue(scanned.complete());
-    assertEquals(12, scanned.scannedLines());
+    assertEquals(13, scanned.scannedLines());
 
     List<Comments.Comment> list = scanned.comments();
-    assertEquals(6, list.size(), list.toString());
+    assertEquals(7, list.size(), list.toString());
 
     assertComment(text, list.get(0), "// heading", false);
     assertComment(text, list.get(1), "/* one-line */", false);
@@ -146,7 +147,8 @@ class CommentsTest {
     assertComment(text, list.get(3), "/**\n * Doc body.\n\n * More.\n */", true);
     assertComment(
         text, list.get(4), "/// First markdown doc line\n  /// Second markdown doc line", true);
-    assertComment(text, list.get(5), "// trailing", false);
+    assertComment(text, list.get(5), "/** separate */", true);
+    assertComment(text, list.get(6), "// trailing", false);
   }
 
   @Test
@@ -182,8 +184,9 @@ class CommentsTest {
     assertFalse(first.complete());
     assertEquals(Comments.LINE_BUDGET, first.scannedLines());
     assertEquals(Comments.LINE_BUDGET, calls.get());
-    assertEquals(1, first.comments().size());
+    assertEquals(2, first.comments().size());
     assertComment(large, first.comments().get(0), "// early", false);
+    assertComment(large, first.comments().get(1), "/**", true); // goes on in the next step
 
     Comments cur = first;
     int steps = 1;

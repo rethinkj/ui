@@ -42,9 +42,6 @@ public final class Comments {
   // Private resume state for the next scan call when complete is false.
   private final int nextPos;
   private final Object state;
-  private final int openStart;
-  private final int openEnd;
-  private final boolean openDoc;
 
   private Comments(
       String text,
@@ -53,10 +50,7 @@ public final class Comments {
       int scannedLines,
       boolean complete,
       int nextPos,
-      Object state,
-      int openStart,
-      int openEnd,
-      boolean openDoc) {
+      Object state) {
     this.text = text;
     this.language = language;
     this.comments = comments;
@@ -64,12 +58,12 @@ public final class Comments {
     this.complete = complete;
     this.nextPos = nextPos;
     this.state = state;
-    this.openStart = openStart;
-    this.openEnd = openEnd;
-    this.openDoc = openDoc;
   }
 
-  /** The completed comments found so far, in order of appearance. */
+  /**
+   * The comments found so far, in order; until {@link #complete}, the last may go on in lines not
+   * scanned yet.
+   */
   public List<Comment> comments() {
     return comments;
   }
@@ -106,126 +100,29 @@ public final class Comments {
     if (resume && before.complete) {
       return before;
     }
-    Scanner scanner = resume ? new Scanner(before) : new Scanner();
+    List<Comment> found = resume ? new ArrayList<>(before.comments) : new ArrayList<>();
     int pos = resume ? before.nextPos : 0;
     int scanned = resume ? before.scannedLines : 0;
     Object state = resume ? before.state : null;
     for (int step = 0; step < LINE_BUDGET && pos >= 0; step++) {
       int feed = text.indexOf('\n', pos);
-      int lineEnd = feed < 0 ? text.length() : feed;
-      String line = text.substring(pos, lineEnd);
-      scanner.beginLine(pos, line);
-      state = language.comments(line, state, scanner);
-      scanner.endLine(state);
+      String line = text.substring(pos, feed < 0 ? text.length() : feed);
+      int lineStart = pos;
+      state = language.comments(line, state, (from, to, doc, continued) -> {
+        int start = lineStart + Math.clamp(from, 0, line.length());
+        int end = Math.max(start, lineStart + Math.clamp(to, 0, line.length()));
+        Comment last = found.isEmpty() ? null : found.getLast();
+        if (continued && last != null) {
+          found.set(found.size() - 1, new Comment(last.start(), end, last.doc()));
+        } else {
+          found.add(new Comment(start, end, doc));
+        }
+      });
       scanned++;
       pos = feed < 0 ? -1 : feed + 1;
     }
     boolean complete = pos < 0;
-    if (complete) {
-      scanner.finish();
-    }
     return new Comments(
-        text,
-        language,
-        List.copyOf(scanner.found),
-        scanned,
-        complete,
-        pos,
-        complete ? null : state,
-        scanner.openStart,
-        scanner.openEnd,
-        scanner.openDoc);
-  }
-
-  private static final class Scanner implements Language.Out {
-    final List<Comment> found;
-    int openStart;
-    int openEnd;
-    boolean openDoc;
-
-    private int lineStart;
-    private String line;
-    private boolean firstOnLine;
-    private boolean openFromEarlierLine;
-    private int lastTo;
-
-    Scanner() {
-      this.found = new ArrayList<>();
-      this.openStart = -1;
-    }
-
-    Scanner(Comments before) {
-      this.found = new ArrayList<>(before.comments);
-      this.openStart = before.openStart;
-      this.openEnd = before.openEnd;
-      this.openDoc = before.openDoc;
-    }
-
-    void beginLine(int lineStart, String line) {
-      this.lineStart = lineStart;
-      this.line = line;
-      this.firstOnLine = true;
-      this.openFromEarlierLine = openStart >= 0;
-      this.lastTo = -1;
-    }
-
-    @Override
-    public void comment(int from, int to, boolean doc) {
-      int len = line.length();
-      int start = Math.max(0, Math.min(from, len));
-      int end = Math.max(start, Math.min(to, len));
-      if (firstOnLine && openFromEarlierLine && doc == openDoc && isBlank(line, 0, start)) {
-        openEnd = lineStart + end;
-        lastTo = end;
-        firstOnLine = false;
-        return;
-      }
-      if (openStart >= 0) {
-        found.add(new Comment(openStart, openEnd, openDoc));
-        openStart = -1;
-        openFromEarlierLine = false;
-      }
-      if (end > start) {
-        openStart = lineStart + start;
-        openEnd = lineStart + end;
-        openDoc = doc;
-        lastTo = end;
-        firstOnLine = false;
-      }
-    }
-
-    void endLine(Object state) {
-      if (openStart < 0) {
-        return;
-      }
-      if (firstOnLine) {
-        // An open comment from an earlier line stays open across a blank line while state holds.
-        if (state == null || !isBlank(line, 0, line.length())) {
-          flush();
-        }
-      } else if (state == null || !isBlank(line, lastTo, line.length())) {
-        flush();
-      }
-    }
-
-    void finish() {
-      if (openStart >= 0) {
-        flush();
-      }
-    }
-
-    private void flush() {
-      found.add(new Comment(openStart, openEnd, openDoc));
-      openStart = -1;
-    }
-
-    private static boolean isBlank(String text, int from, int to) {
-      for (int i = from; i < to; i++) {
-        if (!Character.isWhitespace(text.charAt(i))) {
-          return false;
-        }
-      }
-      return true;
-    }
+        text, language, List.copyOf(found), scanned, complete, pos, complete ? null : state);
   }
 }

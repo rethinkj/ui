@@ -22,9 +22,9 @@ public interface Language {
    * <p>Called line by line with the state returned for the line before ({@code null} for the first
    * line), reporting each comment's column range within the line to {@code out} and returning the
    * state at the end of the line (compared with {@link Object#equals}, or {@code null} when nothing
-   * goes on to the next line). When a line returns a non-null state, the line's last comment goes
-   * on in the first comment the next line reports (such as a block comment across lines or a run of
-   * {@code ///} lines), and the two pieces form one comment.
+   * goes on to the next line). A comment that {@code out} gets as {@code continued} goes on the
+   * comment found before it, such as the next line of a block comment or of a run of {@code ///}
+   * lines, and the pieces form one comment.
    *
    * @param line the line's string, without its line feed
    * @param state what this method returned for the line before; {@code null} for the first line
@@ -59,8 +59,9 @@ public interface Language {
      * @param to end column in the line, exclusive
      * @param doc {@code true} for a doc comment (such as a {@code /**} block or a run of {@code
      *     ///}), {@code false} for an ordinary comment
+     * @param continued whether this piece goes on the comment found before it, on an earlier line
      */
-    void comment(int from, int to, boolean doc);
+    void comment(int from, int to, boolean doc, boolean continued);
   }
 
   /**
