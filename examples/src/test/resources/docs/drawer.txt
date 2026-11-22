@@ -1,0 +1,14 @@
+# docs:start drawer-script
+size 640 360
+frame
+press role=button label="Edit connection…"
+frame
+advance 0.3
+frame
+snap open               # focus moves to the Name field; scrim covers the window
+key Escape              # onDismiss closes the drawer
+frame
+advance 0.3
+frame
+snap closed
+# docs:end drawer-script

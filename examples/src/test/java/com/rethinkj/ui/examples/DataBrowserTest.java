@@ -76,6 +76,44 @@ class DataBrowserTest {
   }
 
   @Test
+  void inspectOpensANonModalDrawerForTheSelectedOrder(@TempDir Path out) throws IOException {
+    Snaps.assumeText();
+    DataBrowser browser = new DataBrowser();
+    App<DataBrowser> app =
+        new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
+    browser.app = app;
+    Script.run("size 1000 600 scale 2\nframe\n", app, out);
+    String initial = app.tree().dump();
+    assertTrue(line(initial, "#inspect ").contains(" disabled"), "disabled with no selection");
+    assertFalse(browser.inspecting);
+
+    // Select the first row and open the non-modal row inspector.
+    Script.run(
+        "size 1000 600 scale 2\npress #cell-0-1\nframe\npress #inspect\nframe\nadvance 0.25\nframe",
+        app,
+        out);
+    assertTrue(browser.inspecting);
+    String opened = app.tree().dump();
+    assertTrue(opened.contains("\noverlay edge right stretch on 0,0 1000x600\n"), opened);
+    assertTrue(opened.contains("label=\"Order 1\""), opened);
+    assertTrue(
+        opened.contains("role=listitem label=\"customer\" ")
+            && opened.contains("value=\"Ada Lovelace\""),
+        opened);
+
+    // Clicking another row while the non-modal drawer is open updates the drawer in place.
+    Script.run("size 1000 600 scale 2\npress #cell-1-1\nframe\n", app, out);
+    assertTrue(browser.inspecting, "non-modal drawer stays open");
+    String updated = app.tree().dump();
+    assertTrue(updated.contains("label=\"Order 2\""), updated);
+    assertTrue(updated.contains("value=\"Grace Lovelace\""), updated);
+
+    // Escape inside the drawer dismisses it.
+    Script.run("size 1000 600 scale 2\nfocus #close\nkey Escape\nframe\n", app, out);
+    assertFalse(browser.inspecting);
+  }
+
+  @Test
   void theTextColumnsRepeatAfterAPeriod() {
     for (int row = 0; row < DataBrowser.ROWS; row += 99_991) {
       assertEquals(DataBrowser.texts(row % DataBrowser.PERIOD), DataBrowser.texts(row), "" + row);

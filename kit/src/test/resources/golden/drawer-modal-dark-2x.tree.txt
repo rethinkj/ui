@@ -1,0 +1,31 @@
+el 0,0 640x360
+  el 12,12 616x141
+    el 29,29 582x35
+      el 29,29 582x35
+        text role=heading "Connections" 29,29 582x17 level=3
+        text "Primary clusters and replicas" 29,48 582x16
+    el 29,76 582x24
+      el #open role=button label="Open drawer" 29,76 107x24
+        text "Open drawer" 42,80 81x15
+      el #count role=button label="Count" 144,76 63x24
+        text "Count" 157,80 37x15
+    text #note role=textbox label="Note" "" 29,112 200x24
+overlay edge right stretch modal scrim on 0,0 640x360
+  el #drawer role=dialog label="Edit connection" 280,0 360x360
+    el #drawer-content 293,48 341x306
+      el 297,52 327x95
+        el 297,52 327x42
+          el 297,52 327x16
+            text "Name" 297,52 36x16
+          el 297,70 327x24
+            text #name role=textbox label="Name" "prod-eu" 297,70 200x24 focused caret 7
+        el 297,106 327x41
+          el 297,106 327x15
+            text "Host" 297,106 29x15
+          el 297,123 327x24
+            text #host role=textbox label="Host" "db.example.com" 297,123 200x24
+    el 297,16 327x24
+      text role=heading label="Edit connection" "Edit connection" 297,18 121x20 level=2
+      el 426,28 166x0
+      el #close role=button label="Close" 600,16 24x24
+        text label="dismiss" "\u{F368}" 604,20 16x16

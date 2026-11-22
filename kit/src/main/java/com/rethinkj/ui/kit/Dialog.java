@@ -177,27 +177,7 @@ public final class Dialog {
           .findFirst()
           .ifPresent(El::defaultFocus);
     }
-    El head = row().gap(theme.space().m()).align(Style.Align.CENTER).shrink(0);
-    if (options.leading != null) {
-      head.child(options.leading.shrink(0));
-    }
-    head.child(Tooltip.whenShortened(
-        El.text(title)
-            .font(theme.type().dialog().font().get())
-            .fontSize(theme.type().dialog().size())
-            .color(theme.text().primary())
-            .role("heading")
-            .level(2)
-            .label(title)
-            .ellipsis()
-            .minSize(0, 0),
-        title));
-    if (!options.trailing.isEmpty()) {
-      head.child(El.el().grow(1));
-    }
-    for (El e : options.trailing) {
-      head.child(e.shrink(0));
-    }
+    El head = head(theme, title, options.leading, options.trailing);
     El body = col()
         .gap(theme.space().l())
         .minSize(0, 0)
@@ -235,6 +215,32 @@ public final class Dialog {
     // close button in the head after the buttons; drawn at the top all the same.
     dialog.style().direction = Style.Direction.COLUMN_REVERSE;
     return dialog;
+  }
+
+  /** The head of a dialog or a drawer: an optional leading element, the title and trailing ones. */
+  static El head(Theme theme, String title, El leading, List<El> trailing) {
+    El head = row().gap(theme.space().m()).align(Style.Align.CENTER).shrink(0);
+    if (leading != null) {
+      head.child(leading.shrink(0));
+    }
+    head.child(Tooltip.whenShortened(
+        El.text(title)
+            .font(theme.type().dialog().font().get())
+            .fontSize(theme.type().dialog().size())
+            .color(theme.text().primary())
+            .role("heading")
+            .level(2)
+            .label(title)
+            .ellipsis()
+            .minSize(0, 0),
+        title));
+    if (!trailing.isEmpty()) {
+      head.child(El.el().grow(1));
+    }
+    for (El e : trailing) {
+      head.child(e.shrink(0));
+    }
+    return head;
   }
 
   /**

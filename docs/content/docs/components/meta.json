@@ -29,6 +29,7 @@
     "menu-bar",
     "command-palette",
     "dialog",
+    "drawer",
     "popover",
     "tooltip",
     "toast",

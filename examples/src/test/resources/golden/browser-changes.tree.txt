@@ -23,13 +23,16 @@ el 0,0 900x520
       el 9,33 882x40
         text role=heading "orders" 25,45 45x17 level=3
         text "1,000,001 rows" 78,45 91x16
-        el 177,53 82x0
-        el 267,41 280x24
-          text #filter role=textbox label="Filter" "" 267,41 280x24
-          text label="search" "\u{EA7C}" 271,45 16x16
-        el #columns-button role=button label="Columns" 577,41 102x24 expanded=false
-          text label="column_single" "\u{F0116}" 590,45 16x16
-          text "Columns" 610,45 56x16
+        el 177,53 41x0
+        el 226,41 220x24
+          text #filter role=textbox label="Filter" "" 226,41 220x24
+          text label="search" "\u{EA7C}" 230,45 16x16
+        el #columns-button role=button label="Columns" 476,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 489,45 16x16
+          text "Columns" 509,45 56x16
+        el #inspect role=button label="Inspect" 586,41 93x24
+          text label="panel_right" "\u{E8BC}" 599,45 16x16
+          text "Inspect" 619,45 47x16
         el #revert role=button label="Revert" 687,41 85x24
           text label="arrow_undo" "\u{E126}" 700,45 16x16
           text "Revert" 720,45 39x16

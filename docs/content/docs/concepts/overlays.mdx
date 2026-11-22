@@ -5,7 +5,7 @@ description: Display floating menus, tooltips, popovers, and modal dialogs above
 
 Overlays float above all other elements and are not clipped by parent scroll containers. Attach an overlay to its anchor element with [`anchor.overlay(menu)`](/api/com/rethinkj/ui/El.html#overlay(com.rethinkj.ui.El)) — passing `null` closes it (`button.overlay(state.open ? menu : null)`).
 
-Kit components like [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover), and [Toast](/docs/components/toast) use overlays internally. Use this API when building custom floating UI.
+Kit components like [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Drawer](/docs/components/drawer), [Popover](/docs/components/popover), and [Toast](/docs/components/toast) use overlays internally. Use this API when building custom floating UI.
 
 ```java snippet="overlay"
 ```
@@ -23,7 +23,7 @@ Kit components like [Menu](/docs/components/menu), [Tooltip](/docs/components/to
 | `atPoint(x, y)` | Places at window coordinates (for context menus) |
 | `atCaret()` | Places at the anchor text field's cursor (for autocomplete popups) |
 | `centerInWindow()` | Centers in the window (for dialogs) |
-| `atWindowEdge(side, align, gap)` | Places along a window edge (for toasts) |
+| `atWindowEdge(side, align, gap)` | Places along a window edge (for toasts and drawers; `STRETCH` fills the edge less `gap` at both ends) |
 
 Overlays are automatically constrained to fit inside the window (respecting margins and edge gaps). If an anchored overlay does not fit on its preferred side, it flips to the opposite side and shifts into view. It also follows its anchor during scrolling and hides temporarily if the anchor scrolls out of view.
 

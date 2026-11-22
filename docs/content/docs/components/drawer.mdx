@@ -1,0 +1,63 @@
+---
+title: Drawer
+description: Modal or non-modal side sheet anchored to an edge of the window with a title, close button, and scrollable content.
+---
+
+`Drawer.drawer` displays a panel flush against one edge of the window, stretched along the full length of that edge, with a title, a close button, and scrollable content. Use it for detail inspectors and side forms without rebuilding your layout around a [Split](/docs/components/split).
+
+For centered confirmations and short forms, use [Dialog](/docs/components/dialog). For lightweight anchored overlays, use [Popover](/docs/components/popover).
+
+Javadoc: [`Drawer`](/api/com/rethinkj/ui/kit/Drawer.html), [`Drawer.Options`](/api/com/rethinkj/ui/kit/Drawer.Options.html).
+
+<Shot src="examples/docs/drawer/open-{theme}" alt="A modal drawer at the right edge of the window with a title, close button, Name field, and Save button over a dimmed backdrop" />
+
+## Example
+
+```java snippet="drawer"
+```
+
+Attach the drawer to your root element while your state says it is open (`root.overlay(open ? drawer : null)`), and clear that state in `onDismiss`.
+
+| Parameter | Description |
+| --- | --- |
+| `title` | Drawer heading (`role=heading level=2`) and accessibility label; long titles truncate with a tooltip |
+| `content` | Body element (scrolls inside `#drawer-content` when taller or wider than the drawer) |
+| `onDismiss` | Handler called on the close button, on **Escape** inside the drawer, and (when modal) on clicking the scrim |
+| `options` | Optional `Drawer.options()` to pick the edge and modality |
+
+By default, a drawer along the left or right edge takes its width from `theme.size().drawer()` (360 px). Give `content` a pixel width (such as `.w(420)`) to fit the drawer to its content instead. Along the top or bottom edge, the drawer spans the window width and fits `content`'s height.
+
+## Non-modal inspector
+
+Pass `Drawer.options().modal(false)` to keep the main view interactive beside the drawer. There is no scrim, clicks and scrolling outside the drawer pass straight through, and **Escape** closes the drawer when focus is inside it.
+
+<Shot src="examples/docs/drawer-inspector/open-{theme}" alt="A non-modal drawer at the right edge of the window showing order properties with no scrim over the main view" />
+
+```java snippet="drawer-inspector"
+```
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `side(Side)` | `Side.RIGHT` | Window edge the drawer lies against (`RIGHT`, `LEFT`, `TOP`, or `BOTTOM`) |
+| `modal(boolean)` | `true` | Modal over a scrim (`true`), or non-modal leaving the main view usable (`false`) |
+
+## Keyboard and focus
+
+When a drawer opens, focus moves to the first tabbable control in `content`, or to the close button if `content` has none (such as read-only [Properties](/docs/components/properties)). Closing the drawer while focus is inside returns focus to where it was before opening.
+
+| Key | Action |
+| --- | --- |
+| Tab, Shift+Tab | Move through `content` and then the close button (trapped inside when modal) |
+| Escape | Call `onDismiss` (while focus is inside the drawer) |
+
+## In a tree dump
+
+Overlay `edge right stretch` (or the chosen side), with `modal scrim` when modal, key `#drawer`, `role=dialog`, and the title as `label`:
+
+```text snippet="drawer-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/drawer/open.tree.txt" start="overlay"
+```

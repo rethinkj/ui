@@ -1,0 +1,7 @@
+size 640 360
+frame
+press role=button label="Inspect"
+frame
+advance 0.3
+frame
+snap open
