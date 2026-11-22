@@ -1,0 +1,1 @@
+- Added tree rows to `DataGrid` via `DataGrid.Options.tree(Tree.Rows, Tree.Toggle)` and the public `Tree.rows(Model, Predicate)` / `Tree.Rows` API, showing indentation, indent guides, chevrons (`#mark-<row>`), and lazy loading or failed child rows in the first column with Right/Left keyboard navigation.

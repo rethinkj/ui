@@ -99,12 +99,25 @@ import java.util.regex.Pattern;
  * cursor stop clear of both bars too. Like a list of rows, the grid needs a height of its own or
  * room to {@link El#grow}.
  *
+ * <p>With {@link Options#tree}, the grid shows hierarchical data in its first shown column using a
+ * flattened {@link Tree.Rows}: each node gets {@link Tree}'s indentation, indent guides and
+ * chevron mark, while the remaining columns show metrics or attributes as in any grid. Right opens
+ * a closed node or moves to its first child and Left closes an open node or moves to its parent
+ * (always in {@link Mode#ROWS}, and in {@link Mode#CELLS} while the cursor is in the first
+ * column). Loading and failed rows from {@link Tree.Model#children} show {@link Tree}'s spinner or
+ * failure row in the first cell and leave the remaining cells empty without calling column
+ * functions. As in any grid, sorting is the app's: in a tree grid, sort within siblings in the
+ * {@link Tree.Model}. Pass {@link Options#rowKey} with a stable per-node key so the selection
+ * stays on its node when nodes above open or close.
+ *
  * <p>In a tree dump the grid is {@code role=grid}, its header cells {@code role=columnheader}
  * with the title as label, the key {@code column-<index>}, their position among the columns and
  * the sort state, and the title and the type as text inside, the edges that resize them {@code
  * role=separator} with the key {@code resize-<index>}, its rows {@code role=row} with the key
- * {@code row-<index>}, and its cells {@code role=gridcell} with the key {@code
- * cell-<row>-<column>} and their column's position, all counted from 0. An icon is a text
+ * {@code row-<index>} (and with {@link Options#tree}, {@code level}, {@code pos} among siblings
+ * and {@code expanded} for non-leaf nodes, plus {@code #mark-<row>} for each chevron), and its
+ * cells {@code role=gridcell} with the key {@code cell-<row>-<column>} and their column's
+ * position, all counted from 0. An icon is a text
  * element labeled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
  * its text as its label: {@code el #cell-4-3 role=gridcell label="true" ...} over {@code text
  * label="checkmark" ...}. A cell with a {@link Column#detail} says it as its value, {@code
@@ -1399,6 +1412,7 @@ public final class DataGrid {
     int edgeColumn = -1;
     boolean start; // the keys put the cursor on a frozen column: the rest scrolls to its start
     static final long APPEND = Long.MIN_VALUE; // the key of the row to append
+    static final long PENDING = Long.MIN_VALUE + 1; // a loading or failed tree row, never followed
     final GridEdit.State edit = new GridEdit.State();
     final GridFilter.State filter = new GridFilter.State();
     final GridColumns.State columns = new GridColumns.State();
@@ -1893,6 +1907,7 @@ public final class DataGrid {
       java.util.Map<Long, Integer> now = new java.util.HashMap<>(); // where each is now, -1 gone
       builtKeys.values().forEach(k -> now.put(k, -1));
       now.remove(APPEND);
+      now.remove(PENDING);
       for (int r = 0, left = now.size(); r < count && left > 0; r++) { // one pass over the rows
         Integer was = now.get(key.applyAsLong(r));
         if (was != null && was < 0) {
@@ -1928,6 +1943,9 @@ public final class DataGrid {
 
     /** Remembers a row's key as layout builds it, bounding the cache to rows near the viewport. */
     void recordKey(int row, long key) {
+      if (key == PENDING) {
+        return;
+      }
       if (builtKeys.size() > 512) {
         builtKeys.keySet().removeIf(r -> Math.abs(r - row) > 256);
       }
@@ -1953,7 +1971,7 @@ public final class DataGrid {
       java.util.Map<Long, Integer> found = new java.util.HashMap<>();
       for (int i = 0; i < n; i++) {
         to[i] = -1;
-        if (keptRows[i] >= 0 && keptKeys[i] != APPEND) {
+        if (keptRows[i] >= 0 && keptKeys[i] != APPEND && keptKeys[i] != PENDING) {
           found.put(keptKeys[i], -1);
         }
       }
@@ -1972,7 +1990,8 @@ public final class DataGrid {
         if (keptRows[i] < 0) {
           continue;
         }
-        int p = keptKeys[i] == APPEND ? count : found.get(keptKeys[i]);
+        int p =
+            keptKeys[i] == APPEND ? count : keptKeys[i] == PENDING ? -1 : found.get(keptKeys[i]);
         to[i] = p >= 0 && p < rows ? p : -1;
       }
       return to;
@@ -1996,7 +2015,10 @@ public final class DataGrid {
         int top = scrollRow >= 0
             ? Math.min(scrollRow, rows - 1)
             : (int) Math.clamp((long) Math.floor(rowsScroll.y() / rowHeight), 0, rows - 1);
-        builtKeys.put(top, keyAt(key, count, top));
+        long topKey = keyAt(key, count, top);
+        if (topKey != PENDING) {
+          builtKeys.put(top, topKey);
+        }
       }
       List<Object> now = snapshot();
       if (now.equals(keptAt)) {
@@ -2126,6 +2148,8 @@ public final class DataGrid {
     Fit fit;
     IntFunction<Total> totals;
     El empty;
+    Tree.Rows<?> tree;
+    RowToggle onToggle;
     // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
     // none, and the number of rows there are now, which a handler may have changed since the build.
     IntToLongFunction rowKey;
@@ -2420,6 +2444,49 @@ public final class DataGrid {
       return this;
     }
 
+    @FunctionalInterface
+    interface RowToggle {
+      void toggle(int row, boolean open);
+    }
+
+    /**
+     * Shows a tree in the first shown column from {@code rows} ({@link Tree#rows}): each row's
+     * first cell gets {@link Tree}'s indentation (capped at half that column's width), indent
+     * guides and chevron mark ({@code #mark-<row>}, empty slot for leaves) before its icon, text
+     * and detail, while all other columns behave as in any grid. Pass {@code rows.count()} as the
+     * grid's {@code rowCount} ({@link #dataGrid} throws {@link IllegalArgumentException} on a
+     * mismatch) and read {@code rows.node(row)} in column functions.
+     *
+     * <p>Pressing a mark moves the cursor to its row and toggles it through {@code onToggle}.
+     * While the grid has focus (always in {@link Mode#ROWS}, and in {@link Mode#CELLS} while the
+     * cursor is in the first column), Right opens a closed node or moves to its first child, and
+     * Left closes an open node or moves to its parent row. Rows standing for lazily loading or
+     * failed children ({@link Tree.Children.Loading}, {@link Tree.Children.Failed}) show {@link
+     * Tree}'s spinner or failure content in the first cell and empty cells elsewhere without
+     * calling column functions, and copy writes empty fields for them.
+     *
+     * <p>The grid sorts nothing itself: in a tree grid, sort within siblings in the {@link
+     * Tree.Model} so roots and each node's children follow {@link #sort}. Because {@link
+     * Selection} is row-index based, pass {@link #rowKey} with a stable per-node key so the
+     * selection stays on its node when nodes above open or close.
+     *
+     * @param rows the flattened tree rows for this build
+     * @param onToggle told when the user opens or closes a node; null leaves that to the app
+     */
+    public <N> Options tree(Tree.Rows<N> rows, Tree.Toggle<? super N> onToggle) {
+      Objects.requireNonNull(rows, "rows");
+      this.tree = rows;
+      this.onToggle = onToggle == null
+          ? null
+          : (row, open) -> {
+            N node = rows.node(row);
+            if (node != null) {
+              onToggle.toggle(node, open);
+            }
+          };
+      return this;
+    }
+
     /**
      * Shows {@code view} centered under the header when the grid shows no rows at all, usually an
      * {@link EmptyState} with an action such as clearing the filters. The header, its column menu,
@@ -2704,6 +2771,11 @@ public final class DataGrid {
     int selectionFill() {
       return focused[0] ? g.selected() : g.selectedInactive();
     }
+
+    /** Whether {@code row} stands for children loading or failed in a tree grid. */
+    boolean pending(int row) {
+      return o.tree != null && row >= 0 && row < rowCount && o.tree.pending(row) != null;
+    }
   }
 
   /**
@@ -2712,6 +2784,10 @@ public final class DataGrid {
    */
   public static El dataGrid(List<Column> columns, int rowCount, Options options) {
     Theme theme = Theme.CURRENT.get();
+    if (options.tree != null && options.tree.count() != rowCount) {
+      throw new IllegalArgumentException(
+          "rowCount (" + rowCount + ") must match tree rows (" + options.tree.count() + ")");
+    }
     if (options.table != null) { // with all the columns, before a layout counts them its way
       options.table.accept(columns, rowCount);
       options.table = null;
@@ -2726,6 +2802,11 @@ public final class DataGrid {
     if (options.layout != null) {
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
+    }
+    if (options.tree != null && options.rowKey != null) {
+      Tree.Rows<?> tree = options.tree;
+      IntToLongFunction raw = options.rowKey;
+      options.rowKey = r -> tree.pending(r) != null ? Selection.PENDING : raw.applyAsLong(r);
     }
     if (options.rowKey != null && options.rowPlace == null) {
       IntToLongFunction key = options.rowKey;
@@ -2758,8 +2839,11 @@ public final class DataGrid {
     }
     if (sel != null
         && sel.isEditing()
-        && (!b.edits || sel.edit.row >= b.rows || sel.edit.column >= columns.size())) {
-      sel.cancelEdit(); // the rows or columns it was on are gone
+        && (!b.edits
+            || sel.edit.row >= b.rows
+            || sel.edit.column >= columns.size()
+            || b.pending(sel.edit.row))) {
+      sel.cancelEdit(); // the rows or columns it was on are gone, or its row is loading
     }
     if (b.edits) {
       sel.edit.handOn = () -> GridEdit.commit(b, GridEdit.Move.NONE);
@@ -3230,7 +3314,7 @@ public final class DataGrid {
     fit.last = rows[1];
     boolean any = false;
     for (int i = rows[0]; !any && i <= Math.min(rows[1], b.rowCount - 1); i++) {
-      any = b.o.loaded == null || b.o.loaded.test(i);
+      any = !b.pending(i) && (b.o.loaded == null || b.o.loaded.test(i));
     }
     if (!any) {
       return; // the first page is on its way
@@ -3288,8 +3372,10 @@ public final class DataGrid {
     java.util.Set<String> seen = new java.util.HashSet<>(); // cells repeat: shape each once
     // Once the rounded width reaches maxColumn, no row can widen the column.
     float most = b.g.maxColumn() - 2 * theme.space().s() - theme.size().stroke();
+    boolean treeColumn = c == 0 && b.o.tree != null;
+    int maxDepth = treeColumn ? Tree.deepest(theme, b.g.maxColumn()) : 0;
     for (int i = first; i <= last && Math.ceil(widest) < most; i++) {
-      if (i >= b.rowCount || b.o.loaded != null && !b.o.loaded.test(i)) {
+      if (i >= b.rowCount || b.pending(i) || b.o.loaded != null && !b.o.loaded.test(i)) {
         continue;
       }
       String value = column.cell().apply(i);
@@ -3297,13 +3383,18 @@ public final class DataGrid {
       String detail = column.detail() == null ? null : column.detail().apply(i);
       float width = 0;
       int parts = 0;
+      if (treeColumn) {
+        int shown = Math.min(b.o.tree.depth(i), maxDepth);
+        width += shown * theme.space().l() + theme.space().xl();
+        parts++;
+      }
       if (icon != null) {
         width += theme.size().icon();
         parts++;
       }
       if (icon == null || !icon.alone()) {
         String shown = value == null ? "NULL" : oneLine(value);
-        if (icon == null && detail == null && !seen.add(shown)) {
+        if (!treeColumn && icon == null && detail == null && !seen.add(shown)) {
           continue; // a text alone that was measured
         }
         width += width(style, shown, scale);
@@ -3404,10 +3495,12 @@ public final class DataGrid {
       sel.recordKey(i, Selection.keyAt(b.o.rowKey, b.rowCount, i));
     }
     boolean append = i >= b.rowCount; // the empty row after the last, to add one
-    boolean loaded = append || b.o.loaded == null || b.o.loaded.test(i);
+    boolean pending = b.pending(i);
+    boolean loaded = append || pending || b.o.loaded == null || b.o.loaded.test(i);
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
     boolean showActions = sel != null && (rowSelected || b.cells && sel.hasSelectedRow(i));
-    Status status = append || b.o.rowStatus == null ? Status.UNCHANGED : b.o.rowStatus.apply(i);
+    Status status =
+        append || pending || b.o.rowStatus == null ? Status.UNCHANGED : b.o.rowStatus.apply(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
     if (!rowSelected && (status == Status.NEW || status == Status.DELETED)) {
       fill = over(fill, status == Status.NEW ? g.added() : g.deleted()); // the selection wins
@@ -3421,6 +3514,18 @@ public final class DataGrid {
         .selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
         .border(0, 0, stroke, 0, theme.border().subtle());
+    if (b.o.tree != null && !append) {
+      Tree.Rows<?> tree = b.o.tree;
+      r.level(tree.depth(i) + 1);
+      if (tree.pending(i) instanceof Tree.Children.Failed<?>) {
+        r.position(1, 1);
+      } else if (!pending) {
+        r.position(tree.positions[i], tree.sizes[i]);
+        if (!tree.isLeaf(i)) {
+          r.expanded(tree.isOpen(i));
+        }
+      }
+    }
     if (status != Status.UNCHANGED) {
       r.value(statusName(status));
     }
@@ -3521,7 +3626,9 @@ public final class DataGrid {
         .role("gridcell")
         .position(c + 1, b.columns.size());
     boolean append = i >= b.rowCount;
-    Status status = append || b.o.cellStatus == null || row == Status.DELETED
+    boolean pending = b.pending(i);
+    boolean treeCell = c == 0 && b.o.tree != null && !append;
+    Status status = append || pending || b.o.cellStatus == null || row == Status.DELETED
         ? Status.UNCHANGED
         : b.o.cellStatus.status(i, c);
     if (row == Status.NEW && status != Status.ERROR) {
@@ -3529,6 +3636,7 @@ public final class DataGrid {
     }
     boolean selected = b.cells && sel.contains(i, c);
     boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
+    float border = 0;
     if (b.cells) {
       boolean cursor = sel.row() == i && sel.column() == c;
       box.selected(selected).current(cursor);
@@ -3536,10 +3644,10 @@ public final class DataGrid {
         box.fill(b.selectionFill());
       }
       if (ring) {
-        float w = b.g.cursorWidth();
-        box.border(w, b.g.cursor())
+        border = b.g.cursorWidth();
+        box.border(border, b.g.cursor())
             .radius(theme.radius().small())
-            .padding(0, Math.max(theme.space().s() - w, 0));
+            .padding(0, Math.max(theme.space().s() - border, 0));
       }
     }
     if (status == Status.CHANGED || status == Status.ERROR) {
@@ -3550,10 +3658,10 @@ public final class DataGrid {
       if (status == Status.ERROR) {
         box.invalid(true);
         if (!ring) { // a line of the danger color inside the cell, where the cursor's would be
-          float w = theme.size().stroke();
-          box.border(w, theme.status().danger())
+          border = theme.size().stroke();
+          box.border(border, theme.status().danger())
               .radius(theme.radius().small())
-              .padding(0, Math.max(theme.space().s() - w, 0));
+              .padding(0, Math.max(theme.space().s() - border, 0));
         }
       }
     }
@@ -3562,38 +3670,92 @@ public final class DataGrid {
         && sel.edit.refusedRow == i
         && sel.edit.refusedColumn == c) {
       // A switch that was refused: the edge and the message of a refused editor.
-      float w = b.g.cursorWidth();
+      border = b.g.cursorWidth();
       box.invalid(true)
-          .border(w, theme.status().danger())
+          .border(border, theme.status().danger())
           .radius(theme.radius().small())
-          .padding(0, Math.max(theme.space().s() - w, 0))
+          .padding(0, Math.max(theme.space().s() - border, 0))
           .overlay(GridEdit.alert(theme, sel.edit.refused)
               .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
-    String value = loaded && !append ? column.cell().apply(i) : null;
-    El view = loaded && !append && column.view() != null ? column.view().apply(i) : null;
-    CellIcon icon = view == null && loaded && !append && column.cellIcon() != null
+    float pad = theme.space().s();
+    float treeBefore = 0;
+    if (treeCell) {
+      Tree.Rows<?> tree = b.o.tree;
+      float rowHeight = b.g.rowHeight() - theme.size().stroke();
+      float cellWidth = Math.max(column.width() - theme.size().stroke(), 0);
+      float indent = theme.space().l();
+      float mark = theme.space().xl();
+      int shown = Math.min(tree.depth(i), Tree.deepest(theme, cellWidth));
+      float edge = Math.max(pad - border, 0);
+      box.padding(0, edge, 0, edge + shown * indent).gap(pad).justify(Style.Content.START);
+      if (shown > 0) {
+        box.child(Tree.guides(theme, shown, edge, mark, indent, rowHeight));
+      }
+      if (pending) {
+        box.child(el().w(mark).shrink(0));
+        Tree.Children<?> children = tree.pending(i);
+        if (children instanceof Tree.Children.Failed<?> failure) {
+          Tree.failed(theme, box, failure, rowHeight, 0);
+          if (failure.action() != null && failure.onAction() != null) {
+            // The action takes its own pointer down: selecting the cell could scroll it away.
+            box.children().getLast().onPointerDown((clicks, modifiers) -> {});
+          }
+        } else {
+          Tree.loading(theme, box, (Tree.Children.Loading<?>) children, rowHeight);
+        }
+      } else {
+        boolean leaf = tree.isLeaf(i);
+        boolean open = tree.isOpen(i);
+        Runnable toggle = leaf || b.o.onToggle == null
+            ? null
+            : () -> {
+              if (sel != null && sel.isEditing()) {
+                return;
+              }
+              if (sel != null) {
+                change(b, () -> sel.select(i, 0, false));
+              }
+              b.o.onToggle.toggle(i, !open);
+            };
+        El handle = Tree.handle(theme, leaf, open, Integer.toString(i), rowHeight, toggle);
+        if (toggle != null) {
+          handle.onPointerDown((clicks, modifiers) -> {
+            if (sel != null) {
+              sel.edit.refused = null;
+              sel.pressedCell = false;
+            }
+          });
+        }
+        box.child(handle);
+        treeBefore = shown * indent + mark + pad;
+      }
+    }
+    String value = loaded && !append && !pending ? column.cell().apply(i) : null;
+    El view =
+        loaded && !append && !pending && column.view() != null ? column.view().apply(i) : null;
+    CellIcon icon = view == null && loaded && !append && !pending && column.cellIcon() != null
         ? column.cellIcon().apply(i)
         : null;
-    String detail = view == null && loaded && !append && column.detail() != null
+    String detail = view == null && loaded && !append && !pending && column.detail() != null
         ? column.detail().apply(i)
         : null;
     if (detail != null && status != Status.CHANGED && status != Status.ERROR) {
       box.value(detail); // a change says itself there, and the detail's text alone says it
     }
     boolean alone = icon != null && icon.alone();
-    boolean right = column.align() == Align.RIGHT;
-    float pad = theme.space().s();
-    // The room of the value and the detail: the cell's less its padding and an icon with its gap.
+    boolean right = !treeCell && column.align() == Align.RIGHT;
+    // The room of the value and the detail: the cell's less its padding, tree chrome and an icon.
     float room = column.width()
         - theme.size().stroke()
         - 2 * pad
+        - treeBefore
         - (icon == null ? 0 : theme.size().icon() + pad);
     El valueText = null;
     float detailWidth = 0; // the detail's with its gap, 0 where it gives way
     if (!loaded) {
       box.child(text(theme, false, Text.ELLIPSIS, theme.text().muted()));
-    } else if (!append) {
+    } else if (!append && !pending) {
       if (view != null) {
         box.label(value == null ? "NULL" : value); // what the view stands for, in a dump
         shieldControls(view, sel);
@@ -3633,7 +3795,7 @@ public final class DataGrid {
           valueText = text;
           box.child(text);
           if (row == Status.DELETED) { // struck through, a line as the text is wide
-            float before = icon == null ? 0 : theme.size().icon() + pad;
+            float before = treeBefore + (icon == null ? 0 : theme.size().icon() + pad);
             float width = Math.min(natural(text), room - detailWidth);
             float x = right ? column.width() - theme.size().stroke() - pad - width : pad + before;
             box.child(
@@ -3692,7 +3854,7 @@ public final class DataGrid {
     String told = icon == null ? null : icon.tooltip();
     // What is wrong first, then what the icon says, then what the column says once it is due.
     String own = lines(error, told);
-    IntFunction<String> tooltips = loaded && !append ? column.cellTooltip() : null;
+    IntFunction<String> tooltips = loaded && !append && !pending ? column.cellTooltip() : null;
     if (view == null && (value != null || alone || detail != null)
         || own != null
         || tooltips != null) {
@@ -3792,7 +3954,7 @@ public final class DataGrid {
     if (clicks == 2 && modifiers == 0) {
       if (!rows && b.edits && GridEdit.editable(b, row, column)) {
         GridEdit.start(b, row, column, null, false);
-      } else if (!rows && b.o.onEdit != null && row < b.rowCount) {
+      } else if (!rows && b.o.onEdit != null && row < b.rowCount && !b.pending(row)) {
         b.o.onEdit.accept(row, column);
       } else if (opens(b, row)) {
         b.o.onActivate.accept(row);
@@ -3805,6 +3967,7 @@ public final class DataGrid {
     return b.o.onActivate != null
         && row >= 0
         && row < b.rowCount
+        && !b.pending(row)
         && (b.o.loaded == null || b.o.loaded.test(row));
   }
 
@@ -3912,7 +4075,8 @@ public final class DataGrid {
         && (name.equals("Enter") || name.equals("F2"))
         && b.o.onEdit != null
         && sel.row() >= 0
-        && sel.row() < b.rowCount) {
+        && sel.row() < b.rowCount
+        && !b.pending(sel.row())) {
       b.o.onEdit.accept(sel.row(), Math.clamp(sel.column(), 0, n - 1));
       return true;
     }
@@ -3940,6 +4104,36 @@ public final class DataGrid {
       case "PageUp" -> row -= has ? page : 0;
       case "PageDown" -> row += has ? page : 0;
       case "ArrowLeft", "ArrowRight" -> {
+        if (mods == 0 && b.o.tree != null && has && row < b.rowCount && (!b.cells || column == 0)) {
+          Tree.Rows<?> tree = b.o.tree;
+          boolean pending = tree.pending(row) != null;
+          boolean leaf = !pending && tree.isLeaf(row);
+          boolean open = !pending && tree.isOpen(row);
+          if (name.equals("ArrowRight")) {
+            if (!pending && !leaf && !open && b.o.onToggle != null) {
+              b.o.onToggle.toggle(row, true);
+              return true;
+            }
+            if (!pending
+                && open
+                && row + 1 < b.rowCount
+                && tree.depth(row + 1) > tree.depth(row)
+                && tree.node(row + 1) != null) {
+              row++;
+              break;
+            }
+          } else {
+            if (!pending && open && b.o.onToggle != null) {
+              b.o.onToggle.toggle(row, false);
+              return true;
+            }
+            int parent = tree.parentRow(row);
+            if (parent != row) {
+              row = parent;
+              break;
+            }
+          }
+        }
         if (!b.cells) {
           return false;
         }
@@ -4054,7 +4248,7 @@ public final class DataGrid {
     if (!missing && b.o.loaded != null) {
       for (int[] span : rowSpans(ranges)) {
         for (int r = span[0]; r <= span[1] && !missing; r++) {
-          missing = !b.o.loaded.test(r);
+          missing = !b.pending(r) && !b.o.loaded.test(r);
         }
       }
     }
@@ -4064,7 +4258,8 @@ public final class DataGrid {
       }
       return;
     }
-    b.o.clipboard.write(copyText(b.columns, ranges, headers, b.o.nullText));
+    b.o.clipboard.write(
+        copyText(b.columns, ranges, headers, b.o.nullText, b.o.tree == null ? null : b::pending));
   }
 
   /**
@@ -4078,6 +4273,15 @@ public final class DataGrid {
    */
   public static String copyText(
       List<Column> columns, List<Range> ranges, boolean headers, String nullText) {
+    return copyText(columns, ranges, headers, nullText, null);
+  }
+
+  private static String copyText(
+      List<Column> columns,
+      List<Range> ranges,
+      boolean headers,
+      String nullText,
+      IntPredicate skip) {
     BitSet shown = shownColumns(ranges, columns.size());
     StringBuilder out = new StringBuilder();
     if (headers) {
@@ -4100,7 +4304,7 @@ public final class DataGrid {
           for (Range range : ranges) {
             selected |= range.contains(r, c);
           }
-          if (selected) {
+          if (selected && (skip == null || !skip.test(r))) {
             value = columns.get(c).cell().apply(r);
             value = value == null ? nullText : value;
           }

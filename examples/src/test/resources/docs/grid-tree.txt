@@ -1,0 +1,5 @@
+size 520 280
+frame
+press #cell-2-0
+frame
+snap view

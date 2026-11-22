@@ -10,7 +10,6 @@ import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
@@ -43,10 +42,11 @@ import java.util.function.Predicate;
  *     .key("schema").label("Schema").grow(1);
  * }</pre>
  *
- * <p>Each rebuild of the view walks the open nodes from the roots down to number the rows, and the
- * rows are a virtual list ({@link El#rows}): only those in view and a few more exist as elements,
- * and the model is asked for the label and icon of those alone; typing asks for the labels of
- * all the nodes shown. A press on a row selects it; a double press also opens or closes it, unless
+ * <p>Each rebuild of the view walks the open nodes from the roots down to number the rows ({@link
+ * #rows}, also used by {@link DataGrid.Options#tree}), and the rows are a virtual list ({@link
+ * El#rows}): only those in view and a few more exist as elements, and the model is asked for the
+ * label and icon of those alone; typing asks for the labels of all the nodes shown. A press on a
+ * row selects it; a double press also opens or closes it, unless
  * {@link Options#toggleOnDoublePress} says otherwise for the node, and activates it. A press on a
  * row's mark selects it and opens or closes it. A secondary press on a row selects it and then
  * runs the tree's own {@link El#onSecondaryPress} handler, such as the one {@link
@@ -393,6 +393,15 @@ public final class Tree {
 
   private Tree() {}
 
+  /**
+   * Flattens {@code model}'s open nodes into the rows shown, from the roots down, for a {@link
+   * DataGrid} with tree rows ({@link DataGrid.Options#tree}).
+   */
+  public static <N> Rows<N> rows(Model<N> model, Predicate<? super N> isOpen) {
+    return new Rows<>(
+        Objects.requireNonNull(model, "model"), Objects.requireNonNull(isOpen, "isOpen"), null);
+  }
+
   /** The nodes of {@code model} as {@code options} say. */
   public static <N> El tree(Model<N> model, Options<N> options) {
     Theme theme = Theme.CURRENT.get();
@@ -438,40 +447,37 @@ public final class Tree {
       if (rows.nodes[i] instanceof Pending pending) { // the children of the row's parent
         r.key("row-" + i).child(el().w(mark).shrink(0));
         if (pending.children() instanceof Children.Failed<?> failure) {
-          return failed(theme, r, failure, depth + 1, height);
+          float clear = Math.max(0, theme.scrollbars().strip() - theme.space().s());
+          r.role("treeitem").level(depth + 1).position(1, 1);
+          return failed(theme, r, failure, height, clear);
         }
-        String text = pending.children() == LOADING
-            ? Texts.CURRENT.get().loading()
-            : ((Children.Loading<?>) pending.children()).text();
-        El loading = Label.label(Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
-        r.role("status").label(text).children(Progress.spinner(), loading);
-        return whole(theme, r, loading, null, text, height);
+        r.role("status");
+        return loading(theme, r, (Children.Loading<?>) pending.children(), height);
       }
       N node = rows.node(i);
       boolean grabbed = held && node.equals(dragging.node);
       String key = model.key(node);
       String id = key == null ? Integer.toString(i) : key;
-      boolean leaf = model.isLeaf(node);
-      boolean open = !leaf && isOpen.test(node);
+      boolean leaf = rows.isLeaf(i);
+      boolean open = rows.isOpen(i);
       boolean isSelected = i == rows.selected;
       Runnable select = () -> {
         if (onSelect != null && !isSelected) {
           onSelect.accept(node);
         }
       };
-      El handle = el().size(mark, height).shrink(0).center(); // the whole height takes presses
-      if (!leaf) {
-        El chevron = Icon.icon(open ? OPEN : CLOSED, Icon.Variant.MUTED);
-        handle.key("mark-" + id).child(chevron);
-        if (onToggle != null) {
-          handle
-              .onPress(() -> {
+      El handle = handle(
+          theme,
+          leaf,
+          open,
+          id,
+          height,
+          onToggle == null
+              ? null
+              : () -> {
                 select.run();
                 onToggle.toggle(node, !open);
-              })
-              .whenHovered(e -> chevron.color(theme.text().primary()));
-        }
-      }
+              });
       String label = model.label(node);
       r.key("row-" + id)
           .role("treeitem")
@@ -788,7 +794,31 @@ public final class Tree {
    * rows stay at that indent, so that their marks and names stay in view.
    */
   private static int deepest(Theme theme, El tree) {
-    return (int) (tree.rowWidth() / 2 / theme.space().l());
+    return deepest(theme, tree.rowWidth());
+  }
+
+  /** The most levels a row is indented by for a box of {@code width}. */
+  static int deepest(Theme theme, float width) {
+    return Math.max(0, (int) (width / 2 / theme.space().l()));
+  }
+
+  /**
+   * The chevron slot of a row: {@link #OPEN} or {@link #CLOSED} in muted text (brightening to
+   * primary under the pointer) with key {@code mark-<id>} for a non-leaf node, or an empty
+   * mark-wide slot for a leaf.
+   */
+  static El handle(
+      Theme theme, boolean leaf, boolean open, String id, float height, Runnable onToggle) {
+    El handle =
+        el().size(theme.space().xl(), height).shrink(0).center(); // the whole height takes presses
+    if (!leaf) {
+      El chevron = Icon.icon(open ? OPEN : CLOSED, Icon.Variant.MUTED);
+      handle.key("mark-" + id).child(chevron);
+      if (onToggle != null) {
+        handle.onPress(onToggle).whenHovered(e -> chevron.color(theme.text().primary()));
+      }
+    }
+    return handle;
   }
 
   /**
@@ -796,14 +826,19 @@ public final class Tree {
    * whole height of the row. One element at the first, whose sharp shadows are the others, so
    * that a deep row has one more element in a dump, not one per level.
    */
-  private static El guides(Theme theme, int depth, float mark, float indent, float height) {
+  static El guides(Theme theme, int depth, float mark, float indent, float height) {
+    return guides(theme, depth, theme.space().s(), mark, indent, height);
+  }
+
+  /** {@link #guides} starting at {@code start} from the container's padding box left edge. */
+  static El guides(Theme theme, int depth, float start, float mark, float indent, float height) {
     float stroke = theme.size().stroke();
     int color = theme.border().divider();
     List<Shadow> more = new ArrayList<>(depth - 1);
     for (int level = 1; level < depth; level++) {
       more.add(Theme.lineCopy(level * indent, color));
     }
-    return el().absolute(theme.space().s() + (mark - stroke) / 2, 0)
+    return el().absolute(start + (mark - stroke) / 2, 0)
         .size(stroke, height)
         .fill(color)
         .shadow(more);
@@ -846,7 +881,7 @@ public final class Tree {
    * @param more the detail after the name, or null for none
    * @return the row
    */
-  private static El whole(Theme theme, El row, El name, El more, String text, float height) {
+  static El whole(Theme theme, El row, El name, El more, String text, float height) {
     return Tooltip.whenHovered(
         theme,
         row,
@@ -856,35 +891,37 @@ public final class Tree {
             : null);
   }
 
+  /** Fills {@code container} with a spinner, the loading text, and its tooltip when shortened. */
+  static El loading(Theme theme, El container, Children.Loading<?> loading, float height) {
+    String text = loading == LOADING ? Texts.CURRENT.get().loading() : loading.text();
+    El label = Label.label(Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
+    container.label(text).children(Progress.spinner(), label);
+    return whole(theme, container, label, null, text, height);
+  }
+
   /**
-   * The row of a failure: an icon in the danger color, the message, which ends in an ellipsis
-   * where the row is narrow, and the action at the end. It is a tree item that is {@code invalid}
-   * with the message as its label and error, at the level of the children it stands for and the
-   * only one there. The action is a quiet button in the link color, as high as the row less a
-   * gap and clear of the scrollbar, which keeps its width and is a stop for Tab of its own after
-   * the tree, since the row is not a node the selection can be on; Enter and Space run it, as a
-   * press does, and a press leaves the focus where it is.
+   * The content of a failure row: an icon in the danger color, the message, which ends in an
+   * ellipsis where the box is narrow, and the action at the end. It marks {@code container} {@code
+   * invalid} with the message as its label and error. The action is a quiet button in the link
+   * color, as high as the row less a gap and clear of {@code clear} on the right, which keeps its
+   * width and is a stop for Tab of its own, since the row is not a node the selection can be on;
+   * Enter and Space run it, as a press does, and a press leaves the focus where it is.
    */
-  private static El failed(
-      Theme theme, El row, Children.Failed<?> failure, int level, float height) {
+  static El failed(
+      Theme theme, El container, Children.Failed<?> failure, float height, float clear) {
     El text = Label.label(failure.text()).ellipsis().minSize(0, 0).grow(1);
-    row.role("treeitem")
+    container
         .label(failure.text())
         .invalid(true)
         .errorMessage(failure.text())
-        .level(level)
-        .position(1, 1)
         .children(Icon.icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
-    whole(theme, row, text, null, failure.text(), height);
+    whole(theme, container, text, null, failure.text(), height);
     Runnable run = failure.onAction();
     if (failure.action() == null || run == null) {
-      return row;
+      return container;
     }
-    // Clear of the scrollbar, which lies over the end of the rows: the only row with a part there.
-    Scrollbars bars = theme.scrollbars();
-    float clear = Math.max(0, bars.strip() - theme.space().s());
     // No motion: it would fade in as the row turns from loading to failed, untouchable meanwhile.
-    return row.child(row()
+    return container.child(row()
         .role("button")
         .label(failure.action())
         .h(height - theme.space().xs())
@@ -980,13 +1017,21 @@ public final class Tree {
   }
 
   /**
-   * The rows of the tree as one rebuild of the view sees them: the nodes shown, in order, with
-   * their depths and their positions among their siblings, from the roots down through the open
-   * nodes. The row that stands for children not known or not readable holds a {@link Pending}.
+   * The rows of a tree as one rebuild of the view sees them: the nodes shown, in order, with their
+   * depths and their positions among their siblings, from the roots down through the open nodes.
+   * Made with {@link Tree#rows} for a {@link DataGrid} with tree rows ({@link
+   * DataGrid.Options#tree}); a row that stands for children not known or not readable holds a
+   * {@link Pending} and has a {@code null} {@link #node}.
+   *
+   * @param <N> the app's type of node
    */
-  private static final class Rows<N> {
+  public static final class Rows<N> {
+    private static final byte LEAF = 1;
+    private static final byte OPEN = 2;
+
     private Object[] nodes = new Object[64];
     private int[] depths = new int[64];
+    private byte[] flags = new byte[64];
     int[] positions = new int[64]; // from 1
     int[] sizes = new int[64];
     int count;
@@ -1003,39 +1048,68 @@ public final class Tree {
         if (this.selected < 0 && selected != null && selected.equals(node)) {
           this.selected = count;
         }
-        put(node, depth, ++position, children.size());
-        if (!model.isLeaf(node) && isOpen.test(node)) {
+        boolean leaf = model.isLeaf(node);
+        boolean open = !leaf && isOpen.test(node);
+        byte flag = (byte) ((leaf ? LEAF : 0) | (open ? OPEN : 0));
+        put(node, depth, ++position, children.size(), flag);
+        if (open) {
           Children<N> below = Objects.requireNonNull(model.children(node), "children");
           if (below instanceof Children.Ready<N> ready) {
             add(model, isOpen, ready.nodes(), depth + 1, selected);
           } else {
-            put(new Pending(below), depth + 1, 0, 0); // the list gives its row a position
+            put(new Pending(below), depth + 1, 0, 0, (byte) 0); // the list gives its row a position
           }
         }
       }
     }
 
-    private void put(Object node, int depth, int position, int size) {
+    private void put(Object node, int depth, int position, int size, byte flag) {
       if (count == nodes.length) {
         nodes = Arrays.copyOf(nodes, count * 2);
         depths = Arrays.copyOf(depths, count * 2);
+        flags = Arrays.copyOf(flags, count * 2);
         positions = Arrays.copyOf(positions, count * 2);
         sizes = Arrays.copyOf(sizes, count * 2);
       }
       nodes[count] = node;
+      flags[count] = flag;
       positions[count] = position;
       sizes[count] = size;
       depths[count++] = depth;
     }
 
-    /** The node of the row, or null for a pending row. */
+    /** The number of rows shown, including rows that stand for children loading or failed. */
+    public int count() {
+      return count;
+    }
+
+    /**
+     * The node of {@code row}, or {@code null} for a row that stands for children loading or
+     * failed.
+     */
     @SuppressWarnings("unchecked")
-    N node(int row) {
+    public N node(int row) {
+      Objects.checkIndex(row, count);
       return nodes[row] instanceof Pending ? null : (N) nodes[row];
     }
 
-    int depth(int row) {
+    /** The nesting depth of {@code row}, counted from 0 for the roots. */
+    public int depth(int row) {
+      Objects.checkIndex(row, count);
       return depths[row];
+    }
+
+    boolean isLeaf(int row) {
+      return (flags[row] & LEAF) != 0;
+    }
+
+    boolean isOpen(int row) {
+      return (flags[row] & OPEN) != 0;
+    }
+
+    @SuppressWarnings("unchecked") // a pending row holds what the model said of the node's children
+    Children<N> pending(int row) {
+      return nodes[row] instanceof Pending pending ? (Children<N>) pending.children() : null;
     }
 
     /** The row after the node's in its row and the rows of its descendants shown. */

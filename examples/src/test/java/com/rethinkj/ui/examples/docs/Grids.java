@@ -72,6 +72,9 @@ final class Grids {
   GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
   int nextId = 1020; // the id the next new order gets
   final Set<String> open = new HashSet<>(List.of("shop", "public"));
+  final Set<Long> schemaOpen = new HashSet<>(List.of(1L, 10L));
+  final DataGrid.Selection schemaSelection = new DataGrid.Selection(DataGrid.Mode.ROWS);
+  List<DataGrid.SortKey> schemaSort = List.of();
   Node selected;
   String said = "";
   final Tree.Dragging dragging = new Tree.Dragging(); // what the tree keeps of a drag
@@ -742,5 +745,126 @@ final class Grids {
         .grow(1);
     // docs:end tree
     return Frame.of(Card.inset(tree).w(260).grow(1));
+  }
+
+  // docs:start grid-tree-model
+  record SchemaNode(
+      long id, String name, Symbol icon, long rows, long megabytes, List<SchemaNode> children) {
+    SchemaNode(long id, String name, long rows, long megabytes) {
+      this(id, name, Symbol.TABLE, rows, megabytes, null); // a leaf
+    }
+  }
+
+  static final SchemaNode OVERVIEW = new SchemaNode(
+      1,
+      "shop",
+      Symbol.DATABASE,
+      5_620_000,
+      1_434,
+      List.of(
+          new SchemaNode(
+              10,
+              "public",
+              Symbol.FOLDER,
+              1_420_000,
+              354,
+              List.of(
+                  new SchemaNode(11, "orders", 1_000_000, 248),
+                  new SchemaNode(12, "customers", 50_000, 18),
+                  new SchemaNode(13, "invoices", 320_000, 64))),
+          new SchemaNode(
+              20,
+              "audit",
+              Symbol.FOLDER,
+              4_200_000,
+              1_080,
+              List.of(new SchemaNode(21, "events", 4_200_000, 1_080)))));
+
+  Tree.Model<SchemaNode> schemaModel() {
+    return new Tree.Model<>() {
+      @Override
+      public List<SchemaNode> roots() {
+        return List.of(OVERVIEW);
+      }
+
+      @Override
+      public Tree.Children<SchemaNode> children(SchemaNode node) {
+        return Tree.ready(sortSiblings(node.children())); // sort within siblings
+      }
+
+      @Override
+      public boolean isLeaf(SchemaNode node) {
+        return node.children() == null;
+      }
+
+      @Override
+      public String label(SchemaNode node) {
+        return node.name();
+      }
+    };
+  }
+
+  List<SchemaNode> sortSiblings(List<SchemaNode> nodes) {
+    if (schemaSort.isEmpty()) {
+      return nodes;
+    }
+    Comparator<SchemaNode> by = (left, right) -> 0;
+    for (DataGrid.SortKey key : schemaSort) {
+      Comparator<SchemaNode> next = switch (key.column()) {
+        case 0 -> Comparator.comparing(SchemaNode::name);
+        case 1 -> Comparator.comparingLong(SchemaNode::rows);
+        default -> Comparator.comparingLong(SchemaNode::megabytes);
+      };
+      by = by.thenComparing(key.descending() ? next.reversed() : next);
+    }
+    return nodes.stream().sorted(by).toList();
+  }
+
+  void toggleSchema(SchemaNode node, boolean shouldOpen) {
+    if (shouldOpen) {
+      schemaOpen.add(node.id());
+    } else {
+      schemaOpen.remove(node.id());
+    }
+  }
+
+  void sortSchema(List<DataGrid.SortKey> keys) {
+    schemaSort = keys;
+  }
+  // docs:end grid-tree-model
+
+  static El treeRows(Grids state) {
+    // docs:start grid-tree
+    Tree.Rows<SchemaNode> rows =
+        Tree.rows(state.schemaModel(), node -> state.schemaOpen.contains(node.id()));
+    List<Column> columns = List.of(
+        new Column("name", 220, DataType.TEXT, row -> rows.node(row).name())
+            .cellIcon(row -> DataGrid.CellIcon.before(rows.node(row).icon(), Icon.Variant.MUTED)),
+        new Column(
+            "rows",
+            110,
+            DataType.INTEGER,
+            row -> String.format(Locale.ROOT, "%,d", rows.node(row).rows())),
+        new Column(
+            "size",
+            90,
+            DataType.INTEGER,
+            row -> String.format(Locale.ROOT, "%,d MB", rows.node(row).megabytes())));
+    El grid = DataGrid.dataGrid(
+            columns,
+            rows.count(),
+            DataGrid.options()
+                .tree(rows, state::toggleSchema) // tree in the first column
+                .select(state.schemaSelection)
+                .rowKey(row -> rows.node(row).id()) // keep selection on its node across toggles
+                .sort(state.schemaSort, state::sortSchema)
+                .copy(state.app.clipboard()))
+        .key("schema")
+        .label("Schema")
+        .grow(1);
+    // docs:end grid-tree
+    return Frame.of(Card.flush(Card.toolbar("Schemas", rows.count() + " rows"), grid)
+        .wFull()
+        .grow(1));
   }
 }
