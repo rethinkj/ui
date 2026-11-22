@@ -8,6 +8,7 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.editor.CodeEditor;
+import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
@@ -179,6 +180,37 @@ final class Editors {
     };
   }
   // docs:end code-editor-documentation
+
+  String javaSource = """
+      public class Orders {
+        /**
+         * Finds paid orders in a date range, newest first.
+         * Uses the {@code orders_placed_at} index; see {@link Order}.
+         *
+         * @param from start of the range, inclusive, in UTC
+         * @param to end of the range, exclusive; must lie after {@code from}
+         * @return matching orders by {@code placed_at} descending
+         * @throws IllegalArgumentException when {@code to} is not after {@code from}
+         */
+        public List<Order> findOrders(Instant from, Instant to) {
+          /** Inline doc comments stay raw. */ int limit = 100;
+          return query(from, to, limit);
+        }
+
+        /**
+         * Counts open orders for a customer.
+         *
+         * @param customerId the customer identifier
+         * @return number of open orders
+         */
+        public int countOpen(long customerId) {
+          return count(customerId);
+        }
+      }""";
+  // docs:start code-editor-reader-mode-state
+  /** Doc comments rendered; a link in one goes to {@link #link}. */
+  final CodeEditor.State javaEditor = new CodeEditor.State().readerMode(true).onLink(this::link);
+  // docs:end code-editor-reader-mode-state
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
@@ -319,6 +351,10 @@ final class Editors {
 
   void broken(String value) {
     broken = value;
+  }
+
+  void javaSource(String value) {
+    javaSource = value;
   }
 
   // docs:start code-editor-json-format
@@ -490,6 +526,18 @@ final class Editors {
         .label("Query")
         .lines(6)
         .wFull();
+    return Frame.of(editor);
+  }
+
+  static El readerMode(Editors state) {
+    // docs:start code-editor-reader-mode
+    El editor = CodeEditor.codeEditor(
+            state.app, state.javaSource, state.javaEditor, Java.of(), state::javaSource)
+        .key("orders")
+        .label("Orders")
+        .lines(16)
+        .wFull();
+    // docs:end code-editor-reader-mode
     return Frame.of(editor);
   }
 

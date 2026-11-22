@@ -28,6 +28,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
 | `copy(clipboard)` | Enables code-block copy buttons (and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set) |
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
+| `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
 
 Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text.
 

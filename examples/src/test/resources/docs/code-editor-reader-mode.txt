@@ -1,0 +1,32 @@
+# Render Javadoc comments in reader mode, toggle one raw and back, scroll, copy across it and find into it.
+size 580 298 scale 2
+frame
+snap rendered
+
+# Toggle the first Javadoc comment to raw via the gutter pencil button.
+press #doc-line-1
+frame
+snap raw
+
+# Toggle it back to rendered, then scroll down and back up.
+press #doc-line-1
+frame
+wheel #orders 0 120
+frame
+wheel #orders 0 -120
+frame
+
+# Select and copy across the first rendered Javadoc comment without revealing it.
+focus #orders
+key Home control
+key ArrowDown shift
+key C control
+frame
+
+# Find into the first rendered Javadoc comment: selecting the match reveals it raw.
+key F control
+frame
+type "orders_placed_at"
+key Enter
+frame
+snap found

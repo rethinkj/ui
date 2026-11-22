@@ -2,6 +2,7 @@ package com.rethinkj.ui.javascript;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -113,5 +114,52 @@ class CodeEditorTest {
     Golden.assertSnaps("javascript-dark-2x-", files, "view");
     String tree = Files.readString(out.resolve("view.tree.txt"));
     assertTrue(tree.contains("el #line-11 "), tree);
+  }
+
+  @Test
+  void jsDocRendersInReaderMode() throws IOException {
+    String source = """
+        /**
+         * Starts the server; see {@link https://example.com docs}.
+         * @param {number} [port=5432] Port to bind.
+         * @returns {string} Listening URL.
+         * @throws {RangeError} When port is invalid.
+         */
+        export function listen(port = 5432) {
+          return `http://localhost:${port}`;
+        }""";
+    Theme theme = Theme.DARK;
+    Doc doc = new Doc(source);
+    List<String> links = new java.util.ArrayList<>();
+    doc.editor.readerMode(true).onLink(links::add);
+    App<Doc> app = new App<>(
+        doc,
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .fill(theme.surface().window())
+            .child(codeEditor(s.code, s.editor, JavaScript.of(), v -> s.code = v)
+                .key("editor")
+                .lines(12)
+                .wFull()));
+    app.provide(Theme.CURRENT, d -> theme);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("""
+        size 540 240 scale 2
+        frame
+        snap rendered
+        press role=link label="docs"
+        frame
+        """, app, out);
+    String tree = Files.readString(out.resolve("rendered.tree.txt"));
+    assertTrue(tree.contains("#doc-0 "), tree);
+    assertTrue(tree.contains("el #doc-line-0 role=button label=\"Edit doc comment\""), tree);
+    assertTrue(tree.contains("label=\"Params:\""), tree);
+    assertTrue(tree.contains("label=\"[port=5432]: number\""), tree);
+    assertTrue(tree.contains("label=\"Returns:\""), tree);
+    assertTrue(tree.contains("label=\"Throws:\""), tree);
+    assertTrue(tree.contains("label=\"RangeError\""), tree);
+    assertEquals(List.of("https://example.com"), links);
   }
 }

@@ -9,10 +9,12 @@ import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -116,7 +118,13 @@ public final class CodeEditor {
      * Control+Q: shows the app's documentation ({@link State#documentation}) for the symbol at the
      * caret in a popover, until Escape, a press outside, typing or moving the caret.
      */
-    QUICK_DOCUMENTATION
+    QUICK_DOCUMENTATION,
+    /**
+     * Switches the doc comment at or right before the caret between its rendered view and its raw
+     * source, when the highlighter is a {@link Language}. It has no key of its own: Control+Alt+Q,
+     * as in other editors, is AltGr+Q on Windows, which types {@code @} on some layouts.
+     */
+    TOGGLE_DOC_COMMENT
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -310,6 +318,20 @@ public final class CodeEditor {
     private boolean docHover;
     private int hoverPos = -1;
     private boolean overDoc;
+    // Rendered doc comments (reader mode): off by default.
+    private boolean readerMode;
+    private Consumer<String> onLink;
+    private Language language;
+    private Comments comments;
+    private List<DocRange> docRanges = List.of();
+    private List<DocToggle> docToggles = new ArrayList<>();
+    private String docsText; // the string the doc ranges and toggles are positions in
+    private final Map<String, DocComment> parsedDocs = new LinkedHashMap<>(16, 0.75f, true) {
+      @Override
+      protected boolean removeEldestEntry(Map.Entry<String, DocComment> eldest) {
+        return size() > 256;
+      }
+    };
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -341,6 +363,35 @@ public final class CodeEditor {
      */
     public State readOnly(boolean on) {
       readOnly = on;
+      return this;
+    }
+
+    /**
+     * Whether standalone doc comments are rendered in place of their raw lines when the
+     * highlighter is a {@link Language}; off unless set. Changing the mode clears per-comment
+     * toggles. Comments are found a bounded part per build: with its app ({@link
+     * #codeEditor(App, String, State, Highlighter, Consumer)}), the editor builds again on the
+     * next frames until it has found all; without it, only builds for other reasons go on.
+     */
+    public State readerMode(boolean on) {
+      if (readerMode != on) {
+        readerMode = on;
+        docToggles.clear();
+      }
+      return this;
+    }
+
+    /** Whether reader mode is on. */
+    public boolean readerMode() {
+      return readerMode;
+    }
+
+    /**
+     * Receives the destination of a link pressed inside a rendered doc comment, as {@link
+     * Markdown.Options#onLink} gives it; null for none.
+     */
+    public State onLink(Consumer<String> handler) {
+      this.onLink = handler;
       return this;
     }
 
@@ -635,6 +686,197 @@ public final class CodeEditor {
       ranges = found.folds();
     }
 
+    /**
+     * Finds the doc comments of the last build's string, a bounded part per build, and moves the
+     * toggles across its edits. Comments past the part scanned so far keep their moved ranges
+     * until the scan reaches them, so an edit does not show them raw for the frames it takes.
+     */
+    private void updateDocs(Highlighter highlighter, App<?> app) {
+      Language lang = highlighter instanceof Language l ? l : null;
+      if (!Objects.equals(language, lang)) { // such as the same language in another palette
+        language = lang;
+        // Scanned again, as its comments may differ; the toggles move on and are checked then.
+        comments = null;
+        docRanges = List.of();
+        parsedDocs.clear();
+      }
+      if (language == null || (!readerMode && docToggles.isEmpty())) {
+        comments = null;
+        docRanges = List.of();
+        docsText = null;
+        return;
+      }
+      String text = builtText;
+      TextEdits moved = docsText == null || docsText.equals(text) ? null : edits(docsText, text);
+      if (moved != null) {
+        docRanges = moveDocs(docRanges, moved);
+        docToggles = shiftDocToggles(moved, docToggles, readerMode);
+      }
+      Comments scanned = Comments.scan(text, language, comments);
+      if (scanned != comments || moved != null) {
+        comments = scanned;
+        int boundary =
+            scanned.complete() ? Integer.MAX_VALUE : lineStart(text, scanned.scannedLines() - 1);
+        docRanges = eligibleDocs(text, candidates(scanned, docRanges, boundary));
+        docToggles = reconcileDocToggles(docToggles, docRanges, boundary);
+      }
+      docsText = text;
+      // A caret placed in a comment, such as after typing one, shows it raw; the build that answers
+      // an edit still has the caret from before it, so the build after it checks.
+      DocRange atCaret = moved == null ? docContaining(caret) : null;
+      if (atCaret != null && isDocRendered(atCaret)) {
+        revealDoc(atCaret);
+      }
+      if (!scanned.complete() && app != null) {
+        app.after(0, () -> {}); // the next frame builds again and scans on
+      }
+    }
+
+    /** Scans the whole string for the command, which acts on comments past the scanned part. */
+    private void ensureDocRanges(String text) {
+      if (language == null || (comments != null && comments.complete() && text.equals(docsText))) {
+        return;
+      }
+      Comments scanned = text.equals(docsText) ? comments : null;
+      do {
+        scanned = Comments.scan(text, language, scanned);
+      } while (!scanned.complete());
+      if (docsText != null && !text.equals(docsText)) {
+        docToggles = shiftDocToggles(edits(docsText, text), docToggles, readerMode);
+      }
+      comments = scanned;
+      docRanges = eligibleDocs(text, candidates(scanned, List.of(), Integer.MAX_VALUE));
+      docToggles = reconcileDocToggles(docToggles, docRanges, Integer.MAX_VALUE);
+      docsText = text;
+    }
+
+    /** The doc comment that holds {@code at} after its first character, or null. */
+    private DocRange docContaining(int at) {
+      int lo = 0;
+      int hi = docRanges.size() - 1;
+      while (lo <= hi) {
+        int mid = (lo + hi) >>> 1;
+        DocRange r = docRanges.get(mid);
+        if (at <= r.start()) {
+          hi = mid - 1;
+        } else if (at > r.end()) {
+          lo = mid + 1;
+        } else {
+          return r;
+        }
+      }
+      return null;
+    }
+
+    private boolean isToggled(DocRange doc) {
+      int lo = 0;
+      int hi = docToggles.size() - 1;
+      while (lo <= hi) {
+        int mid = (lo + hi) >>> 1;
+        DocToggle t = docToggles.get(mid);
+        if (t.start() == doc.start()) {
+          return t.end() == doc.end();
+        }
+        if (t.start() < doc.start()) {
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return false;
+    }
+
+    private boolean isDocRendered(DocRange doc) {
+      return readerMode != isToggled(doc);
+    }
+
+    private List<DocRange> renderedDocs() {
+      if (docRanges.isEmpty()) {
+        return List.of();
+      }
+      List<DocRange> out = new ArrayList<>();
+      for (DocRange doc : docRanges) {
+        if (isDocRendered(doc)) {
+          out.add(doc);
+        }
+      }
+      return out;
+    }
+
+    private void addDocToggle(DocRange doc) {
+      if (isToggled(doc)) {
+        return;
+      }
+      List<DocToggle> next = new ArrayList<>(docToggles);
+      next.add(new DocToggle(doc.start(), doc.end(), false));
+      docToggles = sortedDocToggles(next);
+    }
+
+    private void removeDocToggle(DocRange doc) {
+      docToggles.removeIf(t -> t.start() == doc.start() && t.end() == doc.end());
+    }
+
+    private void revealDoc(DocRange doc) {
+      if (readerMode) {
+        addDocToggle(doc);
+      } else {
+        removeDocToggle(doc);
+      }
+    }
+
+    private boolean flipDoc(DocRange doc) {
+      if (isToggled(doc)) {
+        removeDocToggle(doc);
+      } else {
+        addDocToggle(doc);
+      }
+      return isDocRendered(doc);
+    }
+
+    private DocRange docAtLine(int line) {
+      int lo = 0;
+      int hi = docRanges.size() - 1;
+      while (lo <= hi) {
+        int mid = (lo + hi) >>> 1;
+        DocRange r = docRanges.get(mid);
+        if (r.firstLine() == line) {
+          return r;
+        }
+        if (r.firstLine() < line) {
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return null;
+    }
+
+    private DocRange docContainingLine(int line) {
+      int lo = 0;
+      int hi = docRanges.size() - 1;
+      while (lo <= hi) {
+        int mid = (lo + hi) >>> 1;
+        DocRange r = docRanges.get(mid);
+        if (line < r.firstLine()) {
+          hi = mid - 1;
+        } else if (line > r.lastLine()) {
+          lo = mid + 1;
+        } else {
+          return r;
+        }
+      }
+      return null;
+    }
+
+    private DocComment docComment(Language lang, String raw) {
+      if (parsedDocs.containsKey(raw)) {
+        return parsedDocs.get(raw);
+      }
+      DocComment parsed = lang.docComment(raw);
+      parsedDocs.put(raw, parsed);
+      return parsed;
+    }
+
     private record Marks(
         List<Diagnostic> diagnostics,
         List<Diagnostic> currentDiagnostics,
@@ -836,6 +1078,7 @@ public final class CodeEditor {
       state.quickFixes.close();
     }
     state.fixesShown = state.quickFixes.isOpen() ? fixes : null;
+    state.updateDocs(highlighter, app);
     wireBlocks(theme, state, value, editor);
     int[] pair = editor.matchingBracket(state.caret);
     editor
@@ -1008,17 +1251,32 @@ public final class CodeEditor {
       state.visionFor = state.codeVision;
     }
     Map<Integer, CodeVision.Row> vision = state.visionRows;
-    if (vision.isEmpty()) {
+    List<DocRange> rendered = state.renderedDocs();
+    if (vision.isEmpty() && rendered.isEmpty()) {
       return;
     }
-    List<El.Block> blocks = new ArrayList<>(vision.size());
+    List<El.Block> blocks = new ArrayList<>(vision.size() + rendered.size());
     for (int line : vision.keySet()) {
       blocks.add(El.Block.insert(line));
     }
+    Map<El.Block, DocRange> docs = new HashMap<>();
+    for (DocRange doc : rendered) {
+      El.Block block = El.Block.replace(doc.firstLine(), doc.lastLine());
+      blocks.add(block);
+      docs.put(block, doc);
+    }
+    float space = rendered.isEmpty() ? 0 : spaceWidth(theme);
     editor.blocks(
         blocks,
-        block -> CodeVision.row(theme, editor, block.first(), vision.get(block.first())),
-        null);
+        block -> block.placement() == El.Block.Placement.INSERT
+            ? CodeVision.row(theme, editor, block.first(), vision.get(block.first()))
+            : renderedDoc(theme, state, docs.get(block), space),
+        block -> {
+          DocRange doc = docs.get(block);
+          if (doc != null) {
+            state.revealDoc(doc);
+          }
+        });
   }
 
   /** Guides at each step of indentation in the white space that starts {@code text}. */
@@ -1074,7 +1332,41 @@ public final class CodeEditor {
             .color(line.caret() ? theme.text().primary() : theme.text().muted())
             .textAlign(Style.Align.END)
             .grow(1),
-        foldControl(app, theme, state, editor, cell, line));
+        gutterControl(app, theme, state, editor, cell, line));
+  }
+
+  /**
+   * The right-hand control of a gutter cell: the doc-comment toggle on a doc comment's first line
+   * (pencil when rendered, eye when raw in reader mode), otherwise the fold chevron.
+   */
+  private static El gutterControl(
+      App<?> app, Theme theme, State state, El editor, El cell, El.Gutter.Line line) {
+    DocRange doc = state.docAtLine(line.index());
+    if (doc != null) {
+      boolean rendered = state.isDocRendered(doc);
+      if (rendered || state.readerMode) {
+        float size = theme.type().mono().size();
+        Texts texts = Texts.CURRENT.get();
+        String label = rendered ? texts.editDocComment() : texts.renderDocComment();
+        Icon icon = rendered ? Symbol.EDIT : Symbol.EYE;
+        El button = El.row()
+            .key("doc-line-" + line.index())
+            .role("button")
+            .label(label)
+            .size(size, size)
+            .align(Style.Align.CENTER)
+            .justify(Style.Content.CENTER)
+            .shrink(0)
+            .radius(theme.radius().small())
+            .cursor(Cursor.POINTER)
+            .onPress(() -> toggleDoc(app, state, editor, doc, false))
+            .keepFocus()
+            .whenHovered(e -> e.fill(theme.surface().hover()))
+            .child(Icon.icon(icon, Icon.Variant.MUTED, size));
+        return Tooltip.tooltip(button, label);
+      }
+    }
+    return foldControl(app, theme, state, editor, cell, line);
   }
 
   /**
@@ -1353,6 +1645,10 @@ public final class CodeEditor {
     }
     if (command == Command.QUICK_DOCUMENTATION) {
       showDocumentationAtCaret(state, editor, text, caret);
+      return;
+    }
+    if (command == Command.TOGGLE_DOC_COMMENT) {
+      toggleDocCommentAtCaret(app, state, editor, text, caret);
       return;
     }
     if (editor.onEdit() == null || editor.isReadOnly()) {
@@ -1681,6 +1977,413 @@ public final class CodeEditor {
       }
     }
     return sorted(out);
+  }
+
+  /** Width of one monospace space at the current window scale, for indenting rendered comments. */
+  private static float spaceWidth(Theme theme) {
+    Theme.TextStyle mono = theme.type().mono();
+    El sample = El.text(" ").font(mono.font().get()).fontSize(mono.size());
+    sample.text().scale(WindowState.CURRENT.get().scale());
+    return sample
+        .text()
+        .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+        .width();
+  }
+
+  /** Builds the rendered view of one doc comment, indented to its column in the comment color. */
+  private static El renderedDoc(Theme theme, State state, DocRange doc, float spaceWidth) {
+    String raw = state.builtText.substring(doc.start(), doc.end());
+    DocComment parsed = state.docComment(state.language, raw);
+    float indent = doc.indentColumns() * spaceWidth;
+    El container = El.col()
+        .key("doc-" + doc.firstLine())
+        .gap(theme.space().m())
+        .padding(theme.space().xs(), theme.space().m(), theme.space().s(), indent)
+        .wFull();
+    if (parsed == null) {
+      return container.child(rawCommentFallback(theme, raw));
+    }
+    Texts texts = Texts.CURRENT.get();
+    Markdown.Options options =
+        Markdown.options().textColor(theme.code().comment()).onLink(state.onLink);
+    if (parsed.body() != null && !parsed.body().blocks().isEmpty()) {
+      container.child(Markdown.fragment(parsed.body(), options));
+    }
+    List<Markdown.Section> sections = new ArrayList<>();
+    if (parsed.deprecated() != null) {
+      sections.add(new Markdown.Section(
+          texts.deprecated(), List.of(new Markdown.Definition(null, parsed.deprecated()))));
+    }
+    if (!parsed.parameters().isEmpty()) {
+      sections.add(new Markdown.Section(
+          texts.parameters(),
+          parsed.parameters().stream().map(CodeEditor::definition).toList()));
+    }
+    if (parsed.returns() != null && !parsed.returns().blocks().isEmpty()) {
+      sections.add(new Markdown.Section(
+          texts.returns(), List.of(new Markdown.Definition(null, parsed.returns()))));
+    }
+    if (!parsed.exceptions().isEmpty()) {
+      sections.add(new Markdown.Section(
+          texts.thrown(),
+          parsed.exceptions().stream().map(CodeEditor::definition).toList()));
+    }
+    if (!parsed.see().isEmpty()) {
+      sections.add(new Markdown.Section(
+          texts.seeAlso(),
+          parsed.see().stream().map(s -> new Markdown.Definition(null, s)).toList()));
+    }
+    if (!sections.isEmpty()) {
+      container.child(Markdown.definitions(sections, options));
+    }
+    if (container.children().isEmpty()) {
+      container.child(rawCommentFallback(theme, raw));
+    }
+    return container;
+  }
+
+  private static El rawCommentFallback(Theme theme, String raw) {
+    Theme.TextStyle mono = theme.type().mono();
+    return El.text(raw)
+        .font(mono.font().get())
+        .fontSize(mono.size())
+        .color(theme.code().comment());
+  }
+
+  private static Markdown.Definition definition(DocComment.Entry entry) {
+    String name = entry.name();
+    String type = entry.type();
+    String term = name.isEmpty()
+        ? (type == null || type.isEmpty() ? null : type)
+        : (type == null || type.isEmpty() ? name : name + ": " + type);
+    return new Markdown.Definition(term, entry.description());
+  }
+
+  private static void toggleDocCommentAtCaret(
+      App<?> app, State state, El editor, String text, int caret) {
+    if (state.language == null) {
+      return;
+    }
+    state.ensureDocRanges(text);
+    int line = lineOf(text, caret);
+    DocRange target = state.docContainingLine(line);
+    if (target == null) {
+      // Caret cannot enter a rendered block: check the rendered block immediately above this line,
+      // or immediately below if this is the last visible line before a trailing rendered block.
+      for (DocRange r : state.docRanges) {
+        if (state.isDocRendered(r) && r.lastLine() + 1 == line) {
+          target = r;
+          break;
+        }
+      }
+      if (target == null) {
+        for (DocRange r : state.docRanges) {
+          if (state.isDocRendered(r) && r.firstLine() == line + 1) {
+            target = r;
+            break;
+          }
+        }
+      }
+    }
+    if (target != null) {
+      toggleDoc(app, state, editor, target, true);
+    }
+  }
+
+  private static void toggleDoc(
+      App<?> app, State state, El editor, DocRange doc, boolean moveCaretOnReveal) {
+    boolean nowRendered = state.flipDoc(doc);
+    String text = editor.text().string();
+    if (nowRendered) {
+      int caretLine = lineOf(text, Math.min(state.caret, text.length()));
+      int anchorLine = lineOf(text, Math.min(state.anchor, text.length()));
+      boolean inside = (caretLine >= doc.firstLine() && caretLine <= doc.lastLine())
+          || (anchorLine >= doc.firstLine() && anchorLine <= doc.lastLine());
+      if (inside) {
+        int at = safePositionOutside(text, state, doc);
+        if (at >= 0) {
+          selectCaret(app, state, editor, at);
+        }
+      }
+    } else if (moveCaretOnReveal) {
+      selectCaret(app, state, editor, doc.start());
+    }
+  }
+
+  private static void selectCaret(App<?> app, State state, El editor, int at) {
+    if (app != null) {
+      app.select(editor, at, at);
+      state.caret = at;
+      state.anchor = at;
+    } else {
+      state.select(at, at);
+    }
+  }
+
+  /**
+   * First caret position outside {@code doc} (and any other rendered doc comment): the start of the
+   * first visible line after {@code doc}, else the end of the last visible line before it, or -1 if
+   * no line is visible.
+   */
+  private static int safePositionOutside(String text, State state, DocRange doc) {
+    int total = lineCount(text);
+    for (int line = doc.lastLine() + 1; line < total; line++) {
+      DocRange covering = state.docContainingLine(line);
+      if (covering == null || !state.isDocRendered(covering)) {
+        return lineStart(text, line);
+      }
+    }
+    for (int line = doc.firstLine() - 1; line >= 0; line--) {
+      DocRange covering = state.docContainingLine(line);
+      if (covering == null || !state.isDocRendered(covering)) {
+        return lineEnd(text, line);
+      }
+    }
+    return -1;
+  }
+
+  /** One standalone doc comment eligible to render, in the normalized text of the last build. */
+  record DocRange(int start, int end, int firstLine, int lastLine, int indentColumns) {}
+
+  /** One per-comment override of {@link State#readerMode}, tracked by character offsets. */
+  record DocToggle(int start, int end, boolean edited) {}
+
+  /**
+   * The doc comments to check: those {@code scanned} found that end before {@code boundary}, where
+   * the last line scanned starts and a comment may go on, and then those of {@code before}, moved
+   * to the current string, that end after it.
+   */
+  static List<Comments.Comment> candidates(Comments scanned, List<DocRange> before, int boundary) {
+    List<Comments.Comment> out = new ArrayList<>();
+    int last = 0;
+    for (Comments.Comment c : scanned.comments()) {
+      if (c.end() <= boundary) {
+        if (c.doc()) {
+          out.add(c);
+        }
+        last = c.end();
+      }
+    }
+    for (DocRange d : before) {
+      if (d.end() > boundary && d.start() >= last) {
+        out.add(new Comments.Comment(d.start(), d.end(), true));
+      }
+    }
+    return out;
+  }
+
+  /** The doc ranges moved across {@code edits}; a range the edits touch goes. */
+  static List<DocRange> moveDocs(List<DocRange> docs, TextEdits edits) {
+    List<DocRange> out = new ArrayList<>(docs.size());
+    for (DocRange d : docs) {
+      int at = edits.mapRange(d.start(), d.end());
+      if (at >= 0) { // its lines are counted again
+        out.add(new DocRange(at, at + d.end() - d.start(), -1, -1, 0));
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The doc comments of {@code all} that render: those that share neither their first nor their
+   * last line with code or another comment and have more than delimiters.
+   */
+  static List<DocRange> eligibleDocs(String text, List<Comments.Comment> all) {
+    if (all.isEmpty()) {
+      return List.of();
+    }
+    List<DocRange> out = new ArrayList<>();
+    int cursor = 0;
+    int line = 0;
+    for (Comments.Comment c : all) {
+      while (cursor < c.start()) {
+        if (text.charAt(cursor++) == '\n') {
+          line++;
+        }
+      }
+      int firstLine = line;
+      while (cursor < c.end()) {
+        if (text.charAt(cursor++) == '\n') {
+          line++;
+        }
+      }
+      int lastLine = line;
+      int firstStart = text.lastIndexOf('\n', c.start() - 1) + 1;
+      if (!isHorizontalSpace(text, firstStart, c.start())) {
+        continue;
+      }
+      int nextFeed = text.indexOf('\n', c.end());
+      int lastEnd = nextFeed < 0 ? text.length() : nextFeed;
+      if (!isHorizontalSpace(text, c.end(), lastEnd)) {
+        continue;
+      }
+      if (!hasDocContent(text, c.start(), c.end())) {
+        continue;
+      }
+      int indent = 0;
+      for (int i = firstStart; i < c.start(); i++) {
+        indent = text.charAt(i) == '\t' ? (indent / INDENT + 1) * INDENT : indent + 1;
+      }
+      out.add(new DocRange(c.start(), c.end(), firstLine, lastLine, indent));
+    }
+    return out;
+  }
+
+  private static boolean isHorizontalSpace(String text, int from, int to) {
+    for (int i = from; i < to; i++) {
+      char c = text.charAt(i);
+      if (c != ' ' && c != '\t') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Whether the doc comment contains any character besides its delimiters, stars and whitespace. */
+  private static boolean hasDocContent(String text, int start, int end) {
+    if (text.startsWith("///", start)) {
+      int pos = start;
+      while (pos < end) {
+        int feed = text.indexOf('\n', pos);
+        int lineEnd = feed < 0 || feed > end ? end : feed;
+        int i = pos;
+        while (i < lineEnd && (text.charAt(i) == ' ' || text.charAt(i) == '\t')) {
+          i++;
+        }
+        if (i + 3 <= lineEnd && text.startsWith("///", i)) {
+          i += 3;
+        }
+        while (i < lineEnd) {
+          if (!Character.isWhitespace(text.charAt(i))) {
+            return true;
+          }
+          i++;
+        }
+        pos = feed < 0 ? end : feed + 1;
+      }
+      return false;
+    }
+    if (text.startsWith("/**", start)) {
+      int from = start + 3;
+      int to = end >= from + 2 && text.charAt(end - 2) == '*' && text.charAt(end - 1) == '/'
+          ? end - 2
+          : end;
+      int pos = from;
+      while (pos < to) {
+        int feed = text.indexOf('\n', pos);
+        int lineEnd = feed < 0 || feed > to ? to : feed;
+        int i = pos;
+        while (i < lineEnd && Character.isWhitespace(text.charAt(i))) {
+          i++;
+        }
+        while (i < lineEnd && text.charAt(i) == '*') {
+          i++;
+        }
+        while (i < lineEnd) {
+          if (!Character.isWhitespace(text.charAt(i))) {
+            return true;
+          }
+          i++;
+        }
+        pos = feed < 0 ? to : feed + 1;
+      }
+      return false;
+    }
+    return end > start;
+  }
+
+  private static List<DocToggle> sortedDocToggles(List<DocToggle> toggles) {
+    Map<Integer, DocToggle> byStart = new HashMap<>();
+    for (DocToggle t : toggles) {
+      byStart.merge(t.start(), t, (a, b) -> a.end() >= b.end() ? a : b);
+    }
+    List<DocToggle> out = new ArrayList<>(byStart.values());
+    out.sort(Comparator.comparingInt(DocToggle::start));
+    return out;
+  }
+
+  /**
+   * Moves the toggles across {@code edits}. With {@code keepEdited}, a toggle whose comment the
+   * edits touch keeps the span between its moved ends, marked edited, so the comment edited there
+   * stays raw; otherwise it goes.
+   */
+  static List<DocToggle> shiftDocToggles(
+      TextEdits edits, List<DocToggle> toggles, boolean keepEdited) {
+    List<DocToggle> out = new ArrayList<>(toggles.size());
+    for (DocToggle t : toggles) {
+      int at = edits.mapRange(t.start(), t.end());
+      if (at >= 0) {
+        out.add(new DocToggle(at, at + t.end() - t.start(), t.edited()));
+      } else if (keepEdited) {
+        int start = edits.mapPoint(t.start());
+        int end = edits.mapPoint(t.end());
+        if (start >= 0 && end > start) {
+          out.add(new DocToggle(start, end, true));
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Keeps the toggles of comments in {@code found}; an edited one takes each comment it overlaps.
+   * Toggles that end past {@code boundary}, where the scan has not been yet, stay as they are.
+   */
+  static List<DocToggle> reconcileDocToggles(
+      List<DocToggle> toggles, List<DocRange> found, int boundary) {
+    if (toggles.isEmpty()) {
+      return toggles;
+    }
+    Map<Integer, DocRange> byStart = HashMap.newHashMap(found.size());
+    for (DocRange r : found) {
+      byStart.put(r.start(), r);
+    }
+    List<DocToggle> out = new ArrayList<>(toggles.size());
+    for (DocToggle t : toggles) {
+      DocRange exact = byStart.get(t.start());
+      boolean bound = false;
+      if (exact != null && exact.end() == t.end()) {
+        out.add(new DocToggle(exact.start(), exact.end(), false));
+        bound = true;
+      } else if (t.edited()) {
+        for (DocRange r : found) {
+          if (r.start() < t.end() && t.start() < r.end()) {
+            out.add(new DocToggle(r.start(), r.end(), false));
+            bound = true;
+          }
+        }
+      }
+      if (!bound && t.end() > boundary) {
+        out.add(t);
+      }
+    }
+    return sortedDocToggles(out);
+  }
+
+  private static int lineCount(String text) {
+    int lines = 1;
+    for (int i = 0; i < text.length(); i++) {
+      if (text.charAt(i) == '\n') {
+        lines++;
+      }
+    }
+    return lines;
+  }
+
+  private static int lineStart(String text, int targetLine) {
+    if (targetLine <= 0) {
+      return 0;
+    }
+    int line = 0;
+    for (int i = 0; i < text.length(); i++) {
+      if (text.charAt(i) == '\n') {
+        line++;
+        if (line == targetLine) {
+          return i + 1;
+        }
+      }
+    }
+    return text.length();
   }
 
   private static int lineOf(String text, int index) {

@@ -1,0 +1,116 @@
+el 0,0 580x298
+  text #orders role=textbox label="Orders" "public class Orders {\n  /**\n   * Finds paid orders in a date range, newest first.\n   * Uses the {@co" … "d) {\n    return count(customerId);\n  }\n}" length 800 12,12 556x274 lines 1-15/25 underline 103-119 scroll 0,-29 thumb-x 15,277 460.96x6 thumb-y 559,15 6x168.02
+    el #rail 13,13 58x272
+    el #gutter 13,17 57x256
+      el #line-0 13,46 57x16
+        el 19,54 12x0
+        text "1" 35,46 15x16
+        el #fold-line-0 role=button label="Fold" 54,48 12x12
+          text label="chevron_down" "\u{F2A1}" 54,48 12x12
+      el #line-1 13,62 57x16
+        el 19,70 12x0
+        text "2" 35,62 15x16
+        el #doc-line-1 role=button label="Render doc comment" 54,64 12x12
+          text label="eye" "\u{E5F0}" 54,64 12x12
+      el #line-2 13,78 57x16
+        el 19,86 12x0
+        text "3" 35,78 15x16
+        el 54,86 12x0
+      el #line-3 13,94 57x16
+        el 19,102 12x0
+        text "4" 35,94 15x16
+        el 54,102 12x0
+      el #line-4 13,110 57x16
+        el 19,118 12x0
+        text "5" 35,110 15x16
+        el 54,118 12x0
+      el #line-5 13,126 57x16
+        el 19,134 12x0
+        text "6" 35,126 15x16
+        el 54,134 12x0
+      el #line-6 13,142 57x16
+        el 19,150 12x0
+        text "7" 35,142 15x16
+        el 54,150 12x0
+      el #line-7 13,158 57x16
+        el 19,166 12x0
+        text "8" 35,158 15x16
+        el 54,166 12x0
+      el #line-8 13,174 57x16
+        el 19,182 12x0
+        text "9" 35,174 15x16
+        el 54,182 12x0
+      el #line-9 13,190 57x16
+        el 19,198 12x0
+        text "10" 35,190 15x16
+        el 54,198 12x0
+      el #line-10 13,206 57x16
+        el 19,214 12x0
+        text "11" 35,206 15x16
+        el #fold-line-10 role=button label="Fold" 54,208 12x12
+          text label="chevron_down" "\u{F2A1}" 54,208 12x12
+      el #line-11 13,222 57x16
+        el 19,230 12x0
+        text "12" 35,222 15x16
+        el 54,230 12x0
+      el #line-12 13,238 57x16
+        el 19,246 12x0
+        text "13" 35,238 15x16
+        el 54,246 12x0
+      el #line-13 13,254 57x16
+        el 19,262 12x0
+        text "14" 35,254 15x16
+        el 54,262 12x0
+      el #line-14 13,270 57x16
+        el 19,278 12x0
+        text "15" 35,270 15x16
+        el 54,278 12x0
+      el #line-15 13,286 57x16
+        el 19,294 12x0
+        text "16" 35,286 15x16
+        el #doc-line-15 role=button label="Edit doc comment" 54,288 12x12
+          text label="edit" "\u{F032A}" 54,288 12x12
+    el #doc-15 79,286 480x73
+      el 94,288 457x17
+        text role=paragraph "Counts open orders for a customer." 94,288 457x17 readonly lines 1-1/1
+      el role=list 94,313 457x42
+        el role=group label="Params:" 94,313 457x17
+          el 94,313 49x17
+            text "Params:" 94,314 46x15
+          el 155,313 396x17
+            el role=listitem label="customerId" 155,313 396x17
+              el 155,313 80x17
+                text "customerId" 159,314 72x16
+              el 243,313 308x17
+                text role=paragraph "the customer identifier" 243,313 308x17 readonly lines 1-1/1
+        el role=group label="Returns:" 94,338 457x17
+          el 94,338 49x17
+            text "Returns:" 94,339 47x15
+          el 155,338 396x17
+            el role=listitem 155,338 396x17
+              el 155,338 396x17
+                text role=paragraph "number of open orders" 155,338 396x17 readonly lines 1-1/1
+overlay top end gap -32 on #orders role=textbox label="Orders" 12,12 556x274
+  el #find role=search label="Find" 166,14 402x30
+    el 166,14 392x30
+      el 169,17 386x24
+        el #toggle-replace role=button label="Toggle replace" 169,17 24x24
+          text label="chevron_right" "\u{F2AF}" 173,21 16x16
+        el 195,17 200x24
+          text #find-field role=textbox label="Find" "orders_placed_at" 195,17 200x24 focused caret 16
+          el 333,19 60x20
+            el #match-case role=button label="Match case" 333,19 20x20 checked=false
+              text label="text_case_title" "\u{ECEC}" 335,21 16x16
+            el #whole-word role=button label="Whole word" 353,19 20x20 checked=false
+              text label="text_whole_word" "\u{F03A4}" 355,21 16x16
+            el #regex role=button label="Regular expression" 373,19 20x20 checked=false
+              text label="text_period_asterisk" "\u{ED4A}" 375,21 16x16
+        text #count "1 of 1" 403,22 48x14
+        el #in-selection role=button label="Find in selection" 453,17 24x24 checked=false
+          text label="select_all_on" "\u{F04B9}" 457,21 16x16
+        el #previous role=button label="Previous match" 479,17 24x24
+          text label="arrow_up" "\u{F1B4}" 483,21 16x16
+        el #next role=button label="Next match" 505,17 24x24
+          text label="arrow_down" "\u{F147}" 509,21 16x16
+        el #close role=button label="Close" 531,17 24x24
+          text label="dismiss" "\u{F368}" 535,21 16x16

@@ -461,6 +461,16 @@ public interface Texts {
     return "Show quick fixes";
   }
 
+  /** The gutter button that switches a rendered doc comment back to its raw source. */
+  default String editDocComment() {
+    return "Edit doc comment";
+  }
+
+  /** The gutter button that switches a raw doc comment to its rendered view. */
+  default String renderDocComment() {
+    return "Render doc comment";
+  }
+
   /** The label of a documentation section that lists parameters. */
   default String parameters() {
     return "Params:";
@@ -484,6 +494,11 @@ public interface Texts {
   /** The label of a code editor's quick documentation popover. */
   default String documentation() {
     return "Documentation";
+  }
+
+  /** The label of a documentation section that notes a deprecation. */
+  default String deprecated() {
+    return "Deprecated:";
   }
 
   /**

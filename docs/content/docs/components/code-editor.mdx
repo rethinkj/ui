@@ -203,6 +203,20 @@ Call `documentation(provider)` on `CodeEditor.State` with an `IntFunction<Markdo
 
 <Shot src="examples/docs/code-editor-documentation/shown-{theme}" alt="SQL in the code editor with the pointer resting on orders and its Markdown documentation open in a popover below the word" />
 
+## Rendered doc comments
+
+When the highlighter implements `Language` (such as `Java.of()`, `JavaScript.of()`, or `TypeScript.of()`), calling `readerMode(true)` on `CodeEditor.State` renders standalone doc comments in place of their raw lines: formatted prose in the code theme's comment color indented to the comment's column, labeled parameter, return, exception, deprecation, and see-also sections with code-styled names, and clickable links forwarded to `onLink(handler)` on `CodeEditor.State`. Comments that share a line with code stay raw.
+
+<Shot src="examples/docs/code-editor-reader-mode/rendered-{theme}" alt="Java code in the code editor with a Javadoc comment rendered in place of its raw lines, showing formatted prose, a link, a Params table with code chips, Returns and Throws sections, and a pencil toggle in the gutter" />
+
+```java snippet="code-editor-reader-mode-state"
+```
+
+```java snippet="code-editor-reader-mode"
+```
+
+Reader mode is off by default. `CodeEditor.run(app, editorState, CodeEditor.Command.TOGGLE_DOC_COMMENT)` switches the doc comment at the caret between rendered and raw, in either mode; bind it to a menu item or a key of the app. In reader mode, the gutter button does the same (pencil to edit, eye to render again). The caret never enters a rendered comment: arrow keys step over it, and copying across it copies the raw text. Finding into it, going to a line inside it, or selecting into it shows it raw, and so does placing the caret in it after its first character, as when typing a new comment; it stays raw while it is edited. In a long file, comments are found a bounded part per frame.
+
 ## Inserting text
 
 To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the current selection (or inserts at the cursor) and puts the cursor after the inserted text. To place the cursor at `caret` inside `text` instead (such as between the parentheses of `()`), call `replaceSelection(text, caret)`. To edit a range you calculated (such as a line below the cursor), call `replace(from, to, text, caret)`. It replaces the exact characters from `from` to `to`, and Ctrl+Z restores the previous selection. The edit runs right after the handler, calls `onChange` like typed text, and counts as one undo step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
@@ -255,6 +269,8 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
 | `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
 | `documentation(provider)` | Supplies an `IntFunction<MarkdownDocument>` for hover and Ctrl+Q quick documentation |
+| `readerMode(boolean)`, `readerMode()` | Enables/disables rendered doc comments for `Language` highlighters (off by default) |
+| `onLink(destination -> …)` | Receives the destination of a link pressed inside a rendered doc comment |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 | `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
@@ -273,6 +289,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Ctrl+Shift+] | `UNFOLD` | Unfold the folded range at or around the cursor |
 | Alt+Enter | `QUICK_FIXES` | Open the menu of quick fixes for diagnostics at the cursor |
 | Ctrl+Q | `QUICK_DOCUMENTATION` | Show documentation for the symbol at the cursor |
+| — | `TOGGLE_DOC_COMMENT` | Switch the doc comment at the cursor between rendered and raw; no key, as Ctrl+Alt+Q is AltGr+Q (`@`) on some layouts |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
 Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
@@ -281,7 +298,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`):
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), `#fold-line-<index>`, and `#doc-line-<index>` elements, `#fold-<first>` for each visible folded pill, `#doc-<first>` for each visible rendered doc comment, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`):
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
 ```

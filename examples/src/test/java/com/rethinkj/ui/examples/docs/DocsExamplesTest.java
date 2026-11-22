@@ -105,6 +105,7 @@ class DocsExamplesTest {
       Map.entry("code-editor-scrollbar-marks", List.of("view")),
       Map.entry("code-editor-fixes", List.of("open")),
       Map.entry("code-editor-documentation", List.of("shown")),
+      Map.entry("code-editor-reader-mode", List.of("rendered")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
@@ -215,6 +216,7 @@ class DocsExamplesTest {
     editors(all, "code-editor-scrollbar-marks", Editors::scrollbarMarks, 520, 210);
     editors(all, "code-editor-fixes", Editors::fixes, 520, 200);
     editors(all, "code-editor-documentation", Editors::documentation, 520, 168);
+    editors(all, "code-editor-reader-mode", Editors::readerMode, 580, 298);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
         "highlighter",

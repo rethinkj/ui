@@ -351,6 +351,15 @@ class MarkdownTest {
         press role=link label="bounds"
         frame""", app, out);
     assertEquals(List.of("#indexes", "#bounds"), clicked);
+
+    int commentColor = Theme.DARK.code().comment();
+    Markdown.Options colored = Markdown.options().textColor(commentColor);
+    El coloredFragment = Markdown.fragment(summary, colored);
+    El coloredDefinitions = Markdown.definitions(
+        List.of(new Markdown.Section("Params:", List.of(new Markdown.Definition("from", fromDoc)))),
+        colored);
+    assertEquals(commentColor, paragraph(coloredFragment).text().color());
+    assertEquals(commentColor, paragraph(coloredDefinitions).text().color());
   }
 
   private static El paragraph(El el) {

@@ -2426,7 +2426,8 @@ public final class App<S> {
    * focusable one around it, and returns it; null if there is none.
    */
   El focusAt(float x, float y) {
-    Target target = target(x, y, El::isFocusable);
+    List<El> focusables = focusables();
+    Target target = target(x, y, el -> el.isFocusable() && focusables.contains(el));
     if (target == null) {
       return null;
     }

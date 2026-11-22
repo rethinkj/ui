@@ -113,8 +113,21 @@ public final class Markdown {
     private Clipboard clipboard;
     private State state;
     private Function<String, com.rethinkj.ui.Image> images;
+    private int textColor;
 
     private Options() {}
+
+    /**
+     * The text color of the prose, as {@code 0xAARRGGBB} ({@link com.rethinkj.ui.Colors}), in place
+     * of the theme's default ({@link Theme.TextColors#primary()} in {@link #markdown} and {@link
+     * #fragment}, {@link Theme.TextColors#muted()} for descriptions in {@link #definitions}); for
+     * example {@link Theme.Code#comment()} for rendered doc comments. {@code 0} keeps the theme's
+     * default.
+     */
+    public Options textColor(int color) {
+      this.textColor = color;
+      return this;
+    }
 
     /**
      * The image for an image's address as written ({@code images/frame.png}), or null while the
@@ -202,7 +215,8 @@ public final class Markdown {
   public static El markdown(MarkdownDocument document, Options options) {
     Theme theme = Theme.CURRENT.get();
     Prepared prepared = prepared(theme, document);
-    Context c = new Context(theme, options, prepared, theme.text().primary(), 0, false);
+    int color = options.textColor != 0 ? options.textColor : theme.text().primary();
+    Context c = new Context(theme, options, prepared, color, 0, false);
     List<Unit> units = prepared.units;
     El list = col()
         .role("document")
@@ -240,7 +254,8 @@ public final class Markdown {
     Objects.requireNonNull(document, "document");
     Objects.requireNonNull(options, "options");
     Theme theme = Theme.CURRENT.get();
-    El out = fragment(theme, document, options, theme.text().primary()).wFull();
+    int color = options.textColor != 0 ? options.textColor : theme.text().primary();
+    El out = fragment(theme, document, options, color).wFull();
     if (options.state != null) {
       out.overlay(Button.ending(theme, options.state.copied));
     }
@@ -305,10 +320,10 @@ public final class Markdown {
           entry.child(chip);
         }
         if (hasDescription) {
-          entry.child(
-              fragment(theme, definition.description(), options, theme.text().muted())
-                  .basis(theme.prose().measure() / 4)
-                  .grow(1));
+          int color = options.textColor != 0 ? options.textColor : theme.text().muted();
+          entry.child(fragment(theme, definition.description(), options, color)
+              .basis(theme.prose().measure() / 4)
+              .grow(1));
         }
         entries.child(entry);
       }
@@ -636,8 +651,9 @@ public final class Markdown {
   /** What building a document needs, and the color of its text where it is now. */
   private record Context(
       Theme theme, Options options, Prepared prepared, int color, int depth, boolean compact) {
-    Context muted() {
-      return new Context(theme, options, prepared, theme.text().muted(), depth, compact);
+    Context muted() { // the app's text color stays
+      int muted = options.textColor != 0 ? options.textColor : theme.text().muted();
+      return new Context(theme, options, prepared, muted, depth, compact);
     }
 
     Context deeper() {
@@ -778,9 +794,8 @@ public final class Markdown {
   private static El heading(Context c, MarkdownDocument.Heading h) {
     Theme theme = c.theme;
     Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
-    int color = h.level() == 6
-        ? theme.text().muted()
-        : c.color == theme.text().muted() ? c.color : theme.text().primary();
+    int color =
+        h.level() == 6 && c.color == theme.text().primary() ? theme.text().muted() : c.color;
     El field = field(c, piece(c, h, h.content(), true), style, color)
         .role("heading")
         .level(h.level())

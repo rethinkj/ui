@@ -54,6 +54,12 @@
       <artifactId>rethinkj-ui-json</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Java for the rendered doc comment example of the documentation. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- The canvas of the SchemaDiagram and of the documentation's examples. -->
     <dependency>
       <groupId>com.rethinkj.ui</groupId>

@@ -477,6 +477,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String editDocComment() {
+    return "Dokumentationskommentar bearbeiten";
+  }
+
+  @Override
+  public String renderDocComment() {
+    return "Dokumentationskommentar rendern";
+  }
+
+  @Override
   public String parameters() {
     return "Parameter:";
   }
@@ -499,6 +509,11 @@ public class GermanTexts implements Texts {
   @Override
   public String documentation() {
     return "Dokumentation";
+  }
+
+  @Override
+  public String deprecated() {
+    return "Veraltet:";
   }
 
   @Override
