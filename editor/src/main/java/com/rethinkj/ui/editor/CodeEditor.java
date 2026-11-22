@@ -841,7 +841,7 @@ public final class CodeEditor {
 
   /** The editor's blocks between lines, all kinds in one list, and the element of each. */
   private static void wireBlocks(Theme theme, State state, String value, El editor) {
-    if (value != state.visionOf || state.codeVision != state.visionFor) {
+    if (!value.equals(state.visionOf) || state.codeVision != state.visionFor) {
       state.visionRows = CodeVision.rows(editor.text().string(), state.codeVision);
       state.visionOf = value;
       state.visionFor = state.codeVision;
