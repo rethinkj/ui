@@ -10,8 +10,10 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -34,6 +36,7 @@ public final class Examples {
       case "bars" -> new App<>(new Object(), s -> bars());
       case "field" -> new App<>(new Form(), Examples::form);
       case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
+      case "folds" -> new App<>(new Folds(), Examples::folds);
       case "overlay" -> new App<>(new Menus(), Examples::overlays);
       case "shapes" -> new App<>(new Object(), s -> shapes());
       default -> new App<>(new Lights(), Examples::lights);
@@ -149,6 +152,52 @@ public final class Examples {
   /** The state of the field example. */
   public static final class Form {
     public String name = "";
+  }
+
+  /** The state of the folded multi-line field example. */
+  public static final class Folds {
+    public String code =
+        "SELECT id\nFROM (\n  SELECT id, total\n  FROM orders\n  WHERE total > 0\n) sub\nORDER BY id;";
+    public final List<El.Fold> folds = new ArrayList<>(List.of(new El.Fold(1, 4)));
+  }
+
+  /** A multi-line field with a gutter, line background and a folded block. */
+  public static El folds(Folds state) {
+    return col()
+        .wFull()
+        .hFull()
+        .padding(12)
+        .fill(0xFF101014)
+        .child(El.text(state.code)
+            .editable(code -> state.code = code)
+            .multiline()
+            .key("code")
+            .label("Query")
+            .font(Font.mono())
+            .fontSize(13)
+            .color(0xFFE4E4E7)
+            .caretColor(0xFF93C5FD)
+            .selectionColor(0x803B82F6)
+            .grow(1)
+            .padding(6)
+            .radius(6)
+            .fill(0xFF1C1C22)
+            .border(1, 0xFF3A3A40)
+            .whenFocused(e -> e.border(1, 0xFF3B82F6))
+            .gutter(
+                line -> row()
+                    .padding(0, 8, 0, 2)
+                    .child(El.text(String.valueOf(line.index() + 1))
+                        .font(Font.mono())
+                        .fontSize(13)
+                        .color(line.caret() ? 0xFFE4E4E7 : 0xFF6B7280)),
+                el().border(0, 1, 0, 0, 0xFF2D2D36).margin(0, 8, 0, 0))
+            .decorate((line, start, text, out) -> {
+              if (line == 1) {
+                out.lineBackground(0x203B82F6);
+              }
+            })
+            .folds(state.folds, state.folds::remove));
   }
 
   /** A text field for the name of a table, with a placeholder, in the middle of the window. */

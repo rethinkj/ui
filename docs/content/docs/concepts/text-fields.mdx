@@ -43,11 +43,21 @@ From a handler (such as a button that inserts a snippet), call `fieldState.repla
 | `highlight(key, highlighter)` | Syntax highlighting (colors, fonts, backgrounds, underlines) |
 | `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
+| `folds(folds, unfold)`, `folds(folds, unfold, mark)` | Multi-line only: hides line ranges (`El.Fold(first, last)` keeps `first` shown with a placeholder mark and hides `first + 1` through `last`), calling `unfold` when the user clicks a mark, edits into a fold, or lands a selection/undo inside one |
 | `coveredTop(height)` | Multi-line only: tells the field that something (such as a find bar) covers its top `height`. The field can scroll that far above its first line (where the scrollbar thumb sits at the top), and `app.select` scrolls selections into view below it |
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
 
 From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit. If your app rejects the edit, the selection stays unchanged.
+
+## Folding lines
+
+Pass `folds(List<El.Fold>, Consumer<El.Fold>)` on a multi-line field to collapse line ranges. Each `El.Fold(first, last)` keeps line `first` visible with a placeholder mark (`…` by default, or an element built by the three-argument overload's `mark` function) after its end and hides lines `first + 1` through `last`. Ranges may be unsorted, overlapping, or nested (a line is hidden if any fold hides it, and the outermost fold owns the visible mark); ranges past the end of the text are clamped or ignored.
+
+- Your app owns the fold list and keeps its line indices current with the field's string; core never mutates fold state.
+- Scrolling, line backgrounds, wrapping, hit testing, and the gutter skip hidden lines while `El.Gutter.Line.index()` stays the real line index.
+- Arrow keys, Home/End, and Page Up/Down (with or without Shift) skip hidden lines and never leave the caret inside a fold. A selection spanning a fold still contains the hidden lines, so copying keeps them.
+- Clicking a fold's placeholder mark (keyed `fold-<first>` in tree dumps unless the mark sets its own key), making an edit whose range touches a hidden line, or placing the caret or selection end on a hidden line via `app.select`, `FieldState.select`, or undo/redo calls `unfold` with the affected fold.
 
 ## Finding the word at the cursor
 

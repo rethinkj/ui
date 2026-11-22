@@ -1448,9 +1448,15 @@ public final class App<S> {
    */
   public void textComposition(String text, int cursor) {
     Objects.requireNonNull(text, "text");
-    enqueue(() -> focus.element() != null
-        && focus.element().editor() != null
-        && focus.element().editor().compose(text, cursor));
+    enqueue(() -> {
+      if (focus.element() == null || focus.element().editor() == null) {
+        return false;
+      }
+      Editor editor = focus.element().editor();
+      boolean composed = editor.compose(text, cursor);
+      handled |= editor.takeUnfolded();
+      return composed;
+    });
   }
 
   /** Where cut and copied text go and paste takes it from; {@link Clipboard#inMemory} at first. */
@@ -2824,12 +2830,12 @@ public final class App<S> {
       if (focus.waits()) {
         drawn |= settle(); // the focused row that a scroll of this frame brought back takes input
       }
-      if (untold()) {
+      if (untold() || hasPendingUnfolds()) {
         // A selection a build applied or moved, also one of rows that scrolling filled: a
         // FieldState's, or the app's answer to an edit. It reaches onSelect as a handler's input
         // would, before the next input: what the handler asks for and changes comes first.
         scheduler.addFirst(() -> {
-          boolean told = tellSelections();
+          boolean told = tellUnfolds() | tellSelections();
           rowsKept |= told;
           return told;
         });
@@ -2837,7 +2843,7 @@ public final class App<S> {
       scheduler.beginHandler();
       try {
         stale |= scheduler.poll().getAsBoolean();
-        stale |= tellSelections();
+        stale |= tellUnfolds() | tellSelections();
       } catch (RuntimeException | Error e) {
         handled = true; // it may have changed the state: the next input gets a tree built anew
         throw e;
@@ -2865,7 +2871,8 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
-      stale |= tellSelections(); // of fields in those rows, which the rebuild then shows
+      stale |=
+          tellUnfolds() | tellSelections(); // of fields in those rows, which the rebuild then shows
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
     // tree built between inputs, which may lack the rows under the pointer and would end their
@@ -2889,7 +2896,7 @@ public final class App<S> {
         for (int pass = 0; pass < 2 && stale; pass++) {
           rebuild();
           // A caret that the app's string moved, or of a new field: its handler is told, once.
-          if (tellSelections()) {
+          if (tellUnfolds() | tellSelections()) {
             rebuild();
           }
           List<El> path = pointed();
@@ -3202,7 +3209,7 @@ public final class App<S> {
     boolean looked = false;
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
       El field = entry.getValue().element();
-      if (kept.contains(entry.getValue()) && field.takeGutterBuilt()) {
+      if (kept.contains(entry.getValue()) && field.takePartsBuilt()) {
         looked |= gutterLooks(field, entry.getKey());
       }
     }
@@ -3325,6 +3332,26 @@ public final class App<S> {
     return false;
   }
 
+  /** Asks the unfold handlers of fields whose pending selection or undo landed on a hidden line. */
+  private boolean tellUnfolds() {
+    boolean told = false;
+    for (Map.Entry<Object, Editor> entry : List.copyOf(editors.entrySet())) {
+      told |= inTree(entry) && entry.getValue().unfoldPending();
+    }
+    handled |= told;
+    return told;
+  }
+
+  /** Whether a field of the tree has a pending selection or undo to check for hidden folds. */
+  private boolean hasPendingUnfolds() {
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      if (inTree(entry) && entry.getValue().hasPendingUnfold()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Whether the field of an editor is the element of the tree for its identity. */
   private boolean inTree(Map.Entry<Object, Editor> entry) {
     return animator.element(entry.getKey()) == entry.getValue().element();
@@ -3396,6 +3423,7 @@ public final class App<S> {
         return false;
       }
       now.editor().select(caret, anchor);
+      handled |= now.editor().unfoldPending();
       scrolled = true; // its jump is placed before the next input hit tests, as a scroll's is
       return true;
     });
@@ -3691,7 +3719,7 @@ public final class App<S> {
     for (Object at : Animator.lineage(id)) {
       El el = animator.element(at);
       if (el == null) {
-        return above == null || !above.hasGutter();
+        return above == null || !above.hasFieldParts();
       }
       if (el.isExiting()) {
         return true;

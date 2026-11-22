@@ -1,8 +1,12 @@
 package com.rethinkj.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
@@ -222,6 +226,62 @@ class LinesTest {
     for (int line = 0; line < expected.count(); line++) {
       assertEquals(expected.start(line), actual.start(line), "line " + line + " of " + text);
     }
+  }
+
+  @Test
+  void foldedLinesCountZeroRowsAndAreSkippedByLineOfRow() {
+    // 8 lines (0..7), unsorted + nested + overlapping + clamped/ignored folds.
+    String text = "0000\n1111\n2222\n3333\n4444\n5555\n6666\n7777";
+    Lines lines = Lines.of(text);
+    El.Fold outer = new El.Fold(1, 4); // hides 2..4
+    El.Fold inner = new El.Fold(2, 3); // nested inside outer
+    El.Fold tail = new El.Fold(6, 20); // clamped to 7 (hides 7)
+    El.Fold past = new El.Fold(7, 10); // past last line, ignored
+    lines.folds(List.of(tail, inner, past, outer));
+
+    // Visible lines: 0, 1, 5, 6 (4 rows without wrapping).
+    assertEquals(4, lines.totalRows());
+    assertEquals(0, lines.rowsBefore(0));
+    assertEquals(1, lines.rowsBefore(1));
+    assertEquals(2, lines.rowsBefore(2));
+    assertEquals(2, lines.rowsBefore(5));
+    assertEquals(3, lines.rowsBefore(6));
+    assertEquals(4, lines.rowsBefore(7));
+
+    assertEquals(0, lines.lineOfRow(0));
+    assertEquals(1, lines.lineOfRow(1));
+    assertEquals(5, lines.lineOfRow(2), "never returns a hidden line");
+    assertEquals(6, lines.lineOfRow(3));
+    assertEquals(6, lines.lineOfRow(10), "clamps past end to last visible line");
+
+    assertEquals(outer, lines.foldAt(1), "outermost fold owns the header");
+    assertNull(lines.foldAt(2));
+    assertEquals(tail, lines.foldAt(6));
+    assertEquals(5, lines.nextVisible(1));
+    assertEquals(1, lines.prevVisible(5));
+    assertEquals(-1, lines.nextVisible(6));
+    assertEquals(List.of(inner, outer), lines.foldsHiding(3, 3));
+    assertTrue(lines.isHidden(7));
+    assertFalse(lines.isHidden(0));
+
+    // Wrapping with folds: hidden lines still count 0 rows, visible lines count measured/estimated.
+    lines.wrap("w", 2);
+    lines.rows(1, 3);
+    lines.rows(2, 9); // hidden: ignored
+    // Visible rows: line 0 (2), line 1 (3), line 5 (2), line 6 (2) -> total 9.
+    assertEquals(9, lines.totalRows());
+    assertEquals(0, lines.lineOfRow(1));
+    assertEquals(1, lines.lineOfRow(2));
+    assertEquals(1, lines.lineOfRow(4));
+    assertEquals(5, lines.lineOfRow(5));
+    assertEquals(6, lines.lineOfRow(7));
+    assertEquals(6, lines.lineOfRow(99));
+
+    // Removing folds returns to full count and keeps wrapping rows.
+    lines.folds(List.of());
+    assertEquals(17, lines.totalRows());
+    lines.wrap(null, 1);
+    assertEquals(8, lines.totalRows());
   }
 
   private static String randomText(Random random, String alphabet, int length) {

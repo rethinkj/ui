@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
@@ -234,6 +235,23 @@ public final class El {
   }
 
   /**
+   * A folded range of lines in a {@link #multiline} field ({@link #folds}): line {@code first}
+   * stays shown with a placeholder mark at its end, and lines {@code first + 1} through {@code
+   * last} are hidden.
+   *
+   * @param first the shown first line, from 0
+   * @param last the last hidden line, strictly greater than {@code first}
+   */
+  public record Fold(int first, int last) {
+    public Fold {
+      if (first < 0 || last <= first) {
+        throw new IllegalArgumentException(
+            "fold lines must have 0 <= first < last, were " + first + " and " + last);
+      }
+    }
+  }
+
+  /**
    * Told the caret and the other end of the selection of a text field, as indexes into its string;
    * equal when nothing is selected.
    */
@@ -299,12 +317,19 @@ public final class El {
   private static final class Field {
     Gutter gutter;
     El gutterRail;
+    El gutterColumn;
     FieldMenu fieldMenu;
     float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
     float gutterWidth;
     float gutterScale; // the scale gutterWidth was measured at
     Object gutterShown; // what the cells were built for: their lines, tops and the caret
-    boolean gutterBuilt; // the cells were built since App last applied looks to them
+    List<Fold> folds = List.of();
+    Consumer<Fold> onUnfold;
+    Function<Fold, El> foldMark;
+    List<El> foldMarks = List.of();
+    Object foldsShown; // what the fold marks were built for: their ends and scroll
+    float foldsExtent; // farthest right edge of placed fold marks, in logical content coordinates
+    boolean partsBuilt; // gutter cells or fold marks were built since App last applied looks
     boolean readOnly;
     int maxLength = -1;
     int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
@@ -1764,11 +1789,74 @@ public final class El {
     return field != null && field.gutter != null;
   }
 
-  /** For {@link App}: whether the gutter's cells were built since it last asked. */
-  boolean takeGutterBuilt() {
-    boolean built = field.gutterBuilt;
-    field.gutterBuilt = false;
+  /**
+   * For {@link App}: whether this field has parts (gutter cells or fold marks) built after layout.
+   */
+  boolean hasFieldParts() {
+    return field != null && (field.gutter != null || !field.folds.isEmpty());
+  }
+
+  /** For {@link App}: whether gutter cells or fold marks were built since it last asked. */
+  boolean takePartsBuilt() {
+    if (field == null) {
+      return false;
+    }
+    boolean built = field.partsBuilt;
+    field.partsBuilt = false;
     return built;
+  }
+
+  /**
+   * Hides ranges of lines in a {@link #multiline} field, keeping each range's {@link Fold#first
+   * first} line shown with a default ellipsis mark ({@code …}) at its end and hiding lines {@code
+   * first + 1} through {@link Fold#last last}. A press on the mark, an edit whose range touches a
+   * hidden line, or a caret or selection end placed on a hidden line by the app, find or undo asks
+   * {@code unfold} to open the fold; the field keeps no fold state of its own, and the app keeps
+   * the ranges current with its string.
+   *
+   * <p>Ranges may come in any order; overlapping or nested ranges hide every line any range hides
+   * with the outermost range owning the visible mark, and ranges past the text are clamped or
+   * ignored. In a {@code .tree.txt} each visible mark is keyed {@code fold-<first>} unless it has
+   * a key.
+   *
+   * @param folds the folded line ranges, empty for none
+   * @param unfold called when a fold should open; may be null
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El folds(List<Fold> folds, Consumer<Fold> unfold) {
+    return folds(folds, unfold, null);
+  }
+
+  /**
+   * Like {@link #folds(List, Consumer)}, with {@code mark} building the placeholder element placed
+   * after the end of each visible fold's first line (its last row, vertically centered in the row),
+   * for folds in view only. Core wires a press on the mark to call {@code unfold} with that fold,
+   * so the mark needs no press handler of its own.
+   *
+   * @param mark builds the placeholder element for a visible fold, or null for the default ellipsis
+   *     mark in the field's text color at reduced opacity
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El folds(List<Fold> folds, Consumer<Fold> unfold, Function<Fold, El> mark) {
+    Text t = editableOnly("folds");
+    if (!t.multiline()) {
+      throw new IllegalStateException("folds is for multi-line fields: call it after multiline().");
+    }
+    field.folds = List.copyOf(Objects.requireNonNull(folds, "folds"));
+    field.onUnfold = unfold;
+    field.foldMark = Context.captured(mark);
+    t.folds(field.folds);
+    return this;
+  }
+
+  /** For {@link Editor}: the folded line ranges of this field, or empty. */
+  List<Fold> folds() {
+    return field == null ? List.of() : field.folds;
+  }
+
+  /** For {@link Editor}: the unfold handler of this field, or null. */
+  Consumer<Fold> onUnfold() {
+    return field == null ? null : field.onUnfold;
   }
 
   /** The gutter's cell of line {@code line}. */
@@ -1820,7 +1908,7 @@ public final class El {
       return false;
     }
     field.gutterShown = shown;
-    field.gutterBuilt = true;
+    field.partsBuilt = true;
     float rowHeight = text.lineHeight() / scale;
     float top = border(Side.TOP) + padding(Side.TOP);
     El column = el().key("gutter").clip();
@@ -1846,7 +1934,14 @@ public final class El {
         top + (float) scrollY,
         field.gutterWidth,
         text.contentHeight() / scale);
-    children.clear();
+    if (field.gutterRail != null) {
+      children.remove(field.gutterRail);
+    }
+    if (field.gutterColumn != null) {
+      children.remove(field.gutterColumn);
+    }
+    field.gutterColumn = column;
+    int at = 0;
     if (field.gutterRail != null) {
       float borderTop = border(Side.TOP);
       float railWidth =
@@ -1856,11 +1951,104 @@ public final class El {
       Flex.layout(field.gutterRail, railWidth, railHeight);
       field.gutterRail.place(
           (float) scrollX + border(Side.LEFT), (float) scrollY + borderTop, railWidth, railHeight);
-      children.add(field.gutterRail);
+      children.add(at++, field.gutterRail);
     }
-    children.add(column);
+    children.add(at, column);
     scrollTo(scrollX, scrollY);
     text.shownIndex().gutterCells += starts.size();
+    return true;
+  }
+
+  private static final float FOLD_GAP = 4;
+  private static final float DEFAULT_FOLD_OPACITY = 0.6f;
+
+  private El defaultFoldMark() {
+    return El.text(Text.ELLIPSIS)
+        .font(text.font())
+        .fontSize(text.size())
+        .color(text.color())
+        .opacity(DEFAULT_FOLD_OPACITY);
+  }
+
+  /**
+   * For {@link Editor}, once the rows of a multi-line field are laid out and scrolled: builds the
+   * placeholder marks for the visible folds in view, unless they are built for these folds and
+   * places, and places them after each fold's first line's last row.
+   *
+   * @return whether the marks were built
+   */
+  boolean placeFolds() {
+    if (field == null || field.folds.isEmpty() || !text.laidOut()) {
+      if (field != null && !field.foldMarks.isEmpty()) {
+        children.removeAll(field.foldMarks);
+        field.foldMarks = List.of();
+        field.foldsExtent = 0;
+        field.foldsShown = null;
+      }
+      return false;
+    }
+    List<Text.FoldEnd> ends = text.foldEnds();
+    float scale = text.scale();
+    List<Object> shown = List.of(ends, scrollX, scrollY, width, height);
+    if (shown.equals(field.foldsShown)) {
+      return false;
+    }
+    field.foldsShown = shown;
+    field.partsBuilt = true;
+    float rowHeight = text.lineHeight() / scale;
+    float contentLeft = border(Side.LEFT) + padding(Side.LEFT);
+    float contentTop = border(Side.TOP) + padding(Side.TOP);
+    float contentWidth = text.contentWidth() / scale;
+    List<El> built = new ArrayList<>(ends.size());
+    float maxRight = 0;
+    for (Text.FoldEnd end : ends) {
+      Fold fold = end.fold();
+      El mark = field.foldMark != null ? field.foldMark.apply(fold) : defaultFoldMark();
+      if (mark == null) {
+        throw new IllegalStateException("The fold mark function returned null for fold " + fold);
+      }
+      if (mark.key == null) {
+        mark.key("fold-" + fold.first());
+      }
+      if (field.onUnfold != null) {
+        PressAtHandler existing = mark.onPress();
+        Consumer<Fold> onUnfold = field.onUnfold;
+        mark.onPress((clicks, modifiers, x, y) -> {
+          if (existing != null) {
+            existing.press(clicks, modifiers, x, y);
+          }
+          onUnfold.accept(fold);
+        });
+        if (mark.cursor == null) {
+          mark.cursor(Cursor.POINTER);
+        }
+        mark.keepFocus(); // focusing the field would scroll to the caret before the press ends
+      }
+      scaleText(mark, scale, text.systemFonts(), resolvedLineHeight);
+      Flex.layout(mark, Float.POSITIVE_INFINITY, rowHeight);
+      float markX = end.endX() / scale + FOLD_GAP + mark.margin(Side.LEFT);
+      float markY = end.top() / scale + (rowHeight - mark.height) / 2f;
+      maxRight = Math.max(maxRight, markX + mark.width + mark.margin(Side.RIGHT) + (float) scrollX);
+      if (text.wraps()) {
+        markX = Math.min(markX, Math.max(0, contentWidth - mark.width));
+      } else if (markX < 0 || markX >= contentWidth) {
+        continue;
+      }
+      mark.place(
+          contentLeft + markX + (float) scrollX,
+          contentTop + markY + (float) scrollY,
+          mark.width,
+          mark.height);
+      built.add(mark);
+    }
+    if (!field.foldMarks.isEmpty()) {
+      children.removeAll(field.foldMarks);
+    }
+    field.foldMarks = List.copyOf(built);
+    children.addAll(field.foldMarks);
+    field.foldsExtent = maxRight;
+    measureScroll();
+    scrollTo(scrollX, scrollY);
     return true;
   }
 
@@ -3706,7 +3894,9 @@ public final class El {
       // A field: its rows as far as they are known, in its content box as layout placed it.
       float scale = text.scale();
       double room = Math.max(1, Math.round(scale)) + Editor.MARGIN * scale; // the caret at the end
-      double wide = text.extentWidth((float) room) - text.contentWidth() / scale;
+      double extent = Math.max(
+          text.extentWidth((float) room), field == null || text.wraps() ? 0 : field.foldsExtent);
+      double wide = extent - text.contentWidth() / scale;
       double tall = text.extentHeight() - text.contentHeight() / scale;
       maxScrollX = style.overflowX == Style.Overflow.SCROLL && wide > SLACK ? wide : 0;
       maxScrollY = tall > SLACK ? tall : 0;

@@ -1,0 +1,13 @@
+el 0,0 260x156
+  text #code role=textbox label="Query" "SELECT id\nFROM (\n  SELECT id, total\n  FROM orders\n  WHERE total > 0\n) sub\nORDER BY id;" 12,12 236x132 lines 1-7/7 focused caret 16 (2:7)
+    el #rail 13,13 25x130
+    el #gutter 19,19 18x118
+      el #line-0 19,19 18x17
+        text "1" 21,19 8x17
+      el #line-1 19,36 18x17
+        text "2" 21,36 8x17
+      el #line-5 19,53 18x17
+        text "6" 21,53 8x17
+      el #line-6 19,70 18x17
+        text "7" 21,70 8x17
+    text #fold-1 "…" 96.5,36 8x17
