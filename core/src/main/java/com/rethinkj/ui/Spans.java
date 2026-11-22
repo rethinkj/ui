@@ -14,9 +14,9 @@ import java.util.Objects;
  *
  * <p>Colors ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
- * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines, the
- * line's background, struck-out ranges and guides are drawn in a {@link El#multiline multi-line}
- * field only, before its selection and glyphs.
+ * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines,
+ * squiggles, the line's background, struck-out ranges and guides are drawn in a {@link
+ * El#multiline multi-line} field only, before its selection and glyphs.
  */
 public final class Spans {
 
@@ -26,6 +26,7 @@ public final class Spans {
   static final int UNDERLINE = 3;
   static final int STRIKE = 4;
   static final int GUIDE = 5;
+  static final int SQUIGGLE = 6;
 
   private final int length;
   private final boolean discard; // only the state is wanted: adds do nothing
@@ -70,7 +71,7 @@ public final class Spans {
           .append(Integer.toHexString(argb).toUpperCase(Locale.ROOT))
           .append('\n');
     }
-    String[] names = {"color", "font", "background", "underline", "strike", "guide"};
+    String[] names = {"color", "font", "background", "underline", "strike", "guide", "squiggle"};
     for (int i = 0; i < count; i++) {
       out.append(names[kinds[i]])
           .append(' ')
@@ -110,11 +111,20 @@ public final class Spans {
   }
 
   /**
-   * A straight line under the range, in color {@code argb}, as under an error; it lies where the
-   * line under an input method's composition does, and is as thick.
+   * A straight line under the range, in color {@code argb}, as under a link or a match of a
+   * search; it lies where the line under an input method's composition does, and is as thick.
    */
   public Spans underline(int from, int to, int argb) {
     return add(UNDERLINE, from, to, argb, null);
+  }
+
+  /**
+   * A wavy line under the range, in color {@code argb}, as under an error or a warning; it lies
+   * where an {@link #underline} does, with amplitude and wavelength that follow the font size and
+   * the scale, and continues across wrapped rows and line feeds.
+   */
+  public Spans squiggle(int from, int to, int argb) {
+    return add(SQUIGGLE, from, to, argb, null);
   }
 
   /**

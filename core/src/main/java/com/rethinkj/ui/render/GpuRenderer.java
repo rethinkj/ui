@@ -97,8 +97,9 @@ public final class GpuRenderer implements AutoCloseable {
       }
 
       // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
-      // rounded rectangle, a glyph, a shadow, an image or a line, whose ends are in rect and its
-      // width in shape.x. The slots in which they differ are declared as u32
+      // rounded rectangle, a glyph, a shadow, an image, a line (whose ends are in rect and width
+      // in shape.x) or a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
+      // shape, phase in more.x). The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -124,6 +125,7 @@ public final class GpuRenderer implements AutoCloseable {
       const SHADOW: u32 = 2u;
       const IMAGE: u32 = 3u;
       const LINE: u32 = 4u;
+      const SQUIGGLE: u32 = 5u;
 
       struct Clip {
         rect: vec4f,
@@ -200,6 +202,14 @@ public final class GpuRenderer implements AutoCloseable {
             start = min(rect.xy, rect.zw) - half;
             end = max(rect.xy, rect.zw) + half;
             empty = !(half > 0.0);
+          }
+          if instance.kind == SQUIGGLE {
+            let wavelength = bitcast<f32>(instance.shape.x);
+            let stroke = bitcast<f32>(instance.shape.y);
+            let reach = rect.w + stroke / 2.0;
+            start = vec2f(rect.x, rect.y - reach);
+            end = vec2f(rect.x + rect.z, rect.y + reach);
+            empty = !(rect.z > 0.0 && rect.w >= 0.0 && wavelength > 0.0 && stroke > 0.0);
           }
           let pad = 1.0 / globals.scale;
           low = (max(start, clip.rect.xy) - pad) * globals.scale;
@@ -539,6 +549,28 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return instance.fill * line_cover;
+        }
+        if instance.kind == SQUIGGLE {
+          let wavelength = bitcast<f32>(instance.shape.x);
+          let stroke = bitcast<f32>(instance.shape.y);
+          let half_w = instance.rect.z / 2.0;
+          let amplitude = instance.rect.w;
+          let half = stroke / 2.0;
+          let phase = bitcast<f32>(instance.more.x);
+          let end_cover = coverage(abs(point.x - (instance.rect.x + half_w)) - half_w);
+          let sc = turn((point.x - instance.rect.x) / wavelength + phase);
+          let wave_y = instance.rect.y + amplitude * sc.x;
+          let slope = 6.283185307179586 * amplitude / wavelength * sc.y;
+          let d = max(abs(point.y - wave_y) / sqrt(1.0 + slope * slope),
+              abs(point.y - instance.rect.y) - amplitude);
+          var squiggle_cover = (coverage(d - half) - coverage(d + half)) * end_cover;
+          if instance.clip != 0u {
+            squiggle_cover *= clip_coverage(instance.clip, point);
+          }
+          if !(squiggle_cover > 0.0) {
+            discard;
+          }
+          return instance.fill * squiggle_cover;
         }
         if instance.kind == SHADOW {
           let half_size = instance.rect.zw / 2.0;

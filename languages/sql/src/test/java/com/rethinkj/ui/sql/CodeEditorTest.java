@@ -26,8 +26,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The kit's {@link CodeEditor} with {@link Sql}, driven by {@code code-editor.txt}, with stored
  * images: every kind of token, line numbers, the caret's line in a marked block on the rail, a
- * marker, a pair of brackets, an error underlined and gone after an edit, and the editor scrolled
- * to its end; and embedded in a card.
+ * marker, a pair of brackets, an error with a squiggly underline and gone after an edit, and the
+ * editor scrolled to its end; and embedded in a card.
  */
 class CodeEditorTest {
 
@@ -97,7 +97,7 @@ class CodeEditorTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"dark, 2", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2", "dark, 1"})
   void looksAsStored(String theme, int scale) throws IOException {
     App<Query> app = app(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     String script = Files.readString(Path.of("src/test/resources/scripts/code-editor.txt"));
@@ -115,8 +115,7 @@ class CodeEditorTest {
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
     assertTrue(scrolled.contains("el #line-15 "), scrolled);
     int note = QUERY.indexOf("o.note");
-    assertTrue(
-        brackets.contains(" underline " + note + "-" + (note + 6)), "the error, in the dump");
+    assertTrue(brackets.contains(" squiggle " + note + "-" + (note + 6)), "the error, in the dump");
     assertTrue(brackets.contains(" error=\"column o.note does not exist\""), "and its marker");
     assertTrue(
         Files.readString(out.resolve("tooltip.tree.txt"))
@@ -128,7 +127,7 @@ class CodeEditorTest {
         "the editor keeps the focus and the caret");
     String edited = Files.readString(out.resolve("edited.tree.txt"));
     assertTrue(
-        !edited.contains("underline") && !edited.contains("error="),
+        !edited.contains("squiggle") && !edited.contains("error="),
         "an edit takes it away: " + edited);
   }
 

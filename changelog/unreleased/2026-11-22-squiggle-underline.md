@@ -1,0 +1,1 @@
+- `Spans.squiggle(from, to, argb)` draws an antialiased wavy underline whose amplitude and wavelength follow the font size and scale and that continues across wrapped rows and line feeds; tree dumps report decorator squiggles as `squiggle <from>-<to>`, and `CodeEditor` now marks diagnostics with a squiggle in their severity's color.

@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
 import com.rethinkj.ui.layout.Flex;
+import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
@@ -451,6 +452,74 @@ class HighlightTest {
           }
         }));
     assertTrue(app.tree().dump().contains(" underline 0-1,2-9"), app.tree().dump());
+  }
+
+  @Test
+  void squigglesFollowWrapsAndJoinAcrossLineFeedsInTheDump() {
+    Spans spans = new Spans(10).squiggle(1, 5, RED);
+    assertEquals("squiggle 1-5 FFCC0000\n", spans.toString());
+    App<Model> app = area(
+        "aaaa bbbb cccc dddd eeee ffff\ncd\nef",
+        f -> f.wrapText().decorate((line, start, text, out) -> {
+          if (line == 0) {
+            out.squiggle(15, 29, RED); // across the wrap onto row 1, touching line 1 across \n
+          } else {
+            out.squiggle(0, 2, RED);
+          }
+        }));
+    List<Text.Mark> marks = field(app).text().marks();
+    assertEquals(4, marks.size(), "two wrapped rows on line 0, plus lines 1 and 2: " + marks);
+    for (Text.Mark mark : marks) {
+      assertTrue(mark.squiggle(), "every mark is a squiggle: " + mark);
+    }
+    assertEquals(15 * 8, marks.get(0).box().x());
+    assertEquals(0, marks.get(1).box().x(), "continues at the start of the wrapped row");
+    assertTrue(app.tree().dump().contains(" squiggle 15-35"), app.tree().dump());
+  }
+
+  @Test
+  void aDecoratorsSquiggleIsCutOutOfAHighlightersOne() {
+    App<Model> app = area(
+        "abcdef",
+        f -> f.highlight(1, (line, state, out) -> {
+              out.squiggle(0, 6, RED);
+              return state;
+            })
+            .decorate((line, start, text, out) -> out.squiggle(2, 4, TEXT)));
+    List<Text.Mark> marks = field(app).text().marks();
+    assertEquals(3, marks.size(), marks.toString());
+    float[] xs = {0, 4 * 8, 2 * 8};
+    int[] colors = {RED, RED, TEXT};
+    for (int i = 0; i < 3; i++) {
+      assertEquals(xs[i], marks.get(i).box().x());
+      assertEquals(16, marks.get(i).box().width());
+      assertEquals(colors[i], marks.get(i).color());
+    }
+  }
+
+  @Test
+  void aSquiggleOnTheLastRowStaysInsideTheField() {
+    App<Model> app = area(
+        "ab\ncd",
+        f -> f.lines(2).decorate((line, start, text, out) -> {
+          if (line == 1) {
+            out.squiggle(0, 2, RED);
+          }
+        }));
+    Scene scene = app.scene();
+    int squiggles = 0;
+    for (int i = 0; i < scene.count(); i++) {
+      if (scene.getInt(i, Scene.KIND) == Scene.SQUIGGLE) {
+        squiggles++;
+        int clip = scene.clipOf(i);
+        float bottom =
+            scene.get(i, Scene.Y) + scene.get(i, Scene.AMPLITUDE) + scene.get(i, Scene.STROKE) / 2;
+        assertTrue(
+            bottom <= scene.clipGet(clip, Scene.Y) + scene.clipGet(clip, Scene.HEIGHT),
+            "its lower lobes are not clipped: " + bottom);
+      }
+    }
+    assertEquals(1, squiggles);
   }
 
   private static float under(Text t) {

@@ -201,6 +201,7 @@ class GpuRendererTest {
     cases.add(text("text-highlighted", highlighted(), 280, 72, s));
     // Text fields: the selection, the caret and the line under a composition are rectangles.
     cases.add(marked("area-marked", s));
+    cases.add(squiggles("squiggles", s));
     cases.add(scripted(
         "field-composing",
         new App<>(new Examples.Form(), Examples::form),
@@ -566,10 +567,17 @@ class GpuRendererTest {
     int[] layers = new int[c.width * c.height];
     Scene s = c.scene;
     for (int i = 0; i < s.count(); i++) {
-      boolean line = s.getInt(i, Scene.KIND) == Scene.LINE;
+      int kind = s.getInt(i, Scene.KIND);
+      boolean line = kind == Scene.LINE;
+      boolean squiggle = kind == Scene.SQUIGGLE;
       if (line
           ? s.get(i, Scene.LINE_WIDTH) <= 0
-          : !(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
+          : squiggle
+              ? !(s.get(i, Scene.WIDTH) > 0
+                  && s.get(i, Scene.AMPLITUDE) >= 0
+                  && s.get(i, Scene.WAVELENGTH) > 0
+                  && s.get(i, Scene.STROKE) > 0)
+              : !(s.get(i, Scene.WIDTH) > 0 && s.get(i, Scene.HEIGHT) > 0)) {
         continue;
       }
       int clip = s.clipOf(i);
@@ -577,7 +585,7 @@ class GpuRendererTest {
       int y0;
       int x1;
       int y1;
-      if (s.getInt(i, Scene.KIND) == Scene.GLYPH) {
+      if (kind == Scene.GLYPH) {
         int size = s.getInt(i, Scene.ATLAS_SIZE);
         x0 = (int) Math.round(s.get(i, Scene.X) * (double) c.scale);
         y0 = (int) Math.round(s.get(i, Scene.Y) * (double) c.scale);
@@ -598,23 +606,37 @@ class GpuRendererTest {
         x1 = Math.min(x1, c.width);
         y1 = Math.min(y1, c.height);
       } else {
-        // A shadow reaches three deviations beyond its shape.
-        double reach = line
-            ? s.get(i, Scene.LINE_WIDTH) / 2
-            : s.getInt(i, Scene.KIND) != Scene.SHADOW
-                ? 0
-                : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
         double x = s.get(i, Scene.X);
         double y = s.get(i, Scene.Y);
-        // A rectangle's other corner; a line's other end.
-        double x2 = line ? s.get(i, Scene.X2) : x + s.get(i, Scene.WIDTH);
-        double y2 = line ? s.get(i, Scene.Y2) : y + s.get(i, Scene.HEIGHT);
-        double left = Math.max(Math.min(x, x2) - reach, s.clipGet(clip, Scene.X));
-        double top = Math.max(Math.min(y, y2) - reach, s.clipGet(clip, Scene.Y));
-        double right = Math.min(
-            Math.max(x, x2) + reach, s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
-        double bottom = Math.min(
-            Math.max(y, y2) + reach, s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
+        double left;
+        double top;
+        double right;
+        double bottom;
+        if (squiggle) {
+          double reach = s.get(i, Scene.AMPLITUDE) + s.get(i, Scene.STROKE) / 2.0;
+          left = x;
+          top = y - reach;
+          right = x + s.get(i, Scene.WIDTH);
+          bottom = y + reach;
+        } else {
+          // A shadow reaches three deviations beyond its shape.
+          double reach = line
+              ? s.get(i, Scene.LINE_WIDTH) / 2
+              : kind != Scene.SHADOW
+                  ? 0
+                  : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
+          // A rectangle's other corner; a line's other end.
+          double x2 = line ? s.get(i, Scene.X2) : x + s.get(i, Scene.WIDTH);
+          double y2 = line ? s.get(i, Scene.Y2) : y + s.get(i, Scene.HEIGHT);
+          left = Math.min(x, x2) - reach;
+          top = Math.min(y, y2) - reach;
+          right = Math.max(x, x2) + reach;
+          bottom = Math.max(y, y2) + reach;
+        }
+        left = Math.max(left, s.clipGet(clip, Scene.X));
+        top = Math.max(top, s.clipGet(clip, Scene.Y));
+        right = Math.min(right, s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
+        bottom = Math.min(bottom, s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
         // Clamped before the cast, so that an edge a billion pixels out cannot overflow.
         x0 = (int) Math.max(Math.floor(left * c.scale) - 1, 0);
         y0 = (int) Math.max(Math.floor(top * c.scale) - 1, 0);
@@ -909,6 +931,51 @@ class GpuRendererTest {
         app,
         Path.of("target/gpu-vs-cpu-scripts"));
     return scene(name, app.scene(), 240, 80, scale);
+  }
+
+  /**
+   * Squiggly underlines in a multi-line field: across wrapped rows and a line feed, two touching
+   * ranges joining seamlessly, opaque and translucent colors, and clipped at the field's edge.
+   */
+  private static Case squiggles(String name, float scale) throws IOException {
+    String[] value = {
+      "SELECT unknown_column, another_bad_name FROM orders\nWHERE status = 'invalid'\nAND note <> ''"
+    };
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(8)
+            .fill(0xFF1E1E2E)
+            .child(El.text(value[0])
+                .editable(v -> value[0] = v)
+                .multiline()
+                .wrapText()
+                .key("area")
+                .font(Font.mono())
+                .fontSize(12)
+                .color(0xFFE0E0E0)
+                .w(220)
+                .lines(4)
+                .padding(4)
+                .fill(0xFF262637)
+                .decorate((line, start, text, out) -> {
+                  if (line == 0) {
+                    out.squiggle(7, 21, 0xFFEF4444)
+                        .squiggle(21, 39, 0xFFEF4444); // adjacent, across wrap
+                  } else if (line == 1) {
+                    out.squiggle(6, text.length(), 0xFFF59E0B);
+                  } else if (line == 2) {
+                    out.squiggle(0, 8, 0xB0F59E0B); // translucent, joined across line feed
+                  }
+                })));
+    app.textRendering(TextRendering.LINUX);
+    Script.run(
+        "size 240 96 scale " + scale + "\nframe\nwheel #area 0 6\nframe\n",
+        app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    return scene(name, app.scene(), 240, 96, scale);
   }
 
   /** One line of text on white, at {@code x} in a window of 200 by 40. */

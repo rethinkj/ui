@@ -9,7 +9,7 @@ For plain notes or prose, use a [text area](/docs/components/text-field#text-are
 
 Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
-<Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked and underlined, keywords in color and a bracket pair highlighted" />
+<Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked with a squiggle, keywords in color and a bracket pair highlighted" />
 
 ## Example
 
@@ -94,7 +94,7 @@ By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/
 The left gutter displays a marker column and line numbers. You can attach:
 - **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
-- **Diagnostics (`diagnostics(text, list)`):** Underlines errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
+- **Diagnostics (`diagnostics(text, list)`):** Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
 
 When you pass the app, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** moves to the previous one, wrapping around at both ends. The diagnostic message appears above the cursor (styled like the marker's tooltip) while the editor has focus. It stays visible until the cursor leaves the diagnostic or you press **Escape**. **Escape** closes an open completion list or find bar first. If there are no diagnostics, these keys do nothing.
 
@@ -131,7 +131,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 
 ### Spans
 
-`Spans` ranges use `[from, to)` character offsets within the line (later overlapping ranges win). Available methods: `color`, `font`, `background`, `underline`, `strike`, `guide` (vertical indentation guide), and `lineBackground`. See [`Spans` Javadoc](/api/com/rethinkj/ui/Spans.html).
+`Spans` ranges use `[from, to)` character offsets within the line (later overlapping ranges win). Available methods: `color`, `font`, `background`, `underline`, `squiggle`, `strike`, `guide` (vertical indentation guide), and `lineBackground`. See [`Spans` Javadoc](/api/com/rethinkj/ui/Spans.html).
 
 ## Custom decorators
 
@@ -176,7 +176,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic underlines (`underline <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
 ```

@@ -85,14 +85,22 @@ public final class Text implements Measure {
   public record Box(float x, float y, float width, float height) {}
 
   /**
-   * A rectangle drawn behind the glyphs of a multi-line field, before its selection: the
-   * background of a line or a range, or the line under a range, from a {@link Highlighter} or a
-   * {@link Decorator}.
+   * A mark drawn behind the glyphs of a multi-line field, before its selection: the background of a
+   * line or a range, a straight line under or through a range, or a wavy line ({@link
+   * Spans#squiggle}), from a {@link Highlighter} or a {@link Decorator}.
    *
-   * @param box where, as the selection's rectangles are
+   * @param box where, as the selection's rectangles are; a squiggle's reaches from the
+   *     underline to the bottom of its row
    * @param color as 0xAARRGGBB
+   * @param squiggle whether the mark is drawn as a wavy line rather than a rectangle
    */
-  public record Mark(Box box, int color) {}
+  public record Mark(Box box, int color, boolean squiggle) {
+
+    /** A rectangle mark. */
+    public Mark(Box box, int color) {
+      this(box, color, false);
+    }
+  }
 
   /** What ends a line that {@link El#ellipsis} shortens. */
   public static final String ELLIPSIS = "…";
@@ -138,8 +146,10 @@ public final class Text implements Measure {
   private Object highlightKey;
   private Decorator decorator;
   private List<Mark> marks = List.of();
-  // The decorator's underlines in the lines laid out, as pairs of string positions, for the dump.
+  // The decorator's underlines and squiggles in the lines laid out, as pairs of string positions,
+  // for the dump.
   private int[] underlined = {};
+  private int[] squiggled = {};
   private int visibleLines = 1;
   private int maxLines; // 0 for no limit, see El#maxLines
   // What a field draws besides its glyphs; see Editor#place.
@@ -1660,6 +1670,7 @@ public final class Text implements Measure {
   /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
   private List<Mark> marks(List<Row> placed) {
     underlined = new int[0];
+    squiggled = new int[0];
     if (placeholderShown
         || decorator == null
             && (highlighter == null
@@ -1711,6 +1722,16 @@ public final class Text implements Measure {
             ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
           } else if (kind == Spans.GUIDE) {
             ranges.add(new Mark(new Box(Math.round(x0), top, thick, lineHeight), spans.colors[i]));
+          } else if (kind == Spans.SQUIGGLE) {
+            // A later squiggle wins where it lies: cut out of this one, so that the edges of the
+            // two waves do not mix their colors. From the underline to the row's bottom: the room
+            // the wave may take.
+            for (int[] piece : uncovered(spans, i, a, b, spans == decor ? null : decor)) {
+              float p0 = para.pen(piece[0]) - left - viewX;
+              float p1 = para.pen(piece[1]) - left - viewX;
+              unders.add(new Mark(
+                  new Box(p0, top + under, p1 - p0, lineHeight - under), spans.colors[i], true));
+            }
           } else {
             float y = kind == Spans.UNDERLINE ? under : strike;
             unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
@@ -1720,16 +1741,57 @@ public final class Text implements Measure {
     }
     lineMarks.addAll(ranges);
     lineMarks.addAll(unders);
-    underlined = underlines(decorated, lines);
+    underlined = ranges(decorated, lines, Spans.UNDERLINE);
+    squiggled = ranges(decorated, lines, Spans.SQUIGGLE);
     return List.copyOf(lineMarks);
   }
 
-  /** The underlines of the decorated lines, in order, those that touch across a line feed joined. */
-  private static int[] underlines(Map<Integer, Spans> decorated, Lines lines) {
+  /**
+   * Where squiggle {@code i} of {@code spans} lies from {@code a} to {@code b} under no later one:
+   * none after it in {@code spans}, none in {@code next}, the decorator's after a highlighter's.
+   */
+  private static List<int[]> uncovered(Spans spans, int i, int a, int b, Spans next) {
+    List<int[]> pieces = cut(List.of(new int[] {a, b}), spans, i + 1);
+    return next == null ? pieces : cut(pieces, next, 0);
+  }
+
+  /** {@code pieces} without the squiggles of {@code later} from {@code first} on. */
+  private static List<int[]> cut(List<int[]> pieces, Spans later, int first) {
+    for (int j = first; j < later.count && !pieces.isEmpty(); j++) {
+      int from = later.froms[j];
+      int to = later.tos[j];
+      if (later.kinds[j] != Spans.SQUIGGLE
+          || to <= pieces.getFirst()[0]
+          || from >= pieces.getLast()[1]) {
+        continue;
+      }
+      List<int[]> left = new ArrayList<>();
+      for (int[] piece : pieces) {
+        if (to <= piece[0] || from >= piece[1]) {
+          left.add(piece);
+          continue;
+        }
+        if (from > piece[0]) {
+          left.add(new int[] {piece[0], from});
+        }
+        if (to < piece[1]) {
+          left.add(new int[] {to, piece[1]});
+        }
+      }
+      pieces = left;
+    }
+    return pieces;
+  }
+
+  /**
+   * The ranges of {@code kind} in the decorated lines, in order, those that touch across a line
+   * feed joined.
+   */
+  private static int[] ranges(Map<Integer, Spans> decorated, Lines lines, int kind) {
     List<int[]> all = new ArrayList<>();
     decorated.forEach((line, spans) -> {
       for (int i = 0; i < spans.count; i++) {
-        if (spans.kinds[i] == Spans.UNDERLINE) {
+        if (spans.kinds[i] == kind) {
           int start = lines.start(line);
           all.add(new int[] {start + spans.froms[i], start + spans.tos[i]});
         }
@@ -1757,6 +1819,14 @@ public final class Text implements Measure {
    */
   int[] underlined() {
     return underlined;
+  }
+
+  /**
+   * For the dump: what the {@link El#decorate decorator} squiggles in the lines laid out, as pairs
+   * of positions of the string, from and to.
+   */
+  int[] squiggled() {
+    return squiggled;
   }
 
   /** The lines whose first row is laid out, with where it is, top to bottom. */

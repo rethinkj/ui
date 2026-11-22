@@ -61,6 +61,8 @@ final class ReferenceCpuRenderer {
         image(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.LINE) {
         line(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.SQUIGGLE) {
+        squiggle(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -385,6 +387,53 @@ final class ReferenceCpuRenderer {
           coverage *= clipCoverage(scene, clip, x, y, scale);
         }
         if (coverage <= 0) {
+          continue;
+        }
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.COLOR + 12) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.COLOR + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /** Draws a squiggly underline: plain loop over every pixel. */
+  private static void squiggle(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double w = scene.get(i, Scene.WIDTH);
+    double amplitude = scene.get(i, Scene.AMPLITUDE);
+    double wavelength = scene.get(i, Scene.WAVELENGTH);
+    double stroke = scene.get(i, Scene.STROKE);
+    if (!(w > 0 && amplitude >= 0 && wavelength > 0 && stroke > 0)) {
+      return;
+    }
+    double x0 = scene.get(i, Scene.X);
+    double mid = scene.get(i, Scene.Y);
+    double phase = scene.get(i, Scene.PHASE);
+    double halfW = w / 2;
+    double half = stroke / 2;
+    int clip = scene.clipOf(i);
+    for (int py = 0; py < height; py++) {
+      for (int px = 0; px < width; px++) {
+        double x = (px + 0.5) / scale;
+        double y = (py + 0.5) / scale;
+        double endCover = coverage(Math.abs(x - (x0 + halfW)) - halfW, scale);
+        double[] sc = CpuRenderer.turn((x - x0) / wavelength + phase);
+        double waveY = mid + amplitude * sc[0];
+        double slope = (2 * Math.PI) * amplitude / wavelength * sc[1];
+        double d = Math.max(
+            Math.abs(y - waveY) / StrictMath.sqrt(1 + slope * slope),
+            Math.abs(y - mid) - amplitude);
+        double coverage = (coverage(d - half, scale) - coverage(d + half, scale)) * endCover;
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, x, y, scale);
+        }
+        if (!(coverage > 0)) {
           continue;
         }
         int at = (py * width + px) * 4;

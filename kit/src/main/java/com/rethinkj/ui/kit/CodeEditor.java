@@ -22,9 +22,9 @@ import java.util.stream.Stream;
  * markers in a gutter on a rail of its own, the caret's line highlighted, the bracket at the caret
  * and its partner marked, the other occurrences of the word at the caret marked, guides in the
  * indentation, the tokens colored by a {@link Highlighter}, such as one of a language module's,
- * and the app's diagnostics underlined. Given the app, it also finds and replaces ({@link Find}),
- * goes to a line, goes from diagnostic to diagnostic with F8 and Shift+F8, and has the commands of
- * {@link Command}.
+ * and the app's diagnostics marked with a squiggle. Given the app, it also finds and replaces
+ * ({@link Find}), goes to a line, goes from diagnostic to diagnostic with F8 and Shift+F8, and has
+ * the commands of {@link Command}.
  *
  * <pre>{@code
  * codeEditor(app, state.sql, state.editor, highlighter, value -> state.sql = value)
@@ -90,9 +90,8 @@ public final class CodeEditor {
 
   /**
    * Something the app says about characters {@code from} to {@code to} of the string, such as
-   * where the database said a query went wrong: a straight line under them in the severity's
-   * status color, and a marker at the start of the line of {@code from} with the message as its
-   * tooltip.
+   * where the database said a query went wrong: a wavy line under them in the severity's status
+   * color, and a marker at the start of the line of {@code from} with the message as its tooltip.
    */
   public record Diagnostic(int from, int to, Severity severity, String message) {
     public Diagnostic {
@@ -335,10 +334,10 @@ public final class CodeEditor {
     /**
      * Shows {@code diagnostics} about {@code text}, in place of those before, while the editor's
      * value is {@code text}: after an edit they go, and they come back with an undo to it. Each
-     * is underlined in its severity's status color, and each line where one starts has a marker,
-     * of the worst severity among them, whose tooltip is their messages. A tree dump shows the
-     * lines under them on the editor as {@code underline <from>-<to>} while their lines are in
-     * view, and the marker in the line's cell, with the messages of its errors as {@code error=}
+     * has a squiggle under it in its severity's status color, and each line where one starts has a
+     * marker, of the worst severity among them, whose tooltip is their messages. A tree dump shows
+     * the squiggles under them on the editor as {@code squiggle <from>-<to>} while their lines are
+     * in view, and the marker in the line's cell, with the messages of its errors as {@code error=}
      * and of its warnings as {@code warning=}.
      *
      * <p>Given the app, F8 puts the caret at the start of the next diagnostic after it, Shift+F8 at
@@ -491,7 +490,7 @@ public final class CodeEditor {
           }
           for (Diagnostic d : diagnostics) {
             if (d.to > start && d.from <= end) {
-              out.underline(d.from - start, d.to - start, color(theme, d.severity));
+              out.squiggle(d.from - start, d.to - start, color(theme, d.severity));
             }
           }
         })

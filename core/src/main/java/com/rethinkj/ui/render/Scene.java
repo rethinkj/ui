@@ -26,12 +26,12 @@ import java.util.Map;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of five kinds,
- * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
- * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2), an image ({@link #IMAGE}, 3) or a line segment
- * ({@link #LINE}, 4). All kinds share one ordered list, so boxes, text, shadows, images and lines
- * overlap in the order of the tree. The byte offsets are the constants below. A rounded rectangle
- * with a fill and a border:
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of six kinds, told
+ * apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
+ * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2), an image ({@link #IMAGE}, 3), a line segment ({@link
+ * #LINE}, 4) or a squiggly underline ({@link #SQUIGGLE}, 5). All kinds share one ordered list, so
+ * boxes, text, shadows, images, lines and squiggles overlap in the order of the tree. The byte
+ * offsets are the constants below. A rounded rectangle with a fill and a border:
  *
  * <pre>
  *  0  x            f32   left edge of the rectangle
@@ -290,6 +290,44 @@ import java.util.Map;
  * middle; from a pixel wide on, the second term is 0 and its edges are a rectangle's. Renderers
  * draw it over the box around its ends grown by half its width and a physical pixel.
  *
+ * <p>A squiggly underline ({@link com.rethinkj.ui.Spans#squiggle}): a sine wave along {@code x}
+ * between {@code x} and {@code x + width}, centered at {@code y}, antialiased by distance to the
+ * curve.
+ *
+ * <pre>
+ *  0  x            f32   left edge of the squiggle
+ *  4  y            f32   vertical center of the wave
+ *  8  width        f32   length of the squiggle, more than 0
+ * 12  amplitude    f32   half the wave's height from trough to crest, 0 or more
+ * 16  wavelength   f32   distance between crests, more than 0
+ * 20  stroke       f32   thickness of the wave, more than 0
+ * 24  clip         u32   as for a rectangle
+ * 28  kind         u32   5, SQUIGGLE
+ * 32  color       f32 x 4   r, g, b, a
+ * 48  phase        f32   wave phase at x, in turns
+ * 52  unused       f32 x 11  0
+ * </pre>
+ *
+ * <p>As WGSL it is read as an {@code Instance}, its amplitude in {@code rect.w}, its wavelength
+ * and stroke in {@code shape.xy} and its phase in {@code more.x}. For a pixel whose center is
+ * {@code p}, with {@code (s, c)} the sine and cosine of {@code (p.x - x) / wavelength + phase}
+ * turns (computed by the same series as an arc's) and {@code coverage(t) = clamp(0.5 - t scale, 0,
+ * 1)}:
+ *
+ * <pre>
+ * endCover = coverage(|p.x - (x + width / 2)| - width / 2)
+ * waveY    = y + amplitude * s
+ * slope    = 2 pi * amplitude / wavelength * c
+ * d        = max(|p.y - waveY| / sqrt(1 + slope^2), |p.y - y| - amplitude)
+ * coverage = (coverage(d - stroke / 2) - coverage(d + stroke / 2)) * endCover * clip coverage
+ * output   = color * coverage, blended as a rectangle's fill
+ * </pre>
+ *
+ * <p>The lower bound {@code |p.y - y| - amplitude} keeps the first-order distance valid outside
+ * the wave's strip even for steep slopes, so coverage is 0 beyond {@code amplitude + stroke / 2}
+ * and a physical pixel vertically and beyond {@code [x, x + width]} and a physical pixel
+ * horizontally. Renderers draw it over that box.
+ *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
@@ -424,6 +462,14 @@ public final class Scene {
   public static final int IMAGE = 3;
   /** The {@link #KIND} of a line segment. */
   public static final int LINE = 4;
+  /** The {@link #KIND} of a squiggly underline. */
+  public static final int SQUIGGLE = 5;
+
+  // The slots of a squiggle that differ from a rectangle's.
+  public static final int AMPLITUDE = 12;
+  public static final int WAVELENGTH = 16;
+  public static final int STROKE = 20;
+  public static final int PHASE = 48;
 
   // The slots of a line segment that differ from a rectangle's: its other end and its width.
   public static final int X2 = 8;
@@ -467,6 +513,8 @@ public final class Scene {
   public static final float HAIRLINE = 2;
 
   private static final float NO_CLIP = 1e9f;
+  // How far beyond the root a squiggle is drawn: within it a float holds a position to 1/500 px.
+  private static final float FAR = 16384;
   private static final float[] NO_BORDER = new float[4];
   private static final float[] SQUARE = new float[4];
 
@@ -1211,8 +1259,13 @@ public final class Scene {
         return; // clipped away
       }
       scroll = text.scroll();
+      double origin = (left - scroll) / scale;
       for (Text.Mark mark : text.marks()) {
-        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+        if (mark.squiggle()) {
+          squiggle(mark.box(), left, top, origin, text.size(), scale, mark.color(), opacity, clip);
+        } else {
+          box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+        }
       }
       for (Text.Box box : text.selection()) {
         box(box, left, top, scale, text.selectionColor(), opacity, clip);
@@ -1308,6 +1361,70 @@ public final class Scene {
         && y + height > clipY) {
       rect(x, y, width, height, 0, 0, argb, 0, opacity, clip);
     }
+  }
+
+  /**
+   * A squiggly underline of a field, in physical pixels from the content box at {@code left, top},
+   * with its wave phase anchored to {@code origin} (the text's left edge in logical pixels) so
+   * adjacent pieces join seamlessly, and kept inside the row that {@code box} reaches down to the
+   * bottom of; left out when its clip leaves nothing of it.
+   */
+  private void squiggle(
+      Text.Box box,
+      double left,
+      double top,
+      double origin,
+      float fontSize,
+      double scale,
+      int argb,
+      float opacity,
+      int clip) {
+    if (argb >>> 24 == 0 || !(box.width() > 0)) {
+      return;
+    }
+    double x0 = Math.round(left + box.x());
+    double x1 = Math.max(Math.round(left + box.x() + box.width()), x0 + 1);
+    float stroke = (float) Math.max(1.0 / scale, fontSize / 12.0);
+    float amplitude = (float) Math.max(1.0 / scale, fontSize / 12.0);
+    float wavelength = amplitude * 6;
+    // On the underline, raised where the row below it is too short, so that a field's last row
+    // does not clip its lower lobes.
+    float mid = (float) Math.min(
+        (Math.round(top + box.y()) + stroke * scale / 2) / scale,
+        (top + box.y() + box.height()) / scale - amplitude - stroke / 2);
+    // What the renderers draw: amplitude, half the stroke and a pixel beyond, under 2 logical
+    // pixels at scales from 0.5. Cut to that around the clip, and to FAR beyond the root, so
+    // that the GPU's floats measure the phase from near the pixels drawn, not from far out.
+    float reach = 2;
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    double from = Math.max(x0 / scale, Math.max(clipX, -FAR) - reach);
+    double to =
+        Math.min(x1 / scale, Math.min(clipX + clipGet(clip, WIDTH), windowWidth + FAR) + reach);
+    if (to <= from
+        || mid - amplitude - stroke / 2 - reach >= clipY + clipGet(clip, HEIGHT)
+        || mid + amplitude + stroke / 2 + reach <= clipY) {
+      return;
+    }
+    float x = (float) from;
+    float width = (float) (to - from);
+    double turns = (x - origin) / wavelength;
+    float phase = (float) (turns - Math.floor(turns));
+    long offset = next();
+    put(offset + X, x);
+    put(offset + Y, mid);
+    put(offset + WIDTH, width);
+    put(offset + AMPLITUDE, amplitude);
+    put(offset + WAVELENGTH, wavelength);
+    put(offset + STROKE, stroke);
+    data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, SQUIGGLE);
+    color(offset + COLOR, argb, opacity);
+    put(offset + PHASE, phase);
+    for (int slot = PHASE + 4; slot < STRIDE; slot += 4) {
+      put(offset + slot, 0);
+    }
+    count++;
   }
 
   /** {@code v} on the next physical pixel boundary in the direction of {@code sign}. */

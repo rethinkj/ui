@@ -3,7 +3,7 @@ el 0,0 520x260
     el 13,13 494x33
       text role=heading "orders.sql" 29,21 70x17 level=3
       el 107,30 384x0
-    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,46 494x145 lines 1-3/3 underline 22-28
+    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,46 494x145 lines 1-3/3 squiggle 22-28
       el #rail 13,47 38x144
       el #gutter 13,51 37x128
         el #line-0 13,51 37x16

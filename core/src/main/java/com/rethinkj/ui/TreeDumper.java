@@ -142,6 +142,13 @@ final class TreeDumper {
       for (int i = 0; i < under.length; i += 2) {
         out.append(i == 0 ? " underline " : ",").append(under[i]).append('-').append(under[i + 1]);
       }
+      int[] squiggle = text.squiggled();
+      for (int i = 0; i < squiggle.length; i += 2) {
+        out.append(i == 0 ? " squiggle " : ",")
+            .append(squiggle[i])
+            .append('-')
+            .append(squiggle[i + 1]);
+      }
     }
     if (el.scrollX() != 0 || el.scrollY() != 0) {
       number(out.append(" scroll "), el.scrollX()).append(',');

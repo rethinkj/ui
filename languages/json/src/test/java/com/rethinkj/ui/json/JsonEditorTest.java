@@ -105,10 +105,10 @@ class JsonEditorTest {
     String tree = run(app, "frame\nfocus #json\nkey End control\nkey L control alt");
     assertEquals("{\"a\":1,}", doc.text);
     assertEquals(7, doc.editor.caret(), "at the problem's start");
-    assertTrue(tree.contains("underline 7-8"), tree);
+    assertTrue(tree.contains("squiggle 7-8"), tree);
     assertTrue(tree.contains("role=tooltip label=\"Not expected here\""), tree);
     tree = run(app, "key Backspace");
-    assertFalse(tree.contains("underline"), "gone with the text it was about:\n" + tree);
+    assertFalse(tree.contains("squiggle"), "gone with the text it was about:\n" + tree);
     run(app, "key L control alt");
     assertEquals("{\n    \"a\": 1\n}", doc.text);
 

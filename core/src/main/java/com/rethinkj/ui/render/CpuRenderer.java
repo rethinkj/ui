@@ -71,6 +71,8 @@ public final class CpuRenderer {
         image(scene, i, frame, width, height, scale, blends, scratch);
       } else if (kind == Scene.LINE) {
         line(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.SQUIGGLE) {
+        squiggle(scene, i, frame, width, height, scale, blends, scratch);
       } else {
         rect(scene, i, frame, width, height, scale, blends, scratch);
       }
@@ -697,6 +699,72 @@ public final class CpuRenderer {
         blend(
             frame,
             (py * width + px) * 4,
+            color[0] * cover,
+            color[1] * cover,
+            color[2] * cover,
+            color[3] * cover,
+            blends);
+      }
+    }
+  }
+
+  /** Draws a squiggly underline: a sine wave antialiased by distance, bounded to its strip. */
+  private static void squiggle(
+      Scene scene,
+      int i,
+      float[] frame,
+      int width,
+      int height,
+      double scale,
+      Blends blends,
+      Scratch scratch) {
+    double w = scene.get(i, Scene.WIDTH);
+    double amplitude = scene.get(i, Scene.AMPLITUDE);
+    double wavelength = scene.get(i, Scene.WAVELENGTH);
+    double stroke = scene.get(i, Scene.STROKE);
+    if (!(w > 0 && amplitude >= 0 && wavelength > 0 && stroke > 0)) {
+      return;
+    }
+    double x0 = scene.get(i, Scene.X);
+    double mid = scene.get(i, Scene.Y);
+    double phase = scene.get(i, Scene.PHASE);
+    double halfW = w / 2;
+    double half = stroke / 2;
+    double reach = amplitude + half;
+    Box shape = new Box(x0 + halfW, mid, halfW, reach, null, null, null);
+    Box clip = Box.clip(scene, scene.clipOf(i));
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
+      return;
+    }
+    double[] color = color(scene, i, Scene.COLOR);
+    double[] endCovers = scratch.x;
+    double[] waveYs = scratch.wide;
+    double[] denoms = scratch.narrow;
+    for (int px = bounds.left; px < bounds.right; px++) {
+      double x = (px + 0.5) / scale;
+      endCovers[px] = coverage(Math.abs(x - (x0 + halfW)) - halfW, scale);
+      double[] sc = turn((x - x0) / wavelength + phase);
+      waveYs[px] = mid + amplitude * sc[0];
+      double slope = (2 * Math.PI) * amplitude / wavelength * sc[1];
+      denoms[px] = StrictMath.sqrt(1 + slope * slope);
+    }
+    for (int py = bounds.top; py < bounds.bottom; py++) {
+      double y = (py + 0.5) / scale;
+      double outside = Math.abs(y - mid) - amplitude;
+      int row = py * width;
+      for (int px = bounds.left; px < bounds.right; px++) {
+        double d = Math.max(Math.abs(y - waveYs[px]) / denoms[px], outside);
+        double cover = (coverage(d - half, scale) - coverage(d + half, scale)) * endCovers[px];
+        if (clip != null) {
+          cover *= bounds.clipWhole ? 1 : clip.coverage((px + 0.5) / scale, y, scale);
+        }
+        if (!(cover > 0)) {
+          continue;
+        }
+        blend(
+            frame,
+            (row + px) * 4,
             color[0] * cover,
             color[1] * cover,
             color[2] * cover,

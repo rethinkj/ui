@@ -162,6 +162,9 @@ class CpuRendererEquivalenceTest {
       if (n % 2 == 0) {
         addImage(scene, random, width, height);
       }
+      if (n % 2 == 1) {
+        addSquiggle(scene, random, width, height);
+      }
       assertSame(
           "random scene " + n, scene, Math.round(width * scale), Math.round(height * scale), scale);
     }
@@ -300,6 +303,42 @@ class CpuRendererEquivalenceTest {
       put(data, at + Scene.FILL + c * 4, opacity);
     }
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
+  }
+
+  /** A squiggle instance at random coordinates, amplitude, wavelength, stroke and phase. */
+  private static void addSquiggle(Scene scene, Random random, float width, float height) {
+    scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
+    long at = (long) (scene.count() - 1) * Scene.STRIDE;
+    MemorySegment data = scene.data();
+    put(data, at + Scene.X, position(random, width));
+    put(data, at + Scene.Y, position(random, height));
+    put(data, at + Scene.WIDTH, length(random, width));
+    float amplitude = switch (random.nextInt(5)) {
+      case 0 -> 0;
+      case 1 -> -1;
+      case 2 -> Float.NaN;
+      default -> random.nextFloat() * 5;
+    };
+    float wavelength = switch (random.nextInt(5)) {
+      case 0 -> 0;
+      case 1 -> -2;
+      default -> 0.5f + random.nextFloat() * 12;
+    };
+    float stroke = switch (random.nextInt(5)) {
+      case 0 -> 0;
+      case 1 -> -1;
+      default -> 0.25f + random.nextFloat() * 3;
+    };
+    put(data, at + Scene.AMPLITUDE, amplitude);
+    put(data, at + Scene.WAVELENGTH, wavelength);
+    put(data, at + Scene.STROKE, stroke);
+    data.set(
+        ValueLayout.JAVA_INT,
+        at + Scene.CLIP,
+        random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
+    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.SQUIGGLE);
+    color(data, at + Scene.COLOR, random);
+    put(data, at + Scene.PHASE, random.nextInt(10) == 0 ? Float.NaN : random.nextFloat());
   }
 
   private static void addRandom(
