@@ -26,6 +26,7 @@ import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Drawer;
+import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.GridTable;
@@ -430,6 +431,13 @@ public final class DataBrowser {
     refilter();
   }
 
+  /** Clears both the search filter and the column filters. */
+  void clearFilters() {
+    filter = "";
+    filters = List.of();
+    refilter();
+  }
+
   private void refilter() {
     String[] words = filter.toLowerCase(Locale.ROOT).trim().split("\\s+");
     Predicate<Order> keeps = DataGrid.table(DataBrowser::madeUp).filter(MADE_UP, filters);
@@ -643,6 +651,7 @@ public final class DataBrowser {
             default -> column;
           });
     }
+    boolean filtered = !state.filter.isEmpty() || !state.filters.isEmpty();
     DataGrid.Options options = DataGrid.options()
         .select(state.selection)
         .onSelect(state::selected)
@@ -660,7 +669,15 @@ public final class DataBrowser {
             new DataGrid.Total(DataGrid.Aggregate.COUNT, String.valueOf(state.shownCount()));
           case 7 -> new DataGrid.Total(DataGrid.Aggregate.SUM, state.totalAmount.toPlainString());
           default -> null;
-        });
+        })
+        .empty(
+            filtered
+                ? EmptyState.emptyState(
+                    Symbol.SEARCH,
+                    "No orders match",
+                    "Try another search or clear the filters.",
+                    button(Button.Variant.SECONDARY, "Clear filters", state::clearFilters))
+                : null);
     if (state.app != null) { // the window's clipboard once it runs, the app's own before
       options.copy(state.app.clipboard());
     }

@@ -1994,6 +1994,7 @@ public final class DataGrid {
     IntConsumer onFreeze;
     Fit fit;
     IntFunction<Total> totals;
+    El empty;
     // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
     // none, and the number of rows there are now, which a handler may have changed since the build.
     IntToLongFunction rowKey;
@@ -2285,6 +2286,17 @@ public final class DataGrid {
      */
     public Options appendRow() {
       this.appendRow = true;
+      return this;
+    }
+
+    /**
+     * Shows {@code view} centered under the header when the grid shows no rows at all, usually an
+     * {@link EmptyState} with an action such as clearing the filters. The header, its column menu,
+     * sorting and filter popovers stay usable. With {@link #appendRow}, the grid still shows the
+     * append row and not this view. Null leaves the area below the header blank.
+     */
+    public Options empty(El view) {
+      this.empty = view;
       return this;
     }
 
@@ -2687,6 +2699,22 @@ public final class DataGrid {
         .scrollbars(theme.scrollbars())
         .fill(g.row())
         .child(content);
+    if (b.rows == 0 && options.empty != null) {
+      // Over the empty body and pinned sideways to the visible grid, so wider columns do not
+      // push the view off-center while the header still scrolls above it. It scrolls where it is
+      // taller than the room, as in a short grid under rows of filters.
+      El middle = col().center().child(options.empty);
+      middle.style().minHeight = Len.percent(1);
+      El empty =
+          col().key("empty").scroll().scrollbars(theme.scrollbars()).fixedX().child(middle);
+      Style s = empty.style();
+      s.position = Style.Position.ABSOLUTE;
+      s.left = Len.px(0);
+      s.right = Len.px(0);
+      s.top = Len.px(g.rowHeight() + theme.size().stroke());
+      s.bottom = options.totals == null ? Len.px(0) : s.top; // above the footer
+      grid.child(empty);
+    }
     b.grid = grid;
     if (options.commands != null) {
       options.commands.build = b;

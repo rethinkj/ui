@@ -11,6 +11,7 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
+import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.GridTable;
@@ -86,6 +87,9 @@ final class Grids {
     summary = DataGrid.summary(columns, selection.ranges(), COUNT, 100_000);
   }
   // docs:end grid-summary-handler
+  void clearFilters() {
+    filters = List.of();
+  }
 
   static List<DataGrid.Selection> modes() {
     // docs:start grid-modes
@@ -507,6 +511,48 @@ final class Grids {
         List.of(StatusBar.text(COUNT + " rows")), DataGrid.summaryGroups(state.summary));
     // docs:end grid-totals
     return Frame.of(Card.flush(grid, status).wFull().grow(1));
+  }
+
+  static El empty(Grids state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start grid-empty
+    int[] rows = IntStream.range(0, COUNT)
+        .filter(row ->
+            state.filters.stream().allMatch(filter -> filter.matches(value(row, filter.column()))))
+        .toArray();
+    List<Column> columns = List.of(
+        new Column("id", 80, DataType.INTEGER, row -> value(rows[row], 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(rows[row], 1)),
+        new Column("amount", 100, DataType.DECIMAL, row -> value(rows[row], 2)),
+        new Column("status", 100, DataType.TEXT, row -> value(rows[row], 3)));
+    El empty = EmptyState.emptyState(
+        Symbol.SEARCH,
+        "No orders match",
+        "Try another filter or clear the active ones.",
+        Button.button(SECONDARY, "Clear filters", state::clearFilters));
+    El grid = DataGrid.dataGrid(
+            columns,
+            rows.length,
+            DataGrid.options()
+                .select(state.selection)
+                .filters(state.filters, state::filters)
+                .empty(empty)) // shown centered under the header when there are no rows
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-empty
+    El bar = DataGrid.filterBar(columns, state.filters, state::filters);
+    return Frame.of(Card.flush(
+            Card.toolbar("orders", rows.length + " rows"),
+            bar == null
+                ? null
+                : row()
+                    .padding(
+                        0, theme.space().l(), theme.space().m(), theme.space().l())
+                    .child(bar),
+            grid)
+        .wFull()
+        .grow(1));
   }
 
   // docs:start tree-model

@@ -85,6 +85,7 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `onRowsInView((first, last) -> …)` | Notifies you when the first or last row fully in view changes. See [Selection API](/docs/components/data-grid/selection#selection-api) |
 | `filters(filters, onFilter)`, `filterable(columns)` | Per-column filter popovers. See [Filters](/docs/components/data-grid/filters) |
 | `footer(totals)` | Pinned bottom row for app-supplied column totals. See [Totals and summary](/docs/components/data-grid/totals) |
+| `empty(El view)` | View centered under the header when no rows are shown. See [Empty state](#empty-state) |
 | `changes(GridChanges)` | Full inline editing with pending changes and undo/redo. See [Editing](/docs/components/data-grid/editing) |
 | `onEdit`, `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `status`, `errors`, `history`, `appendRow()` | Lower-level editing hooks |
 
@@ -103,6 +104,17 @@ It requires `select(...)`. If **Enter** or a double-click edits the cell (`onCom
 A script opens a row the same way a user does:
 
 ```text file="examples/src/test/resources/docs/grid-open.txt"
+```
+
+## Empty state
+
+`options().empty(view)` displays `view` centered in the visible area under the header whenever the grid shows no rows at all — typically an [EmptyState](/docs/components/empty-state) with an action such as **Clear filters**. The header, column menu, sorting, and filter popovers remain usable, and any button in the empty view is reachable by pointer and **Tab**.
+
+With `appendRow()`, the grid still shows its append row when `rowCount` is `0` rather than the empty view.
+
+<Shot src="examples/docs/grid-empty/empty-{theme}" alt="A filtered grid with no matching rows showing an empty state and a Clear filters button centered under the header" />
+
+```java snippet="grid-empty"
 ```
 
 ## Lazy-loaded rows
