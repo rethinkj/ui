@@ -55,9 +55,11 @@ final class Runs {
     for (int k = 0; k < n; k++) {
       String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
       font[k] = own(cluster, fonts, coverage);
-      // An emoji the first font draws in color stays with it.
-      neutral[k] =
-          font[k] == 0 && script(cluster) == null && !(coverage.color(0) && emoji(cluster));
+      // An emoji the first font draws in color stays with it, as does what asks to be text.
+      neutral[k] = font[k] == 0
+          && script(cluster) == null
+          && !(coverage.color(0) && emoji(cluster))
+          && cluster.indexOf('\uFE0E') < 0;
     }
     // Neutrals between two clusters of one font stay with it.
     for (int i = 0; i < n; ) {

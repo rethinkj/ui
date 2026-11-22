@@ -80,7 +80,8 @@ public final class Font implements AutoCloseable {
   private final String name;
   private final boolean shared;
   private final boolean icons;
-  private final boolean color; // whether the face draws COLR version 0 glyphs in color
+  private final boolean colorGlyphs; // FT_FACE_FLAG_COLOR: rasterized with FT_LOAD_COLOR
+  private final boolean color; // whether its emoji draw in color, which fallback prefers for them
   // The font that owns the native objects and draws: this, or the font withFallback was called
   // on. For a font of fallbacks, the fields of native objects below are null.
   private final Font base;
@@ -152,7 +153,9 @@ public final class Font implements AutoCloseable {
     }
     name = string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)) + " "
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
-    color = drawsColor(face);
+    colorGlyphs =
+        (FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) != 0;
+    color = colorGlyphs && drawsColor(face);
     styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
         & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
     blob = HarfBuzz.blobCreate(
@@ -191,6 +194,7 @@ public final class Font implements AutoCloseable {
     this.system = system;
     styleFlags = base.styleFlags;
     icons = base.icons;
+    colorGlyphs = base.colorGlyphs;
     color = base.color;
     arena = null;
     face = null;
@@ -501,13 +505,10 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * Whether a face draws its emoji in color: it has color glyphs, and a sample renders as COLR
-   * version 0 layers, not as an outline or nothing (COLR version 1, CBDT).
+   * Whether a face with color glyphs draws its emoji in color: a sample renders as COLR version 0
+   * layers, not as an outline or nothing (COLR version 1, CBDT).
    */
   private static boolean drawsColor(MemorySegment face) {
-    if ((FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) == 0) {
-      return false;
-    }
     try (Arena call = Arena.ofConfined()) {
       int[] ranges = ranges(face, call.allocate(JAVA_INT));
       return ranges.length > 0 && sampleMode(face, ranges) == FreeType.PIXEL_MODE_BGRA;
@@ -629,7 +630,7 @@ public final class Font implements AutoCloseable {
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
       int flags = FreeType.LOAD_NO_BITMAP
-          | (color ? FreeType.LOAD_COLOR : 0)
+          | (colorGlyphs ? FreeType.LOAD_COLOR : 0)
           | (icons
               ? ICON_HINTING
               : switch (hinting) {
@@ -651,7 +652,7 @@ public final class Font implements AutoCloseable {
         return new Bitmap(left, top, width, rows, new byte[0], false);
       }
       int mode = slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE) & 0xFF;
-      if (color && mode == FreeType.PIXEL_MODE_BGRA) {
+      if (colorGlyphs && mode == FreeType.PIXEL_MODE_BGRA) {
         if (pitch < width * 4) {
           throw new IllegalStateException("FreeType rendered color glyph " + glyph + " of " + name
               + " in an unexpected format: pitch " + pitch + " for width " + width);
@@ -924,18 +925,21 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * The pixel mode a color face renders U+1F600 in, or else its first character from U+2000: BGRA
-   * for COLR version 0 layers, gray for an outline; -1 where it renders neither.
+   * The pixel mode a color face renders U+1F600 in, or else its first character from U+2000 that
+   * has ink (not a space or a variation selector): BGRA for COLR version 0 layers, gray for an
+   * outline; -1 where it renders neither.
    */
   private static int sampleMode(MemorySegment face, int[] ranges) {
     int sample = ranges[0];
+    boolean inked = false;
     for (int r = 0; r < ranges.length; r += 2) {
       if (ranges[r] <= 0x1F600 && 0x1F600 <= ranges[r + 1]) {
         sample = 0x1F600;
         break;
       }
-      if (sample < 0x2000 && ranges[r + 1] >= 0x2000) {
-        sample = Math.max(ranges[r], 0x2000);
+      for (int c = Math.max(ranges[r], 0x2000); !inked && c <= ranges[r + 1]; c++) {
+        inked = !Runs.hidden(c) && !Character.isSpaceChar(c);
+        sample = inked ? c : sample;
       }
     }
     int index = FreeType.getCharIndex(face, sample);
