@@ -69,7 +69,7 @@ class ComboBoxEntriesTest {
     picker.entries = FilterList.Entries.background(app, "tables", query -> {
       try {
         release.await(5, TimeUnit.SECONDS);
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         Thread.currentThread().interrupt();
       }
       return List.of(

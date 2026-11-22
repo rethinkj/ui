@@ -29,7 +29,7 @@ Store a `ComboBox.State` in your app state for each combo box.
 | `free(value, suggestions, comboBoxState, onChange)` | Free-text input with optional suggestion list |
 | `items(items, selected, comboBoxState, onSelect)` | Rich items built with `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(...)`, `.detail(text)` |
 
-Passing a `null` handler (or `null` entries) disables the combo box. Reuse the same choices list when unchanged so filter results stay cached.
+Passing a `null` `onSelect` or `onChange` (or `null` entries) disables the combo box; a `null` `onClear` only leaves out the clear button. Reuse the same choices list when unchanged so filter results stay cached.
 
 <Shot src="kit/combobox-items-{theme}-2x-open" alt="A combo box of database products with logos and details" />
 
