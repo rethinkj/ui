@@ -157,6 +157,7 @@ public final class Text implements Measure {
   private int underlineTo;
   private Font font;
   private float size = 14;
+  private float lineHeightFactor; // multiple of size, 0 for the font's own height
   private int color = Colors.BLACK;
   // The color the view gave, which a highlighter's glyphs without a color of their own are
   // shaped with; `color` is the one shown, which motion moves towards it.
@@ -651,6 +652,14 @@ public final class Text implements Measure {
     invalidate();
   }
 
+  /** For {@link El}: the line height as a multiple of the font size, or 0 for the font's own. */
+  void lineHeight(float factor) {
+    if (factor != this.lineHeightFactor) {
+      this.lineHeightFactor = factor;
+      invalidate();
+    }
+  }
+
   void color(int argb) {
     this.color = argb;
     this.viewColor = argb;
@@ -890,8 +899,15 @@ public final class Text implements Measure {
     }
     Font font = font();
     float pixels = size * scale;
-    lineHeight = Math.round((font.ascent() + font.descent() + font.lineGap()) * pixels);
-    firstBaseline = Math.round((font.ascent() + font.lineGap() / 2) * pixels);
+    float fontLineHeight = Math.round((font.ascent() + font.descent() + font.lineGap()) * pixels);
+    float fontBaseline = Math.round((font.ascent() + font.lineGap() / 2) * pixels);
+    if (lineHeightFactor > 0) {
+      lineHeight = Math.max(1, Math.round(lineHeightFactor * pixels));
+      firstBaseline = fontBaseline + Math.round((lineHeight - fontLineHeight) / 2);
+    } else {
+      lineHeight = fontLineHeight;
+      firstBaseline = fontBaseline;
+    }
     shaping = systemFonts ? font.withSystemFonts() : font;
     prepared = true;
     if (multiline) {

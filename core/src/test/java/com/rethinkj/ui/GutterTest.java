@@ -88,6 +88,14 @@ class GutterTest {
   }
 
   @Test
+  void cellsTakeTheLineHeightOfTheField() {
+    App<Model> app = area(text(3), f -> f.lineHeight(2));
+    El number = column(app).children().getFirst().children().getFirst();
+    assertEquals(28, field(app).text().lineHeight());
+    assertEquals(28, number.text().lineHeight(), "so that its baseline is the line's");
+  }
+
+  @Test
   void cellsAreBuiltForTheLinesLaidOutAtTheirFirstRows() {
     App<Model> app = area("aaaa bbbb cccc dddd eeee ffff gggg\nb\nc", f -> f.wrapText());
     // The first line wraps into two rows: the second line's cell stands at the third row.

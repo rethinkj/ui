@@ -5,6 +5,8 @@
     "sorting-and-columns",
     "editing",
     "typed",
-    "filters"
+    "filters",
+    "tree-rows",
+    "totals"
   ]
 }

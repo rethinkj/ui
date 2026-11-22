@@ -1,0 +1,15 @@
+size 520 300
+frame
+move #column-1
+frame
+press #filter-1
+frame
+advance 1
+frame
+type "zoe"
+key Enter
+frame
+leave
+advance 1
+frame
+snap empty

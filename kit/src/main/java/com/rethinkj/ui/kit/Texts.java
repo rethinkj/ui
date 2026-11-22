@@ -667,6 +667,31 @@ public interface Texts {
     return "The row is not loaded";
   }
 
+  /** The count of values in a footer cell or a selection summary. */
+  default String count() {
+    return "Count";
+  }
+
+  /** The sum of values in a footer cell or a selection summary. */
+  default String sum() {
+    return "Sum";
+  }
+
+  /** The average of values in a footer cell or a selection summary. */
+  default String average() {
+    return "Avg";
+  }
+
+  /** The minimum of values in a footer cell or a selection summary. */
+  default String minimum() {
+    return "Min";
+  }
+
+  /** The maximum of values in a footer cell or a selection summary. */
+  default String maximum() {
+    return "Max";
+  }
+
   // Formats
 
   /** The message of an empty text where a value is required ({@link Format#REQUIRED}). */

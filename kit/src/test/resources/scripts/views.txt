@@ -1,0 +1,9 @@
+# Custom cell views and hover/selected row actions (GridViewsTest): badges, a thin progress bar
+# beside a right-aligned value, a centered checkbox, a null-view text fallback, and row actions on
+# the selected and hovered rows.
+size 520 200 scale 2
+frame
+press #cell-1-0          # select row 1: its actions show
+move #cell-3-0           # hover row 3: its actions show too
+frame
+snap views

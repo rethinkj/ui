@@ -1,22 +1,30 @@
 package com.rethinkj.ui.examples.docs;
 
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.DataGrid;
+import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
+import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Progress;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
@@ -39,10 +47,14 @@ final class Grids {
   static final String[] CUSTOMERS = {"Ada", "Brendan", "Chen", "Dagny", "Emeka", "Farah", "Gus"};
   static final String[] STATUSES = {"paid", "pending", "shipped", "refunded"};
   static final int COUNT = 1000;
+  static final String[] SERVICES = {"auth-api", "billing", "search-idx", "reports", "archive"};
+  static final String[] STATES = {"PRIMARY", "ACTIVE", "DEGRADED", "FAILED", "ACTIVE"};
+  static final double[] LOADS = {0.24, 0.82, 0.68, 0.96, 0.14};
 
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Selection picked = new DataGrid.Selection(DataGrid.Mode.ROWS);
+  final boolean[] active = {true, true, false, true, true};
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
@@ -51,6 +63,7 @@ final class Grids {
   final DataGrid.Fit fit = new DataGrid.Fit();
   final DataGrid.Layout layout = new DataGrid.Layout(List.of("id", "customer", "amount", "status"));
   List<DataGrid.Filter> filters = List.of();
+  DataGrid.Summary summary;
   // The rows of the edited grid, which Commit writes the changes into.
   final List<String[]> rows = new ArrayList<>(IntStream.range(0, 20)
       .mapToObj(row ->
@@ -59,6 +72,9 @@ final class Grids {
   GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
   int nextId = 1020; // the id the next new order gets
   final Set<String> open = new HashSet<>(List.of("shop", "public"));
+  final Set<Long> schemaOpen = new HashSet<>(List.of(1L, 10L));
+  final DataGrid.Selection schemaSelection = new DataGrid.Selection(DataGrid.Mode.ROWS);
+  List<DataGrid.SortKey> schemaSort = List.of();
   Node selected;
   String said = "";
   final Tree.Dragging dragging = new Tree.Dragging(); // what the tree keeps of a drag
@@ -77,6 +93,15 @@ final class Grids {
 
   void filters(List<DataGrid.Filter> value) {
     filters = value;
+  }
+
+  // docs:start grid-summary-handler
+  void summarize(List<Column> columns) {
+    summary = DataGrid.summary(columns, selection.ranges(), COUNT, 100_000);
+  }
+  // docs:end grid-summary-handler
+  void clearFilters() {
+    filters = List.of();
   }
 
   static List<DataGrid.Selection> modes() {
@@ -172,6 +197,63 @@ final class Grids {
     said = "Opened order " + value(row, 0);
   }
   // docs:end grid-open-handler
+
+  void toggleActive(int row) {
+    active[row] = !active[row];
+  }
+
+  void copyService(int row) {
+    app.clipboard().write(SERVICES[row]);
+  }
+
+  static El views(Grids state) {
+    // docs:start grid-views
+    Theme theme = Theme.CURRENT.get();
+    List<Column> columns = List.of(
+        new Column("service", 160, Align.LEFT, false, row -> SERVICES[row])
+            .actions(row -> Button.icon(
+                GHOST,
+                Symbol.COPY,
+                "Copy " + SERVICES[row],
+                () -> state.copyService(row),
+                Button.options().size(Button.Size.SMALL))),
+        new Column("status", 104, Align.LEFT, false, row -> STATES[row])
+            .view(row -> Badge.badge(statusKind(STATES[row]), STATES[row])),
+        new Column("load", 128, Align.RIGHT, true, row -> Math.round(LOADS[row] * 100) + " %")
+            .view(row -> row()
+                .align(Style.Align.CENTER)
+                .gap(theme.space().m())
+                .children(
+                    Progress.bar(LOADS[row], loadState(LOADS[row])).w(48),
+                    Label.label(Label.Variant.MONO, Math.round(LOADS[row] * 100) + " %")
+                        .w(36)
+                        .textAlign(Style.Align.END))),
+        new Column("active", 72, Align.LEFT, false, row -> String.valueOf(state.active[row]))
+            .view(row -> row()
+                .grow(1)
+                .center() // fill the cell and center the checkbox
+                .child(Checkbox.checkbox(state.active[row], () -> state.toggleActive(row))
+                    .label("Active " + SERVICES[row]))));
+    El grid = DataGrid.dataGrid(columns, SERVICES.length, DataGrid.options().select(state.picked))
+        .key("services")
+        .label("Services")
+        .grow(1);
+    // docs:end grid-views
+    return Frame.of(Card.flush(grid).wFull().grow(1));
+  }
+
+  private static Badge.Kind statusKind(String state) {
+    return switch (state) {
+      case "PRIMARY" -> Badge.Kind.ACCENT;
+      case "ACTIVE" -> Badge.Kind.SUCCESS;
+      case "DEGRADED" -> Badge.Kind.WARNING;
+      default -> Badge.Kind.DANGER;
+    };
+  }
+
+  private static Progress.State loadState(double load) {
+    return load >= 0.9 ? Progress.State.ERROR : Progress.State.NORMAL;
+  }
 
   static El opened(Grids state) {
     // docs:start grid-open
@@ -472,6 +554,77 @@ final class Grids {
         .grow(1));
   }
 
+  static El totals(Grids state) {
+    // docs:start grid-totals
+    List<Column> columns = List.of(
+        new Column("id", 110, DataType.INTEGER, row -> value(row, 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(row, 1)),
+        new Column("amount", 140, DataType.DECIMAL, row -> value(row, 2)),
+        new Column("status", 100, DataType.TEXT, row -> value(row, 3)));
+    El grid = DataGrid.dataGrid(
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(state.selection)
+                .onSelect(() -> state.summarize(columns))
+                .rowNumbers()
+                .frozen(1)
+                .footer(column -> switch (column) {
+                  case 0 -> new DataGrid.Total(DataGrid.Aggregate.COUNT, String.valueOf(COUNT));
+                  case 2 -> new DataGrid.Total(DataGrid.Aggregate.SUM, "249995.00");
+                  default -> null;
+                }))
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    El status = StatusBar.statusBar(
+        List.of(StatusBar.text(COUNT + " rows")), DataGrid.summaryGroups(state.summary));
+    // docs:end grid-totals
+    return Frame.of(Card.flush(grid, status).wFull().grow(1));
+  }
+
+  static El empty(Grids state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start grid-empty
+    int[] rows = IntStream.range(0, COUNT)
+        .filter(row ->
+            state.filters.stream().allMatch(filter -> filter.matches(value(row, filter.column()))))
+        .toArray();
+    List<Column> columns = List.of(
+        new Column("id", 80, DataType.INTEGER, row -> value(rows[row], 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(rows[row], 1)),
+        new Column("amount", 100, DataType.DECIMAL, row -> value(rows[row], 2)),
+        new Column("status", 100, DataType.TEXT, row -> value(rows[row], 3)));
+    El empty = EmptyState.emptyState(
+        Symbol.SEARCH,
+        "No orders match",
+        "Try another filter or clear the active ones.",
+        Button.button(SECONDARY, "Clear filters", state::clearFilters));
+    El grid = DataGrid.dataGrid(
+            columns,
+            rows.length,
+            DataGrid.options()
+                .select(state.selection)
+                .filters(state.filters, state::filters)
+                .empty(empty)) // shown centered under the header when there are no rows
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-empty
+    El bar = DataGrid.filterBar(columns, state.filters, state::filters);
+    return Frame.of(Card.flush(
+            Card.toolbar("orders", rows.length + " rows"),
+            bar == null
+                ? null
+                : row()
+                    .padding(
+                        0, theme.space().l(), theme.space().m(), theme.space().l())
+                    .child(bar),
+            grid)
+        .wFull()
+        .grow(1));
+  }
+
   // docs:start tree-model
   record Node(String name, Symbol icon, List<Node> children) {
     Node(String name, Symbol icon) {
@@ -592,5 +745,126 @@ final class Grids {
         .grow(1);
     // docs:end tree
     return Frame.of(Card.inset(tree).w(260).grow(1));
+  }
+
+  // docs:start grid-tree-model
+  record SchemaNode(
+      long id, String name, Symbol icon, long rows, long megabytes, List<SchemaNode> children) {
+    SchemaNode(long id, String name, long rows, long megabytes) {
+      this(id, name, Symbol.TABLE, rows, megabytes, null); // a leaf
+    }
+  }
+
+  static final SchemaNode OVERVIEW = new SchemaNode(
+      1,
+      "shop",
+      Symbol.DATABASE,
+      5_620_000,
+      1_434,
+      List.of(
+          new SchemaNode(
+              10,
+              "public",
+              Symbol.FOLDER,
+              1_420_000,
+              354,
+              List.of(
+                  new SchemaNode(11, "orders", 1_000_000, 248),
+                  new SchemaNode(12, "customers", 50_000, 18),
+                  new SchemaNode(13, "invoices", 320_000, 64))),
+          new SchemaNode(
+              20,
+              "audit",
+              Symbol.FOLDER,
+              4_200_000,
+              1_080,
+              List.of(new SchemaNode(21, "events", 4_200_000, 1_080)))));
+
+  Tree.Model<SchemaNode> schemaModel() {
+    return new Tree.Model<>() {
+      @Override
+      public List<SchemaNode> roots() {
+        return List.of(OVERVIEW);
+      }
+
+      @Override
+      public Tree.Children<SchemaNode> children(SchemaNode node) {
+        return Tree.ready(sortSiblings(node.children())); // sort within siblings
+      }
+
+      @Override
+      public boolean isLeaf(SchemaNode node) {
+        return node.children() == null;
+      }
+
+      @Override
+      public String label(SchemaNode node) {
+        return node.name();
+      }
+    };
+  }
+
+  List<SchemaNode> sortSiblings(List<SchemaNode> nodes) {
+    if (schemaSort.isEmpty()) {
+      return nodes;
+    }
+    Comparator<SchemaNode> by = (left, right) -> 0;
+    for (DataGrid.SortKey key : schemaSort) {
+      Comparator<SchemaNode> next = switch (key.column()) {
+        case 0 -> Comparator.comparing(SchemaNode::name);
+        case 1 -> Comparator.comparingLong(SchemaNode::rows);
+        default -> Comparator.comparingLong(SchemaNode::megabytes);
+      };
+      by = by.thenComparing(key.descending() ? next.reversed() : next);
+    }
+    return nodes.stream().sorted(by).toList();
+  }
+
+  void toggleSchema(SchemaNode node, boolean shouldOpen) {
+    if (shouldOpen) {
+      schemaOpen.add(node.id());
+    } else {
+      schemaOpen.remove(node.id());
+    }
+  }
+
+  void sortSchema(List<DataGrid.SortKey> keys) {
+    schemaSort = keys;
+  }
+  // docs:end grid-tree-model
+
+  static El treeRows(Grids state) {
+    // docs:start grid-tree
+    Tree.Rows<SchemaNode> rows =
+        Tree.rows(state.schemaModel(), node -> state.schemaOpen.contains(node.id()));
+    List<Column> columns = List.of(
+        new Column("name", 220, DataType.TEXT, row -> rows.node(row).name())
+            .cellIcon(row -> DataGrid.CellIcon.before(rows.node(row).icon(), Icon.Variant.MUTED)),
+        new Column(
+            "rows",
+            110,
+            DataType.INTEGER,
+            row -> String.format(Locale.ROOT, "%,d", rows.node(row).rows())),
+        new Column(
+            "size",
+            90,
+            DataType.INTEGER,
+            row -> String.format(Locale.ROOT, "%,d MB", rows.node(row).megabytes())));
+    El grid = DataGrid.dataGrid(
+            columns,
+            rows.count(),
+            DataGrid.options()
+                .tree(rows, state::toggleSchema) // tree in the first column
+                .select(state.schemaSelection)
+                .rowKey(row -> rows.node(row).id()) // keep selection on its node across toggles
+                .sort(state.schemaSort, state::sortSchema)
+                .copy(state.app.clipboard()))
+        .key("schema")
+        .label("Schema")
+        .grow(1);
+    // docs:end grid-tree
+    return Frame.of(Card.flush(Card.toolbar("Schemas", rows.count() + " rows"), grid)
+        .wFull()
+        .grow(1));
   }
 }

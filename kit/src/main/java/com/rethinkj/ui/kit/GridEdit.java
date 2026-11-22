@@ -175,7 +175,8 @@ final class GridEdit {
     if (row >= b.rowCount) { // the row to append: the app adds it before the first value
       return b.edits && b.o.onInsertRow != null;
     }
-    if (b.o.loaded != null && !b.o.loaded.test(row)
+    if (b.pending(row)
+        || b.o.loaded != null && !b.o.loaded.test(row)
         || b.o.rowStatus != null && b.o.rowStatus.apply(row) == Status.DELETED) {
       return false;
     }
@@ -549,16 +550,31 @@ final class GridEdit {
     return false;
   }
 
-  /** The rows with a selected cell, or the cursor's, without the row to append. */
+  /**
+   * The rows with a selected cell, or the cursor's, without the row to append and without the rows
+   * of a tree that stand for children loading or failed.
+   */
   private static List<Range> rowsOf(Build b) {
     List<Range> rows = new ArrayList<>();
+    boolean any = false; // a selected span reaches the data rows, pending ones included
     for (int[] span : DataGrid.rowSpans(b.sel.ranges())) {
-      if (span[0] < b.rowCount) {
-        rows.add(new Range(span[0], 0, Math.min(span[1], b.rowCount - 1), Range.ALL));
+      int top = span[0];
+      int bottom = Math.min(span[1], b.rowCount - 1);
+      any |= top <= bottom;
+      for (int r = top; b.o.tree != null && r <= bottom; r++) {
+        if (b.pending(r)) { // splits the span
+          if (r > top) {
+            rows.add(new Range(top, 0, r - 1, Range.ALL));
+          }
+          top = r + 1;
+        }
+      }
+      if (top <= bottom) {
+        rows.add(new Range(top, 0, bottom, Range.ALL));
       }
     }
     int row = b.sel.row();
-    if (rows.isEmpty() && row >= 0 && row < b.rowCount) {
+    if (!any && row >= 0 && row < b.rowCount && !b.pending(row)) {
       rows.add(new Range(row, 0, row, Range.ALL));
     }
     return rows;

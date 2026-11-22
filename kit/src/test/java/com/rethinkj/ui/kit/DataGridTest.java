@@ -754,6 +754,51 @@ class DataGridTest {
     assertEquals(2, snaps("numbers", "dark", Orders.typed(T, 8)));
   }
 
+  /** footer.txt: a footer row with a frozen column, scrolled sideways and down at scale 2. */
+  @Test
+  void footerLooksAsStored() throws IOException {
+    Orders orders = Orders.typed(T, 8);
+    orders.widths[0] = 120;
+    orders.widths[5] = 130;
+    orders.more = o -> o.rowNumbers()
+        .frozen(1)
+        .copy(orders.app.clipboard())
+        .footer(column -> switch (column) {
+          case 0 -> new DataGrid.Total(DataGrid.Aggregate.COUNT, String.valueOf(orders.count));
+          case 1 -> new DataGrid.Total(DataGrid.Aggregate.AVERAGE, "2500.5");
+          case 5 -> new DataGrid.Total(DataGrid.Aggregate.SUM, "1249825.50");
+          default -> null;
+        });
+    assertEquals(2, snaps("footer", "dark", orders));
+  }
+
+  @Test
+  void footerAlignsWithResizedAndReorderedColumns() throws IOException {
+    Orders orders = Orders.typed(T, 8);
+    DataGrid.Layout layout = new DataGrid.Layout(
+        orders.columns().stream().map(DataGrid.Column::title).toList());
+    layout.hide(2);
+    layout.moveBefore(5, 1); // amount moves to shown index 1
+    orders.more = o -> o.rowNumbers().frozen(1).columns(layout).footer(column -> switch (column) {
+      case 0 -> new DataGrid.Total(DataGrid.Aggregate.COUNT, "1000000");
+      case 5 -> new DataGrid.Total(DataGrid.Aggregate.SUM, "99.50");
+      default -> null;
+    });
+    App<Orders> app = start(orders);
+    assertEquals(x(app, find(app, "column-0")), x(app, find(app, "total-0")));
+    assertEquals(x(app, find(app, "column-1")), x(app, find(app, "total-1")));
+    assertEquals("amount", find(app, "total-1").label(), "mapped through Layout");
+    assertEquals("SUM", find(app, "total-1").children().get(0).text().string());
+    assertEquals("99.50", find(app, "total-1").children().get(1).text().string());
+
+    // Resizing column 1 moves both header and footer cells together.
+    orders.widths[5] = 160;
+    app.invalidate();
+    app.frame();
+    assertEquals(find(app, "column-1").width(), find(app, "total-1").width());
+    assertEquals(x(app, find(app, "column-2")), x(app, find(app, "total-2")));
+  }
+
   private static Theme theme(String name) {
     return name.equals("dark") ? Theme.DARK : Theme.LIGHT;
   }
