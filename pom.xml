@@ -149,7 +149,7 @@
             <execution>
               <!-- The HTML of core, kit, editor, the languages and diagram together, which the
                    site serves at /api/: mvn -P '!natives-linux-x64' -pl
-                   core,kit,editor,languages/javascript,languages/json,languages/sql,diagram -am
+                   core,kit,editor,languages/java,languages/javascript,languages/json,languages/sql,diagram -am
                    javadoc:aggregate, into target/reports/apidocs. kit has no module
                    descriptor, and an aggregate cannot mix a named module with unnamed ones: all
                    go on the class path, and without a source path, on which javadoc would find
@@ -178,7 +178,7 @@
                   </group>
                   <group>
                     <title>Languages</title>
-                    <packages>com.rethinkj.ui.javascript:com.rethinkj.ui.json:com.rethinkj.ui.sql</packages>
+                    <packages>com.rethinkj.ui.java:com.rethinkj.ui.javascript:com.rethinkj.ui.json:com.rethinkj.ui.sql</packages>
                   </group>
                   <group>
                     <title>Diagram</title>

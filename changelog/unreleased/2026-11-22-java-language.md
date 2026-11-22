@@ -1,0 +1,1 @@
+- Added the `rethinkj-ui-java` language module (`com.rethinkj.ui.java.Java`): syntax highlighting, comment and doc-comment scanning (`//`, `/* */`, `/** */` and `///` runs) and parsing of Javadoc and `///` Markdown doc comments into `DocComment`.

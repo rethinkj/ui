@@ -1,0 +1,94 @@
+el 0,0 480x394
+  text #java role=textbox "package com.example;\n\nimport java.util.List;\n\n/**\n * Scales a total for display.\n * @param factor mu" … "ok\" + tab + (limit & mask) * 1.5f;\n  }\n}" length 432 12,12 456x370 lines 1-22/22
+    el #rail 13,13 58x368
+    el #gutter 13,17 57x352
+      el #line-0 13,17 57x16
+        el 19,25 12x0
+        text "1" 35,17 15x16
+        el 54,25 12x0
+      el #line-1 13,33 57x16
+        el 19,41 12x0
+        text "2" 35,33 15x16
+        el 54,41 12x0
+      el #line-2 13,49 57x16
+        el 19,57 12x0
+        text "3" 35,49 15x16
+        el 54,57 12x0
+      el #line-3 13,65 57x16
+        el 19,73 12x0
+        text "4" 35,65 15x16
+        el 54,73 12x0
+      el #line-4 13,81 57x16
+        el 19,89 12x0
+        text "5" 35,81 15x16
+        el 54,89 12x0
+      el #line-5 13,97 57x16
+        el 19,105 12x0
+        text "6" 35,97 15x16
+        el 54,105 12x0
+      el #line-6 13,113 57x16
+        el 19,121 12x0
+        text "7" 35,113 15x16
+        el 54,121 12x0
+      el #line-7 13,129 57x16
+        el 19,137 12x0
+        text "8" 35,129 15x16
+        el 54,137 12x0
+      el #line-8 13,145 57x16
+        el 19,153 12x0
+        text "9" 35,145 15x16
+        el #fold-line-8 role=button label="Fold" 54,147 12x12
+          text label="chevron_down" "\u{F2A1}" 54,147 12x12
+      el #line-9 13,161 57x16
+        el 19,169 12x0
+        text "10" 35,161 15x16
+        el 54,169 12x0
+      el #line-10 13,177 57x16
+        el 19,185 12x0
+        text "11" 35,177 15x16
+        el 54,185 12x0
+      el #line-11 13,193 57x16
+        el 19,201 12x0
+        text "12" 35,193 15x16
+        el #fold-line-11 role=button label="Fold" 54,195 12x12
+          text label="chevron_down" "\u{F2A1}" 54,195 12x12
+      el #line-12 13,209 57x16
+        el 19,217 12x0
+        text "13" 35,209 15x16
+        el 54,217 12x0
+      el #line-13 13,225 57x16
+        el 19,233 12x0
+        text "14" 35,225 15x16
+        el 54,233 12x0
+      el #line-14 13,241 57x16
+        el 19,249 12x0
+        text "15" 35,241 15x16
+        el 54,249 12x0
+      el #line-15 13,257 57x16
+        el 19,265 12x0
+        text "16" 35,257 15x16
+        el 54,265 12x0
+      el #line-16 13,273 57x16
+        el 19,281 12x0
+        text "17" 35,273 15x16
+        el 54,281 12x0
+      el #line-17 13,289 57x16
+        el 19,297 12x0
+        text "18" 35,289 15x16
+        el 54,297 12x0
+      el #line-18 13,305 57x16
+        el 19,313 12x0
+        text "19" 35,305 15x16
+        el 54,313 12x0
+      el #line-19 13,321 57x16
+        el 19,329 12x0
+        text "20" 35,321 15x16
+        el 54,329 12x0
+      el #line-20 13,337 57x16
+        el 19,345 12x0
+        text "21" 35,337 15x16
+        el 54,345 12x0
+      el #line-21 13,353 57x16
+        el 19,361 12x0
+        text "22" 35,353 15x16
+        el 54,361 12x0

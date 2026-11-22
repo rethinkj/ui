@@ -3,7 +3,7 @@ title: CodeEditor
 description: Multi-line code editor with line numbers, code folding, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, code folding, gutter markers, syntax highlighting (such as `Sql` and [`Json`](#json)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
+`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, code folding, gutter markers, syntax highlighting (such as `Sql`, [`Json`](#json), and [`Java`](#java)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
 
 For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
 
@@ -92,6 +92,22 @@ Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/r
 
 Javadoc: [`JavaScript`](/api/com/rethinkj/ui/javascript/JavaScript.html), [`TypeScript`](/api/com/rethinkj/ui/javascript/TypeScript.html).
 
+## Java
+
+`Java.of()` implements `Language` for Java: it highlights keywords, annotations, strings, character literals, text blocks, numbers, line and block comments, and operators, marks brackets outside strings and comments, toggles line comments with `//`, reports comment and doc-comment ranges (`/** ... */` and runs of `///`), and parses Javadoc and `///` Markdown doc comments into `DocComment`. `Java` lives in its own module, `rethinkj-ui-java`, in package `com.rethinkj.ui.java`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-java</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`Java`](/api/com/rethinkj/ui/java/Java.html).
+
+<Shot src="languages/java/java-{theme}-2x-code" alt="Java source in the code editor with a Javadoc comment, a triple-slash Markdown doc comment, an annotation, a text block, strings, numbers and comments highlighted in color" />
+
 ## Placeholder and read-only
 
 Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. If you set a different label, the tree dump shows the placeholder as `placeholder="..."`.
@@ -166,7 +182,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - Override `wordCharacters()` to specify extra characters that count as part of a word besides letters, digits, and `_` (such as `"$"` for JavaScript). Word-based features then treat `$gt` as a single word: Ctrl+Arrow, double-click, word-occurrence highlights, Ctrl+D (both the first selection and next matches), the find bar's word at the cursor and whole-word search, and [Completion](/docs/components/completion).
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
-To also report the ranges of comments and doc comments and parse doc comments into `DocComment`, implement `Language`, a `Highlighter` with these methods, and pass it to `codeEditor` in place of the highlighter. `Comments.scan` finds the ranges of at most 4,000 lines per call, so a text of many lines does not block a frame; the limit does not cover the work on one very long line. `Language.of(highlighter)` makes a language of a highlighter without comments, such as `Sql.of()` or `Json.of()`.
+To also report the ranges of comments and doc comments and parse doc comments into `DocComment`, implement `Language` (as [`Java.of()`](#java) does), a `Highlighter` with these methods, and pass it to `codeEditor` in place of the highlighter. `Comments.scan` finds the ranges of at most 4,000 lines per call, so a text of many lines does not block a frame; the limit does not cover the work on one very long line. `Language.of(highlighter)` makes a language of a highlighter without comments, such as `Sql.of()` or `Json.of()`.
 
 ### Spans
 

@@ -1,0 +1,5 @@
+# Java in the code editor (JavaEditorTest): package and import, Javadoc and Markdown doc comments,
+# annotations, strings, char literals, text blocks, numbers, line and block comments.
+size 480 394 scale 2
+frame
+snap code
