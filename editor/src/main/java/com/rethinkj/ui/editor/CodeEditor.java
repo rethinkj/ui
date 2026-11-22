@@ -232,7 +232,8 @@ public final class CodeEditor {
    * Lines of characters {@code from} to {@code to} of the string that changed against the version
    * control base: shown as a colored bar in the gutter's change lane and as a tick along the
    * vertical scrollbar. For {@link Kind#DELETED}, {@code from == to} marks the point where lines
-   * were removed before the line of {@code from}.
+   * were removed: before the line of {@code from}, or after it where {@code from} is the end of a
+   * line that is not empty, such as lines removed at the end of a text without a final line feed.
    *
    * @param from start offset in the markup layer's text, 0 or more
    * @param to end offset in the markup layer's text, at least {@code from}
@@ -245,7 +246,7 @@ public final class CodeEditor {
       ADDED,
       /** Lines modified since the base. */
       MODIFIED,
-      /** Lines removed before the line of {@code from}. */
+      /** Lines removed at the point {@code from}. */
       DELETED
     }
 
@@ -1640,12 +1641,14 @@ public final class CodeEditor {
   private static El changeBar(Theme theme, List<Change> changes, El.Gutter.Line line) {
     float bar = theme.size().indicator();
     Change.Kind kind = null;
+    boolean after = false; // a deletion at the end of a line is after it
     for (Change c : changes) {
       boolean hits = c.kind == Change.Kind.DELETED || c.from == c.to
           ? c.from >= line.start() && c.from <= line.end()
           : c.to > line.start() && c.from <= line.end();
       if (hits) {
         kind = c.kind;
+        after = c.from == line.end() && line.end() > line.start();
         if (kind != Change.Kind.DELETED) {
           break;
         }
@@ -1656,7 +1659,7 @@ public final class CodeEditor {
     }
     El mark = El.el().key("change").w(bar).shrink(0).fill(color(theme, kind));
     if (kind == Change.Kind.DELETED) {
-      return mark.h(theme.size().dot()).alignSelf(Style.Align.START);
+      return mark.h(theme.size().dot()).alignSelf(after ? Style.Align.END : Style.Align.START);
     }
     return mark.alignSelf(Style.Align.STRETCH);
   }
