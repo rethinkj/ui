@@ -272,7 +272,7 @@ public final class Markdown {
     Theme theme = Theme.CURRENT.get();
     Theme.TextStyle mono = theme.type().mono();
     float line = lineHeight(theme.prose().body());
-    float column = labelColumn(theme, sections);
+    float column = labelColumn(sections);
     El out = col().role("list").gap(theme.space().m()).minSize(0, 0);
     for (Section section : sections) {
       if (section.definitions().isEmpty()) {
@@ -283,9 +283,6 @@ public final class Markdown {
         boolean hasTerm = definition.term() != null && !definition.term().isEmpty();
         boolean hasDescription = definition.description() != null
             && !definition.description().blocks().isEmpty();
-        if (!hasTerm && !hasDescription) {
-          continue;
-        }
         El entry = row()
             .role("listitem")
             .gap(theme.space().m())
@@ -295,8 +292,8 @@ public final class Markdown {
         if (hasTerm) {
           entry.label(definition.term());
           El chip = row()
-              .h(line)
-              .shrink(0)
+              .minSize(0, line)
+              .clip() // a term wider than the whole entry is cut at its edge
               .align(Style.Align.CENTER)
               .padding(0, theme.space().s())
               .radius(theme.radius().small())
@@ -314,9 +311,6 @@ public final class Markdown {
                   .grow(1));
         }
         entries.child(entry);
-      }
-      if (entries.children().isEmpty()) {
-        continue;
       }
       El label = row()
           .w(column)
@@ -338,7 +332,7 @@ public final class Markdown {
     return out;
   }
 
-  private static float labelColumn(Theme theme, List<Section> sections) {
+  private static float labelColumn(List<Section> sections) {
     float widest = 0;
     for (Section section : sections) {
       if (!section.definitions().isEmpty()) {
