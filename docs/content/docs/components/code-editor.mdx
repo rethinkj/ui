@@ -150,7 +150,7 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - Override `wordCharacters()` to specify extra characters that count as part of a word besides letters, digits, and `_` (such as `"$"` for JavaScript). Word-based features then treat `$gt` as a single word: Ctrl+Arrow, double-click, word-occurrence highlights, Ctrl+D (both the first selection and next matches), the find bar's word at the cursor and whole-word search, and [Completion](/docs/components/completion).
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
 
-To also report comment and doc-comment ranges and parse doc comments into `DocComment`, implement `Language` around a `Highlighter` and pass it to `CodeEditor.codeEditor`. Comment ranges are scanned incrementally with bounded work per call via `Comments.scan`. Use `Language.of(highlighter)` to wrap a highlighter without comments, such as `Sql.of()` or `Json.of()`.
+To also report the ranges of comments and doc comments and parse doc comments into `DocComment`, implement `Language`, a `Highlighter` with these methods, and pass it to `codeEditor` in place of the highlighter. `Comments.scan` finds the ranges a bounded number of lines per call, so a long text does not block a frame. `Language.of(highlighter)` makes a language of a highlighter without comments, such as `Sql.of()` or `Json.of()`.
 
 ### Spans
 

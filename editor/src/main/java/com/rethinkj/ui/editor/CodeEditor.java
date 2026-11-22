@@ -511,39 +511,6 @@ public final class CodeEditor {
   }
 
   /**
-   * The editor with a {@link Language}, as {@link #codeEditor(String, State, Highlighter,
-   * Consumer)} with the language's highlighter.
-   */
-  public static El codeEditor(
-      String value, State state, Language language, Consumer<String> onChange) {
-    return codeEditor(null, value, state, language, onChange);
-  }
-
-  /**
-   * The editor with its find bar, diagnostic keys, commands and a {@link Language}, as {@link
-   * #codeEditor(App, String, State, Highlighter, Consumer)} with the language's highlighter.
-   */
-  public static El codeEditor(
-      App<?> app, String value, State state, Language language, Consumer<String> onChange) {
-    return codeEditor(app, value, null, state, language, onChange);
-  }
-
-  /**
-   * The editor with a placeholder and a {@link Language}, as {@link #codeEditor(App, String,
-   * String, State, Highlighter, Consumer)} with the language's highlighter.
-   */
-  public static El codeEditor(
-      App<?> app,
-      String value,
-      String placeholder,
-      State state,
-      Language language,
-      Consumer<String> onChange) {
-    return codeEditor(
-        app, value, placeholder, state, language == null ? null : language.highlighter(), onChange);
-  }
-
-  /**
    * The editor with a placeholder, as that of {@link TextField#codeArea}.
    *
    * @param placeholder shown while the code is empty, and the label unless {@code .label(...)}

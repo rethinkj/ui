@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.Highlighter;
+import com.rethinkj.ui.Spans;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,6 @@ class CommentsTest {
    * /** *}{@code /} doc comments.
    */
   private static final class CLike implements Language {
-    private static final Highlighter PLAIN = (line, state, out) -> null;
     private final String id;
     private final AtomicInteger calls;
 
@@ -35,8 +34,8 @@ class CommentsTest {
     }
 
     @Override
-    public Highlighter highlighter() {
-      return PLAIN;
+    public Object line(String line, Object state, Spans out) {
+      return null;
     }
 
     @Override

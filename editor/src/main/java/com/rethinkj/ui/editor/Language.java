@@ -1,19 +1,20 @@
 package com.rethinkj.ui.editor;
 
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
+import com.rethinkj.ui.Spans;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
- * A language for {@link CodeEditor}: wraps a {@link Highlighter} and adds comment and doc-comment
- * ranges and doc-comment parsing.
+ * A language for {@link CodeEditor}: a {@link Highlighter} that also finds the comments and doc
+ * comments of a text ({@link Comments#scan}) and parses doc comments. The code editor takes it
+ * where it takes a highlighter.
  *
  * <p>Implementations should implement {@link Object#equals} (for example, as a record), because
  * views construct them each frame and caches such as {@link Comments#scan} compare them.
  */
-public interface Language {
-
-  /** The highlighter that colors tokens, marks brackets, comments lines out and formats code. */
-  Highlighter highlighter();
+public interface Language extends Highlighter {
 
   /**
    * Reports the comments and doc comments on one line, in the same line-by-line protocol as {@link
@@ -65,19 +66,39 @@ public interface Language {
   }
 
   /**
-   * A language with only {@code highlighter} and no comments or doc comments. Returns equal objects
-   * for equal highlighters.
-   *
-   * @param highlighter the highlighter to wrap
-   * @return a language wrapping {@code highlighter}
+   * The language that highlights as {@code highlighter} does and has no comments or doc comments,
+   * such as {@code Language.of(Sql.of())}; equal for equal highlighters.
    */
   static Language of(Highlighter highlighter) {
-    return new HighlighterLanguage(highlighter);
+    return new Wrapped(Objects.requireNonNull(highlighter, "highlighter"));
   }
 }
 
-record HighlighterLanguage(Highlighter highlighter) implements Language {
-  HighlighterLanguage {
-    Objects.requireNonNull(highlighter, "highlighter");
+/** {@link Language#of}: hands each method of {@link Highlighter} to the highlighter. */
+record Wrapped(Highlighter highlighter) implements Language {
+
+  @Override
+  public Object line(String line, Object state, Spans out) {
+    return highlighter.line(line, state, out);
+  }
+
+  @Override
+  public boolean marksBrackets() {
+    return highlighter.marksBrackets();
+  }
+
+  @Override
+  public String lineComment() {
+    return highlighter.lineComment();
+  }
+
+  @Override
+  public String wordCharacters() {
+    return highlighter.wordCharacters();
+  }
+
+  @Override
+  public Function<String, Formatted> formatter() {
+    return highlighter.formatter();
   }
 }
