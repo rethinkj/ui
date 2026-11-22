@@ -520,21 +520,18 @@ class GpuRendererTest {
         if (worst > 0) {
           differing++;
         }
-        if (out) {
-          if (beyond++ == 0) {
-            first = String.format(
-                "at %d,%d, %d layers: CPU %02X%02X%02X%02X, GPU %s"
-                    + " (premultiplied), %d allowed",
-                x,
-                y,
-                n,
-                expected[0],
-                expected[1],
-                expected[2],
-                expected[3],
-                hex(stored, gpuAt),
-                tolerance);
-          }
+        if (out && beyond++ == 0) {
+          first = String.format(
+              "at %d,%d, %d layers: CPU %02X%02X%02X%02X, GPU %s (premultiplied), %d allowed",
+              x,
+              y,
+              n,
+              expected[0],
+              expected[1],
+              expected[2],
+              expected[3],
+              hex(stored, gpuAt),
+              tolerance);
         }
         // Black where equal, gray to light gray within the tolerance, red beyond it.
         int shade =

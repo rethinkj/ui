@@ -369,7 +369,7 @@ class DeviceTest {
   }
 
   @Test
-  void objectsBelongToTheThreadOfTheirInstance() throws Exception {
+  void objectsBelongToTheThreadOfTheirInstance() {
     try (Device device = Gpus.device("renderer")) {
       CompletableFuture<Buffer> elsewhere = CompletableFuture.supplyAsync(
           () -> device.createBuffer("elsewhere", 16, BufferUsage.UNIFORM));

@@ -71,7 +71,7 @@ class FilterListTest {
         (text.equals("one") ? first : last).countDown();
         try {
           release.await();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
           interrupted.countDown();
         }
       }

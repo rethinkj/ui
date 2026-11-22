@@ -1043,8 +1043,8 @@ public final class Text implements Measure {
             && spans.froms[i] < offset + limit) {
           Arrays.fill(
               byChar,
-              Math.clamp(spans.froms[i] - offset, 0, limit),
-              Math.clamp(spans.tos[i] - offset, 0, limit),
+              Math.clamp((long) spans.froms[i] - offset, 0, limit),
+              Math.clamp((long) spans.tos[i] - offset, 0, limit),
               spans.colors[i]);
         }
       }
@@ -1079,8 +1079,8 @@ public final class Text implements Measure {
           && spans.froms[i] < offset + limit) {
         Arrays.fill(
             byChar,
-            Math.clamp(spans.froms[i] - offset, 0, limit),
-            Math.clamp(spans.tos[i] - offset, 0, limit),
+            Math.clamp((long) spans.froms[i] - offset, 0, limit),
+            Math.clamp((long) spans.tos[i] - offset, 0, limit),
             spans.fonts[i]);
       }
     }
@@ -1690,7 +1690,7 @@ public final class Text implements Measure {
     int line = line(index);
     Span span = placedSpans.get(line);
     int p = span.paragraph;
-    int at = Math.clamp(index - starts[p], span.from, span.to);
+    int at = Math.clamp((long) index - starts[p], span.from, span.to);
     return (line < lineX.length ? lineX[line] : 0) + paras[p].pen(at) - paras[p].pen(span.from);
   }
 
@@ -2161,23 +2161,27 @@ public final class Text implements Measure {
           float x1 = chunks != null && b > visTo
               ? (float) (chunks.xs[visLastChunk + 1] - viewX)
               : para.pen(b) - left - viewX;
-          if (kind == Spans.BACKGROUND) {
-            ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
-          } else if (kind == Spans.GUIDE) {
-            ranges.add(new Mark(new Box(Math.round(x0), top, thick, lineHeight), spans.colors[i]));
-          } else if (kind == Spans.SQUIGGLE) {
-            // A later squiggle wins where it lies: cut out of this one, so that the edges of the
-            // two waves do not mix their colors. From the underline to the row's bottom: the room
-            // the wave may take.
-            for (int[] piece : uncovered(spans, i, a, b, spans == decor ? null : decor)) {
-              float p0 = para.pen(piece[0]) - left - viewX;
-              float p1 = para.pen(piece[1]) - left - viewX;
-              unders.add(new Mark(
-                  new Box(p0, top + under, p1 - p0, lineHeight - under), spans.colors[i], true));
+          switch (kind) {
+            case Spans.BACKGROUND ->
+              ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
+            case Spans.GUIDE ->
+              ranges.add(
+                  new Mark(new Box(Math.round(x0), top, thick, lineHeight), spans.colors[i]));
+            case Spans.SQUIGGLE -> {
+              // A later squiggle wins where it lies: cut out of this one, so that the edges of the
+              // two waves do not mix their colors. From the underline to the row's bottom: the
+              // room the wave may take.
+              for (int[] piece : uncovered(spans, i, a, b, spans == decor ? null : decor)) {
+                float p0 = para.pen(piece[0]) - left - viewX;
+                float p1 = para.pen(piece[1]) - left - viewX;
+                unders.add(new Mark(
+                    new Box(p0, top + under, p1 - p0, lineHeight - under), spans.colors[i], true));
+              }
             }
-          } else {
-            float y = kind == Spans.UNDERLINE ? under : strike;
-            unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
+            default -> {
+              float y = kind == Spans.UNDERLINE ? under : strike;
+              unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
+            }
           }
         }
       }
@@ -2344,7 +2348,7 @@ public final class Text implements Measure {
     if (within < 0) { // measuring the line made the rows before it fewer
       within = 0;
     }
-    return new int[] {line, (int) Math.min(within, para.rowCount() - 1)};
+    return new int[] {line, (int) Math.min(within, (long) para.rowCount() - 1)};
   }
 
   /** The row a position of the shown string is on, as {line, row}; at a wrap, the later one. */

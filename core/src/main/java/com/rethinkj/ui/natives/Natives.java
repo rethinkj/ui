@@ -29,7 +29,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * Finds and loads the native libraries that core calls through the Foreign Function and Memory
@@ -292,7 +292,7 @@ public final class Natives {
       } finally {
         try {
           Files.deleteIfExists(temporary);
-        } catch (IOException e) {
+        } catch (IOException _) {
           // Left behind; nothing loads a temporary file.
         }
       }
@@ -398,7 +398,7 @@ public final class Natives {
         return null;
       }
       return message.reinterpret(Integer.MAX_VALUE).getString(0);
-    } catch (Throwable t) {
+    } catch (Throwable _) {
       return null; // only for the message
     }
   }
@@ -500,7 +500,7 @@ public final class Natives {
           return "";
         }
         return " (" + new String(buffer.asSlice(0, 2L * chars).toArray(JAVA_CHAR)).strip() + ")";
-      } catch (Throwable t) {
+      } catch (Throwable _) {
         return ""; // only for the message
       }
     }
@@ -518,10 +518,10 @@ public final class Natives {
     try {
       URLConnection connection = url.openConnection();
       // Opening the stream reads nothing yet; closing it frees what a file: URL holds open.
-      try (InputStream in = connection.getInputStream()) {
+      try (InputStream _ = connection.getInputStream()) {
         return connection.getContentLengthLong();
       }
-    } catch (IOException e) {
+    } catch (IOException _) {
       return -1;
     }
   }
@@ -529,7 +529,7 @@ public final class Natives {
   private static boolean hasSize(Path file, long size) {
     try {
       return size >= 0 && Files.isRegularFile(file) && Files.size(file) == size;
-    } catch (IOException e) {
+    } catch (IOException _) {
       return false;
     }
   }
@@ -544,7 +544,7 @@ public final class Natives {
       for (int n; (n = in.read(buffer)) > 0; ) {
         digest.update(buffer, 0, n);
       }
-    } catch (IOException e) {
+    } catch (IOException _) {
       return false;
     }
     return HexFormat.of().formatHex(digest.digest()).equals(sha256);
@@ -565,7 +565,7 @@ public final class Natives {
    * $XDG_CACHE_HOME/rethinkj-ui/natives} or {@code ~/.cache/rethinkj-ui/natives} on Linux, or null
    * if none can be found.
    */
-  static Path defaultCache(String platform, Function<String, String> env, String userHome) {
+  static Path defaultCache(String platform, UnaryOperator<String> env, String userHome) {
     if (platform == null) {
       return null;
     }
@@ -593,7 +593,7 @@ public final class Natives {
     try {
       Path result = Path.of(path);
       return result.isAbsolute() ? result : null;
-    } catch (InvalidPathException e) {
+    } catch (InvalidPathException _) {
       return null;
     }
   }

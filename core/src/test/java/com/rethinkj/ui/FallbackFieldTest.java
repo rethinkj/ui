@@ -4,7 +4,6 @@ import static com.rethinkj.ui.Fields.field;
 import static com.rethinkj.ui.Fields.focus;
 import static com.rethinkj.ui.Fields.key;
 import static com.rethinkj.ui.Fields.show;
-import static com.rethinkj.ui.Fields.start;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

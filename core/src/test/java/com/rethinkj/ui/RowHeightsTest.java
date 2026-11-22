@@ -3,6 +3,7 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Random;
@@ -159,8 +160,9 @@ class RowHeightsTest {
     app.frame();
     app.frame();
     list = list(app);
-    assertTrue(
-        list.children().get(9 - list.firstRow()).y() != 0,
+    assertNotEquals(
+        0f,
+        list.children().get(9 - list.firstRow()).y(),
         "no jump back: " + app.tree().dump());
     assertTrue(Math.abs(list(app).scrollY() - left) < 200, "near where the wheel left it");
   }

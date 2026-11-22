@@ -151,8 +151,4 @@ class ProgressTest {
     assertEquals("refresh", app.focused().key());
     assertEquals(0, saved[0]);
   }
-
-  private static El fill(App<?> app) {
-    return app.tree().children().getFirst().children().getFirst();
-  }
 }

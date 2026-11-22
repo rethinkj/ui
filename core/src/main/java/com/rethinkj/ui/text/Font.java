@@ -1223,7 +1223,7 @@ public final class Font implements AutoCloseable {
           || FreeType.loadGlyph(face, index, FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG) != 0) {
         return -1;
       }
-    } else if (FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
+    } else if (FreeType.setCharSize(face, 0, 32L * 64, 72, 72) != 0
         || FreeType.loadGlyph(
                 face, index, FreeType.LOAD_NO_BITMAP | FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG)
             != 0) {

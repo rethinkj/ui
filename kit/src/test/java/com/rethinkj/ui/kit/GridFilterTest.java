@@ -85,20 +85,40 @@ class GridFilterTest {
     run(app, "type \"10\"\nkey Tab\ntype \"100\"\nkey Enter\nframe");
     assertEquals(List.of(new Filter(3, new Filter.Between("10", "100"))), ledger.filters);
 
-    run(
-        app,
-        "advance 1\nframe\nkey ArrowRight\nkey ArrowRight\nkey ArrowDown alt\nframe\n"
-            + "advance 1\nframe\npress #value-paid\npress #value-refunded\nframe\n"
-            + "press label=\"Apply\"\nframe");
+    run(app, """
+        advance 1
+        frame
+        key ArrowRight
+        key ArrowRight
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press #value-paid
+        press #value-refunded
+        frame
+        press label="Apply"
+        frame""");
     assertEquals(
         new Filter(5, new Filter.OneOf(List.of("pending", "shipped"))), ledger.filters.getLast());
     assertEquals(2, ledger.filters.size());
 
-    run(
-        app,
-        "advance 1\nframe\nkey End\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
-            + "press #kind\nframe\nadvance 1\nframe\npress label=\"Is NULL\"\nframe\n"
-            + "press label=\"Apply\"\nframe");
+    run(app, """
+        advance 1
+        frame
+        key End
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press #kind
+        frame
+        advance 1
+        frame
+        press label="Is NULL"
+        frame
+        press label="Apply"
+        frame""");
     assertEquals(new Filter(7, new Filter.NullCheck(true)), ledger.filters.getLast());
     run(app, "advance 1\nframe");
     assertTrue(app.tree().dump().contains("label=\"Clear all\""), app.tree().dump());
@@ -110,11 +130,20 @@ class GridFilterTest {
   void aWrongRegularExpressionCannotBeAppliedAndEscapeLeavesTheFilterAsItWas() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(
-        app,
-        "key ArrowDown alt\nframe\nadvance 1\nframe\npress #kind\nframe\nadvance 1\nframe\n"
-            + "press label=\"Matches regular expression\"\nframe\npress #value\ntype \"(ab\"\n"
-            + "frame");
+    run(app, """
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press #kind
+        frame
+        advance 1
+        frame
+        press label="Matches regular expression"
+        frame
+        press #value
+        type "(ab"
+        frame""");
     assertTrue(app.tree().dump().contains("role=alert label=\"Not a regular expression\""));
     assertTrue(line(app, "value").contains(" invalid"), line(app, "value"));
     run(app, "key Enter\nframe");

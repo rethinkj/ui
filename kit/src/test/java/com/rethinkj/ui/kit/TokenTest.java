@@ -40,7 +40,6 @@ class TokenTest {
         }
       }
     }
-    assertTrue(
-        found.size() == 0, "Take these from the theme instead:\n" + String.join("\n", found));
+    assertTrue(found.isEmpty(), "Take these from the theme instead:\n" + String.join("\n", found));
   }
 }

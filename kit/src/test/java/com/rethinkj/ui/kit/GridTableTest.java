@@ -390,11 +390,14 @@ class GridTableTest {
               .grow(1));
     });
     holder[0] = app;
-    Script.run(
-        "size 260 180\nframe\npress #cell-0-0\nframe\nclipboard \"AA\\nBB\\nCC\"\n"
-            + "key V control\nframe",
-        app,
-        Path.of("target/grid-table"));
+    Script.run("""
+        size 260 180
+        frame
+        press #cell-0-0
+        frame
+        clipboard "AA\\nBB\\nCC"
+        key V control
+        frame""", app, Path.of("target/grid-table"));
     assertEquals(List.of(new Named(2, "BB"), new Named(3, "CC")), rows);
     assertTrue(app.tree().dump().contains("\"CC\""), app.tree().dump());
   }

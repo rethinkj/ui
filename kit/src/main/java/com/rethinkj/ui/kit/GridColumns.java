@@ -67,10 +67,8 @@ final class GridColumns {
       });
     }
     Layout l = b.o.layout;
-    if (l != null) {
-      if (index >= b.frozen) {
-        cell.onDrag(d -> drag(b, index, d)).grabbed(sel.columns.dragColumn == index);
-      }
+    if (l != null && index >= b.frozen) {
+      cell.onDrag(d -> drag(b, index, d)).grabbed(sel.columns.dragColumn == index);
     }
   }
 

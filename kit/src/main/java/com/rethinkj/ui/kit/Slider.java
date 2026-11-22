@@ -144,7 +144,7 @@ public final class Slider {
           if (by == 0) {
             return false;
           }
-          int next = snap((long) at + by, min, max, step);
+          int next = snap((double) at + by, min, max, step);
           if (next != value) {
             onChange.accept(next);
           }

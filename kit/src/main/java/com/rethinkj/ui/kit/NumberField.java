@@ -185,7 +185,7 @@ public final class NumberField {
     int typed;
     try {
       typed = Integer.parseInt(s);
-    } catch (NumberFormatException e) {
+    } catch (NumberFormatException _) {
       return; // beyond an int
     }
     if (typed != value || !s.equals(Integer.toString(typed))) {
@@ -195,6 +195,6 @@ public final class NumberField {
 
   /** The value moved by {@code by} and kept in the range. */
   private static int step(int value, long by, int min, int max) {
-    return (int) Math.clamp(value + by, min, max);
+    return Math.clamp(value + by, min, max);
   }
 }

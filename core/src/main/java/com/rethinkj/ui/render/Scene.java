@@ -1578,7 +1578,7 @@ public final class Scene {
       float most = Math.min(clipGet(c, WIDTH), clipGet(c, HEIGHT)) / 2;
       for (int k = 0; k < 4; k++) {
         float radius = Math.clamp(clipGet(c, RADIUS + 4 * k), 0, most);
-        if (!(radius == 0) && corner(x, y, right, bottom, k, radius, l, t, r, b)) {
+        if (radius != 0 && corner(x, y, right, bottom, k, radius, l, t, r, b)) {
           return c;
         }
       }
@@ -1627,7 +1627,7 @@ public final class Scene {
       clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS + 4 * c, radii[c]);
     }
     clips.set(ValueLayout.JAVA_INT, offset + CLIP_PARENT, parent);
-    for (long at = CLIP_PARENT + 4; at < CLIP_STRIDE; at += 4) {
+    for (long at = CLIP_PARENT + 4L; at < CLIP_STRIDE; at += 4) {
       clips.set(ValueLayout.JAVA_INT, offset + at, 0);
     }
     return clipCount++;

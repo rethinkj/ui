@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -153,7 +154,7 @@ class TableTest {
     s.revealX = 100;
     run(app, "press 10,10\nframe");
     assertEquals(100, find(app.tree(), "area").scrollX(), "its start at the left edge");
-    assertTrue(area != find(app.tree(), "area"));
+    assertNotSame(area, find(app.tree(), "area"));
   }
 
   @Test

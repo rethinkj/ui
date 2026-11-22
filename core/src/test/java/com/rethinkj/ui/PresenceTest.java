@@ -257,7 +257,7 @@ class PresenceTest {
   }
 
   @Test
-  void neitherALeavingNorAnInvisibleElementIsHit() throws IOException {
+  void neitherALeavingNorAnInvisibleElementIsHit() {
     List<String> log = new ArrayList<>();
     boolean[] shown = {true};
     App<List<String>> app = new App<>(log, l -> {

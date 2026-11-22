@@ -37,13 +37,20 @@ final class Animator {
   // The animated numbers: x, y, width, height and the four corners' radii in pixels, then the
   // fill, the border and the text color as alpha and premultiplied red, green and blue, then the
   // opacity and the sweep of an arc.
-  private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, SWEEP = 21;
+  private static final int RADIUS = 4;
+  private static final int FILL = 8;
+  private static final int BORDER = 12;
+  private static final int TEXT = 16;
+  private static final int OPACITY = 20;
+  private static final int SWEEP = 21;
   private static final int COUNT = 22;
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
   // quarter of a color step, which rounds to the target; for opacity, a quarter of 1/255; for a
   // sweep, a ten-thousandth of a turn, a thirtieth of a pixel on a ring a hundred pixels across.
-  private static final double PIXELS = 0.01, CHANNELS = 0.25, TURNS = 1e-4;
+  private static final double PIXELS = 0.01;
+  private static final double CHANNELS = 0.25;
+  private static final double TURNS = 1e-4;
 
   /**
    * The part is the element's key or, when it has none, its index as an Integer; for a row of a

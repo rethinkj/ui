@@ -195,7 +195,7 @@ class SharedDeviceTest {
         try {
           Thread.sleep(10_000);
           loop.stop();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
           // ended in time
         }
       });

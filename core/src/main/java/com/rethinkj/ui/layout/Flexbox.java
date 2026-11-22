@@ -60,6 +60,9 @@ import java.util.List;
  */
 final class Flexbox {
 
+  // An item's node, style and limits go by the same names as the container's, which it reads
+  // only as Flexbox.this where it needs them.
+  @SuppressWarnings("java:S9396")
   private final class Item {
     final Node node;
     final Style s;

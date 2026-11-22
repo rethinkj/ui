@@ -617,7 +617,9 @@ class SeveralWindowsTest {
     boolean fails;
 
     @Override
-    public void present(Scene scene, float width, float height, float scale) {}
+    public void present(Scene scene, float width, float height, float scale) {
+      // only closing is counted
+    }
 
     @Override
     public void close() {

@@ -1022,7 +1022,7 @@ public final class WindowLoop {
       when down.button() == PointerButton.RIGHT -> app.secondaryDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.RIGHT -> app.secondaryUp(up.x(), up.y());
       case PointerMove move -> app.pointerMove(move.x(), move.y());
-      case PointerLeave leave -> app.pointerLeave();
+      case PointerLeave _ -> app.pointerLeave();
       // The window's dy is positive away from the user, the app's towards the end.
       case Wheel wheel ->
         app.wheel(
@@ -1041,7 +1041,7 @@ public final class WindowLoop {
         e.input = true;
         app.fileDragOver(over.x(), over.y());
       }
-      case FileDragLeave leave -> {
+      case FileDragLeave _ -> {
         e.input = true;
         app.fileDragLeave();
       }
@@ -1056,28 +1056,28 @@ public final class WindowLoop {
         }
       }
       case StateChanged state -> app.windowMaximized(state.maximized());
-      case Resized resized -> resize(e);
-      case ScaleChanged changed -> {
+      case Resized _ -> resize(e);
+      case ScaleChanged _ -> {
         resize(e);
         refreshRate(e);
       }
-      case DisplayChanged changed -> refreshRate(e); // another display, or another mode of it
-      case Redraw redraw -> {
-        if (!drawing) { // in a pass, the frame comes anyway
-          tick();
-          draw(e, !redraw.live());
-          // During the system's live resize no other frame comes until the next step: what the
-          // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
-          for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
-            draw(e, false);
-          }
-          // The frame may have run a task that arrived, which the others show at once too.
-          for (Entry other : invalidateOthers(e)) {
-            draw(other, false);
-          }
+      case DisplayChanged _ -> refreshRate(e); // another display, or another mode of it
+      // In a pass, the frame comes anyway.
+      case Redraw redraw
+      when !drawing -> {
+        tick();
+        draw(e, !redraw.live());
+        // During the system's live resize no other frame comes until the next step: what the
+        // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
+        for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
+          draw(e, false);
+        }
+        // The frame may have run a task that arrived, which the others show at once too.
+        for (Entry other : invalidateOthers(e)) {
+          draw(other, false);
         }
       }
-      case CloseRequested close -> {
+      case CloseRequested _ -> {
         if (e.onClose != null) {
           app.post(e.onClose);
         } else if (open().size() > 1) {
@@ -1119,7 +1119,7 @@ public final class WindowLoop {
         x = up.x();
         y = up.y();
       }
-      case PointerLeave leave -> {
+      case PointerLeave _ -> {
         return true; // the pressed window keeps the pointer
       }
       // And the keys: a window that opened under the pointer took the keyboard focus, but Escape
@@ -1290,7 +1290,7 @@ public final class WindowLoop {
     try {
       return sinceStart(
           Files.readString(Path.of("/proc/self/stat")), Files.readString(Path.of("/proc/uptime")));
-    } catch (IOException | RuntimeException notLinux) {
+    } catch (IOException | RuntimeException _) { // not Linux
       return ProcessHandle.current()
           .info()
           .startInstant()

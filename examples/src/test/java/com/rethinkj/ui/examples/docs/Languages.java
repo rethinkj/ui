@@ -49,7 +49,7 @@ final class Languages {
         Card.card(Toggle.toggle(state.german, "Deutsch", state::toggleGerman), password));
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Languages state = new Languages();
     // Each build of the view reads the texts the state chooses, so a new choice shows at once.
     App<Languages> app = new App<>(state, Languages::view).provide(Texts.CURRENT, Languages::texts);

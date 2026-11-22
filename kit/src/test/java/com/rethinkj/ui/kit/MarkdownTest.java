@@ -144,10 +144,12 @@ class MarkdownTest {
   void aBlockCopiesItsSelectionAndControlACopiesTheWholeDocument() throws IOException {
     App<Doc> app = app(DOC);
     // A double press selects a word of the paragraph, Control+C copies it.
-    String tree = run(
-        app,
-        "frame\npress text=\"Guide\" clicks 1\npress text=\"Guide\" clicks 2"
-            + "\nkey C control\nframe");
+    String tree = run(app, """
+        frame
+        press text="Guide" clicks 1
+        press text="Guide" clicks 2
+        key C control
+        frame""");
     assertEquals("Guide", app.clipboard().read(), tree);
     // Control+A selects the document, which shows in every block; Control+C copies all of it.
     run(app, "key A control\nframe\nkey C control\nframe");

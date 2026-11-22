@@ -105,30 +105,38 @@ class PartsTest {
     String narrow = app.tree().dump();
     assertTrue(narrow.contains("role=button label=\"More\""), narrow);
     assertTrue(!narrow.contains("role=button label=\"Export\""), narrow);
-    more(
-        app,
-        out,
-        330,
-        "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
-            + "press role=menuitem label=\"Export\"\nframe");
+    more(app, out, 330, """
+        press role=button label="More"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Export"
+        frame""");
     assertEquals("export", app.state().log.getLast(), "the menu runs the same action");
-    more(
-        app,
-        out,
-        240,
-        "frame\nframe\nframe\nadvance 1\nframe\npress role=button label=\"More\"\nframe\n"
-            + "advance 0.25\nframe\npress role=menuitem label=\"Wrap values\"\nframe");
+    more(app, out, 240, """
+        frame
+        frame
+        frame
+        advance 1
+        frame
+        press role=button label="More"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Wrap values"
+        frame""");
     assertTrue(app.state().wrap, "a toggle as a checked item");
     more(app, out, 160, "frame\nframe");
     String smallest = app.tree().dump();
     assertTrue(smallest.contains("role=button label=\"More\""), smallest);
     assertFalse(smallest.contains("role=button label=\"Refresh\""), smallest);
-    more(
-        app,
-        out,
-        160,
-        "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
-            + "press role=menuitem label=\"Refresh\"\nframe");
+    more(app, out, 160, """
+        press role=button label="More"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Refresh"
+        frame""");
     assertEquals("refresh", app.state().log.getLast(), "even the first item can move to More");
     more(app, out, 720, "frame\nframe");
     assertTrue(app.tree().dump().contains("role=button label=\"Wrap values\" "), "back");
@@ -188,12 +196,13 @@ class PartsTest {
   void theSplitButtonRunsAndOpensItsMenu() throws IOException {
     App<Parts> app = run(720, "press #main\nframe");
     assertEquals("run", app.state().log.getLast());
-    more(
-        app,
-        out,
-        720,
-        "press label=\"More Run\"\nframe\nadvance 0.25\nframe\n"
-            + "press role=menuitem label=\"Explain\"\nframe");
+    more(app, out, 720, """
+        press label="More Run"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Explain"
+        frame""");
     assertEquals("explain", app.state().log.getLast());
   }
 
@@ -230,12 +239,13 @@ class PartsTest {
         StructureTest.line(shortened, "label=\"orders_by_customer_and_month\"")
             .contains(" current"),
         "the current part stays even when it is wider than the breadcrumb: " + shortened);
-    more(
-        narrow,
-        out,
-        200,
-        "press label=\"Hidden parts\"\nframe\nadvance 0.25\nframe\n"
-            + "press role=menuitem label=\"localhost\"\nframe");
+    more(narrow, out, 200, """
+        press label="Hidden parts"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="localhost"
+        frame""");
     assertEquals("crumb localhost", narrow.state().log.getLast());
   }
 
@@ -347,10 +357,13 @@ class PartsTest {
   @Test
   void aRemovableBadgeHasACrossAndAPressableOneIsAButton() throws IOException {
     App<Parts> app = new Parts(Theme.DARK).app(Parts::badges);
-    Script.run(
-        "size 560 360\nframe\npress label=\"Remove status = paid\"\nframe\n" + "press #add\nframe",
-        app,
-        out);
+    Script.run("""
+        size 560 360
+        frame
+        press label="Remove status = paid"
+        frame
+        press #add
+        frame""", app, out);
     assertEquals(java.util.List.of("total > 100"), app.state().filters);
     assertEquals("add", app.state().log.getLast());
     assertEquals(null, app.focused(), "neither takes the focus from a press");

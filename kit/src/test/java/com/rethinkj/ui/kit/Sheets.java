@@ -6,7 +6,6 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Card.card;
 import static com.rethinkj.ui.kit.Divider.divider;
 import static com.rethinkj.ui.kit.Form.field;
-import static com.rethinkj.ui.kit.Form.form;
 import static com.rethinkj.ui.kit.Group.expander;
 import static com.rethinkj.ui.kit.Group.group;
 import static com.rethinkj.ui.kit.Group.linkRow;

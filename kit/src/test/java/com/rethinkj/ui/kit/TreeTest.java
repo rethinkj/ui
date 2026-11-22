@@ -364,10 +364,17 @@ class TreeTest {
   void keysInOneFrameWalkIntoANodeThatAnEarlierOneOpened() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost");
     App<Catalog> app = start(catalog);
-    run(
-        app,
-        "focus #schema\nkey Home\nkey ArrowDown\nframe\n" // localhost/analytics, closed
-            + "key ArrowRight\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
+    // ArrowDown reaches localhost/analytics, closed, before the four ArrowRight.
+    run(app, """
+        focus #schema
+        key Home
+        key ArrowDown
+        frame
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        frame""");
     assertEquals(
         catalog.node("localhost/analytics/public/events"),
         catalog.selected,
@@ -713,22 +720,27 @@ class TreeTest {
   @Test
   void anEmptyDetailDoesNotPreventTheRowFromBeingShown() throws IOException {
     Tree.Model<String> model = new Tree.Model<>() {
+      @Override
       public List<String> roots() {
         return List.of("name");
       }
 
+      @Override
       public Tree.Children<String> children(String node) {
         return Tree.ready(List.of());
       }
 
+      @Override
       public boolean isLeaf(String node) {
         return true;
       }
 
+      @Override
       public String label(String node) {
         return node;
       }
 
+      @Override
       public String detail(String node) {
         return "";
       }

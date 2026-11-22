@@ -405,7 +405,6 @@ public final class Settings {
   // docs:end settings-general
 
   static El appearance(Settings state) {
-    Theme theme = Theme.CURRENT.get();
     return page(
             "Appearance",
             section(

@@ -254,7 +254,7 @@ final class GridFilter {
         }
         case IS_NULL, NOT_NULL -> new NullCheck(kind == Kind.IS_NULL);
       };
-    } catch (PatternSyntaxException e) {
+    } catch (PatternSyntaxException _) {
       return new Invalid("value", texts.notARegularExpression());
     }
     return spec == null ? new Empty() : new Valid(new Filter(column, spec));

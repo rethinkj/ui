@@ -34,7 +34,9 @@ public final class ScrollState {
   int revealRow = -1;
   Object revealKey;
 
-  public ScrollState() {}
+  public ScrollState() {
+    // scrolled to the top left, with nothing to keep in view: an area takes it over at its build
+  }
 
   /** The least distance that moves a span into a view from 0 to {@code view}, or its start to 0. */
   static double nearest(double start, double size, float view) {

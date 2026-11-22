@@ -109,8 +109,10 @@ class CommandPaletteTest {
   @Test
   void thePointerHighlightsAndAPressRuns() throws IOException {
     run("key F1\nframe\ntype \"view\"");
-    String tree = run("move role=option label=\"View: Refresh\"\nframe\n"
-        + "press role=option label=\"View: Refresh\"");
+    String tree = run("""
+        move role=option label="View: Refresh"
+        frame
+        press role=option label="View: Refresh\"""");
     assertEquals("Refreshed", app.state().status, tree);
     tree = run("key F1\nframe\nadvance 0.25\nframe\npress 700,380");
     assertFalse(tree.contains("#palette"), "a press outside closes it: " + tree);

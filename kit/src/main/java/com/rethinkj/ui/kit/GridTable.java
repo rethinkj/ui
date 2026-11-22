@@ -388,7 +388,7 @@ public final class GridTable<T> {
   private T rowOrEnd(int index) {
     try {
       return rows.apply(index);
-    } catch (IndexOutOfBoundsException e) { // a list that a handler made shorter
+    } catch (IndexOutOfBoundsException _) { // a list that a handler made shorter
       return (T) END;
     }
   }

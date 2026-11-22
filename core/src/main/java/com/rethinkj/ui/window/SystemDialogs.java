@@ -193,6 +193,7 @@ public final class SystemDialogs implements Dialogs {
   }
 
   /** SDL_DialogFileCallback: on the windows' thread or on one of SDL's own. */
+  @SuppressWarnings("java:S1144") // an upcall target, found by name
   private static void answer(MemorySegment userdata, MemorySegment files, int filter) {
     Pending pending = PENDING.remove(userdata.address());
     if (pending == null) {
@@ -210,7 +211,7 @@ public final class SystemDialogs implements Dialogs {
     } catch (Throwable t) { // one that left the upcall would end the JVM
       try {
         pending.failed.accept("The file dialog's answer could not be read: " + t);
-      } catch (Throwable ignored) {
+      } catch (Throwable _) {
         // nothing is left to tell
       }
     } finally {
@@ -218,7 +219,7 @@ public final class SystemDialogs implements Dialogs {
       if (pending.owner() != null) {
         try {
           Window.wake(); // a window that closed while it was open goes now (Window.close)
-        } catch (Throwable ignored) {
+        } catch (Throwable _) {
           // the next wait of the windows' thread ends within PUMP all the same
         }
       }

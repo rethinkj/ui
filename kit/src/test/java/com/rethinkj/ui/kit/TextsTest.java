@@ -45,11 +45,16 @@ class TextsTest {
     TextLibraries.assumeLoaded();
     Ledger ledger = new Ledger(Theme.DARK, 40);
     App<Ledger> grid = ledger.app().provide(Texts.CURRENT, l -> GERMAN);
-    Script.run(
-        "size 640 260\nframe\nfocus #ledger\nframe\nkey End\nkey ArrowLeft\n"
-            + "type \"2026-02-30\"\nkey Enter\nframe",
-        grid,
-        out);
+    Script.run("""
+        size 640 260
+        frame
+        focus #ledger
+        frame
+        key End
+        key ArrowLeft
+        type "2026-02-30"
+        key Enter
+        frame""", grid, out);
     String dump = grid.tree().dump();
     assertTrue(dump.contains("label=\"Erwartet wird ein Datum wie 2026-11-13\""), dump);
 

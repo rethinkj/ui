@@ -92,7 +92,7 @@ final class Samples {
               + (i % 3 == 0 ? "engineering.example.com" : "example.org"),
           CENTS[i * 7 % CENTS.length] * (1 + i % 3),
           created,
-          status.equals("shipped") ? created.plusHours(20 + i % 30) : null,
+          status.equals("shipped") ? created.plusHours(20L + i % 30) : null,
           status,
           NOTE[i % NOTE.length]));
     }

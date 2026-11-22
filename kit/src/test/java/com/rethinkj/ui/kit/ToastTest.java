@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,7 +83,7 @@ class ToastTest {
     app.advance(4.65);
     assertFalse(app.frame(), "nothing to draw meanwhile");
     run(app, "press #status\nframe\n");
-    assertTrue(studio.cleared != null, "a press elsewhere does not close it");
+    assertNotNull(studio.cleared, "a press elsewhere does not close it");
     app.advance(0.1);
     app.frame();
     assertNull(studio.cleared);

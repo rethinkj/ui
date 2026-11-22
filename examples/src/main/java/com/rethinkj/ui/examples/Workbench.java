@@ -1,7 +1,6 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static com.rethinkj.ui.kit.Button.Tone.DANGER;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
@@ -341,7 +340,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   // The made-up servers, on the work's threads: they get names and give names and numbers.
 
   /** Connects to a server and asks for its databases. */
-  static List<String> connect(String server, Duration latency) throws Exception {
+  static List<String> connect(String server, Duration latency)
+      throws IOException, InterruptedException {
     answerAfter(server, latency);
     if (server.equals("prod-eu")) {
       throw new ConnectException("connection refused");
@@ -696,7 +696,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * tab's query.
    */
   El commandPalette(TabGroups.Group<Opened> group) {
-    Theme theme = Theme.CURRENT.get();
     CommandPalette.State palette = palette(group);
     if (!palette.isOpen()) {
       return null;
@@ -1006,7 +1005,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static Window.Placement savedPlacement(Path file) {
     try {
       return Window.Placement.parse(Files.readString(file));
-    } catch (IOException | IllegalArgumentException error) {
+    } catch (IOException | IllegalArgumentException _) {
       return null;
     }
   }

@@ -205,10 +205,13 @@ class CellEditorTest {
   void resizingAColumnLeavesTheCaretAndSelectionOfAFieldElsewhereAlone() throws IOException {
     App<Sheet> app = start();
     Sheet sheet = app.state();
-    run(
-        app,
-        "frame\npress #filter\ntype \"SELECT name\"\nkey ArrowLeft shift\n"
-            + "key ArrowLeft shift\nframe");
+    run(app, """
+        frame
+        press #filter
+        type "SELECT name"
+        key ArrowLeft shift
+        key ArrowLeft shift
+        frame""");
     assertTrue(line(app, "filter").endsWith("focused caret 9 anchor 11"), line(app, "filter"));
 
     El edge = find(app, "resize-1");

@@ -62,21 +62,14 @@ public final class CpuRenderer {
     float[] frame = new float[width * height * 4];
     Scratch scratch = new Scratch(width);
     for (int i = 0; i < scene.count(); i++) {
-      int kind = scene.getInt(i, Scene.KIND);
-      if (kind == Scene.GLYPH) {
-        glyph(scene, i, frame, width, height, scale, blends, scratch);
-      } else if (kind == Scene.COLOR_GLYPH) {
-        colorGlyph(scene, i, frame, width, height, scale, blends);
-      } else if (kind == Scene.SHADOW) {
-        shadow(scene, i, frame, width, height, scale, blends, scratch);
-      } else if (kind == Scene.IMAGE) {
-        image(scene, i, frame, width, height, scale, blends, scratch);
-      } else if (kind == Scene.LINE) {
-        line(scene, i, frame, width, height, scale, blends);
-      } else if (kind == Scene.SQUIGGLE) {
-        squiggle(scene, i, frame, width, height, scale, blends, scratch);
-      } else {
-        rect(scene, i, frame, width, height, scale, blends, scratch);
+      switch (scene.getInt(i, Scene.KIND)) {
+        case Scene.GLYPH -> glyph(scene, i, frame, width, height, scale, blends, scratch);
+        case Scene.COLOR_GLYPH -> colorGlyph(scene, i, frame, width, height, scale, blends);
+        case Scene.SHADOW -> shadow(scene, i, frame, width, height, scale, blends, scratch);
+        case Scene.IMAGE -> image(scene, i, frame, width, height, scale, blends, scratch);
+        case Scene.LINE -> line(scene, i, frame, width, height, scale, blends);
+        case Scene.SQUIGGLE -> squiggle(scene, i, frame, width, height, scale, blends, scratch);
+        default -> rect(scene, i, frame, width, height, scale, blends, scratch);
       }
     }
     return frame;
@@ -287,8 +280,8 @@ public final class CpuRenderer {
     double[] across = new double[4];
     double[] down = new double[4];
     for (int c = 0; c < 4; c++) {
-      across[c] = Math.min(Math.max(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0), innerHalfW);
-      down[c] = Math.min(Math.max(radii[c] - borders[c < 2 ? 0 : 2], 0), innerHalfH);
+      across[c] = Math.clamp(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0, innerHalfW);
+      down[c] = Math.clamp(radii[c] - borders[c < 2 ? 0 : 2], 0, innerHalfH);
     }
     return new Box(
         centerX + (in[3] - in[1]) / 2,
@@ -383,8 +376,8 @@ public final class CpuRenderer {
         && clip.coversWhole(
             Math.max(left, 0),
             Math.max(top, 0),
-            (int) Math.min((long) left + (size & 0xFFFF) - 1, width - 1),
-            (int) Math.min((long) top + (size >>> 16) - 1, height - 1),
+            (int) Math.min((long) left + (size & 0xFFFF) - 1, width - 1L),
+            (int) Math.min((long) top + (size >>> 16) - 1, height - 1L),
             scale);
     for (int ty = 0; ty < size >>> 16; ty++) {
       int py = top + ty;
@@ -1255,7 +1248,7 @@ public final class CpuRenderer {
      */
     boolean missesRow(double y, int left, int right, double scale) {
       // Clamped before the cast, so that a center far outside cannot overflow the loop below.
-      int middle = (int) Math.clamp(Math.floor(centerX * scale - 0.5), left - 1, right);
+      int middle = (int) Math.clamp(Math.floor(centerX * scale - 0.5), left - 1.0, right);
       for (int px = middle - 1; px <= middle + 2; px++) {
         if (coverage((Math.clamp(px, left, right - 1) + 0.5) / scale, y, scale) != 0) {
           return false;

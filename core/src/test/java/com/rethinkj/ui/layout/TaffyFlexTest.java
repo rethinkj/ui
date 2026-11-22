@@ -123,7 +123,7 @@ class TaffyFlexTest {
   private static El element(Xml xml) {
     El el = El.el();
     xml.attributes.forEach((name, value) -> style(el.style(), name, value));
-    String text = xml.text.strip();
+    String text = xml.text.toString().strip();
     if (xml.children.isEmpty() && !text.isEmpty()) {
       el.measure(ahem(text, xml.attributes.getOrDefault("writing-mode", "").contains("vertical")));
     }
@@ -272,7 +272,7 @@ class TaffyFlexTest {
     String name;
     final Map<String, String> attributes = new LinkedHashMap<>();
     final List<Xml> children = new ArrayList<>();
-    String text = "";
+    final StringBuilder text = new StringBuilder();
 
     String get(String attribute) {
       return attributes.get(attribute);
@@ -337,7 +337,7 @@ class TaffyFlexTest {
       }
       while (true) {
         int next = source.indexOf('<', at);
-        xml.text += source.substring(at, next);
+        xml.text.append(source, at, next);
         at = next;
         if (source.startsWith("</", at)) {
           at = source.indexOf('>', at) + 1;

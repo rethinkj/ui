@@ -32,22 +32,34 @@ class DataBrowserTest {
     App<DataBrowser> app =
         new App<>(browser, DataBrowser::view).provide(Theme.CURRENT, DataBrowser::theme);
     browser.app = app;
-    Script.run(
-        "size 1000 600\nframe\npress #cell-0-1\nkey Enter\nframe\nkey A control\n"
-            + "type \"Zoe\"\nframe\nkey S control\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        frame
+        press #cell-0-1
+        key Enter
+        frame
+        key A control
+        type "Zoe"
+        frame
+        key S control
+        frame""", app, out);
     assertFalse(browser.selection.isEditing());
     assertTrue(browser.changes.isEmpty(), "written");
     assertEquals("1 change written", browser.toast);
     assertEquals("Zoe", browser.changes.cell(1).apply(0));
 
     browser.toast = null;
-    Script.run(
-        "size 1000 600\nkey End\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe\n"
-            + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        key End
+        key ArrowLeft
+        key ArrowLeft
+        key ArrowLeft
+        frame
+        type "2026-02-30 10:00"
+        frame
+        key S control
+        frame""", app, out);
     assertTrue(browser.selection.isEditing(), "the editor stays with its message");
     assertEquals("2026-02-30 10:00", browser.selection.draft());
     assertTrue(app.tree().dump().contains("role=alert"), app.tree().dump());

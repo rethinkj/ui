@@ -247,11 +247,15 @@ class ScriptTest {
             .children(
                 el().key("a").focusable().size(20, 20),
                 el().key("b").focusable().size(20, 20).onText(l::add)));
-    Script.run(
-        "size 40 20\nframe\nkey Tab\nkey Tab shift control\nfocus #b\ntype \"say \\\"hi\\\"\"\n"
-            + "frame\n",
-        app,
-        out);
+    Script.run("""
+        size 40 20
+        frame
+        key Tab
+        key Tab shift control
+        focus #b
+        type "say \\"hi\\""
+        frame
+        """, app, out);
     assertEquals(List.of("Tab 0", "Tab 3", "s", "a", "y", " ", "\"", "h", "i", "\""), log);
     assertEquals("b", app.focused().key());
     Script.run("size 40 20\nfocus 5,5\nframe\n", app, out);
@@ -432,11 +436,16 @@ class ScriptTest {
                     .level(2)
                     .onPress(() -> l.add("e")),
                 el().role("separator").h(10).value("first 240").onPress(() -> l.add("f"))));
-    Script.run(
-        "size 100 60\nframe\npress role=row selected\npress role=checkbox checked=false\n"
-            + "press checked=true\npress expanded=false level=2\npress value=\"first 240\"\nframe\n",
-        app,
-        out);
+    Script.run("""
+        size 100 60
+        frame
+        press role=row selected
+        press role=checkbox checked=false
+        press checked=true
+        press expanded=false level=2
+        press value="first 240"
+        frame
+        """, app, out);
     assertEquals(List.of("b", "c", "d", "e", "f"), log);
 
     assertEquals("""

@@ -103,7 +103,7 @@ public final class Prop<T> {
     if (parts.size() > 1) { // a joined part: one step for each, so that a null inside reads null
       Prop prop = this;
       for (Part<?, ?> p : parts) {
-        prop = prop.at((Part) p);
+        prop = prop.at(p);
       }
       return prop;
     }

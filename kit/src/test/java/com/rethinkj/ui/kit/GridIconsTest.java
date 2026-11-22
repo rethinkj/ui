@@ -327,10 +327,6 @@ class GridIconsTest {
     return at(app.tree(), el, 0, 0)[0];
   }
 
-  private static float y(App<?> app, El el) {
-    return at(app.tree(), el, 0, 0)[1];
-  }
-
   /** The window position of {@code target} below {@code el}, which is at this position. */
   private static float[] at(El el, El target, float left, float top) {
     float x = left + el.x();

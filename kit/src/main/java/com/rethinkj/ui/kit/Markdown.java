@@ -245,7 +245,7 @@ public final class Markdown {
   /** The element of a row: a block with its space, or an item with the space of its list. */
   private static El unit(Context c, Unit u) {
     if (u.item < 0) {
-      return spaced(c, u.blocks, u.index, false, block(c, u.block, false));
+      return spaced(c, u.blocks, u.index, false, block(c, u.block));
     }
     Theme theme = c.theme;
     MarkdownDocument.ListBlock list = (MarkdownDocument.ListBlock) u.block;
@@ -323,7 +323,7 @@ public final class Markdown {
             .flatMap(i -> i.blocks().stream())
             .mapToDouble(b -> estimate(theme, b) + theme.space().xs())
             .sum();
-      case MarkdownDocument.ThematicBreak b -> 2 * theme.space().m();
+      case MarkdownDocument.ThematicBreak _ -> 2 * theme.space().m();
       case MarkdownDocument.Table table ->
         (table.rows().size() + 1) * (line + 2 * theme.space().s());
     };
@@ -425,8 +425,8 @@ public final class Markdown {
       int from = text.length();
       switch (part) {
         case MarkdownDocument.Text x -> text.append(x.text());
-        case MarkdownDocument.SoftBreak x -> text.append(' ');
-        case MarkdownDocument.HardBreak x -> text.append('\n');
+        case MarkdownDocument.SoftBreak _ -> text.append(' ');
+        case MarkdownDocument.HardBreak _ -> text.append('\n');
         case MarkdownDocument.Code x -> {
           text.append(x.code());
           spans.add(new Span(FONT, from, text.length(), 0, Font.mono()));
@@ -495,7 +495,7 @@ public final class Markdown {
 
   private static void blocks(Context c, List<Block> blocks, boolean tight, El into) {
     for (int i = 0; i < blocks.size(); i++) {
-      into.child(spaced(c, blocks, i, tight, block(c, blocks.get(i), tight)));
+      into.child(spaced(c, blocks, i, tight, block(c, blocks.get(i))));
     }
   }
 
@@ -518,7 +518,7 @@ public final class Markdown {
     return el.margin(above, 0, below, 0);
   }
 
-  private static El block(Context c, Block block, boolean tight) {
+  private static El block(Context c, Block block) {
     Theme theme = c.theme;
     return switch (block) {
       case MarkdownDocument.Heading h -> heading(c, h);
@@ -539,7 +539,7 @@ public final class Markdown {
                 content);
       }
       case MarkdownDocument.ListBlock l -> list(c, l);
-      case MarkdownDocument.ThematicBreak x ->
+      case MarkdownDocument.ThematicBreak _ ->
         Divider.divider().margin(theme.space().m(), 0, theme.space().m(), 0);
       case MarkdownDocument.Table table -> table(c, table);
     };
@@ -694,7 +694,6 @@ public final class Markdown {
    * Options#images}, the description in a frame.
    */
   private static El image(Context c, MarkdownDocument.Image image) {
-    Theme theme = c.theme;
     String alt = image.alt().isEmpty() ? image.source() : image.alt();
     com.rethinkj.ui.Image picture =
         c.options.images == null ? null : c.options.images.apply(image.source());
@@ -942,7 +941,7 @@ public final class Markdown {
             MarkdownDocument.Item item = l.items().get(i);
             String marker = l.ordered() ? (l.start() + i) + ". " : "- ";
             if (item.task() != null) {
-              marker += item.task() ? "[x] " : "[ ] ";
+              marker += Boolean.TRUE.equals(item.task()) ? "[x] " : "[ ] ";
             }
             StringBuilder inner = new StringBuilder();
             text(item.blocks(), "", inner);
@@ -957,7 +956,7 @@ public final class Markdown {
           }
           out.append('\n');
         }
-        case MarkdownDocument.ThematicBreak x -> out.append(indent).append("---\n\n");
+        case MarkdownDocument.ThematicBreak _ -> out.append(indent).append("---\n\n");
         case MarkdownDocument.Table table -> {
           out.append(indent)
               .append(String.join(

@@ -21,7 +21,7 @@ final class Desktop {
   private Desktop() {}
 
   /** Opens the Lights app in a frameless window with an icon of its own; not run by the tests. */
-  static void open() throws Exception {
+  static void open() {
     // docs:start window
     Window.identity("com.example.Lights", "Lights"); // the taskbar groups by it
     WindowIcon icon = WindowIcon.of(
@@ -62,7 +62,7 @@ final class Desktop {
     Window.Options options = Window.options();
     try {
       options.placement(Window.Placement.parse(Files.readString(PLACEMENT)));
-    } catch (IOException | IllegalArgumentException error) {
+    } catch (IOException | IllegalArgumentException _) {
       // the first start, or a line it cannot read: the window opens as given below
     }
     App<Lights> app = new App<>(new Lights(), Lights::view);

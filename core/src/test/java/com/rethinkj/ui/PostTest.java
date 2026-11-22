@@ -146,7 +146,7 @@ class PostTest {
     Thread idle = Thread.ofVirtual().start(() -> {
       try {
         quiet.await(); // a background thread that posts nothing
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         Thread.currentThread().interrupt();
       }
     });
@@ -508,8 +508,7 @@ class PostTest {
   }
 
   @Test
-  void awaitProgressNamesTheWorkThatReportedNothingAndRefusesWhenNoneRuns()
-      throws InterruptedException {
+  void awaitProgressNamesTheWorkThatReportedNothingAndRefusesWhenNoneRuns() {
     App<Counter> app = start();
     IllegalStateException none =
         assertThrows(IllegalStateException.class, () -> app.awaitProgress(LONG));
@@ -561,11 +560,17 @@ class PostTest {
   void aScriptShowsWorkHalfDoneAtAwaitProgressAndDoneAtAwait() throws IOException {
     CountDownLatch gate = new CountDownLatch(1);
     App<Counter> app = download(gate);
-    Script.run(
-        "size 100 100\nframe\npress #load\nframe\nframe\nsnap pressed\nawait progress\n"
-            + "frame\nsnap half\n",
-        app,
-        out);
+    Script.run("""
+        size 100 100
+        frame
+        press #load
+        frame
+        frame
+        snap pressed
+        await progress
+        frame
+        snap half
+        """, app, out);
     assertTrue(
         Files.readString(out.resolve("pressed.tree.txt")).contains("label=\"0 of 100\""),
         "nothing before await progress");

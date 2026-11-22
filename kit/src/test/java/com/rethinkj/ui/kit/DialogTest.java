@@ -70,10 +70,16 @@ class DialogTest {
     run(app, "frame\npress #rename\nframe\npress 10,230\nframe\n");
     assertFalse(bench.renaming, "a press on the scrim dismisses it");
     assertEquals("Ready", bench.status, "and presses nothing under it");
-    run(
-        app,
-        "press #rename\nframe\nadvance 0.25\nframe\nkey A control\ntype \"order_lines\"\n"
-            + "press #ok\nframe\n");
+    run(app, """
+        press #rename
+        frame
+        advance 0.25
+        frame
+        key A control
+        type "order_lines"
+        press #ok
+        frame
+        """);
     assertFalse(bench.renaming);
     assertEquals("order_lines", bench.name);
   }
@@ -85,7 +91,6 @@ class DialogTest {
     final List<String> log = new ArrayList<>();
 
     El view() {
-      Theme t = Theme.DARK;
       El ok = Button.button(
               Button.Variant.PRIMARY, "OK", name.isBlank() ? null : () -> log.add("ok"))
           .key("ok");
@@ -136,7 +141,6 @@ class DialogTest {
 
   /** A dialog and, over it, a question, each with one button. */
   private static El stacked(List<String> log, String secondKey) {
-    Theme t = Theme.DARK;
     El question = Dialog.dialog(
         "Discard changes?",
         El.col(),
@@ -172,7 +176,6 @@ class DialogTest {
 
   @Test
   void theDefaultButtonIsOneOfTheButtons() {
-    Theme t = Theme.DARK;
     El ok = Button.button(Button.Variant.PRIMARY, "OK", () -> {});
     El other = Button.button(Button.Variant.PRIMARY, "OK", () -> {});
     assertThrows(

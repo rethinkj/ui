@@ -338,7 +338,7 @@ class WindowTest {
   @Test
   void aDoublePressNeedsThePressesAsCloseAsTheSystemSays() {
     assumeTrue(System.getenv(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS) == null, "set by the environment");
-    try (Window window = Window.open(TITLE, 120, 80)) {
+    try (Window _ = Window.open(TITLE, 120, 80)) {
       assertEquals(
           String.valueOf(Window.doubleClickRadius()),
           Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS),
@@ -347,10 +347,6 @@ class WindowTest {
     }
   }
 
-  /**
-   * A right click on the drag area opens the system menu, which runs a loop of its own until it
-   * is dismissed, so this test only sends the presses that do not open it.
-   */
   /**
    * Windows types a space for Control+Space, after the key: a shortcut such as the one that
    * opens completions would type it into the field too. AltGr, which comes as Control and Alt,
@@ -388,6 +384,10 @@ class WindowTest {
     }
   }
 
+  /**
+   * A right click on the drag area opens the system menu, which runs a loop of its own until it
+   * is dismissed, so this test only sends the presses that do not open it.
+   */
   @Test
   void aSecondaryPressThatBeginsOnTheDragAreaIsNotDelivered() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
@@ -515,7 +515,7 @@ class WindowTest {
   private static void elsewhere(MethodHandle showWindow, MemorySegment hwnd, int command) {
     Thread.ofPlatform().start(() -> {
       try {
-        int ignored = (int) showWindow.invokeExact(hwnd, command);
+        int _ = (int) showWindow.invokeExact(hwnd, command);
       } catch (Throwable t) {
         throw new AssertionError(t);
       }

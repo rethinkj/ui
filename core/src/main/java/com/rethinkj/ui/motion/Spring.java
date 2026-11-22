@@ -85,14 +85,21 @@ public record Spring(double duration, double bounce) {
     if (duration == 0) {
       return 0;
     }
-    double a = from - to, v0 = velocity, w = 2 * Math.PI / duration, z = zeta(), x, v;
+    double a = from - to;
+    double v0 = velocity;
+    double w = 2 * Math.PI / duration;
+    double z = zeta();
+    double x;
+    double v;
     if (a == 0 && v0 == 0) {
       return 0;
     }
     // Each bound below holds from some time on; the earlier one of two counts.
     if (z < 1) {
       // offset = e^(−σt)·(a·cos ωd·t + (k/ωd)·sin ωd·t), with |sin ωd·t| ≤ min(1, ωd·t)
-      double s = z * w, wd = w * StrictMath.sqrt((1 - z) * (1 + z)), k = v0 + s * a;
+      double s = z * w;
+      double wd = w * StrictMath.sqrt((1 - z) * (1 + z));
+      double k = v0 + s * a;
       double vk = a * wd * wd + s * k;
       x = Math.min(
           decay(StrictMath.hypot(a, k / wd), -s, tolerance),
@@ -102,13 +109,18 @@ public record Spring(double duration, double bounce) {
           tail(Math.abs(v0), Math.abs(vk), s, tolerance));
     } else {
       // offset = e^(r1·t)·(a + k·(1 − e^(−d·t))/d), with (1 − e^(−d·t))/d ≤ t
-      double root = StrictMath.sqrt((z - 1) * (z + 1)), r1 = -w / (z + root), d = 2 * w * root;
-      double r2 = r1 - d, k = v0 - r1 * a;
+      double root = StrictMath.sqrt((z - 1) * (z + 1));
+      double r1 = -w / (z + root);
+      double d = 2 * w * root;
+      double r2 = r1 - d;
+      double k = v0 - r1 * a;
       x = tail(Math.abs(a), Math.abs(k), -r1, tolerance);
       v = tail(Math.abs(v0), Math.abs(r2 * k), -r1, tolerance);
       if (d > 0) {
         // offset = c1·e^(r1·t) + c2·e^(r2·t); each term is held to half the tolerance.
-        double c1 = (v0 - r2 * a) / d, c2 = -k / d, half = tolerance / 2;
+        double c1 = (v0 - r2 * a) / d;
+        double c2 = -k / d;
+        double half = tolerance / 2;
         x = Math.min(x, Math.max(decay(c1, r1, half), decay(c2, r2, half)));
         v = Math.min(v, Math.max(decay(c1 * r1, r1, half), decay(c2 * r2, r2, half)));
       }
@@ -127,17 +139,25 @@ public record Spring(double duration, double bounce) {
       return 0;
     }
     t = Math.max(0, t);
-    double w = 2 * Math.PI / duration, z = zeta();
+    double w = 2 * Math.PI / duration;
+    double z = zeta();
     if (z < 1) {
-      double s = z * w, wd = w * StrictMath.sqrt((1 - z) * (1 + z)), k = v0 + s * a;
-      double e = StrictMath.exp(-s * t), cos = StrictMath.cos(wd * t), sin = StrictMath.sin(wd * t);
+      double s = z * w;
+      double wd = w * StrictMath.sqrt((1 - z) * (1 + z));
+      double k = v0 + s * a;
+      double e = StrictMath.exp(-s * t);
+      double cos = StrictMath.cos(wd * t);
+      double sin = StrictMath.sin(wd * t);
       return derivative
           ? e * (v0 * cos - (a * wd + s * k / wd) * sin)
           : e * (a * cos + k / wd * sin);
     }
     // Roots r1 = −ω(ζ − √(ζ² − 1)), written without the cancellation, and r2 = r1 − d.
-    double root = StrictMath.sqrt((z - 1) * (z + 1)), r1 = -w / (z + root), d = 2 * w * root;
-    double k = v0 - r1 * a, e = StrictMath.exp(r1 * t);
+    double root = StrictMath.sqrt((z - 1) * (z + 1));
+    double r1 = -w / (z + root);
+    double d = 2 * w * root;
+    double k = v0 - r1 * a;
+    double e = StrictMath.exp(r1 * t);
     double m = d == 0 ? -t : StrictMath.expm1(-d * t) / d;
     return derivative ? e * (v0 - (r1 - d) * k * m) : e * (a - k * m);
   }

@@ -620,7 +620,7 @@ final class Win32 {
   /** Sends the pointer's messages to the window, wherever the pointer is, until it lets go. */
   static void setCapture(MemorySegment hwnd) {
     try {
-      MemorySegment previous = (MemorySegment) Pointer.SET_CAPTURE_H.invokeExact(hwnd);
+      MemorySegment _ = (MemorySegment) Pointer.SET_CAPTURE_H.invokeExact(hwnd);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -629,7 +629,7 @@ final class Win32 {
   /** Lets go of the pointer that {@link #setCapture} took. */
   static void releaseCapture() {
     try {
-      int released = (int) Pointer.RELEASE_CAPTURE_H.invokeExact();
+      int _ = (int) Pointer.RELEASE_CAPTURE_H.invokeExact();
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

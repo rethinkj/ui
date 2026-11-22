@@ -148,7 +148,7 @@ final class SystemFonts {
     Font font;
     try {
       font = Font.file(face.path, face.index);
-    } catch (RuntimeException e) {
+    } catch (RuntimeException _) {
       font = null; // changed or removed since the scan
     }
     opened.put(face, font);
@@ -172,7 +172,7 @@ final class SystemFonts {
       Thread.ofVirtual().name("rethinkj-ui system fonts").start(() -> {
         try {
           faces();
-        } catch (RuntimeException | LinkageError e) {
+        } catch (RuntimeException | LinkageError _) {
           // see above
         }
       });
@@ -214,7 +214,7 @@ final class SystemFonts {
         FileChannel channel = FileChannel.open(path)) {
       MemorySegment data = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size(), arena);
       return Font.inspect(path, data);
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | RuntimeException _) {
       return List.of(); // unreadable, or not a font
     }
   }
@@ -264,7 +264,7 @@ final class SystemFonts {
                     && EXTENSIONS.contains(name.substring(dot + 1))) {
                   try {
                     paths.add(file.toRealPath());
-                  } catch (IOException e) {
+                  } catch (IOException _) {
                     // gone meanwhile
                   }
                 }
@@ -276,7 +276,7 @@ final class SystemFonts {
                 return FileVisitResult.CONTINUE; // unreadable, or a loop of links
               }
             });
-      } catch (IOException e) {
+      } catch (IOException _) {
         // the folder went away
       }
     }

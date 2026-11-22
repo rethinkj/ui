@@ -8,7 +8,7 @@ import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -62,7 +62,7 @@ class FocusRingTest {
       Theme t = i < 5 ? Theme.DARK : Theme.LIGHT;
       El focused = app.focused();
       float[] at = position(app.tree(), focused, 0, 0);
-      assertTrue(at != null, "focused: " + focused);
+      assertNotNull(at, "focused: " + focused);
       // The middle of the ring's top edge, which is straight for every component, past its gap.
       Pixels pixels = app.render().pixels();
       int x = Math.round(at[0] + focused.width() / 2);

@@ -10,7 +10,11 @@ public final class Track {
 
   private final double tolerance;
   private Spring spring;
-  private double start, from, velocity, to, end;
+  private double start;
+  private double from;
+  private double velocity;
+  private double to;
+  private double end;
 
   /**
    * @param value the value the track starts at rest with
@@ -39,7 +43,8 @@ public final class Track {
 
   /** Moves towards {@code target} with {@code spring}, starting from the state at {@code now}. */
   public void retarget(double target, Spring spring, double now) {
-    double x = value(now), v = velocity(now);
+    double x = value(now);
+    double v = velocity(now);
     end = now + spring.restTime(x, v, target, tolerance);
     this.spring = spring;
     from = x;

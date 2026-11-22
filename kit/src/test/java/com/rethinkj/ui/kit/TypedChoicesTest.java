@@ -116,11 +116,6 @@ class TypedChoicesTest {
     assertNull(Segmented.segmented(LEVELS, Level.LOW, l -> l.label, null).onKey());
   }
 
-  /** The entries the combo box keeps in its state, which its list knows by their identity. */
-  private static List<?> entries(ComboBox.State state) {
-    return state.entries;
-  }
-
   enum Page {
     GENERAL(Symbol.SETTINGS, "General", null),
     EDITOR(Symbol.CODE, "Editor", null),

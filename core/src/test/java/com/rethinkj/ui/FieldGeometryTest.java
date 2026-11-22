@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.start;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
@@ -97,7 +98,7 @@ class FieldGeometryTest {
     Text text = field(app).text();
     GlyphRun run = text.lines().getFirst().glyphs();
     assertEquals(4, run.count());
-    assertTrue(run.glyph(1) != Font.mono().shape("-", 14, 1).glyph(0), "a contextual form");
+    assertNotEquals(Font.mono().shape("-", 14, 1).glyph(0), run.glyph(1), "a contextual form");
     for (int i = 0; i <= 4; i++) {
       assertEquals(run.pen(i), text.x(i), "position " + i);
     }

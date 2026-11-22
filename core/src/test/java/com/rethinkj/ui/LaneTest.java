@@ -62,7 +62,7 @@ class LaneTest {
       try {
         latch.await();
         break;
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         interrupted = true;
       }
     }

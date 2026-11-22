@@ -174,7 +174,7 @@ public final class WindowDemo {
           Thread.ofPlatform().daemon().start(() -> {
             try {
               Thread.sleep(millis);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException _) {
               return;
             }
             loop.stop();

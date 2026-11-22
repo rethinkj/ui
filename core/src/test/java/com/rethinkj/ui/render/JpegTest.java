@@ -1,6 +1,7 @@
 package com.rethinkj.ui.render;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -159,9 +160,9 @@ class JpegTest {
       Pixels two = Jpeg.decode(chroma(4, down, sampling, false));
       assertEquals(two.argb(0, 0), two.argb(1, 0), "two samples");
       assertEquals(two.argb(2, 0), two.argb(3, 0), "two samples");
-      assertTrue(two.argb(1, 0) != two.argb(2, 0), "the two samples differ");
+      assertNotEquals(two.argb(1, 0), two.argb(2, 0), "the two samples differ");
       Pixels three = Jpeg.decode(chroma(6, down, sampling, false));
-      assertTrue(three.argb(0, 0) != three.argb(1, 0), "three samples are smoothed");
+      assertNotEquals(three.argb(0, 0), three.argb(1, 0), "three samples are smoothed");
     }
   }
 
@@ -176,7 +177,7 @@ class JpegTest {
         assertEquals(one.argb(x, 0), one.argb(x, 1), "one row " + Integer.toHexString(sampling));
       }
       Pixels two = Jpeg.decode(chroma(width, 4, sampling, true));
-      assertTrue(two.argb(0, 0) != two.argb(0, 1), "two rows are smoothed");
+      assertNotEquals(two.argb(0, 0), two.argb(0, 1), "two rows are smoothed");
       assertEquals(two.argb(0, 0), Jpeg.decode(chroma(width, 2, sampling, true)).argb(0, 0));
     }
   }
@@ -268,7 +269,7 @@ class JpegTest {
   }
 
   @Test
-  void aBrokenFileIsReadOrRefusedNeverMore() throws IOException {
+  void aBrokenFileIsReadOrRefusedNeverMore() {
     Random random = new Random(20261113);
     assertTimeoutPreemptively(Duration.ofSeconds(60), () -> {
       for (String name : files().toList()) {

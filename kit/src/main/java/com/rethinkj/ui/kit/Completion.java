@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntConsumer;
 
 /**
  * Completions at the caret of a text field, such as the keywords and table names of SQL in a
@@ -246,7 +247,7 @@ public final class Completion {
     }
     int to = CodeWords.end(
         text, caret, state.wordCharacters); // the whole word, also its part after the caret
-    Consumer<Integer> take = i -> {
+    IntConsumer take = i -> {
       state.close();
       String chosen = entries.get(i).insert();
       app.edit(field, from, to, chosen, from + chosen.length());
@@ -337,9 +338,7 @@ public final class Completion {
       Entry entry = entries.get(i);
       float kind = entry.kind() == null
           ? 0
-          : TextSizing.natural(kind(theme, entry))
-              + theme.space().m()
-              + theme.space().l();
+          : TextSizing.natural(kind(entry)) + theme.space().m() + theme.space().l();
       texts = Math.max(texts, TextSizing.natural(text(theme, entry)) + kind);
     }
     float m = theme.space().m();
@@ -355,15 +354,15 @@ public final class Completion {
         .fontSize(theme.type().mono().size());
   }
 
-  private static El kind(Theme theme, Entry entry) {
+  private static El kind(Entry entry) {
     return label(Label.Variant.SMALL, entry.kind());
   }
 
-  private static El option(Theme theme, Entry entry, int i, State state, Consumer<Integer> take) {
+  private static El option(Theme theme, Entry entry, int i, State state, IntConsumer take) {
     El kind = null;
     if (entry.kind() != null) {
       // The text gives way first, the kind only beyond half the row.
-      kind = kind(theme, entry)
+      kind = kind(entry)
           .ellipsis()
           .minSize(0, 0)
           .shrink(0)
@@ -383,7 +382,7 @@ public final class Completion {
   }
 
   /** What a key does while the list shows; whether the list took it. */
-  private static boolean key(Key k, State state, List<Entry> entries, Consumer<Integer> take) {
+  private static boolean key(Key k, State state, List<Entry> entries, IntConsumer take) {
     if (k.name().equals("Space") && k.modifiers() == Key.CONTROL) {
       state.open();
       return true;

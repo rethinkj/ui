@@ -5,6 +5,8 @@ import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -254,7 +256,7 @@ class TextInputTest {
 
       assertEquals("name", app.focused().key());
       for (int i = 1; i < carets.size(); i++) {
-        assertTrue(carets.get(i) != carets.get(i - 1), "on and off by turns: " + carets);
+        assertNotEquals(carets.get(i), carets.get(i - 1), "on and off by turns: " + carets);
       }
       for (long millis : waits.subList(0, 2)) {
         // Half a second less the time it took to build and present the frame.
@@ -354,9 +356,9 @@ class TextInputTest {
 
   @Test
   void theSystemClipboardCanBeRead() {
-    try (Window window = Window.open(TITLE, 120, 80)) {
+    try (Window _ = Window.open(TITLE, 120, 80)) {
       String text = new SystemClipboard().read();
-      assertTrue(text != null, "text or empty");
+      assertNotNull(text, "text or empty");
     }
   }
 
@@ -370,7 +372,7 @@ class TextInputTest {
     assumeTrue(
         Boolean.getBoolean("rethinkj.ui.test.clipboard"),
         "Skipped: writes to the system clipboard; -Drethinkj.ui.test.clipboard=true runs it");
-    try (Window window = Window.open(TITLE, 120, 80)) {
+    try (Window _ = Window.open(TITLE, 120, 80)) {
       SystemClipboard clipboard = new SystemClipboard();
       String before = clipboard.read();
       try {

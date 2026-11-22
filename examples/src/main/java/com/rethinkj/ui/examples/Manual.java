@@ -182,8 +182,13 @@ public final class Manual {
 
   /** The changelog of these entries, each a bullet such as {@code - Added: ...}. */
   static String changelog(List<String> entries) {
-    StringBuilder out = new StringBuilder("# Changelog\n\nWhat changed since the last release,"
-        + " for users of the library.\n\n## Unreleased\n");
+    StringBuilder out = new StringBuilder("""
+        # Changelog
+
+        What changed since the last release, for users of the library.
+
+        ## Unreleased
+        """);
     for (String kind : List.of("Added", "Changed", "Fixed", "Other")) {
       List<String> items = entries.stream()
           .map(String::strip)

@@ -270,10 +270,13 @@ class GridCellsTest {
         cell(orders, 4, 3) + "\t" + cell(orders, 4, 4) + "\n" + cell(orders, 5, 3) + "\t",
         app.clipboard().read());
     // Scrolled back first: the frozen id and numbers lie over customer while amount shows.
-    run(
-        app,
-        "wheel #rows -1000 0\nframe\npress #cell-1-1\npress #cell-3-1 control\n"
-            + "key Insert control\nframe");
+    run(app, """
+        wheel #rows -1000 0
+        frame
+        press #cell-1-1
+        press #cell-3-1 control
+        key Insert control
+        frame""");
     assertEquals(
         cell(orders, 1, 1) + "\n" + cell(orders, 3, 1),
         app.clipboard().read(),
@@ -285,10 +288,14 @@ class GridCellsTest {
     Orders orders = Orders.cells(T);
     App<Orders> app = start(orders);
     Selection s = orders.selection;
-    run(
-        app,
-        "press #cell-1-1\npress #cell-2-2 shift\nframe\npress #cell-2-1 right\nframe\n"
-            + "advance 0.25\nframe"); // past the menu's fade
+    run(app, """
+        press #cell-1-1
+        press #cell-2-2 shift
+        frame
+        press #cell-2-1 right
+        frame
+        advance 0.25
+        frame"""); // past the menu's fade
     assertEquals(List.of(new Range(1, 1, 2, 2)), s.ranges(), "inside the range: it stays");
     assertTrue(orders.menu.isOpen());
     assertTrue(line(app, "item-0").contains("label=\"Copy\""));
@@ -324,10 +331,14 @@ class GridCellsTest {
     Orders lazy = Orders.cells(T); // rows from 1000 on are not loaded, and no handler is set
     App<Orders> lazyApp = start(lazy);
     lazyApp.clipboard().write("before");
-    run(
-        lazyApp,
-        "press #cell-1-1\nframe\nscroll #rows row 995\nframe\npress #cell-1001-1 shift\n"
-            + "key C control\nframe");
+    run(lazyApp, """
+        press #cell-1-1
+        frame
+        scroll #rows row 995
+        frame
+        press #cell-1001-1 shift
+        key C control
+        frame""");
     assertEquals(List.of(new Range(1, 1, 1001, 1)), lazy.selection.ranges());
     assertEquals("before", lazyApp.clipboard().read());
     run(lazyApp, "press #cell-998-1 shift\nkey C control\nframe");

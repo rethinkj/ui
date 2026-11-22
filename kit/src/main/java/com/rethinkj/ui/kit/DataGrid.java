@@ -1008,7 +1008,7 @@ public final class DataGrid {
     private static int compare(String a, String b) {
       try {
         return new java.math.BigDecimal(a.strip()).compareTo(new java.math.BigDecimal(b.strip()));
-      } catch (NumberFormatException e) {
+      } catch (NumberFormatException _) {
         return a.strip().compareTo(b.strip()); // dates and times of ISO 8601 sort as text
       }
     }
@@ -2088,7 +2088,9 @@ public final class DataGrid {
     int last = -1;
 
     /** A fit still to come. */
-    public Fit() {}
+    public Fit() {
+      // the fields above start it as a fit that has not looked yet
+    }
 
     /**
      * Fits every column again at the next build that has loaded rows, also those resized by hand,
@@ -3688,7 +3690,7 @@ public final class DataGrid {
     // there wherever its cell is, also scrolled out of the part the row was built for.
     boolean editing = sel != null && sel.edit.row == i && b.edits;
     if (editing && sel.edit.column >= b.frozen) {
-      r.child(GridEdit.editor(b, i, sel.edit.column));
+      r.child(GridEdit.editor(b, sel.edit.column));
     }
     if (b.numbers > 0) {
       // The numbers lie on the row's fill, which they need over the cells scrolled under them.
@@ -3722,7 +3724,7 @@ public final class DataGrid {
       r.children(pinRow(b, cell, b.xs[c]), pinRow(b, after, b.xs[c + 1] - stroke));
     }
     if (editing && sel.edit.column < b.frozen) {
-      r.child(GridEdit.editor(b, i, sel.edit.column));
+      r.child(GridEdit.editor(b, sel.edit.column));
     }
     if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
       r.child(pinRow(
@@ -4134,7 +4136,7 @@ public final class DataGrid {
         || sel.isEditing()) {
       return;
     }
-    int row = (int) Math.clamp(Math.floor(d.y() / b.g.rowHeight()), 0, b.rows - 1);
+    int row = (int) Math.clamp(Math.floor(d.y() / b.g.rowHeight()), 0, (double) b.rows - 1);
     // In the content: over a frozen column while the rest is scrolled, that is the column under
     // it, so the grid scrolls back first.
     int column = b.columns.size() - 1;

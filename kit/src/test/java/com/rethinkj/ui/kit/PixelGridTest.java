@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -289,13 +290,13 @@ class PixelGridTest {
       // A primary button's ring lies a gap away, which shows the surface behind it.
       int gap = focused.focusRingGap() > 0 ? stroke(focused.focusRingGap(), scale) : 0;
       for (int y = top - gap; y < top; y++) {
-        assertTrue(pixels.argb(x, y) != color, "the gap of " + focused.key() + " row " + y);
+        assertNotEquals(color, pixels.argb(x, y), "the gap of " + focused.key() + " row " + y);
       }
       top -= gap;
       for (int y = top - ring; y < top; y++) {
         assertEquals(hex(color), hex(pixels.argb(x, y)), "ring of " + focused.key() + " row " + y);
       }
-      assertTrue(pixels.argb(x, top - ring - 1) != color, "ring no wider at " + scale);
+      assertNotEquals(color, pixels.argb(x, top - ring - 1), "ring no wider at " + scale);
       Edges edges = new Edges(pixels, scale);
       edges.side(focused.key() + " ring", x, top - ring, ring, false, color, gap > 0);
       assertEquals(List.of(), edges.failures);

@@ -151,9 +151,9 @@ final class X11 {
       MemorySegment attributes = arena.allocate(SET_WINDOW_ATTRIBUTES_SIZE);
       attributes.set(JAVA_LONG, BACKGROUND_PIXEL, rgb & 0xFFFFFFL);
       attributes.set(JAVA_INT, BIT_GRAVITY, NORTH_WEST_GRAVITY);
-      int unused = (int) H.CHANGE_WINDOW_ATTRIBUTES_H.invokeExact(
+      int _ = (int) H.CHANGE_WINDOW_ATTRIBUTES_H.invokeExact(
           display, window, CW_BACK_PIXEL | CW_BIT_GRAVITY, attributes);
-      unused = (int) H.FLUSH_H.invokeExact(display);
+      int _ = (int) H.FLUSH_H.invokeExact(display);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -166,7 +166,7 @@ final class X11 {
   static void opacity(MemorySegment display, long window, long opacity) {
     try (Arena arena = Arena.ofConfined()) {
       long property = atom(arena, display, "_NET_WM_WINDOW_OPACITY");
-      int unused = (int) H.CHANGE_PROPERTY_H.invokeExact(
+      int _ = (int) H.CHANGE_PROPERTY_H.invokeExact(
           display,
           window,
           property,
@@ -175,7 +175,7 @@ final class X11 {
           PROP_MODE_REPLACE,
           arena.allocateFrom(JAVA_LONG, opacity),
           1);
-      unused = (int) H.FLUSH_H.invokeExact(display);
+      int _ = (int) H.FLUSH_H.invokeExact(display);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -193,7 +193,7 @@ final class X11 {
       long counter;
       try {
         counter = (long) Sync.CREATE_COUNTER_H.invokeExact(display, arena.allocate(SYNC_VALUE));
-      } catch (LinkageError e) {
+      } catch (LinkageError _) {
         return 0; // no libXext; resizes stay unsynchronized
       }
       if (counter == 0) {
@@ -205,7 +205,7 @@ final class X11 {
       }
       long property = atom(arena, display, "_NET_WM_SYNC_REQUEST_COUNTER");
       MemorySegment value = arena.allocateFrom(JAVA_LONG, counter); // format 32 is a long each
-      int unused = (int) H.CHANGE_PROPERTY_H.invokeExact(
+      int _ = (int) H.CHANGE_PROPERTY_H.invokeExact(
           display, window, property, XA_CARDINAL, 32, PROP_MODE_REPLACE, value, 1);
       // Added to the protocols SDL set (WM_DELETE_WINDOW, _NET_WM_PING).
       MemorySegment list = arena.allocate(ADDRESS);
@@ -214,11 +214,11 @@ final class X11 {
       if ((int) H.GET_WM_PROTOCOLS_H.invokeExact(display, window, list, count) != 0) {
         MemorySegment atoms = list.get(ADDRESS, 0);
         protocols = atoms.reinterpret(count.get(JAVA_INT, 0) * 8L).toArray(JAVA_LONG);
-        unused = (int) H.FREE_H.invokeExact(atoms);
+        int _ = (int) H.FREE_H.invokeExact(atoms);
       }
       long[] with = java.util.Arrays.copyOf(protocols, protocols.length + 1);
       with[protocols.length] = syncRequest;
-      unused = (int) H.SET_WM_PROTOCOLS_H.invokeExact(
+      int _ = (int) H.SET_WM_PROTOCOLS_H.invokeExact(
           display, window, arena.allocateFrom(JAVA_LONG, with), with.length);
       return counter;
     } catch (Throwable t) {
@@ -268,8 +268,8 @@ final class X11 {
       MemorySegment v = arena.allocate(SYNC_VALUE);
       v.set(JAVA_INT, 0, (int) (value >>> 32));
       v.set(JAVA_INT, 4, (int) value);
-      int unused = (int) Sync.SET_COUNTER_H.invokeExact(display, counter, v);
-      unused = (int) H.FLUSH_H.invokeExact(display);
+      int _ = (int) Sync.SET_COUNTER_H.invokeExact(display, counter, v);
+      int _ = (int) H.FLUSH_H.invokeExact(display);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -277,7 +277,7 @@ final class X11 {
 
   static void destroyCounter(MemorySegment display, long counter) {
     try {
-      int unused = (int) Sync.DESTROY_COUNTER_H.invokeExact(display, counter);
+      int _ = (int) Sync.DESTROY_COUNTER_H.invokeExact(display, counter);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

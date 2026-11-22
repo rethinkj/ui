@@ -28,6 +28,9 @@ import java.util.List;
  * <p>{@code allocate} takes an {@link Arena} because an arena hands out zeroed memory, which the
  * initialization relies on.
  */
+// The nested classes of this package-private class only hold layouts and offsets: a private
+// constructor in each of them would add nothing.
+@SuppressWarnings("java:S1118")
 final class Structs {
 
   private Structs() {}

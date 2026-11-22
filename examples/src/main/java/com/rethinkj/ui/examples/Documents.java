@@ -366,9 +366,9 @@ public final class Documents {
   /** What went wrong with a file, in words. */
   static String why(Exception error) {
     return switch (error) {
-      case NoSuchFileException missing -> "it is not there";
-      case AccessDeniedException denied -> "it may not be read";
-      case MalformedInputException malformed -> "it is not text in UTF-8";
+      case NoSuchFileException _ -> "it is not there";
+      case AccessDeniedException _ -> "it may not be read";
+      case MalformedInputException _ -> "it is not text in UTF-8";
       default -> error.getMessage() == null ? error.toString() : error.getMessage();
     };
   }

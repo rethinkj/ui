@@ -217,8 +217,8 @@ public final class MarkdownDocument {
         case Code c -> out.append(c.code());
         case Link l -> plainText(l.content(), out);
         case Image m -> out.append(m.alt());
-        case SoftBreak s -> out.append(' ');
-        case HardBreak h -> out.append('\n');
+        case SoftBreak _ -> out.append(' ');
+        case HardBreak _ -> out.append('\n');
       }
     }
   }

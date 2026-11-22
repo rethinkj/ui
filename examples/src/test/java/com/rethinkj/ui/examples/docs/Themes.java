@@ -65,7 +65,7 @@ final class Themes {
     return Frame.of(settings);
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Themes state = new Themes();
     // Each build of the view reads the theme the state chooses, so a new choice shows at once.
     App<Themes> app = new App<>(state, Themes::view).provide(Theme.CURRENT, Themes::theme);

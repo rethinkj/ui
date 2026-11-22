@@ -202,11 +202,16 @@ class ValueFieldTest {
   void theDraftAndItsMessage(String theme) throws IOException {
     App<State> app = app(new State(), theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     app.textRendering(TextRendering.LINUX); // the stored image must not depend on the platform
-    List<Path> files = Script.run(
-        "size 300 160 scale 2\nframe\npress #amount\nkey A control\ntype \"12e\"\nframe\n"
-            + "advance 1\nframe\nsnap draft",
-        app,
-        Path.of("target/value-field-test", theme));
+    List<Path> files = Script.run("""
+        size 300 160 scale 2
+        frame
+        press #amount
+        key A control
+        type "12e"
+        frame
+        advance 1
+        frame
+        snap draft""", app, Path.of("target/value-field-test", theme));
     Golden.assertMatches(
         "value-field-" + theme + "-2x-draft",
         Png.decode(Files.readAllBytes(files.get(0))),

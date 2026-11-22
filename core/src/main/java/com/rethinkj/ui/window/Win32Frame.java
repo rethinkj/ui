@@ -107,6 +107,7 @@ final class Win32Frame {
   }
 
   /** SUBCLASSPROC, in front of SDL's window procedure. */
+  @SuppressWarnings({"java:S1144", "java:S1172"}) // an upcall target found by name, C parameters
   private static long proc(
       MemorySegment hwnd, int message, long wParam, long lParam, long id, long data) {
     try {

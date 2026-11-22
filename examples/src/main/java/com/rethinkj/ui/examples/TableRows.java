@@ -195,7 +195,7 @@ final class TableRows implements GridChanges.Rows {
         out++;
       }
     }
-    return madeUpAt(row + out - in);
+    return madeUpAt((long) row + out - in);
   }
 
   @Override

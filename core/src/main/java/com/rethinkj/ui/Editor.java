@@ -655,14 +655,14 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        moveTo(word ? 0 : lineStart(caret), shift);
+        moveTo(0, shift); // a single-line field; a multi-line one goes by rows, see lineKey
         return true;
       }
       case "End" -> {
         if (!plain) {
           return false;
         }
-        moveTo(word ? visibleTextEnd() : lineEnd(caret), shift);
+        moveTo(word ? visibleTextEnd() : text.length(), shift);
         return true;
       }
       case "Backspace" -> {
@@ -683,12 +683,12 @@ final class Editor {
         return true;
       }
       case "Insert" -> {
-        if (modifiers == Key.CONTROL) {
-          copy(clipboard);
-        } else if (modifiers == Key.SHIFT) {
-          paste(clipboard);
-        } else {
-          return false;
+        switch (modifiers) {
+          case Key.CONTROL -> copy(clipboard);
+          case Key.SHIFT -> paste(clipboard);
+          default -> {
+            return false;
+          }
         }
         return true;
       }
@@ -811,14 +811,6 @@ final class Editor {
         return null;
       }
     }
-  }
-
-  private int lineStart(int at) {
-    return 0; // a single-line field; a multi-line one goes by rows, see lineKey
-  }
-
-  private int lineEnd(int at) {
-    return text.length();
   }
 
   /**
@@ -1200,8 +1192,8 @@ final class Editor {
     return text.replace("\r\n", " ")
         .replace('\r', ' ')
         .replace('\n', ' ')
-        .replace(' ', ' ')
-        .replace(' ', ' ');
+        .replace('\u2028', ' ')
+        .replace('\u2029', ' ');
   }
 
   /**
@@ -1210,10 +1202,13 @@ final class Editor {
    * it has none.
    */
   static String multiLine(String text) {
-    if (text.indexOf('\r') < 0 && text.indexOf(' ') < 0 && text.indexOf(' ') < 0) {
+    if (text.indexOf('\r') < 0 && text.indexOf('\u2028') < 0 && text.indexOf('\u2029') < 0) {
       return text;
     }
-    return text.replace("\r\n", "\n").replace('\r', '\n').replace(' ', '\n').replace(' ', '\n');
+    return text.replace("\r\n", "\n")
+        .replace('\r', '\n')
+        .replace('\u2028', '\n')
+        .replace('\u2029', '\n');
   }
 
   // ---- Moves
@@ -1315,17 +1310,17 @@ final class Editor {
 
   // ---- Drawing
 
+  /** A read-only field shows a caret only with a selection, so that it does not look editable. */
+  private boolean showsCaret(boolean focused) {
+    return focused && !(el.isReadOnly() && caret == anchor);
+  }
+
   /**
    * Computes what the element's text draws besides its glyphs, once layout has placed it: the
    * scroll that keeps the caret in view, with {@link #MARGIN} to spare where the text is wider
    * than the field, and the selection, caret and composition in the coordinates of the glyphs.
    * Without the focus the text shows its start, and neither caret nor selection.
    */
-  /** A read-only field shows a caret only with a selection, so that it does not look editable. */
-  private boolean showsCaret(boolean focused) {
-    return focused && !(el.isReadOnly() && caret == anchor);
-  }
-
   void place(boolean focused, boolean caretOn) {
     if (multiline()) {
       placeLines(focused, caretOn);

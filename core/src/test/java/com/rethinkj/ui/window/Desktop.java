@@ -76,7 +76,7 @@ final class Desktop {
         Thread.sleep(TIMEOUT_MILLIS);
         late.set(true);
         loop.stop();
-      } catch (InterruptedException e) {
+      } catch (InterruptedException _) {
         // the loop ended in time
       }
     });

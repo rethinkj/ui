@@ -836,7 +836,7 @@ public final class GpuRenderer implements AutoCloseable {
     }
     upload(scene, width, height, scale);
     try (CommandEncoder encoder = device.createCommandEncoder("scene image")) {
-      record(encoder, textureView, scene);
+      recordPass(encoder, textureView, scene);
       encoder.copyTextureToBuffer(texture, readback, 0, bytesPerRow(width));
       device.queue().submit(encoder.finish());
     }
@@ -902,7 +902,7 @@ public final class GpuRenderer implements AutoCloseable {
     checkOpen();
     upload(scene, target.width(), target.height(), scale);
     try (CommandEncoder encoder = device.createCommandEncoder("scene")) {
-      record(encoder, target, scene);
+      recordPass(encoder, target, scene);
       device.queue().submit(encoder.finish());
     }
   }
@@ -1144,7 +1144,7 @@ public final class GpuRenderer implements AutoCloseable {
    * draw call, or where images are, in one per run of instances that the same image texture is
    * bound for. Instances that are not images read nothing of it.
    */
-  private void record(CommandEncoder encoder, TextureView target, Scene scene) {
+  private void recordPass(CommandEncoder encoder, TextureView target, Scene scene) {
     RenderPipeline pipeline = context.pipeline(target.format());
     int count = scene.count();
     try (RenderPass pass = encoder.beginRenderPass("scene", target, new Color(0, 0, 0, 0))) {

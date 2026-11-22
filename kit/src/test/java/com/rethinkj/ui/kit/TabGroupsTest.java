@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -442,7 +443,7 @@ class TabGroupsTest {
         """, docs.app, out);
     Group<String> floating = docs.groups.groupOf("b");
     assertTrue(docs.groups.isDragging());
-    assertTrue(floating != docs.groups.main());
+    assertNotSame(floating, docs.groups.main());
     docs.app.post(() -> {
       docs.groups.add(floating, 1, "new query");
       docs.groups.close(floating, 0);

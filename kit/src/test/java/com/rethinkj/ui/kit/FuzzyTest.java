@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,16 +48,16 @@ class FuzzyTest {
 
   @Test
   void caseCountsOnlyWhenTheQueryHasCapitals() {
-    assertTrue(Fuzzy.score("ord", "Orders") != Fuzzy.NO_MATCH);
+    assertNotEquals(Fuzzy.NO_MATCH, Fuzzy.score("ord", "Orders"));
     assertEquals(Fuzzy.NO_MATCH, Fuzzy.score("Ord", "orders"));
-    assertTrue(Fuzzy.score("Ord", "Orders") != Fuzzy.NO_MATCH);
+    assertNotEquals(Fuzzy.NO_MATCH, Fuzzy.score("Ord", "Orders"));
     assertEquals(List.of("CustomerOrders"), ranked("CO", "customer_orders", "CustomerOrders"));
   }
 
   @Test
   void umlautsMatchTheirCapitalsButNotTheirBases() {
-    assertTrue(Fuzzy.score("über", "Übersicht") != Fuzzy.NO_MATCH);
-    assertTrue(Fuzzy.score("grö", "Schriftgröße") != Fuzzy.NO_MATCH);
+    assertNotEquals(Fuzzy.NO_MATCH, Fuzzy.score("über", "Übersicht"));
+    assertNotEquals(Fuzzy.NO_MATCH, Fuzzy.score("grö", "Schriftgröße"));
     assertEquals(Fuzzy.NO_MATCH, Fuzzy.score("uber", "Übersicht"));
     assertEquals(Fuzzy.NO_MATCH, Fuzzy.score("ss", "Straße"));
   }

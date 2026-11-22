@@ -8,6 +8,8 @@ import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -117,7 +119,7 @@ class HighlightTest {
     Text t = field(app).text();
     GlyphRun boldWord = Font.monoBold().shape("SELECT", 14, 1);
     assertEquals(boldWord.width(), t.x(6), "the bold word in the bold font's advances");
-    assertTrue(t.x(6) != field(plain).text().x(6), "and not the regular font's");
+    assertNotEquals(field(plain).text().x(6), t.x(6), "and not the regular font's");
     float space = Font.sans().shape(" ", 14, 1).width();
     assertEquals(boldWord.width() + space, t.x(7), 0.01, "the rest follows it");
     for (int i = 0; i <= 8; i++) {
@@ -160,7 +162,7 @@ class HighlightTest {
     for (int g = 0; g < run.count(); g++) {
       assertEquals(run.cluster(g) >= 3 ? RED : TEXT, line.colors()[g], "glyph " + g);
     }
-    assertTrue(run.font(run.count() - 3) != run.font(0), "the Hebrew comes from a fallback");
+    assertNotSame(run.font(0), run.font(run.count() - 3), "the Hebrew comes from a fallback");
   }
 
   @Test

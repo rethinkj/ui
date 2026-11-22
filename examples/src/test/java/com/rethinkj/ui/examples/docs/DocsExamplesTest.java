@@ -307,15 +307,7 @@ class DocsExamplesTest {
             },
             420,
             200));
-    all.put(
-        "customers",
-        new Example(
-            t -> {
-              App<Customers> app = Customers.app();
-              return app;
-            },
-            760,
-            460));
+    all.put("customers", new Example(t -> Customers.app(), 760, 460));
     return all;
   }
 

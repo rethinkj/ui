@@ -304,8 +304,8 @@ public final class Image {
       int count = (int) Math.ceilDiv((long) (i + 1) * size, to) - first;
       weights[i] = new double[count];
       for (int t = 0; t < count; t++) {
-        double from = Math.max(start, first + t);
-        double until = Math.min(end, first + t + 1);
+        double from = Math.max(start, (double) first + t);
+        double until = Math.min(end, (double) first + t + 1);
         weights[i][t] = (until - from) / span;
       }
     }

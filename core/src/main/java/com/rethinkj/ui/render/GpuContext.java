@@ -183,11 +183,11 @@ final class GpuContext {
           GpuContext context = task.get();
           context.instance.adopt();
           return context;
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
           interrupted = true; // the context must not be left to nobody
         }
       }
-    } catch (ExecutionException e) {
+    } catch (ExecutionException _) {
       return null;
     } finally {
       if (interrupted) {

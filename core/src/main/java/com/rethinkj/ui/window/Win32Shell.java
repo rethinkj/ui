@@ -195,7 +195,7 @@ final class Win32Shell {
 
   private boolean applyFrameDark() {
     try (Arena arena = Arena.ofConfined()) {
-      MemorySegment value = arena.allocateFrom(JAVA_INT, frameDark ? 1 : 0);
+      MemorySegment value = arena.allocateFrom(JAVA_INT, Boolean.TRUE.equals(frameDark) ? 1 : 0);
       return Win32.dwmSetWindowAttribute(hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, value)
           == Win32.S_OK;
     }
@@ -281,6 +281,7 @@ final class Win32Shell {
   }
 
   /** SUBCLASSPROC, in front of SDL's window procedure; acts after SDL has had the message. */
+  @SuppressWarnings({"java:S1144", "java:S1172"}) // an upcall target found by name, C parameters
   private static long proc(
       MemorySegment hwnd, int message, long wParam, long lParam, long id, long data) {
     long result;

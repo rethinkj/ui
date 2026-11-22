@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -207,7 +208,7 @@ class GridFitTest {
     run(app, "await\nframe\nframe");
     assertFalse(fit.isPending());
     assertEquals(dragged, orders.widths[2], "left as the user made it");
-    assertTrue(orders.widths[1] != 140, "the others fitted");
+    assertNotEquals(140, orders.widths[1], "the others fitted");
     assertTrue(orders.log.subList(told, orders.log.size()).stream()
         .noneMatch(l -> l.startsWith("resize 2 ")));
 

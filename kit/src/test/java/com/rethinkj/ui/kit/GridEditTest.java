@@ -603,10 +603,22 @@ class GridEditTest {
     run(app, "key Enter\nframe");
     assertEquals("commit 0,7 null", ledger.log.getLast());
 
-    run(
-        app,
-        "key Home\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe\nkey F2\nframe\nkey Backspace\nkey Backspace\nkey Backspace\n"
-            + "key Backspace\nkey Backspace\nkey Backspace\nkey Enter\nframe");
+    run(app, """
+        key Home
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        frame
+        key F2
+        frame
+        key Backspace
+        key Backspace
+        key Backspace
+        key Backspace
+        key Backspace
+        key Backspace
+        key Enter
+        frame""");
     assertEquals("commit 1,3 null", ledger.log.getLast(), "amount allows NULL");
     run(app, "key ArrowUp\nkey ArrowLeft\nframe\nkey F2\nframe\nkey Backspace\nkey Enter\nframe");
     assertTrue(app.tree().dump().contains("role=alert label=\"A value is required\""));
@@ -616,10 +628,14 @@ class GridEditTest {
   void deleteClearsTheSelectionAndControlZeroSetsItNullInOneChange() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(
-        app,
-        "press #cell-0-1\ndown #cell-0-1\nmove #cell-2-3\nup #cell-2-3\nframe\nkey Delete\n"
-            + "frame");
+    run(app, """
+        press #cell-0-1
+        down #cell-0-1
+        move #cell-2-3
+        up #cell-2-3
+        frame
+        key Delete
+        frame""");
     // Customer is text without NULL: empty; qty is a number without NULL: left; amount NULL.
     assertEquals("", ledger.changes.cell(1, 1));
     assertEquals(Ledger.cell(1, 2), ledger.changes.cell(1, 2));
@@ -730,10 +746,12 @@ class GridEditTest {
   void pastedTextGoesFromTheCursorOnAndASingleValueIntoEverySelectedCell() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(
-        app,
-        "clipboard \"Ann\\t7\\n\\\"B\\tC\\\"\\tx\\n\"\npress #cell-2-1\nframe\n"
-            + "key V control\nframe");
+    run(app, """
+        clipboard "Ann\\t7\\n\\"B\\tC\\"\\tx\\n"
+        press #cell-2-1
+        frame
+        key V control
+        frame""");
     assertEquals("Ann", ledger.changes.cell(2, 1));
     assertEquals("7", ledger.changes.cell(2, 2));
     assertEquals("B\tC", ledger.changes.cell(3, 1));

@@ -1016,7 +1016,7 @@ public final class Jpeg {
     }
 
     private static byte sample(int x, int n) {
-      return (byte) Math.clamp(descale(x, n) + 128, 0, 255);
+      return (byte) Math.clamp(descale(x, n) + 128L, 0, 255);
     }
 
     // ---- orientation ------------------------------------------------------------------------

@@ -493,7 +493,7 @@ class CpuRendererEquivalenceTest {
       Natives.lookup("freetype");
       Natives.lookup("harfbuzz");
       return true;
-    } catch (UnsatisfiedLinkError e) {
+    } catch (UnsatisfiedLinkError _) {
       return false;
     }
   }

@@ -189,12 +189,13 @@ final class Gallery {
       new Row("password shown", h -> password(true, h)),
       new Row("area", Gallery::area, "", AREA),
       // From the third character to the third of the last line: the line feeds shown.
-      new Row(
-          "area selected",
-          Gallery::area,
-          "key Home control\nkey ArrowRight\n"
-              + "key ArrowRight\nkey ArrowDown shift\nkey ArrowDown shift\nframe",
-          AREA),
+      new Row("area selected", Gallery::area, """
+          key Home control
+          key ArrowRight
+          key ArrowRight
+          key ArrowDown shift
+          key ArrowDown shift
+          frame""", AREA),
       new Row("code area", Gallery::code, "", AREA),
       new Row("switch row", h -> Group.switchRow("Wrap", null, true, h).w(WIDTH - 20)),
       new Row("link row", h -> Group.linkRow("Keymap", null, null, h).w(WIDTH - 20)),

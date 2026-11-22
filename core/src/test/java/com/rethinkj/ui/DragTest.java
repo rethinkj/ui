@@ -221,27 +221,6 @@ class DragTest {
     assertNull(app.pressed());
   }
 
-  // Keeping a row in view
-
-  /** A list of 1000 rows of 20 pixels in a window of 100, keeping one row in view. */
-  static final class Rows {
-    int shown = 50;
-  }
-
-  private static App<Rows> rows() {
-    App<Rows> app = new App<>(
-        new Rows(),
-        r -> col()
-            .key("list")
-            .wFull()
-            .hFull()
-            .revealRow(r.shown)
-            .rows(1000, 20, i -> el().key("row-" + i)));
-    app.resize(100, 100, 1);
-    app.frame();
-    return app;
-  }
-
   private static El find(App<?> app, String key) {
     return find(app.tree(), key);
   }

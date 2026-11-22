@@ -95,8 +95,8 @@ class SystemIntegrationTest {
         assertNotEquals(0, (int) getObject.invokeExact(color, 32, bitmap));
         return bitmap.get(JAVA_INT, 4);
       } finally {
-        int ignored = (int) deleteObject.invokeExact(mask);
-        ignored = (int) deleteObject.invokeExact(color);
+        int _ = (int) deleteObject.invokeExact(mask);
+        int _ = (int) deleteObject.invokeExact(color);
       }
     }
   }
@@ -106,7 +106,7 @@ class SystemIntegrationTest {
     String id = "com.rethinkj.ui.test.SystemIntegration";
     Window.identity(id, "System integration test");
     assertThrows(IllegalArgumentException.class, () -> Window.identity("with space", null));
-    try (Window window = Window.open(TITLE, 300, 200)) {
+    try (Window _ = Window.open(TITLE, 300, 200)) {
       assertEquals(id, Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_IDENTIFIER_STRING));
       assertEquals(
           "System integration test", Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_NAME_STRING));
@@ -180,7 +180,7 @@ class SystemIntegrationTest {
               () -> { // a guard, so that a failure does not hang
                 try {
                   Thread.sleep(10_000);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException _) {
                   return;
                 }
                 loop.get().stop();

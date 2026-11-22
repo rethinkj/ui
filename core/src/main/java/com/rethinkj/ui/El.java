@@ -150,7 +150,12 @@ public final class El {
   double cycleSince; // for Animator: the app's time at which this identity got its cycle
   // What layout and motion gave this element in this frame, which the cycle's look starts from.
   private boolean cycleBased;
-  private float baseX, baseY, baseWidth, baseHeight, baseOpacity, baseTargetOpacity;
+  private float baseX;
+  private float baseY;
+  private float baseWidth;
+  private float baseHeight;
+  private float baseOpacity;
+  private float baseTargetOpacity;
   private int baseFill;
   private int rangeFrom = -1; // see #range: characters of the parent's text, -1 for none
   private int rangeTo;
@@ -2911,7 +2916,9 @@ public final class El {
    */
   static boolean cycles(El root, double time, float width, float height, boolean shownOnly) {
     float far = Float.POSITIVE_INFINITY;
-    float r = shownOnly ? width : far, b = shownOnly ? height : far, l = shownOnly ? 0 : -far;
+    float r = shownOnly ? width : far;
+    float b = shownOnly ? height : far;
+    float l = shownOnly ? 0 : -far;
     boolean any = root.cycles(time, 0, 0, l, l, r, b);
     for (El overlay : root.shownOverlays()) { // in window coordinates
       any |= overlay.cycles(time, 0, 0, l, l, r, b);

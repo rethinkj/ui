@@ -980,7 +980,7 @@ final class GridEdit {
    * list of an enumeration or the field of several lines edits, what they hold. Its edge is the
    * accent's, or the danger color's with the message below it when the value was refused.
    */
-  static El editor(Build b, int row, int column) {
+  static El editor(Build b, int column) {
     Theme theme = b.theme;
     Theme.Grid g = b.g;
     Selection sel = b.sel;

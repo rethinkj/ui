@@ -282,7 +282,7 @@ public final class Find {
       state.jump = null;
       state.jumpText = null;
     }
-    field.onKeyFirst(k -> fieldKey(app, state, k));
+    field.onKeyFirst(k -> fieldKey(state, k));
     Pattern pattern = state.open && state.mode != Mode.LINE ? state.pattern() : null;
     if (pattern != null) {
       search(app, state, pattern, text);
@@ -399,7 +399,7 @@ public final class Find {
   }
 
   /** The keys of the field the bar belongs to; whether one was the bar's. */
-  private static boolean fieldKey(App<?> app, State state, Key k) {
+  private static boolean fieldKey(State state, Key k) {
     int mods = k.modifiers();
     switch (k.name()) {
       case "F" -> {
@@ -467,7 +467,7 @@ public final class Find {
       replaceAll(app, state);
       return true;
     }
-    if (fieldKey(app, state, k)) {
+    if (fieldKey(state, k)) {
       return true;
     }
     // The field's own commands act on the field, not on the bar's fields.
@@ -562,7 +562,7 @@ public final class Find {
       int start = floor;
       try {
         hit = direct(pattern, text, target, direction, from, start, SYNC_MILLIS);
-      } catch (Search.Stopped stopped) {
+      } catch (Search.Stopped _) {
         // Too long for a frame: the rest on another thread, whose answer selects.
         if (state.jump != null) {
           state.jump.cancel();
@@ -639,7 +639,7 @@ public final class Find {
                   target.to(),
                   state.replacement,
                   Search.deadline(SYNC_MILLIS)));
-    } catch (Search.Stopped stopped) {
+    } catch (Search.Stopped _) {
       state.replaceError = state.texts.replacingTookTooLong();
       return;
     } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {
@@ -652,7 +652,7 @@ public final class Find {
       try {
         next =
             Search.next(pattern, text, target.from(), target.to(), e, Search.deadline(SYNC_MILLIS));
-      } catch (Search.Stopped stopped) {
+      } catch (Search.Stopped _) {
         next = null;
       }
       app.edit(field, s, e, with, s + with.length());
@@ -690,7 +690,7 @@ public final class Find {
               target.to(),
               state.replacement,
               Search.deadline(BACKGROUND_MILLIS)));
-    } catch (Search.Stopped stopped) {
+    } catch (Search.Stopped _) {
       state.replaceError = state.texts.replacingTookTooLong();
       return;
     } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {

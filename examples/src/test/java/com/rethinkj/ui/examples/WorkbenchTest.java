@@ -91,11 +91,14 @@ class WorkbenchTest {
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
     orders.query = "SELECT * FROM shop.public.ordrs";
-    Script.run(
-        "size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
-            + "key Enter control\nframe\nawait\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        frame
+        focus #query-localhost/shop/public/orders
+        key Enter control
+        frame
+        await
+        frame""", app, out);
     assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
     assertEquals(1_000_000, orders.rows, "the rows of before stay");
     assertTrue(app.tree().dump().contains("does not exist"), "the status line says why");
@@ -111,11 +114,16 @@ class WorkbenchTest {
     Workbench.Opened orders = s.tables().getFirst();
     orders.query = "SELECT * FROM shop.public.ordrs";
     // Control+Enter twice before the answer: the second question cancels the first.
-    Script.run(
-        "size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
-            + "key Enter control\nframe\nkey Enter control\nframe\nawait\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        frame
+        focus #query-localhost/shop/public/orders
+        key Enter control
+        frame
+        key Enter control
+        frame
+        await
+        frame""", app, out);
     assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
     assertEquals(1_000_000, orders.rows, "the rows of before stay, not \"counting the rows\"");
   }
@@ -279,7 +287,7 @@ class WorkbenchTest {
     orders.changes.set(1, 5, "ada@example.org");
     changed(app);
     Script.run("size 1000 600\nframe\nkey S control\nframe", app, out);
-    assertTrue(orders.committing != null, "on its way");
+    assertNotNull(orders.committing, "on its way");
     assertTrue(dump(app).contains("role=button label=\"Commit (2)\""), dump(app));
     assertTrue(dump(app).contains("busy"), "the button is busy");
     Script.run("size 1000 600\nawait\nframe", app, out);
@@ -332,22 +340,31 @@ class WorkbenchTest {
     Workbench s = app.state();
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
-    Script.run(
-        "size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
-            + "type \"x@example.com\"\nframe\nkey S control\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        press #cell-0-5
+        key Enter
+        frame
+        key A control
+        type "x@example.com"
+        frame
+        key S control
+        frame""", app, out);
     assertFalse(orders.selection.isEditing());
     assertNotNull(orders.committing, "on its way, with what was typed");
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertEquals("x@example.com", s.stored.get("localhost/shop/public/orders").value(0, 5));
 
     // A day that does not exist: the editor stays with its message, and nothing goes on.
-    Script.run(
-        "size 1000 600\nkey ArrowRight\nkey ArrowRight\nframe\n"
-            + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        key ArrowRight
+        key ArrowRight
+        frame
+        type "2026-02-30 10:00"
+        frame
+        key S control
+        frame""", app, out);
     assertTrue(orders.selection.isEditing());
     assertEquals("2026-02-30 10:00", orders.selection.draft());
     assertNull(orders.committing);
@@ -358,11 +375,16 @@ class WorkbenchTest {
     assertTrue(orders.selection.isEditing());
 
     // A value that is taken becomes a change, which closing the tab asks about.
-    Script.run(
-        "size 1000 600\nkey Escape\nframe\ntype \"2026-02-28 10:00\"\nframe\n"
-            + "key W control\nframe\nadvance 0.25\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        key Escape
+        frame
+        type "2026-02-28 10:00"
+        frame
+        key W control
+        frame
+        advance 0.25
+        frame""", app, out);
     assertFalse(orders.selection.isEditing());
     assertEquals(1, orders.changes.count());
     assertNotNull(s.question, "asked whether to commit or discard it");
@@ -411,11 +433,16 @@ class WorkbenchTest {
     changed(app);
     Script.run("size 1000 600\nframe\nclose\nframe\nadvance 0.25\nframe", app, out);
     assertTrue(dump(app).contains("orders (1), customers (1) have changes"), dump(app));
-    Script.run(
-        "size 1000 600\npress #keep\nframe\nclose\nframe\nadvance 0.25\nframe\n"
-            + "press #commit-changes\nframe",
-        app,
-        out);
+    Script.run("""
+        size 1000 600
+        press #keep
+        frame
+        close
+        frame
+        advance 0.25
+        frame
+        press #commit-changes
+        frame""", app, out);
     assertFalse(app.windows().all().isEmpty(), "open until the server took them");
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertTrue(app.windows().all().isEmpty(), "closed once both were written");

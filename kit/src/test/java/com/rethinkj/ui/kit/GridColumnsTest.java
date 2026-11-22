@@ -85,15 +85,31 @@ class GridColumnsTest {
     // Handlers count all the columns: amount is 3 wherever it is shown.
     run(app, "press #column-3\nframe"); // the header cell at place 3 is amount now
     assertEquals(List.of(new SortKey(3, false)), ledger.sort);
-    run(
-        app,
-        "move #column-3\nframe\npress #filter-3\nframe\nadvance 1\nframe\ntype \"5\"\n"
-            + "key Tab\ntype \"50\"\nkey Enter\nframe");
+    run(app, """
+        move #column-3
+        frame
+        press #filter-3
+        frame
+        advance 1
+        frame
+        type "5"
+        key Tab
+        type "50"
+        key Enter
+        frame""");
     assertEquals(List.of(new Filter(3, new Filter.Between("5", "50"))), ledger.filters);
-    run(
-        app,
-        "focus #ledger\nkey Home\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe\n"
-            + "key F2\nframe\nkey Backspace\nkey Enter\nframe");
+    run(app, """
+        focus #ledger
+        key Home
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        frame
+        key F2
+        frame
+        key Backspace
+        key Enter
+        frame""");
     assertTrue(ledger.log.getLast().startsWith("commit 0,3 "), ledger.log.toString());
   }
 
@@ -106,25 +122,45 @@ class GridColumnsTest {
     assertTrue(dump.contains("role=menuitem label=\"Sort descending\""), dump);
     run(app, "press label=\"Sort descending\"\nframe\nadvance 1\nframe");
     assertEquals(List.of(new SortKey(2, true)), ledger.sort);
-    run(
-        app,
-        "press #column-2 right\nframe\nadvance 1\nframe\npress label=\"Freeze up to here\"\n"
-            + "frame\nadvance 1\nframe");
+    run(app, """
+        press #column-2 right
+        frame
+        advance 1
+        frame
+        press label="Freeze up to here"
+        frame
+        advance 1
+        frame""");
     assertTrue(line(app, "column-2").contains("el #column-2"), "still shown");
-    run(
-        app,
-        "press #column-1 right\nframe\nadvance 1\nframe\npress label=\"Fit width\"\nframe\n"
-            + "advance 1\nframe");
+    run(app, """
+        press #column-1 right
+        frame
+        advance 1
+        frame
+        press label="Fit width"
+        frame
+        advance 1
+        frame""");
     assertEquals("resize 1", ledger.log.getLast());
-    run(
-        app,
-        "press #column-1 right\nframe\nadvance 1\nframe\npress label=\"Hide column\"\nframe\n"
-            + "advance 1\nframe");
+    run(app, """
+        press #column-1 right
+        frame
+        advance 1
+        frame
+        press label="Hide column"
+        frame
+        advance 1
+        frame""");
     assertTrue(ledger.layout.isHidden(1));
-    run(
-        app,
-        "press #column-1 right\nframe\nadvance 1\nframe\npress label=\"Columns…\"\nframe\n"
-            + "advance 1\nframe");
+    run(app, """
+        press #column-1 right
+        frame
+        advance 1
+        frame
+        press label="Columns…"
+        frame
+        advance 1
+        frame""");
     assertTrue(app.tree().dump().contains("role=dialog label=\"Columns\""));
     run(app, "press label=\"Show all\"\nframe");
     assertFalse(ledger.layout.isHidden(1));
@@ -135,10 +171,16 @@ class GridColumnsTest {
     Ledger ledger = new Ledger(T, 40);
     ledger.selection.select(0, 3); // amount
     App<Ledger> app = start(ledger, out);
-    run(
-        app,
-        "press #column-1 right\nframe\nadvance 1\nframe\npress label=\"Hide column\"\nframe\n"
-            + "focus #ledger\nkey Delete\nframe");
+    run(app, """
+        press #column-1 right
+        frame
+        advance 1
+        frame
+        press label="Hide column"
+        frame
+        focus #ledger
+        key Delete
+        frame""");
     assertTrue(ledger.layout.isHidden(1));
     assertEquals(2, ledger.selection.column(), "amount, shown second now");
     var change = ledger.changes.changes().getFirst();

@@ -273,7 +273,7 @@ final class Lines {
     }
     if (within) {
       rows[first] = 0; // not measured any more
-      add(first, effective(first) - before);
+      add(first, (long) effective(first) - before);
     } else {
       int[] next = new int[Math.max(newCount, 1)];
       System.arraycopy(rows, 0, next, 0, first);
@@ -631,7 +631,7 @@ final class Lines {
     if (rows != null && !isHidden(line) && rows[line] != measured) {
       int before = effective(line);
       rows[line] = measured;
-      add(line, measured - before);
+      add(line, (long) measured - before);
     }
   }
 
@@ -646,8 +646,8 @@ final class Lines {
     if (rows[line] > 0) {
       return rows[line];
     }
-    double characters = end(line) - starts[line];
-    return (int) Math.max(1, Math.min(Math.ceil(characters / perRow), Integer.MAX_VALUE));
+    double characters = (double) end(line) - starts[line];
+    return (int) Math.clamp(Math.ceil(characters / perRow), 1, Integer.MAX_VALUE);
   }
 
   /** The rows before line {@code line}, measured or estimated; its own index without wrapping or folds. */
@@ -670,7 +670,7 @@ final class Lines {
   /** The visible line that row {@code row} of the whole text belongs to, clamped to the visible lines. */
   int lineOfRow(long row) {
     if (tree == null) {
-      return (int) Math.clamp(row, 0, count - 1);
+      return Math.clamp(row, 0, count - 1);
     }
     if (row <= 0) {
       return 0;

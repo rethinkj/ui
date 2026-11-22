@@ -152,7 +152,7 @@ class SystemDialogsTest {
   }
 
   @Test
-  void aHandlerThatThrowsBecomesAFailureInsteadOfEndingTheJvm() throws Exception {
+  void aHandlerThatThrowsBecomesAFailureInsteadOfEndingTheJvm() {
     List<String> failures = new ArrayList<>();
     long id = SystemDialogs.expect(
         c -> {

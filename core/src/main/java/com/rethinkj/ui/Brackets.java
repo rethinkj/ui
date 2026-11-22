@@ -16,7 +16,7 @@ final class Brackets {
   /** The most characters matching looks through from the bracket, each way. */
   static final int REACH = 100_000;
 
-  private static final String BRACKETS = "([{)]}";
+  private static final String PAIRS = "([{)]}";
 
   /**
    * The bracket just before {@code caret}, or else just after it, and its partner in {@code text}:
@@ -32,12 +32,12 @@ final class Brackets {
       if (at < 0 || at >= text.length()) {
         continue;
       }
-      int kind = BRACKETS.indexOf(text.charAt(at));
+      int kind = PAIRS.indexOf(text.charAt(at));
       if (kind < 0) {
         continue;
       }
       char own = text.charAt(at);
-      char other = BRACKETS.charAt((kind + 3) % 6);
+      char other = PAIRS.charAt((kind + 3) % 6);
       int step = kind < 3 ? 1 : -1;
       int first = marked ? lines.line(at) : -1;
       if (!marked || !lines.knows(first, key)) {
@@ -195,7 +195,7 @@ final class Brackets {
     }
 
     void step(char c, int at, int line) {
-      int kind = BRACKETS.indexOf(c);
+      int kind = PAIRS.indexOf(c);
       if (kind < 0) {
         return;
       }

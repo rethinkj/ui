@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * it to its target, whose calling code throws it after the wgpu call returns. Text in a callback is
  * copied before the callback returns: wgpu-native frees it afterwards.
  */
+// The upcalls are found by name through findStatic and take the parameters their C signature fixes.
+@SuppressWarnings({"java:S1144", "java:S1172"})
 final class Callbacks {
 
   private Callbacks() {}
@@ -225,7 +227,7 @@ final class Callbacks {
       if (LOGGER.isLoggable(to)) {
         LOGGER.log(to, "wgpu: " + Wgpu.string(message, 0));
       }
-    } catch (Throwable t) {
+    } catch (Throwable _) {
       // Nobody to hand it to: the log runs outside any call of ours.
     }
   }
@@ -240,7 +242,7 @@ final class Callbacks {
       if (target != null && target.failure == null) {
         target.failure = t;
       }
-    } catch (Throwable ignored) {
+    } catch (Throwable _) {
       // An upcall must return normally.
     }
   }

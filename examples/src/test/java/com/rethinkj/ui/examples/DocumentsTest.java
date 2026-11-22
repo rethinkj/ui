@@ -197,7 +197,9 @@ class DocumentsTest {
       }
 
       @Override
-      public void message(MessageBox box, IntConsumer pressed, Consumer<String> failed) {}
+      public void message(MessageBox box, IntConsumer pressed, Consumer<String> failed) {
+        // This test asks for a file dialog only.
+      }
     });
     Documents.Doc query = new Documents.Doc("Query", "SELECT 1;");
     Documents.Doc notes = new Documents.Doc("Notes", "Coffee");

@@ -371,7 +371,7 @@ class CompletionTest {
         word -> {
           try {
             release.await();
-          } catch (InterruptedException e) {
+          } catch (InterruptedException _) {
             Thread.currentThread().interrupt(); // a newer word cancelled it
           }
           return suggest(word);

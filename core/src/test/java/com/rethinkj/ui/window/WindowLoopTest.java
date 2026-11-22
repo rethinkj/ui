@@ -162,7 +162,7 @@ class WindowLoopTest {
           if (waiting.await(Desktop.TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             loop.stop();
           }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
           Thread.currentThread().interrupt();
         }
       });

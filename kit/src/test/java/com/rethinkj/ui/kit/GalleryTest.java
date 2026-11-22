@@ -12,7 +12,7 @@ class GalleryTest {
 
   @ParameterizedTest
   @CsvSource({"dark, 2", "light, 2"})
-  void looksAsStored(String name, int scale) throws IOException {
+  void looksAsStored(String name, int scale) {
     TextLibraries.assumeLoaded();
     Theme theme = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     String image = "gallery-" + name + "-" + scale + "x";

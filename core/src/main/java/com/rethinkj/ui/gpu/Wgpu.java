@@ -457,7 +457,7 @@ final class Wgpu {
       MemorySegment options,
       MemorySegment callbackInfo) {
     try {
-      MemorySegment future = (MemorySegment)
+      MemorySegment _ = (MemorySegment)
           Fn.INSTANCE_REQUEST_ADAPTER.invokeExact(allocator, instance, options, callbackInfo);
     } catch (Throwable t) {
       throw rethrow(t);
@@ -493,7 +493,7 @@ final class Wgpu {
       MemorySegment descriptor,
       MemorySegment callbackInfo) {
     try {
-      MemorySegment future = (MemorySegment)
+      MemorySegment _ = (MemorySegment)
           Fn.ADAPTER_REQUEST_DEVICE.invokeExact(allocator, adapter, descriptor, callbackInfo);
     } catch (Throwable t) {
       throw rethrow(t);
@@ -537,7 +537,7 @@ final class Wgpu {
   static void devicePopErrorScope(
       SegmentAllocator allocator, MemorySegment device, MemorySegment callbackInfo) {
     try {
-      MemorySegment future =
+      MemorySegment _ =
           (MemorySegment) Fn.DEVICE_POP_ERROR_SCOPE.invokeExact(allocator, device, callbackInfo);
     } catch (Throwable t) {
       throw rethrow(t);
@@ -702,7 +702,7 @@ final class Wgpu {
       long size,
       MemorySegment callbackInfo) {
     try {
-      MemorySegment future = (MemorySegment)
+      MemorySegment _ = (MemorySegment)
           Fn.BUFFER_MAP_ASYNC.invokeExact(allocator, buffer, mode, offset, size, callbackInfo);
     } catch (Throwable t) {
       throw rethrow(t);

@@ -37,7 +37,9 @@ public final class FieldState {
   int caret = -1;
   int anchor = -1;
 
-  public FieldState() {}
+  public FieldState() {
+    // no field, no selection asked for: a field takes the state over at its first build
+  }
 
   /**
    * Selects from {@code anchor} to {@code caret} in the field, or puts the caret there when they

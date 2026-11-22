@@ -180,7 +180,7 @@ final class Search {
         m.region(m.start() + 1, to); // past a match inside a grapheme, which may hide another
       }
       return false;
-    } catch (StackOverflowError deep) {
+    } catch (StackOverflowError _) {
       throw new Stopped();
     }
   }
@@ -222,7 +222,7 @@ final class Search {
         ends[n] = m.end();
         n++;
       }
-    } catch (Stopped stopped) {
+    } catch (Stopped _) {
       return new Matches(starts, ends, n, false, true);
     }
     return new Matches(starts, ends, n, false, false);
@@ -370,7 +370,7 @@ final class Search {
       if (!m.lookingAt() || m.end() != end || !accepted(m, graphemes)) {
         return null;
       }
-    } catch (StackOverflowError deep) {
+    } catch (StackOverflowError _) {
       throw new Stopped();
     }
     return query.regex() ? expand(m, replacement) : replacement;
