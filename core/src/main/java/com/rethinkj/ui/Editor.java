@@ -1604,7 +1604,7 @@ final class Editor {
     t.showCaret(caretOn);
     el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
-    el.placeFolds();
+    el.placeLineEnds();
     el.placeBlocks();
   }
 

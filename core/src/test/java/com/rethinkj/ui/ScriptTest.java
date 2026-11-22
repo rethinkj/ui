@@ -171,10 +171,17 @@ class ScriptTest {
     String folded = Files.readString(out.resolve("folds-folded.tree.txt"));
     assertTrue(folded.contains("caret 16 (2:7)"), folded);
     assertTrue(folded.contains("text #fold-1 \"…\""), folded);
+    assertTrue(folded.contains("text #end-1 \"3 usages\""), folded);
+    assertTrue(
+        folded.indexOf("text #fold-1 ") < folded.indexOf("text #end-1 "),
+        "line-end element follows fold mark: " + folded);
+    assertTrue(folded.contains("text #end-6 \"indexed\""), folded);
     assertFalse(folded.contains("#line-2"), "hidden lines have no gutter cell: " + folded);
     assertTrue(folded.contains("#line-5"), "gutter keeps real line indices: " + folded);
     String unfolded = Files.readString(out.resolve("folds-unfolded.tree.txt"));
     assertFalse(unfolded.contains("#fold-1"), unfolded);
+    assertTrue(unfolded.contains("text #end-1 \"3 usages\""), unfolded);
+    assertTrue(unfolded.contains("text #end-6 \"indexed\""), unfolded);
     assertTrue(unfolded.contains("#line-2"), unfolded);
   }
 

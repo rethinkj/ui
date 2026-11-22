@@ -47,6 +47,7 @@ From a handler (such as a button that inserts a snippet), call `fieldState.repla
 | `blocks(blocks, block, reveal)` | Multi-line only: inserts elements before a line (`El.Block.insert(line)`) or replaces a whole-line range (`El.Block.replace(first, last)`), calling `reveal` when an edit, find, undo/redo, or selection enters a replaced range |
 | `onTextPointerMove(handler)` | Multi-line only: calls `(position, modifiers)` when the character under the pointer or the held modifier keys change (`-1` when outside text, over a block band, past a line's end, or on a scrollbar) |
 | `onTextHoverFor(seconds, handler)` | Multi-line only: calls `(position, modifiers)` once after the pointer rests on a character for `seconds` (suppressed after a press until moving) |
+| `lineEnds(line -> elements)` | Multi-line only: places elements after the end of lines in view, such as inline blame or a diagnostic's message |
 | `coveredTop(height)` | Multi-line only: tells the field that something (such as a find bar) covers its top `height`. The field can scroll that far above its first line (where the scrollbar thumb sits at the top), and `app.select` scrolls selections into view below it |
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, `onSelect`, and `textPositionAt(x, y)` to query the character offset at an element-local point). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
@@ -74,6 +75,18 @@ Pass `blocks(List<El.Block>, Function<El.Block, El>, Consumer<El.Block>)` on a m
 - Up and Down step over blocks, Left and Right jump across replaced ranges, and Home/End never land inside one. Selections stay in source text, tint covered blocks, and copy hidden lines without revealing them.
 - Presses on interactive elements inside a block reach them without moving the focus (nothing in a block takes the focus, text input, or drags); pressing elsewhere in the block band places the caret at the start of the following line. An edit touching a replaced range, or a caret or selection end placed inside one by find, undo/redo, `app.select`, or `FieldState.select`, calls `reveal`.
 - Gutter line numbers stay source line numbers: inserted blocks get no gutter cell, and each replaced range gets one cell at the block's top spanning `first` through `last`.
+
+## Elements after a line's end
+
+Pass `lineEnds(IntFunction<List<El>>)` on a multi-line field to place elements after the end of a line, such as inline blame or a diagnostic's message. The function gets a line index and returns that line's elements, or an empty list for none.
+
+```java snippet="line-ends"
+```
+
+- Elements are built only for shown lines whose last row is in view, never for folded or replaced lines, and laid out left to right after the line's end, after the fold mark if the line starts a fold.
+- In tree dumps an element is keyed `end-<line>` (and `end-<line>-<n>` for the `n`-th further element on the line) unless it sets a key.
+- A press on a line-end element runs its own press handler and does not move the caret or the focus; nothing in one takes the focus.
+- Line-end elements do not widen the field or its scroll range: one that reaches past the content box is cut off at its edge.
 
 ## Finding the word at the cursor
 

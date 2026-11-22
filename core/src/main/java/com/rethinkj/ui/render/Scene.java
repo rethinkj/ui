@@ -818,7 +818,7 @@ public final class Scene {
       for (El child : el.children()) {
         if (child.rangeBoxes() == null) {
           int childClip = inner;
-          if (fieldText != null && fieldText.isBlock(child)) {
+          if (fieldText != null && fieldText.clipsToContent(child)) {
             if (blockClip == -2) {
               blockClip = fieldClip(el, left, top, inner);
             }

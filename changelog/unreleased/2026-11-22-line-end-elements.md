@@ -1,0 +1,1 @@
+- `El.lineEnds` places elements after the end of a multi-line field's lines, such as inline blame or a diagnostic's message, after the fold mark on a folded line.

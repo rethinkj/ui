@@ -224,6 +224,7 @@ public final class Text implements Measure {
   private BlockMeasurer blockMeasurer;
   private List<Row> rows = List.of();
   private List<PlacedBlock> placedBlocks = List.of();
+  private List<El> lineEndElements = List.of(); // see #clipsToContent
   private int firstInView;
   private int lastInView;
 
@@ -241,10 +242,10 @@ public final class Text implements Measure {
   record Start(int line, int lastLine, float top) {}
 
   /**
-   * Where a folded line's last row ends, for its placeholder mark: {@code endX} and {@code top} in
-   * physical pixels from the top left of the content box, after the scroll.
+   * Where a shown line's last row ends, for its fold mark and line-end elements: {@code endX} and
+   * {@code top} in physical pixels from the top left of the content box, after the scroll.
    */
-  record FoldEnd(El.Fold fold, float endX, float top) {}
+  record LineEnd(int line, El.Fold fold, float endX, float top) {}
 
   /** A line block placed during {@link #layOut}, in physical pixels from the top of the text. */
   record PlacedBlock(El.Block block, int ordinal, El element, double top, double height) {}
@@ -455,14 +456,22 @@ public final class Text implements Measure {
     return blockSelection;
   }
 
-  /** Whether {@code child} is one of this field's placed line blocks ({@link El#blocks}). */
-  public boolean isBlock(El child) {
+  /**
+   * Whether {@code child} is one of this field's placed line blocks ({@link El#blocks}) or line-end
+   * elements ({@link El#lineEnds}), which draw clipped to the content box.
+   */
+  public boolean clipsToContent(El child) {
     for (PlacedBlock pb : placedBlocks) {
       if (pb.element == child) {
         return true;
       }
     }
-    return false;
+    return lineEndElements.contains(child);
+  }
+
+  /** For {@link El}: the line-end elements it placed, without the fold marks. */
+  void lineEndElements(List<El> elements) {
+    lineEndElements = elements;
   }
 
   /**
@@ -2661,22 +2670,23 @@ public final class Text implements Measure {
   }
 
   /**
-   * The visible folds whose first line's last row is in view, with where that row ends and its top,
-   * top to bottom.
+   * The shown lines whose last row is in view, with their visible fold (or null), where that row
+   * ends and its top, top to bottom. When {@code foldsOnly} is true, only lines that start a
+   * visible fold are returned.
    */
-  List<FoldEnd> foldEnds() {
+  List<LineEnd> lineEnds(boolean foldsOnly) {
     lines();
     Lines lines = shownLines();
-    if (!lines.hasFolds() || rows.isEmpty()) {
+    if (placeholderShown || rows.isEmpty() || (foldsOnly && !lines.hasFolds())) {
       return List.of();
     }
-    List<FoldEnd> ends = new ArrayList<>();
+    List<LineEnd> ends = new ArrayList<>();
     for (Row row : rows) {
       if (row.row + 1 != row.para.rowCount()) {
         continue;
       }
-      El.Fold fold = lines.foldAt(row.line);
-      if (fold == null) {
+      El.Fold fold = lines.hasFolds() ? lines.foldAt(row.line) : null;
+      if (foldsOnly && fold == null) {
         continue;
       }
       double top = row.top - viewY;
@@ -2688,7 +2698,7 @@ public final class Text implements Measure {
               ? para.totalWidth()
               : para.pen(para.text.length()) - para.pen(para.rowStart(row.row)))
           - viewX;
-      ends.add(new FoldEnd(fold, endX, (float) top));
+      ends.add(new LineEnd(row.line, fold, endX, (float) top));
     }
     return ends;
   }

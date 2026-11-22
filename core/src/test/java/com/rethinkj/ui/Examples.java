@@ -198,7 +198,12 @@ public final class Examples {
                 out.lineBackground(0x203B82F6);
               }
             })
-            .folds(state.folds, state.folds::remove));
+            .folds(state.folds, state.folds::remove)
+            .lineEnds(line -> switch (line) {
+              case 1 -> List.of(El.text("3 usages").fontSize(11).color(0xFF9CA3AF));
+              case 6 -> List.of(El.text("indexed").fontSize(11).color(0xFF9CA3AF));
+              default -> List.of();
+            }));
   }
 
   /** The state of the line blocks multi-line field example. */

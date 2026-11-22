@@ -431,8 +431,9 @@ public final class El {
     List<Fold> folds = List.of();
     Consumer<Fold> onUnfold;
     Function<Fold, El> foldMark;
-    List<El> foldMarks = List.of();
-    Object foldsShown; // what the fold marks were built for: their ends and scroll
+    IntFunction<List<El>> lineEnds;
+    List<El> lineEndElements = List.of();
+    Object lineEndsShown; // what the line-end elements were built for: their ends and scroll
     float foldsExtent; // farthest right edge of placed fold marks, in logical content coordinates
     List<Block> blocks = List.of();
     Function<Block, El> blockBuilder;
@@ -442,8 +443,7 @@ public final class El {
     Map<BlockKey, El> blockCache;
     float blockCacheWidth = Float.NaN;
     float blockCacheScale = Float.NaN;
-    boolean
-        partsBuilt; // gutter cells, fold marks or blocks were built since App last applied looks
+    boolean partsBuilt; // gutter cells, line ends or blocks were built since App applied looks
     boolean bracketFoldsPending; // bracketFolds asked before Lines was attached
     boolean readOnly;
     int maxLength = -1;
@@ -1990,15 +1990,21 @@ public final class El {
   private record BlockKey(Block block, int ordinal) {}
 
   /**
-   * For {@link App}: whether this field has parts (gutter cells, fold marks or blocks) built after
-   * layout.
+   * For {@link App}: whether this field has parts (gutter cells, line-end elements or blocks) built
+   * after layout.
    */
   boolean hasFieldParts() {
     return field != null
-        && (field.gutter != null || !field.folds.isEmpty() || !field.blocks.isEmpty());
+        && (field.gutter != null
+            || !field.folds.isEmpty()
+            || !field.blocks.isEmpty()
+            || field.lineEnds != null);
   }
 
-  /** For {@link App}: whether gutter cells or fold marks were built since it last asked. */
+  /**
+   * For {@link App}: whether gutter cells, line-end elements or blocks were built since it last
+   * asked.
+   */
   boolean takePartsBuilt() {
     if (field == null) {
       return false;
@@ -2134,6 +2140,45 @@ public final class El {
   /** For {@link Editor}: the reveal handler of this field, or null. */
   Consumer<Block> onReveal() {
     return field == null ? null : field.onReveal;
+  }
+
+  /**
+   * Places elements after the end of lines of a {@link #multiline} field, such as inline blame or
+   * a diagnostic's message. Core calls {@code elements} with the line index (from 0) of each shown
+   * line whose last row is in view, and only for those, each time it places them; returning null or
+   * an empty list places none for that line. While the field shows its placeholder it shows no
+   * line-end elements.
+   *
+   * <p>On each line, elements are laid out left to right after the line's end (and after any
+   * visible {@link #folds fold} mark on that line), vertically centered in the row with a gap
+   * between elements. In a {@code .tree.txt} an element without a key is keyed {@code end-<line>},
+   * and {@code end-<line>-<n>} for the {@code n}-th ({@code n >= 1}) further element on the same
+   * line.
+   *
+   * <p>A press on an element runs its own press handler without moving the caret or the focus, and
+   * nothing in a line-end element takes the focus. The elements do not widen the field: one that
+   * reaches past the content box is cut off at its edge.
+   *
+   * @param elements builds the elements for a shown line index, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El lineEnds(IntFunction<List<El>> elements) {
+    Text t = editableOnly("lineEnds");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "lineEnds is for multi-line fields: call it after multiline().");
+    }
+    field.lineEnds = Context.captured(elements);
+    return this;
+  }
+
+  /**
+   * For {@link App}: whether {@code child} is one of this field's placed line blocks or {@link
+   * #lineEnds line-end elements} (not fold marks), which clip to the content box and have no
+   * identity to focus.
+   */
+  boolean isFieldPart(El child) {
+    return field != null && text.clipsToContent(child);
   }
 
   /** For {@link App}: whether {@code child} is one of this field's placed line blocks. */
@@ -2293,80 +2338,130 @@ public final class El {
 
   /**
    * For {@link Editor}, once the rows of a multi-line field are laid out and scrolled: builds the
-   * placeholder marks for the visible folds in view, unless they are built for these folds and
-   * places, and places them after each fold's first line's last row.
+   * fold marks and {@link #lineEnds line-end elements} for the shown lines whose last row is in
+   * view, unless they are built for these ends and places, and places them left to right after each
+   * line's end.
    *
-   * @return whether the marks were built
+   * @return whether the line-end elements were built
    */
-  boolean placeFolds() {
-    if (field == null || field.folds.isEmpty() || !text.laidOut()) {
-      if (field != null && !field.foldMarks.isEmpty()) {
-        children.removeAll(field.foldMarks);
-        field.foldMarks = List.of();
+  boolean placeLineEnds() {
+    if (field == null || (field.folds.isEmpty() && field.lineEnds == null) || !text.laidOut()) {
+      if (field != null && !field.lineEndElements.isEmpty()) {
+        children.removeAll(field.lineEndElements);
+        field.lineEndElements = List.of();
+        text.lineEndElements(List.of());
         field.foldsExtent = 0;
-        field.foldsShown = null;
+        field.lineEndsShown = null;
       }
       return false;
     }
-    List<Text.FoldEnd> ends = text.foldEnds();
+    List<Text.LineEnd> ends = text.lineEnds(field.lineEnds == null);
     float scale = text.scale();
     List<Object> shown = List.of(ends, scrollX, scrollY, width, height);
-    if (shown.equals(field.foldsShown)) {
+    if (shown.equals(field.lineEndsShown)) {
       return false;
     }
-    field.foldsShown = shown;
+    field.lineEndsShown = shown;
     field.partsBuilt = true;
     float rowHeight = text.lineHeight() / scale;
     float contentLeft = border(Side.LEFT) + padding(Side.LEFT);
     float contentTop = border(Side.TOP) + padding(Side.TOP);
     float contentWidth = text.contentWidth() / scale;
     List<El> built = new ArrayList<>(ends.size());
+    List<El> clipped = new ArrayList<>(); // the app's elements, not the fold marks
     float maxRight = 0;
-    for (Text.FoldEnd end : ends) {
+    for (Text.LineEnd end : ends) {
+      float cursor = end.endX() / scale;
+      float rowTop = end.top() / scale;
       Fold fold = end.fold();
-      El mark = field.foldMark != null ? field.foldMark.apply(fold) : defaultFoldMark();
-      if (mark == null) {
-        throw new IllegalStateException("The fold mark function returned null for fold " + fold);
-      }
-      if (mark.key == null) {
-        mark.key("fold-" + fold.first());
-      }
-      if (field.onUnfold != null) {
-        PressAtHandler existing = mark.onPress();
-        Consumer<Fold> onUnfold = field.onUnfold;
-        mark.onPress((clicks, modifiers, x, y) -> {
-          if (existing != null) {
-            existing.press(clicks, modifiers, x, y);
-          }
-          onUnfold.accept(fold);
-        });
-        if (mark.cursor == null) {
-          mark.cursor(Cursor.POINTER);
+      if (fold != null) {
+        El mark = field.foldMark != null ? field.foldMark.apply(fold) : defaultFoldMark();
+        if (mark == null) {
+          throw new IllegalStateException("The fold mark function returned null for fold " + fold);
         }
-        mark.keepFocus(); // focusing the field would scroll to the caret before the press ends
+        if (mark.key == null) {
+          mark.key("fold-" + fold.first());
+        }
+        if (field.onUnfold != null) {
+          PressAtHandler existing = mark.onPress();
+          Consumer<Fold> onUnfold = field.onUnfold;
+          mark.onPress((clicks, modifiers, x, y) -> {
+            if (existing != null) {
+              existing.press(clicks, modifiers, x, y);
+            }
+            onUnfold.accept(fold);
+          });
+          if (mark.cursor == null) {
+            mark.cursor(Cursor.POINTER);
+          }
+          mark.keepFocus(); // focusing the field would scroll to the caret before the press ends
+        }
+        scaleText(mark, scale, text.systemFonts(), resolvedLineHeight);
+        Flex.layout(mark, Float.POSITIVE_INFINITY, rowHeight);
+        float markX = cursor + FOLD_GAP + mark.margin(Side.LEFT);
+        float markY = rowTop + (rowHeight - mark.height) / 2f;
+        float markRight = markX + mark.width + mark.margin(Side.RIGHT);
+        maxRight = Math.max(maxRight, markRight + (float) scrollX);
+        if (text.wraps()) {
+          markX = Math.clamp(markX, 0, Math.max(0, contentWidth - mark.width));
+          cursor = markX + mark.width + mark.margin(Side.RIGHT);
+        } else {
+          cursor = markRight;
+          if (markX < 0 || markX >= contentWidth) { // partly left, it would cover the gutter
+            mark = null;
+          }
+        }
+        if (mark != null) {
+          mark.place(
+              contentLeft + markX + (float) scrollX,
+              contentTop + markY + (float) scrollY,
+              mark.width,
+              mark.height);
+          built.add(mark);
+        }
       }
-      scaleText(mark, scale, text.systemFonts(), resolvedLineHeight);
-      Flex.layout(mark, Float.POSITIVE_INFINITY, rowHeight);
-      float markX = end.endX() / scale + FOLD_GAP + mark.margin(Side.LEFT);
-      float markY = end.top() / scale + (rowHeight - mark.height) / 2f;
-      maxRight = Math.max(maxRight, markX + mark.width + mark.margin(Side.RIGHT) + (float) scrollX);
-      if (text.wraps()) {
-        markX = Math.clamp(markX, 0, Math.max(0, contentWidth - mark.width));
-      } else if (markX < 0 || markX >= contentWidth) { // partly left, it would cover the gutter
+      if (field.lineEnds == null) {
         continue;
       }
-      mark.place(
-          contentLeft + markX + (float) scrollX,
-          contentTop + markY + (float) scrollY,
-          mark.width,
-          mark.height);
-      built.add(mark);
+      int line = end.line();
+      List<El> extras = field.lineEnds.apply(line);
+      if (extras == null || extras.isEmpty()) {
+        continue;
+      }
+      int ordinal = 0;
+      for (El item : extras) {
+        if (item == null) {
+          throw new IllegalStateException(
+              "The lineEnds function returned a null element for line " + line);
+        }
+        if (item.key == null) {
+          item.key(ordinal == 0 ? "end-" + line : "end-" + line + "-" + ordinal);
+        }
+        ordinal++;
+        item.keepFocus();
+        scaleText(item, scale, text.systemFonts(), resolvedLineHeight);
+        Flex.layout(item, Float.POSITIVE_INFINITY, rowHeight);
+        float itemX = cursor + FOLD_GAP + item.margin(Side.LEFT);
+        float itemY = rowTop + (rowHeight - item.height) / 2f;
+        cursor = itemX + item.width + item.margin(Side.RIGHT);
+        if (itemX >= contentWidth || itemX + item.width <= 0) {
+          continue; // out of view; one partly in view is cut off at the content box
+        }
+        item.place(
+            contentLeft + itemX + (float) scrollX,
+            contentTop + itemY + (float) scrollY,
+            item.width,
+            item.height);
+        built.add(item);
+        clipped.add(item);
+      }
     }
-    if (!field.foldMarks.isEmpty()) {
-      children.removeAll(field.foldMarks);
+    if (!field.lineEndElements.isEmpty()) {
+      children.removeAll(field.lineEndElements);
     }
-    field.foldMarks = List.copyOf(built);
-    children.addAll(field.foldMarks);
+    field.lineEndElements = List.copyOf(built);
+    children.addAll(field.lineEndElements);
+    text.lineEndElements(List.copyOf(clipped));
     field.foldsExtent = maxRight;
     measureScroll();
     scrollTo(scrollX, scrollY);

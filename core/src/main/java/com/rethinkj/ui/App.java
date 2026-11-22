@@ -843,8 +843,8 @@ public final class App<S> {
    */
   private static boolean keepsFocus(List<El> hit) {
     for (int i = 0; i + 1 < hit.size(); i++) {
-      if (hit.get(i).isFieldBlock(hit.get(i + 1))) {
-        return true; // built after layout, nothing in a line block has an identity to focus
+      if (hit.get(i).isFieldPart(hit.get(i + 1))) {
+        return true; // built after layout, nothing in a field part has an identity to focus
       }
     }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
@@ -2408,7 +2408,7 @@ public final class App<S> {
     }
     if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
       for (El child : el.children()) {
-        if (!el.isFieldBlock(child)) { // built after layout, a block has no identity to focus
+        if (!el.isFieldPart(child)) { // built after layout, a field part has no identity to focus
           focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, shown, found);
         }
       }
@@ -4740,7 +4740,7 @@ public final class App<S> {
       // Later children are drawn on top, so they are asked first.
       for (int i = children.size() - 1; i >= 0 && next == null; i--) {
         El child = children.get(i);
-        if (el.isFieldBlock(child) && !inFieldContent(el, left, top, x, y)) {
+        if (el.isFieldPart(child) && !inFieldContent(el, left, top, x, y)) {
           continue;
         }
         if (contains(child, left, top, x, y)) {
@@ -4774,11 +4774,14 @@ public final class App<S> {
         }
         return el.takesEdits() ? i : -1;
       }
+      if (el.isFieldPart(hit.get(i + 1))) {
+        return -1; // nothing in a line-end element takes text input
+      }
     }
     return !hit.isEmpty() && hit.getLast().takesEdits() ? hit.size() - 1 : -1;
   }
 
-  /** Whether {@code (x, y)} lies inside a multi-line field's content box (where blocks clip). */
+  /** Whether {@code (x, y)} lies inside a multi-line field's content box (where its blocks and line-end elements clip). */
   private static boolean inFieldContent(El field, float left, float top, float x, float y) {
     float l = left + field.border(Side.LEFT) + field.padding(Side.LEFT);
     float t = top + field.border(Side.TOP) + field.padding(Side.TOP);

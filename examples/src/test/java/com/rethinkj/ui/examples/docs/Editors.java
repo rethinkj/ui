@@ -28,6 +28,7 @@ import com.rethinkj.ui.sql.Sql;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /** The examples of the pages about the code editor, find, completion, Markdown and images. */
 final class Editors {
@@ -236,6 +237,18 @@ final class Editors {
         .blocks(lineBlocks, this::renderBlock, this::revealBlock);
   }
   // docs:end line-blocks
+  // docs:start line-ends
+  final Map<Integer, String> problems = Map.of(2, "missing return value");
+
+  List<El> problemAt(int line) {
+    String problem = problems.get(line);
+    return problem == null ? List.of() : List.of(El.text(problem).fontSize(11));
+  }
+
+  El annotatedField() {
+    return El.text(source).editable(this::updateSource).multiline().lineEnds(this::problemAt);
+  }
+  // docs:end line-ends
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();

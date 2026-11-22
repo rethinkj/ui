@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.Font;
@@ -265,5 +266,127 @@ class FoldTest {
     assertEquals(List.of(fold), state.unfolded, "clicking fold mark asks to unfold");
     assertTrue(state.folds.isEmpty());
     assertFalse(app.tree().dump().contains("#fold-0"));
+  }
+
+  @Test
+  void lineEndsPlaceAfterFoldCaptureContextClickWrapScrollAndFollowBlocks() {
+    assertThrows(IllegalStateException.class, () -> El.text("plain").lineEnds(line -> List.of()));
+    assertThrows(
+        IllegalStateException.class,
+        () -> El.text("one").editable(v -> {}).lineEnds(line -> List.of()));
+
+    Context<String> tag = new Context<>("default");
+    State state = new State(
+        "line0\nfold {\n  hidden1\n  hidden2\n}\nafter\n"
+            + "line6\nline7\nline8\nline9\nline10\nline11",
+        new El.Fold(1, 4));
+    List<Integer> asked = new ArrayList<>();
+    AtomicInteger clicks = new AtomicInteger();
+    El.Block insert = El.Block.insert(5);
+    App<State> app = new App<>(
+        state,
+        s -> tag.with(
+            "ctx",
+            () -> El.col()
+                .wFull()
+                .hFull()
+                .padding(10)
+                .child(El.text(s.value)
+                    .editable(v -> s.value = v)
+                    .multiline()
+                    .key("f")
+                    .font(Font.mono())
+                    .fontSize(14)
+                    .w(200)
+                    .lines(5)
+                    .padding(4)
+                    .folds(s.folds, s::unfold)
+                    .blocks(List.of(insert), b -> El.el().h(20), b -> {})
+                    .lineEnds(line -> {
+                      asked.add(line);
+                      return switch (line) {
+                        case 1 ->
+                          List.of(
+                              El.text(tag.get() + ":first")
+                                  .fontSize(12)
+                                  .onPress(clicks::incrementAndGet)
+                                  .focusable(),
+                              El.text("wide-line-end-badge-for-scroll-extent").fontSize(12));
+                        case 5 ->
+                          List.of(El.text("after-block").fontSize(12).editable(value -> {}));
+                        default -> null;
+                      };
+                    }))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(320, 240, 1);
+    app.frame();
+    focus(app);
+
+    // Hidden lines and lines scrolled out of view are not asked.
+    assertFalse(asked.contains(2), "hidden folded line not asked: " + asked);
+    assertFalse(asked.contains(11), "off-screen line not asked: " + asked);
+
+    El fieldEl = field(app);
+    El fold1 = fieldEl.children().stream()
+        .filter(c -> "fold-1".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    El end1 = fieldEl.children().stream()
+        .filter(c -> "end-1".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    El end1Second = fieldEl.children().stream()
+        .filter(c -> "end-1-1".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    El end5 = fieldEl.children().stream()
+        .filter(c -> "end-5".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    El block5 = fieldEl.children().stream()
+        .filter(c -> "block-5".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+
+    assertEquals("ctx:first", end1.text().string());
+    assertTrue(end1.x() > fold1.x() + fold1.width(), "end-1 placed after fold-1");
+    assertTrue(end1Second.x() > end1.x() + end1.width(), "end-1-1 placed after end-1");
+    assertTrue(end5.y() >= block5.y() + block5.height(), "end-5 sits below the inserted block");
+    assertFalse(fieldEl.canScroll(true, 1), "line-end elements do not widen the field");
+
+    // Click on end-1 runs its own handler without unfolding or moving the caret.
+    int caretBefore = fieldEl.editor().caret();
+    float clickX = 10 + end1.x() + end1.width() / 2;
+    float clickY = 10 + end1.y() + end1.height() / 2;
+    app.pointerDown(clickX, clickY);
+    app.pointerUp(clickX, clickY);
+    app.frame();
+    assertEquals(1, clicks.get(), "line-end press handler ran");
+    assertEquals(List.of(), state.unfolded, "clicking line-end did not unfold");
+    assertEquals(caretBefore, field(app).editor().caret(), "clicking line-end kept caret");
+    key(app, "Tab"); // a pressable line-end element is not in the focus order
+    app.frame();
+    float editableX = 10 + end5.x() + end5.width() / 2;
+    float editableY = 10 + end5.y() + end5.height() / 2;
+    app.pointerDown(editableX, editableY); // nothing in a line-end element takes text input
+    app.pointerUp(editableX, editableY);
+    app.frame();
+    assertEquals(caretBefore, field(app).editor().caret(), "clicking line-end kept caret");
+
+    // Wrapping field: the fold mark clamps as before; a line-end element is cut off at the edge.
+    State wrapped = new State("short\n123456789012345678901\nhid\nend", new El.Fold(1, 2));
+    App<State> wrapApp = start(
+        wrapped,
+        f -> f.wrapText().lineEnds(line -> switch (line) {
+          case 0 ->
+            List.of(
+                El.text("fits").fontSize(12),
+                El.text("too-wide-to-fit-in-200px-wrapping-field").fontSize(12));
+          default -> List.of();
+        }));
+    String wrapDump = wrapApp.tree().dump();
+    assertTrue(wrapDump.contains("#end-0 \"fits\""), wrapDump);
+    assertTrue(wrapDump.contains("#end-0-1"), "an element partly in view is cut off: " + wrapDump);
+    assertTrue(wrapDump.contains("#fold-1"), "fold mark still clamps and shows: " + wrapDump);
   }
 }
