@@ -100,25 +100,33 @@ el 0,0 1000x600
                   el role=separator 277,114 714x1
                   el 277,115 714x98
                     text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders\nWHERE customer_id = 7\nLIMIT 20;" 289,123 690x82 lines 1-4/4 focused caret 63 (4:9)
-                      el #rail 290,124 50x80
-                      el #gutter 290,128 49x64
-                        el #line-0 290,128 49x16
-                          el #marker role=button label="Run statement" 296,130 12x12
-                            text label="play" "\u{E98F}" 296,130 12x12
-                          text "1" 312,128 7x16
-                          el 323,136 12x0
-                        el #line-1 290,144 49x16
+                      el #rail 290,124 72x80
+                      el #gutter 290,128 71x64
+                        el #line-0 290,128 71x16
+                          el 296,136 12x0
+                          el #marker-1 role=button label="Run statement" 312,130 12x12
+                            text label="play" "\u{E98F}" 312,130 12x12
+                          text "1" 328,128 7x16
+                          el 339,136 2x0
+                          el 345,136 12x0
+                        el #line-1 290,144 71x16
                           el 296,152 12x0
-                          text "2" 312,144 7x16
-                          el 323,152 12x0
-                        el #line-2 290,160 49x16
+                          el 312,152 12x0
+                          text "2" 328,144 7x16
+                          el 339,152 2x0
+                          el 345,152 12x0
+                        el #line-2 290,160 71x16
                           el 296,168 12x0
-                          text "3" 312,160 7x16
-                          el 323,168 12x0
-                        el #line-3 290,176 49x16
+                          el 312,168 12x0
+                          text "3" 328,160 7x16
+                          el 339,168 2x0
+                          el 345,168 12x0
+                        el #line-3 290,176 71x16
                           el 296,184 12x0
-                          text "4" 312,176 7x16
-                          el 323,184 12x0
+                          el 312,184 12x0
+                          text "4" 328,176 7x16
+                          el 339,184 2x0
+                          el 345,184 12x0
                   el role=separator 277,213 714x1
                   el #grid-localhost/shop/public/orders role=grid label="orders" 277,214 714x319 thumb-x 279,525 347.22x6
                     el #content 277,214 1460x319

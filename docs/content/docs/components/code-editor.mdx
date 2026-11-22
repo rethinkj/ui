@@ -133,10 +133,10 @@ By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/
 
 ## Gutter, markers and diagnostics
 
-The left gutter displays a marker column, line numbers, and fold chevrons. You can attach:
+The left gutter displays lanes in a fixed order — icons, line numbers, a version control change bar, and fold or doc-comment toggles. You can attach:
 - **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips, at positions in the current string.
-- **Markup layers (`markup(layer, text, list)`):** Named layers of `CodeEditor.Mark` items — `Diagnostic`, `Marker`, or `Highlight` (a background in `code().occurrence()`, such as usages of a symbol) — computed for `text`. Each provider uses its own layer name (such as `"analysis"`, `"references"`, or `"app"`), and all layers show together. Marks move across edits elsewhere in the text without growing at their ends; a mark whose own text is edited is dropped, and undoing back to `text` restores the originals. The editor finds the edits by comparing the old and new text, so a very large bulk edit, beyond its limits, can also drop marks between its changes. Clear a layer with `noMarkup(layer)`.
+- **Markup layers (`markup(layer, text, list)`):** Named layers of `CodeEditor.Mark` items — `Diagnostic`, `Marker`, `Highlight` (a background in `code().occurrence()`, such as usages of a symbol), or `Change` (version control change bars) — computed for `text`. Each provider uses its own layer name (such as `"analysis"`, `"vcs"`, `"references"`, or `"app"`), and all layers show together. Marks move across edits elsewhere in the text without growing at their ends; a mark whose own text is edited is dropped, and undoing back to `text` restores the originals. The editor finds the edits by comparing the old and new text, so a very large bulk edit, beyond its limits, can also drop marks between its changes. Clear a layer with `noMarkup(layer)`.
 - **Diagnostics (`diagnostics(text, list)`):** Shorthand for `markup("diagnostics", text, list)` (and `noDiagnostics()` for `noMarkup("diagnostics")`). Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics move with edits elsewhere, are dropped when their own characters are edited, and come back when undoing back to `text`.
 
 When you pass the app, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** moves to the previous one, wrapping around at both ends. The diagnostic message appears above the cursor (styled like the marker's tooltip) while the editor has focus. It stays visible until the cursor leaves the diagnostic or you press **Escape**. **Escape** closes an open completion list or find bar first. If there are no diagnostics, these keys do nothing.
@@ -151,9 +151,23 @@ All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are
 ```java snippet="code-editor-position"
 ```
 
+## Gutter lanes
+
+Each line's gutter cell has four lanes, in this order:
+
+1. **Icons:** A reserved first slot for a diagnostic icon or the intention bulb on the cursor's line, followed by one slot per app `Marker` on that line (markup layers in order, then `markers(...)`). Several markers on one line show side by side. The lane is as wide as the most markers on any one line, so it keeps its width while you type.
+2. **Line numbers:** Right-aligned line numbers, primary text on the cursor's line and muted on all other lines.
+3. **Change bar:** A lane that always keeps its width, so the code does not move when the first change appears, for `CodeEditor.Change(from, to, kind)` marks in a markup layer such as `"vcs"`. `ADDED` draws a full-height bar in `status().success()`, `MODIFIED` in `accent().edge()`, and `DELETED` (`from == to`) draws a short `status().danger()` bar at the top of the line where lines were removed before it. `Change` marks also appear as ticks along the vertical scrollbar and move with edits like other markup ranges.
+4. **Toggles:** The doc-comment render/edit toggle on standalone doc comments, or the fold chevron on foldable bracket ranges.
+
+<Shot src="examples/docs/code-editor-gutter/view-{theme}" alt="SQL in the code editor with an error icon, a run marker and a breakpoint marker side by side on line 1, line numbers, and blue modified, green added and red deleted change bars in the gutter" />
+
+```java snippet="code-editor-gutter"
+```
+
 ## Scrollbar marks
 
-While the code is taller than the view, its vertical scrollbar marks where the diagnostics are, in the color of their squiggles, and, while the [find bar](/docs/components/find) is open, its matches. A press on a mark scrolls its line into the middle of the view, without moving the caret or the focus.
+While the code is taller than the view, its vertical scrollbar marks where the diagnostics and `Change` marks are, in their gutter colors, and, while the [find bar](/docs/components/find) is open, its matches. A press on a mark scrolls its line into the middle of the view, without moving the caret or the focus.
 
 <Shot src="examples/docs/code-editor-scrollbar-marks/view-{theme}" alt="An SQL editor with the find bar open on customer_id, and marks along its scrollbar for the five matches, a warning and an error further down" />
 
@@ -277,7 +291,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `replaceSelection(text)` | Replaces the selection with `text` right after the handler, as one undo step |
 | `replaceSelection(text, caret)` | Same as above, placing the cursor at `caret` inside `text` (from 0 to its length) |
 | `replace(from, to, text, caret)` | Replaces characters from `from` to `to` with `text` in the same way, placing the cursor at `caret` inside `text` |
-| `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`) for `text`, moving them across edits |
+| `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`, `Change`) for `text`, moving them across edits |
 | `diagnostics(text, list)`, `noDiagnostics()` | Shorthand for `markup("diagnostics", text, list)` and `noMarkup("diagnostics")` |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string |
 | `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines |
@@ -319,7 +333,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), `#fold-line-<index>`, and `#doc-line-<index>` elements, `#fold-<first>` for each visible folded pill, `#doc-<first>` for each visible rendered doc comment, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`). When find usages is open, it appears as an overlay `#usages` with `role=menu` and `label="Usages"` (localized via `Texts`):
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), `#marker-<n>` for app markers, `#change` for VCS change bars, `#fold-line-<index>`, and `#doc-line-<index>` elements, `#fold-<first>` for each visible folded pill, `#doc-<first>` for each visible rendered doc comment, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`). When find usages is open, it appears as an overlay `#usages` with `role=menu` and `label="Usages"` (localized via `Texts`):
 
-```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
+```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="17"
 ```

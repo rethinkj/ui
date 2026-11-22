@@ -1,57 +1,69 @@
 el 0,0 520x210
   text #report role=textbox label="Report" "WITH paid_orders AS (\n  SELECT id, customer_id, total, created_at\n  FROM orders\n  WHERE status = 'pa" … "egacy_flag = true\nORDER BY revenue DESC;" length 581 12,12 496x178 lines 1-9/29 underline 35-46 scroll 0,-29 thumb-y 499,15 6x59.91
-    el #rail 13,13 57x176
-    el #gutter 13,17 56x160
-      el #line-0 13,46 56x16
+    el #rail 13,13 63x176
+    el #gutter 13,17 62x160
+      el #line-0 13,46 62x16
         el 19,54 12x0
         text "1" 35,46 14x16
-        el #fold-line-0 role=button label="Fold" 53,48 12x12
-          text label="chevron_down" "\u{F2A1}" 53,48 12x12
-      el #line-1 13,62 56x16
+        el 53,54 2x0
+        el #fold-line-0 role=button label="Fold" 59,48 12x12
+          text label="chevron_down" "\u{F2A1}" 59,48 12x12
+      el #line-1 13,62 62x16
         el 19,70 12x0
         text "2" 35,62 14x16
-        el 53,70 12x0
-      el #line-2 13,78 56x16
+        el 53,70 2x0
+        el 59,70 12x0
+      el #line-2 13,78 62x16
         el 19,86 12x0
         text "3" 35,78 14x16
-        el 53,86 12x0
-      el #line-3 13,94 56x16
+        el 53,86 2x0
+        el 59,86 12x0
+      el #line-3 13,94 62x16
         el 19,102 12x0
         text "4" 35,94 14x16
-        el 53,102 12x0
-      el #line-4 13,110 56x16
+        el 53,102 2x0
+        el 59,102 12x0
+      el #line-4 13,110 62x16
         el 19,118 12x0
         text "5" 35,110 14x16
-        el 53,118 12x0
-      el #line-5 13,126 56x16
+        el 53,118 2x0
+        el 59,118 12x0
+      el #line-5 13,126 62x16
         el 19,134 12x0
         text "6" 35,126 14x16
-        el #fold-line-5 role=button label="Fold" 53,128 12x12
-          text label="chevron_down" "\u{F2A1}" 53,128 12x12
-      el #line-6 13,142 56x16
+        el 53,134 2x0
+        el #fold-line-5 role=button label="Fold" 59,128 12x12
+          text label="chevron_down" "\u{F2A1}" 59,128 12x12
+      el #line-6 13,142 62x16
         el 19,150 12x0
         text "7" 35,142 14x16
-        el 53,150 12x0
-      el #line-7 13,158 56x16
+        el 53,150 2x0
+        el 59,150 12x0
+      el #line-7 13,158 62x16
         el 19,166 12x0
         text "8" 35,158 14x16
-        el 53,166 12x0
-      el #line-8 13,174 56x16
+        el 53,166 2x0
+        el 59,166 12x0
+      el #line-8 13,174 62x16
         el 19,182 12x0
         text "9" 35,174 14x16
-        el 53,182 12x0
-      el #line-9 13,190 56x16
+        el 53,182 2x0
+        el 59,182 12x0
+      el #line-9 13,190 62x16
         el 19,198 12x0
         text "10" 35,190 14x16
-        el 53,198 12x0
-      el #line-10 13,206 56x16
+        el 53,198 2x0
+        el 59,198 12x0
+      el #line-10 13,206 62x16
         el 19,214 12x0
         text "11" 35,206 14x16
-        el 53,214 12x0
-      el #line-11 13,222 56x16
+        el 53,214 2x0
+        el 59,214 12x0
+      el #line-11 13,222 62x16
         el 19,230 12x0
         text "12" 35,222 14x16
-        el 53,230 12x0
+        el 53,230 2x0
+        el 59,230 12x0
 overlay top end gap -32 on #report role=textbox label="Report" 12,12 496x178
   el #find role=search label="Find" 106,14 402x30
     el 106,14 392x30

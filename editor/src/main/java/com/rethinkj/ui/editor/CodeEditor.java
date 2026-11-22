@@ -27,6 +27,7 @@ import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -157,9 +158,10 @@ public final class CodeEditor {
 
   /**
    * Something shown on the code of a {@link State#markup markup layer}: a {@link Diagnostic}, a
-   * gutter {@link Marker}, or a {@link Highlight} behind a range of characters.
+   * gutter {@link Marker}, a {@link Highlight} behind a range of characters, or a version control
+   * {@link Change} bar.
    */
-  public sealed interface Mark permits Diagnostic, Marker, Highlight {}
+  public sealed interface Mark permits Diagnostic, Marker, Highlight, Change {}
 
   /**
    * A quick fix for a {@link Diagnostic}: replaces characters {@code from} to {@code to} by {@code
@@ -225,6 +227,36 @@ public final class CodeEditor {
    * code().occurrence()} color, such as the usages of a symbol.
    */
   public record Highlight(int from, int to) implements Mark {}
+
+  /**
+   * Lines of characters {@code from} to {@code to} of the string that changed against the version
+   * control base: shown as a colored bar in the gutter's change lane and as a tick along the
+   * vertical scrollbar. For {@link Kind#DELETED}, {@code from == to} marks the point where lines
+   * were removed before the line of {@code from}.
+   *
+   * @param from start offset in the markup layer's text, 0 or more
+   * @param to end offset in the markup layer's text, at least {@code from}
+   * @param kind what changed against the base
+   */
+  public record Change(int from, int to, Kind kind) implements Mark {
+    /** What changed against the version control base. */
+    public enum Kind {
+      /** Lines added since the base. */
+      ADDED,
+      /** Lines modified since the base. */
+      MODIFIED,
+      /** Lines removed before the line of {@code from}. */
+      DELETED
+    }
+
+    public Change {
+      Objects.requireNonNull(kind, "kind");
+      if (from < 0 || to < from) {
+        throw new IllegalArgumentException(
+            "from must be 0 or more and to at least from, were " + from + " and " + to);
+      }
+    }
+  }
 
   /**
    * A code vision hint shown in a muted row above 0-based {@code line}, such as usage counts or
@@ -573,9 +605,9 @@ public final class CodeEditor {
 
     /**
      * Shows {@code markers} in the gutter, each at its position's line in the current string, in
-     * place of those before; where several are on one line, the first, and a diagnostic's marker
-     * before them all. These positions are not moved with edits; for markers that move with edits,
-     * pass them to {@link #markup}.
+     * place of those before: each gets its own slot in the icon lane after the diagnostic slot and
+     * any {@link #markup} markers on that line. These positions are not moved with edits; for
+     * markers that move with edits, pass them to {@link #markup}.
      */
     public State markers(List<Marker> markers) {
       this.markers = List.copyOf(markers);
@@ -585,10 +617,11 @@ public final class CodeEditor {
     /**
      * Sets the marks of layer {@code layer} (one layer per provider, such as {@code "analysis"},
      * {@code "vcs"}, {@code "references"} or {@code "app"}), in place of that layer's marks before,
-     * computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles and
-     * gutter markers and take part in F8/Shift+F8, {@link Marker}s show in the gutter beside
-     * {@link #markers} (first marker on a line, a diagnostic's marker first), and {@link Highlight}s
-     * draw a background in {@code code().occurrence()}.
+     * computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles,
+     * show in the gutter's first icon slot, mark the scrollbar and take part in F8/Shift+F8,
+     * {@link Marker}s show side by side in the gutter's icon lane (layers in order, then {@link
+     * #markers}), {@link Highlight}s draw a background in {@code code().occurrence()}, and {@link
+     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar.
      *
      * <p>{@code text} is the revision the marks were computed for and may be older than the
      * editor's current value. The marks move with each change of the value, each edit of a bulk
@@ -1010,7 +1043,8 @@ public final class CodeEditor {
         List<Diagnostic> currentDiagnostics,
         List<Marker> markers,
         List<Highlight> highlights,
-        List<Highlight> usageHighlights) {}
+        List<Highlight> usageHighlights,
+        List<Change> changes) {}
 
     private static final class Layer {
       final String text;
@@ -1070,6 +1104,10 @@ public final class CodeEditor {
           int from = edits.mapRange(h.from(), h.to());
           yield from < 0 ? null : new Highlight(from, from + Math.max(0, h.to() - h.from()));
         }
+        case Change c -> {
+          int from = edits.mapRange(c.from(), c.to());
+          yield from < 0 ? null : new Change(from, from + Math.max(0, c.to() - c.from()), c.kind());
+        }
       };
     }
 
@@ -1085,13 +1123,14 @@ public final class CodeEditor {
         problemOf = null;
       }
       if (layers.isEmpty() && problem == null) {
-        return new Marks(List.of(), List.of(), markers, List.of(), List.of());
+        return new Marks(List.of(), List.of(), markers, List.of(), List.of(), List.of());
       }
       List<Diagnostic> diagnostics = new ArrayList<>();
       List<Diagnostic> current = new ArrayList<>();
-      List<Marker> allMarkers = markers.isEmpty() ? new ArrayList<>() : new ArrayList<>(markers);
+      List<Marker> allMarkers = new ArrayList<>();
       List<Highlight> highlights = new ArrayList<>();
       List<Highlight> usageHighlights = new ArrayList<>();
+      List<Change> changes = new ArrayList<>();
       for (Map.Entry<String, Layer> entry : layers.entrySet()) {
         boolean isUsages = USAGES_LAYER.equals(entry.getKey());
         Layer layer = entry.getValue();
@@ -1111,14 +1150,16 @@ public final class CodeEditor {
                 usageHighlights.add(h);
               }
             }
+            case Change c -> changes.add(c);
           }
         }
       }
+      allMarkers.addAll(markers);
       if (problem != null) {
         String message = Texts.CURRENT.get().formatProblem(problem.kind());
         diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
-      return new Marks(diagnostics, current, allMarkers, highlights, usageHighlights);
+      return new Marks(diagnostics, current, allMarkers, highlights, usageHighlights, changes);
     }
   }
 
@@ -1208,6 +1249,8 @@ public final class CodeEditor {
     List<Marker> markers = marks.markers();
     List<Highlight> highlights = marks.highlights();
     List<Highlight> usageHighlights = marks.usageHighlights();
+    List<Change> changes = marks.changes();
+    int markerSlots = maxMarkersPerLine(state.builtText, markers);
     boolean editable = app != null && editor.onEdit() != null && !editor.isReadOnly();
     List<Fix> fixes = editable ? fixesAt(currentDiagnostics, state.caret) : List.of();
     boolean fixError = !fixes.isEmpty() && fixError(currentDiagnostics, state.caret);
@@ -1267,6 +1310,8 @@ public final class CodeEditor {
                 editor,
                 diagnostics,
                 markers,
+                markerSlots,
+                changes,
                 !fixes.isEmpty() && editor.onEdit() != null && !editor.isReadOnly(),
                 fixError,
                 line),
@@ -1274,8 +1319,12 @@ public final class CodeEditor {
     if (state.navTarget != null) {
       editor.cursor(Cursor.POINTER);
     }
-    if (!usageHighlights.isEmpty() || !diagnostics.isEmpty()) {
-      List<Scrollbars.Mark> ticks = new ArrayList<>(usageHighlights.size() + diagnostics.size());
+    if (!usageHighlights.isEmpty() || !diagnostics.isEmpty() || !changes.isEmpty()) {
+      List<Scrollbars.Mark> ticks =
+          new ArrayList<>(usageHighlights.size() + diagnostics.size() + changes.size());
+      for (Change c : changes) {
+        ticks.add(new Scrollbars.Mark(c.from(), c.to(), color(theme, c.kind())));
+      }
       for (Highlight h : usageHighlights) {
         int from = Math.max(0, h.from());
         ticks.add(
@@ -1478,9 +1527,60 @@ public final class CodeEditor {
     return severity == Severity.ERROR ? theme.status().danger() : theme.status().warning();
   }
 
+  private static int color(Theme theme, Change.Kind kind) {
+    return switch (kind) {
+      case ADDED -> theme.status().success();
+      case MODIFIED -> theme.accent().edge();
+      case DELETED -> theme.status().danger();
+    };
+  }
+
+  /** The most app markers on any single line of {@code text}, or 0 when there are none. */
+  private static int maxMarkersPerLine(String text, List<Marker> markers) {
+    if (markers.isEmpty()) {
+      return 0;
+    }
+    int len = text.length();
+    int[] positions = new int[markers.size()];
+    int n = 0;
+    for (Marker m : markers) {
+      if (m.at >= 0 && m.at <= len) {
+        positions[n++] = m.at;
+      }
+    }
+    if (n <= 1) {
+      return n;
+    }
+    Arrays.sort(positions, 0, n);
+    int max = 0;
+    int currentLine = -1;
+    int count = 0;
+    int cursor = 0;
+    int line = 0;
+    for (int i = 0; i < n; i++) {
+      int pos = positions[i];
+      while (cursor < pos) {
+        if (text.charAt(cursor++) == '\n') {
+          line++;
+        }
+      }
+      if (line != currentLine) {
+        currentLine = line;
+        count = 1;
+      } else {
+        count++;
+      }
+      if (count > max) {
+        max = count;
+      }
+    }
+    return max;
+  }
+
   /**
    * The gutter's cell of a line: a bar in the accent's edge and a tint where the line is in the
-   * marked block, the column of markers, the line's number, and the fold chevron column.
+   * marked block, then the lanes in fixed order — icons (diagnostic/bulb slot plus app marker
+   * slots), the line's number, the VCS change bar, and the fold/doc toggle.
    */
   private static El cell(
       App<?> app,
@@ -1489,6 +1589,8 @@ public final class CodeEditor {
       El editor,
       List<Diagnostic> diagnostics,
       List<Marker> markers,
+      int markerSlots,
+      List<Change> changes,
       boolean hasFixes,
       boolean fixError,
       El.Gutter.Line line) {
@@ -1502,17 +1604,61 @@ public final class CodeEditor {
     if (block) {
       cell.fill(theme.code().block()).border(0, 0, 0, bar, theme.accent().edge());
     }
-    return cell.children(
-        marker(theme, markers, diagnostics, hasFixes, fixError, state.quickFixes::open, line)
-            .w(mono.size())
-            .shrink(0),
-        El.text(String.valueOf(line.index() + 1))
-            .font(mono.font().get())
-            .fontSize(mono.size())
-            .color(line.caret() ? theme.text().primary() : theme.text().muted())
-            .textAlign(Style.Align.END)
-            .grow(1),
-        gutterControl(app, theme, state, editor, cell, line));
+    cell.child(marker(theme, diagnostics, hasFixes, fixError, state.quickFixes::open, line)
+        .w(mono.size())
+        .shrink(0));
+    if (markerSlots > 0) {
+      int placed = 0;
+      for (Marker m : markers) {
+        if (m.at >= line.start() && m.at <= line.end()) {
+          placed++;
+          cell.child(appMarker(theme, m, placed).w(mono.size()).shrink(0));
+          if (placed == markerSlots) {
+            break;
+          }
+        }
+      }
+      for (int i = placed; i < markerSlots; i++) {
+        cell.child(El.el().w(mono.size()).shrink(0));
+      }
+    }
+    cell.child(El.text(String.valueOf(line.index() + 1))
+        .font(mono.font().get())
+        .fontSize(mono.size())
+        .color(line.caret() ? theme.text().primary() : theme.text().muted())
+        .textAlign(Style.Align.END)
+        .grow(1));
+    cell.child(changeBar(theme, changes, line));
+    cell.child(gutterControl(app, theme, state, editor, cell, line));
+    return cell;
+  }
+
+  /**
+   * The VCS change bar of a line: full cell height for added or modified lines, a short bar at the
+   * top of the cell for lines deleted before it, or an empty fixed-width placeholder.
+   */
+  private static El changeBar(Theme theme, List<Change> changes, El.Gutter.Line line) {
+    float bar = theme.size().indicator();
+    Change.Kind kind = null;
+    for (Change c : changes) {
+      boolean hits = c.kind == Change.Kind.DELETED || c.from == c.to
+          ? c.from >= line.start() && c.from <= line.end()
+          : c.to > line.start() && c.from <= line.end();
+      if (hits) {
+        kind = c.kind;
+        if (kind != Change.Kind.DELETED) {
+          break;
+        }
+      }
+    }
+    if (kind == null) {
+      return El.el().w(bar).shrink(0);
+    }
+    El mark = El.el().key("change").w(bar).shrink(0).fill(color(theme, kind));
+    if (kind == Change.Kind.DELETED) {
+      return mark.h(theme.size().dot()).alignSelf(Style.Align.START);
+    }
+    return mark.alignSelf(Style.Align.STRETCH);
   }
 
   /**
@@ -1616,13 +1762,12 @@ public final class CodeEditor {
   }
 
   /**
-   * The marker of a line: the intention bulb on the caret's line where there are quick fixes at
-   * the caret, else of the diagnostics that start on it, else of the app's first marker on it; an
-   * empty place for one where there is none, so that the numbers stay where they are.
+   * The first icon slot of a line: the intention bulb on the caret's line where there are quick
+   * fixes at the caret, else of the diagnostics that start on it; an empty place for one where
+   * there is none, so that the lane stays a fixed width while typing.
    */
   private static El marker(
       Theme theme,
-      List<Marker> markers,
       List<Diagnostic> diagnostics,
       boolean hasFixes,
       boolean fixError,
@@ -1678,19 +1823,22 @@ public final class CodeEditor {
           messages.isEmpty() ? (error ? texts.error() : texts.warning()) : messages.toString(),
           Tooltip.options().kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING));
     }
-    for (Marker m : markers) {
-      if (m.at >= line.start() && m.at <= line.end()) {
-        place
-            .role(m.onPress == null ? "img" : "button")
-            .label(m.label)
-            .child(Icon.icon(m.symbol, m.tone, size));
-        if (m.onPress != null) {
-          place.onPress(m.onPress).keepFocus();
-        }
-        return Tooltip.tooltip(place, m.label);
-      }
-    }
     return El.el();
+  }
+
+  /** One app marker slot in the gutter's icon lane. */
+  private static El appMarker(Theme theme, Marker marker, int slot) {
+    float size = theme.type().mono().size();
+    El place = El.row()
+        .key("marker-" + slot)
+        .justify(Style.Content.CENTER)
+        .role(marker.onPress == null ? "img" : "button")
+        .label(marker.label)
+        .child(Icon.icon(marker.symbol, marker.tone, size));
+    if (marker.onPress != null) {
+      place.onPress(marker.onPress).keepFocus();
+    }
+    return Tooltip.tooltip(place, marker.label);
   }
 
   /**

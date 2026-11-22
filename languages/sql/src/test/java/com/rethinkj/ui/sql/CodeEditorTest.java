@@ -106,7 +106,7 @@ class CodeEditorTest {
     Golden.assertSnaps("code-editor-" + theme + "-" + scale + "x-", files, "brackets");
     String brackets = Files.readString(out.resolve("brackets.tree.txt"));
     assertTrue(brackets.contains("el #line-8 "), brackets);
-    assertTrue(brackets.contains("el #marker role=button label=\"Run statement\""), "the marker");
+    assertTrue(brackets.contains("el #marker-1 role=button label=\"Run statement\""), "the marker");
     int after = QUERY.indexOf("'shipped')") + "'shipped')".length();
     assertTrue(brackets.contains(" caret " + after + " (9:38)"), brackets);
     assertEquals(

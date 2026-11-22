@@ -1,37 +1,45 @@
 el 0,0 520x200
   text #document role=textbox label="Document" "{\n  \"id\": 1042,\n  \"customer\": \"Ada Lovelace\",\n  \"paid\": true,\n  \"total\": 129.5,\n  \"coupon\": null,\n  \"items\": [{\"sku\": \"A-17\", \"quantity\": 2}]\n}" 12,12 496x146 lines 1-8/8
-    el #rail 13,13 50x144
-    el #gutter 13,17 49x128
-      el #line-0 13,17 49x16
+    el #rail 13,13 56x144
+    el #gutter 13,17 55x128
+      el #line-0 13,17 55x16
         el 19,25 12x0
         text "1" 35,17 7x16
-        el #fold-line-0 role=button label="Fold" 46,19 12x12
-          text label="chevron_down" "\u{F2A1}" 46,19 12x12
-      el #line-1 13,33 49x16
+        el 46,25 2x0
+        el #fold-line-0 role=button label="Fold" 52,19 12x12
+          text label="chevron_down" "\u{F2A1}" 52,19 12x12
+      el #line-1 13,33 55x16
         el 19,41 12x0
         text "2" 35,33 7x16
-        el 46,41 12x0
-      el #line-2 13,49 49x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
         el 19,57 12x0
         text "3" 35,49 7x16
-        el 46,57 12x0
-      el #line-3 13,65 49x16
+        el 46,57 2x0
+        el 52,57 12x0
+      el #line-3 13,65 55x16
         el 19,73 12x0
         text "4" 35,65 7x16
-        el 46,73 12x0
-      el #line-4 13,81 49x16
+        el 46,73 2x0
+        el 52,73 12x0
+      el #line-4 13,81 55x16
         el 19,89 12x0
         text "5" 35,81 7x16
-        el 46,89 12x0
-      el #line-5 13,97 49x16
+        el 46,89 2x0
+        el 52,89 12x0
+      el #line-5 13,97 55x16
         el 19,105 12x0
         text "6" 35,97 7x16
-        el 46,105 12x0
-      el #line-6 13,113 49x16
+        el 46,105 2x0
+        el 52,105 12x0
+      el #line-6 13,113 55x16
         el 19,121 12x0
         text "7" 35,113 7x16
-        el 46,121 12x0
-      el #line-7 13,129 49x16
+        el 46,121 2x0
+        el 52,121 12x0
+      el #line-7 13,129 55x16
         el 19,137 12x0
         text "8" 35,129 7x16
-        el 46,137 12x0
+        el 46,137 2x0
+        el 52,137 12x0

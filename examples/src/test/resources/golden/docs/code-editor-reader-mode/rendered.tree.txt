@@ -1,95 +1,103 @@
 el 0,0 580x298
   text #orders role=textbox label="Orders" "public class Orders {\n  /**\n   * Finds paid orders in a date range, newest first.\n   * Uses the {@co" … "d) {\n    return count(customerId);\n  }\n}" length 800 12,12 556x274 lines 1-15/25 thumb-y 559,15 6x189.75
-    el #rail 13,13 58x272
-    el #gutter 13,17 57x256
-      el #line-0 13,17 57x16
+    el #rail 13,13 64x272
+    el #gutter 13,17 63x256
+      el #line-0 13,17 63x16
         el 19,25 12x0
         text "1" 35,17 15x16
-        el #fold-line-0 role=button label="Fold" 54,19 12x12
-          text label="chevron_down" "\u{F2A1}" 54,19 12x12
-      el #line-1 13,33 57x16
+        el 54,25 2x0
+        el #fold-line-0 role=button label="Fold" 60,19 12x12
+          text label="chevron_down" "\u{F2A1}" 60,19 12x12
+      el #line-1 13,33 63x16
         el 19,41 12x0
         text "2" 35,33 15x16
-        el #doc-line-1 role=button label="Edit doc comment" 54,35 12x12
-          text label="edit" "\u{F032A}" 54,35 12x12
-      el #line-10 13,169 57x16
+        el 54,41 2x0
+        el #doc-line-1 role=button label="Edit doc comment" 60,35 12x12
+          text label="edit" "\u{F032A}" 60,35 12x12
+      el #line-10 13,169 63x16
         el 19,177 12x0
         text "11" 35,169 15x16
-        el #fold-line-10 role=button label="Fold" 54,171 12x12
-          text label="chevron_down" "\u{F2A1}" 54,171 12x12
-      el #line-11 13,185 57x16
+        el 54,177 2x0
+        el #fold-line-10 role=button label="Fold" 60,171 12x12
+          text label="chevron_down" "\u{F2A1}" 60,171 12x12
+      el #line-11 13,185 63x16
         el 19,193 12x0
         text "12" 35,185 15x16
-        el 54,193 12x0
-      el #line-12 13,201 57x16
+        el 54,193 2x0
+        el 60,193 12x0
+      el #line-12 13,201 63x16
         el 19,209 12x0
         text "13" 35,201 15x16
-        el 54,209 12x0
-      el #line-13 13,217 57x16
+        el 54,209 2x0
+        el 60,209 12x0
+      el #line-13 13,217 63x16
         el 19,225 12x0
         text "14" 35,217 15x16
-        el 54,225 12x0
-      el #line-14 13,233 57x16
+        el 54,225 2x0
+        el 60,225 12x0
+      el #line-14 13,233 63x16
         el 19,241 12x0
         text "15" 35,233 15x16
-        el 54,241 12x0
-      el #line-15 13,249 57x16
+        el 54,241 2x0
+        el 60,241 12x0
+      el #line-15 13,249 63x16
         el 19,257 12x0
         text "16" 35,249 15x16
-        el #doc-line-15 role=button label="Edit doc comment" 54,251 12x12
-          text label="edit" "\u{F032A}" 54,251 12x12
-    el #doc-1 79,33 480x136
-      el 94,35 457x34
-        text role=paragraph "Finds paid orders in a date range, newest first. Uses the orders_placed_at index; see Order." 94,35 457x34 readonly lines 1-1/1
-          el #link-0 role=link label="Order" 303.63,52 41.88x17 value="Order"
-      el role=list 94,77 457x88
-        el role=group label="Params:" 94,77 457x38
-          el 94,77 49x17
-            text "Params:" 94,78 46x15
-          el 155,77 396x38
-            el role=listitem label="from" 155,77 396x17
-              el 155,77 37x17
-                text "from" 159,78 29x16
-              el 200,77 351x17
-                text role=paragraph "start of the range, inclusive, in UTC" 200,77 351x17 readonly lines 1-1/1
-            el role=listitem label="to" 155,98 396x17
-              el 155,98 22x17
-                text "to" 159,99 14x16
-              el 185,98 366x17
-                text role=paragraph "end of the range, exclusive; must lie after from" 185,98 366x17 readonly lines 1-1/1
-        el role=group label="Returns:" 94,123 457x17
-          el 94,123 49x17
-            text "Returns:" 94,124 47x15
-          el 155,123 396x17
-            el role=listitem 155,123 396x17
-              el 155,123 396x17
-                text role=paragraph "matching orders by placed_at descending" 155,123 396x17 readonly lines 1-1/1
-        el role=group label="Throws:" 94,148 457x17
-          el 94,148 49x17
-            text "Throws:" 94,149 46x15
-          el 155,148 396x17
-            el role=listitem label="IllegalArgumentException" 155,148 396x17
-              el 155,148 182x17
-                text "IllegalArgumentException" 159,149 174x16
-              el 345,148 206x17
-                text role=paragraph "when to is not after from" 345,148 206x17 readonly lines 1-1/1
-    el #doc-15 79,249 480x73
-      el 94,251 457x17
-        text role=paragraph "Counts open orders for a customer." 94,251 457x17 readonly lines 1-1/1
-      el role=list 94,276 457x42
-        el role=group label="Params:" 94,276 457x17
-          el 94,276 49x17
-            text "Params:" 94,277 46x15
-          el 155,276 396x17
-            el role=listitem label="customerId" 155,276 396x17
-              el 155,276 80x17
-                text "customerId" 159,277 72x16
-              el 243,276 308x17
-                text role=paragraph "the customer identifier" 243,276 308x17 readonly lines 1-1/1
-        el role=group label="Returns:" 94,301 457x17
-          el 94,301 49x17
-            text "Returns:" 94,302 47x15
-          el 155,301 396x17
-            el role=listitem 155,301 396x17
-              el 155,301 396x17
-                text role=paragraph "number of open orders" 155,301 396x17 readonly lines 1-1/1
+        el 54,257 2x0
+        el #doc-line-15 role=button label="Edit doc comment" 60,251 12x12
+          text label="edit" "\u{F032A}" 60,251 12x12
+    el #doc-1 85,33 474x136
+      el 100,35 451x34
+        text role=paragraph "Finds paid orders in a date range, newest first. Uses the orders_placed_at index; see Order." 100,35 451x34 readonly lines 1-1/1
+          el #link-0 role=link label="Order" 309.63,52 41.88x17 value="Order"
+      el role=list 100,77 451x88
+        el role=group label="Params:" 100,77 451x38
+          el 100,77 49x17
+            text "Params:" 100,78 46x15
+          el 161,77 390x38
+            el role=listitem label="from" 161,77 390x17
+              el 161,77 37x17
+                text "from" 165,78 29x16
+              el 206,77 345x17
+                text role=paragraph "start of the range, inclusive, in UTC" 206,77 345x17 readonly lines 1-1/1
+            el role=listitem label="to" 161,98 390x17
+              el 161,98 22x17
+                text "to" 165,99 14x16
+              el 191,98 360x17
+                text role=paragraph "end of the range, exclusive; must lie after from" 191,98 360x17 readonly lines 1-1/1
+        el role=group label="Returns:" 100,123 451x17
+          el 100,123 49x17
+            text "Returns:" 100,124 47x15
+          el 161,123 390x17
+            el role=listitem 161,123 390x17
+              el 161,123 390x17
+                text role=paragraph "matching orders by placed_at descending" 161,123 390x17 readonly lines 1-1/1
+        el role=group label="Throws:" 100,148 451x17
+          el 100,148 49x17
+            text "Throws:" 100,149 46x15
+          el 161,148 390x17
+            el role=listitem label="IllegalArgumentException" 161,148 390x17
+              el 161,148 182x17
+                text "IllegalArgumentException" 165,149 174x16
+              el 351,148 200x17
+                text role=paragraph "when to is not after from" 351,148 200x17 readonly lines 1-1/1
+    el #doc-15 85,249 474x73
+      el 100,251 451x17
+        text role=paragraph "Counts open orders for a customer." 100,251 451x17 readonly lines 1-1/1
+      el role=list 100,276 451x42
+        el role=group label="Params:" 100,276 451x17
+          el 100,276 49x17
+            text "Params:" 100,277 46x15
+          el 161,276 390x17
+            el role=listitem label="customerId" 161,276 390x17
+              el 161,276 80x17
+                text "customerId" 165,277 72x16
+              el 249,276 302x17
+                text role=paragraph "the customer identifier" 249,276 302x17 readonly lines 1-1/1
+        el role=group label="Returns:" 100,301 451x17
+          el 100,301 49x17
+            text "Returns:" 100,302 47x15
+          el 161,301 390x17
+            el role=listitem 161,301 390x17
+              el 161,301 390x17
+                text role=paragraph "number of open orders" 161,301 390x17 readonly lines 1-1/1

@@ -1,52 +1,61 @@
 el 0,0 520x236
   text #views role=textbox label="Views" "CREATE VIEW paid_orders AS\nSELECT id, total\nFROM orders\nWHERE status = 'paid';\n\nCREATE VIEW recent_orders AS\nSELECT id, total\nFROM paid_orders\nWHERE placed_at >= CURRENT_DATE - 30;" 12,12 496x210 lines 1-9/9
-    el #rail 13,13 50x208
-    el #gutter 13,17 49x192
-      el #line-0 13,34 49x16
+    el #rail 13,13 56x208
+    el #gutter 13,17 55x192
+      el #line-0 13,34 55x16
         el 19,42 12x0
         text "1" 35,34 7x16
-        el 46,42 12x0
-      el #line-1 13,50 49x16
+        el 46,42 2x0
+        el 52,42 12x0
+      el #line-1 13,50 55x16
         el 19,58 12x0
         text "2" 35,50 7x16
-        el 46,58 12x0
-      el #line-2 13,66 49x16
+        el 46,58 2x0
+        el 52,58 12x0
+      el #line-2 13,66 55x16
         el 19,74 12x0
         text "3" 35,66 7x16
-        el 46,74 12x0
-      el #line-3 13,82 49x16
+        el 46,74 2x0
+        el 52,74 12x0
+      el #line-3 13,82 55x16
         el 19,90 12x0
         text "4" 35,82 7x16
-        el 46,90 12x0
-      el #line-4 13,98 49x16
+        el 46,90 2x0
+        el 52,90 12x0
+      el #line-4 13,98 55x16
         el 19,106 12x0
         text "5" 35,98 7x16
-        el 46,106 12x0
-      el #line-5 13,131 49x16
+        el 46,106 2x0
+        el 52,106 12x0
+      el #line-5 13,131 55x16
         el 19,139 12x0
         text "6" 35,131 7x16
-        el 46,139 12x0
-      el #line-6 13,147 49x16
+        el 46,139 2x0
+        el 52,139 12x0
+      el #line-6 13,147 55x16
         el 19,155 12x0
         text "7" 35,147 7x16
-        el 46,155 12x0
-      el #line-7 13,163 49x16
+        el 46,155 2x0
+        el 52,155 12x0
+      el #line-7 13,163 55x16
         el 19,171 12x0
         text "8" 35,163 7x16
-        el 46,171 12x0
-      el #line-8 13,179 49x16
+        el 46,171 2x0
+        el 52,171 12x0
+      el #line-8 13,179 55x16
         el 19,187 12x0
         text "9" 35,179 7x16
-        el 46,187 12x0
-    el #vision-0 71,17 428x17
-      el role=button label="3 usages" 71,19 52x15
-        text "3 usages" 71,19 52x15
-      el 135,19 90x15
-        text label="person" "\u{F5BB}" 135,20 12x12
-        text "Ada Lovelace" 149,19 76x15
-    el #vision-5 71,114 428x17
-      el role=button label="1 usage" 71,116 43x15
-        text "1 usage" 71,116 43x15
-      el 126,116 94x15
-        text label="person" "\u{F5BB}" 126,117 12x12
-        text "Grace Hopper" 140,116 80x15
+        el 46,187 2x0
+        el 52,187 12x0
+    el #vision-0 77,17 422x17
+      el role=button label="3 usages" 77,19 52x15
+        text "3 usages" 77,19 52x15
+      el 141,19 90x15
+        text label="person" "\u{F5BB}" 141,20 12x12
+        text "Ada Lovelace" 155,19 76x15
+    el #vision-5 77,114 422x17
+      el role=button label="1 usage" 77,116 43x15
+        text "1 usage" 77,116 43x15
+      el 132,116 94x15
+        text label="person" "\u{F5BB}" 132,117 12x12
+        text "Grace Hopper" 146,116 80x15

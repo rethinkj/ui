@@ -1,17 +1,20 @@
 el 0,0 520x200
   text #fixes role=textbox label="Query" "SELECT id, total\nFROM ordrs\nWHERE status = 'paid';" 12,12 496x130 lines 1-3/3 squiggle 22-27 focused caret 26 (2:10)
-    el #rail 13,13 50x128
-    el #gutter 13,17 49x112
-      el #line-0 13,17 49x16
+    el #rail 13,13 56x128
+    el #gutter 13,17 55x112
+      el #line-0 13,17 55x16
         el 19,25 12x0
         text "1" 35,17 7x16
-        el 46,25 12x0
-      el #line-1 13,33 49x16
+        el 46,25 2x0
+        el 52,25 12x0
+      el #line-1 13,33 55x16
         el #marker role=button label="Show quick fixes" 19,35 12x12 error="relation \"ordrs\" does not exist"
           text label="lightbulb" "\u{F4D5}" 19,35 12x12
         text "2" 35,33 7x16
-        el 46,41 12x0
-      el #line-2 13,49 49x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
         el 19,57 12x0
         text "3" 35,49 7x16
-        el 46,57 12x0
+        el 46,57 2x0
+        el 52,57 12x0

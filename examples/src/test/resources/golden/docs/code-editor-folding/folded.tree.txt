@@ -1,54 +1,65 @@
 el 0,0 520x200
   text #payload role=textbox label="Payload" "{\n  \"id\": 1042,\n  \"customer\": {\n    \"name\": \"Ada Lovelace\",\n    \"region\": \"north\"\n  },\n  \"items\": [\n    {\n      \"sku\": \"A-17\",\n      \"quantity\": 2\n    }\n  ]\n}" 12,12 496x162 lines 1-11/13 thumb-y 499,15 6x130.27 focused caret 31 (3:16)
-    el #rail 13,13 57x160
-    el #gutter 13,17 56x144
-      el #line-0 13,17 56x16
+    el #rail 13,13 63x160
+    el #gutter 13,17 62x144
+      el #line-0 13,17 62x16
         el 19,25 12x0
         text "1" 35,17 14x16
-        el #fold-line-0 role=button label="Fold" 53,19 12x12
-          text label="chevron_down" "\u{F2A1}" 53,19 12x12
-      el #line-1 13,33 56x16
+        el 53,25 2x0
+        el #fold-line-0 role=button label="Fold" 59,19 12x12
+          text label="chevron_down" "\u{F2A1}" 59,19 12x12
+      el #line-1 13,33 62x16
         el 19,41 12x0
         text "2" 35,33 14x16
-        el 53,41 12x0
-      el #line-2 13,49 56x16
+        el 53,41 2x0
+        el 59,41 12x0
+      el #line-2 13,49 62x16
         el 19,57 12x0
         text "3" 35,49 14x16
-        el #fold-line-2 role=button label="Unfold" 53,51 12x12
-          text label="chevron_right" "\u{F2AE}" 53,51 12x12
-      el #line-5 13,65 56x16
+        el 53,57 2x0
+        el #fold-line-2 role=button label="Unfold" 59,51 12x12
+          text label="chevron_right" "\u{F2AE}" 59,51 12x12
+      el #line-5 13,65 62x16
         el 19,73 12x0
         text "6" 35,65 14x16
-        el 53,73 12x0
-      el #line-6 13,81 56x16
+        el 53,73 2x0
+        el 59,73 12x0
+      el #line-6 13,81 62x16
         el 19,89 12x0
         text "7" 35,81 14x16
-        el #fold-line-6 role=button label="Fold" 53,83 12x12
-          text label="chevron_down" "\u{F2A1}" 53,83 12x12
-      el #line-7 13,97 56x16
+        el 53,89 2x0
+        el #fold-line-6 role=button label="Fold" 59,83 12x12
+          text label="chevron_down" "\u{F2A1}" 59,83 12x12
+      el #line-7 13,97 62x16
         el 19,105 12x0
         text "8" 35,97 14x16
-        el #fold-line-7 role=button label="Fold" 53,99 12x12
-          text label="chevron_down" "\u{F2A1}" 53,99 12x12
-      el #line-8 13,113 56x16
+        el 53,105 2x0
+        el #fold-line-7 role=button label="Fold" 59,99 12x12
+          text label="chevron_down" "\u{F2A1}" 59,99 12x12
+      el #line-8 13,113 62x16
         el 19,121 12x0
         text "9" 35,113 14x16
-        el 53,121 12x0
-      el #line-9 13,129 56x16
+        el 53,121 2x0
+        el 59,121 12x0
+      el #line-9 13,129 62x16
         el 19,137 12x0
         text "10" 35,129 14x16
-        el 53,137 12x0
-      el #line-10 13,145 56x16
+        el 53,137 2x0
+        el 59,137 12x0
+      el #line-10 13,145 62x16
         el 19,153 12x0
         text "11" 35,145 14x16
-        el 53,153 12x0
-      el #line-11 13,161 56x16
+        el 53,153 2x0
+        el 59,153 12x0
+      el #line-11 13,161 62x16
         el 19,169 12x0
         text "12" 35,161 14x16
-        el 53,169 12x0
-      el #line-12 13,177 56x16
+        el 53,169 2x0
+        el 59,169 12x0
+      el #line-12 13,177 62x16
         el 19,185 12x0
         text "13" 35,177 14x16
-        el 53,185 12x0
-    el #fold-2 role=button label="Unfold" 187,50 22x14
-      text label="more_horizontal" "\u{E823}" 192,51 12x12
+        el 53,185 2x0
+        el 59,185 12x0
+    el #fold-2 role=button label="Unfold" 193,50 22x14
+      text label="more_horizontal" "\u{E823}" 198,51 12x12

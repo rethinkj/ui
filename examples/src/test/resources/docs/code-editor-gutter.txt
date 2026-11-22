@@ -1,0 +1,4 @@
+# Gutter lanes: an error diagnostic and two markers on one line alongside added, modified and deleted change bars.
+size 520 154 scale 2
+frame
+snap view

@@ -1,95 +1,111 @@
 el 0,0 580x298
-  text #orders role=textbox label="Orders" "public class Orders {\n  /**\n   * Finds paid orders in a date range, newest first.\n   * Uses the {@co" … "d) {\n    return count(customerId);\n  }\n}" length 800 12,12 556x274 lines 1-15/25 underline 103-119 scroll 0,-29 thumb-x 15,277 460.96x6 thumb-y 559,15 6x168.02
-    el #rail 13,13 58x272
-    el #gutter 13,17 57x256
-      el #line-0 13,46 57x16
+  text #orders role=textbox label="Orders" "public class Orders {\n  /**\n   * Finds paid orders in a date range, newest first.\n   * Uses the {@co" … "d) {\n    return count(customerId);\n  }\n}" length 800 12,12 556x274 lines 1-15/25 underline 103-119 scroll 0,-29 thumb-x 15,277 456.77x6 thumb-y 559,15 6x168.02
+    el #rail 13,13 64x272
+    el #gutter 13,17 63x256
+      el #line-0 13,46 63x16
         el 19,54 12x0
         text "1" 35,46 15x16
-        el #fold-line-0 role=button label="Fold" 54,48 12x12
-          text label="chevron_down" "\u{F2A1}" 54,48 12x12
-      el #line-1 13,62 57x16
+        el 54,54 2x0
+        el #fold-line-0 role=button label="Fold" 60,48 12x12
+          text label="chevron_down" "\u{F2A1}" 60,48 12x12
+      el #line-1 13,62 63x16
         el 19,70 12x0
         text "2" 35,62 15x16
-        el #doc-line-1 role=button label="Render doc comment" 54,64 12x12
-          text label="eye" "\u{E5F0}" 54,64 12x12
-      el #line-2 13,78 57x16
+        el 54,70 2x0
+        el #doc-line-1 role=button label="Render doc comment" 60,64 12x12
+          text label="eye" "\u{E5F0}" 60,64 12x12
+      el #line-2 13,78 63x16
         el 19,86 12x0
         text "3" 35,78 15x16
-        el 54,86 12x0
-      el #line-3 13,94 57x16
+        el 54,86 2x0
+        el 60,86 12x0
+      el #line-3 13,94 63x16
         el 19,102 12x0
         text "4" 35,94 15x16
-        el 54,102 12x0
-      el #line-4 13,110 57x16
+        el 54,102 2x0
+        el 60,102 12x0
+      el #line-4 13,110 63x16
         el 19,118 12x0
         text "5" 35,110 15x16
-        el 54,118 12x0
-      el #line-5 13,126 57x16
+        el 54,118 2x0
+        el 60,118 12x0
+      el #line-5 13,126 63x16
         el 19,134 12x0
         text "6" 35,126 15x16
-        el 54,134 12x0
-      el #line-6 13,142 57x16
+        el 54,134 2x0
+        el 60,134 12x0
+      el #line-6 13,142 63x16
         el 19,150 12x0
         text "7" 35,142 15x16
-        el 54,150 12x0
-      el #line-7 13,158 57x16
+        el 54,150 2x0
+        el 60,150 12x0
+      el #line-7 13,158 63x16
         el 19,166 12x0
         text "8" 35,158 15x16
-        el 54,166 12x0
-      el #line-8 13,174 57x16
+        el 54,166 2x0
+        el 60,166 12x0
+      el #line-8 13,174 63x16
         el 19,182 12x0
         text "9" 35,174 15x16
-        el 54,182 12x0
-      el #line-9 13,190 57x16
+        el 54,182 2x0
+        el 60,182 12x0
+      el #line-9 13,190 63x16
         el 19,198 12x0
         text "10" 35,190 15x16
-        el 54,198 12x0
-      el #line-10 13,206 57x16
+        el 54,198 2x0
+        el 60,198 12x0
+      el #line-10 13,206 63x16
         el 19,214 12x0
         text "11" 35,206 15x16
-        el #fold-line-10 role=button label="Fold" 54,208 12x12
-          text label="chevron_down" "\u{F2A1}" 54,208 12x12
-      el #line-11 13,222 57x16
+        el 54,214 2x0
+        el #fold-line-10 role=button label="Fold" 60,208 12x12
+          text label="chevron_down" "\u{F2A1}" 60,208 12x12
+      el #line-11 13,222 63x16
         el 19,230 12x0
         text "12" 35,222 15x16
-        el 54,230 12x0
-      el #line-12 13,238 57x16
+        el 54,230 2x0
+        el 60,230 12x0
+      el #line-12 13,238 63x16
         el 19,246 12x0
         text "13" 35,238 15x16
-        el 54,246 12x0
-      el #line-13 13,254 57x16
+        el 54,246 2x0
+        el 60,246 12x0
+      el #line-13 13,254 63x16
         el 19,262 12x0
         text "14" 35,254 15x16
-        el 54,262 12x0
-      el #line-14 13,270 57x16
+        el 54,262 2x0
+        el 60,262 12x0
+      el #line-14 13,270 63x16
         el 19,278 12x0
         text "15" 35,270 15x16
-        el 54,278 12x0
-      el #line-15 13,286 57x16
+        el 54,278 2x0
+        el 60,278 12x0
+      el #line-15 13,286 63x16
         el 19,294 12x0
         text "16" 35,286 15x16
-        el #doc-line-15 role=button label="Edit doc comment" 54,288 12x12
-          text label="edit" "\u{F032A}" 54,288 12x12
-    el #doc-15 79,286 480x73
-      el 94,288 457x17
-        text role=paragraph "Counts open orders for a customer." 94,288 457x17 readonly lines 1-1/1
-      el role=list 94,313 457x42
-        el role=group label="Params:" 94,313 457x17
-          el 94,313 49x17
-            text "Params:" 94,314 46x15
-          el 155,313 396x17
-            el role=listitem label="customerId" 155,313 396x17
-              el 155,313 80x17
-                text "customerId" 159,314 72x16
-              el 243,313 308x17
-                text role=paragraph "the customer identifier" 243,313 308x17 readonly lines 1-1/1
-        el role=group label="Returns:" 94,338 457x17
-          el 94,338 49x17
-            text "Returns:" 94,339 47x15
-          el 155,338 396x17
-            el role=listitem 155,338 396x17
-              el 155,338 396x17
-                text role=paragraph "number of open orders" 155,338 396x17 readonly lines 1-1/1
+        el 54,294 2x0
+        el #doc-line-15 role=button label="Edit doc comment" 60,288 12x12
+          text label="edit" "\u{F032A}" 60,288 12x12
+    el #doc-15 85,286 474x73
+      el 100,288 451x17
+        text role=paragraph "Counts open orders for a customer." 100,288 451x17 readonly lines 1-1/1
+      el role=list 100,313 451x42
+        el role=group label="Params:" 100,313 451x17
+          el 100,313 49x17
+            text "Params:" 100,314 46x15
+          el 161,313 390x17
+            el role=listitem label="customerId" 161,313 390x17
+              el 161,313 80x17
+                text "customerId" 165,314 72x16
+              el 249,313 302x17
+                text role=paragraph "the customer identifier" 249,313 302x17 readonly lines 1-1/1
+        el role=group label="Returns:" 100,338 451x17
+          el 100,338 49x17
+            text "Returns:" 100,339 47x15
+          el 161,338 390x17
+            el role=listitem 161,338 390x17
+              el 161,338 390x17
+                text role=paragraph "number of open orders" 161,338 390x17 readonly lines 1-1/1
 overlay top end gap -32 on #orders role=textbox label="Orders" 12,12 556x274
   el #find role=search label="Find" 166,14 402x30
     el 166,14 392x30

@@ -127,6 +127,48 @@ final class Editors {
   String selectedVision;
   String broken = "SELECT id, total\nFROM ordrs\nWHERE status = 'paid';";
   final CodeEditor.State fixesEditor = new CodeEditor.State();
+  String gutterSql = """
+      SELECT o.id, o.total, o.tax
+      FROM orders o
+      JOIN customers c ON c.id = o.customer_id
+      WHERE o.status = 'paid'
+        AND o.region = 'north'
+      ORDER BY o.total DESC
+      LIMIT 50;""";
+  final CodeEditor.State gutterEditor = new CodeEditor.State();
+
+  // docs:start code-editor-gutter
+  /** Places an error, two markers on line 1, and VCS changes in the gutter. */
+  void showGutter() {
+    int tax = gutterSql.indexOf("o.tax");
+    gutterEditor.diagnostics(
+        gutterSql,
+        List.of(new CodeEditor.Diagnostic(
+            tax,
+            tax + "o.tax".length(),
+            CodeEditor.Severity.ERROR,
+            "column o.tax does not exist")));
+    gutterEditor.markup(
+        "app",
+        gutterSql,
+        List.of(
+            new CodeEditor.Marker(
+                0, Symbol.PLAY, Icon.Variant.ACCENT, "Run statement", this::runGutterQuery),
+            new CodeEditor.Marker(0, Symbol.RECORD, Icon.Variant.DANGER, "Breakpoint", null)));
+    int joinFrom = gutterSql.indexOf("JOIN");
+    int joinTo = gutterSql.indexOf("\nWHERE");
+    int whereFrom = joinTo + 1;
+    int whereTo = gutterSql.indexOf("\nORDER");
+    int orderFrom = whereTo + 1;
+    gutterEditor.markup(
+        "vcs",
+        gutterSql,
+        List.of(
+            new CodeEditor.Change(joinFrom, joinTo, CodeEditor.Change.Kind.MODIFIED),
+            new CodeEditor.Change(whereFrom, whereTo, CodeEditor.Change.Kind.ADDED),
+            new CodeEditor.Change(orderFrom, orderFrom, CodeEditor.Change.Kind.DELETED)));
+  }
+  // docs:end code-editor-gutter
 
   // docs:start code-editor-fixes
   /** Reports an unknown table name with two quick fixes to replace it. */
@@ -328,6 +370,7 @@ final class Editors {
     showRun();
     showVision();
     showFixes();
+    showGutter();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -413,6 +456,14 @@ final class Editors {
 
   void broken(String value) {
     broken = value;
+  }
+
+  void gutterSql(String value) {
+    gutterSql = value;
+  }
+
+  void runGutterQuery() {
+    ran = gutterSql;
   }
 
   void javaSource(String value) {
@@ -558,6 +609,16 @@ final class Editors {
         .lines(10)
         .wFull();
     // docs:end code-editor-scrollbar-marks
+    return Frame.of(editor);
+  }
+
+  static El gutter(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.gutterSql, state.gutterEditor, Sql.of(), state::gutterSql)
+        .key("gutterQuery")
+        .label("Query")
+        .lines(7)
+        .wFull();
     return Frame.of(editor);
   }
 

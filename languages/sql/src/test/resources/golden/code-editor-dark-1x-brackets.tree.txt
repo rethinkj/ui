@@ -1,54 +1,78 @@
 el 0,0 440x220
-  text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 12,12 416x162 lines 1-9/16 squiggle 161-167 thumb-y 419,15 6x92.23 focused caret 301 (9:38)
-    el #rail 13,13 57x160
-    el #gutter 13,17 56x144
-      el #line-0 13,17 56x16
+  text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 12,12 416x162 lines 1-9/16 squiggle 161-167 thumb-x 15,165 394.42x6 thumb-y 419,15 6x87.5 focused caret 301 (9:38)
+    el #rail 13,13 79x160
+    el #gutter 13,17 78x144
+      el #line-0 13,17 78x16
         el 19,25 12x0
-        text "1" 35,17 14x16
-        el 53,25 12x0
-      el #line-1 13,33 56x16
-        el #marker role=button label="Run statement" 19,35 12x12
-          text label="play" "\u{E98F}" 19,35 12x12
-        text "2" 35,33 14x16
-        el 53,41 12x0
-      el #line-2 13,49 56x16
+        el 35,25 12x0
+        text "1" 51,17 14x16
+        el 69,25 2x0
+        el 75,25 12x0
+      el #line-1 13,33 78x16
+        el 19,41 12x0
+        el #marker-1 role=button label="Run statement" 35,35 12x12
+          text label="play" "\u{E98F}" 35,35 12x12
+        text "2" 51,33 14x16
+        el 69,41 2x0
+        el 75,41 12x0
+      el #line-2 13,49 78x16
         el 19,57 12x0
-        text "3" 35,49 14x16
-        el 53,57 12x0
-      el #line-3 13,65 56x16
+        el 35,57 12x0
+        text "3" 51,49 14x16
+        el 69,57 2x0
+        el 75,57 12x0
+      el #line-3 13,65 78x16
         el 19,73 12x0
-        text "4" 35,65 14x16
-        el 53,73 12x0
-      el #line-4 13,81 56x16
+        el 35,73 12x0
+        text "4" 51,65 14x16
+        el 69,73 2x0
+        el 75,73 12x0
+      el #line-4 13,81 78x16
         el #marker role=img label="Error" 19,83 12x12 error="column o.note does not exist"
           text label="dismiss" "\u{F367}" 19,83 12x12
-        text "5" 35,81 14x16
-        el 53,89 12x0
-      el #line-5 13,97 56x16
+        el 35,89 12x0
+        text "5" 51,81 14x16
+        el 69,89 2x0
+        el 75,89 12x0
+      el #line-5 13,97 78x16
         el 19,105 12x0
-        text "6" 35,97 14x16
-        el 53,105 12x0
-      el #line-6 13,113 56x16
+        el 35,105 12x0
+        text "6" 51,97 14x16
+        el 69,105 2x0
+        el 75,105 12x0
+      el #line-6 13,113 78x16
         el 19,121 12x0
-        text "7" 35,113 14x16
-        el 53,121 12x0
-      el #line-7 13,129 56x16
+        el 35,121 12x0
+        text "7" 51,113 14x16
+        el 69,121 2x0
+        el 75,121 12x0
+      el #line-7 13,129 78x16
         el 19,137 12x0
-        text "8" 35,129 14x16
-        el 53,137 12x0
-      el #line-8 13,145 56x16
+        el 35,137 12x0
+        text "8" 51,129 14x16
+        el 69,137 2x0
+        el 75,137 12x0
+      el #line-8 13,145 78x16
         el 19,153 12x0
-        text "9" 35,145 14x16
-        el 53,153 12x0
-      el #line-9 13,161 56x16
+        el 35,153 12x0
+        text "9" 51,145 14x16
+        el 69,153 2x0
+        el 75,153 12x0
+      el #line-9 13,161 78x16
         el 19,169 12x0
-        text "10" 35,161 14x16
-        el 53,169 12x0
-      el #line-10 13,177 56x16
+        el 35,169 12x0
+        text "10" 51,161 14x16
+        el 69,169 2x0
+        el 75,169 12x0
+      el #line-10 13,177 78x16
         el 19,185 12x0
-        text "11" 35,177 14x16
-        el 53,185 12x0
-      el #line-11 13,193 56x16
+        el 35,185 12x0
+        text "11" 51,177 14x16
+        el 69,185 2x0
+        el 75,185 12x0
+      el #line-11 13,193 78x16
         el 19,201 12x0
-        text "12" 35,193 14x16
-        el 53,201 12x0
+        el 35,201 12x0
+        text "12" 51,193 14x16
+        el 69,201 2x0
+        el 75,201 12x0

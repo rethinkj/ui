@@ -1,70 +1,86 @@
 el 0,0 500x298
   text #editor role=textbox "/**\n * Formats an amount with currency.\n * @param amount - Value in minor units.\n * @returns Formatt" … "{price.currency} ${major.toFixed(2)}`;\n}" length 378 12,12 476x274 lines 1-16/16 focused caret 378 (16:2)
-    el #rail 13,13 58x272
-    el #gutter 13,17 57x256
-      el #line-0 13,17 57x16
+    el #rail 13,13 64x272
+    el #gutter 13,17 63x256
+      el #line-0 13,17 63x16
         el 19,25 12x0
         text "1" 35,17 15x16
-        el 54,25 12x0
-      el #line-1 13,33 57x16
+        el 54,25 2x0
+        el 60,25 12x0
+      el #line-1 13,33 63x16
         el 19,41 12x0
         text "2" 35,33 15x16
-        el 54,41 12x0
-      el #line-2 13,49 57x16
+        el 54,41 2x0
+        el 60,41 12x0
+      el #line-2 13,49 63x16
         el 19,57 12x0
         text "3" 35,49 15x16
-        el 54,57 12x0
-      el #line-3 13,65 57x16
+        el 54,57 2x0
+        el 60,57 12x0
+      el #line-3 13,65 63x16
         el 19,73 12x0
         text "4" 35,65 15x16
-        el 54,73 12x0
-      el #line-4 13,81 57x16
+        el 54,73 2x0
+        el 60,73 12x0
+      el #line-4 13,81 63x16
         el 19,89 12x0
         text "5" 35,81 15x16
-        el 54,89 12x0
-      el #line-5 13,97 57x16
+        el 54,89 2x0
+        el 60,89 12x0
+      el #line-5 13,97 63x16
         el 19,105 12x0
         text "6" 35,97 15x16
-        el #fold-line-5 role=button label="Fold" 54,99 12x12
-          text label="chevron_down" "\u{F2A1}" 54,99 12x12
-      el #line-6 13,113 57x16
+        el 54,105 2x0
+        el #fold-line-5 role=button label="Fold" 60,99 12x12
+          text label="chevron_down" "\u{F2A1}" 60,99 12x12
+      el #line-6 13,113 63x16
         el 19,121 12x0
         text "7" 35,113 15x16
-        el 54,121 12x0
-      el #line-7 13,129 57x16
+        el 54,121 2x0
+        el 60,121 12x0
+      el #line-7 13,129 63x16
         el 19,137 12x0
         text "8" 35,129 15x16
-        el 54,137 12x0
-      el #line-8 13,145 57x16
+        el 54,137 2x0
+        el 60,137 12x0
+      el #line-8 13,145 63x16
         el 19,153 12x0
         text "9" 35,145 15x16
-        el 54,153 12x0
-      el #line-9 13,161 57x16
+        el 54,153 2x0
+        el 60,153 12x0
+      el #line-9 13,161 63x16
         el 19,169 12x0
         text "10" 35,161 15x16
-        el 54,169 12x0
-      el #line-10 13,177 57x16
+        el 54,169 2x0
+        el 60,169 12x0
+      el #line-10 13,177 63x16
         el 19,185 12x0
         text "11" 35,177 15x16
-        el 54,185 12x0
-      el #line-11 13,193 57x16
+        el 54,185 2x0
+        el 60,185 12x0
+      el #line-11 13,193 63x16
         el 19,201 12x0
         text "12" 35,193 15x16
-        el 54,201 12x0
-      el #line-12 13,209 57x16
+        el 54,201 2x0
+        el 60,201 12x0
+      el #line-12 13,209 63x16
         el 19,217 12x0
         text "13" 35,209 15x16
-        el #fold-line-12 role=button label="Fold" 54,211 12x12
-          text label="chevron_down" "\u{F2A1}" 54,211 12x12
-      el #line-13 13,225 57x16
+        el 54,217 2x0
+        el #fold-line-12 role=button label="Fold" 60,211 12x12
+          text label="chevron_down" "\u{F2A1}" 60,211 12x12
+      el #line-13 13,225 63x16
         el 19,233 12x0
         text "14" 35,225 15x16
-        el 54,233 12x0
-      el #line-14 13,241 57x16
+        el 54,233 2x0
+        el 60,233 12x0
+      el #line-14 13,241 63x16
         el 19,249 12x0
         text "15" 35,241 15x16
-        el 54,249 12x0
-      el #line-15 13,257 57x16
+        el 54,249 2x0
+        el 60,249 12x0
+      el #line-15 13,257 63x16
         el 19,265 12x0
         text "16" 35,257 15x16
-        el 54,265 12x0
+        el 54,265 2x0
+        el 60,265 12x0
