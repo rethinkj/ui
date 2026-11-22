@@ -4,7 +4,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Spans;
-import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.kit.Theme;
 import java.util.function.Consumer;
 

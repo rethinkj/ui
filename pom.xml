@@ -42,6 +42,7 @@
   <modules>
     <module>core</module>
     <module>kit</module>
+    <module>editor</module>
     <module>languages</module>
     <module>diagram</module>
     <module>fonts</module>
@@ -105,8 +106,8 @@
           </configuration>
         </plugin>
         <plugin>
-          <!-- A JAR of the sources beside the classes, for IDEs; core, kit, the languages and
-               diagram declare it. -->
+          <!-- A JAR of the sources beside the classes, for IDEs; core, kit, editor, the
+               languages and diagram declare it. -->
           <artifactId>maven-source-plugin</artifactId>
           <version>3.4.0</version>
           <executions>
@@ -120,7 +121,7 @@
         </plugin>
         <plugin>
           <!-- The API documentation. A JAR of it beside the classes, which Central wants for a
-               release; core, kit, the languages and diagram declare it. -->
+               release; core, kit, editor, the languages and diagram declare it. -->
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>3.12.0</version>
           <configuration>
@@ -146,9 +147,9 @@
               </configuration>
             </execution>
             <execution>
-              <!-- The HTML of core, kit, the languages and diagram together, which the site serves
-                   at /api/: mvn -P '!natives-linux-x64' -pl
-                   core,kit,languages/json,languages/sql,diagram -am javadoc:aggregate, into
+              <!-- The HTML of core, kit, editor, the languages and diagram together, which the
+                   site serves at /api/: mvn -P '!natives-linux-x64' -pl
+                   core,kit,editor,languages/json,languages/sql,diagram -am javadoc:aggregate, into
                    target/reports/apidocs. kit has no module
                    descriptor, and an aggregate cannot mix a named module with unnamed ones: all
                    go on the class path, and without a source path, on which javadoc would find
@@ -170,6 +171,10 @@
                   <group>
                     <title>Kit</title>
                     <packages>com.rethinkj.ui.kit</packages>
+                  </group>
+                  <group>
+                    <title>Editor</title>
+                    <packages>com.rethinkj.ui.editor</packages>
                   </group>
                   <group>
                     <title>Languages</title>

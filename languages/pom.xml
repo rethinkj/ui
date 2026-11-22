@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The parent of the language modules: each language, a Highlighter on kit, in a module of its own.
-     What all of them build and test with is here. -->
+<!-- The parent of the language modules: each language, a Highlighter on kit for the code editor,
+     in a module of its own. What all of them build and test with is here. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -24,6 +24,13 @@
   </modules>
 
   <dependencies>
+    <!-- The code editor, which the tests drive; the languages themselves need only kit. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-editor</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <!-- The default fonts, for the tests that lay out text. -->
     <dependency>
       <groupId>com.rethinkj.ui</groupId>

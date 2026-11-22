@@ -16,7 +16,7 @@ Javadoc: [`Find`](/api/com/rethinkj/ui/kit/Find.html), [`Find.State`](/api/com/r
 ```java snippet="find"
 ```
 
-Store a `Find.State` in your app state. `Find.find(app, field, findState)` wraps the field's key, selection, and decorator handlers, so attach any custom handlers to `field` first.
+Store a `Find.State` in your app state. `Find.find(app, field, findState)` wraps the field's key, selection, and decorator handlers, so attach any custom handlers to `field` first. A field with shortcuts of its own, such as the code editor's line commands, passes them as a fourth argument, `Find.find(app, field, findState, isCommand)`: while the focus is in the bar, those keys do nothing instead of changing the text out of sight. `Find.next(text, needle, wholeWord, wordCharacters, from)` returns the next occurrence of a text, as the editor's **Ctrl+D** uses it.
 
 ```text snippet="find-script"
 ```

@@ -7,7 +7,17 @@ description: Multi-line code editor with line numbers, code folding, syntax high
 
 For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
 
-Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
+`CodeEditor` lives in its own module, `rethinkj-ui-editor`, in package `com.rethinkj.ui.editor`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-editor</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/editor/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
 <Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked with a squiggle, keywords in color and a bracket pair highlighted" />
 

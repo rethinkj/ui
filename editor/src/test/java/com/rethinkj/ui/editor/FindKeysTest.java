@@ -1,10 +1,9 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.editor;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
+import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -12,11 +11,14 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Find;
+import com.rethinkj.ui.kit.GermanTexts;
+import com.rethinkj.ui.kit.Texts;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,9 +66,7 @@ class FindKeysTest {
   static final class Doc {
     String text;
     final CodeEditor.State editor = new CodeEditor.State();
-    final Find.State find = new Find.State();
     boolean readOnly;
-    boolean area; // a plain text area with a find bar, not a code editor
     boolean position; // the caret's line and column below the editor
     boolean refuse; // the app keeps its text once
     Texts texts = Texts.ENGLISH;
@@ -80,23 +80,12 @@ class FindKeysTest {
   static App<Doc> app(Doc doc) {
     Theme t = Theme.DARK;
     App<Doc> app = new App<>(doc, s -> {
-      El field;
-      if (s.area) {
-        field = Find.find(
-            s.app,
-            TextField.textArea(s.text, "Notes", v -> s.text = v)
-                .key("query")
-                .lines(6)
-                .wFull(),
-            s.find);
-      } else {
-        field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
-            .key("query")
-            .lines(6)
-            .wFull();
-        if (s.readOnly) {
-          field.readOnly();
-        }
+      El field = codeEditor(s.app, s.text, s.editor, SQL_COMMENTS, v -> change(s, v))
+          .key("query")
+          .lines(6)
+          .wFull();
+      if (s.readOnly) {
+        field.readOnly();
       }
       El page = col().wFull().hFull().padding(12).fill(t.surface().window()).child(field);
       if (s.position) { // after the editor's build, as a status bar below it
@@ -216,9 +205,23 @@ class FindKeysTest {
         line(tree, "query").contains(" scroll "), "no room above without the bar:\n" + tree);
   }
 
+  /** The rectangle {@code x,y wxh} of a dump's line, after its quoted parts. */
+  private static float[] rect(String line) {
+    String plain = line.replaceAll("\"(\\\\.|[^\"\\\\])*\"", "\"\"");
+    var m = java.util.regex.Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
+        .matcher(plain);
+    assertTrue(m.find(), line);
+    return new float[] {
+      Float.parseFloat(m.group(1)),
+      Float.parseFloat(m.group(2)),
+      Float.parseFloat(m.group(3)),
+      Float.parseFloat(m.group(4))
+    };
+  }
+
   private static void assertFirstLineBelowTheBar(String tree) {
-    float[] row = StructureTest.rect(line(tree, "line-0"));
-    float[] bar = StructureTest.rect(line(tree, "find"));
+    float[] row = rect(line(tree, "line-0"));
+    float[] bar = rect(line(tree, "find"));
     assertTrue(row[1] >= bar[1] + bar[3], "the first line below the bar:\n" + tree);
   }
 
@@ -402,44 +405,6 @@ class FindKeysTest {
   }
 
   @Test
-  void aJumpOnAnotherThreadSelectsNothingOnceTheTextChanged() throws Exception {
-    Doc doc = new Doc(("x".repeat(60) + "\n").repeat(500_000) + "needle");
-    App<Doc> app = app(doc);
-    run(
-        app,
-        "frame\nfocus #query\nkey F control\nframe\nadvance 0.25\nframe\n"
-            + "focus #find-field\ntype \"needle\"");
-    assertNotNull(doc.editor.find().jump, "the jump takes longer than a frame");
-    run(app, "focus #query\ntype \"NEW\"");
-    int caret = caret(doc);
-    int anchor = doc.editor.anchor();
-    app.await(Duration.ofSeconds(10));
-    app.frame();
-    assertEquals(caret, caret(doc), "the jump's offsets were those of the text before");
-    assertEquals(anchor, doc.editor.anchor());
-  }
-
-  @Test
-  void aCountOnAnotherThreadForAnOlderTextIsReplaced() throws Exception {
-    Doc doc = new Doc("x \n".repeat(100_000));
-    App<Doc> app = app(doc);
-    run(
-        app,
-        "frame\nfocus #query\nkey F control\nframe\nadvance 0.25\nframe\n"
-            + "focus #find-field\ntype \"needle\"");
-    assertNotNull(doc.editor.find().work, "counting on another thread");
-    doc.text = "needle\n" + doc.text;
-    app.invalidate();
-    app.frame();
-    app.await(Duration.ofSeconds(10));
-    app.frame();
-    Find.State state = doc.editor.find();
-    assertEquals(doc.text, state.searched);
-    assertEquals(1, state.matches.count());
-    assertTrue(state.matches.complete());
-  }
-
-  @Test
   void controlGGoesToALineAndColumn() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);
@@ -467,6 +432,19 @@ class FindKeysTest {
     assertEquals("1 of 2", count(tree));
     run(app, "key Escape\nkey D control shift\nkey K control shift");
     assertEquals(TEXT, doc.text);
+  }
+
+  @Test
+  void theEditorsMenuAddsFindAndReplace() throws IOException {
+    Doc doc = new Doc("SELECT 1");
+    App<Doc> app = app(doc);
+    String tree = run(app, "frame\npress #query right\nframe\nadvance 1\nframe");
+    assertTrue(
+        tree.lines().anyMatch(l -> l.contains("role=menuitem") && l.contains("label=\"Replace\"")),
+        tree);
+    run(app, "press label=\"Replace\"");
+    assertTrue(doc.editor.find().isOpen(), "the find bar opened");
+    assertEquals("SELECT", doc.editor.find().query(), "with the word at the caret");
   }
 
   @Test

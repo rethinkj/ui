@@ -13,7 +13,7 @@
   <artifactId>rethinkj-ui-sql</artifactId>
 
   <name>rethinkj UI :: SQL</name>
-  <description>SQL for the code editor of rethinkj-ui-kit.</description>
+  <description>SQL for the code editor of rethinkj-ui-editor.</description>
 
   <dependencies>
     <dependency>

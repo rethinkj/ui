@@ -37,6 +37,11 @@
       <artifactId>rethinkj-ui-kit</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-editor</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- SQL for the query editors of the Workbench, the Showcase and the Manual. -->
     <dependency>
       <groupId>com.rethinkj.ui</groupId>

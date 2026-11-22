@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Find and replace in a multi-line text field, such as a {@link CodeEditor}, which has it from
+ * Find and replace in a multi-line text field, such as a code editor ({@code CodeEditor}), which has it from
  * the start, or a {@link TextField#textArea}: a bar along the top of the field with the text to
  * find, the number of matches, switches for case, whole words, regular expressions and the
  * selection, and below it the replacement; or a field for the line to go to.
@@ -83,7 +83,7 @@ public final class Find {
   /**
    * What the app keeps of a field's find bar, as a {@link Menu.State}: whether it is open and with
    * what, the switches, and the last search's matches. Keep one per field, such as one per tab;
-   * {@link CodeEditor.State#find()} holds one.
+   * a code editor's state holds one.
    */
   public static final class State {
     boolean open;
@@ -121,6 +121,7 @@ public final class Find {
     El replaceField; // while the replacement's row shows: Tab goes there from the field to find
     El lineField;
     App<?> app;
+    Predicate<Key> commands = k -> false;
     Texts texts = Texts.ENGLISH;
 
     /** Whether the bar shows. */
@@ -204,6 +205,27 @@ public final class Find {
   }
 
   /**
+   * Where {@code needle} next occurs in {@code text}, matching case: the first occurrence that
+   * starts at or after {@code from}, or else the first one before it, as {@code {start, end}}.
+   * This is how a code editor's Control+D goes from one occurrence of the selection to the next.
+   *
+   * @param wholeWord whether only an occurrence that is a whole word counts, a word being letters,
+   *     digits, {@code _} and {@code wordCharacters}
+   * @param wordCharacters the characters the field's language adds to a word, such as {@code "$"}
+   * @return the occurrence, or null if there is none or the search took longer than a frame
+   */
+  public static int[] next(
+      String text, String needle, boolean wholeWord, String wordCharacters, int from) {
+    Search.Query query = new Search.Query(needle, true, wholeWord, false, wordCharacters);
+    try {
+      return Search.next(
+          query.compile(), text, 0, text.length(), from, Search.deadline(SYNC_MILLIS));
+    } catch (Search.Stopped stopped) {
+      return null;
+    }
+  }
+
+  /**
    * Gives a multi-line field its find bar: the bar while {@code state} is open, the marks of the
    * matches and the keys that open it and go from match to match. The field's own handlers go on
    * as before: its keys, decorator and selection handler run after the bar's.
@@ -214,10 +236,23 @@ public final class Find {
    * @return the field
    */
   public static El find(App<?> app, El field, State state) {
+    return find(app, field, state, k -> false);
+  }
+
+  /**
+   * Gives a multi-line field with commands of its own its find bar, as {@link #find(App, El,
+   * State)} does. A key with a modifier that {@code commands} takes, such as a code editor's
+   * Control+D, does nothing while the focus is in the bar, so that it does not act on the field's
+   * text out of sight.
+   *
+   * @param commands whether a key is one of the field's commands
+   */
+  public static El find(App<?> app, El field, State state, Predicate<Key> commands) {
     Theme theme = Theme.CURRENT.get();
     String text = field.text().string();
-    // A view may make the field read-only after this call, as after CodeEditor's: the last build's
-    // field says so too, and the bar only shows after a handler that ran on that build.
+    state.commands = commands;
+    // A view may make the field read-only after this call, as after a code editor's: the last
+    // build's field says so too, and the bar only shows after a handler that ran on that build.
     boolean editable = field.onEdit() != null
         && !field.isReadOnly()
         && (state.field == null || !state.field.isReadOnly());
@@ -430,10 +465,8 @@ public final class Find {
     if (fieldKey(app, state, k)) {
       return true;
     }
-    // The editor's own commands act on the editor, not on the bar's fields; Control+Alt+L, which
-    // the editor takes only where it formats, stays the app's.
-    CodeEditor.Command command = CodeEditor.command(k);
-    return mods != 0 && command != null && command != CodeEditor.Command.FORMAT;
+    // The field's own commands act on the field, not on the bar's fields.
+    return mods != 0 && state.commands.test(k);
   }
 
   /** The query or a switch changed: the search starts again from where the bar opened. */

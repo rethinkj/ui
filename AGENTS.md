@@ -12,7 +12,7 @@ This file holds the rules for working on the repository, and nothing else. What 
 
 - Desktop only: Windows 11 or later and Linux. macOS, web and mobile are not targets.
 - Runs on an ordinary JRE. GraalVM native image is not a goal, but it has to stay possible. That means:
-  - `core`, `kit` and the language modules depend on `java.base` only. No `java.desktop`: no AWT, no ImageIO, no `java.awt.Font`.
+  - `core`, `kit`, `editor` and the language modules depend on `java.base` only. No `java.desktop`: no AWT, no ImageIO, no `java.awt.Font`.
   - No reflection, dynamic proxies or classes generated at run time, in this code or in anything it depends on at run time.
   - Native code is called through the Foreign Function & Memory API only, not JNI or JNA. Every native function's descriptor is a `static final` constant, so it can be registered for native image.
 - Rendering without a window must not need the native libraries: never call `Natives` from a static initializer that the headless path can reach.
@@ -23,6 +23,7 @@ This file holds the rules for working on the repository, and nothing else. What 
 | --- | --- | --- |
 | `core/` | `rethinkj-ui-core` | The framework itself, package `com.rethinkj.ui` |
 | `kit/` | `rethinkj-ui-kit` | Theme and components built on `core`, package `com.rethinkj.ui.kit` |
+| `editor/` | `rethinkj-ui-editor` | The code editor on `kit`, package `com.rethinkj.ui.editor` |
 | `languages/<language>/` | `rethinkj-ui-<language>` | A language for the code editor, such as `json` or `sql`, package `com.rethinkj.ui.<language>`; `languages/pom.xml` is their parent |
 | `diagram/` | `rethinkj-ui-diagram` | Optional diagrams on `kit`, such as a pannable, zoomable canvas, package `com.rethinkj.ui.diagram` |
 | `natives-<platform>/` | `rethinkj-ui-natives-<platform>` | SDL3, wgpu-native, FreeType and HarfBuzz for `windows-x64` and `linux-x64`; no Java code |
@@ -30,7 +31,7 @@ This file holds the rules for working on the repository, and nothing else. What 
 | `examples/` | not published | Runnable apps, written as a user of the library writes them |
 | `docs/` | not a Maven module | The documentation site, a Node project of its own |
 
-Dependencies point one way: `kit` depends on `core`, never the reverse. A language module and `diagram` depend on `kit`, never the reverse, and of the JDK on `java.base` only.
+Dependencies point one way: `kit` depends on `core`, never the reverse. `editor`, a language module and `diagram` depend on `kit`, never the reverse, and of the JDK on `java.base` only.
 
 ## Build
 

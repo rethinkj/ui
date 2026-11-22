@@ -497,7 +497,7 @@ public record Theme(
   }
 
   /**
-   * The colors of code in an editor ({@link CodeEditor} and the language modules' highlighters):
+   * The colors of code in an editor ({@code CodeEditor} and the language modules' highlighters):
    * text colors for the kinds of token, each 4.5:1 on the field's raised surface, also hovered and
    * on the caret's line, and translucent backgrounds laid over that surface.
    *
@@ -512,7 +512,7 @@ public record Theme(
    * @param current translucent, behind the current match of a find, stronger than {@code match}
    * @param occurrence translucent, behind the other occurrences of the word at the caret
    * @param block translucent, over the gutter's band on the lines of a block the app marks
-   *     ({@link CodeEditor.State#block}), such as the statement that would run, beside a line in
+   *     ({@code CodeEditor.State.block}), such as the statement that would run, beside a line in
    *     the accent's edge; it stays blue with another accent
    * @param guide the thin lines at each step of indentation in the white space that starts a line
    * @param property the names of an object's members, such as the keys of JSON

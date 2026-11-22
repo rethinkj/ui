@@ -1,4 +1,4 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.editor;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
@@ -13,6 +13,15 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextChange;
+import com.rethinkj.ui.kit.Callout;
+import com.rethinkj.ui.kit.Find;
+import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.TextField;
+import com.rethinkj.ui.kit.Texts;
+import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -613,18 +622,24 @@ public final class CodeEditor {
           open,
           List.of(
               Menu.separator(),
-              TextField.command(texts.find(), true, () -> Find.open(state.find), "F"),
-              TextField.command(texts.replace(), edits, () -> Find.openReplace(state.find), "H")));
+              Menu.item(texts.find(), () -> Find.open(state.find)).shortcut(Key.CONTROL, "F"),
+              Menu.item(texts.replace(), edits ? () -> Find.openReplace(state.find) : null)
+                  .shortcut(Key.CONTROL, "H")));
     });
-    return Find.find(app, editor, state.find);
+    // Control+Alt+L, which the editor takes only where it formats, stays the app's.
+    return Find.find(app, editor, state.find, k -> {
+      Command command = command(k);
+      return command != null && command != Command.FORMAT;
+    });
   }
 
   /**
    * Gives an editor of this class the look of the body of a framed card or panel, such as a {@link
-   * Card#flush} card under its {@link Card#toolbar}: as wide as the card, without corners or a
-   * frame of its own, and with a hairline along its top ({@link Theme.Borders#divider}) in place of
-   * a {@link Divider}, which takes the accent's edge color while the editor has the focus. The
-   * ring of the keyboard's focus lies just inside it, where the card clips it.
+   * com.rethinkj.ui.kit.Card#flush} card under its {@link com.rethinkj.ui.kit.Card#toolbar}: as
+   * wide as the card, without corners or a frame of its own, and with a hairline along its top
+   * ({@link Theme.Borders#divider}) in place of a {@link com.rethinkj.ui.kit.Divider}, which takes
+   * the accent's edge color while the editor has the focus. The ring of the keyboard's focus lies
+   * just inside it, where the card clips it.
    *
    * <pre>{@code
    * Card.flush(Card.toolbar("orders.sql", null, run),
@@ -845,7 +860,6 @@ public final class CodeEditor {
     }
     Texts texts = Texts.CURRENT.get();
     return Tooltip.panel(
-            theme,
             messages.isEmpty() ? (error ? texts.error() : texts.warning()) : messages.toString(),
             Tooltip.options()
                 .kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING)
@@ -1059,14 +1073,8 @@ public final class CodeEditor {
     } else {
       boolean ours = s == state.nextFrom && e == state.nextTo;
       state.nextWords = ours && state.nextWords;
-      Search.Query query = new Search.Query(
-          text.substring(s, e), true, state.nextWords, false, editor.text().wordCharacters());
-      try {
-        next = Search.next(
-            query.compile(), text, 0, text.length(), e, Search.deadline(Find.SYNC_MILLIS));
-      } catch (Search.Stopped stopped) {
-        return;
-      }
+      next =
+          Find.next(text, text.substring(s, e), state.nextWords, editor.text().wordCharacters(), e);
       if (next == null) {
         return;
       }

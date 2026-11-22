@@ -252,10 +252,19 @@ public final class TextField {
   }
 
   /**
-   * The menu of a field of this class, with {@code more} items after its own, until an item is
-   * chosen or it is dismissed.
+   * The menu of a field of this class, with {@code more} items after its own (Cut, Copy, Paste and
+   * Select all), until an item is chosen or it is dismissed; for a field's own menu ({@link
+   * El#fieldMenu}) with items of the app's, such as Find.
+   *
+   * <pre>{@code
+   * field.fieldMenu((f, open) -> TextField.menu(f, open, List.of(
+   *     Menu.separator(),
+   *     Menu.item("Find", () -> Find.open(state.find)).shortcut(Key.CONTROL, "F"))));
+   * }</pre>
+   *
+   * @return the menu, or null once it is closed
    */
-  static El menu(El field, FieldMenu.Open open, List<Menu.Item> more) {
+  public static El menu(El field, FieldMenu.Open open, List<Menu.Item> more) {
     Menu.State state = open.state(() -> {
       Menu.State opened = new Menu.State();
       opened.open();

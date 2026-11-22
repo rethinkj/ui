@@ -1,7 +1,7 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.editor;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
+import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +12,9 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Completion;
+import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -103,21 +106,6 @@ class CompletionTest {
   private String run(App<Query> app, String script) throws IOException {
     Script.run("size 420 220\n" + script + "\nframe\nadvance 0.25\nframe\nsnap s", app, out);
     return java.nio.file.Files.readString(out.resolve("s.tree.txt"));
-  }
-
-  @Test
-  void editsKeepTheListOpenOnlyWithinACodeWord() {
-    Completion.State state = new Completion.State();
-    state.open();
-    Completion.follow(state, "SELECT cu", "SELECT cu,");
-    assertFalse(state.isOpen(), "a character that is no word's ends it");
-    state.open();
-    Completion.follow(state, "SELECT cus", "SELECT cu");
-    assertTrue(state.isOpen(), "deleting within the word keeps it");
-    Completion.follow(state, "SELECT c", "SELECT ");
-    assertFalse(state.isOpen(), "the word gone, it closes");
-    Completion.follow(state, "SELECT ", "SELECT customers");
-    assertFalse(state.isOpen(), "a paste opens nothing");
   }
 
   @Test
@@ -321,7 +309,7 @@ class CompletionTest {
     App<Query> app = app(word -> entries); // The provider decides what matches and in what order.
     String tree = run(app, "frame\npress #query\ntype \"SELECT z\"\nframe\ntype \"z\"");
     assertTrue(tree.contains("role=listbox"), tree);
-    assertEquals("item_10000", ComboBoxTest.options(tree).getFirst());
+    assertEquals("item_10000", options(tree).getFirst());
     assertTrue(built.cardinality() > 0);
     assertTrue(
         built.cardinality() <= Completion.ROWS + 2 * El.OVERSCAN + 2,
@@ -330,19 +318,19 @@ class CompletionTest {
 
     tree = run(app, "key ArrowUp");
     assertEquals(count - 1, app.state().completion.highlight(), "Up wraps to the last entry");
-    assertTrue(ComboBoxTest.line(tree, "#option-9999").contains(" selected"), tree);
+    assertTrue(line(tree, "#option-9999").contains(" selected"), tree);
     assertTrue(tree.contains("label=\"item_1\""), tree);
 
     tree = run(app, "key PageUp");
     assertEquals(count - 1 - Completion.ROWS, app.state().completion.highlight());
-    assertTrue(ComboBoxTest.line(tree, "#option-9991").contains(" selected"), tree);
+    assertTrue(line(tree, "#option-9991").contains(" selected"), tree);
     run(app, "key PageDown");
     assertEquals(count - 1, app.state().completion.highlight(), "Page Down stops at the end");
     run(app, "key ArrowDown");
     assertEquals(0, app.state().completion.highlight(), "Down wraps to the first entry");
     tree = run(app, "key PageDown");
     assertEquals(Completion.ROWS, app.state().completion.highlight());
-    assertTrue(ComboBoxTest.line(tree, "#option-8").contains(" selected"), tree);
+    assertTrue(line(tree, "#option-8").contains(" selected"), tree);
 
     tree = run(app, "key Tab");
     assertEquals("SELECT item_9992", app.state().sql);
@@ -543,5 +531,18 @@ class CompletionTest {
       app.frame();
       assertEquals("SELECT select", rows.sql, "plain " + plain + ": not status for st");
     }
+  }
+
+  /** The options of the open list, each its label. */
+  private static List<String> options(String tree) {
+    return tree.lines()
+        .filter(l -> l.contains("role=option label=\""))
+        .map(l -> l.substring(l.indexOf("label=\"") + 7, l.indexOf('"', l.indexOf("label=\"") + 7)))
+        .toList();
+  }
+
+  /** The line of the element with this key. */
+  private static String line(String tree, String key) {
+    return tree.lines().filter(l -> l.contains(key + " ")).findFirst().orElse("");
   }
 }

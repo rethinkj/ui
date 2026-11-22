@@ -1,7 +1,7 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.editor;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
+import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

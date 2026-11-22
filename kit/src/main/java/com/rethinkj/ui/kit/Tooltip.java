@@ -202,6 +202,14 @@ public final class Tooltip {
     return panel(theme, text, options());
   }
 
+  /**
+   * The tooltip's panel alone, for a view that decides itself where and when it shows, such as
+   * a message at the caret ({@link El#atCaret}) as an overlay of a field.
+   */
+  public static El panel(String text, Options options) {
+    return panel(Theme.CURRENT.get(), text, options);
+  }
+
   /** As {@link #panel(Theme, String)}, with a shortcut, a description, a kind or another side. */
   static El panel(Theme theme, String text, Options options) {
     return panel(theme, text(theme, text), text, options);

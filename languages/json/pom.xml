@@ -13,7 +13,7 @@
   <artifactId>rethinkj-ui-json</artifactId>
 
   <name>rethinkj UI :: JSON</name>
-  <description>JSON for the code editor of rethinkj-ui-kit.</description>
+  <description>JSON for the code editor of rethinkj-ui-editor.</description>
 
   <dependencies>
     <dependency>

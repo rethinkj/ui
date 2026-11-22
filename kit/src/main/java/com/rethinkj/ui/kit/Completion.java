@@ -20,8 +20,8 @@ import java.util.function.Function;
 
 /**
  * Completions at the caret of a text field, such as the keywords and table names of SQL in a
- * {@link CodeEditor}: a list below the caret ({@link El#atCaret}) of what the app suggests for the
- * word before it. The list opens as a word is typed, from its second character, after a character
+ * code editor ({@code CodeEditor}): a list below the caret ({@link El#atCaret}) of what the app
+ * suggests for the word before it. The list opens as a word is typed, from its second character, after a character
  * the state names ({@link State#openAfter}, such as the {@code .} before a column), and with
  * Control+Space; it narrows as typing goes on and closes when the word ends. The focus stays in the
  * field ({@link El#keepFocus}): Up and Down move the highlight, Enter and Tab put the highlighted
@@ -55,7 +55,7 @@ public final class Completion {
   private Completion() {}
 
   /** The most entries the list shows at once; more scroll. */
-  static final int ROWS = 8;
+  public static final int ROWS = 8;
 
   /**
    * An entry: the text the list shows, an icon before it or null, what kind of thing it is, shown
@@ -162,7 +162,7 @@ public final class Completion {
    * handler.
    *
    * @param app the app the field is in, which puts an entry in place ({@link App#edit})
-   * @param field an {@link El#editable} field, such as a {@link CodeEditor}
+   * @param field an {@link El#editable} field, such as a code editor
    * @param caret where the field's caret is, as its {@link El#onSelect} handler told the app
    * @param suggest the entries for the part of the word before the caret, called on the app's
    *     thread on every build while the list is open, but not while an edit of the field waits for

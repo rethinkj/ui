@@ -6,7 +6,6 @@ import static com.rethinkj.ui.kit.TextField.textArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -21,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The menu of the kit's text fields: Cut, Copy, Paste and Select all, and the code editor's. */
+/** The menu of the kit's text fields: Cut, Copy, Paste and Select all. */
 class FieldMenuTest {
 
   @TempDir
@@ -36,8 +35,6 @@ class FieldMenuTest {
     String name = "hello world";
     String notes = "one\ntwo";
     String password = "hunter2";
-    String sql = "SELECT 1";
-    final CodeEditor.State editor = new CodeEditor.State();
     final Menu.State own = new Menu.State();
     String chosen = "";
     App<Form> app;
@@ -113,18 +110,6 @@ class FieldMenuTest {
     assertEquals("Cut-, Copy, Paste-, Select all", items(app));
     run(app, "press label=\"Copy\"");
     assertEquals("one\ntwo", app.clipboard().read());
-  }
-
-  @Test
-  void theCodeEditorsMenuAddsFindAndReplace() throws IOException {
-    App<Form> app = app(s -> CodeEditor.codeEditor(s.app, s.sql, s.editor, null, v -> s.sql = v)
-        .key("sql")
-        .wFull());
-    run(app, "press #sql right\nopen");
-    assertEquals("Cut-, Copy-, Paste-, Select all, Find, Replace", items(app));
-    run(app, "press label=\"Replace\"");
-    assertTrue(app.state().editor.find().isOpen(), "the find bar opened");
-    assertEquals("SELECT", app.state().editor.find().query(), "with the word at the caret");
   }
 
   @Test

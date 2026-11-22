@@ -1,4 +1,4 @@
-package com.rethinkj.ui.kit;
+package com.rethinkj.ui.editor;
 
 /**
  * The line commands of {@link CodeEditor}, as edits of a text with line feeds: each replaces one

@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
-import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;

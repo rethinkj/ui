@@ -31,6 +31,8 @@ Set `kind` in `Tooltip.options()` to style the tooltip with a [Callout](/docs/co
 
 <Shot src="examples/docs/tooltip-kind/shown-{theme}" alt="A field with an invalid pattern and a tooltip below it on a red tint with an error icon: Unclosed group near index 6" />
 
+To show the panel yourself, without hover or focus, such as a message at the text cursor, add `Tooltip.panel(text, options)` as an overlay of the element. The code editor shows the diagnostic at the cursor this way.
+
 ## Custom content
 
 Pass a supplier `Tooltip.tooltip(anchor, () -> element)` to render rich non-interactive content (such as a short [Markdown](/docs/components/markdown) preview). Give the content an explicit size:

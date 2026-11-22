@@ -1,14 +1,14 @@
 package com.rethinkj.ui.sql;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
+import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.kit.Card;
-import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
