@@ -20,8 +20,8 @@ import java.util.Objects;
  *       braces, a TSDoc-style {@code Name - description} uses {@code Name}, and plain prose uses
  *       an empty name so the prose stays the description.
  *   <li>{@code @see}: each entry parsed as Markdown with inline links expanded.
- *   <li>{@code @deprecated}: bare {@code @deprecated} yields a non-null empty {@link
- *       MarkdownDocument}; absent yields {@code null}.
+ *   <li>The deprecation tag without text yields a non-null empty {@link MarkdownDocument}; no
+ *       such tag yields {@code null}.
  *   <li>{@code @example}: appended to the body as a fenced code block tagged with the language
  *       ({@code javascript} or {@code typescript}), unless the example already starts with a fence.
  *       An optional leading {@code <caption>...</caption>} becomes a line above the fence.
@@ -631,10 +631,8 @@ final class JsDoc {
         i++;
       } else if (c == '{') {
         depth++;
-      } else if (c == '}') {
-        if (--depth == 0) {
-          return i;
-        }
+      } else if (c == '}' && --depth == 0) {
+        return i;
       }
     }
     return -1;
@@ -648,10 +646,8 @@ final class JsDoc {
         i++;
       } else if (c == '[') {
         depth++;
-      } else if (c == ']') {
-        if (--depth == 0) {
-          return i;
-        }
+      } else if (c == ']' && --depth == 0) {
+        return i;
       }
     }
     return -1;

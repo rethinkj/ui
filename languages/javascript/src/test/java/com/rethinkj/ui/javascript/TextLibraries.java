@@ -1,6 +1,5 @@
 package com.rethinkj.ui.javascript;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.text.Font;
@@ -12,7 +11,7 @@ final class TextLibraries {
 
   static void assumeLoaded() {
     try {
-      assertTrue(Font.sans() != null);
+      Font.sans();
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
     }
