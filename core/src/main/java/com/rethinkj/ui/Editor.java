@@ -73,6 +73,10 @@ final class Editor {
   private long revision; // the revision of doc this view's text, caret and lines match; -1 when new
   private int caret;
   private int anchor;
+  // The caret's stop among inline hints at its offset ({@link El#hints}), for as long as it stays
+  // at stopAt; the default stop anywhere else.
+  private Text.HintStop caretStop = Text.HintStop.DEFAULT;
+  private int stopAt = -1;
   private Lines lines; // of text, in a multi-line field; null otherwise
   private Lines.Budget highlightBudget;
   private String composition = "";
@@ -752,20 +756,26 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word
-            ? visibleWordStart()
-            : caret != anchor && !shift ? visibleBackward(start()) : visiblePrevious(caret);
-        moveTo(to, shift);
+        if (word) {
+          moveTo(visibleWordStart(), shift);
+        } else if (caret != anchor && !shift) {
+          moveTo(visibleBackward(start()), false);
+        } else {
+          stepLeft(shift);
+        }
         return true;
       }
       case "ArrowRight" -> {
         if (!plain) {
           return false;
         }
-        int to = word
-            ? visibleWordEnd()
-            : caret != anchor && !shift ? visibleForward(end()) : visibleNext(caret);
-        moveTo(to, shift);
+        if (word) {
+          moveTo(visibleWordEnd(), shift);
+        } else if (caret != anchor && !shift) {
+          moveTo(visibleForward(end()), false);
+        } else {
+          stepRight(shift);
+        }
         return true;
       }
       case "Home" -> {
@@ -866,7 +876,7 @@ final class Editor {
         boolean page = name.startsWith("Page");
         int direction = name.endsWith("Up") ? -1 : 1;
         int rows = page ? t.visibleRows() : 1;
-        float x = Float.isNaN(goal) ? t.x(caret) : goal;
+        float x = Float.isNaN(goal) ? t.x(caret, stop()) : goal;
         int to = text.isEmpty()
             ? 0
             : page && lines != null && lines.hasBlocks()
@@ -1351,10 +1361,75 @@ final class Editor {
     if (!extend) {
       anchor = to;
     }
+    stopAt = -1;
     doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
     reveal = true;
+  }
+
+  /** The caret's stop among inline hints at its offset: the default stop unless one was set. */
+  private Text.HintStop stop() {
+    return composition.isEmpty() && caret == stopAt ? caretStop : Text.HintStop.DEFAULT;
+  }
+
+  /** Puts the caret on {@code stop} at its offset. */
+  private void stopOn(Text.HintStop stop) {
+    caretStop = stop;
+    stopAt = stop == Text.HintStop.DEFAULT ? -1 : caret;
+  }
+
+  /** Moves to {@code stop} at the caret's offset, as a step of the caret. */
+  private void stepTo(Text.HintStop stop) {
+    stopOn(stop);
+    doc.clearRun(this);
+    goal = Float.NaN;
+    changed = true;
+    reveal = true;
+  }
+
+  /** Steps one grapheme left, or to the previous stop at an offset with inline hints. */
+  private void stepLeft(boolean extend) {
+    Text t = el.text();
+    if (!t.multiline() || !t.hasHints()) {
+      moveTo(visiblePrevious(caret), extend);
+      return;
+    }
+    Text.HintStop stop = stop();
+    float before = t.beforeGap(caret);
+    if (stop == Text.HintStop.RIGHT && t.afterGap(caret) > 0) {
+      stepTo(Text.HintStop.DEFAULT);
+    } else if (stop != Text.HintStop.LEFT && before > 0) {
+      stepTo(Text.HintStop.LEFT);
+    } else {
+      int to = visiblePrevious(caret);
+      boolean moved = to != caret;
+      moveTo(to, extend);
+      // Arriving from the right, the caret stops right of the hints first.
+      stopOn(!moved ? stop : t.afterGap(to) > 0 ? Text.HintStop.RIGHT : Text.HintStop.DEFAULT);
+    }
+  }
+
+  /** Steps one grapheme right, or to the next stop at an offset with inline hints. */
+  private void stepRight(boolean extend) {
+    Text t = el.text();
+    if (!t.multiline() || !t.hasHints()) {
+      moveTo(visibleNext(caret), extend);
+      return;
+    }
+    Text.HintStop stop = stop();
+    float after = t.afterGap(caret);
+    if (stop == Text.HintStop.LEFT && t.beforeGap(caret) > 0) {
+      stepTo(Text.HintStop.DEFAULT);
+    } else if (stop != Text.HintStop.RIGHT && after > 0) {
+      stepTo(Text.HintStop.RIGHT);
+    } else {
+      int to = visibleNext(caret);
+      boolean moved = to != caret;
+      moveTo(to, extend);
+      // Arriving from the left, the caret stops left of the hints first.
+      stopOn(!moved ? stop : t.beforeGap(to) > 0 ? Text.HintStop.LEFT : Text.HintStop.DEFAULT);
+    }
   }
 
   // ---- The pointer
@@ -1366,6 +1441,11 @@ final class Editor {
    * anchor.
    */
   void press(int boundary, int hit, int clicks, boolean extend) {
+    press(boundary, Text.HintStop.DEFAULT, hit, clicks, extend);
+  }
+
+  /** {@link #press(int, int, int, boolean)}, with the caret on {@code stop} at {@code boundary}. */
+  void press(int boundary, Text.HintStop stop, int hit, int clicks, boolean extend) {
     composition = "";
     doc.clearRun(this);
     goal = Float.NaN;
@@ -1374,6 +1454,7 @@ final class Editor {
     if (extend) {
       unit = 1;
       caret = boundary;
+      stopOn(stop);
       return;
     }
     boolean multi = multiline();
@@ -1388,6 +1469,7 @@ final class Editor {
     pressTo = range[1];
     anchor = pressFrom;
     caret = pressTo;
+    stopOn(unit == 1 ? stop : Text.HintStop.DEFAULT);
   }
 
   /** The pointer moved while it is down after a {@link #press}: the selection follows it. */
@@ -1629,7 +1711,8 @@ final class Editor {
       underline = new Text.Box(from - viewX, y, to - from, caretWidth);
     }
     Text.Box box = showsCaret(focused) && t.shownIndex().shownCount() > 0
-        ? new Text.Box(t.x(shownCaret) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
+        ? new Text.Box(
+            t.x(shownCaret, stop()) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
         : null;
     t.decorate(viewX, selection, box, underline, blockSelection);
     t.showCaret(caretOn);
@@ -1637,6 +1720,7 @@ final class Editor {
     el.placeGutter(lines().line(Math.min(caret, text.length())));
     el.placeLineEnds();
     el.placeBlocks();
+    el.placeHints();
   }
 
   /**
@@ -1650,7 +1734,7 @@ final class Editor {
   private boolean scrollToCaret(
       Text t, int shownCaret, double covered, float caretWidth, Boolean byLast) {
     float scale = t.scale();
-    float x = t.x(shownCaret);
+    float x = t.x(shownCaret, stop());
     // The first row and the last to show: the selection, to its last character, before a wrap
     // that it ends at.
     int first = covered > 0 ? start() : shownCaret;
@@ -1690,7 +1774,7 @@ final class Editor {
   float caretOffset() {
     Text t = el.text();
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
-    return (t.x(shownCaret) - t.scroll()) / t.scale();
+    return (t.x(shownCaret, stop()) - t.scroll()) / t.scale();
   }
 
   /**

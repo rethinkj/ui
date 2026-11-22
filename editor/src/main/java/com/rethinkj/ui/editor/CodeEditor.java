@@ -160,10 +160,10 @@ public final class CodeEditor {
 
   /**
    * Something shown on the code of a {@link State#markup markup layer}: a {@link Diagnostic}, a
-   * gutter {@link Marker}, a {@link Highlight} behind a range of characters, or a version control
-   * {@link Change} bar.
+   * gutter {@link Marker}, a {@link Highlight} behind a range of characters, a version control
+   * {@link Change} bar, or an inline {@link InlayHint} inside a line.
    */
-  public sealed interface Mark permits Diagnostic, Marker, Highlight, Change {}
+  public sealed interface Mark permits Diagnostic, Marker, Highlight, Change, InlayHint {}
 
   /**
    * A quick fix for a {@link Diagnostic}: replaces characters {@code from} to {@code to} by {@code
@@ -258,6 +258,26 @@ public final class CodeEditor {
         throw new IllegalArgumentException(
             "from must be 0 or more and to at least from, were " + from + " and " + to);
       }
+    }
+  }
+
+  /**
+   * An inline hint shown inside a line at position {@code at} of the string ({@link El#hints}),
+   * such as a parameter name before an argument ({@link El.Hint.Affinity#AFTER}) or an inferred
+   * type after a variable name ({@link El.Hint.Affinity#BEFORE}). Hints are not part of the
+   * string: the caret stops on both sides of them and copy ignores them. When moved across edits
+   * in a {@link State#markup markup layer}, an {@link El.Hint.Affinity#AFTER} hint moves with the
+   * text after it (text inserted at {@code at} lands before it), a {@link
+   * El.Hint.Affinity#BEFORE} hint moves with the text before it (text inserted at {@code at} lands
+   * after it), and either is dropped if text is replaced across {@code at}.
+   */
+  public record InlayHint(int at, El.Hint.Affinity affinity, String text) implements Mark {
+    public InlayHint {
+      if (at < 0) {
+        throw new IllegalArgumentException("inlay hint offset must be 0 or more, was " + at);
+      }
+      Objects.requireNonNull(affinity, "affinity");
+      Objects.requireNonNull(text, "text");
     }
   }
 
@@ -647,21 +667,23 @@ public final class CodeEditor {
 
     /**
      * Sets the marks of layer {@code layer} (one layer per provider, such as {@code "analysis"},
-     * {@code "vcs"}, {@code "references"} or {@code "app"}), in place of that layer's marks before,
-     * computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles,
+     * {@code "vcs"}, {@code "references"}, {@code "hints"} or {@code "app"}), in place of that layer's
+     * marks before, computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles,
      * show in the gutter's first icon slot, mark the scrollbar and take part in F8/Shift+F8,
      * {@link Marker}s show side by side in the gutter's icon lane (layers in order, then {@link
      * #markers}), {@link Highlight}s draw a background in {@code code().occurrence()}, and {@link
-     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar.
+     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar, and {@link InlayHint}s show inline inside their lines.
      *
      * <p>{@code text} is the revision the marks were computed for and may be older than the
      * editor's current value. The marks move with each change of the value, each edit of a bulk
      * change such as Replace All or a format on its own, and the originals show again when the
      * value is {@code text} again, as after an undo: a range {@code [from, to)} does not grow at
      * its ends (text inserted at {@code from} lands before it, at {@code to} after it), a point
-     * ({@code from == to}, and a {@link Marker}'s {@code at}) moves with the text after it (text
-     * inserted at it lands before it), and a range whose characters are deleted or replaced or
-     * that gets text inserted strictly inside, or a point inside replaced text, is dropped.
+     * ({@code from == to}, a {@link Marker}'s {@code at}, and an {@link El.Hint.Affinity#AFTER}
+     * {@link InlayHint}) moves with the text after it (text inserted at it lands before it), a
+     * {@link El.Hint.Affinity#BEFORE} {@link InlayHint} moves with the text before it (text
+     * inserted at it lands after it), and a range whose characters are deleted or replaced or that
+     * gets text inserted strictly inside, or a point inside replaced text, is dropped.
      */
     public State markup(String layer, String text, List<? extends Mark> marks) {
       Objects.requireNonNull(layer, "layer");
@@ -1075,7 +1097,8 @@ public final class CodeEditor {
         List<Marker> markers,
         List<Highlight> highlights,
         List<Highlight> usageHighlights,
-        List<Change> changes) {}
+        List<Change> changes,
+        List<InlayHint> hints) {}
 
     private static final class Layer {
       final String text;
@@ -1139,6 +1162,12 @@ public final class CodeEditor {
           int from = edits.mapRange(c.from(), c.to());
           yield from < 0 ? null : new Change(from, from + Math.max(0, c.to() - c.from()), c.kind());
         }
+        case InlayHint h -> {
+          int at = h.affinity() == El.Hint.Affinity.BEFORE
+              ? edits.mapPointBefore(h.at())
+              : edits.mapPoint(h.at());
+          yield at < 0 ? null : new InlayHint(at, h.affinity(), h.text());
+        }
       };
     }
 
@@ -1154,7 +1183,7 @@ public final class CodeEditor {
         problemOf = null;
       }
       if (layers.isEmpty() && problem == null) {
-        return new Marks(List.of(), List.of(), markers, List.of(), List.of(), List.of());
+        return new Marks(List.of(), List.of(), markers, List.of(), List.of(), List.of(), List.of());
       }
       List<Diagnostic> diagnostics = new ArrayList<>();
       List<Diagnostic> current = new ArrayList<>();
@@ -1162,6 +1191,7 @@ public final class CodeEditor {
       List<Highlight> highlights = new ArrayList<>();
       List<Highlight> usageHighlights = new ArrayList<>();
       List<Change> changes = new ArrayList<>();
+      List<InlayHint> hints = new ArrayList<>();
       for (Map.Entry<String, Layer> entry : layers.entrySet()) {
         boolean isUsages = USAGES_LAYER.equals(entry.getKey());
         Layer layer = entry.getValue();
@@ -1182,6 +1212,7 @@ public final class CodeEditor {
               }
             }
             case Change c -> changes.add(c);
+            case InlayHint h -> hints.add(h);
           }
         }
       }
@@ -1190,7 +1221,8 @@ public final class CodeEditor {
         String message = Texts.CURRENT.get().formatProblem(problem.kind());
         diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
-      return new Marks(diagnostics, current, allMarkers, highlights, usageHighlights, changes);
+      return new Marks(
+          diagnostics, current, allMarkers, highlights, usageHighlights, changes, hints);
     }
   }
 
@@ -1282,6 +1314,14 @@ public final class CodeEditor {
     List<Highlight> usageHighlights = marks.usageHighlights();
     List<Change> changes = marks.changes();
     int markerSlots = maxMarkersPerLine(state.builtText, markers);
+    List<InlayHint> inlayHints = marks.hints();
+    if (!inlayHints.isEmpty()) {
+      List<El.Hint> fieldHints = new ArrayList<>(inlayHints.size());
+      for (InlayHint hint : inlayHints) {
+        fieldHints.add(new El.Hint(hint.at(), hint.affinity(), hint.text()));
+      }
+      editor.hints(fieldHints, hint -> inlayHint(theme, hint));
+    }
     boolean editable = app != null && editor.onEdit() != null && !editor.isReadOnly();
     List<Fix> fixes = editable ? fixesAt(currentDiagnostics, state.caret) : List.of();
     boolean fixError = !fixes.isEmpty() && fixError(currentDiagnostics, state.caret);
@@ -1847,6 +1887,23 @@ public final class CodeEditor {
         .border(theme.size().stroke(), theme.border().subtle())
         .whenHovered(e -> e.fill(hover))
         .child(Icon.icon(Symbol.MORE_HORIZONTAL, Icon.Variant.MUTED, size));
+  }
+
+  /** The subtle rounded pill of an inline hint, in the code font a bit smaller and muted. */
+  private static El inlayHint(Theme theme, El.Hint hint) {
+    Theme.TextStyle mono = theme.type().mono();
+    float size = Math.max(theme.size().stroke(), mono.size() - theme.size().stroke());
+    float xs = theme.space().xs();
+    return El.row()
+        .align(Style.Align.CENTER)
+        .padding(0, theme.space().s())
+        .margin(0, xs, 0, xs)
+        .radius(theme.radius().small())
+        .fill(theme.code().bracket())
+        .child(El.text(hint.text())
+            .font(mono.font().get())
+            .fontSize(size)
+            .color(theme.text().muted()));
   }
 
   /**

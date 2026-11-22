@@ -1,0 +1,11 @@
+el 0,0 540x80
+  text #code role=textbox label="Source" "var files = scan(root, true);\nvar count = files.size();" 12,12 516x56 lines 1-2/2 focused caret 0 (1:1)
+    text #end-0 "ctx:ok" 475.75,20.5 32x14
+    el #hint-9 label=": List<Path>" 90.75,20 88x15
+      text ": List<Path>" 94.75,20 80x15
+    el #hint-17 label="folder:" 244.75,20 54x15
+      text "folder:" 248.75,20 46x15
+    el #hint-23 label="recursive:" 349.25,20 74x15
+      text "recursive:" 353.25,20 66x15
+    el #hint-39 label=": int" 90.75,37 41x15
+      text ": int" 94.75,37 33x15

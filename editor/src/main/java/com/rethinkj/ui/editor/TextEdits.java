@@ -99,6 +99,28 @@ final class TextEdits {
     return mapRange(at, at);
   }
 
+  /**
+   * Maps a point {@code at}, moving with the text before it (text inserted at {@code at} lands
+   * after it), or returns {@code -1} if characters are replaced on both sides of it.
+   */
+  int mapPointBefore(int at) {
+    int lo = 0;
+    int hi = count;
+    while (lo < hi) {
+      int mid = (lo + hi) >>> 1;
+      if (oldTo[mid] < at || (oldTo[mid] == at && oldFrom[mid] < at)) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo < count && oldFrom[lo] < at) {
+      return -1;
+    }
+    int shift = lo == 0 ? 0 : newTo[lo - 1] - oldTo[lo - 1];
+    return at + shift;
+  }
+
   private static TextEdits single(int oldFrom, int oldTo, int newFrom, int newTo) {
     return new TextEdits(
         new int[] {oldFrom}, new int[] {oldTo}, new int[] {newFrom}, new int[] {newTo}, 1);

@@ -159,12 +159,95 @@ public final class GlyphRun {
   }
 
   /**
+   * This run with inline gaps reserved at character positions, for {@link
+   * com.rethinkj.ui.El#hints inline hints}: {@code positions} holds strictly increasing UTF-16
+   * indexes in {@code 0..textLength}, {@code before[i]} is the width in physical pixels belonging
+   * to the text before {@code positions[i]}, and {@code after[i]} is the width belonging to the
+   * text after it.
+   *
+   * <p>{@code before} widths are added to the advance of the last glyph before the position;
+   * {@code after} widths are added to both {@code dx} and the advance of the first glyph at the
+   * position. A gap at 0 behaves as {@code after}, a gap at {@code textLength} behaves as {@code
+   * before}, and a gap inside a multi-character cluster (a ligature or a right-to-left run) moves
+   * to that cluster's start. Returns this run unchanged when it has no glyphs or {@code positions}
+   * is empty.
+   */
+  public GlyphRun withGaps(int textLength, int[] positions, float[] before, float[] after) {
+    int n = glyphs.length;
+    if (n == 0 || positions.length == 0) {
+      return this;
+    }
+    float[] beforeAtGlyph = new float[n + 1];
+    float[] afterAtGlyph = new float[n];
+    int g = 0;
+    for (int k = 0; k < positions.length; k++) {
+      int pos = positions[k];
+      float b = before[k];
+      float a = after[k];
+      if (b <= 0 && a <= 0) {
+        continue;
+      }
+      int target;
+      if (pos <= 0) {
+        target = 0;
+      } else if (pos >= textLength) {
+        target = n;
+      } else {
+        while (g < n && clusters[g] < pos) {
+          g++;
+        }
+        if (g < n && clusters[g] == pos) {
+          target = g;
+        } else if (g == 0) {
+          target = 0;
+        } else {
+          int c = clusters[g - 1];
+          target = g - 1;
+          while (target > 0 && clusters[target - 1] == c) {
+            target--;
+          }
+        }
+      }
+      if (target == 0) {
+        afterAtGlyph[0] += b + a;
+      } else if (target == n) {
+        beforeAtGlyph[n] += b + a;
+      } else {
+        beforeAtGlyph[target] += b;
+        afterAtGlyph[target] += a;
+      }
+    }
+    float[] movedPen = new float[n + 1];
+    float[] movedDx = dx.clone();
+    float shift = 0;
+    for (int i = 0; i < n; i++) {
+      shift += beforeAtGlyph[i];
+      movedPen[i] = pen[i] + shift;
+      if (afterAtGlyph[i] > 0) {
+        movedDx[i] += afterAtGlyph[i];
+        shift += afterAtGlyph[i];
+      }
+    }
+    shift += beforeAtGlyph[n];
+    movedPen[n] = pen[n] + shift;
+    return new GlyphRun(font, pixelSize, glyphs, clusters, movedPen, movedDx, dy, fonts);
+  }
+
+  /**
    * This run with tab stops, which shaping knows nothing of: the first glyph of each character
    * whose index is in {@code tabs}, in increasing order, advances to the next multiple of {@code
    * stop} from the start of the pen, and the glyphs after it move along. The string is shaped with
    * a space in place of each tab, so that each tab has a glyph that draws nothing.
    */
   public GlyphRun tabbed(int[] tabs, float stop) {
+    return tabbed(tabs, stop, null, null);
+  }
+
+  /**
+   * Like {@link #tabbed(int[], float)}, keeping the inline gaps of {@link #withGaps}: {@code
+   * leading[i]} sits before tab {@code i} and {@code trailing[i]} right after it, or null for none.
+   */
+  public GlyphRun tabbed(int[] tabs, float stop, float[] leading, float[] trailing) {
     int n = glyphs.length;
     float[] moved = new float[n + 1];
     float shift = 0;
@@ -175,8 +258,10 @@ public final class GlyphRun {
         t++; // a tab inside a cluster of right-to-left text, which has no glyph of its own
       }
       if (t < tabs.length && tabs[t] == clusters[i] && (i == 0 || clusters[i - 1] != clusters[i])) {
-        float next = (float) ((Math.floor(moved[i] / stop) + 1) * stop);
-        shift += next - moved[i] - (pen[i + 1] - pen[i]);
+        float tabStart = moved[i] + (leading == null ? 0 : leading[t]);
+        float next = (float) ((Math.floor(tabStart / stop) + 1) * stop);
+        float afterTab = trailing == null ? 0 : trailing[t];
+        shift += (next + afterTab) - moved[i] - (pen[i + 1] - pen[i]);
         t++;
       }
     }

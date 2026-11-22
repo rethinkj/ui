@@ -57,6 +57,7 @@ To let two multi-line fields scroll together, give each a `ScrollState` and call
 | `onTextPointerMove(handler)` | Multi-line only: calls `(position, modifiers)` when the character under the pointer or the held modifier keys change (`-1` when outside text, over a block band, past a line's end, or on a scrollbar) |
 | `onTextHoverFor(seconds, handler)` | Multi-line only: calls `(position, modifiers)` once after the pointer rests on a character for `seconds` (suppressed after a press until moving) |
 | `lineEnds(line -> elements)` | Multi-line only: places elements after the end of lines in view, such as inline blame or a diagnostic's message |
+| `hints(hints, hint)` | Multi-line only: places inline hint elements (`El.Hint(at, affinity, text)`) inside lines, reserving width during shaping and wrapping |
 | `coveredTop(height)` | Multi-line only: tells the field that something (such as a find bar) covers its top `height`. The field can scroll that far above its first line (where the scrollbar thumb sits at the top), and `app.select` scrolls selections into view below it |
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, `onSelect`, and `textPositionAt(x, y)` to query the character offset at an element-local point). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
@@ -96,6 +97,19 @@ Pass `lineEnds(IntFunction<List<El>>)` on a multi-line field to place elements a
 - In tree dumps an element is keyed `end-<line>` (and `end-<line>-<n>` for the `n`-th further element on the line) unless it sets a key.
 - A press on a line-end element runs its own press handler and does not move the caret or the focus; nothing in one takes the focus.
 - Line-end elements do not widen the field or its scroll range: one that reaches past the content box is cut off at its edge.
+
+## Inline inlay hints
+
+Pass `hints(List<El.Hint>, Function<El.Hint, El>)` on a multi-line field to place inline elements inside a line without turning them into editable text — such as parameter names (`folder:`) or inferred types (`: List<Path>`). Each `El.Hint(at, affinity, text)` takes a UTF-16 offset into the field's string, an `El.Hint.Affinity` (`BEFORE` belongs to the text before `at`, `AFTER` belongs to the text after `at`), and the hint text.
+
+```java snippet="inlay-hints"
+```
+
+- Your app owns the hint list and keeps its offsets current with the field's string; core keeps no hint state of its own.
+- Hint widths are reserved during shaping and wrapping (applied before tab stops so tabs stay on the grid). Elements are placed only for rows in view, vertically centered in the row, and keyed `hint-<at>` (and `hint-<at>-<n>` for further hints at the same offset) unless they set a key. Hints in folded or replaced lines do not show.
+- Horizontal stepping with Left and Right stops on both sides of a hint (and between a `BEFORE` group and an `AFTER` group at the same offset); word moves, Home/End, vertical moves, and edits use the default stop between the two groups. A `BEFORE` hint that ends a wrapped row has no stop on its left: the caret at its offset shows at the start of the next row.
+- Copy and cut ignore hints, selections highlight a hint only when it lies strictly inside the selected range, and `textPositionAt(x, y)` reports `-1` over a hint.
+- A press on an interactive hint runs its own press handler without moving the caret or focus; a press on a non-interactive hint places the caret at that offset at the nearer stop. Nothing in a hint takes focus.
 
 ## Finding the word at the cursor
 

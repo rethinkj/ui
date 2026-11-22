@@ -830,7 +830,7 @@ public final class Scene {
           add(child, x, y, opacity, childClip, content, free, own);
         }
       }
-      if (fieldText != null && !fieldText.blockSelection().isEmpty()) {
+      if (fieldText != null && (!fieldText.blockSelection().isEmpty() || fieldText.hasHints())) {
         if (blockClip == -2) {
           blockClip = fieldClip(el, left, top, inner);
         }
@@ -843,6 +843,16 @@ public final class Scene {
           boxTop = Math.round(boxTop);
           for (Text.Box tint : fieldText.blockSelection()) {
             box(tint, boxLeft, boxTop, scale, fieldText.selectionColor(), opacity, blockClip);
+          }
+          if (fieldText.hasHints() && fieldText.caret() != null) {
+            box(
+                fieldText.caret(),
+                boxLeft,
+                boxTop,
+                scale,
+                fieldText.caretColor(),
+                opacity,
+                blockClip);
           }
         }
       }
@@ -1395,7 +1405,7 @@ public final class Scene {
     if (text.composition() != null) {
       box(text.composition(), left, top, scale, text.color(), opacity, clip);
     }
-    if (text.caret() != null) {
+    if (text.caret() != null && !text.hasHints()) {
       box(text.caret(), left, top, scale, text.caretColor(), opacity, clip);
     }
   }

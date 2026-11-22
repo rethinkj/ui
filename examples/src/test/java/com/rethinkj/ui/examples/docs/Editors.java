@@ -400,6 +400,56 @@ final class Editors {
         .grow(1);
   }
   // docs:end shared-document
+  // docs:start inlay-hints
+  String call = "var files = scan(root, true);";
+  final List<El.Hint> callHints = List.of(
+      new El.Hint(
+          call.indexOf("files") + "files".length(), El.Hint.Affinity.BEFORE, ": List<Path>"),
+      new El.Hint(call.indexOf("root"), El.Hint.Affinity.AFTER, "folder:"),
+      new El.Hint(call.indexOf("true"), El.Hint.Affinity.AFTER, "recursive:"));
+
+  void updateCall(String value) {
+    call = value;
+  }
+
+  El renderHint(El.Hint hint) {
+    return El.row()
+        .padding(0, 4)
+        .margin(0, 2, 0, 2)
+        .radius(4)
+        .child(El.text(hint.text()).fontSize(11));
+  }
+
+  El hintedField() {
+    return El.text(call).editable(this::updateCall).multiline().hints(callHints, this::renderHint);
+  }
+  // docs:end inlay-hints
+  String hintedJava = """
+      class Scanner {
+        void run(Path root) {
+          var files = scan(root, true);
+          var count = files.size();
+        }
+      }""";
+  final CodeEditor.State hintedEditor = new CodeEditor.State();
+
+  // docs:start code-editor-inlay-hints
+  /** Attaches inferred-type and parameter-name hints to a markup layer. */
+  void showHints() {
+    int filesEnd = hintedJava.indexOf("files") + "files".length();
+    int rootAt = hintedJava.indexOf("root,");
+    int trueAt = hintedJava.indexOf("true");
+    int countEnd = hintedJava.indexOf("count") + "count".length();
+    hintedEditor.markup(
+        "hints",
+        hintedJava,
+        List.of(
+            new CodeEditor.InlayHint(filesEnd, El.Hint.Affinity.BEFORE, ": List<Path>"),
+            new CodeEditor.InlayHint(rootAt, El.Hint.Affinity.AFTER, "folder:"),
+            new CodeEditor.InlayHint(trueAt, El.Hint.Affinity.AFTER, "recursive:"),
+            new CodeEditor.InlayHint(countEnd, El.Hint.Affinity.BEFORE, ": int")));
+  }
+  // docs:end code-editor-inlay-hints
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
@@ -432,6 +482,7 @@ final class Editors {
     showFixes();
     showInlineDiagnostics();
     showGutter();
+    showHints();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -533,6 +584,10 @@ final class Editors {
 
   void javaSource(String value) {
     javaSource = value;
+  }
+
+  void hintedJava(String value) {
+    hintedJava = value;
   }
 
   // docs:start code-editor-json-format
@@ -749,6 +804,16 @@ final class Editors {
         .key("navigation")
         .label("Query")
         .lines(8)
+        .wFull();
+    return Frame.of(editor);
+  }
+
+  static El inlayHints(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.hintedJava, state.hintedEditor, Java.of(), state::hintedJava)
+        .key("scanner")
+        .label("Scanner")
+        .lines(6)
         .wFull();
     return Frame.of(editor);
   }

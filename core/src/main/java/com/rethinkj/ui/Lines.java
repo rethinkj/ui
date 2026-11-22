@@ -120,6 +120,8 @@ final class Lines {
   // The widths of the chunks of long lines, by line: estimated, or as measured once shaped, with
   // the spans whose fonts they were measured with.
   private Map<Integer, Chunked> chunkWidths = new HashMap<>();
+  private List<El.Hint> hints = List.of(); // what the lines were last measured with
+  private String hintsText;
 
   private static final class Chunked {
     final Spans spans;
@@ -464,6 +466,48 @@ final class Lines {
   /** The widest line shaped since it was last edited, in physical pixels. */
   float widest() {
     return widest;
+  }
+
+  /**
+   * Sets the inline hints ({@link El#hints}) the lines are measured with. When they change on the
+   * same text, where their offsets are stable, the lines whose hints changed forget their rows and
+   * widths; after an edit the hints move with the text, and the edited lines are measured again.
+   */
+  void hints(List<El.Hint> next, String text) {
+    if (next == hints) {
+      hintsText = text;
+      return;
+    }
+    if (!next.equals(hints) && text.equals(hintsText)) {
+      Set<El.Hint> kept = new HashSet<>(hints);
+      Set<El.Hint> added = new HashSet<>(next);
+      for (El.Hint hint : next) {
+        if (!kept.contains(hint)) {
+          forget(line(Math.min(hint.at(), length)));
+        }
+      }
+      for (El.Hint hint : hints) {
+        if (!added.contains(hint)) {
+          forget(line(Math.min(hint.at(), length)));
+        }
+      }
+    }
+    hints = next;
+    hintsText = text;
+  }
+
+  /** Forgets what was measured of line {@code line}: its rows, chunk widths and widest width. */
+  private void forget(int line) {
+    if (line == widestLine) {
+      widest = 0;
+      widestLine = -1;
+    }
+    chunkWidths.remove(line);
+    if (rows != null && rows[line] > 0) {
+      int before = effective(line);
+      rows[line] = 0;
+      add(line, (long) effective(line) - before);
+    }
   }
 
   // ---- Folding and blocks

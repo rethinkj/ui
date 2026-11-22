@@ -222,9 +222,13 @@ public final class Text implements Measure {
   private List<El.Fold> folds = List.of();
   private List<El.Block> blocks = List.of();
   private BlockMeasurer blockMeasurer;
+  private List<El.Hint> hints = List.of();
+  private HintMeasurer hintMeasurer;
+  private SortedHint[] sortedHints; // sorted hints in bounds, lazily built when !hints.isEmpty()
   private List<Row> rows = List.of();
   private List<PlacedBlock> placedBlocks = List.of();
   private List<El> lineEndElements = List.of(); // see #clipsToContent
+  private List<El> hintElements = List.of(); // see #clipsToContent
   private int firstInView;
   private int lastInView;
 
@@ -254,6 +258,69 @@ public final class Text implements Measure {
   @FunctionalInterface
   interface BlockMeasurer {
     El measure(El.Block block, int ordinal, float contentWidth, float scale, float lineHeight);
+  }
+
+  /** Which visual stop the caret stands on at an offset with inline hints ({@link El#hints}). */
+  enum HintStop {
+    /** Left edge of all hints at the offset ({@code pen(at) - beforeGap(at)}). */
+    LEFT,
+    /** Between BEFORE and AFTER hints ({@code pen(at)}, where typed text goes). */
+    DEFAULT,
+    /** Right edge of all hints at the offset ({@code pen(at) + afterGap(at)}). */
+    RIGHT
+  }
+
+  /** A caret position returned by hit testing: string offset and which stop at that offset. */
+  record CaretPos(int index, HintStop stop) {}
+
+  /** An inline hint in view, with its physical x and row top relative to the content box. */
+  record PlacedHint(El.Hint hint, int ordinal, El element, float x, float top) {}
+
+  /** Builds and lays out one inline hint element for width measurement during shaping. */
+  @FunctionalInterface
+  interface HintMeasurer {
+    El measure(El.Hint hint, int ordinal, float scale, float lineHeight);
+  }
+
+  private record SortedHint(El.Hint hint, int ordinal) {}
+
+  private record MeasuredHint(El.Hint hint, int ordinal, int localAt, El element, float width) {}
+
+  private record HintSlot(
+      El.Hint hint,
+      int ordinal,
+      int resolvedAt,
+      boolean isBefore,
+      El element,
+      float relX,
+      float width) {}
+
+  /** Inline hint widths and slots resolved for one shaped paragraph or chunk. */
+  private static final class LineHints {
+    final int[] positions;
+    final float[] before;
+    final float[] after;
+    final List<HintSlot> slots;
+    final float emptyWidth;
+
+    LineHints(
+        int[] positions, float[] before, float[] after, List<HintSlot> slots, float emptyWidth) {
+      this.positions = positions;
+      this.before = before;
+      this.after = after;
+      this.slots = slots;
+      this.emptyWidth = emptyWidth;
+    }
+
+    float beforeGap(int at) {
+      int i = Arrays.binarySearch(positions, at);
+      return i >= 0 ? before[i] : 0;
+    }
+
+    float afterGap(int at) {
+      int i = Arrays.binarySearch(positions, at);
+      return i >= 0 ? after[i] : 0;
+    }
   }
 
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
@@ -457,8 +524,9 @@ public final class Text implements Measure {
   }
 
   /**
-   * Whether {@code child} is one of this field's placed line blocks ({@link El#blocks}) or line-end
-   * elements ({@link El#lineEnds}), which draw clipped to the content box.
+   * Whether {@code child} is one of this field's placed line blocks ({@link El#blocks}), line-end
+   * elements ({@link El#lineEnds}) or inline hints ({@link El#hints}), which draw clipped to the
+   * content box.
    */
   public boolean clipsToContent(El child) {
     for (PlacedBlock pb : placedBlocks) {
@@ -466,12 +534,22 @@ public final class Text implements Measure {
         return true;
       }
     }
-    return lineEndElements.contains(child);
+    return lineEndElements.contains(child) || hintElements.contains(child);
   }
 
   /** For {@link El}: the line-end elements it placed, without the fold marks. */
   void lineEndElements(List<El> elements) {
     lineEndElements = elements;
+  }
+
+  /** For {@link El}: the inline hint elements it placed. */
+  void hintElements(List<El> elements) {
+    hintElements = elements;
+  }
+
+  /** Whether this multi-line field currently has inline hints ({@link El#hints}) to show. */
+  public boolean hasHints() {
+    return !hints.isEmpty() && !placeholderShown;
   }
 
   /**
@@ -504,6 +582,7 @@ public final class Text implements Measure {
     prepared = false;
     paras = null;
     shapedLines.clear();
+    sortedHints = null;
     viewStale = true;
     highlightPending = false;
   }
@@ -1064,6 +1143,10 @@ public final class Text implements Measure {
    * in the paragraph: what lies after it, an ellipsis, has the text's.
    */
   private Para shape(String text, Spans spans, int offset, int limit) {
+    return shape(text, spans, offset, limit, null);
+  }
+
+  private Para shape(String text, Spans spans, int offset, int limit, List<MeasuredHint> segHints) {
     boolean tabbed = multiline && text.indexOf('\t') >= 0;
     String shaped = tabbed ? text.replace('\t', ' ') : text;
     GlyphRun run;
@@ -1072,13 +1155,30 @@ public final class Text implements Measure {
     } else {
       run = shaping.shape(shaped, size, scale, features);
     }
+    LineHints lineHints = null;
+    if (segHints != null && !segHints.isEmpty()) {
+      lineHints = resolveHints(text, run, segHints);
+      // Apply hints before tabs so tab stops stay on the grid after a hint.
+      run = run.withGaps(text.length(), lineHints.positions, lineHints.before, lineHints.after);
+    }
     if (tabbed) {
       int[] tabs = new int[text.length()];
       int n = 0;
       for (int i = text.indexOf('\t'); i >= 0; i = text.indexOf('\t', i + 1)) {
         tabs[n++] = i;
       }
-      run = run.tabbed(Arrays.copyOf(tabs, n), tabStop);
+      int[] trimmed = Arrays.copyOf(tabs, n);
+      if (lineHints == null) {
+        run = run.tabbed(trimmed, tabStop);
+      } else {
+        float[] leading = new float[n];
+        float[] trailing = new float[n];
+        for (int i = 0; i < n; i++) {
+          leading[i] = lineHints.afterGap(trimmed[i]);
+          trailing[i] = lineHints.beforeGap(trimmed[i] + 1);
+        }
+        run = run.tabbed(trimmed, tabStop, leading, trailing);
+      }
     }
     int[] colors = null;
     if (spans != null && spans.has(Spans.COLOR)) {
@@ -1111,7 +1211,124 @@ public final class Text implements Measure {
       }
       breaks = found.stream().mapToInt(Integer::intValue).toArray();
     }
-    return new Para(text, run, breaks, colors, spans, offset);
+    return new Para(text, run, breaks, colors, spans, offset, lineHints);
+  }
+
+  /**
+   * Resolves a segment's measured hints against the shaped run's clusters: BEFORE at 0 behaves as
+   * AFTER, AFTER at the end behaves as BEFORE, and a hint inside a multi-character cluster moves
+   * to the cluster's start.
+   */
+  private static LineHints resolveHints(String text, GlyphRun run, List<MeasuredHint> segHints) {
+    int len = text.length();
+    int n = run.count();
+    if (len == 0 || n == 0) {
+      List<HintSlot> slots = new ArrayList<>(segHints.size());
+      float x = 0;
+      for (MeasuredHint mh : segHints) {
+        slots.add(new HintSlot(mh.hint, mh.ordinal, 0, false, mh.element, x, mh.width));
+        x += mh.width;
+      }
+      return new LineHints(new int[] {0}, new float[] {0}, new float[] {x}, slots, x);
+    }
+    // Resolve each hint's offset to a cluster start (or len), and its effective side.
+    int count = segHints.size();
+    int[] resolved = new int[count];
+    boolean[] isBefore = new boolean[count];
+    int g = 0;
+    for (int i = 0; i < count; i++) {
+      MeasuredHint mh = segHints.get(i);
+      int pos = Math.clamp(mh.localAt, 0, len);
+      int r;
+      if (pos <= 0) {
+        r = 0;
+      } else if (pos >= len) {
+        r = len;
+      } else {
+        while (g < n && run.cluster(g) < pos) {
+          g++;
+        }
+        if (g < n && run.cluster(g) == pos) {
+          r = pos;
+        } else if (g == 0) {
+          r = 0;
+        } else {
+          // shortcut: a right-to-left run is shaped as one cluster (see #199, #445), so a hint
+          // inside a ligature or right-to-left run moves to the cluster's start.
+          r = run.cluster(g - 1);
+        }
+      }
+      resolved[i] = r;
+      if (r == 0) {
+        isBefore[i] = false; // BEFORE at 0 behaves as AFTER
+      } else if (r == len) {
+        isBefore[i] = true; // AFTER at the end behaves as BEFORE
+      } else {
+        isBefore[i] = mh.hint.affinity() == El.Hint.Affinity.BEFORE;
+      }
+    }
+    // Order by resolved offset, BEFORE before AFTER at each offset, preserving original order.
+    Integer[] order = new Integer[count];
+    for (int i = 0; i < count; i++) {
+      order[i] = i;
+    }
+    Arrays.sort(order, (a, b) -> {
+      int c = Integer.compare(resolved[a], resolved[b]);
+      if (c != 0) {
+        return c;
+      }
+      if (isBefore[a] != isBefore[b]) {
+        return isBefore[a] ? -1 : 1;
+      }
+      return Integer.compare(a, b);
+    });
+    int[] positions = new int[count];
+    float[] before = new float[count];
+    float[] after = new float[count];
+    int unique = 0;
+    for (int idx : order) {
+      int r = resolved[idx];
+      if (unique == 0 || positions[unique - 1] != r) {
+        positions[unique] = r;
+        unique++;
+      }
+      float w = segHints.get(idx).width;
+      if (isBefore[idx]) {
+        before[unique - 1] += w;
+      } else {
+        after[unique - 1] += w;
+      }
+    }
+    positions = Arrays.copyOf(positions, unique);
+    before = Arrays.copyOf(before, unique);
+    after = Arrays.copyOf(after, unique);
+    List<HintSlot> slots = new ArrayList<>(count);
+    int pIdx = 0;
+    float beforeCursor = 0;
+    float afterCursor = 0;
+    int prevR = -1;
+    for (int idx : order) {
+      int r = resolved[idx];
+      if (r != prevR) {
+        while (positions[pIdx] < r) {
+          pIdx++;
+        }
+        beforeCursor = -before[pIdx];
+        afterCursor = 0;
+        prevR = r;
+      }
+      MeasuredHint mh = segHints.get(idx);
+      float relX;
+      if (isBefore[idx]) {
+        relX = beforeCursor;
+        beforeCursor += mh.width;
+      } else {
+        relX = afterCursor;
+        afterCursor += mh.width;
+      }
+      slots.add(new HintSlot(mh.hint, mh.ordinal, r, isBefore[idx], mh.element, relX, mh.width));
+    }
+    return new LineHints(positions, before, after, slots, 0);
   }
 
   /**
@@ -1249,18 +1466,22 @@ public final class Text implements Measure {
    */
   private final class Chunks {
     final int lineIndex;
+    final int lineStart;
     final String text;
     final Spans spans;
     final int[] bounds; // length n + 1, bounds[0] = 0, bounds[n] = text.length()
     final Para[] parts; // length n, lazily shaped
     final float[] widths; // length n, estimated until shaped, kept by the lines
     final double[] xs; // length n + 1, prefix sums of widths
+    final boolean hasHints;
 
-    Chunks(int lineIndex, String text, Spans spans, int[] bounds) {
+    Chunks(int lineIndex, int lineStart, String text, Spans spans, int[] bounds) {
       this.lineIndex = lineIndex;
+      this.lineStart = lineStart;
       this.text = text;
       this.spans = spans;
       this.bounds = bounds;
+      this.hasHints = lineHasHints(lineStart, lineStart + text.length());
       int n = bounds.length - 1;
       this.parts = new Para[n];
       this.xs = new double[n + 1];
@@ -1290,11 +1511,15 @@ public final class Text implements Measure {
         return p;
       }
       int from = bounds[i];
-      String sub = text.substring(from, bounds[i + 1]);
+      int to = bounds[i + 1];
+      String sub = text.substring(from, to);
+      List<MeasuredHint> segHints = hasHints
+          ? segmentHints(lineStart + from, lineStart + to, i == 0, i == parts.length - 1)
+          : null;
       // shortcut: tab stops in a chunked line are relative to the chunk's start rather than the
       // line's; pass the chunk's x modulo tabStop to GlyphRun#tabbed if long tabbed lines need
       // exact stops.
-      p = shape(sub, spans, from, sub.length());
+      p = shape(sub, spans, from, sub.length(), segHints);
       parts[i] = p;
       shownLines.shapedCharacters += sub.length();
       float actual = p.run.width();
@@ -1308,6 +1533,54 @@ public final class Text implements Measure {
         shownLines.measured(lineIndex, (float) xs[parts.length]);
       }
       return p;
+    }
+
+    float beforeGap(int at) {
+      if (!hasHints || at <= 0) {
+        return 0;
+      }
+      if (at >= text.length()) {
+        Para last = part(parts.length - 1);
+        return last.beforeGap(last.text.length());
+      }
+      int i = chunkOfOffset(at);
+      int local = at - bounds[i];
+      if (local == 0) {
+        Para prev = part(i - 1);
+        return prev.beforeGap(prev.text.length());
+      }
+      return part(i).beforeGap(local);
+    }
+
+    float afterGap(int at) {
+      if (!hasHints || at >= text.length()) {
+        return 0;
+      }
+      int i = chunkOfOffset(at);
+      return part(i).afterGap(at - bounds[i]);
+    }
+
+    void emitHints(float top, float viewX, float placedWidth, List<PlacedHint> out) {
+      if (!hasHints) {
+        return;
+      }
+      int n = parts.length;
+      if (xs[n] <= viewX || viewX + placedWidth <= 0) {
+        return;
+      }
+      for (int i = chunkOfX(viewX); i < n && xs[i] < viewX + placedWidth; i++) {
+        Para p = part(i);
+        if (p.hints == null) {
+          continue;
+        }
+        for (HintSlot slot : p.hints.slots) {
+          float hx = (float) (xs[i] + p.pen(slot.resolvedAt) + slot.relX - viewX);
+          if (hx + slot.width <= 0 || hx >= placedWidth) {
+            continue;
+          }
+          out.add(new PlacedHint(slot.hint, slot.ordinal, slot.element, hx, top));
+        }
+      }
     }
 
     int chunkOfOffset(int at) {
@@ -1386,20 +1659,45 @@ public final class Text implements Measure {
       }
     }
 
-    int nearest(float x) {
+    CaretPos nearestCaret(float x, boolean stops) {
       int i = chunkAtX(x);
       Para p = part(i);
       float localX = (float) (x - xs[i]);
       int best = 0;
+      HintStop bestStop = HintStop.DEFAULT;
       float distance = Float.POSITIVE_INFINITY;
       for (int b : p.boundaries(0, p.text.length())) {
-        float d = Math.abs(p.pen(b) - localX);
+        float cx = p.pen(b);
+        if (stops && p.hints != null) {
+          float before = p.beforeGap(b);
+          if (before > 0) {
+            float d = Math.abs(cx - before - localX);
+            if (d < distance) {
+              distance = d;
+              best = b;
+              bestStop = HintStop.LEFT;
+            }
+          }
+        }
+        float d = Math.abs(cx - localX);
         if (d < distance) {
           distance = d;
           best = b;
+          bestStop = HintStop.DEFAULT;
+        }
+        if (stops && p.hints != null) {
+          float after = p.afterGap(b);
+          if (after > 0) {
+            float da = Math.abs(cx + after - localX);
+            if (da < distance) {
+              distance = da;
+              best = b;
+              bestStop = HintStop.RIGHT;
+            }
+          }
         }
       }
-      return bounds[i] + best;
+      return new CaretPos(bounds[i] + best, bestStop);
     }
 
     int hit(float x) {
@@ -1427,6 +1725,21 @@ public final class Text implements Measure {
         return -1;
       }
       List<Integer> graphemes = p.boundaries(0, p.text.length());
+      if (p.hints != null) {
+        for (int k = 0; k < graphemes.size() - 1; k++) {
+          int b0 = graphemes.get(k);
+          int b1 = graphemes.get(k + 1);
+          float g0 = p.pen(b0) + p.afterGap(b0);
+          float g1 = p.pen(b1) - p.beforeGap(b1);
+          if (localX < g0) {
+            return -1;
+          }
+          if (localX < g1) {
+            return bounds[i] + b0;
+          }
+        }
+        return -1;
+      }
       int found = -1;
       for (int k = 0; k < graphemes.size() - 1; k++) {
         if (p.pen(graphemes.get(k)) <= localX) {
@@ -1452,17 +1765,26 @@ public final class Text implements Measure {
     final int[] glyphAt;
     final int[] breaks; // null without wrapping
     final Chunks chunks; // non-null only for a long non-wrapping line of a multi-line field
+    final LineHints hints; // non-null only when this paragraph has inline hints
     float limit = Float.NaN; // the width rowStarts are for
     int[] rowStarts = {0};
     float[] rowWidths;
 
-    Para(String text, GlyphRun run, int[] breaks, int[] colors, Spans spans, int offset) {
+    Para(
+        String text,
+        GlyphRun run,
+        int[] breaks,
+        int[] colors,
+        Spans spans,
+        int offset,
+        LineHints hints) {
       this.text = text;
       this.run = run;
       this.colors = colors;
       this.spans = spans;
       this.offset = offset;
       this.chunks = null;
+      this.hints = hints;
       // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
@@ -1479,7 +1801,7 @@ public final class Text implements Measure {
           : Arrays.stream(breaks)
               .filter(b -> b == text.length() || at[b] < run.count() && run.cluster(at[b]) == b)
               .toArray();
-      this.rowWidths = new float[] {run.width()};
+      this.rowWidths = new float[] {totalWidth()};
     }
 
     Para(String text, Spans spans, Chunks chunks) {
@@ -1491,11 +1813,33 @@ public final class Text implements Measure {
       this.glyphAt = null;
       this.breaks = null;
       this.chunks = chunks;
+      this.hints = null;
       this.rowWidths = new float[] {chunks.totalWidth()};
     }
 
+    boolean hasHints() {
+      return hints != null || (chunks != null && chunks.hasHints);
+    }
+
+    float beforeGap(int at) {
+      if (chunks != null) {
+        return chunks.beforeGap(at);
+      }
+      return hints == null ? 0 : hints.beforeGap(at);
+    }
+
+    float afterGap(int at) {
+      if (chunks != null) {
+        return chunks.afterGap(at);
+      }
+      return hints == null ? 0 : hints.afterGap(at);
+    }
+
     float totalWidth() {
-      return chunks != null ? chunks.totalWidth() : run.width();
+      if (chunks != null) {
+        return chunks.totalWidth();
+      }
+      return hints != null && text.isEmpty() ? hints.emptyWidth : run.width();
     }
 
     /**
@@ -1515,7 +1859,7 @@ public final class Text implements Measure {
       }
       if (breaks == null || limit == Float.POSITIVE_INFINITY) {
         rowStarts = new int[] {0};
-        rowWidths = new float[] {breaks == null ? run.width() : width(0, text.length())};
+        rowWidths = new float[] {breaks == null ? totalWidth() : width(0, text.length())};
         this.limit = limit;
         return rowStarts;
       }
@@ -1601,7 +1945,12 @@ public final class Text implements Measure {
 
     /** The width of characters {@code from} to {@code to}, without the white space at the end. */
     float width(int from, int to) {
-      while (to > from && Character.isWhitespace(text.charAt(to - 1))) {
+      if (text.isEmpty() && hints != null) {
+        return hints.emptyWidth;
+      }
+      while (to > from
+          && Character.isWhitespace(text.charAt(to - 1))
+          && (hints == null || hints.beforeGap(to) == 0 && hints.afterGap(to - 1) == 0)) {
         to--;
       }
       return run.pen(glyphAt[to]) - run.pen(glyphAt[from]);
@@ -1624,10 +1973,9 @@ public final class Text implements Measure {
       int first = glyphAt[start];
       int end = g < run.count() ? run.cluster(g) : text.length();
       int graphemes = graphemes(text, start, end);
-      float from = run.pen(first);
-      return graphemes == 0
-          ? from
-          : from + (run.pen(g) - from) * graphemes(text, start, at) / graphemes;
+      float from = run.pen(first) + afterGap(start);
+      float to = run.pen(g) - beforeGap(end);
+      return graphemes == 0 ? from : from + (to - from) * graphemes(text, start, at) / graphemes;
     }
 
     /**
@@ -1746,8 +2094,13 @@ public final class Text implements Measure {
    * inside its glyphs in proportion to the graphemes before it.
    */
   float x(int index) {
+    return x(index, HintStop.DEFAULT);
+  }
+
+  /** Like {@link #x(int)}, at the given visual {@link HintStop} when inline hints sit at it. */
+  float x(int index, HintStop stop) {
     if (multiline) {
-      return caretX(index);
+      return caretX(index, stop);
     }
     return glyphX(toGlyphs(index));
   }
@@ -1785,20 +2138,30 @@ public final class Text implements Measure {
 
   /** The grapheme boundary of the shown string nearest to a point. */
   int nearest(float x, float y) {
+    return nearestCaret(x, y).index();
+  }
+
+  /**
+   * The grapheme boundary and {@link HintStop} nearest to a point: a press over an inline hint's
+   * gap lands on the nearer stop at that hint's offset.
+   */
+  CaretPos nearestCaret(float x, float y) {
     if (multiline) {
       Lines lines = shownLines();
       if (lines.hasBlocks()) {
         int slot = lines.slotAt(y, lineHeight);
         if (inBlockBand(lines, slot, y)) {
-          return blockClickPosition(lines, slot);
+          return new CaretPos(blockClickPosition(lines, slot), HintStop.DEFAULT);
         }
-        return nearestOnRow(slot, rowInLine(lines, slot, y), x);
+        return nearestCaretOnRow(slot, rowInLine(lines, slot, y), x, true);
       }
       int[] at = rowAt(y);
-      return at[0] < 0 ? 0 : nearestOnRow(at[0], at[1], x);
+      return at[0] < 0
+          ? new CaretPos(0, HintStop.DEFAULT)
+          : nearestCaretOnRow(at[0], at[1], x, true);
     }
     if (placedSpans.isEmpty()) {
-      return 0;
+      return new CaretPos(0, HintStop.DEFAULT);
     }
     List<Integer> bounds = boundaries(lineAt(y));
     int best = bounds.getFirst();
@@ -1810,7 +2173,7 @@ public final class Text implements Measure {
         best = b;
       }
     }
-    return fromGlyphs(best);
+    return new CaretPos(fromGlyphs(best), HintStop.DEFAULT);
   }
 
   /**
@@ -1932,6 +2295,21 @@ public final class Text implements Measure {
       return -1;
     }
     List<Integer> bounds = para.boundaries(rowStart, rowEnd);
+    if (para.hints != null) {
+      for (int i = 0; i < bounds.size() - 1; i++) {
+        int b0 = bounds.get(i);
+        int b1 = bounds.get(i + 1);
+        float g0 = para.pen(b0) + para.afterGap(b0) - left;
+        float g1 = para.pen(b1) - para.beforeGap(b1) - left;
+        if (x < g0) {
+          return -1;
+        }
+        if (x < g1) {
+          return start + b0;
+        }
+      }
+      return -1;
+    }
     int found = -1;
     for (int i = 0; i < bounds.size() - 1; i++) {
       if (para.pen(bounds.get(i)) - left <= x) {
@@ -2022,6 +2400,123 @@ public final class Text implements Measure {
     }
   }
 
+  /** For {@link El}: the inline hints of a multi-line field and their measurer. */
+  void hints(List<El.Hint> hints, HintMeasurer measurer) {
+    List<El.Hint> next = hints == null ? List.of() : hints;
+    this.hintMeasurer = measurer;
+    if (!next.equals(this.hints)) {
+      this.hints = next;
+      sortedHints = null;
+      invalidate();
+    }
+  }
+
+  /** Hints within the shown string, sorted by offset and BEFORE before AFTER; null when none. */
+  private SortedHint[] sortedHints() {
+    if (hints.isEmpty() || placeholderShown) {
+      return null;
+    }
+    if (sortedHints != null) {
+      return sortedHints;
+    }
+    int len = shown.length();
+    List<El.Hint> ordered = new ArrayList<>(hints.size());
+    for (El.Hint h : hints) {
+      if (h.at() <= len) {
+        ordered.add(h);
+      }
+    }
+    if (ordered.isEmpty()) {
+      sortedHints = new SortedHint[0];
+      return sortedHints;
+    }
+    ordered.sort((a, b) -> {
+      int c = Integer.compare(a.at(), b.at());
+      return c != 0 ? c : Integer.compare(a.affinity().ordinal(), b.affinity().ordinal());
+    });
+    SortedHint[] out = new SortedHint[ordered.size()];
+    int prevAt = -1;
+    int ordinal = 0;
+    for (int i = 0; i < ordered.size(); i++) {
+      El.Hint h = ordered.get(i);
+      if (h.at() != prevAt) {
+        prevAt = h.at();
+        ordinal = 0;
+      } else {
+        ordinal++;
+      }
+      out[i] = new SortedHint(h, ordinal);
+    }
+    sortedHints = out;
+    return out;
+  }
+
+  /** First index in {@code all} with {@code at >= target}. */
+  private static int lowerBound(SortedHint[] all, int target) {
+    int lo = 0;
+    int hi = all.length;
+    while (lo < hi) {
+      int mid = (lo + hi) >>> 1;
+      if (all[mid].hint.at() < target) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  private boolean lineHasHints(int lineStart, int lineEnd) {
+    SortedHint[] all = sortedHints();
+    if (all == null || all.length == 0) {
+      return false;
+    }
+    int i = lowerBound(all, lineStart);
+    return i < all.length && all[i].hint.at() <= lineEnd;
+  }
+
+  /**
+   * Builds and measures the hints belonging to {@code [segStart, segEnd]} in {@code shown}, or
+   * null when none belong to it. At an internal chunk boundary, BEFORE goes to the chunk before
+   * and AFTER to the chunk after.
+   */
+  private List<MeasuredHint> segmentHints(
+      int segStart, int segEnd, boolean isLineStart, boolean isLineEnd) {
+    SortedHint[] all = sortedHints();
+    if (all == null || all.length == 0 || hintMeasurer == null) {
+      return null;
+    }
+    int i = lowerBound(all, segStart);
+    if (i >= all.length || all[i].hint.at() > segEnd) {
+      return null;
+    }
+    List<MeasuredHint> out = null;
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    for (; i < all.length && all[i].hint.at() <= segEnd; i++) {
+      SortedHint sh = all[i];
+      int at = sh.hint.at();
+      boolean include;
+      if (at > segStart && at < segEnd) {
+        include = true;
+      } else if (at == segStart) {
+        include = isLineStart || sh.hint.affinity() == El.Hint.Affinity.AFTER;
+      } else {
+        include = isLineEnd || sh.hint.affinity() == El.Hint.Affinity.BEFORE;
+      }
+      if (!include) {
+        continue;
+      }
+      El built = hintMeasurer.measure(sh.hint, sh.ordinal, scale, lineHeight);
+      float logical = built.margin(Side.LEFT) + built.width() + built.margin(Side.RIGHT);
+      float width = (float) Math.max(0, Math.ceil(logical * scale * grid - 1e-4) / grid);
+      if (out == null) {
+        out = new ArrayList<>();
+      }
+      out.add(new MeasuredHint(sh.hint, sh.ordinal, at - segStart, built, width));
+    }
+    return out;
+  }
+
   /** For {@link El}: the blocks placed by the last {@link #layOut}. */
   List<PlacedBlock> placedBlocks() {
     lines();
@@ -2032,6 +2527,7 @@ public final class Text implements Measure {
     prepare();
     shownLines.folds(placeholderShown ? List.of() : folds);
     shownLines.blocks(placeholderShown ? List.of() : blocks);
+    shownLines.hints(placeholderShown ? List.of() : hints, shown);
     wrapping();
     if (!placeholderShown && !blocks.isEmpty()) {
       shownLines.blocksLayout(
@@ -2071,11 +2567,15 @@ public final class Text implements Measure {
       Spans spans = highlighter == null || placeholderShown
           ? null
           : lines.spans(line, shown, highlighter, highlightKey);
-      String text = shown.substring(lines.start(line), lines.end(line));
+      int lineStart = lines.start(line);
+      int lineEnd = lines.end(line);
+      String text = shown.substring(lineStart, lineEnd);
       if (!wraps && text.length() > CHUNK_SIZE) {
-        para = new Para(text, spans, new Chunks(line, text, spans, splitChunks(text)));
+        para = new Para(text, spans, new Chunks(line, lineStart, text, spans, splitChunks(text)));
       } else {
-        para = shape(text, spans, 0, text.length());
+        List<MeasuredHint> segHints =
+            hasHints() ? segmentHints(lineStart, lineEnd, true, true) : null;
+        para = shape(text, spans, 0, text.length(), segHints);
         lines.shapedCharacters += text.length();
       }
       shapedLines.put(line, para);
@@ -2455,7 +2955,12 @@ public final class Text implements Measure {
     for (int at : positions) {
       int line = lines.line(Math.clamp(at, 0, lines.length()));
       if (!lines.isHidden(line) && !wraps && lines.end(line) - lines.start(line) > CHUNK_SIZE) {
-        para(line).pen(at - lines.start(line));
+        Para p = para(line);
+        int local = at - lines.start(line);
+        p.pen(local);
+        if (hasHints() && p.chunks != null) {
+          p.chunks.beforeGap(local);
+        }
       }
     }
   }
@@ -2576,10 +3081,10 @@ public final class Text implements Measure {
           }
           float x0 = chunks != null && a < visFrom
               ? (float) (chunks.xs[visFirstChunk] - viewX)
-              : para.pen(a) - left - viewX;
+              : para.pen(a) + (kind == Spans.GUIDE ? 0 : para.afterGap(a)) - left - viewX;
           float x1 = chunks != null && b > visTo
               ? (float) (chunks.xs[visLastChunk + 1] - viewX)
-              : para.pen(b) - left - viewX;
+              : para.pen(b) - (kind == Spans.GUIDE ? 0 : para.beforeGap(b)) - left - viewX;
           switch (kind) {
             case Spans.BACKGROUND ->
               ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
@@ -2591,15 +3096,21 @@ public final class Text implements Measure {
               // two waves do not mix their colors. From the underline to the row's bottom: the
               // room the wave may take.
               for (int[] piece : uncovered(spans, i, a, b, spans == decor ? null : decor)) {
-                float p0 = para.pen(piece[0]) - left - viewX;
-                float p1 = para.pen(piece[1]) - left - viewX;
-                unders.add(new Mark(
-                    new Box(p0, top + under, p1 - p0, lineHeight - under), spans.colors[i], true));
+                float p0 = para.pen(piece[0]) + para.afterGap(piece[0]) - left - viewX;
+                float p1 = para.pen(piece[1]) - para.beforeGap(piece[1]) - left - viewX;
+                if (p1 > p0) {
+                  unders.add(new Mark(
+                      new Box(p0, top + under, p1 - p0, lineHeight - under),
+                      spans.colors[i],
+                      true));
+                }
               }
             }
             default -> {
               float y = kind == Spans.UNDERLINE ? under : strike;
-              unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
+              if (x1 > x0) {
+                unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
+              }
             }
           }
         }
@@ -2748,11 +3259,64 @@ public final class Text implements Measure {
       Para para = row.para;
       float endX = (para.chunks != null
               ? para.totalWidth()
-              : para.pen(para.text.length()) - para.pen(para.rowStart(row.row)))
+              : para.pen(para.text.length())
+                  + para.afterGap(para.text.length())
+                  - para.pen(para.rowStart(row.row)))
           - viewX;
       ends.add(new LineEnd(row.line, fold, endX, (float) top));
     }
     return ends;
+  }
+
+  /**
+   * For {@link El}: the inline hints on rows currently in view, with their physical x and row top
+   * relative to the top left of the content box after scroll.
+   */
+  List<PlacedHint> placedHints() {
+    lines();
+    if (!hasHints() || rows.isEmpty()) {
+      return List.of();
+    }
+    List<PlacedHint> out = new ArrayList<>();
+    for (Row row : rows) {
+      double top = row.top - viewY;
+      if (top + lineHeight <= 0 || top >= placedHeight) {
+        continue;
+      }
+      Para para = row.para;
+      if (para.chunks != null) {
+        para.chunks.emitHints((float) top, viewX, placedWidth, out);
+        continue;
+      }
+      if (para.hints == null) {
+        continue;
+      }
+      int rowStart = para.rowStart(row.row);
+      int rowEnd = para.rowEnd(row.row);
+      float left = para.pen(rowStart);
+      for (HintSlot slot : para.hints.slots) {
+        int pos = slot.resolvedAt;
+        boolean onRow;
+        if (pos > rowStart && pos < rowEnd) {
+          onRow = true;
+        } else if (pos == rowStart) {
+          onRow = !slot.isBefore || (row.row == 0 && para.text.isEmpty());
+        } else if (pos == rowEnd) {
+          onRow = slot.isBefore;
+        } else {
+          onRow = false;
+        }
+        if (!onRow) {
+          continue;
+        }
+        float hx = para.pen(pos) + slot.relX - left - viewX;
+        if (hx + slot.width <= 0 || hx >= placedWidth) {
+          continue;
+        }
+        out.add(new PlacedHint(slot.hint, slot.ordinal, slot.element, hx, (float) top));
+      }
+    }
+    return out;
   }
 
   /** Whether characters the fonts lack come from the system's fonts. */
@@ -2816,7 +3380,42 @@ public final class Text implements Measure {
     return bounds;
   }
 
-  private float caretX(int index) {
+  /**
+   * Width of BEFORE inline hints at {@code index}, in physical pixels; 0 for none, and 0 where
+   * {@code index} starts a wrapped row: such hints end the row before, and the caret at {@code
+   * index} shows on its own row, so it has no stop left of them.
+   */
+  float beforeGap(int index) {
+    if (!hasHints()) {
+      return 0;
+    }
+    Lines lines = shownLines();
+    int clamped = Math.clamp(index, 0, lines.length());
+    int line = lines.line(clamped);
+    if (lines.isHidden(line)) {
+      return 0;
+    }
+    Para para = para(line);
+    int offset = clamped - lines.start(line);
+    int row = para.rowAt(offset);
+    return row > 0 && offset == para.rowStart(row) ? 0 : para.beforeGap(offset);
+  }
+
+  /** Width of AFTER inline hints at {@code index}, in physical pixels; 0 for none. */
+  float afterGap(int index) {
+    if (!hasHints()) {
+      return 0;
+    }
+    Lines lines = shownLines();
+    int clamped = Math.clamp(index, 0, lines.length());
+    int line = lines.line(clamped);
+    if (lines.isHidden(line)) {
+      return 0;
+    }
+    return para(line).afterGap(clamped - lines.start(line));
+  }
+
+  private float caretX(int index, HintStop stop) {
     Lines lines = shownLines();
     int clamped = Math.clamp(index, 0, lines.length());
     int line = lines.line(clamped);
@@ -2835,6 +3434,19 @@ public final class Text implements Measure {
     }
     Para para = para(at[0]);
     int offset = clamped - lines.start(at[0]);
+    if (stop == HintStop.LEFT
+        && para.hasHints()
+        && !(at[1] > 0 && offset == para.rowStart(at[1]))) {
+      float before = para.beforeGap(offset);
+      if (before > 0) {
+        return para.pen(offset) - before - para.pen(para.rowStart(at[1]));
+      }
+    } else if (stop == HintStop.RIGHT && para.hasHints()) {
+      float after = para.afterGap(offset);
+      if (after > 0) {
+        return para.pen(offset) + after - para.pen(para.rowStart(at[1]));
+      }
+    }
     return para.pen(offset) - para.pen(para.rowStart(at[1]));
   }
 
@@ -2881,21 +3493,60 @@ public final class Text implements Measure {
 
   /** The position nearest to {@code x} on row {@code row} of line {@code line}. */
   private int nearestOnRow(int line, int row, float x) {
+    return nearestCaretOnRow(line, row, x, false).index();
+  }
+
+  /**
+   * The position nearest to {@code x} on a row, with its stop; among the default stops only unless
+   * {@code stops}, for moves that land on the default stop.
+   */
+  private CaretPos nearestCaretOnRow(int line, int row, float x, boolean stops) {
     Para para = para(line);
+    int lineStart = shownLines().start(line);
     if (para.chunks != null) {
-      return shownLines().start(line) + para.chunks.nearest(x);
+      CaretPos local = para.chunks.nearestCaret(x, stops);
+      return new CaretPos(lineStart + local.index(), local.stop());
     }
-    float left = para.pen(para.rowStart(row));
-    int best = para.rowStart(row);
+    int rowStart = para.rowStart(row);
+    int rowEnd = para.rowEnd(row);
+    float left = para.pen(rowStart);
+    int best = rowStart;
+    HintStop bestStop = HintStop.DEFAULT;
     float distance = Float.POSITIVE_INFINITY;
-    for (int b : rowBounds(para, row)) {
-      float d = Math.abs(para.pen(b) - left - x);
+    List<Integer> bounds = rowBounds(para, row);
+    boolean wrapped = row + 1 < para.rowCount();
+    for (int b : bounds) {
+      float cx = para.pen(b) - left;
+      if (stops && para.hints != null && !(row > 0 && b == rowStart)) {
+        float before = para.beforeGap(b);
+        if (before > 0) {
+          float d = Math.abs(cx - before - x);
+          if (d < distance) {
+            distance = d;
+            best = b;
+            bestStop = HintStop.LEFT;
+          }
+        }
+      }
+      float d = Math.abs(cx - x);
       if (d < distance) {
         distance = d;
         best = b;
+        bestStop = HintStop.DEFAULT;
+      }
+      if (stops && para.hints != null && !(wrapped && b == rowEnd)) {
+        float after = para.afterGap(b);
+        if (after > 0) {
+          float da = Math.abs(cx + after - x);
+          if (da < distance) {
+            distance = da;
+            best = b;
+            bestStop = HintStop.RIGHT;
+          }
+        }
       }
     }
-    return shownLines().start(line) + best;
+    return new CaretPos(lineStart + best, bestStop);
   }
 
   /**
@@ -3071,11 +3722,20 @@ public final class Text implements Measure {
       }
       boolean endSelected = lastRow ? end > to : end >= to;
       float left = para.pen(para.rowStart(row.row));
-      float x0 = para.pen(Math.max(start, from) - lineStart) - left;
-      float x1 = endSelected
-          ? Math.max(
-              edge, (para.chunks != null ? para.totalWidth() : para.pen(to - lineStart)) - left)
-          : para.pen(Math.min(end, to) - lineStart) - left;
+      int localStart = Math.max(start, from) - lineStart;
+      float x0 = para.pen(localStart) + (start >= from ? para.afterGap(localStart) : 0) - left;
+      float x1;
+      if (endSelected && !(!lastRow && end == to && para.beforeGap(to - lineStart) > 0)) {
+        x1 = Math.max(
+            edge,
+            (para.chunks != null
+                    ? para.totalWidth()
+                    : para.pen(to - lineStart) + (lastRow ? para.afterGap(to - lineStart) : 0))
+                - left);
+      } else {
+        int localEnd = Math.min(end, to) - lineStart;
+        x1 = para.pen(localEnd) - para.beforeGap(localEnd) - left;
+      }
       if (x1 > x0) {
         boxes.add(new Box(x0 - viewX, (float) (row.top - viewY), x1 - x0, lineHeight));
       }

@@ -1,0 +1,4 @@
+# Java code in the code editor with parameter name hints and inferred type hints.
+size 580 152 scale 2
+frame
+snap view

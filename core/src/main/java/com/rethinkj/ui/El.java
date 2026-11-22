@@ -320,6 +320,36 @@ public final class El {
   }
 
   /**
+   * An inline hint placed inside a line of a {@link #multiline} field ({@link #hints}), such as a
+   * parameter name before an argument or an inferred type after a variable name. Hints are not
+   * part of the field's string: they reserve width during shaping and wrapping, the caret stops on
+   * both sides of them, and copy ignores them.
+   *
+   * @param at UTF-16 offset into the field's string, 0 or more
+   * @param affinity whether the hint belongs to the text before {@code at} ({@link
+   *     Affinity#BEFORE}) or after it ({@link Affinity#AFTER})
+   * @param text what the hint says, for the builder and the tree dump
+   */
+  public record Hint(int at, Affinity affinity, String text) {
+
+    /** Which side of its offset a {@link Hint} belongs to. */
+    public enum Affinity {
+      /** Belongs to the text before {@link #at}, such as an inferred type after a name. */
+      BEFORE,
+      /** Belongs to the text after {@link #at}, such as a parameter name before an argument. */
+      AFTER
+    }
+
+    public Hint {
+      if (at < 0) {
+        throw new IllegalArgumentException("hint offset must be 0 or more, was " + at);
+      }
+      Objects.requireNonNull(affinity, "affinity");
+      Objects.requireNonNull(text, "text");
+    }
+  }
+
+  /**
    * A pair of brackets that can fold ({@link #bracketFolds}): the lines it folds, from the line of
    * its opening bracket through the line before its closing one, and where the two brackets are
    * in the string as the field shows it.
@@ -443,7 +473,15 @@ public final class El {
     Map<BlockKey, El> blockCache;
     float blockCacheWidth = Float.NaN;
     float blockCacheScale = Float.NaN;
-    boolean partsBuilt; // gutter cells, line ends or blocks were built since App applied looks
+    List<Hint> hints = List.of();
+    Function<Hint, El> hintBuilder;
+    List<El> hintElements = List.of();
+    Object hintsShown; // what the hint elements were built for: their placements and scroll
+    Map<HintKey, El> hintCache;
+    float hintCacheScale = Float.NaN;
+    float hintCacheLineHeight = Float.NaN;
+    boolean
+        partsBuilt; // gutter cells, line ends, blocks or hints were built since App applied looks
     boolean bracketFoldsPending; // bracketFolds asked before Lines was attached
     boolean readOnly;
     int maxLength = -1;
@@ -1989,15 +2027,18 @@ public final class El {
 
   private record BlockKey(Block block, int ordinal) {}
 
+  private record HintKey(Hint hint, int ordinal) {}
+
   /**
-   * For {@link App}: whether this field has parts (gutter cells, line-end elements or blocks) built
-   * after layout.
+   * For {@link App}: whether this field has parts (gutter cells, line-end elements, blocks or
+   * inline hints) built after layout.
    */
   boolean hasFieldParts() {
     return field != null
         && (field.gutter != null
             || !field.folds.isEmpty()
             || !field.blocks.isEmpty()
+            || !field.hints.isEmpty()
             || field.lineEnds != null);
   }
 
@@ -2173,9 +2214,50 @@ public final class El {
   }
 
   /**
-   * For {@link App}: whether {@code child} is one of this field's placed line blocks or {@link
-   * #lineEnds line-end elements} (not fold marks), which clip to the content box and have no
-   * identity to focus.
+   * Places inline hint elements inside the lines of a {@link #multiline} field, such as parameter
+   * name hints before arguments or inferred types after variable names. The app owns the list and
+   * keeps its offsets current with the string; the field keeps no hint state of its own.
+   *
+   * <p>Core builds each hint's element with {@code hint} (capturing active {@link Context} values)
+   * when its line is shaped, reserves its width in the line during shaping and wrapping, and
+   * places elements only for rows in view, vertically centered in the row. Hints past the end of
+   * the string or in folded/replaced lines do not show, and while the field shows its placeholder
+   * it shows no hints. In a {@code .tree.txt} a hint element without a key is keyed {@code
+   * hint-<at>}, and {@code hint-<at>-<n>} for the {@code n}-th ({@code n >= 1}) further hint at
+   * the same offset.
+   *
+   * <p>Hints are not part of the field's string: copy and cut ignore them, and {@link
+   * #textPositionAt} returns -1 over a hint. Horizontal stepping with Left/Right stops on both
+   * sides of a hint (and between a {@link Hint.Affinity#BEFORE} group and an {@link
+   * Hint.Affinity#AFTER} group at the same offset); word moves, Home/End, vertical moves and edits
+   * use the default stop between the two groups. A {@link Hint.Affinity#BEFORE} hint that ends a
+   * wrapped row has no stop on its left, since the caret at its offset shows at the start of the
+   * next row. A press on an interactive hint runs its own press handler without moving the caret
+   * or focus; a press on a non-interactive hint places the caret at that offset at the nearer stop,
+   * or, on a hint that ends a wrapped row, at the nearest position of that row. Nothing in a hint
+   * takes focus.
+   *
+   * @param hints the inline hints to show, empty for none
+   * @param hint builds the element for each hint
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El hints(List<Hint> hints, Function<Hint, El> hint) {
+    Text t = editableOnly("hints");
+    if (!t.multiline()) {
+      throw new IllegalStateException("hints is for multi-line fields: call it after multiline().");
+    }
+    List<Hint> copy = List.copyOf(Objects.requireNonNull(hints, "hints"));
+    Objects.requireNonNull(hint, "hint");
+    field.hints = copy;
+    field.hintBuilder = Context.captured(hint);
+    t.hints(field.hints, this::measureHint);
+    return this;
+  }
+
+  /**
+   * For {@link App}: whether {@code child} is one of this field's placed line blocks, {@link
+   * #lineEnds line-end elements} or {@link #hints inline hints} (not fold marks), which clip to
+   * the content box and have no identity to focus.
    */
   boolean isFieldPart(El child) {
     return field != null && text.clipsToContent(child);
@@ -2184,6 +2266,42 @@ public final class El {
   /** For {@link App}: whether {@code child} is one of this field's placed line blocks. */
   boolean isFieldBlock(El child) {
     return field != null && !field.blockElements.isEmpty() && field.blockElements.contains(child);
+  }
+
+  /** For {@link App}: whether {@code child} is one of this field's placed inline hints. */
+  boolean isFieldHint(El child) {
+    return field != null && !field.hintElements.isEmpty() && field.hintElements.contains(child);
+  }
+
+  /** Builds and lays out one inline hint element at its natural width, caching it for this tree. */
+  private El measureHint(Hint hint, int ordinal, float scale, float lineHeight) {
+    if (field.hintCache == null
+        || field.hintCacheScale != scale
+        || field.hintCacheLineHeight != lineHeight) {
+      field.hintCache = new HashMap<>();
+      field.hintCacheScale = scale;
+      field.hintCacheLineHeight = lineHeight;
+    }
+    HintKey key = new HintKey(hint, ordinal);
+    El built = field.hintCache.get(key);
+    if (built != null) {
+      return built;
+    }
+    built = field.hintBuilder.apply(hint);
+    if (built == null) {
+      throw new IllegalStateException("The hint function returned null for hint " + hint);
+    }
+    if (built.key == null) {
+      built.key(ordinal == 0 ? "hint-" + hint.at() : "hint-" + hint.at() + "-" + ordinal);
+    }
+    if (built.text == null && built.label == null && !hint.text().isEmpty()) {
+      built.label(hint.text());
+    }
+    built.keepFocus();
+    scaleText(built, scale, text.systemFonts(), resolvedLineHeight);
+    Flex.layout(built, Float.POSITIVE_INFINITY, lineHeight / scale);
+    field.hintCache.put(key, built);
+    return built;
   }
 
   /** Builds and lays out one block element at the field's content width, caching it for this tree. */
@@ -2520,6 +2638,55 @@ public final class El {
       field.blockCache.values().retainAll(elements); // blocks scrolled out of view are built anew
     }
     setScroll(scrollX, scrollY);
+    return true;
+  }
+
+  /**
+   * For {@link Editor}, once the rows of a multi-line field are laid out and scrolled: places the
+   * built elements of inline {@link #hints} on rows in view, vertically centered in each row.
+   *
+   * @return whether the hint elements were updated
+   */
+  boolean placeHints() {
+    if (field == null || field.hints.isEmpty() || !text.laidOut()) {
+      if (field != null && !field.hintElements.isEmpty()) {
+        children.removeAll(field.hintElements);
+        field.hintElements = List.of();
+        text.hintElements(List.of());
+        field.hintsShown = null;
+      }
+      return false;
+    }
+    List<Text.PlacedHint> placed = text.placedHints();
+    float scale = text.scale();
+    List<Object> shown = List.of(placed, scrollX, scrollY, width, height);
+    if (shown.equals(field.hintsShown)) {
+      return false;
+    }
+    field.hintsShown = shown;
+    field.partsBuilt = true;
+    float rowHeight = text.lineHeight() / scale;
+    float contentLeft = border(Side.LEFT) + padding(Side.LEFT);
+    float contentTop = border(Side.TOP) + padding(Side.TOP);
+    List<El> elements = new ArrayList<>(placed.size());
+    for (Text.PlacedHint ph : placed) {
+      El hintEl = ph.element();
+      float hx = ph.x() / scale + hintEl.margin(Side.LEFT);
+      float hy = ph.top() / scale + (rowHeight - hintEl.height) / 2f;
+      hintEl.place(
+          contentLeft + hx + (float) scrollX,
+          contentTop + hy + (float) scrollY,
+          hintEl.width,
+          hintEl.height);
+      elements.add(hintEl);
+    }
+    if (!field.hintElements.isEmpty()) {
+      children.removeAll(field.hintElements);
+    }
+    field.hintElements = List.copyOf(elements);
+    children.addAll(field.hintElements);
+    text.hintElements(field.hintElements);
+    scrollTo(scrollX, scrollY);
     return true;
   }
 
@@ -3421,8 +3588,9 @@ public final class El {
    * The UTF-16 offset into the string of a laid-out {@link #multiline} field under the point
    * {@code (x, y)}, in logical pixels from the top left of this element's border box; -1 before
    * layout, outside the field's content box (including its gutter, padding and border), past the
-   * end of a line's text, on an empty line, over a {@link #blocks line block}, or while showing
-   * its placeholder. Accounts for scroll, scale, folds and active IME composition.
+   * end of a line's text, on an empty line, over a {@link #blocks line block}, over an inline
+   * {@link #hints hint}, or while showing its placeholder. Accounts for scroll, scale, folds and
+   * active IME composition.
    *
    * @throws IllegalStateException if this is not a multi-line field
    */

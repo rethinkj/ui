@@ -1,0 +1,1 @@
+- `El.hints` and `CodeEditor.InlayHint` place inline inlay hints (such as parameter names and inferred types) inside lines of a multi-line field or code editor, reserving width during shaping and wrapping, stopping the caret on both sides, ignoring hints on copy, and moving them across edits in `CodeEditor.State.markup`.

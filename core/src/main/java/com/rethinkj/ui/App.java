@@ -556,8 +556,10 @@ public final class App<S> {
       focus.set(field, false, time);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
+      Text.CaretPos caret = field.text().nearestCaret(at[0], at[1]);
       editor.press(
-          editor.fromShown(field.text().nearest(at[0], at[1])),
+          editor.fromShown(caret.index()),
+          caret.stop(),
           editor.fromShown(field.text().hit(at[0], at[1])),
           clicks,
           (modifiers & Key.SHIFT) != 0);
@@ -4803,7 +4805,7 @@ public final class App<S> {
   private static int fieldPressIndex(List<El> hit) {
     for (int i = hit.size() - 2; i >= 0; i--) {
       El el = hit.get(i);
-      if (el.isFieldBlock(hit.get(i + 1))) {
+      if (el.isFieldBlock(hit.get(i + 1)) || el.isFieldHint(hit.get(i + 1))) {
         for (int j = i + 1; j < hit.size(); j++) {
           El part = hit.get(j);
           if (takesPress(part) || part.onPointerDown() != null) {
