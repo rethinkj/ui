@@ -162,6 +162,23 @@ final class Editors {
         new CodeEditor.Vision(5, Symbol.PERSON, "Grace Hopper", null)));
   }
   // docs:end code-editor-vision
+  // docs:start code-editor-documentation
+  final CodeEditor.State documentedEditor =
+      new CodeEditor.State().documentation(this::documentationAt);
+
+  MarkdownDocument documentationAt(int offset) {
+    int start = CodeWords.start(sql, offset);
+    int end = CodeWords.end(sql, offset);
+    return switch (sql.substring(start, end)) {
+      case "orders" -> Markdown.parse("""
+          **Table `orders`**
+
+          Customer orders placed in the store. Columns: `id`, `total`, `status`.""");
+      case "total" -> Markdown.parse("Order total in cents, including tax.");
+      default -> null;
+    };
+  }
+  // docs:end code-editor-documentation
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
@@ -462,6 +479,16 @@ final class Editors {
         .key("fixes")
         .label("Query")
         .lines(7)
+        .wFull();
+    return Frame.of(editor);
+  }
+
+  static El documentation(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.sql, state.documentedEditor, Sql.of(), state::sql)
+        .key("documented")
+        .label("Query")
+        .lines(6)
         .wFull();
     return Frame.of(editor);
   }

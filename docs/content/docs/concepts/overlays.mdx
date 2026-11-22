@@ -22,6 +22,7 @@ Kit components like [Menu](/docs/components/menu), [Tooltip](/docs/components/to
 | `side(Side, Style.Align, gap)` | Places next to the anchor: `BOTTOM` (default), `TOP`, `LEFT`, `RIGHT`, aligned `START`, `CENTER`, `END`, or `STRETCH` |
 | `atPoint(x, y)` | Places at window coordinates (for context menus) |
 | `atCaret()` | Places at the anchor text field's cursor (for autocomplete popups) |
+| `atRange(from, to)` | Places beside the anchor text field's character range `[from, to)`, following scroll and hiding when the range is out of view or folded |
 | `centerInWindow()` | Centers in the window (for dialogs) |
 | `atWindowEdge(side, align, gap)` | Places along a window edge (for toasts and drawers; `STRETCH` fills the edge less `gap` at both ends) |
 

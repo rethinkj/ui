@@ -11,8 +11,18 @@ import java.util.List;
  */
 public sealed interface WindowEvent {
 
-  /** The pointer moved over the window. */
-  record PointerMove(float x, float y) implements WindowEvent {}
+  /**
+   * The pointer moved over the window.
+   *
+   * @param modifiers the modifiers held, as in {@link Key#modifiers}
+   */
+  record PointerMove(float x, float y, int modifiers) implements WindowEvent {
+
+    /** A move without modifiers. */
+    public PointerMove(float x, float y) {
+      this(x, y, 0);
+    }
+  }
 
   /** The pointer left the window, or the part of it that reports pointer moves. */
   record PointerLeave() implements WindowEvent {}

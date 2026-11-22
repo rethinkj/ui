@@ -1,0 +1,21 @@
+el 0,0 520x168
+  text #documented role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 12,12 496x114 lines 1-3/3 hovered
+    el #rail 13,13 50x112
+    el #gutter 13,17 49x96
+      el #line-0 13,17 49x16
+        el 19,25 12x0
+        text "1" 35,17 7x16
+        el 46,25 12x0
+      el #line-1 13,33 49x16
+        el 19,41 12x0
+        text "2" 35,33 7x16
+        el 46,41 12x0
+      el #line-2 13,49 49x16
+        el 19,57 12x0
+        text "3" 35,49 7x16
+        el 46,57 12x0
+overlay bottom start on #documented role=textbox label="Query" 12,12 496x114
+  el #documentation role=dialog label="Documentation" 107,49 320x85
+    el 120,62 294x59
+      text role=paragraph "Table orders" 120,62 294x17 readonly lines 1-1/1
+      text role=paragraph "Customer orders placed in the store. Columns: id, total, status." 120,87 294x34 readonly lines 1-1/1

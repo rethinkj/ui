@@ -1003,7 +1003,7 @@ public final class Window implements AutoCloseable {
           pointerWindow = this;
           showCursor();
         }
-        queue(new PointerMove(pointerX, pointerY));
+        queue(new PointerMove(pointerX, pointerY, modifiers(Sdl.getModState())));
       }
       case Sdl.EVENT_MOUSE_BUTTON_DOWN, Sdl.EVENT_MOUSE_BUTTON_UP -> {
         PointerButton button = switch (e.get(JAVA_BYTE, Sdl.BUTTON_BUTTON)) {

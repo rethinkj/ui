@@ -481,6 +481,11 @@ public interface Texts {
     return "See also:";
   }
 
+  /** The label of a code editor's quick documentation popover. */
+  default String documentation() {
+    return "Documentation";
+  }
+
   /**
    * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
    * code editor says it.

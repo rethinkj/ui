@@ -194,6 +194,15 @@ Call `codeVision(list)` on `CodeEditor.State` to place muted hint rows above dec
 ```java snippet="code-editor-vision"
 ```
 
+## Quick documentation
+
+Call `documentation(provider)` on `CodeEditor.State` with an `IntFunction<MarkdownDocument>` that returns documentation for a character offset in the text, or `null` when nothing applies. Resting the pointer over a word for `Theme.Motion.tooltipDelay` opens a popover below the word's range, drawn with [`Markdown.fragment`](/docs/components/markdown). Moving the pointer onto the popover keeps it open; leaving both the word and the popover, pressing outside, **Escape** in the editor, typing, or moving the cursor closes it. Press **Ctrl+Q** (`Command.QUICK_DOCUMENTATION`) to show documentation for the word at the cursor (also in read-only editors).
+
+```java snippet="code-editor-documentation"
+```
+
+<Shot src="examples/docs/code-editor-documentation/shown-{theme}" alt="SQL in the code editor with the pointer resting on orders and its Markdown documentation open in a popover below the word" />
+
 ## Inserting text
 
 To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the current selection (or inserts at the cursor) and puts the cursor after the inserted text. To place the cursor at `caret` inside `text` instead (such as between the parentheses of `()`), call `replaceSelection(text, caret)`. To edit a range you calculated (such as a line below the cursor), call `replace(from, to, text, caret)`. It replaces the exact characters from `from` to `to`, and Ctrl+Z restores the previous selection. The edit runs right after the handler, calls `onChange` like typed text, and counts as one undo step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
@@ -245,6 +254,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
 | `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
+| `documentation(provider)` | Supplies an `IntFunction<MarkdownDocument>` for hover and Ctrl+Q quick documentation |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 | `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
@@ -262,6 +272,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Ctrl+Shift+[ | `FOLD` | Fold the innermost bracket range around the cursor |
 | Ctrl+Shift+] | `UNFOLD` | Unfold the folded range at or around the cursor |
 | Alt+Enter | `QUICK_FIXES` | Open the menu of quick fixes for diagnostics at the cursor |
+| Ctrl+Q | `QUICK_DOCUMENTATION` | Show documentation for the symbol at the cursor |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
 Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
@@ -270,7 +281,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`):
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
 ```

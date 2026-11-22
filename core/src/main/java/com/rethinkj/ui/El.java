@@ -352,6 +352,18 @@ public final class El {
   }
 
   /**
+   * Told the character position under the pointer in a {@link #multiline} field and the modifiers
+   * held ({@link #onTextPointerMove}, {@link #onTextHoverFor}): {@code position} is a UTF-16
+   * offset into the field's string, or -1 when the pointer is not over text, and {@code modifiers}
+   * is a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and {@link
+   * Key#META}.
+   */
+  @FunctionalInterface
+  public interface TextPointerHandler {
+    void accept(int position, int modifiers);
+  }
+
+  /**
    * Told the first and the last row, both included, that a virtual list has built ({@link
    * #onRowsBuilt}) or has wholly in view ({@link #onRowsInView}).
    */
@@ -375,6 +387,8 @@ public final class El {
     float pointY = Float.NaN;
     boolean centered;
     boolean atCaret; // see El#atCaret
+    int rangeFrom = -1; // see El#atRange; -1 when not anchored to a range
+    int rangeTo;
     boolean whenShortened; // see El#whenShortened
     Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
@@ -469,6 +483,10 @@ public final class El {
     RowsHandler onRowsInView;
     Runnable onHoverFor;
     double hoverDelay;
+    Consumer<Boolean> onHover;
+    TextPointerHandler onTextPointerMove;
+    TextPointerHandler onTextHoverFor;
+    double textHoverDelay;
     Runnable onShownFor; // see El#onShownFor
     double shownDelay;
     boolean shownPauseOnHover; // see El#pauseShownOnHover
@@ -494,6 +512,9 @@ public final class El {
       copy.onText = handlers.onText;
       copy.onTypeAhead = handlers.onTypeAhead;
       copy.onEdit = handlers.onEdit;
+      copy.onHover = handlers.onHover;
+      copy.onTextPointerMove = handlers.onTextPointerMove;
+      copy.onTextHoverFor = handlers.onTextHoverFor;
       return copy;
     }
 
@@ -514,7 +535,10 @@ public final class El {
           && onWheel == a.onWheel
           && onText == a.onText
           && onTypeAhead == a.onTypeAhead
-          && onEdit == a.onEdit;
+          && onEdit == a.onEdit
+          && onHover == a.onHover
+          && onTextPointerMove == a.onTextPointerMove
+          && onTextHoverFor == a.onTextHoverFor;
     }
   }
 
@@ -3285,6 +3309,93 @@ public final class El {
     return this;
   }
 
+  /**
+   * Runs {@code handler} with {@code true} when the pointer enters this element (or an element
+   * inside it) and with {@code false} when it leaves, in {@link App#frame}, which then builds the
+   * view again.
+   *
+   * @param handler told whether the pointer is over this element, or null for none
+   */
+  public El onHover(Consumer<Boolean> handler) {
+    handlers().onHover = handler;
+    return this;
+  }
+
+  /**
+   * The UTF-16 offset into the string of a laid-out {@link #multiline} field under the point
+   * {@code (x, y)}, in logical pixels from the top left of this element's border box; -1 before
+   * layout, outside the field's content box (including its gutter, padding and border), past the
+   * end of a line's text, on an empty line, over a {@link #blocks line block}, or while showing
+   * its placeholder. Accounts for scroll, scale, folds and active IME composition.
+   *
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public int textPositionAt(float x, float y) {
+    Text t = editableOnly("textPositionAt");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "textPositionAt is for multi-line fields: call it after multiline().");
+    }
+    if (!t.laidOut()) {
+      return -1;
+    }
+    float contentLeft = border(Side.LEFT) + padding(Side.LEFT);
+    float contentTop = border(Side.TOP) + padding(Side.TOP);
+    float contentRight = width - border(Side.RIGHT) - padding(Side.RIGHT);
+    float contentBottom = height - border(Side.BOTTOM) - padding(Side.BOTTOM);
+    if (x < contentLeft || x >= contentRight || y < contentTop || y >= contentBottom) {
+      return -1;
+    }
+    float tx = (x - contentLeft) * t.scale() + t.scroll();
+    float ty = (y - contentTop) * t.scale() + t.scrollY();
+    int shown = t.positionAt(tx, ty);
+    if (shown < 0) {
+      return -1;
+    }
+    return field.editor != null ? field.editor.fromShown(shown) : shown;
+  }
+
+  /**
+   * Runs {@code handler} in {@link App#frame} whenever the character position under the pointer in
+   * this {@link #multiline} field changes, or the held modifiers change while the pointer is over
+   * a character; with -1 when the pointer moves off the text (past a line's end, onto a block, the
+   * gutter, a fold mark, a scrollbar, an overlay, or outside the field). While a press or a drag
+   * holds the pointer, as in selecting, it waits and reports where the pointer is after release.
+   *
+   * @param handler told the position and held modifiers, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El onTextPointerMove(TextPointerHandler handler) {
+    Text t = editableOnly("onTextPointerMove");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "onTextPointerMove is for multi-line fields: call it after multiline().");
+    }
+    handlers().onTextPointerMove = handler;
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} once the pointer has rested on one character of this {@link #multiline}
+   * field for {@code seconds} of the app's clock, with that character's UTF-16 offset and the
+   * modifiers held: once per stay at that character, and not after a press until the pointer moves
+   * to another character or leaves and comes back. {@link App#nextChange} reports when it is due,
+   * so an idle window wakes for it without drawing frames meanwhile.
+   *
+   * @param handler told the position and held modifiers, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El onTextHoverFor(double seconds, TextPointerHandler handler) {
+    Text t = editableOnly("onTextHoverFor");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "onTextHoverFor is for multi-line fields: call it after multiline().");
+    }
+    handlers().textHoverDelay = delay(seconds);
+    handlers().onTextHoverFor = handler;
+    return this;
+  }
+
   private static double delay(double seconds) {
     if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
       throw new IllegalArgumentException(
@@ -3381,6 +3492,28 @@ public final class El {
    */
   public El atCaret() {
     layer().atCaret = true;
+    return this;
+  }
+
+  /**
+   * Places this overlay beside characters {@code from} to {@code to} of its anchor, a {@link
+   * #multiline} text field, instead of beside the anchor's rectangle: as {@link #side} says, with
+   * the first visible row of the range as the rectangle; below it and starting at it by default,
+   * as hover documentation or a diagnostic tooltip. It follows the range as the field scrolls,
+   * also without a rebuild of the view, and is not shown while the range is scrolled out of view
+   * or hidden in a fold or replaced block.
+   *
+   * @param from the first position, a UTF-16 offset into the field's string from 0
+   * @param to the exclusive end position, at least {@code from}
+   * @throws IllegalArgumentException if {@code from < 0} or {@code to < from}
+   */
+  public El atRange(int from, int to) {
+    if (from < 0 || to < from) {
+      throw new IllegalArgumentException("range " + from + " to " + to + " is not a range");
+    }
+    Layer l = layer();
+    l.rangeFrom = from;
+    l.rangeTo = to;
     return this;
   }
 
@@ -3852,6 +3985,22 @@ public final class El {
 
   double hoverDelay() {
     return handlers == null ? 0 : handlers.hoverDelay;
+  }
+
+  Consumer<Boolean> onHover() {
+    return handlers == null ? null : handlers.onHover;
+  }
+
+  TextPointerHandler onTextPointerMove() {
+    return handlers == null ? null : handlers.onTextPointerMove;
+  }
+
+  TextPointerHandler onTextHoverFor() {
+    return handlers == null ? null : handlers.onTextHoverFor;
+  }
+
+  double textHoverDelay() {
+    return handlers == null ? 0 : handlers.textHoverDelay;
   }
 
   /** The overlays attached to this element with {@link #overlay}, in that order. */

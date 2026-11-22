@@ -34,7 +34,7 @@ Inside `frame`, queued inputs run in order, each seeing the updated view from th
 | `press <target> [clicks <n>] [shift] [control] [alt] [meta]` | Left-clicks the target. Use `clicks 2` for a double-click, and add modifier keys if needed. |
 | `press <target> right` | Right-clicks the target (`El.onSecondaryPress`), for example to open a context menu. `down <target> right` and `up <target> right` perform the press and release separately. |
 | `down <target> [clicks <n>] [modifiers]`, `up <target>` | Presses or releases the left mouse button separately. A click only triggers when both land on the same element. |
-| `move <target>` | Moves the mouse over the target (triggers hover states and tooltips). Between `down` and `up`, moving more than 4 pixels starts a drag (such as text selection, scrollbars, or drag handlers). |
+| `move <target> [shift] [control] [alt] [meta]` | Moves the mouse over the target with optional held modifier keys (triggers hover states and tooltips). Between `down` and `up`, moving more than 4 pixels starts a drag (such as text selection, scrollbars, or drag handlers). |
 | `leave` | Moves the mouse outside the window, clearing hover states. |
 | `wheel <target> <deltaX> <deltaY> [modifiers]` | Scrolls the mouse wheel at the target in logical pixels (positive values scroll down or right). You can hold any of `shift`, `control`, `alt`, and `meta` (for example, `wheel #canvas 0 -48 control`). Does not change hover state. |
 | `scroll <target> row <index>` | Scrolls a virtual row list so row `<index>` (0-based) is at the top, or as far as possible. |

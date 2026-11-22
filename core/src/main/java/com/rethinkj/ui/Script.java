@@ -285,14 +285,19 @@ public final class Script {
           }
         }
         case "move" -> {
-          if (args.isEmpty()) {
+          List<String> target = new ArrayList<>(args);
+          int modifiers = 0;
+          while (!target.isEmpty() && modifier(target.getLast()) != 0) {
+            modifiers |= modifier(target.removeLast());
+          }
+          if (target.isEmpty()) {
             throw line.usage(step);
           }
-          Aim aim = desk.aim(line, args, "there is nothing to move over");
+          Aim aim = desk.aim(line, target, "there is nothing to move over");
           Win to = desk.held == null ? aim.win : desk.held;
           float[] at = aim.in(to);
           desk.pointerTo(to);
-          to.app.pointerMove(at[0], at[1]);
+          to.app.pointerMove(at[0], at[1], modifiers);
         }
         case "leave" -> {
           if (!args.isEmpty()) {

@@ -326,7 +326,23 @@ public final class App<S> {
   // When a whenHoveredFor look that attached overlays, such as a tooltip, last went because the
   // pointer left its element; a stay that begins within its delay of that shows its look at once.
   private double lookLeft = Double.NEGATIVE_INFINITY;
-  private int hoversRun; // onHoverFor handlers run so far
+  private int hoversRun; // onHoverFor, onHover and text hover handlers run so far
+  // Elements currently hovered that have an El#onHover handler, by identity.
+  private final Set<Object> hoveredCallbacks = new HashSet<>();
+  // Multi-line fields under the pointer with text pointer/hover handlers, by identity.
+  private final Map<Object, TextHover> textHovered = new HashMap<>();
+
+  private static final int NOT_PRESSED = Integer.MIN_VALUE;
+
+  /** Per-field state for {@link El#onTextPointerMove} and {@link El#onTextHoverFor}. */
+  private static final class TextHover {
+    int position = -1;
+    int modifiers;
+    double since = Double.POSITIVE_INFINITY;
+    boolean ran;
+    // The position a press suppressed the hover at, -1 off the text, until the pointer leaves it.
+    int pressedAt = NOT_PRESSED;
+  }
 
   /**
    * Since when the pointer has been over an element; whether its onHoverFor handler has run;
@@ -389,11 +405,19 @@ public final class App<S> {
    * the thumb, from the first pixel.
    */
   public void pointerMove(float x, float y) {
-    enqueue(() -> move(x, y));
+    enqueue(() -> move(x, y, 0));
   }
 
-  private boolean move(float x, float y) {
-    hover.move(x, y); // the frame looks at what is under the pointer anyway
+  /**
+   * Like {@link #pointerMove(float, float)}, with the modifiers held as the window reports them,
+   * a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and {@link Key#META}.
+   */
+  public void pointerMove(float x, float y, int modifiers) {
+    enqueue(() -> move(x, y, modifiers));
+  }
+
+  private boolean move(float x, float y, int modifiers) {
+    hover.move(x, y, modifiers); // the frame looks at what is under the pointer anyway
     if (rowsPending
         && (dragging() != null || capture instanceof Selecting || capture instanceof Grab)) {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
@@ -795,6 +819,20 @@ public final class App<S> {
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
       rest.attached = List.of();
+    }
+    for (TextHover th : textHovered.values()) {
+      th.since = Double.POSITIVE_INFINITY;
+      th.pressedAt = th.position;
+    }
+    if (!path.isEmpty()) {
+      El leaf = path.getLast();
+      if (leaf.text() != null
+          && leaf.text().multiline()
+          && (leaf.onTextPointerMove() != null || leaf.onTextHoverFor() != null)) {
+        TextHover th = textHovered.computeIfAbsent(ids.getLast(), id -> new TextHover());
+        th.since = Double.POSITIVE_INFINITY;
+        th.pressedAt = textPositionAt(path, x, y);
+      }
     }
     lookLeft = Double.NEGATIVE_INFINITY;
   }
@@ -1244,6 +1282,7 @@ public final class App<S> {
   public void keyDown(Key key, Runnable untaken) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      hover.keyDown(key);
       rowGoals.clear();
       if (edits(key)) {
         wakeField();
@@ -1368,6 +1407,7 @@ public final class App<S> {
   public void keyUp(Key key) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      hover.keyUp(key);
       if (key.name().equals(keyPressKey)) {
         keyPressKey = null;
         if (frames == keyPressFrame || time >= keyPressUntil) {
@@ -1998,6 +2038,7 @@ public final class App<S> {
       if (!active) { // its key comes up elsewhere, if at all
         keyPressed = null;
         keyPressKey = null;
+        hover.clearModifiers();
       }
       return changed;
     });
@@ -4182,7 +4223,134 @@ public final class App<S> {
         }
       }
     }
+    updateHoverCallbacks(path, ids);
+    updateTextHover(path, ids);
     return rested;
+  }
+
+  /** Fires {@link El#onHover} enter/leave handlers for elements along {@code path}. */
+  private void updateHoverCallbacks(List<El> path, List<Object> ids) {
+    if (!hoveredCallbacks.isEmpty()) {
+      for (Iterator<Object> it = hoveredCallbacks.iterator(); it.hasNext(); ) {
+        Object id = it.next();
+        if (!ids.contains(id)) {
+          it.remove();
+          El left = animator.element(id);
+          if (left != null && !left.isExiting() && left.onHover() != null) {
+            hoversRun++;
+            ran = true;
+            left.onHover().accept(false);
+          }
+        }
+      }
+    }
+    for (int i = 0; i < path.size(); i++) {
+      El el = path.get(i);
+      if (el.onHover() != null && hoveredCallbacks.add(ids.get(i))) {
+        hoversRun++;
+        ran = true;
+        el.onHover().accept(true);
+      }
+    }
+  }
+
+  /**
+   * Follows the character position under the pointer in multi-line fields with {@link
+   * El#onTextPointerMove} or {@link El#onTextHoverFor}, updating {@link #restDue} when a delayed
+   * hover is waiting.
+   */
+  private void updateTextHover(List<El> path, List<Object> ids) {
+    if (held() != null) {
+      return; // a press or a drag keeps what it suppressed until the pointer moves on after it
+    }
+    El activeField = null;
+    Object activeId = null;
+    int activePos = -1;
+    if (hover.in() && !path.isEmpty()) {
+      El leaf = path.getLast();
+      if (leaf.text() != null
+          && leaf.text().multiline()
+          && (leaf.onTextPointerMove() != null || leaf.onTextHoverFor() != null)) {
+        activeField = leaf;
+        activeId = ids.getLast();
+        activePos = textPositionAt(path, hover.x(), hover.y());
+      }
+    }
+    int mods = hover.modifiers();
+    if (!textHovered.isEmpty()) {
+      for (Iterator<Map.Entry<Object, TextHover>> it = textHovered.entrySet().iterator();
+          it.hasNext(); ) {
+        Map.Entry<Object, TextHover> entry = it.next();
+        if (!entry.getKey().equals(activeId)) {
+          int prevPos = entry.getValue().position;
+          it.remove();
+          if (prevPos >= 0) {
+            El left = animator.element(entry.getKey());
+            if (left != null && !left.isExiting() && left.onTextPointerMove() != null) {
+              hoversRun++;
+              ran = true;
+              left.onTextPointerMove().accept(-1, mods);
+            }
+          }
+        }
+      }
+    }
+    if (activeField == null) {
+      return;
+    }
+    TextHover th = textHovered.computeIfAbsent(activeId, id -> new TextHover());
+    boolean posChanged = activePos != th.position;
+    boolean modsChanged = activePos >= 0 && mods != th.modifiers;
+    if (posChanged || (th.pressedAt != NOT_PRESSED && activePos != th.pressedAt)) {
+      th.since = activePos >= 0 ? time : Double.POSITIVE_INFINITY;
+      th.ran = false;
+      if (activePos != th.pressedAt) {
+        th.pressedAt = NOT_PRESSED;
+      }
+    }
+    if (posChanged) {
+      th.position = activePos;
+      th.modifiers = mods;
+    } else if (modsChanged) {
+      th.modifiers = mods;
+    }
+    if ((posChanged || modsChanged) && activeField.onTextPointerMove() != null) {
+      hoversRun++;
+      ran = true;
+      activeField.onTextPointerMove().accept(activePos, mods);
+    }
+    if (activeField.onTextHoverFor() != null
+        && activePos >= 0
+        && !th.ran
+        && th.pressedAt == NOT_PRESSED) {
+      double due = th.since + activeField.textHoverDelay();
+      if (due <= time) {
+        th.ran = true;
+        hoversRun++;
+        ran = true;
+        activeField.onTextHoverFor().accept(activePos, mods);
+      } else {
+        restDue = Math.min(restDue, due);
+      }
+    }
+  }
+
+  /**
+   * The character position under window coordinates {@code (x, y)} in the multi-line field at the
+   * end of {@code pathToField}, or -1 if outside its text or on a scrollbar.
+   */
+  private static int textPositionAt(List<El> pathToField, float x, float y) {
+    El field = pathToField.getLast();
+    if (field.text() == null || !field.text().multiline() || field.barAt(x, y) != null) {
+      return -1;
+    }
+    float left = 0;
+    float top = 0;
+    for (El el : fromOverlay(pathToField)) {
+      left += el.x();
+      top += el.y();
+    }
+    return field.textPositionAt(x - left, y - top);
   }
 
   /** Applies {@code el}'s {@link El#whenHoveredFor} look if it is due; whether it did. */

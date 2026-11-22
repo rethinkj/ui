@@ -1,0 +1,11 @@
+# Hover a word in the code editor to show the app's documentation in a popover.
+size 520 168 scale 2
+frame
+
+move #line-1 at right+60
+frame
+advance 0.6             # past the theme's tooltip delay
+frame
+advance 0.25            # past the theme's fade
+frame
+snap shown

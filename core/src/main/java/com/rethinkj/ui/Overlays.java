@@ -82,11 +82,12 @@ final class Overlays {
    */
   static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
+    boolean[] fieldAnchored = {false};
     float far = Float.POSITIVE_INFINITY;
-    place(root, 0, 0, -far, -far, far, far, width, height, shown, null, null, false);
+    place(root, 0, 0, -far, -far, far, far, width, height, shown, fieldAnchored, null, null, false);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
-    return shown.stream().anyMatch(overlay -> overlay.placement().atCaret);
+    return fieldAnchored[0];
   }
 
   /**
@@ -105,6 +106,7 @@ final class Overlays {
       float width,
       float height,
       List<El> shown,
+      boolean[] fieldAnchored,
       El.Layer within,
       El dialog,
       boolean inert) {
@@ -125,8 +127,16 @@ final class Overlays {
         && overlaps(top, bottom, height)) {
       float far = Float.POSITIVE_INFINITY;
       for (El overlay : el.overlays()) {
-        if (overlay.targetOpacity() == 0 || overlay.placement().whenShortened && !shortened(el)) {
+        El.Layer l = overlay.placement();
+        if (overlay.targetOpacity() == 0 || l.whenShortened && !shortened(el)) {
           continue; // not shown, so it neither blocks as a modal one does nor takes the focus
+        }
+        if (l.atCaret || l.rangeFrom >= 0) {
+          fieldAnchored[0] = true;
+        }
+        if (l.rangeFrom >= 0
+            && (el.editor() == null || el.editor().rangeBox(l.rangeFrom, l.rangeTo) == null)) {
+          continue; // range is hidden or scrolled out of view
         }
         place(overlay, el, left, top, width, height, within, dialog);
         if (inert || el.isInert()) {
@@ -134,21 +144,9 @@ final class Overlays {
         }
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
-        El in = overlay.placement().modal ? overlay : dialog;
+        El in = l.modal ? overlay : dialog;
         place(
-            overlay,
-            0,
-            0,
-            -far,
-            -far,
-            far,
-            far,
-            width,
-            height,
-            shown,
-            overlay.placement(),
-            in,
-            false);
+            overlay, 0, 0, -far, -far, far, far, width, height, shown, fieldAnchored, l, in, false);
       }
     }
     Style s = el.style();
@@ -173,6 +171,7 @@ final class Overlays {
           width,
           height,
           shown,
+          fieldAnchored,
           within,
           dialog,
           inert || el.isInert());
@@ -242,12 +241,16 @@ final class Overlays {
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
       float aw = Float.isNaN(l.pointX) ? anchor.width() : 0;
       float ah = Float.isNaN(l.pointX) ? anchor.height() : 0;
-      float[] caret = l.atCaret && anchor.editor() != null ? anchor.editor().caretBox() : null;
-      if (caret != null) {
-        ax = x + caret[0];
-        ay = y + caret[1];
-        aw = caret[2];
-        ah = caret[3];
+      float[] box = l.atCaret && anchor.editor() != null
+          ? anchor.editor().caretBox()
+          : l.rangeFrom >= 0 && anchor.editor() != null
+              ? anchor.editor().rangeBox(l.rangeFrom, l.rangeTo)
+              : null;
+      if (box != null) {
+        ax = x + box[0];
+        ay = y + box[1];
+        aw = box[2];
+        ah = box[3];
       }
       // A tooltip keeps its gap from the window's edges too; a menu may lie flush with them.
       float edge = l.avoidsAnchor ? l.gap : 0;

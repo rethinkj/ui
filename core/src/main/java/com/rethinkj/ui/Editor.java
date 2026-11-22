@@ -580,6 +580,58 @@ final class Editor {
     };
   }
 
+  /**
+   * The rectangle of the first visible row of characters {@code from} to {@code to} of a
+   * multi-line field, in logical pixels from the top left of the element's border box, as
+   * {@code {x, y, width, height}}; null before layout or while no part of the range is in view.
+   */
+  float[] rangeBox(int from, int to) {
+    Text t = el.text();
+    if (!t.laidOut() || !t.multiline()) {
+      return null;
+    }
+    float scale = t.scale();
+    float top = el.border(Side.TOP) + el.padding(Side.TOP);
+    float left = el.border(Side.LEFT) + el.padding(Side.LEFT);
+    int len = text.length();
+    int clampedFrom = Math.clamp(from, 0, len);
+    int clampedTo = Math.clamp(to, clampedFrom, len);
+    int start = toShown(clampedFrom);
+    int end = toShown(clampedTo);
+    float contentW = t.contentWidth();
+    float contentH = t.contentHeight();
+    if (start == end) {
+      Lines ls = t.shownIndex();
+      int line = ls.line(Math.clamp(start, 0, ls.length()));
+      if (ls.isHidden(line)) {
+        return null;
+      }
+      float rx = t.x(start) - t.scroll();
+      float ry = t.shownTop(start);
+      float rw = caretWidth(scale);
+      float rh = t.lineHeight();
+      if (rx + rw <= 0 || rx >= contentW || ry + rh <= 0 || ry >= contentH) {
+        return null;
+      }
+      return new float[] {left + rx / scale, top + ry / scale, rw / scale, rh / scale};
+    }
+    for (Text.Box box : t.selectionBoxes(start, end, 0)) {
+      if (box.x() + box.width() > 0
+          && box.x() < contentW
+          && box.y() + box.height() > 0
+          && box.y() < contentH) {
+        float bx0 = Math.max(0, box.x());
+        float bx1 = Math.min(contentW, box.x() + box.width());
+        float by0 = Math.max(0, box.y());
+        float by1 = Math.min(contentH, box.y() + box.height());
+        return new float[] {
+          left + bx0 / scale, top + by0 / scale, (bx1 - bx0) / scale, (by1 - by0) / scale
+        };
+      }
+    }
+    return null;
+  }
+
   /** Whether something changed since the last call; a change keeps the caret on for a while. */
   boolean takeChanged() {
     boolean was = changed;

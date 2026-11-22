@@ -1,0 +1,1 @@
+- Added multi-line text pointer hit-testing and callbacks (`El.textPositionAt`, `onTextPointerMove`, `onTextHoverFor`), range-anchored overlays (`El.atRange`), and quick documentation popovers in `CodeEditor` (`CodeEditor.State.documentation`, hover after `tooltipDelay`, and Ctrl+Q / `Command.QUICK_DOCUMENTATION`).

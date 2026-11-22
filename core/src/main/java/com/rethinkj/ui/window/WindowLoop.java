@@ -1021,7 +1021,7 @@ public final class WindowLoop {
       case PointerDown down
       when down.button() == PointerButton.RIGHT -> app.secondaryDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.RIGHT -> app.secondaryUp(up.x(), up.y());
-      case PointerMove move -> app.pointerMove(move.x(), move.y());
+      case PointerMove move -> app.pointerMove(move.x(), move.y(), move.modifiers());
       case PointerLeave _ -> app.pointerLeave();
       // The window's dy is positive away from the user, the app's towards the end.
       case Wheel wheel ->
@@ -1169,7 +1169,7 @@ public final class WindowLoop {
       released(to);
       to.app.pointerUp(ax, ay);
     } else {
-      to.app.pointerMove(ax, ay);
+      to.app.pointerMove(ax, ay, ((PointerMove) event).modifiers());
     }
     return true;
   }

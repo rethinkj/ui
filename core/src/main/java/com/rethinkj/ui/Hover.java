@@ -13,6 +13,7 @@ final class Hover {
   private boolean in;
   private float x;
   private float y;
+  private int modifiers; // held, as the last pointer move or key reported them
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
@@ -23,14 +24,50 @@ final class Hover {
 
   /** The pointer moved to this point of the window. */
   void move(float x, float y) {
+    move(x, y, 0);
+  }
+
+  /** The pointer moved to this point of the window with these modifiers held. */
+  void move(float x, float y, int modifiers) {
     in = true;
     this.x = x;
     this.y = y;
+    this.modifiers = modifiers;
   }
 
   /** The pointer left the window. */
   void leave() {
     in = false;
+  }
+
+  /** A key went down: what it says is held, with itself if it is a modifier. */
+  void keyDown(Key key) {
+    modifiers = key.modifiers() | modifierBit(key.name());
+  }
+
+  /** A key was released: what it says is still held. */
+  void keyUp(Key key) {
+    modifiers = key.modifiers(); // without the released key, also with its twin still held
+  }
+
+  /** Clears the held modifiers, as when the window loses the keyboard. */
+  void clearModifiers() {
+    modifiers = 0;
+  }
+
+  /** The modifiers held, a combination of {@link Key}'s modifier bits. */
+  int modifiers() {
+    return modifiers;
+  }
+
+  private static int modifierBit(String name) {
+    return switch (name) {
+      case "Shift" -> Key.SHIFT;
+      case "Control" -> Key.CONTROL;
+      case "Alt" -> Key.ALT;
+      case "Meta" -> Key.META;
+      default -> 0;
+    };
   }
 
   /** Whether the pointer is in the window. */

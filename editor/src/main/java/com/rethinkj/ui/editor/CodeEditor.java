@@ -16,6 +16,8 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Markdown;
+import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
@@ -108,7 +111,12 @@ public final class CodeEditor {
      * fix highlighted. Nothing where there are no fixes at the caret or the editor is not
      * editable.
      */
-    QUICK_FIXES
+    QUICK_FIXES,
+    /**
+     * Control+Q: shows the app's documentation ({@link State#documentation}) for the symbol at the
+     * caret in a popover, until Escape, a press outside, typing or moving the caret.
+     */
+    QUICK_DOCUMENTATION
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -227,6 +235,7 @@ public final class CodeEditor {
       case "[" -> mods == controlShift ? Command.FOLD : null;
       case "]" -> mods == controlShift ? Command.UNFOLD : null;
       case "Enter" -> mods == Key.ALT ? Command.QUICK_FIXES : null;
+      case "Q" -> mods == Key.CONTROL ? Command.QUICK_DOCUMENTATION : null;
       default -> null;
     };
   }
@@ -291,6 +300,16 @@ public final class CodeEditor {
     private String visionOf;
     private List<Vision> visionFor;
     private Map<Integer, CodeVision.Row> visionRows = Map.of();
+    // Quick documentation: provider supplied by the app and the currently open popover.
+    private IntFunction<MarkdownDocument> documentation;
+    private MarkdownDocument doc;
+    private String docValue;
+    private int docFrom = -1;
+    private int docTo = -1;
+    private int docCaret = -1;
+    private boolean docHover;
+    private int hoverPos = -1;
+    private boolean overDoc;
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -534,6 +553,30 @@ public final class CodeEditor {
           .map(f -> new Folded(f, -1, -1))
           .toList());
       return this;
+    }
+
+    /**
+     * Supplies quick documentation for a character offset in the editor's string: a {@link
+     * MarkdownDocument} to show in a popover, or null for none. Shown below a word after the
+     * pointer rests on it for {@link Theme.Motion#tooltipDelay}, and at the caret on Control+Q
+     * ({@link Command#QUICK_DOCUMENTATION}). Null, the default, disables quick documentation.
+     */
+    public State documentation(IntFunction<MarkdownDocument> provider) {
+      documentation = provider;
+      if (provider == null) {
+        closeDocumentation();
+      }
+      return this;
+    }
+
+    private void closeDocumentation() {
+      doc = null;
+      docValue = null;
+      docFrom = -1;
+      docTo = -1;
+      docCaret = -1;
+      docHover = false;
+      overDoc = false;
     }
 
     private void fold(El.BracketFold pair) {
@@ -858,9 +901,19 @@ public final class CodeEditor {
           .atCaret()
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
+    attachDocumentation(theme, state, editor, value, extra);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
     if (app == null) {
+      if (state.doc != null) {
+        editor.onKey(k -> {
+          if (k.name().equals("Escape") && k.modifiers() == 0 && state.doc != null) {
+            state.closeDocumentation();
+            return true;
+          }
+          return false;
+        });
+      }
       return editor;
     }
     state.editor = editor;
@@ -869,6 +922,10 @@ public final class CodeEditor {
     state.formatter = highlighter == null ? null : highlighter.formatter();
     state.currentDiagnostics = currentDiagnostics;
     editor.onKey(k -> {
+      if (k.name().equals("Escape") && k.modifiers() == 0 && state.doc != null) {
+        state.closeDocumentation();
+        return true;
+      }
       if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
         return true;
       }
@@ -883,6 +940,8 @@ public final class CodeEditor {
       if (command == null
           || (command == Command.FORMAT && !formats)
           || (command == Command.QUICK_FIXES && !fixesHere)
+          || (command == Command.QUICK_DOCUMENTATION
+              && (state.documentation == null || app.focused() != editor))
           || ((command == Command.FOLD || command == Command.UNFOLD) && app.focused() != editor)) {
         return false; // Control+Alt+L and Alt+Enter stay the app's where not applicable
       }
@@ -907,7 +966,10 @@ public final class CodeEditor {
     // Control+Alt+L and Alt+Enter, which the editor takes only where applicable, stay the app's.
     return Find.find(app, editor, state.find, k -> {
       Command command = command(k);
-      return command != null && command != Command.FORMAT && command != Command.QUICK_FIXES;
+      return command != null
+          && command != Command.FORMAT
+          && command != Command.QUICK_FIXES
+          && (command != Command.QUICK_DOCUMENTATION || state.documentation != null);
     });
   }
 
@@ -1289,6 +1351,10 @@ public final class CodeEditor {
       unfoldAtCaret(state, text, caret);
       return;
     }
+    if (command == Command.QUICK_DOCUMENTATION) {
+      showDocumentationAtCaret(state, editor, text, caret);
+      return;
+    }
     if (editor.onEdit() == null || editor.isReadOnly()) {
       return;
     }
@@ -1639,5 +1705,116 @@ public final class CodeEditor {
       }
     }
     return text.length();
+  }
+
+  /** Wires hover quick documentation and attaches the open popover overlay, if any. */
+  private static void attachDocumentation(
+      Theme theme, State state, El editor, String value, String extra) {
+    if (state.doc != null && !value.equals(state.docValue)) {
+      state.closeDocumentation();
+    }
+    if (state.doc != null && state.caret != state.docCaret) {
+      state.closeDocumentation();
+    }
+    if (state.doc != null
+        && state.docHover
+        && !state.overDoc
+        && (state.hoverPos < state.docFrom || state.hoverPos >= state.docTo)) {
+      state.closeDocumentation();
+    }
+    if (state.documentation != null) {
+      editor.onTextHoverFor(theme.motion().tooltipDelay(), (pos, mods) -> {
+        if (state.doc != null && !state.docHover) {
+          return; // Control+Q's popover stays until the caret moves
+        }
+        String text = editor.text().string();
+        if (pos < 0
+            || pos >= text.length()
+            || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+          return;
+        }
+        int from = CodeWords.start(text, pos, extra);
+        int to = CodeWords.end(text, pos, extra);
+        if (state.doc != null && state.docHover && state.docFrom == from && state.docTo == to) {
+          state.hoverPos = pos;
+          return;
+        }
+        MarkdownDocument doc = state.documentation.apply(pos);
+        if (doc == null) {
+          return;
+        }
+        state.doc = doc;
+        state.docValue = value;
+        state.docFrom = from;
+        state.docTo = to;
+        state.docCaret = state.caret;
+        state.docHover = true;
+        state.hoverPos = pos;
+        state.overDoc = false;
+      });
+    }
+    if (state.doc == null) {
+      return;
+    }
+    if (state.docHover) {
+      editor.onTextPointerMove((pos, mods) -> state.hoverPos = pos);
+    }
+    editor.overlay(documentationPanel(theme, state));
+  }
+
+  private static El documentationPanel(Theme theme, State state) {
+    Texts texts = Texts.CURRENT.get();
+    El panel = El.col()
+        .key("documentation")
+        .role("dialog")
+        .label(texts.documentation())
+        .keepFocus()
+        .w(theme.size().tooltip())
+        .radius(theme.radius().medium())
+        .fill(theme.surface().popup())
+        .border(theme.size().stroke(), theme.border().control())
+        .shadow(theme.elevation().popup())
+        .motion(theme.motion().fade())
+        .padding(theme.space().l())
+        .scroll()
+        .scrollbars(theme.scrollbars())
+        .onPressOutside(state::closeDocumentation)
+        .onKey(k -> {
+          if (k.name().equals("Escape") && k.modifiers() == 0) {
+            state.closeDocumentation();
+            return true;
+          }
+          return false;
+        })
+        .child(Markdown.fragment(state.doc, Markdown.options()))
+        .side(Side.BOTTOM, Style.Align.START, 0); // no gap the pointer would cross off the word
+    if (state.docHover) {
+      panel.onHover(over -> state.overDoc = over);
+    }
+    return state.docFrom < state.docTo
+        ? panel.atRange(state.docFrom, state.docTo)
+        : panel.atCaret();
+  }
+
+  private static void showDocumentationAtCaret(State state, El editor, String text, int caret) {
+    if (state.documentation == null) {
+      return;
+    }
+    String extra = editor.text().wordCharacters();
+    int from = CodeWords.start(text, caret, extra);
+    int to = CodeWords.end(text, caret, extra);
+    int query = from < to ? (caret < to ? caret : from) : caret;
+    MarkdownDocument doc = state.documentation.apply(query);
+    if (doc == null) {
+      state.closeDocumentation();
+      return;
+    }
+    state.doc = doc;
+    state.docValue = state.value;
+    state.docFrom = from;
+    state.docTo = to;
+    state.docCaret = state.caret;
+    state.docHover = false;
+    state.overDoc = false;
   }
 }

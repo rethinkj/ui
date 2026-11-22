@@ -1406,6 +1406,28 @@ public final class Text implements Measure {
       }
       return bounds[i] + found;
     }
+
+    int positionAt(float x) {
+      if (x < 0) {
+        return -1;
+      }
+      int i = chunkAtX(x);
+      Para p = part(i);
+      float localX = (float) (x - xs[i]);
+      if (localX < 0 || localX >= p.run.width()) {
+        return -1;
+      }
+      List<Integer> graphemes = p.boundaries(0, p.text.length());
+      int found = -1;
+      for (int k = 0; k < graphemes.size() - 1; k++) {
+        if (p.pen(graphemes.get(k)) <= localX) {
+          found = graphemes.get(k);
+        } else {
+          break;
+        }
+      }
+      return found < 0 ? -1 : bounds[i] + found;
+    }
   }
 
   /**
@@ -1828,6 +1850,88 @@ public final class Text implements Measure {
       }
     }
     return start + found;
+  }
+
+  /**
+   * The start of the grapheme of the shown string strictly under a point in a multi-line field, in
+   * physical pixels from the top left of the text (after scroll), or -1 if the point is outside
+   * the text, past the end of a line's text, on an empty line or over a block band.
+   */
+  int positionAt(float x, float y) {
+    if (!multiline || !laidOut || placeholderShown || x < 0 || y < 0) {
+      return -1;
+    }
+    Lines lines = shownLines();
+    if (lines.shownCount() == 0) {
+      return -1;
+    }
+    double lh = lineHeight;
+    if (y >= lines.totalHeight(lh)) {
+      return -1;
+    }
+    int line;
+    int row;
+    if (lines.hasBlocks()) {
+      int slot = lines.slotAt(y, lh);
+      if (inBlockBand(lines, slot, y)) {
+        return -1;
+      }
+      Para para = para(slot);
+      long within = (long) Math.floor((y - lines.lineTop(slot, lh)) / lh);
+      if (within < 0 || within >= para.rowCount()) {
+        return -1;
+      }
+      line = slot;
+      row = (int) within;
+    } else {
+      long rowIndex = (long) Math.floor(y / lh);
+      if (rowIndex < 0 || rowIndex >= lines.totalRows()) {
+        return -1;
+      }
+      line = lines.lineOfRow(rowIndex);
+      if (line < 0 || lines.isHidden(line)) {
+        return -1;
+      }
+      Para para = para(line);
+      long within = rowIndex - lines.rowsBefore(line);
+      if (within < 0 || within >= para.rowCount()) {
+        return -1;
+      }
+      row = (int) within;
+    }
+    return positionOnRow(line, row, x);
+  }
+
+  private int positionOnRow(int line, int row, float x) {
+    Para para = para(line);
+    if (para.text.isEmpty()) {
+      return -1;
+    }
+    int start = shownLines().start(line);
+    if (para.chunks != null) {
+      int local = para.chunks.positionAt(x);
+      return local < 0 ? -1 : start + local;
+    }
+    int rowStart = para.rowStart(row);
+    int rowEnd = para.rowEnd(row);
+    if (rowStart >= rowEnd) {
+      return -1;
+    }
+    float left = para.pen(rowStart);
+    float right = para.pen(rowEnd) - left;
+    if (x >= right) {
+      return -1;
+    }
+    List<Integer> bounds = para.boundaries(rowStart, rowEnd);
+    int found = -1;
+    for (int i = 0; i < bounds.size() - 1; i++) {
+      if (para.pen(bounds.get(i)) - left <= x) {
+        found = bounds.get(i);
+      } else {
+        break;
+      }
+    }
+    return found < 0 ? -1 : start + found;
   }
 
   private boolean inBlockBand(Lines lines, int slot, double y) {
