@@ -1,6 +1,7 @@
 package com.rethinkj.ui.editor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -123,6 +124,12 @@ public final class Comments {
     }
     boolean complete = pos < 0;
     return new Comments(
-        text, language, List.copyOf(found), scanned, complete, pos, complete ? null : state);
+        text,
+        language,
+        Collections.unmodifiableList(found),
+        scanned,
+        complete,
+        pos,
+        complete ? null : state);
   }
 }
