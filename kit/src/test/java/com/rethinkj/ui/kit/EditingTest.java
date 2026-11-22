@@ -266,6 +266,37 @@ class EditingTest {
   }
 
   @Test
+  void forgettingAFieldDropsItsDraftAndDescendantsWithoutChangingTheValue() {
+    Editing<Profile> e = Editing.of(profile());
+    type(e, "99999");
+    assertFalse(e.valid());
+
+    e.forget(Profile.PORT);
+    assertTrue(e.valid());
+    assertEquals(5432, e.value().port(), "forget leaves the value alone");
+    assertNull(e.at(Profile.PORT).error());
+    assertEquals("5432", shown(e), "the field starts from the value again");
+
+    Prop<Tls> tls = e.at(Profile.TLS);
+    Prop<String> mode = e.at(Profile.TLS.then(Tls.MODE));
+    Prop<String> host = e.at(Profile.HOST);
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    host.error("Bad host");
+
+    e.forget(Profile.TLS.then(Tls.MODE));
+    assertNull(mode.error());
+    assertEquals("TLS rejected", tls.error(), "ancestors stay");
+
+    mode.error("Bad mode");
+    e.forget(Profile.TLS);
+    assertNull(tls.error());
+    assertNull(mode.error(), "descendants are forgotten too");
+    assertEquals("Bad host", host.error(), "siblings stay");
+    assertFalse(e.valid());
+  }
+
+  @Test
   void aPropMadeInEachBuildIsTheSameFieldButAPartMadeInEachBuildIsNot() {
     Editing<Profile> e = Editing.of(profile());
     assertSame(e.at(Profile.PORT).draft(), e.at(Profile.PORT).draft());

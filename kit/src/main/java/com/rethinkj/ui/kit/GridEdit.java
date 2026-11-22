@@ -23,6 +23,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 
@@ -56,6 +57,12 @@ final class GridEdit {
     FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
     final Menu.State choices = new Menu.State(); // an enumeration's list
     final FilterList.State search = new FilterList.State(); // a long enumeration's filter
+    // The entries of the last build's choices, and the handler their entries call.
+    private List<String> searchChoices;
+    private boolean searchNullable;
+    private String searchOriginal;
+    List<FilterList.Entry> searchEntries; // package-private for tests
+    private Consumer<String> searchChoose;
     // A switch of a boolean that was refused, and its cell, until the next key or press.
     String refused;
     int refusedRow = -1;
@@ -68,6 +75,9 @@ final class GridEdit {
       draft = original = error = null;
       mode = null;
       choices.close();
+      searchChoices = null; // lets go of the build the handler holds
+      searchEntries = null;
+      searchChoose = null;
     }
 
     /** Puts the editor on its column's new place, or closes it where its column is gone. */
@@ -1206,6 +1216,39 @@ final class GridEdit {
   }
 
   /**
+   * The entries of a long enumeration's choices, made once for the same choices, nullability and
+   * original value and kept in the state, so that the list's filter keeps what it found.
+   */
+  private static List<FilterList.Entry> searchEntries(Build b, Column c) {
+    State state = b.sel.edit;
+    // The handlers of the entries go through the state, which holds the handler of this build.
+    state.searchChoose = value -> choose(b, value, Move.NONE);
+    List<String> choices = c.editing().choices();
+    boolean nullable = c.editing().nullable();
+    String original = state.original;
+    if (state.searchEntries != null
+        && nullable == state.searchNullable
+        && Objects.equals(original, state.searchOriginal)
+        && choices.equals(state.searchChoices)) {
+      return state.searchEntries;
+    }
+    List<FilterList.Entry> entries = new ArrayList<>(choices.size() + (nullable ? 1 : 0));
+    for (String choice : choices) {
+      entries.add(FilterList.entry(choice, () -> state.searchChoose.accept(choice))
+          .checked(choice.equals(original)));
+    }
+    if (nullable) {
+      entries.add(FilterList.entry("NULL", () -> state.searchChoose.accept(null))
+          .checked(original == null));
+    }
+    state.searchChoices = choices;
+    state.searchNullable = nullable;
+    state.searchOriginal = original;
+    state.searchEntries = List.copyOf(entries);
+    return state.searchEntries;
+  }
+
+  /**
    * The choices of a long enumeration below the cell, filtered by what the editor's field holds
    * (Fuzzy), in a menu's panel: the current one with a check mark at its end, as a combo box's, and highlighted while nothing
    * is typed;
@@ -1214,15 +1257,7 @@ final class GridEdit {
   private static El search(Build b, Column c) {
     Selection sel = b.sel;
     Theme theme = b.theme;
-    List<FilterList.Entry> entries = new ArrayList<>();
-    for (String choice : c.editing().choices()) {
-      entries.add(FilterList.entry(choice, () -> choose(b, choice, Move.NONE))
-          .checked(choice.equals(sel.edit.original)));
-    }
-    if (c.editing().nullable()) {
-      entries.add(FilterList.entry("NULL", () -> choose(b, null, Move.NONE))
-          .checked(sel.edit.original == null));
-    }
+    List<FilterList.Entry> entries = searchEntries(b, c);
     FilterList.Shown shown = FilterList.shown(sel.edit.search, FilterList.Entries.of(entries));
     return Popup.frame(theme, col())
         .key("choices")
