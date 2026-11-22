@@ -21,7 +21,7 @@ el 0,0 560x300
             text label="number_symbol" "\u{F57C}" 124,17 16x16
             text "id" 144,17 11x16
           el 159,13 1x24
-        el #rows 13,38 534x195 rows 0-11/1000 thumb-y 539,40 6x24
+        el #rows 13,38 534x185 rows 0-10/1000 thumb-y 539,40 6x24
           el #row-0 role=row 13,38 534x24 pos=1/1000
             el #cell-0-1 role=gridcell 160,38 119x23 pos=2/4
               text "Ada" 164,42 24x16
@@ -198,37 +198,21 @@ el 0,0 560x300
             el #cell-10-0 role=gridcell 50,278 109x23 pos=1/4
               text "1010" 127,282 28x16
             el 159,278 1x23
-          el #row-11 role=row 13,302 534x24 pos=12/1000
-            el #cell-11-1 role=gridcell 160,302 119x23 pos=2/4
-              text "Emeka" 164,306 41x16
-            el 279,302 1x23
-            el #cell-11-2 role=gridcell 280,302 139x23 pos=3/4
-              text "407.43" 373,306 42x16
-            el 419,302 1x23
-            el #cell-11-3 role=gridcell 420,302 99x23 pos=4/4
-              text "refunded" 424,306 58x16
-            el 519,302 1x23
-            el #number-11 role=rowheader 13,302 36x23
-              text "12" 31,306 14x16
-            el 49,302 1x23
-            el #cell-11-0 role=gridcell 50,302 109x23 pos=1/4
-              text "1011" 127,306 28x16
-            el 159,302 1x23
-        el #footer role=row 13,233 534x25
-          el #total-1 role=gridcell label="customer" 160,234 119x24 pos=2/4
-          el 279,234 1x24
-          el #total-2 role=gridcell label="amount" 280,234 139x24 pos=3/4
-            text "SUM" 320,239 28x15
-            text "249995.00" 352,238 63x16
-          el 419,234 1x24
-          el #total-3 role=gridcell label="status" 420,234 99x24 pos=4/4
-          el 519,234 1x24
-          el #footer-numbers 13,234 36x24
-          el 49,234 1x24
-          el #total-0 role=gridcell label="id" 50,234 109x24 pos=1/4
-            text "COUNT" 79,239 44x15
-            text "1000" 127,238 28x16
-          el 159,234 1x24
+        el #footer role=row 13,223 534x35
+          el #total-1 role=gridcell label="customer" 160,224 119x24 pos=2/4
+          el 279,224 1x24
+          el #total-2 role=gridcell label="amount" 280,224 139x24 pos=3/4
+            text "SUM" 320,229 28x15
+            text "249995.00" 352,228 63x16
+          el 419,224 1x24
+          el #total-3 role=gridcell label="status" 420,224 99x24 pos=4/4
+          el 519,224 1x24
+          el #footer-numbers 13,224 36x24
+          el 49,224 1x24
+          el #total-0 role=gridcell label="id" 50,224 109x24 pos=1/4
+            text "COUNT" 79,229 44x15
+            text "1000" 127,228 28x16
+          el 159,224 1x24
     el role=status label="Status bar" 13,258 534x29
       el 21,261 67x24
         el label="1000 rows" 21,261 67x24

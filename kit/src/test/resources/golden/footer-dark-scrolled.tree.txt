@@ -62,7 +62,7 @@ el 0,0 560x240
             text "bigint" 149,12 34x16
         el 187,8 1x24
         el #resize-0 role=separator label="Resize id" 185,8 6x24
-      el #rows -352,33 1228x174 rows 17-30/1000000 scroll 0,480 thumb-y 544,35 6x24
+      el #rows -352,33 1228x164 rows 17-29/1000000 scroll 0,480 thumb-y 544,35 6x24
         el #row-17 role=row -352,-39 1228x24 pos=18/1000000
           el #cell-17-1 role=gridcell -172,-39 127x23 pos=2/8
             text label="link" "\u{F4E3}" -98,-35 16x16
@@ -453,58 +453,28 @@ el 0,0 560x240
           el #cell-29-0 role=gridcell 68,249 119x23 pos=1/8
             text "30" 169,253 14x16
           el 187,249 1x23
-        el #row-30 role=row -352,273 1228x24 pos=31/1000000
-          el #cell-30-1 role=gridcell -172,273 127x23 pos=2/8
-            text label="link" "\u{F4E3}" -98,277 16x16
-            text "2571" -78,277 29x16
-          el -45,273 1x23
-          el #cell-30-2 role=gridcell -44,273 139x23 pos=3/8
-            text "Ada Hamilton" -40,277 82x15
-          el 95,273 1x23
-          el #cell-30-3 role=gridcell label="true" 96,273 79x23 pos=4/8
-            text label="checkmark" "\u{E305}" 100,277 16x16
-          el 175,273 1x23
-          el #cell-30-4 role=gridcell 176,273 129x23 pos=5/8
-            text label="record" "\u{F660}" 180,277 16x16
-            text "shipped" 200,277 49x15
-          el 305,273 1x23
-          el #cell-30-5 role=gridcell 306,273 129x23 pos=6/8
-            text "2375.90" 380,277 51x16
-          el 435,273 1x23
-          el #cell-30-6 role=gridcell 436,273 189x23 pos=7/8
-            text "2026-03-01 08:48:30" 440,277 138x16
-          el 625,273 1x23
-          el #cell-30-7 role=gridcell 626,273 239x23 pos=8/8
-            text "NULL" 630,277 34x15
-          el 865,273 1x23
-          el #number-30 role=rowheader 8,273 59x23
-            text "31" 49,277 14x16
-          el 67,273 1x23
-          el #cell-30-0 role=gridcell 68,273 119x23 pos=1/8
-            text "31" 169,277 14x16
-          el 187,273 1x23
-      el #footer role=row -352,207 1228x25
-        el #total-1 role=gridcell label="customer_id" -172,208 127x24 pos=2/8
-          text "AVG" -121,213 25x14
-          text "2500.5" -92,212 43x16
-        el -45,208 1x24
-        el #total-2 role=gridcell label="customer" -44,208 139x24 pos=3/8
-        el 95,208 1x24
-        el #total-3 role=gridcell label="paid" 96,208 79x24 pos=4/8
-        el 175,208 1x24
-        el #total-4 role=gridcell label="status" 176,208 129x24 pos=5/8
-        el 305,208 1x24
-        el #total-5 role=gridcell label="amount" 306,208 129x24 pos=6/8
-          text "SUM" 327,213 28x14
-          text "1249825.50" 359,212 72x16
-        el 435,208 1x24
-        el #total-6 role=gridcell label="created_at" 436,208 189x24 pos=7/8
-        el 625,208 1x24
-        el #total-7 role=gridcell label="note" 626,208 239x24 pos=8/8
-        el 865,208 1x24
-        el #footer-numbers 8,208 59x24
-        el 67,208 1x24
-        el #total-0 role=gridcell label="id" 68,208 119x24 pos=1/8
-          text "COUNT" 85,213 43x14
-          text "1000000" 132,212 51x16
-        el 187,208 1x24
+      el #footer role=row -352,197 1228x35
+        el #total-1 role=gridcell label="customer_id" -172,198 127x24 pos=2/8
+          text "AVG" -121,203 25x14
+          text "2500.5" -92,202 43x16
+        el -45,198 1x24
+        el #total-2 role=gridcell label="customer" -44,198 139x24 pos=3/8
+        el 95,198 1x24
+        el #total-3 role=gridcell label="paid" 96,198 79x24 pos=4/8
+        el 175,198 1x24
+        el #total-4 role=gridcell label="status" 176,198 129x24 pos=5/8
+        el 305,198 1x24
+        el #total-5 role=gridcell label="amount" 306,198 129x24 pos=6/8
+          text "SUM" 327,203 28x14
+          text "1249825.50" 359,202 72x16
+        el 435,198 1x24
+        el #total-6 role=gridcell label="created_at" 436,198 189x24 pos=7/8
+        el 625,198 1x24
+        el #total-7 role=gridcell label="note" 626,198 239x24 pos=8/8
+        el 865,198 1x24
+        el #footer-numbers 8,198 59x24
+        el 67,198 1x24
+        el #total-0 role=gridcell label="id" 68,198 119x24 pos=1/8
+          text "COUNT" 85,203 43x14
+          text "1000000" 132,202 51x16
+        el 187,198 1x24

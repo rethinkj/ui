@@ -120,7 +120,7 @@ el 0,0 900x520
               text "id" 171,78 11x16
             el 186,74 1x24
             el #resize-0 role=separator label="Resize id" 184,74 6x24
-          el #rows 9,99 1648x358 rows 0-17/1000001 thumb-y 883,101 6x24
+          el #rows 9,99 1648x348 rows 0-17/1000001 thumb-y 883,101 6x24
             el #row-0 role=row 9,99 1648x24 pos=1/1000001 value="changed"
               el #cell-0-1 role=gridcell 187,99 139x23 pos=2/12 value="changed"
                 text "Ada King" 191,103 56x16
@@ -747,37 +747,37 @@ el 0,0 900x520
               el #cell-17-0 role=gridcell 67,507 119x23 pos=1/12
                 text "999984" 140,511 42x16
               el 186,507 1x23
-          el #footer role=row 9,457 1648x25
-            el #total-1 role=gridcell label="customer" 187,458 139x24 pos=2/12
-            el 326,458 1x24
-            el #total-2 role=gridcell label="email" 327,458 279x24 pos=3/12
-            el 606,458 1x24
-            el #total-3 role=gridcell label="city" 607,458 89x24 pos=4/12
-            el 696,458 1x24
-            el #total-4 role=gridcell label="country" 697,458 79x24 pos=5/12
-            el 776,458 1x24
-            el #total-5 role=gridcell label="product" 777,458 99x24 pos=6/12
-            el 876,458 1x24
-            el #total-6 role=gridcell label="quantity" 877,458 79x24 pos=7/12
-            el 956,458 1x24
-            el #total-7 role=gridcell label="amount" 957,458 139x24 pos=8/12
-              text "SUM" 969,463 28x15
-              text "1215440678.60" 1001,462 91x16
-            el 1096,458 1x24
-            el #total-8 role=gridcell label="created_at" 1097,458 139x24 pos=9/12
-            el 1236,458 1x24
-            el #total-9 role=gridcell label="shipped_at" 1237,458 139x24 pos=10/12
-            el 1376,458 1x24
-            el #total-10 role=gridcell label="status" 1377,458 89x24 pos=11/12
-            el 1466,458 1x24
-            el #total-11 role=gridcell label="note" 1467,458 179x24 pos=12/12
-            el 1646,458 1x24
-            el #footer-numbers 9,458 57x24
-            el 66,458 1x24
-            el #total-0 role=gridcell label="id" 67,458 119x24 pos=1/12
-              text "COUNT" 85,463 44x15
-              text "1000000" 133,462 49x16
-            el 186,458 1x24
+          el #footer role=row 9,447 1648x35
+            el #total-1 role=gridcell label="customer" 187,448 139x24 pos=2/12
+            el 326,448 1x24
+            el #total-2 role=gridcell label="email" 327,448 279x24 pos=3/12
+            el 606,448 1x24
+            el #total-3 role=gridcell label="city" 607,448 89x24 pos=4/12
+            el 696,448 1x24
+            el #total-4 role=gridcell label="country" 697,448 79x24 pos=5/12
+            el 776,448 1x24
+            el #total-5 role=gridcell label="product" 777,448 99x24 pos=6/12
+            el 876,448 1x24
+            el #total-6 role=gridcell label="quantity" 877,448 79x24 pos=7/12
+            el 956,448 1x24
+            el #total-7 role=gridcell label="amount" 957,448 139x24 pos=8/12
+              text "SUM" 969,453 28x15
+              text "1215440678.60" 1001,452 91x16
+            el 1096,448 1x24
+            el #total-8 role=gridcell label="created_at" 1097,448 139x24 pos=9/12
+            el 1236,448 1x24
+            el #total-9 role=gridcell label="shipped_at" 1237,448 139x24 pos=10/12
+            el 1376,448 1x24
+            el #total-10 role=gridcell label="status" 1377,448 89x24 pos=11/12
+            el 1466,448 1x24
+            el #total-11 role=gridcell label="note" 1467,448 179x24 pos=12/12
+            el 1646,448 1x24
+            el #footer-numbers 9,448 57x24
+            el 66,448 1x24
+            el #total-0 role=gridcell label="id" 67,448 119x24 pos=1/12
+              text "COUNT" 85,453 44x15
+              text "1000000" 133,452 49x16
+            el 186,448 1x24
       el 9,482 882x29
         text #status "1,000,000 of 1,000,000 orders · order 999997 selected · 4 changes" 25,489 415x16
         el 452,497 423x0

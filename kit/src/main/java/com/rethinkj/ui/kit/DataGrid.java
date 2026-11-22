@@ -2712,7 +2712,7 @@ public final class DataGrid {
       s.left = Len.px(0);
       s.right = Len.px(0);
       s.top = Len.px(g.rowHeight() + theme.size().stroke());
-      s.bottom = options.totals == null ? Len.px(0) : s.top; // above the footer
+      s.bottom = Len.px(options.totals == null ? 0 : footerHeight(b));
       grid.child(empty);
     }
     b.grid = grid;
@@ -2764,10 +2764,17 @@ public final class DataGrid {
 
   private static El footer(Build b) {
     List<El> pinned = new ArrayList<>();
+    // Below its values the strip of the grid's bar along the bottom, which would lie over them.
     El footer = band(b, "footer", true, "footer-numbers", c -> footerCell(b, c), null, pinned)
-        .role("row");
+        .role("row")
+        .h(footerHeight(b))
+        .padding(0, 0, b.room, b.fixedWidth());
     pinned.forEach(footer::child);
     return footer;
+  }
+
+  private static float footerHeight(Build b) {
+    return b.g.rowHeight() + b.theme.size().stroke() + b.room;
   }
 
   /**
