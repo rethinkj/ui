@@ -434,6 +434,10 @@ public interface Texts {
     return "Search columns";
   }
 
+  default String searchValues() {
+    return "Search values";
+  }
+
   /** The hint of the chooser of columns, with the keys that move a column up and down. */
   default String moveOne(String up, String down) {
     return up + " and " + down + " move one";
