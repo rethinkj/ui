@@ -38,7 +38,9 @@ import java.util.function.Supplier;
  *       choice is checked and, before anything is typed, highlighted, then the best match; when
  *       the app changes the choices meanwhile, the highlighted one stays highlighted where it went.
  *       Enter or a press chooses, Escape, Tab, Shift+Tab or a press elsewhere closes it and leaves
- *       the choice as it was.
+ *       the choice as it was. {@link #comboBox(FilterList.Entries, String, State, Runnable)} takes
+ *       choices from a {@link FilterList.Entries} — fixed, found on demand or on another thread,
+ *       with group headings and disabled entries — and an optional clear button in the closed box.
  *   <li>{@link #free}: any text, the choices being suggestions, such as a host name with the ones
  *       used before. It is a text field whose every edit is the value; typing opens the
  *       suggestions that match, none of them highlighted, so that Enter keeps what was typed until
@@ -134,6 +136,39 @@ public final class ComboBox {
     El field = TextField.textField(state.list.query, text, v -> state.list.typed(v, true))
         .label(text);
     return open(theme, text, field, null, FilterList.Entries.of(entries), state, true);
+  }
+
+  /**
+   * A combo box whose choices come from a {@link FilterList.Entries}: a fixed list ({@link
+   * FilterList.Entries#of}), entries found for the typed text ({@link FilterList.Entries#by}), or
+   * entries found on another thread ({@link FilterList.Entries#background}), with group headings,
+   * disabled entries and the "Loading…" row as {@link FilterList} shows them. Each entry's own
+   * {@link FilterList.Entry#onChoose} runs after the list closes; mark the current choice with
+   * {@link FilterList.Entry#checked} where you want a check mark.
+   *
+   * @param entries where the choices come from; null disables the combo box
+   * @param current the text of the current choice shown in the closed box and as the label; null
+   *     or empty for none
+   * @param state whether the list is open and what was typed; the app keeps it
+   * @param onClear runs when the clear button inside the closed box is pressed; shown only while
+   *     {@code current} is non-empty and the box is enabled. Null for no clear button
+   */
+  public static El comboBox(
+      FilterList.Entries entries, String current, State state, Runnable onClear) {
+    Theme theme = Theme.CURRENT.get();
+    boolean enabled = entries != null;
+    String text = current == null ? "" : current;
+    if (!enabled || !state.open) {
+      if (state.open) {
+        state.close();
+      }
+      return closed(theme, text, null, enabled, state, onClear);
+    }
+    state.free = false;
+    state.list.current = -1;
+    El field = TextField.textField(state.list.query, text, v -> state.list.typed(v, true))
+        .label(text);
+    return open(theme, text, field, null, entries, state, true);
   }
 
   /**
@@ -429,8 +464,20 @@ public final class ComboBox {
 
   /** The closed look of {@link #comboBox}: the current choice and a chevron, as a select's. */
   private static El closed(Theme theme, String text, El lead, boolean enabled, State state) {
+    return closed(theme, text, lead, enabled, state, null);
+  }
+
+  private static El closed(
+      Theme theme, String text, El lead, boolean enabled, State state, Runnable onClear) {
     Button.Look look = Select.look(theme, enabled);
-    El box = Select.box(theme, look, text, lead, enabled).expanded(false);
+    El clear = enabled && onClear != null && !text.isEmpty()
+        ? FieldActions.button(theme, Symbol.DISMISS, Texts.CURRENT.get().clear(), onClear)
+            .key("clear")
+            .shrink(0)
+            .focusable()
+            .focusRing(theme.accent().edge())
+        : null;
+    El box = Select.box(theme, look, text, lead, clear, enabled).expanded(false);
     if (!enabled) {
       return box;
     }
@@ -575,7 +622,13 @@ public final class ComboBox {
         default -> {}
       }
     }
-    return FilterList.key(k, state.list, ROWS, e -> e.onChoose().run());
+    return FilterList.key(k, state.list, ROWS, e -> choose(state, e));
+  }
+
+  /** Closes the list, cancelling any background search, before running the chosen entry's handler. */
+  private static void choose(State state, FilterList.Entry entry) {
+    state.close();
+    entry.onChoose().run();
   }
 
   /** The open combo box: the field in its frame and the list below it. */
@@ -593,13 +646,7 @@ public final class ComboBox {
       return box.expanded(false); // no suggestion for what is typed: nothing to show
     }
     El list = FilterList.list(
-        theme,
-        state.list,
-        shown,
-        ROWS,
-        theme.size().control(),
-        value,
-        e -> e.onChoose().run());
+        theme, state.list, shown, ROWS, theme.size().control(), value, e -> choose(state, e));
     El panel = Popup.frame(theme, col())
         .key("choices")
         .padding(theme.space().s())

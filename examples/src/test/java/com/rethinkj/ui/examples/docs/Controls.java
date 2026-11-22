@@ -17,6 +17,7 @@ import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.HuePicker;
@@ -38,6 +39,7 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /** The examples of the pages about buttons, choices, fields and small parts. */
@@ -59,6 +61,9 @@ final class Controls {
   final ComboBox.State hostBox = new ComboBox.State();
   int product;
   final ComboBox.State productBox = new ComboBox.State();
+  String chosenTable = "orders";
+  final ComboBox.State chosenTableBox = new ComboBox.State();
+  final ComboBox.State clearableTableBox = new ComboBox.State();
   int fetchSize = 4;
   int kind = -1;
   Theme.Hue color = Theme.Hue.TEAL;
@@ -432,6 +437,48 @@ final class Controls {
         .label("Database");
     // docs:end combo-items
     return Frame.of(schema, host, product);
+  }
+
+  void selectTable(String name) {
+    chosenTable = name;
+  }
+
+  void clearTable() {
+    chosenTable = null;
+  }
+
+  List<FilterList.Entry> findTables(String query) {
+    List<FilterList.Entry> found = new ArrayList<>();
+    for (String name : List.of("orders", "order_items", "customers")) {
+      if (name.contains(query)) {
+        found.add(FilterList.entry(name, () -> selectTable(name))
+            .group("Tables")
+            .checked(name.equals(chosenTable)));
+      }
+    }
+    if ("archived_orders".contains(query)) {
+      found.add(FilterList.entry("archived_orders", null).group("Archive"));
+    }
+    return found;
+  }
+
+  static El comboEntries(Controls state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start combo-entries
+    El table = ComboBox.comboBox(
+            FilterList.Entries.by(state::findTables),
+            state.chosenTable,
+            state.chosenTableBox,
+            state::clearTable)
+        .label("Table");
+    // docs:end combo-entries
+    El closed = ComboBox.comboBox(
+            FilterList.Entries.by(state::findTables),
+            state.chosenTable,
+            state.clearableTableBox,
+            state::clearTable)
+        .label("Selected table");
+    return Frame.of(row().gap(theme.space().m()).children(table, closed));
   }
 
   void filter(String value) {

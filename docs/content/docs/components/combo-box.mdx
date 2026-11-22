@@ -25,12 +25,24 @@ Store a `ComboBox.State` in your app state for each combo box.
 | Method | Description |
 | --- | --- |
 | `comboBox(choices, selected, comboBoxState, onSelect)` | Pick one option by index |
+| `comboBox(entries, current, comboBoxState, onClear)` | Choices from a `FilterList.Entries` (fixed, on demand, or background) with groups, disabled entries, and an optional clear button |
 | `free(value, suggestions, comboBoxState, onChange)` | Free-text input with optional suggestion list |
 | `items(items, selected, comboBoxState, onSelect)` | Rich items built with `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(...)`, `.detail(text)` |
 
-Passing a `null` handler disables the combo box. Reuse the same choices list when unchanged so filter results stay cached.
+Passing a `null` handler (or `null` entries) disables the combo box. Reuse the same choices list when unchanged so filter results stay cached.
 
 <Shot src="kit/combobox-items-{theme}-2x-open" alt="A combo box of database products with logos and details" />
+
+## Entries and clear button
+
+Use `comboBox(entries, current, comboBoxState, onClear)` when choices come from a [`FilterList.Entries`](/api/com/rethinkj/ui/kit/FilterList.Entries.html): `Entries.of` for a fixed list, `Entries.by` for choices found for the typed text, or `Entries.background` for searching on another thread (showing a `Loading…` row and cancelling earlier searches as the text changes or the list closes). Group headings, disabled entries (`onChoose == null`), and check marks (`Entry.checked(true)`) work as in [CommandPalette](/docs/components/command-palette).
+
+```java snippet="combo-entries"
+```
+
+`current` is shown in the closed box even if it is not among the entries found for the typed text (`null` or `""` for none). When `onClear` is non-null, a clear button (`×`, labeled from `Texts.clear()`) appears inside the closed box before the chevron while `current` is non-empty and the box is enabled; pressing it runs `onClear` without opening the list, and **Tab** reaches it after the box.
+
+<Shot src="examples/docs/combo-entries/open-{theme}" alt="A combo box with grouped and disabled entries open beside a closed box with a clear button" />
 
 ## Values instead of indexes
 
