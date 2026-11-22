@@ -335,5 +335,9 @@ class ScrollStateTest {
     assertThrows(
         IllegalArgumentException.class, () -> model.left.scrollWith(model.left, List.of()));
     assertThrows(IllegalArgumentException.class, () -> new ScrollState.Anchor(-1, 0));
+    List<ScrollState.Anchor> crossing =
+        List.of(new ScrollState.Anchor(10, 15), new ScrollState.Anchor(20, 15));
+    assertThrows(
+        IllegalArgumentException.class, () -> model.left.scrollWith(model.right, crossing));
   }
 }

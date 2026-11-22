@@ -72,7 +72,9 @@ public final class TextDocument {
   boolean shared = true;
 
   /** Creates a document with no text yet; the first field that attaches initializes it. */
-  public TextDocument() {}
+  public TextDocument() {
+    // no text and no history: the first field of it that attaches gives the text
+  }
 
   /** Initializes the document from the first editor's text if it has none yet. */
   void initialize(String initial) {
@@ -217,14 +219,11 @@ public final class TextDocument {
 
   /**
    * The answered changes after {@code sinceRevision} up to {@link #revision}, in order; empty when
-   * up to date, or {@code null} if earlier changes were already evicted from the log.
+   * up to date, or when the log no longer reaches back to it.
    */
   List<Change> changesSince(long sinceRevision) {
-    if (sinceRevision >= revision) {
-      return List.of();
-    }
     if (changes.isEmpty() || changes.peekFirst().revision() > sinceRevision + 1) {
-      return null;
+      return List.of();
     }
     List<Change> out = new ArrayList<>();
     for (Change change : changes) {

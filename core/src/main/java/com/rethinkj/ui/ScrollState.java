@@ -103,13 +103,17 @@ public final class ScrollState {
       throw new IllegalArgumentException("scroll offset is NaN");
     }
     // The partner follows along the axes the app moved, at the build.
-    followX |= x != this.x;
-    followY |= y != this.y;
+    boolean movedX = x != this.x;
+    boolean movedY = y != this.y;
+    followX |= movedX;
+    followY |= movedY;
     followPending = followX || followY;
     this.x = x;
     this.y = y;
     if (partner != null) {
-      partner.followPending = false;
+      partner.followX &= !movedX;
+      partner.followY &= !movedY;
+      partner.followPending &= partner.followX || partner.followY;
     }
   }
 
@@ -128,42 +132,63 @@ public final class ScrollState {
    * @param other the partner scroll state, or {@code null} to uncouple
    * @param anchors line pairs aligning this area's lines with {@code other}'s; empty (or {@code
    *     null}) maps line {@code n} to line {@code n}
-   * @throws IllegalArgumentException if {@code other} is this scroll state itself
+   * @throws IllegalArgumentException if {@code other} is this scroll state itself, or if two
+   *     anchors do not both go further down their fields: each line and each other line at most
+   *     once, in the same order
    */
   public void scrollWith(ScrollState other, List<Anchor> anchors) {
     if (other == this) {
       throw new IllegalArgumentException("a ScrollState cannot scroll with itself");
     }
-    if (this.partner != null && this.partner != other) {
-      this.partner.partner = null;
-      this.partner.anchors = List.of();
+    List<Anchor> forth = sorted(anchors == null ? List.of() : anchors);
+    if (partner != other) {
+      uncouple();
+      if (other != null) {
+        other.uncouple();
+      }
     }
     if (other == null) {
-      this.partner = null;
-      this.anchors = List.of();
       return;
     }
-    if (other.partner != null && other.partner != this) {
-      other.partner.partner = null;
-      other.partner.anchors = List.of();
-    }
-    List<Anchor> copy = anchors == null ? List.of() : List.copyOf(anchors);
-    List<Anchor> reversed = new ArrayList<>(copy.size());
-    for (Anchor anchor : copy) {
-      reversed.add(new Anchor(anchor.otherLine(), anchor.line()));
-    }
-    this.partner = other;
-    this.anchors = sorted(copy);
+    partner = other;
+    this.anchors = forth;
     other.partner = this;
-    other.anchors = sorted(reversed);
+    other.anchors = forth.stream()
+        .map(anchor -> new Anchor(anchor.otherLine(), anchor.line()))
+        .toList();
   }
 
-  private static List<Anchor> sorted(List<Anchor> anchors) {
-    if (anchors.size() <= 1) {
-      return anchors;
+  /** Ends the coupling of this area and its partner, with any follow either had pending. */
+  private void uncouple() {
+    if (partner == null) {
+      return; // a follow the app asked for before the first pairing goes to the new partner
     }
-    List<Anchor> list = new ArrayList<>(anchors);
+    partner.partner = null;
+    partner.anchors = List.of();
+    partner.dropFollow();
+    partner = null;
+    anchors = List.of();
+    dropFollow();
+  }
+
+  private void dropFollow() {
+    followPending = false;
+    followX = false;
+    followY = false;
+  }
+
+  /** The anchors by line, checked to go down both fields in the same order. */
+  private static List<Anchor> sorted(List<Anchor> anchors) {
+    List<Anchor> list = new ArrayList<>(List.copyOf(anchors));
     list.sort(BY_LINE);
+    for (int i = 1; i < list.size(); i++) {
+      Anchor before = list.get(i - 1);
+      Anchor anchor = list.get(i);
+      if (anchor.line() <= before.line() || anchor.otherLine() <= before.otherLine()) {
+        throw new IllegalArgumentException(
+            "anchors must go down both fields, line by line, were " + before + " and " + anchor);
+      }
+    }
     return List.copyOf(list);
   }
 
@@ -260,7 +285,7 @@ public final class ScrollState {
     }
     Anchor a = anchors.get(lo);
     Anchor b = anchors.get(lo + 1);
-    double t = (line - a.line()) / (double) (b.line() - a.line());
+    double t = (line - a.line()) / (b.line() - a.line());
     return a.otherLine() + t * (b.otherLine() - a.otherLine());
   }
 }

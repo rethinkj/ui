@@ -6,7 +6,6 @@ import static com.rethinkj.ui.Fields.key;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
@@ -300,7 +299,7 @@ class TextDocumentTest {
     app.focus(find(app, "right"));
     app.frame();
     key(app, "Z", Key.CONTROL);
-    assertTrue(model.text.length() == "dup\nend".length() + count - 1);
+    assertEquals("dup\nend".length() + count - 1, model.text.length());
   }
 
   @Test

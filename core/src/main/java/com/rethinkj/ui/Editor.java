@@ -320,8 +320,8 @@ final class Editor {
       return;
     }
     unfoldPending = true;
-    List<TextDocument.Change> missed = doc.changesSince(revision);
-    if (missed != null) {
+    List<TextDocument.Change> missed = doc.changesSince(revision); // behind, so empty if evicted
+    if (!missed.isEmpty()) {
       boolean external = false;
       for (TextDocument.Change change : missed) {
         caret = change.range().map(caret);

@@ -357,7 +357,11 @@ final class Editors {
   }
 
   El splitView() {
-    return El.row().gap(8).child(pane(leftPane, leftScroll)).child(pane(rightPane, rightScroll));
+    return El.row()
+        .wFull()
+        .gap(8)
+        .child(pane(leftPane, leftScroll))
+        .child(pane(rightPane, rightScroll));
   }
 
   El pane(FieldState pane, ScrollState scroll) {
@@ -365,7 +369,8 @@ final class Editors {
         .editable(this::updateSource)
         .multiline()
         .fieldState(pane)
-        .scrollState(scroll);
+        .scrollState(scroll)
+        .grow(1);
   }
   // docs:end shared-document
   final Completion.State completion = new Completion.State();
