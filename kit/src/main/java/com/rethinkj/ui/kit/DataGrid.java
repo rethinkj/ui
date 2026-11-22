@@ -2727,17 +2727,18 @@ public final class DataGrid {
       b.probe = title;
     }
     El name = title;
-    El type = null;
-    if (column.typeName() != null && typeFits(b, index)) {
+    boolean typeGaveWay = column.typeName() != null && !typeFits(b, index);
+    if (column.typeName() != null && !typeGaveWay) {
       // The title keeps its width as long as the type has any, and never more than the room.
       title.shrink(0).style().maxWidth = Len.percent(1);
-      type = Label.label(Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0);
       name = row()
           .align(Style.Align.CENTER)
           .gap(theme.space().s())
           .minSize(0, 0)
           .clip()
-          .children(title, type);
+          .children(
+              title,
+              Label.label(Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0));
     }
     El cell = cellBox(theme, column.align(), column.width())
         .key("column-" + index)
@@ -2809,19 +2810,14 @@ public final class DataGrid {
               (b.g.rowHeight() - theme.size().icon()) / 2)
           .fill(b.g.header()));
     }
-    // The whole title and type where anything is cut short or the type gave way.
+    // The whole title and type where the type gave way, else where layout cuts a text short.
     String whole =
         column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
-    El typeLabel = type;
-    boolean typeHidden = column.typeName() != null && typeLabel == null;
-    Tooltip.whenHovered(
-        theme,
-        cell,
-        () -> title.text().shortened()
-                || typeHidden
-                || typeLabel != null && typeLabel.text().shortened()
-            ? whole
-            : null);
+    if (typeGaveWay) {
+      Tooltip.whenHovered(theme, cell, () -> whole);
+    } else {
+      Tooltip.whenShortened(cell, whole);
+    }
     GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));

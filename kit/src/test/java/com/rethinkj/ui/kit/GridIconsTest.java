@@ -169,6 +169,8 @@ class GridIconsTest {
     assertFalse(app.tree().dump().contains("role=tooltip"));
     run(app, "move #column-0\nframe\nadvance 0.5\nframe"); // id: no room for bigint
     assertTrue(app.tree().dump().contains("role=tooltip label=\"id bigint\""));
+    run(app, "move #column-1\nframe\nadvance 0.5\nframe"); // customer_id: integer cut short
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"customer_id integer\""));
   }
 
   // Cells
