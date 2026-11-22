@@ -820,7 +820,10 @@ public final class Font implements AutoCloseable {
         int ix0 = Math.max(0, (int) Math.floor(x0));
         int ix1 = Math.min(srcW - 1, (int) Math.ceil(x1) - 1);
         for (int sy = 0; sy < srcH; sy++) {
-          double r = 0, g = 0, b = 0, a = 0;
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
           int rowBase = sy * srcW * 4;
           for (int ix = ix0; ix <= ix1; ix++) {
             double w = Math.min(x1, ix + 1.0) - Math.max(x0, ix);
@@ -847,7 +850,10 @@ public final class Font implements AutoCloseable {
         int iy0 = Math.max(0, (int) Math.floor(y0));
         int iy1 = Math.min(srcH - 1, (int) Math.ceil(y1) - 1);
         for (int dx = 0; dx < dstW; dx++) {
-          double r = 0, g = 0, b = 0, a = 0;
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
           for (int iy = iy0; iy <= iy1; iy++) {
             double w = Math.min(y1, iy + 1.0) - Math.max(y0, iy);
             if (w <= 0) {
@@ -872,7 +878,10 @@ public final class Font implements AutoCloseable {
           double sx = (minX + dx + 0.5 - shiftX) / scale - srcLeft - 0.5;
           int ix0 = (int) Math.floor(sx);
           double fx = sx - ix0;
-          double r = 0, g = 0, b = 0, a = 0;
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
           for (int ky = 0; ky <= 1; ky++) {
             int iy = iy0 + ky;
             if (iy < 0 || iy >= srcH) {
@@ -1052,7 +1061,7 @@ public final class Font implements AutoCloseable {
     }
     long stride = FreeType.BITMAP_SIZE.byteSize();
     MemorySegment sizes =
-        face.get(ADDRESS, FreeType.FACE_AVAILABLE_SIZES).reinterpret((long) count * stride);
+        face.get(ADDRESS, FreeType.FACE_AVAILABLE_SIZES).reinterpret(count * stride);
     float[] ppem = new float[count];
     for (int i = 0; i < count; i++) {
       long base = i * stride;
