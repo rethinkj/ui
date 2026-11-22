@@ -31,7 +31,7 @@ This file holds the rules for working on the repository, and nothing else. What 
 | `examples/` | not published | Runnable apps, written as a user of the library writes them |
 | `docs/` | not a Maven module | The documentation site, a Node project of its own |
 
-Dependencies point one way: `kit` depends on `core`, never the reverse. `editor`, a language module and `diagram` depend on `kit`, never the reverse, and of the JDK on `java.base` only.
+Dependencies point one way: `kit` depends on `core`, never the reverse. `editor` and `diagram` depend on `kit`, and a language module on `kit`, or on `editor` when it provides a `Language`; never the reverse, and of the JDK on `java.base` only.
 
 ## Build
 

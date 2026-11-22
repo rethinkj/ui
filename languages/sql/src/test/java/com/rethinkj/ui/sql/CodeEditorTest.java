@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.editor.CodeEditor;
+import com.rethinkj.ui.editor.Language;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
@@ -87,7 +89,7 @@ class CodeEditorTest {
             .hFull()
             .padding(12)
             .fill(t.surface().window())
-            .child(codeEditor(s.sql, s.editor, sql, v -> s.sql = v)
+            .child(codeEditor(s.sql, s.editor, Language.of(sql), v -> s.sql = v)
                 .key("query")
                 .lines(9)
                 .wFull()));
@@ -140,7 +142,7 @@ class CodeEditorTest {
             .wFull()
             .child(
                 shown[0]
-                    ? codeEditor(s.sql, s.editor, null, v -> s.sql = v)
+                    ? codeEditor(s.sql, s.editor, (Highlighter) null, v -> s.sql = v)
                         .key("query")
                         .lines(3)
                         .wFull()

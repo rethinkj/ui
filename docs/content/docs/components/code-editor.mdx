@@ -17,7 +17,7 @@ For plain notes or prose, use a [text area](/docs/components/text-field#text-are
 </dependency>
 ```
 
-Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/editor/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
+Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/editor/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`Language`](/api/com/rethinkj/ui/editor/Language.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
 <Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked with a squiggle, keywords in color and a bracket pair highlighted" />
 
@@ -149,6 +149,8 @@ Implement `Highlighter` to support other languages. It processes one line at a t
 - Override `formatter()` to enable **Ctrl+Alt+L** formatting. Return a function (such as `Json::format`) that takes the editor's text with line feeds only and returns a `Formatted`. If the text cannot be formatted, the function returns the first problem and its position in the text instead of throwing. When the formatter only changes whitespace (as `Json::format` does), the cursor stays on the same token. The default is `null`, which means the language has no formatter and the command does nothing.
 - Override `wordCharacters()` to specify extra characters that count as part of a word besides letters, digits, and `_` (such as `"$"` for JavaScript). Word-based features then treat `$gt` as a single word: Ctrl+Arrow, double-click, word-occurrence highlights, Ctrl+D (both the first selection and next matches), the find bar's word at the cursor and whole-word search, and [Completion](/docs/components/completion).
 - Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
+
+To also report comment and doc-comment ranges and parse doc comments into `DocComment`, implement `Language` around a `Highlighter` and pass it to `CodeEditor.codeEditor`. Comment ranges are scanned incrementally with bounded work per call via `Comments.scan`. Use `Language.of(highlighter)` to wrap a highlighter without comments, such as `Sql.of()` or `Json.of()`.
 
 ### Spans
 
