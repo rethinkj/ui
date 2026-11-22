@@ -1,0 +1,1 @@
+- `App.scene()` now returns the app's one scene, refilled by each call to `scene()` and `render()` in the buffers it already has, so steady frames allocate no native memory for it; a returned scene is valid until the next call. `Scene.refill` builds a scene again in place.

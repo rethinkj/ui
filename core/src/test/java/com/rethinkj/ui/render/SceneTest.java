@@ -2,9 +2,13 @@ package com.rethinkj.ui.render;
 
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Shadow;
+import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.TextRendering;
 import org.junit.jupiter.api.Test;
 
 class SceneTest {
@@ -304,5 +308,51 @@ class SceneTest {
     assertEquals(0f, scene.get(1, Scene.RADIUS_TOP_RIGHT));
     assertEquals(10f, scene.get(1, Scene.RADIUS_BOTTOM_RIGHT));
     assertEquals(0f, scene.get(1, Scene.RADIUS_BOTTOM_LEFT));
+  }
+
+  @Test
+  void refillMatchesAFreshSceneAndReusesItsBuffers() {
+    Image image = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
+    El large = el();
+    large.place(0, 0, 200, 200);
+    for (int i = 0; i < 10; i++) {
+      El panel = el().clip().radius(4).fill(0xFF112233).border(1, 0xFF445566).arc(0.25f, 0.5f);
+      panel.place(i * 10, 0, 20, 20);
+      for (int j = 0; j < 7; j++) {
+        El box = el().fill(0xFFABCDEF).border(2, 0xFF123456).radius(1, 2, 3, 4).arc(0.1f, 0.7f);
+        box.place(0, 0, 10, 10);
+        panel.child(box);
+      }
+      large.child(panel);
+    }
+    El picture = el().image(image);
+    picture.place(0, 0, 10, 10);
+    large.child(picture);
+
+    El card = el().fill(0xFFFFFFFF).radius(6).shadow(new Shadow(0, 2, 8, 0, 0x40000000));
+    El clipped = el().clip().radius(4).child(card);
+    El small = el().fill(0xFF102030).child(clipped);
+    small.place(0, 0, 100, 100);
+    clipped.place(10, 10, 80, 80);
+    card.place(10, 10, 40, 20);
+
+    Atlas atlas = new Atlas();
+    TextRendering rendering = TextRendering.platform();
+    Scene scene = Scene.of(large, null, 0, atlas, rendering, 1.5f).imageMemory(4096);
+    long dataAddress = scene.data().address();
+    long clipsAddress = scene.clips().address();
+    assertEquals(1, scene.images().size());
+
+    assertSame(scene, scene.refill(small, card, 0xFF60A5FA, 1.5f));
+    Scene fresh = Scene.of(small, card, 0xFF60A5FA, new Atlas(), rendering, 1.5f);
+
+    assertEquals(fresh.count(), scene.count());
+    assertEquals(fresh.clipCount(), scene.clipCount());
+    assertEquals(-1L, scene.data().mismatch(fresh.data()), "data bytes match a fresh scene");
+    assertEquals(-1L, scene.clips().mismatch(fresh.clips()), "clip bytes match a fresh scene");
+    assertEquals(fresh.images(), scene.images());
+    assertEquals(4096, scene.imageMemory());
+    assertEquals(dataAddress, scene.data().address(), "instance buffer reused");
+    assertEquals(clipsAddress, scene.clips().address(), "clip buffer reused");
   }
 }
