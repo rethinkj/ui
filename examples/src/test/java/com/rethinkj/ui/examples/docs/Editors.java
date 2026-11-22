@@ -88,6 +88,16 @@ final class Editors {
       SELECT count(*) FROM orders;
       ```
       """);
+  final MarkdownDocument summary = Markdown.parse("""
+      Finds orders placed in a date range, newest first.
+
+      Uses the `orders_placed_at` index; see [indexes](#indexes).""");
+  final MarkdownDocument fromDoc = Markdown.parse("Start of the range, inclusive, in UTC.");
+  final MarkdownDocument toDoc =
+      Markdown.parse("End of the range, exclusive; must lie after `from`.");
+  final MarkdownDocument returnsDoc =
+      Markdown.parse("Matching orders ordered by `placed_at` descending.");
+  final MarkdownDocument throwsDoc = Markdown.parse("When `to` is not after `from`.");
   final Image swatch = Image.of(swatch(), 2); // 64 by 40 pixels made for scale 2
   String link = "";
   String ran; // the statement the marker ran last
@@ -288,6 +298,29 @@ final class Editors {
         .grow(1);
     // docs:end markdown
     return Frame.of(Card.flush(document).wFull().grow(1));
+  }
+
+  static El markdownFragment(Editors state) {
+    // docs:start markdown-fragment
+    Texts texts = Texts.CURRENT.get();
+    Markdown.Options options = Markdown.options().onLink(state::link);
+    El body = Markdown.fragment(state.summary, options);
+    El sections = Markdown.definitions(
+        List.of(
+            new Markdown.Section(
+                texts.parameters(),
+                List.of(
+                    new Markdown.Definition("from", state.fromDoc),
+                    new Markdown.Definition("to", state.toDoc))),
+            new Markdown.Section(
+                texts.returns(), List.of(new Markdown.Definition(null, state.returnsDoc))),
+            new Markdown.Section(
+                texts.thrown(),
+                List.of(new Markdown.Definition("IllegalArgumentException", state.throwsDoc)))),
+        options);
+    El card = Card.card(body, sections).wFull();
+    // docs:end markdown-fragment
+    return Frame.of(card);
   }
 
   // docs:start markdown-languages

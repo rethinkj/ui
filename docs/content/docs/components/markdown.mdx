@@ -5,7 +5,7 @@ description: Scrollable Markdown document viewer with syntax-highlighted code bl
 
 `Markdown.markdown` renders a parsed `MarkdownDocument` as a virtualized scrollable page supporting CommonMark plus GitHub tables, task lists, strikethrough, and autolinks. Only visible blocks are built, so long documents scroll smoothly.
 
-Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
+Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`Markdown.Section`](/api/com/rethinkj/ui/kit/Markdown.Section.html), [`Markdown.Definition`](/api/com/rethinkj/ui/kit/Markdown.Definition.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
 
 <Shot src="examples/manual-{theme}-2x-top" alt="The Manual example showing a Markdown document with headings, text and links" />
 
@@ -30,6 +30,17 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 
 Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text.
+
+## Fragments and definition lists
+
+When Markdown belongs inside another element—such as a rendered doc comment, a quick-documentation popover, or completion details—use `Markdown.fragment(document, options)`. It renders the same blocks in a plain, non-scrolling column with compact spacing that takes its container's width, supporting links, images, syntax-highlighted code blocks, and copy buttons.
+
+Pair it with `Markdown.definitions(sections, options)` for labeled documentation sections. Pass `Markdown.Section(label, definitions)` with localized labels from `Texts` (`parameters()`, `returns()`, `thrown()`, `seeAlso()`) and `Markdown.Definition(term, description)` entries (omit `term` with `null` for entries without a name, such as a return value). Section labels align in a muted left column, terms render as small monospace chips, and descriptions render as compact muted Markdown fragments beside them, or below a term that leaves them too little room.
+
+<Shot src="examples/docs/markdown-fragment/view-{theme}" alt="A card containing a compact Markdown fragment and a definition list with Params, Returns and Throws sections" />
+
+```java snippet="markdown-fragment"
+```
 
 ## Document AST
 

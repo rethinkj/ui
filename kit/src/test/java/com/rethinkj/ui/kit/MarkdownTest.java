@@ -10,8 +10,10 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -286,6 +288,69 @@ class MarkdownTest {
     assertSame(Font.sansItalic(), glyphs.font(text.indexOf("a b")));
     assertSame(Font.sansBoldItalic(), glyphs.font(text.indexOf("b c")));
     assertSame(Font.sansItalic(), glyphs.font(text.indexOf(" c") + 1));
+  }
+
+  @Test
+  void fragmentAndDefinitionsRenderCompactlyAndHandleLinks() throws IOException {
+    MarkdownDocument summary = Markdown.parse("""
+        Finds orders placed in a date range, newest first.
+
+        Uses the `orders_placed_at` index; see [indexes](#indexes).""");
+    MarkdownDocument fromDoc = Markdown.parse("Start of the range, inclusive, in UTC.");
+    MarkdownDocument toDoc = Markdown.parse(
+        "End of the range, exclusive; must lie after `from` and match [bounds](#bounds).");
+    MarkdownDocument returnsDoc =
+        Markdown.parse("Matching orders ordered by `placed_at` descending.");
+    MarkdownDocument throwsDoc = Markdown.parse("When `to` is not after `from`.");
+    List<String> clicked = new ArrayList<>();
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme theme = Theme.CURRENT.get();
+          Texts texts = Texts.CURRENT.get();
+          Markdown.Options options = Markdown.options().onLink(clicked::add);
+          El fragment = Markdown.fragment(summary, options).key("fragment");
+          El definitions = Markdown.definitions(
+                  List.of(
+                      new Markdown.Section(
+                          texts.parameters(),
+                          List.of(
+                              new Markdown.Definition("from", fromDoc),
+                              new Markdown.Definition("to", toDoc))),
+                      new Markdown.Section(
+                          texts.returns(), List.of(new Markdown.Definition(null, returnsDoc))),
+                      new Markdown.Section(
+                          texts.thrown(),
+                          List.of(new Markdown.Definition("IllegalArgumentException", throwsDoc)))),
+                  options)
+              .key("definitions");
+          return col()
+              .wFull()
+              .hFull()
+              .padding(theme.space().l())
+              .fill(theme.surface().window())
+              .child(Card.card(fragment, definitions).wFull());
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    String image = "markdown-fragment-dark-2x";
+    Script.run("size 480 250 scale 2\nframe\nframe\nsnap " + image, app, out);
+    String tree = Files.readString(out.resolve(image + ".tree.txt"));
+    Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
+
+    assertFalse(tree.contains("role=document"), tree);
+    assertTrue(line(tree, "#fragment").contains(" 422x"), "fills the card's inner width: " + tree);
+    assertTrue(line(tree, "#definitions").contains("role=list"), tree);
+    assertTrue(line(tree, "label=\"Params:\"").contains("role=group"), tree);
+    assertTrue(line(tree, "label=\"from\"").contains("role=listitem"), tree);
+    assertTrue(line(tree, "label=\"IllegalArgumentException\"").contains("role=listitem"), tree);
+
+    Script.run("""
+        size 480 250 scale 2
+        frame
+        press role=link label="indexes"
+        frame
+        press role=link label="bounds"
+        frame""", app, out);
+    assertEquals(List.of("#indexes", "#bounds"), clicked);
   }
 
   private static El paragraph(El el) {

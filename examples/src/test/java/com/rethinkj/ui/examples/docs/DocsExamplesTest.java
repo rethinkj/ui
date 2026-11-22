@@ -101,6 +101,7 @@ class DocsExamplesTest {
       Map.entry("code-editor-placeholder", List.of("view")),
       Map.entry("code-editor-json", List.of("view")),
       Map.entry("code-editor-folding", List.of("folded")),
+      Map.entry("markdown-fragment", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
       Map.entry("canvas-edges", List.of("view")),
@@ -219,6 +220,7 @@ class DocsExamplesTest {
             440,
             200));
     editors(all, "markdown", Editors::markdown, 520, 320);
+    editors(all, "markdown-fragment", Editors::markdownFragment, 520, 196);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
     all.put(
