@@ -113,7 +113,7 @@ public final class Menu {
       String shortcut,
       Key keys,
       boolean checked,
-      Symbol icon,
+      Icon icon,
       Runnable onChoose,
       List<Item> submenu,
       Supplier<El> leading,
@@ -130,7 +130,7 @@ public final class Menu {
         String shortcut,
         Key keys,
         boolean checked,
-        Symbol icon,
+        Icon icon,
         Runnable onChoose,
         List<Item> submenu,
         Supplier<El> leading,
@@ -144,7 +144,7 @@ public final class Menu {
         String shortcut,
         Key keys,
         boolean checked,
-        Symbol icon,
+        Icon icon,
         Runnable onChoose,
         List<Item> submenu) {
       this(label, shortcut, keys, checked, icon, onChoose, submenu, null, false);
@@ -224,9 +224,9 @@ public final class Menu {
     }
 
     /** This item with an icon before its text; a check mark takes its place while it is checked. */
-    public Item icon(Symbol symbol) {
+    public Item icon(Icon icon) {
       return new Item(
-          label, shortcut, keys, checked, symbol, onChoose, submenu, leading, dangerous, moreKeys);
+          label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /**
@@ -661,7 +661,8 @@ public final class Menu {
     } else if (item.checked()) {
       leading = icon(CHECKED).color(text);
     } else if (item.icon() != null) {
-      leading = icon(item.icon()).color(text);
+      leading = Icon.Picture.color(
+          icon(item.icon(), enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED), text);
     }
     boolean opens = item.opens();
     El content = PassiveContent.row(

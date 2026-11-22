@@ -193,9 +193,9 @@ public final class ComboBox {
       Objects.requireNonNull(text, "text");
     }
 
-    /** An icon of the icon font before the text. */
-    public Item icon(Symbol symbol) {
-      return leading(() -> Icon.icon(symbol, Icon.Variant.MUTED));
+    /** An icon before the text. */
+    public Item icon(Icon icon) {
+      return leading(new IconLead(Objects.requireNonNull(icon, "icon")));
     }
 
     /** An image before the text, fitted into an icon's square, such as a database's logo. */
@@ -214,6 +214,14 @@ public final class ComboBox {
 
     public Item detail(String detail) {
       return new Item(text, leading, detail);
+    }
+  }
+
+  /** What {@link Item#icon} stands before the text: the icon, muted, or off in a box that is. */
+  private record IconLead(Icon icon) implements Supplier<El> {
+    @Override
+    public El get() {
+      return Icon.icon(icon, Icon.Variant.MUTED);
     }
   }
 
@@ -238,8 +246,17 @@ public final class ComboBox {
     boolean enabled = onSelect != null;
     Item current = selected >= 0 && selected < items.size() ? items.get(selected) : null;
     String text = current == null ? "" : current.text();
-    El lead =
-        current == null || current.leading() == null ? null : current.leading().get();
+    El lead;
+    if (current == null || current.leading() == null) {
+      lead = null;
+    } else if (!enabled && current.leading() instanceof IconLead icon) {
+      lead = Icon.icon(icon.icon(), Icon.Variant.DISABLED); // off as its chevron
+    } else {
+      lead = current.leading().get();
+      if (!enabled && lead != null) {
+        Icon.Picture.off(lead); // an image keeps its colors and dims; an app's element stays
+      }
+    }
     if (!enabled || !state.open) {
       if (state.open) {
         state.close();

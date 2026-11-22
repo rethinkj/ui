@@ -67,6 +67,7 @@ class DocsExamplesTest {
       Map.entry("dividers", List.of("view")),
       Map.entry("groups", List.of("view")),
       Map.entry("parts", List.of("view")),
+      Map.entry("icon-own", List.of("view")),
       Map.entry("navigation", List.of("view")),
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
@@ -101,6 +102,7 @@ class DocsExamplesTest {
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
     controls(all, "parts", Controls::parts, 400, 200);
+    controls(all, "icon-own", Controls::ownIcons, 132, 48);
     controls(all, "values", Controls::values, 360, 240);
     layouts(all, "cards", Layouts::cards, 420, 360);
     layouts(all, "groups", Layouts::groups, 460, 200);

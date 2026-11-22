@@ -138,7 +138,7 @@ public final class Button {
 
   /** What a button is beyond its variant, text and handler; {@link #options()} is a plain one. */
   public static final class Options {
-    private Symbol icon;
+    private Icon icon;
     private State state = State.READY;
     private String busyText;
     private double progress = Double.NaN;
@@ -151,10 +151,10 @@ public final class Button {
     /**
      * An icon before the text, muted beside the text of a neutral secondary or ghost button, in
      * the tone's color with {@link Tone#SUCCESS}, {@link Tone#WARNING} or {@link Tone#ACCENT}, else
-     * in the text's color; null for none. Not for {@link #icon(Variant, Symbol, String, Runnable,
-     * Options)}, whose symbol is a parameter of its own.
+     * in the text's color; null for none. Not for {@link #icon(Variant, Icon, String, Runnable,
+     * Options)}, whose icon is a parameter of its own.
      */
-    public Options icon(Symbol icon) {
+    public Options icon(Icon icon) {
       this.icon = icon;
       return this;
     }
@@ -255,7 +255,7 @@ public final class Button {
    * @param text what the button says, also its label
    * @param onPress runs when the button is pressed; null disables the button
    */
-  public static El button(Variant variant, Symbol icon, String text, Runnable onPress) {
+  public static El button(Variant variant, Icon icon, String text, Runnable onPress) {
     return button(variant, text, onPress, options().icon(icon));
   }
 
@@ -328,7 +328,7 @@ public final class Button {
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button
    */
-  public static El icon(Variant variant, Symbol icon, String label, Runnable onPress) {
+  public static El icon(Variant variant, Icon icon, String label, Runnable onPress) {
     return icon(variant, icon, label, onPress, options());
   }
 
@@ -344,11 +344,11 @@ public final class Button {
    *     icon}; a busy text does not show
    */
   public static El icon(
-      Variant variant, Symbol icon, String label, Runnable onPress, Options options) {
+      Variant variant, Icon icon, String label, Runnable onPress, Options options) {
     Theme theme = Theme.CURRENT.get();
     if (options.icon != null) {
       throw new IllegalArgumentException(
-          "an icon button's symbol is its parameter, not an option: " + options.icon);
+          "an icon button's icon is its parameter, not an option: " + options.icon);
     }
     State state = state(options, onPress);
     Look look = look(theme, variant, options.tone, state != State.DISABLED);
@@ -407,7 +407,7 @@ public final class Button {
    * leaves the weight.
    */
   private static El icon(
-      Theme theme, Variant variant, Tone tone, State state, Look look, Symbol symbol) {
+      Theme theme, Variant variant, Tone tone, State state, Look look, Icon icon) {
     int color;
     if (variant == Variant.PRIMARY || state == State.DISABLED) {
       color = look.text();
@@ -420,7 +420,8 @@ public final class Button {
         case ACCENT -> theme.accent().edge();
       };
     }
-    return Icon.icon(symbol).color(color);
+    Icon.Variant shown = state == State.DISABLED ? Icon.Variant.DISABLED : Icon.Variant.NORMAL;
+    return Icon.Picture.color(Icon.icon(icon, shown), color);
   }
 
   /** The spinner of a busy button, or its ring with a progress, in its text's color. */
@@ -520,7 +521,7 @@ public final class Button {
    * @param label what it turns on, such as "Wrap lines"
    * @param onToggle told the new state; null disables the button
    */
-  public static El toggleIcon(Symbol icon, String label, boolean on, Consumer<Boolean> onToggle) {
+  public static El toggleIcon(Icon icon, String label, boolean on, Consumer<Boolean> onToggle) {
     Theme theme = Theme.CURRENT.get();
     El button = icon(
             Variant.GHOST, icon, label, onToggle == null ? null : () -> onToggle.accept(!on))
@@ -534,7 +535,7 @@ public final class Button {
    * @param icon before the text; null for none
    * @param onToggle told the new state; null disables the button
    */
-  public static El toggle(Symbol icon, String text, boolean on, Consumer<Boolean> onToggle) {
+  public static El toggle(Icon icon, String text, boolean on, Consumer<Boolean> onToggle) {
     Theme theme = Theme.CURRENT.get();
     El button = button(
             Variant.GHOST, icon, text, onToggle == null ? null : () -> onToggle.accept(!on))
@@ -572,7 +573,7 @@ public final class Button {
    */
   public static El split(
       Variant variant,
-      Symbol icon,
+      Icon icon,
       String text,
       Runnable onPress,
       Menu.State state,
@@ -695,7 +696,7 @@ public final class Button {
    * The menu entry of a button that a toolbar has no room for: its state, tone and shortcut as a
    * menu shows them.
    */
-  static Menu.Item entry(String label, Symbol icon, Runnable onPress, Options options) {
+  static Menu.Item entry(String label, Icon icon, Runnable onPress, Options options) {
     Menu.Item entry = Menu.item(label, state(options, onPress) == State.READY ? onPress : null);
     if (icon != null) {
       entry = entry.icon(icon);

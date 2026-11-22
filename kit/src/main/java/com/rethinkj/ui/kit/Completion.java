@@ -62,13 +62,13 @@ public final class Completion {
    * muted at the right, such as {@code "keyword"} or {@code "table"}, or null, and the text that
    * replaces the word when it is chosen, such as a name in quotes, or null for the text shown.
    */
-  public record Entry(String text, Symbol symbol, String kind, String insert) {
+  public record Entry(String text, Icon symbol, String kind, String insert) {
     public Entry {
       Objects.requireNonNull(text, "text");
       insert = insert == null ? text : insert;
     }
 
-    public Entry(String text, Symbol symbol, String kind) {
+    public Entry(String text, Icon symbol, String kind) {
       this(text, symbol, kind, null);
     }
 

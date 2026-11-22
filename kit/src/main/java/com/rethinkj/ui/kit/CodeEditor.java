@@ -108,7 +108,7 @@ public final class CodeEditor {
    *
    * @param onPress what a press runs, or null for a marker that only shows
    */
-  public record Marker(int at, Symbol symbol, Icon.Variant tone, String label, Runnable onPress) {
+  public record Marker(int at, Icon symbol, Icon.Variant tone, String label, Runnable onPress) {
     public Marker {
       Objects.requireNonNull(symbol, "symbol");
       Objects.requireNonNull(tone, "tone");

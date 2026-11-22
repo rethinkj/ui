@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Avatar;
@@ -33,6 +34,8 @@ import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toggle;
 import com.rethinkj.ui.kit.ValueField;
+import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.text.Font;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -69,6 +72,7 @@ final class Controls {
   String sql = "SELECT id,\n\tname\nFROM t;";
   final Menu.State runMenu = new Menu.State();
   final Menu.State exportMenu = new Menu.State();
+  final Image logo = logoImage();
   // docs:start value-state
   BigDecimal amount = new BigDecimal("12.50");
   final ValueField.Draft amountDraft = new ValueField.Draft();
@@ -548,5 +552,40 @@ final class Controls {
         row().gap(theme.space().m()).children(table, key, error),
         row().gap(theme.space().s()).children(type, primary, filter),
         row().gap(theme.space().s()).children(server, local));
+  }
+
+  static El ownIcons(Controls state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start icon-own
+    Icon stop = Icon.glyph(Font.sans(), 0x25A0, "stop");
+    Icon brand = Icon.image(state.logo, "brand");
+    El stopButton =
+        Button.icon(GHOST, stop, "Stop", state::cancel, Button.options().tone(Button.Tone.DANGER));
+    El stopOff = Button.icon(GHOST, stop, "Stop", null, Button.options().tone(Button.Tone.DANGER));
+    El brandButton = Button.icon(GHOST, brand, "Workspace", state::run);
+    El brandOff = Button.icon(GHOST, brand, "Workspace", null);
+    // docs:end icon-own
+    return Frame.of(
+        row().gap(theme.space().s()).children(stopButton, stopOff, brandButton, brandOff));
+  }
+
+  private static Image logoImage() {
+    int size = 32;
+    byte[] rgba = new byte[size * size * 4];
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        int dx = Math.abs(x * 2 + 1 - size);
+        int dy = Math.abs(y * 2 + 1 - size);
+        if (dx + dy <= size - 4) {
+          int at = (y * size + x) * 4;
+          boolean top = y < size / 2;
+          rgba[at] = (byte) (top ? 0x38 : 0x25);
+          rgba[at + 1] = (byte) (top ? 0xBD : 0x63);
+          rgba[at + 2] = (byte) (top ? 0xF8 : 0xEB);
+          rgba[at + 3] = (byte) 0xFF;
+        }
+      }
+    }
+    return Image.of(new Pixels(size, size, rgba), 2);
   }
 }

@@ -18,10 +18,11 @@ import java.util.function.Predicate;
  * areas keep their offset.
  *
  * <p>An element is the same as one in the previous tree when it has the same identity: its
- * parent's identity plus its key or, without a key, its index among its siblings. Every element
- * has one {@link Track} per animated number. Layout runs once, for the targets; the tracks then
- * write the values of the moment into the tree, so that everything reading the tree sees what is
- * on screen.
+ * parent's identity plus its key or, without a key, its index among its siblings. An element with
+ * {@link El#motion} has one {@link Track} per animated number; one without keeps none, and gets
+ * tracks starting from what it last showed if a rebuild gives it motion. Layout runs once, for the
+ * targets; the tracks then write the values of the moment into the tree, so that everything
+ * reading the tree sees what is on screen.
  *
  * <p>An element with a key and motion that a rebuild leaves out is put back among its parent's
  * new children after layout, marked {@link El#isExiting}, with its subtree as it was, and stays
@@ -56,8 +57,6 @@ final class Animator {
   /** Where an element is in a virtual list: the list, its identity and the index of the row. */
   record InRow(El list, Object listId, int row) {}
 
-  // shortcut: every element keeps twenty-two tracks, also without motion, so that one that gains
-  // motion moves from where it was; keep plain values for those when trees reach many thousands.
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
   private boolean started;
@@ -85,8 +84,8 @@ final class Animator {
    */
   void present(double now) {
     moving.removeIf(entry -> {
-      if (entries.get(entry.id) != entry) {
-        return true; // forgotten with an element above it that has faded out
+      if (entries.get(entry.id) != entry || entry.tracks == null) {
+        return true; // forgotten with an element above it that has faded out, or dropped motion
       }
       entry.present(now);
       if (entry.el.isExiting() && entry.tracks[OPACITY].isAtRest(now)) {
@@ -308,10 +307,16 @@ final class Animator {
       if (kept == null) {
         visit(row, ids[i], false, true, next, now);
       } else { // at once, as visit moves a row; what is inside it stays where it was
-        kept.tracks[0].set(row.x());
-        kept.tracks[1].set(row.y());
-        kept.tracks[2].set(row.width());
-        kept.tracks[3].set(row.height());
+        kept.x = row.x();
+        kept.y = row.y();
+        kept.width = row.width();
+        kept.height = row.height();
+        if (kept.tracks != null) {
+          kept.tracks[0].set(row.x());
+          kept.tracks[1].set(row.y());
+          kept.tracks[2].set(row.width());
+          kept.tracks[3].set(row.height());
+        }
       }
     }
     entries = current;
@@ -350,40 +355,42 @@ final class Animator {
     if (el.style().display == Style.Display.NONE) {
       return; // forgotten, so that it appears again without moving, like a new element
     }
-    double[] target = values(el);
     Entry entry = entries.get(id);
     El before = entry == null ? null : entry.el;
     Spring spring = el.motion();
     if (el.cycle() != null) { // its phase goes on while it keeps its cycle
       el.cycleSince = before != null && before.cycle() != null ? before.cycleSince : now;
     }
-    if (entry != null && spring != null && before.cycle() != null && el.cycle() == null) {
-      double[] shown = values(before); // what the cycle's look showed last, to spring from
-      for (int i = 0; i < COUNT; i++) {
-        entry.tracks[i].set(shown[i]);
-      }
-    }
     if (entry == null) {
-      entry = new Entry(id, target, created++);
-      if (spring != null && enters) {
-        Track opacity = entry.tracks[OPACITY];
-        opacity.set(0);
-        opacity.retarget(target[OPACITY], spring, now);
+      entry = new Entry(id, created++);
+      if (spring != null) {
+        entry.resetTracks(el, false);
+        if (enters) {
+          Track opacity = entry.tracks[OPACITY];
+          opacity.set(0);
+          opacity.retarget(el.opacity(), spring, now);
+        }
       }
+    } else if (spring == null) {
+      entry.tracks = null;
     } else {
+      if (before.cycle() != null && el.cycle() == null) {
+        entry.resetTracks(before, false); // what the cycle's look showed last, to spring from
+      } else if (entry.tracks == null) {
+        entry.resetTracks(before, true); // what it showed without motion, to spring from
+      }
       for (int i = 0; i < COUNT; i++) {
         Track track = entry.tracks[i];
-        if (spring == null || row && i < RADIUS) {
-          track.set(target[i]);
-        } else if (target[i] != track.target()) {
-          track.retarget(target[i], spring, now);
+        double target = value(el, i);
+        if (row && i < RADIUS) {
+          track.set(target);
+        } else if (target != track.target()) {
+          track.retarget(target, spring, now);
         }
       }
     }
     entry.el = el;
-    entry.fill = el.fill();
-    entry.border = el.borderColor();
-    entry.text = el.text() == null ? 0 : el.text().color();
+    entry.take(el);
     el.measureScroll(); // from the layout, before the leaving children come back
     if (next.put(id, entry) != null) {
       throw new IllegalStateException("two siblings have the key '" + el.key()
@@ -727,31 +734,28 @@ final class Animator {
     return el.key() != null ? el.key() : Integer.valueOf(index);
   }
 
-  /** The animated numbers of an element as it is now. */
-  private static double[] values(El el) {
-    double[] values = new double[COUNT];
-    values[0] = el.x();
-    values[1] = el.y();
-    values[2] = el.width();
-    values[3] = el.height();
-    float[] radii = el.radii();
-    for (int c = 0; c < 4; c++) {
-      values[RADIUS + c] = radii[c];
-    }
-    channels(el.fill(), values, FILL);
-    channels(el.borderColor(), values, BORDER);
-    channels(el.text() == null ? 0 : el.text().color(), values, TEXT);
-    values[OPACITY] = el.opacity();
-    values[SWEEP] = el.arcSweep();
-    return values;
+  /** One animated number of an element as it is now. */
+  private static double value(El el, int index) {
+    return switch (index) {
+      case 0 -> el.x();
+      case 1 -> el.y();
+      case 2 -> el.width();
+      case 3 -> el.height();
+      case RADIUS, RADIUS + 1, RADIUS + 2, RADIUS + 3 -> el.cornerRadius(index - RADIUS);
+      case FILL, FILL + 1, FILL + 2, FILL + 3 -> channel(el.fill(), index - FILL);
+      case BORDER, BORDER + 1, BORDER + 2, BORDER + 3 -> channel(el.borderColor(), index - BORDER);
+      case TEXT, TEXT + 1, TEXT + 2, TEXT + 3 ->
+        channel(el.text() == null ? 0 : el.text().color(), index - TEXT);
+      case OPACITY -> el.opacity();
+      case SWEEP -> el.arcSweep();
+      default -> throw new IndexOutOfBoundsException(index);
+    };
   }
 
-  private static void channels(int argb, double[] into, int at) {
+  /** Channel {@code index} of {@code argb}: alpha, then premultiplied red, green and blue. */
+  private static double channel(int argb, int index) {
     int alpha = argb >>> 24;
-    into[at] = alpha;
-    for (int i = 1; i < 4; i++) {
-      into[at + i] = ((argb >>> (24 - 8 * i)) & 0xFF) * alpha / 255.0;
-    }
+    return index == 0 ? alpha : ((argb >>> (24 - 8 * index)) & 0xFF) * alpha / 255.0;
   }
 
   /** The tracks of one element, and the element of the current tree that shows them. */
@@ -759,24 +763,79 @@ final class Animator {
 
     final Id id;
     final long opened; // how many entries were made before this one
-    final Track[] tracks = new Track[COUNT];
+    Track[] tracks; // null while el has no motion
     El el;
-    int fill, border, text; // the view's target colors, kept intact when their tracks rest
+    // What the last visit found of el, which the scroll offset of its parent, the placing of
+    // overlays and the look of a cycle change later; an element that gains motion starts here.
+    float x;
+    float y;
+    float width;
+    float height;
+    float opacity;
+    // The view's target colors, kept intact when their tracks rest.
+    int fill;
+    int border;
+    int text;
     // For a virtual list: the rows that have entries, from rowsFrom to rowsTo, exclusive.
     int rowsFrom;
     int rowsTo;
 
-    Entry(Id id, double[] values, long opened) {
+    Entry(Id id, long opened) {
       this.id = id;
       this.opened = opened;
+    }
+
+    /**
+     * Puts the tracks at rest on the values of {@code from}, as it is now or, with {@code
+     * laidOut}, as the last visit found it.
+     */
+    void resetTracks(El from, boolean laidOut) {
+      if (tracks == null) {
+        tracks = new Track[COUNT];
+      }
       for (int i = 0; i < COUNT; i++) {
-        double tolerance =
-            i < FILL ? PIXELS : i < OPACITY ? CHANNELS : i == OPACITY ? CHANNELS / 255 : TURNS;
-        tracks[i] = new Track(values[i], tolerance);
+        double value = laidOut ? laidOut(from, i) : value(from, i);
+        if (tracks[i] == null) {
+          double tolerance =
+              i < FILL ? PIXELS : i < OPACITY ? CHANNELS : i == OPACITY ? CHANNELS / 255 : TURNS;
+          tracks[i] = new Track(value, tolerance);
+        } else {
+          tracks[i].set(value);
+        }
       }
     }
 
+    /** Keeps what a visit finds of {@code el}. */
+    void take(El el) {
+      x = el.x();
+      y = el.y();
+      width = el.width();
+      height = el.height();
+      opacity = el.opacity();
+      fill = el.fill();
+      border = el.borderColor();
+      text = el.text() == null ? 0 : el.text().color();
+    }
+
+    /** Like {@link #value}, as the last visit found {@code el}. */
+    private double laidOut(El el, int index) {
+      return switch (index) {
+        case 0 -> x;
+        case 1 -> y;
+        case 2 -> width;
+        case 3 -> height;
+        case FILL, FILL + 1, FILL + 2, FILL + 3 -> channel(fill, index - FILL);
+        case BORDER, BORDER + 1, BORDER + 2, BORDER + 3 -> channel(border, index - BORDER);
+        case TEXT, TEXT + 1, TEXT + 2, TEXT + 3 -> channel(text, index - TEXT);
+        case OPACITY -> opacity;
+        default -> value(el, index);
+      };
+    }
+
     boolean isAtRest(double now) {
+      if (tracks == null) {
+        return true;
+      }
       for (Track track : tracks) {
         if (!track.isAtRest(now)) {
           return false;

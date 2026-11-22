@@ -52,14 +52,14 @@ public final class Breadcrumb {
    *     while that menu is open; null for a chevron that only separates, and none after the last
    */
   public record Crumb(
-      String text, Runnable onPress, Symbol icon, Supplier<List<Menu.Item>> children) {
+      String text, Runnable onPress, Icon icon, Supplier<List<Menu.Item>> children) {
 
     public Crumb {
       Objects.requireNonNull(text, "text");
     }
 
     /** This crumb with an icon before its text. */
-    public Crumb icon(Symbol icon) {
+    public Crumb icon(Icon icon) {
       return new Crumb(text, onPress, icon, children);
     }
 
@@ -336,7 +336,9 @@ public final class Breadcrumb {
     int color = current ? theme.text().primary() : theme.text().muted();
     El words = words(theme, crumb, current).color(color).ellipsis().minSize(0, 0);
     words.onResize(state.learn(theme, crumb, current, words));
-    El icon = crumb.icon() == null ? null : Icon.icon(crumb.icon()).color(color).shrink(0);
+    El icon = crumb.icon() == null
+        ? null
+        : Icon.Picture.color(Icon.icon(crumb.icon()), color).shrink(0);
     El el = row()
         .role("link")
         .label(crumb.text())
@@ -366,7 +368,7 @@ public final class Breadcrumb {
           e.fill(theme.surface().hover());
           words.color(theme.text().primary());
           if (icon != null) {
-            icon.color(theme.text().primary());
+            Icon.Picture.color(icon, theme.text().primary());
           }
         })
         .whenPressed(e -> e.fill(theme.surface().pressed()));

@@ -68,7 +68,7 @@ public final class Group {
    * @param description below the title in muted text, wrapping; null for none
    * @param control at the right, such as a select, a text field or a button; null for none
    */
-  public static El row(Symbol icon, String title, String description, El control) {
+  public static El row(Icon icon, String title, String description, El control) {
     Theme theme = Theme.CURRENT.get();
     // A control that says what is wrong with its value ({@link El#errorMessage}) has that in
     // place of the description, in the danger color, as a form's field has.
@@ -96,7 +96,7 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El switchRow(
-      Symbol icon, String title, String description, boolean on, Runnable onToggle) {
+      Icon icon, String title, String description, boolean on, Runnable onToggle) {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     El row = base(theme, icon, title, description, enabled)
@@ -121,7 +121,7 @@ public final class Group {
    * @param onPress runs when the row is pressed; null disables it
    */
   public static El linkRow(
-      Symbol icon, String title, String description, String value, Runnable onPress) {
+      Icon icon, String title, String description, String value, Runnable onPress) {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onPress != null;
     El row = base(theme, icon, title, description, enabled)
@@ -153,12 +153,7 @@ public final class Group {
    * @param onToggle runs when the row is pressed; null disables it
    */
   public static El expander(
-      Symbol icon,
-      String title,
-      String description,
-      boolean open,
-      Runnable onToggle,
-      El... content) {
+      Icon icon, String title, String description, boolean open, Runnable onToggle, El... content) {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onToggle != null;
     El head = base(theme, icon, title, description, enabled)
@@ -193,7 +188,7 @@ public final class Group {
 
   /** A row's icon and text, with the padding, radius and height every row has. */
   private static El base(
-      Theme theme, Symbol icon, String title, String description, boolean enabled) {
+      Theme theme, Icon icon, String title, String description, boolean enabled) {
     El text = col()
         .grow(1)
         .gap(theme.space().xs())
