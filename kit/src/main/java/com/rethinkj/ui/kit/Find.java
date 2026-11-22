@@ -192,7 +192,9 @@ public final class Find {
       try {
         return search().compile();
       } catch (PatternSyntaxException e) {
-        error = e.getDescription() + (e.getIndex() >= 0 ? " at " + (e.getIndex() + 1) : "");
+        error = e.getIndex() >= 0
+            ? texts.patternError(e.getDescription(), e.getIndex() + 1)
+            : e.getDescription();
         return null;
       }
     }
