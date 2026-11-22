@@ -276,10 +276,19 @@ class FoldTest {
         () -> El.text("one").editable(v -> {}).lineEnds(line -> List.of()));
 
     Context<String> tag = new Context<>("default");
-    State state = new State(
-        "line0\nfold {\n  hidden1\n  hidden2\n}\nafter\n"
-            + "line6\nline7\nline8\nline9\nline10\nline11",
-        new El.Fold(1, 4));
+    State state = new State("""
+        line0
+        fold {
+          hidden1
+          hidden2
+        }
+        after
+        line6
+        line7
+        line8
+        line9
+        line10
+        line11""", new El.Fold(1, 4));
     List<Integer> asked = new ArrayList<>();
     AtomicInteger clicks = new AtomicInteger();
     El.Block insert = El.Block.insert(5);
