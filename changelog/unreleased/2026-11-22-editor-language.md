@@ -1,0 +1,1 @@
+- Added `Language` to the code editor: a `Highlighter` that also finds the comments and doc comments of a text, a bounded number of lines at a time with `Comments.scan`, and parses doc comments into `DocComment`. `codeEditor(...)` takes a `Language` where it takes a highlighter; `Language.of(Sql.of())` makes one of a highlighter without comments.
