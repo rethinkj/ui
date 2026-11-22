@@ -1,0 +1,4 @@
+el 0,0 320x200
+  el 12,12 280x156
+    text "Each order belongs to a customer and has one or more items. Descendant text elements inherit the line height." 12,12 280x66
+    text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 12,86 280x82 lines 1-3/3 focused caret 26 (3:6) anchor 9
