@@ -1,0 +1,1 @@
+- `Button.Tone` adds `SUCCESS`, `WARNING` and `ACCENT`, which draw the icon of a secondary or ghost button, such as an icon button in a toolbar, in the theme's success, warning or accent color, while its text and the rest of the button stay neutral; a primary button with one of them looks as a neutral one.

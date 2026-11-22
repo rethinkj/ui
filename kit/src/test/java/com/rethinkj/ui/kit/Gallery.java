@@ -122,6 +122,22 @@ final class Gallery {
       new Row("danger secondary", h -> button(Variant.SECONDARY, "Discard", h, danger())),
       new Row("danger ghost", h -> button(Variant.GHOST, "Delete", h, danger())),
       new Row(
+          "success ghost",
+          h -> Button.icon(
+              Variant.GHOST,
+              Symbol.CHECKMARK,
+              "Apply",
+              h,
+              Button.options().tone(Button.Tone.SUCCESS))),
+      new Row(
+          "accent ghost",
+          h -> Button.icon(
+              Variant.GHOST,
+              Symbol.ARROW_UNDO,
+              "Undo",
+              h,
+              Button.options().tone(Button.Tone.ACCENT))),
+      new Row(
           "busy icon",
           h -> Button.icon(Variant.GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", h, busy(h))),
       new Row(

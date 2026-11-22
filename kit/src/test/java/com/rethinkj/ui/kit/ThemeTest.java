@@ -9,6 +9,7 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -64,6 +65,17 @@ class ThemeTest {
     check(failures, "danger", t.status().danger(), surfaces, 4.5);
     check(failures, "warning", t.status().warning(), surfaces, 4.5);
     check(failures, "success", t.status().success(), surfaces, 4.5);
+    // The icon of a button with a status's or the accent's tone, on a control's fills and in a
+    // toolbar's group, whose tint lies under the button's.
+    int group = over(s.window(), s.hover());
+    Map<String, Integer> iconOn = new HashMap<>(controls);
+    iconOn.putAll(Map.of(
+        "group", group,
+        "group hovered", over(group, s.hover()),
+        "group pressed", over(group, s.pressed())));
+    check(failures, "success icon", t.status().success(), iconOn, 3);
+    check(failures, "warning icon", t.status().warning(), iconOn, 3);
+    check(failures, "accent icon", t.accent().edge(), iconOn, 3);
     check(failures, "text on accent", t.text().onAccent(), accents, 4.5);
     check(failures, "strong border", t.border().strong(), surfaces, 3);
     // A field's bottom edge, which identifies it, also against its own fill at rest and hovered,

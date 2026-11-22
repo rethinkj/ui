@@ -67,7 +67,25 @@ public final class Button {
      * ghost one with red text alone, in a toolbar or a row. Its focus ring is {@link
      * Theme.Danger#ring}. Off, a primary one is filled with {@link Theme.Danger#disabled}.
      */
-    DANGER
+    DANGER,
+    /**
+     * An action that confirms or applies something, as Commit or Apply: the icon of a secondary or
+     * ghost button is in {@link Theme.Status#success}, and the button is else a neutral one, its
+     * text too; a primary button looks as {@link #NEUTRAL}. The icon alone, since a status color
+     * stands out 3:1 from a control's fills, enough for a symbol but not for text.
+     */
+    SUCCESS,
+    /**
+     * An action that calls for care: the icon of a secondary or ghost button is in {@link
+     * Theme.Status#warning}, and the button is else a neutral one, as with {@link #SUCCESS}.
+     */
+    WARNING,
+    /**
+     * An action that stands out beside neutral ones, as Undo: the icon of a secondary or ghost
+     * button is in {@link Theme.Accent#edge}, and the button is else a neutral one, as with {@link
+     * #SUCCESS}.
+     */
+    ACCENT
   }
 
   /** Whether a button takes a press now. */
@@ -131,8 +149,9 @@ public final class Button {
     private Options() {}
 
     /**
-     * An icon before the text, muted beside the text of a secondary or ghost button, else in the
-     * text's color; null for none. Not for {@link #icon(Variant, Symbol, String, Runnable,
+     * An icon before the text, muted beside the text of a neutral secondary or ghost button, in
+     * the tone's color with {@link Tone#SUCCESS}, {@link Tone#WARNING} or {@link Tone#ACCENT}, else
+     * in the text's color; null for none. Not for {@link #icon(Variant, Symbol, String, Runnable,
      * Options)}, whose symbol is a parameter of its own.
      */
     public Options icon(Symbol icon) {
@@ -315,8 +334,9 @@ public final class Button {
 
   /**
    * A square button with an icon alone and its options: busy, a spinner, or a ring with a
-   * progress, stands in place of the icon; with {@link Tone#DANGER} the icon has the tone's color,
-   * else it is muted unless the button is primary; a shortcut follows the label in its tooltip.
+   * progress, stands in place of the icon; on a secondary or ghost button a tone other than {@link
+   * Tone#NEUTRAL} colors the icon, else it is muted unless the button is primary; a shortcut
+   * follows the label in its tooltip.
    *
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
@@ -383,15 +403,24 @@ public final class Button {
 
   /**
    * An icon in the text's color on a primary button, on one that destroys and on one that is off,
-   * else muted beside the text, which it leaves the weight.
+   * in the tone's color with a tone of a status or the accent, else muted beside the text, which it
+   * leaves the weight.
    */
   private static El icon(
       Theme theme, Variant variant, Tone tone, State state, Look look, Symbol symbol) {
-    return Icon.icon(symbol)
-        .color(
-            variant == Variant.PRIMARY || tone == Tone.DANGER || state == State.DISABLED
-                ? look.text()
-                : theme.text().muted());
+    int color;
+    if (variant == Variant.PRIMARY || state == State.DISABLED) {
+      color = look.text();
+    } else {
+      color = switch (tone) {
+        case NEUTRAL -> theme.text().muted();
+        case DANGER -> look.text();
+        case SUCCESS -> theme.status().success();
+        case WARNING -> theme.status().warning();
+        case ACCENT -> theme.accent().edge();
+      };
+    }
+    return Icon.icon(symbol).color(color);
   }
 
   /** The spinner of a busy button, or its ring with a progress, in its text's color. */
@@ -631,8 +660,11 @@ public final class Button {
     Runnable toggle = items.stream().anyMatch(Menu.Item::isEnabled) ? state::toggle : null;
     State shown = state(options, toggle);
     Look look = look(theme, variant, options.tone, shown != State.DISABLED);
+    // The chevron takes the text's color with the danger tone; a status's or the accent's tone is
+    // for the button's own icon.
+    Tone chevron = options.tone == Tone.DANGER ? Tone.DANGER : Tone.NEUTRAL;
     El button = button(variant, text, toggle, options)
-        .child(icon(theme, variant, options.tone, shown, look, Select.OPENS));
+        .child(icon(theme, variant, chevron, shown, look, Select.OPENS));
     if (shown != State.READY) {
       state.close();
       return button;

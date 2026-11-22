@@ -335,6 +335,58 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=button label="Delete" 37,8 66x24 disabled
     text "Delete" 50,12 40x16
+# success ghost, rest
+el 0,0 140x40
+  el #c role=button label="Apply" 58,8 24x24
+    text label="checkmark" "\u{E305}" 62,12 16x16
+# success ghost, hover
+el 0,0 140x40
+  el #c role=button label="Apply" 58,8 24x24 hovered
+    text label="checkmark" "\u{E305}" 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Apply" 58,8 24x24
+  el #tooltip role=tooltip label="Apply" 86,8 51x25
+    text "Apply" 95,13 33x15
+# success ghost, pressed
+el 0,0 140x40
+  el #c role=button label="Apply" 58,8 24x24 hovered
+    text label="checkmark" "\u{E305}" 62,13 16x16
+# success ghost, focused
+el 0,0 140x40
+  el #c role=button label="Apply" 58,8 24x24 focused
+    text label="checkmark" "\u{E305}" 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Apply" 58,8 24x24
+  el #tooltip role=tooltip label="Apply" 86,8 51x25
+    text "Apply" 95,13 33x15
+# success ghost, disabled
+el 0,0 140x40
+  el #c role=button label="Apply" 58,8 24x24 disabled
+    text label="checkmark" "\u{E305}" 62,12 16x16
+# accent ghost, rest
+el 0,0 140x40
+  el #c role=button label="Undo" 58,8 24x24
+    text label="arrow_undo" "\u{E126}" 62,12 16x16
+# accent ghost, hover
+el 0,0 140x40
+  el #c role=button label="Undo" 58,8 24x24 hovered
+    text label="arrow_undo" "\u{E126}" 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Undo" 58,8 24x24
+  el #tooltip role=tooltip label="Undo" 86,8 49x25
+    text "Undo" 95,13 31x15
+# accent ghost, pressed
+el 0,0 140x40
+  el #c role=button label="Undo" 58,8 24x24 hovered
+    text label="arrow_undo" "\u{E126}" 62,13 16x16
+# accent ghost, focused
+el 0,0 140x40
+  el #c role=button label="Undo" 58,8 24x24 focused
+    text label="arrow_undo" "\u{E126}" 62,12 16x16
+overlay bottom center gap 4 on #c role=button label="Undo" 58,8 24x24
+  el #tooltip role=tooltip label="Undo" 86,8 49x25
+    text "Undo" 95,13 31x15
+# accent ghost, disabled
+el 0,0 140x40
+  el #c role=button label="Undo" 58,8 24x24 disabled
+    text label="arrow_undo" "\u{E126}" 62,12 16x16
 # busy icon, rest
 el 0,0 140x40
   el #c role=button label="Refresh" 58,8 24x24 busy

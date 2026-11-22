@@ -20,14 +20,15 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * The options of {@link Button}: off, busy, the danger tone, the shortcut, and the keys of the
- * split and menu buttons.
+ * The options of {@link Button}: off, busy, the tones, the shortcut, and the keys of the split and
+ * menu buttons.
  */
 class ButtonTest {
 
@@ -221,6 +222,40 @@ class ButtonTest {
     assertEquals(d.hover(), find(app, "p").fill());
     run(app, "move #s\nframe\nadvance 1");
     assertEquals(over(s.raised(), s.hover()), find(app, "s").fill());
+  }
+
+  @Test
+  void statusAndAccentTonesColorTheIconOfSecondaryAndGhostButtonsAlone() throws IOException {
+    Map<Button.Tone, Integer> tones = Map.of(
+        Button.Tone.SUCCESS, T.status().success(),
+        Button.Tone.WARNING, T.status().warning(),
+        Button.Tone.ACCENT, T.accent().edge());
+    for (var tone : tones.entrySet()) {
+      Function<Symbol, Button.Options> with =
+          icon -> Button.options().tone(tone.getKey()).icon(icon);
+      App<Clicks> app = app(c -> row()
+          .child(button(PRIMARY, "Run", c::press, with.apply(Symbol.PLAY)).key("p"))
+          .child(
+              button(SECONDARY, "Apply", c::press, with.apply(Symbol.CHECKMARK)).key("s"))
+          .child(button(GHOST, "Off", null, with.apply(Symbol.CHECKMARK)).key("o"))
+          .child(Button.icon(GHOST, Symbol.ARROW_UNDO, "Undo", c::press, with.apply(null))
+              .key("i"))
+          .child(Button.menu(
+                  GHOST, "Export", c.menu, List.of(Menu.item("CSV", c::press)), with.apply(null))
+              .key("m")));
+      run(app, "");
+      El primary = find(app, "p");
+      assertEquals(T.accent().color(), primary.fill());
+      assertEquals(T.text().onAccent(), primary.children().getFirst().text().color());
+      El secondary = find(app, "s");
+      assertEquals(tone.getValue(), secondary.children().get(0).text().color());
+      assertEquals(T.text().primary(), secondary.children().get(1).text().color());
+      assertEquals(T.accent().edge(), (int) secondary.focusRing());
+      assertEquals(
+          T.text().disabled(), find(app, "o").children().getFirst().text().color());
+      assertEquals(tone.getValue(), find(app, "i").children().getFirst().text().color());
+      assertEquals(T.text().muted(), find(app, "m").children().getLast().text().color());
+    }
   }
 
   @Test

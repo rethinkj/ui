@@ -1,6 +1,6 @@
 ---
 title: Button
-description: Primary, secondary, ghost, icon, busy, danger, toggle, split, and menu buttons in three sizes.
+description: Primary, secondary, ghost, icon, busy, toggle, split, and menu buttons with tones and three sizes.
 ---
 
 `Button` provides clickable actions in three visual styles:
@@ -8,13 +8,13 @@ description: Primary, secondary, ghost, icon, busy, danger, toggle, split, and m
 - `SECONDARY` — Standard action (raised surface with border).
 - `GHOST` — Subtle action for toolbars (shows background only on hover).
 
-Additional forms include `Button.icon` (square icon-only button), `Button.toggle` (stays pressed/on), `Button.split` (main action plus dropdown menu), and `Button.menu` (opens a menu). Pass `Button.options()` to configure icons, busy/disabled states, danger tone, sizes, and shortcut tooltips. Passing a `null` handler disables the button (unless it is `BUSY`).
+Additional forms include `Button.icon` (square icon-only button), `Button.toggle` (stays pressed/on), `Button.split` (main action plus dropdown menu), and `Button.menu` (opens a menu). Pass `Button.options()` to configure icons, busy/disabled states, tones, sizes, and shortcut tooltips. Passing a `null` handler disables the button (unless it is `BUSY`).
 
 For an on/off setting, use [Toggle](/docs/components/toggle). For a row of actions with overflow handling, use [Toolbar](/docs/components/toolbar).
 
 Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/api/com/rethinkj/ui/kit/Button.Options.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,busy icon,progress icon,small,large,menu,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
+<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,success ghost,accent ghost,busy icon,progress icon,small,large,menu,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
 
 ## Example
 
@@ -39,7 +39,7 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 | `state(DISABLED)` | Disables the button while keeping the handler in your view code (same behavior as a `null` handler) |
 | `progress(fraction)` | While `BUSY`, shows a ring that fills from `0.0` to `1.0` instead of the spinner (for example, during a download) |
 | `busyText(text)` | Text shown beside the spinner while `BUSY` (e.g., `"Saving…"`). Keeps the button width stable across ready/busy states |
-| `tone(Tone.DANGER)` | Red styling for destructive actions (`PRIMARY` filled red, `SECONDARY` red text/border, `GHOST` red text) |
+| `tone(tone)` | `NEUTRAL` (default); `DANGER` for destructive actions (`PRIMARY` filled red, `SECONDARY` red text and border, `GHOST` red text and icon); `SUCCESS`, `WARNING`, or `ACCENT` color only the icon of a `SECONDARY` or `GHOST` button, such as a green check for Apply, and leave its text and the rest neutral. A `PRIMARY` button with one of these three looks as `NEUTRAL` |
 | `size(Size.SMALL)`, `size(Size.LARGE)` | Height `20` or `32` instead of default `24` (`SMALL` for compact rows, `LARGE` for empty-state calls to action) |
 | `shortcut(modifiers, key)` | Displays keyboard shortcut keycaps in the tooltip (e.g., `shortcut(Key.CONTROL \| Key.SHIFT, "C")`). Display-only — bind the actual shortcut in your `onKey` handler |
 
