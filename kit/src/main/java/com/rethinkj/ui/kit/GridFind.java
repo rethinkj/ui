@@ -36,6 +36,7 @@ final class GridFind {
       List<SortKey> sort,
       List<Filter> filters,
       int edits,
+      int revision,
       boolean editing) {}
 
   /** A pending jump to the next or previous match, continued across frames via {@code App.after}. */
@@ -60,6 +61,7 @@ final class GridFind {
       return;
     }
     f.build = b;
+    f.built = true;
     f.app = b.o.findApp;
     f.texts = b.texts;
     if (!f.open) {
@@ -138,13 +140,30 @@ final class GridFind {
         if (mods != 0 || !f.open) {
           return false;
         }
-        f.close();
+        dismiss(f);
       }
       default -> {
         return false;
       }
     }
     return true;
+  }
+
+  /** Closes the bar and gives the focus back to its grid. */
+  private static void dismiss(DataGrid.Find f) {
+    f.close();
+    if (f.app != null && f.build != null && f.build.grid != null) {
+      f.app.focus(f.build.grid);
+    }
+  }
+
+  /** The height of the strip below the header that holds the open bar, clear of the rows. */
+  static float strip(Build b) {
+    DataGrid.Find f = b.o.find;
+    if (f == null || !f.open || b.sel == null) {
+      return 0;
+    }
+    return Find.barHeight(b.theme, 1) + 2 * b.theme.space().xs();
   }
 
   /** Handles keys anywhere inside the find bar. */
@@ -230,55 +249,58 @@ final class GridFind {
     }
 
     Scope now = scopeOf(b, query);
-    boolean sameScope = now.equals(f.scope);
-    if (sameScope && f.complete && !f.more && !f.stopped) {
-      f.jump = null;
-      if (f.matchCount == 0) {
-        return;
-      }
-      int at;
-      if (direction >= 0) {
-        int i = firstAtOrAfter(f, fromRow, fromCol);
-        at = i < f.matchCount ? i : 0;
-      } else {
-        int i = lastAtOrBefore(f, fromRow, fromCol);
-        at = i >= 0 ? i : f.matchCount - 1;
-      }
-      selectMatch(b, f.matchRows[at], f.matchCols[at]);
-      return;
-    }
-
-    long totalCells = (long) rowCount * cols;
+    // The scan's matches lead the way, unless it left out rows that were not loaded then.
+    boolean trusted = now.equals(f.scope) && !f.skipped;
+    long remaining = (long) rowCount * cols;
     int startRow = fromRow;
     int startCol = fromCol;
-    long remaining = totalCells;
-
-    if (sameScope && (f.scanRow > 0 || f.scanCol > 0)) {
-      if (direction >= 0 && compareCell(fromRow, fromCol, f.scanRow, f.scanCol) < 0) {
+    int cached = -1;
+    if (trusted && f.complete && !f.more && !f.stopped) {
+      if (f.matchCount == 0) {
+        f.jump = null;
+        return;
+      }
+      if (direction >= 0) {
+        int i = firstAtOrAfter(f, fromRow, fromCol);
+        cached = i < f.matchCount ? i : 0;
+      } else {
+        int i = lastAtOrBefore(f, fromRow, fromCol);
+        cached = i >= 0 ? i : f.matchCount - 1;
+      }
+    } else if (trusted
+        && (f.scanRow > 0 || f.scanCol > 0)
+        && compareCell(fromRow, fromCol, f.scanRow, f.scanCol) < 0) {
+      if (direction >= 0) {
         int i = firstAtOrAfter(f, fromRow, fromCol);
         if (i < f.matchCount) {
-          f.jump = null;
-          selectMatch(b, f.matchRows[i], f.matchCols[i]);
-          return;
+          cached = i;
+        } else { // no match in [from .. scan): on from where the scan left off
+          remaining -= cellIndex(f.scanRow, f.scanCol, cols) - cellIndex(fromRow, fromCol, cols);
+          startRow = f.scanRow < rowCount ? f.scanRow : 0;
+          startCol = f.scanRow < rowCount ? f.scanCol : 0;
         }
-        // No match in [from .. scan): skip straight to where the scan left off.
-        long skipped = cellIndex(f.scanRow, f.scanCol, cols) - cellIndex(fromRow, fromCol, cols);
-        remaining -= skipped;
-        startRow = f.scanRow < rowCount ? f.scanRow : 0;
-        startCol = f.scanRow < rowCount ? f.scanCol : 0;
-      } else if (direction < 0 && compareCell(fromRow, fromCol, f.scanRow, f.scanCol) < 0) {
+      } else {
         int i = lastAtOrBefore(f, fromRow, fromCol);
         if (i >= 0) {
-          f.jump = null;
-          selectMatch(b, f.matchRows[i], f.matchCols[i]);
-          return;
+          cached = i;
+        } else { // no match in [(0,0) .. from]: round to the last cell
+          remaining -= cellIndex(fromRow, fromCol, cols) + 1;
+          startRow = rowCount - 1;
+          startCol = cols - 1;
         }
-        // No match in [(0,0) .. from]: wrap directly to the last cell.
-        long skipped = cellIndex(fromRow, fromCol, cols) + 1;
-        remaining -= skipped;
-        startRow = rowCount - 1;
-        startCol = cols - 1;
       }
+    }
+    if (cached >= 0) {
+      if (stillMatches(f, b, f.matchRows[cached], f.matchCols[cached])) {
+        f.jump = null;
+        selectMatch(b, f.matchRows[cached], f.matchCols[cached]);
+        return;
+      }
+      // The app changed the cell since the scan: search again, from here on directly.
+      startScan(f, b, now);
+      remaining = (long) rowCount * cols;
+      startRow = fromRow;
+      startCol = fromCol;
     }
 
     if (remaining <= 0) {
@@ -358,7 +380,8 @@ final class GridFind {
                 null,
                 searchable ? () -> go(f, 1) : null)
             .key("next"))
-        .child(Find.tool(theme, Symbol.DISMISS, texts.close(), texts.keys("Escape"), null, f::close)
+        .child(Find.tool(
+                theme, Symbol.DISMISS, texts.close(), texts.keys("Escape"), null, () -> dismiss(f))
             .key("close"));
     El panel = Find.panel(theme).child(findRow);
     // Float below the header at the top right, clear of the vertical scrollbar.
@@ -423,6 +446,17 @@ final class GridFind {
     return q;
   }
 
+  /** Whether a cell the scan found still matches: the app may have changed it since. */
+  private static boolean stillMatches(DataGrid.Find f, Build b, int row, int column) {
+    String raw = b.columns.get(column).cell().apply(row);
+    try {
+      return raw != null
+          && Search.hasMatch(f.pattern, DataGrid.oneLine(raw), Search.deadline(Find.SYNC_MILLIS));
+    } catch (Search.Stopped stopped) {
+      return true; // too slow to tell: as the scan found it
+    }
+  }
+
   private static Scope scopeOf(Build b, Search.Query query) {
     List<String> titles = new ArrayList<>(b.columns.size());
     for (Column column : b.columns) {
@@ -431,9 +465,18 @@ final class GridFind {
     List<Integer> layout =
         b.o.full == null ? List.of() : Arrays.stream(b.o.full).boxed().toList();
     int edits = b.sel == null ? 0 : b.sel.edit.edits;
+    int revision = b.o.changes == null ? 0 : b.o.changes.revision;
     boolean editing = b.sel != null && b.sel.isEditing();
     return new Scope(
-        query, b.rowCount, List.copyOf(titles), layout, b.o.sort, b.o.filters, edits, editing);
+        query,
+        b.rowCount,
+        List.copyOf(titles),
+        layout,
+        b.o.sort,
+        b.o.filters,
+        edits,
+        revision,
+        editing);
   }
 
   private static void startScan(DataGrid.Find f, Build b, Scope scope) {
@@ -445,6 +488,7 @@ final class GridFind {
     f.complete = b.rowCount == 0 || b.columns.isEmpty();
     f.scanRow = 0;
     f.scanCol = 0;
+    f.skipped = false;
   }
 
   private static boolean stepScan(DataGrid.Find f, Build b, long deadline) {
@@ -466,7 +510,9 @@ final class GridFind {
         return false;
       }
       int r = f.scanRow;
-      if (loaded != null && !loaded.test(r)) {
+      boolean unloaded = loaded != null && !loaded.test(r);
+      if (unloaded || b.pending(r)) {
+        f.skipped |= unloaded; // the count leaves them out: it says so with a +
         f.scanRow++;
         f.scanCol = 0;
         checked++;
@@ -538,7 +584,7 @@ final class GridFind {
       }
       int r = j.curRow;
       int c = j.curCol;
-      if (loaded != null && !loaded.test(r)) {
+      if (loaded != null && !loaded.test(r) || b.pending(r)) {
         if (j.direction > 0) {
           j.remaining -= cols - c;
           j.curRow = r + 1 < rowCount ? r + 1 : 0;
@@ -611,6 +657,11 @@ final class GridFind {
         return;
       }
       f.scheduled = false;
+      if (!f.built) { // the view built since leaves the grid out: its rows may be gone
+        f.cancel();
+        return;
+      }
+      f.built = false;
       Build b = f.build;
       if ((!f.open && f.jump == null) || b == null || f.pattern == null) {
         return;
@@ -664,7 +715,7 @@ final class GridFind {
         !f.complete,
         f.stopped,
         f.matchCount,
-        !f.more && !f.stopped,
+        !f.more && !f.stopped && !f.skipped,
         current);
   }
 

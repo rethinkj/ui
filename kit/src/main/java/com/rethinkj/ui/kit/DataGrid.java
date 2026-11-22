@@ -2135,6 +2135,8 @@ public final class DataGrid {
     GridFind.Jump jump;
     long gen; // incremented on cancel/restart so stale scheduled slices do nothing
     boolean scheduled;
+    boolean built; // a build of the view had the grid since the last slice
+    boolean skipped; // the scan left out rows that were not loaded
     // The last build and its elements, for handlers and public methods.
     Build build;
     App<?> app;
@@ -2248,6 +2250,7 @@ public final class DataGrid {
     RowToggle onToggle;
     App<?> findApp;
     Find find;
+    GridChanges changes;
     // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
     // none, and the number of rows there are now, which a handler may have changed since the build.
     IntToLongFunction rowKey;
@@ -2793,6 +2796,7 @@ public final class DataGrid {
       rowKey = changes::key;
       rowPlace = changes::rowOf;
       rowsNow = changes::rowCount;
+      this.changes = changes;
       status(changes::rowStatus, changes::cellStatus);
       errors(changes::errorText);
       return history(changes::undo, changes::redo);
@@ -3016,7 +3020,12 @@ public final class DataGrid {
     if (b.edits && sel.isEditing()) {
       GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
     }
-    content.children(header, body);
+    content.child(header);
+    float findStrip = GridFind.strip(b);
+    if (findStrip > 0) { // the find bar's room below the header: it covers no row
+      content.child(el().key("find-room").h(findStrip).shrink(0));
+    }
+    content.child(body);
     if (options.totals != null) {
       content.child(footer(b));
     }
@@ -3887,6 +3896,9 @@ public final class DataGrid {
     } else if (!append && !pending) {
       if (view != null) {
         box.label(value == null ? "NULL" : value); // what the view stands for, in a dump
+        if (findMatches != null) {
+          box.fill(over(box.fill() != 0 ? box.fill() : rowFill, findTint(theme, currentMatch)));
+        }
         shieldControls(view, sel);
         box.child(view);
       } else {

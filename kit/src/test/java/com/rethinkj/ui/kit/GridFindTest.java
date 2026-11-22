@@ -187,8 +187,13 @@ class GridFindTest {
         frame
         type "ada"
         frame""", app, out);
-    assertEquals("1 of 2", count(app.tree().dump()), "unloaded row 0 skipped");
+    assertEquals("1 of 2+", count(app.tree().dump()), "unloaded row 0 left out of the count");
     assertEquals(2, state.selection.row());
+    assertEquals(1, state.selection.column());
+    state.loaded = row -> true; // row 0 arrives, and the view shows it: stepping finds it
+    app.invalidate();
+    Script.run("frame\nkey Enter shift\nframe", app, out);
+    assertEquals(0, state.selection.row());
     assertEquals(1, state.selection.column());
   }
 

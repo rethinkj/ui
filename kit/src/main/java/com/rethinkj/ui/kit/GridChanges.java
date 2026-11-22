@@ -144,6 +144,7 @@ public final class GridChanges {
   private int[] places = new int[0];
   private New[] shown = new New[0];
   private int count;
+  int revision; // counts the changes of what the rows hold, for the grid's find
 
   /** A new row: its key, and the key of the row it follows, {@link #TOP} for the first. */
   private record New(long id, long anchor) {}
@@ -595,6 +596,7 @@ public final class GridChanges {
    * of one anchor in the order of the list.
    */
   private void layout() {
+    revision++;
     int base = rows.count();
     int n = added.size();
     Integer[] order = new Integer[n];
