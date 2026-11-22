@@ -1,0 +1,13 @@
+size 320 200
+frame
+press #query
+key Home control
+key ArrowDown
+key ArrowRight shift
+key ArrowRight shift
+key ArrowRight shift
+key ArrowRight shift
+key ArrowRight shift
+key ArrowDown shift
+frame
+snap view

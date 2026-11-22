@@ -325,6 +325,33 @@ class TextTest {
         failure.getMessage());
   }
 
+  @Test
+  void lineHeightSplitsDifferenceAtTheBaselineInheritsToChildrenAndRowsAndNotToOverlays() {
+    for (float bad : new float[] {0, -1, Float.NaN, Float.POSITIVE_INFINITY}) {
+      assertThrows(IllegalArgumentException.class, () -> el().lineHeight(bad));
+    }
+    TextLibraries.assumeLoaded();
+    El inherited = mono("a\nb");
+    El tighter = mono("a\nb").lineHeight(1f);
+    El popupText = mono("a\nb");
+    El popup = el().child(popupText);
+    El list = El.col().w(80).h(100).rows(1, 60, i -> mono("a\nb"));
+    El root = El.col().lineHeight(1.6f).overlay(popup).children(inherited, tighter, list);
+    Headless.render(root, 200, 240, 1);
+
+    // JetBrains Mono at 14 has font lineHeight 18 and baseline 14.
+    // 1.6 * 14 = 22.4 -> 22 (+4: baseline +2 = 16); 1.0 * 14 = 14 (-4: baseline -2 = 12).
+    assertEquals(44, inherited.height());
+    assertEquals(List.of(16f, 38f), baselines(inherited));
+    assertEquals(28, tighter.height());
+    assertEquals(List.of(12f, 26f), baselines(tighter));
+    assertEquals(36, popupText.height(), "overlays start fresh");
+    assertEquals(List.of(14f, 32f), baselines(popupText));
+    El rowText = list.children().getFirst();
+    assertEquals(22, rowText.text().lineHeight(), "virtual rows inherit from their list");
+    assertEquals(List.of(16f, 38f), baselines(rowText));
+  }
+
   private static El mono(String string) {
     return El.text(string).font(Font.mono());
   }

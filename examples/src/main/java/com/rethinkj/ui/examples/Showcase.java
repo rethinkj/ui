@@ -218,6 +218,7 @@ public final class Showcase {
   final Set<Samples.Node> open = new HashSet<>();
   Samples.Node node;
   final Selection columns = new Selection(Mode.ROWS);
+  final Set<Samples.Node> nullableToggled = new HashSet<>(); // columns whose box was pressed
 
   // Tabs and split
   final Set<Samples.Node> benchOpen = new HashSet<>();
@@ -270,6 +271,17 @@ public final class Showcase {
   private int download; // counts the downloads, so that a step of an old one does nothing
 
   /** Starts the made-up download: 4 MB each quarter of a second of the app's clock. */
+  boolean isNullable(Samples.Node column) {
+    boolean sample = column.name.equals("shipped_at") || column.name.equals("note");
+    return sample != nullableToggled.contains(column);
+  }
+
+  void toggleNullable(Samples.Node column) {
+    if (!nullableToggled.add(column)) {
+      nullableToggled.remove(column);
+    }
+  }
+
   void startDownload() {
     downloaded = 0;
     failed = false;

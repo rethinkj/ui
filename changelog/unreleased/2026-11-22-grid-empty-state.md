@@ -1,0 +1,1 @@
+- Added `DataGrid.Options.empty(El)` to show a centered view (such as an `EmptyState` with an action button) in the visible area below the header when a grid has no rows to show, while keeping the header, column menu, sorting, and filters usable; grids with `appendRow()` keep showing the append row instead.

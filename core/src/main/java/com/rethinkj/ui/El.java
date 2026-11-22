@@ -67,6 +67,8 @@ public final class El {
   private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
+  private float lineHeight; // as a multiple of the font size, 0 when unset; see #lineHeight
+  float resolvedLineHeight; // this element's or inherited, set by scaleText for rows and gutter
   private Image image;
   private Image.Fit fit = Image.Fit.FILL;
   private int revealRow = -1;
@@ -1317,6 +1319,24 @@ public final class El {
     return this;
   }
 
+  /**
+   * The height of one line of text as a multiple of the font size, inherited by descendant text
+   * elements; without it, each text uses its font's own height. The difference from the font's
+   * height is split evenly above and below the glyphs, so the baseline moves by half of it.
+   *
+   * @param multiple a positive finite multiple of the font size, such as {@code 1.5f}
+   */
+  public El lineHeight(float multiple) {
+    if (!(multiple > 0 && multiple < Float.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException("line height must be above 0, was " + multiple);
+    }
+    this.lineHeight = multiple;
+    if (text != null) {
+      text.lineHeight(multiple);
+    }
+    return this;
+  }
+
   /** @param argb the text color as 0xAARRGGBB */
   public El color(int argb) {
     textOnly("color").color(argb);
@@ -1770,7 +1790,7 @@ public final class El {
       field.gutterLeft = padding(Side.LEFT);
     }
     El last = gutterCell(text.lineTotal() - 1, false);
-    scaleText(last, scale, text.systemFonts());
+    scaleText(last, scale, text.systemFonts(), resolvedLineHeight);
     Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
     field.gutterWidth = (float) Math.ceil(last.width);
     field.gutterScale = scale;
@@ -1815,7 +1835,7 @@ public final class El {
       }
       cell.style.width = Len.px(field.gutterWidth);
       cell.style.height = Len.px(rowHeight);
-      scaleText(cell, scale, text.systemFonts());
+      scaleText(cell, scale, text.systemFonts(), resolvedLineHeight);
       Flex.layout(cell, field.gutterWidth, rowHeight);
       cell.place(0, start.top() / scale, field.gutterWidth, rowHeight);
       column.children.add(cell);
@@ -1832,7 +1852,7 @@ public final class El {
       float railWidth =
           field.gutterLeft + field.gutterWidth + field.gutterRail.style.borderRight.pixelsOrZero();
       float railHeight = height - borderTop - border(Side.BOTTOM);
-      scaleText(field.gutterRail, scale, text.systemFonts());
+      scaleText(field.gutterRail, scale, text.systemFonts(), resolvedLineHeight);
       Flex.layout(field.gutterRail, railWidth, railHeight);
       field.gutterRail.place(
           (float) scrollX + border(Side.LEFT), (float) scrollY + borderTop, railWidth, railHeight);
@@ -3564,7 +3584,7 @@ public final class El {
 
   /** For {@link Headless} and tests: text is shaped for the scale, without system fonts. */
   static void scaleText(El el, float scale) {
-    scaleText(el, scale, false);
+    scaleText(el, scale, false, 0);
   }
 
   /**
@@ -3572,18 +3592,25 @@ public final class El {
    * back to the system's fonts if {@code systemFonts}.
    */
   static void scaleText(El el, float scale, boolean systemFonts) {
+    scaleText(el, scale, systemFonts, 0);
+  }
+
+  static void scaleText(El el, float scale, boolean systemFonts, float lineHeight) {
+    float resolved = el.lineHeight > 0 ? el.lineHeight : lineHeight;
+    el.resolvedLineHeight = resolved;
     if (el.text != null) {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
+      el.text.lineHeight(resolved);
       if (el.hasGutter()) {
         el.measureGutter();
       }
     }
     for (El child : el.children) {
-      scaleText(child, scale, systemFonts);
+      scaleText(child, scale, systemFonts, resolved);
     }
     for (El overlay : el.overlays()) {
-      scaleText(overlay, scale, systemFonts);
+      scaleText(overlay, scale, systemFonts, 0);
     }
   }
 
@@ -4333,7 +4360,7 @@ public final class El {
     row.kept = false; // laid out anew
     row.style.width = Len.px(inner);
     if (rows.heights != null) { // as high as its content or its own height, measured and kept
-      scaleText(row, scale, systemFonts);
+      scaleText(row, scale, systemFonts, resolvedLineHeight);
       Flex.layout(row, inner, Measure.MAX_CONTENT);
       float high = row.height;
       boolean moved = rows.heights.measured(rows.firstRow + index, high) != 0;
@@ -4348,7 +4375,7 @@ public final class El {
       return;
     }
     row.style.height = Len.px(rows.rowHeight);
-    scaleText(row, scale, systemFonts);
+    scaleText(row, scale, systemFonts, resolvedLineHeight);
     // Rounded where the row lies in the content, so that rows of a fractional height share their
     // edges with their neighbors, what fills them included; placed from the first row that exists.
     double top = rowsTop() + (rows.firstRow + index) * (double) rows.rowHeight;

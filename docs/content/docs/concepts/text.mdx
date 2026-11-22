@@ -13,6 +13,7 @@ Create text elements with `El.text("…")`. Text is shaped with HarfBuzz (suppor
 | Method | Description |
 | --- | --- |
 | `font(Font)`, `fontSize(px)`, `color(argb)` | Font, size, and color (default: [`Font.sans()`](/api/com/rethinkj/ui/text/Font.html), 14 px, black) |
+| `lineHeight(multiple)` | Line height as a multiple of the font size, inherited by descendant text elements (default: the font's own height) |
 | `wrapText()` | Wraps lines to fit width; breaks long unbreakable words (like URLs or file paths) between characters |
 | `ellipsis()` | Truncates overflowing text with `…`, or shows nothing if even `…` does not fit (set a width or `minSize(0, 0)` in flex layouts). Any `underline(from, to)` covers only the characters still shown |
 | `maxLines(n)` | Limits wrapped text to `n` lines (adds `…` on the last line when combined with `ellipsis()`) |
@@ -21,6 +22,15 @@ Create text elements with `El.text("…")`. Text is shaped with HarfBuzz (suppor
 | `textBackground(argb)` | Hints the background color for crisp glyph blending when text sits over an image or sibling |
 
 After layout, `el.text()` returns a [`Text`](/api/com/rethinkj/ui/Text.html) object. `el.text().shortened()` tells you whether text was truncated with `…` (used by `Tooltip.whenShortened`).
+
+## Line height
+
+`lineHeight(multiple)` sets the height of one line as a multiple of the font size (as CSS's unitless `line-height`). It can be set on any element and is inherited by descendant text elements and fields; overlays start fresh. The difference from the font's own height is split evenly above and below the glyphs, and the caret, selection, wrapping, gutter, and row scrolling follow it.
+
+```java snippet="line-height"
+```
+
+<Shot src="examples/docs/line-height/view-{theme}" alt="A wrapped paragraph and a multi-line SQL field with a line height of 1.6, showing a multi-line selection and the caret" />
 
 ## Bundled and custom fonts
 

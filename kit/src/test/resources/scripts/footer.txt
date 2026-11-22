@@ -1,0 +1,6 @@
+# A grid with a footer row, frozen id column, scrolled sideways and down (DataGridTest).
+size 560 240 scale 2
+frame
+wheel #rows 360 480
+frame
+snap scrolled

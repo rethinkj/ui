@@ -703,6 +703,31 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String count() {
+    return "Anzahl";
+  }
+
+  @Override
+  public String sum() {
+    return "Summe";
+  }
+
+  @Override
+  public String average() {
+    return "Mittel";
+  }
+
+  @Override
+  public String minimum() {
+    return "Min";
+  }
+
+  @Override
+  public String maximum() {
+    return "Max";
+  }
+
+  @Override
   public String required() {
     return "Ein Wert ist erforderlich";
   }

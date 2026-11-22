@@ -1,0 +1,6 @@
+size 500 180
+frame
+press #cell-1-0
+move #cell-3-0
+frame
+snap view

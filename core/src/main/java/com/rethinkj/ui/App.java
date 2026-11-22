@@ -3283,7 +3283,8 @@ public final class App<S> {
     }
     if (took) {
       for (El part : field.children()) {
-        El.scaleText(part, scale, systemFonts); // the overlays the looks attached
+        El.scaleText(
+            part, scale, systemFonts, field.resolvedLineHeight); // the overlays the looks attached
         Overlays.layout(part, width, height);
       }
     }
