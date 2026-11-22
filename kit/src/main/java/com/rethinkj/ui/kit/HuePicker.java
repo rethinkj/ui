@@ -115,6 +115,12 @@ public final class HuePicker {
     return Prop.shown(theme, huePicker(selected.get(), none, selected.onChange()), selected);
   }
 
+  /** A button of the value of a {@link Prop}; a prop that cannot be written disables it. */
+  public static El button(Prop<Theme.Hue> selected, String none, Popover.State state) {
+    Theme theme = Theme.CURRENT.get();
+    return Prop.shown(theme, button(selected.get(), none, state, selected.onChange()), selected);
+  }
+
   /**
    * The hue's name as a person reads it, in the {@link Texts} where this is called: {@code Red}
    * for {@link Theme.Hue#RED}.

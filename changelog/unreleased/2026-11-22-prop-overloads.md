@@ -1,0 +1,1 @@
+- Added `Prop` overloads for `TextField.textArea(prop, placeholder)`, `TextField.codeArea(prop, placeholder)`, `Group.switchRow(title, description, prop)`, and `HuePicker.button(prop, none, state)`; each writes back through the prop, disables when the prop cannot be written, and shows the prop's error (`Group.switchRow` in place of its description).

@@ -165,6 +165,11 @@ public final class Prop<T> {
     editing.field(path).error = message;
   }
 
+  /** The error to show on a component of this prop, or null. */
+  String shownError() {
+    return editing == null ? null : editing.error(path, true);
+  }
+
   /**
    * Gives the component's control the prop's error: the invalid look of a text field, {@code
    * invalid} and {@link El#errorMessage} for a {@code .tree.txt} and for {@link Form#field}, which
@@ -172,9 +177,8 @@ public final class Prop<T> {
    * ValueField.Draft#showsError}, {@link Editing#showErrors}).
    */
   static El shown(Theme theme, El component, Prop<?> prop) {
-    String error = prop.editing == null ? null : prop.editing.error(prop.path, true);
     El target = Form.target(component);
-    Form.invalid(theme, target, error);
+    Form.invalid(theme, target, prop.shownError());
     return component;
   }
 }

@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -87,5 +88,37 @@ class TextAreaTest {
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
     assertTrue(scrolled.contains(" thumb-x ") && scrolled.contains(" thumb-y "), scrolled);
     assertEquals(2, Files.readString(out.resolve("wrapped.tree.txt")).split("lines ").length - 1);
+  }
+
+  @Test
+  void textAreaWritesThroughItsProp() throws IOException {
+    String[] value = {"Hello"};
+    App<String[]> app = new App<>(
+        value,
+        v -> col()
+            .wFull()
+            .hFull()
+            .child(textArea(Prop.of(() -> v[0], s -> v[0] = s), "Notes")
+                .key("notes")
+                .wFull()));
+    Script.run(
+        "size 320 160\nframe\nfocus #notes\nkey A control\ntype \"Updated\"\nframe", app, out);
+    assertEquals("Updated", value[0]);
+  }
+
+  @Test
+  void codeAreaWritesThroughItsProp() throws IOException {
+    String[] value = {"SELECT 1"};
+    App<String[]> app = new App<>(
+        value,
+        v -> col()
+            .wFull()
+            .hFull()
+            .child(codeArea(Prop.of(() -> v[0], s -> v[0] = s), "SQL")
+                .key("query")
+                .wFull()));
+    Script.run(
+        "size 320 160\nframe\nfocus #query\nkey A control\ntype \"SELECT 2\"\nframe", app, out);
+    assertEquals("SELECT 2", value[0]);
   }
 }

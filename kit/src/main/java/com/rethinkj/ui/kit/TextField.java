@@ -103,6 +103,14 @@ public final class TextField {
     return area(theme, theme.type().body(), value, placeholder, onChange).wrapText();
   }
 
+  /** A text area of a {@link Prop}, as {@link #textField(Prop, String)}. */
+  public static El textArea(Prop<String> value, String placeholder) {
+    Theme theme = Theme.CURRENT.get();
+    String text = value.get();
+    return Prop.shown(
+        theme, textArea(text == null ? "" : text, placeholder, value.onChange()), value);
+  }
+
   /**
    * A text area for code, such as an SQL statement: {@link #textArea} in the mono type, whose
    * lines do not wrap, so that it scrolls sideways too, and in which Tab and Shift+Tab indent by
@@ -119,6 +127,14 @@ public final class TextField {
     Scrollbars bars = theme.scrollbars();
     area.style().paddingBottom = Len.px(theme.space().s() + bars.thickness() + bars.margin());
     return area;
+  }
+
+  /** A code area of a {@link Prop}, as {@link #textField(Prop, String)}. */
+  public static El codeArea(Prop<String> value, String placeholder) {
+    Theme theme = Theme.CURRENT.get();
+    String text = value.get();
+    return Prop.shown(
+        theme, codeArea(text == null ? "" : text, placeholder, value.onChange()), value);
   }
 
   private static El area(

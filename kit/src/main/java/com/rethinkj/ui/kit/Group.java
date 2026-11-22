@@ -90,6 +90,22 @@ public final class Group {
   }
 
   /**
+   * A switch row of a {@link Prop}, which a press flips; a null value shows as off. A prop that
+   * cannot be written disables it, and an error shows in place of the description.
+   */
+  public static El switchRow(String title, String description, Prop<Boolean> on) {
+    Theme theme = Theme.CURRENT.get();
+    boolean now = Boolean.TRUE.equals(on.get());
+    String error = on.shownError();
+    El row = switchRow(
+        title, error != null ? error : description, now, on.writes() ? () -> on.set(!now) : null);
+    if (error != null) {
+      row.children().getFirst().children().getLast().color(theme.status().danger());
+    }
+    return Prop.shown(theme, row, on);
+  }
+
+  /**
    * A row that is a switch: a press anywhere on it flips the switch at its right, and so do Enter
    * and Space while it has the focus.
    *

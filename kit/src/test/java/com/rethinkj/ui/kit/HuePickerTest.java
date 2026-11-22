@@ -108,4 +108,30 @@ class HuePickerTest {
     Script.run("key Tab shift\nframe\n", app, out);
     assertFalse(app.state().popover.isOpen(), "Shift+Tab out of it closes it");
   }
+
+  @Test
+  void buttonWritesThroughItsProp() throws IOException {
+    TextLibraries.assumeLoaded();
+    final class State {
+      Theme.Hue hue = Theme.Hue.BLUE;
+      final Popover.State popover = new Popover.State();
+    }
+    State state = new State();
+    App<State> app = new App<>(
+        state,
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .child(Form.form(
+                Form.Labels.ABOVE,
+                Form.field(
+                    "Color",
+                    HuePicker.button(Prop.of(() -> s.hue, h -> s.hue = h), "None", s.popover)))));
+    Script.run(
+        "size 480 240\nframe\npress role=button label=\"Color\"\nframe\nadvance 1\nframe\n"
+            + "press role=radio label=\"Teal\"\nframe\n",
+        app,
+        out);
+    assertEquals(Theme.Hue.TEAL, state.hue);
+  }
 }

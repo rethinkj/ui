@@ -150,4 +150,15 @@ class GroupTest {
     String fixed = StructureTest.line(app.tree().dump(), "#beside-port");
     assertFalse(fixed.contains(" invalid"), fixed);
   }
+
+  @Test
+  void switchRowWritesThroughItsProp() throws IOException {
+    boolean[] wrap = {false};
+    App<boolean[]> app = new App<>(
+        wrap,
+        v -> Group.group(
+            Group.switchRow("Word wrap", "Wrap long lines", Prop.of(() -> v[0], b -> v[0] = b))));
+    Script.run("size 400 160\nframe\npress role=switch label=\"Word wrap\"\nframe", app, out);
+    assertTrue(wrap[0]);
+  }
 }
