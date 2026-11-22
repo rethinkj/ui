@@ -97,7 +97,7 @@ public final class TextField {
    * El#whenFocusWithin}), and activating it returns the focus to the field.
    *
    * <p>The result is a box with the field, the icon and (while there is text) the clear button,
-   * {@link Theme.Sizing#field} wide unless the view sizes it with {@code .w(...)}, {@code .wFull()}
+   * {@link Theme.Sizes#field} wide unless the view sizes it with {@code .w(...)}, {@code .wFull()}
    * or {@code .grow(...)}. The field's label is {@code placeholder}, or the title of the {@link
    * Form} field or {@link Group} row it is in; {@code .label(...)} on the result would label the
    * box, not the field.
@@ -125,7 +125,7 @@ public final class TextField {
       El clear = FieldActions.clearButton(theme, () -> onChange.accept(""))
           .focusable()
           .focusRing(theme.accent().edge());
-      FieldActions.place(theme, box, field, clear, theme.size().control());
+      box.child(FieldActions.place(theme, field, clear, theme.size().control()));
       box.whenFocusWithin(e -> {
         // An invalid field (#invalid, also set after this by a form) keeps its danger border.
         if (field.borderColor() != theme.status().danger()) {

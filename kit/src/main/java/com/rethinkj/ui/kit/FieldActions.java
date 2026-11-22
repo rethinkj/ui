@@ -65,19 +65,19 @@ final class FieldActions {
 
   /** Places the actions inside the top right of the frame and reserves their text padding. */
   static El embed(Theme theme, El field, El actions, float paddingRight) {
-    El box = el().child(field);
+    El box = el().children(field, place(theme, field, actions, paddingRight));
     box.style().width = Len.FIT_CONTENT;
-    return place(theme, box, field, actions, paddingRight);
+    return box;
   }
 
-  /** Adds {@code actions} inside the top right of {@code field}'s box and reserves their padding. */
-  static El place(Theme theme, El box, El field, El actions, float paddingRight) {
+  /** Positions {@code actions} for the top right of {@code field}'s box and reserves their padding. */
+  static El place(Theme theme, El field, El actions, float paddingRight) {
     field.style().paddingRight = Len.px(paddingRight);
     float inset = theme.space().xs();
     Style at = actions.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(inset);
     at.top = Len.px(inset);
-    return box.child(actions);
+    return actions;
   }
 }
