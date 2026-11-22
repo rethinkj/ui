@@ -35,18 +35,16 @@ final class Brackets {
       int step = kind < 3 ? 1 : -1;
       int first = marked ? lines.line(at) : -1;
       if (!marked || !lines.knows(first, key)) {
-        int depth = 0;
-        for (int i = at; i >= 0 && i < text.length() && Math.abs(i - at) < REACH; i += step) {
-          char c = text.charAt(i);
-          if (c == own) {
-            depth++;
-          } else if (c == other && --depth == 0) {
-            return new int[] {at, i};
-          }
+        if (marked) {
+          lines.unread = first;
         }
-        return new int[] {at};
+        return plain(text, at, own, other, step);
       }
       Spans spans = lines.spans(first, text, highlighter, key);
+      if (spans == null) {
+        lines.unread = first;
+        return plain(text, at, own, other, step);
+      }
       if (!has(spans, at - lines.start(first))) {
         continue; // in a string or a comment
       }
@@ -57,6 +55,10 @@ final class Brackets {
           break; // asks nothing about lines beyond the reach
         }
         spans = line == first ? spans : lines.spans(line, text, highlighter, key);
+        if (spans == null) {
+          lines.unread = line; // out of the frame's budget: the next build goes on from there
+          break;
+        }
         int[] marks = spans.brackets();
         int n = spans.bracketCount;
         for (int k = step > 0 ? 0 : n - 1; k >= 0 && k < n; k += step) {
@@ -78,6 +80,19 @@ final class Brackets {
       return new int[] {at};
     }
     return new int[0];
+  }
+
+  private static int[] plain(String text, int at, char own, char other, int step) {
+    int depth = 0;
+    for (int i = at; i >= 0 && i < text.length() && Math.abs(i - at) < REACH; i += step) {
+      char c = text.charAt(i);
+      if (c == own) {
+        depth++;
+      } else if (c == other && --depth == 0) {
+        return new int[] {at, i};
+      }
+    }
+    return new int[] {at};
   }
 
   private static boolean has(Spans spans, int offset) {

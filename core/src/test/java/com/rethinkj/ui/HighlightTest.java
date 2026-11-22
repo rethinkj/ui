@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -289,6 +290,114 @@ class HighlightTest {
         new int[] {at + 2, at},
         again.highlight("c", COMMENTS).matchingBracket(at + 3),
         "a highlighter that marks none: every bracket");
+  }
+
+  @Test
+  void jumpingFarHighlightsWithinOneFramesBudgetAndCatchesUpWithoutInput() {
+    // Line 0 opens a block comment that runs through all 80,000 lines after it, so the lines at
+    // the end only turn gray once the state has actually propagated from line 0.
+    String text = "/*\n" + numbered(80_000);
+    int lastLine = 80_000;
+    int[] asked = {0};
+    Highlighter counting = (line, state, out) -> {
+      asked[0]++;
+      return COMMENTS.line(line, state, out);
+    };
+    App<Model> app = area(text, f -> f.highlight("c", counting));
+    Lines ls = lines(app);
+    assertFalse(ls.knows(lastLine, "c"), "far lines start unknown");
+    int beforeJump = asked[0];
+
+    app.keyDown(new Key("End", Key.CONTROL, false));
+    app.keyUp(new Key("End", Key.CONTROL, false));
+    boolean drawn = app.frame();
+    assertEquals(app.time(), app.nextChange(), "asks for the next frame while catching up");
+    int jumpCalls = asked[0] - beforeJump;
+    assertTrue(drawn, "the jumped view is drawn in the same frame");
+    assertEquals(lastLine, field(app).text().lastLineInView(), "the view reached line 80,000");
+    assertTrue(
+        jumpCalls > 0 && jumpCalls <= Lines.HIGHLIGHT_BUDGET,
+        "at most one frame's budget: " + jumpCalls);
+    assertFalse(ls.knows(lastLine, "c"), "states have not reached line 80,000 yet");
+    for (Text.Line row : field(app).text().lines()) {
+      assertNull(row.colors(), "unreached lines draw in the plain text color");
+    }
+
+    int frames = 0;
+    boolean caughtUpDrawn = false;
+    while (app.nextChange() == app.time()) {
+      int prev = asked[0];
+      caughtUpDrawn |= app.frame();
+      int delta = asked[0] - prev;
+      assertTrue(delta <= Lines.HIGHLIGHT_BUDGET, "frame " + frames + " exceeded budget: " + delta);
+      frames++;
+      assertTrue(frames < 100, "catching up finishes");
+    }
+    assertTrue(frames > 0, "took following frames without input");
+    assertTrue(caughtUpDrawn, "the catch-up drew the colored lines");
+    assertTrue(ls.knows(lastLine, "c"), "states reached the view");
+    assertTrue(app.nextChange() > app.time(), "no longer asks for an immediate frame");
+    for (int[] row : colors(app)) {
+      for (int c : row) {
+        assertEquals(GRAY, c, "every line in view is gray from line 0's block comment");
+      }
+    }
+    assertEquals(asked[0], ls.highlighted);
+  }
+
+  @Test
+  void bracketsStayCorrectWhileStatesAreMissingOrBudgetRunsOut() {
+    int count = Lines.HIGHLIGHT_BUDGET * 2 + 100;
+    String text = numbered(count) + "\nf(')')";
+    int at = text.length() - 5; // the line's (
+    Quotes quotes = new Quotes();
+    FieldState state = new FieldState();
+    state.select(at + 1, at + 1);
+    int[][] pair = {null};
+    App<Model> app = area(text, f -> {
+      pair[0] = f.fieldState(state).highlight("q", quotes).matchingBracket(at + 1);
+      return f;
+    });
+    Lines ls = lines(app);
+    assertFalse(ls.knows(count, "q"), "the end line is still unknown after the first frame");
+    assertArrayEquals(
+        new int[] {at, at + 2}, pair[0], "plain matching while the line's state is unknown");
+    while (app.nextChange() == app.time()) {
+      app.frame();
+    }
+    assertTrue(ls.knows(count, "q"), "known once caught up");
+    assertArrayEquals(
+        new int[] {at, at + 4}, pair[0], "the view built again once caught up: not the string's");
+
+    // When the bracket's own line is known, scanning forward across more lines than the budget
+    // stops instead of treating unhighlighted lines as having no brackets.
+    StringBuilder nested = new StringBuilder("(\n");
+    for (int i = 0; i < Lines.HIGHLIGHT_BUDGET + 5; i++) {
+      nested.append("a\n");
+    }
+    nested.append("(\n)\n)");
+    String far = nested.toString();
+    Lines.Budget budget = new Lines.Budget();
+    Lines farLines = Lines.of(far);
+    farLines.budget(budget);
+    Quotes farQuotes = new Quotes();
+    farLines.spans(0, far, farQuotes, "q"); // line 0 known (1 call)
+    assertArrayEquals(
+        new int[] {0},
+        Brackets.matching(far, 1, farLines, farQuotes, "q"),
+        "stops at the budget instead of pairing with the wrong closing bracket");
+    assertEquals(Lines.HIGHLIGHT_BUDGET, farQuotes.asked, "never exceeds the budget");
+    assertFalse(farLines.knows(Lines.HIGHLIGHT_BUDGET + 5, "q"), "unreached lines stay unknown");
+    assertTrue(farLines.unreadKnown(), "a build goes on from there with the next budget");
+    // When the budget is already 0 on a known line without cached spans, fall back to plain.
+    Lines emptyBudgetLines = Lines.of("f(')')");
+    emptyBudgetLines.budget(budget); // 0 remaining
+    emptyBudgetLines.spans(
+        0, "f(')')", farQuotes, "q"); // initializes key with known = 1, returns null
+    assertArrayEquals(
+        new int[] {1, 3},
+        Brackets.matching("f(')')", 2, emptyBudgetLines, farQuotes, "q"),
+        "falls back to plain matching when the first line's spans cannot be computed");
   }
 
   // Backgrounds and underlines

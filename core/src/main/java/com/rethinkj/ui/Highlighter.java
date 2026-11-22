@@ -10,9 +10,9 @@ import java.util.function.Function;
  * line changes, the line's state from the lines before changes, or the view gives another key.
  * The first line gets the state {@code null}. To shape a line, the field needs the state it starts
  * in, so it asks about the lines before it that it has not asked about since they changed, from
- * the first such line on, with a {@link Spans} that keeps nothing: an edit at the top of a long
- * text costs the lines from the edit down to the view, and the first view of the end of a long
- * text costs a pass over every line before it, once.
+ * the first such line on, with a {@link Spans} that keeps nothing. Each frame asks about at most
+ * a fixed number of lines; lines it could not reach yet draw in the plain text color, and the
+ * following frames catch up ({@link App#nextChange}) until the states reach the view.
  *
  * <p>Other text, and a single-line field, is one line: its whole string, asked again whenever the
  * view is built.

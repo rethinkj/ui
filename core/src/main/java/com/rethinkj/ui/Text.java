@@ -207,6 +207,7 @@ public final class Text implements Measure {
   private float viewY;
   private boolean viewStale = true;
   private boolean chunksMoved; // whether the last layOut measured a chunk of a long line
+  private boolean highlightPending;
   private List<Row> rows = List.of();
   private int firstInView;
   private int lastInView;
@@ -447,6 +448,7 @@ public final class Text implements Measure {
     paras = null;
     shapedLines.clear();
     viewStale = true;
+    highlightPending = false;
   }
 
   void font(Font font) {
@@ -1899,6 +1901,7 @@ public final class Text implements Measure {
     float marginX = Math.max(4 * advance, 32 * scale);
     double viewLeft = Math.max(0, viewX - marginX);
     double viewRight = viewX + placedWidth + marginX;
+    boolean pending = false;
     for (; line < lines.count(); line++, skip = 0) {
       Para para = para(line);
       double lineTop = lines.rowsBefore(line) * lh;
@@ -1907,6 +1910,7 @@ public final class Text implements Measure {
       }
       if (para.chunks != null) {
         if (skip == 0) {
+          pending |= highlighter != null && !placeholderShown && para.spans == null;
           float baseline = (float) (lineTop - viewY + firstBaseline);
           para.chunks.emitLines(baseline, viewLeft, viewRight, laid);
           placed.add(new Row(line, 0, para, lineTop));
@@ -1922,6 +1926,7 @@ public final class Text implements Measure {
         if (top >= to) {
           break;
         }
+        pending |= highlighter != null && !placeholderShown && para.spans == null;
         laid.add(new Line(
             para.slice(para.rowStart(r), para.rowEnd(r)),
             para.rowWidths[r],
@@ -1942,6 +1947,7 @@ public final class Text implements Measure {
     }
     this.lines = List.copyOf(laid);
     this.rows = placed;
+    highlightPending = pending;
     marks = marks(placed);
     return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
   }
@@ -1963,6 +1969,48 @@ public final class Text implements Measure {
         para(line).pen(at - lines.start(line));
       }
     }
+  }
+
+  /** Whether any laid-out line of this multi-line field was shaped plain waiting for its spans. */
+  boolean highlightPending() {
+    return highlightPending;
+  }
+
+  /**
+   * Advances highlighting towards the laid-out lines that were shaped plain when a previous frame's
+   * budget ran out, dropping any that now have their spans so the field lays them out again.
+   *
+   * @return whether any laid-out line got its spans and needs a new layout
+   */
+  boolean advanceHighlight() {
+    if (!highlightPending || !multiline || !laidOut || highlighter == null || placeholderShown) {
+      return false;
+    }
+    Lines lines = shownLines();
+    boolean gained = false;
+    boolean stillPending = false;
+    int last = -1;
+    for (Row row : rows) {
+      if (row.line == last) {
+        continue;
+      }
+      last = row.line;
+      if (row.para.spans != null) {
+        continue;
+      }
+      Spans spans = lines.spans(row.line, shown, highlighter, highlightKey);
+      if (spans != null) {
+        shapedLines.remove(row.line);
+        gained = true;
+      } else {
+        stillPending = true;
+      }
+    }
+    if (gained) {
+      viewStale = true;
+    }
+    highlightPending = stillPending;
+    return gained;
   }
 
   /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */

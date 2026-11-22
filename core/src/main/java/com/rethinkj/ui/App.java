@@ -212,6 +212,9 @@ public final class App<S> {
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
+  // The lines a frame may ask highlighters about, across its fields; a field left with plain lines
+  // in view catches up in the next frames, which nextChange asks for.
+  private final Lines.Budget highlightBudget = new Lines.Budget();
   private boolean rowKeyHooks; // the rows the lists built last have an El#onAnyKeyDown handler
   // The row each list was last asked to scroll to (scrollToRow), by identity, until the user's
   // next press, key or wheel: content that grows meanwhile takes the row to the top after all.
@@ -1745,14 +1748,21 @@ public final class App<S> {
    * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, when
    * an action asked for with {@link #after} is due, or when a drag that rests over a drop handler
    * tells it again ({@link Drop#REPEAT}); the current time while the last frame showed
-   * an element with an {@link El#cycle} or left rows to build that the measured heights of a list
-   * ({@link El#rows(int, RowHeights, java.util.function.IntFunction)}) show. Positive infinity when nothing will; then an
-   * idle window can wait for input alone.
+   * an element with an {@link El#cycle}, left rows to build that the measured heights of a list
+   * ({@link El#rows(int, RowHeights, java.util.function.IntFunction)}) show, or left lines in view
+   * waiting for their {@link El#highlight highlighting} to catch up. Positive infinity when nothing
+   * will; then an idle window can wait for input alone.
    */
   public double nextChange() {
-    if (scheduler.waiting() || resizeDue || cycling || rowsWanted) {
-      // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, or rows that the
-      // measured heights of a list show and the last frame had no passes left for
+    if (scheduler.waiting()
+        || resizeDue
+        || cycling
+        || rowsWanted
+        || hasPendingHighlights()
+        || bracketsDue()) {
+      // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, rows that the
+      // measured heights of a list show and the last frame had no passes left for, or
+      // highlighting that hit its per-frame line budget
       return time;
     }
     double next = Math.min(restDue, shownDue);
@@ -2797,6 +2807,7 @@ public final class App<S> {
     buildNanos = 0;
     frames++;
     resizeRounds = 0;
+    highlightBudget.reset();
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -2840,6 +2851,14 @@ public final class App<S> {
     ran |= handled;
     stale |= handled || !Objects.equals(focus.id(), wasFocused) || focus.ring() != hadRing;
     stale |= resizeDue; // sizes changed in the input, or a view has not settled
+    if (bracketsDue()) {
+      stale = true;
+      for (Editor editor : editors.values()) {
+        if (editor.lineIndex() != null) {
+          editor.lineIndex().unread = -1;
+        }
+      }
+    }
     stale |= blink(focus.element() == null ? null : focus.element().editor());
     if (stale) { // the rebuild builds all rows anyway
       drawn |= scrolled;
@@ -2891,6 +2910,9 @@ public final class App<S> {
     }
     if (laidOut) {
       placeEditors();
+    }
+    if (root != null && hasPendingHighlights()) {
+      drawn |= catchUpHighlights();
     }
     boolean on = active && blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
     if (on != caretOn) {
@@ -3115,6 +3137,7 @@ public final class App<S> {
           editor.returned();
         }
       }
+      editor.highlightBudget(highlightBudget);
       editor.attach(el);
       if (state != null && state.caret >= 0) {
         editor.select(state.caret, state.anchor);
@@ -3187,6 +3210,48 @@ public final class App<S> {
     if (caretOverlays || looked) {
       Overlays.place(root, width, height);
     }
+  }
+
+  /**
+   * Advances highlighting for the fields in the tree that were left with plain lines in view, and
+   * places editors again if any laid-out line received its spans.
+   */
+  private boolean catchUpHighlights() {
+    List<Editor> shown = new ArrayList<>();
+    collectEditors(root, shown);
+    boolean gained = false;
+    for (Editor editor : shown) {
+      gained |= editor.element().text().advanceHighlight();
+    }
+    if (gained) {
+      placeEditors();
+    }
+    return gained;
+  }
+
+  /** Whether any field in the tree still has laid-out lines waiting for highlighting. */
+  private boolean hasPendingHighlights() {
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      if (inTree(entry) && entry.getValue().element().text().highlightPending()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Whether a bracket lookup of a field in the tree ({@link El#matchingBracket}) met a line whose
+   * state was not known, or ran out of the frame's budget there, and the state is known now: the
+   * view builds again, so that it reads the pair the highlighter marks.
+   */
+  private boolean bracketsDue() {
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      Lines lines = entry.getValue().lineIndex();
+      if (lines != null && lines.unreadKnown() && inTree(entry)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
