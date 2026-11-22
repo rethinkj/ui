@@ -556,20 +556,25 @@ final class GridEdit {
    */
   private static List<Range> rowsOf(Build b) {
     List<Range> rows = new ArrayList<>();
+    boolean any = false; // a selected span reaches the data rows, pending ones included
     for (int[] span : DataGrid.rowSpans(b.sel.ranges())) {
       int top = span[0];
       int bottom = Math.min(span[1], b.rowCount - 1);
-      for (int r = b.o.tree == null ? bottom + 1 : top; r <= bottom + 1; r++) {
-        if (r > bottom || b.pending(r)) { // the end of the span, or a pending row splits it
+      any |= top <= bottom;
+      for (int r = top; b.o.tree != null && r <= bottom; r++) {
+        if (b.pending(r)) { // splits the span
           if (r > top) {
             rows.add(new Range(top, 0, r - 1, Range.ALL));
           }
           top = r + 1;
         }
       }
+      if (top <= bottom) {
+        rows.add(new Range(top, 0, bottom, Range.ALL));
+      }
     }
     int row = b.sel.row();
-    if (rows.isEmpty() && row >= 0 && row < b.rowCount && !b.pending(row)) {
+    if (!any && row >= 0 && row < b.rowCount && !b.pending(row)) {
       rows.add(new Range(row, 0, row, Range.ALL));
     }
     return rows;
