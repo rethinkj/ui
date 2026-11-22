@@ -89,6 +89,7 @@ class TextFieldIconTest {
   private String caretAfterPressAt(int x) throws IOException {
     App<Filter> app = app("orders placed by customers in the last thirty days");
     run(app, "press #q\nkey End\nframe\npress " + x + ",28");
-    return line(app, "#q").replaceAll(".* caret ", "");
+    String line = line(app, "#q");
+    return line.substring(line.lastIndexOf(" caret ") + " caret ".length());
   }
 }
