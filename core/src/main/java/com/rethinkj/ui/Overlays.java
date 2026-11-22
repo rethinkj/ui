@@ -43,11 +43,11 @@ final class Overlays {
           Math.max(height - s.marginTop.pixelsOrZero() - s.marginBottom.pixelsOrZero() - gapY, 0);
       s.maxWidth = limit(s.maxWidth, roomX);
       s.maxHeight = limit(s.maxHeight, roomY);
-      if (stretchedEdge) {
+      if (stretchedEdge) { // exactly the room along the edge, anew in each layout
         if (atTopOrBottom) {
-          s.minWidth = Len.px(Math.max(s.minWidth.pixelsOrZero(), roomX));
+          s.minWidth = s.maxWidth = Len.px(roomX);
         } else {
-          s.minHeight = Len.px(Math.max(s.minHeight.pixelsOrZero(), roomY));
+          s.minHeight = s.maxHeight = Len.px(roomY);
         }
       } else if (l.align == Style.Align.STRETCH
           && !l.centered

@@ -215,6 +215,13 @@ class DrawerTest {
     assertTrue(demo.open, "Escape outside the non-modal drawer does not dismiss it");
     assertEquals("hello", demo.note);
 
+    // In a short window the properties scroll: Page Down on the close button pages them.
+    Script.run("size 640 160 scale 2\nframe\nfocus #close\nkey PageDown\nframe\n", app, out);
+    String paged = app.tree().dump();
+    String content =
+        paged.lines().filter(l -> l.contains("#drawer-content ")).findFirst().get();
+    assertTrue(content.matches(".* scroll 0,[1-9].*"), paged);
+
     // Focus back inside the drawer and press Escape: dismisses and returns focus to the opener.
     Script.run("size 640 360 scale 2\nfocus #close\nkey Escape\nframe\n", app, out);
     assertFalse(demo.open, "Escape inside the non-modal drawer dismissed it");

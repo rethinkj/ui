@@ -23,16 +23,15 @@ el 0,0 900x520
       el 9,33 882x40
         text role=heading "orders" 25,45 45x17 level=3
         text "50,000 rows" 78,45 78x16
-        el 164,53 76x0
-        el 248,41 220x24
-          text #filter role=textbox label="Filter" "ada paid" 248,41 220x24 focused caret 8
-          text label="search" "\u{EA7C}" 252,45 16x16
-        el #columns-button role=button label="Columns" 476,41 102x24 expanded=false
-          text label="column_single" "\u{F0116}" 489,45 16x16
-          text "Columns" 509,45 56x16
-        el #inspect role=button label="Inspect" 586,41 93x24 disabled
-          text label="panel_right" "\u{E8BC}" 599,45 16x16
-          text "Inspect" 619,45 47x16
+        el 164,53 145x0
+        el 317,41 220x24
+          text #filter role=textbox label="Filter" "ada paid" 317,41 220x24 focused caret 8
+          text label="search" "\u{EA7C}" 321,45 16x16
+        el #columns-button role=button label="Columns" 545,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 558,45 16x16
+          text "Columns" 578,45 56x16
+        el #inspect role=button label="Inspect" 655,41 24x24 disabled checked=false
+          text label="panel_right" "\u{E8BC}" 659,45 16x16
         el #revert role=button label="Revert" 687,41 85x24 disabled
           text label="arrow_undo" "\u{E126}" 700,45 16x16
           text "Revert" 720,45 39x16

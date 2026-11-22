@@ -1159,8 +1159,9 @@ public final class App<S> {
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
    * previous one, around at the ends, and Page Up and Page Down without modifiers scroll the
    * innermost scroll area around the focused element that can still move that way by its height,
-   * as in a browser, or in a {@link El#modal} overlay without one the first in it that can, as a
-   * dialog's content while a button below it has the focus. Unlike in a browser, a press handler
+   * as in a browser, or without one the first that can in the overlay around the focused element,
+   * else in a {@link El#modal} overlay: a dialog's or a drawer's content while a button outside
+   * it has the focus. Unlike in a browser, a press handler
    * on the focused element takes Enter and Space before its ancestors' key handlers see them. The
    * Menu key and Shift+F10 run the nearest {@link El#onSecondaryPress} handler, or open a field's
    * {@link El#fieldMenu} that is nearer, at the bottom left of the focused element's cursor: the first element inside it that is {@link El#current}, else
@@ -1287,8 +1288,15 @@ public final class App<S> {
           break;
         }
       }
-      if (area == null && modal() != null) { // a modal overlay is a page of its own, as a dialog
-        area = pageArea(modal(), direction);
+      if (area == null) { // an overlay is a page of its own, as a dialog or a drawer
+        El page = modal();
+        for (El el : path.reversed()) {
+          if (el.placement() != null) { // the innermost overlay around the focus
+            page = el;
+            break;
+          }
+        }
+        area = page == null ? null : pageArea(page, direction);
       }
       if (area != null) {
         scrolled |= area.page(true, direction);

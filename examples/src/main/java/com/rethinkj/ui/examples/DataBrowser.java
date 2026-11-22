@@ -436,6 +436,7 @@ public final class DataBrowser {
       selection.select(row, column);
     } else {
       selection.clear();
+      inspecting = false; // else it would open again, taking the focus, once the order shows
     }
   }
 
@@ -454,6 +455,7 @@ public final class DataBrowser {
         ? -1
         : changes.key(selection.row());
     selected = key < 0 ? -1 : (int) key;
+    inspecting &= selected >= 0;
   }
 
   void sort(List<SortKey> keys) {
@@ -626,16 +628,13 @@ public final class DataBrowser {
         textField(state.filter, "Filter", state::filter).key("filter").w(220), Symbol.SEARCH);
     filter = Tooltip.tooltip(
         filter, "Words in customer, email, city, country, product," + " status or note");
-    El inspect = button(
-            Button.Variant.GHOST,
-            Symbol.PANEL_RIGHT,
-            "Inspect",
-            state.selected < 0 ? null : state::inspect)
+    // The row of the order at the cursor, -1 while there is none or the filter hides it.
+    int shown = state.selected < 0 ? -1 : state.changes.rowOf(state.selected);
+    El inspect = Button.icon(
+            Button.Variant.GHOST, Symbol.PANEL_RIGHT, "Inspect", shown < 0 ? null : state::inspect)
+        .checked(state.inspecting)
         .key("inspect");
     int changed = state.changes.count();
-    // The row of the order inspected; while the filter hides it, the drawer waits closed.
-    int inspected =
-        state.inspecting && state.selected >= 0 ? state.changes.rowOf(state.selected) : -1;
     El revert = button(
             Button.Variant.GHOST,
             "Revert",
@@ -674,7 +673,7 @@ public final class DataBrowser {
                     null,
                     () -> state.toast = null,
                     Card.footerHeight() + theme.size().stroke() + theme.space().m()))
-        .overlay(inspected < 0 ? null : inspector(state, inspected))
+        .overlay(state.inspecting && shown >= 0 ? inspector(state, shown) : null)
         .child(titleBar(
             AppIcon.appIcon(16, Identity.BLUE, Symbol.TABLE),
             "Orders",

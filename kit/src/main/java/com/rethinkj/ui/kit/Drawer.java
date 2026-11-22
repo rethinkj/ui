@@ -133,9 +133,13 @@ public final class Drawer {
       case TOP -> drawer.border(0, 0, stroke, 0, border);
       case BOTTOM -> drawer.border(stroke, 0, 0, 0, border);
     }
-    if ((options.side == Side.LEFT || options.side == Side.RIGHT)
-        && (content == null || content.style().width.kind() != Len.Kind.PX)) {
-      drawer.w(theme.size().drawer());
+    if (options.side == Side.LEFT || options.side == Side.RIGHT) {
+      // Set either way, so that a long title gives way instead of widening the drawer.
+      Len own = content == null ? null : content.style().width;
+      drawer.w(
+          own != null && own.kind() == Len.Kind.PX
+              ? own.value() + 2 * theme.space().xl() + stroke
+              : theme.size().drawer());
     }
     if (options.modal) {
       drawer.modal().scrim(theme.surface().scrim()).onDismiss(onDismiss);
