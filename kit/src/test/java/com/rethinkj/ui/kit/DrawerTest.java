@@ -93,6 +93,7 @@ class DrawerTest {
           .hFull()
           .fill(theme.surface().window())
           .padding(theme.space().l())
+          .scroll() // Page Down in the drawer must not scroll this view instead
           .child(main)
           .overlay(drawer);
     }
@@ -221,6 +222,7 @@ class DrawerTest {
     String content =
         paged.lines().filter(l -> l.contains("#drawer-content ")).findFirst().get();
     assertTrue(content.matches(".* scroll 0,[1-9].*"), paged);
+    assertFalse(paged.lines().findFirst().get().contains(" scroll "), paged);
 
     // Focus back inside the drawer and press Escape: dismisses and returns focus to the opener.
     Script.run("size 640 360 scale 2\nfocus #close\nkey Escape\nframe\n", app, out);

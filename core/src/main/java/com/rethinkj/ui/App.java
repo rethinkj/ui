@@ -1161,7 +1161,7 @@ public final class App<S> {
    * innermost scroll area around the focused element that can still move that way by its height,
    * as in a browser, or without one the first that can in the overlay around the focused element,
    * else in a {@link El#modal} overlay: a dialog's or a drawer's content while a button outside
-   * it has the focus. Unlike in a browser, a press handler
+   * it has the focus. Inside an overlay they never scroll the view it is attached to. Unlike in a browser, a press handler
    * on the focused element takes Enter and Space before its ancestors' key handlers see them. The
    * Menu key and Shift+F10 run the nearest {@link El#onSecondaryPress} handler, or open a field's
    * {@link El#fieldMenu} that is nearer, at the bottom left of the focused element's cursor: the first element inside it that is {@link El#current}, else
@@ -1282,21 +1282,17 @@ public final class App<S> {
     if ((key.name().equals("PageUp") || key.name().equals("PageDown")) && key.modifiers() == 0) {
       int direction = key.name().equals("PageUp") ? -1 : 1;
       El area = null;
-      for (El el : path.reversed()) { // the innermost area around the focus that can move so
+      // An overlay is a page of its own, as a dialog or a drawer: not its anchor's view.
+      List<El> page = fromOverlay(path);
+      for (El el : page.reversed()) { // the innermost area around the focus that can move so
         if (el.isScrollArea() && el.canScroll(false, direction)) {
           area = el;
           break;
         }
       }
-      if (area == null) { // an overlay is a page of its own, as a dialog or a drawer
-        El page = modal();
-        for (El el : path.reversed()) {
-          if (el.placement() != null) { // the innermost overlay around the focus
-            page = el;
-            break;
-          }
-        }
-        area = page == null ? null : pageArea(page, direction);
+      if (area == null) {
+        El overlay = page != path ? page.getFirst() : modal();
+        area = overlay == null ? null : pageArea(overlay, direction);
       }
       if (area != null) {
         scrolled |= area.page(true, direction);

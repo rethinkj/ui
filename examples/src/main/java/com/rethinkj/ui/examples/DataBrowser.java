@@ -390,6 +390,8 @@ public final class DataBrowser {
         .filter(place -> place >= 0)
         .sorted()
         .toArray();
+    // The inspector closes with its order's row, else it would open again, taking the focus.
+    inspecting &= selected >= 0 && changes.rowOf(selected) >= 0;
   }
 
   static String customer(int index) {
@@ -436,7 +438,6 @@ public final class DataBrowser {
       selection.select(row, column);
     } else {
       selection.clear();
-      inspecting = false; // else it would open again, taking the focus, once the order shows
     }
   }
 
