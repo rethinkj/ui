@@ -53,6 +53,7 @@ final class Editings {
   // docs:start editing-state
   final Editing<Order> editing = Editing.of(
           new Order("Ada", new BigDecimal("12.50"), LocalDate.of(2026, 11, 13), null, false))
+      .required(Order.CUSTOMER)
       .rule(
           Order.DUE,
           order -> order.due() == null || !order.due().isBefore(order.ordered()),

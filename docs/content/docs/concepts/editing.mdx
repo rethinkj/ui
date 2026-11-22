@@ -26,7 +26,7 @@ Because `Editing` tracks drafts and errors by `Part` identity, always reuse the 
 
 ## Edit and save
 
-Store the `Editing` in your app state and attach any cross-field validation rules:
+Store the `Editing` in your app state and declare any required fields or cross-field validation rules:
 
 ```java snippet="editing-state"
 ```
@@ -45,11 +45,12 @@ Bind each input to its `Prop` in the view, and check `editing.valid()` / `editin
 | --- | --- |
 | `Editing.of(record)` | Starts editing an immutable record |
 | `Editing.of(pojo, copy)` | Starts editing a mutable POJO by copying it (e.g., `Editing.of(settings, Settings::new)`) |
+| `.required(part)` | Marks `part` as required: `valid()` is `false` while its value is `null` or empty, even before its field is built (e.g., on an unvisited tab) |
 | `.rule(part, test, message)` | Adds a validation rule; when `test` fails, `message` appears on `part` and `valid()` becomes `false` |
 | `editing.at(part)` | Returns the `Prop` for a field (value, writer, draft text, and error) |
 | `value()`, `original()` | Returns the current edited value or the original/last-saved value |
 | `changed()` | Returns `true` if `value()` differs from `original()` (using `equals`) |
-| `valid()` | Returns `true` when there are no parse errors, no custom errors, and all rules pass |
+| `valid()` | Returns `true` when there are no parse errors, no custom errors, no missing required fields, and all rules pass |
 | `reset()` | Reverts to `original()` and clears all drafts and errors |
 | `forget(part)` | Drops the draft and custom error of `part` and any fields below it, leaving `value()` unchanged |
 | `showErrors()` | Reveals errors on all fields, including untouched required fields (call when Save is clicked while invalid) |
@@ -58,7 +59,7 @@ Bind each input to its `Prop` in the view, and check `editing.valid()` / `editin
 
 See [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html) Javadoc for more methods.
 
-**How errors are shown:** Each field displays its first active error in priority order: parse error, custom error (`prop.error(...)`), then failing `.rule(...)`. Parse errors count toward `valid()` immediately, but stay hidden on screen until the user edits the field or you call `showErrors()` (so empty "New item" forms do not open covered in red). Custom errors and rule errors appear immediately. [Form](/docs/components/form) displays the error text below the input. Hidden fields keep their drafts and still affect `valid()`; call `editing.forget(part)` when hiding a field whose input no longer counts.
+**How errors are shown:** Each field displays its first active error in priority order: parse error, custom error (`prop.error(...)`), missing `.required(...)`, then failing `.rule(...)`. Parse and required errors count toward `valid()` immediately (even for a `.required(...)` field that was never built, such as on a tab never shown), but stay hidden on screen until the user edits the field or you call `showErrors()` (so empty "New item" forms do not open covered in red). Custom errors and rule errors appear immediately. [Form](/docs/components/form) displays the error text below the input. Hidden fields keep their drafts and still affect `valid()`; call `editing.forget(part)` when hiding a field whose input no longer counts (`.required(...)` declarations stay; use a `.rule(...)` or a nullable parent part for conditional requirements).
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```
