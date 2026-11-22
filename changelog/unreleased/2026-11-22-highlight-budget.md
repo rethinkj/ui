@@ -1,0 +1,1 @@
+- Syntax highlighting in multi-line text fields now asks the highlighter about at most 4,000 lines per frame, so jumping far into a large never-highlighted file draws the view immediately in the plain text color and catches up over the following frames without input.

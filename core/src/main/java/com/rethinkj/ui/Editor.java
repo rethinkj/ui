@@ -87,6 +87,7 @@ final class Editor {
   private int caret;
   private int anchor;
   private Lines lines; // of text, in a multi-line field; null otherwise
+  private Lines.Budget highlightBudget;
   // The state before the first edit that no tree has answered yet, the history as it was then, and
   // what the last edit proposed.
   private State before;
@@ -186,10 +187,22 @@ final class Editor {
     return el.text().multiline();
   }
 
+  /** Shares the {@link App}'s per-frame highlighting budget with this editor's lines. */
+  void highlightBudget(Lines.Budget budget) {
+    highlightBudget = budget;
+    if (lines != null) {
+      lines.budget(budget);
+    }
+    if (shownLines != null) {
+      shownLines.budget(budget);
+    }
+  }
+
   /** The lines of the text, made when a multi-line field first needs them. */
   private Lines lines() {
     if (lines == null) {
       lines = Lines.of(text);
+      lines.budget(highlightBudget);
     }
     return lines;
   }
@@ -274,6 +287,7 @@ final class Editor {
   private void relined(String value) {
     if (lines != null) {
       lines = Lines.of(value);
+      lines.budget(highlightBudget);
       reveal = true;
     }
   }

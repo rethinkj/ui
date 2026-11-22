@@ -32,9 +32,35 @@ import java.util.Objects;
  * they were given for. An edit moves both arrays along with the starts, forgets the spans of the
  * lines it touched and lowers {@code known} to the first of them, without asking the highlighter
  * anything: the lines are asked again when a line at or after the edit is shaped, from the edit
- * down to that line. A line whose start state comes out as before keeps its spans.
+ * down to that line. A line whose start state comes out as before keeps its spans. When attached
+ * to an {@link App}, a frame asks the highlighter about at most {@link #HIGHLIGHT_BUDGET} lines
+ * across its fields; once that budget is spent, {@link #spans} returns {@code null} so the view
+ * draws unreached lines plain and catches up in the following frames.
  */
 final class Lines {
+
+  /** The most lines one frame asks a highlighter about before leaving the rest for the next. */
+  static final int HIGHLIGHT_BUDGET = 4_000;
+
+  /**
+   * Per-frame line budget shared by the {@link Lines} of one {@link App}: refilled at the start of
+   * each frame, so highlighting stays bounded across every field and pass in that frame.
+   */
+  static final class Budget {
+    private int remaining = HIGHLIGHT_BUDGET;
+
+    void reset() {
+      remaining = HIGHLIGHT_BUDGET;
+    }
+
+    boolean take() {
+      if (remaining <= 0) {
+        return false;
+      }
+      remaining--;
+      return true;
+    }
+  }
 
   private int[] starts;
   private int count;
@@ -57,6 +83,10 @@ final class Lines {
   private Object[] states;
   private int known;
   private Spans[] spans;
+  private Budget budget;
+  // The line a bracket lookup could not read the marks of, for want of its state or of the
+  // frame's budget, or -1: the app builds the view again once the state is known.
+  int unread = -1;
 
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
@@ -92,6 +122,7 @@ final class Lines {
     copy.widest = widest;
     copy.widestLine = widestLine;
     copy.measuredFor = measuredFor;
+    copy.budget = budget;
     if (states != null) {
       copy.highlightKey = highlightKey;
       copy.states = Arrays.copyOf(states, states.length);
@@ -193,11 +224,18 @@ final class Lines {
 
   // ---- Highlighting
 
+  /** Sets the per-frame highlighting budget of the {@link App} these lines belong to, or null. */
+  void budget(Budget budget) {
+    this.budget = budget;
+  }
+
   /**
    * The spans of line {@code line} of {@code text}, the string these are the lines of, as {@code
    * highlighter} gives them: kept from before while the key, the line and the state it starts in
    * are the same; otherwise the lines from the first whose start state is not known are asked
-   * first, keeping nothing but their end states.
+   * first, keeping nothing but their end states. Returns {@code null} when the frame's line budget
+   * runs out before {@code line} is highlighted; {@code known} still reflects every line whose
+   * start state was computed.
    */
   Spans spans(int line, String text, Highlighter highlighter, Object key) {
     if (states == null || !Objects.equals(key, highlightKey)) {
@@ -211,6 +249,9 @@ final class Lines {
       if (kept != null && Objects.equals(kept.startState, states[l])) {
         states[l + 1] = kept.endState;
       } else {
+        if (!takeBudget()) {
+          return null;
+        }
         Spans scratch = new Spans(end(l) - start(l), true);
         states[l + 1] = ask(highlighter, text, l, scratch);
       }
@@ -219,6 +260,9 @@ final class Lines {
     Spans kept = spans[line];
     if (kept != null && Objects.equals(kept.startState, states[line])) {
       return kept;
+    }
+    if (!takeBudget()) {
+      return null;
     }
     Spans out = new Spans(end(line) - start(line), false);
     Object endState = ask(highlighter, text, line, out);
@@ -230,6 +274,15 @@ final class Lines {
       known = line + 2;
     }
     return out;
+  }
+
+  /** Whether the line of {@link #unread} has its state now. */
+  boolean unreadKnown() {
+    return unread >= 0 && unread < known && states != null;
+  }
+
+  private boolean takeBudget() {
+    return budget == null || budget.take();
   }
 
   /** Whether the state line {@code line} starts in is known for {@code key}. */
