@@ -72,9 +72,8 @@ final class Runs {
       if (i > 0 && j < n && font[i - 1] == font[j]) {
         for (int k = i; k < j; k++) {
           String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
-          // What asks to be text with U+FE0E does not join a font that draws it in color.
-          if (covers(cluster, font[j], coverage)
-              && !(coverage.color(font[j]) && cluster.indexOf('\uFE0E') >= 0)) {
+          // Only an emoji joins a font that draws in color: other symbols stay text.
+          if (covers(cluster, font[j], coverage) && (emoji(cluster) || !coverage.color(font[j]))) {
             font[k] = font[j];
           }
         }

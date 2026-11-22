@@ -56,13 +56,19 @@ class RunsTest {
         return font == 1;
       }
     };
-    String text = "☃\uD83D\uDC4D❤\uFE0F\uD83D\uDC4D\uFE0E\uD83D\uDC4D";
+    String text = "☃\uD83D\uDC4D❤\uFE0F\uD83D\uDC4D\uFE0E\uD83D\uDC4D❤\uD83D\uDC4D";
     assertEquals(
-        List.of("0☃", "1\uD83D\uDC4D❤\uFE0F", "0\uD83D\uDC4D\uFE0E", "1\uD83D\uDC4D"),
+        List.of(
+            "0☃",
+            "1\uD83D\uDC4D❤\uFE0F",
+            "0\uD83D\uDC4D\uFE0E",
+            "1\uD83D\uDC4D",
+            "0❤",
+            "1\uD83D\uDC4D"),
         Runs.of(text, 2, coverage).stream()
             .map(r -> r.font() + text.substring(r.from(), r.to()))
             .toList(),
-        "U+FE0E asks for text");
+        "U+FE0E asks for text, and a bare heart is text");
   }
 
   @Test
