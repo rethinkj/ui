@@ -87,6 +87,64 @@ public final class TextField {
   }
 
   /**
+   * A search field: a {@link #textField} with a magnifier ({@link Symbol#SEARCH}) at the left, a
+   * clear button ({@link Texts#clear}) at the right inside the frame while the field has text, and
+   * Escape without modifiers to empty it. While the field is empty, Escape goes on to its
+   * ancestors, so it still closes a popover or dialog the field is in.
+   *
+   * <p>The clear button leaves the focus in the field when pressed ({@link El#keepFocus}); Tab
+   * reaches it after the field while it is shown, with the frame keeping its focused look ({@link
+   * El#whenFocusWithin}), and activating it returns the focus to the field.
+   *
+   * <p>The result is a box with the field, the icon and (while there is text) the clear button,
+   * {@link Theme.Sizing#field} wide unless the view sizes it with {@code .w(...)}, {@code .wFull()}
+   * or {@code .grow(...)}. The field's label is {@code placeholder}, or the title of the {@link
+   * Form} field or {@link Group} row it is in; {@code .label(...)} on the result would label the
+   * box, not the field.
+   *
+   * @param value the string to show, from the app's state
+   * @param placeholder shown while the string is empty, and the label unless a form or group sets
+   *     another; null for none
+   * @param onChange receives the new string after each edit, and {@code ""} on clear or Escape;
+   *     null disables the field
+   */
+  public static El searchField(String value, String placeholder, Consumer<String> onChange) {
+    Theme theme = Theme.CURRENT.get();
+    String text = value == null ? "" : value;
+    El field = textField(text, placeholder, onChange).wFull();
+    El box = withIcon(field, Symbol.SEARCH).w(theme.size().field());
+    if (onChange != null && !text.isEmpty()) {
+      // On the box, so that Escape also empties the field while its clear button has the focus.
+      box.onKey(k -> {
+        if (k.modifiers() == 0 && k.name().equals("Escape")) {
+          onChange.accept("");
+          return true;
+        }
+        return false;
+      });
+      El clear = FieldActions.clearButton(theme, () -> onChange.accept(""))
+          .focusable()
+          .focusRing(theme.accent().edge());
+      FieldActions.place(theme, box, field, clear, theme.size().control());
+      box.whenFocusWithin(e -> {
+        // An invalid field (#invalid, also set after this by a form) keeps its danger border.
+        if (field.borderColor() != theme.status().danger()) {
+          edge(theme, field, theme.accent().color(), theme.accent().color());
+        }
+      });
+    }
+    return box;
+  }
+
+  /** A search field of a {@link Prop}, as {@link #textField(Prop, String)}. */
+  public static El searchField(Prop<String> value, String placeholder) {
+    Theme theme = Theme.CURRENT.get();
+    String text = value.get();
+    return Prop.shown(
+        theme, searchField(text == null ? "" : text, placeholder, value.onChange()), value);
+  }
+
+  /**
    * A text area: a field of several lines ({@link El#multiline}) in the frame of {@link
    * #textField}, in the body type, that wraps its lines at its width and is four lines high, with
    * the theme's scrollbars. Enter breaks a line; Tab moves the focus. The result is the field, so a

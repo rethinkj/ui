@@ -460,8 +460,7 @@ final class Controls {
 
   static El fields(Controls state) {
     // docs:start text-field
-    El filter = TextField.withIcon(
-        TextField.textField(state.filter, "Filter tables", state::filter), Symbol.SEARCH);
+    El filter = TextField.searchField(state.filter, "Filter tables", state::filter);
     El name = TextField.textField(state.table, "Table name", state::table)
         .key("table")
         .maxLength(63);
