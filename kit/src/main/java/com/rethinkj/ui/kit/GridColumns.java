@@ -3,7 +3,6 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.TextField.textField;
 
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
@@ -222,12 +221,9 @@ final class GridColumns {
 
   /** The search field above a long checklist of columns or filter values. */
   static El searchField(Theme theme, String value, String placeholder, Consumer<String> onChange) {
-    return TextField.withIcon(
-        textField(value, placeholder, onChange)
-            .key("search")
-            .w(theme.size().field())
-            .autofocus(),
-        Symbol.SEARCH);
+    El box = TextField.searchField(value, placeholder, onChange).w(theme.size().field());
+    Form.target(box).key("search").autofocus();
+    return box;
   }
 
   /** Normalizes a checklist's search text for case-insensitive matching. */

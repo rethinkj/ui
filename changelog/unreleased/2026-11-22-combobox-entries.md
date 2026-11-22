@@ -1,0 +1,1 @@
+- `ComboBox.comboBox(entries, current, state, onClear)` builds a combo box from a `FilterList.Entries` (`of`, `by`, or `background`) with group headings, disabled entries, and the "Loading…" row, plus an optional keyboard-reachable clear button (`×`) in the closed box.
