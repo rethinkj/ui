@@ -2135,6 +2135,7 @@ public final class DataGrid {
     GridFind.Jump jump;
     long gen; // incremented on cancel/restart so stale scheduled slices do nothing
     boolean scheduled;
+    int revealMoves = -1; // the selection's moves when find selected a match, whose column shows
     boolean skipped; // the scan left out rows that were not loaded
     // The last build and its elements, for handlers and public methods.
     Build build;
@@ -3770,9 +3771,9 @@ public final class DataGrid {
       status = Status.UNCHANGED; // the new row's tint covers its cells; a failed one shows
     }
     String value = loaded && !append && !pending ? column.cell().apply(i) : null;
-    Search.Matches findMatches = GridFind.cellMatches(b, loaded, append, value);
-    boolean currentMatch =
-        findMatches != null && sel != null && sel.row() == i && sel.column() == c;
+    boolean cursorCell = sel != null && sel.row() == i && sel.column() == c;
+    Search.Matches findMatches = GridFind.cellMatches(b, loaded, append, value, cursorCell);
+    boolean currentMatch = findMatches != null && cursorCell;
     boolean selected = b.cells && sel.contains(i, c);
     boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
     float border = 0;
@@ -4177,7 +4178,7 @@ public final class DataGrid {
           sel.moves, edge - fixed - b.g.handle(), 0, fixed + 2 * b.g.handle() + b.room, 0);
     } else if (sel.start) {
       b.grid.reveal(sel.moves, 0, 0, fixed, 0);
-    } else if ((b.cells || b.o.find != null && b.o.find.isOpen())
+    } else if ((b.cells || b.o.find != null && b.o.find.revealMoves == sel.moves)
         && sel.column() >= b.frozen
         && sel.column() < n) {
       float left = b.xs[sel.column()] - fixed; // clear of the frozen part and the rows' bar

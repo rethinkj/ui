@@ -41,12 +41,14 @@ final class GridFind {
 
   /** A pending jump to the next or previous match, continued across frames via {@code App.after}. */
   static final class Jump {
+    final Scope scope; // the rows and columns it walks; another build's end it
     final int direction; // +1 forward, -1 backward
     int curRow;
     int curCol;
     long remaining;
 
-    Jump(int direction, int curRow, int curCol, long remaining) {
+    Jump(Scope scope, int direction, int curRow, int curCol, long remaining) {
+      this.scope = scope;
       this.direction = direction;
       this.curRow = curRow;
       this.curCol = curCol;
@@ -78,7 +80,11 @@ final class GridFind {
       f.resetSearch();
       return;
     }
+    f.slowCell = false; // a cell too slow to mark stops the marks of this build only
     Scope now = scopeOf(b, query);
+    if (f.jump != null && !now.equals(f.jump.scope)) {
+      f.jump = null; // its rows are gone: another F3 starts again
+    }
     if (f.open && !now.equals(f.scope)) {
       startScan(f, b, now);
       stepScan(f, b, Search.deadline(Find.SYNC_MILLIS));
@@ -197,16 +203,9 @@ final class GridFind {
     if (f.pattern == null || b == null || b.sel == null) {
       return;
     }
-    Scope now = scopeOf(b, query);
-    startScan(f, b, now);
-    long deadline = Search.deadline(Find.SYNC_MILLIS);
-    go(f, 0, deadline);
-    if (f.jump == null && !f.complete) {
-      stepScan(f, b, deadline);
-    }
-    if (f.jump != null || !f.complete) {
-      schedule(f);
-    }
+    // The first match now; the count in the next build, whose rows are those after the app's
+    // onSelect, which selecting it may have run.
+    go(f, 0, Search.deadline(Find.SYNC_MILLIS));
   }
 
   /** Goes to the next (1), previous (-1) or first from origin (0) matching cell, wrapping round. */
@@ -310,7 +309,7 @@ final class GridFind {
       f.jump = null;
       return;
     }
-    f.jump = new Jump(direction >= 0 ? 1 : -1, startRow, startCol, remaining);
+    f.jump = new Jump(now, direction >= 0 ? 1 : -1, startRow, startCol, remaining);
     if (!stepJump(f, b, query, deadline)) {
       schedule(f);
     }
@@ -396,12 +395,13 @@ final class GridFind {
   }
 
   /** Match spans for one visible cell's display text, or null when none or find is inactive. */
-  static Search.Matches cellMatches(Build b, boolean loaded, boolean append, String value) {
+  static Search.Matches cellMatches(
+      Build b, boolean loaded, boolean append, String value, boolean current) {
     DataGrid.Find f = b.o.find;
     if (f == null
         || !f.open
         || f.pattern == null
-        || f.slowCell
+        || f.slowCell && !current
         || !loaded
         || append
         || value == null
@@ -486,7 +486,6 @@ final class GridFind {
   }
 
   private static void startScan(DataGrid.Find f, Build b, Scope scope) {
-    f.cancel();
     f.scope = scope;
     f.matchCount = 0;
     f.more = false;
@@ -675,10 +674,9 @@ final class GridFind {
         return;
       }
       long deadline = Search.deadline(Find.SYNC_MILLIS);
-      if (f.jump != null) {
+      if (f.jump != null) { // a match it selects ends the action: the next is for the next build
         stepJump(f, b, compile(f, f.texts), deadline);
-      }
-      if (f.open && f.jump == null && !f.complete) {
+      } else if (f.open && !f.complete) {
         stepScan(f, b, deadline);
       }
       if (f.jump != null || f.open && !f.complete) {
@@ -719,6 +717,7 @@ final class GridFind {
     sel.holding = false;
     sel.heldRow = -1;
     sel.heldColumn = -1;
+    b.o.find.revealMoves = sel.moves; // the column comes into view, in rows too
     // If the user scrolled away from the sole match on the same row, bring it back into view.
     if (sameRow) {
       int first = sel.firstRowInView();
