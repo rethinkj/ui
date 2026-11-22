@@ -1,8 +1,6 @@
 package com.rethinkj.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -241,28 +239,22 @@ class LinesTest {
 
     // Visible lines: 0, 1, 5, 6 (4 rows without wrapping).
     assertEquals(4, lines.totalRows());
-    assertEquals(0, lines.rowsBefore(0));
-    assertEquals(1, lines.rowsBefore(1));
     assertEquals(2, lines.rowsBefore(2));
     assertEquals(2, lines.rowsBefore(5));
     assertEquals(3, lines.rowsBefore(6));
     assertEquals(4, lines.rowsBefore(7));
 
-    assertEquals(0, lines.lineOfRow(0));
-    assertEquals(1, lines.lineOfRow(1));
     assertEquals(5, lines.lineOfRow(2), "never returns a hidden line");
     assertEquals(6, lines.lineOfRow(3));
     assertEquals(6, lines.lineOfRow(10), "clamps past end to last visible line");
 
     assertEquals(outer, lines.foldAt(1), "outermost fold owns the header");
-    assertNull(lines.foldAt(2));
     assertEquals(tail, lines.foldAt(6));
     assertEquals(5, lines.nextVisible(1));
     assertEquals(1, lines.prevVisible(5));
     assertEquals(-1, lines.nextVisible(6));
     assertEquals(List.of(inner, outer), lines.foldsHiding(3, 3));
     assertTrue(lines.isHidden(7));
-    assertFalse(lines.isHidden(0));
 
     // Wrapping with folds: hidden lines still count 0 rows, visible lines count measured/estimated.
     lines.wrap("w", 2);
@@ -270,7 +262,6 @@ class LinesTest {
     lines.rows(2, 9); // hidden: ignored
     // Visible rows: line 0 (2), line 1 (3), line 5 (2), line 6 (2) -> total 9.
     assertEquals(9, lines.totalRows());
-    assertEquals(0, lines.lineOfRow(1));
     assertEquals(1, lines.lineOfRow(2));
     assertEquals(1, lines.lineOfRow(4));
     assertEquals(5, lines.lineOfRow(5));

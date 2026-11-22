@@ -464,6 +464,15 @@ final class Lines {
     visibleFolds = Arrays.copyOf(headers, n);
   }
 
+  /** The lines not hidden in a fold. */
+  int shownCount() {
+    int shown = count;
+    for (int i = 0; i < hiddenFirst.length; i++) {
+      shown -= hiddenLast[i] - hiddenFirst[i] + 1;
+    }
+    return shown;
+  }
+
   boolean hasFolds() {
     return hiddenFirst.length > 0;
   }

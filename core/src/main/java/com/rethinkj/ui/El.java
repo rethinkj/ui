@@ -2030,8 +2030,8 @@ public final class El {
       float markY = end.top() / scale + (rowHeight - mark.height) / 2f;
       maxRight = Math.max(maxRight, markX + mark.width + mark.margin(Side.RIGHT) + (float) scrollX);
       if (text.wraps()) {
-        markX = Math.min(markX, Math.max(0, contentWidth - mark.width));
-      } else if (markX < 0 || markX >= contentWidth) {
+        markX = Math.clamp(markX, 0, Math.max(0, contentWidth - mark.width));
+      } else if (markX < 0 || markX >= contentWidth) { // partly left, it would cover the gutter
         continue;
       }
       mark.place(

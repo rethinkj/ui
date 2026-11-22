@@ -1836,7 +1836,7 @@ public final class Text implements Measure {
   private int fittedRows(float width) {
     Lines lines = shownLines();
     if (!wraps || width == MAX_CONTENT || Float.isInfinite(width) || Float.isNaN(width)) {
-      return (int) Math.min(lines.totalRows(), Integer.MAX_VALUE);
+      return lines.shownCount(); // a row per shown line, whatever width wrapping measured
     }
     float limit = width == MIN_CONTENT ? 0 : width * scale + SLACK;
     int rows = 0;
