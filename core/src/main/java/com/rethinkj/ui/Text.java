@@ -1126,17 +1126,17 @@ public final class Text implements Measure {
     final int lineIndex;
     final String text;
     final Spans spans;
-    final int[] starts; // length n + 1, starts[0] = 0, starts[n] = text.length()
+    final int[] bounds; // length n + 1, bounds[0] = 0, bounds[n] = text.length()
     final Para[] parts; // length n, lazily shaped
     final float[] widths; // length n, estimated until shaped, kept by the lines
     final double[] xs; // length n + 1, prefix sums of widths
 
-    Chunks(int lineIndex, String text, Spans spans, int[] starts) {
+    Chunks(int lineIndex, String text, Spans spans, int[] bounds) {
       this.lineIndex = lineIndex;
       this.text = text;
       this.spans = spans;
-      this.starts = starts;
-      int n = starts.length - 1;
+      this.bounds = bounds;
+      int n = bounds.length - 1;
       this.parts = new Para[n];
       this.xs = new double[n + 1];
       // What earlier trees of the view measured stays, so that a rebuild moves nothing.
@@ -1145,7 +1145,7 @@ public final class Text implements Measure {
         kept = new float[n];
         double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
         for (int i = 0; i < n; i++) {
-          kept[i] = (float) (Math.round((starts[i + 1] - starts[i]) * advance * grid) / grid);
+          kept[i] = (float) (Math.round((bounds[i + 1] - bounds[i]) * advance * grid) / grid);
         }
         shownLines.chunkWidths(lineIndex, spans, kept);
       }
@@ -1164,8 +1164,8 @@ public final class Text implements Measure {
       if (p != null) {
         return p;
       }
-      int from = starts[i];
-      String sub = text.substring(from, starts[i + 1]);
+      int from = bounds[i];
+      String sub = text.substring(from, bounds[i + 1]);
       // shortcut: tab stops in a chunked line are relative to the chunk's start rather than the
       // line's; pass the chunk's x modulo tabStop to GlyphRun#tabbed if long tabbed lines need
       // exact stops.
@@ -1193,7 +1193,7 @@ public final class Text implements Measure {
       if (at >= text.length()) {
         return n - 1;
       }
-      int found = Arrays.binarySearch(starts, at);
+      int found = Arrays.binarySearch(bounds, at);
       return found >= 0 ? found : -found - 2;
     }
 
@@ -1240,7 +1240,7 @@ public final class Text implements Measure {
         return (float) xs[parts.length];
       }
       int i = chunkOfOffset(at);
-      int local = at - starts[i];
+      int local = at - bounds[i];
       if (local == 0) {
         return (float) xs[i];
       }
@@ -1274,21 +1274,21 @@ public final class Text implements Measure {
           best = b;
         }
       }
-      return starts[i] + best;
+      return bounds[i] + best;
     }
 
     int hit(float x) {
       int i = chunkAtX(x);
       Para p = part(i);
       float localX = (float) (x - xs[i]);
-      List<Integer> bounds = p.boundaries(0, p.text.length());
-      int found = bounds.getFirst();
-      for (int k = 0; k < bounds.size() - 1; k++) {
-        if (p.pen(bounds.get(k)) <= localX) {
-          found = bounds.get(k);
+      List<Integer> graphemes = p.boundaries(0, p.text.length());
+      int found = graphemes.getFirst();
+      for (int k = 0; k < graphemes.size() - 1; k++) {
+        if (p.pen(graphemes.get(k)) <= localX) {
+          found = graphemes.get(k);
         }
       }
-      return starts[i] + found;
+      return bounds[i] + found;
     }
   }
 
@@ -1995,8 +1995,8 @@ public final class Text implements Measure {
         } else {
           visFirstChunk = chunks.chunkOfX(Math.max(0, viewX));
           visLastChunk = chunks.chunkOfX(viewX + placedWidth);
-          visFrom = chunks.starts[visFirstChunk];
-          visTo = chunks.starts[visLastChunk + 1];
+          visFrom = chunks.bounds[visFirstChunk];
+          visTo = chunks.bounds[visLastChunk + 1];
         }
       }
       for (Spans spans : new Spans[] {para.spans, decor}) {
@@ -2016,10 +2016,9 @@ public final class Text implements Measure {
           if (kind == Spans.COLOR || kind == Spans.FONT || b <= a) {
             continue;
           }
-          if (chunks != null) {
-            if (kind == Spans.GUIDE ? (a < visFrom || a >= visTo) : (b <= visFrom || a >= visTo)) {
-              continue;
-            }
+          if (chunks != null
+              && (kind == Spans.GUIDE ? a < visFrom || a >= visTo : b <= visFrom || a >= visTo)) {
+            continue; // outside the chunks in view, which are all that is shaped
           }
           float x0 = chunks != null && a < visFrom
               ? (float) (chunks.xs[visFirstChunk] - viewX)

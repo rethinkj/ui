@@ -1313,7 +1313,7 @@ final class Editor {
     asked = false;
     boolean byLast = false; // whether the jump placed the view by the last row to show
     // A chunk of a long line measured later would move what follows it: measure them first.
-    t.measureChunks(start(), end(), shownCaret);
+    t.measureChunks(start(), end(), shownCaret, start() + composition.length());
     if (revealed) {
       reveal = false;
       byLast = scrollToCaret(t, shownCaret, covered, caretWidth, null);

@@ -56,7 +56,15 @@ final class Lines {
   // the spans whose fonts they were measured with.
   private Map<Integer, Chunked> chunkWidths = new HashMap<>();
 
-  private record Chunked(Spans spans, float[] widths) {}
+  private static final class Chunked {
+    final Spans spans;
+    final float[] widths;
+
+    Chunked(Spans spans, float[] widths) {
+      this.spans = spans;
+      this.widths = widths;
+    }
+  }
 
   // Highlighting: the key the view gave, the state each line starts in, valid for lines 0 to
   // known - 1, and the spans of each line, null where not asked or changed since.
