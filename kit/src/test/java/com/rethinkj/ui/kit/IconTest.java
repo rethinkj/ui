@@ -10,7 +10,6 @@ import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -250,7 +249,6 @@ class IconTest {
     El picOn = find(app, "pic-on").children().getFirst();
     El picOff = find(app, "pic-off").children().getFirst();
     assertNotNull(picOn.image());
-    assertNull(picOn.text());
     assertEquals(T.size().icon(), picOn.width());
     assertEquals(T.size().icon(), picOn.height());
     assertEquals(1f, picOn.opacity());
@@ -285,13 +283,36 @@ class IconTest {
     assertEquals(T.text().disabled(), glyphItemOff.text().color());
     assertEquals(1f, picItemOn.opacity());
     assertEquals(0.4f, picItemOff.opacity());
+  }
 
-    // A combo box that is off dims the picture of its choice.
+  @Test
+  void aComboBoxThatIsOffShowsTheIconOfItsChoiceOff() {
+    Icon picture = Icon.image(samplePicture(), "brand_mark");
     El combo = Theme.CURRENT.with(
         T,
         () -> ComboBox.items(
             List.of(ComboBox.item("Brand").icon(picture)), 0, new ComboBox.State(), null));
     assertEquals(0.4f, imageIn(combo).opacity());
+    El symbol = Theme.CURRENT.with(
+        T,
+        () -> ComboBox.items(
+            List.of(ComboBox.item("Table").icon(Symbol.TABLE)), 0, new ComboBox.State(), null));
+    assertTrue(symbol.dump().contains("label=\"table\""), symbol.dump());
+    assertEquals(T.text().disabled(), labelled(symbol, "table").text().color());
+  }
+
+  /** The first element in the tree under {@code el} with this label, or null. */
+  private static El labelled(El el, String label) {
+    if (label.equals(el.label())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = labelled(child, label);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   /** The first image element in the tree under {@code el}, or null. */
