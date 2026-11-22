@@ -1,6 +1,8 @@
 package com.rethinkj.ui;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -50,6 +52,11 @@ final class Lines {
   private float widest; // the widest line measured, in physical pixels, without wrapping
   private int widestLine = -1;
   private Object measuredFor; // what the widths depend on: font, size, scale and so on
+  // The widths of the chunks of long lines, by line: estimated, or as measured once shaped, with
+  // the spans whose fonts they were measured with.
+  private Map<Integer, Chunked> chunkWidths = new HashMap<>();
+
+  private record Chunked(Spans spans, float[] widths) {}
 
   // Highlighting: the key the view gave, the state each line starts in, valid for lines 0 to
   // known - 1, and the spans of each line, null where not asked or changed since.
@@ -60,6 +67,9 @@ final class Lines {
 
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
+
+  /** For tests: how many characters of these lines have been handed to the shaper. */
+  long shapedCharacters;
 
   /** For tests: how many cells the gutter of the fields that showed these lines built. */
   int gutterCells;
@@ -92,6 +102,7 @@ final class Lines {
     copy.widest = widest;
     copy.widestLine = widestLine;
     copy.measuredFor = measuredFor;
+    copy.chunkWidths = new HashMap<>(chunkWidths);
     if (states != null) {
       copy.highlightKey = highlightKey;
       copy.states = Arrays.copyOf(states, states.length);
@@ -176,6 +187,15 @@ final class Lines {
     } else if (widestLine > last) {
       widestLine += newCount - oldCount;
     }
+    if (!chunkWidths.isEmpty()) { // the lines of the edit are measured again, those after move
+      Map<Integer, Chunked> moved = new HashMap<>();
+      chunkWidths.forEach((line, kept) -> {
+        if (line < first || line > last) {
+          moved.put(line > last ? line + newCount - oldCount : line, kept);
+        }
+      });
+      chunkWidths = moved;
+    }
     if (rows == null) {
       return;
     }
@@ -205,6 +225,7 @@ final class Lines {
       states = new Object[starts.length];
       spans = new Spans[starts.length];
       known = 1; // the first line starts in null
+      chunkWidths.clear(); // measured with the old spans, which they would keep
     }
     for (int l = known - 1; l < line; l++) {
       Spans kept = spans[l];
@@ -253,12 +274,23 @@ final class Lines {
       measuredFor = layout;
       widest = 0;
       widestLine = -1;
+      chunkWidths.clear();
     }
+  }
+
+  /** The widths of the chunks of a long line with these spans, or null if none are kept. */
+  float[] chunkWidths(int line, Spans spans) {
+    Chunked kept = chunkWidths.get(line);
+    return kept != null && kept.spans == spans ? kept.widths : null;
+  }
+
+  void chunkWidths(int line, Spans spans, float[] widths) {
+    chunkWidths.put(line, new Chunked(spans, widths));
   }
 
   /** Layout shaped a line this wide. */
   void measured(int line, float width) {
-    if (width > widest) {
+    if (line == widestLine || width > widest) {
       widest = width;
       widestLine = line;
     }

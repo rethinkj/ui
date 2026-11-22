@@ -1,0 +1,1 @@
+- Multi-line text fields without wrapping (`TextField.codeArea`, `CodeEditor`, `El.multiline`) now shape very long lines lazily in chunks rather than all at once, so opening, scrolling, and editing a megabyte-long single line stays responsive without changing how ordinary text is shaped or wrapped.

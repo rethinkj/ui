@@ -114,6 +114,11 @@ public final class Text implements Measure {
   // What a multi-line field estimates the advance of a character from, until it has shaped a line.
   private static final String SAMPLE = "SELECT name, id FROM customers WHERE id = 42 the quick fox";
 
+  // A non-wrapping line of a multi-line field longer than this is split into chunks and shaped
+  // lazily, only where the view, caret or pointer reaches it.
+  private static final int CHUNK_SIZE = 2048;
+  private static final int CHUNK_WINDOW = 128;
+
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
@@ -200,6 +205,7 @@ public final class Text implements Measure {
   private float viewX;
   private float viewY;
   private boolean viewStale = true;
+  private boolean chunksMoved; // whether the last layOut measured a chunk of a long line
   private List<Row> rows = List.of();
   private int firstInView;
   private int lastInView;
@@ -954,7 +960,9 @@ public final class Text implements Measure {
       int[] byChar = new int[text.length()];
       Arrays.fill(byChar, viewColor);
       for (int i = 0; i < spans.count; i++) {
-        if (spans.kinds[i] == Spans.COLOR) {
+        if (spans.kinds[i] == Spans.COLOR
+            && spans.tos[i] > offset
+            && spans.froms[i] < offset + limit) {
           Arrays.fill(
               byChar,
               Math.clamp(spans.froms[i] - offset, 0, limit),
@@ -988,7 +996,9 @@ public final class Text implements Measure {
   private GlyphRun shapeFonts(String text, Spans spans, int offset, int limit) {
     Font[] byChar = new Font[text.length()];
     for (int i = 0; i < spans.count; i++) {
-      if (spans.kinds[i] == Spans.FONT) {
+      if (spans.kinds[i] == Spans.FONT
+          && spans.tos[i] > offset
+          && spans.froms[i] < offset + limit) {
         Arrays.fill(
             byChar,
             Math.clamp(spans.froms[i] - offset, 0, limit),
@@ -1013,6 +1023,276 @@ public final class Text implements Measure {
   }
 
   /**
+   * Splits a long non-wrapping line into chunks of about {@link #CHUNK_SIZE} characters, returning
+   * where each starts and the line's end. A chunk ends where graphemes surely break, after a space
+   * or punctuation where one is near; only where none is, {@link BreakIterator} looks, given the
+   * chunk alone since it reads all it is given, which starts at a boundary.
+   */
+  private static int[] splitChunks(String text) {
+    List<Integer> starts = new ArrayList<>();
+    starts.add(0);
+    for (int pos = 0; text.length() - pos > CHUNK_SIZE; ) {
+      int target = pos + CHUNK_SIZE;
+      int cut = -1;
+      int sure = -1;
+      for (int i = target; i > target - CHUNK_WINDOW && cut < 0; i--) {
+        if (graphemeBreak(text, i) && !(rtlNear(text, i - 1, -1) && rtlNear(text, i, 1))) {
+          sure = sure < 0 ? i : sure;
+          char before = text.charAt(i - 1);
+          cut = Character.isWhitespace(before) || ",;)]}".indexOf(before) >= 0 ? i : -1;
+        }
+      }
+      if (cut < 0 && sure >= 0) {
+        cut = sure;
+      } else if (cut < 0) { // a long run of marks, emoji or right-to-left letters
+        // shortcut: a cut inside a right-to-left run shows its two parts in the order of the text,
+        // left to right; order the chunks of such a run if long right-to-left passages need it.
+        BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+        chars.setText(text.substring(pos, Math.min(text.length(), target + CHUNK_WINDOW)));
+        int b = chars.preceding(CHUNK_SIZE + 1);
+        if (b <= 0) { // one grapheme longer than the window: the chunk ends with it
+          chars.setText(text.substring(pos));
+          b = chars.following(CHUNK_SIZE);
+        }
+        cut = pos + b;
+      }
+      if (cut >= text.length()) {
+        break;
+      }
+      starts.add(cut);
+      pos = cut;
+    }
+    starts.add(text.length());
+    return starts.stream().mapToInt(Integer::intValue).toArray();
+  }
+
+  /**
+   * Whether the nearest letter from {@code from} on, going by {@code step}, within {@link
+   * #CHUNK_WINDOW}, is right to left: a cut between two such letters would be inside a
+   * right-to-left run, which {@link Font#shape} orders as a whole.
+   */
+  private static boolean rtlNear(String text, int from, int step) {
+    for (int i = from;
+        i >= 0 && i < text.length() && Math.abs(i - from) < CHUNK_WINDOW;
+        i += step) {
+      if (Character.isLetter(text.charAt(i))) {
+        byte direction = Character.getDirectionality(text.charAt(i));
+        return direction == Character.DIRECTIONALITY_RIGHT_TO_LEFT
+            || direction == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Whether graphemes break at {@code at} whatever the text around it, so that the text on either
+   * side can be segmented alone: no rule of Unicode's grapheme clusters joins the two characters
+   * there, which are no mark, format or control character, surrogate, Hangul jamo, modifier letter
+   * or one of the few letters that join (UAX #29).
+   */
+  static boolean graphemeBreak(String text, int at) {
+    return at > 0 && at < text.length() && plain(text.charAt(at - 1)) && plain(text.charAt(at));
+  }
+
+  private static boolean plain(char c) {
+    return switch (Character.getType(c)) {
+      case Character.NON_SPACING_MARK,
+          Character.ENCLOSING_MARK,
+          Character.COMBINING_SPACING_MARK,
+          Character.FORMAT,
+          Character.CONTROL,
+          Character.SURROGATE,
+          Character.PRIVATE_USE,
+          Character.UNASSIGNED,
+          Character.MODIFIER_LETTER,
+          Character.LINE_SEPARATOR,
+          Character.PARAGRAPH_SEPARATOR -> false;
+      default ->
+        !(c >= 0x1100 && c <= 0x11FF
+            || c >= 0xA960 && c <= 0xA97F
+            || c >= 0xD7B0 && c <= 0xD7FF
+            || c == 0x0D4E
+            || c == 0x0E33
+            || c == 0x0EB3);
+    };
+  }
+
+  /**
+   * Lazily shaped chunks of one long non-wrapping line of a multi-line field. Unshaped chunks count
+   * as their length times {@link #advance}, rounded to the glyph grid; once shaped, a chunk's
+   * exact width shifts the x of the chunks after it and updates {@link Lines#measured}.
+   */
+  private final class Chunks {
+    final int lineIndex;
+    final String text;
+    final Spans spans;
+    final int[] starts; // length n + 1, starts[0] = 0, starts[n] = text.length()
+    final Para[] parts; // length n, lazily shaped
+    final float[] widths; // length n, estimated until shaped, kept by the lines
+    final double[] xs; // length n + 1, prefix sums of widths
+
+    Chunks(int lineIndex, String text, Spans spans, int[] starts) {
+      this.lineIndex = lineIndex;
+      this.text = text;
+      this.spans = spans;
+      this.starts = starts;
+      int n = starts.length - 1;
+      this.parts = new Para[n];
+      this.xs = new double[n + 1];
+      // What earlier trees of the view measured stays, so that a rebuild moves nothing.
+      float[] kept = shownLines.chunkWidths(lineIndex, spans);
+      if (kept == null || kept.length != n) {
+        kept = new float[n];
+        double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+        for (int i = 0; i < n; i++) {
+          kept[i] = (float) (Math.round((starts[i + 1] - starts[i]) * advance * grid) / grid);
+        }
+        shownLines.chunkWidths(lineIndex, spans, kept);
+      }
+      this.widths = kept;
+      for (int i = 0; i < n; i++) {
+        xs[i + 1] = xs[i] + widths[i];
+      }
+    }
+
+    float totalWidth() {
+      return (float) xs[parts.length];
+    }
+
+    Para part(int i) {
+      Para p = parts[i];
+      if (p != null) {
+        return p;
+      }
+      int from = starts[i];
+      String sub = text.substring(from, starts[i + 1]);
+      // shortcut: tab stops in a chunked line are relative to the chunk's start rather than the
+      // line's; pass the chunk's x modulo tabStop to GlyphRun#tabbed if long tabbed lines need
+      // exact stops.
+      p = shape(sub, spans, from, sub.length());
+      parts[i] = p;
+      shownLines.shapedCharacters += sub.length();
+      float actual = p.run.width();
+      float delta = actual - widths[i];
+      if (delta != 0) {
+        chunksMoved = true;
+        widths[i] = actual;
+        for (int j = i + 1; j < xs.length; j++) {
+          xs[j] += delta;
+        }
+        shownLines.measured(lineIndex, (float) xs[parts.length]);
+      }
+      return p;
+    }
+
+    int chunkOfOffset(int at) {
+      int n = parts.length;
+      if (at <= 0) {
+        return 0;
+      }
+      if (at >= text.length()) {
+        return n - 1;
+      }
+      int found = Arrays.binarySearch(starts, at);
+      return found >= 0 ? found : -found - 2;
+    }
+
+    int chunkOfX(double x) {
+      int n = parts.length;
+      if (x <= 0) {
+        return 0;
+      }
+      if (x >= xs[n]) {
+        return n - 1;
+      }
+      int lo = 0;
+      int hi = n - 1;
+      while (lo < hi) {
+        int mid = (lo + hi + 1) >>> 1;
+        if (xs[mid] <= x) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return lo;
+    }
+
+    /** Shapes the chunk under {@code x}, advancing if shaping made it narrower than estimated. */
+    int chunkAtX(double x) {
+      int i = chunkOfX(x);
+      while (true) {
+        part(i);
+        if (x >= xs[i + 1] && i + 1 < parts.length) {
+          i++;
+        } else {
+          return i;
+        }
+      }
+    }
+
+    float pen(int at) {
+      if (at <= 0) {
+        return 0;
+      }
+      if (at >= text.length()) {
+        part(parts.length - 1);
+        return (float) xs[parts.length];
+      }
+      int i = chunkOfOffset(at);
+      int local = at - starts[i];
+      if (local == 0) {
+        return (float) xs[i];
+      }
+      Para p = part(i);
+      return (float) xs[i] + p.pen(local);
+    }
+
+    void emitLines(float baseline, double viewLeft, double viewRight, List<Line> out) {
+      int n = parts.length;
+      if (xs[n] <= viewLeft || viewRight <= 0) {
+        return;
+      }
+      for (int i = chunkOfX(viewLeft); i < n && xs[i] < viewRight; i++) {
+        Para p = part(i);
+        if (xs[i + 1] > viewLeft) {
+          out.add(new Line(p.run, p.run.width(), baseline, p.colors, (float) xs[i]));
+        }
+      }
+    }
+
+    int nearest(float x) {
+      int i = chunkAtX(x);
+      Para p = part(i);
+      float localX = (float) (x - xs[i]);
+      int best = 0;
+      float distance = Float.POSITIVE_INFINITY;
+      for (int b : p.boundaries(0, p.text.length())) {
+        float d = Math.abs(p.pen(b) - localX);
+        if (d < distance) {
+          distance = d;
+          best = b;
+        }
+      }
+      return starts[i] + best;
+    }
+
+    int hit(float x) {
+      int i = chunkAtX(x);
+      Para p = part(i);
+      float localX = (float) (x - xs[i]);
+      List<Integer> bounds = p.boundaries(0, p.text.length());
+      int found = bounds.getFirst();
+      for (int k = 0; k < bounds.size() - 1; k++) {
+        if (p.pen(bounds.get(k)) <= localX) {
+          found = bounds.get(k);
+        }
+      }
+      return starts[i] + found;
+    }
+  }
+
+  /**
    * A paragraph shaped: its glyphs, the first glyph of each of its characters, where its lines may
    * break, and the rows the last width broke it into.
    */
@@ -1024,6 +1304,7 @@ public final class Text implements Measure {
     final int offset; // where the paragraph starts in the positions of spans
     final int[] glyphAt;
     final int[] breaks; // null without wrapping
+    final Chunks chunks; // non-null only for a long non-wrapping line of a multi-line field
     float limit = Float.NaN; // the width rowStarts are for
     int[] rowStarts = {0};
     float[] rowWidths;
@@ -1034,6 +1315,7 @@ public final class Text implements Measure {
       this.colors = colors;
       this.spans = spans;
       this.offset = offset;
+      this.chunks = null;
       // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
@@ -1053,6 +1335,22 @@ public final class Text implements Measure {
       this.rowWidths = new float[] {run.width()};
     }
 
+    Para(String text, Spans spans, Chunks chunks) {
+      this.text = text;
+      this.run = null;
+      this.colors = null;
+      this.spans = spans;
+      this.offset = 0;
+      this.glyphAt = null;
+      this.breaks = null;
+      this.chunks = chunks;
+      this.rowWidths = new float[] {chunks.totalWidth()};
+    }
+
+    float totalWidth() {
+      return chunks != null ? chunks.totalWidth() : run.width();
+    }
+
     /**
      * Breaks into rows no wider than {@code limit} where it can, greedily: each row takes segments
      * while they fit, and at least one. A segment wider than a whole row breaks inside it, as
@@ -1062,6 +1360,12 @@ public final class Text implements Measure {
      * starts.
      */
     int[] breakInto(float limit) {
+      if (chunks != null) {
+        rowStarts = new int[] {0};
+        rowWidths = new float[] {chunks.totalWidth()};
+        this.limit = limit;
+        return rowStarts;
+      }
       if (breaks == null || limit == Float.POSITIVE_INFINITY) {
         rowStarts = new int[] {0};
         rowWidths = new float[] {breaks == null ? run.width() : width(0, text.length())};
@@ -1158,6 +1462,9 @@ public final class Text implements Measure {
 
     /** The x of position {@code at}, from the start of the glyphs. */
     float pen(int at) {
+      if (chunks != null) {
+        return chunks.pen(at);
+      }
       int g = glyphAt[at];
       if (at == text.length() || g < run.count() && run.cluster(g) == at) {
         return run.pen(g);
@@ -1360,6 +1667,9 @@ public final class Text implements Measure {
       int[] at = rowAt(y);
       Para para = para(at[0]);
       int start = shownLines().start(at[0]);
+      if (para.chunks != null) {
+        return start + para.chunks.hit(x);
+      }
       List<Integer> bounds = rowBounds(para, at[1]);
       int found = bounds.getFirst();
       float left = para.pen(para.rowStart(at[1]));
@@ -1453,7 +1763,12 @@ public final class Text implements Measure {
           ? null
           : lines.spans(line, shown, highlighter, highlightKey);
       String text = shown.substring(lines.start(line), lines.end(line));
-      para = shape(text, spans, 0, text.length());
+      if (!wraps && text.length() > CHUNK_SIZE) {
+        para = new Para(text, spans, new Chunks(line, text, spans, splitChunks(text)));
+      } else {
+        para = shape(text, spans, 0, text.length());
+        lines.shapedCharacters += text.length();
+      }
       shapedLines.put(line, para);
       lines.shaped++;
     }
@@ -1463,7 +1778,7 @@ public final class Text implements Measure {
       if (lines.wraps()) {
         lines.rows(line, para.rowCount());
       } else {
-        lines.measured(line, para.run.width());
+        lines.measured(line, para.totalWidth());
       }
     }
     return para;
@@ -1552,6 +1867,7 @@ public final class Text implements Measure {
   float layOut() {
     Lines lines = shownLines();
     viewStale = false;
+    chunksMoved = false;
     double lh = lineHeight;
     int anchor = lines.lineOfRow((long) Math.floor(viewY / lh));
     long anchorRows = lines.rowsBefore(anchor);
@@ -1564,11 +1880,26 @@ public final class Text implements Measure {
     List<Row> placed = new ArrayList<>();
     firstInView = -1;
     lastInView = -1;
+    float marginX = Math.max(4 * advance, 32 * scale);
+    double viewLeft = Math.max(0, viewX - marginX);
+    double viewRight = viewX + placedWidth + marginX;
     for (; line < lines.count(); line++, skip = 0) {
       Para para = para(line);
       double lineTop = lines.rowsBefore(line) * lh;
       if (lineTop >= to) {
         break;
+      }
+      if (para.chunks != null) {
+        if (skip == 0) {
+          float baseline = (float) (lineTop - viewY + firstBaseline);
+          para.chunks.emitLines(baseline, viewLeft, viewRight, laid);
+          placed.add(new Row(line, 0, para, lineTop));
+          if (lineTop < viewY + placedHeight && lineTop + lh > viewY) {
+            firstInView = firstInView < 0 ? line : firstInView;
+            lastInView = line;
+          }
+        }
+        continue;
       }
       for (int r = (int) Math.min(skip, para.rowCount()); r < para.rowCount(); r++) {
         double top = lineTop + r * lh;
@@ -1588,10 +1919,34 @@ public final class Text implements Measure {
         }
       }
     }
+    if (!wraps) {
+      for (Row row : placed) {
+        lines.measured(row.line, row.para.totalWidth());
+      }
+    }
     this.lines = List.copyOf(laid);
     this.rows = placed;
     marks = marks(placed);
     return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
+  }
+
+  /** Whether the last {@link #layOut} measured a chunk of a long line, which moved what follows. */
+  boolean chunksMoved() {
+    return chunksMoved;
+  }
+
+  /**
+   * Shapes the chunks of long lines that positions of the shown string are in, so that measuring
+   * them after the rows are laid out moves nothing that is placed already.
+   */
+  void measureChunks(int... positions) {
+    Lines lines = shownLines();
+    for (int at : positions) {
+      int line = lines.line(Math.clamp(at, 0, lines.length()));
+      if (!wraps && lines.end(line) - lines.start(line) > CHUNK_SIZE) {
+        para(line).pen(at - lines.start(line));
+      }
+    }
   }
 
   /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
@@ -1628,12 +1983,31 @@ public final class Text implements Measure {
       float left = para.pen(para.rowStart(row.row));
       int from = para.rowStart(row.row);
       int to = para.rowEnd(row.row);
+      Chunks chunks = para.chunks;
+      int visFirstChunk = 0;
+      int visLastChunk = 0;
+      int visFrom = from;
+      int visTo = to;
+      boolean visibleHorizontally = true;
+      if (chunks != null) {
+        if (viewX >= chunks.xs[chunks.parts.length] || viewX + placedWidth <= 0) {
+          visibleHorizontally = false;
+        } else {
+          visFirstChunk = chunks.chunkOfX(Math.max(0, viewX));
+          visLastChunk = chunks.chunkOfX(viewX + placedWidth);
+          visFrom = chunks.starts[visFirstChunk];
+          visTo = chunks.starts[visLastChunk + 1];
+        }
+      }
       for (Spans spans : new Spans[] {para.spans, decor}) {
         if (spans == null) {
           continue;
         }
         for (int argb : spans.lineBackgrounds) {
           lineMarks.add(new Mark(new Box(0, top, placedWidth, lineHeight), argb));
+        }
+        if (!visibleHorizontally) {
+          continue;
         }
         for (int i = 0; i < spans.count; i++) {
           int kind = spans.kinds[i];
@@ -1642,8 +2016,17 @@ public final class Text implements Measure {
           if (kind == Spans.COLOR || kind == Spans.FONT || b <= a) {
             continue;
           }
-          float x0 = para.pen(a) - left - viewX;
-          float x1 = para.pen(b) - left - viewX;
+          if (chunks != null) {
+            if (kind == Spans.GUIDE ? (a < visFrom || a >= visTo) : (b <= visFrom || a >= visTo)) {
+              continue;
+            }
+          }
+          float x0 = chunks != null && a < visFrom
+              ? (float) (chunks.xs[visFirstChunk] - viewX)
+              : para.pen(a) - left - viewX;
+          float x1 = chunks != null && b > visTo
+              ? (float) (chunks.xs[visLastChunk + 1] - viewX)
+              : para.pen(b) - left - viewX;
           if (kind == Spans.BACKGROUND) {
             ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
           } else if (kind == Spans.GUIDE) {
@@ -1770,6 +2153,9 @@ public final class Text implements Measure {
   /** The position nearest to {@code x} on row {@code row} of line {@code line}. */
   private int nearestOnRow(int line, int row, float x) {
     Para para = para(line);
+    if (para.chunks != null) {
+      return shownLines().start(line) + para.chunks.nearest(x);
+    }
     float left = para.pen(para.rowStart(row));
     int best = para.rowStart(row);
     float distance = Float.POSITIVE_INFINITY;
@@ -1823,7 +2209,11 @@ public final class Text implements Measure {
   /** The last position a caret takes on the row of a position: before the wrap, or the line end. */
   int rowEnd(int index) {
     int[] at = rowOf(index);
-    List<Integer> bounds = rowBounds(para(at[0]), at[1]);
+    Para para = para(at[0]);
+    if (at[1] + 1 == para.rowCount()) {
+      return shownLines().start(at[0]) + para.text.length();
+    }
+    List<Integer> bounds = rowBounds(para, at[1]);
     return shownLines().start(at[0]) + bounds.getLast();
   }
 
@@ -1861,7 +2251,8 @@ public final class Text implements Measure {
       float left = para.pen(para.rowStart(row.row));
       float x0 = para.pen(Math.max(start, from) - lineStart) - left;
       float x1 = endSelected
-          ? Math.max(edge, para.pen(to - lineStart) - left)
+          ? Math.max(
+              edge, (para.chunks != null ? para.totalWidth() : para.pen(to - lineStart)) - left)
           : para.pen(Math.min(end, to) - lineStart) - left;
       if (x1 > x0) {
         boxes.add(new Box(x0 - viewX, (float) (row.top - viewY), x1 - x0, lineHeight));

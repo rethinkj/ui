@@ -1312,10 +1312,13 @@ final class Editor {
     double covered = asked ? el.coveredContent() * scale : 0;
     asked = false;
     boolean byLast = false; // whether the jump placed the view by the last row to show
+    // A chunk of a long line measured later would move what follows it: measure them first.
+    t.measureChunks(start(), end(), shownCaret);
     if (revealed) {
       reveal = false;
       byLast = scrollToCaret(t, shownCaret, covered, caretWidth, null);
     }
+    boolean atRight = el.scrollX() > 0 && !el.canScroll(true, 1);
     float shift = t.layOut();
     if (revealed) { // the rows laid out measured other heights: jump again, until nothing moves
       while (true) {
@@ -1327,9 +1330,17 @@ final class Editor {
         }
         t.layOut(); // ends: each line is measured once
       }
-    } else if (shift != 0) { // rows above the view were measured: what is in view stays
-      el.measureScroll();
-      el.scrollTo(el.scrollX(), el.scrollY() + shift / scale);
+    } else {
+      if (shift != 0) { // rows above the view were measured: what is in view stays
+        el.measureScroll();
+        el.scrollTo(el.scrollX(), el.scrollY() + shift / scale);
+      }
+      // A view at the end of a long line stays there while its chunks are measured.
+      while (atRight && t.chunksMoved()) {
+        el.measureScroll();
+        el.scrollTo(Double.POSITIVE_INFINITY, el.scrollY());
+        t.layOut();
+      }
     }
     el.measureScroll();
     el.scrollTo(el.scrollX(), el.scrollY()); // within what the rows in view measured
@@ -1473,16 +1484,42 @@ final class Editor {
     return new int[] {snap(word[0]), snapUp(word[1])};
   }
 
+  // Enough context on each side of a position for BreakIterator to find grapheme boundaries
+  // without scanning an entire megabyte-long line.
+  private static final int GRAPHEME_WINDOW = 64;
+
   /**
    * The part of the text that grapheme boundaries near {@code index} depend on: all of a
-   * single-line field, the line of a multi-line one, which a line feed bounds on both sides.
+   * single-line field, or the line of a multi-line one, narrowed to a window around {@code index}
+   * bounded by sure grapheme boundaries when the line is long.
    */
   private int[] around(int index) {
-    if (lines == null) {
-      return new int[] {0, text.length()};
+    int from = 0;
+    int to = text.length();
+    if (lines != null) {
+      int line = lines.line(index);
+      from = lines.start(line);
+      to = lines.end(line);
     }
-    int line = lines.line(index);
-    return new int[] {lines.start(line), lines.end(line)};
+    if (to - from > GRAPHEME_WINDOW * 4) {
+      if (index - from > GRAPHEME_WINDOW) {
+        for (int i = index - GRAPHEME_WINDOW; i > from; i--) {
+          if (Text.graphemeBreak(text, i)) {
+            from = i;
+            break;
+          }
+        }
+      }
+      if (to - index > GRAPHEME_WINDOW) {
+        for (int i = index + GRAPHEME_WINDOW; i < to; i++) {
+          if (Text.graphemeBreak(text, i)) {
+            to = i;
+            break;
+          }
+        }
+      }
+    }
+    return new int[] {from, to};
   }
 
   /** The grapheme boundary at or before {@code index}. */

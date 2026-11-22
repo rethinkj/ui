@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
 import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -351,6 +352,133 @@ class TextAreaTest {
       assertTrue(lines.shaped - before <= 28, "a frame shaped " + (lines.shaped - before));
     }
     assertEquals(5001, field(app).editor().lineIndex().count());
+  }
+
+  @Test
+  void aMillionCharacterLineShapesOnlyThePartInViewAndReachesItsEnd() {
+    String line = "START " + "abcd ".repeat(199_996) + "12345678901END";
+    assertEquals(1_000_000, line.length());
+    App<Model> app = focused(line);
+    Lines lines = field(app).editor().lineIndex();
+    assertTrue(
+        lines.shapedCharacters < 20_000,
+        "first frames shaped " + lines.shapedCharacters + " characters");
+
+    key(app, "End");
+    assertEquals(line.length(), field(app).editor().caret());
+    assertTrue(
+        field(app).scrollX() > 7_000_000, "scrolled to end: " + field(app).scrollX());
+    Text.Box caret = field(app).text().caret();
+    assertTrue(caret.x() > 170 && caret.x() <= 192 - Editor.MARGIN, "caret in view: " + caret);
+    assertTrue(
+        lines.shapedCharacters < 30_000,
+        "moving to end shaped " + lines.shapedCharacters + " characters");
+
+    GlyphRun endGlyphs = Font.mono().shape("END", 14, 1, new String[0]);
+    Text.Line tail = field(app).text().lines().getLast();
+    GlyphRun tailRun = tail.glyphs();
+    for (int i = 0; i < 3; i++) {
+      assertEquals(
+          endGlyphs.glyph(i),
+          tailRun.glyph(tailRun.count() - 3 + i),
+          "end glyph " + i + " laid out");
+    }
+    float tailRight = tail.x() + tail.width() - field(app).text().scroll();
+    assertTrue(tailRight > 170 && tailRight <= 192, "end of line in view: " + tailRight);
+
+    long beforeType = lines.shapedCharacters;
+    type(app, "!");
+    assertEquals(line.length() + 1, field(app).editor().caret());
+    assertTrue(app.state().value.endsWith("END!"));
+    assertTrue(
+        lines.shapedCharacters - beforeType < 20_000,
+        "typing at end shaped " + (lines.shapedCharacters - beforeType) + " characters");
+
+    // Horizontal scrolling back to the start and then to the end lays out the last glyphs there.
+    app.scrollTo(field(app), 0, 0);
+    app.frame();
+    app.scrollTo(field(app), 1e9, 0);
+    app.frame();
+    assertTrue(
+        field(app).scrollX() > 7_000_000, "scrolled back to end: " + field(app).scrollX());
+    GlyphRun bang = Font.mono().shape("!", 14, 1, new String[0]);
+    Text.Line endLine = field(app).text().lines().getLast();
+    assertEquals(
+        bang.glyph(0),
+        endLine.glyphs().glyph(endLine.glyphs().count() - 1),
+        "scrolled end lays out the last character");
+    assertTrue(
+        lines.shapedCharacters < 60_000,
+        "all operations shaped " + lines.shapedCharacters + " characters");
+  }
+
+  @Test
+  void aLongLineHighlightsAndHitsInChunksWithoutWrappingAndWrapsAsBefore() {
+    String line = "alpha ".repeat(4000) + "OMEGA";
+    int accent = Colors.rgb(0xFF0000);
+    int markBg = Colors.rgb(0x00FF00);
+    Highlighter highlighter = (text, state, out) -> {
+      out.color(text.length() - 5, text.length(), accent);
+      return null;
+    };
+    Decorator decorator = (lineIndex, lineStart, text, out) -> {
+      out.background(0, 5, markBg);
+      out.background(text.length() - 5, text.length(), markBg);
+    };
+    App<Model> app = focused(line, f -> f.highlight("h", highlighter).decorate(decorator));
+    Lines lines = field(app).editor().lineIndex();
+    assertTrue(lines.shapedCharacters < 5000, "start shaped " + lines.shapedCharacters);
+    assertEquals(1, field(app).text().marks().size(), "only the visible mark at the start");
+
+    long beforeEnd = lines.shapedCharacters;
+    key(app, "End");
+    Text text = field(app).text();
+    Text.Line last = text.lines().getLast();
+    assertEquals(accent, last.colors()[last.colors().length - 1], "highlighter color at end");
+    assertEquals(1, text.marks().size(), "only the visible mark at the end");
+    assertTrue(
+        lines.shapedCharacters - beforeEnd < 2500,
+        "End shaped " + (lines.shapedCharacters - beforeEnd));
+
+    // Click inside the end of the line: hits the right character without shaping the whole line.
+    long beforeClick = lines.shapedCharacters;
+    float endX = 14 + text.caret().x() - 16; // two characters left of the end
+    app.pointerDown(endX, 14 + 9, 1, 0);
+    app.pointerUp(endX, 14 + 9);
+    app.frame();
+    assertEquals(line.length() - 2, field(app).editor().caret());
+    assertTrue(
+        lines.shapedCharacters - beforeClick < 2500,
+        "click shaped " + (lines.shapedCharacters - beforeClick));
+
+    // With wrapping, a line longer than a chunk wraps into rows as before.
+    String wrapped = "abcd ".repeat(600);
+    App<Model> wrapping = focused(wrapped, El::wrapText);
+    assertEquals(monoRows(wrapped), field(wrapping).text().shownIndex().totalRows());
+  }
+
+  @Test
+  void aLongLineInAProportionalFontShowsItsEndAndTheCaretOnItsGlyphs() {
+    String line = "Wide words, thin ones; ".repeat(20_000) + "END";
+    App<Model> app = focused(line, f -> f.font(Font.sans()));
+    app.scrollTo(field(app), 1e9, 0);
+    app.frame();
+    Text text = field(app).text();
+    Text.Line tail = text.lines().getLast();
+    float right = tail.x() + tail.width() - text.scroll();
+    assertTrue(right > 0 && right <= text.contentWidth(), "end of line in view: " + right);
+
+    // The anchor's chunk is measured before the glyphs are placed around the caret.
+    app.select(field(app), 16_000, 8_000);
+    app.frame();
+    Text selected = field(app).text();
+    float caret = selected.caret().x();
+    assertTrue(caret >= 0 && caret <= selected.contentWidth(), "caret in view: " + caret);
+    assertTrue(
+        selected.lines().stream()
+            .anyMatch(l -> l.x() - selected.scroll() <= caret
+                && caret <= l.x() + l.width() - selected.scroll()),
+        "glyphs laid out under the caret");
   }
 
   /** Words of 1 to 4 letters and some of 25 to 80, with spaces and line feeds between them. */
