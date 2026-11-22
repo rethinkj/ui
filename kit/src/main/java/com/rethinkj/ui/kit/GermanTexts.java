@@ -371,6 +371,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String patternError(String description, int position) {
+    return description + " bei Zeichen " + position;
+  }
+
+  @Override
   public String match(int number, String total) {
     return number + " von " + total;
   }
@@ -450,6 +455,11 @@ public class GermanTexts implements Texts {
   @Override
   public String searchColumns() {
     return "Spalten suchen";
+  }
+
+  @Override
+  public String searchValues() {
+    return "Werte suchen";
   }
 
   @Override

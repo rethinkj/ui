@@ -47,6 +47,7 @@ final class GridFilter {
     Kind kind;
     String value = "";
     String to = "";
+    String search = "";
     final Set<String> values = new LinkedHashSet<>();
     final Menu.State kinds = new Menu.State();
 
@@ -168,6 +169,7 @@ final class GridFilter {
       case null, default -> "";
     };
     sel.filter.to = spec instanceof Between range ? range.to() : "";
+    sel.filter.search = "";
     sel.filter.values.clear();
     sel.filter.values.addAll(spec instanceof OneOf oneOf ? oneOf.values() : values(c));
   }
@@ -269,6 +271,7 @@ final class GridFilter {
     Filter filter = draft instanceof Valid(Filter made) ? made : null;
     float width = theme.size().field();
     El content = col()
+        .minSize(0, 0) // a long list of values gives way where the window is low
         .gap(theme.space().s())
         .child(Select.select(
                 kinds.stream().map(texts::filterKind).toList(),
@@ -297,8 +300,21 @@ final class GridFilter {
                     .key("to")
                     .w((width - theme.space().s()) / 2)));
       case ONE_OF -> {
+        List<String> choices = values(c);
+        boolean many = choices.size() > GridColumns.SEARCH_THRESHOLD;
+        if (many) {
+          content.child(GridColumns.searchField(
+              theme, sel.filter.search, texts.searchValues(), v -> sel.filter.search = v));
+        }
+        String search = many ? GridColumns.searchQuery(sel.filter.search) : "";
         El list = col().key("values").gap(theme.space().xs());
-        for (String value : values(c)) {
+        if (many) {
+          GridColumns.scrollList(theme, list).minSize(0, 0);
+        }
+        for (String value : choices) {
+          if (!GridColumns.matchesSearch(value, search)) {
+            continue;
+          }
           list.child(Checkbox.checkbox(sel.filter.values.contains(value), value, () -> {
                 if (!sel.filter.values.remove(value)) {
                   sel.filter.values.add(value);
@@ -331,6 +347,7 @@ final class GridFilter {
         sel.filter.popover,
         texts.filter(c.title()),
         col()
+            .minSize(0, 0)
             .gap(theme.space().m())
             .children(
                 Label.label(Label.Variant.STRONG, texts.filter(c.title()))

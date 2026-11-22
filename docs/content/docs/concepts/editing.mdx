@@ -51,13 +51,14 @@ Bind each input to its `Prop` in the view, and check `editing.valid()` / `editin
 | `changed()` | Returns `true` if `value()` differs from `original()` (using `equals`) |
 | `valid()` | Returns `true` when there are no parse errors, no custom errors, and all rules pass |
 | `reset()` | Reverts to `original()` and clears all drafts and errors |
+| `forget(part)` | Drops the draft and custom error of `part` and any fields below it, leaving `value()` unchanged |
 | `showErrors()` | Reveals errors on all fields, including untouched required fields (call when Save is clicked while invalid) |
 | `saved()` | Commits `value()` as the new `original()` so `changed()` resets to `false` |
-| `prop.error(message)` | Attaches a custom error (such as a server validation error) until the user edits that field |
+| `prop.error(message)` | Attaches a custom error (such as a server validation error) until that field, an ancestor, or a descendant is edited |
 
 See [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html) Javadoc for more methods.
 
-**How errors are shown:** Each field displays its first active error in priority order: parse error, custom error (`prop.error(...)`), then failing `.rule(...)`. Parse errors count toward `valid()` immediately, but stay hidden on screen until the user edits the field or you call `showErrors()` (so empty "New item" forms do not open covered in red). Custom errors and rule errors appear immediately. [Form](/docs/components/form) displays the error text below the input. Hidden fields keep their drafts and still affect `valid()`.
+**How errors are shown:** Each field displays its first active error in priority order: parse error, custom error (`prop.error(...)`), then failing `.rule(...)`. Parse errors count toward `valid()` immediately, but stay hidden on screen until the user edits the field or you call `showErrors()` (so empty "New item" forms do not open covered in red). Custom errors and rule errors appear immediately. [Form](/docs/components/form) displays the error text below the input. Hidden fields keep their drafts and still affect `valid()`; call `editing.forget(part)` when hiding a field whose input no longer counts.
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```

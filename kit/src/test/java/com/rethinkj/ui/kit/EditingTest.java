@@ -17,8 +17,13 @@ class EditingTest {
 
   record Tls(String mode, String cert) {
     static final Part<Tls, String> MODE = Part.of(Tls::mode, Tls::withMode);
+    static final Part<Tls, String> CERT = Part.of(Tls::cert, Tls::withCert);
 
     Tls withMode(String mode) {
+      return new Tls(mode, cert);
+    }
+
+    Tls withCert(String cert) {
       return new Tls(mode, cert);
     }
   }
@@ -221,6 +226,34 @@ class EditingTest {
   }
 
   @Test
+  void writingAFieldClearsAppErrorsOnItselfItsAncestorsAndItsDescendants() {
+    Editing<Profile> e = Editing.of(profile());
+    Prop<Tls> tls = e.at(Profile.TLS);
+    Prop<String> mode = e.at(Profile.TLS.then(Tls.MODE));
+    Prop<String> cert = e.at(Profile.TLS.then(Tls.CERT));
+    Prop<String> host = e.at(Profile.HOST);
+
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    cert.error("Bad cert");
+    host.error("Bad host");
+
+    mode.set("verify-full");
+    assertNull(mode.error(), "the written field clears");
+    assertNull(tls.error(), "its ancestor clears");
+    assertEquals("Bad cert", cert.error(), "its sibling stays");
+    assertEquals("Bad host", host.error(), "an unrelated field stays");
+
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    tls.set(new Tls("require", "ca.pem"));
+    assertNull(tls.error(), "the written parent clears");
+    assertNull(mode.error(), "its descendants clear");
+    assertNull(cert.error(), "its descendants clear");
+    assertEquals("Bad host", host.error(), "a sibling of the parent stays");
+  }
+
+  @Test
   void aFieldThatShowsOnlyUnderAConditionKeepsItsDraft() {
     Editing<Profile> e = Editing.of(profile());
     type(e, "99999");
@@ -230,6 +263,37 @@ class EditingTest {
     assertFalse(e.valid(), "the hidden field's text still is no port");
     assertEquals("99999", shown(e), "the field comes back with its text");
     assertEquals("1 to 65535", e.at(Profile.PORT).error());
+  }
+
+  @Test
+  void forgettingAFieldDropsItsDraftAndDescendantsWithoutChangingTheValue() {
+    Editing<Profile> e = Editing.of(profile());
+    type(e, "99999");
+    assertFalse(e.valid());
+
+    e.forget(Profile.PORT);
+    assertTrue(e.valid());
+    assertEquals(5432, e.value().port(), "forget leaves the value alone");
+    assertNull(e.at(Profile.PORT).error());
+    assertEquals("5432", shown(e), "the field starts from the value again");
+
+    Prop<Tls> tls = e.at(Profile.TLS);
+    Prop<String> mode = e.at(Profile.TLS.then(Tls.MODE));
+    Prop<String> host = e.at(Profile.HOST);
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    host.error("Bad host");
+
+    e.forget(Profile.TLS.then(Tls.MODE));
+    assertNull(mode.error());
+    assertEquals("TLS rejected", tls.error(), "ancestors stay");
+
+    mode.error("Bad mode");
+    e.forget(Profile.TLS);
+    assertNull(tls.error());
+    assertNull(mode.error(), "descendants are forgotten too");
+    assertEquals("Bad host", host.error(), "siblings stay");
+    assertFalse(e.valid());
   }
 
   @Test

@@ -12,7 +12,9 @@ import com.rethinkj.ui.kit.DataGrid.Filter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -120,6 +122,57 @@ class GridFilterTest {
     run(app, "key Escape\nframe\nadvance 1\nframe");
     assertFalse(app.tree().dump().contains("role=dialog"));
     assertTrue(ledger.filters.isEmpty());
+  }
+
+  @Test
+  void aLongEnumerationScrollsAndFiltersItsValuesWithoutDroppingHiddenOnes() throws IOException {
+    List<String> choices = new ArrayList<>();
+    IntStream.rangeClosed(1, 17).mapToObj(i -> "alpha-" + i).forEach(choices::add);
+    choices.addAll(List.of("beta-1", "beta-2", "beta-3"));
+    Ledger ledger = new Ledger(T, 40);
+    ledger.choices = List.copyOf(choices);
+    App<Ledger> app = start(ledger);
+    run(app, """
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        key ArrowDown alt
+        frame
+        advance 1
+        frame""");
+    assertEquals("search", app.focused().key(), "the search field takes focus");
+    assertTrue(line(app, "search").contains("label=\"Search values\""), line(app, "search"));
+    assertTrue(
+        line(app, "values").contains("thumb-y"), "the long list scrolls: " + line(app, "values"));
+    String apply = app.tree()
+        .dump()
+        .lines()
+        .map(String::strip)
+        .filter(l -> l.startsWith("el role=button label=\"Apply\" "))
+        .findFirst()
+        .orElseThrow();
+    String[] at = apply.split(" ")[3].split(",");
+    String[] size = apply.split(" ")[4].split("x");
+    assertTrue(
+        Float.parseFloat(at[1]) + Float.parseFloat(size[1]) <= 260,
+        "Apply stays in the low window: " + apply);
+
+    run(app, "type \" BETA \"\nframe");
+    String narrowed = app.tree().dump();
+    assertTrue(narrowed.contains("#value-beta-1"), narrowed);
+    assertTrue(narrowed.contains("#value-beta-2"), narrowed);
+    assertTrue(narrowed.contains("#value-beta-3"), narrowed);
+    assertFalse(narrowed.contains("#value-alpha-1"), narrowed);
+
+    run(app, "press #value-beta-2\nframe\npress label=\"Apply\"\nframe");
+    List<String> expected = choices.stream().filter(c -> !c.equals("beta-2")).toList();
+    assertEquals(List.of(new Filter(5, new Filter.OneOf(expected))), ledger.filters);
+
+    run(app, "advance 1\nframe\nkey ArrowDown alt\nframe\nadvance 1\nframe");
+    String reopened = app.tree().dump();
+    assertEquals("search", app.focused().key());
+    assertTrue(reopened.contains("#value-alpha-1"), "opening resets the search");
   }
 
   /** filter.txt: the popover of an enumeration open, and filters set with their bar. */

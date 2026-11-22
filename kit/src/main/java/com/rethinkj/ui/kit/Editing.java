@@ -44,9 +44,22 @@ import java.util.function.UnaryOperator;
  *   <li>{@link #rule} checks the whole value, such as a date not before another, and shows its
  *       message at the field it names.
  *   <li>An error the app learns later, such as the server's refusal of a port, goes on the field
- *       with {@link Prop#error(String)}: it shows there until the next edit of the field.
+ *       with {@link Prop#error(String)}: it shows there until the field, one of its ancestors, or
+ *       one of its descendants is edited.
  *   <li>A draft stays while its field is out of the view, and counts for {@link #valid}: a text
- *       that is no value stays one until the field shows again and is edited, or {@link #reset}.
+ *       that is no value stays one until the field shows again and is edited, {@link #forget}
+ *       drops it, or {@link #reset}. Call {@link #forget} when a hidden field's input no longer
+ *       counts:
+ *       <pre>{@code
+ * toggle(state.tls, "TLS", state::switchTls)        // the TLS fields show while it is on
+ *
+ * void switchTls() {                                 // in State
+ *   tls = !tls;
+ *   if (!tls) {
+ *     editing.forget(Profile.TLS);                   // and every field inside it
+ *   }
+ * }
+ * }</pre>
  * </ul>
  *
  * @param <T> the type of the value
@@ -142,6 +155,19 @@ public final class Editing<T> {
   }
 
   /**
+   * Drops the draft and the app's error of {@code field} and of every field below it, leaving the
+   * value, rules, and {@link #showErrors} alone. An app calls this when it hides a field whose
+   * input no longer counts, so that an invalid draft there does not keep {@link #valid} false;
+   * when the field shows again, it starts from the value.
+   */
+  public void forget(Part<T, ?> field) {
+    List<Part<?, ?>> path = Objects.requireNonNull(field, "field").path();
+    fields
+        .keySet()
+        .removeIf(p -> p.size() >= path.size() && p.subList(0, path.size()).equals(path));
+  }
+
+  /**
    * Makes every field show its draft's error, also one the user has not edited, such as a
    * required field left empty: what an app calls when Save is pressed while the edit is not
    * {@link #valid}. Until then a draft's error shows once its field is edited; {@link #reset}
@@ -196,11 +222,17 @@ public final class Editing<T> {
     return null;
   }
 
-  /** A field was written: the app's errors on it and on the fields around it go. */
+  /**
+   * A field was written: the app's errors on it, its ancestors, and its descendants go; siblings
+   * keep theirs.
+   */
   void edited(List<Part<?, ?>> path) {
-    Field f = fields.get(path);
-    if (f != null) {
-      f.error = null;
+    for (Map.Entry<List<Part<?, ?>>, Field> entry : fields.entrySet()) {
+      List<Part<?, ?>> other = entry.getKey();
+      int n = Math.min(path.size(), other.size());
+      if (path.subList(0, n).equals(other.subList(0, n))) {
+        entry.getValue().error = null;
+      }
     }
   }
 

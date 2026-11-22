@@ -1,0 +1,1 @@
+- `Toast.toast` without an action has as much room at the right as at the left, and is as high as a toast with one.
