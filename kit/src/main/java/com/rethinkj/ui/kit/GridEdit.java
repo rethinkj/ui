@@ -550,16 +550,26 @@ final class GridEdit {
     return false;
   }
 
-  /** The rows with a selected cell, or the cursor's, without the row to append. */
+  /**
+   * The rows with a selected cell, or the cursor's, without the row to append and without the rows
+   * of a tree that stand for children loading or failed.
+   */
   private static List<Range> rowsOf(Build b) {
     List<Range> rows = new ArrayList<>();
     for (int[] span : DataGrid.rowSpans(b.sel.ranges())) {
-      if (span[0] < b.rowCount) {
-        rows.add(new Range(span[0], 0, Math.min(span[1], b.rowCount - 1), Range.ALL));
+      int top = span[0];
+      int bottom = Math.min(span[1], b.rowCount - 1);
+      for (int r = b.o.tree == null ? bottom + 1 : top; r <= bottom + 1; r++) {
+        if (r > bottom || b.pending(r)) { // the end of the span, or a pending row splits it
+          if (r > top) {
+            rows.add(new Range(top, 0, r - 1, Range.ALL));
+          }
+          top = r + 1;
+        }
       }
     }
     int row = b.sel.row();
-    if (rows.isEmpty() && row >= 0 && row < b.rowCount) {
+    if (rows.isEmpty() && row >= 0 && row < b.rowCount && !b.pending(row)) {
       rows.add(new Range(row, 0, row, Range.ALL));
     }
     return rows;

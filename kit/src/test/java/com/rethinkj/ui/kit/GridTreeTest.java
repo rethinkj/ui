@@ -76,6 +76,7 @@ class GridTreeTest {
     boolean stagingLoading = true;
     boolean archiveFailed;
     final AtomicInteger retries = new AtomicInteger();
+    List<DataGrid.Range> deleted = List.of();
     final AtomicInteger pendingCalls = new AtomicInteger();
     App<State> app;
 
@@ -140,7 +141,8 @@ class GridTreeTest {
           .tree(rows, this::toggle)
           .select(selection)
           .rowKey(row -> read(rows, row).id())
-          .onResize((column, width) -> widths[column] = width);
+          .onResize((column, width) -> widths[column] = width)
+          .onDeleteRows(ranges -> deleted = ranges);
       if (app != null) {
         options.copy(app.clipboard());
       }
@@ -263,6 +265,13 @@ class GridTreeTest {
         app,
         out);
     assertEquals("staging\t0\t—\n\t\t\narchive\t0\t—", app.clipboard().read());
+    // Deleting them reports the nodes' rows around the loading row.
+    Script.run("size 460 280 scale 2\nkey Delete control\nframe", app, out);
+    assertEquals(
+        List.of(
+            new DataGrid.Range(6, 0, 6, DataGrid.Range.ALL),
+            new DataGrid.Range(8, 0, 8, DataGrid.Range.ALL)),
+        state.deleted);
 
     // Hovering a pending row's cells and fitting column 0 never calls column functions.
     Script.run("""
