@@ -193,7 +193,7 @@ final class Grids {
   }
 
   void copyService(int row) {
-    said = "Copied " + SERVICES[row];
+    app.clipboard().write(SERVICES[row]);
   }
 
   static El views(Grids state) {

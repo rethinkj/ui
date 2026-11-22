@@ -170,10 +170,13 @@ class GridViewsTest {
     run(app, "down #check-1\nmove #cell-4-3\nup #cell-4-3\nframe");
     assertEquals(List.of(), fixture.selection.ranges());
 
-    run(
-        app,
-        "press #cell-1-0\nkey ArrowRight shift\nkey ArrowRight shift\n"
-            + "key ArrowRight shift\nkey C control\nframe");
+    run(app, """
+        press #cell-1-0
+        key ArrowRight shift
+        key ArrowRight shift
+        key ArrowRight shift
+        key C control
+        frame""");
     assertEquals("billing\tACTIVE\t82 %\ttrue", app.clipboard().read());
   }
 
