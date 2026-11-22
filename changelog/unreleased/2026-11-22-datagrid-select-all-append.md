@@ -1,0 +1,1 @@
+- `DataGrid`'s Select all is no longer enabled in a grid whose only row is the append row of `Options.appendRow()`: its menu item is disabled, `Commands.canRun` returns false, and Ctrl+A passes on to the grid's parents.
