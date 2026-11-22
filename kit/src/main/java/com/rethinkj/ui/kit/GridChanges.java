@@ -144,6 +144,7 @@ public final class GridChanges {
   private int[] places = new int[0];
   private New[] shown = new New[0];
   private int count;
+  int revision; // counts the changes of what the rows hold, for the grid's find
 
   /** A new row: its key, and the key of the row it follows, {@link #TOP} for the first. */
   private record New(long id, long anchor) {}
@@ -183,6 +184,7 @@ public final class GridChanges {
   /** Replaces the app's rows, as after it filtered or sorted them; the changes stay by key. */
   public void rows(Rows rows) {
     this.rows = Objects.requireNonNull(rows, "rows");
+    revision++;
     layout();
   }
 
@@ -500,6 +502,7 @@ public final class GridChanges {
         op.undo(this);
       }
       redo.addLast(step);
+      revision++;
       layout();
     }
   }
@@ -511,6 +514,7 @@ public final class GridChanges {
         op.redo(this);
       }
       undo.addLast(step);
+      revision++;
       layout();
     }
   }
@@ -526,6 +530,7 @@ public final class GridChanges {
     added.clear();
     undo.clear();
     redo.clear();
+    revision++;
     layout();
   }
 
@@ -543,6 +548,7 @@ public final class GridChanges {
       undo.pollFirst();
     }
     redo.clear();
+    revision++;
     layout();
   }
 

@@ -1268,8 +1268,11 @@ final class GridEdit {
     if (overlay == null) {
       return;
     }
-    double top =
-        b.g.rowHeight() + stroke + (double) sel.edit.row * b.g.rowHeight() - sel.rowsScroll.y();
+    double top = b.g.rowHeight()
+        + stroke
+        + GridFind.strip(b)
+        + (double) sel.edit.row * b.g.rowHeight()
+        - sel.rowsScroll.y();
     El anchor = el().key("edit-anchor")
         .absolute(b.xs[sel.edit.column], (float) top)
         .size(Math.max(c.width() - stroke, 1), height);

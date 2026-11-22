@@ -42,16 +42,17 @@ import java.util.Set;
  * stores.
  *
  * <p>The atlas pages of the scene ({@link Scene#pages}) are the layers of one {@code r8unorm}
- * texture array, page {@code i} in layer {@code i}, which the shader reads with {@code
- * textureLoad}: exact texels, no sampler, no filtering. One array rather than a texture per page
- * keeps the single draw call, since WGSL cannot pick one of several bound textures by an index
- * that varies per instance. Before each draw the renderer writes into each layer what {@link
- * com.rethinkj.ui.text.Atlas.Page#takeChanged} reports for its page, and nothing for a page that
- * did not change, so a frame without new glyphs uploads nothing; a page the renderer has not seen
- * in its layer before is written whole, once. The renderer is meant to be the only one that takes
- * the changes of an atlas's pages. When a scene has more pages than the array has layers, or pages
- * of another size, the array is replaced by one with the next power of two of layers, and every
- * page is written whole again.
+ * texture array, page {@code i} in layer {@code i}, and the color atlas pages ({@link
+ * Scene#colorPages}) are the layers of a second {@code rgba8unorm} texture array, both read by the
+ * shader with {@code textureLoad}: exact texels, no sampler, no filtering. One array per kind
+ * rather than a texture per page keeps the single draw call, since WGSL cannot pick one of several
+ * bound textures by an index that varies per instance. Before each draw the renderer writes into
+ * each layer what {@link com.rethinkj.ui.text.Atlas.Page#takeChanged} reports for its page, and
+ * nothing for a page that did not change, so a frame without new glyphs uploads nothing; a page
+ * the renderer has not seen in its layer before is written whole, once. The renderer is meant to
+ * be the only one that takes the changes of an atlas's pages. When a scene has more pages than an
+ * array has layers, or pages of another size, that array is replaced by one with the next power of
+ * two of layers, and every page of that kind is written whole again.
  *
  * <p>Each image ({@link Scene#images}) is a texture of its own, format {@code rgba8unorm} decoded
  * from sRGB in the shader, with the levels the image computed as its mip levels, uploaded when it
@@ -98,8 +99,9 @@ public final class GpuRenderer implements AutoCloseable {
 
       // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
       // rounded rectangle, a glyph, a shadow, an image, a line (whose ends are in rect and width
-      // in shape.x) or a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
-      // shape, phase in more.x). The slots in which they differ are declared as u32
+      // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
+      // shape, phase in more.x) or a color glyph (a glyph whose page lies in color_atlas and whose
+      // fill holds its opacity). The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -126,6 +128,7 @@ public final class GpuRenderer implements AutoCloseable {
       const IMAGE: u32 = 3u;
       const LINE: u32 = 4u;
       const SQUIGGLE: u32 = 5u;
+      const COLOR_GLYPH: u32 = 6u;
 
       struct Clip {
         rect: vec4f,
@@ -140,6 +143,9 @@ public final class GpuRenderer implements AutoCloseable {
       @group(0) @binding(2) var<storage, read> clips: array<Clip>;
       // The atlas pages, one layer each: 8-bit coverage, read texel by texel, never filtered.
       @group(0) @binding(3) var atlas: texture_2d_array<f32>;
+      // The color atlas pages, one layer each: premultiplied sRGB color and linear alpha
+      // (rgba8unorm), read texel by texel, never filtered.
+      @group(0) @binding(4) var color_atlas: texture_2d_array<f32>;
       // The image of the image instances drawn now: its levels, premultiplied color encoded to
       // sRGB and linear alpha (rgba8unorm), read texel by texel, decoded and filtered here, as on
       // the CPU.
@@ -180,7 +186,7 @@ public final class GpuRenderer implements AutoCloseable {
         var low: vec2f;
         var high: vec2f;
         var empty = false;
-        if instance.kind == GLYPH {
+        if instance.kind == GLYPH || instance.kind == COLOR_GLYPH {
           let origin = glyph_origin(instance);
           low = max(origin, clip.rect.xy * globals.scale - 1.0);
           high = min(origin + glyph_size(instance),
@@ -438,11 +444,15 @@ public final class GpuRenderer implements AutoCloseable {
         return min(cover, 1.0);
       }
 
-      // A texel of the image in linear light: its color decoded from sRGB, its alpha as it is.
-      fn image_texel(texel: vec2i, level: i32) -> vec4f {
-        let t = textureLoad(image, texel, level);
+      // A premultiplied sRGB texel in linear light: its color decoded from sRGB, its alpha as it is.
+      fn linear_texel(t: vec4f) -> vec4f {
         return vec4f(select(t.rgb / 12.92, pow((t.rgb + 0.055) / 1.055, vec3f(2.4)),
             t.rgb > vec3f(0.04045)), t.a);
+      }
+
+      // A texel of the image in linear light: its color decoded from sRGB, its alpha as it is.
+      fn image_texel(texel: vec2i, level: i32) -> vec4f {
+        return linear_texel(textureLoad(image, texel, level));
       }
 
       // Level k of the image at the point uv of level 0 (of size texels), from its four texels
@@ -514,6 +524,26 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return instance.fill * glyph_cover;
+        }
+        if instance.kind == COLOR_GLYPH {
+          // One texel to one physical pixel: the texel of this pixel, decoded from sRGB.
+          let texel = vec2i(floor(in.position.xy) - glyph_origin(instance));
+          if any(texel < vec2i(0)) || any(texel >= vec2i(glyph_size(instance))) {
+            discard;
+          }
+          let corner = vec2i(vec2u(instance.shape.x & 0xFFFFu, instance.shape.x >> 16u));
+          let t = textureLoad(color_atlas, corner + texel, instance.more.x, 0);
+          if t.a == 0.0 {
+            discard;
+          }
+          var glyph_cover = 1.0;
+          if instance.clip != 0u {
+            glyph_cover = clip_coverage(instance.clip, point);
+            if glyph_cover <= 0.0 {
+              discard;
+            }
+          }
+          return linear_texel(t) * instance.fill * glyph_cover;
         }
         if instance.kind == IMAGE {
           let half_size = instance.rect.zw / 2.0;
@@ -635,6 +665,12 @@ public final class GpuRenderer implements AutoCloseable {
   private static final TextureFormat ATLAS_FORMAT = TextureFormat.R8_UNORM;
 
   /**
+   * The color atlas texture's format: four bytes per texel, premultiplied color encoded to sRGB
+   * and linear alpha, decoded in the shader like {@link #IMAGE_FORMAT}.
+   */
+  private static final TextureFormat COLOR_ATLAS_FORMAT = TextureFormat.RGBA8_UNORM;
+
+  /**
    * An image texture's format: the bytes of {@link Image}'s levels, premultiplied color encoded
    * to sRGB and linear alpha, which the shader decodes with sRGB's formula. Not {@code
    * rgba8unorm-srgb}: a GPU may decode that with an error of up to half a step, which filtering
@@ -676,6 +712,11 @@ public final class GpuRenderer implements AutoCloseable {
    * layer is written whole the next time.
    */
   private Atlas.Page[] resident;
+  /** The color atlas pages, one layer each; 1 by 1 before the first color page. */
+  private Texture colorAtlas;
+
+  private TextureView colorAtlasView;
+  private Atlas.Page[] colorResident;
   /** Writes into the atlas texture, and the texels they carried, for the tests. */
   private long atlasWrites;
 
@@ -730,7 +771,7 @@ public final class GpuRenderer implements AutoCloseable {
     try {
       globals = device.createBuffer(
           "scene globals", GLOBALS_BYTES, BufferUsage.UNIFORM, BufferUsage.COPY_DST);
-      replace(1, 1, FIRST_INSTANCES * Scene.STRIDE, FIRST_CLIPS * Scene.CLIP_STRIDE);
+      replace(1, 1, 1, 1, FIRST_INSTANCES * Scene.STRIDE, FIRST_CLIPS * Scene.CLIP_STRIDE);
     } catch (RuntimeException | Error e) {
       closeOwn(); // on a shared device they would stay until its last window closes
       throw e;
@@ -877,16 +918,22 @@ public final class GpuRenderer implements AutoCloseable {
     MemorySegment data = scene.data();
     MemorySegment table = scene.clips();
     List<Atlas.Page> pages = scene.pages();
+    List<Atlas.Page> colorPages = scene.colorPages();
     boolean grow = data.byteSize() > instances.size() || table.byteSize() > clips.size();
     boolean newAtlas = !pages.isEmpty()
         && (pages.getFirst().size() != atlas.width() || pages.size() > atlas.layers());
-    if (grow || newAtlas) {
+    boolean newColorAtlas = !colorPages.isEmpty()
+        && (colorPages.getFirst().size() != colorAtlas.width()
+            || colorPages.size() > colorAtlas.layers());
+    if (grow || newAtlas || newColorAtlas) {
       // Checked before anything is made, so that the renderer can still draw a smaller scene.
       checkFits("instances", data.byteSize());
       checkFits("clips", table.byteSize());
       replace(
           newAtlas ? pages.getFirst().size() : 0,
           newAtlas ? layers(pages.size()) : 0,
+          newColorAtlas ? colorPages.getFirst().size() : 0,
+          newColorAtlas ? layers(colorPages.size()) : 0,
           data.byteSize() > instances.size() ? grown(instances.size(), data.byteSize()) : 0,
           table.byteSize() > clips.size() ? grown(clips.size(), table.byteSize()) : 0);
     }
@@ -896,7 +943,8 @@ public final class GpuRenderer implements AutoCloseable {
     device.queue().writeBuffer(globals, 0, globalsData);
     device.queue().writeBuffer(instances, 0, data);
     device.queue().writeBuffer(clips, 0, table);
-    writePages(pages);
+    writePages(pages, atlas, resident);
+    writePages(colorPages, colorAtlas, colorResident);
     writeImages(scene);
   }
 
@@ -943,7 +991,7 @@ public final class GpuRenderer implements AutoCloseable {
    * written whole, once: what the layer held before belongs to another page or to nothing, and
    * what the page held before its changed region is not known.
    */
-  private void writePages(List<Atlas.Page> pages) {
+  private void writePages(List<Atlas.Page> pages, Texture target, Atlas.Page[] resident) {
     for (int i = 0; i < pages.size(); i++) {
       Atlas.Page page = pages.get(i);
       Atlas.Region region = page.takeChanged();
@@ -953,19 +1001,20 @@ public final class GpuRenderer implements AutoCloseable {
       if (region.isEmpty()) {
         continue;
       }
+      int stride = page.bytesPerTexel();
       resident[i] = null; // the layer is not known should the write fail
       device
           .queue()
           .writeTexture(
-              atlas,
+              target,
               region.x(),
               region.y(),
               i,
               region.width(),
               region.height(),
               page.pixels(),
-              (long) region.y() * page.size() + region.x(),
-              page.size());
+              ((long) region.y() * page.size() + region.x()) * stride,
+              page.size() * stride);
       resident[i] = page;
       atlasWrites++;
       atlasTexels += (long) region.width() * region.height();
@@ -984,15 +1033,19 @@ public final class GpuRenderer implements AutoCloseable {
   }
 
   /**
-   * Replaces the atlas texture with an empty one of {@code layers} pages of {@code size} texels
-   * (keeps it for 0 layers), whose every layer is then written whole the next time; the instance
-   * and clip buffers with ones of these sizes (keeps each for 0 bytes); and the bind group. All
-   * that is new is made before anything old is closed, so that where the device refuses one, the
-   * renderer keeps what it had and still draws a scene that fits.
+   * Replaces the atlas textures with empty ones of {@code layers} / {@code colorLayers} pages of
+   * {@code size} / {@code colorSize} texels (keeps each for 0 layers), whose every layer is then
+   * written whole the next time; the instance and clip buffers with ones of these sizes (keeps
+   * each for 0 bytes); and the bind group. All that is new is made before anything old is closed,
+   * so that where the device refuses one, the renderer keeps what it had and still draws a scene
+   * that fits.
    */
-  private void replace(int size, int layers, long instanceBytes, long clipBytes) {
+  private void replace(
+      int size, int layers, int colorSize, int colorLayers, long instanceBytes, long clipBytes) {
     Texture newAtlas = null;
     TextureView newAtlasView = null;
+    Texture newColorAtlas = null;
+    TextureView newColorAtlasView = null;
     Buffer newInstances = null;
     Buffer newClips = null;
     BindGroup newGroup;
@@ -1008,6 +1061,17 @@ public final class GpuRenderer implements AutoCloseable {
             TextureUsage.COPY_DST);
         newAtlasView = newAtlas.createView("glyph atlas");
       }
+      if (colorLayers > 0) {
+        newColorAtlas = device.createTextureArray(
+            "color glyph atlas",
+            colorSize,
+            colorSize,
+            colorLayers,
+            COLOR_ATLAS_FORMAT,
+            TextureUsage.TEXTURE_BINDING,
+            TextureUsage.COPY_DST);
+        newColorAtlasView = newColorAtlas.createView("color glyph atlas");
+      }
       if (instanceBytes > 0) {
         newInstances = storage("scene instances", instanceBytes);
       }
@@ -1017,9 +1081,12 @@ public final class GpuRenderer implements AutoCloseable {
       newGroup = bindGroup(
           newInstances != null ? newInstances : instances,
           newClips != null ? newClips : clips,
-          newAtlasView != null ? newAtlasView : atlasView);
+          newAtlasView != null ? newAtlasView : atlasView,
+          newColorAtlasView != null ? newColorAtlasView : colorAtlasView);
     } catch (RuntimeException | Error e) {
-      for (GpuObject made : new GpuObject[] {newClips, newInstances, newAtlasView, newAtlas}) {
+      for (GpuObject made : new GpuObject[] {
+        newClips, newInstances, newColorAtlasView, newColorAtlas, newAtlasView, newAtlas
+      }) {
         if (made != null) {
           made.close();
         }
@@ -1038,6 +1105,15 @@ public final class GpuRenderer implements AutoCloseable {
       atlas = newAtlas;
       atlasView = newAtlasView;
       resident = new Atlas.Page[layers];
+    }
+    if (newColorAtlas != null) {
+      if (colorAtlas != null) {
+        colorAtlasView.close();
+        colorAtlas.close();
+      }
+      colorAtlas = newColorAtlas;
+      colorAtlasView = newColorAtlasView;
+      colorResident = new Atlas.Page[colorLayers];
     }
     if (newInstances != null) {
       if (instances != null) {
@@ -1125,14 +1201,16 @@ public final class GpuRenderer implements AutoCloseable {
         device.limits().maxStorageBufferBindingSize(), device.limits().maxBufferSize());
   }
 
-  private BindGroup bindGroup(Buffer instances, Buffer clips, TextureView atlasView) {
+  private BindGroup bindGroup(
+      Buffer instances, Buffer clips, TextureView atlasView, TextureView colorAtlasView) {
     return device.createBindGroup(
         "scene",
         context.layout(),
         BindGroup.Entry.buffer(0, globals),
         BindGroup.Entry.buffer(1, instances),
         BindGroup.Entry.buffer(2, clips),
-        BindGroup.Entry.texture(3, atlasView));
+        BindGroup.Entry.texture(3, atlasView),
+        BindGroup.Entry.texture(4, colorAtlasView));
   }
 
   private void checkOpen() {
@@ -1162,7 +1240,17 @@ public final class GpuRenderer implements AutoCloseable {
   /** Closes the renderer's own objects on the device, newest first. */
   private void closeOwn() {
     for (GpuObject object : new GpuObject[] {
-      readback, textureView, texture, group, atlasView, atlas, clips, instances, globals
+      readback,
+      textureView,
+      texture,
+      group,
+      colorAtlasView,
+      colorAtlas,
+      atlasView,
+      atlas,
+      clips,
+      instances,
+      globals
     }) {
       if (object != null && !object.isClosed()) {
         object.close();

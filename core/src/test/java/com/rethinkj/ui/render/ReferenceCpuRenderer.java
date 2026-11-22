@@ -55,6 +55,8 @@ final class ReferenceCpuRenderer {
       int kind = scene.getInt(i, Scene.KIND);
       if (kind == Scene.GLYPH) {
         glyph(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.COLOR_GLYPH) {
+        colorGlyph(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.SHADOW) {
         shadow(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.IMAGE) {
@@ -218,6 +220,53 @@ final class ReferenceCpuRenderer {
         }
         for (int c = 0; c < 4; c++) {
           double source = scene.get(i, Scene.COLOR + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /** Draws a color glyph's premultiplied RGBA bitmap one texel to one physical pixel. */
+  private static void colorGlyph(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    int atlas = scene.getInt(i, Scene.ATLAS);
+    int size = scene.getInt(i, Scene.ATLAS_SIZE);
+    Atlas.Page page = scene.colorPages().get(scene.getInt(i, Scene.PAGE));
+    int left = Math.clamp(Math.round(scene.get(i, Scene.X) * scale), -0x10000, width);
+    int top = Math.clamp(Math.round(scene.get(i, Scene.Y) * scale), -0x10000, height);
+    int clip = scene.getInt(i, Scene.CLIP);
+    for (int ty = 0; ty < size >>> 16; ty++) {
+      int py = top + ty;
+      for (int tx = 0; tx < (size & 0xFFFF); tx++) {
+        int px = left + tx;
+        if (px < 0 || py < 0 || px >= width || py >= height) {
+          continue;
+        }
+        int texel = page.color((atlas & 0xFFFF) + tx, (atlas >>> 16) + ty);
+        int a = texel >>> 24;
+        if (a == 0) {
+          continue;
+        }
+        double coverage = 1;
+        if (clip != 0) {
+          coverage = clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
+          if (coverage <= 0) {
+            continue;
+          }
+        }
+        double[] sample = {
+          Scene.linear(texel >> 16 & 0xFF),
+          Scene.linear(texel >> 8 & 0xFF),
+          Scene.linear(texel & 0xFF),
+          a / 255.0
+        };
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.COLOR + 12) * sample[3] * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.COLOR + c * 4) * sample[c] * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
         }
       }

@@ -185,6 +185,22 @@ class TextRenderTest {
     Golden.assertMatches("fallback-field", frame.pixels(), frame.tree());
   }
 
+  /**
+   * Color emoji from a COLR version 0 font next to normal text (with text color and element
+   * opacity) and in a field with a selection over them.
+   */
+  @Test
+  void colorEmojiDrawInColorBesideTextAndUnderSelection() throws IOException {
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::colorEmoji);
+    app.textRendering(PINNED);
+    Script.run(
+        "size 280 112 scale 2\nframe\n" + Examples.COLOR_EMOJI_SCRIPT + "frame\n",
+        app,
+        Path.of("target/color-emoji"));
+    Headless.Frame frame = app.render();
+    Golden.assertMatches("color-emoji", frame.pixels(), frame.tree());
+  }
+
   // ---- the coverage correction against blending in gamma space ------------------------------
 
   /**

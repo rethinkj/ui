@@ -267,7 +267,8 @@ final class GpuContext {
           BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
           BindGroupLayout.Entry.readOnlyStorage(1, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
           BindGroupLayout.Entry.readOnlyStorage(2, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
-          BindGroupLayout.Entry.textureArray(3, ShaderStage.FRAGMENT));
+          BindGroupLayout.Entry.textureArray(3, ShaderStage.FRAGMENT),
+          BindGroupLayout.Entry.textureArray(4, ShaderStage.FRAGMENT));
       imageLayout = made.createBindGroupLayout(
           "image", BindGroupLayout.Entry.texture(0, ShaderStage.FRAGMENT));
       Texture texture = made.createTexture(

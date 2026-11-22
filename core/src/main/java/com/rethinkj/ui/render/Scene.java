@@ -26,12 +26,13 @@ import java.util.Map;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of six kinds, told
- * apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of seven kinds,
+ * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
  * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2), an image ({@link #IMAGE}, 3), a line segment ({@link
- * #LINE}, 4) or a squiggly underline ({@link #SQUIGGLE}, 5). All kinds share one ordered list, so
- * boxes, text, shadows, images, lines and squiggles overlap in the order of the tree. The byte
- * offsets are the constants below. A rounded rectangle with a fill and a border:
+ * #LINE}, 4), a squiggly underline ({@link #SQUIGGLE}, 5) or a color glyph ({@link #COLOR_GLYPH},
+ * 6). All kinds share one ordered list, so boxes, text, shadows, images, lines and squiggles
+ * overlap in the order of the tree. The byte offsets are the constants below. A rounded rectangle
+ * with a fill and a border:
  *
  * <pre>
  *  0  x            f32   left edge of the rectangle
@@ -143,6 +144,32 @@ import java.util.Map;
  * light    = pow(a, lightGamma)
  * coverage = mix(dark, light, lightShare) * clip coverage
  * output   = color * coverage, blended as a rectangle's fill
+ * </pre>
+ *
+ * <p>A color glyph: a premultiplied RGBA bitmap in a color atlas page ({@link #colorPages}), drawn
+ * one texel to one physical pixel in its own colors, with the alpha of the text color times the
+ * element's opacity and no coverage correction. It shares the 64-byte layout of {@link #GLYPH}:
+ *
+ * <pre>
+ *  0  x            f32   left edge of the bitmap on screen; x * scale is a whole number
+ *  4  y            f32   top edge; y * scale is a whole number
+ *  8  width        f32   the bitmap's width in texels / scale
+ * 12  height       f32   its height in texels / scale
+ * 16  atlas        u32   the bitmap's top left texel in its page: x | y &lt;&lt; 16
+ * 20  atlasSize    u32   the bitmap's size in texels: width | height &lt;&lt; 16
+ * 24  clip         u32   as for a rectangle
+ * 28  kind         u32   6, COLOR_GLYPH
+ * 32  color       f32 x 4   the alpha of the text color times the opacity, as o, o, o, o
+ * 48  page         u32   index into {@link #colorPages}
+ * 52  ...          as for a glyph, not read
+ * </pre>
+ *
+ * <p>A texel is premultiplied linear color encoded to 8-bit sRGB and linear alpha ({@code
+ * rgba8unorm}), as {@link Image} stores it, read as it is without filtering:
+ *
+ * <pre>
+ * texel  = (linear(r), linear(g), linear(b), a)
+ * output = texel * color * clip coverage, blended as a rectangle's fill
  * </pre>
  *
  * <p>A shadow ({@link El#shadow}): a rounded rectangle blurred with a Gaussian, as one layer of
@@ -464,6 +491,8 @@ public final class Scene {
   public static final int LINE = 4;
   /** The {@link #KIND} of a squiggly underline. */
   public static final int SQUIGGLE = 5;
+  /** The {@link #KIND} of a color glyph. */
+  public static final int COLOR_GLYPH = 6;
 
   // The slots of a squiggle that differ from a rectangle's.
   public static final int AMPLITUDE = 12;
@@ -1270,6 +1299,10 @@ public final class Scene {
       for (Text.Box box : text.selection()) {
         box(box, left, top, scale, text.selectionColor(), opacity, clip);
       }
+    } else {
+      for (Text.Mark mark : text.marks()) {
+        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+      }
     }
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
@@ -1454,8 +1487,9 @@ public final class Scene {
     data.set(ValueLayout.JAVA_INT, offset + ATLAS, slot.x() | slot.y() << 16);
     data.set(ValueLayout.JAVA_INT, offset + ATLAS_SIZE, slot.width() | slot.height() << 16);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
-    data.set(ValueLayout.JAVA_INT, offset + KIND, GLYPH);
-    color(offset + COLOR, color, opacity);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, slot.color() ? COLOR_GLYPH : GLYPH);
+    // A color glyph keeps its own colors and takes only the alpha of the text color.
+    color(offset + COLOR, slot.color() ? color | 0x00FFFFFF : color, opacity);
     data.set(ValueLayout.JAVA_INT, offset + PAGE, slot.page());
     put(offset + LIGHT_SHARE, lightShare);
     put(offset + DARK_GAMMA, rendering.darkGamma());
@@ -1775,6 +1809,11 @@ public final class Scene {
   /** The atlas pages that glyphs refer to by their {@link #PAGE}; see {@link Atlas.Page}. */
   public List<Atlas.Page> pages() {
     return atlas.pages();
+  }
+
+  /** The color atlas pages that color glyphs refer to by their {@link #PAGE}; see {@link Atlas.Page}. */
+  public List<Atlas.Page> colorPages() {
+    return atlas.colorPages();
   }
 
   /** The index of the instance's entry in the clip table, 0 when it is not clipped. */

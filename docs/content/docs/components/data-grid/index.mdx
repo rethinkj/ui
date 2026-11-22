@@ -101,6 +101,7 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `filters(filters, onFilter)`, `filterable(columns)` | Per-column filter popovers. See [Filters](/docs/components/data-grid/filters) |
 | `tree(rows, onToggle)` | Expandable hierarchy with indentation, guides, and chevrons in the first column. See [Tree rows](/docs/components/data-grid/tree-rows) |
 | `footer(totals)` | Pinned bottom row for app-supplied column totals. See [Totals and summary](/docs/components/data-grid/totals) |
+| `find(app, find)` | Floating Ctrl+F find bar that highlights and steps through matches without filtering rows. See [Find](#find) |
 | `empty(El view)` | View centered under the header when no rows are shown. See [Empty state](#empty-state) |
 | `changes(GridChanges)` | Full inline editing with pending changes and undo/redo. See [Editing](/docs/components/data-grid/editing) |
 | `onEdit`, `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `status`, `errors`, `history`, `appendRow()` | Lower-level editing hooks |
@@ -133,6 +134,19 @@ With `appendRow()`, the grid still shows its append row when `rowCount` is `0` r
 ```java snippet="grid-empty"
 ```
 
+## Find
+
+`options().find(app, find)` adds a floating find bar at the top right of the grid (reusing [Find](/docs/components/find)'s controls: query field, Match case, Regular expression, match count, previous, next, and close). Press **Ctrl+F** while the grid has focus to open it without filtering rows. Matches are tinted behind the text in visible cells, and the current match is outlined, selected, and scrolled into view.
+
+Store a `DataGrid.Find` in your app state. You can also control it from menus or toolbars with `find.open()`, `find.close()`, `find.next()`, and `find.previous()`.
+
+<Shot src="examples/docs/grid-find/found-{theme}" alt="A grid with the floating find bar open at the top right, matches tinted in cells, and the current match outlined and selected" />
+
+```java snippet="grid-find"
+```
+
+Find searches the display text each shown column's `cell` function supplies, in time-budgeted slices on the app's thread so million-row grids stay responsive (counting up to `Find.LIMIT`, `10000+`). Rows that are not yet loaded (`loading(loaded, onRows)`) are skipped and are never requested by find; the count then ends in `+`. Edits through `changes(GridChanges)` search again; after changing cells another way, call `find.open()` to search again.
+
 ## Lazy-loaded rows
 
 For paginated or remote datasets, pass `loading(loaded, onRows)`. Unloaded rows display `…` without calling cell functions, and `onRows` reports the currently visible row range so you can fetch them in the background ([Work off the app's thread](/docs/concepts/background-work)).
@@ -149,6 +163,8 @@ The grid is a single Tab stop:
 | Shift + navigation | Extend selection |
 | Ctrl+A | Select all |
 | Ctrl+C, Ctrl+Insert | Copy selection |
+| Ctrl+F | Open find bar (`options().find(app, find)`) |
+| Enter / Shift+Enter (in find bar), F3 / Shift+F3 | Next / previous match; Escape closes and returns focus to the grid |
 | Enter, F2, typing | Start editing active cell |
 | Enter | Open the cursor's row when Enter does not edit the cell (`onActivate`) |
 | Menu key, Shift+F10 | Open context menu at cursor |

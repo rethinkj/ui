@@ -1,0 +1,1 @@
+- Range backgrounds from a highlighter (`Spans.background`) now draw behind text outside fields too, not only in multi-line fields.

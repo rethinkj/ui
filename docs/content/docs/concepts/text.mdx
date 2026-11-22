@@ -47,7 +47,7 @@ After layout, `el.text()` returns a [`Text`](/api/com/rethinkj/ui/Text.html) obj
 - `font.withSystemFonts()` falls back to installed OS fonts (Noto/DejaVu on Linux, Segoe UI and CJK fonts on Windows).
 - In desktop windows, `WindowLoop` enables system font fallback globally by default (disable with `loop.systemFonts(false)`). In headless scripts, it is off by default for deterministic screenshots across machines.
 
-Note: Right-to-left text is shaped right-to-left, but full bidirectional reordering for mixed-direction lines is not supported yet. Color emoji render as monochrome outlines in the text color.
+Note: Right-to-left text is shaped right-to-left, but full bidirectional reordering for mixed-direction lines is not supported yet. Color emoji are drawn in color from COLR version 0 fonts (such as Segoe UI Emoji on Windows); bitmap emoji fonts (CBDT, such as Noto Color Emoji) and COLR version 1 fonts are not supported yet and still render as single-color outlines or are left out.
 
 ## Platform text rendering
 

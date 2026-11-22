@@ -220,6 +220,14 @@ class GpuRendererTest {
         80,
         s,
         Examples.FALLBACK_FIELD));
+    // Color emoji (COLR v0) beside normal text, under opacity, and in a field with selection.
+    cases.add(scripted(
+        "color-emoji",
+        new App<>(new Examples.Form(), Examples::colorEmoji),
+        280,
+        112,
+        s,
+        Examples.COLOR_EMOJI_SCRIPT));
     return cases;
   }
 
@@ -585,7 +593,7 @@ class GpuRendererTest {
       int y0;
       int x1;
       int y1;
-      if (kind == Scene.GLYPH) {
+      if (kind == Scene.GLYPH || kind == Scene.COLOR_GLYPH) {
         int size = s.getInt(i, Scene.ATLAS_SIZE);
         x0 = (int) Math.round(s.get(i, Scene.X) * (double) c.scale);
         y0 = (int) Math.round(s.get(i, Scene.Y) * (double) c.scale);

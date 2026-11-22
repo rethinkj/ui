@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Theme.over;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
@@ -2106,6 +2107,107 @@ public final class DataGrid {
   }
 
   /**
+   * What the app keeps of a grid's find bar ({@link Options#find}): whether it is open, its
+   * query and switches, and the current search's matches. Keep one per grid in the app's state.
+   */
+  public static final class Find {
+    boolean open;
+    String query = "";
+    boolean matchCase;
+    boolean regex;
+    int opened; // counts the openings, so that each takes the focus
+    boolean selectQuery; // the field selects its text once it is there
+    int originRow;
+    int originCol;
+    String error;
+    Pattern pattern;
+    // What the current scan and jump belong to.
+    GridFind.Scope scope;
+    int[] matchRows = new int[0];
+    int[] matchCols = new int[0];
+    int matchCount;
+    boolean more;
+    boolean stopped;
+    boolean complete;
+    int scanRow;
+    int scanCol;
+    boolean slowCell; // a visible cell's scan timed out: stop marking visible cells for this query
+    GridFind.Jump jump;
+    long gen; // incremented on cancel/restart so stale scheduled slices do nothing
+    boolean scheduled;
+    El bar; // the bar of the last build, which holds the focus while one types in it
+    int revealMoves = -1; // the selection's moves when find selected a match, whose column shows
+    boolean skipped; // the scan left out rows that were not loaded
+    // The last build and its elements, for handlers and public methods.
+    Build build;
+    App<?> app;
+    El findField;
+    Texts texts = Texts.ENGLISH;
+
+    /** A find bar that is closed, with no query. */
+    public Find() {
+      // the fields say it: closed, empty, no search
+    }
+
+    /** Whether the find bar shows. */
+    public boolean isOpen() {
+      return open;
+    }
+
+    /** The text to find. */
+    public String query() {
+      return query;
+    }
+
+    public boolean matchCase() {
+      return matchCase;
+    }
+
+    public boolean regex() {
+      return regex;
+    }
+
+    /** Opens the find bar on the grid it was last built for. */
+    public void open() {
+      GridFind.open(this);
+    }
+
+    /** Closes the find bar and cancels any search in progress; the grid keeps its selection. */
+    public void close() {
+      open = false;
+      cancel();
+    }
+
+    /** Goes to the next matching cell after the cursor, wrapping round to the first. */
+    public void next() {
+      GridFind.go(this, 1);
+    }
+
+    /** Goes to the matching cell before the cursor, wrapping round to the last. */
+    public void previous() {
+      GridFind.go(this, -1);
+    }
+
+    void cancel() {
+      gen++;
+      scheduled = false;
+      jump = null;
+    }
+
+    void resetSearch() {
+      cancel();
+      scope = null;
+      matchCount = 0;
+      more = false;
+      stopped = false;
+      complete = false;
+      scanRow = 0;
+      scanCol = 0;
+      slowCell = false;
+    }
+  }
+
+  /**
    * What a grid does besides showing rows: its selection, sorting, resizing, frozen columns,
    * copying, context menu, loading and editing. Each is off until a call turns it on; the view
    * makes the options anew with the grid.
@@ -2150,6 +2252,9 @@ public final class DataGrid {
     El empty;
     Tree.Rows<?> tree;
     RowToggle onToggle;
+    App<?> findApp;
+    Find find;
+    GridChanges changes;
     // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
     // none, and the number of rows there are now, which a handler may have changed since the build.
     IntToLongFunction rowKey;
@@ -2499,6 +2604,26 @@ public final class DataGrid {
     }
 
     /**
+     * Lets Control+F open a floating find bar at the grid's top right to search and step through
+     * matching cells without filtering rows: case-insensitive by default, with Match case
+     * (Alt+C), Regular expression (Alt+R), match counts up to {@link
+     * com.rethinkj.ui.kit.Find#LIMIT}, Enter/F3 for next, Shift+Enter/Shift+F3 for previous, and
+     * Escape to close and return focus to the grid while keeping the current match selected.
+     *
+     * <p>Searches the display text each shown column's {@link Column#cell} function supplies, in
+     * time-budgeted slices on the app's thread ({@link App#after}) so large grids stay responsive.
+     * Rows that are not loaded ({@link #loading}) are skipped and never asked for; the count then
+     * ends in {@code +}. The count and the order of the matches are those of the last search:
+     * changes through {@link #changes} search again, and after the app changes cells otherwise,
+     * {@link Find#open} does. Needs {@link #select}.
+     */
+    public Options find(App<?> app, Find find) {
+      this.findApp = Objects.requireNonNull(app, "app");
+      this.find = Objects.requireNonNull(find, "find");
+      return this;
+    }
+
+    /**
      * Shows what the rows and cells hold against the database: a mark at the start of each row
      * that is not {@link Status#UNCHANGED}, a tint over it or over its cells, a {@code +} for the
      * number of a new row, and the text of a deleted row muted and struck through. In a tree dump a row and
@@ -2677,6 +2802,7 @@ public final class DataGrid {
       rowKey = changes::key;
       rowPlace = changes::rowOf;
       rowsNow = changes::rowCount;
+      this.changes = changes;
       status(changes::rowStatus, changes::cellStatus);
       errors(changes::errorText);
       return history(changes::undo, changes::redo);
@@ -2831,6 +2957,7 @@ public final class DataGrid {
     }
     Build b = new Build(theme, columns, rowCount, options);
     b.all = allColumns;
+    GridFind.prepare(b);
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
@@ -2899,7 +3026,12 @@ public final class DataGrid {
     if (b.edits && sel.isEditing()) {
       GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
     }
-    content.children(header, body);
+    content.child(header);
+    float findStrip = GridFind.strip(b);
+    if (findStrip > 0) { // the find bar's room below the header: it covers no row
+      content.child(el().key("find-room").h(findStrip).shrink(0));
+    }
+    content.child(body);
     if (options.totals != null) {
       content.child(footer(b));
     }
@@ -2947,6 +3079,9 @@ public final class DataGrid {
     if (b.edits) {
       grid.onResize((width, height) -> sel.edit.gridWidth = width)
           .onText(text -> GridEdit.typed(b, text));
+    }
+    if (options.find != null && options.find.isOpen()) {
+      grid.overlay(GridFind.bar(b));
     }
     return grid.focusable()
         .focusRing(theme.accent().edge())
@@ -3608,6 +3743,11 @@ public final class DataGrid {
     return r;
   }
 
+  /** The tint behind a match of the find bar: the current one's, or the others'. */
+  private static int findTint(Theme theme, boolean current) {
+    return current ? theme.code().current() : theme.code().match();
+  }
+
   private static El cell(
       Build b,
       int i,
@@ -3634,6 +3774,10 @@ public final class DataGrid {
     if (row == Status.NEW && status != Status.ERROR) {
       status = Status.UNCHANGED; // the new row's tint covers its cells; a failed one shows
     }
+    String value = loaded && !append && !pending ? column.cell().apply(i) : null;
+    boolean cursorCell = sel != null && sel.row() == i && sel.column() == c;
+    Search.Matches findMatches = GridFind.cellMatches(b, loaded, append, value, cursorCell);
+    boolean currentMatch = findMatches != null && cursorCell;
     boolean selected = b.cells && sel.contains(i, c);
     boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
     float border = 0;
@@ -3643,12 +3787,12 @@ public final class DataGrid {
       if (selected) {
         box.fill(b.selectionFill());
       }
-      if (ring) {
-        border = b.g.cursorWidth();
-        box.border(border, b.g.cursor())
-            .radius(theme.radius().small())
-            .padding(0, Math.max(theme.space().s() - border, 0));
-      }
+    }
+    if (ring || currentMatch) {
+      border = b.g.cursorWidth();
+      box.border(border, ring ? b.g.cursor() : theme.accent().edge())
+          .radius(theme.radius().small())
+          .padding(0, Math.max(theme.space().s() - border, 0));
     }
     if (status == Status.CHANGED || status == Status.ERROR) {
       box.value(statusName(status));
@@ -3657,7 +3801,8 @@ public final class DataGrid {
       }
       if (status == Status.ERROR) {
         box.invalid(true);
-        if (!ring) { // a line of the danger color inside the cell, where the cursor's would be
+        // A line of the danger color inside the cell, where the cursor's or the match's would be.
+        if (!ring && !currentMatch) {
           border = theme.size().stroke();
           box.border(border, theme.status().danger())
               .radius(theme.radius().small())
@@ -3731,7 +3876,6 @@ public final class DataGrid {
         treeBefore = shown * indent + mark + pad;
       }
     }
-    String value = loaded && !append && !pending ? column.cell().apply(i) : null;
     El view =
         loaded && !append && !pending && column.view() != null ? column.view().apply(i) : null;
     CellIcon icon = view == null && loaded && !append && !pending && column.cellIcon() != null
@@ -3758,6 +3902,9 @@ public final class DataGrid {
     } else if (!append && !pending) {
       if (view != null) {
         box.label(value == null ? "NULL" : value); // what the view stands for, in a dump
+        if (findMatches != null) {
+          box.fill(over(box.fill() != 0 ? box.fill() : rowFill, findTint(theme, currentMatch)));
+        }
         shieldControls(view, sel);
         box.child(view);
       } else {
@@ -3792,6 +3939,9 @@ public final class DataGrid {
               value == null || row == Status.DELETED
                   ? theme.text().muted()
                   : theme.text().primary());
+          if (findMatches != null) {
+            GridFind.mark(text, findMatches, findTint(theme, currentMatch), currentMatch);
+          }
           valueText = text;
           box.child(text);
           if (row == Status.DELETED) { // struck through, a line as the text is wide
@@ -3805,6 +3955,9 @@ public final class DataGrid {
           }
         } else {
           box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
+          if (findMatches != null) {
+            box.fill(over(box.fill() != 0 ? box.fill() : rowFill, findTint(theme, currentMatch)));
+          }
         }
         if (more != null && !right) {
           box.child(more);
@@ -4029,7 +4182,9 @@ public final class DataGrid {
           sel.moves, edge - fixed - b.g.handle(), 0, fixed + 2 * b.g.handle() + b.room, 0);
     } else if (sel.start) {
       b.grid.reveal(sel.moves, 0, 0, fixed, 0);
-    } else if (b.cells && sel.column() >= b.frozen && sel.column() < n) {
+    } else if ((b.cells || b.o.find != null && b.o.find.revealMoves == sel.moves)
+        && sel.column() >= b.frozen
+        && sel.column() < n) {
       float left = b.xs[sel.column()] - fixed; // clear of the frozen part and the rows' bar
       b.grid.reveal(sel.moves, left, 0, b.xs[sel.column() + 1] + b.room - left, 0);
     }
@@ -4038,6 +4193,9 @@ public final class DataGrid {
   // Keys
 
   private static boolean key(Build b, Key k) {
+    if (GridFind.focused(b)) { // the find bar's key: the app's, not the grid's
+      return false;
+    }
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();
@@ -4048,6 +4206,9 @@ public final class DataGrid {
       return GridEdit.editKey(b, k);
     }
     if (GridEdit.gridKey(b, k)) {
+      return true;
+    }
+    if (GridFind.gridKey(b, k)) {
       return true;
     }
     if (mods == Key.ALT

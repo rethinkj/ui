@@ -1,0 +1,219 @@
+el 0,0 560x260
+  el 12,12 536x236
+    el #orders role=grid label="Orders" 13,13 534x234
+      el #content 13,13 534x234
+        el #header 13,13 534x25
+          el #column-0 role=columnheader label="id" 50,13 79x24 pos=1/4
+            text label="number_symbol" "\u{F57C}" 94,17 16x16
+            text "id" 114,17 11x16
+          el 129,13 1x24
+          el #column-1 role=columnheader label="customer" 130,13 119x24 pos=2/4
+            text label="text_case_title" "\u{ECEC}" 134,17 16x16
+            text "customer" 154,17 60x16
+          el 249,13 1x24
+          el #column-2 role=columnheader label="amount" 250,13 99x24 pos=3/4
+            text label="calculator" "\u{F06B}" 278,17 16x16
+            text "amount" 298,17 47x16
+          el 349,13 1x24
+          el #column-3 role=columnheader label="status" 350,13 99x24 pos=4/4
+            text label="text_case_title" "\u{ECEC}" 354,17 16x16
+            text "status" 374,17 37x16
+          el 449,13 1x24
+          el #numbers 13,13 36x24
+          el 49,13 1x24
+        el #find-room 13,38 534x34
+        el #rows 13,72 534x175 rows 0-10/1000 scroll 0,17 thumb-y 539,74.1 6x24
+          el #row-0 role=row 13,55 534x24 pos=1/1000
+            el #cell-0-0 role=gridcell 50,55 79x23 pos=1/4
+              text "1000" 97,59 28x16
+            el 129,55 1x23
+            el #cell-0-1 role=gridcell 130,55 119x23 pos=2/4
+              text "Ada" 134,59 24x16
+            el 249,55 1x23
+            el #cell-0-2 role=gridcell 250,55 99x23 pos=3/4
+              text "0.00" 317,59 28x16
+            el 349,55 1x23
+            el #cell-0-3 role=gridcell 350,55 99x23 pos=4/4
+              text "paid" 354,59 26x16
+            el 449,55 1x23
+            el #number-0 role=rowheader 13,55 36x23
+              text "1" 38,59 7x16
+            el 49,55 1x23
+          el #row-1 role=row 13,79 534x24 pos=2/1000
+            el #cell-1-0 role=gridcell 50,79 79x23 pos=1/4
+              text "1001" 97,83 28x16
+            el 129,79 1x23
+            el #cell-1-1 role=gridcell 130,79 119x23 pos=2/4
+              text "Brendan" 134,83 53x16
+            el 249,79 1x23
+            el #cell-1-2 role=gridcell 250,79 99x23 pos=3/4
+              text "37.13" 310,83 35x16
+            el 349,79 1x23
+            el #cell-1-3 role=gridcell 350,79 99x23 pos=4/4
+              text "pending" 354,83 51x16
+            el 449,79 1x23
+            el #number-1 role=rowheader 13,79 36x23
+              text "2" 38,83 7x16
+            el 49,79 1x23
+          el #row-2 role=row 13,103 534x24 pos=3/1000
+            el #cell-2-0 role=gridcell 50,103 79x23 pos=1/4
+              text "1002" 97,107 28x16
+            el 129,103 1x23
+            el #cell-2-1 role=gridcell 130,103 119x23 pos=2/4
+              text "Chen" 134,107 33x16
+            el 249,103 1x23
+            el #cell-2-2 role=gridcell 250,103 99x23 pos=3/4
+              text "74.26" 310,107 35x16
+            el 349,103 1x23
+            el #cell-2-3 role=gridcell 350,103 99x23 pos=4/4
+              text "shipped" 354,107 50x16
+            el 449,103 1x23
+            el #number-2 role=rowheader 13,103 36x23
+              text "3" 38,107 7x16
+            el 49,103 1x23
+          el #row-3 role=row 13,127 534x24 pos=4/1000
+            el #cell-3-0 role=gridcell 50,127 79x23 pos=1/4
+              text "1003" 97,131 28x16
+            el 129,127 1x23
+            el #cell-3-1 role=gridcell 130,127 119x23 pos=2/4
+              text "Dagny" 134,131 38x16
+            el 249,127 1x23
+            el #cell-3-2 role=gridcell 250,127 99x23 pos=3/4
+              text "111.39" 303,131 42x16
+            el 349,127 1x23
+            el #cell-3-3 role=gridcell 350,127 99x23 pos=4/4
+              text "refunded" 354,131 58x16
+            el 449,127 1x23
+            el #number-3 role=rowheader 13,127 36x23
+              text "4" 38,131 7x16
+            el 49,127 1x23
+          el #row-4 role=row 13,151 534x24 pos=5/1000
+            el #cell-4-0 role=gridcell 50,151 79x23 pos=1/4
+              text "1004" 97,155 28x16
+            el 129,151 1x23
+            el #cell-4-1 role=gridcell 130,151 119x23 pos=2/4
+              text "Emeka" 134,155 41x16
+            el 249,151 1x23
+            el #cell-4-2 role=gridcell 250,151 99x23 pos=3/4
+              text "148.52" 303,155 42x16
+            el 349,151 1x23
+            el #cell-4-3 role=gridcell 350,151 99x23 pos=4/4
+              text "paid" 354,155 26x16
+            el 449,151 1x23
+            el #number-4 role=rowheader 13,151 36x23
+              text "5" 38,155 7x16
+            el 49,151 1x23
+          el #row-5 role=row 13,175 534x24 pos=6/1000
+            el #cell-5-0 role=gridcell 50,175 79x23 pos=1/4
+              text "1005" 97,179 28x16
+            el 129,175 1x23
+            el #cell-5-1 role=gridcell 130,175 119x23 pos=2/4
+              text "Farah" 134,179 34x16
+            el 249,175 1x23
+            el #cell-5-2 role=gridcell 250,175 99x23 pos=3/4
+              text "185.65" 303,179 42x16
+            el 349,175 1x23
+            el #cell-5-3 role=gridcell 350,175 99x23 pos=4/4
+              text "pending" 354,179 51x16
+            el 449,175 1x23
+            el #number-5 role=rowheader 13,175 36x23
+              text "6" 38,179 7x16
+            el 49,175 1x23
+          el #row-6 role=row 13,199 534x24 pos=7/1000
+            el #cell-6-0 role=gridcell 50,199 79x23 pos=1/4
+              text "1006" 97,203 28x16
+            el 129,199 1x23
+            el #cell-6-1 role=gridcell 130,199 119x23 pos=2/4
+              text "Gus" 134,203 25x16
+            el 249,199 1x23
+            el #cell-6-2 role=gridcell 250,199 99x23 pos=3/4
+              text "222.78" 303,203 42x16
+            el 349,199 1x23
+            el #cell-6-3 role=gridcell 350,199 99x23 pos=4/4
+              text "shipped" 354,203 50x16
+            el 449,199 1x23
+            el #number-6 role=rowheader 13,199 36x23
+              text "7" 38,203 7x16
+            el 49,199 1x23
+          el #row-7 role=row 13,223 534x24 pos=8/1000
+            el #cell-7-0 role=gridcell 50,223 79x23 pos=1/4
+              text "1007" 97,227 28x16
+            el 129,223 1x23
+            el #cell-7-1 role=gridcell 130,223 119x23 selected current pos=2/4
+              text "Ada" 134,227 24x16
+            el 249,223 1x23
+            el #cell-7-2 role=gridcell 250,223 99x23 pos=3/4
+              text "259.91" 303,227 42x16
+            el 349,223 1x23
+            el #cell-7-3 role=gridcell 350,223 99x23 pos=4/4
+              text "refunded" 354,227 58x16
+            el 449,223 1x23
+            el #number-7 role=rowheader 13,223 36x23
+              text "8" 38,227 7x16
+            el 49,223 1x23
+          el #row-8 role=row 13,247 534x24 pos=9/1000
+            el #cell-8-0 role=gridcell 50,247 79x23 pos=1/4
+              text "1008" 97,251 28x16
+            el 129,247 1x23
+            el #cell-8-1 role=gridcell 130,247 119x23 pos=2/4
+              text "Brendan" 134,251 53x16
+            el 249,247 1x23
+            el #cell-8-2 role=gridcell 250,247 99x23 pos=3/4
+              text "296.04" 303,251 42x16
+            el 349,247 1x23
+            el #cell-8-3 role=gridcell 350,247 99x23 pos=4/4
+              text "paid" 354,251 26x16
+            el 449,247 1x23
+            el #number-8 role=rowheader 13,247 36x23
+              text "9" 38,251 7x16
+            el 49,247 1x23
+          el #row-9 role=row 13,271 534x24 pos=10/1000
+            el #cell-9-0 role=gridcell 50,271 79x23 pos=1/4
+              text "1009" 97,275 28x16
+            el 129,271 1x23
+            el #cell-9-1 role=gridcell 130,271 119x23 pos=2/4
+              text "Chen" 134,275 33x16
+            el 249,271 1x23
+            el #cell-9-2 role=gridcell 250,271 99x23 pos=3/4
+              text "333.17" 303,275 42x16
+            el 349,271 1x23
+            el #cell-9-3 role=gridcell 350,271 99x23 pos=4/4
+              text "pending" 354,275 51x16
+            el 449,271 1x23
+            el #number-9 role=rowheader 13,271 36x23
+              text "10" 31,275 14x16
+            el 49,271 1x23
+          el #row-10 role=row 13,295 534x24 pos=11/1000
+            el #cell-10-0 role=gridcell 50,295 79x23 pos=1/4
+              text "1010" 97,299 28x16
+            el 129,295 1x23
+            el #cell-10-1 role=gridcell 130,295 119x23 pos=2/4
+              text "Dagny" 134,299 38x16
+            el 249,295 1x23
+            el #cell-10-2 role=gridcell 250,295 99x23 pos=3/4
+              text "370.30" 303,299 42x16
+            el 349,295 1x23
+            el #cell-10-3 role=gridcell 350,295 99x23 pos=4/4
+              text "shipped" 354,299 50x16
+            el 449,295 1x23
+            el #number-10 role=rowheader 13,295 36x23
+              text "11" 31,299 14x16
+            el 49,295 1x23
+overlay top end gap -57 on #orders role=grid label="Orders" 13,13 534x234
+  el #find role=search label="Find" 196,40 351x30
+    el 196,40 341x30
+      el 199,43 335x24
+        el 199,43 200x24
+          text #find-field role=textbox label="Find" "Ada" 199,43 200x24 focused caret 3
+          el 357,45 40x20
+            el #match-case role=button label="Match case" 357,45 20x20 checked=false
+              text label="text_case_title" "\u{ECEC}" 359,47 16x16
+            el #regex role=button label="Regular expression" 377,45 20x20 checked=false
+              text label="text_period_asterisk" "\u{ED4A}" 379,47 16x16
+        text #count "2 of 143" 407,48 49x15
+        el #previous role=button label="Previous match" 458,43 24x24
+          text label="arrow_up" "\u{F1B4}" 462,47 16x16
+        el #next role=button label="Next match" 484,43 24x24
+          text label="arrow_down" "\u{F147}" 488,47 16x16
+        el #close role=button label="Close" 510,43 24x24
+          text label="dismiss" "\u{F368}" 514,47 16x16

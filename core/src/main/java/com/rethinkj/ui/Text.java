@@ -435,9 +435,9 @@ public final class Text implements Measure {
   }
 
   /**
-   * What a multi-line field draws behind its selection on the rows of {@link #lines}: the
-   * backgrounds of lines, then those of ranges, then the lines under ranges, each in the order
-   * the lines and their {@link Spans} have them; empty for other text.
+   * What a text draws behind its glyphs (and behind a multi-line field's selection) on the rows of
+   * {@link #lines}: the backgrounds of lines, then those of ranges, then the lines under ranges,
+   * each in the order the lines and their {@link Spans} have them.
    */
   public List<Mark> marks() {
     lines();
@@ -794,6 +794,9 @@ public final class Text implements Measure {
       placed.add(x == 0 ? line : new Line(line.glyphs(), line.width(), baseline, line.colors(), x));
     }
     lines = List.copyOf(placed);
+    marks = !field && highlighter != null && !placeholderShown && !masked && !spans.isEmpty()
+        ? singleLineMarks(spans)
+        : List.of();
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
       int line = lineOf(underlineFrom);
       // Only under what the line shows: not under characters the ellipsis cut, nor under the `…`,
@@ -811,6 +814,46 @@ public final class Text implements Measure {
               end - from,
               Math.max(1, Math.round(scale)));
     }
+  }
+
+  /** Range backgrounds from the highlighter on non-field text, clipped to shortened lines. */
+  private List<Mark> singleLineMarks(List<Span> spans) {
+    List<Mark> out = null;
+    for (int l = 0; l < spans.size(); l++) {
+      Span span = spans.get(l);
+      Para para = paras[span.paragraph];
+      Spans sp = para.spans;
+      if (sp == null || !sp.has(Spans.BACKGROUND)) {
+        continue;
+      }
+      boolean cut = lineEnd[l] != Float.POSITIVE_INFINITY;
+      int visTo = cut ? lineShown[l] : span.to;
+      if (visTo <= span.from) {
+        continue;
+      }
+      int pStart = para.offset;
+      float base = lineX[l] - para.pen(span.from);
+      float top = lineTop(l);
+      for (int i = 0; i < sp.count; i++) {
+        if (sp.kinds[i] != Spans.BACKGROUND) {
+          continue;
+        }
+        int a = Math.max(sp.froms[i] - pStart, span.from);
+        int b = Math.min(sp.tos[i] - pStart, visTo);
+        if (b <= a) {
+          continue;
+        }
+        float x0 = base + para.pen(a);
+        float x1 = cut && b == visTo ? lineX[l] + lineEnd[l] : base + para.pen(b);
+        if (x1 > x0) {
+          if (out == null) {
+            out = new ArrayList<>();
+          }
+          out.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), sp.colors[i]));
+        }
+      }
+    }
+    return out == null ? List.of() : List.copyOf(out);
   }
 
   /**

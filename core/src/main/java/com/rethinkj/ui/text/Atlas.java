@@ -12,18 +12,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Glyph bitmaps for drawing, rasterized once and kept in square pages of 8-bit coverage, which a
- * GPU renderer uploads as textures. A glyph is identified by everything that changes its bitmap:
- * font, size in physical pixels, hinting, glyph id and quarter-pixel offset.
+ * Glyph bitmaps for drawing, rasterized once and kept in square pages, which a GPU renderer uploads
+ * as textures: coverage pages of 8-bit coverage (1 byte per texel) and color pages of premultiplied
+ * RGBA (4 bytes per texel). A glyph is identified by everything that changes its bitmap: font, size
+ * in physical pixels, hinting, glyph id and quarter-pixel offset.
  *
  * <p>Glyphs are packed into rows (shelves) whose heights are multiples of 4 texels, but for a last
  * shelf that takes the rows left where only that rounding would keep a glyph out, each glyph with
  * one empty texel to its right and below it, so that no glyph's texels touch another's. The atlas
- * is bounded in entries and in bytes. Beyond the number of entries, the least recently used ones
- * are forgotten, and their texels are reused once nothing in their page is left. When a glyph
- * fits into no page and another page would exceed the bytes, the page used least recently is
- * emptied for it. Neither touches a glyph used since the last {@link #nextFrame}: the current
- * frame may need more than the bounds, and then the atlas grows beyond them.
+ * is bounded in entries and in bytes (counting real bytes across both kinds of pages). Beyond the
+ * number of entries, the least recently used ones are forgotten, and their texels are reused once
+ * nothing in their page is left. When a glyph fits into no page of its kind and another page would
+ * exceed the bytes, the page of that kind used least recently is emptied for it. Neither touches a
+ * glyph used since the last {@link #nextFrame}: the current frame may need more than the bounds,
+ * and then the atlas grows beyond them.
  *
  * <p>Each page records the region that changed since it was last {@link Page#takeChanged taken},
  * so that a renderer uploads only that.
@@ -40,12 +42,15 @@ public final class Atlas {
    * Where a glyph's bitmap lies in the atlas, in texels, and where it lies relative to the glyph's
    * origin, in physical pixels; one texel covers one physical pixel.
    *
-   * @param page the index of the page in {@link #pages}, or -1 for a glyph without ink, such as a
-   *     space, or one too large for a page
+   * @param page the index of the page in {@link #pages} or, when {@code color} is true, in {@link
+   *     #colorPages}, or -1 for a glyph without ink, such as a space, or one too large for a page
    * @param left how far the bitmap's left edge lies right of the origin
    * @param top how far the bitmap's top edge lies above the baseline
+   * @param color whether the slot lies in a color page ({@link #colorPages}) rather than a coverage
+   *     page ({@link #pages})
    */
-  public record Slot(int page, int x, int y, int width, int height, int left, int top) {
+  public record Slot(
+      int page, int x, int y, int width, int height, int left, int top, boolean color) {
 
     /** Whether there is nothing to draw. */
     public boolean isEmpty() {
@@ -64,14 +69,18 @@ public final class Atlas {
   }
 
   /**
-   * One page: {@link #size} by {@link #size} texels of coverage, one unsigned byte each from 0
-   * (none) to 255 (all), rows from the top, {@link #size} bytes a row, in native memory. As a
-   * WebGPU texture it is {@code r8unorm}. Every texel next to a glyph's bitmap is 0, so that
-   * sampling at its edge never picks up another; glyphs that were forgotten may stay elsewhere.
+   * One page: {@link #size} by {@link #size} texels, rows from the top, in native memory. A
+   * coverage page ({@link #bytesPerTexel} 1, WebGPU {@code r8unorm}) holds one unsigned byte per
+   * texel from 0 (none) to 255 (all). A color page ({@link #bytesPerTexel} 4, WebGPU {@code
+   * rgba8unorm}) holds four bytes per texel: red, green and blue premultiplied by alpha in linear
+   * light and encoded to 8-bit sRGB, and linear alpha from 0 to 255. Every texel next to a glyph's
+   * bitmap is 0, so that sampling at its edge never picks up another; glyphs that were forgotten
+   * may stay elsewhere.
    */
   public static final class Page {
 
     private final int size;
+    private final int bytesPerTexel;
     private final MemorySegment pixels;
     private final List<int[]> shelves = new ArrayList<>(); // y, height, next free x
     private int bottom; // where the next shelf starts
@@ -82,9 +91,10 @@ public final class Atlas {
     private int changedRight;
     private int changedBottom;
 
-    private Page(int size) {
+    private Page(int size, int bytesPerTexel) {
       this.size = size;
-      pixels = Arena.ofAuto().allocate((long) size * size);
+      this.bytesPerTexel = bytesPerTexel;
+      pixels = Arena.ofAuto().allocate((long) size * size * bytesPerTexel);
       clearChanged();
     }
 
@@ -92,14 +102,31 @@ public final class Atlas {
       return size;
     }
 
-    /** The texels, read-only, {@code size * size} bytes. */
+    /** Bytes per texel: 1 for a coverage page, 4 for a color page. */
+    public int bytesPerTexel() {
+      return bytesPerTexel;
+    }
+
+    /** The texels, read-only, {@code size * size * bytesPerTexel} bytes. */
     public MemorySegment pixels() {
       return pixels.asReadOnly();
     }
 
-    /** The coverage of one texel, 0 to 255. */
+    /** The coverage of one texel on a coverage page, 0 to 255. */
     public int coverage(int x, int y) {
       return pixels.get(JAVA_BYTE, (long) y * size + x) & 0xFF;
+    }
+
+    /**
+     * One texel of a color page as 0xAARRGGBB: linear alpha, and red, green and blue premultiplied
+     * by alpha in linear light and encoded to 8-bit sRGB.
+     */
+    public int color(int x, int y) {
+      long at = ((long) y * size + x) * 4;
+      return (pixels.get(JAVA_BYTE, at + 3) & 0xFF) << 24
+          | (pixels.get(JAVA_BYTE, at) & 0xFF) << 16
+          | (pixels.get(JAVA_BYTE, at + 1) & 0xFF) << 8
+          | (pixels.get(JAVA_BYTE, at + 2) & 0xFF);
     }
 
     /** The bounding box of the texels written since the last {@link #takeChanged}. */
@@ -184,13 +211,14 @@ public final class Atlas {
     private void write(int x, int y, Font.Bitmap bitmap) {
       int width = bitmap.width();
       int height = bitmap.height();
+      int rowBytes = width * bytesPerTexel;
       for (int row = 0; row <= height; row++) {
-        long at = (long) (y + row) * size + x;
+        long at = ((long) (y + row) * size + x) * bytesPerTexel;
         if (row < height) {
-          MemorySegment.copy(bitmap.coverage(), row * width, pixels, JAVA_BYTE, at, width);
-          pixels.set(JAVA_BYTE, at + width, (byte) 0);
+          MemorySegment.copy(bitmap.pixels(), row * rowBytes, pixels, JAVA_BYTE, at, rowBytes);
+          pixels.asSlice(at + rowBytes, bytesPerTexel).fill((byte) 0);
         } else {
-          pixels.asSlice(at, width + 1).fill((byte) 0);
+          pixels.asSlice(at, (long) (width + 1) * bytesPerTexel).fill((byte) 0);
         }
       }
       changedLeft = Math.min(changedLeft, x);
@@ -228,6 +256,7 @@ public final class Atlas {
   private final long maxBytes;
   private final int maxEntries;
   private final List<Page> pages = new ArrayList<>();
+  private final List<Page> colorPages = new ArrayList<>();
   // In access order: the least recently used first.
   private final LinkedHashMap<Key, Entry> entries = new LinkedHashMap<>(256, 0.75f, true);
   private long frame;
@@ -283,15 +312,24 @@ public final class Atlas {
     }
     entry.used = frame;
     if (!entry.slot.isEmpty()) {
-      pages.get(entry.slot.page).used = frame;
+      pages(entry.slot.color()).get(entry.slot.page()).used = frame;
     }
     trim();
     return entry.slot;
   }
 
-  /** The pages, which slots and scene instances refer to by index; the list grows. */
+  /** The coverage pages, which slots and glyph instances refer to by index; the list grows. */
   public List<Page> pages() {
     return Collections.unmodifiableList(pages);
+  }
+
+  /** The color pages, which color slots and color glyph instances refer to by index; the list grows. */
+  public List<Page> colorPages() {
+    return Collections.unmodifiableList(colorPages);
+  }
+
+  private List<Page> pages(boolean color) {
+    return color ? colorPages : pages;
   }
 
   /** The number of glyphs kept. */
@@ -299,23 +337,25 @@ public final class Atlas {
     return entries.size();
   }
 
-  /** The bytes the pages take. */
+  /** The bytes the pages take, across both coverage and color pages. */
   public long bytes() {
-    return (long) pages.size() * pageSize * pageSize;
+    return (pages.size() + 4L * colorPages.size()) * pageSize * pageSize;
   }
 
   private Slot store(Font.Bitmap bitmap) {
+    boolean color = bitmap.color();
     int width = bitmap.width() + 1;
     int height = bitmap.height() + 1;
     // shortcut: a glyph larger than a page is not drawn; give it a page of its own when text that
     // large is needed.
     if (bitmap.width() == 0 || bitmap.height() == 0 || width > pageSize || height > pageSize) {
-      return new Slot(-1, 0, 0, 0, 0, bitmap.left(), bitmap.top());
+      return new Slot(-1, 0, 0, 0, 0, bitmap.left(), bitmap.top(), color);
     }
+    List<Page> list = pages(color);
     int index = -1;
     int[] at = null;
-    for (int i = 0; i < pages.size() && at == null; i++) {
-      Page page = pages.get(i);
+    for (int i = 0; i < list.size() && at == null; i++) {
+      Page page = list.get(i);
       if (page.live == 0 && !page.shelves.isEmpty()) {
         page.reset(); // everything in it was forgotten
       }
@@ -323,32 +363,34 @@ public final class Atlas {
       index = i;
     }
     if (at == null) {
-      index = bytes() + (long) pageSize * pageSize <= maxBytes ? -1 : leastRecentlyUsedPage();
+      int bytesPerTexel = color ? 4 : 1;
+      long pageBytes = (long) pageSize * pageSize * bytesPerTexel;
+      index = bytes() + pageBytes <= maxBytes ? -1 : leastRecentlyUsedPage(list);
       if (index < 0) {
-        index = pages.size();
-        pages.add(new Page(pageSize));
+        index = list.size();
+        list.add(new Page(pageSize, bytesPerTexel));
       } else {
-        evict(index);
+        evict(color, index);
       }
-      at = pages.get(index).place(width, height);
+      at = list.get(index).place(width, height);
       if (at == null) {
         // An empty page holds any bitmap that is no larger than it; should one not fit anyway,
         // the glyph is left out as one larger than a page is.
-        return new Slot(-1, 0, 0, 0, 0, bitmap.left(), bitmap.top());
+        return new Slot(-1, 0, 0, 0, 0, bitmap.left(), bitmap.top(), color);
       }
     }
-    Page page = pages.get(index);
+    Page page = list.get(index);
     page.write(at[0], at[1], bitmap);
     page.live++;
     return new Slot(
-        index, at[0], at[1], bitmap.width(), bitmap.height(), bitmap.left(), bitmap.top());
+        index, at[0], at[1], bitmap.width(), bitmap.height(), bitmap.left(), bitmap.top(), color);
   }
 
-  /** The page used longest ago and not in this frame, or -1 if every page is in use. */
-  private int leastRecentlyUsedPage() {
+  /** The page of {@code list} used longest ago and not in this frame, or -1 if every page is in use. */
+  private int leastRecentlyUsedPage(List<Page> list) {
     int oldest = -1;
-    for (int i = 0; i < pages.size(); i++) {
-      if (pages.get(i).used < frame && (oldest < 0 || pages.get(i).used < pages.get(oldest).used)) {
+    for (int i = 0; i < list.size(); i++) {
+      if (list.get(i).used < frame && (oldest < 0 || list.get(i).used < list.get(oldest).used)) {
         oldest = i;
       }
     }
@@ -356,9 +398,9 @@ public final class Atlas {
   }
 
   /** Forgets every glyph of a page and empties it. */
-  private void evict(int index) {
-    entries.values().removeIf(entry -> entry.slot.page == index);
-    pages.get(index).reset();
+  private void evict(boolean color, int index) {
+    entries.values().removeIf(entry -> entry.slot.color() == color && entry.slot.page() == index);
+    pages(color).get(index).reset();
   }
 
   /** Forgets the least recently used glyphs beyond the bound, as far as this frame allows. */
@@ -371,7 +413,7 @@ public final class Atlas {
       }
       eldest.remove();
       if (!entry.slot.isEmpty()) {
-        pages.get(entry.slot.page).live--;
+        pages(entry.slot.color()).get(entry.slot.page()).live--;
       }
     }
   }

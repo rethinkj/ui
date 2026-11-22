@@ -55,6 +55,7 @@ final class Grids {
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Selection picked = new DataGrid.Selection(DataGrid.Mode.ROWS);
   final boolean[] active = {true, true, false, true, true};
+  final DataGrid.Find gridFind = new DataGrid.Find();
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
@@ -623,6 +624,27 @@ final class Grids {
             grid)
         .wFull()
         .grow(1));
+  }
+
+  static El found(Grids state) {
+    // docs:start grid-find
+    List<Column> columns = List.of(
+        new Column("id", 80, DataType.INTEGER, row -> value(row, 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(row, 1)),
+        new Column("amount", 100, DataType.DECIMAL, row -> value(row, 2)),
+        new Column("status", 100, DataType.TEXT, row -> value(row, 3)));
+    El grid = DataGrid.dataGrid(
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(state.selection)
+                .rowNumbers()
+                .find(state.app, state.gridFind)) // Ctrl+F opens the find bar
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-find
+    return Frame.of(Card.flush(grid).wFull().grow(1));
   }
 
   // docs:start tree-model

@@ -13,7 +13,8 @@ import java.util.function.IntPredicate;
  * script, left to right or right to left.
  *
  * <p>Each grapheme cluster ({@link BreakIterator#getCharacterInstance}: a letter with its marks, an
- * emoji sequence, a flag) goes to the first font that has all its characters, leaving out those
+ * emoji sequence, a flag) goes to the first font that has all its characters, an emoji to one with
+ * color glyphs before the others, leaving out those
  * that are never drawn (joiners, variation selectors, other format and control characters), or
  * all of their composed form. A cluster that no font has goes to the first font with its first
  * such character, or else to the first font, which draws its "not defined" glyph.
@@ -36,6 +37,11 @@ final class Runs {
   @FunctionalInterface
   interface Coverage {
     boolean has(int font, int codePoint);
+
+    /** Whether the font has color glyphs, which emoji take before another font's outlines. */
+    default boolean color(int font) {
+      return false;
+    }
   }
 
   /** Characters {@code from} to {@code to} of the text, in font {@code font} of the chain. */
@@ -49,7 +55,9 @@ final class Runs {
     for (int k = 0; k < n; k++) {
       String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
       font[k] = own(cluster, fonts, coverage);
-      neutral[k] = font[k] == 0 && script(cluster) == null;
+      // An emoji the first font draws in color stays with it.
+      neutral[k] =
+          font[k] == 0 && script(cluster) == null && !(coverage.color(0) && emoji(cluster));
     }
     // Neutrals between two clusters of one font stay with it.
     for (int i = 0; i < n; ) {
@@ -63,7 +71,9 @@ final class Runs {
       }
       if (i > 0 && j < n && font[i - 1] == font[j]) {
         for (int k = i; k < j; k++) {
-          if (covers(text.substring(bounds.get(k), bounds.get(k + 1)), font[j], coverage)) {
+          String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
+          // Only an emoji joins a font that draws in color: other symbols stay text.
+          if (covers(cluster, font[j], coverage) && (emoji(cluster) || !coverage.color(font[j]))) {
             font[k] = font[j];
           }
         }
@@ -143,6 +153,11 @@ final class Runs {
 
   /** The first font that has the cluster, else the first with its first character, else 0. */
   private static int own(String cluster, int fonts, Coverage coverage) {
+    for (int f = 0; f < fonts && emoji(cluster); f++) {
+      if (coverage.color(f) && covers(cluster, f, coverage)) {
+        return f;
+      }
+    }
     for (int f = 0; f < fonts; f++) {
       if (covers(cluster, f, coverage)) {
         return f;
@@ -155,6 +170,16 @@ final class Runs {
       }
     }
     return 0;
+  }
+
+  /**
+   * Whether a cluster is drawn as an emoji: by default or asked for with U+FE0F, and not asked to
+   * be text with U+FE0E.
+   */
+  static boolean emoji(String cluster) {
+    return cluster.indexOf('\uFE0E') < 0
+        && (Character.isEmojiPresentation(cluster.codePointAt(0))
+            || cluster.indexOf('\uFE0F') >= 0);
   }
 
   static boolean covers(String cluster, int font, Coverage coverage) {

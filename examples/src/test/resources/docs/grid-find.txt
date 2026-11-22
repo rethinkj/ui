@@ -1,0 +1,14 @@
+size 560 260
+frame
+focus #orders
+key F control
+frame
+advance 0.25
+frame
+type "Ada"
+frame
+advance 0.25
+frame
+key Enter
+frame
+snap found

@@ -6,6 +6,7 @@ import static java.lang.foreign.ValueLayout.JAVA_CHAR;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.text.ffi.FreeType;
 import com.rethinkj.ui.text.ffi.HarfBuzz;
@@ -79,6 +80,8 @@ public final class Font implements AutoCloseable {
   private final String name;
   private final boolean shared;
   private final boolean icons;
+  private final boolean colorGlyphs; // FT_FACE_FLAG_COLOR: rasterized with FT_LOAD_COLOR
+  private final boolean color; // whether its emoji draw in color, which fallback prefers for them
   // The font that owns the native objects and draws: this, or the font withFallback was called
   // on. For a font of fallbacks, the fields of native objects below are null.
   private final Font base;
@@ -105,13 +108,17 @@ public final class Font implements AutoCloseable {
   private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
 
   /**
-   * A rasterized glyph: its coverage, one byte per pixel from 0 (none) to 255 (all), rows from the
-   * top, and where the bitmap lies relative to the glyph's origin on the baseline.
+   * A rasterized glyph, rows from the top, and where the bitmap lies relative to the glyph's
+   * origin on the baseline: either 8-bit coverage (one byte per pixel from 0 to 255, {@code color}
+   * false) or premultiplied RGBA (four bytes per pixel, red, green and blue premultiplied by alpha
+   * in linear light and encoded to 8-bit sRGB, and linear alpha from 0 to 255, {@code color} true).
    *
    * @param left how far the left edge lies right of the origin, in pixels
    * @param top how far the top edge lies above the baseline
+   * @param pixels {@code width * height} bytes of coverage, or {@code width * height * 4} bytes of
+   *     premultiplied RGBA when {@code color} is true
    */
-  record Bitmap(int left, int top, int width, int height, byte[] coverage) {}
+  record Bitmap(int left, int top, int width, int height, byte[] pixels, boolean color) {}
 
   private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
 
@@ -146,6 +153,9 @@ public final class Font implements AutoCloseable {
     }
     name = string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)) + " "
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
+    colorGlyphs =
+        (FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) != 0;
+    color = colorGlyphs && drawsColor(face);
     styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
         & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
     blob = HarfBuzz.blobCreate(
@@ -184,6 +194,8 @@ public final class Font implements AutoCloseable {
     this.system = system;
     styleFlags = base.styleFlags;
     icons = base.icons;
+    colorGlyphs = base.colorGlyphs;
+    color = base.color;
     arena = null;
     face = null;
     blob = null;
@@ -441,7 +453,7 @@ public final class Font implements AutoCloseable {
   private GlyphRun shape(Key key) {
     String text = key.text;
     List<Font> chain = chain(text);
-    List<Runs.Run> runs = Runs.of(text, chain.size(), (f, c) -> chain.get(f).has(c));
+    List<Runs.Run> runs = Runs.of(text, chain.size(), coverage(chain));
     try (Arena call = Arena.ofConfined()) {
       int count = 1 + key.features.size();
       MemorySegment features = call.allocate(HarfBuzz.FEATURE, count);
@@ -473,13 +485,16 @@ public final class Font implements AutoCloseable {
     if (!system) {
       return chain;
     }
-    Runs.Coverage coverage = (f, c) -> chain.get(f).has(c);
+    Runs.Coverage coverage = coverage(chain);
     List<Integer> bounds = Runs.clusters(text);
     for (int k = 0; k + 1 < bounds.size(); k++) {
       String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
+      // An emoji looks further for a font with color glyphs than the ones that only have its
+      // outline.
+      boolean emoji = Runs.emoji(cluster);
       boolean covered = false;
       for (int f = 0; f < chain.size() && !covered; f++) {
-        covered = Runs.covers(cluster, f, coverage);
+        covered = (!emoji || chain.get(f).color) && Runs.covers(cluster, f, coverage);
       }
       Font found = covered ? null : SystemFonts.find(cluster, styleFlags);
       if (found != null && !chain.contains(found)) {
@@ -487,6 +502,31 @@ public final class Font implements AutoCloseable {
       }
     }
     return chain;
+  }
+
+  /**
+   * Whether a face with color glyphs draws its emoji in color: a sample renders as COLR version 0
+   * layers, not as an outline or nothing (COLR version 1, CBDT).
+   */
+  private static boolean drawsColor(MemorySegment face) {
+    try (Arena call = Arena.ofConfined()) {
+      int[] ranges = ranges(face, call.allocate(JAVA_INT));
+      return ranges.length > 0 && sampleMode(face, ranges) == FreeType.PIXEL_MODE_BGRA;
+    }
+  }
+
+  private static Runs.Coverage coverage(List<Font> chain) {
+    return new Runs.Coverage() {
+      @Override
+      public boolean has(int font, int codePoint) {
+        return chain.get(font).has(codePoint);
+      }
+
+      @Override
+      public boolean color(int font) {
+        return chain.get(font).color;
+      }
+    };
   }
 
   /** Whether the font has a glyph for the character, in its Unicode charmap. */
@@ -566,10 +606,10 @@ public final class Font implements AutoCloseable {
   private static final int ICON_HINTING = FreeType.LOAD_FORCE_AUTOHINT;
 
   /**
-   * Rasterizes a glyph with FreeType into grayscale coverage, moved right by {@code quarter}
-   * quarter pixels after hinting, so that a glyph on a quarter-pixel position is drawn from a
-   * bitmap at a whole one. The glyphs of {@link #icons()} are hinted alike for every {@code
-   * hinting} ({@link #ICON_HINTING}).
+   * Rasterizes a glyph with FreeType into grayscale coverage, or premultiplied RGBA for a color
+   * glyph of a color face, moved right by {@code quarter} quarter pixels after hinting, so that a
+   * glyph on a quarter-pixel position is drawn from a bitmap at a whole one. The glyphs of {@link
+   * #icons()} are hinted alike for every {@code hinting} ({@link #ICON_HINTING}).
    *
    * @param pixelSize the size in physical pixels, as {@link GlyphRun#pixelSize}
    * @param quarter 0 to 3
@@ -590,6 +630,7 @@ public final class Font implements AutoCloseable {
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
       int flags = FreeType.LOAD_NO_BITMAP
+          | (colorGlyphs ? FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG : 0)
           | (icons
               ? ICON_HINTING
               : switch (hinting) {
@@ -605,26 +646,74 @@ public final class Font implements AutoCloseable {
       int rows = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_ROWS);
       int width = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_WIDTH);
       int pitch = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_PITCH);
-      byte[] coverage = new byte[width * rows];
-      if (width > 0 && rows > 0) {
-        if (slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE) != FreeType.PIXEL_MODE_GRAY
-            || pitch < width) {
-          throw new IllegalStateException("FreeType rendered glyph " + glyph + " of " + name
+      int left = slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT);
+      int top = slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP);
+      if (width == 0 || rows == 0) {
+        return new Bitmap(left, top, width, rows, new byte[0], false);
+      }
+      int mode = slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE) & 0xFF;
+      if (colorGlyphs && mode == FreeType.PIXEL_MODE_BGRA) {
+        if (pitch < width * 4) {
+          throw new IllegalStateException("FreeType rendered color glyph " + glyph + " of " + name
               + " in an unexpected format: pitch " + pitch + " for width " + width);
         }
+        byte[] rgba = new byte[width * rows * 4];
         MemorySegment pixels =
             slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
         for (int y = 0; y < rows; y++) {
-          MemorySegment.copy(pixels, JAVA_BYTE, (long) y * pitch, coverage, y * width, width);
+          long row = (long) y * pitch;
+          int to = y * width * 4;
+          for (int x = 0; x < width; x++) {
+            long from = row + (long) x * 4;
+            int a = pixels.get(JAVA_BYTE, from + 3) & 0xFF;
+            if (a == 0) {
+              continue;
+            }
+            int b = pixels.get(JAVA_BYTE, from) & 0xFF;
+            int g = pixels.get(JAVA_BYTE, from + 1) & 0xFF;
+            int r = pixels.get(JAVA_BYTE, from + 2) & 0xFF;
+            int at = to + x * 4;
+            if (a == 255) {
+              rgba[at] = (byte) r;
+              rgba[at + 1] = (byte) g;
+              rgba[at + 2] = (byte) b;
+              rgba[at + 3] = (byte) 255;
+            } else {
+              rgba[at] = premulSrgb(r, a);
+              rgba[at + 1] = premulSrgb(g, a);
+              rgba[at + 2] = premulSrgb(b, a);
+              rgba[at + 3] = (byte) a;
+            }
+          }
         }
+        return new Bitmap(left, top, width, rows, rgba, true);
       }
-      return new Bitmap(
-          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
-          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP),
-          width,
-          rows,
-          coverage);
+      if (mode != FreeType.PIXEL_MODE_GRAY || pitch < width) {
+        throw new IllegalStateException("FreeType rendered glyph " + glyph + " of " + name
+            + " in an unexpected format: mode " + mode + ", pitch " + pitch + " for width "
+            + width);
+      }
+      byte[] coverage = new byte[width * rows];
+      MemorySegment pixels =
+          slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
+      for (int y = 0; y < rows; y++) {
+        MemorySegment.copy(pixels, JAVA_BYTE, (long) y * pitch, coverage, y * width, width);
+      }
+      return new Bitmap(left, top, width, rows, coverage, false);
     }
+  }
+
+  /**
+   * One channel of a premultiplied sRGB pixel from FreeType, converted to linear light,
+   * premultiplied by {@code alpha}, and encoded back to 8-bit sRGB (matching {@code Image}).
+   */
+  private static byte premulSrgb(int channel, int alpha) {
+    if (channel == 0) {
+      return 0;
+    }
+    double straight = Math.min(channel / (double) alpha, 1.0);
+    double linear = Colors.linear(straight) * (alpha / 255.0);
+    return (byte) Math.round(Colors.srgb(linear) * 255.0);
   }
 
   private void check(int error, String what) {
@@ -756,9 +845,9 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * For {@link SystemFonts}: the faces of a font file that draw outlines, each with its family,
-   * style and characters. A color face counts only if its glyph for a sample character, an emoji
-   * where it has one, renders as an outline.
+   * For {@link SystemFonts}: the faces of a font file that draw outlines or COLR version 0 color
+   * glyphs, each with its family, style and characters. A color face counts only if its glyph for a
+   * sample character, an emoji where it has one, renders as a BGRA color bitmap or as an outline.
    */
   static List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
     Natives.lookup("freetype");
@@ -790,8 +879,12 @@ public final class Font implements AutoCloseable {
             continue;
           }
           int[] ranges = ranges(face, glyph);
-          if (ranges.length == 0
-              || (flags & FreeType.FACE_FLAG_COLOR) != 0 && !outlined(face, ranges)) {
+          int mode = ranges.length == 0
+              ? -1
+              : (flags & FreeType.FACE_FLAG_COLOR) != 0
+                  ? sampleMode(face, ranges)
+                  : FreeType.PIXEL_MODE_GRAY;
+          if (mode < 0) {
             continue;
           }
           faces.add(new SystemFonts.Face(
@@ -801,7 +894,8 @@ public final class Font implements AutoCloseable {
               string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME)),
               (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
                   & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC)),
-              ranges));
+              ranges,
+              mode == FreeType.PIXEL_MODE_BGRA));
         } finally {
           FreeType.doneFace(face);
         }
@@ -830,29 +924,41 @@ public final class Font implements AutoCloseable {
     return Arrays.copyOf(ranges, n);
   }
 
-  /** Whether a color face has an outline for U+1F600, or else its first character from U+2000. */
-  private static boolean outlined(MemorySegment face, int[] ranges) {
+  /**
+   * The pixel mode a color face renders U+1F600 in, or else its first character from U+2000 that
+   * has ink (not a space or a variation selector): BGRA for COLR version 0 layers, gray for an
+   * outline; -1 where it renders neither.
+   */
+  private static int sampleMode(MemorySegment face, int[] ranges) {
     int sample = ranges[0];
+    boolean inked = false;
     for (int r = 0; r < ranges.length; r += 2) {
       if (ranges[r] <= 0x1F600 && 0x1F600 <= ranges[r + 1]) {
         sample = 0x1F600;
         break;
       }
-      if (sample < 0x2000 && ranges[r + 1] >= 0x2000) {
-        sample = Math.max(ranges[r], 0x2000);
+      for (int c = Math.max(ranges[r], 0x2000); !inked && c <= ranges[r + 1]; c++) {
+        inked = !Runs.hidden(c) && !Character.isSpaceChar(c);
+        sample = inked ? c : sample;
       }
     }
     int index = FreeType.getCharIndex(face, sample);
     if (index == 0
         || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
-        || FreeType.loadGlyph(face, index, FreeType.LOAD_NO_BITMAP) != 0) {
-      return false;
+        || FreeType.loadGlyph(
+                face, index, FreeType.LOAD_NO_BITMAP | FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG)
+            != 0) {
+      return -1;
     }
     MemorySegment slot =
         face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
-    return FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL) == 0
-        && slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_WIDTH) > 0
-        && slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_ROWS) > 0;
+    if (FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL) != 0
+        || slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_WIDTH) <= 0
+        || slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_ROWS) <= 0) {
+      return -1;
+    }
+    int mode = slot.get(JAVA_BYTE, FreeType.SLOT_BITMAP + FreeType.BITMAP_PIXEL_MODE) & 0xFF;
+    return mode == FreeType.PIXEL_MODE_GRAY || mode == FreeType.PIXEL_MODE_BGRA ? mode : -1;
   }
 
   private static String string(MemorySegment pointer) {

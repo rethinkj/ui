@@ -62,11 +62,17 @@ public final class FreeType {
   public static final int LOAD_FORCE_AUTOHINT = 1 << 5;
   /** {@code FT_LOAD_TARGET_LIGHT}: hinted vertically only, which keeps the advances. */
   public static final int LOAD_TARGET_LIGHT = 1 << 16;
+  /** {@code FT_LOAD_COLOR}: load color layers (COLR version 0) or embedded color bitmaps. */
+  public static final int LOAD_COLOR = 1 << 20;
+  /** {@code FT_LOAD_NO_SVG}: no OpenType SVG glyphs, which need hooks to render. */
+  public static final int LOAD_NO_SVG = 1 << 24;
 
   public static final int RENDER_MODE_NORMAL = 0;
   public static final int RENDER_MODE_LIGHT = 1;
 
   public static final int PIXEL_MODE_GRAY = 2;
+  /** {@code FT_PIXEL_MODE_BGRA}: premultiplied 8-bit BGRA, 4 bytes per pixel. */
+  public static final int PIXEL_MODE_BGRA = 7;
 
   // ---- structs -----------------------------------------------------------------------------
 

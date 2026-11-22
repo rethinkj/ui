@@ -32,12 +32,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * family, style and characters of each of its faces. That index stays for the process; a file
  * stays mapped only while it is read, and while a face of it is used as a {@link Font}.
  *
- * <p>Faces without outlines are left out, as are color fonts whose glyphs have none (CBDT
- * bitmaps, COLR version 1): text draws coverage of outlines, in one color. A color font with
- * outlines for its base glyphs, as COLR version 0 has, draws those, in the text color.
+ * <p>Faces without outlines are left out, as are color fonts whose sample glyph neither renders as
+ * a COLR version 0 color bitmap nor has an outline (CBDT bitmaps, COLR version 1 without outlines).
+ * A COLR version 0 color font draws its layers in color; a color font whose glyphs only have
+ * outlines draws those in the text color.
  *
- * <p>For a cluster of characters, the first face that has all of them wins, in this order: the
- * families the platform prefers for the cluster's script, in order, then other families (on Linux
+ * <p>For a cluster of characters, the first face that has all of them wins, in this order: for an
+ * emoji, the faces that draw it in color, then the families the platform prefers for the cluster's script, in order, then other families (on Linux
  * those named {@code Noto Sans} and a script before others), each with the style nearest the
  * text's font (bold, italic, a plain style name), then by name and path. For Han characters, which
  * Chinese, Japanese and Korean draw differently, the order of the CJK families follows the default
@@ -52,7 +53,14 @@ final class SystemFonts {
    *
    * @param ranges the characters it has, as first and last of each run of consecutive ones
    */
-  record Face(Path path, int index, String family, String style, int styleFlags, int[] ranges) {
+  record Face(
+      Path path,
+      int index,
+      String family,
+      String style,
+      int styleFlags,
+      int[] ranges,
+      boolean color) {
 
     boolean has(int c) {
       int lo = 0;
@@ -114,7 +122,9 @@ final class SystemFonts {
           candidates.add(face);
         }
       }
-      candidates.sort(Comparator.<Face>comparingInt(f -> rank(f.family, preferred))
+      boolean emoji = Runs.emoji(cluster);
+      candidates.sort(Comparator.<Face>comparingInt(f -> emoji && f.color ? 0 : 1)
+          .thenComparingInt(f -> rank(f.family, preferred))
           .thenComparingInt(f -> styleDistance(f, styleFlags))
           .thenComparing(Face::family)
           .thenComparing(Face::style)
@@ -302,8 +312,7 @@ final class SystemFonts {
    */
   static List<String> preferred(String cluster, boolean windows, Locale locale) {
     UnicodeScript script = Runs.script(cluster);
-    int first = cluster.codePointAt(0);
-    boolean emoji = Character.isEmojiPresentation(first) || cluster.indexOf('\uFE0F') >= 0;
+    boolean emoji = Runs.emoji(cluster);
     // CJK fonts have most symbols too, drawn wide: they come first only for CJK scripts.
     List<String> cjk = cjk(script, windows, locale);
     boolean cjkFirst = script == UnicodeScript.HAN

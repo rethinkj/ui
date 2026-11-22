@@ -14,7 +14,8 @@ import java.util.Objects;
  *
  * <p>Colors ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
- * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines,
+ * its own, so carets, selection and wrapping follow its wider glyphs. Range backgrounds ({@link
+ * #background}) are drawn behind glyphs in multi-line fields and other text; underlines,
  * squiggles, the line's background, struck-out ranges and guides are drawn in a {@link
  * El#multiline multi-line} field only, before its selection and glyphs.
  */
