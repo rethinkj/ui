@@ -140,7 +140,7 @@ class ToastTest {
   }
 
   @Test
-  void queueClosePauseOnHoverAndProgressFinish() throws IOException {
+  void queueCloseAndEscape() throws IOException {
     StackState state = new StackState();
     state.toasts.show(Callout.Kind.INFO, "First");
     state.toasts.show(Callout.Kind.SUCCESS, "Second");
@@ -175,14 +175,21 @@ class ToastTest {
     Script.run("key Escape\nframe\nkey Escape\nframe\nadvance 0.3\nframe\n", app, out);
     assertTrue(state.toasts.isEmpty());
     assertEquals("input", app.focused().key(), "focus returned to the field once the stack closed");
+  }
+
+  @Test
+  void pauseOnHoverAndProgressFinish() throws IOException {
+    StackState state = new StackState();
+    App<StackState> app = stackApp(state);
+    Script.run("size 420 260 scale 2\nframe\npress #input\nframe\n", app, out);
 
     // Pause on hover: hovering the bottom toast pauses its timeout while the one above closes.
     state.toasts.show(Callout.Kind.INFO, "Brief", "Undo", () -> state.action = "undo");
     state.toasts.show(null, "Pinned");
     app.invalidate();
-    Script.run("frame\nadvance 0.3\nframe\nadvance 2\nframe\nmove #toast-6\nframe\n", app, out);
+    Script.run("frame\nadvance 0.3\nframe\nadvance 2\nframe\nmove #toast-2\nframe\n", app, out);
     Script.run("advance 4\nframe\nadvance 0.3\nframe\n", app, out);
-    dump = app.tree().dump();
+    String dump = app.tree().dump();
     assertTrue(dump.contains("label=\"Pinned\""), "hovered toast stays open: " + dump);
     assertFalse(dump.contains("label=\"Brief\""), "unhovered toast timed out: " + dump);
     Script.run("move 10,10\nframe\nadvance 2.5\nframe\n", app, out);
@@ -206,11 +213,11 @@ class ToastTest {
     assertTrue(dump.contains("role=progressbar") && dump.contains("value=\"50%\""), dump);
 
     Script.run("key Tab\nframe\n", app, out);
-    assertEquals("close-7", app.focused().key());
+    assertEquals("close-3", app.focused().key());
     handle.finish(Callout.Kind.SUCCESS, "Read 3 files", "Open", () -> state.action = "open");
     app.invalidate();
     Script.run("frame\nadvance 0.3\nframe\n", app, out);
-    assertEquals("close-7", app.focused().key(), "Close keeps the focus, not the new action");
+    assertEquals("close-3", app.focused().key(), "Close keeps the focus, not the new action");
     dump = app.tree().dump();
     assertTrue(dump.contains("label=\"Read 3 files\""), dump);
     assertFalse(dump.contains("role=progressbar"), dump);
