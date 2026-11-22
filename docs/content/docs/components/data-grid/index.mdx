@@ -145,7 +145,7 @@ Store a `DataGrid.Find` in your app state. You can also control it from menus or
 ```java snippet="grid-find"
 ```
 
-Find searches the display text each shown column's `cell` function supplies, in time-budgeted slices on the app's thread so million-row grids stay responsive (counting up to `Find.LIMIT`, `10000+`). Rows that are not yet loaded (`loading(loaded, onRows)`) are skipped and are never requested by find.
+Find searches the display text each shown column's `cell` function supplies, in time-budgeted slices on the app's thread so million-row grids stay responsive (counting up to `Find.LIMIT`, `10000+`). Rows that are not yet loaded (`loading(loaded, onRows)`) are skipped and are never requested by find; the count then ends in `+`. Edits through `changes(GridChanges)` search again; after changing cells another way, call `find.open()` to search again.
 
 ## Lazy-loaded rows
 

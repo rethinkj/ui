@@ -54,22 +54,26 @@ final class GridFind {
     }
   }
 
-  /** Updates the find state for this build, starting or refreshing a scan when open. */
+  /**
+   * Updates the find state for this build, starting a scan when what it covers changed, and goes
+   * on with the scan and a jump for a slice. The rest waits for the next build of the grid, which
+   * an action asks for: a grid the view leaves out searches no further, and goes on when it shows
+   * again.
+   */
   static void prepare(Build b) {
     DataGrid.Find f = b.o.find;
     if (f == null) {
       return;
     }
     f.build = b;
-    f.built = true;
     f.app = b.o.findApp;
     f.texts = b.texts;
     if (!f.open) {
       f.findField = null;
       if (f.jump == null) {
         f.cancel();
+        return;
       }
-      return;
     }
     Search.Query query = compile(f, b.texts);
     if (f.pattern == null) {
@@ -77,11 +81,18 @@ final class GridFind {
       return;
     }
     Scope now = scopeOf(b, query);
-    if (!now.equals(f.scope)) {
+    if (f.open && !now.equals(f.scope)) {
       startScan(f, b, now);
-      if (!stepScan(f, b, Search.deadline(Find.SYNC_MILLIS))) {
-        schedule(f);
-      }
+    }
+    long deadline = Search.deadline(Find.SYNC_MILLIS);
+    if (f.jump != null) {
+      stepJump(f, b, query, deadline, true);
+    }
+    if (f.open && f.jump == null && !f.complete) {
+      stepScan(f, b, deadline);
+    }
+    if (f.hit || f.jump != null || f.open && !f.complete) {
+      schedule(f);
     }
   }
 
@@ -308,7 +319,7 @@ final class GridFind {
       return;
     }
     f.jump = new Jump(direction >= 0 ? 1 : -1, startRow, startCol, remaining);
-    if (!stepJump(f, b, query, deadline)) {
+    if (!stepJump(f, b, query, deadline, false)) {
       schedule(f);
     }
   }
@@ -448,6 +459,9 @@ final class GridFind {
 
   /** Whether a cell the scan found still matches: the app may have changed it since. */
   private static boolean stillMatches(DataGrid.Find f, Build b, int row, int column) {
+    if (b.o.loaded != null && !b.o.loaded.test(row) || b.pending(row)) {
+      return false;
+    }
     String raw = b.columns.get(column).cell().apply(row);
     try {
       return raw != null
@@ -563,7 +577,8 @@ final class GridFind {
     return true;
   }
 
-  private static boolean stepJump(DataGrid.Find f, Build b, Search.Query query, long deadline) {
+  private static boolean stepJump(
+      DataGrid.Find f, Build b, Search.Query query, long deadline, boolean building) {
     Jump j = f.jump;
     if (j == null || f.pattern == null) {
       return true;
@@ -584,7 +599,9 @@ final class GridFind {
       }
       int r = j.curRow;
       int c = j.curCol;
-      if (loaded != null && !loaded.test(r) || b.pending(r)) {
+      boolean unloaded = loaded != null && !loaded.test(r);
+      if (unloaded || b.pending(r)) {
+        f.skipped |= unloaded; // what the scan's matches say leaves these out
         if (j.direction > 0) {
           j.remaining -= cols - c;
           j.curRow = r + 1 < rowCount ? r + 1 : 0;
@@ -617,7 +634,13 @@ final class GridFind {
       j.remaining--;
       if (hit) {
         f.jump = null;
-        selectMatch(b, r, c);
+        if (building) { // selecting runs the app's handler: not in the middle of its view
+          f.hit = true;
+          f.hitRow = r;
+          f.hitColumn = c;
+        } else {
+          selectMatch(b, r, c);
+        }
         return true;
       }
       if (j.direction > 0) {
@@ -637,7 +660,7 @@ final class GridFind {
       }
     }
     f.jump = null;
-    if (f.scope != null && f.scope.query().equals(query) && f.matchCount == 0) {
+    if (f.scope != null && f.scope.query().equals(query) && f.matchCount == 0 && !f.skipped) {
       // Every cell in the grid was checked with no match: no need to rescan for the count.
       f.complete = true;
       f.scanRow = rowCount;
@@ -646,6 +669,7 @@ final class GridFind {
     return true;
   }
 
+  /** Asks for a frame, whose build of the grid goes on; it selects a match a build found. */
   private static void schedule(DataGrid.Find f) {
     if (f.scheduled || f.app == null) {
       return;
@@ -657,27 +681,9 @@ final class GridFind {
         return;
       }
       f.scheduled = false;
-      if (!f.built) { // the view built since leaves the grid out: its rows may be gone
-        f.cancel();
-        return;
-      }
-      f.built = false;
-      Build b = f.build;
-      if ((!f.open && f.jump == null) || b == null || f.pattern == null) {
-        return;
-      }
-      long deadline = Search.deadline(Find.SYNC_MILLIS);
-      Search.Query query = f.scope != null
-          ? f.scope.query()
-          : new Search.Query(f.query, f.matchCase, false, f.regex);
-      if (f.jump != null) {
-        stepJump(f, b, query, deadline);
-      }
-      if (f.open && f.jump == null && !f.complete) {
-        stepScan(f, b, deadline);
-      }
-      if (f.jump != null || (f.open && !f.complete)) {
-        schedule(f);
+      if (f.hit && f.build != null && f.build.sel != null) {
+        f.hit = false;
+        selectMatch(f.build, f.hitRow, f.hitColumn);
       }
     });
   }

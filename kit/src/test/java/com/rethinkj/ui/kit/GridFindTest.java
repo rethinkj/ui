@@ -204,21 +204,22 @@ class GridFindTest {
     DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
     DataGrid.Find find = new DataGrid.Find();
     App<?>[] holder = new App<?>[1];
+    // Through GridChanges, as an editing app shows its rows: each build asks it for its rows.
+    GridChanges changes = new GridChanges(
+        million,
+        (r, c) -> c == 0
+            ? String.valueOf(r + 1)
+            : r == needleRow ? "UniqueNeedle" : (r % 10 == 0 ? "Ada " + r : "Grace " + r));
     App<Void> app = new App<>(null, ignored -> {
       List<DataGrid.Column> columns = List.of(
-          new DataGrid.Column("id", 90, DataGrid.DataType.INTEGER, r -> String.valueOf(r + 1)),
-          new DataGrid.Column(
-              "name",
-              180,
-              DataGrid.DataType.TEXT,
-              r -> r == needleRow ? "UniqueNeedle" : (r % 10 == 0 ? "Ada " + r : "Grace " + r)));
+          new DataGrid.Column("id", 90, DataGrid.DataType.INTEGER, changes.cell(0)),
+          new DataGrid.Column("name", 180, DataGrid.DataType.TEXT, changes.cell(1)));
+      DataGrid.Options options =
+          DataGrid.options().select(selection).changes(changes).find(holder[0], find);
       return col()
           .wFull()
           .hFull()
-          .child(
-              dataGrid(columns, million, DataGrid.options().select(selection).find(holder[0], find))
-                  .key("big")
-                  .grow(1));
+          .child(dataGrid(columns, changes.rowCount(), options).key("big").grow(1));
     });
     holder[0] = app;
     app.textRendering(TextRendering.LINUX);
@@ -252,7 +253,7 @@ class GridFindTest {
         type "UniqueNeedle"
         frame""", app, out);
     frames = 0;
-    while ((find.jump != null || !find.complete) && frames < 2000) {
+    while ((find.jump != null || find.hit || !find.complete) && frames < 2000) {
       app.frame();
       frames++;
     }

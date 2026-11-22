@@ -2135,7 +2135,9 @@ public final class DataGrid {
     GridFind.Jump jump;
     long gen; // incremented on cancel/restart so stale scheduled slices do nothing
     boolean scheduled;
-    boolean built; // a build of the view had the grid since the last slice
+    boolean hit; // a build's jump found a match, which the next action selects
+    int hitRow;
+    int hitColumn;
     boolean skipped; // the scan left out rows that were not loaded
     // The last build and its elements, for handlers and public methods.
     Build build;
@@ -2188,6 +2190,7 @@ public final class DataGrid {
       gen++;
       scheduled = false;
       jump = null;
+      hit = false;
     }
 
     void resetSearch() {
@@ -2608,8 +2611,10 @@ public final class DataGrid {
      *
      * <p>Searches the display text each shown column's {@link Column#cell} function supplies, in
      * time-budgeted slices on the app's thread ({@link App#after}) so large grids stay responsive.
-     * Rows that are not loaded ({@link #loading}) are skipped and never asked for. Needs {@link
-     * #select}.
+     * Rows that are not loaded ({@link #loading}) are skipped and never asked for; the count then
+     * ends in {@code +}. The count and the order of the matches are those of the last search:
+     * changes through {@link #changes} search again, and after the app changes cells otherwise,
+     * {@link Find#open} does. Needs {@link #select}.
      */
     public Options find(App<?> app, Find find) {
       this.findApp = Objects.requireNonNull(app, "app");

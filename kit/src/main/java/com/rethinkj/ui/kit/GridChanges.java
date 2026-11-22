@@ -184,6 +184,7 @@ public final class GridChanges {
   /** Replaces the app's rows, as after it filtered or sorted them; the changes stay by key. */
   public void rows(Rows rows) {
     this.rows = Objects.requireNonNull(rows, "rows");
+    revision++;
     layout();
   }
 
@@ -501,6 +502,7 @@ public final class GridChanges {
         op.undo(this);
       }
       redo.addLast(step);
+      revision++;
       layout();
     }
   }
@@ -512,6 +514,7 @@ public final class GridChanges {
         op.redo(this);
       }
       undo.addLast(step);
+      revision++;
       layout();
     }
   }
@@ -527,6 +530,7 @@ public final class GridChanges {
     added.clear();
     undo.clear();
     redo.clear();
+    revision++;
     layout();
   }
 
@@ -544,6 +548,7 @@ public final class GridChanges {
       undo.pollFirst();
     }
     redo.clear();
+    revision++;
     layout();
   }
 
@@ -596,7 +601,6 @@ public final class GridChanges {
    * of one anchor in the order of the list.
    */
   private void layout() {
-    revision++;
     int base = rows.count();
     int n = added.size();
     Integer[] order = new Integer[n];
