@@ -194,9 +194,11 @@ public final class CodeEditor {
     private String problemOf;
     // F8: where the diagnostics start whose message shows at the caret; -1 while none does.
     private int shown = -1;
-    // Folding: the folded pairs, sorted by their first line, the last build's string (null before
-    // the first build), and the last build's pairs that can fold.
+    // Folding: the folded pairs, sorted by their first line, the last build's value and its
+    // string as the field shows it (null before the first build), and the last build's pairs that
+    // can fold.
     private List<Folded> folds = new ArrayList<>();
+    private String builtValue;
     private String builtText;
     private List<El.BracketFold> ranges = List.of();
 
@@ -417,14 +419,17 @@ public final class CodeEditor {
       return null;
     }
 
-    private void updateFolds(String value, El.BracketFolds found) {
+    private void updateFolds(String value, El editor, El.BracketFolds found) {
+      // The field's string is read again only for a new value: it converts line breaks anew.
+      String text = value.equals(builtValue) ? builtText : editor.text().string();
       if (!folds.isEmpty()) {
-        if (builtText != null && builtText != value) {
-          folds = shiftFolds(builtText, value, folds);
+        if (builtText != null && !text.equals(builtText)) {
+          folds = shiftFolds(builtText, text, folds);
         }
-        folds = reconcileFolds(folds, found, value);
+        folds = reconcileFolds(folds, found, text);
       }
-      builtText = value;
+      builtValue = value;
+      builtText = text;
       ranges = found.folds();
     }
 
@@ -539,7 +544,7 @@ public final class CodeEditor {
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
-    state.updateFolds(value, editor.bracketFolds());
+    state.updateFolds(value, editor, editor.bracketFolds());
     editor.folds(state.folds(), state::unfold, fold -> foldMark(theme));
     int[] pair = editor.matchingBracket(state.caret);
     editor
@@ -1080,7 +1085,8 @@ public final class CodeEditor {
       if (range.lines().first() > line) {
         break;
       }
-      if (line <= range.lines().last() && state.foldAt(range.lines().first()) == null) {
+      // Up to its closing bracket's line, which stays shown.
+      if (line <= range.lines().last() + 1 && state.foldAt(range.lines().first()) == null) {
         best = range;
       }
     }
@@ -1096,7 +1102,7 @@ public final class CodeEditor {
       if (f.lines().first() > line) {
         break;
       }
-      if (line <= f.lines().last()) {
+      if (line <= f.lines().last() + 1) {
         best = f.lines();
       }
     }
@@ -1168,7 +1174,7 @@ public final class CodeEditor {
    * fold whose bracket was among them goes. Folds not found yet stay as they are.
    */
   static List<Folded> shiftFolds(String before, String after, List<Folded> folds) {
-    TextChange change = TextChange.between(normalizeLines(before), normalizeLines(after));
+    TextChange change = TextChange.between(before, after);
     int delta = change.newEnd() - change.oldEnd();
     List<Folded> out = new ArrayList<>(folds.size());
     for (Folded f : folds) {
@@ -1202,7 +1208,6 @@ public final class CodeEditor {
       byOpen.put(pair.open(), pair);
     }
     int scanned = found.scannedLines();
-    String text = null;
     List<Folded> out = new ArrayList<>(folds.size());
     for (Folded f : folds) {
       if (f.open() < 0) {
@@ -1218,44 +1223,14 @@ public final class CodeEditor {
       if (pair != null && pair.close() == f.close()) {
         out.add(new Folded(pair.lines(), pair.open(), pair.close()));
       } else if (!found.complete()) {
-        text = text == null ? normalizeLines(value) : text;
-        int first = lineOf(text, f.open());
-        int closing = lineOf(text, f.close());
+        int first = lineOf(value, f.open());
+        int closing = lineOf(value, f.close());
         if (closing >= scanned && closing > first + 1) {
           out.add(new Folded(new El.Fold(first, closing - 1), f.open(), f.close()));
         }
       }
     }
     return sorted(out);
-  }
-
-  private static String normalizeLines(String value) {
-    boolean clean = true;
-    for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      if (c == '\r' || c == '\u2028' || c == '\u2029') {
-        clean = false;
-        break;
-      }
-    }
-    if (clean) {
-      return value;
-    }
-    StringBuilder out = new StringBuilder(value.length());
-    for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      if (c == '\r') {
-        if (i + 1 < value.length() && value.charAt(i + 1) == '\n') {
-          i++;
-        }
-        out.append('\n');
-      } else if (c == '\u2028' || c == '\u2029') {
-        out.append('\n');
-      } else {
-        out.append(c);
-      }
-    }
-    return out.toString();
   }
 
   private static int lineOf(String text, int index) {

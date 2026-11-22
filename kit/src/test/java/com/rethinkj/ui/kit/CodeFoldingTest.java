@@ -211,11 +211,16 @@ class CodeFoldingTest {
                 .wFull()));
     ro.app = roApp;
     roApp.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 480 240\nframe\nfocus #code\nkey ArrowDown\nkey ArrowDown\nkey ArrowDown\n"
-            + "key [ control shift\nframe\n",
-        roApp,
-        out);
+    Script.run("""
+            size 480 240
+            frame
+            focus #code
+            key ArrowDown
+            key ArrowDown
+            key ArrowDown
+            key [ control shift
+            frame
+            """, roApp, out);
     assertEquals(List.of(new El.Fold(2, 4)), ro.editor.folds());
   }
 }

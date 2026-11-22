@@ -120,6 +120,8 @@ final class Lines {
   private Object bracketFoldsKey;
   private boolean bracketFoldsMarked;
   private El.BracketFolds bracketFolds;
+  // The scan for them that the frame's budget stopped, which the next frame goes on with.
+  Brackets.Pairs foldScan;
 
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
@@ -239,6 +241,7 @@ final class Lines {
     count = newCount;
     length += delta;
     bracketFolds = null;
+    foldScan = null;
     if (widestLine >= first && widestLine <= last) {
       widest = 0;
       widestLine = -1;
@@ -303,6 +306,8 @@ final class Lines {
       known = 1; // the first line starts in null
       chunkWidths.clear(); // measured with the old spans, which they would keep
       bracketFolds = null;
+      foldScan = null;
+      foldScan = null;
     }
     for (int l = known - 1; l < line; l++) {
       Spans kept = spans[l];

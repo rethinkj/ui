@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /** Bracket matching and foldable bracket ranges for {@link El}. */
 final class Brackets {
@@ -140,12 +141,17 @@ final class Brackets {
 
   private static El.BracketFolds markedFolds(
       String text, Lines lines, Highlighter highlighter, Object key) {
-    Pairs pairs = new Pairs();
+    Pairs pairs = lines.foldScan != null && Objects.equals(lines.foldScan.key, key)
+        ? lines.foldScan
+        : new Pairs(key);
+    lines.foldScan = null;
     int count = lines.count();
-    for (int line = 0; line < count; line++) {
+    for (int line = pairs.line; line < count; line++) {
       Spans spans = lines.spans(line, text, highlighter, key);
       if (spans == null) {
         lines.unread(line);
+        pairs.line = line;
+        lines.foldScan = pairs;
         return new El.BracketFolds(pairs.folds(), line, false);
       }
       int start = lines.start(line);
@@ -162,7 +168,7 @@ final class Brackets {
   }
 
   private static El.BracketFolds plainFolds(String text, int lineCount) {
-    Pairs pairs = new Pairs();
+    Pairs pairs = new Pairs(null);
     int line = 0;
     for (int i = 0; i < text.length(); i++) {
       char c = text.charAt(i);
@@ -176,11 +182,17 @@ final class Brackets {
   }
 
   /** Pairs brackets per kind as they come, keeping the widest pair that spans lines per line. */
-  private static final class Pairs {
+  static final class Pairs {
+    private final Object key; // the highlight key of a scan of marked brackets
+    private int line; // the line a stopped scan goes on from
     private final int[][] opens = new int[3][16]; // per kind: the open brackets' positions
     private final int[][] lines = new int[3][16]; // and their lines
     private final int[] depths = new int[3];
     private final Map<Integer, El.BracketFold> byFirst = new HashMap<>();
+
+    Pairs(Object key) {
+      this.key = key;
+    }
 
     void step(char c, int at, int line) {
       int kind = BRACKETS.indexOf(c);
