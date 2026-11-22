@@ -739,6 +739,20 @@ class GridEditTest {
   }
 
   @Test
+  void selectAllIsUnavailableWithOnlyAnAppendRow() throws IOException {
+    Ledger ledger = new Ledger(T, 0);
+    DataGrid.Commands commands = new DataGrid.Commands();
+    ledger.more = o -> o.commands(commands).appendRow();
+    App<Ledger> app = start(ledger);
+    assertFalse(commands.canRun(DataGrid.Command.SELECT_ALL));
+
+    ledger.changes.insert(-1);
+    app.invalidate();
+    app.frame();
+    assertTrue(commands.canRun(DataGrid.Command.SELECT_ALL));
+  }
+
+  @Test
   void altEnterOpensAFieldOfSeveralLinesWhereControlEnterHandsItOn() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);

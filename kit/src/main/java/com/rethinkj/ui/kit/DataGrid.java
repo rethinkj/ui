@@ -136,7 +136,7 @@ public final class DataGrid {
     /**
      * Whether the last build allows this command: false before a build, without a selection,
      * or while a cell editor is open. Copy needs a clipboard and selected data cells; Paste
-     * needs a clipboard, an onPaste handler and a cursor on a data row; Select all needs rows.
+     * needs a clipboard, an onPaste handler and a cursor on a data row; Select all needs data rows.
      * Clipboard contents, copy limits and individual cells' editability are checked
      * when the command runs, as for the keys.
      */
@@ -3535,7 +3535,7 @@ public final class DataGrid {
       run(b, Command.COPY);
       return true;
     }
-    if (control && !shift && name.equals("A")) {
+    if (control && !shift && name.equals("A") && canRun(b, Command.SELECT_ALL)) {
       run(b, Command.SELECT_ALL);
       return true;
     }
@@ -3625,7 +3625,7 @@ public final class DataGrid {
             && b.o.onPaste != null
             && b.sel.row() >= 0
             && b.sel.row() < b.rowCount;
-      case SELECT_ALL -> b.rows > 0;
+      case SELECT_ALL -> b.rowCount > 0;
     };
   }
 
