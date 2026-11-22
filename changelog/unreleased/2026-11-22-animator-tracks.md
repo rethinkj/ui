@@ -1,0 +1,1 @@
+- Elements without `El#motion` no longer allocate animation tracks or per-rebuild value arrays, lowering memory use and garbage on rebuilds in large trees; an element that gains motion still springs from where it was shown.

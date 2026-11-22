@@ -102,6 +102,70 @@ class MotionTest {
   }
 
   @Test
+  void gainingMotionSpringsFromWhereItWasAndDroppingMotionJumps() {
+    int[] step = {0};
+    App<int[]> app = new App<>(step, s -> {
+      float x = switch (s[0]) {
+        case 0 -> 0;
+        case 1 -> 40;
+        case 2 -> 120;
+        default -> 160;
+      };
+      El box = el().size(20, 20).absolute(x, 50);
+      if (s[0] == 2 || s[0] == 3) {
+        box.motion(Spring.SETTLE);
+      }
+      return el().size(200, 100).scroll().child(el().size(200, 400)).child(box);
+    });
+    app.resize(200, 100, 1);
+    app.frame();
+    app.wheel(100, 50, 0, 30);
+    app.frame();
+    assertEquals(20, box(app).y(), "scrolled");
+
+    step[0] = 1; // moves without motion: immediate
+    app.invalidate();
+    assertTrue(app.frame());
+    assertEquals(40, box(app).x());
+    assertFalse(app.isMoving());
+
+    step[0] = 2; // gains motion and a new place: starts from 40 and springs to 120
+    app.invalidate();
+    assertTrue(app.frame());
+    assertEquals(40, box(app).x(), "starts from the old place");
+    assertEquals(20, box(app).y(), "scrolled once");
+    assertTrue(app.isMoving());
+    app.advance(0.05);
+    assertTrue(app.frame());
+    float mid = box(app).x();
+    assertTrue(mid > 40 && mid < 120, "moving, at " + mid);
+    assertEquals(20, box(app).y());
+    app.advance(2);
+    assertTrue(app.frame());
+    assertEquals(120, box(app).x());
+    assertFalse(app.isMoving());
+
+    step[0] = 3; // starts moving towards 160, then drops motion mid-movement
+    app.invalidate();
+    assertTrue(app.frame());
+    app.advance(0.05);
+    assertTrue(app.frame());
+    assertTrue(box(app).x() < 160);
+    assertTrue(app.isMoving());
+
+    step[0] = 4;
+    app.invalidate();
+    assertTrue(app.frame());
+    assertEquals(160, box(app).x());
+    assertFalse(app.isMoving());
+    assertFalse(app.frame());
+  }
+
+  private static El box(App<?> app) {
+    return app.tree().children().get(1);
+  }
+
+  @Test
   void aKeyedElementKeepsItsIdentityWhenASiblingIsInsertedBeforeIt() {
     List<String> names = new ArrayList<>(List.of("a", "b"));
     App<List<String>> app = new App<>(names, list -> {

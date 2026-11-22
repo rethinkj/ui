@@ -3162,6 +3162,17 @@ public final class El {
     return new float[] {radius, radiusTopRight, radiusBottomRight, radiusBottomLeft};
   }
 
+  /** The radius of corner 0..3: top left, top right, bottom right, bottom left. */
+  float cornerRadius(int corner) {
+    return switch (corner) {
+      case 0 -> radius;
+      case 1 -> radiusTopRight;
+      case 2 -> radiusBottomRight;
+      case 3 -> radiusBottomLeft;
+      default -> throw new IndexOutOfBoundsException(corner);
+    };
+  }
+
   /** The shadows under this element, the topmost first; empty for none. */
   public List<Shadow> shadows() {
     return shadows;
