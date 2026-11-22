@@ -9,6 +9,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.editor.CodeEditor;
+import com.rethinkj.ui.editor.Language;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -51,12 +52,12 @@ class JsonEditorTest {
             .wFull()
             .hFull()
             .padding(12)
-            .child(
-                CodeEditor.codeEditor(s.app, s.text, s.editor, Json.of(), value -> s.text = value)
-                    .key("json")
-                    .lines(8)
-                    .maxLength(s.maxLength < 0 ? Integer.MAX_VALUE : s.maxLength)
-                    .wFull()));
+            .child(CodeEditor.codeEditor(
+                    s.app, s.text, s.editor, Language.of(Json.of()), value -> s.text = value)
+                .key("json")
+                .lines(8)
+                .maxLength(s.maxLength < 0 ? Integer.MAX_VALUE : s.maxLength)
+                .wFull()));
     doc.app = app;
     app.textRendering(TextRendering.LINUX);
     return app;

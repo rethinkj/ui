@@ -1,0 +1,37 @@
+el 0,0 520x196
+  el 12,12 496x176
+    el 29,29 462x42
+      text role=paragraph "Finds orders placed in a date range, newest first." 29,29 462x17 readonly lines 1-1/1
+      text role=paragraph "Uses the orders_placed_at index; see indexes." 29,54 462x17 readonly lines 1-1/1
+        el #link-0 role=link label="indexes" 293,54 50x17 value="#indexes"
+    el role=list 29,83 462x88
+      el role=group label="Params:" 29,83 462x38
+        el 29,83 48x17
+          text "Params:" 29,84 47x15
+        el 89,83 402x38
+          el role=listitem label="from" 89,83 402x17
+            el 89,83 36x17
+              text "from" 93,84 28x16
+            el 133,83 358x17
+              text role=paragraph "Start of the range, inclusive, in UTC." 133,83 358x17 readonly lines 1-1/1
+          el role=listitem label="to" 89,104 402x17
+            el 89,104 22x17
+              text "to" 93,105 14x16
+            el 119,104 372x17
+              text role=paragraph "End of the range, exclusive; must lie after from." 119,104 372x17 readonly lines 1-1/1
+      el role=group label="Returns:" 29,129 462x17
+        el 29,129 48x17
+          text "Returns:" 29,130 47x15
+        el 89,129 402x17
+          el role=listitem 89,129 402x17
+            el 89,129 402x17
+              text role=paragraph "Matching orders ordered by placed_at descending." 89,129 402x17 readonly lines 1-1/1
+      el role=group label="Throws:" 29,154 462x17
+        el 29,154 48x17
+          text "Throws:" 29,155 45x15
+        el 89,154 402x17
+          el role=listitem label="IllegalArgumentException" 89,154 402x17
+            el 89,154 176x17
+              text "IllegalArgumentException" 93,155 168x16
+            el 273,154 218x17
+              text role=paragraph "When to is not after from." 273,154 218x17 readonly lines 1-1/1

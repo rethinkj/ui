@@ -1,0 +1,1 @@
+- `CodeEditor`, plain and `CodeEditor.embedded`, no longer changes its fill or frame under the pointer. Its focus ring and the accent edge on focus stay; text fields and `TextField.codeArea` keep their hover.

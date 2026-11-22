@@ -542,6 +542,7 @@ public final class CodeEditor {
         .margin(0, theme.space().m(), 0, 0);
     state.text = value;
     El editor = TextField.codeArea(value, placeholder, state.readOnly ? text -> {} : onChange)
+        .whenHovered(null)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
           state.caret = caret;
@@ -655,10 +656,7 @@ public final class CodeEditor {
     editor.radius(0).border(stroke, 0, 0, 0, theme.border().divider()).shadow().wFull();
     editor.style().paddingRight = Len.px(theme.space().l());
     if (editor.onEdit() != null) {
-      int hover = Theme.over(theme.surface().raised(), theme.surface().hover());
-      editor
-          .whenHovered(e -> e.fill(hover)) // the field's hover, without its frame
-          .whenFocused(e -> e.border(stroke, 0, 0, 0, theme.accent().edge()));
+      editor.whenFocused(e -> e.border(stroke, 0, 0, 0, theme.accent().edge()));
     }
     return editor;
   }

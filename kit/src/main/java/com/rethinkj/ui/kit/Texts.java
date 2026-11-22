@@ -456,6 +456,26 @@ public interface Texts {
     return "Unfold";
   }
 
+  /** The label of a documentation section that lists parameters. */
+  default String parameters() {
+    return "Params:";
+  }
+
+  /** The label of a documentation section that describes a return value. */
+  default String returns() {
+    return "Returns:";
+  }
+
+  /** The label of a documentation section that lists thrown exceptions. */
+  default String thrown() {
+    return "Throws:";
+  }
+
+  /** The label of a documentation section that lists related references. */
+  default String seeAlso() {
+    return "See also:";
+  }
+
   /**
    * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
    * code editor says it.

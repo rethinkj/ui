@@ -472,6 +472,26 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String parameters() {
+    return "Parameter:";
+  }
+
+  @Override
+  public String returns() {
+    return "Rückgabe:";
+  }
+
+  @Override
+  public String thrown() {
+    return "Wirft:";
+  }
+
+  @Override
+  public String seeAlso() {
+    return "Siehe auch:";
+  }
+
+  @Override
   public String formatProblem(Formatted.Kind kind) {
     return switch (kind) {
       case UNEXPECTED -> "Hier nicht erwartet";

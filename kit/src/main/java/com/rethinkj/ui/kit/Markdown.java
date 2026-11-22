@@ -74,6 +74,12 @@ import java.util.function.Function;
  *
  * <p>What the component makes of a document for a theme it keeps with the document, so a
  * rebuild of the view reads nothing again and highlights nothing again.
+ *
+ * <p>For Markdown embedded inside another element—such as a rendered documentation comment, a
+ * quick-documentation popover or completion details—use {@link #fragment} (a plain, non-scrolling
+ * column with compact spacing that takes its container's width) and {@link #definitions} (a
+ * two-column list of labeled documentation sections with code-styled terms and Markdown
+ * descriptions).
  */
 public final class Markdown {
 
@@ -155,6 +161,31 @@ public final class Markdown {
     return new Options();
   }
 
+  /**
+   * One entry of a {@link Section} in a {@link #definitions definition list}: an optional name in
+   * code style and its Markdown description.
+   *
+   * @param term the name shown as a code chip before the description, such as a parameter or
+   *     exception name; null or empty for an entry without a name (such as a return value)
+   * @param description the entry's Markdown description; null for a term without a description
+   */
+  public record Definition(String term, MarkdownDocument description) {}
+
+  /**
+   * A labeled group of {@link Definition}s in a {@link #definitions definition list}, such as
+   * parameters, return value or thrown exceptions.
+   *
+   * @param label the section's label in the left column, typically from {@link Texts} (such as
+   *     {@link Texts#parameters()})
+   * @param definitions the section's entries in order
+   */
+  public record Section(String label, List<Definition> definitions) {
+    public Section {
+      Objects.requireNonNull(label, "label");
+      definitions = List.copyOf(Objects.requireNonNull(definitions, "definitions"));
+    }
+  }
+
   /** The document with links that go to {@code onLink}, nothing else. */
   public static El markdown(MarkdownDocument document, Consumer<String> onLink) {
     return markdown(document, options().onLink(onLink));
@@ -171,7 +202,7 @@ public final class Markdown {
   public static El markdown(MarkdownDocument document, Options options) {
     Theme theme = Theme.CURRENT.get();
     Prepared prepared = prepared(theme, document);
-    Context c = new Context(theme, options, prepared, theme.text().primary(), 0);
+    Context c = new Context(theme, options, prepared, theme.text().primary(), 0, false);
     List<Unit> units = prepared.units;
     El list = col()
         .role("document")
@@ -195,6 +226,126 @@ public final class Markdown {
     }
     list.onKey(k -> keys(c, k));
     return list;
+  }
+
+  /**
+   * The document as a plain, non-scrolling column of its blocks with compact spacing, as wide as
+   * its container, without padding or a maximum measure: for rendered documentation comments,
+   * popovers and completion details embedded inside another element. A container that sizes to
+   * its content gives the fragment a width. Links, images, code-block highlighting and copying
+   * follow {@code options} as in {@link #markdown}; Ctrl+A selects the text of one block, not the
+   * whole document.
+   */
+  public static El fragment(MarkdownDocument document, Options options) {
+    Objects.requireNonNull(document, "document");
+    Objects.requireNonNull(options, "options");
+    Theme theme = Theme.CURRENT.get();
+    El out = fragment(theme, document, options, theme.text().primary()).wFull();
+    if (options.state != null) {
+      out.overlay(Button.ending(theme, options.state.copied));
+    }
+    return out;
+  }
+
+  private static El fragment(Theme theme, MarkdownDocument document, Options options, int color) {
+    Context c = new Context(theme, options, prepared(theme, document), color, 0, true);
+    El out = col().minSize(0, 0);
+    blocks(c, document.blocks(), false, out);
+    return out;
+  }
+
+  /**
+   * Labeled sections of code-styled terms and Markdown descriptions, for documentation sections
+   * such as parameters, return values and thrown exceptions. Section labels sit in one aligned
+   * column on the left in muted small text (the caller passes localized labels from {@link Texts},
+   * such as {@link Texts#parameters()}, {@link Texts#returns()}, {@link Texts#thrown()} and {@link
+   * Texts#seeAlso()}); each entry shows its optional term as a small monospace chip on the theme's
+   * inline-code fill ({@link Theme.Prose#code}) beside its description rendered as a compact
+   * fragment in muted text, or above it when the two do not fit beside each other.
+   *
+   * <p>In a tree dump the list is {@code role=list}, each section {@code role=group} with its
+   * label, and each entry {@code role=listitem} (labeled by its term when it has one).
+   */
+  public static El definitions(List<Section> sections, Options options) {
+    Objects.requireNonNull(sections, "sections");
+    Objects.requireNonNull(options, "options");
+    Theme theme = Theme.CURRENT.get();
+    Theme.TextStyle mono = theme.type().mono();
+    float line = lineHeight(theme.prose().body());
+    float column = labelColumn(sections);
+    El out = col().role("list").gap(theme.space().m()).minSize(0, 0);
+    for (Section section : sections) {
+      if (section.definitions().isEmpty()) {
+        continue;
+      }
+      El entries = col().grow(1).minSize(0, 0).gap(theme.space().s());
+      for (Definition definition : section.definitions()) {
+        boolean hasTerm = definition.term() != null && !definition.term().isEmpty();
+        boolean hasDescription = definition.description() != null
+            && !definition.description().blocks().isEmpty();
+        El entry = row()
+            .role("listitem")
+            .gap(theme.space().m())
+            .align(Style.Align.START)
+            .wrap() // a description too narrow beside a long term goes below it
+            .minSize(0, 0);
+        if (hasTerm) {
+          entry.label(definition.term());
+          El chip = row()
+              .minSize(0, line)
+              .clip() // a term wider than the whole entry is cut at its edge
+              .align(Style.Align.CENTER)
+              .padding(0, theme.space().s())
+              .radius(theme.radius().small())
+              .fill(theme.prose().code())
+              .child(El.text(definition.term())
+                  .font(mono.font().get())
+                  .fontSize(mono.size())
+                  .color(theme.text().primary()));
+          entry.child(chip);
+        }
+        if (hasDescription) {
+          entry.child(
+              fragment(theme, definition.description(), options, theme.text().muted())
+                  .basis(theme.prose().measure() / 4)
+                  .grow(1));
+        }
+        entries.child(entry);
+      }
+      El label = row()
+          .w(column)
+          .h(line)
+          .shrink(0)
+          .align(Style.Align.CENTER)
+          .child(Label.label(Label.Variant.SMALL, section.label()));
+      out.child(row()
+          .role("group")
+          .label(section.label())
+          .gap(theme.space().l())
+          .align(Style.Align.START)
+          .children(label, entries));
+    }
+    State state = options.state;
+    if (state != null) {
+      out.overlay(Button.ending(theme, state.copied));
+    }
+    return out;
+  }
+
+  private static float labelColumn(List<Section> sections) {
+    float widest = 0;
+    for (Section section : sections) {
+      if (!section.definitions().isEmpty()) {
+        widest =
+            Math.max(widest, TextSizing.natural(Label.label(Label.Variant.SMALL, section.label())));
+      }
+    }
+    return widest == 0 ? 0 : (float) Math.ceil(widest) + 1;
+  }
+
+  private static float lineHeight(Theme.TextStyle style) {
+    Font font = style.font().get();
+    return Math.round((font.ascent() + font.descent() + font.lineGap()) * style.size());
   }
 
   /**
@@ -483,13 +634,14 @@ public final class Markdown {
   // ---- Blocks
 
   /** What building a document needs, and the color of its text where it is now. */
-  private record Context(Theme theme, Options options, Prepared prepared, int color, int depth) {
+  private record Context(
+      Theme theme, Options options, Prepared prepared, int color, int depth, boolean compact) {
     Context muted() {
-      return new Context(theme, options, prepared, theme.text().muted(), depth);
+      return new Context(theme, options, prepared, theme.text().muted(), depth, compact);
     }
 
     Context deeper() {
-      return new Context(theme, options, prepared, color, depth + 1);
+      return new Context(theme, options, prepared, color, depth + 1, compact);
     }
   }
 
@@ -507,13 +659,16 @@ public final class Markdown {
     Theme theme = c.theme;
     Block b = blocks.get(i);
     boolean last = i + 1 == blocks.size();
-    float below = last ? 0 : tight ? theme.space().xs() : theme.space().l();
+    float normal = c.compact ? theme.space().m() : theme.space().l();
+    float below = last ? 0 : tight ? theme.space().xs() : normal;
     if (b instanceof MarkdownDocument.Heading && !last) {
-      below = theme.space().m();
+      below = c.compact ? theme.space().s() : theme.space().m();
     }
     float above = 0;
     if (b instanceof MarkdownDocument.Heading h && i > 0) {
-      above = h.level() <= 2 ? theme.space().xxl() : theme.space().l();
+      above = c.compact
+          ? (h.level() <= 2 ? theme.space().l() : theme.space().m())
+          : (h.level() <= 2 ? theme.space().xxl() : theme.space().l());
     }
     return el.margin(above, 0, below, 0);
   }
@@ -529,7 +684,7 @@ public final class Markdown {
         blocks(c.muted(), q.blocks(), false, content);
         yield row()
             .role("blockquote")
-            .gap(theme.space().l())
+            .gap(c.compact ? theme.space().m() : theme.space().l())
             .children(
                 el().w(theme.size().indicator() + 1)
                     .shrink(0)
@@ -539,8 +694,10 @@ public final class Markdown {
                 content);
       }
       case MarkdownDocument.ListBlock l -> list(c, l);
-      case MarkdownDocument.ThematicBreak _ ->
-        Divider.divider().margin(theme.space().m(), 0, theme.space().m(), 0);
+      case MarkdownDocument.ThematicBreak _ -> {
+        float margin = c.compact ? theme.space().s() : theme.space().m();
+        yield Divider.divider().margin(margin, 0, margin, 0);
+      }
       case MarkdownDocument.Table table -> table(c, table);
     };
   }
@@ -562,11 +719,13 @@ public final class Markdown {
         .caretColor(color)
         .highlight(piece, piece);
     State state = c.options.state;
-    if (state != null && state.all) {
+    if (state != null && state.all && !c.compact) {
       int selection = theme.accent().selection();
       field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
     }
-    field.onKey(k -> keys(c, k));
+    if (!c.compact) { // a fragment has no whole-document selection
+      field.onKey(k -> keys(c, k));
+    }
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
       Consumer<String> onLink = c.options.onLink;
@@ -646,7 +805,7 @@ public final class Markdown {
           .role("paragraph");
     }
     // Images among the text break the paragraph: text, image, text, each a block of its own.
-    El blocks = col().gap(theme.space().l());
+    El blocks = col().gap(c.compact ? theme.space().m() : theme.space().l());
     Object owner = p; // a run of text is kept by the paragraph, or by the image before it
     List<Inline> run = new ArrayList<>();
     for (Inline part : content) {
@@ -735,20 +894,20 @@ public final class Markdown {
         .scrollbars(theme.scrollbars());
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     float bar = theme.scrollbars().thickness() + theme.scrollbars().margin();
-    field.padding(
-        theme.space().m(),
-        theme.space().l(),
-        theme.space().m() + bar,
-        theme.space().l());
+    float padY = c.compact ? theme.space().s() : theme.space().m();
+    float padX = c.compact ? theme.space().m() : theme.space().l();
+    field.padding(padY, padX, padY + bar, padX);
     if (highlighter != null) {
       field.highlight(highlighter, highlighter);
     }
     State state = c.options.state;
-    if (state != null && state.all) {
+    if (state != null && state.all && !c.compact) {
       int selection = theme.accent().selection();
       field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
     }
-    field.onKey(k -> keys(c, k));
+    if (!c.compact) {
+      field.onKey(k -> keys(c, k));
+    }
     El box = col()
         .role("group")
         .fill(theme.surface().raised())
@@ -775,8 +934,8 @@ public final class Markdown {
   private static El list(Context c, MarkdownDocument.ListBlock list) {
     Theme theme = c.theme;
     float column = markerColumn(c, list);
-    El out =
-        col().role("list").gap(list.tight() ? theme.space().xs() : theme.space().l());
+    float loose = c.compact ? theme.space().m() : theme.space().l();
+    El out = col().role("list").gap(list.tight() ? theme.space().xs() : loose);
     for (int i = 0; i < list.items().size(); i++) {
       out.child(item(c, list, i, column));
     }
@@ -804,8 +963,7 @@ public final class Markdown {
     El marker;
     if (item.task() != null) {
       // The box on the middle of the first line, which is the body's line height high.
-      Font font = body.font().get();
-      float line = Math.round((font.ascent() + font.descent() + font.lineGap()) * body.size());
+      float line = lineHeight(body);
       marker = row()
           .w(theme.size().checkbox() + theme.space().xs())
           .shrink(0)
