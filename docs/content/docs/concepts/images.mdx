@@ -19,7 +19,7 @@ Each `Image` has a scale factor (physical pixels per logical pixel, default `1`)
 
 Decoding large images can take noticeable time. Always decode inside `app.background` and store the resulting `Image` in your state — never decode inside your view function. The renderer caches uploaded GPU textures by `Image` instance identity.
 
-**Supported formats:** All PNG color types and bit depths (non-interlaced), plus baseline and progressive JPEG (with automatic EXIF orientation). Interlaced PNG and CMYK JPEG throw an error.
+**Supported formats:** All PNG color types and bit depths (including Adam7 interlaced), plus baseline and progressive JPEG (with automatic EXIF orientation). CMYK JPEG throws an error.
 
 ## Sizing and fit
 

@@ -18,6 +18,18 @@ public final class Png {
 
   private static final byte[] SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
 
+  // Starting x, starting y, x step and y step of each pass.
+  private static final int[][] SINGLE_PASS = {{0, 0, 1, 1}};
+  private static final int[][] ADAM7 = {
+    {0, 0, 8, 8},
+    {4, 0, 8, 8},
+    {0, 4, 4, 8},
+    {2, 0, 4, 4},
+    {0, 2, 2, 4},
+    {1, 0, 2, 2},
+    {0, 1, 1, 2},
+  };
+
   private Png() {}
 
   public static byte[] encode(Pixels pixels) {
@@ -48,9 +60,9 @@ public final class Png {
 
   /**
    * Reads a PNG file into straight RGBA: gray, gray with alpha, RGB, RGBA and palette images, of
-   * 1, 2, 4, 8 or 16 bits per sample as the format allows them, with the transparency of a {@code
-   * tRNS} chunk, all five row filters and the CRC of every chunk checked. Sixteen bits keep their
-   * high byte. Interlaced images are refused, as are images of more than 2^28 pixels.
+   * 1, 2, 4, 8 or 16 bits per sample as the format allows them, non-interlaced or Adam7 interlaced,
+   * with the transparency of a {@code tRNS} chunk, all five row filters and the CRC of every chunk
+   * checked. Sixteen bits keep their high byte. Images of more than 2^28 pixels are refused.
    *
    * @throws IllegalArgumentException if the bytes are not such a PNG file, saying why
    */
@@ -64,6 +76,7 @@ public final class Png {
     int height = -1;
     int depth = 0;
     int color = 0;
+    int interlace = 0;
     byte[] palette = null;
     byte[] transparency = null;
     ByteArrayOutputStream compressed = new ByteArrayOutputStream();
@@ -94,9 +107,9 @@ public final class Png {
           if (header.get() != 0 || header.get() != 0) {
             throw new IllegalArgumentException("unknown PNG compression or filter method");
           }
-          if (header.get() != 0) {
-            throw new IllegalArgumentException(
-                "interlaced PNGs are not read; save the image" + " without interlacing (Adam7)");
+          interlace = header.get() & 0xFF;
+          if (interlace != 0 && interlace != 1) {
+            throw new IllegalArgumentException("unknown PNG interlace method " + interlace);
           }
           if ((width == 0) != (height == 0)) {
             throw new IllegalArgumentException("PNG of " + Integer.toUnsignedString(width) + " by "
@@ -142,27 +155,63 @@ public final class Png {
     };
     int bits = channels * depth;
     int bytesPerPixel = Math.max(1, bits / 8); // the distance a filter looks back
-    long rowLength = ((long) width * bits + 7) / 8;
-    if ((rowLength + 1) * height > Integer.MAX_VALUE - 8) {
-      throw new IllegalArgumentException(
-          "PNG of " + width + " by " + height + " pixels of " + bits + " bits is too large");
-    }
-    int rowBytes = (int) rowLength;
-    byte[] raw = inflate(compressed.toByteArray(), (int) ((rowLength + 1) * height));
-    byte[] rgba = new byte[width * height * 4];
-    byte[] previous = new byte[rowBytes];
-    byte[] row = new byte[rowBytes];
-    for (int y = 0; y < height; y++) {
-      int at = y * (rowBytes + 1);
-      unfilter(raw[at], raw, at + 1, row, previous, bytesPerPixel);
-      for (int x = 0; x < width; x++) {
-        pixel(row, x, depth, color, palette, transparency, rgba, (y * width + x) * 4);
+    int[][] passes = interlace == 1 ? ADAM7 : SINGLE_PASS;
+    long rawSize = 0;
+    for (int[] pass : passes) {
+      int passWidth = passCount(width, pass[0], pass[2]);
+      int passHeight = passCount(height, pass[1], pass[3]);
+      if (passWidth == 0 || passHeight == 0) {
+        continue;
       }
-      byte[] swap = previous;
-      previous = row;
-      row = swap;
+      long rowLength = ((long) passWidth * bits + 7) / 8;
+      long passBytes = (rowLength + 1) * passHeight;
+      if (passBytes > Integer.MAX_VALUE - 8 - rawSize) {
+        throw new IllegalArgumentException(
+            "PNG of " + width + " by " + height + " pixels of " + bits + " bits is too large");
+      }
+      rawSize += passBytes;
+    }
+    byte[] raw = inflate(compressed.toByteArray(), (int) rawSize);
+    byte[] rgba = new byte[width * height * 4];
+    int offset = 0;
+    for (int[] pass : passes) {
+      int startX = pass[0];
+      int startY = pass[1];
+      int stepX = pass[2];
+      int stepY = pass[3];
+      int passWidth = passCount(width, startX, stepX);
+      int passHeight = passCount(height, startY, stepY);
+      if (passWidth == 0 || passHeight == 0) {
+        continue;
+      }
+      int rowBytes = (int) (((long) passWidth * bits + 7) / 8);
+      byte[] previous = new byte[rowBytes];
+      byte[] row = new byte[rowBytes];
+      for (int py = 0; py < passHeight; py++) {
+        unfilter(raw[offset], raw, offset + 1, row, previous, bytesPerPixel);
+        offset += rowBytes + 1;
+        int rowOffset = (startY + py * stepY) * width;
+        for (int px = 0; px < passWidth; px++) {
+          pixel(
+              row,
+              px,
+              depth,
+              color,
+              palette,
+              transparency,
+              rgba,
+              (rowOffset + startX + px * stepX) * 4);
+        }
+        byte[] swap = previous;
+        previous = row;
+        row = swap;
+      }
     }
     return new Pixels(width, height, rgba);
+  }
+
+  private static int passCount(int size, int start, int step) {
+    return size <= start ? 0 : (size - 1 - start) / step + 1;
   }
 
   /** Undoes a row's filter into {@code row}, from the filtered bytes at {@code from}. */
