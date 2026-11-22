@@ -242,6 +242,7 @@ class CodeNavigationTest {
     // 3. Ctrl+Shift+F7 highlights usages in the "usages" markup layer and scrollbar marks;
     // Escape clears documentation popover, then F8 diagnostic message, then usages.
     doc.editor.documentation(o -> Markdown.parse("CTE `paid_orders`."));
+    doc.editor.occurrences(false); // the backgrounds checked below are the usages' alone
     doc.editor.diagnostics(
         SAMPLE,
         List.of(new CodeEditor.Diagnostic(
@@ -325,10 +326,13 @@ class CodeNavigationTest {
         frame
         """, app, out);
     String menu = Files.readString(out.resolve("usages-menu.tree.txt"));
-    assertTrue(menu.contains("#usages role=menu label=\"Usages\""), menu);
-    assertTrue(menu.contains("label=\"1: WITH paid_orders AS (\""), menu);
-    assertTrue(menu.contains("label=\"6: FROM paid_orders\""), menu);
-    assertTrue(menu.contains("label=\"report.sql\""), menu);
+    for (String part : List.of(
+        "#usages role=menu label=\"Usages\"",
+        "label=\"1: WITH paid_orders AS (\"",
+        "label=\"6: FROM paid_orders\"",
+        "label=\"report.sql\"")) {
+      assertTrue(menu.contains(part), menu);
+    }
     assertEquals(secondUsage, doc.editor.caret(), "choosing 2nd usage moves caret there");
 
     // 5. Location in another document reaches onOpen (both via Ctrl+B and usages menu).
@@ -340,8 +344,13 @@ class CodeNavigationTest {
         frame
         """, app, out);
     assertEquals(SCHEMA_ORDERS, doc.opened, "other-document declaration delivered to onOpen");
+  }
 
-    // 6. Read-only editor with German texts supports navigation; without providers, keys bubble.
+  @Test
+  void readOnlyEditorNavigatesAndKeysBubbleWithoutProviders() throws IOException {
+    int declFrom = SAMPLE.indexOf("paid_orders");
+    int secondUsage = SAMPLE.indexOf("paid_orders", declFrom + 1);
+    // A read-only editor with German texts navigates; without providers, the keys bubble.
     Doc ro = new Doc(true);
     ro.readOnly = true;
     ro.editor.readOnly(true);

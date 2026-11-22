@@ -389,6 +389,7 @@ public final class CodeEditor {
     private Consumer<Location> onOpen;
     private final Menu.State usagesMenu = new Menu.State();
     private List<Location> usagesFound = List.of();
+    private List<String> usageLabels = List.of(); // computed once, while the text stays the same
     private String usagesValue;
     private String navValue;
     private int navFrom = -1;
@@ -736,6 +737,7 @@ public final class CodeEditor {
     private void closeUsagesMenu() {
       usagesMenu.close();
       usagesFound = List.of();
+      usageLabels = List.of();
       usagesValue = null;
     }
 
@@ -1300,10 +1302,10 @@ public final class CodeEditor {
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
     if (state.usagesMenu.isOpen() && !state.usagesFound.isEmpty()) {
-      String revision = state.builtText;
       List<Menu.Item> items = new ArrayList<>(state.usagesFound.size());
-      for (Location loc : state.usagesFound) {
-        items.add(Menu.item(usageLabel(revision, loc), () -> goTo(app, state, editor, loc)));
+      for (int i = 0; i < state.usagesFound.size(); i++) {
+        Location loc = state.usagesFound.get(i);
+        items.add(Menu.item(state.usageLabels.get(i), () -> goTo(app, state, editor, loc)));
       }
       editor.overlay(Menu.menu(state.usagesMenu, items)
           .key("usages")
@@ -2812,6 +2814,7 @@ public final class CodeEditor {
       return;
     }
     state.usagesFound = List.copyOf(found);
+    state.usageLabels = state.usagesFound.stream().map(l -> usageLabel(text, l)).toList();
     state.usagesValue = state.value;
     state.usagesMenu.openByKey();
   }
