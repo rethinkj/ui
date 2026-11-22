@@ -1,0 +1,4 @@
+# Show the most severe diagnostic's message muted after each line's end.
+size 520 106 scale 2
+frame
+snap view

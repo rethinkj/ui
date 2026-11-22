@@ -1,0 +1,28 @@
+el 0,0 520x106
+  text #inline role=textbox label="Query" "SELECT id, tax\nFROM orders\nWHERE status = 'paid'\nORDER BY created_at DESC;" 12,12 496x82 lines 1-4/4 squiggle 11-14,33-39
+    el #rail 13,13 56x80
+    el #gutter 13,17 55x64
+      el #line-0 13,17 55x16
+        el #marker role=img label="Error" 19,19 12x12 error="column \"tax\" does not exist"
+          text label="dismiss" "\u{F367}" 19,19 12x12
+        text "1" 35,17 7x16
+        el 46,25 2x0
+        el 52,25 12x0
+      el #line-1 13,33 55x16
+        el 19,41 12x0
+        text "2" 35,33 7x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
+        el #marker role=img label="Warning" 19,51 12x12 warning="predicate on status is not indexed"
+          text label="warning" "\u{EE3B}" 19,51 12x12
+        text "3" 35,49 7x16
+        el 46,57 2x0
+        el 52,57 12x0
+      el #line-3 13,65 55x16
+        el 19,73 12x0
+        text "4" 35,65 7x16
+        el 46,73 2x0
+        el 52,73 12x0
+    text #end-0 "column \"tax\" does not exist" 194.5,17.5 156x15
+    text #end-2 "predicate on status is not indexed" 245.25,49.5 192x15

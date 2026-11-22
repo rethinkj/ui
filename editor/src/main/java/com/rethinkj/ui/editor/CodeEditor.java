@@ -2,6 +2,7 @@ package com.rethinkj.ui.editor;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
@@ -358,6 +359,7 @@ public final class CodeEditor {
     private int blockFrom;
     private int blockTo;
     private boolean occurrences = true;
+    private boolean inlineDiagnostics;
     private boolean findBar = true;
     private boolean readOnly;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
@@ -450,6 +452,17 @@ public final class CodeEditor {
      */
     public State occurrences(boolean on) {
       occurrences = on;
+      return this;
+    }
+
+    /**
+     * Whether the message of the most severe diagnostic on each line shows muted after the line's
+     * end, in the severity's status color and cut off at the field's edge; off unless set. A folded
+     * range's first line shows only diagnostics that start on that line, and lines replaced by a
+     * rendered doc comment show nothing.
+     */
+    public State inlineDiagnostics(boolean on) {
+      inlineDiagnostics = on;
       return this;
     }
 
@@ -1269,6 +1282,12 @@ public final class CodeEditor {
       state.closeUsagesMenu();
     }
     wireBlocks(theme, state, value, editor);
+    if (state.inlineDiagnostics && !diagnostics.isEmpty()) {
+      Map<Integer, Diagnostic> inline = inlineDiagnosticsByLine(state.builtText, diagnostics);
+      if (!inline.isEmpty()) {
+        editor.lineEnds(line -> inlineDiagnostic(theme, inline.get(line)));
+      }
+    }
     int[] pair = editor.matchingBracket(state.caret);
     editor
         .decorate((line, start, text, out) -> {
@@ -1526,6 +1545,55 @@ public final class CodeEditor {
 
   private static int color(Theme theme, Severity severity) {
     return severity == Severity.ERROR ? theme.status().danger() : theme.status().warning();
+  }
+
+  /**
+   * The most severe diagnostic with a non-empty message on each line of {@code text}: ERROR over
+   * WARNING, then the first by {@code from}.
+   */
+  private static Map<Integer, Diagnostic> inlineDiagnosticsByLine(
+      String text, List<Diagnostic> diagnostics) {
+    int len = text.length();
+    List<Diagnostic> eligible = new ArrayList<>(diagnostics.size());
+    for (Diagnostic d : diagnostics) {
+      if (d.from >= 0 && d.from <= len && !d.message.isEmpty()) {
+        eligible.add(d);
+      }
+    }
+    if (eligible.isEmpty()) {
+      return Map.of();
+    }
+    eligible.sort(Comparator.comparingInt(Diagnostic::from));
+    Map<Integer, Diagnostic> byLine = HashMap.newHashMap(eligible.size());
+    int cursor = 0;
+    int line = 0;
+    for (Diagnostic d : eligible) {
+      while (cursor < d.from) {
+        if (text.charAt(cursor++) == '\n') {
+          line++;
+        }
+      }
+      Diagnostic current = byLine.get(line);
+      if (current == null || (current.severity != Severity.ERROR && d.severity == Severity.ERROR)) {
+        byLine.put(line, d);
+      }
+    }
+    return byLine;
+  }
+
+  private static List<El> inlineDiagnostic(Theme theme, Diagnostic diagnostic) {
+    if (diagnostic == null) {
+      return List.of();
+    }
+    Theme.TextStyle small = theme.type().small();
+    int muted = Colors.mix(color(theme, diagnostic.severity), theme.text().muted(), 0.35);
+    // One row: a message's line breaks would draw over the lines around it.
+    return List.of(El.text(diagnostic.message.replaceAll("\\R", " "))
+        .font(small.font().get())
+        .fontSize(small.size())
+        .color(muted)
+        .margin(0, 0, 0, theme.space().l())
+        .inert());
   }
 
   private static int color(Theme theme, Change.Kind kind) {

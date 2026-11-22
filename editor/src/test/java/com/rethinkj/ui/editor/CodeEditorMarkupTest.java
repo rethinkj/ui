@@ -258,6 +258,57 @@ class CodeEditorMarkupTest {
     assertEquals("2x4", change(after, 3), after);
   }
 
+  @Test
+  void inlineDiagnosticsShowMostSevereMessageAfterLineWhenEnabled() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = "SELECT id, tax\nFROM ordrs\nWHERE status = 'paid';";
+    Doc doc = new Doc(text);
+    int id = text.indexOf("id");
+    int tax = text.indexOf("tax");
+    int from = text.indexOf("FROM");
+    int ordrs = text.indexOf("ordrs");
+    doc.editor.diagnostics(
+        text,
+        List.of(
+            new CodeEditor.Diagnostic(id, id + 2, CodeEditor.Severity.WARNING, "Unused column"),
+            new CodeEditor.Diagnostic(
+                tax, tax + 3, CodeEditor.Severity.ERROR, "Unknown column tax"),
+            new CodeEditor.Diagnostic(from, from + 4, CodeEditor.Severity.ERROR, ""),
+            new CodeEditor.Diagnostic(
+                ordrs, ordrs + 5, CodeEditor.Severity.WARNING, "Deprecated table"),
+            new CodeEditor.Diagnostic(
+                from, from + 4, CodeEditor.Severity.WARNING, "Table alias missing")));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(5)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Off by default: no line-end diagnostic elements.
+    Script.run("size 480 180 scale 2\nframe\nsnap off", app, out);
+    String off = Files.readString(out.resolve("off.tree.txt"));
+    assertFalse(off.contains("#end-"), off);
+
+    // On: ERROR beats an earlier WARNING on line 0; empty ERROR skipped and earlier WARNING wins
+    // on line 1; line 2 has no diagnostic.
+    doc.editor.inlineDiagnostics(true);
+    app.invalidate();
+    Script.run("size 480 180 scale 2\nframe\nsnap on", app, out);
+    String on = Files.readString(out.resolve("on.tree.txt"));
+    assertTrue(on.contains("text #end-0 \"Unknown column tax\""), on);
+    assertTrue(on.contains("text #end-1 \"Table alias missing\""), on);
+    assertFalse(on.contains("#end-2"), on);
+  }
+
   /** The tree dump of the gutter cell of line {@code index}. */
   private static String cell(String tree, int index) {
     int from = tree.indexOf("#line-" + index + " ");

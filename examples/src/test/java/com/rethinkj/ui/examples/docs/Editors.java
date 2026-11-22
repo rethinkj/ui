@@ -127,6 +127,33 @@ final class Editors {
   String selectedVision;
   String broken = "SELECT id, total\nFROM ordrs\nWHERE status = 'paid';";
   final CodeEditor.State fixesEditor = new CodeEditor.State();
+  String inlineSql = """
+      SELECT id, tax
+      FROM orders
+      WHERE status = 'paid'
+      ORDER BY created_at DESC;""";
+  // docs:start code-editor-inline-diagnostics
+  final CodeEditor.State inlineEditor = new CodeEditor.State().inlineDiagnostics(true);
+
+  /** Reports an error and a warning; each line shows its most severe message after its end. */
+  void showInlineDiagnostics() {
+    int tax = inlineSql.indexOf("tax");
+    int status = inlineSql.indexOf("status");
+    inlineEditor.diagnostics(
+        inlineSql,
+        List.of(
+            new CodeEditor.Diagnostic(
+                tax,
+                tax + "tax".length(),
+                CodeEditor.Severity.ERROR,
+                "column \"tax\" does not exist"),
+            new CodeEditor.Diagnostic(
+                status,
+                status + "status".length(),
+                CodeEditor.Severity.WARNING,
+                "predicate on status is not indexed")));
+  }
+  // docs:end code-editor-inline-diagnostics
   String gutterSql = """
       SELECT o.id, o.total, o.tax
       FROM orders o
@@ -372,6 +399,7 @@ final class Editors {
     showRun();
     showVision();
     showFixes();
+    showInlineDiagnostics();
     showGutter();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
@@ -458,6 +486,10 @@ final class Editors {
 
   void broken(String value) {
     broken = value;
+  }
+
+  void inlineSql(String value) {
+    inlineSql = value;
   }
 
   void gutterSql(String value) {
@@ -640,6 +672,16 @@ final class Editors {
         .key("fixes")
         .label("Query")
         .lines(7)
+        .wFull();
+    return Frame.of(editor);
+  }
+
+  static El inlineDiagnostics(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.inlineSql, state.inlineEditor, Sql.of(), state::inlineSql)
+        .key("inline")
+        .label("Query")
+        .lines(4)
         .wFull();
     return Frame.of(editor);
   }

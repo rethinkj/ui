@@ -188,6 +188,15 @@ A `CodeEditor.Diagnostic` can carry a list of `CodeEditor.Fix(label, from, to, t
 ```java snippet="code-editor-fixes"
 ```
 
+## Inline diagnostics
+
+Call `inlineDiagnostics(true)` on `CodeEditor.State` (off by default) to show the message of the most severe diagnostic on each line (`ERROR` over `WARNING`, then the first by position) muted after the line's end, in the severity's theme color and cut off at the field's edge; diagnostics with an empty message are skipped. A folded range's first line shows only diagnostics that start on that line, and lines replaced by a rendered doc comment show nothing.
+
+<Shot src="examples/docs/code-editor-inline-diagnostics/view-{theme}" alt="A SQL query in the code editor with an error message in muted red after line 1 and a warning message in muted amber after line 3" />
+
+```java snippet="code-editor-inline-diagnostics"
+```
+
 ## Folding
 
 Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, ignoring brackets inside strings and comments when the highlighter marks brackets (such as `Json` and `Sql`). Folded lines show a chevron (`›`) in the gutter and a clickable `…` pill at the end of the line; hovering a line that starts a foldable block reveals its fold chevron (`⌄`). Press **Ctrl+Shift+[** to fold the innermost block around the cursor (moving the cursor to the end of its first line) and **Ctrl+Shift+]** to unfold it. Folding also works in read-only editors.
@@ -293,6 +302,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `replace(from, to, text, caret)` | Replaces characters from `from` to `to` with `text` in the same way, placing the cursor at `caret` inside `text` |
 | `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`, `Change`) for `text`, moving them across edits |
 | `diagnostics(text, list)`, `noDiagnostics()` | Shorthand for `markup("diagnostics", text, list)` and `noMarkup("diagnostics")` |
+| `inlineDiagnostics(boolean)` | Shows the most severe diagnostic's message muted after each line's end (off by default) |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string |
 | `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
@@ -333,7 +343,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), `#marker-<n>` for app markers, `#change` for VCS change bars, `#fold-line-<index>`, and `#doc-line-<index>` elements, `#fold-<first>` for each visible folded pill, `#doc-<first>` for each visible rendered doc comment, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`). When find usages is open, it appears as an overlay `#usages` with `role=menu` and `label="Usages"` (localized via `Texts`):
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker` (`role=button` with `label="Show quick fixes"` on the cursor's line when quick fixes are available), `#marker-<n>` for app markers, `#change` for VCS change bars, `#fold-line-<index>`, and `#doc-line-<index>` elements, `#fold-<first>` for each visible folded pill, `#end-<line>` for each visible inline diagnostic message, `#doc-<first>` for each visible rendered doc comment, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`). When find usages is open, it appears as an overlay `#usages` with `role=menu` and `label="Usages"` (localized via `Texts`):
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="17"
 ```

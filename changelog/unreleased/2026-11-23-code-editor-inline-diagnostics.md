@@ -1,0 +1,1 @@
+- `CodeEditor.State.inlineDiagnostics(true)` shows the message of the most severe diagnostic on each line muted after the line's end in the severity's theme color, cut off at the field's edge (off by default).
