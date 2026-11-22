@@ -288,10 +288,10 @@ public final class Card {
 
   /**
    * Makes a card one press target: the pointer and Enter or Space while it has the focus run
-   * {@code onPress}, and the pointer shows its hover and pressed looks, the hover and pressed
-   * overlays laid over its fill. Controls inside it, such as a menu button, keep their own
-   * presses. A selected card has the {@link Theme.Accent#edge} edge. In a tree dump the card
-   * is {@code role=button} with the label, and {@code selected} and {@code disabled} as they are.
+   * {@code onPress}, and it shows hover and pressed looks, the hover and pressed overlays laid
+   * over its fill. Controls inside it, such as a menu button, keep their own presses. A selected
+   * card has the {@link Theme.Accent#edge} edge. In a tree dump the card is {@code role=button}
+   * with the label, and {@code selected} and {@code disabled} as they are.
    *
    * @param card a card of this class
    * @param label what the card stands for, such as a connection's name

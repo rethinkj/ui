@@ -651,7 +651,7 @@ public record Theme(
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
-   * background while the pointer is over it or presses it.
+   * background while the pointer is over it or it is pressed.
    *
    * @param window behind everything: the page the cards lie on, and the title bar
    * @param panel a card, a sidebar or a dialog on the window

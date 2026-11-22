@@ -2531,11 +2531,13 @@ public final class El {
   }
 
   /**
-   * Changes how this element looks while the pointer presses it: from a pointer down that goes to
-   * it, as for {@link #onPress}, to the next pointer up, wherever that is, as CSS's {@code
-   * :active} does. Only an element with a press or drag handler is pressed, and a text field that
-   * takes input ({@link #editable}) while a press selects in it, which the elements around it do
-   * not count as a press of theirs; Enter and Space do not show this look. See {@link
+   * Changes how this element looks while it is pressed: from a pointer down that goes to it, as
+   * for {@link #onPress}, to the next pointer up, wherever that is, as CSS's {@code :active} does.
+   * Only an element with a press or drag handler is pressed, and a text field that takes input
+   * ({@link #editable}) while a press selects in it, which the elements around it do not count as
+   * a press of theirs. Enter and Space show this look too when they press it while it has the
+   * focus: from the key going down until it is up and {@link App#KEY_PRESS} seconds have passed
+   * since it went down, and not at all when it goes down and up in the same frame. See {@link
    * #whenHovered} for what a look may change.
    *
    * @param look changes the element, or null for none
