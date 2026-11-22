@@ -45,8 +45,8 @@ el 0,0 440x472
               el 99,156 316x24
                 el #database role=combobox label="inventory" 99,156 316x24 expanded=false
                   text #field-0 role=textbox "inventory" 99,156 316x24
-                  el role=button label="Open" 391,156 24x24
-                    text label="chevron_down" "\u{F2A2}" 395,160 16x16
+                  el role=button label="Open" 386,156 29x24
+                    text label="chevron_down" "\u{F2A2}" 390,160 16x16
         el role=group label="Login" 25,196 390x80
           el 25,196 390x16
             text role=heading "Login" 25,196 390x16 level=4

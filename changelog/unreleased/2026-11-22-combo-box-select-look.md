@@ -1,0 +1,1 @@
+- `ComboBox` has the look of `Select`, closed, open and in its free kind: an even edge and the control shadow instead of a text field's stronger bottom edge, lifted under the pointer, and the focus ring apart from it. While one types into it, its edge turns to the accent color. The chevron and an item's icon stay where they are when it opens.

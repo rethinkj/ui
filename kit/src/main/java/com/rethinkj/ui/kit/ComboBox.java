@@ -19,12 +19,16 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 /**
- * A choice that is typed: closed it shows the current choice and a chevron in a text field's
- * frame; open it is a text field with the {@linkplain FilterList filtered list}
+ * A choice that is typed: closed it shows the current choice and a chevron as a {@link Select}
+ * does; open it is a text field in the same frame with the {@linkplain FilterList filtered list}
  * of the choices below it, at least as wide as itself, which narrows {@linkplain Fuzzy fuzzily} as
  * one types. Use it where a {@link Select} would list more than a screenful, or where the user
  * knows what to type: a database among dozens, a font, a language. A select stays the control for
  * a few choices that one reads rather than types, such as a theme or an encoding.
+ *
+ * <p>It looks as a {@link Select} does, also while one types into it and in its free kind: raised
+ * with the control's shadow and lifted under the pointer; the edge turns to the accent color while
+ * its field has the focus.
  *
  * <p>It comes in two kinds:
  *
@@ -406,45 +410,58 @@ public final class ComboBox {
     return state.entries;
   }
 
-  /** The closed look of {@link #comboBox}: the current choice and a chevron in a field's frame. */
+  /** The closed look of {@link #comboBox}: the current choice and a chevron, as a select's. */
   private static El closed(Theme theme, String text, El lead, boolean enabled, State state) {
-    El box = SelectionFrame.frame(theme, text, lead, enabled).expanded(false);
+    Button.Look look = Select.look(theme, enabled);
+    El box = Select.box(theme, look, text, lead, enabled).expanded(false);
     if (!enabled) {
       return box;
     }
-    return box.focusable()
-        .focusRing(theme.accent().edge())
-        .cursor(Cursor.POINTER)
-        .onPress((Runnable) state::open)
-        .onKey(k -> {
-          boolean arrow = k.name().equals("ArrowDown") || k.name().equals("ArrowUp");
-          if (arrow && k.modifiers() == Key.ALT) {
-            state.open();
-            return true;
-          }
-          String name = k.name();
-          if ((k.modifiers() & ~Key.SHIFT) == 0
-              && name.codePointCount(0, name.length()) == 1
-              && Character.isLetterOrDigit(name.codePointAt(0))) {
-            state.open(k.modifiers() == Key.SHIFT ? name : name.toLowerCase(Locale.ROOT));
-            return true;
-          }
-          return false;
-        })
-        .whenHovered(e -> SelectionFrame.hovered(theme, e));
+    return Button.enable(theme, look, box, state::open).onKey(k -> {
+      boolean arrow = k.name().equals("ArrowDown") || k.name().equals("ArrowUp");
+      if (arrow && k.modifiers() == Key.ALT) {
+        state.open();
+        return true;
+      }
+      String name = k.name();
+      if ((k.modifiers() & ~Key.SHIFT) == 0
+          && name.codePointCount(0, name.length()) == 1
+          && Character.isLetterOrDigit(name.codePointAt(0))) {
+        state.open(k.modifiers() == Key.SHIFT ? name : name.toLowerCase(Locale.ROOT));
+        return true;
+      }
+      return false;
+    });
   }
 
-  /** A field in the frame with the chevron, which opens and closes the list. */
+  /**
+   * A field in a select's frame with the chevron, which opens and closes the list. The field, its
+   * text, what stands before it and the chevron lie where the closed box has them.
+   */
   private static El frame(
       Theme theme, String value, El field, El lead, State state, boolean choice, boolean enabled) {
+    Button.Look look = Select.look(theme, enabled);
     float side = theme.size().control();
-    field.wFull().hFull().style().paddingRight = Len.px(side); // the text stops before the mark
+    float stroke = theme.size().stroke();
+    float inset = stroke + theme.space().m();
+    float chevron = theme.space().m() + theme.size().icon() + theme.space().s();
+    // A clear field in the box's frame: the box gives the fill and the shadow, the field the edge,
+    // the accent while one types, and the ring apart from it as a button's.
+    field
+        .wFull()
+        .hFull()
+        .fill(0)
+        .border(stroke, look.edge())
+        .whenHovered(null)
+        .whenFocused(e -> e.border(stroke, theme.accent().color()))
+        .focusRingGap(theme.size().ringGap());
+    field.style().paddingRight = Len.px(chevron); // the text stops before the mark
     El before = null;
     if (lead != null) { // where the closed box has it, and the text starts after it
-      before = SelectionFrame.leading(theme, lead);
+      before = leading(theme, lead);
       Style place = before.style();
       place.position = Style.Position.ABSOLUTE;
-      place.left = Len.px(theme.space().m());
+      place.left = Len.px(inset);
       place.top = Len.px((side - theme.size().icon()) / 2);
       field.style().paddingLeft =
           Len.px(theme.space().m() + theme.size().icon() + theme.space().s());
@@ -452,8 +469,10 @@ public final class ComboBox {
     field.autofocus(state.opened == 0 ? null : state.opened);
     El mark = el().role("button")
         .label(state.open ? Texts.CURRENT.get().close() : Texts.CURRENT.get().open())
-        .size(side, side)
-        .center()
+        .w(stroke + chevron)
+        .align(Style.Align.CENTER)
+        .justify(Style.Content.END)
+        .padding(0, inset, 0, 0)
         .child(Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
@@ -474,17 +493,29 @@ public final class ComboBox {
         .expanded(state.open)
         .disabled(!enabled)
         .w(theme.size().field())
-        .h(theme.size().control())
+        .h(side)
+        .radius(theme.radius().medium())
+        .fill(look.fill())
+        .shadow(look.rest())
+        .motion(theme.motion().feedback())
         .children(field, mark);
     if (before != null) {
       box.child(before);
     }
     if (enabled) {
-      box.whenFocusWithin(e ->
-          TextField.edge(theme, field, theme.accent().color(), theme.accent().color()));
+      box.whenHovered(e -> e.fill(look.hover()).shadow(look.lifted()));
       field.onKey(k -> key(k, state, choice));
     }
     return box;
+  }
+
+  /** An item's own element in an icon's square, which takes no input. */
+  static El leading(Theme theme, El lead) {
+    return el().key("lead")
+        .size(theme.size().icon(), theme.size().icon())
+        .shrink(0)
+        .center()
+        .child(lead.shrink(0));
   }
 
   /** The keys of the field while the list is closed or open, besides the list's own. */
@@ -557,7 +588,9 @@ public final class ComboBox {
         .padding(theme.space().s())
         .keepFocus()
         .dismissGroup(state)
-        .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
+        // Clear of the field's focus ring, which lies its gap apart from it; whole pixels, since
+        // the overlay's place is rounded.
+        .side(Side.BOTTOM, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
         .onDismiss(state::close)
         .child(list);
     return box.dismissGroup(state).overlay(panel);

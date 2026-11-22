@@ -86,26 +86,8 @@ public final class Select {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    Button.Look look = Button.look(theme, Button.Variant.SECONDARY, Button.Tone.NEUTRAL, enabled);
-    El select = row()
-        .role("combobox")
-        .label(text)
-        .disabled(!enabled)
-        .w(theme.size().field())
-        .h(theme.size().control())
-        // As a button's: room for the content to move down while pressed, in the same box.
-        .padding(theme.size().stroke(), theme.space().m())
-        .gap(theme.space().s())
-        .align(Style.Align.CENTER)
-        .radius(theme.radius().medium())
-        .fill(look.fill())
-        .border(theme.size().stroke(), look.edge())
-        .shadow(look.rest())
-        .motion(theme.motion().feedback())
-        .expanded(state.isOpen())
-        .children(
-            label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis(),
-            Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    Button.Look look = look(theme, enabled);
+    El select = box(theme, look, text, null, enabled).expanded(state.isOpen());
     if (!enabled) {
       return select;
     }
@@ -162,5 +144,38 @@ public final class Select {
                 ? Menu.menu(state, items)
                     .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
                 : null);
+  }
+
+  /** The look of a secondary button, which a select and a combo box share. */
+  static Button.Look look(Theme theme, boolean enabled) {
+    return Button.look(theme, Button.Variant.SECONDARY, Button.Tone.NEUTRAL, enabled);
+  }
+
+  /**
+   * The box of a closed select or combo box in this look: what stands before the choice, if
+   * anything, the choice and the chevron.
+   */
+  static El box(Theme theme, Button.Look look, String text, El lead, boolean enabled) {
+    El box = row()
+        .role("combobox")
+        .label(text)
+        .disabled(!enabled)
+        .w(theme.size().field())
+        .h(theme.size().control())
+        // As a button's: room for the content to move down while pressed, in the same box.
+        .padding(theme.size().stroke(), theme.space().m())
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .radius(theme.radius().medium())
+        .fill(look.fill())
+        .border(theme.size().stroke(), look.edge())
+        .shadow(look.rest())
+        .motion(theme.motion().feedback());
+    if (lead != null) {
+      box.child(ComboBox.leading(theme, lead));
+    }
+    return box.children(
+        label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis(),
+        Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
   }
 }
