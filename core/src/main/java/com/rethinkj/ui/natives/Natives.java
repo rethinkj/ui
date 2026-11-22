@@ -518,7 +518,7 @@ public final class Natives {
     try {
       URLConnection connection = url.openConnection();
       // Opening the stream reads nothing yet; closing it frees what a file: URL holds open.
-      try (InputStream _ = connection.getInputStream()) {
+      try (var _ = connection.getInputStream()) {
         return connection.getContentLengthLong();
       }
     } catch (IOException _) {

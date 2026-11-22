@@ -338,7 +338,7 @@ class WindowTest {
   @Test
   void aDoublePressNeedsThePressesAsCloseAsTheSystemSays() {
     assumeTrue(System.getenv(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS) == null, "set by the environment");
-    try (Window _ = Window.open(TITLE, 120, 80)) {
+    try (var _ = Window.open(TITLE, 120, 80)) {
       assertEquals(
           String.valueOf(Window.doubleClickRadius()),
           Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS),

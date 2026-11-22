@@ -106,7 +106,7 @@ class SystemIntegrationTest {
     String id = "com.rethinkj.ui.test.SystemIntegration";
     Window.identity(id, "System integration test");
     assertThrows(IllegalArgumentException.class, () -> Window.identity("with space", null));
-    try (Window _ = Window.open(TITLE, 300, 200)) {
+    try (var _ = Window.open(TITLE, 300, 200)) {
       assertEquals(id, Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_IDENTIFIER_STRING));
       assertEquals(
           "System integration test", Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_NAME_STRING));

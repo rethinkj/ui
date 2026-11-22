@@ -356,7 +356,7 @@ class TextInputTest {
 
   @Test
   void theSystemClipboardCanBeRead() {
-    try (Window _ = Window.open(TITLE, 120, 80)) {
+    try (var _ = Window.open(TITLE, 120, 80)) {
       String text = new SystemClipboard().read();
       assertNotNull(text, "text or empty");
     }
@@ -372,7 +372,7 @@ class TextInputTest {
     assumeTrue(
         Boolean.getBoolean("rethinkj.ui.test.clipboard"),
         "Skipped: writes to the system clipboard; -Drethinkj.ui.test.clipboard=true runs it");
-    try (Window _ = Window.open(TITLE, 120, 80)) {
+    try (var _ = Window.open(TITLE, 120, 80)) {
       SystemClipboard clipboard = new SystemClipboard();
       String before = clipboard.read();
       try {
