@@ -120,4 +120,46 @@ class SettingsTest {
     assertEquals("5432", app.state().portDraft.text());
     assertEquals(null, app.state().portDraft.error(), "a new form starts with a valid default");
   }
+
+  @Test
+  void deletingAConnectionAsksWithADangerDialog(@TempDir Path out) throws IOException {
+    Snaps.assumeText();
+    App<Settings> app =
+        new App<>(new Settings(), Settings::view).provide(Theme.CURRENT, Settings::theme);
+    Script.run("""
+        size 880 600
+        frame
+        press role=option label="Connections"
+        frame
+        advance 1
+        frame
+        press role=button label="Actions for staging"
+        frame
+        advance 0.3
+        frame
+        press role=menuitem label="Delete"
+        frame
+        advance 0.3
+        frame
+        key Enter
+        frame
+        """, app, out);
+    assertEquals(3, app.state().connections.size(), "Enter cancels the danger dialog");
+    assertEquals(null, app.state().deleting);
+    Script.run("""
+        size 880 600
+        press role=button label="Actions for staging"
+        frame
+        advance 0.3
+        frame
+        press role=menuitem label="Delete"
+        frame
+        advance 0.3
+        frame
+        press #ok
+        frame
+        """, app, out);
+    assertEquals(2, app.state().connections.size(), "Delete removes the connection");
+    assertTrue(app.state().connections.stream().noneMatch(c -> c.name.equals("staging")));
+  }
 }
