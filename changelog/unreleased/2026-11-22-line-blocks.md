@@ -1,0 +1,1 @@
+- Added blocks between lines to multi-line text fields with `El.blocks(blocks, block, reveal)`: `El.Block.insert(line)` places an element before a line, `El.Block.replace(first, last)` shows one in place of a line range, `lines(n)` gives a block an exact height in lines, and `reveal` is called when an edit, find, undo or the app puts the caret inside a replaced range.

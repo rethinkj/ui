@@ -37,6 +37,7 @@ public final class Examples {
       case "field" -> new App<>(new Form(), Examples::form);
       case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
       case "folds" -> new App<>(new Folds(), Examples::folds);
+      case "blocks" -> new App<>(new Blocks(), Examples::blocks);
       case "overlay" -> new App<>(new Menus(), Examples::overlays);
       case "shapes" -> new App<>(new Object(), s -> shapes());
       default -> new App<>(new Lights(), Examples::lights);
@@ -198,6 +199,93 @@ public final class Examples {
               }
             })
             .folds(state.folds, state.folds::remove));
+  }
+
+  /** The state of the line blocks multi-line field example. */
+  public static final class Blocks {
+    public String code = "class Orders {\n"
+        + "  /**\n"
+        + "   * Sums active totals.\n"
+        + "   */\n"
+        + "  int sumPaid() {\n"
+        + "    return total;\n"
+        + "  }\n"
+        + "}";
+    public final El.Block doc = El.Block.replace(1, 3);
+    public final El.Block vision = El.Block.insert(4);
+    public final List<El.Block> blocks = new ArrayList<>(List.of(doc, vision));
+    public final FieldState fieldState = new FieldState();
+    public int usagesClicked;
+
+    public void findActive() {
+      int at = code.indexOf("active");
+      fieldState.select(at + "active".length(), at);
+    }
+  }
+
+  /** A multi-line field with a replaced doc comment block, a clickable code vision block and find. */
+  public static El blocks(Blocks state) {
+    El bar = row()
+        .gap(8)
+        .align(Style.Align.CENTER)
+        .children(
+            row()
+                .key("find")
+                .role("button")
+                .label("Find active")
+                .padding(3, 8)
+                .radius(4)
+                .fill(0xFF26262E)
+                .border(1, 0xFF3A3A40)
+                .keepFocus()
+                .onPress(state::findActive)
+                .child(El.text("Find active").fontSize(11).color(0xFFE4E4E7)),
+            El.text(state.usagesClicked > 0 ? "usages: " + state.usagesClicked : "ready")
+                .key("status")
+                .fontSize(11)
+                .color(0xFF9CA3AF));
+    El code = El.text(state.code)
+        .editable(value -> state.code = value)
+        .multiline()
+        .fieldState(state.fieldState)
+        .key("code")
+        .label("Source")
+        .font(Font.mono())
+        .fontSize(13)
+        .color(0xFFE4E4E7)
+        .caretColor(0xFF93C5FD)
+        .selectionColor(0x803B82F6)
+        .grow(1)
+        .padding(6)
+        .radius(6)
+        .fill(0xFF1C1C22)
+        .border(1, 0xFF3A3A40)
+        .whenFocused(e -> e.border(1, 0xFF3B82F6))
+        .gutter(
+            line -> row()
+                .padding(0, 8, 0, 2)
+                .child(El.text(String.valueOf(line.index() + 1))
+                    .font(Font.mono())
+                    .fontSize(13)
+                    .color(line.caret() ? 0xFFE4E4E7 : 0xFF6B7280)),
+            el().border(0, 1, 0, 0, 0xFF2D2D36).margin(0, 8, 0, 0))
+        .blocks(
+            state.blocks,
+            block -> block.placement() == El.Block.Placement.REPLACE
+                ? col()
+                    .padding(4, 8)
+                    .fill(0xFF232630)
+                    .border(0, 0, 0, 2, 0xFF3B82F6)
+                    .child(El.text("Sums active totals.").fontSize(12).color(0xFFC7D2FE))
+                : row()
+                    .padding(1, 0, 1, 16)
+                    .child(El.text("2 usages")
+                        .key("usages")
+                        .fontSize(11)
+                        .color(0xFF93C5FD)
+                        .onPress(() -> state.usagesClicked++)),
+            state.blocks::remove);
+    return col().wFull().hFull().padding(12).gap(8).fill(0xFF101014).children(bar, code);
   }
 
   /** A text field for the name of a table, with a placeholder, in the middle of the window. */

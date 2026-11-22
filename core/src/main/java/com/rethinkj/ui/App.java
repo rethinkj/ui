@@ -475,8 +475,9 @@ public final class App<S> {
    */
   public void pointerDown(float x, float y, int clicks, int modifiers) {
     List<El> at = root == null ? List.of() : hit(x, y);
-    if (!at.isEmpty() && at.getLast().takesEdits() && at.getLast().editor() != null) {
-      typingSoon = at.getLast(); // see inputArea
+    int fieldIndex = fieldPressIndex(at);
+    if (fieldIndex >= 0 && at.get(fieldIndex).editor() != null) {
+      typingSoon = at.get(fieldIndex); // see inputArea
     }
     enqueue(() -> {
       rowGoals.clear(); // the user goes on: no list follows a row any more
@@ -516,9 +517,11 @@ public final class App<S> {
       }
       return changed;
     }
-    if (!hit.isEmpty() && hit.getLast().takesEdits()) {
-      El field = hit.getLast(); // a leaf, so nothing inside it takes the press
-      capture = new Selecting(Animator.identities(hit).getLast());
+    int fieldIndex = fieldPressIndex(hit);
+    if (fieldIndex >= 0) {
+      El field = hit.get(fieldIndex);
+      capture =
+          new Selecting(Animator.identities(hit.subList(0, fieldIndex + 1)).getLast());
       focus.set(field, false, time);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
@@ -794,6 +797,11 @@ public final class App<S> {
    * a press in a text field, which takes the focus.
    */
   private static boolean keepsFocus(List<El> hit) {
+    for (int i = 0; i + 1 < hit.size(); i++) {
+      if (hit.get(i).isFieldBlock(hit.get(i + 1))) {
+        return true; // built after layout, nothing in a line block has an identity to focus
+      }
+    }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       return false;
     }
@@ -2352,7 +2360,9 @@ public final class App<S> {
     }
     if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
       for (El child : el.children()) {
-        focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, shown, found);
+        if (!el.isFieldBlock(child)) { // built after layout, a block has no identity to focus
+          focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, shown, found);
+        }
       }
     }
     float far = Float.POSITIVE_INFINITY;
@@ -4553,8 +4563,12 @@ public final class App<S> {
       List<El> children = el.children();
       // Later children are drawn on top, so they are asked first.
       for (int i = children.size() - 1; i >= 0 && next == null; i--) {
-        if (contains(children.get(i), left, top, x, y)) {
-          next = children.get(i);
+        El child = children.get(i);
+        if (el.isFieldBlock(child) && !inFieldContent(el, left, top, x, y)) {
+          continue;
+        }
+        if (contains(child, left, top, x, y)) {
+          next = child;
         }
       }
       if (next == null) {
@@ -4564,6 +4578,37 @@ public final class App<S> {
       top += next.y();
       el = next;
     }
+  }
+
+  /**
+   * The index in {@code hit} of the editable field that takes a press, or -1: inside a line block,
+   * the field the block is in if it takes edits and nothing in the block takes presses, drags or
+   * pointer-down (also not a text field: a block takes no text input); else the last element if it
+   * takes edits.
+   */
+  private static int fieldPressIndex(List<El> hit) {
+    for (int i = hit.size() - 2; i >= 0; i--) {
+      El el = hit.get(i);
+      if (el.isFieldBlock(hit.get(i + 1))) {
+        for (int j = i + 1; j < hit.size(); j++) {
+          El part = hit.get(j);
+          if (takesPress(part) || part.onPointerDown() != null) {
+            return -1;
+          }
+        }
+        return el.takesEdits() ? i : -1;
+      }
+    }
+    return !hit.isEmpty() && hit.getLast().takesEdits() ? hit.size() - 1 : -1;
+  }
+
+  /** Whether {@code (x, y)} lies inside a multi-line field's content box (where blocks clip). */
+  private static boolean inFieldContent(El field, float left, float top, float x, float y) {
+    float l = left + field.border(Side.LEFT) + field.padding(Side.LEFT);
+    float t = top + field.border(Side.TOP) + field.padding(Side.TOP);
+    float r = left + field.width() - field.border(Side.RIGHT) - field.padding(Side.RIGHT);
+    float b = top + field.height() - field.border(Side.BOTTOM) - field.padding(Side.BOTTOM);
+    return x >= l && x < r && y >= t && y < b;
   }
 
   /**

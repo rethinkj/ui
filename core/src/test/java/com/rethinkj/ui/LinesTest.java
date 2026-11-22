@@ -275,6 +275,91 @@ class LinesTest {
     assertEquals(8, lines.totalRows());
   }
 
+  @Test
+  void lineBlocksOffsetLinesAndHideReplacedRanges() {
+    // 6 lines (0..5), line height 20px.
+    Lines lines = Lines.of("L0\nL1\nL2\nL3\nL4\nL5");
+    lines.blocksLayout("w", 20);
+    El.Block repTop = El.Block.replace(0, 1); // hides lines 0 and 1
+    El.Block insMid = El.Block.insert(3); // before line 3
+    El.Block insMid2 = El.Block.insert(3).lines(2); // stacked before line 3, fixed 40px
+    El.Block insEnd = El.Block.insert(6).lines(1); // after last line, fixed 20px
+    lines.blocks(List.of(insEnd, insMid, repTop, insMid2));
+
+    // Line 0 and 1 are hidden by repTop.
+    assertTrue(lines.isHidden(0));
+    assertTrue(lines.isHidden(1));
+    assertEquals(4, lines.shownCount());
+    assertEquals(2, lines.firstVisible());
+    assertEquals(-1, lines.visibleAtOrBefore(0));
+    assertEquals(-1, lines.visibleAtOrBefore(1));
+    assertEquals(2, lines.visibleAtOrAfter(0));
+    assertEquals(2, lines.lineOfRow(0));
+    assertEquals(4, lines.totalRows());
+
+    // Initial estimates: repTop = 20, insMid = 20, insMid2 = 40, insEnd = 20 -> 100px blocks.
+    assertEquals(100, lines.totalBlockPixels());
+    assertEquals(180.0, lines.totalHeight(20));
+
+    // Measure repTop -> 50px, insMid -> 15px.
+    // Active order: [0]=repTop(0..1), [1]=insMid(3), [2]=insMid2(3, 2 lines), [3]=insEnd(6, 1
+    // line).
+    lines.blockHeight(0, 50);
+    lines.blockHeight(1, 15);
+    assertEquals(125, lines.totalBlockPixels());
+    // Vertical layout:
+    //   [0, 50): repTop (slot 0)
+    //   [50, 70): line 2 (row 0)
+    //   [70, 85): insMid (slot 3)
+    //   [85, 125): insMid2 (slot 3)
+    //   [125, 145): line 3 (row 1)
+    //   [145, 165): line 4 (row 2)
+    //   [165, 185): line 5 (row 3)
+    //   [185, 205): insEnd (slot 6)
+    assertEquals(0.0, lines.slotTop(0, 20));
+    assertEquals(50.0, lines.lineTop(2, 20));
+    assertEquals(70.0, lines.slotTop(3, 20));
+    assertEquals(125.0, lines.lineTop(3, 20));
+    assertEquals(145.0, lines.lineTop(4, 20));
+    assertEquals(185.0, lines.slotTop(6, 20));
+    assertEquals(205.0, lines.totalHeight(20));
+
+    // Lockstep y -> slot lookup across blocks and hidden lines.
+    assertEquals(0, lines.slotAt(0, 20));
+    assertEquals(0, lines.slotAt(49, 20));
+    assertEquals(2, lines.slotAt(50, 20));
+    assertEquals(2, lines.slotAt(69, 20));
+    assertEquals(3, lines.slotAt(70, 20));
+    assertEquals(3, lines.slotAt(124, 20));
+    assertEquals(3, lines.slotAt(125, 20));
+    assertEquals(4, lines.slotAt(145, 20));
+    assertEquals(5, lines.slotAt(165, 20));
+    assertEquals(6, lines.slotAt(185, 20));
+    assertEquals(6, lines.slotAt(300, 20));
+
+    // Changing layout invalidates cached measured heights back to estimates.
+    lines.blocksLayout("narrow", 20);
+    assertEquals(100, lines.totalBlockPixels());
+
+    // An enclosing fold hides blocks on its folded lines (lines 3..5 -> insMid/insMid2 hidden).
+    lines.folds(List.of(new El.Fold(2, 5)));
+    assertEquals(40, lines.totalBlockPixels(), "only repTop (20) and trailing insEnd (20) remain");
+
+    // Replacing all lines leaves 0 visible rows without crashing.
+    lines.folds(List.of());
+    lines.blocks(List.of(El.Block.replace(0, 5)));
+    assertEquals(0, lines.shownCount());
+    assertEquals(0, lines.totalRows());
+    assertEquals(-1, lines.firstVisible());
+    assertEquals(-1, lines.lineOfRow(0));
+    assertEquals(0, lines.slotAt(10, 20));
+
+    // Clearing blocks restores fast path.
+    lines.blocks(List.of());
+    assertEquals(0, lines.totalBlockPixels());
+    assertEquals(6, lines.totalRows());
+  }
+
   private static String randomText(Random random, String alphabet, int length) {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < length; i++) {

@@ -44,6 +44,7 @@ From a handler (such as a button that inserts a snippet), call `fieldState.repla
 | `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |
 | `folds(folds, unfold)`, `folds(folds, unfold, mark)` | Multi-line only: hides line ranges (`El.Fold(first, last)` keeps `first` shown with a placeholder mark and hides `first + 1` through `last`), calling `unfold` when the user clicks a mark, edits into a fold, or lands a selection/undo inside one |
+| `blocks(blocks, block, reveal)` | Multi-line only: inserts elements before a line (`El.Block.insert(line)`) or replaces a whole-line range (`El.Block.replace(first, last)`), calling `reveal` when an edit, find, undo/redo, or selection enters a replaced range |
 | `coveredTop(height)` | Multi-line only: tells the field that something (such as a find bar) covers its top `height`. The field can scroll that far above its first line (where the scrollbar thumb sits at the top), and `app.select` scrolls selections into view below it |
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, and `onSelect`). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
@@ -58,6 +59,19 @@ Pass `folds(List<El.Fold>, Consumer<El.Fold>)` on a multi-line field to collapse
 - Scrolling, line backgrounds, wrapping, hit testing, and the gutter skip hidden lines while `El.Gutter.Line.index()` stays the real line index.
 - Arrow keys, Home/End, and Page Up/Down (with or without Shift) skip hidden lines and never leave the caret inside a fold. A selection spanning a fold still contains the hidden lines, so copying keeps them.
 - Clicking a fold's placeholder mark (keyed `fold-<first>` in tree dumps unless the mark sets its own key), making an edit whose range touches a hidden line, or placing the caret or selection end on a hidden line via `app.select`, `FieldState.select`, or undo/redo calls `unfold` with the affected fold.
+
+## Blocks between lines
+
+Pass `blocks(List<El.Block>, Function<El.Block, El>, Consumer<El.Block>)` on a multi-line field to place elements between lines in two placements: `El.Block.insert(line)` inserts vertical space before `line` (or after the last line when `line` equals the line count) without hiding text, and `El.Block.replace(first, last)` hides every line from `first` through `last` inclusive and shows its element in place of them. Call `.lines(n)` on a block to fix its height to an exact number of text lines instead of measuring its element.
+
+```java snippet="line-blocks"
+```
+
+- Your app owns the block list and keeps its line indices current with the field's string; core never mutates block state. `REPLACE` blocks must not overlap each other, and several `INSERT` blocks before the same line stack in list order.
+- Block elements are built only while in view, laid out at the field's content width, and keyed `block-<first>` (and `block-<first>-<n>` for further blocks at the same line) unless they set a key. An enclosing fold hides blocks inside it.
+- Up and Down step over blocks, Left and Right jump across replaced ranges, and Home/End never land inside one. Selections stay in source text, tint covered blocks, and copy hidden lines without revealing them.
+- Presses on interactive elements inside a block reach them without moving the focus (nothing in a block takes the focus, text input, or drags); pressing elsewhere in the block band places the caret at the start of the following line. An edit touching a replaced range, or a caret or selection end placed inside one by find, undo/redo, `app.select`, or `FieldState.select`, calls `reveal`.
+- Gutter line numbers stay source line numbers: inserted blocks get no gutter cell, and each replaced range gets one cell at the block's top spanning `first` through `last`.
 
 ## Finding the word at the cursor
 

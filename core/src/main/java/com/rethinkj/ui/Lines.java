@@ -72,6 +72,7 @@ final class Lines {
 
   private static final int[] NO_LINES = new int[0];
   private static final El.Fold[] NO_FOLDS = new El.Fold[0];
+  private static final El.Block[] NO_BLOCKS = new El.Block[0];
 
   // Wrapping: the rows each line takes at the width of `layout`, 0 where not measured yet.
   private Object layout; // what the rows depend on, null while the text does not wrap
@@ -80,14 +81,36 @@ final class Lines {
   private long[] tree; // Fenwick tree over the rows each line counts as, from index 1
   private long total;
 
-  // Folding: raw folds last applied for foldsCount lines, merged hidden line intervals
-  // [hiddenFirst[i]..hiddenLast[i]] (sorted, disjoint, non-adjacent, each >= 1), and the outermost
-  // fold whose visible first line (hiddenFirst[i] - 1) carries the mark for that hidden range.
+  // Folding and line blocks: raw lists last applied for count lines.
+  // foldHiddenFirst/Last hold merged fold-hidden intervals (each >= 1) with visibleFolds holding
+  // the outermost fold for each. hiddenFirst/Last hold the merged union of fold-hidden and
+  // active REPLACE block intervals (may start at 0).
   private List<El.Fold> rawFolds = List.of();
   private int foldsCount = -1;
+  private int[] foldHiddenFirst = NO_LINES;
+  private int[] foldHiddenLast = NO_LINES;
+  private El.Fold[] visibleFolds = NO_FOLDS;
   private int[] hiddenFirst = NO_LINES;
   private int[] hiddenLast = NO_LINES;
-  private El.Fold[] visibleFolds = NO_FOLDS;
+
+  // Blocks between lines: active blocks sorted by first line (INSERT before REPLACE, list order
+  // among INSERTs at one line), their heights in physical pixels, and a Fenwick tree over the
+  // count + 1 line slots (slot `count` is after the last line). Null when there are no blocks.
+  private List<El.Block> rawBlocks = List.of();
+  private int blocksCount = -1;
+  private Object blockLayout;
+  private long blockLineHeight = 1;
+  private Map<BlockKey, Long> measuredBlocks = new HashMap<>();
+  private El.Block[] activeBlocks = NO_BLOCKS;
+  private int[] activeBlockOrdinals = NO_LINES;
+  private int[] blockSlots = NO_LINES;
+  private int[] blockSlotStarts = NO_LINES;
+  private long[] blockHeights;
+  private long[] slotPixels;
+  private long[] pixelTree; // 1-based Fenwick tree over slotPixels[0..count]
+  private long totalPixels;
+
+  private record BlockKey(El.Block block, int ordinal) {}
 
   private float widest; // the widest line measured, in physical pixels, without wrapping
   private int widestLine = -1;
@@ -161,6 +184,11 @@ final class Lines {
     copy.widestLine = widestLine;
     copy.measuredFor = measuredFor;
     copy.chunkWidths = new HashMap<>(chunkWidths);
+    copy.blockLayout = blockLayout;
+    copy.blockLineHeight = blockLineHeight;
+    if (!measuredBlocks.isEmpty()) {
+      copy.measuredBlocks = new HashMap<>(measuredBlocks);
+    }
     copy.budget = budget;
     if (states != null) {
       copy.highlightKey = highlightKey;
@@ -257,16 +285,24 @@ final class Lines {
       });
       chunkWidths = moved;
     }
-    if (!within && hasFolds()) {
+    if (!within && (hasHidden() || hasBlocks())) {
       foldsCount = count;
-      normalizeFolds();
+      blocksCount = count;
+      normalizeFoldsAndBlocks();
     }
     if (rows == null) {
-      if (!within && tree != null) {
-        if (hasFolds()) {
+      if (!within && (tree != null || hasHidden())) {
+        if (hasHidden()) {
           build();
         } else {
           tree = null;
+        }
+      }
+      if (!within && (pixelTree != null || hasBlocks())) {
+        if (hasBlocks()) {
+          buildPixels();
+        } else {
+          clearPixels();
         }
       }
       return;
@@ -280,6 +316,13 @@ final class Lines {
       System.arraycopy(rows, last + 1, next, first + 1 + added, oldCount - last - 1);
       rows = next; // the lines of the edit are not measured
       build();
+      if (pixelTree != null || hasBlocks()) {
+        if (hasBlocks()) {
+          buildPixels();
+        } else {
+          clearPixels();
+        }
+      }
     }
   }
 
@@ -421,7 +464,7 @@ final class Lines {
     return widest;
   }
 
-  // ---- Folding
+  // ---- Folding and blocks
 
   /**
    * Sets the folded line ranges of this text: for each fold, its first line stays shown and lines
@@ -436,26 +479,76 @@ final class Lines {
     }
     rawFolds = next;
     foldsCount = count;
+    reconcileFoldsAndBlocks();
+  }
+
+  /**
+   * Sets the blocks between lines of this text: {@link El.Block.Placement#INSERT} blocks sit
+   * before their line (or after the last line when {@code first == count}), and {@link
+   * El.Block.Placement#REPLACE} blocks hide every line of {@code first..last} inclusive. A block
+   * whose line is hidden by an enclosing fold (or an INSERT strictly inside a replaced range) is
+   * hidden and takes 0 pixels.
+   */
+  void blocks(List<El.Block> blocks) {
+    List<El.Block> next = blocks == null ? List.of() : blocks;
+    if (blocksCount == count && next.equals(rawBlocks)) {
+      return;
+    }
+    rawBlocks = next;
+    blocksCount = count;
+    reconcileFoldsAndBlocks();
+  }
+
+  /**
+   * Sets what measured block heights depend on (content width, scale, font, size and line height):
+   * another layout forgets cached heights and re-estimates from {@code lineHeight}.
+   */
+  void blocksLayout(Object layout, float lineHeight) {
+    long lh = Math.max(1, Math.round(lineHeight));
+    layout = layout == null ? blockLayout : layout; // not laid out yet: the width is not known
+    if (Objects.equals(layout, blockLayout) && lh == blockLineHeight) {
+      return;
+    }
+    blockLayout = layout;
+    blockLineHeight = lh;
+    measuredBlocks.clear();
+    if (hasBlocks()) {
+      buildPixels();
+    }
+  }
+
+  private void reconcileFoldsAndBlocks() {
     int[] oldFirst = hiddenFirst;
     int[] oldLast = hiddenLast;
-    normalizeFolds();
+    normalizeFoldsAndBlocks();
     if (!Arrays.equals(oldFirst, hiddenFirst) || !Arrays.equals(oldLast, hiddenLast)) {
       if (widestLine >= 0 && isHidden(widestLine)) {
         widest = 0;
         widestLine = -1;
       }
-      if (rows != null || hasFolds()) {
+      if (rows != null || hasHidden()) {
         build();
       } else {
         tree = null;
       }
     }
+    if (hasBlocks()) {
+      buildPixels();
+    } else {
+      clearPixels();
+    }
+  }
+
+  private void normalizeFoldsAndBlocks() {
+    normalizeFolds();
+    normalizeBlocks();
+    mergeHidden();
   }
 
   private void normalizeFolds() {
     if (rawFolds.isEmpty() || count <= 1) {
-      hiddenFirst = NO_LINES;
-      hiddenLast = NO_LINES;
+      foldHiddenFirst = NO_LINES;
+      foldHiddenLast = NO_LINES;
       visibleFolds = NO_FOLDS;
       return;
     }
@@ -466,8 +559,8 @@ final class Lines {
       }
     }
     if (active.isEmpty()) {
-      hiddenFirst = NO_LINES;
-      hiddenLast = NO_LINES;
+      foldHiddenFirst = NO_LINES;
+      foldHiddenLast = NO_LINES;
       visibleFolds = NO_FOLDS;
       return;
     }
@@ -493,12 +586,156 @@ final class Lines {
         n++;
       }
     }
-    hiddenFirst = Arrays.copyOf(firsts, n);
-    hiddenLast = Arrays.copyOf(lasts, n);
+    foldHiddenFirst = Arrays.copyOf(firsts, n);
+    foldHiddenLast = Arrays.copyOf(lasts, n);
     visibleFolds = Arrays.copyOf(headers, n);
   }
 
-  /** The lines not hidden in a fold. */
+  private void normalizeBlocks() {
+    if (rawBlocks.isEmpty()) {
+      activeBlocks = NO_BLOCKS;
+      activeBlockOrdinals = NO_LINES;
+      blockSlots = NO_LINES;
+      blockSlotStarts = NO_LINES;
+      return;
+    }
+    // Collect active REPLACE blocks first so INSERTs strictly inside a replaced range are hidden.
+    List<El.Block> replaces = new ArrayList<>();
+    for (El.Block b : rawBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE
+          && b.first() < count
+          && !isFoldHidden(b.first())) {
+        replaces.add(b);
+      }
+    }
+    replaces.sort((a, b) -> Integer.compare(a.first(), b.first()));
+    int[] repFirst = new int[replaces.size()];
+    int[] repLast = new int[replaces.size()];
+    for (int i = 0; i < replaces.size(); i++) {
+      repFirst[i] = replaces.get(i).first();
+      repLast[i] = Math.min(replaces.get(i).last(), count - 1);
+    }
+
+    List<El.Block> active = new ArrayList<>(rawBlocks.size());
+    for (El.Block b : rawBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE) {
+        if (b.first() < count && !isFoldHidden(b.first())) {
+          active.add(b);
+        }
+      } else {
+        int line = b.first();
+        if (line > count) {
+          continue;
+        }
+        if (line < count && (isFoldHidden(line) || insideReplaceBody(line, repFirst, repLast))) {
+          continue;
+        }
+        active.add(b);
+      }
+    }
+    if (active.isEmpty()) {
+      activeBlocks = NO_BLOCKS;
+      activeBlockOrdinals = NO_LINES;
+      blockSlots = NO_LINES;
+      blockSlotStarts = NO_LINES;
+      return;
+    }
+    // Stable sort: by slot (first), with INSERT before REPLACE at the same slot, keeping list
+    // order among INSERT blocks before the same line.
+    active.sort((a, b) -> {
+      int c = Integer.compare(a.first(), b.first());
+      if (c != 0) {
+        return c;
+      }
+      if (a.placement() != b.placement()) {
+        return a.placement() == El.Block.Placement.INSERT ? -1 : 1;
+      }
+      return 0;
+    });
+
+    int m = active.size();
+    activeBlocks = active.toArray(new El.Block[m]);
+    activeBlockOrdinals = new int[m];
+    Map<El.Block, Integer> seen = new HashMap<>();
+    int[] slots = new int[m];
+    int[] starts = new int[m + 1];
+    int sCount = 0;
+    for (int i = 0; i < m; i++) {
+      El.Block b = activeBlocks[i];
+      int ord = seen.getOrDefault(b, 0);
+      seen.put(b, ord + 1);
+      activeBlockOrdinals[i] = ord;
+      if (sCount == 0 || b.first() != slots[sCount - 1]) {
+        slots[sCount] = b.first();
+        starts[sCount] = i;
+        sCount++;
+      }
+    }
+    starts[sCount] = m;
+    blockSlots = Arrays.copyOf(slots, sCount);
+    blockSlotStarts = Arrays.copyOf(starts, sCount + 1);
+  }
+
+  private static boolean insideReplaceBody(int line, int[] repFirst, int[] repLast) {
+    if (repFirst.length == 0) {
+      return false;
+    }
+    int found = Arrays.binarySearch(repFirst, line);
+    int i = found >= 0 ? found : -found - 2;
+    return i >= 0 && line > repFirst[i] && line <= repLast[i];
+  }
+
+  private void mergeHidden() {
+    // Fast path: no active REPLACE blocks -> hidden intervals are the fold-hidden intervals.
+    int replaceCount = 0;
+    for (El.Block b : activeBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE) {
+        replaceCount++;
+      }
+    }
+    if (replaceCount == 0) {
+      hiddenFirst = foldHiddenFirst;
+      hiddenLast = foldHiddenLast;
+      return;
+    }
+    int totalIntervals = foldHiddenFirst.length + replaceCount;
+    int[][] intervals = new int[totalIntervals][2];
+    int k = 0;
+    for (int i = 0; i < foldHiddenFirst.length; i++) {
+      intervals[k][0] = foldHiddenFirst[i];
+      intervals[k][1] = foldHiddenLast[i];
+      k++;
+    }
+    for (El.Block b : activeBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE) {
+        intervals[k][0] = b.first();
+        intervals[k][1] = Math.min(b.last(), count - 1);
+        k++;
+      }
+    }
+    Arrays.sort(intervals, (a, b) -> {
+      int c = Integer.compare(a[0], b[0]);
+      return c != 0 ? c : Integer.compare(b[1], a[1]);
+    });
+    int[] firsts = new int[totalIntervals];
+    int[] lasts = new int[totalIntervals];
+    int n = 0;
+    for (int[] iv : intervals) {
+      if (n > 0 && iv[0] <= lasts[n - 1] + 1) {
+        if (iv[1] > lasts[n - 1]) {
+          lasts[n - 1] = iv[1];
+        }
+      } else {
+        firsts[n] = iv[0];
+        lasts[n] = iv[1];
+        n++;
+      }
+    }
+    hiddenFirst = Arrays.copyOf(firsts, n);
+    hiddenLast = Arrays.copyOf(lasts, n);
+  }
+
+  /** The lines not hidden in a fold or replaced block. */
   int shownCount() {
     int shown = count;
     for (int i = 0; i < hiddenFirst.length; i++) {
@@ -508,16 +745,43 @@ final class Lines {
   }
 
   boolean hasFolds() {
+    return foldHiddenFirst.length > 0;
+  }
+
+  boolean hasHidden() {
     return hiddenFirst.length > 0;
   }
 
-  /** Whether line {@code line} is hidden inside a fold. */
+  boolean hasBlocks() {
+    return activeBlocks.length > 0;
+  }
+
+  boolean hasReplaceBlocks() {
+    for (El.Block b : rawBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE && b.first() < count) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether line {@code line} is hidden inside a fold (ignoring REPLACE blocks). */
+  boolean isFoldHidden(int line) {
+    if (foldHiddenFirst.length == 0 || line <= 0) {
+      return false;
+    }
+    int found = Arrays.binarySearch(foldHiddenFirst, line);
+    int i = found >= 0 ? found : -found - 2;
+    return i >= 0 && line <= foldHiddenLast[i];
+  }
+
+  /** Whether line {@code line} is hidden inside a fold or a replaced block. */
   boolean isHidden(int line) {
     return hiddenIndex(line) >= 0;
   }
 
   private int hiddenIndex(int line) {
-    if (hiddenFirst.length == 0 || line <= 0) {
+    if (hiddenFirst.length == 0 || line < 0) {
       return -1;
     }
     int found = Arrays.binarySearch(hiddenFirst, line);
@@ -527,16 +791,21 @@ final class Lines {
 
   /** The outermost fold whose shown first line is {@code line}, or null. */
   El.Fold foldAt(int line) {
-    if (hiddenFirst.length == 0) {
+    if (foldHiddenFirst.length == 0 || isHidden(line)) {
       return null;
     }
-    int found = Arrays.binarySearch(hiddenFirst, line + 1);
+    int found = Arrays.binarySearch(foldHiddenFirst, line + 1);
     return found >= 0 ? visibleFolds[found] : null;
+  }
+
+  /** The first visible line of the text, or -1 if all lines are hidden. */
+  int firstVisible() {
+    return nextVisible(-1);
   }
 
   /** The first visible line after {@code line}, or -1 if none exists. */
   int nextVisible(int line) {
-    int next = line + 1;
+    int next = Math.max(0, line + 1);
     if (next >= count) {
       return -1;
     }
@@ -557,16 +826,33 @@ final class Lines {
     return i >= 0 ? hiddenFirst[i] - 1 : prev;
   }
 
-  /** Line {@code line} if visible, else the visible line starting the fold that hides it. */
+  /**
+   * Line {@code line} if visible, else the last visible line before it, or -1 if every line from 0
+   * through {@code line} is hidden.
+   */
   int visibleAtOrBefore(int line) {
     line = Math.clamp(line, 0, count - 1);
     int i = hiddenIndex(line);
     return i >= 0 ? hiddenFirst[i] - 1 : line;
   }
 
+  /**
+   * Line {@code line} if visible, else the first visible line after it, or -1 if every line from
+   * {@code line} through the end is hidden.
+   */
+  int visibleAtOrAfter(int line) {
+    line = Math.clamp(line, 0, count - 1);
+    int i = hiddenIndex(line);
+    if (i < 0) {
+      return line;
+    }
+    int next = hiddenLast[i] + 1;
+    return next < count ? next : -1;
+  }
+
   /** All raw folds that hide at least one line in {@code [firstLine, lastLine]}. */
   List<El.Fold> foldsHiding(int firstLine, int lastLine) {
-    if (hiddenFirst.length == 0) {
+    if (foldHiddenFirst.length == 0) {
       return List.of();
     }
     List<El.Fold> out = new ArrayList<>();
@@ -584,7 +870,7 @@ final class Lines {
 
   /** All raw folds that hide {@code lineA} or {@code lineB}. */
   List<El.Fold> foldsHidingLine(int lineA, int lineB) {
-    if (hiddenFirst.length == 0 || !isHidden(lineA) && !isHidden(lineB)) {
+    if (foldHiddenFirst.length == 0 || !isFoldHidden(lineA) && !isFoldHidden(lineB)) {
       return List.of();
     }
     List<El.Fold> out = new ArrayList<>();
@@ -598,6 +884,263 @@ final class Lines {
       }
     }
     return out;
+  }
+
+  /** All raw REPLACE blocks that hide at least one line in {@code [firstLine, lastLine]}. */
+  List<El.Block> blocksReplacing(int firstLine, int lastLine) {
+    if (rawBlocks.isEmpty()) {
+      return List.of();
+    }
+    List<El.Block> out = new ArrayList<>();
+    for (El.Block b : rawBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE && b.first() < count) {
+        int s = b.first();
+        int e = Math.min(b.last(), count - 1);
+        if (s <= lastLine && firstLine <= e) {
+          out.add(b);
+        }
+      }
+    }
+    return out;
+  }
+
+  /** All raw REPLACE blocks that hide {@code lineA} or {@code lineB}. */
+  List<El.Block> blocksReplacingLine(int lineA, int lineB) {
+    if (rawBlocks.isEmpty()) {
+      return List.of();
+    }
+    List<El.Block> out = new ArrayList<>();
+    for (El.Block b : rawBlocks) {
+      if (b.placement() == El.Block.Placement.REPLACE && b.first() < count) {
+        int s = b.first();
+        int e = Math.min(b.last(), count - 1);
+        if (lineA >= s && lineA <= e || lineB >= s && lineB <= e) {
+          out.add(b);
+        }
+      }
+    }
+    return out;
+  }
+
+  // ---- Block heights and pixel Fenwick tree
+
+  private void clearPixels() {
+    blockHeights = null;
+    slotPixels = null;
+    pixelTree = null;
+    totalPixels = 0;
+  }
+
+  private long initialBlockHeight(El.Block block, int ordinal) {
+    if (block.lines() > 0) {
+      return block.lines() * blockLineHeight;
+    }
+    Long cached = measuredBlocks.get(new BlockKey(block, ordinal));
+    return cached != null ? cached : blockLineHeight;
+  }
+
+  private void buildPixels() {
+    int n = count + 1;
+    slotPixels = new long[n];
+    blockHeights = new long[activeBlocks.length];
+    for (int i = 0; i < activeBlocks.length; i++) {
+      long h = initialBlockHeight(activeBlocks[i], activeBlockOrdinals[i]);
+      blockHeights[i] = h;
+      slotPixels[activeBlocks[i].first()] += h;
+    }
+    pixelTree = new long[n + 1];
+    totalPixels = 0;
+    for (int i = 1; i <= n; i++) {
+      long value = slotPixels[i - 1];
+      totalPixels += value;
+      pixelTree[i] += value;
+      int parent = i + (i & -i);
+      if (parent <= n) {
+        pixelTree[parent] += pixelTree[i];
+      }
+    }
+  }
+
+  /** Records the measured height of active block {@code activeIndex}, in physical pixels. */
+  void blockHeight(int activeIndex, long measuredPixels) {
+    El.Block b = activeBlocks[activeIndex];
+    if (b.lines() > 0) {
+      return;
+    }
+    long h = Math.max(0, measuredPixels);
+    measuredBlocks.put(new BlockKey(b, activeBlockOrdinals[activeIndex]), h);
+    long delta = h - blockHeights[activeIndex];
+    if (delta == 0) {
+      return;
+    }
+    blockHeights[activeIndex] = h;
+    int slot = b.first();
+    slotPixels[slot] += delta;
+    totalPixels += delta;
+    int n = count + 1;
+    for (int i = slot + 1; i <= n; i += i & -i) {
+      pixelTree[i] += delta;
+    }
+  }
+
+  long blockHeight(int activeIndex) {
+    return blockHeights[activeIndex];
+  }
+
+  El.Block activeBlock(int activeIndex) {
+    return activeBlocks[activeIndex];
+  }
+
+  int activeBlockCount() {
+    return activeBlocks.length;
+  }
+
+  /** Index into {@code blockSlots} for {@code slot}, or negative if {@code slot} has no blocks. */
+  int blockSlotIndex(int slot) {
+    return blockSlots.length == 0 ? -1 : Arrays.binarySearch(blockSlots, slot);
+  }
+
+  boolean hasBlockAt(int slot) {
+    return blockSlotIndex(slot) >= 0;
+  }
+
+  int blockSlotStart(int slotIndex) {
+    return blockSlotStarts[slotIndex];
+  }
+
+  int blockSlotEnd(int slotIndex) {
+    return blockSlotStarts[slotIndex + 1];
+  }
+
+  /** Next slot strictly greater than {@code slot} that has active blocks, or -1. */
+  int nextBlockSlot(int slot) {
+    if (blockSlots.length == 0) {
+      return -1;
+    }
+    int found = Arrays.binarySearch(blockSlots, slot + 1);
+    int idx = found >= 0 ? found : -found - 1;
+    return idx < blockSlots.length ? blockSlots[idx] : -1;
+  }
+
+  /** Next slot strictly greater than {@code slot} with a visible line or an active block, or -1. */
+  int nextSlot(int slot) {
+    int vis = nextVisible(slot);
+    int blk = nextBlockSlot(slot);
+    if (vis < 0) {
+      return blk;
+    }
+    if (blk < 0) {
+      return vis;
+    }
+    return Math.min(vis, blk);
+  }
+
+  private long pixelPrefix(int limit) {
+    if (pixelTree == null || limit <= 0) {
+      return 0;
+    }
+    int clamped = Math.min(limit, count + 1);
+    long sum = 0;
+    for (int i = clamped; i > 0; i -= i & -i) {
+      sum += pixelTree[i];
+    }
+    return sum;
+  }
+
+  /**
+   * Total height in physical pixels of all active blocks above line {@code line}, including blocks
+   * at slot {@code line} (inserted before {@code line} or replacing starting at {@code line}).
+   */
+  long blockPixelsBefore(int line) {
+    return pixelPrefix(line + 1);
+  }
+
+  /** Total height in physical pixels of all active blocks across all slots. */
+  long totalBlockPixels() {
+    return pixelTree == null ? 0 : totalPixels;
+  }
+
+  /** Top of the block band at {@code slot} (0..count), in physical pixels. */
+  double slotTop(int slot, double lineHeight) {
+    int clamped = Math.clamp(slot, 0, count);
+    return rowsBefore(clamped) * lineHeight + pixelPrefix(clamped);
+  }
+
+  /** Top of text line {@code line}, after any blocks at {@code line}, in physical pixels. */
+  double lineTop(int line, double lineHeight) {
+    int clamped = Math.clamp(line, 0, count);
+    return rowsBefore(clamped) * lineHeight + pixelPrefix(clamped + 1);
+  }
+
+  /** Top of active block {@code activeIndex}, in physical pixels. */
+  double blockTop(int activeIndex, double lineHeight) {
+    int slot = activeBlocks[activeIndex].first();
+    double top = slotTop(slot, lineHeight);
+    for (int i = activeIndex - 1; i >= 0 && activeBlocks[i].first() == slot; i--) {
+      top += blockHeights[i];
+    }
+    return top;
+  }
+
+  /** Active block index at {@code slot} covering {@code y}, or -1 if {@code slot} has none. */
+  int blockAtY(int slot, double y, double lineHeight) {
+    int si = blockSlotIndex(slot);
+    if (si < 0) {
+      return -1;
+    }
+    int start = blockSlotStarts[si];
+    int end = blockSlotStarts[si + 1];
+    double top = slotTop(slot, lineHeight);
+    for (int i = start; i < end; i++) {
+      top += blockHeights[i];
+      if (y < top || i + 1 == end) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /** Total height of all visible text rows and active blocks, in physical pixels. */
+  double totalHeight(double lineHeight) {
+    return totalRows() * lineHeight + totalBlockPixels();
+  }
+
+  /**
+   * The slot (0..count) whose vertical band contains {@code y}, in physical pixels, descending the
+   * row and block-pixel Fenwick trees in lockstep. Slot {@code count} holds blocks after the last
+   * line.
+   */
+  int slotAt(double y, double lineHeight) {
+    if (pixelTree == null) {
+      int line = lineOfRow((long) Math.floor(y / lineHeight));
+      return line >= 0 ? line : 0;
+    }
+    if (y <= 0) {
+      return 0;
+    }
+    double total = totalHeight(lineHeight);
+    if (y >= total) {
+      if (slotPixels[count] > 0) {
+        return count;
+      }
+      int lastVis = visibleAtOrBefore(count - 1);
+      int lastBlk = activeBlocks.length > 0 ? activeBlocks[activeBlocks.length - 1].first() : -1;
+      return Math.max(Math.max(lastVis, lastBlk), 0);
+    }
+    int slot = 0;
+    double left = y;
+    for (int step = Integer.highestOneBit(count); step > 0; step >>= 1) {
+      int next = slot + step;
+      if (next <= count) {
+        double rowsPx = (tree != null ? tree[next] : step) * lineHeight;
+        double band = rowsPx + pixelTree[next];
+        if (band <= left) {
+          slot = next;
+          left -= band;
+        }
+      }
+    }
+    return slot;
   }
 
   // ---- Rows, while wrapping or folded
@@ -615,7 +1158,7 @@ final class Lines {
     this.layout = layout;
     this.perRow = perRow;
     rows = layout == null ? null : new int[Math.max(count, 1)];
-    if (rows != null || hasFolds()) {
+    if (rows != null || hasHidden()) {
       build();
     } else {
       tree = null;
@@ -672,8 +1215,11 @@ final class Lines {
     if (tree == null) {
       return Math.clamp(row, 0, count - 1);
     }
+    if (total == 0) {
+      return -1;
+    }
     if (row <= 0) {
-      return 0;
+      return firstVisible();
     }
     if (row >= total) {
       return visibleAtOrBefore(count - 1);

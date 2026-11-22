@@ -176,8 +176,26 @@ final class Editor {
     String value = t.value();
     answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
     lines().folds(el.folds());
+    lines().blocks(el.blocks());
+    unhideCaret();
     t.edited(text, lines());
     showComposition();
+  }
+
+  /**
+   * Moves a caret that a replaced range hides, and that no reveal is pending for, to where it is
+   * drawn, so that typing goes where the user sees the caret.
+   */
+  private void unhideCaret() {
+    if (caret != anchor || proposed != null || unfoldPending || !lines.hasBlocks()) {
+      return;
+    }
+    int line = lines.line(Math.clamp(caret, 0, text.length()));
+    if (lines.isHidden(line) && !lines.isFoldHidden(line)) {
+      caret = visibleBackward(caret);
+      anchor = caret;
+      changed = true;
+    }
   }
 
   /** The app's string with line feeds only; the same object while the app's string is. */
@@ -407,29 +425,53 @@ final class Editor {
   }
 
   private boolean unfoldLines(int firstLine, int lastLine) {
-    Consumer<El.Fold> handler = el.onUnfold();
-    if (handler == null || lines == null || !lines.hasFolds()) {
+    if (lines == null) {
       return false;
     }
-    List<El.Fold> hit = lines.foldsHiding(firstLine, lastLine);
-    for (El.Fold fold : hit) {
-      handler.accept(fold);
+    boolean told = false;
+    Consumer<El.Fold> unfold = el.onUnfold();
+    if (unfold != null && lines.hasFolds()) {
+      List<El.Fold> hit = lines.foldsHiding(firstLine, lastLine);
+      for (El.Fold fold : hit) {
+        unfold.accept(fold);
+      }
+      told |= !hit.isEmpty();
     }
-    return !hit.isEmpty();
+    Consumer<El.Block> revealBlock = el.onReveal();
+    if (revealBlock != null && lines.hasReplaceBlocks()) {
+      List<El.Block> hit = lines.blocksReplacing(firstLine, lastLine);
+      for (El.Block block : hit) {
+        revealBlock.accept(block);
+      }
+      told |= !hit.isEmpty();
+    }
+    return told;
   }
 
   private boolean unfoldForSelection() {
-    Consumer<El.Fold> handler = el.onUnfold();
-    if (handler == null || lines == null || !lines.hasFolds()) {
+    if (lines == null) {
       return false;
     }
     int caretLine = lines.line(Math.clamp(caret, 0, text.length()));
     int anchorLine = lines.line(Math.clamp(anchor, 0, text.length()));
-    List<El.Fold> hit = lines.foldsHidingLine(caretLine, anchorLine);
-    for (El.Fold fold : hit) {
-      handler.accept(fold);
+    boolean told = false;
+    Consumer<El.Fold> unfold = el.onUnfold();
+    if (unfold != null && lines.hasFolds()) {
+      List<El.Fold> hit = lines.foldsHidingLine(caretLine, anchorLine);
+      for (El.Fold fold : hit) {
+        unfold.accept(fold);
+      }
+      told |= !hit.isEmpty();
     }
-    return !hit.isEmpty();
+    Consumer<El.Block> revealBlock = el.onReveal();
+    if (revealBlock != null && lines.hasReplaceBlocks()) {
+      List<El.Block> hit = lines.blocksReplacingLine(caretLine, anchorLine);
+      for (El.Block block : hit) {
+        revealBlock.accept(block);
+      }
+      told |= !hit.isEmpty();
+    }
+    return told;
   }
 
   /**
@@ -655,7 +697,9 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        moveTo(0, shift); // a single-line field; a multi-line one goes by rows, see lineKey
+        moveTo(
+            word ? visibleTextStart() : 0,
+            shift); // single-line; multi-line plain Home is in lineKey
         return true;
       }
       case "End" -> {
@@ -748,7 +792,11 @@ final class Editor {
         int direction = name.endsWith("Up") ? -1 : 1;
         int rows = page ? t.visibleRows() : 1;
         float x = Float.isNaN(goal) ? t.x(caret) : goal;
-        int to = text.isEmpty() ? 0 : t.moveRows(caret, direction * rows, x);
+        int to = text.isEmpty()
+            ? 0
+            : page && lines != null && lines.hasBlocks()
+                ? t.movePage(caret, direction, x)
+                : t.moveRows(caret, direction * rows, x);
         if (page) { // the view moves by as much, so that the caret stays where it is in it
           el.scrollTo(el.scrollX(), el.scrollY() + direction * rows * t.lineHeight() / t.scale());
         }
@@ -960,7 +1008,7 @@ final class Editor {
     if (!editable() || composing.isEmpty() && composition.isEmpty()) {
       return false;
     }
-    if (!composing.isEmpty() && lines != null && lines.hasFolds()) {
+    if (!composing.isEmpty() && lines != null && lines.hasHidden()) {
       unfolded |= unfoldLines(lines.line(start()), lines.line(end()));
     }
     composition = fitLines(composing);
@@ -1145,7 +1193,7 @@ final class Editor {
 
   /** Hands a new string to the app, which answers with the next tree. */
   private void propose(int at, int removed, String inserted, int newCaret, int newAnchor) {
-    if (lines != null && lines.hasFolds()) {
+    if (lines != null && lines.hasHidden()) {
       unfoldLines(lines.line(at), lines.line(at + removed));
     }
     if (before == null) {
@@ -1289,8 +1337,11 @@ final class Editor {
   private int[] lineAt(int index) {
     Lines ls = lines();
     int line = ls.line(Math.clamp(index, 0, text.length()));
-    int next = ls.nextVisible(line);
-    return new int[] {ls.start(line), next >= 0 ? ls.start(next) : text.length()};
+    int next = line + 1;
+    while (next < ls.count() && ls.isFoldHidden(next)) {
+      next++;
+    }
+    return new int[] {ls.start(line), next < ls.count() ? ls.start(next) : text.length()};
   }
 
   /** A position of the shown string as a position of the string. */
@@ -1413,16 +1464,25 @@ final class Editor {
       while (true) {
         double x = el.scrollX();
         double y = el.scrollY();
+        if (shift != 0) { // what is in view stays first, then the caret comes into view
+          el.measureScroll();
+          el.scrollTo(x, y + shift / scale);
+        }
         scrollToCaret(t, shownCaret, covered, caretWidth, byLast);
         if (el.scrollX() == x && el.scrollY() == y) {
           break;
         }
-        t.layOut(); // ends: each line is measured once
+        shift = t.layOut(); // ends: each line and block is measured once
       }
     } else {
-      if (shift != 0) { // rows above the view were measured: what is in view stays
+      while (shift != 0) { // rows or blocks above the view were measured: what is in view stays
+        double y = el.scrollY();
         el.measureScroll();
-        el.scrollTo(el.scrollX(), el.scrollY() + shift / scale);
+        el.scrollTo(el.scrollX(), y + shift / scale);
+        if (el.scrollY() == y) {
+          break;
+        }
+        shift = t.layOut(); // ends: each line and block is measured once
       }
       // A view at the end of a long line stays there while its chunks are measured.
       while (atRight && t.chunksMoved()) {
@@ -1431,12 +1491,21 @@ final class Editor {
         t.layOut();
       }
     }
-    el.measureScroll();
-    el.scrollTo(el.scrollX(), el.scrollY()); // within what the rows in view measured
+    float moved = 0; // by rows or blocks the last layout measured: what is in view stays
+    while (true) {
+      el.measureScroll();
+      double y = el.scrollY();
+      el.scrollTo(el.scrollX(), y + moved / scale); // within what the rows in view measured
+      if (el.scrollY() == y) {
+        break; // laid out where it is
+      }
+      moved = t.layOut();
+    }
     float viewX = t.viewX();
-    List<Text.Box> selection = focused && composition.isEmpty() && caret != anchor
-        ? t.selectionBoxes(start(), end(), viewX + t.contentWidth())
-        : List.of();
+    boolean selecting = focused && composition.isEmpty() && caret != anchor;
+    List<Text.Box> selection =
+        selecting ? t.selectionBoxes(start(), end(), viewX + t.contentWidth()) : List.of();
+    List<Text.Box> blockSelection = selecting ? t.blockSelectionBoxes(start(), end()) : List.of();
     float lineHeight = t.lineHeight();
     Text.Box underline = null;
     if (!composition.isEmpty()) {
@@ -1447,14 +1516,15 @@ final class Editor {
       float y = t.shownBaseline(start()) + Math.round(t.font().descent() * t.size() * scale / 2);
       underline = new Text.Box(from - viewX, y, to - from, caretWidth);
     }
-    Text.Box box = showsCaret(focused)
+    Text.Box box = showsCaret(focused) && t.shownIndex().shownCount() > 0
         ? new Text.Box(t.x(shownCaret) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
         : null;
-    t.decorate(viewX, selection, box, underline);
+    t.decorate(viewX, selection, box, underline, blockSelection);
     t.showCaret(caretOn);
     el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
     el.placeFolds();
+    el.placeBlocks();
   }
 
   /**
@@ -1573,33 +1643,49 @@ final class Editor {
   }
 
   private int visiblePrevious(int index) {
+    if (lines != null && lines.isHidden(lines.line(index))) {
+      return visibleBackward(index);
+    }
     int to = previous(index);
-    return lines != null && lines.isHidden(lines.line(to))
-        ? lines.end(lines.visibleAtOrBefore(lines.line(to)))
-        : to;
+    if (lines != null && lines.isHidden(lines.line(to))) {
+      int before = lines.visibleAtOrBefore(lines.line(to));
+      return before >= 0 ? lines.end(before) : index;
+    }
+    return to;
   }
 
   private int visibleNext(int index) {
+    if (lines != null && lines.isHidden(lines.line(index))) {
+      return visibleForward(index);
+    }
     int to = next(index);
     if (lines != null && lines.isHidden(lines.line(to))) {
       int after = lines.nextVisible(lines.line(to));
-      return after >= 0 ? lines.start(after) : lines.end(lines.visibleAtOrBefore(lines.line(to)));
+      return after >= 0 ? lines.start(after) : index;
     }
     return to;
   }
 
   private int visibleBackward(int index) {
-    return lines != null && lines.isHidden(lines.line(index))
-        ? lines.end(lines.visibleAtOrBefore(lines.line(index)))
-        : index;
+    if (lines != null && lines.isHidden(lines.line(index))) {
+      int before = lines.visibleAtOrBefore(lines.line(index));
+      if (before >= 0) {
+        return lines.end(before);
+      }
+      int after = lines.nextVisible(lines.line(index));
+      return after >= 0 ? lines.start(after) : index;
+    }
+    return index;
   }
 
   private int visibleForward(int index) {
     if (lines != null && lines.isHidden(lines.line(index))) {
       int after = lines.nextVisible(lines.line(index));
-      return after >= 0
-          ? lines.start(after)
-          : lines.end(lines.visibleAtOrBefore(lines.line(index)));
+      if (after >= 0) {
+        return lines.start(after);
+      }
+      int before = lines.visibleAtOrBefore(lines.line(index));
+      return before >= 0 ? lines.end(before) : index;
     }
     return index;
   }
@@ -1608,8 +1694,20 @@ final class Editor {
     int at = visibleBackward(caret);
     int to = wordStart(at);
     if (lines != null && lines.isHidden(lines.line(to))) {
-      int headerEnd = lines.end(lines.visibleAtOrBefore(lines.line(to)));
-      return headerEnd < at ? headerEnd : wordStart(headerEnd);
+      int before = lines.visibleAtOrBefore(lines.line(to));
+      if (before < 0) {
+        return visibleTextStart();
+      }
+      int headerEnd = lines.end(before);
+      if (headerEnd < at) {
+        return headerEnd;
+      }
+      int next = wordStart(headerEnd);
+      if (lines.isHidden(lines.line(next))) {
+        int earlier = lines.visibleAtOrBefore(lines.line(next));
+        return earlier >= 0 ? lines.end(earlier) : visibleTextStart();
+      }
+      return next;
     }
     return to;
   }
@@ -1620,8 +1718,20 @@ final class Editor {
     return visibleForward(to);
   }
 
+  private int visibleTextStart() {
+    if (lines == null) {
+      return 0;
+    }
+    int first = lines.firstVisible();
+    return first >= 0 ? lines.start(first) : 0;
+  }
+
   private int visibleTextEnd() {
-    return lines != null ? lines.end(lines.visibleAtOrBefore(lines.count() - 1)) : text.length();
+    if (lines == null) {
+      return text.length();
+    }
+    int last = lines.visibleAtOrBefore(lines.count() - 1);
+    return last >= 0 ? lines.end(last) : 0;
   }
 
   /** The word a double press at {@code hit} selects; all of a masked field. */

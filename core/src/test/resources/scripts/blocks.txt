@@ -1,0 +1,23 @@
+# A multi-line field with INSERT and REPLACE blocks: click code vision, arrows, copy, reveal.
+size 280 222 scale 2
+frame
+
+press #usages                # click reaches the code vision element inside #block-4
+frame
+snap blocks-shown
+
+focus #code
+frame
+key ArrowDown                # line 1 -> jumps over REPLACE(1..3) and INSERT(4) to line 5
+key ArrowUp                  # back to line 1
+key End                      # end of line 1 ("class Orders {")
+key ArrowRight               # skips replaced lines 2-4 to start of line 5
+key ArrowLeft                # back to end of line 1
+key ArrowRight shift         # selects across REPLACE(1..3) and INSERT(4)
+key C control                # copies source text including hidden lines 2-4
+frame
+snap blocks-selected
+
+press #find                  # FieldState.select onto "active" in line 3 reveals REPLACE(1..3)
+frame
+snap blocks-revealed

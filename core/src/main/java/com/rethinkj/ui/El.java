@@ -4,7 +4,9 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -257,6 +259,66 @@ public final class El {
   }
 
   /**
+   * A block between lines in a {@link #multiline} field ({@link #blocks}): either {@link
+   * Placement#INSERT inserted} before line {@code first} without hiding text (where {@code first}
+   * equal to the line count places the block after the last line), or {@link Placement#REPLACE
+   * replacing} lines {@code first} through {@code last} inclusive, hiding every line of that range
+   * including {@code first}.
+   *
+   * <p>The block's height comes from its element laid out at the field's content width, unless
+   * {@link #lines(int)} fixes it to an exact number of text lines.
+   *
+   * @param placement whether the block inserts space before a line or replaces a whole-line range
+   * @param first the line index, from 0 (up to the line count for {@link Placement#INSERT})
+   * @param last equal to {@code first} for {@link Placement#INSERT}; the last hidden line, at least
+   *     {@code first}, for {@link Placement#REPLACE}
+   * @param lines exact height in text lines, or 0 to measure the block's element
+   */
+  public record Block(Placement placement, int first, int last, int lines) {
+
+    /** How a {@link Block} relates to the lines of the field's string. */
+    public enum Placement {
+      /** Inserted before {@link #first}, hiding no lines. */
+      INSERT,
+      /** Replaces lines {@link #first} through {@link #last} inclusive, hiding them all. */
+      REPLACE
+    }
+
+    public Block {
+      Objects.requireNonNull(placement, "placement");
+      if (first < 0) {
+        throw new IllegalArgumentException("block first line must be 0 or more, was " + first);
+      }
+      if (placement == Placement.INSERT && last != first) {
+        throw new IllegalArgumentException(
+            "insert block must have last == first, were " + first + " and " + last);
+      }
+      if (placement == Placement.REPLACE && last < first) {
+        throw new IllegalArgumentException(
+            "replace block must have 0 <= first <= last, were " + first + " and " + last);
+      }
+      if (lines < 0) {
+        throw new IllegalArgumentException("block lines must be 0 or more, was " + lines);
+      }
+    }
+
+    /** A block inserted before line {@code line} (or after the last line when equal to line count). */
+    public static Block insert(int line) {
+      return new Block(Placement.INSERT, line, line, 0);
+    }
+
+    /** A block replacing lines {@code first} through {@code last} inclusive. */
+    public static Block replace(int first, int last) {
+      return new Block(Placement.REPLACE, first, last, 0);
+    }
+
+    /** A copy of this block with an exact height of {@code lines} text lines, or 0 to measure. */
+    public Block lines(int lines) {
+      return new Block(placement, first, last, lines);
+    }
+  }
+
+  /**
    * A pair of brackets that can fold ({@link #bracketFolds}): the lines it folds, from the line of
    * its opening bracket through the line before its closing one, and where the two brackets are
    * in the string as the field shows it.
@@ -357,7 +419,16 @@ public final class El {
     List<El> foldMarks = List.of();
     Object foldsShown; // what the fold marks were built for: their ends and scroll
     float foldsExtent; // farthest right edge of placed fold marks, in logical content coordinates
-    boolean partsBuilt; // gutter cells or fold marks were built since App last applied looks
+    List<Block> blocks = List.of();
+    Function<Block, El> blockBuilder;
+    Consumer<Block> onReveal;
+    List<El> blockElements = List.of();
+    Object blocksShown; // what the block elements were built for: their placed bands and scroll
+    Map<BlockKey, El> blockCache;
+    float blockCacheWidth = Float.NaN;
+    float blockCacheScale = Float.NaN;
+    boolean
+        partsBuilt; // gutter cells, fold marks or blocks were built since App last applied looks
     boolean bracketFoldsPending; // bracketFolds asked before Lines was attached
     boolean readOnly;
     int maxLength = -1;
@@ -1857,11 +1928,15 @@ public final class El {
     return field != null && field.gutter != null;
   }
 
+  private record BlockKey(Block block, int ordinal) {}
+
   /**
-   * For {@link App}: whether this field has parts (gutter cells or fold marks) built after layout.
+   * For {@link App}: whether this field has parts (gutter cells, fold marks or blocks) built after
+   * layout.
    */
   boolean hasFieldParts() {
-    return field != null && (field.gutter != null || !field.folds.isEmpty());
+    return field != null
+        && (field.gutter != null || !field.folds.isEmpty() || !field.blocks.isEmpty());
   }
 
   /** For {@link App}: whether gutter cells or fold marks were built since it last asked. */
@@ -1927,10 +2002,127 @@ public final class El {
     return field == null ? null : field.onUnfold;
   }
 
-  /** The gutter's cell of line {@code line}. */
-  private El gutterCell(int line, boolean caret) {
+  /**
+   * Places elements between lines of a {@link #multiline} field: {@link Block.Placement#INSERT}
+   * blocks insert vertical space before their line (or after the last line when {@code first} equals
+   * the line count) without hiding text, and {@link Block.Placement#REPLACE} blocks hide every line
+   * of {@code first..last} inclusive and show their element in place of them. The app owns the list
+   * and keeps its line indices current with the string; the field keeps no block state of its own.
+   *
+   * <p>Elements are built only while in view (and the layout margin around it), laid out at the
+   * field's content width, and cached in the field's line index across rebuilds until the width,
+   * scale or font changes. In a {@code .tree.txt} each block element is keyed {@code block-<first>}
+   * unless it has a key, and {@code block-<first>-<n>} for the {@code n}-th ({@code n >= 1})
+   * further block at the same line. Several {@code INSERT} blocks before the same line stack in
+   * list order; {@code REPLACE} blocks must not overlap each other. A fold that hides a block's
+   * line hides the block as well, and while the field shows its placeholder it shows no blocks.
+   *
+   * <p>Presses on interactive elements inside a block reach those elements without moving the
+   * focus; nothing in a block takes the focus, text input or drags. A press elsewhere in the block band places the
+   * caret as a click at the start of the following line would. An edit
+   * touching a replaced range, or a caret or selection end placed inside one by find, undo/redo,
+   * {@link App#select} or {@link FieldState#select}, calls {@code reveal}.
+   *
+   * @param blocks the blocks to show, empty for none
+   * @param block builds the element for each block in view
+   * @param reveal called when a replaced block should reveal its source lines; may be null
+   * @throws IllegalStateException if this is not a multi-line field
+   * @throws IllegalArgumentException if two {@link Block.Placement#REPLACE} blocks overlap
+   */
+  public El blocks(List<Block> blocks, Function<Block, El> block, Consumer<Block> reveal) {
+    Text t = editableOnly("blocks");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "blocks is for multi-line fields: call it after multiline().");
+    }
+    List<Block> copy = List.copyOf(Objects.requireNonNull(blocks, "blocks"));
+    Objects.requireNonNull(block, "block");
+    List<Block> replaces = null;
+    for (Block b : copy) {
+      if (b.placement() == Block.Placement.REPLACE) {
+        if (replaces == null) {
+          replaces = new ArrayList<>();
+        }
+        replaces.add(b);
+      }
+    }
+    if (replaces != null && replaces.size() > 1) {
+      replaces.sort((a, b) -> {
+        int c = Integer.compare(a.first(), b.first());
+        return c != 0 ? c : Integer.compare(a.last(), b.last());
+      });
+      for (int i = 1; i < replaces.size(); i++) {
+        Block prev = replaces.get(i - 1);
+        Block curr = replaces.get(i);
+        if (curr.first() <= prev.last()) {
+          throw new IllegalArgumentException(
+              "replace blocks must not overlap: " + prev + " and " + curr);
+        }
+      }
+    }
+    field.blocks = copy;
+    field.blockBuilder = Context.captured(block);
+    field.onReveal = reveal;
+    t.blocks(field.blocks, this::measureBlock);
+    return this;
+  }
+
+  /** For {@link Editor}: the blocks of this field, or empty. */
+  List<Block> blocks() {
+    return field == null ? List.of() : field.blocks;
+  }
+
+  /** For {@link Editor}: the reveal handler of this field, or null. */
+  Consumer<Block> onReveal() {
+    return field == null ? null : field.onReveal;
+  }
+
+  /** For {@link App}: whether {@code child} is one of this field's placed line blocks. */
+  boolean isFieldBlock(El child) {
+    return field != null && !field.blockElements.isEmpty() && field.blockElements.contains(child);
+  }
+
+  /** Builds and lays out one block element at the field's content width, caching it for this tree. */
+  private El measureBlock(
+      Block block, int ordinal, float contentWidth, float scale, float lineHeight) {
+    if (field.blockCache == null
+        || field.blockCacheWidth != contentWidth
+        || field.blockCacheScale != scale) {
+      field.blockCache = new HashMap<>();
+      field.blockCacheWidth = contentWidth;
+      field.blockCacheScale = scale;
+    }
+    BlockKey key = new BlockKey(block, ordinal);
+    El built = field.blockCache.get(key);
+    if (built != null) {
+      return built;
+    }
+    built = field.blockBuilder.apply(block);
+    if (built == null) {
+      throw new IllegalStateException("The block function returned null for block " + block);
+    }
+    if (built.key == null) {
+      built.key(ordinal == 0 ? "block-" + block.first() : "block-" + block.first() + "-" + ordinal);
+    }
+    built.keepFocus(); // focusing the field would scroll to the caret before the press ends
+    built.clip(); // a block draws in its band only
+    built.style.width = Len.px(contentWidth);
+    scaleText(built, scale, text.systemFonts(), resolvedLineHeight);
+    if (block.lines() > 0) {
+      float exactHeight = block.lines() * lineHeight / scale;
+      built.style.height = Len.px(exactHeight);
+      Flex.layout(built, contentWidth, exactHeight);
+    } else {
+      Flex.layout(built, contentWidth, Measure.MAX_CONTENT);
+    }
+    field.blockCache.put(key, built);
+    return built;
+  }
+
+  /** The gutter's cell of line {@code line} through {@code lastLine}. */
+  private El gutterCell(int line, int lastLine, boolean caret) {
     Lines lines = text.shownIndex();
-    return field.gutter.cell(new Gutter.Line(line, lines.start(line), lines.end(line), caret));
+    return field.gutter.cell(new Gutter.Line(line, lines.start(line), lines.end(lastLine), caret));
   }
 
   /**
@@ -1945,7 +2137,8 @@ public final class El {
     if (Float.isNaN(field.gutterLeft)) {
       field.gutterLeft = padding(Side.LEFT);
     }
-    El last = gutterCell(text.lineTotal() - 1, false);
+    int lastLine = text.lineTotal() - 1;
+    El last = gutterCell(lastLine, lastLine, false);
     scaleText(last, scale, text.systemFonts(), resolvedLineHeight);
     Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
     field.gutterWidth = (float) Math.ceil(last.width);
@@ -1981,7 +2174,8 @@ public final class El {
     float top = border(Side.TOP) + padding(Side.TOP);
     El column = el().key("gutter").clip();
     for (Text.Start start : starts) {
-      El cell = gutterCell(start.line(), start.line() == caretLine);
+      boolean caret = caretLine >= start.line() && caretLine <= start.lastLine();
+      El cell = gutterCell(start.line(), start.lastLine(), caret);
       if (cell == null) {
         throw new IllegalStateException(
             "The gutter's function returned null for line " + start.line());
@@ -2116,6 +2310,61 @@ public final class El {
     children.addAll(field.foldMarks);
     field.foldsExtent = maxRight;
     measureScroll();
+    scrollTo(scrollX, scrollY);
+    return true;
+  }
+
+  /**
+   * For {@link Editor}, once the rows and blocks of a multi-line field are laid out and scrolled:
+   * places the built elements of the blocks in view (and the layout margin) at their vertical
+   * bands, spanning the field's content width.
+   *
+   * @return whether the block elements were updated
+   */
+  boolean placeBlocks() {
+    if (field == null || field.blocks.isEmpty() || !text.laidOut()) {
+      if (field != null && !field.blockElements.isEmpty()) {
+        children.removeAll(field.blockElements);
+        field.blockElements = List.of();
+        field.blocksShown = null;
+      }
+      return false;
+    }
+    List<Text.PlacedBlock> placed = text.placedBlocks();
+    float scale = text.scale();
+    float viewY = text.viewY();
+    List<Object> shown = List.of(placed, scrollX, scrollY, viewY, width, height);
+    if (shown.equals(field.blocksShown)) {
+      return false;
+    }
+    field.blocksShown = shown;
+    field.partsBuilt = true;
+    float contentLeft = border(Side.LEFT) + padding(Side.LEFT);
+    float contentTop = border(Side.TOP) + padding(Side.TOP);
+    float contentWidth = text.contentWidth() / scale;
+    List<El> elements = new ArrayList<>(placed.size());
+    for (Text.PlacedBlock pb : placed) {
+      El blockEl = pb.element();
+      if (blockEl == null) {
+        continue;
+      }
+      float blockY = (float) ((pb.top() - viewY) / scale);
+      float blockH = (float) (pb.height() / scale);
+      blockEl.place(
+          contentLeft + (float) scrollX,
+          contentTop + blockY + (float) scrollY,
+          contentWidth,
+          blockH);
+      elements.add(blockEl);
+    }
+    if (!field.blockElements.isEmpty()) {
+      children.removeAll(field.blockElements);
+    }
+    field.blockElements = List.copyOf(elements);
+    children.addAll(field.blockElements);
+    if (field.blockCache != null) {
+      field.blockCache.values().retainAll(elements); // blocks scrolled out of view are built anew
+    }
     scrollTo(scrollX, scrollY);
     return true;
   }

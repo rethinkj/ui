@@ -35,6 +35,7 @@ class ScriptTest {
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
   private static final Path FIELD_ROWS = Path.of("src/test/resources/scripts/field-rows.txt");
   private static final Path FOLDS = Path.of("src/test/resources/scripts/folds.txt");
+  private static final Path BLOCKS = Path.of("src/test/resources/scripts/blocks.txt");
   private static final Path OVERLAY = Path.of("src/test/resources/scripts/overlay.txt");
   private static final Path SHAPES = Path.of("src/test/resources/scripts/shapes.txt");
 
@@ -175,6 +176,29 @@ class ScriptTest {
     String unfolded = Files.readString(out.resolve("folds-unfolded.tree.txt"));
     assertFalse(unfolded.contains("#fold-1"), unfolded);
     assertTrue(unfolded.contains("#line-2"), unfolded);
+  }
+
+  @Test
+  void theBlocksFieldShowsBothPlacementsSelectsOverThemCopiesAndRevealsOnFind() throws IOException {
+    TextLibraries.assumeLoaded();
+    Examples.main(new String[] {"blocks", "--script", BLOCKS.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("blocks-shown", "blocks-selected", "blocks-revealed"));
+    String shown = Files.readString(out.resolve("blocks-shown.tree.txt"));
+    assertTrue(shown.contains("#status \"usages: 1\""), shown);
+    assertTrue(shown.contains("#block-1"), shown);
+    assertTrue(shown.contains("#block-4"), shown);
+    assertTrue(shown.contains("#line-1"), "replaced block gets one gutter cell: " + shown);
+    assertFalse(shown.contains("#line-2"), "hidden lines inside replace get no gutter: " + shown);
+    assertTrue(shown.contains("#line-4"), "line after insert keeps real line index: " + shown);
+
+    assertEquals(
+        "\n  /**\n   * Sums active totals.\n   */\n",
+        Files.readString(out.resolve("blocks-selected.clipboard.txt")));
+    String revealed = Files.readString(out.resolve("blocks-revealed.tree.txt"));
+    assertFalse(revealed.contains("#block-1"), "find revealed the replaced block: " + revealed);
+    assertTrue(revealed.contains("#block-4"), "inserted block stays shown: " + revealed);
+    assertTrue(revealed.contains("#line-2"), "revealed lines have gutter cells: " + revealed);
   }
 
   @Test

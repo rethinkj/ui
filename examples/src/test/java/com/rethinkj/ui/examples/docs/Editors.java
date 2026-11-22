@@ -21,6 +21,7 @@ import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.sql.Sql;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -76,6 +77,31 @@ final class Editors {
     payloadEditor.folds(savedFolds);
   }
   // docs:end code-editor-folding
+  // docs:start line-blocks
+  String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
+  List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
+
+  void updateSource(String value) {
+    source = value;
+  }
+
+  void revealBlock(El.Block block) {
+    lineBlocks.remove(block);
+  }
+
+  El renderBlock(El.Block block) {
+    return block.placement() == El.Block.Placement.REPLACE
+        ? El.text("Summarizes paid orders.").fontSize(12)
+        : El.text("2 usages").fontSize(11);
+  }
+
+  El sourceField() {
+    return El.text(source)
+        .editable(this::updateSource)
+        .multiline()
+        .blocks(lineBlocks, this::renderBlock, this::revealBlock);
+  }
+  // docs:end line-blocks
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();

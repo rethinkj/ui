@@ -1,0 +1,26 @@
+el 0,0 280x222
+  el 12,12 256x22
+    el #find role=button label="Find active" 12,12 75x22
+      text "Find active" 21,16 57x14
+    text #status "usages: 1" 95,16 48x14
+  text #code role=textbox label="Source" "class Orders {\n  /**\n   * Sums active totals.\n   */\n  int sumPaid() {\n    return total;\n  }\n}" 12,42 256x168 lines 1-8/8 focused caret 37 (3:17) anchor 31
+    el #rail 13,43 25x166
+    el #gutter 19,49 18x154.5
+      el #line-0 19,49 18x17
+        text "1" 21,49 8x17
+      el #line-1 19,66 18x17
+        text "2" 21,66 8x17
+      el #line-2 19,83 18x17
+        text "3" 21,83 8x17
+      el #line-3 19,100 18x17
+        text "4" 21,100 8x17
+      el #line-4 19,133 18x17
+        text "5" 21,133 8x17
+      el #line-5 19,150 18x17
+        text "6" 21,150 8x17
+      el #line-6 19,167 18x17
+        text "7" 21,167 8x17
+      el #line-7 19,184 18x17
+        text "8" 21,184 8x17
+    el #block-4 46,117 215x16
+      text #usages "2 usages" 62,118 47x14

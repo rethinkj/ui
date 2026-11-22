@@ -160,6 +160,7 @@ public final class Text implements Measure {
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
   private List<Box> selection = List.of();
+  private List<Box> blockSelection = List.of();
   private Box caret;
   private boolean caretShown;
   private Box composition;
@@ -219,7 +220,10 @@ public final class Text implements Measure {
   private boolean chunksMoved; // whether the last layOut measured a chunk of a long line
   private boolean highlightPending;
   private List<El.Fold> folds = List.of();
+  private List<El.Block> blocks = List.of();
+  private BlockMeasurer blockMeasurer;
   private List<Row> rows = List.of();
+  private List<PlacedBlock> placedBlocks = List.of();
   private int firstInView;
   private int lastInView;
 
@@ -231,16 +235,25 @@ public final class Text implements Measure {
   private record Span(int paragraph, int from, int to, float width, boolean cut) {}
 
   /**
-   * Where a line of a multi-line field begins, for its gutter: its first row's top, in physical
-   * pixels from the top of the content box, after the scroll.
+   * Where a line of a multi-line field begins, for its gutter: its first row's (or replaced
+   * block's) top, in physical pixels from the top of the content box, after the scroll.
    */
-  record Start(int line, float top) {}
+  record Start(int line, int lastLine, float top) {}
 
   /**
    * Where a folded line's last row ends, for its placeholder mark: {@code endX} and {@code top} in
    * physical pixels from the top left of the content box, after the scroll.
    */
   record FoldEnd(El.Fold fold, float endX, float top) {}
+
+  /** A line block placed during {@link #layOut}, in physical pixels from the top of the text. */
+  record PlacedBlock(El.Block block, int ordinal, El element, double top, double height) {}
+
+  /** Builds and lays out one line block element for measurement inside {@link #layOut}. */
+  @FunctionalInterface
+  interface BlockMeasurer {
+    El measure(El.Block block, int ordinal, float contentWidth, float scale, float lineHeight);
+  }
 
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
@@ -432,6 +445,24 @@ public final class Text implements Measure {
    */
   public List<Box> selection() {
     return selection;
+  }
+
+  /**
+   * Selection tint rectangles over blocks between lines ({@link El#blocks}) covered by the
+   * selection, drawn over the block elements in the content box; empty when none are covered.
+   */
+  public List<Box> blockSelection() {
+    return blockSelection;
+  }
+
+  /** Whether {@code child} is one of this field's placed line blocks ({@link El#blocks}). */
+  public boolean isBlock(El child) {
+    for (PlacedBlock pb : placedBlocks) {
+      if (pb.element == child) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -652,10 +683,16 @@ public final class Text implements Measure {
    * the coordinates of {@link Box}.
    */
   void decorate(float scroll, List<Box> selection, Box caret, Box composition) {
+    decorate(scroll, selection, caret, composition, List.of());
+  }
+
+  void decorate(
+      float scroll, List<Box> selection, Box caret, Box composition, List<Box> blockSelection) {
     this.scroll = scroll;
     this.selection = selection;
     this.caret = caret;
     this.composition = composition;
+    this.blockSelection = blockSelection;
   }
 
   /** For {@link App}, which blinks the caret. */
@@ -735,7 +772,7 @@ public final class Text implements Measure {
       prepare();
       if (multiline && visibleLines == 0) { // El#fitLines: every row at the width
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
-        return new Size(0, fittedRows(width) * lineHeight / scale, firstBaseline / scale);
+        return new Size(0, fittedHeight(width) / scale, firstBaseline / scale);
       }
       return new Size(
           0, (multiline ? visibleLines : 1) * lineHeight / scale, firstBaseline / scale);
@@ -1717,8 +1754,16 @@ public final class Text implements Measure {
   /** The grapheme boundary of the shown string nearest to a point. */
   int nearest(float x, float y) {
     if (multiline) {
+      Lines lines = shownLines();
+      if (lines.hasBlocks()) {
+        int slot = lines.slotAt(y, lineHeight);
+        if (inBlockBand(lines, slot, y)) {
+          return blockClickPosition(lines, slot);
+        }
+        return nearestOnRow(slot, rowInLine(lines, slot, y), x);
+      }
       int[] at = rowAt(y);
-      return nearestOnRow(at[0], at[1], x);
+      return at[0] < 0 ? 0 : nearestOnRow(at[0], at[1], x);
     }
     if (placedSpans.isEmpty()) {
       return 0;
@@ -1742,21 +1787,16 @@ public final class Text implements Measure {
    */
   int hit(float x, float y) {
     if (multiline) {
-      int[] at = rowAt(y);
-      Para para = para(at[0]);
-      int start = shownLines().start(at[0]);
-      if (para.chunks != null) {
-        return start + para.chunks.hit(x);
-      }
-      List<Integer> bounds = rowBounds(para, at[1]);
-      int found = bounds.getFirst();
-      float left = para.pen(para.rowStart(at[1]));
-      for (int i = 0; i < bounds.size() - 1; i++) {
-        if (para.pen(bounds.get(i)) - left <= x) {
-          found = bounds.get(i);
+      Lines lines = shownLines();
+      if (lines.hasBlocks()) {
+        int slot = lines.slotAt(y, lineHeight);
+        if (inBlockBand(lines, slot, y)) {
+          return blockClickPosition(lines, slot);
         }
+        return hitOnRow(slot, rowInLine(lines, slot, y), x);
       }
-      return start + found;
+      int[] at = rowAt(y);
+      return at[0] < 0 ? 0 : hitOnRow(at[0], at[1], x);
     }
     if (placedSpans.isEmpty()) {
       return 0;
@@ -1770,6 +1810,48 @@ public final class Text implements Measure {
       }
     }
     return fromGlyphs(found);
+  }
+
+  private int hitOnRow(int line, int row, float x) {
+    Para para = para(line);
+    int start = shownLines().start(line);
+    if (para.chunks != null) {
+      return start + para.chunks.hit(x);
+    }
+    List<Integer> bounds = rowBounds(para, row);
+    int found = bounds.getFirst();
+    float left = para.pen(para.rowStart(row));
+    for (int i = 0; i < bounds.size() - 1; i++) {
+      if (para.pen(bounds.get(i)) - left <= x) {
+        found = bounds.get(i);
+      }
+    }
+    return start + found;
+  }
+
+  private boolean inBlockBand(Lines lines, int slot, double y) {
+    return slot >= lines.count()
+        || lines.isHidden(slot)
+        || lines.hasBlockAt(slot) && y < lines.lineTop(slot, lineHeight);
+  }
+
+  private int blockClickPosition(Lines lines, int slot) {
+    if (slot < lines.count() && !lines.isHidden(slot)) {
+      return lines.start(slot);
+    }
+    int next = slot < lines.count() ? lines.nextVisible(slot) : -1;
+    if (next >= 0) {
+      return lines.start(next);
+    }
+    int prev = lines.visibleAtOrBefore(Math.min(slot, lines.count() - 1));
+    return prev >= 0 ? lines.end(prev) : 0;
+  }
+
+  private int rowInLine(Lines lines, int line, double y) {
+    Para para = para(line);
+    long within =
+        Math.max(0, (long) Math.floor((y - lines.lineTop(line, lineHeight)) / lineHeight));
+    return (int) Math.min(within, (long) para.rowCount() - 1);
   }
 
   /** The grapheme boundaries of a line, from its start to its end. */
@@ -1816,10 +1898,35 @@ public final class Text implements Measure {
     }
   }
 
+  /** For {@link El}: the blocks between lines of a multi-line field and their measurer. */
+  void blocks(List<El.Block> blocks, BlockMeasurer measurer) {
+    List<El.Block> next = blocks == null ? List.of() : blocks;
+    this.blockMeasurer = measurer;
+    if (!next.equals(this.blocks)) {
+      this.blocks = next;
+      viewStale = true;
+    }
+  }
+
+  /** For {@link El}: the blocks placed by the last {@link #layOut}. */
+  List<PlacedBlock> placedBlocks() {
+    lines();
+    return placedBlocks;
+  }
+
   private Lines shownLines() {
     prepare();
     shownLines.folds(placeholderShown ? List.of() : folds);
+    shownLines.blocks(placeholderShown ? List.of() : blocks);
     wrapping();
+    if (!placeholderShown && !blocks.isEmpty()) {
+      shownLines.blocksLayout(
+          laidOut
+              ? new Wrapping(
+                  placedWidth, font(), size, scale, List.of(features), tabSize, systemFonts)
+              : null,
+          lineHeight);
+    }
     return shownLines;
   }
 
@@ -1873,6 +1980,34 @@ public final class Text implements Measure {
   }
 
   /**
+   * For {@link El#fitLines}: the height of every row and block at a content box this wide, in
+   * physical pixels.
+   */
+  private float fittedHeight(float width) {
+    Lines lines = shownLines();
+    float rowsHeight = fittedRows(width) * lineHeight;
+    if (!lines.hasBlocks()) {
+      return rowsHeight;
+    }
+    if (blockMeasurer != null && width > 0 && width != MAX_CONTENT && Float.isFinite(width)) {
+      for (int slot = lines.nextBlockSlot(-1); slot >= 0; slot = lines.nextBlockSlot(slot)) {
+        int si = lines.blockSlotIndex(slot);
+        int start = lines.blockSlotStart(si);
+        int end = lines.blockSlotEnd(si);
+        for (int bi = start; bi < end; bi++) {
+          El.Block b = lines.activeBlock(bi);
+          if (b.lines() == 0) {
+            El built = blockMeasurer.measure(b, bi - start, width, scale, lineHeight);
+            lines.blockHeight(
+                bi, Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4))));
+          }
+        }
+      }
+    }
+    return rowsHeight + lines.totalBlockPixels();
+  }
+
+  /**
    * For {@link El#fitLines}: the rows of every line at a content box this wide, in logical pixels
    * or {@link Measure#MAX_CONTENT} or MIN, each line shaped once.
    */
@@ -1883,7 +2018,9 @@ public final class Text implements Measure {
     }
     float limit = width == MIN_CONTENT ? 0 : width * scale + SLACK;
     int rows = 0;
-    for (int line = 0; line >= 0 && line < lines.count(); line = lines.nextVisible(line)) {
+    for (int line = lines.firstVisible();
+        line >= 0 && line < lines.count();
+        line = lines.nextVisible(line)) {
       para(line); // shaped, and its rows counted at the placed width once that is known
       Para para = shapedLines.get(line);
       if (para != null) {
@@ -1928,9 +2065,9 @@ public final class Text implements Measure {
     return multiline ? viewY : 0;
   }
 
-  /** The height of all rows of a multi-line field, in logical pixels, measured or estimated. */
+  /** The height of all rows and blocks of a multi-line field, in logical pixels. */
   double extentHeight() {
-    return shownLines().totalRows() * (double) lineHeight / scale;
+    return shownLines().totalHeight(lineHeight) / scale;
   }
 
   /**
@@ -1945,25 +2082,33 @@ public final class Text implements Measure {
   }
 
   /**
-   * Lays out the rows of a multi-line field in view and {@link #MARGIN_ROWS} around them, shaping
-   * the lines they are on unless this tree has shaped them already.
+   * Lays out the rows (and any blocks) of a multi-line field in view and {@link #MARGIN_ROWS}
+   * around them, shaping the lines they are on unless this tree has shaped them already.
    *
-   * @return how far the line at the top of the view moved down because rows above it were measured
-   *     for the first time, in physical pixels; the editor scrolls as far, so that what is in view
-   *     stays where it is
+   * @return how far the line or block at the top of the view moved down because rows or blocks
+   *     above it were measured for the first time, in physical pixels; the editor scrolls as far,
+   *     so that what is in view stays where it is
    */
   float layOut() {
     Lines lines = shownLines();
     viewStale = false;
     chunksMoved = false;
+    if (!lines.hasBlocks()) {
+      placedBlocks = List.of();
+      return layOutRowsOnly(lines);
+    }
+    return layOutWithBlocks(lines);
+  }
+
+  private float layOutRowsOnly(Lines lines) {
     double lh = lineHeight;
     int anchor = lines.lineOfRow((long) Math.floor(viewY / lh));
-    long anchorRows = lines.rowsBefore(anchor);
+    long anchorRows = anchor >= 0 ? lines.rowsBefore(anchor) : 0;
     double from = viewY - MARGIN_ROWS * lh;
     double to = viewY + placedHeight + MARGIN_ROWS * lh;
     long firstRow = Math.max(0, (long) Math.floor(from / lh));
     int line = lines.lineOfRow(firstRow);
-    long skip = firstRow - lines.rowsBefore(line);
+    long skip = line >= 0 ? firstRow - lines.rowsBefore(line) : 0;
     List<Line> laid = new ArrayList<>();
     List<Row> placed = new ArrayList<>();
     firstInView = -1;
@@ -1978,37 +2123,7 @@ public final class Text implements Measure {
       if (lineTop >= to) {
         break;
       }
-      if (para.chunks != null) {
-        if (skip == 0) {
-          pending |= highlighter != null && !placeholderShown && para.spans == null;
-          float baseline = (float) (lineTop - viewY + firstBaseline);
-          para.chunks.emitLines(baseline, viewLeft, viewRight, laid);
-          placed.add(new Row(line, 0, para, lineTop));
-          if (lineTop < viewY + placedHeight && lineTop + lh > viewY) {
-            firstInView = firstInView < 0 ? line : firstInView;
-            lastInView = line;
-          }
-        }
-        continue;
-      }
-      for (int r = (int) Math.min(skip, para.rowCount()); r < para.rowCount(); r++) {
-        double top = lineTop + r * lh;
-        if (top >= to) {
-          break;
-        }
-        pending |= highlighter != null && !placeholderShown && para.spans == null;
-        laid.add(new Line(
-            para.slice(para.rowStart(r), para.rowEnd(r)),
-            para.rowWidths[r],
-            (float) (top - viewY + firstBaseline),
-            para.colors(para.rowStart(r), para.rowEnd(r)),
-            0));
-        placed.add(new Row(line, r, para, top));
-        if (top < viewY + placedHeight && top + lh > viewY) {
-          firstInView = firstInView < 0 ? line : firstInView;
-          lastInView = line;
-        }
-      }
+      pending |= emitLine(line, para, lineTop, skip, to, lh, viewLeft, viewRight, laid, placed);
     }
     if (!wraps) {
       for (Row row : placed) {
@@ -2019,7 +2134,145 @@ public final class Text implements Measure {
     this.rows = placed;
     highlightPending = pending;
     marks = marks(placed);
-    return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
+    return anchor >= 0 ? (float) ((lines.rowsBefore(anchor) - anchorRows) * lh) : 0;
+  }
+
+  private float layOutWithBlocks(Lines lines) {
+    double lh = lineHeight;
+    int anchorSlot = lines.slotAt(viewY, lh);
+    boolean anchorInBlock = anchorSlot >= lines.count()
+        || lines.isHidden(anchorSlot)
+        || (lines.hasBlockAt(anchorSlot) && viewY < lines.lineTop(anchorSlot, lh));
+    int anchorBlock = anchorInBlock ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
+    double anchorTopBefore = anchorBlock >= 0
+        ? lines.blockTop(anchorBlock, lh)
+        : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
+    double from = viewY - MARGIN_ROWS * lh;
+    double to = viewY + placedHeight + MARGIN_ROWS * lh;
+    int slot = from <= 0 ? lines.nextSlot(-1) : lines.slotAt(from, lh);
+    long skip = 0;
+    if (slot >= 0 && slot < lines.count() && !lines.isHidden(slot)) {
+      double lt = lines.lineTop(slot, lh);
+      if (from > lt) {
+        skip = (long) Math.floor((from - lt) / lh);
+      }
+    }
+    List<Line> laid = new ArrayList<>();
+    List<Row> placed = new ArrayList<>();
+    List<PlacedBlock> blocksPlaced = new ArrayList<>();
+    firstInView = -1;
+    lastInView = -1;
+    float marginX = Math.max(4 * advance, 32 * scale);
+    double viewLeft = Math.max(0, viewX - marginX);
+    double viewRight = viewX + placedWidth + marginX;
+    float contentWidthLogical = placedWidth / scale;
+    boolean pending = false;
+    for (; slot >= 0; slot = lines.nextSlot(slot), skip = 0) {
+      double slotTop = lines.slotTop(slot, lh);
+      if (slotTop >= to) {
+        break;
+      }
+      int si = lines.blockSlotIndex(slot);
+      if (si >= 0) {
+        int bStart = lines.blockSlotStart(si);
+        int bEnd = lines.blockSlotEnd(si);
+        double blockY = slotTop;
+        for (int bi = bStart; bi < bEnd; bi++) {
+          El.Block block = lines.activeBlock(bi);
+          double bh = lines.blockHeight(bi);
+          if ((blockY + bh > from || (bh == 0 && blockY >= from)) && blockY < to) {
+            El built = null;
+            if (blockMeasurer != null) {
+              built =
+                  blockMeasurer.measure(block, bi - bStart, contentWidthLogical, scale, lineHeight);
+              if (block.lines() == 0) {
+                long measuredPx = Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4)));
+                lines.blockHeight(bi, measuredPx);
+              }
+            }
+            bh = lines.blockHeight(bi);
+            if ((blockY + bh > from || (bh == 0 && blockY >= from)) && blockY < to) {
+              blocksPlaced.add(new PlacedBlock(block, bi - bStart, built, blockY, bh));
+            }
+          }
+          blockY += bh;
+          if (blockY >= to) {
+            break;
+          }
+        }
+        if (blockY >= to) {
+          break;
+        }
+      }
+      if (slot < lines.count() && !lines.isHidden(slot)) {
+        Para para = para(slot);
+        double lineTop = lines.lineTop(slot, lh);
+        if (lineTop >= to) {
+          break;
+        }
+        pending |= emitLine(slot, para, lineTop, skip, to, lh, viewLeft, viewRight, laid, placed);
+      }
+    }
+    if (!wraps) {
+      for (Row row : placed) {
+        lines.measured(row.line, row.para.totalWidth());
+      }
+    }
+    this.lines = List.copyOf(laid);
+    this.rows = placed;
+    this.placedBlocks = List.copyOf(blocksPlaced);
+    highlightPending = pending;
+    marks = marks(placed);
+    double anchorTopAfter = anchorBlock >= 0
+        ? lines.blockTop(anchorBlock, lh)
+        : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
+    return (float) (anchorTopAfter - anchorTopBefore);
+  }
+
+  private boolean emitLine(
+      int line,
+      Para para,
+      double lineTop,
+      long skip,
+      double to,
+      double lh,
+      double viewLeft,
+      double viewRight,
+      List<Line> laid,
+      List<Row> placed) {
+    boolean pending = false;
+    if (para.chunks != null) {
+      if (skip == 0) {
+        pending = highlighter != null && !placeholderShown && para.spans == null;
+        float baseline = (float) (lineTop - viewY + firstBaseline);
+        para.chunks.emitLines(baseline, viewLeft, viewRight, laid);
+        placed.add(new Row(line, 0, para, lineTop));
+        if (lineTop < viewY + placedHeight && lineTop + lh > viewY) {
+          firstInView = firstInView < 0 ? line : firstInView;
+          lastInView = line;
+        }
+      }
+      return pending;
+    }
+    for (int r = (int) Math.min(skip, para.rowCount()); r < para.rowCount(); r++) {
+      double top = lineTop + r * lh;
+      if (top >= to) {
+        break;
+      }
+      pending |= highlighter != null && !placeholderShown && para.spans == null;
+      laid.add(new Line(
+          para.slice(para.rowStart(r), para.rowEnd(r)),
+          para.rowWidths[r],
+          (float) (top - viewY + firstBaseline),
+          para.colors(para.rowStart(r), para.rowEnd(r)),
+          0));
+      placed.add(new Row(line, r, para, top));
+      if (top < viewY + placedHeight && top + lh > viewY) {
+        firstInView = firstInView < 0 ? line : firstInView;
+        lastInView = line;
+      }
+    }
+    return pending;
   }
 
   /** Whether the last {@link #layOut} measured a chunk of a long line, which moved what follows. */
@@ -2276,13 +2529,27 @@ public final class Text implements Measure {
     return squiggled;
   }
 
-  /** The lines whose first row is laid out, with where it is, top to bottom. */
+  /** The lines whose first row (or replaced block) is laid out, with where it is, top to bottom. */
   List<Start> lineStarts() {
     lines();
     List<Start> starts = new ArrayList<>();
     for (Row row : rows) {
       if (row.row == 0) {
-        starts.add(new Start(row.line, (float) (row.top - viewY)));
+        starts.add(new Start(row.line, row.line, (float) (row.top - viewY)));
+      }
+    }
+    if (!placedBlocks.isEmpty()) {
+      Lines ls = shownLines();
+      boolean added = false;
+      for (PlacedBlock pb : placedBlocks) {
+        if (pb.block.placement() == El.Block.Placement.REPLACE) {
+          int last = Math.min(pb.block.last(), ls.count() - 1);
+          starts.add(new Start(pb.block.first(), last, (float) (pb.top - viewY)));
+          added = true;
+        }
+      }
+      if (added) {
+        starts.sort(Comparator.comparingInt(Start::line));
       }
     }
     return starts;
@@ -2343,6 +2610,9 @@ public final class Text implements Measure {
     double lh = lineHeight;
     long row = Math.clamp((long) Math.floor(y / lh), 0, Math.max(lines.totalRows() - 1, 0));
     int line = lines.lineOfRow(row);
+    if (line < 0) {
+      return new int[] {-1, 0};
+    }
     Para para = para(line);
     long within = row - lines.rowsBefore(line);
     if (within < 0) { // measuring the line made the rows before it fewer
@@ -2358,7 +2628,14 @@ public final class Text implements Measure {
     int line = lines.line(clamped);
     if (lines.isHidden(line)) {
       int visible = lines.visibleAtOrBefore(line);
-      return new int[] {visible, para(visible).rowCount() - 1};
+      if (visible >= 0) {
+        return new int[] {visible, para(visible).rowCount() - 1};
+      }
+      int after = lines.visibleAtOrAfter(line);
+      if (after >= 0) {
+        return new int[] {after, 0};
+      }
+      return new int[] {-1, 0};
     }
     return new int[] {line, para(line).rowAt(clamped - lines.start(line))};
   }
@@ -2378,11 +2655,17 @@ public final class Text implements Measure {
     int line = lines.line(clamped);
     if (lines.isHidden(line)) {
       int visible = lines.visibleAtOrBefore(line);
-      Para para = para(visible);
-      int last = para.rowCount() - 1;
-      return para.pen(para.text.length()) - para.pen(para.rowStart(last));
+      if (visible >= 0) {
+        Para para = para(visible);
+        int last = para.rowCount() - 1;
+        return para.pen(para.text.length()) - para.pen(para.rowStart(last));
+      }
+      return 0;
     }
     int[] at = rowOf(clamped);
+    if (at[0] < 0) {
+      return 0;
+    }
     Para para = para(at[0]);
     int offset = clamped - lines.start(at[0]);
     return para.pen(offset) - para.pen(para.rowStart(at[1]));
@@ -2390,8 +2673,13 @@ public final class Text implements Measure {
 
   /** The top of the row a position is on, in physical pixels from the top of the text. */
   double caretTop(int index) {
+    Lines lines = shownLines();
     int[] at = rowOf(index);
-    return (shownLines().rowsBefore(at[0]) + at[1]) * (double) lineHeight;
+    if (at[0] < 0) {
+      int line = lines.line(Math.clamp(index, 0, lines.length()));
+      return lines.slotTop(line, lineHeight);
+    }
+    return lines.lineTop(at[0], lineHeight) + at[1] * (double) lineHeight;
   }
 
   /** The position nearest to {@code x} on row {@code row} of line {@code line}. */
@@ -2415,11 +2703,15 @@ public final class Text implements Measure {
 
   /**
    * The position {@code rows} visual rows above (negative) or below a position, nearest to {@code
-   * x} on its row; before the first row the start of the text, after the last its end.
+   * x} on its row; before the first row the start of the first visible line, after the last its
+   * end.
    */
   int moveRows(int index, int rows, float x) {
     int[] at = rowOf(index);
     int line = at[0];
+    if (line < 0) {
+      return index;
+    }
     int row = at[1];
     Lines lines = shownLines();
     for (int step = rows; step != 0; step -= Integer.signum(step)) {
@@ -2443,22 +2735,69 @@ public final class Text implements Measure {
           line = prev;
           row = para(line).rowCount() - 1;
         } else {
-          return 0;
+          return lines.start(line);
         }
       }
     }
     return nearestOnRow(line, row, x);
   }
 
+  /**
+   * PageUp/PageDown in a field with blocks: moves by one page of visual height ({@link
+   * #visibleRows} lines) to the visible row nearest {@code x}, stepping over any block in the way.
+   */
+  int movePage(int index, int direction, float x) {
+    Lines lines = shownLines();
+    int[] at = rowOf(index);
+    if (at[0] < 0) {
+      return index;
+    }
+    double currentY = caretTop(index);
+    double targetY = currentY + direction * visibleRows() * (double) lineHeight;
+    int slot = lines.slotAt(targetY, lineHeight);
+    int targetLine;
+    int targetRow;
+    if (inBlockBand(lines, slot, targetY)) {
+      if (direction > 0) {
+        targetLine = slot < lines.count() && !lines.isHidden(slot)
+            ? slot
+            : slot < lines.count() ? lines.nextVisible(slot) : -1;
+        if (targetLine < 0) {
+          int last = lines.visibleAtOrBefore(lines.count() - 1);
+          return last >= 0 ? lines.end(last) : index;
+        }
+        targetRow = 0;
+      } else {
+        // the line before the band: a band above a line is not on that line
+        targetLine = slot > 0 ? lines.visibleAtOrBefore(Math.min(slot, lines.count()) - 1) : -1;
+        if (targetLine < 0) {
+          int first = lines.firstVisible();
+          return first >= 0 ? lines.start(first) : index;
+        }
+        targetRow = para(targetLine).rowCount() - 1;
+      }
+    } else {
+      targetLine = slot;
+      targetRow = rowInLine(lines, slot, targetY);
+    }
+    if (targetLine == at[0] && targetRow == at[1]) {
+      return moveRows(index, direction, x);
+    }
+    return nearestOnRow(targetLine, targetRow, x);
+  }
+
   /** The start of the row a position is on. */
   int rowStart(int index) {
     int[] at = rowOf(index);
-    return shownLines().start(at[0]) + para(at[0]).rowStart(at[1]);
+    return at[0] < 0 ? 0 : shownLines().start(at[0]) + para(at[0]).rowStart(at[1]);
   }
 
   /** The last position a caret takes on the row of a position: before the wrap, or the line end. */
   int rowEnd(int index) {
     int[] at = rowOf(index);
+    if (at[0] < 0) {
+      return 0;
+    }
     Para para = para(at[0]);
     if (at[1] + 1 == para.rowCount()) {
       return shownLines().start(at[0]) + para.text.length();
@@ -2470,12 +2809,48 @@ public final class Text implements Measure {
   /** Whether a position starts the first row of its line, which a wrapped line is not after. */
   boolean startsLine(int index) {
     int[] at = rowOf(index);
-    return at[1] == 0;
+    return at[0] < 0 || at[1] == 0;
   }
 
   /** The rows in view and the margin that cover the content box, for the editor's look. */
   int visibleRows() {
     return Math.max(1, (int) Math.floor(placedHeight / lineHeight()));
+  }
+
+  /**
+   * Selection tint boxes over laid-out line blocks covered by {@code [start, end)}, in physical
+   * pixels relative to the top left of the content box after vertical scroll.
+   */
+  List<Box> blockSelectionBoxes(int start, int end) {
+    lines();
+    if (start == end || placedBlocks.isEmpty()) {
+      return List.of();
+    }
+    Lines lines = shownLines();
+    List<Box> boxes = new ArrayList<>();
+    for (PlacedBlock pb : placedBlocks) {
+      if (!(pb.height > 0)) {
+        continue;
+      }
+      El.Block b = pb.block;
+      boolean covered;
+      if (b.placement() == El.Block.Placement.REPLACE) {
+        int from = lines.start(b.first());
+        int last = Math.min(b.last(), lines.count() - 1);
+        int to = last + 1 < lines.count() ? lines.start(last + 1) : lines.length();
+        covered = from < to ? start < to && end > from : start < from && end >= from;
+      } else {
+        int line = b.first();
+        covered = line > 0
+            && line < lines.count()
+            && start < lines.start(line)
+            && end >= lines.start(line);
+      }
+      if (covered) {
+        boxes.add(new Box(0, (float) (pb.top - viewY), placedWidth, (float) pb.height));
+      }
+    }
+    return List.copyOf(boxes);
   }
 
   /**

@@ -813,9 +813,37 @@ public final class Scene {
         text(el, left, top, opacity, inner, content);
       }
       ContentBox own = free ? null : contentBox(el, x, y, left, top, width, height);
+      Text fieldText = el.text() != null && el.text().isField() ? el.text() : null;
+      int blockClip = -2;
       for (El child : el.children()) {
         if (child.rangeBoxes() == null) {
-          add(child, x, y, opacity, inner, content, free, own);
+          int childClip = inner;
+          if (fieldText != null && fieldText.isBlock(child)) {
+            if (blockClip == -2) {
+              blockClip = fieldClip(el, left, top, inner);
+            }
+            if (blockClip < 0) {
+              continue;
+            }
+            childClip = blockClip;
+          }
+          add(child, x, y, opacity, childClip, content, free, own);
+        }
+      }
+      if (fieldText != null && !fieldText.blockSelection().isEmpty()) {
+        if (blockClip == -2) {
+          blockClip = fieldClip(el, left, top, inner);
+        }
+        if (blockClip >= 0) {
+          double scale = fieldText.scale();
+          double boxLeft = (left + el.padding(Side.LEFT) + el.border(Side.LEFT)) * scale;
+          double boxTop = (top + el.padding(Side.TOP) + el.border(Side.TOP)) * scale;
+          double grid = scale >= 1.5 && !fieldText.font().wholePixels() ? 4 : 1;
+          boxLeft = Math.round(boxLeft * grid) / grid;
+          boxTop = Math.round(boxTop);
+          for (Text.Box tint : fieldText.blockSelection()) {
+            box(tint, boxLeft, boxTop, scale, fieldText.selectionColor(), opacity, blockClip);
+          }
         }
       }
       if (el.scrollbars() != null) {
