@@ -1,0 +1,35 @@
+el 0,0 320x260
+  el #schemas role=combobox label="Schemas" 12,12 220x24 expanded value="public, sales"
+    el #token-public label="public" 15,15 59x18
+      text "public" 21,17 35x14
+      el #remove role=button label="Remove public" 58,17 14x14
+        text label="dismiss" "\u{F367}" 59,18 12x12
+    el #token-sales label="sales" 76,15 54x18
+      text "sales" 82,17 30x14
+      el #remove role=button label="Remove sales" 114,17 14x14
+        text label="dismiss" "\u{F367}" 115,18 12x12
+    text #input role=textbox "ing" 132,15 97x18 focused caret 3
+  text #status "public · sales" 12,44 296x16
+overlay bottom stretch gap 4 on #schemas role=combobox label="Schemas" 12,12 220x24
+  el #choices 12,40 220x130
+    el #options role=listbox 17,45 210x120 rows 0-4/5
+      el #option-0 role=option label="billing" 17,45 210x24 selected pos=1/5
+        el 17,45 210x24
+          el 25,57 16x0
+          text "billing" 49,49 170x16
+      el #option-1 role=option label="staging" 17,69 210x24 pos=2/5
+        el 17,69 210x24
+          el 25,81 16x0
+          text "staging" 49,73 170x16
+      el #option-2 role=option label="marketing" 17,93 210x24 pos=3/5
+        el 17,93 210x24
+          el 25,105 16x0
+          text "marketing" 49,97 170x16
+      el #option-3 role=option label="reporting" 17,117 210x24 pos=4/5
+        el 17,117 210x24
+          el 25,129 16x0
+          text "reporting" 49,121 170x16
+      el #option-4 role=option label="accounting" 17,141 210x24 pos=5/5
+        el 17,141 210x24
+          el 25,153 16x0
+          text "accounting" 49,145 170x16

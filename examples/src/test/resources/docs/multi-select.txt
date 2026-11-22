@@ -1,0 +1,11 @@
+size 268 168 scale 2
+frame
+press role=textbox
+frame
+advance 0.3
+frame
+type "in"
+frame
+advance 0.3
+frame
+snap open

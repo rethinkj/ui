@@ -223,6 +223,12 @@ class GridFilterTest {
     String reopened = app.tree().dump();
     assertEquals("search", app.focused().key());
     assertTrue(reopened.contains("#value-alpha-1"), "opening resets the search");
+
+    run(app, "type \"beta\"\nframe\nkey Escape\nframe");
+    assertTrue(app.tree().dump().contains("role=dialog"), "Escape empties a filled search first");
+    assertTrue(app.tree().dump().contains("#value-alpha-1"), "all values return");
+    run(app, "key Escape\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=dialog"), "Escape in an empty search closes");
   }
 
   /** filter.txt: the popover of an enumeration open, and filters set with their bar. */

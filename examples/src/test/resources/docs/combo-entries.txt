@@ -1,0 +1,7 @@
+size 460 240
+frame
+press role=combobox label="Table"
+frame
+advance 0.3
+frame
+snap open

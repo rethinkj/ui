@@ -156,6 +156,14 @@ public final class Select {
    * anything, the choice and the chevron.
    */
   static El box(Theme theme, Button.Look look, String text, El lead, boolean enabled) {
+    return box(theme, look, text, lead, null, enabled);
+  }
+
+  /**
+   * The box of a closed select or combo box in this look, with an optional trailing element such
+   * as a clear button before the chevron.
+   */
+  static El box(Theme theme, Button.Look look, String text, El lead, El trailing, boolean enabled) {
     El box = row()
         .role("combobox")
         .label(text)
@@ -174,8 +182,10 @@ public final class Select {
     if (lead != null) {
       box.child(ComboBox.leading(theme, lead));
     }
-    return box.children(
-        label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis(),
-        Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    box.child(label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis());
+    if (trailing != null) {
+      box.child(trailing);
+    }
+    return box.child(Icon.icon(OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
   }
 }
