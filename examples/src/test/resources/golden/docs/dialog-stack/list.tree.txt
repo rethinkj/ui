@@ -33,19 +33,19 @@ overlay center modal scrim on 0,0 440x340
           text "Add" 282,212 25x16
     el 120,109 200x19
       text role=heading label="Add property" "Add property" 120,109 102x19 level=2
-overlay bottom stretch gap 2 on role=combobox label="sslmode" 120,140 200x24
-  el #choices 120,166 200x82
-    el #options role=listbox label="sslmode" 125,171 190x72 rows 0-2/3
-      el #option-0 role=option label="sslmode" 125,171 190x24 selected pos=1/3
-        el 125,171 190x24
-          el 133,175 16x16
-            text label="checkmark" "\u{E305}" 133,175 16x16
-          text "sslmode" 157,175 150x16
-      el #option-1 role=option label="connectTimeout" 125,195 190x24 pos=2/3
-        el 125,195 190x24
-          el 133,207 16x0
-          text "connectTimeout" 157,199 150x16
-      el #option-2 role=option label="applicationName" 125,219 190x24 pos=3/3
-        el 125,219 190x24
-          el 133,231 16x0
-          text "applicationName" 157,223 150x16
+overlay bottom stretch gap 4 on role=combobox label="sslmode" 120,140 200x24
+  el #choices 120,168 200x82
+    el #options role=listbox label="sslmode" 125,173 190x72 rows 0-2/3
+      el #option-0 role=option label="sslmode" 125,173 190x24 selected pos=1/3
+        el 125,173 190x24
+          el 133,177 16x16
+            text label="checkmark" "\u{E305}" 133,177 16x16
+          text "sslmode" 157,177 150x16
+      el #option-1 role=option label="connectTimeout" 125,197 190x24 pos=2/3
+        el 125,197 190x24
+          el 133,209 16x0
+          text "connectTimeout" 157,201 150x16
+      el #option-2 role=option label="applicationName" 125,221 190x24 pos=3/3
+        el 125,221 190x24
+          el 133,233 16x0
+          text "applicationName" 157,225 150x16
