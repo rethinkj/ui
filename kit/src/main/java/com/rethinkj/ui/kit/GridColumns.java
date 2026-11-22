@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.DataGrid.SortKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
 
 /**
@@ -216,6 +217,39 @@ final class GridColumns {
             : null);
   }
 
+  /** From more than this many entries, a checklist shows a search field. */
+  static final int SEARCH_THRESHOLD = 8;
+
+  /** The search field above a long checklist of columns or filter values. */
+  static El searchField(Theme theme, String value, String placeholder, Consumer<String> onChange) {
+    return TextField.withIcon(
+        textField(value, placeholder, onChange)
+            .key("search")
+            .w(theme.size().field())
+            .autofocus(),
+        Symbol.SEARCH);
+  }
+
+  /** Normalizes a checklist's search text for case-insensitive matching. */
+  static String searchQuery(String text) {
+    return text.toLowerCase(Locale.ROOT).strip();
+  }
+
+  /** Whether {@code text} matches a {@link #searchQuery normalized} search query. */
+  static boolean matchesSearch(String text, String query) {
+    return query.isEmpty() || text.toLowerCase(Locale.ROOT).contains(query);
+  }
+
+  /** Limits a checklist column to the height of ten controls, with room for focus rings and bars. */
+  static El scrollList(Theme theme, El list) {
+    return list.padding(theme.space().xs(), theme.space().s())
+        .scroll()
+        .scrollbars(theme.scrollbars())
+        .maxSize(
+            Float.POSITIVE_INFINITY,
+            10 * (theme.size().control() - theme.space().xs()));
+  }
+
   /**
    * The chooser: a box per column to show or hide it, in the order shown, which Alt+Arrow Up and
    * Down change for the focused one; a field that narrows the list where there are many; Show all
@@ -223,21 +257,17 @@ final class GridColumns {
    */
   static El chooser(Theme theme, Layout l) {
     Texts texts = Texts.CURRENT.get();
-    String search = l.search.toLowerCase(Locale.ROOT).strip();
-    El list = col()
-        .key("columns")
-        .role("list")
-        .label(texts.columns())
-        .gap(theme.space().xs())
-        .padding(theme.space().xs(), theme.space().s())
-        .scroll()
-        .scrollbars(theme.scrollbars())
-        .maxSize(
-            Float.POSITIVE_INFINITY,
-            10 * (theme.size().control() - theme.space().xs()));
+    String search = searchQuery(l.search);
+    El list = scrollList(
+        theme,
+        col()
+            .key("columns")
+            .role("list")
+            .label(texts.columns())
+            .gap(theme.space().xs()));
     for (int full : l.order()) {
       String title = l.titles.get(full);
-      if (!search.isEmpty() && !title.toLowerCase(Locale.ROOT).contains(search)) {
+      if (!matchesSearch(title, search)) {
         continue;
       }
       boolean shown = !l.isHidden(full);
@@ -267,13 +297,8 @@ final class GridColumns {
         .gap(theme.space().s())
         .child(
             Label.label(Label.Variant.STRONG, texts.columns()).role("heading").level(3));
-    if (l.titles.size() > 8) {
-      content.child(TextField.withIcon(
-          textField(l.search, texts.searchColumns(), v -> l.search = v)
-              .key("search")
-              .w(theme.size().field())
-              .autofocus(),
-          Symbol.SEARCH));
+    if (l.titles.size() > SEARCH_THRESHOLD) {
+      content.child(searchField(theme, l.search, texts.searchColumns(), v -> l.search = v));
     }
     content
         .child(list)

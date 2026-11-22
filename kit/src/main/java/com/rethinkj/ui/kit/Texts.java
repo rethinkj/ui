@@ -354,6 +354,11 @@ public interface Texts {
     return "No group " + number;
   }
 
+  /** An invalid regular expression: the JDK's description and the 1-based position of the error. */
+  default String patternError(String description, int position) {
+    return description + " at " + position;
+  }
+
   /** Which match is selected: {@code 3 of 17}; {@code total} may be {@code 1000+}. */
   default String match(int number, String total) {
     return number + " of " + total;
@@ -432,6 +437,10 @@ public interface Texts {
 
   default String searchColumns() {
     return "Search columns";
+  }
+
+  default String searchValues() {
+    return "Search values";
   }
 
   /** The hint of the chooser of columns, with the keys that move a column up and down. */

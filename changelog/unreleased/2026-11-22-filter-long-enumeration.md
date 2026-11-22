@@ -1,0 +1,1 @@
+- In `DataGrid`, the `ONE_OF` filter popover for an enumeration with more than eight choices now shows a search field and scrolls the list of checkboxes instead of growing past the window; hiding choices with the search leaves their checked state intact.
