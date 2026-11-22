@@ -119,6 +119,8 @@ final class Editor {
   private boolean reveal;
   // App.select asked: a multi-line field scrolls the selection into view also without the focus.
   private boolean asked;
+  // A shown position whose line the next frame keeps in the middle while it measures rows.
+  private int centered = -1;
   // A selection placed by the app, find, undo or redo should ask to unfold if an end is hidden.
   private boolean unfoldPending;
   // Whether compose() asked the app to unfold a fold since App last checked.
@@ -1356,6 +1358,26 @@ final class Editor {
     return Math.min(index - composition.length() + end() - at, text.length());
   }
 
+  /**
+   * Keeps the line of shown position {@code at} in the middle of the view at the next frame, while
+   * the rows and blocks around it are measured, as after a press on a scrollbar mark.
+   */
+  void center(int at) {
+    centered = at;
+  }
+
+  /** A position of the string as a position of the shown string. */
+  int toShown(int index) {
+    int clamped = Math.clamp(index, 0, text.length());
+    if (composition.isEmpty() || clamped <= start()) {
+      return clamped;
+    }
+    if (clamped < end()) {
+      return start();
+    }
+    return clamped - (end() - start()) + composition.length();
+  }
+
   // ---- Drawing
 
   /** A read-only field shows a caret only with a selection, so that it does not look editable. */
@@ -1453,6 +1475,7 @@ final class Editor {
     t.measureChunks(start(), end(), shownCaret, start() + composition.length());
     if (revealed) {
       reveal = false;
+      centered = -1; // the caret wins
       byLast = scrollToCaret(t, shownCaret, covered, caretWidth, null);
     }
     boolean atRight = el.scrollX() > 0 && !el.canScroll(true, 1);
@@ -1480,6 +1503,15 @@ final class Editor {
           break;
         }
         shift = t.layOut(); // ends: each line and block is measured once
+      }
+      // A scrollbar mark's line, which blocks measured on the way may have moved, stays centered.
+      if (centered >= 0) {
+        el.measureScroll();
+        while (el.scrollTo(el.scrollX(), el.centerOffset(centered))) {
+          t.layOut();
+          el.measureScroll();
+        }
+        centered = -1;
       }
       // A view at the end of a long line stays there while its chunks are measured.
       while (atRight && t.chunksMoved()) {

@@ -6,6 +6,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
@@ -20,6 +21,7 @@ import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Texts;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.sql.Sql;
 import java.util.ArrayList;
@@ -67,6 +69,37 @@ final class Editors {
         ]
       }""";
   final CodeEditor.State payloadEditor = new CodeEditor.State();
+  String report = """
+      WITH paid_orders AS (
+        SELECT id, customer_id, total, created_at
+        FROM orders
+        WHERE status = 'paid'
+      ),
+      monthly AS (
+        SELECT
+          customer_id,
+          date_trunc('month', created_at) AS month,
+          count(*) AS order_count,
+          sum(total) AS revenue
+        FROM paid_orders
+        GROUP BY customer_id, month
+      ),
+      ranked AS (
+        SELECT
+          c.name,
+          m.customer_id,
+          m.month,
+          m.order_count,
+          m.revenue
+        FROM monthly m
+        JOIN customers c ON c.id = m.customer_id
+        WHERE m.revenue > 0
+      )
+      SELECT name, month, order_count, revenue
+      FROM ranked
+      WHERE legacy_flag = true
+      ORDER BY revenue DESC;""";
+  final CodeEditor.State reportEditor = new CodeEditor.State();
   // docs:start code-editor-folding
   List<El.Fold> savedFolds = List.of();
 
@@ -165,6 +198,21 @@ final class Editors {
     showVision();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
+    int unindexed = report.indexOf("m.revenue > 0");
+    int missing = report.indexOf("legacy_flag");
+    reportEditor.diagnostics(
+        report,
+        List.of(
+            new CodeEditor.Diagnostic(
+                unindexed,
+                unindexed + "m.revenue > 0".length(),
+                CodeEditor.Severity.WARNING,
+                "Predicate on revenue is not indexed"),
+            new CodeEditor.Diagnostic(
+                missing,
+                missing + "legacy_flag".length(),
+                CodeEditor.Severity.ERROR,
+                "column \"legacy_flag\" does not exist")));
   }
 
   void sql(String value) {
@@ -225,6 +273,10 @@ final class Editors {
 
   void views(String value) {
     views = value;
+  }
+
+  void report(String value) {
+    report = value;
   }
 
   // docs:start code-editor-json-format
@@ -355,6 +407,28 @@ final class Editors {
           Label.label(Label.Variant.MUTED, "Usages of " + state.selectedVision).key("usages"));
     }
     return Frame.of(editor);
+  }
+
+  static El scrollbarMarks(Editors state) {
+    // docs:start code-editor-scrollbar-marks
+    El editor = CodeEditor.codeEditor(
+            state.app, state.report, state.reportEditor, Sql.of(), state::report)
+        .key("report")
+        .label("Report")
+        .lines(10)
+        .wFull();
+    // docs:end code-editor-scrollbar-marks
+    return Frame.of(editor);
+  }
+
+  /** Marks lines the app knows as changed, such as from version control. */
+  static El changes(El editor, int changeStart, int changeEnd) {
+    // docs:start scroll-marks
+    Theme theme = Theme.CURRENT.get();
+    editor.scrollMarks(
+        List.of(new Scrollbars.Mark(changeStart, changeEnd, theme.status().success())));
+    // docs:end scroll-marks
+    return editor;
   }
 
   static El find(Editors state) {

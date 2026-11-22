@@ -2683,6 +2683,36 @@ public final class Text implements Measure {
     return lines.lineTop(at[0], lineHeight) + at[1] * (double) lineHeight;
   }
 
+  /**
+   * The vertical span {@code {top, bottom, firstBottom}} in logical pixels from the top of the text
+   * for characters {@code [from, to]} of the shown string, accounting for folds and line blocks
+   * without shaping unshaped lines.
+   *
+   * @return false while the field shows its placeholder
+   */
+  boolean markSpan(int from, int to, double[] out) {
+    Lines lines = shownLines();
+    if (placeholderShown) {
+      return false;
+    }
+    int a = Math.clamp(from, 0, lines.length());
+    int b = Math.clamp(to, a, lines.length());
+    int first = lines.line(a);
+    int last = lines.line(b > a ? b - 1 : a);
+    lines.lineSpan(first, lineHeight, out);
+    double top = out[0];
+    double firstBottom = out[1];
+    double bottom = firstBottom;
+    if (last != first) {
+      lines.lineSpan(last, lineHeight, out);
+      bottom = Math.max(bottom, out[1]);
+    }
+    out[0] = top / scale;
+    out[1] = bottom / scale;
+    out[2] = firstBottom / scale;
+    return true;
+  }
+
   /** The position nearest to {@code x} on row {@code row} of line {@code line}. */
   private int nearestOnRow(int line, int row, float x) {
     Para para = para(line);

@@ -513,7 +513,14 @@ public final class App<S> {
         capture = new Grab(id, vertical, along - start);
       } else {
         capture = IDLE;
-        scrolled |= area.page(vertical, along < start ? -1 : 1);
+        int mark = vertical ? area.tickAt(y) : -1;
+        if (mark >= 0) {
+          area.scrollTo(area.scrollX(), area.centerOffset(mark));
+          area.editor().center(mark);
+          scrolled = true; // a frame centers it as measured, also where the estimate did not move
+        } else {
+          scrolled |= area.page(vertical, along < start ? -1 : 1);
+        }
       }
       return changed;
     }

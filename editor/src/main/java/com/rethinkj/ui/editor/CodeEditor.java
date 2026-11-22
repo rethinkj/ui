@@ -9,6 +9,7 @@ import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
@@ -760,6 +761,14 @@ public final class CodeEditor {
           }
         })
         .gutter(line -> cell(app, theme, state, editor, diagnostics, markers, line), rail);
+    if (!diagnostics.isEmpty()) {
+      List<Scrollbars.Mark> ticks = new ArrayList<>(diagnostics.size());
+      for (Diagnostic d : diagnostics) {
+        int from = Math.max(0, d.from());
+        ticks.add(new Scrollbars.Mark(from, Math.max(from, d.to()), color(theme, d.severity)));
+      }
+      editor.scrollMarks(ticks);
+    }
     El message = message(state, diagnostics);
     if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
       editor.whenFocusWithin(e -> e.overlay(message));

@@ -14,6 +14,8 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -286,6 +288,18 @@ public final class Find {
     Pattern pattern = state.open && state.mode != Mode.LINE ? state.pattern() : null;
     if (pattern != null) {
       search(app, state, pattern, text);
+      if (state.fresh(text) && state.matches.count() > 0) {
+        Search.Matches found = state.matches;
+        int count = found.count();
+        int[] starts = found.starts();
+        int[] ends = found.ends();
+        int color = theme.accent().edge();
+        List<Scrollbars.Mark> ticks = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+          ticks.add(new Scrollbars.Mark(starts[i], ends[i], color));
+        }
+        field.scrollMarks(ticks);
+      }
     } else if (!state.open) {
       state.cancel();
     }

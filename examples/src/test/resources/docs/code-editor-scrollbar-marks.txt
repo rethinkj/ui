@@ -1,0 +1,11 @@
+# Open the find bar on a scrolling code editor with diagnostics so both diagnostics and find matches show on the scrollbar.
+size 520 210
+frame
+
+focus #report
+key F control
+type "customer_id"
+frame
+advance 0.3
+frame
+snap view

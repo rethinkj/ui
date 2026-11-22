@@ -64,4 +64,34 @@ public record Scrollbars(
           trackX, trackY, trackWidth, trackHeight, thumbX, thumbY, thumbWidth, thumbHeight, argb);
     }
   }
+
+  /**
+   * An overview mark along a multi-line field's vertical scrollbar ({@link El#scrollMarks}): a
+   * colored tick at the relative vertical position of characters {@code from} to {@code to} of the
+   * field's text, such as a diagnostic or a find match. A press on a tick scrolls its first line
+   * into the middle of the view.
+   *
+   * @param from the start offset in the field's text, 0 or more
+   * @param to the end offset, {@code from} or more
+   * @param color the tick's color, as 0xAARRGGBB
+   */
+  public record Mark(int from, int to, int color) {
+    public Mark {
+      if (from < 0 || to < from) {
+        throw new IllegalArgumentException(
+            "mark range must have 0 <= from <= to, were " + from + " and " + to);
+      }
+    }
+  }
+
+  /**
+   * The tick of one or more {@link Mark}s as the last frame shows it along a vertical bar ({@link
+   * El#verticalTicks}), across the bar's track: marks of one color close enough to overlap share
+   * one.
+   *
+   * @param y its top, in logical pixels of the window
+   * @param height its length along the track, at least half the bar's thickness
+   * @param color its color, as 0xAARRGGBB
+   */
+  public record Tick(float y, float height, int color) {}
 }

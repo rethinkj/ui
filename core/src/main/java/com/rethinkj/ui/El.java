@@ -4,6 +4,7 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -437,6 +438,9 @@ public final class El {
     FieldState fieldState;
     Editor editor;
     float coveredTop; // see El#coveredTop
+    List<Scrollbars.Mark> scrollMarks; // null until El#scrollMarks adds marks
+    List<Scrollbars.Tick> ticks = List.of(); // as the last frame placed them
+    int[] tickTargets; // the shown position of each tick's first mark
   }
 
   /** The handlers of input and of what the app tells an element. */
@@ -1173,6 +1177,37 @@ public final class El {
    */
   public El scrollbars(Scrollbars look) {
     this.scrollbars = look;
+    return this;
+  }
+
+  /**
+   * Marks ranges of this {@link #multiline} field's text along its vertical {@link #scrollbars
+   * bar}, as an overview of where they are: each a tick across the track, under the thumb, whose
+   * share of the track above it is the share of the text above the range's first line, folds and
+   * {@link #blocks} counted as shown. Each call adds to the marks of the calls before, so that a
+   * code editor's diagnostics and its find bar's matches show together. A press on a tick scrolls
+   * its line into the middle of the view, and is no press of the field. A field whose text fits
+   * has no bar and shows no marks.
+   *
+   * @param marks the marks to add
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El scrollMarks(List<Scrollbars.Mark> marks) {
+    Text t = editableOnly("scrollMarks");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "scrollMarks is for multi-line fields: call it after multiline().");
+    }
+    Objects.requireNonNull(marks, "marks");
+    if (marks.isEmpty()) {
+      return this;
+    }
+    if (field.scrollMarks == null) {
+      field.scrollMarks = new ArrayList<>(marks.size());
+    }
+    for (Scrollbars.Mark mark : marks) {
+      field.scrollMarks.add(Objects.requireNonNull(mark, "mark"));
+    }
     return this;
   }
 
@@ -4148,6 +4183,19 @@ public final class El {
     return barY;
   }
 
+  /** The vertical scrollbar marks added to this field ({@link #scrollMarks}), or an empty list. */
+  public List<Scrollbars.Mark> scrollMarks() {
+    return field == null || field.scrollMarks == null ? List.of() : List.copyOf(field.scrollMarks);
+  }
+
+  /**
+   * The ticks of this field's {@link #scrollMarks} along its {@link #verticalBar} as the last frame
+   * placed them, empty without a vertical bar.
+   */
+  public List<Scrollbars.Tick> verticalTicks() {
+    return field == null ? List.of() : field.ticks;
+  }
+
   /** Whether {@link #rows} made this a virtual list, whose children are the rows that exist. */
   public boolean isVirtualList() {
     return rows != null;
@@ -4426,6 +4474,9 @@ public final class El {
       float parentX, float parentY, float left, float top, float right, float bottom) {
     barX = null;
     barY = null;
+    if (field != null) {
+      field.ticks = List.of();
+    }
     if (!placed) {
       return;
     }
@@ -4453,6 +4504,9 @@ public final class El {
         if (tall && boxRight - boxLeft >= t + 2 * m) {
           barY =
               bar(true, boxRight - m - t, boxTop + m, boxBottom - m - (barX != null ? t + m : 0));
+          if (barY != null && field != null && field.scrollMarks != null) {
+            placeTicks();
+          }
         }
         if (barX != null) { // the bars of areas inside stay out of these strips
           bottom = Math.min(bottom, barX.trackY() - m);
@@ -4465,6 +4519,73 @@ public final class El {
     for (El child : children) {
       child.placeBars(x, y, left, top, right, bottom);
     }
+  }
+
+  /**
+   * Places the ticks of a field's marks along {@link #barY}, where the share of the track above a
+   * tick is the share of the text above its first line, as the thumb's place is the offset's.
+   */
+  private void placeTicks() {
+    if (!text.laidOut()) {
+      return;
+    }
+    double min = minScrollY();
+    double total = text.contentHeight() / text.scale() + maxScrollY - min;
+    float top = barY.trackY();
+    float track = barY.trackHeight();
+    float least = Math.min(scrollbars.thickness() / 2, track);
+    List<Scrollbars.Mark> marks = field.scrollMarks;
+    marks.sort(Comparator.comparingInt(Scrollbars.Mark::from)); // a later tick lies on top
+    List<Scrollbars.Tick> ticks = new ArrayList<>();
+    int[] targets = new int[marks.size()];
+    double[] span = new double[3];
+    Editor editor = field.editor;
+    for (Scrollbars.Mark mark : marks) {
+      int from = editor == null ? mark.from() : editor.toShown(mark.from());
+      int to = editor == null ? mark.to() : editor.toShown(mark.to());
+      if (mark.color() >>> 24 == 0 || !text.markSpan(from, to, span)) {
+        continue;
+      }
+      float height = Math.clamp((float) (track * (span[1] - span[0]) / total), least, track);
+      float y = top + Math.clamp((float) (track * (span[0] - min) / total), 0, track - height);
+      Scrollbars.Tick last = ticks.isEmpty() ? null : ticks.getLast();
+      if (last != null && last.color() == mark.color() && y >= last.y() && y < last.y() + 1) {
+        // One tick for the marks that start within a pixel, such as matches in adjacent lines.
+        float bottom = Math.max(last.y() + last.height(), y + height);
+        ticks.set(ticks.size() - 1, new Scrollbars.Tick(last.y(), bottom - last.y(), last.color()));
+        continue;
+      }
+      targets[ticks.size()] = from;
+      ticks.add(new Scrollbars.Tick(y, height, mark.color()));
+    }
+    field.ticks = ticks;
+    field.tickTargets = targets;
+  }
+
+  /**
+   * The shown position of the first mark of the tick under {@code y}, in window coordinates, the
+   * one drawn last where ticks overlap; -1 for none.
+   */
+  int tickAt(float y) {
+    List<Scrollbars.Tick> ticks = verticalTicks();
+    for (int i = ticks.size() - 1; i >= 0; i--) {
+      Scrollbars.Tick tick = ticks.get(i);
+      if (y >= tick.y() && y <= tick.y() + tick.height()) {
+        return field.tickTargets[i];
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * The vertical offset that shows the line of shown position {@code at} in the middle of the part
+   * of this field not covered at its top, as far as its rows are measured.
+   */
+  double centerOffset(int at) {
+    double[] span = new double[3];
+    text.markSpan(at, at, span);
+    double view = text.contentHeight() / text.scale();
+    return (span[0] + span[2]) / 2 - (Math.min(coveredContent(), view) + view) / 2;
   }
 
   /**

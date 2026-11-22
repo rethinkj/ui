@@ -151,6 +151,20 @@ All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are
 ```java snippet="code-editor-position"
 ```
 
+## Scrollbar marks
+
+While the code is taller than the view, its vertical scrollbar marks where the diagnostics are, in the color of their squiggles, and, while the [find bar](/docs/components/find) is open, its matches. A press on a mark scrolls its line into the middle of the view, without moving the caret or the focus.
+
+<Shot src="examples/docs/code-editor-scrollbar-marks/view-{theme}" alt="An SQL editor with the find bar open on customer_id, and marks along its scrollbar for the five matches, a warning and an error further down" />
+
+```java snippet="code-editor-scrollbar-marks"
+```
+
+Marks of the app's own, such as changed lines or the usages of a name, go on the editor with [`scrollMarks`](/api/com/rethinkj/ui/El.html#scrollMarks(java.util.List)), beside the editor's own:
+
+```java snippet="scroll-marks"
+```
+
 ## Folding
 
 Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, ignoring brackets inside strings and comments when the highlighter marks brackets (such as `Json` and `Sql`). Folded lines show a chevron (`›`) in the gutter and a clickable `…` pill at the end of the line; hovering a line that starts a foldable block reveals its fold chevron (`⌄`). Press **Ctrl+Shift+[** to fold the innermost block around the cursor (moving the cursor to the end of its first line) and **Ctrl+Shift+]** to unfold it. Folding also works in read-only editors.

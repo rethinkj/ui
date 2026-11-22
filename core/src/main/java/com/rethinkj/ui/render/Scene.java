@@ -848,6 +848,7 @@ public final class Scene {
       }
       if (el.scrollbars() != null) {
         thumb(el.horizontalBar(), false, el.scrollbars().radius(), opacity, inner, free);
+        ticks(el, opacity, inner, free);
         thumb(el.verticalBar(), true, el.scrollbars().radius(), opacity, inner, free);
       }
     }
@@ -1229,6 +1230,25 @@ public final class Scene {
     color(offset + FILL, shadow.color(), opacity);
     color(offset + BORDER, 0, opacity);
     count++;
+  }
+
+  /** The ticks of a field's marks along its vertical bar, under the thumb and snapped like it. */
+  private void ticks(El el, float opacity, int clip, boolean free) {
+    Scrollbars.Bar bar = el.verticalBar();
+    if (bar == null) {
+      return;
+    }
+    float x = free ? bar.trackX() : edge(bar.trackX());
+    float width = free ? bar.trackWidth() : edge(bar.trackX() + bar.trackWidth()) - x;
+    float clipY = clipGet(clip, Y);
+    float clipBottom = clipY + clipGet(clip, HEIGHT);
+    for (Scrollbars.Tick tick : el.verticalTicks()) {
+      float y = free ? tick.y() : edge(tick.y());
+      float height = free ? tick.height() : edge(tick.y() + tick.height()) - y;
+      if (y < clipBottom && y + height > clipY) {
+        rect(x, y, width, height, 0, 0, tick.color(), 0, opacity, clip);
+      }
+    }
   }
 
   /**

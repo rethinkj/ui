@@ -1120,6 +1120,52 @@ final class Lines {
   }
 
   /**
+   * The vertical span {@code {top, bottom}} of line {@code line} in physical pixels from the top of
+   * the text, using measured or estimated rows and block heights without shaping the line. A line
+   * hidden by a fold maps to its fold's header line; one hidden by a replace block maps to that
+   * block.
+   */
+  void lineSpan(int line, double lineHeight, double[] out) {
+    int l = Math.clamp(line, 0, Math.max(count - 1, 0));
+    if (isFoldHidden(l)) {
+      int found = Arrays.binarySearch(foldHiddenFirst, l);
+      int i = found >= 0 ? found : -found - 2;
+      l = visibleFolds[i].first();
+    }
+    if (!isHidden(l)) {
+      out[0] = lineTop(l, lineHeight);
+      out[1] = slotTop(l + 1, lineHeight);
+      return;
+    }
+    int bi = replaceBlockContaining(l);
+    if (bi >= 0) {
+      double top = blockTop(bi, lineHeight);
+      out[0] = top;
+      out[1] = top + blockHeight(bi);
+      return;
+    }
+    double top = slotTop(l, lineHeight);
+    out[0] = top;
+    out[1] = top + lineHeight;
+  }
+
+  private int replaceBlockContaining(int line) {
+    if (blockSlots.length == 0) {
+      return -1;
+    }
+    int found = Arrays.binarySearch(blockSlots, line);
+    int si = found >= 0 ? found : -found - 2;
+    if (si < 0) {
+      return -1;
+    }
+    int bi = blockSlotStarts[si + 1] - 1;
+    El.Block b = activeBlocks[bi];
+    return b.placement() == El.Block.Placement.REPLACE && line >= b.first() && line <= b.last()
+        ? bi
+        : -1;
+  }
+
+  /**
    * The slot (0..count) whose vertical band contains {@code y}, in physical pixels, descending the
    * row and block-pixel Fenwick trees in lockstep. Slot {@code count} holds blocks after the last
    * line.

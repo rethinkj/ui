@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -429,6 +432,71 @@ class ScrollbarTest {
     app.frame();
     assertEquals(1, state.log.size());
     assertTrue(state.log.getFirst().startsWith("row "), state.log.toString());
+  }
+
+  @Test
+  void ticksOfMarksSitWhereTheirLinesAreAndAPressShowsTheLine() {
+    TextLibraries.assumeLoaded();
+    StringBuilder text = new StringBuilder("line 0");
+    for (int line = 1; line < 40; line++) {
+      text.append("\nline ").append(line);
+    }
+    int line8 = text.indexOf("line 8");
+    int line38 = text.indexOf("line 38");
+    Scrollbars.Mark folded = new Scrollbars.Mark(line8, line8 + 6, 0xFFE53935);
+    Scrollbars.Mark below = new Scrollbars.Mark(line38, line38 + 7, 0xFF3B82F6);
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .children(
+                el().key("other").h(16).focusable(),
+                El.text(text.toString())
+                    .key("editor")
+                    .editable(v -> {})
+                    .multiline()
+                    .font(Font.mono())
+                    .fontSize(14)
+                    .wFull()
+                    .lines(10)
+                    .scrollbars(LOOK)
+                    .folds(List.of(new El.Fold(3, 12)), f -> {}) // lines 4 to 12 into line 3
+                    .blocks(List.of(El.Block.insert(37)), b -> el().h(200), b -> {}) // measured
+                    .scrollMarks(List.of(folded))
+                    .scrollMarks(List.of(below))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(220, 220, 1);
+    app.frame();
+    app.focus(find(app.tree(), "other"));
+    app.frame();
+
+    El editor = find(app.tree(), "editor");
+    Scrollbars.Bar bar = editor.verticalBar();
+    double row = editor.text().lineHeight() / editor.text().scale();
+    double extent = editor.text().extentHeight();
+    // A folded line marks its fold's line 3.
+    List<Scrollbars.Tick> ticks = editor.verticalTicks();
+    assertEquals(2, ticks.size());
+    assertEquals(
+        bar.trackY() + bar.trackHeight() * 3 * row / extent, ticks.get(0).y(), 1e-3);
+    assertEquals(below.color(), ticks.get(1).color());
+
+    float x = bar.trackX() + bar.trackWidth() / 2;
+    float y = ticks.get(1).y() + ticks.get(1).height() / 2;
+    app.pointerDown(x, y);
+    app.pointerUp(x, y);
+    app.frame();
+
+    // In the middle, as far as the end lets it, once the block before it is measured.
+    editor = find(app.tree(), "editor");
+    assertTrue(editor.text().extentHeight() > extent + 100, "the block is measured");
+    double end = editor.text().extentHeight()
+        - editor.text().contentHeight() / editor.text().scale();
+    assertEquals(
+        Math.min(editor.centerOffset(line38), end), editor.scrollY(), 1e-3, "line 38 in view");
+    assertSame(find(app.tree(), "other"), app.focused());
+    assertEquals(0, editor.editor().caret());
   }
 
   private static El find(El el, String key) {

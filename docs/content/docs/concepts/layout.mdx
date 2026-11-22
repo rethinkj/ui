@@ -80,6 +80,8 @@ Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw
 
 After layout, `el.horizontalBar()` and `el.verticalBar()` return `Scrollbars.Bar` geometry (or `null`). Tree dumps list thumbs as `thumb-x` and `thumb-y`.
 
+On a multi-line field, `scrollMarks(List<Scrollbars.Mark>)` adds marks for ranges of its text, drawn as ticks along the vertical bar under the thumb; each call adds to the marks of the calls before. A press on a tick scrolls its line into the middle of the view. `el.verticalTicks()` returns the ticks as placed.
+
 ## Direct `Style` access
 
 For flexbox properties not exposed as shorthand methods, configure `el.style()` directly:

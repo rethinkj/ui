@@ -1,0 +1,1 @@
+- Multi-line fields mark ranges of their text along the vertical scrollbar with `El.scrollMarks` and `Scrollbars.Mark`, and a press on a mark scrolls its line into view. `CodeEditor` marks its diagnostics and `Find` its matches this way.
