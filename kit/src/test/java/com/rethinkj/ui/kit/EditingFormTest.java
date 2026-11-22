@@ -298,7 +298,8 @@ class EditingFormTest {
                         Form.Labels.BESIDE,
                         Form.field(
                             "Retries",
-                            ValueField.valueField(Format.INTEGER, st.editing.at(Job.RETRIES))
+                            ValueField.valueField(
+                                    Format.INTEGER.optional(), st.editing.at(Job.RETRIES))
                                 .key("retries"))))));
 
     run(app, "");
