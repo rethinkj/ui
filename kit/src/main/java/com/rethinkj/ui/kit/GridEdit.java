@@ -75,6 +75,9 @@ final class GridEdit {
       draft = original = error = null;
       mode = null;
       choices.close();
+      searchChoices = null; // lets go of the build the handler holds
+      searchEntries = null;
+      searchChoose = null;
     }
 
     /** Puts the editor on its column's new place, or closes it where its column is gone. */
