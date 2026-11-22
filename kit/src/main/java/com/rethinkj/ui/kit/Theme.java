@@ -927,6 +927,8 @@ public record Theme(
    *     empty view
    * @param tooltip the widest the text and the description of a {@link Tooltip} grow before they
    *     wrap; its padding, icon and keycaps come on top
+   * @param drawer the width of a {@link Drawer} along the left or right edge, unless its content
+   *     sets one
    */
   public record Sizes(
       float control,
@@ -948,7 +950,54 @@ public record Theme(
       float paletteRow,
       float controlSmall,
       float controlLarge,
-      float tooltip) {
+      float tooltip,
+      float drawer) {
+
+    /** Sizes whose drawers are 360 wide. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot,
+        float paletteTop,
+        float paletteField,
+        float paletteRow,
+        float controlSmall,
+        float controlLarge,
+        float tooltip) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          paletteTop,
+          paletteField,
+          paletteRow,
+          controlSmall,
+          controlLarge,
+          tooltip,
+          360);
+    }
 
     /** Sizes whose tooltips wrap their text at 320. */
     public Sizes(
@@ -1427,7 +1476,7 @@ public record Theme(
       new TextStyle(Font::sans, 12),
       new TextStyle(Font::sansSemibold, 16));
   private static final Sizes SIZE =
-      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320);
+      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320, 360);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12);

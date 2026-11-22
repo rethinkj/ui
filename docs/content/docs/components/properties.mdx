@@ -21,13 +21,23 @@ Javadoc: [`Properties`](/api/com/rethinkj/ui/kit/Properties.html).
 | `properties(properties, clipboard[, copied])` | Single list (`null` clipboard hides copy buttons; optional `Button.Copied` enables [copy confirmation](/docs/components/button#copy-buttons)) |
 | `groups(groups, clipboard[, copied])` | Multiple titled groups |
 | `Properties.property(name, value)`, `.mono()` | Key-value row (`.mono()` uses monospace font for IDs/code) |
+| `Properties.property(name, element[, text])` | Element value (`Badge`, link, status indicator); optional `text` enables copying and tree `value` |
 | `Properties.group(title, properties)` | Named group of properties |
 
 Long values wrap up to 3 lines, then truncate with `…` and show the full value in a tooltip (selecting or clicking Copy always copies the complete text).
 
+## Element values
+
+Pass an `El` to `Properties.property(name, element)` when a value needs a `Badge`, a link, or a status indicator. Short elements sit centered in a one-line row aligned with text values; taller elements grow the row downwards with the name beside the first line. Pass a third `text` argument when the row should keep a copy button and report `value` in a tree dump.
+
+<Shot src="examples/docs/properties-elements/view-{theme}" crop="role=list" alt="Properties mixing a text value orders, a Primary key badge, a shop_admin link and a Connected status dot" />
+
+```java snippet="properties-elements"
+```
+
 ## In a tree dump
 
-`role=list` with `role=listitem` rows (`label="<name>"`, `value="<value>"`), and `role=heading level=3` for group titles:
+`role=list` with `role=listitem` rows (`label="<name>"`, and `value="<value>"` for text properties and element properties given copy text), and `role=heading level=3` for group titles:
 
 ```text file="examples/src/test/resources/golden/docs/details/view.tree.txt" start="role=list " count="2"
 ```

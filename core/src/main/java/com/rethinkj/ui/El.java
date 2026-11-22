@@ -2841,10 +2841,11 @@ public final class El {
 
   /**
    * Places this overlay inside the window against one of its edges, {@code gap} pixels away from
-   * it, and along that edge as {@code align} says, {@code START}, {@code CENTER} or {@code END},
-   * the same distance from the corners: a notification at the bottom in the middle. Across that
-   * edge it is at most as large as the window less the gap, so that a shorter window shrinks what
-   * can shrink in it.
+   * it, and along that edge as {@code align} says: {@code START}, {@code CENTER} or {@code END},
+   * the same distance from the corners (a notification at the bottom in the middle), or {@code
+   * STRETCH} to run the whole length of the edge less {@code gap} at both ends (a drawer along a
+   * side). Across that edge it is at most as large as the window less the gap, so that a shorter
+   * window shrinks what can shrink in it.
    */
   public El atWindowEdge(Side edge, Style.Align align, float gap) {
     Layer l = layer();

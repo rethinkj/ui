@@ -30,6 +30,37 @@ For a standalone dialog window, register `root.onKey(Dialog.enterPresses(button)
 
 Custom frameless title bars remain usable behind a dialog so users can still move or close the window.
 
+## Presets
+
+Three helpers build the common dialogs on `Dialog.dialog`. Cancel takes its text from `Texts`, and Escape or a press on the backdrop runs the cancel handler. The buttons have the keys `cancel` and `ok`.
+
+### Confirm
+
+`Dialog.confirm` asks a question. Its action is the default button, where the focus opens, so **Enter** confirms.
+
+<Shot src="examples/docs/dialog-confirm/view-{theme}" alt="A Restart server dialog with Cancel and a primary Restart button" />
+
+```java snippet="dialog-confirm"
+```
+
+### Danger
+
+`Dialog.danger` asks before a destructive action, shown in the theme's danger color. It has no default button and opens on Cancel, so **Enter** cancels and never runs the action by accident.
+
+<Shot src="examples/docs/dialog-danger/view-{theme}" alt="A Drop table dialog with Cancel and a red Drop button" />
+
+```java snippet="dialog-danger"
+```
+
+### Prompt
+
+`Dialog.prompt` asks for one line of text in a field bound to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), with the key `value`. The focus opens in the field and **Enter** submits. Pass `null` as the submit handler to disable the button while the value is not ready.
+
+<Shot src="examples/docs/dialog-prompt/view-{theme}" alt="A Rename table dialog with a Name field holding orders, Cancel and a primary Rename button" />
+
+```java snippet="dialog-prompt"
+```
+
 ## A dialog over a dialog
 
 A dialog can open a second dialog on top of itself, such as a detail form or a "Discard changes?" prompt. Attach both dialogs to the root, with the second one last so it appears on top. Every dialog uses the key `"dialog"` by default, so give the second one a unique `.key(...)`:

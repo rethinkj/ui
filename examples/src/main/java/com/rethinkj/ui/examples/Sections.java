@@ -15,6 +15,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
@@ -1054,6 +1055,13 @@ final class Sections {
         row().gap(theme.space().s()).align(Style.Align.CENTER).children(tools, form),
         filters);
 
+    El ownerLink = label("shop_admin")
+        .role("link")
+        .color(theme.prose().link())
+        .focusable()
+        .focusRing(theme.accent().edge())
+        .cursor(Cursor.POINTER)
+        .onPress(() -> state.say("owner shop_admin"));
     El properties = Card.card(
             Card.header("Properties", "orders in shop.public"),
             Properties.groups(
@@ -1062,7 +1070,9 @@ final class Sections {
                         "General",
                         List.of(
                             Properties.property("Schema", "public"),
-                            Properties.property("Owner", "shop_admin"),
+                            Properties.property("Owner", ownerLink, "shop_admin"),
+                            Properties.property(
+                                "Primary key", Badge.badge(Badge.Kind.ACCENT, "id"), "id"),
                             Properties.property("Rows", "1,000,000 (estimated)"),
                             Properties.property(
                                 "Comment",

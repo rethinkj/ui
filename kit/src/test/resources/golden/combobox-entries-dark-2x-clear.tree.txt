@@ -1,0 +1,6 @@
+el 0,0 300x90
+  el #table role=combobox label="orders" 12,12 220x24 expanded=false
+    text "orders" 21,16 158x16
+    el #clear role=button label="Clear" 183,14 20x20 focused
+      text label="dismiss" "\u{F368}" 185,16 16x16
+    text label="chevron_down" "\u{F2A2}" 207,16 16x16

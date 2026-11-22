@@ -1,0 +1,4 @@
+el 0,0 640x360
+  text "prod-eu" 12,12 51x16
+  el role=button label="Edit connection…" 12,36 135x24
+    text "Edit connection…" 25,40 109x16

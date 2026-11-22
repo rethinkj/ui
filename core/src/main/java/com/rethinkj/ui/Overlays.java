@@ -18,8 +18,9 @@ final class Overlays {
   /**
    * Lays out the overlays below {@code el}, which layout has placed, and those inside them: each
    * at most as large as the window less its margins, and one at the window's edge less its gap
-   * from that edge, and with {@link Style.Align#STRETCH} at least
-   * as wide or tall as its anchor. Overlays that are leaving keep their layout.
+   * from that edge (and at both ends along it with {@link Style.Align#STRETCH}), and with {@link
+   * Style.Align#STRETCH} at least as wide or tall as its anchor or that edge. Overlays that are
+   * leaving keep their layout.
    */
   static void layout(El el, float width, float height) {
     for (El child : el.children()) {
@@ -33,13 +34,22 @@ final class Overlays {
       El.Layer l = overlay.placement();
       // Its margins keep it that far from the window's edges, and one at an edge its gap too.
       boolean atTopOrBottom = l.edge == Side.TOP || l.edge == Side.BOTTOM;
-      float gapX = l.edge != null && !atTopOrBottom ? l.gap : 0;
-      float gapY = atTopOrBottom ? l.gap : 0;
-      s.maxWidth = limit(
-          s.maxWidth, width - s.marginLeft.pixelsOrZero() - s.marginRight.pixelsOrZero() - gapX);
-      s.maxHeight = limit(
-          s.maxHeight, height - s.marginTop.pixelsOrZero() - s.marginBottom.pixelsOrZero() - gapY);
-      if (l.align == Style.Align.STRETCH
+      boolean stretchedEdge = l.edge != null && !l.centered && l.align == Style.Align.STRETCH;
+      float gapX = l.edge == null ? 0 : !atTopOrBottom ? l.gap : stretchedEdge ? 2 * l.gap : 0;
+      float gapY = l.edge == null ? 0 : atTopOrBottom ? l.gap : stretchedEdge ? 2 * l.gap : 0;
+      float roomX =
+          Math.max(width - s.marginLeft.pixelsOrZero() - s.marginRight.pixelsOrZero() - gapX, 0);
+      float roomY =
+          Math.max(height - s.marginTop.pixelsOrZero() - s.marginBottom.pixelsOrZero() - gapY, 0);
+      s.maxWidth = limit(s.maxWidth, roomX);
+      s.maxHeight = limit(s.maxHeight, roomY);
+      if (stretchedEdge) { // exactly the room along the edge, anew in each layout
+        if (atTopOrBottom) {
+          s.minWidth = s.maxWidth = Len.px(roomX);
+        } else {
+          s.minHeight = s.maxHeight = Len.px(roomY);
+        }
+      } else if (l.align == Style.Align.STRETCH
           && !l.centered
           && l.edge == null
           && Float.isNaN(l.pointX)) {

@@ -25,11 +25,13 @@ import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.kit.Divider;
+import com.rethinkj.ui.kit.Drawer;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Properties;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
@@ -284,6 +286,7 @@ public final class DataBrowser {
   int[] matching = all(); // the rows below PERIOD that the filters keep, in order
   final Selection selection = new Selection(Mode.CELLS); // in the places the grid shows
   int selected = -1; // the order at the cursor, also while the filter hides it
+  boolean inspecting; // whether the selected order's drawer is open
   boolean descending; // by id
   final float[] widths = new float[WIDTHS.length];
   final Menu.State menu = new Menu.State();
@@ -387,6 +390,8 @@ public final class DataBrowser {
         .filter(place -> place >= 0)
         .sorted()
         .toArray();
+    // The inspector closes with its order's row, else it would open again, taking the focus.
+    inspecting &= selected >= 0 && changes.rowOf(selected) >= 0;
   }
 
   static String customer(int index) {
@@ -436,12 +441,22 @@ public final class DataBrowser {
     }
   }
 
+  /** Inspect opens the selected order in a drawer beside the grid, or closes it again. */
+  void inspect() {
+    inspecting = !inspecting;
+  }
+
+  void closeInspector() {
+    inspecting = false;
+  }
+
   /** The grid moved the cursor: its order is the selected one, unless it is a new row. */
   void selected() {
     long key = selection.row() < 0 || selection.row() >= changes.rowCount()
         ? -1
         : changes.key(selection.row());
     selected = key < 0 ? -1 : (int) key;
+    inspecting &= selected >= 0;
   }
 
   void sort(List<SortKey> keys) {
@@ -611,9 +626,15 @@ public final class DataBrowser {
         Locale.ROOT, "%,d cells are too many to copy at once: at most %,d", copy.cells(), limit));
     El grid = dataGrid(columns, state.changes.rowCount(), options);
     El filter = TextField.withIcon(
-        textField(state.filter, "Filter", state::filter).key("filter").w(280), Symbol.SEARCH);
+        textField(state.filter, "Filter", state::filter).key("filter").w(220), Symbol.SEARCH);
     filter = Tooltip.tooltip(
         filter, "Words in customer, email, city, country, product," + " status or note");
+    // The row of the order at the cursor, -1 while there is none or the filter hides it.
+    int shown = state.selected < 0 ? -1 : state.changes.rowOf(state.selected);
+    El inspect = Button.icon(
+            Button.Variant.GHOST, Symbol.PANEL_RIGHT, "Inspect", shown < 0 ? null : state::inspect)
+        .checked(state.inspecting)
+        .key("inspect");
     int changed = state.changes.count();
     El revert = button(
             Button.Variant.GHOST,
@@ -653,6 +674,7 @@ public final class DataBrowser {
                     null,
                     () -> state.toast = null,
                     Card.footerHeight() + theme.size().stroke() + theme.space().m()))
+        .overlay(state.inspecting && shown >= 0 ? inspector(state, shown) : null)
         .child(titleBar(
             AppIcon.appIcon(16, Identity.BLUE, Symbol.TABLE),
             "Orders",
@@ -672,6 +694,7 @@ public final class DataBrowser {
                         String.format(Locale.ROOT, "%,d rows", state.changes.rowCount()),
                         filter,
                         DataGrid.columnsButton(state.layout),
+                        inspect,
                         revert,
                         commit),
                     Card.filters(bar),
@@ -679,5 +702,21 @@ public final class DataBrowser {
                     grid.key("orders").label("Orders").grow(1),
                     Card.footer(label(MUTED, state.status()).key("status").ellipsis()))
                 .grow(1)));
+  }
+
+  /** The selected order's fields as its row shows them, pending changes included. */
+  private static El inspector(DataBrowser state, int row) {
+    List<Properties.Property> fields = new ArrayList<>();
+    for (int column = 0; column < state.base.size(); column++) {
+      String value = state.changes.cell(column).apply(row);
+      fields.add(
+          Properties.property(state.base.get(column).title(), value == null ? "NULL" : value));
+    }
+    El details = Properties.properties(fields, state.app == null ? null : state.app.clipboard());
+    return Drawer.drawer(
+        "Order " + (state.selected + 1),
+        details,
+        state::closeInspector,
+        Drawer.options().modal(false));
   }
 }

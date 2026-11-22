@@ -327,4 +327,73 @@ class DialogTest {
     String shown = app.tree().dump();
     assertTrue(shown.contains("role=tooltip label=\"" + title + "\""), shown);
   }
+
+  private static final class PromptState {
+    String name = "orders";
+    final List<String> log = new ArrayList<>();
+  }
+
+  @Test
+  void presetsHandleEnterAndEscape() throws IOException {
+    List<String> confirmLog = new ArrayList<>();
+    App<List<String>> confirm = new App<>(
+        confirmLog,
+        log -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.confirm(
+                "Restart server",
+                "Restart the server?",
+                "Restart",
+                () -> log.add("confirm"),
+                () -> log.add("cancel"))));
+    run(confirm, "frame\nadvance 0.25\nframe\nkey Enter\nframe\nkey Escape\nframe\n");
+    assertEquals("ok", confirm.focused().key());
+    assertEquals(List.of("confirm", "cancel"), confirmLog);
+
+    List<String> dangerLog = new ArrayList<>();
+    App<List<String>> danger = new App<>(
+        dangerLog,
+        log -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.danger(
+                "Drop table",
+                "Drop \"orders\"?",
+                "Drop",
+                () -> log.add("drop"),
+                () -> log.add("cancel"))));
+    run(danger, "frame\nadvance 0.25\nframe\nkey Enter\nframe\nkey Escape\nframe\n");
+    assertEquals("cancel", danger.focused().key(), "danger opens on Cancel, not the action");
+    assertEquals(List.of("cancel", "cancel"), dangerLog, "Enter never runs onConfirm");
+    run(danger, "press #ok\nframe\n");
+    assertEquals(List.of("cancel", "cancel", "drop"), dangerLog);
+
+    PromptState state = new PromptState();
+    App<PromptState> prompt = new App<>(
+        state,
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.prompt(
+                "Rename table",
+                "Name",
+                Prop.of(() -> s.name, v -> s.name = v),
+                "Rename",
+                s.name.isBlank() ? null : () -> s.log.add("submit:" + s.name),
+                () -> s.log.add("cancel"))));
+    run(
+        prompt,
+        "frame\nadvance 0.25\nframe\nkey A control\ntype \"order_lines\"\nkey Enter\nframe\n");
+    assertEquals("value", prompt.focused().key());
+    assertEquals("Name", prompt.focused().label());
+    assertEquals(List.of("submit:order_lines"), state.log);
+
+    run(prompt, "key A control\nkey Backspace\nframe\nkey Enter\nframe\n");
+    assertEquals("", state.name);
+    assertEquals(List.of("submit:order_lines"), state.log, "null onSubmit disables Enter");
+
+    run(prompt, "key Escape\nframe\n");
+    assertEquals(List.of("submit:order_lines", "cancel"), state.log);
+  }
 }

@@ -1,0 +1,41 @@
+el 0,0 640x360
+  el 12,12 616x141
+    el 29,29 582x35
+      el 29,29 582x35
+        text role=heading "Connections" 29,29 582x17 level=3
+        text "Primary clusters and replicas" 29,48 582x16
+    el 29,76 582x24
+      el #open role=button label="Open drawer" 29,76 107x24
+        text "Open drawer" 42,80 81x15
+      el #count role=button label="Count" 144,76 63x24
+        text "Count" 157,80 37x15
+    text #note role=textbox label="Note" "" 29,112 200x24
+overlay edge right stretch on 0,0 640x360
+  el #drawer role=dialog label="Order #1042" 280,0 360x360
+    el #drawer-content 293,48 341x306
+      el role=list 293,52 335x120
+        el role=listitem label="Order" 293,52 335x24 value="1042"
+          el 297,52 61x24
+            text "Order" 297,56 61x16
+          text role=textbox "1042" 366,52 258x24 readonly
+        el role=listitem label="Customer" 293,76 335x24 value="Ada Lovelace"
+          el 297,76 61x24
+            text "Customer" 297,80 61x16
+          text role=textbox "Ada Lovelace" 366,76 258x24 readonly
+        el role=listitem label="Email" 293,100 335x24 value="ada.lovelace@example.com"
+          el 297,100 61x24
+            text "Email" 297,104 61x16
+          text role=textbox "ada.lovelace@example.com" 366,100 258x24 readonly
+        el role=listitem label="Amount" 293,124 335x24 value="149.70"
+          el 297,124 61x24
+            text "Amount" 297,128 61x16
+          text role=textbox "149.70" 366,124 258x24 readonly
+        el role=listitem label="Status" 293,148 335x24 value="paid"
+          el 297,148 61x24
+            text "Status" 297,152 61x16
+          text role=textbox "paid" 366,148 258x24 readonly
+    el 297,16 327x24
+      text role=heading label="Order #1042" "Order #1042" 297,18 96x20 level=2
+      el 401,28 191x0
+      el #close role=button label="Close" 600,16 24x24 focused
+        text label="dismiss" "\u{F368}" 604,20 16x16

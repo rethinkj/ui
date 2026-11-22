@@ -5,7 +5,7 @@ description: One million sample orders in an editable, filterable DataGrid with 
 
 DataBrowser displays one million sample orders in a [DataGrid](/docs/components/data-grid) inside a card with a search filter in the toolbar and a status footer. You can edit cells, review pending changes, and commit or revert them.
 
-**Demonstrates:** [DataGrid](/docs/components/data-grid), [Typed rows](/docs/components/data-grid/typed), [Editing and changes](/docs/components/data-grid/editing), [Filters](/docs/components/data-grid/filters), and [Format](/docs/components/format).
+**Demonstrates:** [DataGrid](/docs/components/data-grid), [Typed rows](/docs/components/data-grid/typed), [Editing and changes](/docs/components/data-grid/editing), [Filters](/docs/components/data-grid/filters), [Format](/docs/components/format), [Drawer](/docs/components/drawer), and [Properties](/docs/components/properties).
 
 <Shot dark="examples/browser-dark" light="examples/browser-light" alt="The grid with pending changes marked, a filter on the status column, a filter bar and Commit (n) in the toolbar" />
 
@@ -22,6 +22,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=DataBrowser
 - Type keywords into the **Filter** box to show only rows matching every word.
 - Double-click a cell to edit it. Click **Commit** (or press **Ctrl+S**) to save pending changes, or click **Revert** to discard them.
 - Click the `id` column header to sort, click any text-column header to filter, and use **Columns** to show or hide columns.
+- Select a row and click **Inspect** (the panel icon in the toolbar) to open a non-modal right [Drawer](/docs/components/drawer) displaying the order's fields with [Properties](/docs/components/properties); selecting another row shows that one.
 
 ## How it works
 

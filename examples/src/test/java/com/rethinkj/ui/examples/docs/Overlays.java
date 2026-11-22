@@ -16,6 +16,7 @@ import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
+import com.rethinkj.ui.kit.Drawer;
 import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Label;
@@ -24,6 +25,8 @@ import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Popover;
+import com.rethinkj.ui.kit.Prop;
+import com.rethinkj.ui.kit.Properties;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
@@ -43,9 +46,15 @@ final class Overlays {
   final CommandPalette.State palette = new CommandPalette.State();
   boolean autocommit = true;
   boolean renaming;
+  boolean editing;
+  boolean inspecting;
+  boolean restarting = true;
+  boolean dropping = true;
+  boolean prompting = true;
   boolean connecting;
   boolean addingProperty;
-  String connection = "";
+  String connection = "prod-eu";
+  String draft = ""; // the name in the drawer, written to connection on Save
   final List<String> properties = new ArrayList<>();
   int property;
   String value = "";
@@ -53,6 +62,7 @@ final class Overlays {
   static final List<String> PROPERTIES = List.of("sslmode", "connectTimeout", "applicationName");
   String name = "orders";
   String newName = "";
+  String tableName = "orders";
   String dropped;
   final Toasts toasts = new Toasts();
   Toasts.Handle export;
@@ -132,10 +142,65 @@ final class Overlays {
     renaming = false;
   }
 
+  void startEdit() {
+    draft = connection;
+    editing = true;
+  }
+
+  void saveEdit() {
+    connection = draft;
+    editing = false;
+  }
+
+  void cancelEdit() {
+    editing = false;
+  }
+
+  void toggleInspect() {
+    inspecting = !inspecting;
+  }
+
+  void closeInspect() {
+    inspecting = false;
+  }
+
+  void restart() {
+    restarting = false;
+  }
+
+  void cancelRestart() {
+    restarting = false;
+  }
+
+  void dropTable() {
+    dropping = false;
+  }
+
+  void cancelDrop() {
+    dropping = false;
+  }
+
+  void tableName(String value) {
+    tableName = value;
+  }
+
+  void renameTable() {
+    name = tableName;
+    prompting = false;
+  }
+
+  void cancelPrompt() {
+    prompting = false;
+  }
+
   void newConnection() {
     connection = "";
     properties.clear();
     connecting = true;
+  }
+
+  void draft(String name) {
+    draft = name;
   }
 
   void connection(String name) {
@@ -425,6 +490,104 @@ final class Overlays {
             .start(Button.button(SECONDARY, "Test connection", state::test))
             .defaultButton(save));
     // docs:end dialog-options
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El drawer(Overlays state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start drawer
+    El open = Button.button(SECONDARY, "Edit connection…", state::startEdit);
+    El content = col()
+        .gap(theme.space().m())
+        .align(Style.Align.START)
+        .children(
+            TextField.textField(state.draft, "Name", state::draft).label("Name"),
+            Button.button(PRIMARY, "Save", state::saveEdit));
+    El drawer =
+        !state.editing ? null : Drawer.drawer("Edit connection", content, state::cancelEdit);
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .gap(theme.space().m())
+        .align(Style.Align.START)
+        .children(Label.label(state.connection), open)
+        .overlay(drawer);
+    // docs:end drawer
+    return root;
+  }
+
+  static El drawerInspector(Overlays state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start drawer-inspector
+    El inspect = Button.button(SECONDARY, Symbol.PANEL_RIGHT, "Inspect", state::toggleInspect);
+    El details = Properties.properties(
+        List.of(
+            Properties.property("Order", "1042").mono(),
+            Properties.property("Customer", "Ada Lovelace"),
+            Properties.property("Product", "Keyboard"),
+            Properties.property("Amount", "149.70").mono(),
+            Properties.property("Status", "paid")),
+        null);
+    El drawer = !state.inspecting
+        ? null
+        : Drawer.drawer(
+            "Order #1042", details, state::closeInspect, Drawer.options().modal(false));
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .gap(theme.space().m())
+        .align(Style.Align.START)
+        .children(Label.label("Order #1042 — Ada Lovelace"), inspect)
+        .overlay(drawer);
+    // docs:end drawer-inspector
+    return root;
+  }
+
+  static El dialogConfirm(Overlays state) {
+    // docs:start dialog-confirm
+    El dialog = !state.restarting
+        ? null
+        : Dialog.confirm(
+            "Restart server",
+            "Restart the server to apply the new settings?",
+            "Restart",
+            state::restart,
+            state::cancelRestart);
+    // docs:end dialog-confirm
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El dialogDanger(Overlays state) {
+    // docs:start dialog-danger
+    El dialog = !state.dropping
+        ? null
+        : Dialog.danger(
+            "Drop table",
+            "Drop \"orders\" and all its rows? This cannot be undone.",
+            "Drop",
+            state::dropTable,
+            state::cancelDrop);
+    // docs:end dialog-danger
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El dialogPrompt(Overlays state) {
+    // docs:start dialog-prompt
+    Prop<String> name = Prop.of(() -> state.tableName, state::tableName);
+    El dialog = !state.prompting
+        ? null
+        : Dialog.prompt(
+            "Rename table",
+            "Name",
+            name,
+            "Rename",
+            state.tableName.isBlank() ? null : state::renameTable,
+            state::cancelPrompt);
+    // docs:end dialog-prompt
     return Frame.of(Label.label(state.name)).overlay(dialog);
   }
 

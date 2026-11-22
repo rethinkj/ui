@@ -21,6 +21,11 @@ final class FieldActions {
     return button(theme, icon, label, null, onPress);
   }
 
+  /** A button that clears a field or choice, leaving the focus where it is. */
+  static El clearButton(Theme theme, Runnable onClear) {
+    return button(theme, Symbol.DISMISS, Texts.CURRENT.get().clear(), onClear);
+  }
+
   /** A button, or a switch when {@code checked} is not null; the caller decides Tab stops. */
   static El button(Theme theme, Icon icon, String label, Boolean checked, Runnable onPress) {
     boolean enabled = onPress != null;
@@ -60,14 +65,19 @@ final class FieldActions {
 
   /** Places the actions inside the top right of the frame and reserves their text padding. */
   static El embed(Theme theme, El field, El actions, float paddingRight) {
+    El box = el().children(field, place(theme, field, actions, paddingRight));
+    box.style().width = Len.FIT_CONTENT;
+    return box;
+  }
+
+  /** Positions {@code actions} for the top right of {@code field}'s box and reserves their padding. */
+  static El place(Theme theme, El field, El actions, float paddingRight) {
     field.style().paddingRight = Len.px(paddingRight);
     float inset = theme.space().xs();
     Style at = actions.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(inset);
     at.top = Len.px(inset);
-    El box = el().children(field, actions);
-    box.style().width = Len.FIT_CONTENT;
-    return box;
+    return actions;
   }
 }

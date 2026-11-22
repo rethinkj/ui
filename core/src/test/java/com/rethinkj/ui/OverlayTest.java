@@ -1097,4 +1097,36 @@ class OverlayTest {
     assertEquals(List.of("bar dismissed"), b.log);
     assertEquals("field", app.focused().key());
   }
+
+  @Test
+  void atWindowEdgeWithStretchRunsAlongTheEdgeLessGapAtBothEnds() {
+    for (Side side : Side.values()) {
+      boolean across = side == Side.TOP || side == Side.BOTTOM;
+      for (float gap : new float[] {0, 10}) {
+        App<Object> app = app(
+            new Object(),
+            s -> {
+              El sheet = col().key("sheet").child(el().size(40, 20));
+              if (across) {
+                sheet.h(40);
+              } else {
+                sheet.w(60);
+              }
+              return el().size(200, 120)
+                  .overlay(sheet.atWindowEdge(side, Style.Align.STRETCH, gap));
+            },
+            200,
+            120);
+        El sheet = find(app, "sheet");
+        float[] actual = {sheet.x(), sheet.y(), sheet.width(), sheet.height()};
+        float[] expected = switch (side) {
+          case RIGHT -> new float[] {200 - 60 - gap, gap, 60, 120 - 2 * gap};
+          case LEFT -> new float[] {gap, gap, 60, 120 - 2 * gap};
+          case TOP -> new float[] {gap, gap, 200 - 2 * gap, 40};
+          case BOTTOM -> new float[] {gap, 120 - 40 - gap, 200 - 2 * gap, 40};
+        };
+        assertRect(expected, actual);
+      }
+    }
+  }
 }
