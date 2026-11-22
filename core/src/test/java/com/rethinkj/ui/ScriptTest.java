@@ -34,6 +34,7 @@ class ScriptTest {
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
   private static final Path FIELD_ROWS = Path.of("src/test/resources/scripts/field-rows.txt");
+  private static final Path FOLDS = Path.of("src/test/resources/scripts/folds.txt");
   private static final Path OVERLAY = Path.of("src/test/resources/scripts/overlay.txt");
   private static final Path SHAPES = Path.of("src/test/resources/scripts/shapes.txt");
 
@@ -155,6 +156,25 @@ class ScriptTest {
     assertFalse(away.contains("focused"), "the focused row does not exist");
     assertTrue(Files.readString(out.resolve("field-rows-back.tree.txt"))
         .contains(" \"ledger\" 60,112 200x24 focused caret 5 anchor 6 composing \"ni\"\n"));
+  }
+
+  @Test
+  void theFoldedFieldSkipsHiddenLinesCopiesOverThemAndUnfoldsOnClick() throws IOException {
+    TextLibraries.assumeLoaded();
+    Examples.main(new String[] {"folds", "--script", FOLDS.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("folds-folded", "folds-unfolded"));
+    assertEquals(
+        "\n  SELECT id, total\n  FROM orders\n  WHERE total > 0\n",
+        Files.readString(out.resolve("folds-folded.clipboard.txt")));
+    String folded = Files.readString(out.resolve("folds-folded.tree.txt"));
+    assertTrue(folded.contains("caret 16 (2:7)"), folded);
+    assertTrue(folded.contains("text #fold-1 \"…\""), folded);
+    assertFalse(folded.contains("#line-2"), "hidden lines have no gutter cell: " + folded);
+    assertTrue(folded.contains("#line-5"), "gutter keeps real line indices: " + folded);
+    String unfolded = Files.readString(out.resolve("folds-unfolded.tree.txt"));
+    assertFalse(unfolded.contains("#fold-1"), unfolded);
+    assertTrue(unfolded.contains("#line-2"), unfolded);
   }
 
   @Test

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 
@@ -72,6 +73,15 @@ public final class Context<T> {
     }
     Map<Context<?>, Object> values = VALUES.get();
     return line -> in(values, () -> gutter.cell(line));
+  }
+
+  /** The function, or null, made to build in the values that hold now. */
+  static <T, R> Function<T, R> captured(Function<T, R> function) {
+    if (function == null || !VALUES.isBound()) {
+      return function;
+    }
+    Map<Context<?>, Object> values = VALUES.get();
+    return value -> in(values, () -> function.apply(value));
   }
 
   /** The field's menu, or null, made to build in the values that hold now. */

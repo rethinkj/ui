@@ -1,7 +1,9 @@
 package com.rethinkj.ui;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -68,12 +70,24 @@ final class Lines {
   private int count;
   private int length;
 
+  private static final int[] NO_LINES = new int[0];
+  private static final El.Fold[] NO_FOLDS = new El.Fold[0];
+
   // Wrapping: the rows each line takes at the width of `layout`, 0 where not measured yet.
   private Object layout; // what the rows depend on, null while the text does not wrap
   private float perRow; // the characters a row holds, estimated from the font
   private int[] rows;
   private long[] tree; // Fenwick tree over the rows each line counts as, from index 1
   private long total;
+
+  // Folding: raw folds last applied for foldsCount lines, merged hidden line intervals
+  // [hiddenFirst[i]..hiddenLast[i]] (sorted, disjoint, non-adjacent, each >= 1), and the outermost
+  // fold whose visible first line (hiddenFirst[i] - 1) carries the mark for that hidden range.
+  private List<El.Fold> rawFolds = List.of();
+  private int foldsCount = -1;
+  private int[] hiddenFirst = NO_LINES;
+  private int[] hiddenLast = NO_LINES;
+  private El.Fold[] visibleFolds = NO_FOLDS;
 
   private float widest; // the widest line measured, in physical pixels, without wrapping
   private int widestLine = -1;
@@ -235,7 +249,18 @@ final class Lines {
       });
       chunkWidths = moved;
     }
+    if (!within && hasFolds()) {
+      foldsCount = count;
+      normalizeFolds();
+    }
     if (rows == null) {
+      if (!within && tree != null) {
+        if (hasFolds()) {
+          build();
+        } else {
+          tree = null;
+        }
+      }
       return;
     }
     if (within) {
@@ -362,11 +387,190 @@ final class Lines {
     return widest;
   }
 
-  // ---- Rows, while wrapping
+  // ---- Folding
+
+  /**
+   * Sets the folded line ranges of this text: for each fold, its first line stays shown and lines
+   * {@code first + 1} through {@code last} are hidden. Unsorted, overlapping, nested and
+   * out-of-range folds are normalized so that a line is hidden if any fold hides it and the
+   * outermost fold owns the visible header line.
+   */
+  void folds(List<El.Fold> folds) {
+    List<El.Fold> next = folds == null ? List.of() : folds;
+    if (foldsCount == count && next.equals(rawFolds)) {
+      return;
+    }
+    rawFolds = next;
+    foldsCount = count;
+    int[] oldFirst = hiddenFirst;
+    int[] oldLast = hiddenLast;
+    normalizeFolds();
+    if (!Arrays.equals(oldFirst, hiddenFirst) || !Arrays.equals(oldLast, hiddenLast)) {
+      if (widestLine >= 0 && isHidden(widestLine)) {
+        widest = 0;
+        widestLine = -1;
+      }
+      if (rows != null || hasFolds()) {
+        build();
+      } else {
+        tree = null;
+      }
+    }
+  }
+
+  private void normalizeFolds() {
+    if (rawFolds.isEmpty() || count <= 1) {
+      hiddenFirst = NO_LINES;
+      hiddenLast = NO_LINES;
+      visibleFolds = NO_FOLDS;
+      return;
+    }
+    List<El.Fold> active = new ArrayList<>();
+    for (El.Fold f : rawFolds) {
+      if (f.first() < count - 1) {
+        active.add(f);
+      }
+    }
+    if (active.isEmpty()) {
+      hiddenFirst = NO_LINES;
+      hiddenLast = NO_LINES;
+      visibleFolds = NO_FOLDS;
+      return;
+    }
+    active.sort((a, b) -> {
+      int c = Integer.compare(a.first(), b.first());
+      return c != 0 ? c : Integer.compare(b.last(), a.last());
+    });
+    int[] firsts = new int[active.size()];
+    int[] lasts = new int[active.size()];
+    El.Fold[] headers = new El.Fold[active.size()];
+    int n = 0;
+    for (El.Fold f : active) {
+      int s = f.first() + 1;
+      int e = Math.min(f.last(), count - 1);
+      if (n > 0 && s <= lasts[n - 1] + 1) {
+        if (e > lasts[n - 1]) {
+          lasts[n - 1] = e;
+        }
+      } else {
+        firsts[n] = s;
+        lasts[n] = e;
+        headers[n] = f;
+        n++;
+      }
+    }
+    hiddenFirst = Arrays.copyOf(firsts, n);
+    hiddenLast = Arrays.copyOf(lasts, n);
+    visibleFolds = Arrays.copyOf(headers, n);
+  }
+
+  /** The lines not hidden in a fold. */
+  int shownCount() {
+    int shown = count;
+    for (int i = 0; i < hiddenFirst.length; i++) {
+      shown -= hiddenLast[i] - hiddenFirst[i] + 1;
+    }
+    return shown;
+  }
+
+  boolean hasFolds() {
+    return hiddenFirst.length > 0;
+  }
+
+  /** Whether line {@code line} is hidden inside a fold. */
+  boolean isHidden(int line) {
+    return hiddenIndex(line) >= 0;
+  }
+
+  private int hiddenIndex(int line) {
+    if (hiddenFirst.length == 0 || line <= 0) {
+      return -1;
+    }
+    int found = Arrays.binarySearch(hiddenFirst, line);
+    int i = found >= 0 ? found : -found - 2;
+    return i >= 0 && line <= hiddenLast[i] ? i : -1;
+  }
+
+  /** The outermost fold whose shown first line is {@code line}, or null. */
+  El.Fold foldAt(int line) {
+    if (hiddenFirst.length == 0) {
+      return null;
+    }
+    int found = Arrays.binarySearch(hiddenFirst, line + 1);
+    return found >= 0 ? visibleFolds[found] : null;
+  }
+
+  /** The first visible line after {@code line}, or -1 if none exists. */
+  int nextVisible(int line) {
+    int next = line + 1;
+    if (next >= count) {
+      return -1;
+    }
+    int i = hiddenIndex(next);
+    if (i >= 0) {
+      next = hiddenLast[i] + 1;
+    }
+    return next < count ? next : -1;
+  }
+
+  /** The last visible line before {@code line}, or -1 if none exists. */
+  int prevVisible(int line) {
+    int prev = line - 1;
+    if (prev < 0) {
+      return -1;
+    }
+    int i = hiddenIndex(prev);
+    return i >= 0 ? hiddenFirst[i] - 1 : prev;
+  }
+
+  /** Line {@code line} if visible, else the visible line starting the fold that hides it. */
+  int visibleAtOrBefore(int line) {
+    line = Math.clamp(line, 0, count - 1);
+    int i = hiddenIndex(line);
+    return i >= 0 ? hiddenFirst[i] - 1 : line;
+  }
+
+  /** All raw folds that hide at least one line in {@code [firstLine, lastLine]}. */
+  List<El.Fold> foldsHiding(int firstLine, int lastLine) {
+    if (hiddenFirst.length == 0) {
+      return List.of();
+    }
+    List<El.Fold> out = new ArrayList<>();
+    for (El.Fold f : rawFolds) {
+      if (f.first() < count - 1) {
+        int s = f.first() + 1;
+        int e = Math.min(f.last(), count - 1);
+        if (s <= lastLine && firstLine <= e && !out.contains(f)) {
+          out.add(f);
+        }
+      }
+    }
+    return out;
+  }
+
+  /** All raw folds that hide {@code lineA} or {@code lineB}. */
+  List<El.Fold> foldsHidingLine(int lineA, int lineB) {
+    if (hiddenFirst.length == 0 || !isHidden(lineA) && !isHidden(lineB)) {
+      return List.of();
+    }
+    List<El.Fold> out = new ArrayList<>();
+    for (El.Fold f : rawFolds) {
+      if (f.first() < count - 1) {
+        int s = f.first() + 1;
+        int e = Math.min(f.last(), count - 1);
+        if ((lineA >= s && lineA <= e || lineB >= s && lineB <= e) && !out.contains(f)) {
+          out.add(f);
+        }
+      }
+    }
+    return out;
+  }
+
+  // ---- Rows, while wrapping or folded
 
   /**
    * Sets what rows are counted for: the width and what else breaks lines, or null for a text that
-   * does not wrap, whose lines are one row each. Another layout forgets the rows measured.
+   * does not wrap, whose visible lines are one row each. Another layout forgets the rows measured.
    *
    * @param perRow the characters a row holds, estimated
    */
@@ -377,9 +581,10 @@ final class Lines {
     this.layout = layout;
     this.perRow = perRow;
     rows = layout == null ? null : new int[Math.max(count, 1)];
-    tree = null;
-    if (rows != null) {
+    if (rows != null || hasFolds()) {
       build();
+    } else {
+      tree = null;
     }
   }
 
@@ -389,15 +594,21 @@ final class Lines {
 
   /** Layout broke a line into this many rows. */
   void rows(int line, int measured) {
-    if (rows != null && rows[line] != measured) {
+    if (rows != null && !isHidden(line) && rows[line] != measured) {
       int before = effective(line);
       rows[line] = measured;
       add(line, measured - before);
     }
   }
 
-  /** The rows a line counts as: as measured, or estimated. */
+  /** The rows a line counts as: 0 when hidden, 1 without wrapping, else measured or estimated. */
   private int effective(int line) {
+    if (isHidden(line)) {
+      return 0;
+    }
+    if (rows == null) {
+      return 1;
+    }
     if (rows[line] > 0) {
       return rows[line];
     }
@@ -405,9 +616,9 @@ final class Lines {
     return (int) Math.max(1, Math.min(Math.ceil(characters / perRow), Integer.MAX_VALUE));
   }
 
-  /** The rows before line {@code line}, measured or estimated; its own index without wrapping. */
+  /** The rows before line {@code line}, measured or estimated; its own index without wrapping or folds. */
   long rowsBefore(int line) {
-    if (rows == null) {
+    if (tree == null) {
       return line;
     }
     long sum = 0;
@@ -419,18 +630,23 @@ final class Lines {
 
   /** All rows. */
   long totalRows() {
-    return rows == null ? count : total;
+    return tree == null ? count : total;
   }
 
-  /** The line that row {@code row} of the whole text belongs to, clamped to the lines. */
+  /** The visible line that row {@code row} of the whole text belongs to, clamped to the visible lines. */
   int lineOfRow(long row) {
-    if (rows == null) {
+    if (tree == null) {
       return (int) Math.clamp(row, 0, count - 1);
     }
     if (row <= 0) {
       return 0;
     }
+    if (row >= total) {
+      return visibleAtOrBefore(count - 1);
+    }
     // The last line whose rows before it are at most `row`: down the tree from its top.
+    // Because row < total and every hidden line adds 0, the next line's prefix exceeds row, so
+    // this line itself has at least one row and is visible.
     int line = 0;
     long left = row;
     for (int step = Integer.highestOneBit(count); step > 0; step >>= 1) {
@@ -440,7 +656,7 @@ final class Lines {
         left -= tree[next];
       }
     }
-    return Math.min(line, count - 1);
+    return line;
   }
 
   private void build() {

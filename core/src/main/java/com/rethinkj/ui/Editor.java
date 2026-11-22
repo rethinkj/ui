@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
 /**
@@ -118,6 +119,10 @@ final class Editor {
   private boolean reveal;
   // App.select asked: a multi-line field scrolls the selection into view also without the focus.
   private boolean asked;
+  // A selection placed by the app, find, undo or redo should ask to unfold if an end is hidden.
+  private boolean unfoldPending;
+  // Whether compose() asked the app to unfold a fold since App last checked.
+  private boolean unfolded;
   // The caret and anchor the element's onSelect handler was told last; -1 before the first.
   private int toldCaret = -1;
   private int toldAnchor = -1;
@@ -170,6 +175,7 @@ final class Editor {
     }
     String value = t.value();
     answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
+    lines().folds(el.folds());
     t.edited(text, lines());
     showComposition();
   }
@@ -242,6 +248,8 @@ final class Editor {
    * first.
    */
   private void answer(String value) {
+    // An answered edit, or the app's own change, may leave the caret on a line a fold hides.
+    unfoldPending |= proposed != null || !value.equals(text);
     if (proposed != null) {
       toldCaret = -1; // the handler hears the selection after every answer, also one it had
       // The answer is usually the proposal itself, which the first comparison finds at once.
@@ -367,6 +375,63 @@ final class Editor {
     return composition;
   }
 
+  /** Whether a pending selection or undo/redo still needs to check for hidden folds to unfold. */
+  boolean hasPendingUnfold() {
+    return unfoldPending && proposed == null;
+  }
+
+  /**
+   * If a selection, find, undo or redo placed the caret or anchor on a hidden line, asks the
+   * field's {@link El#folds unfold} handler to open those folds.
+   *
+   * @return whether any fold was asked to unfold
+   */
+  boolean unfoldPending() {
+    if (!hasPendingUnfold()) {
+      return false;
+    }
+    unfoldPending = false;
+    if (!unfoldForSelection()) {
+      return false;
+    }
+    reveal = true;
+    asked = true;
+    return true;
+  }
+
+  /** Whether compose() asked to unfold a fold since App last asked. */
+  boolean takeUnfolded() {
+    boolean was = unfolded;
+    unfolded = false;
+    return was;
+  }
+
+  private boolean unfoldLines(int firstLine, int lastLine) {
+    Consumer<El.Fold> handler = el.onUnfold();
+    if (handler == null || lines == null || !lines.hasFolds()) {
+      return false;
+    }
+    List<El.Fold> hit = lines.foldsHiding(firstLine, lastLine);
+    for (El.Fold fold : hit) {
+      handler.accept(fold);
+    }
+    return !hit.isEmpty();
+  }
+
+  private boolean unfoldForSelection() {
+    Consumer<El.Fold> handler = el.onUnfold();
+    if (handler == null || lines == null || !lines.hasFolds()) {
+      return false;
+    }
+    int caretLine = lines.line(Math.clamp(caret, 0, text.length()));
+    int anchorLine = lines.line(Math.clamp(anchor, 0, text.length()));
+    List<El.Fold> hit = lines.foldsHidingLine(caretLine, anchorLine);
+    for (El.Fold fold : hit) {
+      handler.accept(fold);
+    }
+    return !hit.isEmpty();
+  }
+
   /**
    * Tells the element's {@link El#onSelect} handler the caret and the anchor if they changed since
    * it was last told, or the app answered an edit since. Not while an edit waits for the app's
@@ -407,6 +472,7 @@ final class Editor {
     newCaret = fitted(newCaret, from, inserted, fitted, length);
     newAnchor = fitted(newAnchor, from, inserted, fitted, length);
     run = null;
+    unfoldPending = true;
     edit(from, to - from, fitted, newCaret, newAnchor, null, false);
     asked |= ask;
   }
@@ -436,6 +502,7 @@ final class Editor {
     changed = true;
     reveal = true;
     asked = true;
+    unfoldPending = true;
     if (caret != newCaret || anchor != newAnchor) {
       // Snapped: the handler hears where it is, also when that is where it was, as the app's
       // own copy may hold what it asked for.
@@ -568,7 +635,9 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordStart() : caret != anchor && !shift ? start() : previous(caret);
+        int to = word
+            ? visibleWordStart()
+            : caret != anchor && !shift ? visibleBackward(start()) : visiblePrevious(caret);
         moveTo(to, shift);
         return true;
       }
@@ -576,7 +645,9 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordEnd() : caret != anchor && !shift ? end() : next(caret);
+        int to = word
+            ? visibleWordEnd()
+            : caret != anchor && !shift ? visibleForward(end()) : visibleNext(caret);
         moveTo(to, shift);
         return true;
       }
@@ -591,7 +662,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        moveTo(word ? text.length() : lineEnd(caret), shift);
+        moveTo(word ? visibleTextEnd() : lineEnd(caret), shift);
         return true;
       }
       case "Backspace" -> {
@@ -897,6 +968,9 @@ final class Editor {
     if (!editable() || composing.isEmpty() && composition.isEmpty()) {
       return false;
     }
+    if (!composing.isEmpty() && lines != null && lines.hasFolds()) {
+      unfolded |= unfoldLines(lines.line(start()), lines.line(end()));
+    }
     composition = fitLines(composing);
     compositionCursor = cursor < 0
         ? composition.length()
@@ -953,6 +1027,7 @@ final class Editor {
               step.anchorBefore,
               caret,
               anchor));
+      unfoldPending = true;
       propose(step.at, step.inserted.length(), step.removed, step.caretBefore, step.anchorBefore);
       run = null;
     }
@@ -972,6 +1047,7 @@ final class Editor {
               anchor,
               step.caretAfter,
               step.anchorAfter));
+      unfoldPending = true;
       propose(step.at, step.removed.length(), step.inserted, step.caretAfter, step.anchorAfter);
       run = null;
     }
@@ -1077,6 +1153,9 @@ final class Editor {
 
   /** Hands a new string to the app, which answers with the next tree. */
   private void propose(int at, int removed, String inserted, int newCaret, int newAnchor) {
+    if (lines != null && lines.hasFolds()) {
+      unfoldLines(lines.line(at), lines.line(at + removed));
+    }
     if (before == null) {
       before = new State(text, caret, anchor);
     }
@@ -1211,11 +1290,12 @@ final class Editor {
     return moved;
   }
 
-  /** The line of a multi-line field at {@code index}, with its line feed. */
+  /** The line of a multi-line field at {@code index}, with its line feed and any folded lines. */
   private int[] lineAt(int index) {
     Lines ls = lines();
     int line = ls.line(Math.clamp(index, 0, text.length()));
-    return new int[] {ls.start(line), line + 1 < ls.count() ? ls.start(line + 1) : text.length()};
+    int next = ls.nextVisible(line);
+    return new int[] {ls.start(line), next >= 0 ? ls.start(next) : text.length()};
   }
 
   /** A position of the shown string as a position of the string. */
@@ -1379,6 +1459,7 @@ final class Editor {
     t.showCaret(caretOn);
     el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
+    el.placeFolds();
   }
 
   /**
@@ -1469,23 +1550,83 @@ final class Editor {
 
   /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */
   private int wordStart() {
+    return wordStart(caret);
+  }
+
+  private int wordStart(int at) {
     return masked()
         ? 0
         : snap(
             el.isCodeWords()
-                ? codeWordLeft(text, caret, el.text().wordCharacters())
-                : wordLeft(text, caret));
+                ? codeWordLeft(text, at, el.text().wordCharacters())
+                : wordLeft(text, at));
   }
 
   /** Where Ctrl+Right goes from the caret; to the end in a masked field. */
   private int wordEnd() {
+    return wordEnd(caret);
+  }
+
+  private int wordEnd(int at) {
     if (masked()) {
       return text.length();
     }
     return snapUp(
         el.isCodeWords()
-            ? codeWordRight(text, caret, WORD_ENDS, el.text().wordCharacters())
-            : wordRight(text, caret, WORD_ENDS));
+            ? codeWordRight(text, at, WORD_ENDS, el.text().wordCharacters())
+            : wordRight(text, at, WORD_ENDS));
+  }
+
+  private int visiblePrevious(int index) {
+    int to = previous(index);
+    return lines != null && lines.isHidden(lines.line(to))
+        ? lines.end(lines.visibleAtOrBefore(lines.line(to)))
+        : to;
+  }
+
+  private int visibleNext(int index) {
+    int to = next(index);
+    if (lines != null && lines.isHidden(lines.line(to))) {
+      int after = lines.nextVisible(lines.line(to));
+      return after >= 0 ? lines.start(after) : lines.end(lines.visibleAtOrBefore(lines.line(to)));
+    }
+    return to;
+  }
+
+  private int visibleBackward(int index) {
+    return lines != null && lines.isHidden(lines.line(index))
+        ? lines.end(lines.visibleAtOrBefore(lines.line(index)))
+        : index;
+  }
+
+  private int visibleForward(int index) {
+    if (lines != null && lines.isHidden(lines.line(index))) {
+      int after = lines.nextVisible(lines.line(index));
+      return after >= 0
+          ? lines.start(after)
+          : lines.end(lines.visibleAtOrBefore(lines.line(index)));
+    }
+    return index;
+  }
+
+  private int visibleWordStart() {
+    int at = visibleBackward(caret);
+    int to = wordStart(at);
+    if (lines != null && lines.isHidden(lines.line(to))) {
+      int headerEnd = lines.end(lines.visibleAtOrBefore(lines.line(to)));
+      return headerEnd < at ? headerEnd : wordStart(headerEnd);
+    }
+    return to;
+  }
+
+  private int visibleWordEnd() {
+    int at = visibleForward(caret);
+    int to = wordEnd(at);
+    return visibleForward(to);
+  }
+
+  private int visibleTextEnd() {
+    return lines != null ? lines.end(lines.visibleAtOrBefore(lines.count() - 1)) : text.length();
   }
 
   /** The word a double press at {@code hit} selects; all of a masked field. */

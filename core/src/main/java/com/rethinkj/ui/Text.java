@@ -218,6 +218,7 @@ public final class Text implements Measure {
   private boolean viewStale = true;
   private boolean chunksMoved; // whether the last layOut measured a chunk of a long line
   private boolean highlightPending;
+  private List<El.Fold> folds = List.of();
   private List<Row> rows = List.of();
   private int firstInView;
   private int lastInView;
@@ -234,6 +235,12 @@ public final class Text implements Measure {
    * pixels from the top of the content box, after the scroll.
    */
   record Start(int line, float top) {}
+
+  /**
+   * Where a folded line's last row ends, for its placeholder mark: {@code endX} and {@code top} in
+   * physical pixels from the top left of the content box, after the scroll.
+   */
+  record FoldEnd(El.Fold fold, float endX, float top) {}
 
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
@@ -1757,8 +1764,18 @@ public final class Text implements Measure {
     advance = sample.width() / SAMPLE.length();
   }
 
+  /** For {@link El}: the folded line ranges of a multi-line field. */
+  void folds(List<El.Fold> folds) {
+    List<El.Fold> next = folds == null ? List.of() : folds;
+    if (!next.equals(this.folds)) {
+      this.folds = next;
+      viewStale = true;
+    }
+  }
+
   private Lines shownLines() {
     prepare();
+    shownLines.folds(placeholderShown ? List.of() : folds);
     wrapping();
     return shownLines;
   }
@@ -1819,11 +1836,11 @@ public final class Text implements Measure {
   private int fittedRows(float width) {
     Lines lines = shownLines();
     if (!wraps || width == MAX_CONTENT || Float.isInfinite(width) || Float.isNaN(width)) {
-      return lines.count();
+      return lines.shownCount(); // a row per shown line, whatever width wrapping measured
     }
     float limit = width == MIN_CONTENT ? 0 : width * scale + SLACK;
     int rows = 0;
-    for (int line = 0; line < lines.count(); line++) {
+    for (int line = 0; line >= 0 && line < lines.count(); line = lines.nextVisible(line)) {
       para(line); // shaped, and its rows counted at the placed width once that is known
       Para para = shapedLines.get(line);
       if (para != null) {
@@ -1912,7 +1929,7 @@ public final class Text implements Measure {
     double viewLeft = Math.max(0, viewX - marginX);
     double viewRight = viewX + placedWidth + marginX;
     boolean pending = false;
-    for (; line < lines.count(); line++, skip = 0) {
+    for (; line >= 0 && line < lines.count(); line = lines.nextVisible(line), skip = 0) {
       Para para = para(line);
       double lineTop = lines.rowsBefore(line) * lh;
       if (lineTop >= to) {
@@ -1975,7 +1992,7 @@ public final class Text implements Measure {
     Lines lines = shownLines();
     for (int at : positions) {
       int line = lines.line(Math.clamp(at, 0, lines.length()));
-      if (!wraps && lines.end(line) - lines.start(line) > CHUNK_SIZE) {
+      if (!lines.isHidden(line) && !wraps && lines.end(line) - lines.start(line) > CHUNK_SIZE) {
         para(line).pen(at - lines.start(line));
       }
     }
@@ -2224,6 +2241,39 @@ public final class Text implements Measure {
     return starts;
   }
 
+  /**
+   * The visible folds whose first line's last row is in view, with where that row ends and its top,
+   * top to bottom.
+   */
+  List<FoldEnd> foldEnds() {
+    lines();
+    Lines lines = shownLines();
+    if (!lines.hasFolds() || rows.isEmpty()) {
+      return List.of();
+    }
+    List<FoldEnd> ends = new ArrayList<>();
+    for (Row row : rows) {
+      if (row.row + 1 != row.para.rowCount()) {
+        continue;
+      }
+      El.Fold fold = lines.foldAt(row.line);
+      if (fold == null) {
+        continue;
+      }
+      double top = row.top - viewY;
+      if (top + lineHeight <= 0 || top >= placedHeight) {
+        continue;
+      }
+      Para para = row.para;
+      float endX = (para.chunks != null
+              ? para.totalWidth()
+              : para.pen(para.text.length()) - para.pen(para.rowStart(row.row)))
+          - viewX;
+      ends.add(new FoldEnd(fold, endX, (float) top));
+    }
+    return ends;
+  }
+
   /** Whether characters the fonts lack come from the system's fonts. */
   boolean systemFonts() {
     return systemFonts;
@@ -2257,8 +2307,13 @@ public final class Text implements Measure {
   /** The row a position of the shown string is on, as {line, row}; at a wrap, the later one. */
   private int[] rowOf(int index) {
     Lines lines = shownLines();
-    int line = lines.line(Math.clamp(index, 0, lines.length()));
-    return new int[] {line, para(line).rowAt(index - lines.start(line))};
+    int clamped = Math.clamp(index, 0, lines.length());
+    int line = lines.line(clamped);
+    if (lines.isHidden(line)) {
+      int visible = lines.visibleAtOrBefore(line);
+      return new int[] {visible, para(visible).rowCount() - 1};
+    }
+    return new int[] {line, para(line).rowAt(clamped - lines.start(line))};
   }
 
   /** The positions a caret can take on a row: a wrapped row ends before its last grapheme. */
@@ -2271,9 +2326,18 @@ public final class Text implements Measure {
   }
 
   private float caretX(int index) {
-    int[] at = rowOf(index);
+    Lines lines = shownLines();
+    int clamped = Math.clamp(index, 0, lines.length());
+    int line = lines.line(clamped);
+    if (lines.isHidden(line)) {
+      int visible = lines.visibleAtOrBefore(line);
+      Para para = para(visible);
+      int last = para.rowCount() - 1;
+      return para.pen(para.text.length()) - para.pen(para.rowStart(last));
+    }
+    int[] at = rowOf(clamped);
     Para para = para(at[0]);
-    int offset = index - shownLines().start(at[0]);
+    int offset = clamped - lines.start(at[0]);
     return para.pen(offset) - para.pen(para.rowStart(at[1]));
   }
 
@@ -2315,19 +2379,25 @@ public final class Text implements Measure {
       if (step > 0) {
         if (row + 1 < para(line).rowCount()) {
           row++;
-        } else if (line + 1 < lines.count()) {
-          line++;
-          row = 0;
         } else {
-          return lines.length();
+          int next = lines.nextVisible(line);
+          if (next >= 0) {
+            line = next;
+            row = 0;
+          } else {
+            return lines.end(line);
+          }
         }
       } else if (row > 0) {
         row--;
-      } else if (line > 0) {
-        line--;
-        row = para(line).rowCount() - 1;
       } else {
-        return 0;
+        int prev = lines.prevVisible(line);
+        if (prev >= 0) {
+          line = prev;
+          row = para(line).rowCount() - 1;
+        } else {
+          return 0;
+        }
       }
     }
     return nearestOnRow(line, row, x);

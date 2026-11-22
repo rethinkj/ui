@@ -1,0 +1,19 @@
+# A multi-line field with a folded range: caret across the fold, copy over it, unfold by click.
+size 260 156 scale 2
+frame
+
+focus #code
+frame
+key ArrowDown                # line 2 ("FROM ("): the fold's shown header line
+key End                      # end of line 2
+key ArrowRight               # skips hidden lines 3-5 to start of line 6 (") sub")
+key ArrowLeft                # back to end of line 2
+key ArrowRight shift         # selects across the hidden lines to start of line 6
+key C control                # copies including the hidden lines
+key ArrowLeft                # collapses back to end of line 2
+frame
+snap folds-folded
+
+press #fold-1                # click on the fold mark unfolds lines 3-5
+frame
+snap folds-unfolded
