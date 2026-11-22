@@ -1,0 +1,1 @@
+- Writing a `Prop` of an `Editing` now clears errors set via `Prop#error(String)` on the field, its ancestors, and its descendants, while leaving errors on sibling fields intact; previously only the written field's own error was cleared.

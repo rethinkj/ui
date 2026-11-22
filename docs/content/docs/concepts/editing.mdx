@@ -53,7 +53,7 @@ Bind each input to its `Prop` in the view, and check `editing.valid()` / `editin
 | `reset()` | Reverts to `original()` and clears all drafts and errors |
 | `showErrors()` | Reveals errors on all fields, including untouched required fields (call when Save is clicked while invalid) |
 | `saved()` | Commits `value()` as the new `original()` so `changed()` resets to `false` |
-| `prop.error(message)` | Attaches a custom error (such as a server validation error) until the user edits that field |
+| `prop.error(message)` | Attaches a custom error (such as a server validation error) until that field, an ancestor, or a descendant is edited |
 
 See [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html) Javadoc for more methods.
 
