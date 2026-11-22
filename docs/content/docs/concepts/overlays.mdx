@@ -37,7 +37,8 @@ Overlays are automatically constrained to fit inside the window (respecting marg
 | `keepFocus()` | Opens without stealing keyboard focus (for toasts) |
 | `inert()` | Display-only overlay (for tooltips): ignores clicks and Tab navigation |
 | `dismissGroup(group)` | Prevents clicks on elements in the same group from dismissing this overlay (used by menu bars) |
-| `onShownFor(seconds, handler)` | Runs once after being visible for the specified duration (for auto-dismissing toasts) |
+| `onShownFor(seconds, handler)` | Runs once after being visible for the specified duration (works on overlays and elements inside them, such as toasts) |
+| `pauseShownOnHover()` | Pauses an element's `onShownFor` timer while the pointer is over it or its children |
 
 **Focus and keyboard:** Opening an overlay focuses its first focusable element, and closing it restores previous focus. Unhandled keys bubble from the overlay to its anchor (unless `modal()` is set, which stops bubbling at the overlay root). Pressing **Escape** does not close an overlay automatically — handle `Escape` in `onKey` to update your state.
 

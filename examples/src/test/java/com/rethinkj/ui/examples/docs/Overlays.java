@@ -28,6 +28,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toast;
+import com.rethinkj.ui.kit.Toasts;
 import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,8 @@ final class Overlays {
   String name = "orders";
   String newName = "";
   String dropped;
+  final Toasts toasts = new Toasts();
+  Toasts.Handle export;
   String filter = "";
   String said = "";
   String pattern = "(order";
@@ -189,6 +192,20 @@ final class Overlays {
   void dismiss() {
     dropped = null;
   }
+
+  // docs:start toasts-handlers
+  void saved() {
+    toasts.show(Callout.Kind.SUCCESS, "Saved orders.sql");
+  }
+
+  void export() {
+    export = toasts.progress("Exporting customers.csv…", 0.65);
+  }
+
+  void failed() {
+    toasts.show(Callout.Kind.DANGER, "Export failed", "Retry", this::export);
+  }
+  // docs:end toasts-handlers
 
   void format() {
     said = "format";
@@ -427,6 +444,26 @@ final class Overlays {
                 ? null
                 : Toast.toast("Dropped " + state.dropped, "Undo", state::restore, state::dismiss));
     // docs:end toast
+    return root;
+  }
+
+  static El toasts(Overlays state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start toasts
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .align(Style.Align.START)
+        .child(row()
+            .gap(theme.space().s())
+            .children(
+                Button.button(SECONDARY, "Save", state::saved),
+                Button.button(SECONDARY, "Export", state::export),
+                Button.button(SECONDARY, "Fail", state::failed)))
+        .overlay(state.toasts.view());
+    // docs:end toasts
     return root;
   }
 

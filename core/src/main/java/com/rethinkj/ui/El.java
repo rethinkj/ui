@@ -340,6 +340,7 @@ public final class El {
     double hoverDelay;
     Runnable onShownFor; // see El#onShownFor
     double shownDelay;
+    boolean shownPauseOnHover; // see El#pauseShownOnHover
 
     /**
      * The handlers {@link #sameInput} compares, copied from {@code handlers}, which may be null for
@@ -2854,20 +2855,33 @@ public final class El {
   }
 
   /**
-   * Runs {@code handler} once this overlay has been open for {@code seconds} of the app's clock,
-   * once per opening: a notification closes itself after a while. Like {@link #onHoverFor}, it
-   * runs in {@link App#frame}, which then builds the view again; {@link App#nextChange} says when
-   * it is due, so an idle window waits for it without drawing frames. The time starts when the
-   * overlay is first there, also where a delayed look attaches it ({@link #whenHoveredFor},
-   * {@link #whenFocusVisibleFor}) and in a row of a virtual list once the list builds the row, and
-   * ends when it closes, is leaving, is made invisible by the view with an element above it or
-   * its row leaves the rows that exist.
+   * Runs {@code handler} once this element has been shown for {@code seconds} of the app's clock,
+   * once per appearance: a notification, or a toast inside a stack overlay, closes itself after a
+   * while. Like {@link #onHoverFor}, it runs in {@link App#frame}, which then builds the view
+   * again; {@link App#nextChange} says when it is due, so an idle window waits for it without
+   * drawing frames. The time starts when the element is first shown, also where a delayed look
+   * attaches an overlay ({@link #whenHoveredFor}, {@link #whenFocusVisibleFor}) and in a row of a
+   * virtual list once the list builds the row, and ends when it leaves, is exiting, is made
+   * invisible by the view with an element above it, loses its handler or its row leaves the rows
+   * that exist. With {@link #pauseShownOnHover}, the time stops while the pointer is over the
+   * element.
    *
    * @param handler runs once the time has come, or null for none
    */
   public El onShownFor(double seconds, Runnable handler) {
     handlers().shownDelay = delay(seconds);
     handlers().onShownFor = handler;
+    return this;
+  }
+
+  /**
+   * Pauses this element's {@link #onShownFor} timer while the pointer is over it or over an
+   * element inside it, so that a notification does not close while the user reads it or aims at
+   * its action. Once the pointer leaves, the remaining time goes on, and {@link App#nextChange}
+   * reflects both states without drawing frames meanwhile.
+   */
+  public El pauseShownOnHover() {
+    handlers().shownPauseOnHover = true;
     return this;
   }
 
@@ -2878,6 +2892,10 @@ public final class El {
 
   double shownDelay() {
     return handlers == null ? 0 : handlers.shownDelay;
+  }
+
+  boolean pausesShownOnHover() {
+    return handlers != null && handlers.shownPauseOnHover;
   }
 
   /**

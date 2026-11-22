@@ -1,0 +1,36 @@
+el 0,0 460x240
+  el 12,12 176x24
+    el role=button label="Save" 12,12 56x24
+      text "Save" 25,16 30x16
+    el role=button label="Export" 72,12 66x24
+      text "Export" 85,16 40x16
+    el role=button label="Fail" 142,12 46x24
+      text "Fail" 155,16 20x16
+overlay edge bottom center gap 16 on 0,0 460x240
+  el #toasts 106,104 248x120
+    el #toast-1 role=status label="Saved orders.sql" 106,104 248x30
+      el 119,111 200x16
+        text label="checkmark_circle" "\u{F297}" 119,111 16x16
+        text "Saved orders.sql" 143,111 176x16
+      el #buttons 327,107 24x24
+        el #close-1 role=button label="Close" 327,107 24x24
+          text label="dismiss" "\u{F368}" 331,111 16x16
+    el #toast-2 role=status label="Exporting customers.csv…" 106,142 248x44
+      el 119,145 200x32
+        el 119,145 200x24
+          text "Exporting customers.csv…" 119,149 163x16
+          text "65%" 290,149 29x16
+        el #progress role=progressbar 119,173 200x4 value="65%"
+          el #fill 119,173 130x4
+      el #buttons 327,145 24x24
+        el #close-2 role=button label="Close" 327,145 24x24
+          text label="dismiss" "\u{F368}" 331,149 16x16
+    el #toast-3 role=status label="Export failed" 106,194 248x30
+      el 119,201 140x16
+        text label="error_circle" "\u{F3F0}" 119,201 16x16
+        text "Export failed" 143,201 116x16
+      el #buttons 267,197 84x24
+        el #action role=button label="Retry" 267,197 58x24
+          text "Retry" 280,201 32x16
+        el #close-3 role=button label="Close" 327,197 24x24
+          text label="dismiss" "\u{F368}" 331,201 16x16

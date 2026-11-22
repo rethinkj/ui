@@ -33,7 +33,7 @@ class DocumentsTest {
     assertTrue(
         Snaps.line("documents", "documents-opened", "#tab-5").contains("\"orders.sql\""),
         "a file the dialog chose, read into a new tab");
-    assertTrue(Snaps.line("documents", "documents-opened", "#toast")
+    assertTrue(Snaps.line("documents", "documents-opened", "role=status")
         .contains("label=\"Cannot open missing.md: it is not there\""));
     assertEquals(
         Files.readString(Path.of("src/test/resources/documents/orders.sql")),
@@ -74,8 +74,11 @@ class DocumentsTest {
         frame
         snap text
         """.formatted(big.toString().replace("\\", "\\\\")), s.app, folder.resolve("out"));
-    assertEquals("Cannot open big.txt: it is larger than 1024 KB", lineOf(folder, "big"));
-    assertEquals("No file dialog: No portal", lineOf(folder, "failed"));
+    assertEquals(
+        List.of("Cannot open big.txt: it is larger than 1024 KB"), toastsOf(folder, "big"));
+    assertEquals(
+        List.of("Cannot open big.txt: it is larger than 1024 KB", "No file dialog: No portal"),
+        toastsOf(folder, "failed"));
     assertEquals("Dropped text", s.groups.main().activeTab().title);
     assertEquals("dropped text", s.groups.main().activeTab().text);
   }
@@ -206,11 +209,10 @@ class DocumentsTest {
     assertEquals("Text", asked.get(1).filters().getFirst().name());
   }
 
-  private static String lineOf(Path folder, String snap) throws IOException {
-    String line = Files.readAllLines(folder.resolve("out").resolve(snap + ".tree.txt")).stream()
-        .filter(l -> l.contains("#toast"))
-        .findFirst()
-        .orElseThrow();
-    return line.substring(line.indexOf("label=\"") + 7, line.indexOf("\" "));
+  private static List<String> toastsOf(Path folder, String snap) throws IOException {
+    return Files.readAllLines(folder.resolve("out").resolve(snap + ".tree.txt")).stream()
+        .filter(l -> l.contains("role=status label=\""))
+        .map(line -> line.substring(line.indexOf("label=\"") + 7, line.indexOf("\" ")))
+        .toList();
   }
 }

@@ -1,11 +1,11 @@
 ---
 title: Toast
-description: Temporary bottom-edge notification banner with an optional action button like Undo.
+description: Temporary bottom-edge notifications, single or stacked, with kinds, actions, pause on hover, and progress.
 ---
 
-`Toast.toast` displays a brief notification banner at the bottom center of the window that dismisses itself automatically without stealing keyboard focus. Ideal for confirmations with an optional **Undo** button. For messages requiring a decision, use [Dialog](/docs/components/dialog).
+`Toast.toast` displays a single neutral notification banner at the bottom center of the window that dismisses itself automatically without stealing keyboard focus. For apps that report several events or background work at once, `Toasts` manages a stack of notifications with `Callout.Kind` icons and colors, a close button, pause on hover, a queue, and progress toasts. For messages requiring a decision, use [Dialog](/docs/components/dialog).
 
-Javadoc: [`Toast`](/api/com/rethinkj/ui/kit/Toast.html).
+Javadoc: [`Toast`](/api/com/rethinkj/ui/kit/Toast.html), [`Toasts`](/api/com/rethinkj/ui/kit/Toasts.html).
 
 <Shot src="kit/toast-{theme}-2x-shown" alt="A toast saying a table was dropped, with an Undo button" />
 
@@ -13,7 +13,7 @@ Without an action, as in the [real app guide](/docs/guides/real-app):
 
 <Shot src="examples/docs/customers/saved-{theme}" alt="A toast without an action at the bottom of the customers view, saying Saved Babbage Instruments" />
 
-## Example
+## Single toast
 
 ```java snippet="toast"
 ```
@@ -26,6 +26,31 @@ Attach the toast as an overlay on your root element while your state holds a mes
 | `action`, `onAction` | Optional action button text and handler (`null` for none) |
 | `onClose` | Called when the toast auto-dismisses (default 5 seconds), after its action runs, or on Escape while focused |
 | `above` | Optional bottom offset (for example, `StatusBar.height()` or `Card.footerHeight()`) |
+
+## Toast stack
+
+Keep a `Toasts` instance in your app state, add notifications from any handler on the app's thread (including `App.background` callbacks), and attach `toasts.view()` (or `toasts.view(above)`) as an overlay on the root element. Up to three toasts show at once with the newest nearest the bottom edge; additional toasts wait in a queue and appear as visible ones close.
+
+<Shot src="examples/docs/toasts/shown-{theme}" alt="Three stacked toasts at the bottom center: a success message, a progress toast at 65%, and an error with a Retry button" />
+
+```java snippet="toasts"
+```
+
+```java snippet="toasts-handlers"
+```
+
+| Method | Description |
+| --- | --- |
+| `show(message)` | Shows a neutral toast without an icon |
+| `show(kind, message)` | Shows a toast styled with `Callout.Kind` (`INFO`, `WARNING`, `DANGER`, `SUCCESS`, or `null` for neutral) |
+| `show(kind, message, action, onAction)` | Adds a ghost action button before the close button |
+| `progress(message)` / `progress(message, fraction)` | Shows a toast with a `Progress` bar that stays until finished or closed, returning a `Toasts.Handle` |
+| `Handle.progress(fraction)` / `Handle.message(text)` | Updates the fraction (`0..1`, or `Double.NaN` for indeterminate) and message while running |
+| `Handle.finish(kind, message)` | Turns a running progress toast into a result toast that then auto-dismisses normally |
+| `Handle.close()` | Removes the toast immediately, whether visible or queued |
+| `view()` / `view(above)` | Returns the bottom-center overlay, or `null` when nothing is visible |
+
+Each toast in the stack has a close button, closes on **Escape** while focused inside it, keeps keyboard focus where it was, and pauses its auto-dismiss timer while the pointer hovers over it.
 
 ## In a tree dump
 

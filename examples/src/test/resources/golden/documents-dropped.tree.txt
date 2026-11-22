@@ -65,3 +65,12 @@ el 0,0 640x360
         el #content-5 9,66 622x285
           el 9,66 622x285
             text #text role=textbox label="notes ü.md" placeholder="Empty" "# Größen\n\nNotes from a file manager, with Umlauts: Ärger, Öl, Übermut.\n" 21,78 598x261 lines 1-4/4 hovered
+overlay edge bottom center gap 16 on 0,0 640x360
+  el #toasts 222,314 196x30
+    el #toast-3 role=status label="Opened notes ü.md" 222,314 196x30
+      el 235,321 148x16
+        text label="checkmark_circle" "\u{F297}" 235,321 16x16
+        text "Opened notes ü.md" 259,321 124x16
+      el #buttons 391,317 24x24
+        el #close-3 role=button label="Close" 391,317 24x24
+          text label="dismiss" "\u{F368}" 395,321 16x16

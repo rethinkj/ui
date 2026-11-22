@@ -61,5 +61,11 @@ el 0,0 640x360
           el 9,66 622x285
             text #text role=textbox label="orders.sql" placeholder="Empty" "SELECT id, customer, total\nFROM orders\nWHERE placed > now() - interval '7 days'\nORDER BY total DESC;\n" 21,78 598x261 lines 1-5/5 hovered
 overlay edge bottom center gap 16 on 0,0 640x360
-  el #toast role=status label="Cannot open missing.md: it is not there" 185,314 270x30
-    text "Cannot open missing.md: it is not there" 198,321 244x16
+  el #toasts 162,314 316x30
+    el #toast-1 role=status label="Cannot open missing.md: it is not there" 162,314 316x30
+      el 175,321 268x16
+        text label="error_circle" "\u{F3F0}" 175,321 16x16
+        text "Cannot open missing.md: it is not there" 199,321 244x16
+      el #buttons 451,317 24x24
+        el #close-1 role=button label="Close" 451,317 24x24
+          text label="dismiss" "\u{F368}" 455,321 16x16

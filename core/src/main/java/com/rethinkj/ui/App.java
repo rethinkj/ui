@@ -274,9 +274,49 @@ public final class App<S> {
   private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   private FieldMenu.Open fieldMenu; // the menu of a field that is open, El#fieldMenu
-  // When the open overlays with an onShownFor handler opened, by identity; infinite once it ran.
-  private final Map<Object, Double> shownSince = new HashMap<>();
+  // How long each shown element with an onShownFor handler has been shown, by identity.
+  private final Map<Object, Shown> shownTimes = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
+
+  /**
+   * How long a shown element with an {@link El#onShownFor} handler has been shown, pausing while
+   * hovered when {@link El#pauseShownOnHover} is set.
+   */
+  private static final class Shown {
+    double elapsed; // seconds counted while not paused; POSITIVE_INFINITY once the handler ran
+    double since; // time when the current unpaused stretch began, or NaN while paused
+
+    Shown(double time) {
+      this.since = time;
+    }
+
+    double due(double delay) {
+      if (elapsed == Double.POSITIVE_INFINITY || Double.isNaN(since)) {
+        return Double.POSITIVE_INFINITY;
+      }
+      return since + Math.max(0, delay - elapsed);
+    }
+
+    void pause(double time) {
+      if (!Double.isNaN(since)) {
+        if (elapsed < Double.POSITIVE_INFINITY) {
+          elapsed += Math.max(0, time - since);
+        }
+        since = Double.NaN;
+      }
+    }
+
+    void resume(double time) {
+      if (Double.isNaN(since) && elapsed < Double.POSITIVE_INFINITY) {
+        since = time;
+      }
+    }
+
+    void done() {
+      elapsed = Double.POSITIVE_INFINITY;
+      since = Double.NaN;
+    }
+  }
   // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
   private final Map<Object, Rest> resting = new HashMap<>();
   private double restDue = Double.POSITIVE_INFINITY; // when the next of their looks or handlers is
@@ -3482,9 +3522,10 @@ public final class App<S> {
   }
 
   /**
-   * Follows which overlays with an {@link El#onShownFor} handler are open in the tree as it is
-   * now, its rows and the overlays that delayed looks attach included: each that opens starts its
-   * time, and each that closes, leaves or is made invisible by the view forgets it.
+   * Follows which shown elements with an {@link El#onShownFor} handler are in the tree as it is
+   * now, its overlays, its rows and the overlays that delayed looks attach included: each that
+   * appears starts its time, and each that closes, leaves, loses its handler or is made invisible
+   * by the view forgets it.
    */
   private void timeOverlays() {
     timeOverlays(false);
@@ -3492,15 +3533,16 @@ public final class App<S> {
 
   /**
    * @param rowsPending whether the rows of the tree are still to be built ({@link #rowsPending}):
-   *     those of its rows' overlays are kept, and the tree is timed again once they are there. A
-   *     rebuild between two inputs of one frame times the tree too, so that an overlay that one of
+   *     those of its rows' elements are kept, and the tree is timed again once they are there. A
+   *     rebuild between two inputs of one frame times the tree too, so that an element that one of
    *     them closes and the next opens again is a new opening.
    */
   private void timeOverlays(boolean rowsPending) {
     untimed = rowsPending;
     Set<Object> open = new HashSet<>();
+    shownDue = Double.POSITIVE_INFINITY;
     timeOverlays(root, open);
-    shownSince
+    shownTimes
         .keySet()
         .removeIf(id -> !open.contains(id) && !(rowsPending && animator.inRow(id) != null));
   }
@@ -3509,19 +3551,20 @@ public final class App<S> {
     if (hidden(el)) {
       return;
     }
+    if (el.onShownFor() != null) {
+      Object id = el.placement() != null && el.placement().id != null
+          ? el.placement().id
+          : animator.identity(el);
+      if (id != null) {
+        open.add(id);
+        Shown s = shownTimes.computeIfAbsent(id, opened -> new Shown(time));
+        shownDue = Math.min(shownDue, s.due(el.shownDelay()));
+      }
+    }
     for (El child : el.children()) {
       timeOverlays(child, open);
     }
     for (El overlay : el.overlays()) {
-      if (hidden(overlay)) {
-        continue;
-      }
-      Object id = overlay.placement().id;
-      if (overlay.onShownFor() != null && id != null) {
-        open.add(id);
-        double since = shownSince.computeIfAbsent(id, opened -> time);
-        shownDue = Math.min(shownDue, since + overlay.shownDelay());
-      }
       timeOverlays(overlay, open);
     }
   }
@@ -4048,22 +4091,52 @@ public final class App<S> {
   }
 
   /**
-   * Runs the {@link El#onShownFor} handlers of the open overlays whose time has come, and notes in
-   * {@link #shownDue} when the next one's will.
+   * Pauses timed elements under the pointer that asked for {@link El#pauseShownOnHover}, resumes
+   * those the pointer left, and updates {@link #shownDue}.
+   */
+  private void syncShown(List<Object> under) {
+    shownDue = Double.POSITIVE_INFINITY;
+    for (Map.Entry<Object, Shown> entry : shownTimes.entrySet()) {
+      El el = animator.element(entry.getKey());
+      if (el == null || el.onShownFor() == null) {
+        continue;
+      }
+      Shown s = entry.getValue();
+      if (el.pausesShownOnHover() && under.contains(entry.getKey())) {
+        s.pause(time);
+      } else {
+        s.resume(time);
+      }
+      shownDue = Math.min(shownDue, s.due(el.shownDelay()));
+    }
+  }
+
+  /**
+   * Runs the {@link El#onShownFor} handlers of the shown elements whose time has come, and notes
+   * in {@link #shownDue} when the next one's will.
    *
    * @return whether one ran
    */
   private boolean shownFor() {
+    if (shownTimes.isEmpty()) {
+      shownDue = Double.POSITIVE_INFINITY;
+      return false;
+    }
+    syncShown(Animator.identities(pointed())); // as updateHover sees it, also while a drag holds
     shownDue = Double.POSITIVE_INFINITY;
     boolean ran = false;
-    for (Object id : List.copyOf(shownSince.keySet())) {
+    for (Object id : List.copyOf(shownTimes.keySet())) {
       El el = animator.element(id);
       if (el == null || el.onShownFor() == null) {
         continue;
       }
-      double due = shownSince.get(id) + el.shownDelay(); // infinite once it ran
+      Shown s = shownTimes.get(id);
+      if (s == null) {
+        continue;
+      }
+      double due = s.due(el.shownDelay()); // infinite while paused or once it ran
       if (due <= time) {
-        shownSince.put(id, Double.POSITIVE_INFINITY); // once per opening
+        s.done(); // once per appearance
         handled = ran = true; // before it runs, as for a task
         el.onShownFor().run();
       } else {
@@ -4165,6 +4238,9 @@ public final class App<S> {
    */
   private boolean updateHover() {
     List<El> under = pointed();
+    if (!shownTimes.isEmpty()) {
+      syncShown(Animator.identities(under));
+    }
     Grab grab = capture instanceof Grab g ? g : null;
     El grabbed = grab == null ? null : animator.element(grab.id());
     boolean free = !(capture instanceof Selecting) && startedDrag() == null;

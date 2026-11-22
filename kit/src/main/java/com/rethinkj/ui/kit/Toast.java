@@ -52,20 +52,10 @@ public final class Toast {
   public static El toast(
       String message, String action, Runnable onAction, Runnable onClose, float above) {
     Theme theme = Theme.CURRENT.get();
-    El toast = Popup.frame(theme, row())
+    El toast = atBottom(theme, frame(theme, row(), message, onClose), above)
         .key("toast")
-        .role("status")
-        .label(message)
-        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + theme.space().xl())
-        .keepFocus()
         .onShownFor(theme.motion().toast(), onClose)
-        .onKey(k -> {
-          if (!k.name().equals("Escape") || k.modifiers() != 0) {
-            return false;
-          }
-          onClose.run();
-          return true;
-        })
+        .pauseShownOnHover()
         .padding(
             theme.space().xs(),
             action == null ? theme.space().l() : theme.space().xs(),
@@ -79,12 +69,35 @@ public final class Toast {
       toast.style().minHeight =
           Len.px(theme.size().control() + 2 * (theme.space().xs() + theme.size().stroke()));
     } else {
-      toast.child(button(Button.Variant.GHOST, action, () -> {
-            onAction.run();
-            onClose.run();
-          })
-          .key("action"));
+      toast.child(action(action, onAction, onClose));
     }
     return toast;
+  }
+
+  /** A toast's box: popup surface with fade, status role, label, focus kept and Escape to close. */
+  static El frame(Theme theme, El content, String message, Runnable onClose) {
+    return Popup.frame(theme, content).role("status").label(message).keepFocus().onKey(k -> {
+      if (!k.name().equals("Escape") || k.modifiers() != 0) {
+        return false;
+      }
+      onClose.run();
+      return true;
+    });
+  }
+
+  /** Places a toast or stack at the bottom center of the window, clear of {@code above}. */
+  static El atBottom(Theme theme, El overlay, float above) {
+    return overlay
+        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + theme.space().xl())
+        .keepFocus();
+  }
+
+  /** The ghost action button of a toast, which runs its handler and then closes the toast. */
+  static El action(String label, Runnable onAction, Runnable onClose) {
+    return button(Button.Variant.GHOST, label, () -> {
+          onAction.run();
+          onClose.run();
+        })
+        .key("action");
   }
 }

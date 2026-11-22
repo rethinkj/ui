@@ -1,0 +1,11 @@
+size 460 240
+frame
+press role=button label="Save"
+frame
+press role=button label="Export"
+frame
+press role=button label="Fail"
+frame
+advance 0.3
+frame
+snap shown

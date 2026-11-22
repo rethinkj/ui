@@ -14,8 +14,10 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -26,7 +28,7 @@ import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Tabs.Tab;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
-import com.rethinkj.ui.kit.Toast;
+import com.rethinkj.ui.kit.Toasts;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.SystemDialogs;
@@ -90,7 +92,7 @@ public final class Documents {
   App<Documents> app; // the first window's
   boolean dark = true;
   final MenuBar.State bar = new MenuBar.State();
-  String toast; // a message at the bottom of the first window, or null
+  final Toasts toasts = new Toasts(); // notifications at the bottom of the first window
   TabGroups.Group<Doc> dropping; // the group whose window a file manager's drag is over
   // docs:start documents-groups
   final TabGroups<Doc> groups = new TabGroups<>(
@@ -202,8 +204,8 @@ public final class Documents {
         .child(tabs.grow(1)));
     if (dropping == group) {
       root.overlay(hint());
-    } else if (toast != null && group == groups.main()) {
-      root.overlay(Toast.toast(toast, null, null, () -> toast = null));
+    } else if (group == groups.main()) {
+      root.overlay(toasts.view());
     }
     return root;
   }
@@ -235,7 +237,7 @@ public final class Documents {
   }
 
   void noFileDialog(String error) {
-    toast = "No file dialog: " + error;
+    toasts.show(Callout.Kind.DANGER, "No file dialog: " + error);
   }
   // docs:end documents-open
 
@@ -266,11 +268,12 @@ public final class Documents {
               saved -> {
                 document.path = to;
                 document.title = to.getFileName().toString();
-                toast = "Saved " + document.title;
+                toasts.show(Callout.Kind.SUCCESS, "Saved " + document.title);
               },
-              error -> toast = "Cannot save " + to.getFileName() + ": " + why(error));
+              error -> toasts.show(
+                  Callout.Kind.DANGER, "Cannot save " + to.getFileName() + ": " + why(error)));
         },
-        error -> toast = "No file dialog: " + error);
+        this::noFileDialog);
   }
 
   /** A drag from a file manager: the look while it is over, new tabs when it drops. */
@@ -292,19 +295,25 @@ public final class Documents {
   // docs:end documents-drop
 
   /**
-   * Reads files off the app's thread, then puts each into a new tab of the group, in the order
-   * given, or says in a toast why one could not be read. One piece of work for all, so that the
-   * tabs come in the order of the files, not in the order their reads end.
+   * Reads files off the app's thread with a progress toast, then puts each into a new tab of the
+   * group, in the order given, and finishes the toast with the result. One piece of work for all,
+   * so that the tabs come in the order of the files, not in the order their reads end.
    */
   void read(TabGroups.Group<Doc> group, List<Path> files) {
     if (files.isEmpty()) {
       return;
     }
+    Toasts.Handle reading = toasts.progress(
+        files.size() == 1
+            ? "Reading " + fileName(files.getFirst()) + "…"
+            : "Reading " + files.size() + " files…",
+        0);
     app.background(
         "read " + files.size() + " files",
-        () -> {
+        (Work.Progress<Double> progress) -> {
           List<Object> read = new ArrayList<>(); // the text, or what went wrong
-          for (Path file : files) {
+          for (int index = 0; index < files.size(); index++) {
+            Path file = files.get(index);
             try {
               if (Files.size(file) > LIMIT) {
                 throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
@@ -313,26 +322,45 @@ public final class Documents {
             } catch (IOException error) {
               read.add(error);
             }
+            progress.report((double) (index + 1) / files.size());
           }
           return read;
         },
+        reading::progress,
         read -> {
           TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
+          int opened = 0;
+          List<String> failed = new ArrayList<>();
           for (int index = 0; index < files.size(); index++) {
             Path file = files.get(index);
-            String name = file.getFileName() == null
-                ? file.toString()
-                : file.getFileName().toString();
+            String name = fileName(file);
             if (read.get(index) instanceof String text) {
               Doc doc = new Doc(name, text);
               doc.path = file;
               groups.add(to, to.tabs().size(), doc);
+              opened++;
             } else {
-              toast = "Cannot open " + name + ": " + why((Exception) read.get(index));
+              failed.add("Cannot open " + name + ": " + why((Exception) read.get(index)));
+            }
+          }
+          if (failed.isEmpty()) {
+            reading.finish(
+                Callout.Kind.SUCCESS,
+                opened == 1
+                    ? "Opened " + fileName(files.getFirst())
+                    : "Opened " + opened + " files");
+          } else {
+            reading.finish(Callout.Kind.DANGER, failed.getFirst());
+            for (int index = 1; index < failed.size(); index++) {
+              toasts.show(Callout.Kind.DANGER, failed.get(index));
             }
           }
         },
-        error -> toast = "Cannot open the files: " + why(error));
+        error -> reading.finish(Callout.Kind.DANGER, "Cannot open the files: " + why(error)));
+  }
+
+  private static String fileName(Path file) {
+    return file.getFileName() == null ? file.toString() : file.getFileName().toString();
   }
 
   /** What went wrong with a file, in words. */

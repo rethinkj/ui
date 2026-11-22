@@ -735,6 +735,50 @@ class OverlayTest {
   }
 
   @Test
+  void onShownForPausesOnHoverAndWorksOnChildrenInsideAnOverlay() {
+    State s = new State();
+    s.open = true;
+    App<State> app = app(
+        s,
+        st -> el().size(200, 100)
+            .overlay(
+                st.open
+                    ? col()
+                        .key("stack")
+                        .keepFocus()
+                        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, 10)
+                        .child(row()
+                            .key("item")
+                            .size(80, 20)
+                            .onShownFor(5, () -> {
+                              st.log.add("timeout");
+                              st.open = false;
+                            })
+                            .pauseShownOnHover())
+                    : null),
+        200,
+        100);
+    assertEquals(5, app.nextChange(), 1e-9);
+    app.advance(2);
+    app.pointerMove(100, 80); // over the child inside the overlay (60..140, 70..90)
+    app.frame();
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "paused while hovered");
+    app.advance(10);
+    assertFalse(app.frame(), "stays open and idle while hovered");
+    assertTrue(s.log.isEmpty());
+    app.pointerMove(10, 10); // leaves the item
+    app.frame();
+    assertEquals(15, app.nextChange(), 1e-9, "the remaining three seconds go on");
+    app.advance(2.9);
+    assertFalse(app.frame(), "nothing to draw meanwhile");
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals(List.of("timeout"), s.log);
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+  }
+
+  @Test
   void aHandlerAfterAStayRunsOnceAndRebuildsTheView() {
     State s = new State();
     App<State> app = app(

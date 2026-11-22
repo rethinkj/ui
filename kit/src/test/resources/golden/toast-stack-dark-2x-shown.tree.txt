@@ -1,0 +1,30 @@
+el 0,0 420x240
+  text #input role=textbox label="Query" "" 12,12 200x24
+overlay edge bottom center gap 16 on 0,0 420x240
+  el #toasts 86,104 248x120
+    el #toast-1 role=status label="Disk space low" 86,104 248x30
+      el 99,111 200x16
+        text label="warning" "\u{F868}" 99,111 16x16
+        text "Disk space low" 123,111 176x16
+      el #buttons 307,107 24x24
+        el #close-1 role=button label="Close" 307,107 24x24
+          text label="dismiss" "\u{F368}" 311,111 16x16
+    el #toast-2 role=status label="Backup finished" 86,142 248x30
+      el 99,149 139x16
+        text label="checkmark_circle" "\u{F297}" 99,149 16x16
+        text "Backup finished" 123,149 115x16
+      el #buttons 246,145 85x24
+        el #action role=button label="Open" 246,145 59x24
+          text "Open" 259,149 33x16
+        el #close-2 role=button label="Close" 307,145 24x24
+          text label="dismiss" "\u{F368}" 311,149 16x16
+    el #toast-3 role=status label="Uploading archive…" 86,180 248x44
+      el 99,183 200x32
+        el 99,183 200x24
+          text "Uploading archive…" 99,187 163x16
+          text "60%" 270,187 29x16
+        el #progress role=progressbar 99,211 200x4 value="60%"
+          el #fill 99,211 120x4
+      el #buttons 307,183 24x24
+        el #close-3 role=button label="Close" 307,183 24x24
+          text label="dismiss" "\u{F368}" 311,187 16x16
