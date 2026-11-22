@@ -20,6 +20,7 @@ el 0,0 560x220
         el 464,8 1x24
         el #numbers 8,8 16x24
         el 24,8 1x24
+      el #find-room 8,33 544x34
       el #rows 8,67 544x145 rows 0-7/8 thumb-y 544,69 6x106.48
         el #row-0 role=row 8,67 544x24 pos=1/8
           el #cell-0-0 role=gridcell 25,67 69x23 pos=1/4
