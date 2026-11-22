@@ -254,6 +254,7 @@ public final class App<S> {
   private Map<Object, Long> toldSizes = new HashMap<>();
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
+  private Scene scene;
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
@@ -1957,6 +1958,7 @@ public final class App<S> {
    */
   public void textRendering(TextRendering rendering) {
     textRendering = Objects.requireNonNull(rendering, "rendering");
+    scene = null;
     stale = true;
   }
   /** The rendering of {@link #textRendering(TextRendering)}. */
@@ -4271,19 +4273,19 @@ public final class App<S> {
   }
 
   /**
-   * What the last frame draws, with the focus ring if there is one. Its glyphs are in the app's
-   * atlas, which keeps them from one scene to the next; a scene's glyphs stay there until the
-   * next call.
+   * What the last frame draws, with the focus ring if there is one. The app keeps one scene and
+   * {@linkplain Scene#refill refills} it on every call of this method and of {@link #render}, so
+   * a returned scene, and what its {@link Scene#data()}, {@link Scene#clips()} and {@link
+   * Scene#images()} returned, is valid until the next call. Its glyphs are in the app's atlas,
+   * which keeps them from one scene to the next.
    */
   public Scene scene() {
-    return Scene.of(
-            root,
-            focus.ring() ? focus.element() : null,
-            focus.ringColor(),
-            atlas,
-            textRendering,
-            scale)
-        .imageMemory(imageMemory);
+    El ring = focus.ring() ? focus.element() : null;
+    int ringColor = focus.ringColor();
+    scene = scene == null
+        ? Scene.of(root, ring, ringColor, atlas, textRendering, scale)
+        : scene.refill(root, ring, ringColor, scale);
+    return scene.imageMemory(imageMemory);
   }
 
   /** The last frame drawn on the CPU, with its tree as text. */

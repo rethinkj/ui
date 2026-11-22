@@ -498,11 +498,15 @@ public final class Scene {
   /** An empty scene, for {@link #rect}; without text, so with an atlas of its own. */
   public Scene() {
     this(new Atlas(), TextRendering.platform());
+    noClip();
   }
 
   private Scene(Atlas atlas, TextRendering rendering) {
     this.atlas = atlas;
     this.rendering = rendering;
+  }
+
+  private void noClip() {
     entry(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, SQUARE, 0);
   }
 
@@ -554,17 +558,40 @@ public final class Scene {
    */
   public static Scene of(
       El root, El ring, int ringColor, Atlas atlas, TextRendering rendering, float scale) {
-    Scene scene = new Scene(atlas, rendering);
-    scene.scale = scale > 0 && Float.isFinite(scale) ? scale : Float.NaN;
-    scene.ring = ring;
-    scene.ringColor = ringColor;
-    scene.windowWidth = root.x() + root.width();
-    scene.windowHeight = root.y() + root.height();
+    return new Scene(atlas, rendering).refill(root, ring, ringColor, scale);
+  }
+
+  /**
+   * Builds the scene of {@code root} in place of what this scene held, in the buffers it already
+   * has, with its atlas and {@link TextRendering}. Once those buffers are large enough, refilling
+   * the scene for each frame allocates no native memory. This starts a {@link Atlas#nextFrame
+   * frame} of the atlas and overwrites what {@link #data()}, {@link #clips()} and {@link
+   * #images()} returned before; {@link #imageMemory()} stays as set.
+   *
+   * @param ring the element with the focus ring, or null for none
+   * @param ringColor the color of the ring as 0xAARRGGBB, unless the element sets its own ({@link
+   *     El#focusRing(int)})
+   * @param scale physical pixels per logical pixel, or NaN to draw boxes unsnapped
+   * @return this scene
+   */
+  public Scene refill(El root, El ring, int ringColor, float scale) {
+    data.asSlice(0, (long) count * STRIDE).fill((byte) 0); // as zeroed as a new allocation
+    clips.asSlice(0, (long) clipCount * CLIP_STRIDE).fill((byte) 0);
+    count = 0;
+    clipCount = 0;
+    images.clear();
+    imageIndex.clear();
+    noClip();
+    this.scale = scale > 0 && Float.isFinite(scale) ? scale : Float.NaN;
+    this.ring = ring;
+    this.ringColor = ringColor;
+    windowWidth = root.x() + root.width();
+    windowHeight = root.y() + root.height();
     atlas.nextFrame();
-    scene.add(root, 0, 0, 1, 0, Float.NaN, false, null);
+    add(root, 0, 0, 1, 0, Float.NaN, false, null);
     for (El overlay : root.shownOverlays()) {
       if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
-        scene.rect(
+        rect(
             -NO_CLIP,
             -NO_CLIP,
             2 * NO_CLIP,
@@ -576,9 +603,9 @@ public final class Scene {
             overlay.opacity(),
             0);
       }
-      scene.add(overlay, 0, 0, 1, 0, Float.NaN, false, null);
+      add(overlay, 0, 0, 1, 0, Float.NaN, false, null);
     }
-    return scene;
+    return this;
   }
 
   /**

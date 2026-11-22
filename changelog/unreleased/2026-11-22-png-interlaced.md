@@ -1,0 +1,1 @@
+- `Png.decode` and `Image.decode` now read Adam7 interlaced PNG images, of every color type and bit depth, instead of throwing.
