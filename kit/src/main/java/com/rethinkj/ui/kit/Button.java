@@ -52,7 +52,7 @@ public final class Button {
     PRIMARY,
     /** Any other action, on a raised surface with an edge. */
     SECONDARY,
-    /** A quiet action that shows its surface only under the pointer, as in toolbars. */
+    /** A quiet action that shows its surface only while hovered or pressed, as in toolbars. */
     GHOST
   }
 
