@@ -49,6 +49,7 @@ class GridFindTest {
     final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
     final DataGrid.Find find = new DataGrid.Find();
     IntPredicate loaded;
+    int deletes;
     App<State> app;
 
     El view() {
@@ -57,8 +58,11 @@ class GridFindTest {
           new DataGrid.Column("customer", 170, DataGrid.DataType.TEXT, r -> ROWS[r][1]),
           new DataGrid.Column("city", 110, DataGrid.DataType.TEXT, r -> ROWS[r][2]),
           new DataGrid.Column("status", 90, DataGrid.DataType.TEXT, r -> ROWS[r][3]));
-      DataGrid.Options options =
-          DataGrid.options().select(selection).rowNumbers().find(app, find);
+      DataGrid.Options options = DataGrid.options()
+          .select(selection)
+          .rowNumbers()
+          .onDeleteRows(ranges -> deletes++)
+          .find(app, find);
       if (loaded != null) {
         options.loading(loaded, (first, last) -> {});
       }
@@ -162,6 +166,8 @@ class GridFindTest {
         "size 560 220 scale 2\nkey A control\ntype \"berlin\"\nframe\nkey F3\nframe", app, out);
     assertEquals(3, state.selection.row());
     assertEquals(2, state.selection.column());
+    Script.run("size 560 220 scale 2\nkey - control\nframe", app, out);
+    assertEquals(0, state.deletes, "the grid's keys stay out of the find bar");
     Script.run("size 560 220 scale 2\nkey Escape\nframe\nadvance 0.25\nframe", app, out);
     assertFalse(state.find.isOpen());
     assertFalse(app.tree().dump().contains("role=search"));
@@ -252,6 +258,7 @@ class GridFindTest {
         key A control
         type "UniqueNeedle"
         frame""", app, out);
+    assertNotNull(find.jump, "the far match takes more frames than one");
     frames = 0;
     while ((find.jump != null || !find.complete) && frames < 2000) {
       app.frame();

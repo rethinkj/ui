@@ -2135,6 +2135,7 @@ public final class DataGrid {
     GridFind.Jump jump;
     long gen; // incremented on cancel/restart so stale scheduled slices do nothing
     boolean scheduled;
+    El bar; // the bar of the last build, which holds the focus while one types in it
     int revealMoves = -1; // the selection's moves when find selected a match, whose column shows
     boolean skipped; // the scan left out rows that were not loaded
     // The last build and its elements, for handlers and public methods.
@@ -2143,7 +2144,10 @@ public final class DataGrid {
     El findField;
     Texts texts = Texts.ENGLISH;
 
-    public Find() {}
+    /** A find bar that is closed, with no query. */
+    public Find() {
+      // the fields say it: closed, empty, no search
+    }
 
     /** Whether the find bar shows. */
     public boolean isOpen() {
@@ -4189,6 +4193,9 @@ public final class DataGrid {
   // Keys
 
   private static boolean key(Build b, Key k) {
+    if (GridFind.focused(b)) { // the find bar's key: the app's, not the grid's
+      return false;
+    }
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();

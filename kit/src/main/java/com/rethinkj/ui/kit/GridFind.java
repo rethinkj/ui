@@ -194,11 +194,20 @@ final class GridFind {
     return gridKey(b, k);
   }
 
+  /**
+   * Whether the focus is in the bar: a key it leaves goes on to the grid it lies over, which lets
+   * it pass to the app without acting on it, as Control+Minus would delete the selected rows.
+   */
+  static boolean focused(Build b) {
+    DataGrid.Find f = b.o.find;
+    return f != null && f.open && f.app != null && shown(f.bar, f.app.focused());
+  }
+
   /** The query or a switch changed: restart the search from where the bar opened. */
   private static void changed(DataGrid.Find f) {
     f.slowCell = false;
     f.resetSearch();
-    Search.Query query = compile(f, f.texts);
+    compile(f, f.texts);
     Build b = f.build;
     if (f.pattern == null || b == null || b.sel == null) {
       return;
@@ -391,7 +400,8 @@ final class GridFind {
         + theme.size().stroke()
         + Find.barHeight(theme, 1)
         + theme.space().xs();
-    return Find.bar(theme, texts, topInset, k -> barKey(b, k), panel);
+    f.bar = Find.bar(theme, texts, topInset, k -> barKey(b, k), panel);
+    return f.bar;
   }
 
   /** Match spans for one visible cell's display text, or null when none or find is inactive. */
@@ -414,7 +424,7 @@ final class GridFind {
       if (!Search.hasMatch(f.pattern, shown, deadline)) {
         return null;
       }
-    } catch (Search.Stopped s) {
+    } catch (Search.Stopped _) {
       f.slowCell = true;
       return null;
     }
@@ -458,7 +468,7 @@ final class GridFind {
     try {
       return raw != null
           && Search.hasMatch(f.pattern, DataGrid.oneLine(raw), Search.deadline(Find.SYNC_MILLIS));
-    } catch (Search.Stopped stopped) {
+    } catch (Search.Stopped _) {
       return true; // too slow to tell: as the scan found it
     }
   }
@@ -534,7 +544,7 @@ final class GridFind {
           String text = DataGrid.oneLine(raw);
           try {
             hit = Search.hasMatch(pattern, text, deadline);
-          } catch (Search.Stopped s) {
+          } catch (Search.Stopped _) {
             if (checked > 0) {
               return false;
             }
@@ -551,7 +561,7 @@ final class GridFind {
             return true;
           }
           if (f.matchCount == f.matchRows.length) {
-            int next = Math.min(Find.LIMIT, Math.max(16, f.matchRows.length * 2));
+            int next = Math.clamp(f.matchRows.length * 2L, 16, Find.LIMIT);
             f.matchRows = Arrays.copyOf(f.matchRows, next);
             f.matchCols = Arrays.copyOf(f.matchCols, next);
           }
@@ -610,7 +620,7 @@ final class GridFind {
         String text = DataGrid.oneLine(raw);
         try {
           hit = Search.hasMatch(pattern, text, deadline);
-        } catch (Search.Stopped s) {
+        } catch (Search.Stopped _) {
           if (checked > 0) {
             return false;
           }
@@ -685,7 +695,7 @@ final class GridFind {
     });
   }
 
-  /** Whether the tree of the last frame holds the grid. */
+  /** Whether {@code tree} holds {@code grid}, such as the last frame's tree. */
   private static boolean shown(El tree, El grid) {
     if (tree == null || grid == null) {
       return false;
