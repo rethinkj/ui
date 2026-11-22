@@ -1,0 +1,1 @@
+- The find bar now gives the position in an invalid regular expression in the view's language, from the new `Texts.patternError` (German in `GermanTexts`), instead of an English " at ".

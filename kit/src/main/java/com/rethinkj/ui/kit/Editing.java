@@ -44,7 +44,8 @@ import java.util.function.UnaryOperator;
  *   <li>{@link #rule} checks the whole value, such as a date not before another, and shows its
  *       message at the field it names.
  *   <li>An error the app learns later, such as the server's refusal of a port, goes on the field
- *       with {@link Prop#error(String)}: it shows there until the next edit of the field.
+ *       with {@link Prop#error(String)}: it shows there until the field, one of its ancestors, or
+ *       one of its descendants is edited.
  *   <li>A draft stays while its field is out of the view, and counts for {@link #valid}: a text
  *       that is no value stays one until the field shows again and is edited, or {@link #reset}.
  * </ul>
@@ -196,11 +197,17 @@ public final class Editing<T> {
     return null;
   }
 
-  /** A field was written: the app's errors on it and on the fields around it go. */
+  /**
+   * A field was written: the app's errors on it, its ancestors, and its descendants go; siblings
+   * keep theirs.
+   */
   void edited(List<Part<?, ?>> path) {
-    Field f = fields.get(path);
-    if (f != null) {
-      f.error = null;
+    for (Map.Entry<List<Part<?, ?>>, Field> entry : fields.entrySet()) {
+      List<Part<?, ?>> other = entry.getKey();
+      int n = Math.min(path.size(), other.size());
+      if (path.subList(0, n).equals(other.subList(0, n))) {
+        entry.getValue().error = null;
+      }
     }
   }
 

@@ -17,8 +17,13 @@ class EditingTest {
 
   record Tls(String mode, String cert) {
     static final Part<Tls, String> MODE = Part.of(Tls::mode, Tls::withMode);
+    static final Part<Tls, String> CERT = Part.of(Tls::cert, Tls::withCert);
 
     Tls withMode(String mode) {
+      return new Tls(mode, cert);
+    }
+
+    Tls withCert(String cert) {
       return new Tls(mode, cert);
     }
   }
@@ -218,6 +223,34 @@ class EditingTest {
     assertNull(e.at(Profile.PORT).error());
     assertTrue(e.valid());
     assertThrows(IllegalStateException.class, () -> Prop.of(() -> 1, null).error("x"));
+  }
+
+  @Test
+  void writingAFieldClearsAppErrorsOnItselfItsAncestorsAndItsDescendants() {
+    Editing<Profile> e = Editing.of(profile());
+    Prop<Tls> tls = e.at(Profile.TLS);
+    Prop<String> mode = e.at(Profile.TLS.then(Tls.MODE));
+    Prop<String> cert = e.at(Profile.TLS.then(Tls.CERT));
+    Prop<String> host = e.at(Profile.HOST);
+
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    cert.error("Bad cert");
+    host.error("Bad host");
+
+    mode.set("verify-full");
+    assertNull(mode.error(), "the written field clears");
+    assertNull(tls.error(), "its ancestor clears");
+    assertEquals("Bad cert", cert.error(), "its sibling stays");
+    assertEquals("Bad host", host.error(), "an unrelated field stays");
+
+    tls.error("TLS rejected");
+    mode.error("Bad mode");
+    tls.set(new Tls("require", "ca.pem"));
+    assertNull(tls.error(), "the written parent clears");
+    assertNull(mode.error(), "its descendants clear");
+    assertNull(cert.error(), "its descendants clear");
+    assertEquals("Bad host", host.error(), "a sibling of the parent stays");
   }
 
   @Test
