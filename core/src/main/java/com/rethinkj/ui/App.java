@@ -3390,8 +3390,12 @@ public final class App<S> {
       top += el.y();
     }
     Text text = field.text();
+    float along = x - left;
+    if (along < 0 && along >= -contentLeft(field)) {
+      along = 0; // in the left padding, such as on an icon: the start of the text in view
+    }
     return new float[] {
-      (x - left) * text.scale() + text.scroll(), (y - top) * text.scale() + text.scrollY()
+      along * text.scale() + text.scroll(), (y - top) * text.scale() + text.scrollY()
     };
   }
 
