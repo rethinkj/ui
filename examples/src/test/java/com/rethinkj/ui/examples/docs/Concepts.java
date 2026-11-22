@@ -115,6 +115,33 @@ final class Concepts {
     return Frame.of(title, body, cut, code);
   }
 
+  static El lineHeight(Concepts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start line-height
+    El reading = col()
+        .lineHeight(1.6f)
+        .gap(theme.space().m())
+        .child(text("Each order belongs to a customer and has one or more items."
+                + " Descendant text elements inherit the line height.")
+            .wrapText()
+            .w(280)
+            .color(theme.text().primary()))
+        .child(text(state.sql)
+            .editable(state::sql)
+            .multiline()
+            .lines(3)
+            .key("query")
+            .role("textbox")
+            .label("Query")
+            .w(280)
+            .padding(8)
+            .font(Font.mono())
+            .fill(theme.surface().raised())
+            .color(theme.text().primary()));
+    // docs:end line-height
+    return Frame.of(reading);
+  }
+
   static El input(Concepts state) {
     Theme theme = Theme.CURRENT.get();
     // docs:start input

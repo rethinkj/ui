@@ -48,6 +48,7 @@ class DocsExamplesTest {
       Map.entry("layout", List.of("view")),
       Map.entry("lines", List.of("view")),
       Map.entry("text", List.of("view")),
+      Map.entry("line-height", List.of("view")),
       Map.entry("input", List.of("pressed")),
       Map.entry("motion", List.of("opening")),
       Map.entry("overlay", List.of("open")),
@@ -220,6 +221,7 @@ class DocsExamplesTest {
             360,
             400));
     concepts(all, "text", Concepts::texts, 320, 200);
+    concepts(all, "line-height", Concepts::lineHeight, 320, 200);
     concepts(all, "input", Concepts::input, 280, 140);
     concepts(all, "states", Concepts::states, 240, 80);
     concepts(all, "motion", Concepts::motion, 320, 160);
