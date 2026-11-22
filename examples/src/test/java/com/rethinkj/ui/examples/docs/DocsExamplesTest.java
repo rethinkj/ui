@@ -57,6 +57,7 @@ class DocsExamplesTest {
       Map.entry("bars", List.of("view")),
       Map.entry("cards-window", List.of("view")),
       Map.entry("choices", List.of("view")),
+      Map.entry("multi-select", List.of("open")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("dialog-stack", List.of("stacked")),
       Map.entry("details", List.of("view", "children", "hidden")),
@@ -99,6 +100,7 @@ class DocsExamplesTest {
     controls(all, "swatches", Controls::swatches, 460, 140);
     controls(all, "hue-button", Controls::huePickerButton, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
+    controls(all, "multi-select", Controls::multiSelect, 268, 168);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
     controls(all, "parts", Controls::parts, 400, 200);

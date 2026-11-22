@@ -39,6 +39,7 @@
     "text-field",
     "select",
     "combo-box",
+    "multi-select",
     "radio",
     "segmented",
     "hue-picker",

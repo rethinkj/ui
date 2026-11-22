@@ -23,6 +23,7 @@ import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.MultiSelect;
 import com.rethinkj.ui.kit.NumberField;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Radio;
@@ -59,6 +60,8 @@ final class Controls {
   final ComboBox.State hostBox = new ComboBox.State();
   int product;
   final ComboBox.State productBox = new ComboBox.State();
+  List<String> schemas = List.of("public", "sales");
+  final MultiSelect.State schemasState = new MultiSelect.State();
   int fetchSize = 4;
   int kind = -1;
   Theme.Hue color = Theme.Hue.TEAL;
@@ -432,6 +435,21 @@ final class Controls {
         .label("Database");
     // docs:end combo-items
     return Frame.of(schema, host, product);
+  }
+
+  void schemas(List<String> value) {
+    schemas = value;
+  }
+
+  static El multiSelect(Controls state) {
+    // docs:start multi-select
+    List<String> choices =
+        List.of("accounting", "analytics", "billing", "inventory", "public", "sales", "staging");
+    El schemas = MultiSelect.multiSelect(choices, state.schemas, state.schemasState, state::schemas)
+        .label("Schemas")
+        .w(240);
+    // docs:end multi-select
+    return Frame.of(schemas);
   }
 
   void filter(String value) {
