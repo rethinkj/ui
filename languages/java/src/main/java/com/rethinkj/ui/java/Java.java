@@ -220,9 +220,7 @@ public record Java(Theme.Code colors) implements Language {
       boolean doc = s == CommentState.DOC_BLOCK;
       int close = line.indexOf("*/");
       if (close < 0) {
-        if (n > 0) {
-          out.comment(0, n, doc, true);
-        }
+        out.comment(0, n, doc, true); // an empty line too, so an unclosed comment ends at the end
         return s;
       }
       out.comment(0, close + 2, doc, true);

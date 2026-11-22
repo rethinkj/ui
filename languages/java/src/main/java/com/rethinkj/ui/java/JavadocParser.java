@@ -190,22 +190,22 @@ final class JavadocParser {
       }
       switch (tag) {
         case "param" -> {
-          String[] split = splitFirstWord(content);
+          Split split = splitFirstWord(content);
           if (split == null) {
             appendSection(bodyText, "@" + tag + (content.isBlank() ? "" : " " + content.strip()));
           } else {
-            MarkdownDocument desc = parseContent(split[1], markdown);
-            params.add(new DocComment.Entry(split[0], null, desc));
+            MarkdownDocument desc = parseContent(split.rest(), markdown);
+            params.add(new DocComment.Entry(split.head(), null, desc));
           }
         }
         case "return" -> appendSection(returnText, content);
         case "throws", "exception" -> {
-          String[] split = splitFirstWord(content);
+          Split split = splitFirstWord(content);
           if (split == null) {
             appendSection(bodyText, "@" + tag + (content.isBlank() ? "" : " " + content.strip()));
           } else {
-            MarkdownDocument desc = parseContent(split[1], markdown);
-            exceptions.add(new DocComment.Entry(split[0], null, desc));
+            MarkdownDocument desc = parseContent(split.rest(), markdown);
+            exceptions.add(new DocComment.Entry(split.head(), null, desc));
           }
         }
         case "see" -> {
@@ -307,11 +307,11 @@ final class JavadocParser {
           appendLine(current.content(), line);
           continue;
         }
-        String[] tag = matchBlockTag(line, true);
+        Split tag = matchBlockTag(line, true);
         if (tag != null) {
-          current = new Section(tag[0], new StringBuilder(tag[1]));
+          current = new Section(tag.head(), new StringBuilder(tag.rest()));
           sections.add(current);
-          int fence = openingFence(tag[1]);
+          int fence = openingFence(tag.rest());
           if (fence != 0) {
             fenceChar = fence > 0 ? '`' : '~';
             fenceLen = Math.abs(fence);
@@ -321,11 +321,11 @@ final class JavadocParser {
         appendLine(current.content(), line);
       } else {
         if (!inPre && braceDepth == 0) {
-          String[] tag = matchBlockTag(line, false);
+          Split tag = matchBlockTag(line, false);
           if (tag != null) {
-            current = new Section(tag[0], new StringBuilder(tag[1]));
+            current = new Section(tag.head(), new StringBuilder(tag.rest()));
             sections.add(current);
-            int[] state = updateJavadocState(tag[1], inPre, braceDepth);
+            int[] state = updateJavadocState(tag.rest(), inPre, braceDepth);
             inPre = state[0] != 0;
             braceDepth = state[1];
             continue;
@@ -449,10 +449,10 @@ final class JavadocParser {
   }
 
   /**
-   * If {@code line} starts a block tag ({@code @name ...}), returns {@code [name, rest]}; else
+   * If {@code line} starts a block tag ({@code @name ...}), returns its name and the rest; else
    * {@code null}. In Markdown mode, lines indented by 4+ columns are indented code, not tags.
    */
-  private static String[] matchBlockTag(String line, boolean markdown) {
+  private static Split matchBlockTag(String line, boolean markdown) {
     int cols = 0;
     int i = 0;
     int n = line.length();
@@ -480,11 +480,14 @@ final class JavadocParser {
     String name = line.substring(nameStart, nameEnd);
     int restStart = skipHorizontalSpace(line, nameEnd);
     String rest = restStart < n ? line.substring(restStart) : "";
-    return new String[] {name, rest};
+    return new Split(name, rest);
   }
 
+  /** A text split in two: a block tag's name, a first word or a reference, and the rest. */
+  private record Split(String head, String rest) {}
+
   /** Splits the first whitespace-delimited token and the remainder, or {@code null} if blank. */
-  private static String[] splitFirstWord(String text) {
+  private static Split splitFirstWord(String text) {
     int n = text.length();
     int i = skipWhitespace(text, 0);
     if (i >= n) {
@@ -501,7 +504,7 @@ final class JavadocParser {
     } else if (restStart < n && text.charAt(restStart) == '\n') {
       restStart++;
     }
-    return new String[] {word, text.substring(restStart)};
+    return new Split(word, text.substring(restStart));
   }
 
   private static MarkdownDocument parseContent(String text, boolean markdown) {
@@ -532,9 +535,9 @@ final class JavadocParser {
             || trimmed.startsWith("https://"))) {
       return parseContent(trimmed, true);
     }
-    String[] refLabel = splitRefAndLabel(trimmed);
-    String ref = refLabel[0];
-    String label = refLabel[1];
+    Split refLabel = splitRefAndLabel(trimmed);
+    String ref = refLabel.head();
+    String label = refLabel.rest();
     if (ref.isEmpty()) {
       return parseContent(trimmed, markdown);
     }
@@ -572,7 +575,7 @@ final class JavadocParser {
    * Splits a Javadoc reference and optional label, keeping spaces inside {@code (...)} as part of
    * the reference (for example, {@code Foo#bar(int, String) the label}).
    */
-  private static String[] splitRefAndLabel(String raw) {
+  private static Split splitRefAndLabel(String raw) {
     int n = raw.length();
     int i = skipWhitespace(raw, 0);
     int start = i;
@@ -590,7 +593,7 @@ final class JavadocParser {
     }
     String ref = collapseWhitespace(raw.substring(start, i));
     String label = raw.substring(i).strip();
-    return new String[] {ref, label};
+    return new Split(ref, label);
   }
 
   // ---- Traditional Javadoc parser (direct MarkdownDocument builder, non-recursive, O(n))
@@ -821,9 +824,9 @@ final class JavadocParser {
           }
         }
         case "link", "linkplain" -> {
-          String[] refLabel = splitRefAndLabel(body);
-          String ref = refLabel[0];
-          String label = refLabel[1];
+          Split refLabel = splitRefAndLabel(body);
+          String ref = refLabel.head();
+          String label = refLabel.rest();
           if (ref.isEmpty()) {
             prose.append(s, pos, end + 1);
           } else {

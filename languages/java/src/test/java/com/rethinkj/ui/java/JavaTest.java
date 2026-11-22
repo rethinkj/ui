@@ -201,6 +201,13 @@ class JavaTest {
     assertComment(source, list.get(6), "/// trailing after code", false);
   }
 
+  @Test
+  void unclosedCommentReachesTheEnd() {
+    String source = "int a;\n/** draft\n\n";
+    List<Comments.Comment> list = Comments.scan(source, JAVA, null).comments();
+    assertEquals(List.of(new Comments.Comment(7, source.length(), true)), list);
+  }
+
   private static void assertComment(
       String text, Comments.Comment comment, String expected, boolean doc) {
     assertEquals(expected, text.substring(comment.start(), comment.end()));
