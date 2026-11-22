@@ -27,8 +27,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The kit's {@link CodeEditor} with {@link Sql}, driven by {@code code-editor.txt}, with stored
  * images: every kind of token, line numbers, the caret's line in a marked block on the rail, a
- * marker, a pair of brackets, an error with a squiggly underline and gone after an edit, and the
- * editor scrolled to its end; and embedded in a card.
+ * marker, a pair of brackets, an error with a squiggly underline that stays across an edit
+ * elsewhere, and the editor scrolled to its end; and embedded in a card.
  */
 class CodeEditorTest {
 
@@ -128,8 +128,9 @@ class CodeEditorTest {
         "the editor keeps the focus and the caret");
     String edited = Files.readString(out.resolve("edited.tree.txt"));
     assertTrue(
-        !edited.contains("squiggle") && !edited.contains("error="),
-        "an edit takes it away: " + edited);
+        edited.contains(" squiggle " + note + "-" + (note + 6))
+            && edited.contains(" error=\"column o.note does not exist\""),
+        "an edit elsewhere keeps the error: " + edited);
   }
 
   @Test

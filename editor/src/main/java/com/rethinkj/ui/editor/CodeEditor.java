@@ -12,7 +12,6 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.TextChange;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -25,12 +24,12 @@ import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
@@ -114,11 +113,17 @@ public final class CodeEditor {
   }
 
   /**
+   * Something shown on the code of a {@link State#markup markup layer}: a {@link Diagnostic}, a
+   * gutter {@link Marker}, or a {@link Highlight} behind a range of characters.
+   */
+  public sealed interface Mark permits Diagnostic, Marker, Highlight {}
+
+  /**
    * Something the app says about characters {@code from} to {@code to} of the string, such as
    * where the database said a query went wrong: a wavy line under them in the severity's status
    * color, and a marker at the start of the line of {@code from} with the message as its tooltip.
    */
-  public record Diagnostic(int from, int to, Severity severity, String message) {
+  public record Diagnostic(int from, int to, Severity severity, String message) implements Mark {
     public Diagnostic {
       Objects.requireNonNull(severity, "severity");
       Objects.requireNonNull(message, "message");
@@ -132,13 +137,20 @@ public final class CodeEditor {
    *
    * @param onPress what a press runs, or null for a marker that only shows
    */
-  public record Marker(int at, Icon symbol, Icon.Variant tone, String label, Runnable onPress) {
+  public record Marker(int at, Icon symbol, Icon.Variant tone, String label, Runnable onPress)
+      implements Mark {
     public Marker {
       Objects.requireNonNull(symbol, "symbol");
       Objects.requireNonNull(tone, "tone");
       Objects.requireNonNull(label, "label");
     }
   }
+
+  /**
+   * A background behind characters {@code from} to {@code to} of the string in the theme's {@code
+   * code().occurrence()} color, such as the usages of a symbol.
+   */
+  public record Highlight(int from, int to) implements Mark {}
 
   /** The command of a key, or null. */
   static Command command(Key k) {
@@ -180,10 +192,7 @@ public final class CodeEditor {
     private int anchor;
     private String text = ""; // the string of the editor's last build
     private List<Marker> markers = List.of();
-    private List<Diagnostic> diagnostics = List.of();
-    private String diagnosed; // the text the diagnostics are about
-    private String checked; // the value last compared with it, by identity, and whether it was it
-    private boolean current;
+    private final Map<String, Layer> layers = new LinkedHashMap<>();
     private int blockFrom;
     private int blockTo;
     private boolean occurrences = true;
@@ -209,6 +218,12 @@ public final class CodeEditor {
     private List<Folded> folds = new ArrayList<>();
     private String builtValue;
     private String builtText;
+    // The folds the field asked to open since the last build ({@link #ask}).
+    private final List<El.Fold> asked = new ArrayList<>();
+    // The last edits computed, between these two strings, which the folds and the layers share.
+    private String editsFrom;
+    private String editsTo;
+    private TextEdits edits;
     private List<El.BracketFold> ranges = List.of();
 
     /**
@@ -357,8 +372,10 @@ public final class CodeEditor {
     }
 
     /**
-     * Shows {@code markers} in the gutter, each at its position's line, in place of those before;
-     * where several are on one line, the first, and a diagnostic's marker before them all.
+     * Shows {@code markers} in the gutter, each at its position's line in the current string, in
+     * place of those before; where several are on one line, the first, and a diagnostic's marker
+     * before them all. These positions are not moved with edits; for markers that move with edits,
+     * pass them to {@link #markup}.
      */
     public State markers(List<Marker> markers) {
       this.markers = List.copyOf(markers);
@@ -366,30 +383,64 @@ public final class CodeEditor {
     }
 
     /**
-     * Shows {@code diagnostics} about {@code text}, in place of those before, while the editor's
-     * value is {@code text}: after an edit they go, and they come back with an undo to it. Each
-     * has a squiggle under it in its severity's status color, and each line where one starts has a
-     * marker, of the worst severity among them, whose tooltip is their messages. A tree dump shows
-     * the squiggles under them on the editor as {@code squiggle <from>-<to>} while their lines are
-     * in view, and the marker in the line's cell, with the messages of its errors as {@code error=}
-     * and of its warnings as {@code warning=}.
+     * Sets the marks of layer {@code layer} (one layer per provider, such as {@code "analysis"},
+     * {@code "vcs"}, {@code "references"} or {@code "app"}), in place of that layer's marks before,
+     * computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles and
+     * gutter markers and take part in F8/Shift+F8, {@link Marker}s show in the gutter beside
+     * {@link #markers} (first marker on a line, a diagnostic's marker first), and {@link Highlight}s
+     * draw a background in {@code code().occurrence()}.
+     *
+     * <p>{@code text} is the revision the marks were computed for and may be older than the
+     * editor's current value. The marks move with each change of the value, each edit of a bulk
+     * change such as Replace All or a format on its own, and the originals show again when the
+     * value is {@code text} again, as after an undo: a range {@code [from, to)} does not grow at
+     * its ends (text inserted at {@code from} lands before it, at {@code to} after it), a point
+     * ({@code from == to}, and a {@link Marker}'s {@code at}) moves with the text after it (text
+     * inserted at it lands before it), and a range whose characters are deleted or replaced or
+     * that gets text inserted strictly inside, or a point inside replaced text, is dropped.
+     */
+    public State markup(String layer, String text, List<? extends Mark> marks) {
+      Objects.requireNonNull(layer, "layer");
+      List<Mark> copy = List.copyOf(marks);
+      if (copy.isEmpty()) {
+        layers.remove(layer);
+        return this;
+      }
+      Objects.requireNonNull(text, "text");
+      layers.put(layer, new Layer(displayed(text), copy));
+      return this;
+    }
+
+    /** Clears the marks of layer {@code layer}. */
+    public State noMarkup(String layer) {
+      Objects.requireNonNull(layer, "layer");
+      layers.remove(layer);
+      return this;
+    }
+
+    /**
+     * Shorthand for {@link #markup {@code markup("diagnostics", text, diagnostics)}}: shows {@code
+     * diagnostics} about {@code text}, in place of those before. They move with edits elsewhere in
+     * the text, are dropped when their own characters are edited, and come back with an undo back
+     * to {@code text}. Each has a squiggle under it in its severity's status color, and each line
+     * where one starts has a marker, of the worst severity among them, whose tooltip is their
+     * messages. A tree dump shows the squiggles under them on the editor as {@code squiggle
+     * <from>-<to>} while their lines are in view, and the marker in the line's cell, with the
+     * messages of its errors as {@code error=} and of its warnings as {@code warning=}.
      *
      * <p>Given the app, F8 puts the caret at the start of the next diagnostic after it, Shift+F8 at
      * the start of the one before, round at the ends, and the message of those that start there
      * shows above the caret, as their marker's tooltip, while the editor has the focus, until the
-     * caret leaves them or Escape hides it; a tree dump shows it as an overlay of the editor, {@code role=tooltip} with the
-     * message as the label. Without diagnostics the keys do nothing.
+     * caret leaves them or Escape hides it; a tree dump shows it as an overlay of the editor, {@code
+     * role=tooltip} with the message as the label. Without diagnostics the keys do nothing.
      */
     public State diagnostics(String text, List<Diagnostic> diagnostics) {
-      this.diagnostics = List.copyOf(diagnostics);
-      diagnosed = text;
-      checked = null;
-      return this;
+      return markup("diagnostics", text, diagnostics);
     }
 
-    /** Shows no diagnostics. */
+    /** Shorthand for {@link #noMarkup {@code noMarkup("diagnostics")}}. */
     public State noDiagnostics() {
-      return diagnostics(null, List.of());
+      return noMarkup("diagnostics");
     }
 
     /** The folded line ranges of the editor, sorted by their first line. */
@@ -419,6 +470,25 @@ public final class CodeEditor {
       folds.removeIf(f -> f.lines().first() == fold.first());
     }
 
+    /**
+     * The field asks to open a fold: for a press on its mark, a caret on a line it hides, and an
+     * edit across it, such as Replace All or a format. That waits for the next build, which opens
+     * it only when the string stayed the same: an edit keeps the folds whose brackets it keeps,
+     * and the field asks again where it left the caret on a hidden line.
+     */
+    private void ask(El.Fold fold) {
+      asked.add(fold);
+    }
+
+    private TextEdits edits(String from, String to) {
+      if (from != editsFrom || to != editsTo) {
+        edits = TextEdits.between(from, to);
+        editsFrom = from;
+        editsTo = to;
+      }
+      return edits;
+    }
+
     private El.Fold foldAt(int line) {
       for (Folded f : folds) {
         if (f.lines().first() == line) {
@@ -431,9 +501,13 @@ public final class CodeEditor {
     private void updateFolds(String value, El editor, El.BracketFolds found) {
       // The field's string is read again only for a new value: it converts line breaks anew.
       String text = value.equals(builtValue) ? builtText : editor.text().string();
+      if (value.equals(builtValue)) {
+        asked.forEach(this::unfold);
+      }
+      asked.clear();
       if (!folds.isEmpty()) {
         if (builtText != null && !text.equals(builtText)) {
-          folds = shiftFolds(builtText, text, folds);
+          folds = shiftFolds(edits(builtText, text), folds);
         }
         folds = reconcileFolds(folds, found, text);
       }
@@ -442,36 +516,97 @@ public final class CodeEditor {
       ranges = found.folds();
     }
 
+    private record Marks(
+        List<Diagnostic> diagnostics, List<Marker> markers, List<Highlight> highlights) {}
+
+    private static final class Layer {
+      final String text;
+      final List<Mark> original;
+      String checked; // the value the marks were last moved to, by identity
+      List<Mark> mapped;
+
+      Layer(String text, List<Mark> original) {
+        this.text = text;
+        this.original = original;
+        checked = text;
+        mapped = original;
+      }
+
+      List<Mark> marksFor(String value, State state) {
+        if (value != checked) {
+          if (value.equals(text)) {
+            mapped = original;
+          } else if (!mapped.isEmpty()) {
+            mapped = moved(mapped, state.edits(checked, value));
+          }
+          checked = value;
+        }
+        return mapped;
+      }
+
+      private static List<Mark> moved(List<Mark> marks, TextEdits edits) {
+        List<Mark> out = new ArrayList<>(marks.size());
+        for (Mark mark : marks) {
+          Mark shifted = shift(mark, edits);
+          if (shifted != null) {
+            out.add(shifted);
+          }
+        }
+        return List.copyOf(out);
+      }
+    }
+
+    private static Mark shift(Mark mark, TextEdits edits) {
+      return switch (mark) {
+        case Diagnostic d -> {
+          int from = edits.mapRange(d.from(), d.to());
+          yield from < 0
+              ? null
+              : new Diagnostic(
+                  from, from + Math.max(0, d.to() - d.from()), d.severity(), d.message());
+        }
+        case Marker m -> {
+          int at = edits.mapPoint(m.at());
+          yield at < 0 ? null : new Marker(at, m.symbol(), m.tone(), m.label(), m.onPress());
+        }
+        case Highlight h -> {
+          int from = edits.mapRange(h.from(), h.to());
+          yield from < 0 ? null : new Highlight(from, from + Math.max(0, h.to() - h.from()));
+        }
+      };
+    }
+
     /**
-     * The diagnostics that show with {@code value}: those about it, and the problem that kept it
-     * from formatting, in the view's texts.
+     * All marks that show with {@code value}, after {@link #updateFolds} read its string as the
+     * field shows it: every markup layer moved to it, the unmoved {@link #markers}, and the problem
+     * that kept {@code value} from formatting.
      */
-    private List<Diagnostic> diagnosticsOf(String value) {
+    private Marks marksOf(String value) {
       if (problem != null && !value.equals(problemOf)) { // at once for the same string object
         shown = shown == problem.from() ? -1 : shown; // its message goes, not on to another
         problem = null;
         problemOf = null;
       }
-      List<Diagnostic> about = aboutValue(value);
-      if (problem == null) {
-        return about;
+      if (layers.isEmpty() && problem == null) {
+        return new Marks(List.of(), markers, List.of());
       }
-      String message = Texts.CURRENT.get().formatProblem(problem.kind());
-      return Stream.concat(
-              about.stream(),
-              Stream.of(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message)))
-          .toList();
-    }
-
-    private List<Diagnostic> aboutValue(String value) {
-      if (diagnostics.isEmpty()) {
-        return List.of();
+      List<Diagnostic> diagnostics = new ArrayList<>();
+      List<Marker> allMarkers = markers.isEmpty() ? new ArrayList<>() : new ArrayList<>(markers);
+      List<Highlight> highlights = new ArrayList<>();
+      for (Layer layer : layers.values()) {
+        for (Mark mark : layer.marksFor(builtText, this)) { // in the string as the field shows it
+          switch (mark) {
+            case Diagnostic d -> diagnostics.add(d);
+            case Marker m -> allMarkers.add(m);
+            case Highlight h -> highlights.add(h);
+          }
+        }
       }
-      if (value != checked) { // the same string as before is compared once
-        checked = value;
-        current = value.equals(diagnosed);
+      if (problem != null) {
+        String message = Texts.CURRENT.get().formatProblem(problem.kind());
+        diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
-      return current ? diagnostics : List.of();
+      return new Marks(diagnostics, allMarkers, highlights);
     }
   }
 
@@ -535,7 +670,6 @@ public final class CodeEditor {
         : state.caret == state.anchor
             ? CodeWords.start(value, Math.min(state.caret, value.length()), extra)
             : Math.min(state.caret, state.anchor);
-    List<Diagnostic> diagnostics = state.diagnosticsOf(value);
     El rail = El.el()
         .fill(theme.surface().band())
         .border(0, theme.size().stroke(), 0, 0, theme.border().divider())
@@ -555,7 +689,11 @@ public final class CodeEditor {
       editor.highlight(highlighter, highlighter);
     }
     state.updateFolds(value, editor, editor.bracketFolds());
-    editor.folds(state.folds(), state::unfold, fold -> foldMark(theme));
+    editor.folds(state.folds(), state::ask, fold -> foldMark(theme));
+    State.Marks marks = state.marksOf(value);
+    List<Diagnostic> diagnostics = marks.diagnostics();
+    List<Marker> markers = marks.markers();
+    List<Highlight> highlights = marks.highlights();
     int[] pair = editor.matchingBracket(state.caret);
     editor
         .decorate((line, start, text, out) -> {
@@ -575,13 +713,18 @@ public final class CodeEditor {
               }
             }
           }
+          for (Highlight h : highlights) {
+            if (h.to > start && h.from < end) {
+              out.background(h.from - start, h.to - start, code.occurrence());
+            }
+          }
           for (Diagnostic d : diagnostics) {
             if (d.to > start && d.from <= end) {
               out.squiggle(d.from - start, d.to - start, color(theme, d.severity));
             }
           }
         })
-        .gutter(line -> cell(app, theme, state, editor, diagnostics, line), rail);
+        .gutter(line -> cell(app, theme, state, editor, diagnostics, markers, line), rail);
     El message = message(state, diagnostics);
     if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
       editor.whenFocusWithin(e -> e.overlay(message));
@@ -690,6 +833,7 @@ public final class CodeEditor {
       State state,
       El editor,
       List<Diagnostic> diagnostics,
+      List<Marker> markers,
       El.Gutter.Line line) {
     Theme.TextStyle mono = theme.type().mono();
     float bar = theme.size().indicator();
@@ -702,7 +846,7 @@ public final class CodeEditor {
       cell.fill(theme.code().block()).border(0, 0, 0, bar, theme.accent().edge());
     }
     return cell.children(
-        marker(theme, state, diagnostics, line).w(mono.size()).shrink(0),
+        marker(theme, markers, diagnostics, line).w(mono.size()).shrink(0),
         El.text(String.valueOf(line.index() + 1))
             .font(mono.font().get())
             .fontSize(mono.size())
@@ -783,7 +927,7 @@ public final class CodeEditor {
    * it; an empty place for one where there is none, so that the numbers stay where they are.
    */
   private static El marker(
-      Theme theme, State state, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+      Theme theme, List<Marker> markers, List<Diagnostic> diagnostics, El.Gutter.Line line) {
     Texts texts = Texts.CURRENT.get(); // the gutter builds in the view's values
     float size = theme.type().mono().size();
     StringBuilder messages = new StringBuilder();
@@ -817,7 +961,7 @@ public final class CodeEditor {
           messages.isEmpty() ? (error ? texts.error() : texts.warning()) : messages.toString(),
           Tooltip.options().kind(error ? Callout.Kind.DANGER : Callout.Kind.WARNING));
     }
-    for (Marker m : state.markers) {
+    for (Marker m : markers) {
       if (m.at >= line.start() && m.at <= line.end()) {
         place
             .role(m.onPress == null ? "img" : "button")
@@ -1162,6 +1306,14 @@ public final class CodeEditor {
    */
   record Folded(El.Fold lines, int open, int close) {}
 
+  /** {@code text} as a field shows it, with each line break one line feed ({@link El#multiline}). */
+  private static String displayed(String text) {
+    return text.replace("\r\n", "\n")
+        .replace('\r', '\n')
+        .replace('\u2028', '\n')
+        .replace('\u2029', '\n');
+  }
+
   /** The folds sorted by their first line, the widest where several start on one line. */
   private static List<Folded> sorted(List<Folded> folds) {
     Map<Integer, Folded> byFirst = new HashMap<>();
@@ -1175,30 +1327,24 @@ public final class CodeEditor {
   }
 
   /**
-   * Moves the brackets of {@code folds} across the edit from {@code before} to {@code after}, by
-   * their common prefix and suffix: a bracket after the edited characters moves with them, and a
-   * fold whose bracket was among them goes. Folds not found yet stay as they are.
+   * Moves the brackets of {@code folds} across {@code edits}: each
+   * bracket moves with the text around it, and a fold whose bracket was deleted or replaced goes.
+   * Folds not found yet stay as they are.
    */
-  static List<Folded> shiftFolds(String before, String after, List<Folded> folds) {
-    TextChange change = TextChange.between(before, after);
-    int delta = change.newEnd() - change.oldEnd();
+  static List<Folded> shiftFolds(TextEdits edits, List<Folded> folds) {
     List<Folded> out = new ArrayList<>(folds.size());
     for (Folded f : folds) {
       if (f.open() < 0) {
         out.add(f);
         continue;
       }
-      int open = moved(f.open(), change, delta);
-      int close = moved(f.close(), change, delta);
+      int open = edits.mapRange(f.open(), f.open() + 1);
+      int close = edits.mapRange(f.close(), f.close() + 1);
       if (open >= 0 && close >= 0) {
         out.add(new Folded(f.lines(), open, close)); // its lines are found again
       }
     }
     return out;
-  }
-
-  private static int moved(int at, TextChange change, int delta) {
-    return at < change.start() ? at : at >= change.oldEnd() ? at + delta : -1;
   }
 
   /**

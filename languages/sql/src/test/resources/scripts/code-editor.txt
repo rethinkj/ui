@@ -27,10 +27,10 @@ up role=button label="Run statement"
 frame
 snap ran               # it ran, and the caret stayed where it was
 
-type "x"               # the text is no longer the one the error is about: it goes
+type "x"               # an edit elsewhere keeps the error
 frame
 snap edited
-key Backspace          # back to that text: it shows again
+key Backspace          # back to the original query
 frame
 
 key End control        # the last line: the gutter scrolls with the text

@@ -149,11 +149,16 @@ final class Editors {
         new CodeEditor.Marker(0, Symbol.PLAY, Icon.Variant.ACCENT, "Run statement", this::run)));
   }
 
-  /** The database refused {@code statement}: its error shows while the text is that statement. */
+  /** The database refused {@code statement}: its error moves with edits elsewhere. */
   void refused(String statement, int from, int to, String message) {
     editor.diagnostics(
         statement,
         List.of(new CodeEditor.Diagnostic(from, to, CodeEditor.Severity.ERROR, message)));
+  }
+
+  /** Highlights references to a symbol in a layer of its own alongside diagnostics. */
+  void showReferences(String source, List<CodeEditor.Highlight> usages) {
+    editor.markup("references", source, usages);
   }
   // docs:end code-editor-marks
 

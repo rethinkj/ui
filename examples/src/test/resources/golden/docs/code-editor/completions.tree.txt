@@ -3,7 +3,7 @@ el 0,0 520x260
     el 13,13 494x33
       text role=heading "orders.sql" 29,21 70x17 level=3
       el 107,30 384x0
-    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';\nJOIN or" 13,46 494x145 lines 1-4/4 focused caret 59 (4:8)
+    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';\nJOIN or" 13,46 494x145 lines 1-4/4 squiggle 22-28 focused caret 59 (4:8)
       el #rail 13,47 50x144
       el #gutter 13,51 49x128
         el #line-0 13,51 49x16
@@ -12,7 +12,8 @@ el 0,0 520x260
           text "1" 35,51 7x16
           el 46,59 12x0
         el #line-1 13,67 49x16
-          el 19,75 12x0
+          el #marker role=img label="Error" 19,69 12x12 error="relation \"orders\" does not exist"
+            text label="dismiss" "\u{F367}" 19,69 12x12
           text "2" 35,67 7x16
           el 46,75 12x0
         el #line-2 13,83 49x16

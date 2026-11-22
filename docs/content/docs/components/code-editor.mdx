@@ -135,8 +135,9 @@ By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/
 
 The left gutter displays a marker column, line numbers, and fold chevrons. You can attach:
 - **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
-- **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
-- **Diagnostics (`diagnostics(text, list)`):** Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
+- **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips, at positions in the current string.
+- **Markup layers (`markup(layer, text, list)`):** Named layers of `CodeEditor.Mark` items — `Diagnostic`, `Marker`, or `Highlight` (a background in `code().occurrence()`, such as usages of a symbol) — computed for `text`. Each provider uses its own layer name (such as `"analysis"`, `"references"`, or `"app"`), and all layers show together. Marks move across edits elsewhere in the text without growing at their ends; a mark whose own text is edited is dropped, and undoing back to `text` restores the originals. Clear a layer with `noMarkup(layer)`.
+- **Diagnostics (`diagnostics(text, list)`):** Shorthand for `markup("diagnostics", text, list)` (and `noDiagnostics()` for `noMarkup("diagnostics")`). Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics move with edits elsewhere, are dropped when their own characters are edited, and come back when undoing back to `text`.
 
 When you pass the app, **F8** moves the cursor to the start of the next diagnostic and **Shift+F8** moves to the previous one, wrapping around at both ends. The diagnostic message appears above the cursor (styled like the marker's tooltip) while the editor has focus. It stays visible until the cursor leaves the diagnostic or you press **Escape**. **Escape** closes an open completion list or find bar first. If there are no diagnostics, these keys do nothing.
 
@@ -206,8 +207,9 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `replaceSelection(text)` | Replaces the selection with `text` right after the handler, as one undo step |
 | `replaceSelection(text, caret)` | Same as above, placing the cursor at `caret` inside `text` (from 0 to its length) |
 | `replace(from, to, text, caret)` | Replaces characters from `from` to `to` with `text` in the same way, placing the cursor at `caret` inside `text` |
-| `diagnostics(text, list)`, `noDiagnostics()` | Sets or clears `CodeEditor.Diagnostic(from, to, severity, message)` items for `text` |
-| `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items |
+| `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`) for `text`, moving them across edits |
+| `diagnostics(text, list)`, `noDiagnostics()` | Shorthand for `markup("diagnostics", text, list)` and `noMarkup("diagnostics")` |
+| `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
 | `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |

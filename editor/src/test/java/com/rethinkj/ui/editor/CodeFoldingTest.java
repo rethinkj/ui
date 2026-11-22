@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Spans;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -133,6 +135,56 @@ class CodeFoldingTest {
     assertEquals(List.of(new El.Fold(2, 5)), doc.editor.folds());
     edit(app, doc, "  }\n]", "  }\n"); // the fold's closing bracket goes, and with it the fold
     assertEquals(List.of(), doc.editor.folds());
+  }
+
+  @Test
+  void foldsSurviveBulkReplacementsAndFormatting() {
+    Doc doc = new Doc("""
+        foo = 1
+        "items": [
+          "a",
+          "b"
+        ]
+        foo = 2""");
+    doc.editor.folds(List.of(new El.Fold(1, 3)));
+    // Formats as a formatter does: other white space between the same characters.
+    Highlighter formats = new Highlighter() {
+      @Override
+      public Object line(String line, Object state, Spans out) {
+        return QUOTED.line(line, state, out);
+      }
+
+      @Override
+      public boolean marksBrackets() {
+        return true;
+      }
+
+      @Override
+      public Function<String, Formatted> formatter() {
+        return text ->
+            new Formatted(text.replace(" = ", "   =   ").replace("\"a\",", "\"a\",\n"), null);
+      }
+    };
+    App<Doc> app = app(doc, formats);
+    app.resize(420, 240, 1);
+    app.frame();
+    assertEquals(List.of(new El.Fold(1, 3)), doc.editor.folds());
+
+    // Replace All: one edit from the first match to the last, across the fold.
+    int from = doc.text.indexOf("foo");
+    int to = doc.text.lastIndexOf("foo") + 3;
+    String replaced = doc.text.substring(from, to).replace("foo", "updated\nvalue");
+    doc.editor.replace(from, to, replaced, replaced.length());
+    app.frame();
+    app.frame();
+    assertEquals(List.of(new El.Fold(2, 4)), doc.editor.folds());
+
+    // Control+Alt+L: one edit of the whole text, with white space changed inside the fold.
+    CodeEditor.run(app, doc.editor, CodeEditor.Command.FORMAT);
+    app.frame();
+    app.frame();
+    assertTrue(doc.text.contains("value   =   2"), doc.text);
+    assertEquals(List.of(new El.Fold(2, 5)), doc.editor.folds());
   }
 
   private static void edit(App<Doc> app, Doc doc, String from, String to) {
