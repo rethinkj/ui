@@ -501,6 +501,11 @@ public interface Texts {
     return "Deprecated:";
   }
 
+  /** The label of a code editor's find-usages menu. */
+  default String usages() {
+    return "Usages";
+  }
+
   /**
    * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
    * code editor says it.

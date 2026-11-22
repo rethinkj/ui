@@ -517,6 +517,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String usages() {
+    return "Verwendungen";
+  }
+
+  @Override
   public String formatProblem(Formatted.Kind kind) {
     return switch (kind) {
       case UNEXPECTED -> "Hier nicht erwartet";

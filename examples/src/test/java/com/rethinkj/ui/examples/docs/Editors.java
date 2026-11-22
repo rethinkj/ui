@@ -212,6 +212,55 @@ final class Editors {
   /** Doc comments rendered; a link in one goes to {@link #link}. */
   final CodeEditor.State javaEditor = new CodeEditor.State().readerMode(true).onLink(this::link);
   // docs:end code-editor-reader-mode-state
+  String cteQuery = """
+      WITH paid_orders AS (
+        SELECT id, total
+        FROM orders
+      )
+      SELECT id, total
+      FROM paid_orders
+      WHERE total > (SELECT avg(total) FROM paid_orders);""";
+  CodeEditor.Location openedLocation;
+  // docs:start code-editor-navigation
+  final CodeEditor.State navigatedEditor = new CodeEditor.State()
+      .declaration(this::declarationAt)
+      .usages(this::usagesAt)
+      .onOpen(this::openLocation);
+
+  CodeEditor.Location declarationAt(int offset) {
+    int start = CodeWords.start(cteQuery, offset);
+    int end = CodeWords.end(cteQuery, offset);
+    return switch (cteQuery.substring(start, end)) {
+      case "paid_orders" -> {
+        int declared = cteQuery.indexOf("paid_orders");
+        yield new CodeEditor.Location(declared, declared + "paid_orders".length());
+      }
+      case "orders" -> new CodeEditor.Location("schema.sql", 14, 20, null);
+      default -> null;
+    };
+  }
+
+  List<CodeEditor.Location> usagesAt(int offset) {
+    int start = CodeWords.start(cteQuery, offset);
+    int end = CodeWords.end(cteQuery, offset);
+    if (!cteQuery.substring(start, end).equals("paid_orders")) {
+      return List.of();
+    }
+    List<CodeEditor.Location> found = new ArrayList<>();
+    String symbol = "paid_orders";
+    for (int at = cteQuery.indexOf(symbol);
+        at >= 0;
+        at = cteQuery.indexOf(symbol, at + symbol.length())) {
+      found.add(new CodeEditor.Location(at, at + symbol.length()));
+    }
+    found.add(new CodeEditor.Location("report.sql", 8, 19, null));
+    return found;
+  }
+
+  void openLocation(CodeEditor.Location location) {
+    openedLocation = location;
+  }
+  // docs:end code-editor-navigation
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
@@ -551,6 +600,20 @@ final class Editors {
         .lines(16)
         .wFull();
     // docs:end code-editor-reader-mode
+    return Frame.of(editor);
+  }
+
+  void cteQuery(String value) {
+    cteQuery = value;
+  }
+
+  static El navigation(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.cteQuery, state.navigatedEditor, Sql.of(), state::cteQuery)
+        .key("navigation")
+        .label("Query")
+        .lines(8)
+        .wFull();
     return Frame.of(editor);
   }
 

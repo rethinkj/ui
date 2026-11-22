@@ -2871,8 +2871,9 @@ public final class El {
    * modifiers held, as a table selects a cell before the pointer moves on to select more. It does
    * not make this element the target of the press: {@link #onPress} and {@link #onDrag} of this
    * element or of an ancestor still get the press and the drag that follow. A press on a
-   * scrollbar, in a text field or outside an open overlay runs no such handler. Like {@link
-   * #onPress}, it runs in {@link App#frame}.
+   * scrollbar or outside an open overlay runs no such handler; a press in a text field runs only
+   * the field's own handler, after the field places its caret, and never an ancestor's. Like
+   * {@link #onPress}, it runs in {@link App#frame}.
    *
    * @param handler told how, or null for none
    */

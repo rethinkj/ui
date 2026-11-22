@@ -561,6 +561,11 @@ public final class App<S> {
           editor.fromShown(field.text().hit(at[0], at[1])),
           clicks,
           (modifiers & Key.SHIFT) != 0);
+      if (field.onPointerDown() != null) {
+        double[] pos = content(field, x, y);
+        field.onPointerDown().press(clicks, modifiers, pos[0], pos[1]);
+        handled = true;
+      }
       return true;
     }
     Target target = target(x, y);
@@ -3193,6 +3198,9 @@ public final class App<S> {
         editor = state.editor;
         Editor was = editors.put(id, editor);
         if (was != editor) { // back in the tree, maybe where another field was
+          if (capture instanceof Selecting s && s.id().equals(id)) {
+            capture = IDLE;
+          }
           if (was != null) {
             if (was.element().fieldState() == null) {
               was.drop();
@@ -3206,6 +3214,9 @@ public final class App<S> {
       editor.highlightBudget(highlightBudget);
       editor.attach(el);
       if (state != null && state.caret >= 0) {
+        if (capture instanceof Selecting s && s.id().equals(id)) {
+          capture = IDLE;
+        }
         editor.select(state.caret, state.anchor);
         state.caret = -1;
       }
@@ -3491,6 +3502,9 @@ public final class App<S> {
       El now = animator.element(id);
       if (now == null || now.editor() == null) {
         return false;
+      }
+      if (capture instanceof Selecting s && s.id().equals(id)) {
+        capture = IDLE;
       }
       now.editor().select(caret, anchor);
       handled |= now.editor().unfoldPending();

@@ -63,6 +63,9 @@ public final class CodeEditor {
   /** The columns of a step of indentation, at which guides stand: four, as the field's tabs. */
   private static final int INDENT = 4;
 
+  /** The markup layer of {@link Command#HIGHLIGHT_USAGES}. */
+  private static final String USAGES_LAYER = "usages";
+
   /**
    * What an editor does besides typing, each as one step of the undo history where it edits, with
    * its keys; {@link #run} runs one, as an Edit menu does.
@@ -124,7 +127,24 @@ public final class CodeEditor {
      * source, when the highlighter is a {@link Language}. It has no key of its own: Control+Alt+Q,
      * as in other editors, is AltGr+Q on Windows, which types {@code @} on some layouts.
      */
-    TOGGLE_DOC_COMMENT
+    TOGGLE_DOC_COMMENT,
+    /**
+     * Control+B: goes to the declaration ({@link State#declaration}) of the symbol at the caret,
+     * unfolding and scrolling it into view, or passing a location in another document to {@link
+     * State#onOpen}.
+     */
+    GO_TO_DECLARATION,
+    /**
+     * Alt+F7: opens a menu at the caret listing the usages ({@link State#usages}) of the symbol at
+     * the caret; choosing one goes to its location.
+     */
+    FIND_USAGES,
+    /**
+     * Control+Shift+F7: highlights the usages ({@link State#usages}) of the symbol at the caret in
+     * this document in the {@code "usages"} markup layer and along the scrollbar, until Escape in
+     * the editor.
+     */
+    HIGHLIGHT_USAGES
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -225,6 +245,32 @@ public final class CodeEditor {
     }
   }
 
+  /**
+   * A location in this editor's document or in another document of the app, supplied by {@link
+   * State#declaration} or {@link State#usages}. Positions are UTF-16 offsets in the displayed text
+   * ({@link State}).
+   *
+   * @param document null for this editor's own document, or the app's name for another document
+   *     (passed to {@link State#onOpen})
+   * @param from start offset, 0 or more
+   * @param to end offset, at least {@code from}
+   * @param label text shown in the find-usages menu; null lets the editor show {@code "<line>:
+   *     <trimmed line>"} for this document and {@code document} for another
+   */
+  public record Location(String document, int from, int to, String label) {
+    public Location {
+      if (from < 0 || to < from) {
+        throw new IllegalArgumentException(
+            "from must be 0 or more and to at least from, were " + from + " and " + to);
+      }
+    }
+
+    /** A location in this editor's own document, with its menu label derived from the line. */
+    public Location(int from, int to) {
+      this(null, from, to, null);
+    }
+  }
+
   /** The command of a key, or null. */
   static Command command(Key k) {
     int mods = k.modifiers();
@@ -244,6 +290,11 @@ public final class CodeEditor {
       case "]" -> mods == controlShift ? Command.UNFOLD : null;
       case "Enter" -> mods == Key.ALT ? Command.QUICK_FIXES : null;
       case "Q" -> mods == Key.CONTROL ? Command.QUICK_DOCUMENTATION : null;
+      case "B" -> mods == Key.CONTROL ? Command.GO_TO_DECLARATION : null;
+      case "F7" ->
+        mods == Key.ALT
+            ? Command.FIND_USAGES
+            : mods == controlShift ? Command.HIGHLIGHT_USAGES : null;
       default -> null;
     };
   }
@@ -332,6 +383,18 @@ public final class CodeEditor {
         return size() > 256;
       }
     };
+    // Code navigation: declaration and usages providers, open usages menu and Ctrl-hover link.
+    private IntFunction<Location> declaration;
+    private IntFunction<List<Location>> usages;
+    private Consumer<Location> onOpen;
+    private final Menu.State usagesMenu = new Menu.State();
+    private List<Location> usagesFound = List.of();
+    private String usagesValue;
+    private String navValue;
+    private int navFrom = -1;
+    private int navTo = -1;
+    private Location navTarget;
+    private Layer usagesShown; // the usages layer HIGHLIGHT_USAGES set, not one of the app's
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -630,6 +693,69 @@ public final class CodeEditor {
       overDoc = false;
     }
 
+    /**
+     * Supplies the declaration of the symbol at a character offset in the editor's string, or null
+     * for none. Reached with Control+B ({@link Command#GO_TO_DECLARATION}) or Control+click, which
+     * underlines the hovered word and shows a pointer cursor while Control is held. Null, the
+     * default, disables go to declaration.
+     */
+    public State declaration(IntFunction<Location> provider) {
+      declaration = provider;
+      if (provider == null) {
+        clearNavigation();
+      }
+      return this;
+    }
+
+    /**
+     * Supplies the usages of the symbol at a character offset in the editor's string, or null or an
+     * empty list for none. Listed in a menu at the caret with Alt+F7 ({@link Command#FIND_USAGES})
+     * and highlighted in this document in the {@code "usages"} markup layer with Control+Shift+F7
+     * ({@link Command#HIGHLIGHT_USAGES}). Null, the default, disables finding and highlighting
+     * usages.
+     */
+    public State usages(IntFunction<List<Location>> provider) {
+      usages = provider;
+      if (provider == null) {
+        closeUsagesMenu();
+        clearUsages();
+      }
+      return this;
+    }
+
+    /**
+     * Called when navigating to a {@link Location} whose {@link Location#document document} is not
+     * null: the app opens that document and selects the location on its {@link State}. Without a
+     * handler, locations in other documents do nothing.
+     */
+    public State onOpen(Consumer<Location> handler) {
+      onOpen = handler;
+      return this;
+    }
+
+    private void closeUsagesMenu() {
+      usagesMenu.close();
+      usagesFound = List.of();
+      usagesValue = null;
+    }
+
+    /** Removes the usages layer if it is still the one HIGHLIGHT_USAGES set; whether it was. */
+    private boolean clearUsages() {
+      boolean own = usagesShown != null && layers.get(USAGES_LAYER) == usagesShown;
+      if (own) {
+        layers.remove(USAGES_LAYER);
+      }
+      usagesShown = null;
+      return own;
+    }
+
+    private void clearNavigation() {
+      navValue = null;
+      navFrom = -1;
+      navTo = -1;
+      navTarget = null;
+    }
+
     private void fold(El.BracketFold pair) {
       List<Folded> next = new ArrayList<>(folds);
       next.add(new Folded(pair.lines(), pair.open(), pair.close()));
@@ -881,7 +1007,8 @@ public final class CodeEditor {
         List<Diagnostic> diagnostics,
         List<Diagnostic> currentDiagnostics,
         List<Marker> markers,
-        List<Highlight> highlights) {}
+        List<Highlight> highlights,
+        List<Highlight> usageHighlights) {}
 
     private static final class Layer {
       final String text;
@@ -956,13 +1083,16 @@ public final class CodeEditor {
         problemOf = null;
       }
       if (layers.isEmpty() && problem == null) {
-        return new Marks(List.of(), List.of(), markers, List.of());
+        return new Marks(List.of(), List.of(), markers, List.of(), List.of());
       }
       List<Diagnostic> diagnostics = new ArrayList<>();
       List<Diagnostic> current = new ArrayList<>();
       List<Marker> allMarkers = markers.isEmpty() ? new ArrayList<>() : new ArrayList<>(markers);
       List<Highlight> highlights = new ArrayList<>();
-      for (Layer layer : layers.values()) {
+      List<Highlight> usageHighlights = new ArrayList<>();
+      for (Map.Entry<String, Layer> entry : layers.entrySet()) {
+        boolean isUsages = USAGES_LAYER.equals(entry.getKey());
+        Layer layer = entry.getValue();
         boolean fresh = layer.text.equals(builtText);
         for (Mark mark : layer.marksFor(builtText, this)) { // in the string as the field shows it
           switch (mark) {
@@ -973,7 +1103,12 @@ public final class CodeEditor {
               }
             }
             case Marker m -> allMarkers.add(m);
-            case Highlight h -> highlights.add(h);
+            case Highlight h -> {
+              highlights.add(h);
+              if (isUsages) {
+                usageHighlights.add(h);
+              }
+            }
           }
         }
       }
@@ -981,7 +1116,7 @@ public final class CodeEditor {
         String message = Texts.CURRENT.get().formatProblem(problem.kind());
         diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
-      return new Marks(diagnostics, current, allMarkers, highlights);
+      return new Marks(diagnostics, current, allMarkers, highlights, usageHighlights);
     }
   }
 
@@ -1070,6 +1205,7 @@ public final class CodeEditor {
     List<Diagnostic> currentDiagnostics = marks.currentDiagnostics();
     List<Marker> markers = marks.markers();
     List<Highlight> highlights = marks.highlights();
+    List<Highlight> usageHighlights = marks.usageHighlights();
     boolean editable = app != null && editor.onEdit() != null && !editor.isReadOnly();
     List<Fix> fixes = editable ? fixesAt(currentDiagnostics, state.caret) : List.of();
     boolean fixError = !fixes.isEmpty() && fixError(currentDiagnostics, state.caret);
@@ -1079,6 +1215,13 @@ public final class CodeEditor {
     }
     state.fixesShown = state.quickFixes.isOpen() ? fixes : null;
     state.updateDocs(highlighter, app);
+    if (state.navFrom >= 0 && (state.declaration == null || !value.equals(state.navValue))) {
+      state.clearNavigation();
+    }
+    if (state.usagesMenu.isOpen()
+        && (state.usagesFound.isEmpty() || !value.equals(state.usagesValue))) {
+      state.closeUsagesMenu();
+    }
     wireBlocks(theme, state, value, editor);
     int[] pair = editor.matchingBracket(state.caret);
     editor
@@ -1104,6 +1247,10 @@ public final class CodeEditor {
               out.background(h.from - start, h.to - start, code.occurrence());
             }
           }
+          if (state.navTarget != null && state.navTo > start && state.navFrom < end) {
+            out.underline(
+                state.navFrom - start, state.navTo - start, theme.prose().link());
+          }
           for (Diagnostic d : diagnostics) {
             if (d.to > start && d.from <= end) {
               out.squiggle(d.from - start, d.to - start, color(theme, d.severity));
@@ -1122,8 +1269,16 @@ public final class CodeEditor {
                 fixError,
                 line),
             rail);
-    if (!diagnostics.isEmpty()) {
-      List<Scrollbars.Mark> ticks = new ArrayList<>(diagnostics.size());
+    if (state.navTarget != null) {
+      editor.cursor(Cursor.POINTER);
+    }
+    if (!usageHighlights.isEmpty() || !diagnostics.isEmpty()) {
+      List<Scrollbars.Mark> ticks = new ArrayList<>(usageHighlights.size() + diagnostics.size());
+      for (Highlight h : usageHighlights) {
+        int from = Math.max(0, h.from());
+        ticks.add(
+            new Scrollbars.Mark(from, Math.max(from, h.to()), theme.accent().edge()));
+      }
       for (Diagnostic d : diagnostics) {
         int from = Math.max(0, d.from());
         ticks.add(new Scrollbars.Mark(from, Math.max(from, d.to()), color(theme, d.severity)));
@@ -1144,7 +1299,20 @@ public final class CodeEditor {
           .atCaret()
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
+    if (state.usagesMenu.isOpen() && !state.usagesFound.isEmpty()) {
+      String revision = state.builtText;
+      List<Menu.Item> items = new ArrayList<>(state.usagesFound.size());
+      for (Location loc : state.usagesFound) {
+        items.add(Menu.item(usageLabel(revision, loc), () -> goTo(app, state, editor, loc)));
+      }
+      editor.overlay(Menu.menu(state.usagesMenu, items)
+          .key("usages")
+          .label(Texts.CURRENT.get().usages())
+          .atCaret()
+          .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
+    }
     attachDocumentation(theme, state, editor, value, extra);
+    attachPointerNavigation(app, state, editor, value, extra);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
     if (app == null) {
@@ -1172,6 +1340,9 @@ public final class CodeEditor {
       if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
         return true;
       }
+      if (k.name().equals("Escape") && k.modifiers() == 0 && state.clearUsages()) {
+        return true;
+      }
       Command command = command(k);
       boolean editableNow = editor.onEdit() != null && !editor.isReadOnly();
       boolean formats = state.formatter != null
@@ -1185,8 +1356,12 @@ public final class CodeEditor {
           || (command == Command.QUICK_FIXES && !fixesHere)
           || (command == Command.QUICK_DOCUMENTATION
               && (state.documentation == null || app.focused() != editor))
+          || (command == Command.GO_TO_DECLARATION
+              && (state.declaration == null || app.focused() != editor))
+          || ((command == Command.FIND_USAGES || command == Command.HIGHLIGHT_USAGES)
+              && (state.usages == null || app.focused() != editor))
           || ((command == Command.FOLD || command == Command.UNFOLD) && app.focused() != editor)) {
-        return false; // Control+Alt+L and Alt+Enter stay the app's where not applicable
+        return false; // keys stay the app's where not applicable
       }
       run(app, state, command);
       return true;
@@ -1206,13 +1381,16 @@ public final class CodeEditor {
               Menu.item(texts.replace(), edits ? () -> Find.openReplace(state.find) : null)
                   .shortcut(Key.CONTROL, "H")));
     });
-    // Control+Alt+L and Alt+Enter, which the editor takes only where applicable, stay the app's.
+    // Commands the editor takes only where applicable stay the app's.
     return Find.find(app, editor, state.find, k -> {
       Command command = command(k);
       return command != null
           && command != Command.FORMAT
           && command != Command.QUICK_FIXES
-          && (command != Command.QUICK_DOCUMENTATION || state.documentation != null);
+          && (command != Command.QUICK_DOCUMENTATION || state.documentation != null)
+          && (command != Command.GO_TO_DECLARATION || state.declaration != null)
+          && ((command != Command.FIND_USAGES && command != Command.HIGHLIGHT_USAGES)
+              || state.usages != null);
     });
   }
 
@@ -1565,9 +1743,7 @@ public final class CodeEditor {
       return false;
     }
     int at = next(diagnostics, state.caret, k.modifiers() == Key.SHIFT);
-    app.select(editor, at, at);
-    state.caret = at;
-    state.anchor = at;
+    goTo(app, state, editor, at);
     state.shown = at;
     return true;
   }
@@ -1649,6 +1825,18 @@ public final class CodeEditor {
     }
     if (command == Command.TOGGLE_DOC_COMMENT) {
       toggleDocCommentAtCaret(app, state, editor, text, caret);
+      return;
+    }
+    if (command == Command.GO_TO_DECLARATION) {
+      goToDeclaration(app, state, editor, text, caret);
+      return;
+    }
+    if (command == Command.FIND_USAGES) {
+      findUsages(state, editor, text, caret);
+      return;
+    }
+    if (command == Command.HIGHLIGHT_USAGES) {
+      highlightUsages(state, editor, text, caret);
       return;
     }
     if (editor.onEdit() == null || editor.isReadOnly()) {
@@ -1753,9 +1941,7 @@ public final class CodeEditor {
     int at = Math.min(formatted.problem().from(), text.length());
     state.problem = formatted.problem();
     state.problemOf = state.value;
-    app.select(editor, at, at);
-    state.caret = at;
-    state.anchor = at;
+    goTo(app, state, editor, at);
     state.shown = at;
     return null;
   }
@@ -2459,10 +2645,60 @@ public final class CodeEditor {
     if (state.doc == null) {
       return;
     }
-    if (state.docHover) {
-      editor.onTextPointerMove((pos, mods) -> state.hoverPos = pos);
-    }
     editor.overlay(documentationPanel(theme, state));
+  }
+
+  /**
+   * Wires the single {@link El#onTextPointerMove} handler shared by hover documentation and
+   * Control+hover navigation, plus Control+click navigation via {@link El#onPointerDown}.
+   */
+  private static void attachPointerNavigation(
+      App<?> app, State state, El editor, String value, String extra) {
+    if ((state.doc != null && state.docHover) || state.declaration != null) {
+      editor.onTextPointerMove((pos, mods) -> {
+        state.hoverPos = pos;
+        if (state.declaration != null) {
+          updateNavigationHover(state, editor, value, extra, pos, mods);
+        }
+      });
+    }
+    if (state.declaration != null) {
+      editor.onPointerDown((clicks, mods, x, y) -> {
+        if (clicks != 1 || mods != Key.CONTROL || state.declaration == null) {
+          return;
+        }
+        // The word under the press, not the last hover's: the press can come before its move.
+        int pos =
+            editor.textPositionAt((float) (x - editor.scrollX()), (float) (y - editor.scrollY()));
+        state.clearNavigation(); // asks the app's resolver now, not the hover's cached answer
+        updateNavigationHover(state, editor, value, extra, pos, mods);
+        if (state.navTarget != null) {
+          goTo(app, state, editor, state.navTarget);
+        }
+      });
+    }
+  }
+
+  private static void updateNavigationHover(
+      State state, El editor, String value, String extra, int pos, int mods) {
+    if (mods != Key.CONTROL || pos < 0) {
+      state.clearNavigation();
+      return;
+    }
+    String text = editor.text().string();
+    if (pos >= text.length() || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+      state.clearNavigation();
+      return;
+    }
+    int from = CodeWords.start(text, pos, extra);
+    int to = CodeWords.end(text, pos, extra);
+    if (value.equals(state.navValue) && from == state.navFrom && to == state.navTo) {
+      return;
+    }
+    state.navValue = value;
+    state.navFrom = from;
+    state.navTo = to;
+    state.navTarget = state.declaration.apply(pos);
   }
 
   private static El documentationPanel(Theme theme, State state) {
@@ -2506,7 +2742,7 @@ public final class CodeEditor {
     String extra = editor.text().wordCharacters();
     int from = CodeWords.start(text, caret, extra);
     int to = CodeWords.end(text, caret, extra);
-    int query = from < to ? (caret < to ? caret : from) : caret;
+    int query = symbolOffset(text, caret, extra);
     MarkdownDocument doc = state.documentation.apply(query);
     if (doc == null) {
       state.closeDocumentation();
@@ -2519,5 +2755,101 @@ public final class CodeEditor {
     state.docCaret = state.caret;
     state.docHover = false;
     state.overDoc = false;
+  }
+
+  /** Offset inside the word at {@code caret} (for end-of-word carets), or {@code caret}. */
+  private static int symbolOffset(String text, int caret, String extra) {
+    int from = CodeWords.start(text, caret, extra);
+    int to = CodeWords.end(text, caret, extra);
+    return from < to ? (caret < to ? caret : from) : caret;
+  }
+
+  /**
+   * Moves the caret to {@code location}, revealing it through folds, or hands a location in
+   * another document to {@link State#onOpen}.
+   */
+  private static void goTo(App<?> app, State state, El editor, Location location) {
+    if (location == null) {
+      return;
+    }
+    if (location.document() != null) {
+      if (state.onOpen != null) {
+        state.onOpen.accept(location);
+      }
+      return;
+    }
+    goTo(app, state, editor, location.from());
+  }
+
+  /** Moves the caret to {@code at} in this editor and reveals it through folds and scrolling. */
+  private static void goTo(App<?> app, State state, El editor, int at) {
+    int clamped = Math.clamp(at, 0, editor.text().string().length());
+    if (app != null) {
+      app.select(editor, clamped, clamped);
+      state.caret = clamped;
+      state.anchor = clamped;
+    } else {
+      state.select(clamped, clamped);
+    }
+  }
+
+  private static void goToDeclaration(App<?> app, State state, El editor, String text, int caret) {
+    if (state.declaration == null) {
+      return;
+    }
+    int query = symbolOffset(text, caret, editor.text().wordCharacters());
+    goTo(app, state, editor, state.declaration.apply(query));
+  }
+
+  private static void findUsages(State state, El editor, String text, int caret) {
+    if (state.usages == null) {
+      return;
+    }
+    int query = symbolOffset(text, caret, editor.text().wordCharacters());
+    List<Location> found = state.usages.apply(query);
+    if (found == null || found.isEmpty()) {
+      state.closeUsagesMenu();
+      return;
+    }
+    state.usagesFound = List.copyOf(found);
+    state.usagesValue = state.value;
+    state.usagesMenu.openByKey();
+  }
+
+  private static void highlightUsages(State state, El editor, String text, int caret) {
+    if (state.usages == null) {
+      return;
+    }
+    int query = symbolOffset(text, caret, editor.text().wordCharacters());
+    List<Location> found = state.usages.apply(query);
+    List<Highlight> highlights = new ArrayList<>();
+    for (Location loc : found == null ? List.<Location>of() : found) {
+      if (loc.document() == null) {
+        highlights.add(new Highlight(loc.from(), loc.to()));
+      }
+    }
+    state.clearUsages();
+    if (!highlights.isEmpty()) {
+      state.markup(USAGES_LAYER, text, highlights);
+      state.usagesShown = state.layers.get(USAGES_LAYER);
+    }
+  }
+
+  private static String usageLabel(String text, Location location) {
+    if (location.label() != null) {
+      return location.label();
+    }
+    if (location.document() != null) {
+      return location.document();
+    }
+    int at = Math.min(location.from(), text.length());
+    int line = lineOf(text, at) + 1;
+    int start = at == 0 ? 0 : text.lastIndexOf('\n', at - 1) + 1;
+    int end = text.indexOf('\n', at);
+    if (end < 0) {
+      end = text.length();
+    }
+    String snippet = text.substring(start, end).strip();
+    return snippet.isEmpty() ? String.valueOf(line) : line + ": " + snippet;
   }
 }

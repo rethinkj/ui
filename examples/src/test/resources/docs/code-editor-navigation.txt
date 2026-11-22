@@ -1,0 +1,23 @@
+# Highlight usages of paid_orders with Ctrl+Shift+F7 and open the find-usages menu with Alt+F7.
+size 520 250 scale 2
+frame
+
+focus #navigation
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key F7 control shift
+frame
+key F7 alt
+frame
+advance 0.3
+frame
+snap usages
