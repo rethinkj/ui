@@ -1,0 +1,53 @@
+---
+title: Tree rows
+description: Expandable hierarchies with indentation, indent guides, and chevrons in the first column of a DataGrid.
+---
+
+`options().tree(rows, onToggle)` turns the first shown column of a `DataGrid` into an expandable tree using the same model, open state, indent guides, and chevrons as [Tree](/docs/components/tree), while the remaining columns display metrics or attributes as in any grid.
+
+Javadoc: [`DataGrid.Options#tree`](/api/com/rethinkj/ui/kit/DataGrid.Options.html), [`Tree.Rows`](/api/com/rethinkj/ui/kit/Tree.Rows.html), [`Tree.Model`](/api/com/rethinkj/ui/kit/Tree.Model.html).
+
+<Shot src="examples/docs/grid-tree/view-{theme}" alt="A schema overview in a tree data grid with indented database, schema, and table rows, indent guides, chevrons, and row count and size columns" />
+
+## Example
+
+Flatten your `Tree.Model` with `Tree.rows(model, isOpen)` during each build, pass `rows.count()` as the grid's row count, and look up the node for each row with `rows.node(row)`:
+
+```java snippet="grid-tree"
+```
+
+```java snippet="grid-tree-model"
+```
+
+- Pass `rows.count()` as `rowCount` (`dataGrid` throws `IllegalArgumentException` if they differ).
+- Your app owns the set of open nodes and updates it in `onToggle`, just like `Tree`.
+- Indentation uses `theme.space().l()` per level and caps at half the first column's width so chevrons and labels remain visible at any depth.
+- Pass `options().rowKey(...)` with a stable per-node key so the row-index selection stays on its node when branches above open or close.
+
+## Sorting
+
+`DataGrid` does not sort rows itself. In a tree grid, sort within siblings inside your `Tree.Model`: order `roots()` and each node's `children(node)` list by the grid's `SortKey`s so parent-child structure stays intact.
+
+## Lazy loading and errors
+
+When `Model.children(node)` returns `Tree.loading(...)` or `Tree.failed(message, action, onAction)`, the grid renders `Tree`'s spinner and loading text or error icon, message, and retry button at the child indent in the first column, and leaves all other columns empty.
+
+The grid never calls your column cell, icon, detail, tooltip, or editing functions for loading or failed rows (`rows.node(row)` is `null`), and copying writes empty fields for them.
+
+## Keyboard
+
+While the grid has focus (always in `Mode.ROWS`, and in `Mode.CELLS` while the cursor is in the first column):
+
+| Key | Action |
+| --- | --- |
+| Right | Open a closed node, or move to its first child |
+| Left | Close an open node, or move to its parent row |
+
+Otherwise Left and Right keep their normal grid behavior, and Up, Down, Home, End, Page Up, and Page Down work as in any grid. Clicking a chevron (`#mark-<row>`) moves the cursor to that row and toggles it.
+
+## In a tree dump
+
+Rows keep `role=row` and cells keep `role=gridcell`. Each row adds `level` (1-based), `pos` among its siblings, and `expanded` / `expanded=false` for non-leaf nodes; chevrons have key `#mark-<row>`:
+
+```text file="examples/src/test/resources/golden/docs/grid-tree/view.tree.txt" start="#row-0" count="12"
+```

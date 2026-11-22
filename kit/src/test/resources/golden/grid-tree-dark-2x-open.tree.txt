@@ -1,0 +1,149 @@
+el 0,0 460x260
+  el #schema role=grid label="Schema" 0,0 460x260 focused
+    el #content 0,0 460x260
+      el #header 0,0 460x25
+        el #column-0 role=columnheader label="name" 0,0 219x24 pos=1/3
+          text label="text_case_title" "\u{ECEC}" 4,4 16x16
+          text "name" 24,4 34x16
+        el 219,0 1x24
+        el #column-1 role=columnheader label="rows" 220,0 99x24 pos=2/3
+          text label="number_symbol" "\u{F57C}" 265,4 16x16
+          text "rows" 285,4 30x16
+        el 319,0 1x24
+        el #column-2 role=columnheader label="size" 320,0 89x24 pos=3/3
+          text label="text_case_title" "\u{ECEC}" 324,4 16x16
+          text "size" 344,4 25x16
+        el 409,0 1x24
+        el #resize-0 role=separator label="Resize name" 217,0 6x24
+        el #resize-1 role=separator label="Resize rows" 317,0 6x24
+        el #resize-2 role=separator label="Resize size" 407,0 6x24
+      el #rows 0,25 460x235 rows 0-8/9
+        el #row-0 role=row 0,25 460x24 expanded level=1 pos=1/1
+          el #cell-0-0 role=gridcell 0,25 219x23 pos=1/3 value="database"
+            el #mark-0 4,25 16x23
+              text label="chevron_down" "\u{F2A2}" 4,29 16x16
+            text label="database" "\u{F0D7}" 24,29 16x16
+            text "shop" 44,29 30x15
+            text "database" 78,29 57x15
+          el 219,25 1x23
+          el #cell-0-1 role=gridcell 220,25 99x23 pos=2/3
+            text "5,570,000" 250,29 65x16
+          el 319,25 1x23
+          el #cell-0-2 role=gridcell 320,25 89x23 pos=3/3
+            text "1.4 GB" 324,29 39x15
+          el 409,25 1x23
+        el #row-1 role=row 0,49 460x24 expanded level=2 pos=1/4
+          el #cell-1-0 role=gridcell 0,49 219x23 pos=1/3 value="schema"
+            el 12,49 1x23
+            el #mark-1 16,49 16x23
+              text label="chevron_down" "\u{F2A2}" 16,53 16x16
+            text label="folder" "\u{E643}" 36,53 16x16
+            text "public" 56,53 37x15
+            text "schema" 97,53 48x15
+          el 219,49 1x23
+          el #cell-1-1 role=gridcell 220,49 99x23 pos=2/3
+            text "1,370,000" 250,53 65x16
+          el 319,49 1x23
+          el #cell-1-2 role=gridcell 320,49 89x23 pos=3/3
+            text "330 MB" 324,53 48x15
+          el 409,49 1x23
+        el #row-2 role=row 0,73 460x24 selected current level=3 pos=1/3
+          el #cell-2-0 role=gridcell 0,73 219x23 pos=1/3
+            el 12,73 1x23
+            el 28,73 16x23
+            text label="table" "\u{EBF4}" 48,77 16x16
+            text "orders" 68,77 40x15
+          el 219,73 1x23
+          el #cell-2-1 role=gridcell 220,73 99x23 pos=2/3
+            text "1,000,000" 250,77 65x16
+          el 319,73 1x23
+          el #cell-2-2 role=gridcell 320,73 89x23 pos=3/3
+            text "248 MB" 324,77 48x15
+          el 409,73 1x23
+        el #row-3 role=row 0,97 460x24 level=3 pos=2/3
+          el #cell-3-0 role=gridcell 0,97 219x23 pos=1/3
+            el 12,97 1x23
+            el 28,97 16x23
+            text label="table" "\u{EBF4}" 48,101 16x16
+            text "customers" 68,101 65x15
+          el 219,97 1x23
+          el #cell-3-1 role=gridcell 220,97 99x23 pos=2/3
+            text "50,000" 272,101 43x16
+          el 319,97 1x23
+          el #cell-3-2 role=gridcell 320,97 89x23 pos=3/3
+            text "18 MB" 324,101 37x15
+          el 409,97 1x23
+        el #row-4 role=row 0,121 460x24 level=3 pos=3/3
+          el #cell-4-0 role=gridcell 0,121 219x23 pos=1/3
+            el 12,121 1x23
+            el 28,121 16x23
+            text label="table" "\u{EBF4}" 48,125 16x16
+            text "invoices" 68,125 50x15
+          el 219,121 1x23
+          el #cell-4-1 role=gridcell 220,121 99x23 pos=2/3
+            text "320,000" 264,125 51x16
+          el 319,121 1x23
+          el #cell-4-2 role=gridcell 320,121 89x23 pos=3/3
+            text "64 MB" 324,125 40x15
+          el 409,121 1x23
+        el #row-5 role=row 0,145 460x24 expanded=false level=2 pos=2/4
+          el #cell-5-0 role=gridcell 0,145 219x23 pos=1/3 value="schema"
+            el 12,145 1x23
+            el #mark-5 16,145 16x23
+              text label="chevron_right" "\u{F2AF}" 16,149 16x16
+            text label="folder" "\u{E643}" 36,149 16x16
+            text "audit" 56,149 30x15
+            text "schema" 90,149 48x15
+          el 219,145 1x23
+          el #cell-5-1 role=gridcell 220,145 99x23 pos=2/3
+            text "4,200,000" 250,149 65x16
+          el 319,145 1x23
+          el #cell-5-2 role=gridcell 320,145 89x23 pos=3/3
+            text "1.1 GB" 324,149 35x15
+          el 409,145 1x23
+        el #row-6 role=row 0,169 460x24 expanded level=2 pos=3/4
+          el #cell-6-0 role=gridcell 0,169 219x23 pos=1/3 value="schema"
+            el 12,169 1x23
+            el #mark-6 16,169 16x23
+              text label="chevron_down" "\u{F2A2}" 16,173 16x16
+            text label="folder" "\u{E643}" 36,173 16x16
+            text "staging" 56,173 45x15
+            text "schema" 105,173 48x15
+          el 219,169 1x23
+          el #cell-6-1 role=gridcell 220,169 99x23 pos=2/3
+            text "0" 308,173 7x16
+          el 319,169 1x23
+          el #cell-6-2 role=gridcell 320,169 89x23 pos=3/3
+            text "—" 324,173 13x15
+          el 409,169 1x23
+        el #row-7 role=row 0,193 460x24 level=3 pos=8/9
+          el #cell-7-0 role=gridcell label="Loading…" 0,193 219x23 pos=1/3
+            el 12,193 1x23
+            el 28,205 16x0
+            el role=progressbar label="Loading" 48,197 16x16
+              el 48,197 16x16
+              el 48,197 16x16
+              el 48,197 16x16
+              el 48,197 16x16
+              el 48,197 16x16
+            text "Loading…" 68,197 61x15
+          el 219,193 1x23
+          el #cell-7-1 role=gridcell 220,193 99x23 pos=2/3
+          el 319,193 1x23
+          el #cell-7-2 role=gridcell 320,193 89x23 pos=3/3
+          el 409,193 1x23
+        el #row-8 role=row 0,217 460x24 expanded=false level=2 pos=4/4
+          el #cell-8-0 role=gridcell 0,217 219x23 pos=1/3 value="schema"
+            el 12,217 1x23
+            el #mark-8 16,217 16x23
+              text label="chevron_right" "\u{F2AF}" 16,221 16x16
+            text label="folder" "\u{E643}" 36,221 16x16
+            text "archive" 56,221 45x15
+            text "schema" 105,221 48x15
+          el 219,217 1x23
+          el #cell-8-1 role=gridcell 220,217 99x23 pos=2/3
+            text "0" 308,221 7x16
+          el 319,217 1x23
+          el #cell-8-2 role=gridcell 320,217 89x23 pos=3/3
+            text "—" 324,221 13x15
+          el 409,217 1x23

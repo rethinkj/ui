@@ -175,7 +175,8 @@ final class GridEdit {
     if (row >= b.rowCount) { // the row to append: the app adds it before the first value
       return b.edits && b.o.onInsertRow != null;
     }
-    if (b.o.loaded != null && !b.o.loaded.test(row)
+    if (b.pending(row)
+        || b.o.loaded != null && !b.o.loaded.test(row)
         || b.o.rowStatus != null && b.o.rowStatus.apply(row) == Status.DELETED) {
       return false;
     }
