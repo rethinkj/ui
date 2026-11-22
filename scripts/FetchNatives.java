@@ -48,8 +48,13 @@ import java.util.zip.ZipFile;
  *
  * <p>A library with a {@code <name>.cmake} line comes from a source archive instead: the tool
  * builds it with cmake in {@code fetched/builds/<name>/}, with those options, and takes the entry
- * from the build folder. A build is reused while the archive, the options and the entry stay the
- * same. A source archive may also be a {@code .tar.xz} file, which {@code tar} unpacks.
+ * from the build folder. A build is reused while the archive, the options, the entry and any build
+ * dependencies stay the same. A source archive may also be a {@code .tar.xz} file, which {@code
+ * tar} unpacks.
+ *
+ * <p>Optional {@code dependencies} are built from source in order and installed into a shared
+ * prefix {@code fetched/builds/prefix/}, which later cmake builds receive as {@code
+ * CMAKE_PREFIX_PATH}. They are not packaged on their own and do not appear in {@code manifest.txt}.
  *
  * <p>For Linux, the build uses make and needs cmake, make, a C compiler and pkg-config, and fails
  * with what to install when one is missing; a library in C++ needs a C++ compiler too. For
@@ -143,38 +148,8 @@ final class FetchNatives {
     properties.load(new StringReader(new String(configBytes, StandardCharsets.UTF_8)));
 
     String platform = value(properties, config, "platform", PLATFORM);
-    List<Library> libraries = new ArrayList<>();
-    for (String name : value(properties, config, "libraries", null).split("\\s+")) {
-      if (!NAME.matcher(name).matches()) {
-        throw new Failure(config + ": '" + name + "' in libraries is not a library name"
-            + " (lower-case letters, digits and _).");
-      }
-      List<String> cmake = null;
-      if (properties.getProperty(name + ".cmake") != null) {
-        cmake = List.of(value(properties, config, name + ".cmake", null).split("\\s+"));
-        for (String option : cmake) {
-          if (!CMAKE_OPTION.matcher(option).matches()) {
-            throw new Failure(config + ": '" + option + "' in " + name + ".cmake is not an option"
-                + " -D<name>=<value>.");
-          }
-        }
-      }
-      Library library = new Library(
-          name,
-          value(properties, config, name + ".version", TOKEN),
-          uri(
-              config,
-              name + ".archive",
-              value(properties, config, name + ".archive", null),
-              cmake != null),
-          value(properties, config, name + ".archive.sha256", SHA256),
-          value(properties, config, name + ".entry", ENTRY),
-          cmake);
-      if (library.file().equals(MANIFEST)) {
-        throw new Failure(config + ": a library cannot be called " + MANIFEST + ".");
-      }
-      libraries.add(library);
-    }
+    List<Library> dependencies = parseLibraries(properties, config, "dependencies", false);
+    List<Library> libraries = parseLibraries(properties, config, "libraries", true);
 
     Path fetched = module.resolve("fetched");
     Path resources = fetched.resolve("resources");
@@ -189,8 +164,20 @@ final class FetchNatives {
 
     Path archives = fetched.resolve("archives");
     Files.createDirectories(archives);
+    for (Library dependency : dependencies) {
+      download(label, dependency, archives);
+    }
     for (Library library : libraries) {
       download(label, library, archives);
+    }
+
+    Path builds = fetched.resolve("builds");
+    Path prefix = null;
+    String prefixInputs = "";
+    if (!dependencies.isEmpty()) {
+      prefix = builds.resolve("prefix");
+      prefixInputs =
+          buildDependencies(label, config, platform, dependencies, archives, builds, prefix);
     }
 
     Path staging = Files.createTempDirectory(fetched, "resources-");
@@ -212,7 +199,7 @@ final class FetchNatives {
         Path archive = archives.resolve(library.archiveName());
         if (library.built()) {
           Files.copy(
-              build(label, config, platform, library, archive, fetched.resolve("builds")), file);
+              build(label, config, platform, library, archive, builds, prefix, prefixInputs), file);
         } else {
           try (ZipFile zip = new ZipFile(archive.toFile())) {
             ZipEntry entry = entry(zip, library.entry());
@@ -354,25 +341,142 @@ final class FetchNatives {
     }
   }
 
+  private static List<Library> parseLibraries(
+      Properties properties, Path config, String key, boolean packaged) throws Failure {
+    String raw = properties.getProperty(key);
+    if (!packaged && (raw == null || raw.isBlank())) {
+      return List.of();
+    }
+    List<Library> result = new ArrayList<>();
+    for (String name : value(properties, config, key, null).split("\\s+")) {
+      if (!NAME.matcher(name).matches()) {
+        throw new Failure(config + ": '" + name + "' in " + key + " is not a library name"
+            + " (lower-case letters, digits and _).");
+      }
+      List<String> cmake = null;
+      if (properties.getProperty(name + ".cmake") != null || !packaged) {
+        cmake = List.of(value(properties, config, name + ".cmake", null).split("\\s+"));
+        for (String option : cmake) {
+          if (!CMAKE_OPTION.matcher(option).matches()) {
+            throw new Failure(config + ": '" + option + "' in " + name + ".cmake is not an option"
+                + " -D<name>=<value>.");
+          }
+        }
+      }
+      String entry = null;
+      if (packaged) {
+        entry = value(properties, config, name + ".entry", ENTRY);
+      } else if (properties.getProperty(name + ".entry") != null) {
+        throw new Failure(
+            config + ": build dependency '" + name + "' must not set " + name + ".entry.");
+      }
+      Library library = new Library(
+          name,
+          value(properties, config, name + ".version", TOKEN),
+          uri(
+              config,
+              name + ".archive",
+              value(properties, config, name + ".archive", null),
+              cmake != null),
+          value(properties, config, name + ".archive.sha256", SHA256),
+          entry,
+          cmake);
+      if (packaged && library.file().equals(MANIFEST)) {
+        throw new Failure(config + ": a library cannot be called " + MANIFEST + ".");
+      }
+      result.add(library);
+    }
+    return result;
+  }
+
+  /**
+   * Builds and installs all build-only dependencies into {@code prefix}. Reuses {@code prefix}
+   * while their archives and cmake options stay the same.
+   */
+  private static String buildDependencies(
+      String label,
+      Path config,
+      String platform,
+      List<Library> dependencies,
+      Path archives,
+      Path builds,
+      Path prefix)
+      throws IOException, InterruptedException, Failure {
+    StringBuilder inputs = new StringBuilder();
+    for (Library dependency : dependencies) {
+      inputs
+          .append(dependency.name())
+          .append('\n')
+          .append(dependency.archiveSha256())
+          .append('\n')
+          .append(String.join(" ", dependency.cmake()))
+          .append('\n');
+    }
+    String expected = inputs.toString();
+    Path stamp = prefix.resolve("inputs.txt");
+    if (Files.isRegularFile(stamp) && Files.readString(stamp).equals(expected)) {
+      System.out.println(label + ": build dependencies are already built");
+      return expected;
+    }
+    deleteTree(prefix);
+    Files.createDirectories(prefix);
+    for (Library dependency : dependencies) {
+      buildFromSource(
+          label,
+          config,
+          platform,
+          dependency,
+          archives.resolve(dependency.archiveName()),
+          builds,
+          prefix,
+          true);
+    }
+    Files.writeString(stamp, expected);
+    return expected;
+  }
+
   /**
    * Builds the library from its source archive with cmake in {@code builds/<name>/} and returns
    * the built file: with make for Linux, with Visual Studio's compiler for Windows. A build of the
-   * same archive, options and entry is reused.
+   * same archive, options, entry and dependencies is reused.
    */
   private static Path build(
-      String label, Path config, String platform, Library library, Path archive, Path builds)
+      String label,
+      Path config,
+      String platform,
+      Library library,
+      Path archive,
+      Path builds,
+      Path prefix,
+      String prefixInputs)
       throws IOException, InterruptedException, Failure {
     Path work = builds.resolve(library.name());
     Path built = work.resolve(library.file());
     Path stamp = work.resolve("inputs.txt");
     String inputs = library.archiveSha256() + "\n" + String.join(" ", library.cmake()) + "\n"
-        + library.entry() + "\n";
+        + library.entry() + "\n" + prefixInputs;
     if (Files.isRegularFile(built)
         && Files.isRegularFile(stamp)
         && Files.readString(stamp).equals(inputs)) {
       System.out.println(label + ": " + library.name() + " is already built");
       return built;
     }
+    buildFromSource(label, config, platform, library, archive, builds, prefix, false);
+    Files.writeString(stamp, inputs);
+    return built;
+  }
+
+  private static void buildFromSource(
+      String label,
+      Path config,
+      String platform,
+      Library library,
+      Path archive,
+      Path builds,
+      Path prefix,
+      boolean install)
+      throws IOException, InterruptedException, Failure {
+    Path work = builds.resolve(library.name());
     // Null when building for Linux.
     WindowsTools windows = null;
     if (platform.startsWith("windows-")) {
@@ -427,6 +531,12 @@ final class FetchNatives {
                 windows.generator())
             : List.of(
                 "cmake", "-S", root.toString(), "-B", tree.toString(), "-G", "Unix Makefiles"));
+    if (prefix != null) {
+      configure.add("-DCMAKE_PREFIX_PATH=" + prefix);
+      if (install) {
+        configure.add("-DCMAKE_INSTALL_PREFIX=" + prefix);
+      }
+    }
     configure.addAll(library.cmake());
     run(label, library, configure, log, windows);
     List<String> off = new ArrayList<>();
@@ -460,22 +570,38 @@ final class FetchNatives {
                 "make", "-C", tree.toString(), "-j" + Runtime.getRuntime().availableProcessors()),
         log,
         windows);
-    Path entry = tree.resolve(library.entry());
-    if (!Files.isRegularFile(entry)) {
-      throw new Failure(config + ": the build of " + library.name() + " made no file "
-          + library.entry() + ". Correct " + library.name() + ".entry.");
+    if (install) {
+      run(
+          label,
+          library,
+          List.of(
+              windows != null ? windows.cmake().toString() : "cmake", "--install", tree.toString()),
+          log,
+          windows);
+      // zlib 1.4 installs its static MSVC archive as libzs.lib; CMake's FindZLIB looks for zs only
+      // from 4.2 on, so copy it to zlibstatic.lib for older CMake versions such as VS 2022's.
+      Path libzs = prefix.resolve("lib").resolve("libzs.lib");
+      Path zlibstatic = prefix.resolve("lib").resolve("zlibstatic.lib");
+      if (Files.isRegularFile(libzs) && !Files.exists(zlibstatic)) {
+        Files.copy(libzs, zlibstatic);
+      }
+    } else {
+      Path entry = tree.resolve(library.entry());
+      if (!Files.isRegularFile(entry)) {
+        throw new Failure(config + ": the build of " + library.name() + " made no file "
+            + library.entry() + ". Correct " + library.name() + ".entry.");
+      }
+      Files.copy(
+          entry, work.resolve(library.file())); // follows a symbolic link such as libSDL3.so.0
     }
-    Files.copy(entry, built); // follows a symbolic link such as libSDL3.so.0
     deleteTree(source);
     deleteTree(tree);
-    Files.writeString(stamp, inputs);
     System.out.printf(
         Locale.ROOT,
         "%s: built %s in %d s%n",
         label,
         library.name(),
         (System.nanoTime() - start) / 1_000_000_000L);
-    return built;
   }
 
   /** Fails with what to install if {@code tool --version} cannot be run. */

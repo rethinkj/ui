@@ -81,6 +81,8 @@ public final class Font implements AutoCloseable {
   private final boolean shared;
   private final boolean icons;
   private final boolean colorGlyphs; // FT_FACE_FLAG_COLOR: rasterized with FT_LOAD_COLOR
+  private final boolean bitmapColor; // color bitmaps without outlines (CBDT, sbix): FT_Select_Size
+  private final float[] strikes; // bitmapColor strike sizes in ppem; empty for scalable faces
   private final boolean color; // whether its emoji draw in color, which fallback prefers for them
   // The font that owns the native objects and draws: this, or the font withFallback was called
   // on. For a font of fallbacks, the fields of native objects below are null.
@@ -106,6 +108,7 @@ public final class Font implements AutoCloseable {
   };
   private boolean closed;
   private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
+  private int selectedStrike = -1; // the strike last selected on a bitmapColor face
 
   /**
    * A rasterized glyph, rows from the top, and where the bitmap lies relative to the glyph's
@@ -153,9 +156,11 @@ public final class Font implements AutoCloseable {
     }
     name = string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)) + " "
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
-    colorGlyphs =
-        (FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) != 0;
-    color = colorGlyphs && drawsColor(face);
+    long flags = FreeType.getLong(face, FreeType.FACE_FACE_FLAGS);
+    colorGlyphs = (flags & FreeType.FACE_FLAG_COLOR) != 0;
+    bitmapColor = colorBitmaps(face, flags);
+    strikes = bitmapColor ? strikeSizes(face) : new float[0];
+    color = colorGlyphs && drawsColor(face, bitmapColor);
     styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
         & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
     blob = HarfBuzz.blobCreate(
@@ -164,7 +169,7 @@ public final class Font implements AutoCloseable {
         HarfBuzz.MEMORY_MODE_READONLY);
     hbFace = HarfBuzz.faceCreate(blob, index);
     hbFont = HarfBuzz.fontCreate(hbFace);
-    if (HarfBuzz.faceGetGlyphCount(hbFace) == 0) {
+    if (HarfBuzz.faceGetGlyphCount(hbFace) == 0 || HarfBuzz.faceGetUpem(hbFace) == 0) {
       destroy();
       throw new IllegalArgumentException(
           "HarfBuzz cannot read " + name + ": only TrueType and OpenType fonts can be shaped.");
@@ -195,6 +200,8 @@ public final class Font implements AutoCloseable {
     styleFlags = base.styleFlags;
     icons = base.icons;
     colorGlyphs = base.colorGlyphs;
+    bitmapColor = base.bitmapColor;
+    strikes = base.strikes;
     color = base.color;
     arena = null;
     face = null;
@@ -505,13 +512,14 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * Whether a face with color glyphs draws its emoji in color: a sample renders as COLR version 0
-   * layers, not as an outline or nothing (COLR version 1, CBDT).
+   * Whether a face with color glyphs draws its emoji in color: a sample renders as a BGRA color
+   * bitmap (COLR version 0 layers or CBDT/sbix bitmaps), not as an outline or nothing (COLR
+   * version 1).
    */
-  private static boolean drawsColor(MemorySegment face) {
+  private static boolean drawsColor(MemorySegment face, boolean bitmap) {
     try (Arena call = Arena.ofConfined()) {
       int[] ranges = ranges(face, call.allocate(JAVA_INT));
-      return ranges.length > 0 && sampleMode(face, ranges) == FreeType.PIXEL_MODE_BGRA;
+      return ranges.length > 0 && sampleMode(face, ranges, bitmap) == FreeType.PIXEL_MODE_BGRA;
     }
   }
 
@@ -618,6 +626,9 @@ public final class Font implements AutoCloseable {
   Bitmap rasterize(int glyph, float pixelSize, TextRendering.Hinting hinting, int quarter) {
     synchronized (this) {
       checkOpen();
+      if (bitmapColor) {
+        return rasterizeBitmap(glyph, pixelSize, quarter);
+      }
       long size = Math.round(pixelSize * 64.0);
       if (size != rasterSize) {
         check(FreeType.setCharSize(face, 0, size, 72, 72), "set the size " + pixelSize + " on");
@@ -657,36 +668,9 @@ public final class Font implements AutoCloseable {
           throw new IllegalStateException("FreeType rendered color glyph " + glyph + " of " + name
               + " in an unexpected format: pitch " + pitch + " for width " + width);
         }
-        byte[] rgba = new byte[width * rows * 4];
         MemorySegment pixels =
             slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
-        for (int y = 0; y < rows; y++) {
-          long row = (long) y * pitch;
-          int to = y * width * 4;
-          for (int x = 0; x < width; x++) {
-            long from = row + (long) x * 4;
-            int a = pixels.get(JAVA_BYTE, from + 3) & 0xFF;
-            if (a == 0) {
-              continue;
-            }
-            int b = pixels.get(JAVA_BYTE, from) & 0xFF;
-            int g = pixels.get(JAVA_BYTE, from + 1) & 0xFF;
-            int r = pixels.get(JAVA_BYTE, from + 2) & 0xFF;
-            int at = to + x * 4;
-            if (a == 255) {
-              rgba[at] = (byte) r;
-              rgba[at + 1] = (byte) g;
-              rgba[at + 2] = (byte) b;
-              rgba[at + 3] = (byte) 255;
-            } else {
-              rgba[at] = premulSrgb(r, a);
-              rgba[at + 1] = premulSrgb(g, a);
-              rgba[at + 2] = premulSrgb(b, a);
-              rgba[at + 3] = (byte) a;
-            }
-          }
-        }
-        return new Bitmap(left, top, width, rows, rgba, true);
+        return new Bitmap(left, top, width, rows, bgraToRgba(pixels, width, rows, pitch), true);
       }
       if (mode != FreeType.PIXEL_MODE_GRAY || pitch < width) {
         throw new IllegalStateException("FreeType rendered glyph " + glyph + " of " + name
@@ -701,6 +685,239 @@ public final class Font implements AutoCloseable {
       }
       return new Bitmap(left, top, width, rows, coverage, false);
     }
+  }
+
+  /**
+   * Loads one glyph from a fixed-size color bitmap strike (such as CBDT) and scales it to {@code
+   * pixelSize} in premultiplied linear light, with the quarter-pixel horizontal shift folded into
+   * the resampling so one atlas texel covers one physical pixel.
+   */
+  private Bitmap rasterizeBitmap(int glyph, float pixelSize, int quarter) {
+    int strike = bestStrike(strikes, pixelSize);
+    if (strike < 0) {
+      throw new IllegalArgumentException(name + " has no usable bitmap strike.");
+    }
+    if (strike != selectedStrike) {
+      check(FreeType.selectSize(face, strike), "select strike " + strike + " on");
+      selectedStrike = strike;
+    }
+    check(
+        FreeType.loadGlyph(face, glyph, FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG),
+        "load glyph " + glyph + " of");
+    MemorySegment slot =
+        face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
+    check(FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL), "render glyph " + glyph + " of");
+    long bitmap = FreeType.SLOT_BITMAP;
+    int rows = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_ROWS);
+    int width = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_WIDTH);
+    int pitch = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_PITCH);
+    int left = slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT);
+    int top = slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP);
+    if (width == 0 || rows == 0) {
+      return new Bitmap(0, 0, 0, 0, new byte[0], false);
+    }
+    int mode = slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE) & 0xFF;
+    if (mode != FreeType.PIXEL_MODE_BGRA || pitch < width * 4) {
+      throw new IllegalStateException("FreeType rendered bitmap glyph " + glyph + " of " + name
+          + " in an unexpected format: mode " + mode + ", pitch " + pitch + " for width " + width);
+    }
+    MemorySegment pixels =
+        slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
+    double scale = pixelSize / (double) strikes[strike];
+    double shiftX = quarter * 0.25;
+    if (Math.abs(scale - 1.0) < 1e-4 && shiftX == 0.0) {
+      return new Bitmap(left, top, width, rows, bgraToRgba(pixels, width, rows, pitch), true);
+    }
+    return scaleBgra(pixels, width, rows, pitch, left, top, scale, shiftX);
+  }
+
+  private static byte[] bgraToRgba(MemorySegment pixels, int width, int rows, int pitch) {
+    byte[] rgba = new byte[width * rows * 4];
+    for (int y = 0; y < rows; y++) {
+      long row = (long) y * pitch;
+      int to = y * width * 4;
+      for (int x = 0; x < width; x++) {
+        long from = row + (long) x * 4;
+        int a = pixels.get(JAVA_BYTE, from + 3) & 0xFF;
+        if (a == 0) {
+          continue;
+        }
+        int b = pixels.get(JAVA_BYTE, from) & 0xFF;
+        int g = pixels.get(JAVA_BYTE, from + 1) & 0xFF;
+        int r = pixels.get(JAVA_BYTE, from + 2) & 0xFF;
+        int at = to + x * 4;
+        if (a == 255) {
+          rgba[at] = (byte) r;
+          rgba[at + 1] = (byte) g;
+          rgba[at + 2] = (byte) b;
+          rgba[at + 3] = (byte) 255;
+        } else {
+          rgba[at] = premulSrgb(r, a);
+          rgba[at + 1] = premulSrgb(g, a);
+          rgba[at + 2] = premulSrgb(b, a);
+          rgba[at + 3] = (byte) a;
+        }
+      }
+    }
+    return rgba;
+  }
+
+  /**
+   * Scales a FreeType premultiplied-sRGB BGRA bitmap in premultiplied linear light (exact box
+   * average when downscaling, bilinear when upscaling) and encodes it back to 8-bit premultiplied
+   * sRGB RGBA matching {@link Bitmap}.
+   */
+  private static Bitmap scaleBgra(
+      MemorySegment pixels,
+      int srcW,
+      int srcH,
+      int pitch,
+      int srcLeft,
+      int srcTop,
+      double scale,
+      double shiftX) {
+    double[] linear = new double[srcW * srcH * 4];
+    for (int y = 0; y < srcH; y++) {
+      long row = (long) y * pitch;
+      int to = y * srcW * 4;
+      for (int x = 0; x < srcW; x++) {
+        long from = row + (long) x * 4;
+        int a = pixels.get(JAVA_BYTE, from + 3) & 0xFF;
+        if (a == 0) {
+          continue;
+        }
+        int b = pixels.get(JAVA_BYTE, from) & 0xFF;
+        int g = pixels.get(JAVA_BYTE, from + 1) & 0xFF;
+        int r = pixels.get(JAVA_BYTE, from + 2) & 0xFF;
+        int at = to + x * 4;
+        if (a == 255) {
+          linear[at] = Colors.linear(r / 255.0);
+          linear[at + 1] = Colors.linear(g / 255.0);
+          linear[at + 2] = Colors.linear(b / 255.0);
+          linear[at + 3] = 1.0;
+        } else {
+          double alpha = a / 255.0;
+          linear[at] = Colors.linear(Math.min(r / (double) a, 1.0)) * alpha;
+          linear[at + 1] = Colors.linear(Math.min(g / (double) a, 1.0)) * alpha;
+          linear[at + 2] = Colors.linear(Math.min(b / (double) a, 1.0)) * alpha;
+          linear[at + 3] = alpha;
+        }
+      }
+    }
+    int minX = (int) Math.floor(srcLeft * scale + shiftX + 1e-5);
+    int maxX = Math.max(minX + 1, (int) Math.ceil((srcLeft + srcW) * scale + shiftX - 1e-5));
+    int minY = (int) Math.floor(-srcTop * scale + 1e-5);
+    int maxY = Math.max(minY + 1, (int) Math.ceil((-srcTop + srcH) * scale - 1e-5));
+    int dstW = maxX - minX;
+    int dstH = maxY - minY;
+    byte[] rgba = new byte[dstW * dstH * 4];
+    if (scale <= 1.0) {
+      double[] horiz = new double[srcH * dstW * 4];
+      for (int dx = 0; dx < dstW; dx++) {
+        double x0 = (minX + dx - shiftX) / scale - srcLeft;
+        double x1 = (minX + dx + 1 - shiftX) / scale - srcLeft;
+        double invSpan = 1.0 / (x1 - x0);
+        int ix0 = Math.max(0, (int) Math.floor(x0));
+        int ix1 = Math.min(srcW - 1, (int) Math.ceil(x1) - 1);
+        for (int sy = 0; sy < srcH; sy++) {
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
+          int rowBase = sy * srcW * 4;
+          for (int ix = ix0; ix <= ix1; ix++) {
+            double w = Math.min(x1, ix + 1.0) - Math.max(x0, ix);
+            if (w <= 0) {
+              continue;
+            }
+            int at = rowBase + ix * 4;
+            r += linear[at] * w;
+            g += linear[at + 1] * w;
+            b += linear[at + 2] * w;
+            a += linear[at + 3] * w;
+          }
+          int out = (sy * dstW + dx) * 4;
+          horiz[out] = r * invSpan;
+          horiz[out + 1] = g * invSpan;
+          horiz[out + 2] = b * invSpan;
+          horiz[out + 3] = a * invSpan;
+        }
+      }
+      for (int dy = 0; dy < dstH; dy++) {
+        double y0 = (minY + dy) / scale + srcTop;
+        double y1 = (minY + dy + 1) / scale + srcTop;
+        double invSpan = 1.0 / (y1 - y0);
+        int iy0 = Math.max(0, (int) Math.floor(y0));
+        int iy1 = Math.min(srcH - 1, (int) Math.ceil(y1) - 1);
+        for (int dx = 0; dx < dstW; dx++) {
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
+          for (int iy = iy0; iy <= iy1; iy++) {
+            double w = Math.min(y1, iy + 1.0) - Math.max(y0, iy);
+            if (w <= 0) {
+              continue;
+            }
+            int at = (iy * dstW + dx) * 4;
+            r += horiz[at] * w;
+            g += horiz[at + 1] * w;
+            b += horiz[at + 2] * w;
+            a += horiz[at + 3] * w;
+          }
+          encodePremulSrgb(
+              rgba, (dy * dstW + dx) * 4, r * invSpan, g * invSpan, b * invSpan, a * invSpan);
+        }
+      }
+    } else {
+      for (int dy = 0; dy < dstH; dy++) {
+        double sy = (minY + dy + 0.5) / scale + srcTop - 0.5;
+        int iy0 = (int) Math.floor(sy);
+        double fy = sy - iy0;
+        for (int dx = 0; dx < dstW; dx++) {
+          double sx = (minX + dx + 0.5 - shiftX) / scale - srcLeft - 0.5;
+          int ix0 = (int) Math.floor(sx);
+          double fx = sx - ix0;
+          double r = 0;
+          double g = 0;
+          double b = 0;
+          double a = 0;
+          for (int ky = 0; ky <= 1; ky++) {
+            int iy = iy0 + ky;
+            if (iy < 0 || iy >= srcH) {
+              continue;
+            }
+            double wy = ky == 0 ? 1.0 - fy : fy;
+            for (int kx = 0; kx <= 1; kx++) {
+              int ix = ix0 + kx;
+              if (ix < 0 || ix >= srcW) {
+                continue;
+              }
+              double w = (kx == 0 ? 1.0 - fx : fx) * wy;
+              int at = (iy * srcW + ix) * 4;
+              r += linear[at] * w;
+              g += linear[at + 1] * w;
+              b += linear[at + 2] * w;
+              a += linear[at + 3] * w;
+            }
+          }
+          encodePremulSrgb(rgba, (dy * dstW + dx) * 4, r, g, b, a);
+        }
+      }
+    }
+    return new Bitmap(minX, -minY, dstW, dstH, rgba, true);
+  }
+
+  private static void encodePremulSrgb(
+      byte[] rgba, int at, double r, double g, double b, double a) {
+    int alpha = (int) Math.round(Math.clamp(a, 0.0, 1.0) * 255.0);
+    if (alpha == 0) {
+      return;
+    }
+    rgba[at] = (byte) Math.round(Colors.srgb(Math.clamp(r, 0.0, 1.0)) * 255.0);
+    rgba[at + 1] = (byte) Math.round(Colors.srgb(Math.clamp(g, 0.0, 1.0)) * 255.0);
+    rgba[at + 2] = (byte) Math.round(Colors.srgb(Math.clamp(b, 0.0, 1.0)) * 255.0);
+    rgba[at + 3] = (byte) alpha;
   }
 
   /**
@@ -816,14 +1033,64 @@ public final class Font implements AutoCloseable {
             "These bytes are not a font that FreeType can read: FreeType error " + error + ".");
       }
       MemorySegment face = out.get(ADDRESS, 0).reinterpret(FreeType.FACE.byteSize());
-      if ((FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_SCALABLE) == 0
-          || face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) == 0) {
+      long flags = FreeType.getLong(face, FreeType.FACE_FACE_FLAGS);
+      boolean scalable = (flags & FreeType.FACE_FLAG_SCALABLE) != 0
+          && face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) != 0;
+      if (!scalable && !colorBitmaps(face, flags)) {
         FreeType.doneFace(face);
         throw new IllegalArgumentException(
-            "The font has no outlines, only bitmaps: it cannot be drawn at any size.");
+            "The font has no outlines or color bitmaps: it cannot be drawn at any size.");
       }
       return face;
     }
+  }
+
+  /** Whether {@code face} has color bitmap strikes (such as CBDT or sbix) and no outlines. */
+  private static boolean colorBitmaps(MemorySegment face, long flags) {
+    return (flags & FreeType.FACE_FLAG_SCALABLE) == 0
+        && (flags & FreeType.FACE_FLAG_COLOR) != 0
+        && (flags & FreeType.FACE_FLAG_FIXED_SIZES) != 0
+        && face.get(JAVA_INT, FreeType.FACE_NUM_FIXED_SIZES) > 0;
+  }
+
+  /** The fixed-size bitmap strikes of {@code face}, each in pixels per em. */
+  private static float[] strikeSizes(MemorySegment face) {
+    int count = face.get(JAVA_INT, FreeType.FACE_NUM_FIXED_SIZES);
+    if (count <= 0) {
+      return new float[0];
+    }
+    long stride = FreeType.BITMAP_SIZE.byteSize();
+    MemorySegment sizes =
+        face.get(ADDRESS, FreeType.FACE_AVAILABLE_SIZES).reinterpret(count * stride);
+    float[] ppem = new float[count];
+    for (int i = 0; i < count; i++) {
+      long base = i * stride;
+      float y = FreeType.getLong(sizes, base + FreeType.BITMAP_SIZE_Y_PPEM) / 64f;
+      ppem[i] = y > 0 ? y : sizes.get(JAVA_SHORT, base + FreeType.BITMAP_SIZE_HEIGHT);
+    }
+    return ppem;
+  }
+
+  /** Smallest strike {@code >= pixelSize}, else the largest strike; -1 if none is positive. */
+  private static int bestStrike(float[] strikes, float pixelSize) {
+    int best = -1;
+    for (int i = 0; i < strikes.length; i++) {
+      float s = strikes[i];
+      if (s <= 0) {
+        continue;
+      }
+      if (best < 0) {
+        best = i;
+      } else {
+        float cur = strikes[best];
+        boolean sFits = s >= pixelSize;
+        boolean curFits = cur >= pixelSize;
+        if (sFits != curFits ? sFits : (sFits ? s < cur : s > cur)) {
+          best = i;
+        }
+      }
+    }
+    return best;
   }
 
   private static MemorySegment library() {
@@ -845,9 +1112,10 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * For {@link SystemFonts}: the faces of a font file that draw outlines or COLR version 0 color
-   * glyphs, each with its family, style and characters. A color face counts only if its glyph for a
-   * sample character, an emoji where it has one, renders as a BGRA color bitmap or as an outline.
+   * For {@link SystemFonts}: the faces of a font file that draw outlines or color glyphs (COLR
+   * version 0 or CBDT/sbix bitmaps), each with its family, style and characters. A color face
+   * counts only if its glyph for a sample character, an emoji where it has one, renders as a BGRA
+   * color bitmap or (for a scalable face) as an outline.
    */
   static List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
     Natives.lookup("freetype");
@@ -874,15 +1142,17 @@ public final class Font implements AutoCloseable {
         try {
           count = (int) Math.min(FreeType.getLong(face, FreeType.FACE_NUM_FACES), 256);
           long flags = FreeType.getLong(face, FreeType.FACE_FACE_FLAGS);
-          if ((flags & FreeType.FACE_FLAG_SCALABLE) == 0
-              || face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) == 0) {
+          boolean scalable = (flags & FreeType.FACE_FLAG_SCALABLE) != 0
+              && face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) != 0;
+          boolean bitmap = colorBitmaps(face, flags);
+          if (!scalable && !bitmap) {
             continue;
           }
           int[] ranges = ranges(face, glyph);
           int mode = ranges.length == 0
               ? -1
               : (flags & FreeType.FACE_FLAG_COLOR) != 0
-                  ? sampleMode(face, ranges)
+                  ? sampleMode(face, ranges, bitmap)
                   : FreeType.PIXEL_MODE_GRAY;
           if (mode < 0) {
             continue;
@@ -926,10 +1196,10 @@ public final class Font implements AutoCloseable {
 
   /**
    * The pixel mode a color face renders U+1F600 in, or else its first character from U+2000 that
-   * has ink (not a space or a variation selector): BGRA for COLR version 0 layers, gray for an
-   * outline; -1 where it renders neither.
+   * has ink (not a space or a variation selector): BGRA for COLR version 0 layers or CBDT/sbix
+   * color bitmaps, gray for an outline on a scalable face; -1 where it renders neither.
    */
-  private static int sampleMode(MemorySegment face, int[] ranges) {
+  private static int sampleMode(MemorySegment face, int[] ranges, boolean bitmap) {
     int sample = ranges[0];
     boolean inked = false;
     for (int r = 0; r < ranges.length; r += 2) {
@@ -943,8 +1213,17 @@ public final class Font implements AutoCloseable {
       }
     }
     int index = FreeType.getCharIndex(face, sample);
-    if (index == 0
-        || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
+    if (index == 0) {
+      return -1;
+    }
+    if (bitmap) {
+      int strike = bestStrike(strikeSizes(face), 32f);
+      if (strike < 0
+          || FreeType.selectSize(face, strike) != 0
+          || FreeType.loadGlyph(face, index, FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG) != 0) {
+        return -1;
+      }
+    } else if (FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
         || FreeType.loadGlyph(
                 face, index, FreeType.LOAD_NO_BITMAP | FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG)
             != 0) {
@@ -958,6 +1237,9 @@ public final class Font implements AutoCloseable {
       return -1;
     }
     int mode = slot.get(JAVA_BYTE, FreeType.SLOT_BITMAP + FreeType.BITMAP_PIXEL_MODE) & 0xFF;
+    if (bitmap) {
+      return mode == FreeType.PIXEL_MODE_BGRA ? mode : -1;
+    }
     return mode == FreeType.PIXEL_MODE_GRAY || mode == FreeType.PIXEL_MODE_BGRA ? mode : -1;
   }
 

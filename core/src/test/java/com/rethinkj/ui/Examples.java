@@ -887,6 +887,7 @@ public final class Examples {
   private static Font hebrew;
   private static Font thai;
   private static Font emoji;
+  private static Font cbdtEmoji;
 
   /** Noto Sans Hebrew from the test resources, opened on first use. */
   public static synchronized Font hebrew() {
@@ -915,6 +916,48 @@ public final class Examples {
   /** Inter falling back to {@link #emoji()} for color emoji. */
   public static Font emojiChain() {
     return Font.sans().withFallback(emoji());
+  }
+
+  /** Noto Color Emoji (CBDT bitmap subset) from the test resources, opened on first use. */
+  public static synchronized Font cbdtEmoji() {
+    if (cbdtEmoji == null) {
+      cbdtEmoji = Font.resource(Examples.class, "/fonts/NotoColorEmoji-Subset.ttf");
+    }
+    return cbdtEmoji;
+  }
+
+  /** Inter falling back to {@link #cbdtEmoji()} for CBDT bitmap color emoji. */
+  public static Font cbdtEmojiChain() {
+    return Font.sans().withFallback(cbdtEmoji());
+  }
+
+  /**
+   * Text with CBDT color bitmap emoji scaled to two sizes beside normal text, colored text and
+   * reduced opacity, in a window of 280 by 92.
+   */
+  public static El cbdtColorEmoji() {
+    Font chain = cbdtEmojiChain();
+    return col()
+        .wFull()
+        .hFull()
+        .padding(10)
+        .gap(6)
+        .fill(0xFFFFFFFF)
+        .children(
+            El.text("Release ready 🎉 great work 👍 😀")
+                .font(chain)
+                .fontSize(14)
+                .color(0xFF1A1A1A),
+            El.text("Larger 😀 🎉 👍").font(chain).fontSize(22).color(0xFF1A1A1A),
+            row()
+                .gap(12)
+                .children(
+                    El.text("Colored 😀 🎉").font(chain).fontSize(14).color(0xFF2563EB),
+                    El.text("Faded 👍 😀")
+                        .font(chain)
+                        .fontSize(14)
+                        .color(0xFF1A1A1A)
+                        .opacity(0.45f)));
   }
 
   /**
