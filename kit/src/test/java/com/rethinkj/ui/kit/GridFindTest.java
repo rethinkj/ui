@@ -253,7 +253,7 @@ class GridFindTest {
         type "UniqueNeedle"
         frame""", app, out);
     frames = 0;
-    while ((find.jump != null || find.hit || !find.complete) && frames < 2000) {
+    while ((find.jump != null || !find.complete) && frames < 2000) {
       app.frame();
       frames++;
     }

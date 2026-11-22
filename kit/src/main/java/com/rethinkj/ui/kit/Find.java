@@ -797,7 +797,7 @@ public final class Find {
     if (stopped && count == 0) {
       return texts.tooSlow();
     }
-    if (count == 0) {
+    if (count == 0 && complete) {
       return texts.noResults();
     }
     String total = complete ? String.valueOf(count) : count + "+";

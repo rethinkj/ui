@@ -55,10 +55,10 @@ final class GridFind {
   }
 
   /**
-   * Updates the find state for this build, starting a scan when what it covers changed, and goes
-   * on with the scan and a jump for a slice. The rest waits for the next build of the grid, which
-   * an action asks for: a grid the view leaves out searches no further, and goes on when it shows
-   * again.
+   * Updates the find state for this build: starts a scan when what it covers changed, and goes on
+   * with a jump and the scan for one slice when a frame asked for it ({@link #schedule}), one per
+   * frame however many handlers build the view. A grid the view leaves out searches no further,
+   * and goes on when it shows again.
    */
   static void prepare(Build b) {
     DataGrid.Find f = b.o.find;
@@ -80,18 +80,26 @@ final class GridFind {
       f.resetSearch();
       return;
     }
-    Scope now = scopeOf(b, query);
-    if (f.open && !now.equals(f.scope)) {
-      startScan(f, b, now);
+    boolean slice = f.due;
+    if (f.open && !scopeOf(b, query).equals(f.scope)) {
+      startScan(f, b, scopeOf(b, query));
+      slice = true;
     }
-    long deadline = Search.deadline(Find.SYNC_MILLIS);
-    if (f.jump != null) {
-      stepJump(f, b, query, deadline, true);
+    boolean landed = false;
+    if (slice) {
+      f.due = false;
+      long deadline = Search.deadline(Find.SYNC_MILLIS);
+      if (f.jump != null) {
+        // Selecting runs the app's onSelect here, in its view's build; the frame asked for below
+        // builds the view again with it.
+        stepJump(f, b, query, deadline);
+        landed = f.jump == null;
+      }
+      if (f.open && f.jump == null && !f.complete) {
+        stepScan(f, b, deadline);
+      }
     }
-    if (f.open && f.jump == null && !f.complete) {
-      stepScan(f, b, deadline);
-    }
-    if (f.hit || f.jump != null || f.open && !f.complete) {
+    if (landed || f.jump != null || f.open && !f.complete) {
       schedule(f);
     }
   }
@@ -319,7 +327,7 @@ final class GridFind {
       return;
     }
     f.jump = new Jump(direction >= 0 ? 1 : -1, startRow, startCol, remaining);
-    if (!stepJump(f, b, query, deadline, false)) {
+    if (!stepJump(f, b, query, deadline)) {
       schedule(f);
     }
   }
@@ -577,8 +585,7 @@ final class GridFind {
     return true;
   }
 
-  private static boolean stepJump(
-      DataGrid.Find f, Build b, Search.Query query, long deadline, boolean building) {
+  private static boolean stepJump(DataGrid.Find f, Build b, Search.Query query, long deadline) {
     Jump j = f.jump;
     if (j == null || f.pattern == null) {
       return true;
@@ -634,13 +641,7 @@ final class GridFind {
       j.remaining--;
       if (hit) {
         f.jump = null;
-        if (building) { // selecting runs the app's handler: not in the middle of its view
-          f.hit = true;
-          f.hitRow = r;
-          f.hitColumn = c;
-        } else {
-          selectMatch(b, r, c);
-        }
+        selectMatch(b, r, c);
         return true;
       }
       if (j.direction > 0) {
@@ -669,7 +670,7 @@ final class GridFind {
     return true;
   }
 
-  /** Asks for a frame, whose build of the grid goes on; it selects a match a build found. */
+  /** Asks for a frame, whose build of the grid goes on with the search for a slice. */
   private static void schedule(DataGrid.Find f) {
     if (f.scheduled || f.app == null) {
       return;
@@ -677,13 +678,9 @@ final class GridFind {
     f.scheduled = true;
     long gen = f.gen;
     f.app.after(0, () -> {
-      if (gen != f.gen) {
-        return;
-      }
-      f.scheduled = false;
-      if (f.hit && f.build != null && f.build.sel != null) {
-        f.hit = false;
-        selectMatch(f.build, f.hitRow, f.hitColumn);
+      if (gen == f.gen) {
+        f.scheduled = false;
+        f.due = true;
       }
     });
   }
