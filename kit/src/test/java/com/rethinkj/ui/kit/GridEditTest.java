@@ -963,10 +963,15 @@ class GridEditTest {
     assertTrue(ledger.selection.isEditing());
 
     // Open via Alt+ArrowDown, press Next month (must not trigger press-outside commit), pick day.
-    run(
-        app,
-        "key ArrowDown alt\nframe\nadvance 1\nframe\npress role=button label=\"Next month\"\nframe\n"
-            + "press role=gridcell label=\"2026-02-14\"\nframe");
+    run(app, """
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press role=button label="Next month"
+        frame
+        press role=gridcell label="2026-02-14"
+        frame""");
     assertEquals("commit 0,6 2026-02-14", ledger.log.getLast());
     assertFalse(ledger.selection.isEditing());
 
@@ -979,16 +984,30 @@ class GridEditTest {
         .editable()
         .nullable();
     App<Object> dt = grid(at, changes, sel).provide(DatePicker.CLOCK, x -> fixed);
-    run(
-        dt,
-        "frame\nfocus #grid\nframe\nkey F2\nframe\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
-            + "press role=gridcell label=\"2026-11-20\"\nframe");
+    run(dt, """
+        frame
+        focus #grid
+        frame
+        key F2
+        frame
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press role=gridcell label="2026-11-20"
+        frame""");
     assertEquals("2026-11-20 14:30:15", changes.cell(0, 0));
 
-    run(
-        dt,
-        "key ArrowDown\nkey F2\nframe\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
-            + "press role=gridcell label=\"2026-11-25\"\nframe");
+    run(dt, """
+        key ArrowDown
+        key F2
+        frame
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press role=gridcell label="2026-11-25"
+        frame""");
     assertEquals("2026-11-25 00:00", changes.cell(1, 0));
   }
 }

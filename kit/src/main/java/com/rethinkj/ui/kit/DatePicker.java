@@ -550,42 +550,36 @@ public final class DatePicker {
     if (cursor == null) {
       return false;
     }
-    LocalDate next;
-    if (mods == 0) {
-      switch (k.name()) {
-        case "ArrowLeft" -> next = cursor.minusDays(1);
-        case "ArrowRight" -> next = cursor.plusDays(1);
-        case "ArrowUp" -> next = cursor.minusWeeks(1);
-        case "ArrowDown" -> next = cursor.plusWeeks(1);
-        case "Home" -> {
-          int offset = Math.floorMod(cursor.getDayOfWeek().getValue() - firstDow.getValue(), 7);
-          next = cursor.minusDays(offset);
-        }
-        case "End" -> {
-          int offset = Math.floorMod(cursor.getDayOfWeek().getValue() - firstDow.getValue(), 7);
-          next = cursor.plusDays(6 - offset);
-        }
-        case "PageUp" -> next = cursor.minusMonths(1);
-        case "PageDown" -> next = cursor.plusMonths(1);
-        case "Enter", "NumpadEnter", "Space" -> {
-          if (!k.repeat()) {
-            onPick.accept(cursor);
-          }
-          return true;
-        }
-        default -> {
-          return false;
-        }
+    String name = k.name();
+    if (mods == 0 && (name.equals("Enter") || name.equals("NumpadEnter") || name.equals("Space"))) {
+      if (!k.repeat()) {
+        onPick.accept(cursor);
       }
-    } else if (mods == Key.SHIFT) {
-      switch (k.name()) {
-        case "PageUp" -> next = cursor.minusYears(1);
-        case "PageDown" -> next = cursor.plusYears(1);
-        default -> {
-          return false;
-        }
-      }
-    } else {
+      return true;
+    }
+    int offset = Math.floorMod(cursor.getDayOfWeek().getValue() - firstDow.getValue(), 7);
+    LocalDate next = switch (mods) {
+      case 0 ->
+        switch (name) {
+          case "ArrowLeft" -> cursor.minusDays(1);
+          case "ArrowRight" -> cursor.plusDays(1);
+          case "ArrowUp" -> cursor.minusWeeks(1);
+          case "ArrowDown" -> cursor.plusWeeks(1);
+          case "Home" -> cursor.minusDays(offset);
+          case "End" -> cursor.plusDays(6L - offset);
+          case "PageUp" -> cursor.minusMonths(1);
+          case "PageDown" -> cursor.plusMonths(1);
+          default -> null;
+        };
+      case Key.SHIFT ->
+        switch (name) {
+          case "PageUp" -> cursor.minusYears(1);
+          case "PageDown" -> cursor.plusYears(1);
+          default -> null;
+        };
+      default -> null;
+    };
+    if (next == null) {
       return false;
     }
     state.cursor = next;

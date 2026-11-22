@@ -267,10 +267,17 @@ class GridFilterTest {
 
     // Open From's calendar again, switch month (press inside calendar must not dismiss filter),
     // pick a date, and apply the filter.
-    run(
-        app,
-        "key ArrowDown alt\nframe\nadvance 1\nframe\npress role=button label=\"Previous month\"\n"
-            + "frame\npress role=gridcell label=\"2026-10-15\"\nframe\nadvance 1\nframe");
+    run(app, """
+        key ArrowDown alt
+        frame
+        advance 1
+        frame
+        press role=button label="Previous month"
+        frame
+        press role=gridcell label="2026-10-15"
+        frame
+        advance 1
+        frame""");
     String afterPick = app.tree().dump();
     assertTrue(afterPick.contains("role=dialog label=\"Filter due\""), afterPick);
     assertFalse(afterPick.contains("role=dialog label=\"Choose date\""), afterPick);

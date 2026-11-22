@@ -139,7 +139,7 @@ public final class ValueField {
      * stays; a value the format refuses is shown with its message and not handed on.
      */
     <T> void choose(Texts texts, Format<T> format, T value, Consumer<? super T> onChange) {
-      String chosen = format.text(value);
+      String chosen = Texts.CURRENT.with(texts, () -> format.text(value));
       Format.Parsed<T> parsed = Texts.CURRENT.with(texts, () -> format.parse(chosen));
       started = true;
       showsError = true;
