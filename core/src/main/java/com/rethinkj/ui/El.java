@@ -4533,7 +4533,7 @@ public final class El {
     double total = text.contentHeight() / text.scale() + maxScrollY - min;
     float top = barY.trackY();
     float track = barY.trackHeight();
-    float least = Math.min(scrollbars.thickness() / 2, track);
+    float least = Math.min(Math.max(scrollbars.thickness() / 2, 1), track); // never snaps to 0
     List<Scrollbars.Mark> marks = field.scrollMarks;
     marks.sort(Comparator.comparingInt(Scrollbars.Mark::from)); // a later tick lies on top
     List<Scrollbars.Tick> ticks = new ArrayList<>();
@@ -4558,7 +4558,7 @@ public final class El {
       targets[ticks.size()] = from;
       ticks.add(new Scrollbars.Tick(y, height, mark.color()));
     }
-    field.ticks = ticks;
+    field.ticks = List.copyOf(ticks); // read-only: the targets stay paired with the ticks
     field.tickTargets = targets;
   }
 

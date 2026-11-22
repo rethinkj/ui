@@ -90,7 +90,7 @@ public record Scrollbars(
    * one.
    *
    * @param y its top, in logical pixels of the window
-   * @param height its length along the track, at least half the bar's thickness
+   * @param height its length along the track, at least half the bar's thickness and 1
    * @param color its color, as 0xAARRGGBB
    */
   public record Tick(float y, float height, int color) {}
