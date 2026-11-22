@@ -1,0 +1,1 @@
+- `Properties.property(name, element)` and `Properties.property(name, element, text)` put an `El` (such as a `Badge`, a link, or a status indicator) in the value column, aligned with text values; with `text`, the copy button copies it and a tree dump reports it as the row's `value`, and without `text` the row has no copy button.

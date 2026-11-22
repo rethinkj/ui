@@ -1,0 +1,1 @@
+- Added `MultiSelect`, a token input for choosing several values: the chosen ones show as removable badges in the field, and typing filters the remaining choices in a list below it.

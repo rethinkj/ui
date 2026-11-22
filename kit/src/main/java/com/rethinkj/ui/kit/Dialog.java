@@ -238,6 +238,84 @@ public final class Dialog {
   }
 
   /**
+   * A confirmation dialog: {@code title}, {@code message}, a Cancel button and the confirming
+   * button {@code action} as the default button. The focus opens on {@code action}; Enter runs
+   * {@code onConfirm}, and Escape and a press on the scrim run {@code onCancel}.
+   *
+   * <p>The buttons have the keys {@code cancel} and {@code ok}.
+   *
+   * @param title shown at the top, also the label
+   * @param message what the dialog asks
+   * @param action the confirming button's text
+   * @param onConfirm runs when {@code action} is pressed; null disables it
+   * @param onCancel runs on Cancel, Escape and a press on the scrim
+   */
+  public static El confirm(
+      String title, String message, String action, Runnable onConfirm, Runnable onCancel) {
+    El ok = Button.button(Button.Variant.PRIMARY, action, onConfirm).key("ok");
+    return dialog(
+        title, Label.label(message).wrapText(), List.of(cancel(onCancel), ok), ok, onCancel);
+  }
+
+  /**
+   * A confirmation dialog for a destructive action: as {@link #confirm}, with {@code action} in
+   * {@link Button.Tone#DANGER} and no default button, so Enter does not run {@code onConfirm} by
+   * accident. The focus opens on Cancel, where Enter cancels; Escape and a press on the scrim run
+   * {@code onCancel}.
+   *
+   * <p>The buttons have the keys {@code cancel} and {@code ok}.
+   *
+   * @param title shown at the top, also the label
+   * @param message what the dialog warns about
+   * @param action the destructive button's text
+   * @param onConfirm runs when {@code action} is pressed; null disables it
+   * @param onCancel runs on Cancel, Escape and a press on the scrim
+   */
+  public static El danger(
+      String title, String message, String action, Runnable onConfirm, Runnable onCancel) {
+    El ok = Button.button(
+            Button.Variant.PRIMARY, action, onConfirm, Button.options().tone(Button.Tone.DANGER))
+        .key("ok");
+    return dialog(title, Label.label(message).wrapText(), List.of(cancel(onCancel), ok), onCancel);
+  }
+
+  /**
+   * A dialog that asks for one line of text: {@code title}, a text field bound to {@code value}
+   * ({@link TextField#textField(Prop)}) with {@code label} above it and as its accessible label, a
+   * Cancel button and {@code action} as the default button. The focus opens in the field; Enter
+   * runs {@code onSubmit} while it is not null, and Escape and a press on the scrim run {@code
+   * onCancel}. Pass a null {@code onSubmit} to disable {@code action} while the value is not
+   * ready, as {@code state.name.isBlank() ? null : state::rename}.
+   *
+   * <p>The field has the key {@code value}, and the buttons have the keys {@code cancel} and
+   * {@code ok}.
+   *
+   * @param title shown at the top, also the label
+   * @param label shown above the field, also the field's label
+   * @param value bound to the field; a prop from an {@link Editing} shows its error below it
+   * @param action the submitting button's text
+   * @param onSubmit runs when {@code action} is pressed or on Enter in the field; null disables it
+   * @param onCancel runs on Cancel, Escape and a press on the scrim
+   */
+  public static El prompt(
+      String title,
+      String label,
+      Prop<String> value,
+      String action,
+      Runnable onSubmit,
+      Runnable onCancel) {
+    El field = Form.form(
+        Form.Labels.ABOVE, Form.field(label, TextField.textField(value).key("value")));
+    El ok = Button.button(Button.Variant.PRIMARY, action, onSubmit).key("ok");
+    return dialog(title, field, List.of(cancel(onCancel), ok), ok, onCancel);
+  }
+
+  private static El cancel(Runnable onCancel) {
+    return Button.button(Button.Variant.SECONDARY, Texts.CURRENT.get().cancel(), onCancel)
+        .key("cancel");
+  }
+
+  /**
    * {@code content} in a scroll area that gives way where its panel is limited to the window, as
    * a dialog's or a popover's: no bar and no change of look while it fits. It has room for the
    * focus rings of what lies at its edges, which its clip would otherwise cut, and for its bars:
