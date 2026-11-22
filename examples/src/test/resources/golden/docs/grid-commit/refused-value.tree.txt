@@ -42,7 +42,9 @@ el 0,0 520x300
               text "2026-11-11" 217,106 70x16
             el 332,102 1x23
             el #editor 213,102 119x23 invalid
-              text #field role=textbox label="Edit shipped" "tomorrow" 217,103 111x21 focused caret 8
+              text #field role=textbox label="Edit shipped" "tomorrow" 217,103 91x21 focused caret 8
+              el #calendar role=button label="Choose date" 310,105 18x18 expanded=false
+                text label="calendar_ltr" "\u{E24D}" 311,106 16x16
           el #row-2 role=row 13,126 494x24 pos=3/100
             el #cell-2-0 role=gridcell 13,126 79x23 pos=1/3
               text "1002" 60,130 28x16

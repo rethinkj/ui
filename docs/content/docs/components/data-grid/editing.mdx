@@ -41,7 +41,8 @@ Example headless script:
 | `INTEGER`, `DECIMAL` | Validated numeric input |
 | `BOOLEAN` | Toggles directly on Space, Enter, F2, or double-click (`false` / `true` / `NULL` if nullable) |
 | `choices(list)` or `ENUM` | Dropdown menu (up to 8 choices) or searchable listbox (more than 8) |
-| `DATE`, `TIME`, `DATE_TIME` | Validated ISO 8601 text (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
+| `DATE`, `DATE_TIME` | Validated ISO 8601 text (`2026-11-13`, `2026-11-13 14:30`) with a calendar button (and **Alt+ArrowDown**) that opens a [DatePicker](/docs/components/date-picker) month calendar; picking a day preserves any typed time, fraction, or offset |
+| `TIME` | Validated ISO 8601 time (`14:30`, `14:30:15`) |
 | `editor((value, onChange) -> El)` | Custom editor element |
 
 In `nullable()` columns, `NULL` appears as muted placeholder text; typing enters a string, and **Ctrl+0** sets `NULL`. Invalid values keep the editor open with an error message below it.

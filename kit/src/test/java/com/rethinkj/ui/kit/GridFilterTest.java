@@ -239,4 +239,42 @@ class GridFilterTest {
     Golden.assertSnaps("filter-" + name + "-", files);
     assertEquals(4, files.size());
   }
+
+  @Test
+  void dateColumnFilterChoosesFromViaCalendarAndEscapeClosesOnlyTheCalendar() throws IOException {
+    java.time.Clock fixed = java.time.Clock.fixed(
+        java.time.Instant.parse("2026-11-22T10:00:00Z"), java.time.ZoneOffset.UTC);
+    Ledger ledger = new Ledger(T, 40);
+    ledger.filtering = true;
+    App<Ledger> app = ledger.app().provide(DatePicker.CLOCK, l -> fixed);
+    run(app, "frame\nfocus #ledger\nframe\nframe");
+
+    // Open filter on column 6 ("due", DataType.DATE): From and To stack at full width.
+    run(app, "key End\nkey ArrowLeft\nkey ArrowDown alt\nframe\nadvance 1\nframe");
+    assertEquals("from", app.focused().key());
+    String openFilter = app.tree().dump();
+    assertTrue(openFilter.contains("role=dialog label=\"Filter due\""), openFilter);
+
+    // Open From's calendar via Alt+ArrowDown; Escape closes only the calendar, leaving filter open.
+    run(app, "key ArrowDown alt\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=dialog label=\"Choose date\""),
+        app.tree().dump());
+    run(app, "key Escape\nframe\nadvance 1\nframe");
+    String afterEscape = app.tree().dump();
+    assertFalse(afterEscape.contains("role=dialog label=\"Choose date\""), afterEscape);
+    assertTrue(afterEscape.contains("role=dialog label=\"Filter due\""), afterEscape);
+
+    // Open From's calendar again, switch month (press inside calendar must not dismiss filter),
+    // pick a date, and apply the filter.
+    run(
+        app,
+        "key ArrowDown alt\nframe\nadvance 1\nframe\npress role=button label=\"Previous month\"\n"
+            + "frame\npress role=gridcell label=\"2026-10-15\"\nframe\nadvance 1\nframe");
+    String afterPick = app.tree().dump();
+    assertTrue(afterPick.contains("role=dialog label=\"Filter due\""), afterPick);
+    assertFalse(afterPick.contains("role=dialog label=\"Choose date\""), afterPick);
+    run(app, "press label=\"Apply\"\nframe");
+    assertEquals(List.of(new Filter(6, new Filter.Between("2026-10-15", ""))), ledger.filters);
+  }
 }

@@ -3,6 +3,8 @@ package com.rethinkj.ui.kit;
 import com.rethinkj.ui.Context;
 import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.kit.DataGrid.Filter;
+import java.time.DayOfWeek;
+import java.time.Month;
 import java.util.Locale;
 import java.util.StringJoiner;
 
@@ -191,6 +193,79 @@ public interface Texts {
 
   default String decrease() {
     return "Decrease";
+  }
+
+  // Date picker
+
+  /** The first day of a week in the calendar's rows: {@link DayOfWeek#SUNDAY} in English. */
+  default DayOfWeek firstDayOfWeek() {
+    return DayOfWeek.SUNDAY;
+  }
+
+  /** A month's name as shown in the calendar's heading. */
+  default String month(Month month) {
+    return switch (month) {
+      case JANUARY -> "January";
+      case FEBRUARY -> "February";
+      case MARCH -> "March";
+      case APRIL -> "April";
+      case MAY -> "May";
+      case JUNE -> "June";
+      case JULY -> "July";
+      case AUGUST -> "August";
+      case SEPTEMBER -> "September";
+      case OCTOBER -> "October";
+      case NOVEMBER -> "November";
+      case DECEMBER -> "December";
+    };
+  }
+
+  /** A day of the week's two-letter heading above a calendar column. */
+  default String weekdayShort(DayOfWeek day) {
+    return switch (day) {
+      case MONDAY -> "Mo";
+      case TUESDAY -> "Tu";
+      case WEDNESDAY -> "We";
+      case THURSDAY -> "Th";
+      case FRIDAY -> "Fr";
+      case SATURDAY -> "Sa";
+      case SUNDAY -> "Su";
+    };
+  }
+
+  /** A day of the week's full name. */
+  default String weekday(DayOfWeek day) {
+    return switch (day) {
+      case MONDAY -> "Monday";
+      case TUESDAY -> "Tuesday";
+      case WEDNESDAY -> "Wednesday";
+      case THURSDAY -> "Thursday";
+      case FRIDAY -> "Friday";
+      case SATURDAY -> "Saturday";
+      case SUNDAY -> "Sunday";
+    };
+  }
+
+  default String today() {
+    return "Today";
+  }
+
+  /** The button that opens a calendar popover and the popover's label. */
+  default String chooseDate() {
+    return "Choose date";
+  }
+
+  default String previousMonth() {
+    return "Previous month";
+  }
+
+  default String nextMonth() {
+    return "Next month";
+  }
+
+  /** The time field in a date-time picker's popover. */
+  default String time() {
+    return "Time";
   }
 
   // Windows, tabs and bars

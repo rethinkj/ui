@@ -133,6 +133,24 @@ public final class ValueField {
       }
     }
 
+    /**
+     * A value chosen beside the text, such as a day in a calendar: shown in its format's text and
+     * handed on as it is, so that what the text does not show, such as a time's nanoseconds,
+     * stays; a value the format refuses is shown with its message and not handed on.
+     */
+    <T> void choose(Texts texts, Format<T> format, T value, Consumer<? super T> onChange) {
+      String chosen = format.text(value);
+      Format.Parsed<T> parsed = Texts.CURRENT.with(texts, () -> format.parse(chosen));
+      started = true;
+      showsError = true;
+      text = chosen;
+      error = parsed.error();
+      if (parsed.valid()) {
+        this.value = value;
+        onChange.accept(value);
+      }
+    }
+
     @Override
     public String toString() {
       return "Draft[" + text + (error == null ? "" : ", " + error) + "]";

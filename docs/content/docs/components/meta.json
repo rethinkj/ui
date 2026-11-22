@@ -42,6 +42,7 @@
     "radio",
     "segmented",
     "hue-picker",
+    "date-picker",
     "number-field",
     "slider",
     "form",

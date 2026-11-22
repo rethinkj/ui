@@ -2,6 +2,8 @@ package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.kit.DataGrid.Filter;
+import java.time.DayOfWeek;
+import java.time.Month;
 
 /**
  * The German texts of the kit, with the names of keys as German keyboards print them: {@code
@@ -177,6 +179,80 @@ public class GermanTexts implements Texts {
   @Override
   public String decrease() {
     return "Verringern";
+  }
+
+  @Override
+  public DayOfWeek firstDayOfWeek() {
+    return DayOfWeek.MONDAY;
+  }
+
+  @Override
+  public String month(Month month) {
+    return switch (month) {
+      case JANUARY -> "Januar";
+      case FEBRUARY -> "Februar";
+      case MARCH -> "März";
+      case APRIL -> "April";
+      case MAY -> "Mai";
+      case JUNE -> "Juni";
+      case JULY -> "Juli";
+      case AUGUST -> "August";
+      case SEPTEMBER -> "September";
+      case OCTOBER -> "Oktober";
+      case NOVEMBER -> "November";
+      case DECEMBER -> "Dezember";
+    };
+  }
+
+  @Override
+  public String weekdayShort(DayOfWeek day) {
+    return switch (day) {
+      case MONDAY -> "Mo";
+      case TUESDAY -> "Di";
+      case WEDNESDAY -> "Mi";
+      case THURSDAY -> "Do";
+      case FRIDAY -> "Fr";
+      case SATURDAY -> "Sa";
+      case SUNDAY -> "So";
+    };
+  }
+
+  @Override
+  public String weekday(DayOfWeek day) {
+    return switch (day) {
+      case MONDAY -> "Montag";
+      case TUESDAY -> "Dienstag";
+      case WEDNESDAY -> "Mittwoch";
+      case THURSDAY -> "Donnerstag";
+      case FRIDAY -> "Freitag";
+      case SATURDAY -> "Samstag";
+      case SUNDAY -> "Sonntag";
+    };
+  }
+
+  @Override
+  public String today() {
+    return "Heute";
+  }
+
+  @Override
+  public String chooseDate() {
+    return "Datum wählen";
+  }
+
+  @Override
+  public String previousMonth() {
+    return "Vorheriger Monat";
+  }
+
+  @Override
+  public String nextMonth() {
+    return "Nächster Monat";
+  }
+
+  @Override
+  public String time() {
+    return "Uhrzeit";
   }
 
   @Override

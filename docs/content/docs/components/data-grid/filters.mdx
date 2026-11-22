@@ -3,7 +3,7 @@ title: Filters
 description: Per-column filter popovers and a removable filter badge bar for DataGrid.
 ---
 
-`options().filters(filters, onFilter)` adds a filter icon to each column header that opens a popover matched to the column type (text contains/starts with/equals/regex, numeric/date ranges, boolean/choice checkboxes — searchable and scrolling when there are more than eight choices — and `IS NULL` / `NOT NULL`).
+`options().filters(filters, onFilter)` adds a filter icon to each column header that opens a popover matched to the column type (text contains/starts with/equals/regex, numeric/date ranges — with a [DatePicker](/docs/components/date-picker) calendar button on `DATE` and `DATE_TIME` fields — boolean/choice checkboxes, searchable and scrolling when there are more than eight choices, and `IS NULL` / `NOT NULL`).
 
 `DataGrid` does not filter data itself: it passes updated `DataGrid.Filter` records to `onFilter` so your app can filter in SQL or in memory with `filter.matches(...)`.
 

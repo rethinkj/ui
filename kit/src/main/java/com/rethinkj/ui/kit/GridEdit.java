@@ -57,6 +57,7 @@ final class GridEdit {
     FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
     final Menu.State choices = new Menu.State(); // an enumeration's list
     final FilterList.State search = new FilterList.State(); // a long enumeration's filter
+    final DatePicker.State calendar = new DatePicker.State(); // a date or date-time's calendar
     // The entries of the last build's choices, and the handler their entries call.
     private List<String> searchChoices;
     private boolean searchNullable;
@@ -75,6 +76,7 @@ final class GridEdit {
       draft = original = error = null;
       mode = null;
       choices.close();
+      calendar.close();
       searchChoices = null; // lets go of the build the handler holds
       searchEntries = null;
       searchChoose = null;
@@ -210,6 +212,7 @@ final class GridEdit {
     sel.edit.draft = draft;
     sel.edit.mode = mode;
     sel.edit.choices.close();
+    sel.edit.calendar.close();
     return sel;
   }
 
@@ -245,6 +248,9 @@ final class GridEdit {
       // except in the field of several lines, which stays open until it hands on or closes.
       CellEditMode mode = CellEditMode.of(b.columns.get(sel.edit.column), false);
       sel.edit.mode = mode instanceof CellEditMode.Toggle ? CellEditMode.INLINE : mode;
+      if (!(mode instanceof CellEditMode.DateText)) {
+        sel.edit.calendar.close(); // else its open flag would swallow the new editor's keys
+      }
     }
     return sel.isEditing();
   }
@@ -384,12 +390,19 @@ final class GridEdit {
   /** The keys of the editor, which reach it from its field or the app's own editor. */
   static boolean editKey(Build b, Key k) {
     Selection sel = b.sel;
-    if (!sel.isEditing()) {
+    if (!sel.isEditing() || sel.edit.calendar.isOpen()) {
       return false;
     }
     Column c = b.columns.get(sel.edit.column);
     int mods = k.modifiers();
     switch (k.name()) {
+      case "ArrowDown" -> {
+        if (mods != Key.ALT || !(sel.edit.mode instanceof CellEditMode.DateText)) {
+          return false;
+        }
+        sel.edit.calendar.open();
+        return true;
+      }
       case "Escape" -> {
         if (mods != 0) {
           return false;
@@ -720,6 +733,7 @@ final class GridEdit {
     CellEditMode CHOICE_SEARCH = new ChoiceSearch();
     CellEditMode CHOICE_MENU = new ChoiceMenu();
     CellEditMode CUSTOM = new Custom();
+    CellEditMode DATE_TEXT = new DateText();
     CellEditMode INLINE = new InlineText();
     CellEditMode MULTILINE = new MultilineText();
 
@@ -734,6 +748,9 @@ final class GridEdit {
       }
       if (c.type() == DataType.BOOLEAN) {
         return TOGGLE;
+      }
+      if (c.type() == DataType.DATE || c.type() == DataType.DATE_TIME) {
+        return DATE_TEXT;
       }
       return multiline && textLike(c) ? MULTILINE : INLINE;
     }
@@ -880,7 +897,7 @@ final class GridEdit {
       }
     }
 
-    /** The field of one line in the cell, for text and for numbers, dates and times. */
+    /** The field of one line in the cell, for text and for numbers and times. */
     record InlineText() implements CellEditMode {
       @Override
       public void typedInto(Selection sel, Column c, String text) {
@@ -890,6 +907,24 @@ final class GridEdit {
       @Override
       public El editor(Build b, Column c, int column, El box) {
         return inlineEditor(b, c, column, box);
+      }
+    }
+
+    /** A date or date-time cell: the inline field plus a calendar button and popover. */
+    record DateText() implements CellEditMode {
+      @Override
+      public void typedInto(Selection sel, Column c, String text) {
+        append(sel, c, text);
+      }
+
+      @Override
+      public El editor(Build b, Column c, int column, El box) {
+        return inlineEditor(b, c, column, box);
+      }
+
+      @Override
+      public El overlay(Build b, Column c, float height) {
+        return b.sel.edit.calendar.isOpen() ? dateCalendar(b, c) : null;
       }
     }
 
@@ -1066,8 +1101,9 @@ final class GridEdit {
     float frame = 2 * (pad + w);
     // Longer than the cell: a button at the right opens the field of several lines.
     boolean longer = textLike(c) && wide + frame > cell;
+    boolean date = sel.edit.mode instanceof CellEditMode.DateText;
     float button = theme.size().icon() + 2 * stroke;
-    float extra = longer ? button + theme.space().xs() : 0;
+    float extra = longer || date ? button + theme.space().xs() : 0;
     float grown = Math.min(wide + frame + extra, room(b, column, right));
     float width = Math.max(cell, grown); // the room may be less than the cell: no clamp
     El field = El.text(text)
@@ -1128,8 +1164,55 @@ final class GridEdit {
               .onPress(() -> sel.edit.mode = CellEditMode.MULTILINE)
               .whenHovered(e -> e.fill(hover))
               .child(Icon.icon(Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
+    } else if (date) {
+      int hover = theme.surface().hover();
+      box.gap(theme.space().xs())
+          .child(row()
+              .key("calendar")
+              .role("button")
+              .label(b.texts.chooseDate())
+              .expanded(sel.edit.calendar.isOpen())
+              .size(button, button)
+              .shrink(0)
+              .center()
+              .radius(theme.radius().small())
+              .cursor(Cursor.POINTER)
+              .keepFocus() // the caret stays in the field
+              .dismissGroup(sel.edit.calendar)
+              .onPress(sel.edit.calendar::toggle)
+              .whenHovered(e -> e.fill(hover))
+              .child(Icon.icon(
+                  c.type() == DataType.DATE_TIME ? Symbol.CALENDAR_CLOCK : Symbol.CALENDAR_LTR,
+                  Icon.Variant.MUTED)));
     }
-    return place(b, box, column, width, true, Side.BOTTOM);
+    return place(b, box, column, width, !sel.edit.calendar.isOpen(), Side.BOTTOM);
+  }
+
+  /** The calendar popover attached to the edit anchor for a DATE or DATE_TIME cell. */
+  private static El dateCalendar(Build b, Column c) {
+    Selection sel = b.sel;
+    Runnable clear = !c.editing().nullable()
+        ? null
+        : () -> {
+          sel.edit.draft = null;
+          sel.edit.error = null;
+          sel.edit.calendar.close();
+          commit(b, Move.NONE);
+        };
+    return DatePicker.calendarPanel(
+        b.theme,
+        b.texts,
+        DatePicker.CLOCK.get(),
+        sel.edit.calendar,
+        DatePicker.parseDatePrefix(sel.edit.draft),
+        day -> {
+          sel.edit.draft = DatePicker.replaceDate(c, sel.edit.draft, day);
+          sel.edit.error = null;
+          sel.edit.calendar.close();
+          commit(b, Move.NONE);
+        },
+        clear,
+        null);
   }
 
   /** How wide an editor of this column may grow: to the edge of the grid's part in view. */

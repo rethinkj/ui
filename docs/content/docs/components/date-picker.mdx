@@ -1,0 +1,55 @@
+---
+title: DatePicker
+description: Typed date and date-time fields with a month calendar in a popover.
+---
+
+`DatePicker.datePicker` and `DatePicker.dateTimePicker` pair a [ValueField](/docs/components/format) for `LocalDate` or `LocalDateTime` with a trailing calendar button that opens a month calendar in a [Popover](/docs/components/popover). Users can type an ISO date directly or choose a day from the calendar; picking a day replaces any malformed draft text.
+
+`DataGrid` uses the same calendar popover when editing `DATE` and `DATE_TIME` cells and when filtering date columns.
+
+Javadoc: [`DatePicker`](/api/com/rethinkj/ui/kit/DatePicker.html), [`DatePicker.State`](/api/com/rethinkj/ui/kit/DatePicker.State.html).
+
+<Shot src="examples/docs/date-picker/open-{theme}" alt="A Release date field with its month calendar popover open below it, showing November 2026, a dot on today, the chosen day highlighted, and Today and Clear buttons in the footer" />
+
+## Example
+
+Store the value and a `DatePicker.State` in your app state:
+
+```java snippet="date-picker-state"
+```
+
+```java snippet="date-picker"
+```
+
+| Method | Description |
+| --- | --- |
+| `datePicker(format, value, state, onChange)` | `LocalDate` field with a month calendar popover (`null` handler disables it) |
+| `datePicker(format, prop, state)` | Binds to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop); uses the prop's draft when it comes from an `Editing`, else `state`'s fallback draft |
+| `dateTimePicker(format, value, state, onChange)` | `LocalDateTime` field whose calendar footer includes a `Format.TIME` field |
+| `dateTimePicker(format, prop, state)` | `LocalDateTime` picker bound to a `Prop` |
+| `DatePicker.CLOCK` | `Context<Clock>` that decides which day is marked as today (defaults to `Clock.systemDefaultZone()`) |
+
+When `format.isOptional()` is true, the calendar footer includes a **Clear** button that writes `null` and closes the popover. The month names, weekday headers, and first day of the week come from `Texts.CURRENT` (Sunday in English, Monday in `GermanTexts`).
+
+## Date and time
+
+`DatePicker.dateTimePicker` uses a calendar-clock icon and adds a **Time** field (`Format.TIME`) to the start of the footer. Choosing a day keeps the existing time (or `00:00` when none is set), hands the value on, and moves focus to the time field; pressing **Enter** there closes the popover.
+
+<Shot src="examples/docs/date-picker/datetime-{theme}" alt="A Next backup date-time field with its month calendar popover open, showing a Time field beside Today in the footer" />
+
+## Keyboard
+
+- **Alt+ArrowDown** in the field or on the calendar button opens the popover.
+- Inside the popover, the month grid is one **Tab** stop: **Arrow keys** move by a day or week, **Home** / **End** jump to the first or last day of the week, **PageUp** / **PageDown** step by a month, and **Shift+PageUp** / **Shift+PageDown** step by a year.
+- **Enter** or **Space** chooses the focused day.
+- **Escape**, clicking outside, or tabbing out closes the popover and returns focus to the field.
+
+## In a tree dump
+
+The embedded toggle button is `role=button` with `expanded` / `expanded=false`. While open, the popover is `role=dialog` holding a `role=grid` labeled with the month and year, and `role=gridcell` days labeled with their ISO date (`selected` on the chosen day, `current` on today):
+
+```text file="examples/src/test/resources/golden/docs/date-picker/open.tree.txt" start="role=button label=\"Choose date\"" count="1"
+```
+
+```text file="examples/src/test/resources/golden/docs/date-picker/open.tree.txt" start="role=grid label=\"November 2026\"" count="2"
+```

@@ -9,6 +9,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.examples.SchemaDiagram;
 import com.rethinkj.ui.examples.Snaps;
+import com.rethinkj.ui.kit.DatePicker;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
@@ -16,6 +17,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +61,7 @@ class DocsExamplesTest {
       Map.entry("bars", List.of("view")),
       Map.entry("cards-window", List.of("view")),
       Map.entry("choices", List.of("view")),
+      Map.entry("date-picker", List.of("open", "datetime")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("dialog-stack", List.of("stacked")),
       Map.entry("details", List.of("view", "children", "hidden")),
@@ -104,6 +109,14 @@ class DocsExamplesTest {
     controls(all, "parts", Controls::parts, 400, 200);
     controls(all, "icon-own", Controls::ownIcons, 132, 48);
     controls(all, "values", Controls::values, 360, 240);
+    Clock fixed = Clock.fixed(Instant.parse("2026-11-22T10:00:00Z"), ZoneOffset.UTC);
+    all.put(
+        "date-picker",
+        new Example(
+            t -> new App<>(new Controls(), Controls::datePickers)
+                .provide(DatePicker.CLOCK, state -> fixed),
+            340,
+            340));
     layouts(all, "cards", Layouts::cards, 420, 360);
     layouts(all, "groups", Layouts::groups, 460, 200);
     layouts(all, "sections", Layouts::sections, 520, 400);

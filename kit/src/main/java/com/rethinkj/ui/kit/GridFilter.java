@@ -58,12 +58,16 @@ final class GridFilter {
     String search = "";
     final Set<String> values = new LinkedHashSet<>();
     final Menu.State kinds = new Menu.State();
+    final DatePicker.State fromCalendar = new DatePicker.State();
+    final DatePicker.State toCalendar = new DatePicker.State();
 
     /** Puts the popover on its column's new place, or closes it where its column is gone. */
     void onColumnsChanged(IntUnaryOperator to) {
       column = to.applyAsInt(column);
       if (column < 0) {
         popover.close();
+        fromCalendar.close();
+        toCalendar.close();
       }
     }
   }
@@ -168,6 +172,8 @@ final class GridFilter {
     sel.filter.column = column;
     sel.filter.popover.open();
     sel.filter.kinds.close();
+    sel.filter.fromCalendar.close();
+    sel.filter.toCalendar.close();
     Spec spec = set != null ? set.spec() : null;
     sel.filter.kind = spec != null ? kind(spec) : kinds(c).getFirst();
     sel.filter.value = switch (spec) {
@@ -196,6 +202,8 @@ final class GridFilter {
   private static void close(Selection sel) {
     sel.filter.popover.close();
     sel.filter.kinds.close();
+    sel.filter.fromCalendar.close();
+    sel.filter.toCalendar.close();
     sel.filter.column = -1;
   }
 
@@ -332,6 +340,65 @@ final class GridFilter {
     return kinds(c).getFirst() == Kind.BETWEEN;
   }
 
+  /** Whether the column takes a date calendar in its filter fields. */
+  private static boolean dateColumn(Column c) {
+    return c.type() == DataType.DATE || c.type() == DataType.DATE_TIME;
+  }
+
+  /** A date or date-time filter field with an embedded calendar button and popover. */
+  private static El dateField(
+      Theme theme,
+      Texts texts,
+      Column column,
+      String value,
+      String placeholder,
+      String key,
+      float width,
+      boolean autofocus,
+      Draft draft,
+      DatePicker.State calendar,
+      DatePicker.State otherCalendar,
+      Menu.State kinds,
+      Consumer<String> onChange) {
+    El input = field(textField(value, placeholder, onChange).key(key).wFull(), draft, key);
+    if (autofocus) {
+      input.autofocus();
+    }
+    Runnable open = () -> {
+      otherCalendar.close();
+      kinds.close();
+      calendar.open();
+    };
+    Runnable toggle = () -> {
+      if (calendar.isOpen()) {
+        calendar.close();
+      } else {
+        open.run();
+      }
+    };
+    El box = DatePicker.embedField(
+            theme, texts, input, calendar, column.type() == DataType.DATE_TIME, true, open, toggle)
+        .w(width);
+    if (!calendar.isOpen()) {
+      return box;
+    }
+    return box.overlay(DatePicker.calendarPanel(
+        theme,
+        texts,
+        DatePicker.CLOCK.get(),
+        calendar,
+        DatePicker.parseDatePrefix(value),
+        day -> {
+          onChange.accept(DatePicker.replaceDate(column, value, day));
+          calendar.close();
+        },
+        () -> {
+          onChange.accept("");
+          calendar.close();
+        },
+        null));
+  }
+
   /** Whether the popover holds equality with nothing to be equal to, which it does not apply. */
   private static boolean incomplete(Selection sel, Column c) {
     return sel.filter.kind == Kind.EQUALS
@@ -374,35 +441,89 @@ final class GridFilter {
                 kinds.stream().map(texts::filterKind).toList(),
                 kinds.indexOf(sel.filter.kind),
                 sel.filter.kinds,
-                i -> sel.filter.kind = kinds.get(i))
+                i -> {
+                  sel.filter.kind = kinds.get(i);
+                  sel.filter.fromCalendar.close();
+                  sel.filter.toCalendar.close();
+                })
             .key("kind")
             .w(width));
     switch (sel.filter.kind) {
-      case CONTAINS, STARTS_WITH, EQUALS, MATCHES ->
-        content.child(field(
-            textField(sel.filter.value, texts.value(), v -> sel.filter.value = v)
-                .key("value")
-                .w(width)
-                .autofocus(),
-            draft,
-            "value"));
-      case BETWEEN ->
-        content.child(row()
-            .gap(theme.space().s())
-            .children(
-                field(
-                    textField(sel.filter.value, texts.from(), v -> sel.filter.value = v)
-                        .key("from")
-                        .w((width - theme.space().s()) / 2)
-                        .autofocus(),
-                    draft,
-                    "from"),
-                field(
-                    textField(sel.filter.to, texts.to(), v -> sel.filter.to = v)
-                        .key("to")
-                        .w((width - theme.space().s()) / 2),
-                    draft,
-                    "to")));
+      case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
+        if (sel.filter.kind == Kind.EQUALS && dateColumn(c)) {
+          content.child(dateField(
+              theme,
+              texts,
+              c,
+              sel.filter.value,
+              texts.value(),
+              "value",
+              width,
+              true,
+              draft,
+              sel.filter.fromCalendar,
+              sel.filter.toCalendar,
+              sel.filter.kinds,
+              v -> sel.filter.value = v));
+        } else {
+          content.child(field(
+              textField(sel.filter.value, texts.value(), v -> sel.filter.value = v)
+                  .key("value")
+                  .w(width)
+                  .autofocus(),
+              draft,
+              "value"));
+        }
+      }
+      case BETWEEN -> {
+        if (dateColumn(c)) {
+          content.child(dateField(
+              theme,
+              texts,
+              c,
+              sel.filter.value,
+              texts.from(),
+              "from",
+              width,
+              true,
+              draft,
+              sel.filter.fromCalendar,
+              sel.filter.toCalendar,
+              sel.filter.kinds,
+              v -> sel.filter.value = v));
+          content.child(dateField(
+              theme,
+              texts,
+              c,
+              sel.filter.to,
+              texts.to(),
+              "to",
+              width,
+              false,
+              draft,
+              sel.filter.toCalendar,
+              sel.filter.fromCalendar,
+              sel.filter.kinds,
+              v -> sel.filter.to = v));
+        } else {
+          content.child(row()
+              .gap(theme.space().s())
+              .children(
+                  field(
+                      textField(sel.filter.value, texts.from(), v -> sel.filter.value = v)
+                          .key("from")
+                          .w((width - theme.space().s()) / 2)
+                          .autofocus(),
+                      draft,
+                      "from"),
+                  field(
+                      textField(sel.filter.to, texts.to(), v -> sel.filter.to = v)
+                          .key("to")
+                          .w((width - theme.space().s()) / 2),
+                      draft,
+                      "to")));
+        }
+      }
       case ONE_OF -> {
         List<String> choices = values(c);
         boolean many = choices.size() > GridColumns.SEARCH_THRESHOLD;

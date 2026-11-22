@@ -943,4 +943,52 @@ class GridEditTest {
             .wFull()
             .hFull());
   }
+
+  @Test
+  void aDateAndDateTimeCellPickThroughTheCalendarAndKeepTheTime() throws IOException {
+    java.time.Clock fixed = java.time.Clock.fixed(
+        java.time.Instant.parse("2026-11-22T10:00:00Z"), java.time.ZoneOffset.UTC);
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = ledger.app().provide(DatePicker.CLOCK, l -> fixed);
+    run(app, "frame\nfocus #ledger\nframe\nframe");
+
+    // Column 6 ("due", DataType.DATE), row 0 starts as "2026-01-01".
+    run(app, "key End\nkey ArrowLeft\nkey F2\nframe\npress #calendar\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=grid label=\"January 2026\""),
+        app.tree().dump());
+    // Escape closes only the calendar, leaving the cell editor open.
+    run(app, "key Escape\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=dialog"), app.tree().dump());
+    assertTrue(ledger.selection.isEditing());
+
+    // Open via Alt+ArrowDown, press Next month (must not trigger press-outside commit), pick day.
+    run(
+        app,
+        "key ArrowDown alt\nframe\nadvance 1\nframe\npress role=button label=\"Next month\"\nframe\n"
+            + "press role=gridcell label=\"2026-02-14\"\nframe");
+    assertEquals("commit 0,6 2026-02-14", ledger.log.getLast());
+    assertFalse(ledger.selection.isEditing());
+
+    // DATE_TIME column keeps its time (and uses 00:00 when empty/NULL).
+    GridChanges changes = new GridChanges(2, (r, c) -> r == 0 ? "2026-11-13 14:30:15" : null);
+    DataGrid.Selection sel = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    sel.select(0, 0);
+    DataGrid.Column at = new DataGrid.Column(
+            "at", 160, DataGrid.DataType.DATE_TIME, changes.cell(0))
+        .editable()
+        .nullable();
+    App<Object> dt = grid(at, changes, sel).provide(DatePicker.CLOCK, x -> fixed);
+    run(
+        dt,
+        "frame\nfocus #grid\nframe\nkey F2\nframe\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
+            + "press role=gridcell label=\"2026-11-20\"\nframe");
+    assertEquals("2026-11-20 14:30:15", changes.cell(0, 0));
+
+    run(
+        dt,
+        "key ArrowDown\nkey F2\nframe\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
+            + "press role=gridcell label=\"2026-11-25\"\nframe");
+    assertEquals("2026-11-25 00:00", changes.cell(1, 0));
+  }
 }

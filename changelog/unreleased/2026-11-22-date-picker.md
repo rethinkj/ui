@@ -1,0 +1,1 @@
+- Added `DatePicker` (`datePicker` and `dateTimePicker`, with `Prop` overloads and `DatePicker.CLOCK`), and wired its month calendar popover into `DataGrid` cell editing (`DATE` / `DATE_TIME`) and date column filters.

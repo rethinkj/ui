@@ -1,0 +1,20 @@
+size 264 332
+frame
+focus role=textbox label="Release date"
+key ArrowDown alt
+frame
+advance 0.3
+frame
+snap open
+key Escape
+frame
+advance 0.3
+frame
+size 264 396
+frame
+focus role=textbox label="Next backup"
+key ArrowDown alt
+frame
+advance 0.3
+frame
+snap datetime

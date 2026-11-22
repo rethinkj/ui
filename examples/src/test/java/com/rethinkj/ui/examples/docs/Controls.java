@@ -17,6 +17,7 @@ import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.DatePicker;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.HuePicker;
@@ -38,6 +39,7 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** The examples of the pages about buttons, choices, fields and small parts. */
@@ -79,6 +81,12 @@ final class Controls {
   LocalDate due; // null: no date yet
   final ValueField.Draft dueDraft = new ValueField.Draft();
   // docs:end value-state
+  // docs:start date-picker-state
+  LocalDate release = LocalDate.of(2026, 11, 28);
+  final DatePicker.State releasePicker = new DatePicker.State();
+  LocalDateTime backup = LocalDateTime.of(2026, 11, 28, 14, 30);
+  final DatePicker.State backupPicker = new DatePicker.State();
+  // docs:end date-picker-state
 
   void run() {
     runs++;
@@ -486,6 +494,30 @@ final class Controls {
 
   void due(LocalDate value) {
     due = value;
+  }
+
+  void release(LocalDate value) {
+    release = value;
+  }
+
+  void backup(LocalDateTime value) {
+    backup = value;
+  }
+
+  static El datePickers(Controls state) {
+    // docs:start date-picker
+    El release = Form.form(
+        Form.Labels.ABOVE,
+        Form.field(
+            "Release date",
+            DatePicker.datePicker(
+                Format.DATE.optional(), state.release, state.releasePicker, state::release)),
+        Form.field(
+            "Next backup",
+            DatePicker.dateTimePicker(
+                Format.DATE_TIME, state.backup, state.backupPicker, state::backup)));
+    // docs:end date-picker
+    return Frame.of(release);
   }
 
   void saveForm() {

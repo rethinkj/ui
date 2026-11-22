@@ -33,9 +33,11 @@ import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DatePicker;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.FilterList;
+import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
@@ -284,7 +286,20 @@ final class Sections {
                 .readOnly()
                 .key("readonly")),
         field("Disabled", textField("postgres", "User", null).key("disabled")),
-        field("Placeholder", textField("", "Optional", null).key("empty-disabled")));
+        field("Placeholder", textField("", "Optional", null).key("empty-disabled")),
+        field(
+            "Date",
+            DatePicker.datePicker(
+                    Format.DATE.optional(), state.due, state.duePicker, value -> state.due = value)
+                .key("due")),
+        field(
+            "Date and time",
+            DatePicker.dateTimePicker(
+                    Format.DATE_TIME.optional(),
+                    state.scheduled,
+                    state.scheduledPicker,
+                    value -> state.scheduled = value)
+                .key("scheduled")));
     El form = card(
         "New connection",
         field(
