@@ -430,8 +430,8 @@ public final class CpuRenderer {
         && clip.coversWhole(
             Math.max(left, 0),
             Math.max(top, 0),
-            (int) Math.min((long) left + (size & 0xFFFF) - 1, width - 1),
-            (int) Math.min((long) top + (size >>> 16) - 1, height - 1),
+            Math.min(left + (size & 0xFFFF) - 1, width - 1),
+            Math.min(top + (size >>> 16) - 1, height - 1),
             scale);
     for (int ty = 0; ty < size >>> 16; ty++) {
       int py = top + ty;

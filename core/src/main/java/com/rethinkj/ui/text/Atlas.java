@@ -339,7 +339,7 @@ public final class Atlas {
 
   /** The bytes the pages take, across both coverage and color pages. */
   public long bytes() {
-    return ((long) pages.size() + 4L * colorPages.size()) * pageSize * pageSize;
+    return (pages.size() + 4L * colorPages.size()) * pageSize * pageSize;
   }
 
   private Slot store(Font.Bitmap bitmap) {
