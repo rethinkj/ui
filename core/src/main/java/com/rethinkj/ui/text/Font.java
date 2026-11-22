@@ -80,7 +80,7 @@ public final class Font implements AutoCloseable {
   private final String name;
   private final boolean shared;
   private final boolean icons;
-  private final boolean color; // whether the face has color glyphs (FT_FACE_FLAG_COLOR)
+  private final boolean color; // whether the face draws COLR version 0 glyphs in color
   // The font that owns the native objects and draws: this, or the font withFallback was called
   // on. For a font of fallbacks, the fields of native objects below are null.
   private final Font base;
@@ -152,7 +152,7 @@ public final class Font implements AutoCloseable {
     }
     name = string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)) + " "
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
-    color = (FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) != 0;
+    color = drawsColor(face);
     styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
         & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
     blob = HarfBuzz.blobCreate(
@@ -498,6 +498,20 @@ public final class Font implements AutoCloseable {
       }
     }
     return chain;
+  }
+
+  /**
+   * Whether a face draws its emoji in color: it has color glyphs, and a sample renders as COLR
+   * version 0 layers, not as an outline or nothing (COLR version 1, CBDT).
+   */
+  private static boolean drawsColor(MemorySegment face) {
+    if ((FreeType.getLong(face, FreeType.FACE_FACE_FLAGS) & FreeType.FACE_FLAG_COLOR) == 0) {
+      return false;
+    }
+    try (Arena call = Arena.ofConfined()) {
+      int[] ranges = ranges(face, call.allocate(JAVA_INT));
+      return ranges.length > 0 && sampleMode(face, ranges) == FreeType.PIXEL_MODE_BGRA;
+    }
   }
 
   private static Runs.Coverage coverage(List<Font> chain) {

@@ -56,12 +56,13 @@ class RunsTest {
         return font == 1;
       }
     };
-    String text = "☃\uD83D\uDC4D❤\uFE0F";
+    String text = "☃\uD83D\uDC4D❤\uFE0F \uD83D\uDC4D\uFE0E";
     assertEquals(
-        List.of("0☃", "1\uD83D\uDC4D❤\uFE0F"),
+        List.of("0☃", "1\uD83D\uDC4D❤\uFE0F", "0 \uD83D\uDC4D\uFE0E"),
         Runs.of(text, 2, coverage).stream()
             .map(r -> r.font() + text.substring(r.from(), r.to()))
-            .toList());
+            .toList(),
+        "U+FE0E asks for text");
   }
 
   @Test
