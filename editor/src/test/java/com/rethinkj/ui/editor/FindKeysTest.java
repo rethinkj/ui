@@ -272,6 +272,8 @@ class FindKeysTest {
     tree = run(app, "key W alt\nkey A control\ntype \"stra(ss|ß)e\"\nkey R alt");
     assertTrue(line(tree, "regex").contains(" checked"), tree);
     assertEquals("1 of 2", count(tree), "Straße and STRASSE");
+    run(app, "key ArrowDown alt\nkey D control shift");
+    assertEquals(TEXT, doc.text, "the editor's commands do nothing in the bar");
   }
 
   @Test

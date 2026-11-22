@@ -217,6 +217,9 @@ public final class Find {
    */
   public static int[] next(
       String text, String needle, boolean wholeWord, String wordCharacters, int from) {
+    if (needle.isEmpty()) {
+      return new int[0];
+    }
     Search.Query query = new Search.Query(needle, true, wholeWord, false, wordCharacters);
     try {
       int[] next =
@@ -452,7 +455,7 @@ public final class Find {
           state.inSelection = !state.inSelection;
         }
         default -> {
-          return false;
+          return state.commands.test(k); // such as the editor's Alt+Up, which moves lines
         }
       }
       changed(state);
