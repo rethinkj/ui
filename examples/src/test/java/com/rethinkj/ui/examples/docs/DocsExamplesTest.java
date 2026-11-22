@@ -87,6 +87,7 @@ class DocsExamplesTest {
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
+      Map.entry("grid-totals", List.of("selected")),
       Map.entry("grid-empty", List.of("empty")),
       Map.entry("grid-tree", List.of("view")),
       Map.entry("tags", List.of("added")),
@@ -182,6 +183,7 @@ class DocsExamplesTest {
     grids(all, "grid-fit", Grids::fitted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
+    grids(all, "grid-totals", Grids::totals, 560, 300);
     grids(all, "grid-empty", Grids::empty, 520, 300);
     grids(all, "grid-tree", Grids::treeRows, 520, 280);
     grids(all, "grid-typed", Grids::typed, 520, 300);

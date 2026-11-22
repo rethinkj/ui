@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
@@ -52,6 +53,7 @@ final class Grids {
   final DataGrid.Fit fit = new DataGrid.Fit();
   final DataGrid.Layout layout = new DataGrid.Layout(List.of("id", "customer", "amount", "status"));
   List<DataGrid.Filter> filters = List.of();
+  DataGrid.Summary summary;
   // The rows of the edited grid, which Commit writes the changes into.
   final List<String[]> rows = new ArrayList<>(IntStream.range(0, 20)
       .mapToObj(row ->
@@ -83,6 +85,11 @@ final class Grids {
     filters = value;
   }
 
+  // docs:start grid-summary-handler
+  void summarize(List<Column> columns) {
+    summary = DataGrid.summary(columns, selection.ranges(), COUNT, 100_000);
+  }
+  // docs:end grid-summary-handler
   void clearFilters() {
     filters = List.of();
   }
@@ -478,6 +485,35 @@ final class Grids {
             grid)
         .wFull()
         .grow(1));
+  }
+
+  static El totals(Grids state) {
+    // docs:start grid-totals
+    List<Column> columns = List.of(
+        new Column("id", 110, DataType.INTEGER, row -> value(row, 0)),
+        new Column("customer", 120, DataType.TEXT, row -> value(row, 1)),
+        new Column("amount", 140, DataType.DECIMAL, row -> value(row, 2)),
+        new Column("status", 100, DataType.TEXT, row -> value(row, 3)));
+    El grid = DataGrid.dataGrid(
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(state.selection)
+                .onSelect(() -> state.summarize(columns))
+                .rowNumbers()
+                .frozen(1)
+                .footer(column -> switch (column) {
+                  case 0 -> new DataGrid.Total(DataGrid.Aggregate.COUNT, String.valueOf(COUNT));
+                  case 2 -> new DataGrid.Total(DataGrid.Aggregate.SUM, "249995.00");
+                  default -> null;
+                }))
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    El status = StatusBar.statusBar(
+        List.of(StatusBar.text(COUNT + " rows")), DataGrid.summaryGroups(state.summary));
+    // docs:end grid-totals
+    return Frame.of(Card.flush(grid, status).wFull().grow(1));
   }
 
   static El empty(Grids state) {

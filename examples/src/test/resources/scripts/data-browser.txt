@@ -26,11 +26,11 @@ press #column-0                  # sorts by id, descending: the order is near th
 frame
 wheel #rows -2000 0              # the columns back to their start; the cursor stays
 frame
-down #resize-2                   # the right edge of email, at 499,86
+down #resize-2                   # the right edge of email, at 547,86
 frame
-move 559,86                      # 60 pixels to the right, a frame for each step as in a window
+move 607,86                      # 60 pixels to the right, a frame for each step as in a window
 frame
-up 559,86
+up 607,86
 frame
 
 # Editing: changes collect until Commit, with their marks, and filters per column
@@ -67,6 +67,10 @@ press #value-pending
 press label="Apply"
 frame
 advance 1
+frame
+press #cell-0-7                  # select three amounts for the status bar summary
+key ArrowDown shift
+key ArrowDown shift
 frame
 
 snap browser-dark               # the changes and filters, which the light theme shows as well

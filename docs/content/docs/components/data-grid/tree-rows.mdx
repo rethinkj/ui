@@ -32,7 +32,7 @@ Flatten your `Tree.Model` with `Tree.rows(model, isOpen)` during each build, pas
 
 When `Model.children(node)` returns `Tree.loading(...)` or `Tree.failed(message, action, onAction)`, the grid renders `Tree`'s spinner and loading text or error icon, message, and retry button at the child indent in the first column, and leaves all other columns empty.
 
-The grid never calls your column cell, icon, detail, tooltip, or editing functions for loading or failed rows (`rows.node(row)` is `null`), and copying writes empty fields for them.
+The grid never calls your column cell, icon, detail, tooltip, or editing functions for loading or failed rows (`rows.node(row)` is `null`), and copying writes empty fields for them. The static helpers `DataGrid.copyText` and `DataGrid.summary` read every row you hand them, so their columns must return `null` where `rows.node(row)` is `null`.
 
 ## Keyboard
 
