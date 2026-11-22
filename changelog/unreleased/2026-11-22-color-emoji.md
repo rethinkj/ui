@@ -1,0 +1,1 @@
+- Emoji from COLR version 0 fonts, such as Segoe UI Emoji on Windows, are drawn in their own colors instead of the text color, and fallback now also picks such a font when its emoji have no single-color outlines.

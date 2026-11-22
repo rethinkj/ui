@@ -1,0 +1,6 @@
+el 0,0 280x112
+  text "Release ready 🎉 great work 👍 😀" 10,10 260x17
+  el 10,33 260x17
+    text "Colored 😀 🎉" 10,33 88x17
+    text "Faded 👍 😀" 110,33 77x17
+  text #name role=textbox label="Message" "Hello 😀🎉 ok 👍" 10,56 260x31 focused caret 12 anchor 4

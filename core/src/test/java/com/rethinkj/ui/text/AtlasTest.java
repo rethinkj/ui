@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.text.TextRendering.Hinting;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
@@ -26,14 +27,14 @@ class AtlasTest {
     assertTrue(whole.width() > 0 && whole.height() >= 10, whole.toString());
     assertEquals(whole.height(), half.height(), "moved sideways only");
     assertEquals(whole.top(), half.top());
-    assertFalse(Arrays.equals(whole.coverage(), half.coverage()), "half a pixel to the right");
+    assertFalse(Arrays.equals(whole.pixels(), half.pixels()), "half a pixel to the right");
     // Light hinting snaps heights only; the font's own hints differ in some glyph of a word.
     boolean differ = false;
     GlyphRun run = inter.shape("Kunde Müller, Köln", 13, 1);
     for (int i = 0; i < run.count() && !differ; i++) {
       differ = !Arrays.equals(
-          inter.rasterize(run.glyph(i), 13, LIGHT, 0).coverage(),
-          inter.rasterize(run.glyph(i), 13, Hinting.NATIVE, 0).coverage());
+          inter.rasterize(run.glyph(i), 13, LIGHT, 0).pixels(),
+          inter.rasterize(run.glyph(i), 13, Hinting.NATIVE, 0).pixels());
     }
     assertTrue(differ, "the two hintings give the same bitmaps");
     assertEquals(0, inter.rasterize(glyph(" "), 14, LIGHT, 0).width(), "a space has no ink");
@@ -60,7 +61,7 @@ class AtlasTest {
     for (int y = 0; y <= slot.height(); y++) {
       for (int x = 0; x <= slot.width(); x++) {
         int expected = x < slot.width() && y < slot.height()
-            ? bitmap.coverage()[y * slot.width() + x] & 0xFF
+            ? bitmap.pixels()[y * slot.width() + x] & 0xFF
             : 0;
         assertEquals(expected, page.coverage(slot.x() + x, slot.y() + y), x + "," + y);
       }
@@ -157,6 +158,48 @@ class AtlasTest {
         }
       }
     }
+  }
+
+  @Test
+  void colorGlyphsGoToColorPagesAndCountRealBytes() {
+    TextLibraries.assumeLoaded();
+    Font emoji = Examples.emoji();
+    int grin = emoji.shape("😀", 16, 1).glyph(0);
+    int party = emoji.shape("🎉", 16, 1).glyph(0);
+    Font.Bitmap bitmap = emoji.rasterize(grin, 16, LIGHT, 0);
+    assertTrue(bitmap.color(), "COLR v0 glyph is a color bitmap");
+    assertTrue(bitmap.width() > 0 && bitmap.height() > 0);
+    assertEquals(bitmap.width() * bitmap.height() * 4, bitmap.pixels().length);
+
+    // Room for one coverage page (32x32) and one color page (4 * 32x32): 5 * 1024 bytes.
+    Atlas atlas = new Atlas(32, 5L * 32 * 32, 100);
+    atlas.nextFrame();
+    Atlas.Slot letter = atlas.glyph(Font.sans(), 14, LIGHT, glyph("H"), 0);
+    Atlas.Slot face = atlas.glyph(emoji, 16, LIGHT, grin, 0);
+    assertFalse(letter.color());
+    assertTrue(face.color());
+    assertEquals(1, atlas.pages().size());
+    assertEquals(1, atlas.colorPages().size());
+    assertEquals(5L * 32 * 32, atlas.bytes(), "1 byte/texel coverage + 4 bytes/texel color");
+    Atlas.Page colorPage = atlas.colorPages().getFirst();
+    assertEquals(4, colorPage.bytesPerTexel());
+    assertEquals(
+        new Atlas.Region(face.x(), face.y(), face.width() + 1, face.height() + 1),
+        colorPage.takeChanged());
+    assertEquals(0, colorPage.color(face.x() + face.width(), face.y()), "empty column right");
+    assertEquals(0, colorPage.color(face.x(), face.y() + face.height()), "empty row below");
+    atlas.pages().getFirst().takeChanged();
+
+    // Next frame: fill color page with a larger glyph so it evicts color page 0 without touching
+    // coverage page 0.
+    atlas.nextFrame();
+    Atlas.Slot big = atlas.glyph(emoji, 28, LIGHT, party, 0);
+    assertTrue(big.color());
+    assertEquals(0, big.page(), "reused the evicted color page");
+    assertEquals(1, atlas.colorPages().size());
+    assertEquals(new Atlas.Region(0, 0, 32, 32), colorPage.takeChanged(), "evicted page reset");
+    assertEquals(letter, atlas.glyph(Font.sans(), 14, LIGHT, glyph("H"), 0), "coverage kept");
+    assertTrue(atlas.pages().getFirst().changed().isEmpty(), "coverage page untouched");
   }
 
   private static int glyph(String character) {

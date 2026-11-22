@@ -837,6 +837,7 @@ public final class Examples {
 
   private static Font hebrew;
   private static Font thai;
+  private static Font emoji;
 
   /** Noto Sans Hebrew from the test resources, opened on first use. */
   public static synchronized Font hebrew() {
@@ -852,6 +853,79 @@ public final class Examples {
       thai = Font.resource(Examples.class, "/fonts/NotoSansThai-Regular.ttf");
     }
     return thai;
+  }
+
+  /** Twemoji Mozilla (COLR version 0 subset) from the test resources, opened on first use. */
+  public static synchronized Font emoji() {
+    if (emoji == null) {
+      emoji = Font.resource(Examples.class, "/fonts/TwemojiMozilla-Subset.ttf");
+    }
+    return emoji;
+  }
+
+  /** Inter falling back to {@link #emoji()} for color emoji. */
+  public static Font emojiChain() {
+    return Font.sans().withFallback(emoji());
+  }
+
+  /**
+   * Steps of a script for {@link #colorEmoji} in a window of 280 by 112: types text with color
+   * emoji and selects across normal text and two emoji.
+   */
+  public static final String COLOR_EMOJI_SCRIPT = """
+      press #name
+      type "Hello 😀🎉 ok 👍"
+      key Home
+      key ArrowRight
+      key ArrowRight
+      key ArrowRight
+      key ArrowRight
+      key ArrowRight shift
+      key ArrowRight shift
+      key ArrowRight shift
+      key ArrowRight shift
+      key ArrowRight shift
+      key ArrowRight shift
+      """;
+
+  /**
+   * Text with COLR version 0 color emoji next to normal text (including colored text and reduced
+   * opacity) and an editable field for selecting over them, in a window of 280 by 112.
+   */
+  public static El colorEmoji(Form form) {
+    Font chain = emojiChain();
+    return col()
+        .wFull()
+        .hFull()
+        .padding(10)
+        .gap(6)
+        .fill(0xFFFFFFFF)
+        .children(
+            El.text("Release ready 🎉 great work 👍 😀")
+                .font(chain)
+                .fontSize(14)
+                .color(0xFF1A1A1A),
+            row()
+                .gap(12)
+                .children(
+                    El.text("Colored 😀 🎉").font(chain).fontSize(14).color(0xFF2563EB),
+                    El.text("Faded 👍 😀")
+                        .font(chain)
+                        .fontSize(14)
+                        .color(0xFF1A1A1A)
+                        .opacity(0.45f)),
+            El.text(form.name)
+                .editable(name -> form.name = name)
+                .key("name")
+                .label("Message")
+                .font(chain)
+                .fontSize(14)
+                .color(0xFF1A1A1A)
+                .padding(6, 8)
+                .radius(6)
+                .border(1, 0xFFD4D4D8)
+                .fill(0xFFF8FAFC)
+                .wFull());
   }
 
   /**

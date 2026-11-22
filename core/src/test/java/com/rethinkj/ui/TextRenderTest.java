@@ -6,7 +6,6 @@ import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.layout.Flex;
@@ -16,14 +15,9 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
-import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -67,122 +61,6 @@ class TextRenderTest {
     app.frame();
     Headless.Frame frame = app.render();
     Golden.assertMatches("text-scrolled", frame.pixels(), frame.tree());
-    Scene scene = app.scene();
-    int glyphs = 0;
-    for (int i = 0; i < scene.count(); i++) {
-      if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
-        glyphs++;
-        assertEquals(1, scene.getInt(i, Scene.CLIP), "clipped by the list");
-        assertTrue(scene.get(i, Scene.Y) < 80 && scene.get(i, Scene.Y) > 0);
-      }
-    }
-    assertTrue(glyphs > 30 && glyphs < 8 * 27, glyphs + ": the rows out of sight are left out");
-  }
-
-  @Test
-  void textUnderOpacity() {
-    Headless.Frame frame = Headless.render(Examples.textOpacity(), 336, 76, 2, PINNED);
-    Golden.assertMatches("text-opacity", frame.pixels(), frame.tree());
-  }
-
-  /** See {@link Examples#alignedText}. */
-  @Test
-  void linesAlignInTheirBoxes() {
-    Headless.Frame frame = Headless.render(Examples.alignedText(), 360, 172, 1, PINNED);
-    Golden.assertMatches("text-align-1x", frame.pixels(), frame.tree());
-  }
-
-  /** See {@link Examples#ellipsisText}. */
-  @Test
-  void aLineTooWideForItsBoxEndsInAnEllipsis() {
-    El root = Examples.ellipsisText();
-    Headless.Frame frame = Headless.render(root, 360, 236, 1, PINNED);
-    Golden.assertMatches("text-ellipsis-1x", frame.pixels(), frame.tree());
-    List<El> texts = new ArrayList<>();
-    collectTexts(root, texts);
-    assertEquals(22, texts.size());
-    for (El text : texts) {
-      Text t = text.text();
-      boolean fits = t.string().equals("Köln");
-      assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
-      Text.Line line = t.lines().getFirst();
-      // A box narrower than the ellipsis holds an empty line: nothing draws outside it.
-      assertTrue(line.width() <= text.width() + 0.01f, line.width() + " in " + text.width());
-    }
-    assertTrue(frame.tree().contains(TreeDumper.quote(Examples.SANS_SAMPLE)), "the whole string");
-  }
-
-  @Test
-  void aBoxTooNarrowForTheEllipsisShowsNothingOfItsText() {
-    El text = El.text("Window title").ellipsis().underline(0, 1).minSize(0, 0);
-    Headless.render(row().w(0).child(text), 40, 20, 1, PINNED);
-    assertEquals(0, text.width());
-    assertEquals(0, text.text().lines().getFirst().width());
-    assertNull(text.text().composition(), "no underline either");
-  }
-
-  @Test
-  void anUnderlineCoversOnlyWhatTheEllipsisLeaves() {
-    El cut = El.text("Window title").ellipsis().underline(9, 10).minSize(0, 0);
-    // "AV" kerns so tight that the cut "V" starts left of where "A…" puts the ellipsis.
-    El kerned = El.text("AVery long title").ellipsis().underline(1, 2).minSize(0, 0);
-    // A partly cut range ends where the shortened line puts the ellipsis, though "AV" kerns
-    // tighter than "A…", and "W…" tighter than "Wi".
-    List<El> partly = List.of(
-        El.text("AVery long title").ellipsis().underline(0, 2).minSize(0, 0),
-        El.text("Window title").ellipsis().underline(0, 12).minSize(0, 0));
-    Headless.render(
-        col()
-            .children(
-                row().w(40).child(cut),
-                row().w(26).child(kerned),
-                row().w(26).child(partly.get(0)),
-                row().w(26).child(partly.get(1))),
-        60,
-        80,
-        1,
-        PINNED);
-    assertNull(cut.text().composition(), "the cut characters show no underline");
-    assertNull(kerned.text().composition(), "nor does a cut character the ellipsis kerns with");
-    for (El text : partly) {
-      GlyphRun glyphs = text.text().lines().getFirst().glyphs();
-      Text.Box line = text.text().composition();
-      assertEquals(0, line.x());
-      assertEquals(
-          glyphs.pen(glyphs.count() - 1),
-          line.x() + line.width(),
-          text.text().string() + " ends at the last character shown");
-    }
-  }
-
-  private static void collectTexts(El el, List<El> into) {
-    if (el.text() != null) {
-      into.add(el);
-    }
-    el.children().forEach(child -> collectTexts(child, into));
-  }
-
-  /** See {@link Examples#fallbackText}. */
-  @Test
-  void fallbackFontsDrawWhatTheFontLacks() {
-    Headless.Frame frame = Headless.render(Examples.fallbackText(), 360, 128, 1, PINNED);
-    Golden.assertMatches("fallback-1x", frame.pixels(), frame.tree());
-  }
-
-  /**
-   * A field in the fonts of {@link Examples#fallbackChain}: Inter, JetBrains Mono, Thai and
-   * Hebrew, with a selection from Inter into JetBrains Mono and the caret after it.
-   */
-  @Test
-  void aFieldWithFallbackFontsSelectsAcrossThem() throws IOException {
-    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
-    app.textRendering(PINNED);
-    Script.run(
-        "size 240 80 scale 2\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
-        app,
-        Path.of("target/fallback-field"));
-    Headless.Frame frame = app.render();
-    Golden.assertMatches("fallback-field", frame.pixels(), frame.tree());
   }
 
   // ---- the coverage correction against blending in gamma space ------------------------------

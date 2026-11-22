@@ -146,9 +146,17 @@ class CpuRendererEquivalenceTest {
       float height = 8 + random.nextInt(40);
       Scene scene = base(width, height, scale, text && n % 3 == 0);
       List<int[]> glyphs = new ArrayList<>();
+      List<int[]> colorGlyphs = new ArrayList<>();
       for (int i = 0; i < scene.count(); i++) {
-        if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
+        int kind = scene.getInt(i, Scene.KIND);
+        if (kind == Scene.GLYPH) {
           glyphs.add(new int[] {
+            scene.getInt(i, Scene.ATLAS),
+            scene.getInt(i, Scene.ATLAS_SIZE),
+            scene.getInt(i, Scene.PAGE)
+          });
+        } else if (kind == Scene.COLOR_GLYPH) {
+          colorGlyphs.add(new int[] {
             scene.getInt(i, Scene.ATLAS),
             scene.getInt(i, Scene.ATLAS_SIZE),
             scene.getInt(i, Scene.PAGE)
@@ -157,7 +165,7 @@ class CpuRendererEquivalenceTest {
       }
       int count = 1 + random.nextInt(14);
       for (int i = 0; i < count; i++) {
-        addRandom(scene, random, width, height, glyphs);
+        addRandom(scene, random, width, height, glyphs, colorGlyphs);
       }
       if (n % 2 == 0) {
         addImage(scene, random, width, height);
@@ -245,6 +253,7 @@ class CpuRendererEquivalenceTest {
         .child(El.image(BASE_IMAGES[1]).absolute(2, 3).size(4, 4));
     if (text) {
       rounded.child(El.text("Ag é").fontSize(9).color(0xFF101010).absolute(0.3f, 0.6f));
+      rounded.child(El.text("😀👍").font(Examples.emoji()).fontSize(10).absolute(1.5f, 1.5f));
       square.child(
           El.text("W1").font(Font.mono()).fontSize(11).color(0xFFFFFFFF).absolute(-2.5f, 1));
       Examples.laidOut(root, width, height, scale);
@@ -342,13 +351,20 @@ class CpuRendererEquivalenceTest {
   }
 
   private static void addRandom(
-      Scene scene, Random random, float width, float height, List<int[]> glyphs) {
+      Scene scene,
+      Random random,
+      float width,
+      float height,
+      List<int[]> glyphs,
+      List<int[]> colorGlyphs) {
     scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
     long at = (long) (scene.count() - 1) * Scene.STRIDE;
     MemorySegment data = scene.data();
-    int kind = random.nextInt(10) < 6
+    int kind = random.nextInt(10) < 5
         ? Scene.RECT
-        : random.nextBoolean() || glyphs.isEmpty() ? Scene.SHADOW : Scene.GLYPH;
+        : random.nextInt(3) == 0 || glyphs.isEmpty()
+            ? Scene.SHADOW
+            : random.nextBoolean() || colorGlyphs.isEmpty() ? Scene.GLYPH : Scene.COLOR_GLYPH;
     float w = length(random, width);
     float h = length(random, height);
     put(data, at + Scene.X, position(random, width));
@@ -361,11 +377,19 @@ class CpuRendererEquivalenceTest {
         random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, kind);
     color(data, at + Scene.FILL, random);
-    if (kind == Scene.GLYPH) {
-      int[] glyph = glyphs.get(random.nextInt(glyphs.size()));
+    if (kind == Scene.GLYPH || kind == Scene.COLOR_GLYPH) {
+      List<int[]> source = kind == Scene.COLOR_GLYPH ? colorGlyphs : glyphs;
+      int[] glyph = source.get(random.nextInt(source.size()));
       data.set(ValueLayout.JAVA_INT, at + Scene.ATLAS, glyph[0]);
       data.set(ValueLayout.JAVA_INT, at + Scene.ATLAS_SIZE, glyph[1]);
       data.set(ValueLayout.JAVA_INT, at + Scene.PAGE, glyph[2]);
+      if (kind == Scene.COLOR_GLYPH) {
+        float opacity = random.nextBoolean() ? 1 : random.nextFloat();
+        for (int c = 0; c < 4; c++) {
+          put(data, at + Scene.COLOR + c * 4, opacity);
+        }
+        return;
+      }
       put(
           data,
           at + Scene.LIGHT_SHARE,

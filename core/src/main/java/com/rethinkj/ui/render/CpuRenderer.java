@@ -65,6 +65,8 @@ public final class CpuRenderer {
       int kind = scene.getInt(i, Scene.KIND);
       if (kind == Scene.GLYPH) {
         glyph(scene, i, frame, width, height, scale, blends, scratch);
+      } else if (kind == Scene.COLOR_GLYPH) {
+        colorGlyph(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.SHADOW) {
         shadow(scene, i, frame, width, height, scale, blends, scratch);
       } else if (kind == Scene.IMAGE) {
@@ -409,6 +411,54 @@ public final class CpuRenderer {
             color[1] * coverage,
             color[2] * coverage,
             color[3] * coverage,
+            blends);
+      }
+    }
+  }
+
+  /** Draws a color glyph's premultiplied RGBA bitmap one texel to one physical pixel. */
+  private static void colorGlyph(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    int atlas = scene.getInt(i, Scene.ATLAS);
+    int size = scene.getInt(i, Scene.ATLAS_SIZE);
+    Atlas.Page page = scene.colorPages().get(scene.getInt(i, Scene.PAGE));
+    int left = Math.clamp(Math.round(scene.get(i, Scene.X) * scale), -0x10000, width);
+    int top = Math.clamp(Math.round(scene.get(i, Scene.Y) * scale), -0x10000, height);
+    double[] color = color(scene, i, Scene.COLOR);
+    Box clip = Box.clip(scene, scene.getInt(i, Scene.CLIP));
+    boolean clipWhole = clip != null
+        && clip.coversWhole(
+            Math.max(left, 0),
+            Math.max(top, 0),
+            (int) Math.min((long) left + (size & 0xFFFF) - 1, width - 1),
+            (int) Math.min((long) top + (size >>> 16) - 1, height - 1),
+            scale);
+    for (int ty = 0; ty < size >>> 16; ty++) {
+      int py = top + ty;
+      for (int tx = 0; tx < (size & 0xFFFF); tx++) {
+        int px = left + tx;
+        if (px < 0 || py < 0 || px >= width || py >= height) {
+          continue;
+        }
+        int texel = page.color((atlas & 0xFFFF) + tx, (atlas >>> 16) + ty);
+        int a = texel >>> 24;
+        if (a == 0) {
+          continue;
+        }
+        double coverage = 1;
+        if (clip != null) {
+          coverage = clipWhole ? 1 : clip.coverage((px + 0.5) / scale, (py + 0.5) / scale, scale);
+          if (coverage <= 0) {
+            continue;
+          }
+        }
+        blend(
+            frame,
+            (py * width + px) * 4,
+            color[0] * Scene.linear(texel >> 16 & 0xFF) * coverage,
+            color[1] * Scene.linear(texel >> 8 & 0xFF) * coverage,
+            color[2] * Scene.linear(texel & 0xFF) * coverage,
+            color[3] * (a / 255.0) * coverage,
             blends);
       }
     }

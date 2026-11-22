@@ -10,6 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.foreign.Arena;
+import java.lang.foreign.ValueLayout;
+import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Fonts and shaping, with the default fonts. Skipped without FreeType and HarfBuzz. */
@@ -214,12 +218,12 @@ class FontTest {
     Font.Bitmap nativeHints = icons.rasterize(glyph, 16, TextRendering.Hinting.NATIVE, 0);
     assertEquals(light.left(), nativeHints.left());
     assertEquals(light.top(), nativeHints.top());
-    assertArrayEquals(light.coverage(), nativeHints.coverage(), "the same drawing under both");
+    assertArrayEquals(light.pixels(), nativeHints.pixels(), "the same drawing under both");
     // In the middle, the shaft is one row of whole pixels, and no row is half covered.
     int full = 0;
     int half = 0;
     for (int y = 0; y < light.height(); y++) {
-      int middle = light.coverage()[y * light.width() + light.width() / 2] & 0xFF;
+      int middle = light.pixels()[y * light.width() + light.width() / 2] & 0xFF;
       full += middle >= 230 ? 1 : 0;
       half += middle > 25 && middle < 230 ? 1 : 0;
     }
@@ -239,6 +243,21 @@ class FontTest {
             + " missing. Add that artifact as a dependency (on the module path, also --add-modules"
             + " com.rethinkj.ui.icons).",
         e.getMessage());
+  }
+
+  @Test
+  void aColrV0FontWithoutBaseOutlinesIsAcceptedByInspect() throws IOException {
+    TextLibraries.assumeLoaded();
+    byte[] bytes;
+    try (InputStream in = FontTest.class.getResourceAsStream("/fonts/TwemojiMozilla-Subset.ttf")) {
+      bytes = in.readAllBytes();
+    }
+    try (Arena arena = Arena.ofConfined()) {
+      List<SystemFonts.Face> faces = Font.inspect(
+          Path.of("TwemojiMozilla-Subset.ttf"), arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes));
+      assertEquals(1, faces.size());
+      assertTrue(faces.getFirst().has(0x1F600));
+    }
   }
 
   static byte[] defaultFontBytes(String file) throws IOException {
