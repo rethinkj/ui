@@ -607,6 +607,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String fromAboveTo() {
+    return "Von ist größer als Bis";
+  }
+
+  @Override
   public String notAColumn() {
     return "Keine Spalte dieser Tabelle";
   }

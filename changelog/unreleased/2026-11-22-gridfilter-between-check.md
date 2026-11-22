@@ -1,0 +1,1 @@
+- The `DataGrid` filter's "Between" on a number or date column checks From and To as "Equals" checks its value, and refuses a From greater than To with the new `Texts.fromAboveTo()`; the field in error is marked and nothing is applied until it is fixed.

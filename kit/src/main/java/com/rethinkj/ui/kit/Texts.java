@@ -573,6 +573,11 @@ public interface Texts {
     return "Not a regular expression";
   }
 
+  /** A range filter whose start lies above its end. */
+  default String fromAboveTo() {
+    return "From is greater than To";
+  }
+
   /** An edit for a column that the grid's table does not have. */
   default String notAColumn() {
     return "Not a column of this table";

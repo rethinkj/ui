@@ -125,6 +125,58 @@ class GridFilterTest {
   }
 
   @Test
+  void aRangeRefusesInvalidBoundsAndFromGreaterThanTo() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(app, "key ArrowRight\nkey ArrowDown alt\nframe\nadvance 1\nframe\ntype \"abc\"\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=alert label=\"Not a whole number\""),
+        app.tree().dump());
+    assertTrue(line(app, "from").contains(" invalid"), line(app, "from"));
+    assertFalse(line(app, "to").contains(" invalid"), line(app, "to"));
+    run(app, "key Enter\nframe");
+    assertTrue(ledger.filters.isEmpty(), "Enter applies nothing on an invalid From");
+
+    run(app, "key Tab\ntype \"xyz\"\nframe");
+    assertTrue(line(app, "from").contains(" invalid"), line(app, "from"));
+    assertTrue(line(app, "to").contains(" invalid"), "both ends wrong: " + line(app, "to"));
+
+    run(app, "key Tab shift\nkey A control\ntype \"10\"\nkey Tab\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=alert label=\"Not a whole number\""),
+        app.tree().dump());
+    assertFalse(line(app, "from").contains(" invalid"), line(app, "from"));
+    assertTrue(line(app, "to").contains(" invalid"), line(app, "to"));
+    run(app, "key Enter\nframe");
+    assertTrue(ledger.filters.isEmpty(), "Enter applies nothing on an invalid To");
+
+    run(app, "key A control\ntype \"5\"\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=alert label=\"From is greater than To\""),
+        app.tree().dump());
+    assertTrue(line(app, "from").contains(" invalid"), line(app, "from"));
+    assertTrue(line(app, "to").contains(" invalid"), line(app, "to"));
+    run(app, "key Enter\nframe");
+    assertTrue(ledger.filters.isEmpty(), "Enter applies nothing when From is greater than To");
+
+    run(app, "key A control\ntype \"20\"\nframe\nkey Enter\nframe");
+    assertEquals(List.of(new Filter(2, new Filter.Between("10", "20"))), ledger.filters);
+
+    // Times with offsets are ordered by the time, not by their text, as SQL orders them.
+    DataGrid.Column at = new DataGrid.Column("at", 100, DataGrid.DataType.DATE_TIME, row -> null);
+    assertTrue(GridFilter.above(at, 0, "2026-11-13T09:00+00:00", "2026-11-13T10:00+02:00"));
+    assertFalse(GridFilter.above(at, 0, "2026-11-13T10:00+02:00", "2026-11-13T09:00+00:00"));
+    DataGrid.Column time = new DataGrid.Column("time", 100, DataGrid.DataType.TIME, row -> null);
+    assertFalse(GridFilter.above(time, 0, "14:30+19:00", "14:30+01:00"), "no such offset");
+    DataGrid.Column day = new DataGrid.Column("day", 100, DataGrid.DataType.DATE, row -> null);
+    assertFalse(GridFilter.above(day, 0, "9999-01-01", "+10000-01-01"));
+    DataGrid.Column typed = DataGrid.<java.time.OffsetDateTime>table(i -> null)
+        .column("at", 100, Format.OFFSET_DATE_TIME, v -> v);
+    assertFalse(
+        GridFilter.above(typed, 0, "2026-11-13T10:00+01:00", "2026-11-13T09:00Z"), "one instant");
+  }
+
+  @Test
   void aLongEnumerationScrollsAndFiltersItsValuesWithoutDroppingHiddenOnes() throws IOException {
     List<String> choices = new ArrayList<>();
     IntStream.rangeClosed(1, 17).mapToObj(i -> "alpha-" + i).forEach(choices::add);
