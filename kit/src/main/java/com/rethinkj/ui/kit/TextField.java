@@ -309,7 +309,7 @@ public final class TextField {
    * Puts an icon at the left inside the frame of a field of this class, in muted text, such as a
    * magnifier before a filter. The result is a box with the field and the icon, as wide as the
    * field, so chain what concerns the field ({@code .key}, {@code .label}, {@code .w}) onto the
-   * field before. The icon takes no press: one on it reaches the box, not the field.
+   * field before.
    *
    * @param field a field of {@link #textField}
    */
@@ -318,7 +318,8 @@ public final class TextField {
     Len height = field.style().height; // the icon in a square as high as the field
     float side = height.kind() == Len.Kind.PX ? height.value() : theme.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
-    El mark = icon(icon, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+    El mark = icon(icon, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED)
+        .inert();
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
     at.left = Len.px((side - theme.size().icon()) / 2);

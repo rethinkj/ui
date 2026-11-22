@@ -4,7 +4,9 @@ import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -15,6 +17,7 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -535,6 +538,56 @@ class GridEditTest {
     assertEquals(6, ledger.selection.column(), "Tab goes right");
   }
 
+  /** A long enumeration's entries outlive a build, and a kept one chooses through the newest. */
+  @Test
+  void aLongEnumerationKeepsItsFilterEntriesBetweenBuilds() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    // Mutable so DataGrid.Editing's List.copyOf creates a new list on every build.
+    ledger.choices = new ArrayList<>(List.of(
+        "paid",
+        "pending",
+        "shipped",
+        "refunded",
+        "returned",
+        "cancelled",
+        "on hold",
+        "backordered",
+        "disputed",
+        "lost",
+        "delivered",
+        "archived"));
+    int[] builds = {0};
+    List<String> committed = new ArrayList<>();
+    ledger.more = o -> {
+      int build = ++builds[0];
+      return o.onCommit((r, c, v) -> {
+        committed.add(build + ":" + v);
+        ledger.changes.set(r, c, v);
+        return null;
+      });
+    };
+    App<Ledger> app = start(ledger);
+    run(app, "press #cell-0-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
+    List<FilterList.Entry> first = ledger.selection.edit.searchEntries;
+    String[] lowered = ledger.selection.edit.search.lowered;
+    int openedBuild = builds[0];
+    assertNotNull(first);
+    assertSame(first, ledger.selection.edit.search.source);
+
+    run(app, "type \"dl\"\nframe\ntype \"v\"\nframe");
+    assertTrue(builds[0] > openedBuild, "rebuilt while typing");
+    assertSame(first, ledger.selection.edit.searchEntries);
+    assertSame(first, ledger.selection.edit.search.source);
+    assertSame(lowered, ledger.selection.edit.search.lowered);
+
+    int latestBuild = builds[0];
+    run(app, "press #option-0\nframe");
+    assertEquals(List.of(latestBuild + ":delivered"), committed);
+
+    run(app, "press #cell-1-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
+    assertNotSame(first, ledger.selection.edit.searchEntries, "a different cell value rebuilds");
+  }
+
   @Test
   void controlZeroSetsNullInTheEditorAndAnEmptyEditorOfANumberIsNull() throws IOException {
     Ledger ledger = new Ledger(T, 40);
@@ -736,6 +789,20 @@ class GridEditTest {
     assertEquals(Status.NEW, ledger.changes.rowStatus(3));
     assertEquals(4, ledger.selection.row(), "on the row to append again");
     assertNotNull(CellEditorTest.find(app, "number-4"));
+  }
+
+  @Test
+  void selectAllIsUnavailableWithOnlyAnAppendRow() throws IOException {
+    Ledger ledger = new Ledger(T, 0);
+    DataGrid.Commands commands = new DataGrid.Commands();
+    ledger.more = o -> o.commands(commands).appendRow();
+    App<Ledger> app = start(ledger);
+    assertFalse(commands.canRun(DataGrid.Command.SELECT_ALL));
+
+    ledger.changes.insert(-1);
+    app.invalidate();
+    app.frame();
+    assertTrue(commands.canRun(DataGrid.Command.SELECT_ALL));
   }
 
   @Test

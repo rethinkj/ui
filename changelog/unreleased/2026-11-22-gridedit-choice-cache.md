@@ -1,0 +1,1 @@
+- The `DataGrid` cell editor of a long enumeration narrows its list faster while you type: it keeps its entries between frames instead of making them and lowering their texts anew in each one.

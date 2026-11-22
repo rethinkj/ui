@@ -264,4 +264,65 @@ class EditingFormTest {
     }
     assertTrue(line(app, "role=spinbutton").contains(" disabled"));
   }
+
+  @Test
+  void aRequiredFieldOnATabNeverShownCountsForValidAndShowsAfterShowErrors() throws IOException {
+    final class Tabbed {
+      int tab;
+      final Editing<Job> editing = Editing.of(new Job(
+              "nightly", null, true, false, Level.LOW, Level.LOW, Level.LOW, 2, 10, "db",
+              Level.LOW))
+          .required(Job.HOST)
+          .required(Job.RETRIES);
+    }
+
+    Tabbed s = new Tabbed();
+    List<Tabs.Tab> headers =
+        List.of(new Tabs.Tab("General", false, false), new Tabs.Tab("Limits", false, false));
+    App<Tabbed> app = new App<>(
+        s,
+        st -> col()
+            .wFull()
+            .hFull()
+            .child(Tabs.tabs(
+                headers,
+                st.tab,
+                index -> st.tab = index,
+                null,
+                st.tab == 0
+                    ? Form.form(
+                        Form.Labels.BESIDE,
+                        Form.field(
+                            "Host", TextField.textField(st.editing.at(Job.HOST)).key("host")))
+                    : Form.form(
+                        Form.Labels.BESIDE,
+                        Form.field(
+                            "Retries",
+                            ValueField.valueField(
+                                    Format.INTEGER.optional(), st.editing.at(Job.RETRIES))
+                                .key("retries"))))));
+
+    run(app, "");
+    assertFalse(s.editing.valid(), "missing required field on an unvisited tab");
+    assertEquals(Format.REQUIRED, s.editing.at(Job.RETRIES).error());
+
+    s.editing.at(Job.RETRIES).set(3);
+    assertTrue(s.editing.valid());
+
+    // Editing a required text field to empty shows its error without showErrors().
+    run(app, "focus #host\nkey A control\nkey Delete");
+    assertFalse(s.editing.valid());
+    assertTrue(line(app, "#host").contains(" invalid error=\"" + Format.REQUIRED + "\""));
+
+    s.editing.reset();
+    s.editing.forget(Job.RETRIES);
+    assertFalse(s.editing.valid(), "forget keeps required declarations");
+
+    s.editing.showErrors();
+    app.invalidate();
+    run(app, "press #tab-1");
+    assertTrue(line(app, "#retries").contains(" invalid error=\"" + Format.REQUIRED + "\""));
+    assertTrue(app.tree().dump().contains("text \"" + Format.REQUIRED + "\""));
+    assertEquals(Format.REQUIRED, s.editing.at(Job.RETRIES).error());
+  }
 }

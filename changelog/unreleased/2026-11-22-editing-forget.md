@@ -1,0 +1,1 @@
+- `Editing.forget(part)` drops the draft and the app's error of a field and of the fields inside it, and leaves the value alone. Call it when you hide a field whose input no longer counts: a text there that is no value kept `valid()` false until `reset()`. The field starts from the value when it shows again.

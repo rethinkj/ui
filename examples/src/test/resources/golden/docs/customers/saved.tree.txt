@@ -103,5 +103,5 @@ el 0,0 760x460
               text "GB555000111" 581,198 82x16
             el 696,194 1x23
 overlay edge bottom center gap 16 on 0,0 760x460
-  el #toast role=status label="Saved Babbage Instruments" 285,422 190x22
-    text "Saved Babbage Instruments" 298,425 174x16
+  el #toast role=status label="Saved Babbage Instruments" 280,414 200x30
+    text "Saved Babbage Instruments" 293,421 174x16
