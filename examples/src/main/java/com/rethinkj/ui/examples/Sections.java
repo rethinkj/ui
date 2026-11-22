@@ -778,17 +778,66 @@ final class Sections {
     } else {
       List<Node> tableColumns = table.children;
       List<Column> columns = List.of(
-          new Column("column", 140, Align.LEFT, false, row -> tableColumns.get(row).name),
-          new Column("type", 140, Align.LEFT, true, row -> tableColumns.get(row).type),
+          new Column("column", 150, Align.LEFT, false, row -> tableColumns.get(row).name)
+              .view(row -> {
+                String name = tableColumns.get(row).name;
+                if (!name.equals("id") && !name.endsWith("_id")) {
+                  return null;
+                }
+                return row()
+                    .align(Style.Align.CENTER)
+                    .gap(theme.space().s())
+                    .children(
+                        label(name),
+                        name.equals("id")
+                            ? Badge.badge(Badge.Kind.ACCENT, "PK")
+                            : Badge.badge("FK"));
+              })
+              .actions(row -> {
+                String name = tableColumns.get(row).name;
+                return Button.icon(
+                    GHOST,
+                    Symbol.COPY,
+                    "Copy " + name,
+                    () -> state.say("copy " + name),
+                    Button.options().size(Button.Size.SMALL));
+              }),
+          new Column("type", 120, Align.LEFT, true, row -> tableColumns.get(row).type)
+              .view(row -> Badge.badge(tableColumns.get(row).type)),
           new Column(
-              "nullable",
-              80,
-              Align.LEFT,
-              false,
-              row -> tableColumns.get(row).name.endsWith("id") ? "no" : "yes"),
+                  "nullable",
+                  72,
+                  Align.LEFT,
+                  false,
+                  row -> state.isNullable(tableColumns.get(row)) ? "yes" : "no")
+              .view(row -> {
+                Node column = tableColumns.get(row);
+                return row()
+                    .grow(1)
+                    .center()
+                    .child(checkbox(state.isNullable(column), () -> state.toggleNullable(column))
+                        .label("Nullable " + column.name));
+              }),
+          new Column(
+                  "fill",
+                  116,
+                  Align.RIGHT,
+                  true,
+                  row -> Math.round(columnFill(tableColumns.get(row).name) * 100) + " %")
+              .view(row -> {
+                double fill = columnFill(tableColumns.get(row).name);
+                return row()
+                    .align(Style.Align.CENTER)
+                    .gap(theme.space().s())
+                    .children(
+                        Progress.bar(fill).w(44),
+                        label(MONO, Math.round(fill * 100) + " %")
+                            .w(36)
+                            .textAlign(Style.Align.END));
+              }),
           new Column(
               "default",
-              120,
+              104,
               Align.LEFT,
               true,
               row -> tableColumns.get(row).name.equals("id") ? "nextval(…)" : null));
@@ -811,6 +860,14 @@ final class Sections {
         .align(Style.Align.START)
         .child(explorer)
         .child(details);
+  }
+
+  private static double columnFill(String name) {
+    return switch (name) {
+      case "note" -> 0.34;
+      case "shipped_at" -> 0.72;
+      default -> 1.0;
+    };
   }
 
   /** A product a connection can be to, and the versions it supports; a file has no server. */
