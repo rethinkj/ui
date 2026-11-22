@@ -1,1 +1,1 @@
-- `DataGrid` cell and header tooltips now decide from the laid-out text rather than re-measuring at scale 1 on hover, and the row-number column is measured at the window's scale, so tooltips match shortened text and row numbers keep their padding on HiDPI displays.
+- `DataGrid` shows the tooltip of a cell or header whose text layout cut short at any window scale, and no longer measures text again when the pointer rests on it. The row-number column is measured at the window's scale, so long row numbers keep their padding on HiDPI displays.
