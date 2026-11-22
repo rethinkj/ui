@@ -53,6 +53,7 @@ final class Overlays {
   boolean connecting;
   boolean addingProperty;
   String connection = "prod-eu";
+  String draft = ""; // the name in the drawer, written to connection on Save
   final List<String> properties = new ArrayList<>();
   int property;
   String value = "";
@@ -139,10 +140,12 @@ final class Overlays {
   }
 
   void startEdit() {
+    draft = connection;
     editing = true;
   }
 
   void saveEdit() {
+    connection = draft;
     editing = false;
   }
 
@@ -191,6 +194,10 @@ final class Overlays {
     connection = "";
     properties.clear();
     connecting = true;
+  }
+
+  void draft(String name) {
+    draft = name;
   }
 
   void connection(String name) {
@@ -477,7 +484,7 @@ final class Overlays {
         .gap(theme.space().m())
         .align(Style.Align.START)
         .children(
-            TextField.textField(state.connection, "Name", state::connection).label("Name"),
+            TextField.textField(state.draft, "Name", state::draft).label("Name"),
             Button.button(PRIMARY, "Save", state::saveEdit));
     El drawer =
         !state.editing ? null : Drawer.drawer("Edit connection", content, state::cancelEdit);
