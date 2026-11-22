@@ -47,7 +47,19 @@ import java.util.function.UnaryOperator;
  *       with {@link Prop#error(String)}: it shows there until the field, one of its ancestors, or
  *       one of its descendants is edited.
  *   <li>A draft stays while its field is out of the view, and counts for {@link #valid}: a text
- *       that is no value stays one until the field shows again and is edited, or {@link #reset}.
+ *       that is no value stays one until the field shows again and is edited, {@link #forget}
+ *       drops it, or {@link #reset}. Call {@link #forget} when a hidden field's input no longer
+ *       counts:
+ *       <pre>{@code
+ * toggle(state.tls, "TLS", state::switchTls)        // the TLS fields show while it is on
+ *
+ * void switchTls() {                                 // in State
+ *   tls = !tls;
+ *   if (!tls) {
+ *     editing.forget(Profile.TLS);                   // and every field inside it
+ *   }
+ * }
+ * }</pre>
  * </ul>
  *
  * @param <T> the type of the value
@@ -140,6 +152,19 @@ public final class Editing<T> {
     value = copy.apply(original);
     fields.clear();
     showErrors = false;
+  }
+
+  /**
+   * Drops the draft and the app's error of {@code field} and of every field below it, leaving the
+   * value, rules, and {@link #showErrors} alone. An app calls this when it hides a field whose
+   * input no longer counts, so that an invalid draft there does not keep {@link #valid} false;
+   * when the field shows again, it starts from the value.
+   */
+  public void forget(Part<T, ?> field) {
+    List<Part<?, ?>> path = Objects.requireNonNull(field, "field").path();
+    fields
+        .keySet()
+        .removeIf(p -> p.size() >= path.size() && p.subList(0, path.size()).equals(path));
   }
 
   /**

@@ -5,6 +5,7 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 
@@ -67,13 +68,17 @@ public final class Toast {
         })
         .padding(
             theme.space().xs(),
-            theme.space().xs(),
+            action == null ? theme.space().l() : theme.space().xs(),
             theme.space().xs(),
             theme.space().l())
         .gap(theme.space().m())
         .align(Style.Align.CENTER)
         .child(label(message));
-    if (action != null) {
+    if (action == null) {
+      // As high as with the action's button, which sets that height by itself.
+      toast.style().minHeight =
+          Len.px(theme.size().control() + 2 * (theme.space().xs() + theme.size().stroke()));
+    } else {
       toast.child(button(Button.Variant.GHOST, action, () -> {
             onAction.run();
             onClose.run();
