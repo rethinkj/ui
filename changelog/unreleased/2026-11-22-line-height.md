@@ -1,0 +1,1 @@
+- `El.lineHeight(float)` sets the height of a line of text as a multiple of the font size. Text elements, fields and the rows of virtual lists inherit it from their ancestors; the caret, selection, wrapping, scrolling by rows and the gutter follow it. Without it, a line is as high as its font says.
