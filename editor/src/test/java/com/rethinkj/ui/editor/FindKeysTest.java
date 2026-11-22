@@ -695,4 +695,27 @@ class FindKeysTest {
         "Control+#, where a German keyboard has VS Code's");
     assertEquals(TEXT, undoAfter.apply("key L control alt"), "no formatter, no format");
   }
+
+  @Test
+  void anEditorLooksTheSameUnderThePointer() throws IOException {
+    CodeEditor.State plain = new CodeEditor.State();
+    CodeEditor.State embedded = new CodeEditor.State();
+    App<String> app = new App<>(
+        "SELECT 1;",
+        text -> col()
+            .children(
+                codeEditor(text, plain, null, v -> {}).key("plain"),
+                CodeEditor.embedded(codeEditor(text, embedded, null, v -> {}).key("embedded"))));
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 400 320\nframe", app, out);
+    for (int index = 0; index < 2; index++) {
+      El before = app.tree().children().get(index);
+      int fill = before.fill();
+      int border = before.borderColor();
+      Script.run("move #" + before.key() + "\nframe\nadvance 1\nframe", app, out);
+      El after = app.tree().children().get(index);
+      assertEquals(fill, after.fill(), before.key());
+      assertEquals(border, after.borderColor(), before.key());
+    }
+  }
 }
