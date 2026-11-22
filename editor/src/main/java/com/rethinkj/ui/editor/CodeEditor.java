@@ -152,6 +152,25 @@ public final class CodeEditor {
    */
   public record Highlight(int from, int to) implements Mark {}
 
+  /**
+   * A code vision hint shown in a muted row above 0-based {@code line}, such as usage counts or
+   * authorship ({@link State#codeVision}). Entries for the same line share one row in list order,
+   * aligned with that line's indentation.
+   *
+   * @param line 0-based line index above which the entry appears
+   * @param symbol optional leading icon, or null for text only
+   * @param label text shown for this entry
+   * @param onPress what a press runs, or null for an entry that only shows
+   */
+  public record Vision(int line, Icon symbol, String label, Runnable onPress) {
+    public Vision {
+      if (line < 0) {
+        throw new IllegalArgumentException("vision line must be 0 or more, was " + line);
+      }
+      Objects.requireNonNull(label, "label");
+    }
+  }
+
   /** The command of a key, or null. */
   static Command command(Key k) {
     int mods = k.modifiers();
@@ -193,6 +212,7 @@ public final class CodeEditor {
     private String text = ""; // the string of the editor's last build
     private List<Marker> markers = List.of();
     private final Map<String, Layer> layers = new LinkedHashMap<>();
+    private List<Vision> codeVision = List.of();
     private int blockFrom;
     private int blockTo;
     private boolean occurrences = true;
@@ -225,6 +245,10 @@ public final class CodeEditor {
     private String editsTo;
     private TextEdits edits;
     private List<El.BracketFold> ranges = List.of();
+    // Code vision: the rows of the last build's value and entries, rebuilt when either changes.
+    private String visionOf;
+    private List<Vision> visionFor;
+    private Map<Integer, CodeVision.Row> visionRows = Map.of();
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -415,6 +439,16 @@ public final class CodeEditor {
     public State noMarkup(String layer) {
       Objects.requireNonNull(layer, "layer");
       layers.remove(layer);
+      return this;
+    }
+
+    /**
+     * Shows code vision {@code entries} above their lines, in place of those before. Entries for
+     * the same line share one inserted block row above it, in list order, aligned with that line's
+     * indentation; pass an empty list to clear them.
+     */
+    public State codeVision(List<Vision> entries) {
+      this.codeVision = List.copyOf(Objects.requireNonNull(entries, "entries"));
       return this;
     }
 
@@ -694,6 +728,7 @@ public final class CodeEditor {
     List<Diagnostic> diagnostics = marks.diagnostics();
     List<Marker> markers = marks.markers();
     List<Highlight> highlights = marks.highlights();
+    wireBlocks(theme, state, value, editor);
     int[] pair = editor.matchingBracket(state.caret);
     editor
         .decorate((line, start, text, out) -> {
@@ -802,6 +837,27 @@ public final class CodeEditor {
       editor.whenFocused(e -> e.border(stroke, 0, 0, 0, theme.accent().edge()));
     }
     return editor;
+  }
+
+  /** The editor's blocks between lines, all kinds in one list, and the element of each. */
+  private static void wireBlocks(Theme theme, State state, String value, El editor) {
+    if (value != state.visionOf || state.codeVision != state.visionFor) {
+      state.visionRows = CodeVision.rows(editor.text().string(), state.codeVision);
+      state.visionOf = value;
+      state.visionFor = state.codeVision;
+    }
+    Map<Integer, CodeVision.Row> vision = state.visionRows;
+    if (vision.isEmpty()) {
+      return;
+    }
+    List<El.Block> blocks = new ArrayList<>(vision.size());
+    for (int line : vision.keySet()) {
+      blocks.add(El.Block.insert(line));
+    }
+    editor.blocks(
+        blocks,
+        block -> CodeVision.row(theme, editor, block.first(), vision.get(block.first())),
+        null);
   }
 
   /** Guides at each step of indentation in the white space that starts {@code text}. */

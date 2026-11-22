@@ -1,0 +1,8 @@
+# Code vision entries above SQL view declarations, then click "3 usages" to reach the app's handler.
+size 520 236 scale 2
+frame
+snap view
+
+press role=button label="3 usages"
+frame
+snap clicked

@@ -1,6 +1,6 @@
 ---
 title: CodeEditor
-description: Multi-line code editor with line numbers, code folding, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
+description: Multi-line code editor with line numbers, code folding, code vision, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
 ---
 
 `CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, code folding, gutter markers, syntax highlighting (such as `Sql`, [`Json`](#json), and [`Java`](#java)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
@@ -162,6 +162,15 @@ Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, igno
 ```java snippet="code-editor-folding"
 ```
 
+## Code vision
+
+Call `codeVision(list)` on `CodeEditor.State` to place muted hint rows above declarations — such as usage counts or authorship — without turning them into editable text. Each `CodeEditor.Vision(line, symbol, label, onPress)` takes a 0-based line index, an optional leading `Icon`, a label, and an optional press handler (`null` for read-only entries). Entries for the same line share one inserted row in list order, aligned with that line's indentation in the code font. Clickable entries keep focus in the editor when pressed, and an enclosing fold hides entries inside it. The editor computes nothing itself; pass `List.of()` to clear them.
+
+<Shot src="examples/docs/code-editor-vision/view-{theme}" alt="Two SQL view declarations in the code editor, each preceded by a muted code vision row showing clickable usage counts and an author name with a person icon" />
+
+```java snippet="code-editor-vision"
+```
+
 ## Inserting text
 
 To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the current selection (or inserts at the cursor) and puts the cursor after the inserted text. To place the cursor at `caret` inside `text` instead (such as between the parentheses of `()`), call `replaceSelection(text, caret)`. To edit a range you calculated (such as a line below the cursor), call `replace(from, to, text, caret)`. It replaces the exact characters from `from` to `to`, and Ctrl+Z restores the previous selection. The edit runs right after the handler, calls `onChange` like typed text, and counts as one undo step for Ctrl+Z. Nothing happens if the editor is no longer in the tree after the handler.
@@ -210,6 +219,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`) for `text`, moving them across edits |
 | `diagnostics(text, list)`, `noDiagnostics()` | Shorthand for `markup("diagnostics", text, list)` and `noMarkup("diagnostics")` |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string |
+| `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
 | `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
@@ -236,7 +246,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker`, and `#fold-line-<index>` elements, and `#fold-<first>` for each visible folded pill. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker`, and `#fold-line-<index>` elements, `#fold-<first>` for each visible folded pill, and `#vision-<line>` for each visible code vision row. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
 ```

@@ -571,7 +571,8 @@ public final class Text implements Measure {
     invalidate();
   }
 
-  int tabSize() {
+  /** How far apart the tab stops are, in widths of a space ({@link El#tabSize}). */
+  public int tabSize() {
     return tabSize;
   }
 

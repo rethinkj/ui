@@ -1,0 +1,1 @@
+- `CodeEditor` shows code vision: `CodeEditor.State.codeVision(List<CodeEditor.Vision>)` places small muted entries, each with an optional icon and press handler (`CodeEditor.Vision(line, symbol, label, onPress)`), in a row above their line, aligned with its indentation. `Text.tabSize()` is now public.

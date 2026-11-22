@@ -13,6 +13,7 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.StatusBar;
@@ -77,6 +78,37 @@ final class Editors {
     payloadEditor.folds(savedFolds);
   }
   // docs:end code-editor-folding
+  String views = """
+      CREATE VIEW paid_orders AS
+      SELECT id, total
+      FROM orders
+      WHERE status = 'paid';
+
+      CREATE VIEW recent_orders AS
+      SELECT id, total
+      FROM paid_orders
+      WHERE placed_at >= CURRENT_DATE - 30;""";
+  final CodeEditor.State visionEditor = new CodeEditor.State();
+  String selectedVision;
+
+  // docs:start code-editor-vision
+  void showPaidUsages() {
+    selectedVision = "paid_orders";
+  }
+
+  void showRecentUsages() {
+    selectedVision = "recent_orders";
+  }
+
+  /** Places code vision entries above each view declaration. */
+  void showVision() {
+    visionEditor.codeVision(List.of(
+        new CodeEditor.Vision(0, null, "3 usages", this::showPaidUsages),
+        new CodeEditor.Vision(0, Symbol.PERSON, "Ada Lovelace", null),
+        new CodeEditor.Vision(5, null, "1 usage", this::showRecentUsages),
+        new CodeEditor.Vision(5, Symbol.PERSON, "Grace Hopper", null)));
+  }
+  // docs:end code-editor-vision
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
@@ -130,6 +162,7 @@ final class Editors {
 
   Editors() {
     showRun();
+    showVision();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
   }
@@ -188,6 +221,10 @@ final class Editors {
 
   void payload(String value) {
     payload = value;
+  }
+
+  void views(String value) {
+    views = value;
   }
 
   // docs:start code-editor-json-format
@@ -302,6 +339,21 @@ final class Editors {
         .label("Payload")
         .lines(9)
         .wFull();
+    return Frame.of(editor);
+  }
+
+  static El vision(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.views, state.visionEditor, Sql.of(), state::views)
+        .key("views")
+        .label("Views")
+        .lines(12)
+        .wFull();
+    if (state.selectedVision != null) {
+      return Frame.of(
+          editor,
+          Label.label(Label.Variant.MUTED, "Usages of " + state.selectedVision).key("usages"));
+    }
     return Frame.of(editor);
   }
 
