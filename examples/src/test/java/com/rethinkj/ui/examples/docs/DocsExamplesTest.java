@@ -48,6 +48,7 @@ class DocsExamplesTest {
       Map.entry("layout", List.of("view")),
       Map.entry("lines", List.of("view")),
       Map.entry("text", List.of("view")),
+      Map.entry("line-height", List.of("view")),
       Map.entry("input", List.of("pressed")),
       Map.entry("motion", List.of("opening")),
       Map.entry("overlay", List.of("open")),
@@ -87,6 +88,7 @@ class DocsExamplesTest {
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
       Map.entry("grid-views", List.of("view")),
+      Map.entry("grid-totals", List.of("selected")),
       Map.entry("grid-empty", List.of("empty")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
@@ -182,6 +184,7 @@ class DocsExamplesTest {
     grids(all, "grid-fit", Grids::fitted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
+    grids(all, "grid-totals", Grids::totals, 560, 300);
     grids(all, "grid-empty", Grids::empty, 520, 300);
     grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
@@ -222,6 +225,7 @@ class DocsExamplesTest {
             360,
             400));
     concepts(all, "text", Concepts::texts, 320, 200);
+    concepts(all, "line-height", Concepts::lineHeight, 320, 200);
     concepts(all, "input", Concepts::input, 280, 140);
     concepts(all, "states", Concepts::states, 240, 80);
     concepts(all, "motion", Concepts::motion, 320, 160);

@@ -17,6 +17,8 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.WindowState;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
@@ -108,8 +110,10 @@ import java.util.regex.Pattern;
  * label="checkmark" ...}. A cell with a {@link Column#detail} says it as its value, {@code
  * value="82 B"}, unless it says a change there. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
  * selected}, the cursor's row or cell {@code current}; row numbers are {@code role=rowheader}
- * with the key {@code number-<row>}. The thumbs are on the lines of the grid ({@code thumb-x}) and
- * of its rows ({@code thumb-y}, on {@code #rows}).
+ * with the key {@code number-<row>}. An optional footer row ({@link Options#footer}) is {@code
+ * role=row} with the key {@code footer} and cells {@code role=gridcell} with the key {@code
+ * total-<index>} and the column's title as label. The thumbs are on the lines of the grid ({@code
+ * thumb-x}) and of its rows ({@code thumb-y}, on {@code #rows}).
  */
 public final class DataGrid {
 
@@ -1324,6 +1328,32 @@ public final class DataGrid {
    */
   public record Copy(List<Range> ranges, boolean headers, long cells) {}
 
+  /** The aggregate function named in a footer cell ({@link Total}). */
+  public enum Aggregate {
+    COUNT,
+    SUM,
+    AVERAGE,
+    MINIMUM,
+    MAXIMUM
+  }
+
+  /**
+   * The content of one cell in a grid's footer row ({@link Options#footer}): an optional aggregate
+   * label and the formatted value. The grid computes nothing itself.
+   *
+   * @param function names the aggregate before the value in muted upper-case text; null for no
+   *     label
+   * @param value the text shown in the column's alignment and font; null or empty for none
+   */
+  public record Total(Aggregate function, String value) {}
+
+  /**
+   * Statistics over the numeric values found in a grid's selection ({@link #summary}): {@code
+   * count} is the number of numeric cells parsed; the others are null when {@code count} is 0.
+   */
+  public record Summary(
+      long count, BigDecimal sum, BigDecimal average, BigDecimal minimum, BigDecimal maximum) {}
+
   /**
    * What is selected in a grid, which the app keeps in its state and the grid changes in its
    * handlers: the cursor, the cell that the keys move and editing starts at; the anchor, where
@@ -2094,6 +2124,7 @@ public final class DataGrid {
     Layout layout;
     IntConsumer onFreeze;
     Fit fit;
+    IntFunction<Total> totals;
     El empty;
     // With rowKey or changes: the key of the row shown at a place, the place of a key, -1 for
     // none, and the number of rows there are now, which a handler may have changed since the build.
@@ -2460,6 +2491,17 @@ public final class DataGrid {
       return this;
     }
 
+    /**
+     * Shows a footer row pinned to the bottom of the grid, styled like the header, scrolling
+     * sideways with the columns and keeping frozen columns fixed. {@code totals} is told each
+     * column's index among all columns given to {@link #dataGrid} and returns its {@link Total} or
+     * null for an empty cell; the grid computes nothing itself. Null turns the footer off.
+     */
+    public Options footer(IntFunction<Total> totals) {
+      this.totals = totals;
+      return this;
+    }
+
     /** With a layout, these options in the indexes of the columns shown, their handlers mapped. */
     void showOnly(int[] full, int all) {
       this.full = full;
@@ -2506,6 +2548,10 @@ public final class DataGrid {
       if (cellError != null) {
         CellMessage to = cellError;
         cellError = (r, c) -> to.message(r, full[c]);
+      }
+      if (totals != null) {
+        IntFunction<Total> to = totals;
+        totals = c -> to.apply(full[c]);
       }
       IntPredicate canFilter = filterable;
       filterable = c -> canFilter.test(full[c]);
@@ -2770,6 +2816,9 @@ public final class DataGrid {
       GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
     }
     content.children(header, body);
+    if (options.totals != null) {
+      content.child(footer(b));
+    }
     if (options.fit != null) {
       fitting(b, content);
     }
@@ -2794,7 +2843,7 @@ public final class DataGrid {
       s.left = Len.px(0);
       s.right = Len.px(0);
       s.top = Len.px(g.rowHeight() + theme.size().stroke());
-      s.bottom = Len.px(0);
+      s.bottom = Len.px(options.totals == null ? 0 : footerHeight(b));
       grid.child(empty);
     }
     b.grid = grid;
@@ -2821,41 +2870,13 @@ public final class DataGrid {
         .onKey(k -> key(b, k));
   }
 
-  // Header
+  // Header and footer
 
   private static El header(Build b) {
-    Theme theme = b.theme;
-    Theme.Grid g = b.g;
     int n = b.columns.size();
-    // The line under it is its border, which the cells and the pinned parts end above.
-    El header = row()
-        .key("header")
-        .h(g.rowHeight() + theme.size().stroke())
-        .shrink(0)
-        .fill(g.header())
-        .border(0, 0, theme.size().stroke(), 0, theme.border().control())
-        .padding(0, 0, 0, b.fixedWidth());
     El[] lines = new El[n];
     List<El> pinned = new ArrayList<>();
-    if (b.numbers > 0) {
-      pinned.add(pin(b, cellBox(theme, Align.RIGHT, b.numbers).key("numbers").fill(g.header()), 0));
-      // The lines in the frozen part are filled, so that nothing scrolled under it shows.
-      pinned.add(
-          pin(b, line(theme, false).fill(g.header()), b.numbers - theme.size().stroke()));
-    }
-    for (int c = 0; c < n; c++) {
-      lines[c] = line(theme, c == b.frozen - 1);
-      if (c < b.frozen - 1) {
-        lines[c].fill(g.header());
-      }
-      El cell = headerCell(b, c);
-      if (c < b.frozen) {
-        pinned.add(pin(b, cell.fill(g.header()), b.xs[c]));
-        pinned.add(pin(b, lines[c], b.xs[c + 1] - theme.size().stroke()));
-      } else {
-        header.children(cell, lines[c]);
-      }
-    }
+    El header = band(b, "header", false, "numbers", c -> headerCell(b, c), lines, pinned);
     List<El> edges = new ArrayList<>();
     for (int c = 0; b.o.onResize != null && c < n; c++) {
       El edge = edge(b, c, lines[c]);
@@ -2870,6 +2891,108 @@ public final class DataGrid {
     pinned.forEach(header::child);
     GridColumns.header(b, header);
     return header;
+  }
+
+  private static El footer(Build b) {
+    List<El> pinned = new ArrayList<>();
+    // Below its values the strip of the grid's bar along the bottom, which would lie over them.
+    El footer = band(b, "footer", true, "footer-numbers", c -> footerCell(b, c), null, pinned)
+        .role("row")
+        .h(footerHeight(b))
+        .padding(0, 0, b.room, b.fixedWidth());
+    pinned.forEach(footer::child);
+    return footer;
+  }
+
+  private static float footerHeight(Build b) {
+    return b.g.rowHeight() + b.theme.size().stroke() + b.room;
+  }
+
+  /**
+   * The band shared by the header and the footer: a row of {@code rowHeight + stroke} filled with
+   * {@code g.header()}, its hairline on the top or bottom, the row-number box when shown, and the
+   * cells and separator lines with frozen ones collected into {@code pinned}.
+   */
+  private static El band(
+      Build b,
+      String key,
+      boolean borderTop,
+      String numbersKey,
+      IntFunction<El> cells,
+      El[] lines,
+      List<El> pinned) {
+    Theme theme = b.theme;
+    Theme.Grid g = b.g;
+    float stroke = theme.size().stroke();
+    El band = row()
+        .key(key)
+        .h(g.rowHeight() + stroke)
+        .shrink(0)
+        .fill(g.header())
+        .border(
+            borderTop ? stroke : 0, 0, borderTop ? 0 : stroke, 0, theme.border().control())
+        .padding(0, 0, 0, b.fixedWidth());
+    if (b.numbers > 0) {
+      pinned.add(
+          pin(b, cellBox(theme, Align.RIGHT, b.numbers).key(numbersKey).fill(g.header()), 0));
+      // The lines in the frozen part are filled, so that nothing scrolled under it shows.
+      pinned.add(pin(b, line(theme, false).fill(g.header()), b.numbers - stroke));
+    }
+    for (int c = 0; c < b.columns.size(); c++) {
+      El after = line(theme, c == b.frozen - 1);
+      if (lines != null) {
+        lines[c] = after;
+      }
+      if (c < b.frozen - 1) {
+        after.fill(g.header());
+      }
+      El cell = cells.apply(c);
+      if (c < b.frozen) {
+        pinned.add(pin(b, cell.fill(g.header()), b.xs[c]));
+        pinned.add(pin(b, after, b.xs[c + 1] - stroke));
+      } else {
+        band.children(cell, after);
+      }
+    }
+    return band;
+  }
+
+  private static El footerCell(Build b, int index) {
+    Theme theme = b.theme;
+    Column column = b.columns.get(index);
+    El cell = cellBox(theme, column.align(), column.width())
+        .key("total-" + index)
+        .role("gridcell")
+        .label(column.title())
+        .gap(theme.space().s())
+        .position(index + 1, b.columns.size());
+    Total total = b.o.totals.apply(index);
+    if (total == null) {
+      return cell;
+    }
+    String fn = total.function() == null
+        ? null
+        : aggregateText(b.texts, total.function()).toUpperCase(Locale.ROOT);
+    String raw = total.value();
+    String value = raw == null || raw.isEmpty() ? null : oneLine(raw);
+    if (fn != null) {
+      cell.child(Label.label(Label.Variant.SMALL, fn).shrink(0));
+    }
+    if (value != null) {
+      cell.child(text(theme, column.mono(), value, theme.text().primary()));
+      Tooltip.whenShortened(cell, fn == null ? raw : fn + " " + raw);
+    }
+    return cell;
+  }
+
+  private static String aggregateText(Texts texts, Aggregate function) {
+    return switch (function) {
+      case COUNT -> texts.count();
+      case SUM -> texts.sum();
+      case AVERAGE -> texts.average();
+      case MINIMUM -> texts.minimum();
+      case MAXIMUM -> texts.maximum();
+    };
   }
 
   /**
@@ -4091,6 +4214,128 @@ public final class DataGrid {
       rows += span[1] - span[0] + 1L;
     }
     return rows * shownColumns(ranges, columns).cardinality();
+  }
+
+  /**
+   * Computes count, sum, average, minimum and maximum over the selected cells of numeric columns
+   * ({@link DataType#INTEGER} or {@link DataType#DECIMAL}), reading each cell through {@link
+   * Column#cell} and parsing it with {@link Format#DECIMAL}. Overlapping ranges count each cell
+   * once; ranges past {@code rowCount} (such as the append row) and {@link Range#ALL} are clamped;
+   * null and unparseable values are skipped.
+   *
+   * @param columns the columns as shown, which the selection's ranges index
+   * @param ranges the selected ranges
+   * @param rowCount the number of data rows
+   * @param limit the maximum number of selected cells ({@link #cellCount}) to inspect
+   * @return the summary, or null when the clamped selection holds more than {@code limit} cells
+   */
+  public static Summary summary(
+      List<Column> columns, List<Range> ranges, int rowCount, long limit) {
+    int columnCount = columns.size();
+    List<Range> clamped = new ArrayList<>();
+    if (rowCount > 0 && columnCount > 0) {
+      for (Range range : ranges) {
+        if (range.top() < rowCount && range.left() < columnCount) {
+          clamped.add(new Range(
+              range.top(),
+              range.left(),
+              Math.min(range.bottom(), rowCount - 1),
+              Math.min(range.right(), columnCount - 1)));
+        }
+      }
+    }
+    if (cellCount(clamped, columnCount) > limit) {
+      return null;
+    }
+    if (clamped.isEmpty()) {
+      return new Summary(0, null, null, null, null);
+    }
+    BitSet numeric = shownColumns(clamped, columnCount);
+    for (int c = numeric.nextSetBit(0); c >= 0; c = numeric.nextSetBit(c + 1)) {
+      DataType type = columns.get(c).type();
+      if (type != DataType.INTEGER && type != DataType.DECIMAL) {
+        numeric.clear(c);
+      }
+    }
+    if (numeric.isEmpty()) {
+      return new Summary(0, null, null, null, null);
+    }
+    long count = 0;
+    BigDecimal sum = null;
+    BigDecimal minimum = null;
+    BigDecimal maximum = null;
+    for (int[] span : rowSpans(clamped)) {
+      for (int r = span[0]; r <= span[1]; r++) {
+        for (int c = numeric.nextSetBit(0); c >= 0; c = numeric.nextSetBit(c + 1)) {
+          boolean selected = false;
+          for (Range range : clamped) {
+            if (range.contains(r, c)) {
+              selected = true;
+              break;
+            }
+          }
+          if (!selected) {
+            continue;
+          }
+          String raw = columns.get(c).cell().apply(r);
+          if (raw == null) {
+            continue;
+          }
+          Format.Parsed<BigDecimal> parsed = Format.DECIMAL.parse(raw.strip());
+          if (!parsed.valid()) {
+            continue;
+          }
+          BigDecimal value = parsed.value();
+          count++;
+          sum = sum == null ? value : sum.add(value);
+          if (minimum == null || value.compareTo(minimum) < 0) {
+            minimum = value;
+          }
+          if (maximum == null || value.compareTo(maximum) > 0) {
+            maximum = value;
+          }
+        }
+      }
+    }
+    if (count == 0) {
+      return new Summary(0, null, null, null, null);
+    }
+    // Exact where it ends, else to 16 digits past the sum's own, which a long's sum keeps whole.
+    BigDecimal average =
+        sum.divide(BigDecimal.valueOf(count), new MathContext(sum.precision() + 16));
+    return new Summary(count, sum, average, minimum, maximum);
+  }
+
+  /**
+   * Status bar groups for a selection {@link Summary}: Count, Sum, Avg, Min and Max in the current
+   * {@link Texts} and plain decimal notation ({@link BigDecimal#toPlainString}), built with {@link
+   * StatusBar#group} and {@link StatusBar#text}. Returns an empty list for null or a summary whose
+   * count is 0.
+   */
+  public static List<El> summaryGroups(Summary summary) {
+    if (summary == null || summary.count() <= 0) {
+      return List.of();
+    }
+    Texts texts = Texts.CURRENT.get();
+    List<El> groups = new ArrayList<>(5);
+    groups.add(summaryGroup(texts.count(), String.valueOf(summary.count())));
+    if (summary.sum() != null) {
+      groups.add(summaryGroup(texts.sum(), summary.sum().toPlainString()));
+    }
+    if (summary.average() != null) {
+      groups.add(summaryGroup(texts.average(), summary.average().toPlainString()));
+    }
+    if (summary.minimum() != null) {
+      groups.add(summaryGroup(texts.minimum(), summary.minimum().toPlainString()));
+    }
+    if (summary.maximum() != null) {
+      groups.add(summaryGroup(texts.maximum(), summary.maximum().toPlainString()));
+    }
+    return List.copyOf(groups);
+  }
+
+  private static El summaryGroup(String name, String value) {
+    return StatusBar.group(name, StatusBar.text(name + " " + value));
   }
 
   private static void field(StringBuilder out, boolean first, String value) {
