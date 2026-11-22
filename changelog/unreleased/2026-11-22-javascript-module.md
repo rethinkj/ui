@@ -1,0 +1,1 @@
+- New module `rethinkj-ui-javascript` (package `com.rethinkj.ui.javascript`): `JavaScript.of()` and `TypeScript.of()` highlight JavaScript and TypeScript in `CodeEditor`, including template literals and regular expression literals, report their comments and `/** ... */` doc comments as a `Language`, and parse JSDoc and TSDoc into `DocComment`.

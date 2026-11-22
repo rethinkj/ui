@@ -76,6 +76,22 @@ You can then show `cell` with `codeEditor(state.app, state.cell, state.cellEdito
 
 Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
 
+## JavaScript and TypeScript
+
+`JavaScript.of()` and `TypeScript.of()` highlight JavaScript and TypeScript: keywords (TypeScript adds its own and its primitive types), strings, template literals with `${...}`, regular expression literals, numbers, comments, and brackets. As a [`Language`](/api/com/rethinkj/ui/editor/Language.html), each reports its `//`, `/* ... */` and `/** ... */` comments and parses JSDoc and TSDoc into a [`DocComment`](/api/com/rethinkj/ui/editor/DocComment.html). JSX is not highlighted. Both live in `rethinkj-ui-javascript`, in package `com.rethinkj.ui.javascript`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-javascript</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+<Shot src="languages/javascript/typescript-{theme}-2x-view" alt="TypeScript in the code editor with a JSDoc comment, interface and type keywords, a template literal with interpolation, a regular expression literal and a matching bracket pair highlighted" />
+
+Javadoc: [`JavaScript`](/api/com/rethinkj/ui/javascript/JavaScript.html), [`TypeScript`](/api/com/rethinkj/ui/javascript/TypeScript.html).
+
 ## Placeholder and read-only
 
 Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. If you set a different label, the tree dump shows the placeholder as `placeholder="..."`.

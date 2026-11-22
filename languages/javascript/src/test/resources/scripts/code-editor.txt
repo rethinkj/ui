@@ -1,0 +1,6 @@
+# Focus the editor and move onto the last line so a closing bracket pair highlights.
+frame
+focus #editor
+key End control
+frame
+snap view

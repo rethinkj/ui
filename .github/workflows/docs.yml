@@ -85,7 +85,7 @@ jobs:
       - name: Javadoc
         working-directory: .
         run: |
-          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,editor,languages/json,languages/sql,diagram -am javadoc:aggregate
+          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit,editor,languages/javascript,languages/json,languages/sql,diagram -am javadoc:aggregate
           mkdir -p docs/public/api
           cp -R target/reports/apidocs/. docs/public/api/
       - run: npm run build

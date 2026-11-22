@@ -20,6 +20,7 @@
   <description>The parent of the language modules of rethinkj UI.</description>
 
   <modules>
+    <module>javascript</module>
     <module>json</module>
     <module>sql</module>
   </modules>
