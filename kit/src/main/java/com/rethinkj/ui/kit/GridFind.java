@@ -55,10 +55,8 @@ final class GridFind {
   }
 
   /**
-   * Updates the find state for this build: starts a scan when what it covers changed, and goes on
-   * with a jump and the scan for one slice when a frame asked for it ({@link #schedule}), one per
-   * frame however many handlers build the view. A grid the view leaves out searches no further,
-   * and goes on when it shows again.
+   * Updates the find state for this build: starts a scan, with its first slice, when what it covers
+   * changed, and asks a frame to go on with what is left ({@link #schedule}).
    */
   static void prepare(Build b) {
     DataGrid.Find f = b.o.find;
@@ -80,26 +78,12 @@ final class GridFind {
       f.resetSearch();
       return;
     }
-    boolean slice = f.due;
-    if (f.open && !scopeOf(b, query).equals(f.scope)) {
-      startScan(f, b, scopeOf(b, query));
-      slice = true;
+    Scope now = scopeOf(b, query);
+    if (f.open && !now.equals(f.scope)) {
+      startScan(f, b, now);
+      stepScan(f, b, Search.deadline(Find.SYNC_MILLIS));
     }
-    boolean landed = false;
-    if (slice) {
-      f.due = false;
-      long deadline = Search.deadline(Find.SYNC_MILLIS);
-      if (f.jump != null) {
-        // Selecting runs the app's onSelect here, in its view's build; the frame asked for below
-        // builds the view again with it.
-        stepJump(f, b, query, deadline);
-        landed = f.jump == null;
-      }
-      if (f.open && f.jump == null && !f.complete) {
-        stepScan(f, b, deadline);
-      }
-    }
-    if (landed || f.jump != null || f.open && !f.complete) {
+    if (f.jump != null || f.open && !f.complete) {
       schedule(f);
     }
   }
@@ -670,7 +654,11 @@ final class GridFind {
     return true;
   }
 
-  /** Asks for a frame, whose build of the grid goes on with the search for a slice. */
+  /**
+   * Goes on with the jump and the scan for a slice in the next frame, as a handler, so that a match
+   * it selects runs the app's onSelect outside the view's build. A grid the view has left out
+   * searches no further; its next build asks again.
+   */
   private static void schedule(DataGrid.Find f) {
     if (f.scheduled || f.app == null) {
       return;
@@ -678,11 +666,46 @@ final class GridFind {
     f.scheduled = true;
     long gen = f.gen;
     f.app.after(0, () -> {
-      if (gen == f.gen) {
-        f.scheduled = false;
-        f.due = true;
+      if (gen != f.gen) {
+        return;
+      }
+      f.scheduled = false;
+      Build b = f.build;
+      if (b == null || f.pattern == null || !shown(f.app.tree(), b.grid)) {
+        return;
+      }
+      long deadline = Search.deadline(Find.SYNC_MILLIS);
+      if (f.jump != null) {
+        stepJump(f, b, compile(f, f.texts), deadline);
+      }
+      if (f.open && f.jump == null && !f.complete) {
+        stepScan(f, b, deadline);
+      }
+      if (f.jump != null || f.open && !f.complete) {
+        schedule(f);
       }
     });
+  }
+
+  /** Whether the tree of the last frame holds the grid. */
+  private static boolean shown(El tree, El grid) {
+    if (tree == null || grid == null) {
+      return false;
+    }
+    if (tree == grid) {
+      return true;
+    }
+    for (El child : tree.children()) {
+      if (shown(child, grid)) {
+        return true;
+      }
+    }
+    for (El overlay : tree.overlays()) {
+      if (shown(overlay, grid)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Selects the matching cell and ensures the grid scrolls both rows and columns to show it. */

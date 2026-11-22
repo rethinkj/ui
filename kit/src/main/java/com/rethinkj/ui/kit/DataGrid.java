@@ -2135,7 +2135,6 @@ public final class DataGrid {
     GridFind.Jump jump;
     long gen; // incremented on cancel/restart so stale scheduled slices do nothing
     boolean scheduled;
-    boolean due; // a frame asked for the next slice, which the grid's next build runs
     boolean skipped; // the scan left out rows that were not loaded
     // The last build and its elements, for handlers and public methods.
     Build build;
@@ -2188,7 +2187,6 @@ public final class DataGrid {
       gen++;
       scheduled = false;
       jump = null;
-      due = false;
     }
 
     void resetSearch() {
