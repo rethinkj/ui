@@ -3,9 +3,11 @@ package com.rethinkj.ui;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * The lines of a {@link El#multiline multi-line} field's string, which its {@link Editor} keeps
@@ -496,6 +498,10 @@ final class Lines {
     }
     rawBlocks = next;
     blocksCount = count;
+    if (!measuredBlocks.isEmpty()) { // blocks that moved or left: their heights go with them
+      Set<El.Block> kept = new HashSet<>(next);
+      measuredBlocks.keySet().removeIf(key -> !kept.contains(key.block()));
+    }
     reconcileFoldsAndBlocks();
   }
 
@@ -773,6 +779,14 @@ final class Lines {
     int found = Arrays.binarySearch(foldHiddenFirst, line);
     int i = found >= 0 ? found : -found - 2;
     return i >= 0 && line <= foldHiddenLast[i];
+  }
+
+  /** The first line after {@code line} that no fold hides; a replaced line counts as shown. */
+  int nextUnfolded(int line) {
+    int next = line + 1;
+    int found = Arrays.binarySearch(foldHiddenFirst, next);
+    int i = found >= 0 ? found : -found - 2;
+    return i >= 0 && next <= foldHiddenLast[i] ? foldHiddenLast[i] + 1 : next;
   }
 
   /** Whether line {@code line} is hidden inside a fold or a replaced block. */

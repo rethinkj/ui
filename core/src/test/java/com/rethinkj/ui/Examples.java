@@ -203,14 +203,15 @@ public final class Examples {
 
   /** The state of the line blocks multi-line field example. */
   public static final class Blocks {
-    public String code = "class Orders {\n"
-        + "  /**\n"
-        + "   * Sums active totals.\n"
-        + "   */\n"
-        + "  int sumPaid() {\n"
-        + "    return total;\n"
-        + "  }\n"
-        + "}";
+    public String code = """
+        class Orders {
+          /**
+           * Sums active totals.
+           */
+          int sumPaid() {
+            return total;
+          }
+        }""";
     public final El.Block doc = El.Block.replace(1, 3);
     public final El.Block vision = El.Block.insert(4);
     public final List<El.Block> blocks = new ArrayList<>(List.of(doc, vision));
@@ -219,6 +220,9 @@ public final class Examples {
 
     public void findActive() {
       int at = code.indexOf("active");
+      if (at < 0) {
+        return;
+      }
       fieldState.select(at + "active".length(), at);
     }
   }

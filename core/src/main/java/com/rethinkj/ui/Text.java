@@ -2829,7 +2829,7 @@ public final class Text implements Measure {
     Lines lines = shownLines();
     List<Box> boxes = new ArrayList<>();
     for (PlacedBlock pb : placedBlocks) {
-      if (!(pb.height > 0)) {
+      if (pb.height <= 0) {
         continue;
       }
       El.Block b = pb.block;

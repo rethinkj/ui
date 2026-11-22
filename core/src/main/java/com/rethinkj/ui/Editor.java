@@ -1337,10 +1337,7 @@ final class Editor {
   private int[] lineAt(int index) {
     Lines ls = lines();
     int line = ls.line(Math.clamp(index, 0, text.length()));
-    int next = line + 1;
-    while (next < ls.count() && ls.isFoldHidden(next)) {
-      next++;
-    }
+    int next = ls.nextUnfolded(line);
     return new int[] {ls.start(line), next < ls.count() ? ls.start(next) : text.length()};
   }
 

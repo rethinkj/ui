@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Random;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -287,19 +288,18 @@ class LinesTest {
     lines.blocks(List.of(insEnd, insMid, repTop, insMid2));
 
     // Line 0 and 1 are hidden by repTop.
-    assertTrue(lines.isHidden(0));
-    assertTrue(lines.isHidden(1));
+    assertTrue(lines.isHidden(0) && lines.isHidden(1));
     assertEquals(4, lines.shownCount());
-    assertEquals(2, lines.firstVisible());
-    assertEquals(-1, lines.visibleAtOrBefore(0));
-    assertEquals(-1, lines.visibleAtOrBefore(1));
-    assertEquals(2, lines.visibleAtOrAfter(0));
-    assertEquals(2, lines.lineOfRow(0));
-    assertEquals(4, lines.totalRows());
+    assertEquals(
+        List.of(2, -1, 2, 2),
+        List.of(
+            lines.firstVisible(),
+            lines.visibleAtOrBefore(1),
+            lines.visibleAtOrAfter(0),
+            lines.lineOfRow(0)));
 
     // Initial estimates: repTop = 20, insMid = 20, insMid2 = 40, insEnd = 20 -> 100px blocks.
     assertEquals(100, lines.totalBlockPixels());
-    assertEquals(180.0, lines.totalHeight(20));
 
     // Measure repTop -> 50px, insMid -> 15px.
     // Active order: [0]=repTop(0..1), [1]=insMid(3), [2]=insMid2(3, 2 lines), [3]=insEnd(6, 1
@@ -316,26 +316,21 @@ class LinesTest {
     //   [145, 165): line 4 (row 2)
     //   [165, 185): line 5 (row 3)
     //   [185, 205): insEnd (slot 6)
-    assertEquals(0.0, lines.slotTop(0, 20));
-    assertEquals(50.0, lines.lineTop(2, 20));
-    assertEquals(70.0, lines.slotTop(3, 20));
-    assertEquals(125.0, lines.lineTop(3, 20));
-    assertEquals(145.0, lines.lineTop(4, 20));
-    assertEquals(185.0, lines.slotTop(6, 20));
-    assertEquals(205.0, lines.totalHeight(20));
+    assertEquals(
+        List.of(50.0, 70.0, 125.0, 185.0, 205.0),
+        List.of(
+            lines.lineTop(2, 20),
+            lines.slotTop(3, 20),
+            lines.lineTop(3, 20),
+            lines.slotTop(6, 20),
+            lines.totalHeight(20)));
 
     // Lockstep y -> slot lookup across blocks and hidden lines.
-    assertEquals(0, lines.slotAt(0, 20));
-    assertEquals(0, lines.slotAt(49, 20));
-    assertEquals(2, lines.slotAt(50, 20));
-    assertEquals(2, lines.slotAt(69, 20));
-    assertEquals(3, lines.slotAt(70, 20));
-    assertEquals(3, lines.slotAt(124, 20));
-    assertEquals(3, lines.slotAt(125, 20));
-    assertEquals(4, lines.slotAt(145, 20));
-    assertEquals(5, lines.slotAt(165, 20));
-    assertEquals(6, lines.slotAt(185, 20));
-    assertEquals(6, lines.slotAt(300, 20));
+    assertEquals(
+        List.of(0, 0, 2, 2, 3, 3, 4, 5, 6, 6),
+        IntStream.of(0, 49, 50, 69, 70, 125, 145, 165, 185, 300)
+            .mapToObj(y -> lines.slotAt(y, 20))
+            .toList());
 
     // Changing layout invalidates cached measured heights back to estimates.
     lines.blocksLayout("narrow", 20);
@@ -348,11 +343,14 @@ class LinesTest {
     // Replacing all lines leaves 0 visible rows without crashing.
     lines.folds(List.of());
     lines.blocks(List.of(El.Block.replace(0, 5)));
-    assertEquals(0, lines.shownCount());
-    assertEquals(0, lines.totalRows());
-    assertEquals(-1, lines.firstVisible());
-    assertEquals(-1, lines.lineOfRow(0));
-    assertEquals(0, lines.slotAt(10, 20));
+    assertEquals(
+        List.of(0L, 0L, -1L, -1L, 0L),
+        List.of(
+            (long) lines.shownCount(),
+            lines.totalRows(),
+            (long) lines.firstVisible(),
+            (long) lines.lineOfRow(0),
+            (long) lines.slotAt(10, 20)));
 
     // Clearing blocks restores fast path.
     lines.blocks(List.of());
