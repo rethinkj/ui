@@ -32,6 +32,8 @@ Javadoc: [`DataGrid`](/api/com/rethinkj/ui/kit/DataGrid.html), [`DataGrid.Column
 | Cell icons | `.cellIcon(row -> CellIcon)` using `CellIcon.before(...)` or `CellIcon.instead(...)` with optional `.tooltip(...)` |
 | Secondary text in cell | `.detail(row -> text)` (see [Details](#details)) |
 | Tooltip of a cell | `.cellTooltip(row -> text)` (see [Tooltips](#tooltips)) |
+| Custom cell view | `.view(row -> el)` (see [Custom cell views](#custom-cell-views)) |
+| Row actions on hover/select | `.actions(row -> el)` (see [Custom cell views](#custom-cell-views)) |
 | Sorting | `.sortable(boolean)` |
 | Inline editing | `.editable()`, `.editable(rows)`, `.nullable()`, `.choices(list)`, `.editor(...)` (see [Editing](/docs/components/data-grid/editing)) |
 
@@ -61,6 +63,19 @@ Line breaks and tabs inside cells display as `⏎` and `⇥`. Overflowing text t
 ```
 
 A cell combines all applicable parts into one tooltip, one line each, in this order: a failed cell's error, the icon's tooltip, the column's tooltip, and the full text when the cell is truncated.
+
+## Custom cell views
+
+`column.view(row -> el)` shows any element in place of a loaded row's text and icon — such as a [Badge](/docs/components/badge), a [Progress](/docs/components/progress) bar beside a value, or a [Checkbox](/docs/components/checkbox). Returning `null` falls back to the cell's text as usual. The column's `cell` function still supplies the text, so copying, sorting, filtering, editing, column fitting, and tree dumps behave as for a text cell. A view that may be cut short says its whole value with `.cellTooltip(...)`.
+
+Views align left or right with the column. To center a control such as a checkbox, wrap it in `row().grow(1).center()`.
+
+`column.actions(row -> el)` places an element (such as small ghost icon [Button](/docs/components/button)s with `Button.Size.SMALL`) at the cell's right end, visible only while the row is hovered, selected, or holds keyboard focus; Tab reaches the hidden ones and shows them. While they show, they cover the end of the cell, so give them a column whose content leaves room there. Presses on checkboxes or buttons inside a cell act on those controls without selecting the cell, starting an inline edit or a selection drag.
+
+```java snippet="grid-views"
+```
+
+<Shot src="examples/docs/grid-views/view-{theme}" alt="A grid with status badges, progress bars beside percentages, centered checkboxes, and row action buttons on the selected and hovered rows" />
 
 ## Options
 

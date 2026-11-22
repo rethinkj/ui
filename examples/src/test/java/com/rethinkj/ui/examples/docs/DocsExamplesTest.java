@@ -86,6 +86,7 @@ class DocsExamplesTest {
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
+      Map.entry("grid-views", List.of("view")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
       Map.entry("form-divided", List.of("view")),
@@ -174,6 +175,7 @@ class DocsExamplesTest {
     overlays(all, "toasts", Overlays::toasts, 460, 240);
     overlays(all, "command-palette", Overlays::palette, 640, 360);
     grids(all, "grid", Grids::basic, 520, 300);
+    grids(all, "grid-views", Grids::views, 500, 180);
     grids(all, "grid-open", Grids::opened, 360, 260);
     grids(all, "grid-sort", Grids::sorted, 520, 300);
     grids(all, "grid-fit", Grids::fitted, 520, 300);

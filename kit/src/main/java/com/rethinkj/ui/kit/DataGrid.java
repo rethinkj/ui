@@ -212,6 +212,14 @@ public final class DataGrid {
    * @param cellTooltip the tooltip of the cell in the row with this index, or null for none: called
    *     for a loaded row once the pointer has rested on its cell for the theme's delay; null for
    *     the function means no tooltips of the column's own ({@link #cellTooltip(IntFunction)})
+   * @param view an element the cell shows in place of its text, icon and detail for the row with
+   *     this index, or null to show them as usual: called as {@code cell} is, for loaded rows only
+   *     (not for unloaded rows or the append row); null for the function means no custom views
+   *     ({@link #view(IntFunction)})
+   * @param actions an element (such as a row of small icon buttons) shown at the right end of the
+   *     cell while its row is under the pointer, selected or holds the keyboard focus, or null for
+   *     none: called for loaded rows only (not for unloaded rows or the append row); null for the
+   *     function means no row actions ({@link #actions(IntFunction)})
    */
   public record Column(
       String title,
@@ -228,12 +236,51 @@ public final class DataGrid {
       Editing editing,
       GridTable.Cells<?, ?> cells,
       IntFunction<String> detail,
-      IntFunction<String> cellTooltip) {
+      IntFunction<String> cellTooltip,
+      IntFunction<El> view,
+      IntFunction<El> actions) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
       Objects.requireNonNull(type, "type");
       Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column without a {@link #view} or {@link #actions}. */
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Icon icon,
+        Icon.Variant iconVariant,
+        String typeName,
+        IntFunction<CellIcon> cellIcon,
+        DataType type,
+        Editing editing,
+        GridTable.Cells<?, ?> cells,
+        IntFunction<String> detail,
+        IntFunction<String> cellTooltip) {
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          cellTooltip,
+          null,
+          null);
     }
 
     /** A column without a {@link #cellTooltip}. */
@@ -415,7 +462,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /** This column, sortable or not. */
@@ -435,7 +484,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /** This column with {@code icon} in muted text before the title in the header. */
@@ -460,7 +511,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
@@ -480,7 +533,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
@@ -500,7 +555,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /**
@@ -528,7 +585,9 @@ public final class DataGrid {
           editing,
           cells,
           details,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
 
     /**
@@ -554,7 +613,67 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          tooltips);
+          tooltips,
+          view,
+          actions);
+    }
+
+    /**
+     * This column with a custom element in place of its text and icon for each loaded row for
+     * which {@code views} returns one (a null return shows the cell's text as usual); not called
+     * for unloaded rows or the append row. {@link #cell} still supplies the text for copying,
+     * sorting, filtering, tooltips, column fitting, editing and the cell's label in a tree dump.
+     * A press on a control inside the view acts on that control alone: it neither selects the
+     * cell, nor opens its editor, nor starts a selection drag.
+     */
+    public Column view(IntFunction<El> views) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          cellTooltip,
+          views,
+          actions);
+    }
+
+    /**
+     * This column with an element (such as a row of small icon buttons) at the right end of each
+     * loaded row for which {@code actions} returns one, shown while the row is under the pointer,
+     * selected or holds the keyboard focus; not called for unloaded rows or the append row. While
+     * they show, they cover the end of the cell, on the row's fill.
+     * Presses on controls inside the actions act on those controls without starting an edit or a
+     * selection drag.
+     */
+    public Column actions(IntFunction<El> actions) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          detail,
+          cellTooltip,
+          view,
+          actions);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -610,7 +729,9 @@ public final class DataGrid {
           editing,
           cells,
           detail,
-          cellTooltip);
+          cellTooltip,
+          view,
+          actions);
     }
   }
 
@@ -1324,6 +1445,16 @@ public final class DataGrid {
     public boolean isRowSelected(int row) {
       for (Range range : ranges) {
         if (range.wholeRows() && row >= range.top() && row <= range.bottom()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /** Whether any selected range covers this row. */
+    boolean hasSelectedRow(int row) {
+      for (Range range : ranges) {
+        if (row >= range.top() && row <= range.bottom()) {
           return true;
         }
       }
@@ -3124,6 +3255,7 @@ public final class DataGrid {
     boolean append = i >= b.rowCount; // the empty row after the last, to add one
     boolean loaded = append || b.o.loaded == null || b.o.loaded.test(i);
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
+    boolean showActions = sel != null && (rowSelected || b.cells && sel.hasSelectedRow(i));
     Status status = append || b.o.rowStatus == null ? Status.UNCHANGED : b.o.rowStatus.apply(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
     if (!rowSelected && (status == Status.NEW || status == Status.DELETED)) {
@@ -3153,8 +3285,13 @@ public final class DataGrid {
     if (first < n) {
       r.padding(0, 0, 0, b.xs[first]);
     }
+    List<El> pinned = new ArrayList<>(); // with the row's fill, which hovering changes
+    List<El> hiddenActions =
+        new ArrayList<>(); // actions of an unselected row, shown on hover/focus
     for (int c = first; c <= last; c++) {
-      r.children(cell(b, i, c, loaded, fill, status), line(theme, false));
+      r.children(
+          cell(b, i, c, loaded, fill, status, showActions, pinned, hiddenActions),
+          line(theme, false));
     }
     // The editor lies over the cells, and the frozen ones over it unless it is one of them; it is
     // there wherever its cell is, also scrolled out of the part the row was built for.
@@ -3162,7 +3299,6 @@ public final class DataGrid {
     if (editing && sel.edit.column >= b.frozen) {
       r.child(GridEdit.editor(b, i, sel.edit.column));
     }
-    List<El> pinned = new ArrayList<>(); // with the row's fill, which hovering changes
     if (b.numbers > 0) {
       // The numbers lie on the row's fill, which they need over the cells scrolled under them.
       String shown = append ? "*" : status == Status.NEW ? "+" : String.valueOf(i + 1);
@@ -3182,7 +3318,7 @@ public final class DataGrid {
       r.children(pinRow(b, number, 0), pinRow(b, after, b.numbers - stroke));
     }
     for (int c = 0; c < b.frozen; c++) {
-      El cell = cell(b, i, c, loaded, fill, status);
+      El cell = cell(b, i, c, loaded, fill, status, showActions, pinned, hiddenActions);
       if (cell.fill() == 0) {
         cell.fill(fill);
         pinned.add(cell);
@@ -3205,13 +3341,27 @@ public final class DataGrid {
       return r;
     }
     int hovered = over(fill, theme.surface().hover());
-    return r.whenHovered(e -> {
+    r.whenHovered(e -> {
       e.fill(hovered);
       pinned.forEach(p -> p.fill(hovered));
+      hiddenActions.forEach(a -> a.opacity(1));
     });
+    if (!hiddenActions.isEmpty()) {
+      r.whenFocusWithin(e -> hiddenActions.forEach(a -> a.opacity(1)));
+    }
+    return r;
   }
 
-  private static El cell(Build b, int i, int c, boolean loaded, int rowFill, Status row) {
+  private static El cell(
+      Build b,
+      int i,
+      int c,
+      boolean loaded,
+      int rowFill,
+      Status row,
+      boolean showActions,
+      List<El> pinned,
+      List<El> hiddenActions) {
     Theme theme = b.theme;
     Selection sel = b.sel;
     Column column = b.columns.get(c);
@@ -3270,10 +3420,13 @@ public final class DataGrid {
               .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
     String value = loaded && !append ? column.cell().apply(i) : null;
-    CellIcon icon =
-        loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
-    String detail =
-        loaded && !append && column.detail() != null ? column.detail().apply(i) : null;
+    El view = loaded && !append && column.view() != null ? column.view().apply(i) : null;
+    CellIcon icon = view == null && loaded && !append && column.cellIcon() != null
+        ? column.cellIcon().apply(i)
+        : null;
+    String detail = view == null && loaded && !append && column.detail() != null
+        ? column.detail().apply(i)
+        : null;
     if (detail != null && status != Status.CHANGED && status != Status.ERROR) {
       box.value(detail); // a change says itself there, and the detail's text alone says it
     }
@@ -3290,51 +3443,85 @@ public final class DataGrid {
     if (!loaded) {
       box.child(text(theme, false, Text.ELLIPSIS, theme.text().muted()));
     } else if (!append) {
-      String shown = value == null ? "NULL" : oneLine(value);
-      El more = null;
-      if (detail != null) {
-        more = text(theme, column.mono(), oneLine(detail), theme.text().muted()).shrink(0);
-        float least =
-            alone ? 0 : natural(text(theme, column.mono(), TextSizing.least(shown), 0)) + pad;
-        // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
-        detailWidth = natural(more) + pad;
-        if (room < detailWidth - pad + least) {
-          more = null;
-          detailWidth = 0;
+      if (view != null) {
+        box.label(value == null ? "NULL" : value); // what the view stands for, in a dump
+        shieldControls(view, sel);
+        box.child(view);
+      } else {
+        String shown = value == null ? "NULL" : oneLine(value);
+        El more = null;
+        if (detail != null) {
+          more =
+              text(theme, column.mono(), oneLine(detail), theme.text().muted()).shrink(0);
+          float least =
+              alone ? 0 : natural(text(theme, column.mono(), TextSizing.least(shown), 0)) + pad;
+          // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
+          detailWidth = natural(more) + pad;
+          if (room < detailWidth - pad + least) {
+            more = null;
+            detailWidth = 0;
+          }
         }
-      }
-      if (more != null) {
-        box.gap(pad);
-        if (right) {
+        if (more != null) {
+          box.gap(pad);
+          if (right) {
+            box.child(more);
+          }
+        }
+        if (icon != null) {
+          box.gap(pad).child(Icon.icon(icon.symbol(), icon.variant()));
+        }
+        if (!alone) {
+          El text = text(
+              theme,
+              column.mono(),
+              shown,
+              value == null || row == Status.DELETED
+                  ? theme.text().muted()
+                  : theme.text().primary());
+          valueText = text;
+          box.child(text);
+          if (row == Status.DELETED) { // struck through, a line as the text is wide
+            float before = icon == null ? 0 : theme.size().icon() + pad;
+            float width = Math.min(natural(text), room - detailWidth);
+            float x = right ? column.width() - theme.size().stroke() - pad - width : pad + before;
+            box.child(
+                el().absolute(x, Math.round((b.g.rowHeight() - theme.size().stroke()) / 2))
+                    .size(Math.max(width, 0), theme.size().stroke())
+                    .fill(theme.text().muted()));
+          }
+        } else {
+          box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
+        }
+        if (more != null && !right) {
           box.child(more);
         }
       }
-      if (icon != null) {
-        box.gap(pad).child(Icon.icon(icon.symbol(), icon.variant()));
-      }
-      if (!alone) {
-        El text = text(
-            theme,
-            column.mono(),
-            shown,
-            value == null || row == Status.DELETED
-                ? theme.text().muted()
-                : theme.text().primary());
-        valueText = text;
-        box.child(text);
-        if (row == Status.DELETED) { // struck through, a line as the text is wide
-          float before = icon == null ? 0 : theme.size().icon() + pad;
-          float width = Math.min(natural(text), room - detailWidth);
-          float x = right ? column.width() - theme.size().stroke() - pad - width : pad + before;
-          box.child(el().absolute(x, Math.round((b.g.rowHeight() - theme.size().stroke()) / 2))
-              .size(Math.max(width, 0), theme.size().stroke())
-              .fill(theme.text().muted()));
+      El actions = column.actions() == null ? null : column.actions().apply(i);
+      if (actions != null) {
+        shieldControls(actions, sel);
+        int actionFill = box.fill() != 0 ? box.fill() : rowFill;
+        El slot = row()
+            .key("actions")
+            .align(Style.Align.CENTER)
+            .padding(0, theme.space().xs(), 0, theme.space().s())
+            .fill(actionFill)
+            .opacity(showActions ? 1 : HIDDEN_ACTIONS)
+            .child(actions);
+        if (sel != null) { // a press between the actions or on a disabled one acts on nothing
+          slot.onPointerDown((clicks, modifiers) -> sel.pressedCell = false);
         }
-      } else {
-        box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
-      }
-      if (more != null && !right) {
-        box.child(more);
+        slot.style().position = Style.Position.ABSOLUTE;
+        slot.style().right = Len.ZERO;
+        slot.style().top = Len.ZERO;
+        slot.style().bottom = Len.ZERO;
+        if (box.fill() == 0) {
+          pinned.add(slot);
+        }
+        if (!showActions) {
+          hiddenActions.add(slot);
+        }
+        box.child(slot);
       }
     }
     if (sel != null) {
@@ -3355,7 +3542,9 @@ public final class DataGrid {
     // What is wrong first, then what the icon says, then what the column says once it is due.
     String own = lines(error, told);
     IntFunction<String> tooltips = loaded && !append ? column.cellTooltip() : null;
-    if (value != null || alone || own != null || detail != null || tooltips != null) {
+    if (view == null && (value != null || alone || detail != null)
+        || own != null
+        || tooltips != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
       // the column cuts it short, with the detail where that or the detail is cut.
       String whole = value == null ? "NULL" : value;
@@ -3371,6 +3560,28 @@ public final class DataGrid {
       });
     }
     return box;
+  }
+
+  /**
+   * Keeps presses on the controls inside a cell's view or actions from the cell's pointer-down
+   * handler, as a press beside the cells is: pressing or double-clicking a checkbox or button acts
+   * on it alone, without selecting, editing or dragging a selection.
+   */
+  private static void shieldControls(El el, Selection sel) {
+    El.PressAtHandler own = el.onPointerDown();
+    if (own != null || el.onPress() != null || el.onDrag() != null) {
+      el.onPointerDown((clicks, modifiers, x, y) -> {
+        if (sel != null) {
+          sel.pressedCell = false;
+        }
+        if (own != null) {
+          own.press(clicks, modifiers, x, y);
+        }
+      });
+    }
+    for (El child : el.children()) {
+      shieldControls(child, sel);
+    }
   }
 
   /** Both texts on lines of their own, or the one that is not null. */
@@ -3391,6 +3602,13 @@ public final class DataGrid {
       default -> theme.status().danger();
     };
   }
+
+  /**
+   * The opacity of the actions of a row that does not show them. Not 0, which the pointer and the
+   * focus pass by: as CSS's {@code opacity: 0}, they stay under the pointer and in the focus order,
+   * so that the row's looks show them and their own looks and tooltips work from the first frame.
+   */
+  static final float HIDDEN_ACTIONS = 0.001f;
 
   /** Places an element of a frozen column: at {@code x}, as tall as the row, kept from scrolling. */
   private static El pin(Build b, El el, float x) {

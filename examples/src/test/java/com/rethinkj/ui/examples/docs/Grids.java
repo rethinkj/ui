@@ -1,14 +1,19 @@
 package com.rethinkj.ui.examples.docs;
 
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.DataGrid;
+import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.Format;
@@ -17,6 +22,7 @@ import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
@@ -39,10 +45,14 @@ final class Grids {
   static final String[] CUSTOMERS = {"Ada", "Brendan", "Chen", "Dagny", "Emeka", "Farah", "Gus"};
   static final String[] STATUSES = {"paid", "pending", "shipped", "refunded"};
   static final int COUNT = 1000;
+  static final String[] SERVICES = {"auth-api", "billing", "search-idx", "reports", "archive"};
+  static final String[] STATES = {"PRIMARY", "ACTIVE", "DEGRADED", "FAILED", "ACTIVE"};
+  static final double[] LOADS = {0.24, 0.82, 0.68, 0.96, 0.14};
 
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Selection picked = new DataGrid.Selection(DataGrid.Mode.ROWS);
+  final boolean[] active = {true, true, false, true, true};
   final DataGrid.Commands gridCommands = new DataGrid.Commands();
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
@@ -172,6 +182,63 @@ final class Grids {
     said = "Opened order " + value(row, 0);
   }
   // docs:end grid-open-handler
+
+  void toggleActive(int row) {
+    active[row] = !active[row];
+  }
+
+  void copyService(int row) {
+    said = "Copied " + SERVICES[row];
+  }
+
+  static El views(Grids state) {
+    // docs:start grid-views
+    Theme theme = Theme.CURRENT.get();
+    List<Column> columns = List.of(
+        new Column("service", 160, Align.LEFT, false, row -> SERVICES[row])
+            .actions(row -> Button.icon(
+                GHOST,
+                Symbol.COPY,
+                "Copy " + SERVICES[row],
+                () -> state.copyService(row),
+                Button.options().size(Button.Size.SMALL))),
+        new Column("status", 104, Align.LEFT, false, row -> STATES[row])
+            .view(row -> Badge.badge(statusKind(STATES[row]), STATES[row])),
+        new Column("load", 128, Align.RIGHT, true, row -> Math.round(LOADS[row] * 100) + " %")
+            .view(row -> row()
+                .align(Style.Align.CENTER)
+                .gap(theme.space().m())
+                .children(
+                    Progress.bar(LOADS[row], loadState(LOADS[row])).w(48),
+                    Label.label(Label.Variant.MONO, Math.round(LOADS[row] * 100) + " %")
+                        .w(36)
+                        .textAlign(Style.Align.END))),
+        new Column("active", 72, Align.LEFT, false, row -> String.valueOf(state.active[row]))
+            .view(row -> row()
+                .grow(1)
+                .center() // fill the cell and center the checkbox
+                .child(Checkbox.checkbox(state.active[row], () -> state.toggleActive(row))
+                    .label("Active " + SERVICES[row]))));
+    El grid = DataGrid.dataGrid(columns, SERVICES.length, DataGrid.options().select(state.picked))
+        .key("services")
+        .label("Services")
+        .grow(1);
+    // docs:end grid-views
+    return Frame.of(Card.flush(grid).wFull().grow(1));
+  }
+
+  private static Badge.Kind statusKind(String state) {
+    return switch (state) {
+      case "PRIMARY" -> Badge.Kind.ACCENT;
+      case "ACTIVE" -> Badge.Kind.SUCCESS;
+      case "DEGRADED" -> Badge.Kind.WARNING;
+      default -> Badge.Kind.DANGER;
+    };
+  }
+
+  private static Progress.State loadState(double load) {
+    return load >= 0.9 ? Progress.State.ERROR : Progress.State.NORMAL;
+  }
 
   static El opened(Grids state) {
     // docs:start grid-open

@@ -1,0 +1,132 @@
+el 0,0 500x180
+  el 12,12 476x156
+    el #services role=grid label="Services" 13,13 474x154 focused
+      el #content 13,13 474x154
+        el #header 13,13 474x25
+          el #column-0 role=columnheader label="service" 13,13 159x24 pos=1/4
+            text "service" 17,17 46x16
+          el 172,13 1x24
+          el #column-1 role=columnheader label="status" 173,13 103x24 pos=2/4
+            text "status" 177,17 37x16
+          el 276,13 1x24
+          el #column-2 role=columnheader label="load" 277,13 127x24 pos=3/4
+            text "load" 374,17 26x16
+          el 404,13 1x24
+          el #column-3 role=columnheader label="active" 405,13 71x24 pos=4/4
+            text "active" 409,17 37x16
+          el 476,13 1x24
+        el #rows 13,38 474x129 rows 0-4/5 hovered
+          el #row-0 role=row 13,38 474x24 pos=1/5
+            el #cell-0-0 role=gridcell 13,38 159x23 pos=1/4
+              text "auth-api" 17,42 51x16
+              el #actions 146,38 26x23
+                el role=button label="Copy auth-api" 150,40 20x20
+                  text label="copy" "\u{F32A}" 152,42 16x16
+            el 172,38 1x23
+            el #cell-0-1 role=gridcell label="PRIMARY" 173,38 103x23 pos=2/4
+              el label="PRIMARY" 177,41 66x18
+                text "PRIMARY" 183,42 54x15
+            el 276,38 1x23
+            el #cell-0-2 role=gridcell label="24 %" 277,38 127x23 pos=3/4
+              el 308,42 92x16
+                el role=progressbar 308,48 48x4 value="24%"
+                  el #fill 308,48 12x4
+                text "24 %" 364,42 36x16
+            el 404,38 1x23
+            el #cell-0-3 role=gridcell label="true" 405,38 71x23 pos=4/4
+              el 409,42 63x16
+                el role=checkbox label="Active auth-api" 429,40 24x20 checked
+                  el 433,42 16x16
+                    text "✓" 435,42 11x16
+            el 476,38 1x23
+          el #row-1 role=row 13,62 474x24 selected current pos=2/5
+            el #cell-1-0 role=gridcell 13,62 159x23 pos=1/4
+              text "billing" 17,66 36x16
+              el #actions 146,62 26x23
+                el role=button label="Copy billing" 150,64 20x20
+                  text label="copy" "\u{F32A}" 152,66 16x16
+            el 172,62 1x23
+            el #cell-1-1 role=gridcell label="ACTIVE" 173,62 103x23 pos=2/4
+              el label="ACTIVE" 177,65 56x18
+                text "ACTIVE" 183,66 44x15
+            el 276,62 1x23
+            el #cell-1-2 role=gridcell label="82 %" 277,62 127x23 pos=3/4
+              el 308,66 92x16
+                el role=progressbar 308,72 48x4 value="82%"
+                  el #fill 308,72 39x4
+                text "82 %" 364,66 36x16
+            el 404,62 1x23
+            el #cell-1-3 role=gridcell label="true" 405,62 71x23 pos=4/4
+              el 409,66 63x16
+                el role=checkbox label="Active billing" 429,64 24x20 checked
+                  el 433,66 16x16
+                    text "✓" 435,66 11x16
+            el 476,62 1x23
+          el #row-2 role=row 13,86 474x24 pos=3/5
+            el #cell-2-0 role=gridcell 13,86 159x23 pos=1/4
+              text "search-idx" 17,90 66x16
+              el #actions 146,86 26x23
+                el role=button label="Copy search-idx" 150,88 20x20
+                  text label="copy" "\u{F32A}" 152,90 16x16
+            el 172,86 1x23
+            el #cell-2-1 role=gridcell label="DEGRADED" 173,86 103x23 pos=2/4
+              el label="DEGRADED" 177,89 79x18
+                text "DEGRADED" 183,90 67x15
+            el 276,86 1x23
+            el #cell-2-2 role=gridcell label="68 %" 277,86 127x23 pos=3/4
+              el 308,90 92x16
+                el role=progressbar 308,96 48x4 value="68%"
+                  el #fill 308,96 33x4
+                text "68 %" 364,90 36x16
+            el 404,86 1x23
+            el #cell-2-3 role=gridcell label="false" 405,86 71x23 pos=4/4
+              el 409,90 63x16
+                el role=checkbox label="Active search-idx" 429,88 24x20 checked=false
+                  el 433,90 16x16
+            el 476,86 1x23
+          el #row-3 role=row 13,110 474x24 pos=4/5
+            el #cell-3-0 role=gridcell 13,110 159x23 pos=1/4
+              text "reports" 17,114 45x16
+              el #actions 146,110 26x23
+                el role=button label="Copy reports" 150,112 20x20
+                  text label="copy" "\u{F32A}" 152,114 16x16
+            el 172,110 1x23
+            el #cell-3-1 role=gridcell label="FAILED" 173,110 103x23 pos=2/4
+              el label="FAILED" 177,113 53x18
+                text "FAILED" 183,114 41x15
+            el 276,110 1x23
+            el #cell-3-2 role=gridcell label="96 %" 277,110 127x23 pos=3/4
+              el 308,114 92x16
+                el role=progressbar 308,120 48x4 invalid value="96%"
+                  el #fill 308,120 46x4
+                text "96 %" 364,114 36x16
+            el 404,110 1x23
+            el #cell-3-3 role=gridcell label="true" 405,110 71x23 pos=4/4
+              el 409,114 63x16
+                el role=checkbox label="Active reports" 429,112 24x20 checked
+                  el 433,114 16x16
+                    text "✓" 435,114 11x16
+            el 476,110 1x23
+          el #row-4 role=row 13,134 474x24 pos=5/5
+            el #cell-4-0 role=gridcell 13,134 159x23 pos=1/4
+              text "archive" 17,138 45x16
+              el #actions 146,134 26x23
+                el role=button label="Copy archive" 150,136 20x20
+                  text label="copy" "\u{F32A}" 152,138 16x16
+            el 172,134 1x23
+            el #cell-4-1 role=gridcell label="ACTIVE" 173,134 103x23 pos=2/4
+              el label="ACTIVE" 177,137 56x18
+                text "ACTIVE" 183,138 44x15
+            el 276,134 1x23
+            el #cell-4-2 role=gridcell label="14 %" 277,134 127x23 pos=3/4
+              el 308,138 92x16
+                el role=progressbar 308,144 48x4 value="14%"
+                  el #fill 308,144 7x4
+                text "14 %" 364,138 36x16
+            el 404,134 1x23
+            el #cell-4-3 role=gridcell label="true" 405,134 71x23 pos=4/4
+              el 409,138 63x16
+                el role=checkbox label="Active archive" 429,136 24x20 checked
+                  el 433,138 16x16
+                    text "✓" 435,138 11x16
+            el 476,134 1x23
