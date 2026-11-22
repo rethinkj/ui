@@ -61,7 +61,7 @@ public final class FilterList {
    */
   public record Entry(
       String text,
-      Symbol symbol,
+      Icon symbol,
       String detail,
       String shortcut,
       String group,
@@ -77,7 +77,7 @@ public final class FilterList {
     /** An entry without a key that closes the palette it is chosen in. */
     public Entry(
         String text,
-        Symbol symbol,
+        Icon symbol,
         String detail,
         String shortcut,
         String group,
@@ -89,16 +89,11 @@ public final class FilterList {
 
     /** An entry with an icon or nothing before its text, and no check mark. */
     public Entry(
-        String text,
-        Symbol symbol,
-        String detail,
-        String shortcut,
-        String group,
-        Runnable onChoose) {
+        String text, Icon symbol, String detail, String shortcut, String group, Runnable onChoose) {
       this(text, symbol, detail, shortcut, group, onChoose, null, false, null, false);
     }
 
-    public Entry symbol(Symbol symbol) {
+    public Entry symbol(Icon symbol) {
       return new Entry(
           text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
@@ -676,7 +671,8 @@ public final class FilterList {
     if (entry.leading() != null) {
       leading = entry.leading().get().shrink(0);
     } else if (entry.symbol() != null) {
-      leading = icon(entry.symbol()).color(quiet);
+      leading = Icon.Picture.color(
+          icon(entry.symbol(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED), quiet);
     }
     El name = label(entry.text()).color(text).minSize(0, 0).ellipsis();
     int[] at = shown.query().isEmpty() ? null : Fuzzy.positions(shown.query(), entry.text());

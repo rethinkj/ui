@@ -132,7 +132,7 @@ public final class StatusBar {
    * @param onPress runs when the part is pressed, as a part that opens a dialog; null for a part
    *     that only shows
    */
-  public static El item(Symbol icon, String text, Runnable onPress) {
+  public static El item(Icon icon, String text, Runnable onPress) {
     return item(null, icon, text, onPress);
   }
 
@@ -144,12 +144,12 @@ public final class StatusBar {
    * @param icon before the text; null for none
    * @param onPress runs when the part is pressed; null for a part that only shows
    */
-  public static El item(Badge.Kind tone, Symbol icon, String text, Runnable onPress) {
+  public static El item(Badge.Kind tone, Icon icon, String text, Runnable onPress) {
     Theme theme = Theme.CURRENT.get();
     Theme.Tone t = tone(theme, tone);
     El before = icon == null ? null : Icon.icon(icon, Icon.Variant.MUTED);
     if (before != null && t != null) {
-      before.color(t.softText());
+      Icon.Picture.color(before, t.softText());
     }
     return part(theme, t, before, text, onPress);
   }

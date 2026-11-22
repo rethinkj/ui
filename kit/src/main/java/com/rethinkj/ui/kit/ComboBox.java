@@ -193,9 +193,9 @@ public final class ComboBox {
       Objects.requireNonNull(text, "text");
     }
 
-    /** An icon of the icon font before the text. */
-    public Item icon(Symbol symbol) {
-      return leading(() -> Icon.icon(symbol, Icon.Variant.MUTED));
+    /** An icon before the text. */
+    public Item icon(Icon icon) {
+      return leading(() -> Icon.icon(icon, Icon.Variant.MUTED));
     }
 
     /** An image before the text, fitted into an icon's square, such as a database's logo. */
@@ -240,6 +240,9 @@ public final class ComboBox {
     String text = current == null ? "" : current.text();
     El lead =
         current == null || current.leading() == null ? null : current.leading().get();
+    if (!enabled && lead != null) {
+      Icon.Picture.off(lead); // an item's picture or image, which keeps its colors, dims instead
+    }
     if (!enabled || !state.open) {
       if (state.open) {
         state.close();

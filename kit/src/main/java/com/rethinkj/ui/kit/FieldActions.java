@@ -17,12 +17,12 @@ final class FieldActions {
     return theme.size().control() - 2 * theme.space().xs();
   }
 
-  static El button(Theme theme, Symbol symbol, String label, Runnable onPress) {
-    return button(theme, symbol, label, null, onPress);
+  static El button(Theme theme, Icon icon, String label, Runnable onPress) {
+    return button(theme, icon, label, null, onPress);
   }
 
   /** A button, or a switch when {@code checked} is not null; the caller decides Tab stops. */
-  static El button(Theme theme, Symbol symbol, String label, Boolean checked, Runnable onPress) {
+  static El button(Theme theme, Icon icon, String label, Boolean checked, Runnable onPress) {
     boolean enabled = onPress != null;
     boolean on = checked != null && checked;
     float size = size(theme);
@@ -34,7 +34,7 @@ final class FieldActions {
         .radius(theme.radius().small())
         .motion(theme.motion().feedback())
         .child(icon(
-            symbol,
+            icon,
             !enabled ? Icon.Variant.DISABLED : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
     if (checked != null) {
       button.checked(on);

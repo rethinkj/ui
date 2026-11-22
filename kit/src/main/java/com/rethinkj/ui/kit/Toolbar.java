@@ -55,7 +55,7 @@ public final class Toolbar {
   public static final class Item {
     final Kind kind;
     final String label;
-    final Symbol icon;
+    final Icon icon;
     final Button.Variant variant;
     final boolean on;
     final Runnable onPress;
@@ -68,7 +68,7 @@ public final class Toolbar {
     private Item(
         Kind kind,
         String label,
-        Symbol icon,
+        Icon icon,
         Button.Variant variant,
         boolean on,
         Runnable onPress,
@@ -109,7 +109,7 @@ public final class Toolbar {
     }
 
     /** The item's options, or plain ones, with this icon and the toolbar's size. */
-    private Button.Options with(Symbol icon) {
+    private Button.Options with(Icon icon) {
       return (options == null ? Button.options() : options.copy())
           .icon(icon)
           .size(Button.Size.REGULAR);
@@ -133,7 +133,7 @@ public final class Toolbar {
   }
 
   /** A ghost button with an icon alone; its label shows in a tooltip. */
-  public static Item button(Symbol icon, String label, Runnable onPress) {
+  public static Item button(Icon icon, String label, Runnable onPress) {
     return new Item(
         Kind.BUTTON,
         label,
@@ -149,17 +149,17 @@ public final class Toolbar {
   }
 
   /** A ghost button with an icon, if any, and text. */
-  public static Item text(Symbol icon, String text, Runnable onPress) {
+  public static Item text(Icon icon, String text, Runnable onPress) {
     return text(Button.Variant.GHOST, icon, text, onPress);
   }
 
   /** A button of a variant with an icon, if any, and text. */
-  public static Item text(Button.Variant variant, Symbol icon, String text, Runnable onPress) {
+  public static Item text(Button.Variant variant, Icon icon, String text, Runnable onPress) {
     return new Item(Kind.TEXT, text, icon, variant, false, onPress, null, null, null, null, null);
   }
 
   /** A toggle button with an icon alone ({@link Button#toggleIcon}). */
-  public static Item toggle(Symbol icon, String label, boolean on, Consumer<Boolean> onToggle) {
+  public static Item toggle(Icon icon, String label, boolean on, Consumer<Boolean> onToggle) {
     return new Item(
         Kind.TOGGLE,
         label,
@@ -177,7 +177,7 @@ public final class Toolbar {
   /** A split button ({@link Button#split}): the main action and a menu of related ones. */
   public static Item split(
       Button.Variant variant,
-      Symbol icon,
+      Icon icon,
       String text,
       Runnable onPress,
       Menu.State menu,

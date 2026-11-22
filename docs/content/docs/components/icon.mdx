@@ -1,9 +1,9 @@
 ---
 title: Icon
-description: Render Fluent UI System Icons in standard or status colors.
+description: Render Fluent UI System Icons, custom font glyphs, or images as icons.
 ---
 
-`Icon.icon` renders a `Symbol` from the bundled Fluent UI System Icons font (`rethinkj-ui-icons`), sized at 16×16 px by default. Buttons, tabs, menus, and grids also accept `Symbol` directly.
+`Icon.icon` renders an `Icon` — a `Symbol` from the bundled Fluent UI System Icons font (`rethinkj-ui-icons`), a glyph from your own font (`Icon.glyph`), or an image (`Icon.image`) — sized at 16×16 px by default. Buttons, tabs, menus, toolbars, and grids all accept any `Icon`.
 
 Javadoc: [`Icon`](/api/com/rethinkj/ui/kit/Icon.html), [`Symbol`](/api/com/rethinkj/ui/kit/Symbol.html).
 
@@ -16,15 +16,27 @@ Javadoc: [`Icon`](/api/com/rethinkj/ui/kit/Icon.html), [`Symbol`](/api/com/rethi
 
 | Method | Description |
 | --- | --- |
-| `icon(symbol)` | Primary text color, `size().icon()` (16 px) |
-| `icon(symbol, variant)` | `NORMAL`, `MUTED`, `DISABLED`, `DANGER`, `WARNING`, `SUCCESS`, or `ACCENT` |
-| `icon(symbol, variant, size)` | Custom pixel size |
+| `icon(icon)` | Primary text color, `size().icon()` (16 px) |
+| `icon(icon, variant)` | `NORMAL`, `MUTED`, `DISABLED`, `DANGER`, `WARNING`, `SUCCESS`, or `ACCENT` |
+| `icon(icon, variant, size)` | Custom pixel size |
 
 `Symbol` uses uppercase Fluent icon names (`TABLE`, `KEY`, `SEARCH`, `CHEVRON_RIGHT`, etc.). Always add a `.label(...)` to icon-only clickable elements.
 
+## Your own icons
+
+Every component that takes an icon accepts any `Icon`, not only a `Symbol`:
+
+- `Icon.glyph(font, codePoint, label)` — one glyph of your own font, sized to a square of the icon's size and colored by the component's variant or tone, just as a `Symbol` is.
+- `Icon.image(image, label)` — an `Image` fitted into the icon's square (`Image.Fit.CONTAIN`). A picture keeps its own colors and dims to 40 % opacity while disabled.
+
+<Shot src="examples/docs/icon-own/view-{theme}" alt="Ghost icon buttons with a custom glyph and a picture icon, enabled and disabled" />
+
+```java snippet="icon-own"
+```
+
 ## In a tree dump
 
-Appears as a `text` element whose `label` is the lowercase symbol name:
+Appears as a `text` element (or `image` for `Icon.image`) whose `label` is the lowercase symbol name or the label passed to `Icon.glyph` / `Icon.image`:
 
 ```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="label=\"table\"" count="3"
 ```

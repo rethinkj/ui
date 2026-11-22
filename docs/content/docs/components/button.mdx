@@ -33,7 +33,7 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 
 | Option | Description |
 | --- | --- |
-| `icon(symbol)` | Shows an icon before the text (not used with `Button.icon`, which takes the symbol directly) |
+| `icon(icon)` | Shows an icon before the text (not used with `Button.icon`, which takes the icon directly) |
 | `state(READY)` | Normal clickable state (default) |
 | `state(BUSY)` | Shows a spinner while an action runs. Ignores clicks, Enter, and Space, keeps its width and focus, and works even with a `null` handler |
 | `state(DISABLED)` | Disables the button while keeping the handler in your view code (same behavior as a `null` handler) |
@@ -53,7 +53,7 @@ On a split button, a `null` handler or `BUSY` only affects the main button — t
 | --- | --- |
 | `button(variant, text, onPress)` | Text button |
 | `button(variant, icon, text, onPress)` | Button with icon and text |
-| `icon(variant, symbol, label, onPress)` | Square icon-only button (`label` appears in tooltip and tree) |
+| `icon(variant, icon, label, onPress)` | Square icon-only button (`label` appears in tooltip and tree) |
 | `toggle(icon, text, on, onToggle)`, `toggleIcon(icon, label, on, onToggle)` | Toggle button with active tint when `on` is `true` |
 | `split(variant, icon, text, onPress, menuState, items)` | Main action plus chevron opening a [Menu](/docs/components/menu) |
 | `menu(variant, text, menuState, items)` | Button that opens a [Menu](/docs/components/menu) |

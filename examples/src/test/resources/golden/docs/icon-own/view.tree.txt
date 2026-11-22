@@ -1,0 +1,10 @@
+el 0,0 132x48
+  el 12,12 108x24
+    el role=button label="Stop" 12,12 24x24
+      text label="stop" "■" 16,16 16x16
+    el role=button label="Stop" 40,12 24x24 disabled
+      text label="stop" "■" 44,16 16x16
+    el role=button label="Workspace" 68,12 24x24
+      image role=img label="brand" 72,16 16x16
+    el role=button label="Workspace" 96,12 24x24 disabled
+      image role=img label="brand" 100,16 16x16

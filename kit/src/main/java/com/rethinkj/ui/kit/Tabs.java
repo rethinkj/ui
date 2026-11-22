@@ -128,19 +128,19 @@ public final class Tabs {
    *     active; a tree dump says {@code busy}
    */
   public record Tab(
-      String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue, boolean busy) {
+      String title, boolean closable, boolean modified, Icon icon, Theme.Hue hue, boolean busy) {
 
     public Tab {
       Objects.requireNonNull(title, "title");
     }
 
     /** A tab that is not busy. */
-    public Tab(String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue) {
+    public Tab(String title, boolean closable, boolean modified, Icon icon, Theme.Hue hue) {
       this(title, closable, modified, icon, hue, false);
     }
 
     /** A tab without a color mark. */
-    public Tab(String title, boolean closable, boolean modified, Symbol icon) {
+    public Tab(String title, boolean closable, boolean modified, Icon icon) {
       this(title, closable, modified, icon, null);
     }
 
@@ -155,7 +155,7 @@ public final class Tabs {
     }
 
     /** This tab with an icon before its title. */
-    public Tab icon(Symbol icon) {
+    public Tab icon(Icon icon) {
       return new Tab(title, closable, modified, icon, hue, busy);
     }
 
@@ -817,7 +817,8 @@ public final class Tabs {
     if (spinner != null) {
       el.child(spinner);
     } else if (tab.icon() != null) {
-      el.child(Icon.icon(tab.icon()).color(ink));
+      el.child(Icon.Picture.color(
+          Icon.icon(tab.icon(), enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED), ink));
     }
     el.child(label(tab.title()).color(ink));
     if (!enabled) {
@@ -855,7 +856,8 @@ public final class Tabs {
         if (part == mark) {
           part.fill(theme.text().primary());
         } else {
-          (part == cross ? part.children().getFirst() : part).color(theme.text().primary());
+          Icon.Picture.color(
+              part == cross ? part.children().getFirst() : part, theme.text().primary());
         }
       }
       if (cross != null) {

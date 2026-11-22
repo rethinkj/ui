@@ -28,10 +28,10 @@ public final class Avatar {
   }
 
   /**
-   * @param symbol in place of the initials; null for the initials
+   * @param icon in place of the initials; null for the initials
    * @param size the diameter in logical pixels
    */
-  public static El avatar(String name, Symbol symbol, float size) {
+  public static El avatar(String name, Icon icon, float size) {
     Theme theme = Theme.CURRENT.get();
     Theme.Badges b = theme.badge();
     El mark = row()
@@ -42,9 +42,9 @@ public final class Avatar {
         .center()
         .radius(size / 2)
         .fill(color(b.avatars(), name));
-    if (symbol != null) {
-      return mark.child(
-          Icon.icon(symbol, Icon.Variant.NORMAL, Math.round(size * 0.6f)).color(b.onAvatar()));
+    if (icon != null) {
+      return mark.child(Icon.Picture.color(
+          Icon.icon(icon, Icon.Variant.NORMAL, Math.round(size * 0.6f)), b.onAvatar()));
     }
     Theme.TextStyle style = theme.type().heading();
     return mark.child(El.text(initials(name))

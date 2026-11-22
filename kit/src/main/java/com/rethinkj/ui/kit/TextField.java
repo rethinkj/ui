@@ -313,12 +313,12 @@ public final class TextField {
    *
    * @param field a field of {@link #textField}
    */
-  public static El withIcon(El field, Symbol symbol) {
+  public static El withIcon(El field, Icon icon) {
     Theme theme = Theme.CURRENT.get();
     Len height = field.style().height; // the icon in a square as high as the field
     float side = height.kind() == Len.Kind.PX ? height.value() : theme.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
-    El mark = icon(symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+    El mark = icon(icon, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
     at.left = Len.px((side - theme.size().icon()) / 2);

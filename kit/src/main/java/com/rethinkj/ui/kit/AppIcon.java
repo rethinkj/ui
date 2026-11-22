@@ -22,15 +22,15 @@ public final class AppIcon {
   private AppIcon() {}
 
   /**
-   * A rounded square in {@code fill}, the app's own color, with {@code symbol} in the theme's
-   * {@link Theme.TextColors#onAccent} in its middle, as the icons of Windows 11's own apps are:
-   * the square leaves a margin of a sixteenth of the size, at least a pixel, its corners are
-   * rounded by a fifth of it, and the symbol is the drawing of the icon font nearest to five
-   * eighths of the size, which needs {@code rethinkj-ui-icons}.
+   * A rounded square in {@code fill}, the app's own color, with {@code icon} in the theme's {@link
+   * Theme.TextColors#onAccent} in its middle, as the icons of Windows 11's own apps are: the
+   * square leaves a margin of a sixteenth of the size, at least a pixel, its corners are rounded
+   * by a fifth of it, and the icon is five eighths of the size. A {@link Symbol} needs {@code
+   * rethinkj-ui-icons}.
    *
    * @param size the size of the image in pixels
    */
-  public static El appIcon(int size, int fill, Symbol symbol) {
+  public static El appIcon(int size, int fill, Icon icon) {
     Theme theme = Theme.CURRENT.get();
     int margin = Math.max(1, Math.round(size / 16f));
     int inner = size - 2 * margin;
@@ -42,11 +42,13 @@ public final class AppIcon {
             .radius(inner * 0.2f)
             .fill(fill)
             .center()
-            .child(El.text(Character.toString(symbol.codePoint(glyph)))
-                .font(Font.icons())
-                .fontSize(glyph)
-                .color(theme.text().onAccent())
-                .shrink(0)));
+            .child(mark(icon, glyph, theme.text().onAccent())));
+  }
+
+  /** The icon in the square: a symbol unnamed, as before; an app's own icon keeps its label. */
+  private static El mark(Icon icon, float size, int color) {
+    El mark = Icon.Picture.color(Icon.icon(icon, Icon.Variant.NORMAL, size), color);
+    return icon instanceof Symbol ? mark.label(null) : mark;
   }
 
   /**

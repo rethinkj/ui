@@ -47,7 +47,7 @@ public final class Badge {
   public static final class Options {
     private Kind kind = Kind.NEUTRAL;
     private boolean strong;
-    private Symbol icon;
+    private Icon icon;
     private boolean toolbar;
     private Runnable onPress;
     private Runnable onRemove;
@@ -66,7 +66,7 @@ public final class Badge {
     }
 
     /** An icon before the text, in the text's color. */
-    public Options icon(Symbol icon) {
+    public Options icon(Icon icon) {
       this.icon = icon;
       return this;
     }
@@ -134,7 +134,8 @@ public final class Badge {
         .fill(fill)
         .motion(theme.motion().feedback());
     if (options.icon != null) {
-      badge.child(Icon.icon(options.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
+      badge.child(Icon.Picture.color(
+          Icon.icon(options.icon, Icon.Variant.MUTED, b.text().size()), ink));
     }
     badge.child(
         El.text(text).font(b.text().font().get()).fontSize(b.text().size()).color(ink));

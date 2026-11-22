@@ -220,7 +220,7 @@ public final class DataGrid {
       boolean mono,
       boolean sortable,
       IntFunction<String> cell,
-      Symbol icon,
+      Icon icon,
       Icon.Variant iconVariant,
       String typeName,
       IntFunction<CellIcon> cellIcon,
@@ -244,7 +244,7 @@ public final class DataGrid {
         boolean mono,
         boolean sortable,
         IntFunction<String> cell,
-        Symbol icon,
+        Icon icon,
         Icon.Variant iconVariant,
         String typeName,
         IntFunction<CellIcon> cellIcon,
@@ -278,7 +278,7 @@ public final class DataGrid {
         boolean mono,
         boolean sortable,
         IntFunction<String> cell,
-        Symbol icon,
+        Icon icon,
         Icon.Variant iconVariant,
         String typeName,
         IntFunction<CellIcon> cellIcon,
@@ -310,7 +310,7 @@ public final class DataGrid {
         boolean mono,
         boolean sortable,
         IntFunction<String> cell,
-        Symbol icon,
+        Icon icon,
         Icon.Variant iconVariant,
         String typeName,
         IntFunction<CellIcon> cellIcon,
@@ -340,7 +340,7 @@ public final class DataGrid {
         boolean mono,
         boolean sortable,
         IntFunction<String> cell,
-        Symbol icon,
+        Icon icon,
         Icon.Variant iconVariant,
         String typeName,
         IntFunction<CellIcon> cellIcon) {
@@ -438,13 +438,13 @@ public final class DataGrid {
           cellTooltip);
     }
 
-    /** This column with {@code symbol} in muted text before the title in the header. */
-    public Column icon(Symbol symbol) {
-      return icon(symbol, Icon.Variant.MUTED);
+    /** This column with {@code icon} in muted text before the title in the header. */
+    public Column icon(Icon icon) {
+      return icon(icon, Icon.Variant.MUTED);
     }
 
-    /** This column with {@code symbol} before the title in the header; null for none. */
-    public Column icon(Symbol symbol, Icon.Variant variant) {
+    /** This column with {@code icon} before the title in the header; null for none. */
+    public Column icon(Icon icon, Icon.Variant variant) {
       return new Column(
           title,
           width,
@@ -452,7 +452,7 @@ public final class DataGrid {
           mono,
           sortable,
           cell,
-          symbol,
+          icon,
           variant,
           typeName,
           cellIcon,
@@ -1074,7 +1074,7 @@ public final class DataGrid {
    * @param tooltip shown after the theme's delay with the pointer on the cell, before the text if
    *     that is cut short; null for none
    */
-  public record CellIcon(Symbol symbol, Icon.Variant variant, boolean alone, String tooltip) {
+  public record CellIcon(Icon symbol, Icon.Variant variant, boolean alone, String tooltip) {
 
     public CellIcon {
       Objects.requireNonNull(symbol, "symbol");
@@ -1082,12 +1082,12 @@ public final class DataGrid {
     }
 
     /** The icon before the text, such as a colored mark before a status or a link before a key. */
-    public static CellIcon before(Symbol symbol, Icon.Variant variant) {
+    public static CellIcon before(Icon symbol, Icon.Variant variant) {
       return new CellIcon(symbol, variant, false, null);
     }
 
     /** The icon in place of the text, such as a check for {@code true}. */
-    public static CellIcon instead(Symbol symbol, Icon.Variant variant) {
+    public static CellIcon instead(Icon symbol, Icon.Variant variant) {
       return new CellIcon(symbol, variant, true, null);
     }
 

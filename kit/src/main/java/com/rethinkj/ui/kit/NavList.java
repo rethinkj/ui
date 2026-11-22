@@ -73,7 +73,7 @@ public final class NavList {
    * @param disabled whether it cannot be selected
    */
   public record Item(
-      String label, Symbol icon, String count, int indent, String key, boolean disabled)
+      String label, Icon icon, String count, int indent, String key, boolean disabled)
       implements Entry {
 
     public Item {
@@ -116,7 +116,7 @@ public final class NavList {
     return new Item(label, null, null, 0, null, false);
   }
 
-  public static Item item(Symbol icon, String label) {
+  public static Item item(Icon icon, String label) {
     return new Item(label, icon, null, 0, null, false);
   }
 
@@ -290,7 +290,7 @@ public final class NavList {
       }
       if (entry.icon() != null) {
         El symbol = icon(entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
-        pill.child(on && enabled ? symbol.color(theme.accent().edge()) : symbol);
+        pill.child(on && enabled ? Icon.Picture.color(symbol, theme.accent().edge()) : symbol);
       }
       pill.child(label(on ? Label.Variant.STRONG : Label.Variant.NORMAL, entry.label())
           .color(enabled ? theme.text().primary() : theme.text().disabled())
