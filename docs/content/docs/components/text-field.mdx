@@ -5,6 +5,7 @@ description: Single-line text inputs, password fields with show/hide toggle, mul
 
 `TextField` provides standard themed text inputs:
 - `textField` — Single-line text input
+- `searchField` — Search input with a magnifier, clear button while filled, and **Escape** to empty
 - `passwordField` and `revealable` — Masked password input with optional show/hide toggle
 - `textArea` — Multi-line wrapping text input for notes and descriptions
 - `codeArea` — Monospace multi-line input with indentation
@@ -24,12 +25,19 @@ Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
 | --- | --- |
 | `textField(value, placeholder, onChange)` | Single-line input (placeholder also serves as label unless `.label(...)` is set) |
 | `textField(value, onChange)` | Single-line input without placeholder |
-| `withIcon(field, symbol)` | Adds a leading icon inside the input (such as `Symbol.SEARCH`) |
+| `searchField(value, placeholder, onChange)` | Search input with a leading magnifier (`Symbol.SEARCH`), a clear button while filled, and **Escape** to empty (bubbles when empty) |
+| `withIcon(field, symbol)` | Adds a leading icon inside the input |
 | `invalid(field)` | Applies red danger border and `invalid` state |
 
-Chain core text methods like `.readOnly()`, `.maxLength(n)`, `.w(px)`, `.wFull()`, `.key(...)`, and `.label(...)` onto `textField(...)` **before** wrapping it in `withIcon(...)` or `revealable(...)`.
+Chain core text methods like `.readOnly()`, `.maxLength(n)`, `.w(px)`, `.wFull()`, `.key(...)`, and `.label(...)` onto `textField(...)` **before** wrapping it in `withIcon(...)` or `revealable(...)`. On `searchField(...)`, chain layout methods like `.w(px)`, `.wFull()`, or `.grow(1)` directly on the result; its placeholder serves as the field's label.
 
 Passing a `null` handler disables the field. Your handler can also reject or transform edits (for example, keeping only digits). See [Text fields and editors](/docs/concepts/text-fields) for cursors, selection, undo, and IME support.
+
+## Search
+
+`searchField` shows a magnifier at the left and a clear button at the right while the field has text. Pressing the clear button keeps the focus in the field; **Escape** empties a filled search field and bubbles to ancestors (such as a popover or dialog) once the field is empty.
+
+<Shot src="kit/gallery-{theme}-2x" rows="search empty,search filled" alt="Search fields empty and filled, in each state" />
 
 ## Typed values
 
@@ -69,7 +77,7 @@ In scripts, open and use the menu with `press #name right`, then `frame`, `advan
 
 ## With a Prop
 
-`textField(prop[, placeholder])`, `passwordField(prop, placeholder)`, `textArea(prop, placeholder)`, and `codeArea(prop, placeholder)` bind directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
+`textField(prop[, placeholder])`, `searchField(prop, placeholder)`, `passwordField(prop, placeholder)`, `textArea(prop, placeholder)`, and `codeArea(prop, placeholder)` bind directly to a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record.
 
 ## In a tree dump
 

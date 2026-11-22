@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.passwordField;
 import static com.rethinkj.ui.kit.TextField.revealable;
+import static com.rethinkj.ui.kit.TextField.searchField;
 import static com.rethinkj.ui.kit.TextField.textArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
@@ -76,6 +77,12 @@ final class Gallery {
   /** A text field as wide as a cell allows, enabled when the handler is. */
   private static El field(String value, Runnable handler) {
     return textField(value, "Search tables", handler == null ? null : s -> handler.run())
+        .w(WIDTH - 20);
+  }
+
+  /** A search field as wide as {@link #field}, enabled when the handler is. */
+  private static El search(String value, Runnable handler) {
+    return searchField(value, "Search tables", handler == null ? null : s -> handler.run())
         .w(WIDTH - 20);
   }
 
@@ -176,6 +183,8 @@ final class Gallery {
           "field selected",
           h -> field("orders 2024", h),
           "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"),
+      new Row("search empty", h -> search("", h)),
+      new Row("search filled", h -> search("orders", h)),
       new Row("password", h -> password(false, h)),
       new Row("password shown", h -> password(true, h)),
       new Row("area", Gallery::area, "", AREA),

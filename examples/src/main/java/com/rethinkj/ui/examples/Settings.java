@@ -228,6 +228,7 @@ public final class Settings {
   String filter = "";
   String selected = "localhost";
   boolean adding;
+  Connection deleting;
   String name = "";
   String host = "";
   int port = 5432;
@@ -265,6 +266,15 @@ public final class Settings {
     connections.add(new Connection(name, host, port, false));
     selected = name;
     adding = false;
+  }
+
+  void delete() {
+    connections.remove(deleting);
+    deleting = null;
+  }
+
+  void cancelDelete() {
+    deleting = null;
   }
 
   void show(Page value) {
@@ -352,7 +362,8 @@ public final class Settings {
                   case KEYMAP -> keymap();
                   case ABOUT -> about(state.platform);
                 }));
-    return root.overlay(state.adding ? newConnection(state) : null);
+    return root.overlay(state.adding ? newConnection(state) : null)
+        .overlay(state.deleting != null ? deleteConnection(state) : null);
   }
   // docs:end settings-pages
 
@@ -533,7 +544,7 @@ public final class Settings {
                   () -> state.connections.add(new Connection(
                       connection.name + "-copy", connection.host, connection.port, false))),
               Menu.separator(),
-              Menu.item("Delete", () -> state.connections.remove(connection))));
+              Menu.item("Delete", () -> state.deleting = connection)));
       list.child(Card.pressable(
           card(Card.header(
                   connection.name,
@@ -612,6 +623,15 @@ public final class Settings {
         List.of(button(SECONDARY, "Cancel", () -> state.adding = false).key("cancel"), add),
         add, // Enter in a field adds, as Add does; on a button it presses that instead
         () -> state.adding = false);
+  }
+
+  static El deleteConnection(Settings state) {
+    return Dialog.danger(
+        "Delete connection",
+        "Delete \"" + state.deleting.name + "\"? Its settings will be removed.",
+        "Delete",
+        state::delete,
+        state::cancelDelete);
   }
 
   static El keymap() {

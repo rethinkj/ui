@@ -1,0 +1,46 @@
+---
+title: MultiSelect
+description: Token input for choosing several values as removable badges with fuzzy filtering.
+---
+
+`MultiSelect.multiSelect` displays the chosen values as removable [Badge](/docs/components/badge)s inside a text field frame, followed by an inline text field that fuzzily filters the remaining choices in a dropdown below it. Use it for tags, roles, schemas, or any form field where users pick several values from a known list. For a single choice, use [ComboBox](/docs/components/combo-box).
+
+Javadoc: [`MultiSelect`](/api/com/rethinkj/ui/kit/MultiSelect.html), [`MultiSelect.State`](/api/com/rethinkj/ui/kit/MultiSelect.State.html).
+
+<Shot src="examples/docs/multi-select/open-{theme}" alt="A multi-select with chosen badges and filtered remaining choices below it" />
+
+## Example
+
+```java snippet="multi-select"
+```
+
+Store the chosen `List<String>` and a `MultiSelect.State` in your app state. Each addition or removal passes a new immutable list to `onChange`; passing a `null` handler disables the control. Reuse the same `choices` list when unchanged so filter results stay cached.
+
+| Method | Description |
+| --- | --- |
+| `multiSelect(choices, selected, state, onChange)` | Choose any number of values from `choices` |
+| `multiSelect(choices, prop, state)` | Bind directly to a [`Prop<List<String>>`](/docs/concepts/editing#components-that-take-a-prop) |
+
+The frame is `theme.size().field()` wide unless your view sets another width (with `.w(...)`), and grows in height as badges wrap onto further lines.
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| Click, typing, Arrow Down, Alt+Down, Alt+Up | Open dropdown |
+| Up, Down, Page Up, Page Down, Home, End | Move highlight |
+| Enter or click on an option | Add highlighted option, clear filter text, keep dropdown open |
+| Backspace (empty text field) | Remove the last badge |
+| Click or press a badge's × | Remove that badge without moving focus or closing the list |
+| Escape, Tab, Shift+Tab, Alt+Down/Up, click outside | Close dropdown and clear typed text |
+
+## With a Prop
+
+`multiSelect(choices, prop, state)` binds to a [`Prop<List<String>>`](/docs/concepts/editing#components-that-take-a-prop) from an `Editing` record: it writes back through the prop, disables the control when the prop cannot be written, and shows the prop's error.
+
+## In a tree dump
+
+The frame is `role=combobox` with `expanded` or `expanded=false`, `value` set to the chosen values joined with `", "`, and `disabled` when disabled. Inside are the badges (each with a `role=button` cross when enabled), a `role=textbox`, and when open the overlay `role=listbox` with `role=option` items (`selected` on the highlighted item).
+
+```text file="examples/src/test/resources/golden/docs/multi-select/open.tree.txt" start="role=combobox" count="14"
+```

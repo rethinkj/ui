@@ -1,0 +1,1 @@
+- `Dialog` adds three presets built on `Dialog.dialog`: `Dialog.confirm` for a confirmation whose action is the default button, `Dialog.danger` for a destructive confirmation with a danger-toned button and no default button so Enter cancels instead of confirming, and `Dialog.prompt` for a single-line text field bound to a `Prop<String>`.

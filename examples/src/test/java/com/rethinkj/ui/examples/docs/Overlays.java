@@ -24,6 +24,7 @@ import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Popover;
+import com.rethinkj.ui.kit.Prop;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
@@ -42,6 +43,9 @@ final class Overlays {
   final CommandPalette.State palette = new CommandPalette.State();
   boolean autocommit = true;
   boolean renaming;
+  boolean restarting = true;
+  boolean dropping = true;
+  boolean prompting = true;
   boolean connecting;
   boolean addingProperty;
   String connection = "";
@@ -52,6 +56,7 @@ final class Overlays {
   static final List<String> PROPERTIES = List.of("sslmode", "connectTimeout", "applicationName");
   String name = "orders";
   String newName = "";
+  String tableName = "orders";
   String dropped;
   String filter = "";
   String said = "";
@@ -127,6 +132,35 @@ final class Overlays {
 
   void cancel() {
     renaming = false;
+  }
+
+  void restart() {
+    restarting = false;
+  }
+
+  void cancelRestart() {
+    restarting = false;
+  }
+
+  void dropTable() {
+    dropping = false;
+  }
+
+  void cancelDrop() {
+    dropping = false;
+  }
+
+  void tableName(String value) {
+    tableName = value;
+  }
+
+  void renameTable() {
+    name = tableName;
+    prompting = false;
+  }
+
+  void cancelPrompt() {
+    prompting = false;
   }
 
   void newConnection() {
@@ -408,6 +442,50 @@ final class Overlays {
             .start(Button.button(SECONDARY, "Test connection", state::test))
             .defaultButton(save));
     // docs:end dialog-options
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El dialogConfirm(Overlays state) {
+    // docs:start dialog-confirm
+    El dialog = !state.restarting
+        ? null
+        : Dialog.confirm(
+            "Restart server",
+            "Restart the server to apply the new settings?",
+            "Restart",
+            state::restart,
+            state::cancelRestart);
+    // docs:end dialog-confirm
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El dialogDanger(Overlays state) {
+    // docs:start dialog-danger
+    El dialog = !state.dropping
+        ? null
+        : Dialog.danger(
+            "Drop table",
+            "Drop \"orders\" and all its rows? This cannot be undone.",
+            "Drop",
+            state::dropTable,
+            state::cancelDrop);
+    // docs:end dialog-danger
+    return Frame.of(Label.label(state.name)).overlay(dialog);
+  }
+
+  static El dialogPrompt(Overlays state) {
+    // docs:start dialog-prompt
+    Prop<String> name = Prop.of(() -> state.tableName, state::tableName);
+    El dialog = !state.prompting
+        ? null
+        : Dialog.prompt(
+            "Rename table",
+            "Name",
+            name,
+            "Rename",
+            state.tableName.isBlank() ? null : state::renameTable,
+            state::cancelPrompt);
+    // docs:end dialog-prompt
     return Frame.of(Label.label(state.name)).overlay(dialog);
   }
 

@@ -57,7 +57,12 @@ class DocsExamplesTest {
       Map.entry("bars", List.of("view")),
       Map.entry("cards-window", List.of("view")),
       Map.entry("choices", List.of("view")),
+      Map.entry("multi-select", List.of("open")),
+      Map.entry("combo-entries", List.of("open")),
       Map.entry("hue-button", List.of("open")),
+      Map.entry("dialog-confirm", List.of("view")),
+      Map.entry("dialog-danger", List.of("view")),
+      Map.entry("dialog-prompt", List.of("view")),
       Map.entry("dialog-stack", List.of("stacked")),
       Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("properties-elements", List.of("view")),
@@ -100,6 +105,8 @@ class DocsExamplesTest {
     controls(all, "swatches", Controls::swatches, 460, 140);
     controls(all, "hue-button", Controls::huePickerButton, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
+    controls(all, "multi-select", Controls::multiSelect, 268, 168);
+    controls(all, "combo-entries", Controls::comboEntries, 460, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
     controls(all, "parts", Controls::parts, 400, 200);
@@ -141,6 +148,9 @@ class DocsExamplesTest {
     overlays(all, "tooltip-content", Overlays::tooltipContent, 360, 160);
     overlays(all, "tooltip-kind", Overlays::tooltipKind, 360, 120);
     overlays(all, "dialog", Overlays::dialog, 420, 260);
+    overlays(all, "dialog-confirm", Overlays::dialogConfirm, 420, 220);
+    overlays(all, "dialog-danger", Overlays::dialogDanger, 420, 220);
+    overlays(all, "dialog-prompt", Overlays::dialogPrompt, 420, 240);
     overlays(all, "dialog-stack", Overlays::dialogStack, 440, 320);
     overlays(all, "toast", Overlays::toast, 420, 200);
     overlays(all, "command-palette", Overlays::palette, 640, 360);

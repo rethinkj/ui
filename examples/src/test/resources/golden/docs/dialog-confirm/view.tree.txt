@@ -1,0 +1,14 @@
+el 0,0 420x220
+  text "orders" 12,12 41x16
+overlay center modal scrim on 0,0 420x220
+  el #dialog role=dialog label="Restart server" 54,52 312x117
+    el 71,100 278x52
+      el #dialog-content 67,96 292x30
+        text "Restart the server to apply the new settings?" 71,100 278x16
+      el 71,128 278x24
+        el #cancel role=button label="Cancel" 202,128 70x24
+          text "Cancel" 215,132 44x16
+        el #ok role=button label="Restart" 280,128 69x24 focused
+          text "Restart" 293,132 43x16
+    el 71,69 278x19
+      text role=heading label="Restart server" "Restart server" 71,69 109x19 level=2

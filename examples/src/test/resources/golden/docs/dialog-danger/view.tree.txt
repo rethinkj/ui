@@ -1,0 +1,14 @@
+el 0,0 420x220
+  text "orders" 12,12 41x16
+overlay center modal scrim on 0,0 420x220
+  el #dialog role=dialog label="Drop table" 21,52 378x117
+    el 38,100 344x52
+      el #dialog-content 34,96 358x30
+        text "Drop \"orders\" and all its rows? This cannot be undone." 38,100 344x16
+      el 38,128 344x24
+        el #cancel role=button label="Cancel" 248,128 70x24 focused
+          text "Cancel" 261,132 44x16
+        el #ok role=button label="Drop" 326,128 56x24
+          text "Drop" 339,132 30x16
+    el 38,69 344x19
+      text role=heading label="Drop table" "Drop table" 38,69 80x19 level=2

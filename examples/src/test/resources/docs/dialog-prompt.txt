@@ -1,0 +1,5 @@
+size 420 240
+frame
+advance 0.3
+frame
+snap view

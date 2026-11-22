@@ -1,0 +1,14 @@
+# A multi-select of schemas (MultiSelectTest): chosen badges inside the frame, with typed text
+# filtering the remaining choices in the list below.
+size 320 260 scale 2
+frame
+press #input
+frame
+advance 0.25
+frame
+
+type "ing"
+frame
+advance 0.25
+frame
+snap open
