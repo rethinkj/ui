@@ -42,6 +42,29 @@ class RunsTest {
   }
 
   @Test
+  void anEmojiGoesToAColorFontBeforeAnEarlierOutline() {
+    IntPredicate outlines = LATIN.or(c -> c == '❤' || c == '☃' || c == 0x1F44D);
+    IntPredicate color = c -> c == '❤' || c == 0x1F44D;
+    Runs.Coverage coverage = new Runs.Coverage() {
+      @Override
+      public boolean has(int font, int codePoint) {
+        return (font == 0 ? outlines : color).test(codePoint);
+      }
+
+      @Override
+      public boolean color(int font) {
+        return font == 1;
+      }
+    };
+    String text = "☃\uD83D\uDC4D❤\uFE0F";
+    assertEquals(
+        List.of("0☃", "1\uD83D\uDC4D❤\uFE0F"),
+        Runs.of(text, 2, coverage).stream()
+            .map(r -> r.font() + text.substring(r.from(), r.to()))
+            .toList());
+  }
+
+  @Test
   void neutralsBetweenTwoClustersOfAFallbackFontStayWithIt() {
     IntPredicate cjk = range(0x3000, 0x9FFF).or(c -> c == ' ' || c == ',' || Character.isDigit(c));
     assertEquals(List.of("1>日本 語, 12 字"), runs("日本 語, 12 字", LATIN, cjk));

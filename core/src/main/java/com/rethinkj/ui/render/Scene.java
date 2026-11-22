@@ -147,8 +147,8 @@ import java.util.Map;
  * </pre>
  *
  * <p>A color glyph: a premultiplied RGBA bitmap in a color atlas page ({@link #colorPages}), drawn
- * one texel to one physical pixel in its own colors, with the element's opacity and no coverage
- * correction. It shares the 64-byte layout of {@link #GLYPH}:
+ * one texel to one physical pixel in its own colors, with the alpha of the text color times the
+ * element's opacity and no coverage correction. It shares the 64-byte layout of {@link #GLYPH}:
  *
  * <pre>
  *  0  x            f32   left edge of the bitmap on screen; x * scale is a whole number
@@ -159,7 +159,7 @@ import java.util.Map;
  * 20  atlasSize    u32   the bitmap's size in texels: width | height &lt;&lt; 16
  * 24  clip         u32   as for a rectangle
  * 28  kind         u32   6, COLOR_GLYPH
- * 32  color       f32 x 4   the opacity, o, o, o, o, that multiplies every texel
+ * 32  color       f32 x 4   the alpha of the text color times the opacity, as o, o, o, o
  * 48  page         u32   index into {@link #colorPages}
  * 52  ...          as for a glyph, not read
  * </pre>
@@ -1484,7 +1484,8 @@ public final class Scene {
     data.set(ValueLayout.JAVA_INT, offset + ATLAS_SIZE, slot.width() | slot.height() << 16);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, slot.color() ? COLOR_GLYPH : GLYPH);
-    color(offset + COLOR, slot.color() ? Colors.WHITE : color, opacity);
+    // A color glyph keeps its own colors and takes only the alpha of the text color.
+    color(offset + COLOR, slot.color() ? color | 0x00FFFFFF : color, opacity);
     data.set(ValueLayout.JAVA_INT, offset + PAGE, slot.page());
     put(offset + LIGHT_SHARE, lightShare);
     put(offset + DARK_GAMMA, rendering.darkGamma());

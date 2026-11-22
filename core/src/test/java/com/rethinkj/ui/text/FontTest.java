@@ -257,6 +257,7 @@ class FontTest {
           Path.of("TwemojiMozilla-Subset.ttf"), arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes));
       assertEquals(1, faces.size());
       assertTrue(faces.getFirst().has(0x1F600));
+      assertTrue(faces.getFirst().color(), "ranked first for emoji");
     }
   }
 
