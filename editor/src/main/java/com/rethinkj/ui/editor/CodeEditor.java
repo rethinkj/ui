@@ -419,7 +419,7 @@ public final class CodeEditor {
     }
 
     /**
-     * Shorthand for {@link #markup {@code markup("diagnostics", text, diagnostics)}}: shows {@code
+     * Shorthand for {@link #markup markup("diagnostics", text, diagnostics)}: shows {@code
      * diagnostics} about {@code text}, in place of those before. They move with edits elsewhere in
      * the text, are dropped when their own characters are edited, and come back with an undo back
      * to {@code text}. Each has a squiggle under it in its severity's status color, and each line
@@ -438,7 +438,7 @@ public final class CodeEditor {
       return markup("diagnostics", text, diagnostics);
     }
 
-    /** Shorthand for {@link #noMarkup {@code noMarkup("diagnostics")}}. */
+    /** Shorthand for {@link #noMarkup noMarkup("diagnostics")}. */
     public State noDiagnostics() {
       return noMarkup("diagnostics");
     }
@@ -481,7 +481,7 @@ public final class CodeEditor {
     }
 
     private TextEdits edits(String from, String to) {
-      if (from != editsFrom || to != editsTo) {
+      if (!from.equals(editsFrom) || !to.equals(editsTo)) { // the same strings at once
         edits = TextEdits.between(from, to);
         editsFrom = from;
         editsTo = to;
@@ -522,7 +522,7 @@ public final class CodeEditor {
     private static final class Layer {
       final String text;
       final List<Mark> original;
-      String checked; // the value the marks were last moved to, by identity
+      String checked; // the value the marks were last moved to
       List<Mark> mapped;
 
       Layer(String text, List<Mark> original) {
@@ -533,7 +533,7 @@ public final class CodeEditor {
       }
 
       List<Mark> marksFor(String value, State state) {
-        if (value != checked) {
+        if (!value.equals(checked)) { // the same string at once
           if (value.equals(text)) {
             mapped = original;
           } else if (!mapped.isEmpty()) {

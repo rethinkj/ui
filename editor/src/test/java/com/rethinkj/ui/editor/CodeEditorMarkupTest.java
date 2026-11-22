@@ -156,7 +156,9 @@ class CodeEditorMarkupTest {
     String shifted = Files.readString(out.resolve("shifted.tree.txt"));
     int shiftedOrders = orders + prefix.length();
     assertTrue(shifted.contains("squiggle " + shiftedOrders + "-" + (shiftedOrders + 6)), shifted);
-    assertTrue(shifted.contains("el #marker role=img label=\"Run statement\""), shifted);
+    assertTrue(
+        shifted.matches("(?s).*#line-1 [^\n]*\n\\s+el #marker role=img label=\"Run statement\".*"),
+        shifted);
 
     // 3. Edit the diagnostic's own characters: diagnostic is dropped, other layer's marker stays.
     doc.text = textA.replace("orders", "ordXrs");
