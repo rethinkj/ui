@@ -520,6 +520,39 @@ class GridCellsTest {
   }
 
   @Test
+  void aCellCutOnlyAtScaleTwoShowsItsTooltipWhileAFittingOneDoesNot() throws IOException {
+    String value = "0".repeat(20);
+    Theme.TextStyle mono = T.type().mono();
+    float atOne = mono.font().get().shape(value, mono.size(), 1).width();
+    float atTwo = mono.font().get().shape(value, mono.size(), 2).width() / 2;
+    assertTrue(atTwo > atOne + 1, "wider at scale 2 than at scale 1");
+    float chrome = 2 * T.space().s() + T.size().stroke();
+    float cutWidth = (float) Math.ceil(atOne) + chrome;
+    float fitWidth = (float) Math.ceil(atTwo) + chrome + 1;
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .size(560, 240)
+            .child(DataGrid.dataGrid(
+                    List.of(
+                        new DataGrid.Column("cut", cutWidth, DataGrid.Align.LEFT, true, i -> value),
+                        new DataGrid.Column(
+                            "fit", fitWidth, DataGrid.Align.LEFT, true, i -> value)),
+                    1,
+                    DataGrid.options())
+                .key("grid")
+                .grow(1)));
+    Script.run("size 560 240 scale 2\nframe\nmove #cell-0-0\nframe\nadvance 0.5\nframe", app, out);
+    assertTrue(find(app, "cell-0-0").children().getFirst().text().shortened());
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"" + value + "\""),
+        "shortened at scale 2 even though it would fit at scale 1");
+    Script.run("size 560 240 scale 2\nmove #cell-0-1\nframe\nadvance 0.5\nframe", app, out);
+    assertFalse(find(app, "cell-0-1").children().getFirst().text().shortened());
+    assertFalse(app.tree().dump().contains("role=tooltip"));
+  }
+
+  @Test
   void rowsNotLoadedShowPlaceholdersAndTheAppIsToldWhichRowsTheGridBuilt() throws IOException {
     Orders orders = Orders.cells(T);
     App<Orders> app = orders.app();

@@ -2727,17 +2727,17 @@ public final class DataGrid {
       b.probe = title;
     }
     El name = title;
+    El type = null;
     if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
       title.shrink(0).style().maxWidth = Len.percent(1);
+      type = Label.label(Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0);
       name = row()
           .align(Style.Align.CENTER)
           .gap(theme.space().s())
           .minSize(0, 0)
           .clip()
-          .children(
-              title,
-              Label.label(Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0));
+          .children(title, type);
     }
     El cell = cellBox(theme, column.align(), column.width())
         .key("column-" + index)
@@ -2809,11 +2809,19 @@ public final class DataGrid {
               (b.g.rowHeight() - theme.size().icon()) / 2)
           .fill(b.g.header()));
     }
-    // The whole title and type where anything is cut short, measured only when it may show.
-    float room = column.width() - theme.size().stroke() - 2 * theme.space().s();
+    // The whole title and type where anything is cut short or the type gave way.
     String whole =
         column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
-    Tooltip.whenHovered(theme, cell, () -> headerWidth(b, index) > room + 0.5f ? whole : null);
+    El typeLabel = type;
+    boolean typeHidden = column.typeName() != null && typeLabel == null;
+    Tooltip.whenHovered(
+        theme,
+        cell,
+        () -> title.text().shortened()
+                || typeHidden
+                || typeLabel != null && typeLabel.text().shortened()
+            ? whole
+            : null);
     GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
@@ -3357,11 +3365,10 @@ public final class DataGrid {
       String whole = value == null ? "NULL" : value;
       String named = detail == null ? whole : whole + " " + detail;
       boolean hidden = detail != null && detailWidth == 0;
-      El measured = valueText;
-      float valueRoom = room - detailWidth;
+      El shownText = valueText;
       Tooltip.whenHovered(theme, box, () -> {
         boolean shortened =
-            measured != null && value != null && natural(measured) > valueRoom + 0.5f;
+            shownText != null && value != null && shownText.text().shortened();
         String cut = shortened || hidden ? named : null;
         String said = lines(own, tooltips == null ? null : tooltips.apply(i));
         return said == null ? (alone && cut == null ? whole : cut) : lines(said, cut);
@@ -3937,10 +3944,7 @@ public final class DataGrid {
         .color(theme.text().primary());
   }
 
-  /**
-   * A row's number, which never ends in an ellipsis: it keeps its width and, aligned right, takes
-   * the fraction of a pixel it may need at the window's scale from the box's left padding.
-   */
+  /** A row's number, which keeps its width and never ends in an ellipsis. */
   private static El number(Theme theme, String shown) {
     Theme.TextStyle mono = theme.type().mono();
     return El.text(shown)
@@ -3951,19 +3955,13 @@ public final class DataGrid {
   }
 
   /**
-   * The width of the row numbers: the widest number in the mono type, with the padding.
-   *
-   * <p>shortcut: measured at scale 1, as the view is built before the window's scale is known. At
-   * another scale a digit of the theme's mono type comes out up to about 0.7 px wider (just above
-   * scale 1, where advances round to whole pixels; 0.2 px at scale 2), which the left padding of
-   * {@code space().s()} takes ({@link #number}): with 4 px, 5 digits at any scale from 1 on and 20
-   * at scale 2, beyond which the first digit reaches the box's edge. Measure at the scale once
-   * the view can know it.
+   * The width of the row numbers: the widest number in the mono type, with the padding, at the
+   * window's scale.
    */
   private static float numbersWidth(Theme theme, int rowCount) {
     Theme.TextStyle mono = theme.type().mono();
     String widest = "0".repeat(String.valueOf(Math.max(rowCount, 1)).length());
-    float text = mono.font().get().shape(widest, mono.size(), 1).width();
+    float text = width(mono, widest, WindowState.CURRENT.get().scale());
     return (float) Math.ceil(text) + 2 * theme.space().s() + theme.size().stroke();
   }
 }
