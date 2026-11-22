@@ -212,16 +212,18 @@ public final class Find {
    * @param wholeWord whether only an occurrence that is a whole word counts, a word being letters,
    *     digits, {@code _} and {@code wordCharacters}
    * @param wordCharacters the characters the field's language adds to a word, such as {@code "$"}
-   * @return the occurrence, or null if there is none or the search took longer than a frame
+   * @return the occurrence, or an empty array if there is none or the search took longer than a
+   *     frame
    */
   public static int[] next(
       String text, String needle, boolean wholeWord, String wordCharacters, int from) {
     Search.Query query = new Search.Query(needle, true, wholeWord, false, wordCharacters);
     try {
-      return Search.next(
-          query.compile(), text, 0, text.length(), from, Search.deadline(SYNC_MILLIS));
-    } catch (Search.Stopped stopped) {
-      return null;
+      int[] next =
+          Search.next(query.compile(), text, 0, text.length(), from, Search.deadline(SYNC_MILLIS));
+      return next == null ? new int[0] : next;
+    } catch (Search.Stopped _) {
+      return new int[0];
     }
   }
 

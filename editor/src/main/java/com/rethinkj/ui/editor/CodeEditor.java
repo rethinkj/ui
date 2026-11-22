@@ -581,7 +581,7 @@ public final class CodeEditor {
           }
         })
         .gutter(line -> cell(app, theme, state, editor, diagnostics, line), rail);
-    El message = message(theme, state, diagnostics);
+    El message = message(state, diagnostics);
     if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
       editor.whenFocusWithin(e -> e.overlay(message));
     }
@@ -839,7 +839,7 @@ public final class CodeEditor {
    * list of completions does not cover it, on the look of their marker's tooltip while the caret
    * is at their start or inside them; else null, and F8's place is forgotten.
    */
-  private static El message(Theme theme, State state, List<Diagnostic> diagnostics) {
+  private static El message(State state, List<Diagnostic> diagnostics) {
     if (state.shown < 0) {
       return null;
     }
@@ -1075,7 +1075,7 @@ public final class CodeEditor {
       state.nextWords = ours && state.nextWords;
       next =
           Find.next(text, text.substring(s, e), state.nextWords, editor.text().wordCharacters(), e);
-      if (next == null) {
+      if (next.length == 0) {
         return;
       }
     }

@@ -19,6 +19,16 @@ import org.junit.jupiter.api.io.TempDir;
 /** The searches of the find bar ({@link Find}) on another thread, in a text area. */
 class FindThreadsTest {
 
+  private static final String OPEN_AND_TYPE_NEEDLE = """
+      frame
+      focus #notes
+      key F control
+      frame
+      advance 0.25
+      frame
+      focus #find-field
+      type "needle\"""";
+
   @TempDir
   Path out;
 
@@ -71,10 +81,7 @@ class FindThreadsTest {
   void aJumpOnAnotherThreadSelectsNothingOnceTheTextChanged() throws Exception {
     Doc doc = new Doc(("x".repeat(60) + "\n").repeat(500_000) + "needle");
     App<Doc> app = app(doc);
-    run(
-        app,
-        "frame\nfocus #notes\nkey F control\nframe\nadvance 0.25\nframe\n"
-            + "focus #find-field\ntype \"needle\"");
+    run(app, OPEN_AND_TYPE_NEEDLE);
     assertNotNull(doc.find.jump, "the jump takes longer than a frame");
     String before = run(app, "focus #notes\ntype \"NEW\"");
     app.await(Duration.ofSeconds(10));
@@ -86,10 +93,7 @@ class FindThreadsTest {
   void aCountOnAnotherThreadForAnOlderTextIsReplaced() throws Exception {
     Doc doc = new Doc("x \n".repeat(100_000));
     App<Doc> app = app(doc);
-    run(
-        app,
-        "frame\nfocus #notes\nkey F control\nframe\nadvance 0.25\nframe\n"
-            + "focus #find-field\ntype \"needle\"");
+    run(app, OPEN_AND_TYPE_NEEDLE);
     assertNotNull(doc.find.work, "counting on another thread");
     doc.text = "needle\n" + doc.text;
     app.invalidate();
