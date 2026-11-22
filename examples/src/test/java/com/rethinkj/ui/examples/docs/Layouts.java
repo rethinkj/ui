@@ -9,7 +9,9 @@ import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 
 import com.rethinkj.ui.Clipboard;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
@@ -589,5 +591,33 @@ final class Layouts {
         state.clipboard);
     // docs:end properties
     return Frame.of(path.wFull(), table.w(320));
+  }
+
+  static El propertiesElements(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start properties-elements
+    float dot = theme.space().m();
+    El status = row()
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .children(
+            el().size(dot, dot).radius(dot / 2).fill(theme.status().success()),
+            Label.label("Connected"));
+    El owner = Label.label("shop_admin")
+        .role("link")
+        .color(theme.prose().link())
+        .focusable()
+        .focusRing(theme.accent().edge())
+        .cursor(Cursor.POINTER)
+        .onPress(() -> state.open("shop_admin"));
+    El table = Properties.properties(
+        List.of(
+            Properties.property("Name", "orders"),
+            Properties.property("Key", Badge.badge(Badge.Kind.ACCENT, "Primary key")),
+            Properties.property("Owner", owner, "shop_admin"),
+            Properties.property("Status", status)),
+        state.clipboard);
+    // docs:end properties-elements
+    return Frame.of(table.w(320));
   }
 }

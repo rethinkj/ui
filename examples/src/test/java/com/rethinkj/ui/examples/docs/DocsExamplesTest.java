@@ -60,6 +60,7 @@ class DocsExamplesTest {
       Map.entry("hue-button", List.of("open")),
       Map.entry("dialog-stack", List.of("stacked")),
       Map.entry("details", List.of("view", "children", "hidden")),
+      Map.entry("properties-elements", List.of("view")),
       Map.entry("toolbar", List.of("view", "more")),
       Map.entry("tooltip", List.of("shown")),
       Map.entry("tooltip-content", List.of("shown")),
@@ -121,6 +122,7 @@ class DocsExamplesTest {
     layouts(all, "status", Layouts::status, 460, 420);
     layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "details", Layouts::details, 520, 280);
+    layouts(all, "properties-elements", Layouts::propertiesElements, 360, 150);
     layouts(all, "toolbar", Layouts::toolbar, 600, 100);
     all.put("canvas", new Example(t -> new App<>(new Diagrams(), Diagrams::view), 560, 280));
     all.put(
