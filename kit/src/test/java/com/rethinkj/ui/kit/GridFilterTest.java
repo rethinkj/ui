@@ -132,10 +132,15 @@ class GridFilterTest {
     Ledger ledger = new Ledger(T, 40);
     ledger.choices = List.copyOf(choices);
     App<Ledger> app = start(ledger);
-    run(
-        app,
-        "key ArrowRight\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\n"
-            + "key ArrowDown alt\nframe\nadvance 1\nframe");
+    run(app, """
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        key ArrowRight
+        key ArrowDown alt
+        frame
+        advance 1
+        frame""");
     assertEquals("search", app.focused().key(), "the search field takes focus");
     assertTrue(line(app, "search").contains("label=\"Search values\""), line(app, "search"));
     assertTrue(
