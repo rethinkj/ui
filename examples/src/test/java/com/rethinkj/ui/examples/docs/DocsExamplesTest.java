@@ -99,6 +99,7 @@ class DocsExamplesTest {
       Map.entry("customers", List.of("loaded", "invalid", "saved")),
       Map.entry("code-editor-placeholder", List.of("view")),
       Map.entry("code-editor-json", List.of("view")),
+      Map.entry("code-editor-folding", List.of("folded")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
       Map.entry("canvas-edges", List.of("view")),
@@ -202,6 +203,7 @@ class DocsExamplesTest {
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
     editors(all, "code-editor-placeholder", Editors::placeholderAndReadOnly, 520, 180);
     editors(all, "code-editor-json", Editors::json, 520, 200);
+    editors(all, "code-editor-folding", Editors::folding, 520, 200);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
         "highlighter",

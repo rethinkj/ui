@@ -1,22 +1,28 @@
 el 0,0 440x200
   text role=textbox "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n" 12,12 416x114 lines 1-6/6 underline 58-62
-    el #rail 13,13 38x112
-    el #gutter 13,17 37x96
-      el #line-0 13,17 37x16
+    el #rail 13,13 50x112
+    el #gutter 13,17 49x96
+      el #line-0 13,17 49x16
         el 19,25 12x0
         text "1" 35,17 7x16
-      el #line-1 13,33 37x16
+        el 46,25 12x0
+      el #line-1 13,33 49x16
         el 19,41 12x0
         text "2" 35,33 7x16
-      el #line-2 13,49 37x16
+        el 46,41 12x0
+      el #line-2 13,49 49x16
         el 19,57 12x0
         text "3" 35,49 7x16
-      el #line-3 13,65 37x16
+        el 46,57 12x0
+      el #line-3 13,65 49x16
         el 19,73 12x0
         text "4" 35,65 7x16
-      el #line-4 13,81 37x16
+        el 46,73 12x0
+      el #line-4 13,81 49x16
         el 19,89 12x0
         text "5" 35,81 7x16
-      el #line-5 13,97 37x16
+        el 46,89 12x0
+      el #line-5 13,97 49x16
         el 19,105 12x0
         text "6" 35,97 7x16
+        el 46,105 12x0

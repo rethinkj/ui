@@ -252,6 +252,29 @@ public final class El {
   }
 
   /**
+   * A pair of brackets that can fold ({@link #bracketFolds}): the lines it folds, from the line of
+   * its opening bracket through the line before its closing one, and where the two brackets are
+   * in the string as the field shows it.
+   */
+  public record BracketFold(Fold lines, int open, int close) {
+    public BracketFold {
+      Objects.requireNonNull(lines, "lines");
+    }
+  }
+
+  /**
+   * The pairs of brackets that can fold ({@link #bracketFolds}), sorted by their first line, with
+   * the widest pair where several start on one line. When a highlighter's per-frame line budget
+   * stops the scan early, {@code complete} is {@code false} and only the lines before {@code
+   * scannedLines} are known; the next frame goes on from there.
+   */
+  public record BracketFolds(List<BracketFold> folds, int scannedLines, boolean complete) {
+    public BracketFolds {
+      folds = List.copyOf(Objects.requireNonNull(folds, "folds"));
+    }
+  }
+
+  /**
    * Told the caret and the other end of the selection of a text field, as indexes into its string;
    * equal when nothing is selected.
    */
@@ -330,6 +353,7 @@ public final class El {
     Object foldsShown; // what the fold marks were built for: their ends and scroll
     float foldsExtent; // farthest right edge of placed fold marks, in logical content coordinates
     boolean partsBuilt; // gutter cells or fold marks were built since App last applied looks
+    boolean bracketFoldsPending; // bracketFolds asked before Lines was attached
     boolean readOnly;
     int maxLength = -1;
     int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
@@ -1603,6 +1627,45 @@ public final class El {
     String text =
         lines != null ? editor.text() : t.multiline() ? Editor.multiLine(t.value()) : t.value();
     return Brackets.matching(text, caret, lines, t.highlighter(), t.highlightKey());
+  }
+
+  /**
+   * The pairs of this text's brackets ({@code ( ) [ ] { }}, nesting per kind) that can fold: each
+   * pair whose opening and closing brackets lie at least two lines apart, with the {@link Fold}
+   * from the opening line through the line before the closing bracket, so the closing line stays
+   * visible. Where the {@link #highlight highlighter} {@link Highlighter#marksBrackets marks
+   * brackets}, only marked brackets count; otherwise every bracket of the string does.
+   *
+   * <p>For a {@link #multiline} field with a {@link #fieldState}, the scan reads the highlighter's
+   * line states kept by the field, respects its per-frame line budget (returning an incomplete
+   * {@link BracketFolds} that resumes on the next frame), and caches the complete result until the
+   * text or highlight key changes.
+   */
+  public BracketFolds bracketFolds() {
+    Text t = textOnly("bracketFolds");
+    FieldState state = fieldState();
+    Editor editor = state == null ? null : state.editor;
+    Lines lines = editor == null ? null : editor.linesOf(t.value());
+    Highlighter highlighter = t.highlighter();
+    boolean marked = highlighter != null && highlighter.marksBrackets();
+    if (lines == null && marked && state != null && t.multiline()) {
+      if (field != null) {
+        field.bracketFoldsPending = true;
+      }
+      return new BracketFolds(List.of(), 0, false);
+    }
+    String text =
+        lines != null ? editor.text() : t.multiline() ? Editor.multiLine(t.value()) : t.value();
+    return Brackets.folds(text, lines, highlighter, t.highlightKey());
+  }
+
+  /** For {@link App}: whether {@link #bracketFolds} waited for this field's lines to attach. */
+  boolean takeBracketFoldsPending() {
+    if (field == null || !field.bracketFoldsPending) {
+      return false;
+    }
+    field.bracketFoldsPending = false;
+    return true;
   }
 
   /**

@@ -1,9 +1,9 @@
 ---
 title: CodeEditor
-description: Multi-line code editor with line numbers, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
+description: Multi-line code editor with line numbers, code folding, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, gutter markers, syntax highlighting (such as `Sql` and [`Json`](#json)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
+`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, code folding, gutter markers, syntax highlighting (such as `Sql` and [`Json`](#json)), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
 
 For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
 
@@ -91,7 +91,7 @@ By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/
 
 ## Gutter, markers and diagnostics
 
-The left gutter displays a marker column and line numbers. You can attach:
+The left gutter displays a marker column, line numbers, and fold chevrons. You can attach:
 - **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips.
 - **Diagnostics (`diagnostics(text, list)`):** Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics stay tied to the exact `text` they were computed for — editing clears them automatically, and undoing back restores them.
@@ -106,6 +106,17 @@ All positions (for `select(caret, anchor)`, diagnostics, and gutter markers) are
 `line()` and `column()` on `CodeEditor.State` return the cursor's line and column numbers, starting at 1 (for example, for a [StatusBar](/docs/components/status-bar)). Columns count characters the same way positions do, so a tab counts as one character no matter how wide it looks. Both values reflect the text from the editor's last build, so read them after building the editor (such as in a status bar below it).
 
 ```java snippet="code-editor-position"
+```
+
+## Folding
+
+Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, ignoring brackets inside strings and comments when the highlighter marks brackets (such as `Json` and `Sql`). Folded lines show a chevron (`›`) in the gutter and a clickable `…` pill at the end of the line; hovering a line that starts a foldable block reveals its fold chevron (`⌄`). Press **Ctrl+Shift+[** to fold the innermost block around the cursor (moving the cursor to the end of its first line) and **Ctrl+Shift+]** to unfold it. Folding also works in read-only editors.
+
+<Shot src="examples/docs/code-editor-folding/folded-{theme}" alt="A JSON document in the code editor with the customer object folded to a single line showing a right chevron in the gutter and a clickable ellipsis pill" />
+
+`CodeEditor.State` keeps the active folds across rebuilds, shifts folds below inserted or removed lines, and drops a fold if an edit removes its brackets. Read `folds()` and call `folds(list)` to save and restore folded ranges per document:
+
+```java snippet="code-editor-folding"
 ```
 
 ## Inserting text
@@ -154,6 +165,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `diagnostics(text, list)`, `noDiagnostics()` | Sets or clears `CodeEditor.Diagnostic(from, to, severity, message)` items for `text` |
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
+| `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 | `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
@@ -168,6 +180,8 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
 | Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
 | Ctrl+Alt+L | `FORMAT` | Format all text using `formatter()`, or show why formatting failed |
+| Ctrl+Shift+[ | `FOLD` | Fold the innermost bracket range around the cursor |
+| Ctrl+Shift+] | `UNFOLD` | Unfold the folded range at or around the cursor |
 | F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
 
 Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
@@ -176,7 +190,7 @@ Also supports all standard [multi-line text field shortcuts](/docs/concepts/text
 
 ## In a tree dump
 
-`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` and `#marker` elements. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, `#gutter` containing `#line-<index>`, `#marker`, and `#fold-line-<index>` elements, and `#fold-<first>` for each visible folded pill. When F8 shows a diagnostic message, it appears as an overlay on the editor with `role=tooltip` and the message as its `label`:
 
-```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="11"
+```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="13"
 ```

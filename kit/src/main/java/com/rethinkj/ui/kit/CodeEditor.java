@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Formatted;
@@ -11,7 +12,12 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.TextChange;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -77,7 +83,17 @@ public final class CodeEditor {
      * a layout with one on AltGr+L, such as Polish, that character is typed into the formatted
      * text.
      */
-    FORMAT
+    FORMAT,
+    /**
+     * Control+Shift+[: folds the innermost foldable bracket range around the caret and moves the
+     * caret to the end of its first line.
+     */
+    FOLD,
+    /**
+     * Control+Shift+]: unfolds the folded range at the caret's line, or the innermost folded range
+     * around it.
+     */
+    UNFOLD
   }
 
   /** How much a {@link Diagnostic} matters. */
@@ -130,6 +146,8 @@ public final class CodeEditor {
       case "/", "#", "NumpadDivide" -> mods == Key.CONTROL ? Command.TOGGLE_COMMENT : null;
       case "7" -> mods == controlShift ? Command.TOGGLE_COMMENT : null;
       case "L" -> mods == (Key.CONTROL | Key.ALT) ? Command.FORMAT : null;
+      case "[" -> mods == controlShift ? Command.FOLD : null;
+      case "]" -> mods == controlShift ? Command.UNFOLD : null;
       default -> null;
     };
   }
@@ -176,6 +194,11 @@ public final class CodeEditor {
     private String problemOf;
     // F8: where the diagnostics start whose message shows at the caret; -1 while none does.
     private int shown = -1;
+    // Folding: the folded pairs, sorted by their first line, the last build's string (null before
+    // the first build), and the last build's pairs that can fold.
+    private List<Folded> folds = new ArrayList<>();
+    private String builtText;
+    private List<El.BracketFold> ranges = List.of();
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -358,6 +381,53 @@ public final class CodeEditor {
       return diagnostics(null, List.of());
     }
 
+    /** The folded line ranges of the editor, sorted by their first line. */
+    public List<El.Fold> folds() {
+      return folds.stream().map(Folded::lines).toList();
+    }
+
+    /**
+     * Sets the folded line ranges of the editor, in place of those before, such as ranges saved
+     * with a document. A range folds the pair of brackets that can fold on its first line; one
+     * whose first line has none is dropped once that part of the text has been read.
+     */
+    public State folds(List<El.Fold> folds) {
+      this.folds = sorted(Objects.requireNonNull(folds, "folds").stream()
+          .map(f -> new Folded(f, -1, -1))
+          .toList());
+      return this;
+    }
+
+    private void fold(El.BracketFold pair) {
+      List<Folded> next = new ArrayList<>(folds);
+      next.add(new Folded(pair.lines(), pair.open(), pair.close()));
+      folds = sorted(next);
+    }
+
+    private void unfold(El.Fold fold) {
+      folds.removeIf(f -> f.lines().first() == fold.first());
+    }
+
+    private El.Fold foldAt(int line) {
+      for (Folded f : folds) {
+        if (f.lines().first() == line) {
+          return f.lines();
+        }
+      }
+      return null;
+    }
+
+    private void updateFolds(String value, El.BracketFolds found) {
+      if (!folds.isEmpty()) {
+        if (builtText != null && builtText != value) {
+          folds = shiftFolds(builtText, value, folds);
+        }
+        folds = reconcileFolds(folds, found, value);
+      }
+      builtText = value;
+      ranges = found.folds();
+    }
+
     /**
      * The diagnostics that show with {@code value}: those about it, and the problem that kept it
      * from formatting, in the view's texts.
@@ -469,6 +539,8 @@ public final class CodeEditor {
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
+    state.updateFolds(value, editor.bracketFolds());
+    editor.folds(state.folds(), state::unfold, fold -> foldMark(theme));
     int[] pair = editor.matchingBracket(state.caret);
     editor
         .decorate((line, start, text, out) -> {
@@ -494,7 +566,7 @@ public final class CodeEditor {
             }
           }
         })
-        .gutter(line -> cell(theme, state, diagnostics, line), rail);
+        .gutter(line -> cell(app, theme, state, editor, diagnostics, line), rail);
     El message = message(theme, state, diagnostics);
     if (message != null) { // as a tooltip of the keyboard's, only while the editor has the focus
       editor.whenFocusWithin(e -> e.overlay(message));
@@ -517,7 +589,9 @@ public final class CodeEditor {
           && editor.onEdit() != null
           && !editor.isReadOnly()
           && app.focused() == editor; // not from the find bar, an overlay of the editor
-      if (command == null || (command == Command.FORMAT && !formats)) {
+      if (command == null
+          || (command == Command.FORMAT && !formats)
+          || ((command == Command.FOLD || command == Command.UNFOLD) && app.focused() != editor)) {
         return false; // Control+Alt+L stays the app's where the editor cannot format
       }
       run(app, state, command);
@@ -590,20 +664,22 @@ public final class CodeEditor {
 
   /**
    * The gutter's cell of a line: a bar in the accent's edge and a tint where the line is in the
-   * marked block, the column of markers, and the line's number.
+   * marked block, the column of markers, the line's number, and the fold chevron column.
    */
   private static El cell(
-      Theme theme, State state, List<Diagnostic> diagnostics, El.Gutter.Line line) {
+      App<?> app,
+      Theme theme,
+      State state,
+      El editor,
+      List<Diagnostic> diagnostics,
+      El.Gutter.Line line) {
     Theme.TextStyle mono = theme.type().mono();
     float bar = theme.size().indicator();
     float s = theme.space().s();
     boolean block = state.blockFrom < state.blockTo
         && state.blockTo > line.start()
         && state.blockFrom <= line.end();
-    El cell = El.row()
-        .align(Style.Align.CENTER)
-        .gap(s)
-        .padding(0, theme.space().m(), 0, block ? s : s + bar);
+    El cell = El.row().align(Style.Align.CENTER).gap(s).padding(0, s, 0, block ? s : s + bar);
     if (block) {
       cell.fill(theme.code().block()).border(0, 0, 0, bar, theme.accent().edge());
     }
@@ -614,7 +690,74 @@ public final class CodeEditor {
             .fontSize(mono.size())
             .color(line.caret() ? theme.text().primary() : theme.text().muted())
             .textAlign(Style.Align.END)
-            .grow(1));
+            .grow(1),
+        foldControl(app, theme, state, editor, cell, line));
+  }
+
+  /**
+   * The fold chevron of a line: always shown when folded, shown on hover of the cell when the line
+   * starts a foldable range, or an empty placeholder of the same width so line numbers stay fixed.
+   */
+  private static El foldControl(
+      App<?> app, Theme theme, State state, El editor, El cell, El.Gutter.Line line) {
+    float size = theme.type().mono().size();
+    Texts texts = Texts.CURRENT.get();
+    El.Fold folded = state.foldAt(line.index());
+    if (folded != null) {
+      return El.row()
+          .key("fold-line-" + line.index())
+          .role("button")
+          .label(texts.unfold())
+          .size(size, size)
+          .align(Style.Align.CENTER)
+          .justify(Style.Content.CENTER)
+          .shrink(0)
+          .radius(theme.radius().small())
+          .cursor(Cursor.POINTER)
+          .onPress(() -> state.unfold(folded))
+          .keepFocus()
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .child(Icon.icon(Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, size));
+    }
+    El.BracketFold range = rangeAt(state.ranges, line.index());
+    if (range != null) {
+      El button = El.row()
+          .key("fold-line-" + line.index())
+          .role("button")
+          .label(texts.fold())
+          .size(size, size)
+          .align(Style.Align.CENTER)
+          .justify(Style.Content.CENTER)
+          .shrink(0)
+          .radius(theme.radius().small())
+          .cursor(Cursor.POINTER)
+          .opacity(0)
+          .onPress(() -> foldRange(app, state, editor, range, false))
+          .keepFocus()
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .child(Icon.icon(Symbol.CHEVRON_DOWN, Icon.Variant.MUTED, size));
+      cell.whenHovered(e -> button.opacity(1));
+      return button;
+    }
+    return El.el().w(size).shrink(0);
+  }
+
+  /** The placeholder pill shown after the end of a folded line; a press unfolds it (wired by core). */
+  private static El foldMark(Theme theme) {
+    float size = theme.type().mono().size();
+    Texts texts = Texts.CURRENT.get();
+    int hover = Theme.over(theme.code().bracket(), theme.surface().hover());
+    return El.row()
+        .role("button")
+        .label(texts.unfold())
+        .align(Style.Align.CENTER)
+        .justify(Style.Content.CENTER)
+        .padding(0, theme.space().s())
+        .radius(theme.radius().small())
+        .fill(theme.code().bracket())
+        .border(theme.size().stroke(), theme.border().subtle())
+        .whenHovered(e -> e.fill(hover))
+        .child(Icon.icon(Symbol.MORE_HORIZONTAL, Icon.Variant.MUTED, size));
   }
 
   /**
@@ -794,6 +937,14 @@ public final class CodeEditor {
       selectNext(app, state, editor, text, caret, anchor);
       return;
     }
+    if (command == Command.FOLD) {
+      foldAtCaret(app, state, editor, text, caret);
+      return;
+    }
+    if (command == Command.UNFOLD) {
+      unfoldAtCaret(state, text, caret);
+      return;
+    }
     if (editor.onEdit() == null || editor.isReadOnly()) {
       return;
     }
@@ -920,5 +1071,214 @@ public final class CodeEditor {
     app.select(editor, next[1], next[0]);
     state.caret = next[1];
     state.anchor = next[0];
+  }
+
+  private static void foldAtCaret(App<?> app, State state, El editor, String text, int caret) {
+    int line = lineOf(text, caret);
+    El.BracketFold best = null;
+    for (El.BracketFold range : state.ranges) {
+      if (range.lines().first() > line) {
+        break;
+      }
+      if (line <= range.lines().last() && state.foldAt(range.lines().first()) == null) {
+        best = range;
+      }
+    }
+    if (best != null) {
+      foldRange(app, state, editor, best, true);
+    }
+  }
+
+  private static void unfoldAtCaret(State state, String text, int caret) {
+    int line = lineOf(text, caret);
+    El.Fold best = null;
+    for (Folded f : state.folds) {
+      if (f.lines().first() > line) {
+        break;
+      }
+      if (line <= f.lines().last()) {
+        best = f.lines();
+      }
+    }
+    if (best != null) {
+      state.unfold(best);
+    }
+  }
+
+  private static void foldRange(
+      App<?> app, State state, El editor, El.BracketFold pair, boolean alwaysMoveCaret) {
+    state.fold(pair);
+    El.Fold range = pair.lines();
+    String text = editor.text().string();
+    int caretLine = lineOf(text, Math.min(state.caret, text.length()));
+    int anchorLine = lineOf(text, Math.min(state.anchor, text.length()));
+    boolean hidden = (caretLine > range.first() && caretLine <= range.last())
+        || (anchorLine > range.first() && anchorLine <= range.last());
+    if (alwaysMoveCaret || hidden) {
+      int at = lineEnd(text, range.first());
+      if (app != null) {
+        app.select(editor, at, at);
+        state.caret = at;
+        state.anchor = at;
+      } else {
+        state.select(at, at);
+      }
+    }
+  }
+
+  private static El.BracketFold rangeAt(List<El.BracketFold> ranges, int line) {
+    int lo = 0;
+    int hi = ranges.size() - 1;
+    while (lo <= hi) {
+      int mid = (lo + hi) >>> 1;
+      int first = ranges.get(mid).lines().first();
+      if (first == line) {
+        return ranges.get(mid);
+      }
+      if (first < line) {
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * A folded pair of brackets: the lines it hides, and where its brackets are in the string as the
+   * editor shows it; both -1 for one set by its lines ({@link State#folds(List)}) and not found yet.
+   */
+  record Folded(El.Fold lines, int open, int close) {}
+
+  /** The folds sorted by their first line, the widest where several start on one line. */
+  private static List<Folded> sorted(List<Folded> folds) {
+    Map<Integer, Folded> byFirst = new HashMap<>();
+    for (Folded f : folds) {
+      byFirst.merge(
+          f.lines().first(), f, (a, b) -> a.lines().last() >= b.lines().last() ? a : b);
+    }
+    List<Folded> out = new ArrayList<>(byFirst.values());
+    out.sort(Comparator.comparingInt(f -> f.lines().first()));
+    return out;
+  }
+
+  /**
+   * Moves the brackets of {@code folds} across the edit from {@code before} to {@code after}, by
+   * their common prefix and suffix: a bracket after the edited characters moves with them, and a
+   * fold whose bracket was among them goes. Folds not found yet stay as they are.
+   */
+  static List<Folded> shiftFolds(String before, String after, List<Folded> folds) {
+    TextChange change = TextChange.between(normalizeLines(before), normalizeLines(after));
+    int delta = change.newEnd() - change.oldEnd();
+    List<Folded> out = new ArrayList<>(folds.size());
+    for (Folded f : folds) {
+      if (f.open() < 0) {
+        out.add(f);
+        continue;
+      }
+      int open = moved(f.open(), change, delta);
+      int close = moved(f.close(), change, delta);
+      if (open >= 0 && close >= 0) {
+        out.add(new Folded(f.lines(), open, close)); // its lines are found again
+      }
+    }
+    return out;
+  }
+
+  private static int moved(int at, TextChange change, int delta) {
+    return at < change.start() ? at : at >= change.oldEnd() ? at + delta : -1;
+  }
+
+  /**
+   * Keeps each fold whose pair of brackets is still a pair that can fold in {@code found}, with its
+   * lines now; one set by its lines takes the pair on its first line. While {@code found} is not
+   * complete, a fold whose closing bracket has not been read yet stays.
+   *
+   * @param value the editor's string, which the pairs' positions are in
+   */
+  static List<Folded> reconcileFolds(List<Folded> folds, El.BracketFolds found, String value) {
+    Map<Integer, El.BracketFold> byOpen = new HashMap<>();
+    for (El.BracketFold pair : found.folds()) {
+      byOpen.put(pair.open(), pair);
+    }
+    int scanned = found.scannedLines();
+    String text = null;
+    List<Folded> out = new ArrayList<>(folds.size());
+    for (Folded f : folds) {
+      if (f.open() < 0) {
+        El.BracketFold pair = rangeAt(found.folds(), f.lines().first());
+        if (!found.complete() && f.lines().last() + 1 >= scanned) {
+          out.add(f);
+        } else if (pair != null) {
+          out.add(new Folded(pair.lines(), pair.open(), pair.close()));
+        }
+        continue;
+      }
+      El.BracketFold pair = byOpen.get(f.open());
+      if (pair != null && pair.close() == f.close()) {
+        out.add(new Folded(pair.lines(), pair.open(), pair.close()));
+      } else if (!found.complete()) {
+        text = text == null ? normalizeLines(value) : text;
+        int first = lineOf(text, f.open());
+        int closing = lineOf(text, f.close());
+        if (closing >= scanned && closing > first + 1) {
+          out.add(new Folded(new El.Fold(first, closing - 1), f.open(), f.close()));
+        }
+      }
+    }
+    return sorted(out);
+  }
+
+  private static String normalizeLines(String value) {
+    boolean clean = true;
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      if (c == '\r' || c == '\u2028' || c == '\u2029') {
+        clean = false;
+        break;
+      }
+    }
+    if (clean) {
+      return value;
+    }
+    StringBuilder out = new StringBuilder(value.length());
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      if (c == '\r') {
+        if (i + 1 < value.length() && value.charAt(i + 1) == '\n') {
+          i++;
+        }
+        out.append('\n');
+      } else if (c == '\u2028' || c == '\u2029') {
+        out.append('\n');
+      } else {
+        out.append(c);
+      }
+    }
+    return out.toString();
+  }
+
+  private static int lineOf(String text, int index) {
+    int line = 0;
+    int limit = Math.min(index, text.length());
+    for (int i = 0; i < limit; i++) {
+      if (text.charAt(i) == '\n') {
+        line++;
+      }
+    }
+    return line;
+  }
+
+  private static int lineEnd(String text, int targetLine) {
+    int line = 0;
+    for (int i = 0; i < text.length(); i++) {
+      if (text.charAt(i) == '\n') {
+        if (line == targetLine) {
+          return i;
+        }
+        line++;
+      }
+    }
+    return text.length();
   }
 }

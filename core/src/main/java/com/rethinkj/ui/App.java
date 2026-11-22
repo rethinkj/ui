@@ -2896,7 +2896,7 @@ public final class App<S> {
         for (int pass = 0; pass < 2 && stale; pass++) {
           rebuild();
           // A caret that the app's string moved, or of a new field: its handler is told, once.
-          if (tellUnfolds() | tellSelections()) {
+          if (tellUnfolds() | tellSelections() | pendingBracketFolds()) {
             rebuild();
           }
           List<El> path = pointed();
@@ -3259,6 +3259,17 @@ public final class App<S> {
       }
     }
     return false;
+  }
+
+  /** Whether a field asked for {@link El#bracketFolds} before its lines were attached. */
+  private boolean pendingBracketFolds() {
+    boolean pending = false;
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      if (inTree(entry) && entry.getValue().element().takeBracketFoldsPending()) {
+        pending = true;
+      }
+    }
+    return pending;
   }
 
   /**

@@ -1,8 +1,13 @@
 package com.rethinkj.ui;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/** Bracket matching for {@link El#matchingBracket}. */
+/** Bracket matching and foldable bracket ranges for {@link El}. */
 final class Brackets {
 
   private Brackets() {}
@@ -36,13 +41,13 @@ final class Brackets {
       int first = marked ? lines.line(at) : -1;
       if (!marked || !lines.knows(first, key)) {
         if (marked) {
-          lines.unread = first;
+          lines.unread(first);
         }
         return plain(text, at, own, other, step);
       }
       Spans spans = lines.spans(first, text, highlighter, key);
       if (spans == null) {
-        lines.unread = first;
+        lines.unread(first);
         return plain(text, at, own, other, step);
       }
       if (!has(spans, at - lines.start(first))) {
@@ -56,7 +61,7 @@ final class Brackets {
         }
         spans = line == first ? spans : lines.spans(line, text, highlighter, key);
         if (spans == null) {
-          lines.unread = line; // out of the frame's budget: the next build goes on from there
+          lines.unread(line); // out of the frame's budget: the next build goes on from there
           break;
         }
         int[] marks = spans.brackets();
@@ -98,5 +103,122 @@ final class Brackets {
   private static boolean has(Spans spans, int offset) {
     int[] marks = spans.brackets();
     return Arrays.binarySearch(marks, 0, spans.bracketCount, offset) >= 0;
+  }
+
+  /**
+   * Foldable bracket pairs of {@code text}: each pair's lines start on the line of its opening
+   * bracket and end on the line before its closing bracket ({@code closeLine > openLine + 1}),
+   * sorted by their first line, with the widest pair when several start on one line.
+   * Stops at the frame's highlighting budget when {@code lines} has one, sets {@link Lines#unread}
+   * so the next frame continues, and caches the complete result on {@code lines}.
+   */
+  static El.BracketFolds folds(String text, Lines lines, Highlighter highlighter, Object key) {
+    boolean marked = highlighter != null && highlighter.marksBrackets();
+    Object cacheKey = marked ? key : null;
+    if (lines != null) {
+      El.BracketFolds cached = lines.bracketFolds(marked, cacheKey);
+      if (cached != null) {
+        return cached;
+      }
+    }
+    int lineCount = lines != null ? lines.count() : countLines(text);
+    if (lineCount <= 2) {
+      El.BracketFolds empty = new El.BracketFolds(List.of(), lineCount, true);
+      if (lines != null) {
+        lines.bracketFolds(marked, cacheKey, empty);
+      }
+      return empty;
+    }
+    El.BracketFolds result = marked
+        ? markedFolds(text, lines != null ? lines : Lines.of(text), highlighter, key)
+        : plainFolds(text, lineCount);
+    if (lines != null && result.complete()) {
+      lines.bracketFolds(marked, cacheKey, result);
+    }
+    return result;
+  }
+
+  private static El.BracketFolds markedFolds(
+      String text, Lines lines, Highlighter highlighter, Object key) {
+    Pairs pairs = new Pairs();
+    int count = lines.count();
+    for (int line = 0; line < count; line++) {
+      Spans spans = lines.spans(line, text, highlighter, key);
+      if (spans == null) {
+        lines.unread(line);
+        return new El.BracketFolds(pairs.folds(), line, false);
+      }
+      int start = lines.start(line);
+      int[] marks = spans.brackets();
+      int n = spans.bracketCount;
+      for (int k = 0; k < n; k++) {
+        int i = start + marks[k];
+        if ((k == 0 || marks[k] != marks[k - 1]) && i < text.length()) { // a mark given twice
+          pairs.step(text.charAt(i), i, line);
+        }
+      }
+    }
+    return new El.BracketFolds(pairs.folds(), count, true);
+  }
+
+  private static El.BracketFolds plainFolds(String text, int lineCount) {
+    Pairs pairs = new Pairs();
+    int line = 0;
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (c == '\n') {
+        line++;
+      } else {
+        pairs.step(c, i, line);
+      }
+    }
+    return new El.BracketFolds(pairs.folds(), lineCount, true);
+  }
+
+  /** Pairs brackets per kind as they come, keeping the widest pair that spans lines per line. */
+  private static final class Pairs {
+    private final int[][] opens = new int[3][16]; // per kind: the open brackets' positions
+    private final int[][] lines = new int[3][16]; // and their lines
+    private final int[] depths = new int[3];
+    private final Map<Integer, El.BracketFold> byFirst = new HashMap<>();
+
+    void step(char c, int at, int line) {
+      int kind = BRACKETS.indexOf(c);
+      if (kind < 0) {
+        return;
+      }
+      if (kind < 3) {
+        int depth = depths[kind];
+        if (depth == opens[kind].length) {
+          opens[kind] = Arrays.copyOf(opens[kind], depth * 2);
+          lines[kind] = Arrays.copyOf(lines[kind], depth * 2);
+        }
+        opens[kind][depth] = at;
+        lines[kind][depth] = line;
+        depths[kind] = depth + 1;
+      } else if (depths[kind - 3] > 0) {
+        int depth = --depths[kind - 3];
+        int first = lines[kind - 3][depth];
+        if (line > first + 1) {
+          El.BracketFold fold =
+              new El.BracketFold(new El.Fold(first, line - 1), opens[kind - 3][depth], at);
+          byFirst.merge(first, fold, (a, b) -> a.close() >= b.close() ? a : b);
+        }
+      }
+    }
+
+    List<El.BracketFold> folds() {
+      List<El.BracketFold> out = new ArrayList<>(byFirst.values());
+      out.sort(Comparator.comparingInt(f -> f.lines().first()));
+      return List.copyOf(out);
+    }
+  }
+
+  private static int countLines(String text) {
+    int count = 1;
+    for (int at = text.indexOf('\n'); at >= 0; at = text.indexOf('\n', at + 1)) {
+      count++;
+    }
+    return count;
   }
 }

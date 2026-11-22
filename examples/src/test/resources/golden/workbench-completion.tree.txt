@@ -247,18 +247,21 @@ el 0,0 1000x600
                   el role=separator 277,114 714x1
                   el 277,115 714x98
                     text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders\nWHERE cu;" 289,123 690x82 lines 1-3/3 focused caret 41 (3:9)
-                      el #rail 290,124 38x80
-                      el #gutter 290,128 37x64
-                        el #line-0 290,128 37x16
+                      el #rail 290,124 50x80
+                      el #gutter 290,128 49x64
+                        el #line-0 290,128 49x16
                           el #marker role=button label="Run statement" 296,130 12x12
                             text label="play" "\u{E98F}" 296,130 12x12
                           text "1" 312,128 7x16
-                        el #line-1 290,144 37x16
+                          el 323,136 12x0
+                        el #line-1 290,144 49x16
                           el 296,152 12x0
                           text "2" 312,144 7x16
-                        el #line-2 290,160 37x16
+                          el 323,152 12x0
+                        el #line-2 290,160 49x16
                           el 296,168 12x0
                           text "3" 312,160 7x16
+                          el 323,168 12x0
                   el role=separator 277,213 714x1
                   el #grid-localhost/shop/public/orders role=grid label="orders" 277,214 714x319 thumb-x 279,525 347.22x6
                     el #content 277,214 1460x319
@@ -770,75 +773,75 @@ el 0,0 1000x600
       el #running label="Idle" 964,574 28x24
         text "Idle" 968,579 20x15
 overlay bottom start gap 2 on #query-localhost/shop/public/orders role=textbox label="Query" 289,123 690x82
-  el #completions role=listbox label="Completions" 392,178 208x202 rows 0-11/12 thumb-y 591,181 6x132.86
-    el #option-0 role=option label="customer_id" 397,183 190x24 selected pos=1/12
-      el 397,183 190x24
-        el 405,187 16x16
-          text label="column_single" "\u{F0116}" 405,187 16x16
-        text "customer_id" 429,187 88x16
-        text "column" 537,188 42x15
-    el #option-1 role=option label="customers" 397,207 190x24 pos=2/12
-      el 397,207 190x24
-        el 405,211 16x16
-          text label="table" "\u{EBF4}" 405,211 16x16
-        text "customers" 429,211 102x16
-        text "table" 551,212 28x15
-    el #option-2 role=option label="customers_2025" 397,231 190x24 pos=3/12
-      el 397,231 190x24
-        el 405,235 16x16
-          text label="table" "\u{EBF4}" 405,235 16x16
-        text "customers_2025" 429,235 102x16
-        text "table" 551,236 28x15
-    el #option-3 role=option label="customers_2024" 397,255 190x24 pos=4/12
-      el 397,255 190x24
-        el 405,259 16x16
-          text label="table" "\u{EBF4}" 405,259 16x16
-        text "customers_2024" 429,259 102x16
-        text "table" 551,260 28x15
-    el #option-4 role=option label="customers_2023" 397,279 190x24 pos=5/12
-      el 397,279 190x24
-        el 405,283 16x16
-          text label="table" "\u{EBF4}" 405,283 16x16
-        text "customers_2023" 429,283 102x16
-        text "table" 551,284 28x15
-    el #option-5 role=option label="customers_2022" 397,303 190x24 pos=6/12
-      el 397,303 190x24
-        el 405,307 16x16
-          text label="table" "\u{EBF4}" 405,307 16x16
-        text "customers_2022" 429,307 102x16
-        text "table" 551,308 28x15
-    el #option-6 role=option label="customers_2021" 397,327 190x24 pos=7/12
-      el 397,327 190x24
-        el 405,331 16x16
-          text label="table" "\u{EBF4}" 405,331 16x16
-        text "customers_2021" 429,331 102x16
-        text "table" 551,332 28x15
-    el #option-7 role=option label="customers_2020" 397,351 190x24 pos=8/12
-      el 397,351 190x24
-        el 405,355 16x16
-          text label="table" "\u{EBF4}" 405,355 16x16
-        text "customers_2020" 429,355 102x16
-        text "table" 551,356 28x15
-    el #option-8 role=option label="customers_2019" 397,375 190x24 pos=9/12
-      el 397,375 190x24
-        el 405,379 16x16
-          text label="table" "\u{EBF4}" 405,379 16x16
-        text "customers_2019" 429,379 102x16
-        text "table" 551,380 28x15
-    el #option-9 role=option label="customers_2018" 397,399 190x24 pos=10/12
-      el 397,399 190x24
-        el 405,403 16x16
-          text label="table" "\u{EBF4}" 405,403 16x16
-        text "customers_2018" 429,403 102x16
-        text "table" 551,404 28x15
-    el #option-10 role=option label="customers_2017" 397,423 190x24 pos=11/12
-      el 397,423 190x24
-        el 405,427 16x16
-          text label="table" "\u{EBF4}" 405,427 16x16
-        text "customers_2017" 429,427 102x16
-        text "table" 551,428 28x15
-    el #option-11 role=option label="CURRENT" 397,447 190x24 pos=12/12
-      el 397,447 190x24
-        el 405,459 16x0
-        text "CURRENT" 429,451 82x16
-        text "keyword" 531,452 48x15
+  el #completions role=listbox label="Completions" 404,178 208x202 rows 0-11/12 thumb-y 603,181 6x132.86
+    el #option-0 role=option label="customer_id" 409,183 190x24 selected pos=1/12
+      el 409,183 190x24
+        el 417,187 16x16
+          text label="column_single" "\u{F0116}" 417,187 16x16
+        text "customer_id" 441,187 88x16
+        text "column" 549,188 42x15
+    el #option-1 role=option label="customers" 409,207 190x24 pos=2/12
+      el 409,207 190x24
+        el 417,211 16x16
+          text label="table" "\u{EBF4}" 417,211 16x16
+        text "customers" 441,211 102x16
+        text "table" 563,212 28x15
+    el #option-2 role=option label="customers_2025" 409,231 190x24 pos=3/12
+      el 409,231 190x24
+        el 417,235 16x16
+          text label="table" "\u{EBF4}" 417,235 16x16
+        text "customers_2025" 441,235 102x16
+        text "table" 563,236 28x15
+    el #option-3 role=option label="customers_2024" 409,255 190x24 pos=4/12
+      el 409,255 190x24
+        el 417,259 16x16
+          text label="table" "\u{EBF4}" 417,259 16x16
+        text "customers_2024" 441,259 102x16
+        text "table" 563,260 28x15
+    el #option-4 role=option label="customers_2023" 409,279 190x24 pos=5/12
+      el 409,279 190x24
+        el 417,283 16x16
+          text label="table" "\u{EBF4}" 417,283 16x16
+        text "customers_2023" 441,283 102x16
+        text "table" 563,284 28x15
+    el #option-5 role=option label="customers_2022" 409,303 190x24 pos=6/12
+      el 409,303 190x24
+        el 417,307 16x16
+          text label="table" "\u{EBF4}" 417,307 16x16
+        text "customers_2022" 441,307 102x16
+        text "table" 563,308 28x15
+    el #option-6 role=option label="customers_2021" 409,327 190x24 pos=7/12
+      el 409,327 190x24
+        el 417,331 16x16
+          text label="table" "\u{EBF4}" 417,331 16x16
+        text "customers_2021" 441,331 102x16
+        text "table" 563,332 28x15
+    el #option-7 role=option label="customers_2020" 409,351 190x24 pos=8/12
+      el 409,351 190x24
+        el 417,355 16x16
+          text label="table" "\u{EBF4}" 417,355 16x16
+        text "customers_2020" 441,355 102x16
+        text "table" 563,356 28x15
+    el #option-8 role=option label="customers_2019" 409,375 190x24 pos=9/12
+      el 409,375 190x24
+        el 417,379 16x16
+          text label="table" "\u{EBF4}" 417,379 16x16
+        text "customers_2019" 441,379 102x16
+        text "table" 563,380 28x15
+    el #option-9 role=option label="customers_2018" 409,399 190x24 pos=10/12
+      el 409,399 190x24
+        el 417,403 16x16
+          text label="table" "\u{EBF4}" 417,403 16x16
+        text "customers_2018" 441,403 102x16
+        text "table" 563,404 28x15
+    el #option-10 role=option label="customers_2017" 409,423 190x24 pos=11/12
+      el 409,423 190x24
+        el 417,427 16x16
+          text label="table" "\u{EBF4}" 417,427 16x16
+        text "customers_2017" 441,427 102x16
+        text "table" 563,428 28x15
+    el #option-11 role=option label="CURRENT" 409,447 190x24 pos=12/12
+      el 409,447 190x24
+        el 417,459 16x0
+        text "CURRENT" 441,451 82x16
+        text "keyword" 543,452 48x15

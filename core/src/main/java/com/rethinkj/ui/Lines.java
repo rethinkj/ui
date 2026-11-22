@@ -116,6 +116,10 @@ final class Lines {
   // The line a bracket lookup could not read the marks of, for want of its state or of the
   // frame's budget, or -1: the app builds the view again once the state is known.
   int unread = -1;
+  // Complete bracket fold ranges cached for this text and highlight key.
+  private Object bracketFoldsKey;
+  private boolean bracketFoldsMarked;
+  private El.BracketFolds bracketFolds;
 
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
@@ -234,6 +238,7 @@ final class Lines {
     }
     count = newCount;
     length += delta;
+    bracketFolds = null;
     if (widestLine >= first && widestLine <= last) {
       widest = 0;
       widestLine = -1;
@@ -297,6 +302,7 @@ final class Lines {
       spans = new Spans[starts.length];
       known = 1; // the first line starts in null
       chunkWidths.clear(); // measured with the old spans, which they would keep
+      bracketFolds = null;
     }
     for (int l = known - 1; l < line; l++) {
       Spans kept = spans[l];
@@ -330,9 +336,32 @@ final class Lines {
     return out;
   }
 
+  /**
+   * Notes that a lookup could not read line {@code line}; the first such line counts, so that a
+   * bracket lookup and the scan for folds in one build do not hide each other's.
+   */
+  void unread(int line) {
+    unread = unread < 0 ? line : Math.min(unread, line);
+  }
+
   /** Whether the line of {@link #unread} has its state now. */
   boolean unreadKnown() {
     return unread >= 0 && unread < known && states != null;
+  }
+
+  /** Cached complete bracket fold ranges for this text, or null if not cached for this key. */
+  El.BracketFolds bracketFolds(boolean marked, Object key) {
+    return bracketFolds != null
+            && bracketFoldsMarked == marked
+            && Objects.equals(bracketFoldsKey, key)
+        ? bracketFolds
+        : null;
+  }
+
+  void bracketFolds(boolean marked, Object key, El.BracketFolds folds) {
+    bracketFoldsMarked = marked;
+    bracketFoldsKey = key;
+    bracketFolds = folds;
   }
 
   private boolean takeBudget() {

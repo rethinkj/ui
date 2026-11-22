@@ -462,6 +462,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String fold() {
+    return "Einklappen";
+  }
+
+  @Override
+  public String unfold() {
+    return "Ausklappen";
+  }
+
+  @Override
   public String formatProblem(Formatted.Kind kind) {
     return switch (kind) {
       case UNEXPECTED -> "Hier nicht erwartet";

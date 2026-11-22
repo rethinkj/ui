@@ -50,6 +50,32 @@ final class Editors {
         "items": [{"sku": "A-17", "quantity": 2}]
       }""";
   final CodeEditor.State documentEditor = new CodeEditor.State();
+  String payload = """
+      {
+        "id": 1042,
+        "customer": {
+          "name": "Ada Lovelace",
+          "region": "north"
+        },
+        "items": [
+          {
+            "sku": "A-17",
+            "quantity": 2
+          }
+        ]
+      }""";
+  final CodeEditor.State payloadEditor = new CodeEditor.State();
+  // docs:start code-editor-folding
+  List<El.Fold> savedFolds = List.of();
+
+  void saveFolds() {
+    savedFolds = payloadEditor.folds();
+  }
+
+  void restoreFolds() {
+    payloadEditor.folds(savedFolds);
+  }
+  // docs:end code-editor-folding
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
@@ -117,6 +143,10 @@ final class Editors {
 
   void document(String value) {
     document = value;
+  }
+
+  void payload(String value) {
+    payload = value;
   }
 
   // docs:start code-editor-json-format
@@ -221,6 +251,16 @@ final class Editors {
         .lines(8)
         .wFull();
     // docs:end code-editor-json
+    return Frame.of(editor);
+  }
+
+  static El folding(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.payload, state.payloadEditor, Json.of(), state::payload)
+        .key("payload")
+        .label("Payload")
+        .lines(9)
+        .wFull();
     return Frame.of(editor);
   }
 

@@ -1,0 +1,56 @@
+el 0,0 520x200
+  text #payload role=textbox label="Payload" "{\n  \"id\": 1042,\n  \"customer\": {\n    \"name\": \"Ada Lovelace\",\n    \"region\": \"north\"\n  },\n  \"items\": [\n    {\n      \"sku\": \"A-17\",\n      \"quantity\": 2\n    }\n  ]\n}" 12,12 496x162 lines 1-9/13 thumb-y 499,15 6x111.82 focused caret 31 (3:16)
+    el #rail 13,13 57x160
+    el #gutter 13,17 56x144
+      el #line-0 13,17 56x16
+        el 19,25 12x0
+        text "1" 35,17 14x16
+        el #fold-line-0 role=button label="Fold" 53,19 12x12
+          text label="chevron_down" "\u{F2A1}" 53,19 12x12
+      el #line-1 13,33 56x16
+        el 19,41 12x0
+        text "2" 35,33 14x16
+        el 53,41 12x0
+      el #line-2 13,49 56x16
+        el 19,57 12x0
+        text "3" 35,49 14x16
+        el #fold-line-2 role=button label="Fold" 53,51 12x12
+          text label="chevron_down" "\u{F2A1}" 53,51 12x12
+      el #line-3 13,65 56x16
+        el 19,73 12x0
+        text "4" 35,65 14x16
+        el 53,73 12x0
+      el #line-4 13,81 56x16
+        el 19,89 12x0
+        text "5" 35,81 14x16
+        el 53,89 12x0
+      el #line-5 13,97 56x16
+        el 19,105 12x0
+        text "6" 35,97 14x16
+        el 53,105 12x0
+      el #line-6 13,113 56x16
+        el 19,121 12x0
+        text "7" 35,113 14x16
+        el #fold-line-6 role=button label="Fold" 53,115 12x12
+          text label="chevron_down" "\u{F2A1}" 53,115 12x12
+      el #line-7 13,129 56x16
+        el 19,137 12x0
+        text "8" 35,129 14x16
+        el #fold-line-7 role=button label="Fold" 53,131 12x12
+          text label="chevron_down" "\u{F2A1}" 53,131 12x12
+      el #line-8 13,145 56x16
+        el 19,153 12x0
+        text "9" 35,145 14x16
+        el 53,153 12x0
+      el #line-9 13,161 56x16
+        el 19,169 12x0
+        text "10" 35,161 14x16
+        el 53,169 12x0
+      el #line-10 13,177 56x16
+        el 19,185 12x0
+        text "11" 35,177 14x16
+        el 53,185 12x0
+      el #line-11 13,193 56x16
+        el 19,201 12x0
+        text "12" 35,193 14x16
+        el 53,201 12x0

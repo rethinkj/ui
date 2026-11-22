@@ -1,22 +1,27 @@
 el 0,0 520x180
   text #draft role=textbox label="Query" placeholder="Type a query" "" 12,12 496x66 lines 1-1/1
-    el #rail 13,13 38x64
-    el #gutter 13,17 37x48
-      el #line-0 13,17 37x16
+    el #rail 13,13 50x64
+    el #gutter 13,17 49x48
+      el #line-0 13,17 49x16
         el 19,25 12x0
         text "1" 35,17 7x16
+        el 46,25 12x0
   text #definition role=textbox label="Definition" "CREATE VIEW paid_orders AS\nSELECT id, total\nFROM orders\nWHERE status = 'paid';" 12,86 496x82 readonly lines 1-4/4
-    el #rail 13,87 38x80
-    el #gutter 13,91 37x64
-      el #line-0 13,91 37x16
+    el #rail 13,87 50x80
+    el #gutter 13,91 49x64
+      el #line-0 13,91 49x16
         el 19,99 12x0
         text "1" 35,91 7x16
-      el #line-1 13,107 37x16
+        el 46,99 12x0
+      el #line-1 13,107 49x16
         el 19,115 12x0
         text "2" 35,107 7x16
-      el #line-2 13,123 37x16
+        el 46,115 12x0
+      el #line-2 13,123 49x16
         el 19,131 12x0
         text "3" 35,123 7x16
-      el #line-3 13,139 37x16
+        el 46,131 12x0
+      el #line-3 13,139 49x16
         el 19,147 12x0
         text "4" 35,139 7x16
+        el 46,147 12x0

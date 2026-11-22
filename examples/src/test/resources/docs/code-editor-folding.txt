@@ -1,0 +1,18 @@
+# Fold a JSON object with Ctrl+Shift+[, move the caret across it, then unfold with Ctrl+Shift+].
+size 520 200
+frame
+
+focus #payload
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key [ control shift
+frame
+key ArrowDown
+key ArrowUp
+frame
+snap folded
+
+key ] control shift
+frame
+snap unfolded

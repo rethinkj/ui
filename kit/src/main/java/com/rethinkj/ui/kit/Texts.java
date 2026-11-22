@@ -446,6 +446,16 @@ public interface Texts {
 
   // Code
 
+  /** The gutter button or command that collapses a block of code. */
+  default String fold() {
+    return "Fold";
+  }
+
+  /** The gutter button, placeholder mark or command that expands a folded block of code. */
+  default String unfold() {
+    return "Unfold";
+  }
+
   /**
    * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
    * code editor says it.
