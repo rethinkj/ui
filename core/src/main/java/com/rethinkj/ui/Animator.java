@@ -34,8 +34,8 @@ import java.util.function.Predicate;
 final class Animator {
 
   // The animated numbers: x, y, width, height and the four corners' radii in pixels, then the
-  // fill, the border and the text color as alpha, red, green and blue, then the opacity and the
-  // sweep of an arc.
+  // fill, the border and the text color as alpha and premultiplied red, green and blue, then the
+  // opacity and the sweep of an arc.
   private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, SWEEP = 21;
   private static final int COUNT = 22;
 
@@ -381,6 +381,9 @@ final class Animator {
       }
     }
     entry.el = el;
+    entry.fill = el.fill();
+    entry.border = el.borderColor();
+    entry.text = el.text() == null ? 0 : el.text().color();
     el.measureScroll(); // from the layout, before the leaving children come back
     if (next.put(id, entry) != null) {
       throw new IllegalStateException("two siblings have the key '" + el.key()
@@ -744,8 +747,10 @@ final class Animator {
   }
 
   private static void channels(int argb, double[] into, int at) {
-    for (int i = 0; i < 4; i++) {
-      into[at + i] = (argb >>> (24 - 8 * i)) & 0xFF;
+    int alpha = argb >>> 24;
+    into[at] = alpha;
+    for (int i = 1; i < 4; i++) {
+      into[at + i] = ((argb >>> (24 - 8 * i)) & 0xFF) * alpha / 255.0;
     }
   }
 
@@ -756,6 +761,7 @@ final class Animator {
     final long opened; // how many entries were made before this one
     final Track[] tracks = new Track[COUNT];
     El el;
+    int fill, border, text; // the view's target colors, kept intact when their tracks rest
     // For a virtual list: the rows that have entries, from rowsFrom to rowsTo, exclusive.
     int rowsFrom;
     int rowsTo;
@@ -786,10 +792,10 @@ final class Animator {
           && tracks[2].isAtRest(now)
           && tracks[3].isAtRest(now)));
       el.radius(at(RADIUS, now), at(RADIUS + 1, now), at(RADIUS + 2, now), at(RADIUS + 3, now));
-      el.fill(color(FILL, now));
-      el.borderColor(color(BORDER, now));
+      el.fill(color(FILL, fill, now));
+      el.borderColor(color(BORDER, border, now));
       if (el.text() != null) {
-        el.text().shownColor(color(TEXT, now));
+        el.text().shownColor(color(TEXT, text, now));
       }
       el.shownOpacity(
           (float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
@@ -800,14 +806,25 @@ final class Animator {
       return (float) tracks[index].value(now);
     }
 
-    // shortcut: each channel of 0xAARRGGBB springs on its own and is clamped to 0..255, so a
-    // bounce cannot leave the color range, but it still overshoots inside it and tints the color,
-    // and a fade from or to a transparent color passes through a darker one. Spring premultiplied
-    // colors in a perceptual space such as Oklab when that shows.
-    private int color(int first, double now) {
-      int argb = 0;
-      for (int i = first; i < first + 4; i++) {
-        argb = argb << 8 | Math.clamp(Math.round(tracks[i].value(now)), 0, 255);
+    // shortcut: premultiplied sRGB channels spring on their own and are clamped to 0..255, so a
+    // bounce cannot leave the color range, but it still overshoots inside it and tints the color.
+    // Spring in a perceptual space such as Oklab when that shows.
+    private int color(int first, int target, double now) {
+      if (tracks[first].isAtRest(now)
+          && tracks[first + 1].isAtRest(now)
+          && tracks[first + 2].isAtRest(now)
+          && tracks[first + 3].isAtRest(now)) {
+        return target;
+      }
+      double alpha = tracks[first].value(now); // not clamped: a bounce past 255 must not lighten
+      int a = Math.clamp(Math.round(alpha), 0, 255);
+      if (a == 0) {
+        return 0;
+      }
+      int argb = a;
+      for (int i = first + 1; i < first + 4; i++) {
+        double v = tracks[i].value(now);
+        argb = argb << 8 | Math.clamp(Math.round(alpha == 255 ? v : v * 255 / alpha), 0, 255);
       }
       return argb;
     }

@@ -187,6 +187,41 @@ class MotionTest {
     assertFalse(app.isMoving());
   }
 
+  @Test
+  void aColorAnimationFromTransparentPassesThroughNoGray() {
+    int[] fill = {Colors.TRANSPARENT};
+    Spring[] spring = {Spring.SETTLE};
+    App<int[]> app = new App<>(
+        fill, c -> el().size(40, 40).child(el().size(20, 20).fill(c[0]).motion(spring[0])));
+    app.resize(40, 40, 1);
+    app.frame();
+
+    fade(app, fill, 0x22FFFFFF, 0xFFFFFF);
+    spring[0] = new Spring(0.25, 0.5); // a bounce: alpha overshoots below 0, then past 255
+    fade(app, fill, Colors.TRANSPARENT, 0xFFFFFF);
+    fade(app, fill, 0xFF808080, 0x808080);
+  }
+
+  /** Springs the fill to {@code to}; every visible color on the way has the color {@code rgb}. */
+  private static void fade(App<int[]> app, int[] fill, int to, int rgb) {
+    fill[0] = to;
+    app.invalidate();
+    app.frame();
+    int visible = 0;
+    for (int frame = 1; app.isMoving(); frame++) {
+      assertTrue(frame < 180, "still moving after three seconds");
+      app.advance(1.0 / 60);
+      app.frame();
+      int shown = app.tree().children().getFirst().fill();
+      if (Colors.alpha(shown) > 0) {
+        assertEquals(Colors.toHex(rgb), Colors.toHex(shown & 0xFFFFFF), "at frame " + frame);
+        visible++;
+      }
+    }
+    assertTrue(visible >= 3, "only " + visible + " visible frames");
+    assertEquals(to, app.tree().children().getFirst().fill());
+  }
+
   private static App<Lights> switchApp(float scale) {
     App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, scale);

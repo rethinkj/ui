@@ -1,0 +1,1 @@
+- Color animations now spring with premultiplied alpha in sRGB, so fading from or to a transparent color (such as a hover fill from `Colors.TRANSPARENT` to translucent white) no longer passes through gray; animations between opaque colors are unchanged.
