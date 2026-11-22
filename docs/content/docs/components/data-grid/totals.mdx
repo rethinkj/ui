@@ -1,0 +1,46 @@
+---
+title: Totals and summary
+description: A pinned footer row for column totals and a bounded selection summary for the status bar.
+---
+
+`options().footer(totals)` pins a summary row to the bottom of a `DataGrid`, styled like the header. It scrolls sideways with the columns (keeping frozen columns fixed) and stays fixed vertically. The grid computes nothing itself so large tables stay fast; your app returns a `DataGrid.Total` per column.
+
+For the active selection, `DataGrid.summary` computes count, sum, average, minimum, and maximum over numeric columns up to a cell limit, and `DataGrid.summaryGroups` turns that `DataGrid.Summary` into [StatusBar](/docs/components/status-bar) groups.
+
+Javadoc: [`DataGrid.Total`](/api/com/rethinkj/ui/kit/DataGrid.Total.html), [`DataGrid.Aggregate`](/api/com/rethinkj/ui/kit/DataGrid.Aggregate.html), [`DataGrid.Summary`](/api/com/rethinkj/ui/kit/DataGrid.Summary.html).
+
+<Shot src="examples/docs/grid-totals/selected-{theme}" alt="A grid with a pinned footer showing column totals and a status bar summarizing three selected amounts" />
+
+## Example
+
+```java snippet="grid-totals"
+```
+
+```java snippet="grid-summary-handler"
+```
+
+## Footer row
+
+Pass `options().footer(column -> …)` to enable the footer row:
+
+- The callback receives each column's index among all columns given to `dataGrid` (mapped automatically when a `Layout` hides or reorders columns) and returns a `DataGrid.Total` or `null` for an empty cell.
+- `new DataGrid.Total(function, value)` shows an optional muted uppercase `Aggregate` label (`COUNT`, `SUM`, `AVERAGE`, `MINIMUM`, `MAXIMUM`, read from `Texts`) before `value`.
+- `value` uses the column's alignment and font (`mono`) and truncates with an ellipsis when narrow, showing the full text in a tooltip on hover while the function label keeps its width.
+
+## Selection summary
+
+Call `DataGrid.summary(columns, ranges, rowCount, limit)` from `onSelect`:
+
+- Pass the columns as shown (matching the indices in `selection.ranges()`).
+- Returns `null` when the clamped selection exceeds `limit` cells (`DataGrid.cellCount`), without reading any cells.
+- Inspects only `DataType.INTEGER` and `DataType.DECIMAL` columns, reading each selected cell once through `column.cell()` and parsing with `Format.DECIMAL`; `NULL` and non-numeric text are skipped.
+- When no numeric values are found, `count` is `0` and `sum`, `average`, `minimum`, and `maximum` are `null`.
+
+Pass the result to `DataGrid.summaryGroups(summary)` to build `StatusBar` groups (`Count`, `Sum`, `Avg`, `Min`, `Max` in the active `Texts`, using plain decimal notation). Returns an empty list for `null` or a count of `0`.
+
+## In a tree dump
+
+The footer row is `role=row` (`#footer`) with cells `role=gridcell` (`#total-<index>`, labeled with the column title):
+
+```text file="examples/src/test/resources/golden/docs/grid-totals/selected.tree.txt" start="#footer" count="15"
+```

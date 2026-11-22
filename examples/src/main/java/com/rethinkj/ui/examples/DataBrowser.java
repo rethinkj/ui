@@ -76,6 +76,8 @@ public final class DataBrowser {
 
   static final int ROWS = 1_000_000;
   static final int PERIOD = 1000;
+  // The most selected cells summed in the status line, which reads them on each build.
+  private static final long SUMMARY_LIMIT = 10_000;
 
   private static final String[] FIRST = {
     "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"
@@ -225,15 +227,22 @@ public final class DataBrowser {
         COUNTRY[index / 4 % COUNTRY.length],
         PRODUCT[product],
         quantity,
-        BigDecimal.valueOf((long) quantity * CENTS[product], 2),
+        BigDecimal.valueOf(madeUpCents(index), 2),
         created,
         status == Status.SHIPPED ? created.plusMinutes(index * 7919L % 4320) : null,
         status,
         NOTE[index % NOTE.length]);
   }
 
+  /** The made-up order's amount in cents, for summing without allocating orders. */
+  private static long madeUpCents(int index) {
+    int quantity = 1 + index * 13 % 9;
+    int product = index * 3 % PRODUCT.length;
+    return (long) quantity * CENTS[product];
+  }
+
   /** The widths the columns start with. */
-  private static final float[] WIDTHS = {72, 140, 220, 90, 80, 100, 80, 100, 140, 140, 90, 180};
+  private static final float[] WIDTHS = {120, 140, 220, 90, 80, 100, 80, 140, 140, 140, 90, 180};
 
   /** The columns of the orders, in the order of {@link Order}'s parts. */
   // docs:start data-browser-columns
@@ -303,6 +312,7 @@ public final class DataBrowser {
   final GridTable<Order> table = DataGrid.table(row -> order(orderShown(row)));
   final List<Column> base = columns(table, WIDTHS);
   final Layout layout = new Layout(MADE_UP.stream().map(Column::title).toList());
+  BigDecimal totalAmount = BigDecimal.ZERO; // cached sum of amount over shown committed orders
   private int last = -1; // the made-up order read last, which the cells of a row ask for again
   private Order lastOrder;
 
@@ -331,6 +341,7 @@ public final class DataBrowser {
       }
     });
     // docs:end data-browser-changes
+    recomputeTotal();
   }
 
   /** An order as written, else as made up; new orders hold only what was written. */
@@ -356,14 +367,18 @@ public final class DataBrowser {
 
   /** The order at a row shown, past the deleted ones; new orders after the million's. */
   int orderShown(int row) {
-    int kept = row;
-    for (int place : gone) {
-      if (place <= kept) {
-        kept++;
+    // The deleted places before it are those with gone[i] - i <= row, which never decreases.
+    int low = 0;
+    int high = gone.length;
+    while (low < high) {
+      int mid = (low + high) >>> 1;
+      if (gone[mid] - mid <= row) {
+        low = mid + 1;
       } else {
-        break;
+        high = mid;
       }
     }
+    int kept = row + low;
     return kept < count() ? orderAt(kept) : ROWS + kept - count();
   }
 
@@ -427,7 +442,28 @@ public final class DataBrowser {
     }
     matching = Arrays.copyOf(found, count);
     places();
+    recomputeTotal();
     follow();
+  }
+
+  /** The sum of the amounts of the orders shown, as written; once per change of the rows. */
+  private void recomputeTotal() {
+    long cents = 0;
+    BigDecimal sum = BigDecimal.ZERO;
+    int next = 0; // into the places of the deleted orders, ascending
+    for (int place = 0, places = count(); place < places + added.size(); place++) {
+      if (next < gone.length && gone[next] == place) {
+        next++;
+        continue;
+      }
+      int order = place < places ? orderAt(place) : ROWS + place - places;
+      if (order < ROWS && !written.containsKey(order)) {
+        cents += madeUpCents(order); // without making up the order, as there are a million
+      } else if (order(order).amount() != null) {
+        sum = sum.add(order(order).amount());
+      }
+    }
+    totalAmount = sum.add(BigDecimal.valueOf(cents, 2));
   }
 
   /** After the filter or the sort moved the rows: the cursor goes where its order is shown. */
@@ -493,6 +529,7 @@ public final class DataBrowser {
     }
     changes.clear();
     places();
+    recomputeTotal();
     toast = count == 1 ? "1 change written" : count + " changes written";
   }
   // docs:end data-browser-commit
@@ -617,7 +654,13 @@ public final class DataBrowser {
         .changes(state.changes)
         .filters(state.filters, state::filters)
         .filterable(DataBrowser::text)
-        .columns(state.layout);
+        .columns(state.layout)
+        .footer(column -> switch (column) {
+          case 0 ->
+            new DataGrid.Total(DataGrid.Aggregate.COUNT, String.valueOf(state.shownCount()));
+          case 7 -> new DataGrid.Total(DataGrid.Aggregate.SUM, state.totalAmount.toPlainString());
+          default -> null;
+        });
     if (state.app != null) { // the window's clipboard once it runs, the app's own before
       options.copy(state.app.clipboard());
     }
@@ -625,6 +668,12 @@ public final class DataBrowser {
     options.onLargeCopy((copy, limit) -> state.toast = String.format(
         Locale.ROOT, "%,d cells are too many to copy at once: at most %,d", copy.cells(), limit));
     El grid = dataGrid(columns, state.changes.rowCount(), options);
+    // Built anew with the grid, so that edits, undo and hidden columns show at once.
+    DataGrid.Summary summary = DataGrid.summary(
+        state.layout.shown(columns),
+        state.selection.ranges(),
+        state.changes.rowCount(),
+        SUMMARY_LIMIT);
     El filter = TextField.withIcon(
         textField(state.filter, "Filter", state::filter).key("filter").w(220), Symbol.SEARCH);
     filter = Tooltip.tooltip(
@@ -700,7 +749,9 @@ public final class DataBrowser {
                     Card.filters(bar),
                     Divider.divider(),
                     grid.key("orders").label("Orders").grow(1),
-                    Card.footer(label(MUTED, state.status()).key("status").ellipsis()))
+                    Card.footer(
+                        label(MUTED, state.status()).key("status").ellipsis(),
+                        DataGrid.summaryGroups(summary).toArray(El[]::new)))
                 .grow(1)));
   }
 

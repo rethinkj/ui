@@ -86,6 +86,7 @@ class DocsExamplesTest {
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
+      Map.entry("grid-totals", List.of("selected")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
       Map.entry("form-divided", List.of("view")),
@@ -179,6 +180,7 @@ class DocsExamplesTest {
     grids(all, "grid-fit", Grids::fitted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
+    grids(all, "grid-totals", Grids::totals, 560, 300);
     grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
     all.put(
