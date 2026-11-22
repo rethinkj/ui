@@ -1107,8 +1107,9 @@ public final class Tree {
       return (flags[row] & OPEN) != 0;
     }
 
-    Children<?> pending(int row) {
-      return nodes[row] instanceof Pending pending ? pending.children() : null;
+    @SuppressWarnings("unchecked") // a pending row holds what the model said of the node's children
+    Children<N> pending(int row) {
+      return nodes[row] instanceof Pending pending ? (Children<N>) pending.children() : null;
     }
 
     /** The row after the node's in its row and the rows of its descendants shown. */
