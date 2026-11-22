@@ -127,11 +127,16 @@ class HuePickerTest {
                 Form.field(
                     "Color",
                     HuePicker.button(Prop.of(() -> s.hue, h -> s.hue = h), "None", s.popover)))));
-    Script.run(
-        "size 480 240\nframe\npress role=button label=\"Color\"\nframe\nadvance 1\nframe\n"
-            + "press role=radio label=\"Teal\"\nframe\n",
-        app,
-        out);
+    Script.run("""
+        size 480 240
+        frame
+        press role=button label="Color"
+        frame
+        advance 1
+        frame
+        press role=radio label="Teal"
+        frame
+        """, app, out);
     assertEquals(Theme.Hue.TEAL, state.hue);
   }
 }
