@@ -458,6 +458,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String searchValues() {
+    return "Werte suchen";
+  }
+
+  @Override
   public String moveOne(String up, String down) {
     return up + " und " + down + " verschieben um eins";
   }
