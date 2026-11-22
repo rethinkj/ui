@@ -1,0 +1,1 @@
+- `Editing.required(part)` marks a field as required so `valid()` stays false while its value is null or empty, even when its component has never been built (such as on an unvisited tab). Its error (`Texts.required()`) appears once the field is edited or `showErrors()` is called; nested fields whose parent is null do not count.
