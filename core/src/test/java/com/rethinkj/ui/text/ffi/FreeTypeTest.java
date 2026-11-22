@@ -42,6 +42,8 @@ class FreeTypeTest {
     long cLong = FreeType.C_LONG.byteSize();
     assertEquals(System.getProperty("os.name").startsWith("Windows") ? 4 : 8, cLong);
     assertEquals(2 * cLong, FreeType.VECTOR.byteSize());
+    assertEquals(cLong == 8 ? 32 : 16, FreeType.BITMAP_SIZE.byteSize());
+    assertEquals(cLong == 8 ? 24 : 12, FreeType.BITMAP_SIZE_Y_PPEM);
     assertEquals(40, FreeType.BITMAP.byteSize());
     assertEquals(20, HarfBuzz.GLYPH_INFO.byteSize());
     assertEquals(20, HarfBuzz.GLYPH_POSITION.byteSize());

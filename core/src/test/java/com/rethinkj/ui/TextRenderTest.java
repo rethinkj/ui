@@ -201,6 +201,13 @@ class TextRenderTest {
     Golden.assertMatches("color-emoji", frame.pixels(), frame.tree());
   }
 
+  /** Color emoji from a CBDT bitmap font scaled beside normal text, colored text and opacity. */
+  @Test
+  void cbdtColorEmojiDrawInColorBesideText() {
+    Headless.Frame frame = Headless.render(Examples.cbdtColorEmoji(), 280, 92, 2, PINNED);
+    Golden.assertMatches("color-emoji-cbdt", frame.pixels(), frame.tree());
+  }
+
   // ---- the coverage correction against blending in gamma space ------------------------------
 
   /**

@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * family, style and characters of each of its faces. That index stays for the process; a file
  * stays mapped only while it is read, and while a face of it is used as a {@link Font}.
  *
- * <p>Faces without outlines are left out, as are color fonts whose sample glyph neither renders as
- * a COLR version 0 color bitmap nor has an outline (CBDT bitmaps, COLR version 1 without outlines).
- * A COLR version 0 color font draws its layers in color; a color font whose glyphs only have
- * outlines draws those in the text color.
+ * <p>Faces without outlines are left out unless they carry color bitmaps (such as CBDT), as are
+ * color fonts whose sample glyph neither renders as a color bitmap (COLR version 0 or CBDT) nor
+ * has an outline (such as COLR version 1 without outlines). A color font whose sample renders as
+ * BGRA draws in color; one whose glyphs only have outlines draws those in the text color.
  *
  * <p>For a cluster of characters, the first face that has all of them wins, in this order: for an
  * emoji, the faces that draw it in color, then the families the platform prefers for the cluster's script, in order, then other families (on Linux
@@ -322,7 +322,7 @@ final class SystemFonts {
         || script == UnicodeScript.BOPOMOFO;
     List<String> order = new ArrayList<>();
     if (emoji) {
-      order.addAll(windows ? List.of("Segoe UI Emoji") : List.of("Noto Emoji", "Noto Color Emoji"));
+      order.addAll(windows ? List.of("Segoe UI Emoji") : List.of("Noto Color Emoji", "Noto Emoji"));
     }
     if (cjkFirst) {
       order.addAll(cjk);

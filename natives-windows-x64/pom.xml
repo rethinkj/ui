@@ -19,10 +19,10 @@
   <!-- The licenses of the libraries; their texts are in the JAR beside them. wgpu-native is
        available under either MIT or Apache-2.0. FreeType is available under either the FreeType
        License or the GPL 2.0; this module takes the FreeType License, which asks a product that
-       ships FreeType to credit the FreeType Project in its documentation. FreeType's BDF and PCF
-       drivers and HarfBuzz's USE tables come with MIT licenses of their own, also in the JAR. The
-       DirectX Shader Compiler's dxcompiler.dll comes under the LLVM Release License, the
-       University of Illinois/NCSA Open Source License. -->
+       ships FreeType to credit the FreeType Project in its documentation. FreeType links libpng
+       and zlib statically, and its BDF and PCF drivers and HarfBuzz's USE tables come with MIT
+       licenses of their own, all in the JAR. The DirectX Shader Compiler's dxcompiler.dll comes
+       under the LLVM Release License, the University of Illinois/NCSA Open Source License. -->
   <licenses>
     <license>
       <name>zlib License (SDL)</name>
@@ -39,6 +39,14 @@
     <license>
       <name>FreeType License (FreeType)</name>
       <url>https://spdx.org/licenses/FTL.html</url>
+    </license>
+    <license>
+      <name>PNG Reference Library License version 2 (libpng)</name>
+      <url>https://spdx.org/licenses/libpng-2.0.html</url>
+    </license>
+    <license>
+      <name>zlib License (zlib)</name>
+      <url>https://opensource.org/license/zlib</url>
     </license>
     <license>
       <name>Old MIT License (HarfBuzz)</name>

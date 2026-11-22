@@ -1,0 +1,1 @@
+- Emoji from CBDT color bitmap fonts, such as Noto Color Emoji on Linux, are now drawn in color at any font size, and system font fallback picks them for emoji. FreeType in both natives JARs now links libpng 1.6.59 and zlib 1.4 statically (no new runtime or build dependencies; their licenses are under `META-INF/rethinkj-ui/natives/<platform>/licenses/`).

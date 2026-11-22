@@ -49,6 +49,8 @@ public final class FreeType {
   // ---- constants ---------------------------------------------------------------------------
 
   public static final long FACE_FLAG_SCALABLE = 1L << 0;
+  /** {@code FT_FACE_FLAG_FIXED_SIZES}: the face has embedded bitmap strikes. */
+  public static final long FACE_FLAG_FIXED_SIZES = 1L << 1;
   /** {@code FT_FACE_FLAG_COLOR}: the face has color glyphs (COLR, CBDT, sbix or SVG tables). */
   public static final long FACE_FLAG_COLOR = 1L << 14;
 
@@ -80,6 +82,14 @@ public final class FreeType {
       struct(ADDRESS.withName("data"), ADDRESS.withName("finalizer"));
 
   public static final StructLayout VECTOR = struct(C_LONG.withName("x"), C_LONG.withName("y"));
+
+  /** {@code FT_Bitmap_Size}: one fixed-size bitmap strike of a face. */
+  public static final StructLayout BITMAP_SIZE = struct(
+      JAVA_SHORT.withName("height"),
+      JAVA_SHORT.withName("width"),
+      C_LONG.withName("size"),
+      C_LONG.withName("x_ppem"),
+      C_LONG.withName("y_ppem"));
 
   public static final StructLayout BITMAP = struct(
       JAVA_INT.withName("rows"),
@@ -143,8 +153,12 @@ public final class FreeType {
   public static final long FACE_NUM_GLYPHS = offset(FACE, "num_glyphs");
   public static final long FACE_FAMILY_NAME = offset(FACE, "family_name");
   public static final long FACE_STYLE_NAME = offset(FACE, "style_name");
+  public static final long FACE_NUM_FIXED_SIZES = offset(FACE, "num_fixed_sizes");
+  public static final long FACE_AVAILABLE_SIZES = offset(FACE, "available_sizes");
   public static final long FACE_UNITS_PER_EM = offset(FACE, "units_per_EM");
   public static final long FACE_GLYPH = offset(FACE, "glyph");
+  public static final long BITMAP_SIZE_HEIGHT = offset(BITMAP_SIZE, "height");
+  public static final long BITMAP_SIZE_Y_PPEM = offset(BITMAP_SIZE, "y_ppem");
   public static final long SLOT_BITMAP = offset(GLYPH_SLOT, "bitmap");
   public static final long SLOT_BITMAP_LEFT = offset(GLYPH_SLOT, "bitmap_left");
   public static final long SLOT_BITMAP_TOP = offset(GLYPH_SLOT, "bitmap_top");
@@ -175,6 +189,10 @@ public final class FreeType {
    */
   public static final FunctionDescriptor SET_CHAR_SIZE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, C_LONG, C_LONG, JAVA_INT, JAVA_INT);
+
+  /** {@code FT_Error FT_Select_Size(FT_Face, FT_Int strike_index)}. */
+  public static final FunctionDescriptor SELECT_SIZE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT);
 
   /** {@code void FT_Set_Transform(FT_Face, FT_Matrix *matrix, FT_Vector *delta)}. */
   public static final FunctionDescriptor SET_TRANSFORM =
@@ -209,6 +227,7 @@ public final class FreeType {
         bind("FT_New_Memory_Face", FreeType.NEW_MEMORY_FACE);
     static final MethodHandle DONE_FACE = bind("FT_Done_Face", FreeType.DONE_FACE);
     static final MethodHandle SET_CHAR_SIZE = bind("FT_Set_Char_Size", FreeType.SET_CHAR_SIZE);
+    static final MethodHandle SELECT_SIZE = bind("FT_Select_Size", FreeType.SELECT_SIZE);
     static final MethodHandle SET_TRANSFORM = bind("FT_Set_Transform", FreeType.SET_TRANSFORM);
     static final MethodHandle LOAD_GLYPH = bind("FT_Load_Glyph", FreeType.LOAD_GLYPH);
     static final MethodHandle RENDER_GLYPH = bind("FT_Render_Glyph", FreeType.RENDER_GLYPH);
@@ -270,6 +289,15 @@ public final class FreeType {
     try {
       return (int)
           Fn.SET_CHAR_SIZE.invokeExact(face, width26, height26, horizontalDpi, verticalDpi);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  /** Selects a fixed-size bitmap strike by index in {@code available_sizes}. */
+  public static int selectSize(MemorySegment face, int strikeIndex) {
+    try {
+      return (int) Fn.SELECT_SIZE.invokeExact(face, strikeIndex);
     } catch (Throwable t) {
       throw rethrow(t);
     }

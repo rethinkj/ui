@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.Examples;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -259,6 +261,38 @@ class FontTest {
       assertTrue(faces.getFirst().has(0x1F600));
       assertTrue(faces.getFirst().color(), "ranked first for emoji");
     }
+  }
+
+  @Test
+  void aCbdtFontWithoutOutlinesIsAcceptedAndScalesColorBitmaps() throws IOException {
+    TextLibraries.assumeLoaded();
+    byte[] bytes;
+    try (InputStream in = FontTest.class.getResourceAsStream("/fonts/NotoColorEmoji-Subset.ttf")) {
+      bytes = in.readAllBytes();
+    }
+    try (Arena arena = Arena.ofConfined()) {
+      List<SystemFonts.Face> faces = Font.inspect(
+          Path.of("NotoColorEmoji-Subset.ttf"), arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes));
+      assertEquals(1, faces.size());
+      assertTrue(faces.getFirst().has(0x1F600));
+      assertTrue(faces.getFirst().color(), "ranked first for emoji");
+    }
+    Font cbdt = Examples.cbdtEmoji();
+    assertTrue(cbdt.ascent() > 0.8f && cbdt.descent() > 0.2f);
+    GlyphRun run = cbdt.shape("😀", 16, 1);
+    assertEquals(1, run.count());
+    assertNotEquals(0, run.glyph(0));
+    assertTrue(run.advance(0) >= 18 && run.advance(0) <= 22, "advance " + run.advance(0));
+    Font.Bitmap small = cbdt.rasterize(run.glyph(0), 16, TextRendering.Hinting.LIGHT, 0);
+    assertTrue(small.color(), "CBDT glyph renders as a color bitmap");
+    assertTrue(small.width() >= 18 && small.width() <= 22, small.toString());
+    assertTrue(small.height() >= 17 && small.height() <= 21, small.toString());
+    assertEquals(small.width() * small.height() * 4, small.pixels().length);
+    Font.Bitmap shifted = cbdt.rasterize(run.glyph(0), 16, TextRendering.Hinting.LIGHT, 2);
+    assertFalse(Arrays.equals(small.pixels(), shifted.pixels()), "quarter-pixel shift applied");
+    Font.Bitmap large = cbdt.rasterize(run.glyph(0), 140, TextRendering.Hinting.LIGHT, 0);
+    assertTrue(large.color());
+    assertTrue(large.width() > 136 && large.height() > 128, "upscaled above 109 px: " + large);
   }
 
   static byte[] defaultFontBytes(String file) throws IOException {

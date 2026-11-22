@@ -11,6 +11,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Headless;
+import com.rethinkj.ui.render.Scene;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,5 +128,28 @@ class SystemFontsTest {
     for (int i = 0; i < 3; i++) {
       assertSame(arabic, run.font(i));
     }
+  }
+
+  @Test
+  void notoColorEmojiFromSystemFontsDrawsEmojiInColor() {
+    Path noto = Path.of("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf");
+    assumeTrue(Files.isRegularFile(noto), "Skipped: " + noto + " is not installed");
+    App<Object> app = new App<>(new Object(), s -> El.text("Hi 😀🎉").fontSize(16));
+    app.systemFonts(true);
+    app.resize(200, 40, 1);
+    app.frame();
+    GlyphRun run = app.tree().text().lines().getFirst().glyphs();
+    Font emojiFont = run.font(run.count() - 1);
+    assertTrue(
+        emojiFont.toString().startsWith("Noto Color Emoji"),
+        "expected Noto Color Emoji, got " + emojiFont);
+    Scene scene = app.scene();
+    int colorGlyphs = 0;
+    for (int i = 0; i < scene.count(); i++) {
+      if (scene.getInt(i, Scene.KIND) == Scene.COLOR_GLYPH) {
+        colorGlyphs++;
+      }
+    }
+    assertEquals(2, colorGlyphs, "both emoji emit COLOR_GLYPH instances");
   }
 }
