@@ -2213,11 +2213,10 @@ public final class App<S> {
       // With its ring as far as the area's padding has room for it, so that the clip cuts none
       // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
       float ring = Scene.RING + el.focusRingGap();
-      Style s = area.style();
-      float left = Math.min(ring, s.paddingLeft.pixelsOrZero());
-      float right = Math.min(ring, s.paddingRight.pixelsOrZero());
-      float up = Math.min(ring, s.paddingTop.pixelsOrZero());
-      float down = Math.min(ring, s.paddingBottom.pixelsOrZero());
+      float left = Math.min(ring, area.padding(Side.LEFT));
+      float right = Math.min(ring, area.padding(Side.RIGHT));
+      float up = Math.min(ring, area.padding(Side.TOP));
+      float down = Math.min(ring, area.padding(Side.BOTTOM));
       area.scrollTo(
           area.scrollX()
               + revealDelta(
@@ -3385,8 +3384,7 @@ public final class App<S> {
     List<El> path = new ArrayList<>();
     pathTo(root, field, path);
     float left = contentLeft(field);
-    float top =
-        field.style().paddingTop.pixelsOrZero() + field.style().borderTop.pixelsOrZero();
+    float top = contentTop(field);
     for (El el : fromOverlay(path)) {
       left += el.x();
       top += el.y();
@@ -3399,13 +3397,12 @@ public final class App<S> {
 
   /** The distance from an element's border box to its content box at the top. */
   private static float contentTop(El el) {
-    return el.style().paddingTop.pixelsOrZero() + el.style().borderTop.pixelsOrZero();
+    return el.padding(Side.TOP) + el.border(Side.TOP);
   }
 
   /** The distance from an element's border box to its content box on the left. */
   private static float contentLeft(El el) {
-    // shortcut: padding and border in pixels only, as the scene draws text.
-    return el.style().paddingLeft.pixelsOrZero() + el.style().borderLeft.pixelsOrZero();
+    return el.padding(Side.LEFT) + el.border(Side.LEFT);
   }
 
   /**

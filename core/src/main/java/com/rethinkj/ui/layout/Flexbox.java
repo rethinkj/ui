@@ -103,6 +103,9 @@ final class Flexbox {
 
     final float insetC;
 
+    /** The margins as resolved here, auto ones as zero, which may differ from the node's own. */
+    final Edges margin;
+
     float marginStartM;
     float marginEndM;
     float marginStartC;
@@ -198,7 +201,7 @@ final class Flexbox {
       insetM = main(insetX, insetY);
       insetC = cross(insetX, insetY);
 
-      Edges margin = Edges.margin(s, innerWidth);
+      margin = Edges.margin(s, innerWidth);
       marginStartM = isRow ? margin.left() : margin.top();
       marginEndM = isRow ? margin.right() : margin.bottom();
       marginStartC = isRow ? margin.top() : margin.left();
@@ -1110,6 +1113,7 @@ final class Flexbox {
         item.baseline = (isRow ? startC : startM) + baseline(out, item);
 
         Node child = item.node;
+        child.margin = item.margin; // placed with these, unresolved while the row's width was not
         child.x = width(startM + item.insetM, startC + item.insetC);
         child.y = height(startM + item.insetM, startC + item.insetC);
         child.width = out.width();

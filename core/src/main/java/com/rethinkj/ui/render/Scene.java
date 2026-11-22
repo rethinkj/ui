@@ -6,6 +6,7 @@ import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Shadow;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.text.Atlas;
@@ -649,10 +650,10 @@ public final class Scene {
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     Style s = el.style();
     float[] borders = {
-      stroke(s.borderTop.pixelsOrZero()),
-      stroke(s.borderRight.pixelsOrZero()),
-      stroke(s.borderBottom.pixelsOrZero()),
-      stroke(s.borderLeft.pixelsOrZero())
+      stroke(el.border(Side.TOP)),
+      stroke(el.border(Side.RIGHT)),
+      stroke(el.border(Side.BOTTOM)),
+      stroke(el.border(Side.LEFT))
     };
     boolean hasBorder = (borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0)
         && el.borderColor() >>> 24 != 0;
@@ -847,11 +848,10 @@ public final class Scene {
       int clip,
       boolean free) {
     Image image = el.image();
-    Style s = el.style();
-    float insetLeft = borders[3] + s.paddingLeft.pixelsOrZero();
-    float insetTop = borders[0] + s.paddingTop.pixelsOrZero();
-    float insetRight = borders[1] + s.paddingRight.pixelsOrZero();
-    float insetBottom = borders[2] + s.paddingBottom.pixelsOrZero();
+    float insetLeft = borders[3] + el.padding(Side.LEFT);
+    float insetTop = borders[0] + el.padding(Side.TOP);
+    float insetRight = borders[1] + el.padding(Side.RIGHT);
+    float insetBottom = borders[2] + el.padding(Side.BOTTOM);
     float l = left + insetLeft;
     float t = top + insetTop;
     float r = left + width - insetRight;
@@ -1014,11 +1014,10 @@ public final class Scene {
 
   private ContentBox contentBox(
       El el, float x, float y, float left, float top, float width, float height) {
-    Style s = el.style();
-    float l = s.borderLeft.pixelsOrZero();
-    float t = s.borderTop.pixelsOrZero();
-    float r = s.borderRight.pixelsOrZero();
-    float b = s.borderBottom.pixelsOrZero();
+    float l = el.border(Side.LEFT);
+    float t = el.border(Side.TOP);
+    float r = el.border(Side.RIGHT);
+    float b = el.border(Side.BOTTOM);
     if (Float.isNaN(scale) || l == 0 && t == 0 && r == 0 && b == 0) {
       return null;
     }
@@ -1198,11 +1197,8 @@ public final class Scene {
       return;
     }
     double scale = text.scale();
-    Style s = el.style();
-    // shortcut: padding and border in pixels only, not in percent, as for scrolling; take the
-    // edges layout resolved when percentages need it.
-    double left = (x + s.paddingLeft.pixelsOrZero() + s.borderLeft.pixelsOrZero()) * scale;
-    double top = (y + s.paddingTop.pixelsOrZero() + s.borderTop.pixelsOrZero()) * scale;
+    double left = (x + el.padding(Side.LEFT) + el.border(Side.LEFT)) * scale;
+    double top = (y + el.padding(Side.TOP) + el.border(Side.TOP)) * scale;
     double grid = scale >= 1.5 && !text.font().wholePixels() ? 4 : 1;
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
@@ -1276,19 +1272,13 @@ public final class Scene {
    * within {@code clip}; -1 when nothing is left of it.
    */
   private int fieldClip(El el, float x, float y, int clip) {
-    Style s = el.style();
     boolean rows = el.text().multiline();
     // Out to whole physical pixels, so that the clip cuts no glyph that the box holds.
     return clip(
-        outward(x + s.borderLeft.pixelsOrZero() + s.paddingLeft.pixelsOrZero(), -1),
-        outward(y + s.borderTop.pixelsOrZero() + (rows ? s.paddingTop.pixelsOrZero() : 0), -1),
-        outward(x + el.width() - s.borderRight.pixelsOrZero() - s.paddingRight.pixelsOrZero(), 1),
-        outward(
-            y
-                + el.height()
-                - s.borderBottom.pixelsOrZero()
-                - (rows ? s.paddingBottom.pixelsOrZero() : 0),
-            1),
+        outward(x + el.border(Side.LEFT) + el.padding(Side.LEFT), -1),
+        outward(y + el.border(Side.TOP) + (rows ? el.padding(Side.TOP) : 0), -1),
+        outward(x + el.width() - el.border(Side.RIGHT) - el.padding(Side.RIGHT), 1),
+        outward(y + el.height() - el.border(Side.BOTTOM) - (rows ? el.padding(Side.BOTTOM) : 0), 1),
         SQUARE,
         clip);
   }

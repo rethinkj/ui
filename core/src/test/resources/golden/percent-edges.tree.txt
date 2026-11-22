@@ -1,0 +1,4 @@
+el 0,0 240x116
+  text #f role=textbox "hello world" 20,16 200x32 focused caret 5
+  el #list 20,60 200x40
+    el #item 30,66 180x30

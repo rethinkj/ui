@@ -97,6 +97,15 @@ public final class Flex {
     }
     float x = parentX + node.x;
     float y = parentY + node.y;
+    float w = node.width;
+    float h = node.height;
+    Edges b = node.border;
+    Edges p = node.padding;
+    Edges m = node.margin;
+    node.el.placeEdges(
+        p.bySide(x + b.left(), y + b.top(), w - b.horizontal(), h - b.vertical(), round),
+        b.bySide(x, y, w, h, round),
+        m.bySide(x - m.left(), y - m.top(), w + m.horizontal(), h + m.vertical(), round));
     if (round) {
       node.el.place(
           round(x) - round(parentX),
@@ -112,7 +121,7 @@ public final class Flex {
   }
 
   /** Halves away from zero, unlike {@link Math#round}. */
-  private static float round(float value) {
+  static float round(float value) {
     return (float) (value < 0 ? -Math.floor(0.5 - value) : Math.floor(value + 0.5));
   }
 }

@@ -65,6 +65,9 @@ final class Node {
   float y;
   float width;
   float height;
+  Edges padding;
+  Edges border;
+  Edges margin;
 
   private In performed;
   private Out performedOut;
@@ -115,6 +118,9 @@ final class Node {
     if (in.perform) {
       performed = in;
       performedOut = out;
+      padding = Edges.padding(style, in.parentWidth);
+      border = Edges.border(style, in.parentWidth);
+      margin = Edges.margin(style, in.parentWidth);
     } else {
       if (measured == null) {
         measured = new HashMap<>();

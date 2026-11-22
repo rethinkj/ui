@@ -12,6 +12,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -632,10 +633,9 @@ public final class Tree {
       begin(g, node);
     }
     // The point in the rows' coordinates: without the tree's own border and padding.
-    Style style = tree.style();
-    float left = style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
-    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
-    float bottom = style.borderBottom.pixelsOrZero() + style.paddingBottom.pixelsOrZero();
+    float left = tree.border(Side.LEFT) + tree.padding(Side.LEFT);
+    float top = tree.border(Side.TOP) + tree.padding(Side.TOP);
+    float bottom = tree.border(Side.BOTTOM) + tree.padding(Side.BOTTOM);
     double x = d.x() - left;
     if (d.phase() == Drop.Phase.DROP) {
       g.unmark();

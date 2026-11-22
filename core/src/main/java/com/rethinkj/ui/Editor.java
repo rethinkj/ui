@@ -445,12 +445,9 @@ final class Editor {
     if (!t.laidOut()) {
       return null;
     }
-    Style s = el.style();
     float scale = t.scale();
-    float top = s.borderTop.pixelsOrZero();
-    top += s.paddingTop.pixelsOrZero();
-    float left = s.borderLeft.pixelsOrZero();
-    left += s.paddingLeft.pixelsOrZero();
+    float top = el.border(Side.TOP) + el.padding(Side.TOP);
+    float left = el.border(Side.LEFT) + el.padding(Side.LEFT);
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     float rowTop = t.multiline() ? caretTopOffset() : t.lineTop(t.lineOf(shownCaret)) / scale;
     return new float[] {

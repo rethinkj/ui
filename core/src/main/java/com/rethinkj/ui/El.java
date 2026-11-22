@@ -100,6 +100,8 @@ public final class El {
   private float y;
   private float width;
   private float height;
+  // The edges layout resolved, in logical pixels: 4 padding, 4 border, 4 margin by Side.ordinal().
+  private float[] edges;
   // The scroll offset of this element, how far it may go, and how far its children are moved by
   // it. The offset is a double so that a virtual list can be billions of pixels tall; the shift is
   // small, because rows are placed near the offset.
@@ -1400,9 +1402,8 @@ public final class El {
       return;
     }
     float scale = text.scale();
-    float left =
-        style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero() + (float) scrollX;
-    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero() + (float) scrollY;
+    float left = border(Side.LEFT) + padding(Side.LEFT) + (float) scrollX;
+    float top = border(Side.TOP) + padding(Side.TOP) + (float) scrollY;
     int length = text.string().length();
     for (El child : children) {
       if (child.rangeFrom < 0) {
@@ -1765,7 +1766,7 @@ public final class El {
       return;
     }
     if (Float.isNaN(field.gutterLeft)) {
-      field.gutterLeft = style.paddingLeft.pixelsOrZero();
+      field.gutterLeft = padding(Side.LEFT);
     }
     El last = gutterCell(text.lineTotal() - 1, false);
     scaleText(last, scale, text.systemFonts());
@@ -1800,7 +1801,7 @@ public final class El {
     field.gutterShown = shown;
     field.gutterBuilt = true;
     float rowHeight = text.lineHeight() / scale;
-    float top = style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
+    float top = border(Side.TOP) + padding(Side.TOP);
     El column = el().key("gutter").clip();
     for (Text.Start start : starts) {
       El cell = gutterCell(start.line(), start.line() == caretLine);
@@ -1820,23 +1821,20 @@ public final class El {
     }
     // The column stays where the content box is: the scroll that shifts it is added back.
     column.place(
-        style.borderLeft.pixelsOrZero() + field.gutterLeft + (float) scrollX,
+        border(Side.LEFT) + field.gutterLeft + (float) scrollX,
         top + (float) scrollY,
         field.gutterWidth,
         text.contentHeight() / scale);
     children.clear();
     if (field.gutterRail != null) {
-      float borderTop = style.borderTop.pixelsOrZero();
+      float borderTop = border(Side.TOP);
       float railWidth =
           field.gutterLeft + field.gutterWidth + field.gutterRail.style.borderRight.pixelsOrZero();
-      float railHeight = height - borderTop - style.borderBottom.pixelsOrZero();
+      float railHeight = height - borderTop - border(Side.BOTTOM);
       scaleText(field.gutterRail, scale, text.systemFonts());
       Flex.layout(field.gutterRail, railWidth, railHeight);
       field.gutterRail.place(
-          (float) scrollX + style.borderLeft.pixelsOrZero(),
-          (float) scrollY + borderTop,
-          railWidth,
-          railHeight);
+          (float) scrollX + border(Side.LEFT), (float) scrollY + borderTop, railWidth, railHeight);
       children.add(field.gutterRail);
     }
     children.add(column);
@@ -1895,8 +1893,7 @@ public final class El {
     if (field == null || field.coveredTop <= 0 || text == null || !text.multiline()) {
       return 0;
     }
-    float covered =
-        field.coveredTop - style.borderTop.pixelsOrZero() - style.paddingTop.pixelsOrZero();
+    float covered = field.coveredTop - border(Side.TOP) - padding(Side.TOP);
     return covered > 0 ? covered : 0; // 0 also for a NaN padding
   }
 
@@ -3661,12 +3658,7 @@ public final class El {
     if (rows != null) {
       maxScrollX = 0;
       maxScrollY = Math.max(
-          rowsTop()
-              + rowsTotal()
-              + style.paddingBottom.pixelsOrZero()
-              + style.borderBottom.pixelsOrZero()
-              + coverY
-              - height,
+          rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM) + coverY - height,
           0);
       return;
     }
@@ -3677,21 +3669,17 @@ public final class El {
     float[] out = new float[2];
     for (El child : children) {
       if (child.placed && !child.exiting) {
-        extent[0] =
-            Math.max(extent[0], child.x + child.width + child.style.marginRight.pixelsOrZero());
-        extent[1] =
-            Math.max(extent[1], child.y + child.height + child.style.marginBottom.pixelsOrZero());
+        extent[0] = Math.max(extent[0], child.x + child.width + child.margin(Side.RIGHT));
+        extent[1] = Math.max(extent[1], child.y + child.height + child.margin(Side.BOTTOM));
         if (scrolls) {
           child.overflow(child.x, child.y, out);
         }
       }
     }
-    // shortcut: padding, border and margin only in pixels, not in percent; measure the layout's
-    // content size when percentages need it.
-    float right = Math.max(extent[0] + style.paddingRight.pixelsOrZero(), out[0]);
-    float bottom = Math.max(extent[1] + style.paddingBottom.pixelsOrZero(), out[1]);
-    double overX = right + style.borderRight.pixelsOrZero() - width;
-    double overY = bottom + style.borderBottom.pixelsOrZero() - height;
+    float right = Math.max(extent[0] + padding(Side.RIGHT), out[0]);
+    float bottom = Math.max(extent[1] + padding(Side.BOTTOM), out[1]);
+    double overX = right + border(Side.RIGHT) - width;
+    double overY = bottom + border(Side.BOTTOM) - height;
     maxScrollX = style.overflowX == Style.Overflow.SCROLL && overX > 0 ? overX + coverX : 0;
     maxScrollY = style.overflowY == Style.Overflow.SCROLL && overY > 0 ? overY + coverY : 0;
   }
@@ -3759,8 +3747,8 @@ public final class El {
     measureScroll();
     float x = parentX + this.x;
     float y = parentY + this.y;
-    float right = x + width - style.borderRight.pixelsOrZero();
-    float bottom = y + height - style.borderBottom.pixelsOrZero();
+    float right = x + width - border(Side.RIGHT);
+    float bottom = y + height - border(Side.BOTTOM);
     boolean wide = maxScrollX > 0;
     boolean tall = maxScrollY > 0;
     if (scrollbars != null) {
@@ -3887,10 +3875,10 @@ public final class El {
         float t = scrollbars.thickness();
         float m = scrollbars.margin();
         // The padding box within the clips; a bar is placed only where it fits.
-        float boxLeft = Math.max(left, x + s.borderLeft.pixelsOrZero());
-        float boxTop = Math.max(top, y + s.borderTop.pixelsOrZero());
-        float boxRight = Math.min(right, x + width - s.borderRight.pixelsOrZero());
-        float boxBottom = Math.min(bottom, y + height - s.borderBottom.pixelsOrZero());
+        float boxLeft = Math.max(left, x + border(Side.LEFT));
+        float boxTop = Math.max(top, y + border(Side.TOP));
+        float boxRight = Math.min(right, x + width - border(Side.RIGHT));
+        float boxBottom = Math.min(bottom, y + height - border(Side.BOTTOM));
         boolean wide = s.overflowX == Style.Overflow.SCROLL && maxScrollX > 0;
         boolean tall = s.overflowY == Style.Overflow.SCROLL && maxScrollY > 0;
         if (wide && boxBottom - boxTop >= t + 2 * m) {
@@ -4000,7 +3988,7 @@ public final class El {
 
   /** The top of the content box, where row 0 begins, relative to the border box. */
   private float rowsTop() {
-    return style.borderTop.pixelsOrZero() + style.paddingTop.pixelsOrZero();
+    return border(Side.TOP) + padding(Side.TOP);
   }
 
   /**
@@ -4062,7 +4050,7 @@ public final class El {
     float shown = 0;
     float shownTo = 0;
     if (rows.spans) { // the part in view sideways, in the coordinates of the content box
-      float origin = left + style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
+      float origin = left + border(Side.LEFT) + padding(Side.LEFT);
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
@@ -4289,7 +4277,7 @@ public final class El {
 
   /** The left of the rows, the left of the content box. */
   private float rowsLeft() {
-    return style.borderLeft.pixelsOrZero() + style.paddingLeft.pixelsOrZero();
+    return border(Side.LEFT) + padding(Side.LEFT);
   }
 
   /**
@@ -4301,8 +4289,8 @@ public final class El {
     return Math.max(
         laidOutWidth()
             - rowsLeft()
-            - style.paddingRight.pixelsOrZero()
-            - style.borderRight.pixelsOrZero()
+            - padding(Side.RIGHT)
+            - border(Side.RIGHT)
             - style.scrollbarWidth,
         0);
   }
@@ -4467,6 +4455,67 @@ public final class El {
   /** For {@link App}, which shows the border color of the moment. */
   void borderColor(int argb) {
     this.borderColor = argb;
+  }
+
+  /**
+   * Called by layout: the resolved padding, border and margin in logical pixels, each four values
+   * indexed by {@link Side#ordinal()}.
+   */
+  public void placeEdges(float[] padding, float[] border, float[] margin) {
+    if (padding.length != 4 || border.length != 4 || margin.length != 4) {
+      throw new IllegalArgumentException("each edge array must have 4 values");
+    }
+    if (edges == null) {
+      edges = new float[12];
+    }
+    System.arraycopy(padding, 0, edges, 0, 4);
+    System.arraycopy(border, 0, edges, 4, 4);
+    System.arraycopy(margin, 0, edges, 8, 4);
+  }
+
+  /**
+   * The padding on {@code side} in logical pixels: a percentage as the last layout resolved it,
+   * anything else as the style gives it now.
+   */
+  public float padding(Side side) {
+    return edge(
+        switch (side) {
+          case TOP -> style.paddingTop;
+          case BOTTOM -> style.paddingBottom;
+          case LEFT -> style.paddingLeft;
+          case RIGHT -> style.paddingRight;
+        },
+        side.ordinal());
+  }
+
+  /** The border width on {@code side} in logical pixels, as {@link #padding} gives padding. */
+  public float border(Side side) {
+    return edge(
+        switch (side) {
+          case TOP -> style.borderTop;
+          case BOTTOM -> style.borderBottom;
+          case LEFT -> style.borderLeft;
+          case RIGHT -> style.borderRight;
+        },
+        4 + side.ordinal());
+  }
+
+  /** The margin on {@code side} in logical pixels, as {@link #padding} gives padding. */
+  float margin(Side side) {
+    return edge(
+        switch (side) {
+          case TOP -> style.marginTop;
+          case BOTTOM -> style.marginBottom;
+          case LEFT -> style.marginLeft;
+          case RIGHT -> style.marginRight;
+        },
+        8 + side.ordinal());
+  }
+
+  // Pixels are read live, since a look may change them after layout; only layout knows a
+  // percentage.
+  private float edge(Len len, int index) {
+    return len.kind() == Len.Kind.PERCENT && edges != null ? edges[index] : len.pixelsOrZero();
   }
 
   /**

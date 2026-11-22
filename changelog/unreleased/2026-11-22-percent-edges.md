@@ -1,0 +1,1 @@
+- Fixed: padding, border and margin set in percent (`Len.percent`) are now drawn, hit-tested and scrolled at the widths layout resolved instead of as 0; `El.padding(Side)` and `El.border(Side)` return those resolved widths.
