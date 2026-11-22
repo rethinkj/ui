@@ -92,7 +92,10 @@ class ComboBoxEntriesTest {
       tree = Files.readString(snap(app, "key Escape", "closed").get(1));
       assertTrue(ComboBoxTest.line(tree, "#table").contains("label=\"pinned_table\""), tree);
 
-      snap(app, "press #table\nframe\nawait\nframe\nkey Enter", "chosen");
+      // Opened again, it waits for the new answer instead of offering the old one.
+      tree = Files.readString(snap(app, "press #table", "again").get(1));
+      assertEquals(List.of(), ComboBoxTest.options(tree));
+      snap(app, "await\nframe\nkey Enter", "chosen");
       assertEquals("orders", picker.current);
       assertFalse(picker.state.isOpen());
     } finally {

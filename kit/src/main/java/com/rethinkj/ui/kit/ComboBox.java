@@ -106,6 +106,8 @@ public final class ComboBox {
     public void close() {
       open = false;
       list.reset(-1);
+      list.answer = List.of(); // what a search found is not shown again for another text
+      list.failure = null;
     }
   }
 
