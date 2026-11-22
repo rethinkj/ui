@@ -29,9 +29,9 @@ import java.util.function.Supplier;
  *
  * <p>A prop of an {@link Editing} ({@link Editing#at}) also carries its field's state: the draft
  * of a {@link ValueField} ({@link #draft}) and the field's {@link #error}, which the component
- * shows and {@link Form#field} puts below it. Writing the prop clears an error the app set on its
- * field ({@link #error(String)}) and on the fields around it. A prop is made anew in every build
- * and holds nothing of its own; the state is the editing's.
+ * shows and {@link Form#field} puts below it. Writing the prop clears any error the app set
+ * ({@link #error(String)}) on its field, its ancestors, and its descendants; siblings keep theirs.
+ * A prop is made anew in every build and holds nothing of its own; the state is the editing's.
  *
  * @param <T> the type of the value
  */
@@ -73,7 +73,8 @@ public final class Prop<T> {
   }
 
   /**
-   * Writes the value, and clears the errors the app set on this field and the fields around it.
+   * Writes the value, and clears the errors the app set on this field, its ancestors, and its
+   * descendants; siblings keep theirs.
    *
    * @throws IllegalStateException when the prop cannot be written
    */
@@ -114,7 +115,10 @@ public final class Prop<T> {
     };
     boolean writes = set != null && get() != null;
     return new Prop<>(
-        read, writes ? value -> set(part.write(get(), value)) : null, editing, List.copyOf(inner));
+        read,
+        writes ? value -> set.accept(part.write(get(), value)) : null,
+        editing,
+        List.copyOf(inner));
   }
 
   /** Whether this prop comes from an {@link Editing}, which keeps its field's {@link #draft}. */
@@ -149,7 +153,8 @@ public final class Prop<T> {
 
   /**
    * Sets an error the app learned, such as the server's refusal of a port: the field shows it,
-   * {@link Editing#valid} is false, and the next edit of the field clears it. Null clears it now.
+   * {@link Editing#valid} is false, and the next edit of the field, one of its ancestors, or one of
+   * its descendants clears it. Null clears it now.
    *
    * @throws IllegalStateException for a prop outside an editing, which has nowhere to keep it
    */

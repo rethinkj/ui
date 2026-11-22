@@ -69,6 +69,7 @@ class FindKeysTest {
     boolean area; // a plain text area with a find bar, not a code editor
     boolean position; // the caret's line and column below the editor
     boolean refuse; // the app keeps its text once
+    Texts texts = Texts.ENGLISH;
     App<Doc> app;
 
     Doc(String text) {
@@ -104,6 +105,7 @@ class FindKeysTest {
       return page;
     });
     doc.app = app;
+    app.provide(Texts.CURRENT, s -> s.texts);
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -277,7 +279,13 @@ class FindKeysTest {
     assertTrue(line(tree, "find-field").contains(" invalid"), tree);
     assertEquals("", count(tree));
     tree = run(app, "key Enter\nmove #find-field\nframe\nadvance 1\nframe");
-    assertTrue(tree.contains("role=tooltip label=\"Unclosed group"), tree);
+    assertTrue(tree.contains("role=tooltip label=\"Unclosed group at 8\""), tree);
+    doc.texts = new GermanTexts();
+    app.invalidate();
+    tree = run(app, "frame");
+    assertTrue(tree.contains("role=tooltip label=\"Unclosed group bei Zeichen 8\""), tree);
+    doc.texts = Texts.ENGLISH;
+    app.invalidate();
     tree = run(app, "type \")\"");
     assertFalse(line(tree, "find-field").contains(" invalid"), tree);
     assertEquals("1 of 4", count(tree));
