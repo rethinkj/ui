@@ -697,6 +697,64 @@ el 0,0 140x40
 # field selected, disabled
 el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 disabled
+# search empty, rest
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "" 10,8 120x24
+    text label="search" "\u{EA7C}" 14,12 16x16
+# search empty, hover
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "" 10,8 120x24 hovered
+    text label="search" "\u{EA7C}" 14,12 16x16
+# search empty, pressed
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "" 10,8 120x24 hovered focused caret 0
+    text label="search" "\u{EA7C}" 14,12 16x16
+# search empty, focused
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "" 10,8 120x24 focused caret 0
+    text label="search" "\u{EA7C}" 14,12 16x16
+# search empty, disabled
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "" 10,8 120x24 disabled
+    text label="search" "\u{EA7C}" 14,12 16x16
+# search filled, rest
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "orders" 10,8 120x24
+    text label="search" "\u{EA7C}" 14,12 16x16
+    el role=button label="Clear" 108,10 20x20
+      text label="dismiss" "\u{F368}" 110,12 16x16
+# search filled, hover
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "orders" 10,8 120x24 hovered
+    text label="search" "\u{EA7C}" 14,12 16x16
+    el role=button label="Clear" 108,10 20x20
+      text label="dismiss" "\u{F368}" 110,12 16x16
+# search filled, pressed
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "orders" 10,8 120x24 hovered focused caret 5
+    text label="search" "\u{EA7C}" 14,12 16x16
+    el role=button label="Clear" 108,10 20x20
+      text label="dismiss" "\u{F368}" 110,12 16x16
+# search filled, focused
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "orders" 10,8 120x24 focused caret 6
+    text label="search" "\u{EA7C}" 14,12 16x16
+    el role=button label="Clear" 108,10 20x20
+      text label="dismiss" "\u{F368}" 110,12 16x16
+# search filled, disabled
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Search tables" "orders" 10,8 120x24 disabled
+    text label="search" "\u{EA7C}" 14,12 16x16
 # password, rest
 el 0,0 140x40
   el #c 10,8 120x24

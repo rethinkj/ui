@@ -1,0 +1,1 @@
+- Added `TextField.searchField(value, placeholder, onChange)` and `TextField.searchField(prop, placeholder)`, with a leading magnifier, a clear button while filled that keeps focus in the field, and Escape to empty (bubbling when empty); `DataGrid`'s column and filter checklists now use it.
