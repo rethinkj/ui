@@ -64,6 +64,8 @@ public final class FreeType {
   public static final int LOAD_TARGET_LIGHT = 1 << 16;
   /** {@code FT_LOAD_COLOR}: load color layers (COLR version 0) or embedded color bitmaps. */
   public static final int LOAD_COLOR = 1 << 20;
+  /** {@code FT_LOAD_NO_SVG}: no OpenType SVG glyphs, which need hooks to render. */
+  public static final int LOAD_NO_SVG = 1 << 24;
 
   public static final int RENDER_MODE_NORMAL = 0;
   public static final int RENDER_MODE_LIGHT = 1;

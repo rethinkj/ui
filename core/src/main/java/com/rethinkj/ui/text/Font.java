@@ -630,7 +630,7 @@ public final class Font implements AutoCloseable {
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
       int flags = FreeType.LOAD_NO_BITMAP
-          | (colorGlyphs ? FreeType.LOAD_COLOR : 0)
+          | (colorGlyphs ? FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG : 0)
           | (icons
               ? ICON_HINTING
               : switch (hinting) {
@@ -945,7 +945,9 @@ public final class Font implements AutoCloseable {
     int index = FreeType.getCharIndex(face, sample);
     if (index == 0
         || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
-        || FreeType.loadGlyph(face, index, FreeType.LOAD_NO_BITMAP | FreeType.LOAD_COLOR) != 0) {
+        || FreeType.loadGlyph(
+                face, index, FreeType.LOAD_NO_BITMAP | FreeType.LOAD_COLOR | FreeType.LOAD_NO_SVG)
+            != 0) {
       return -1;
     }
     MemorySegment slot =
