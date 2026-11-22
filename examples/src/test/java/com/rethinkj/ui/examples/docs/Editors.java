@@ -155,6 +155,7 @@ final class Editors {
             new CodeEditor.Marker(
                 0, Symbol.PLAY, Icon.Variant.ACCENT, "Run statement", this::runGutterQuery),
             new CodeEditor.Marker(0, Symbol.RECORD, Icon.Variant.DANGER, "Breakpoint", null)));
+    int selectTo = gutterSql.indexOf("\nFROM");
     int joinFrom = gutterSql.indexOf("JOIN");
     int joinTo = gutterSql.indexOf("\nWHERE");
     int whereFrom = joinTo + 1;
@@ -164,6 +165,7 @@ final class Editors {
         "vcs",
         gutterSql,
         List.of(
+            new CodeEditor.Change(0, selectTo, CodeEditor.Change.Kind.MODIFIED),
             new CodeEditor.Change(joinFrom, joinTo, CodeEditor.Change.Kind.MODIFIED),
             new CodeEditor.Change(whereFrom, whereTo, CodeEditor.Change.Kind.ADDED),
             new CodeEditor.Change(orderFrom, orderFrom, CodeEditor.Change.Kind.DELETED)));

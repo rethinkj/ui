@@ -10,7 +10,7 @@ el 0,0 520x154
         el #marker-2 role=img label="Breakpoint" 51,19 12x12
           text label="record" "\u{F72F}" 51,19 12x12
         text "1" 67,17 7x16
-        el 78,25 2x0
+        el #change 78,17 2x16
         el 84,25 12x0
       el #line-1 13,33 87x16
         el 19,41 12x0

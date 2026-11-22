@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -239,28 +240,38 @@ class CodeEditorMarkupTest {
     // the modified/deleted change bars show on lines 1 and 2.
     Script.run("size 480 240 scale 2\nframe\nsnap before", app, out);
     String before = Files.readString(out.resolve("before.tree.txt"));
-    assertTrue(
-        before.matches("(?s).*#line-0 [^\n]*\n"
-            + "\\s+el #marker role=img label=\"Error\"[^\n]*\n"
-            + "\\s+text [^\n]*\n"
-            + "\\s+el #marker-1 role=img label=\"Run statement\"[^\n]*\n"
-            + "\\s+text [^\n]*\n"
-            + "\\s+el #marker-2 role=img label=\"Breakpoint\"[^\n]*.*"),
-        before);
-    assertTrue(
-        before.matches("(?s).*#line-1 [^\n]*\n(?:(?!#line-2).)*el #change [0-9,]+ 2x16.*"), before);
-    assertTrue(
-        before.matches("(?s).*#line-2 [^\n]*\n(?:(?!#line-3).)*el #change [0-9,]+ 2x4.*"), before);
+    String first = cell(before, 0);
+    int error = first.indexOf("el #marker role=img label=\"Error\"");
+    int run = first.indexOf("el #marker-1 role=img label=\"Run statement\"");
+    int breakpoint = first.indexOf("el #marker-2 role=img label=\"Breakpoint\"");
+    assertTrue(error >= 0 && run > error && breakpoint > run, first);
+    assertEquals("2x16", change(before, 1), before);
+    assertEquals("2x4", change(before, 2), before);
 
     // Insert a line before: both Change bars move down by one line.
     doc.text = "-- header\n" + text;
     app.invalidate();
     Script.run("size 480 240 scale 2\nframe\nsnap after", app, out);
     String after = Files.readString(out.resolve("after.tree.txt"));
-    assertFalse(after.matches("(?s).*#line-1 [^\n]*\n(?:(?!#line-2).)*el #change.*"), after);
-    assertTrue(
-        after.matches("(?s).*#line-2 [^\n]*\n(?:(?!#line-3).)*el #change [0-9,]+ 2x16.*"), after);
-    assertTrue(
-        after.matches("(?s).*#line-3 [^\n]*\n(?:(?!#line-4).)*el #change [0-9,]+ 2x4.*"), after);
+    assertNull(change(after, 1), after);
+    assertEquals("2x16", change(after, 2), after);
+    assertEquals("2x4", change(after, 3), after);
+  }
+
+  /** The tree dump of the gutter cell of line {@code index}. */
+  private static String cell(String tree, int index) {
+    int from = tree.indexOf("#line-" + index + " ");
+    int to = tree.indexOf("#line-" + (index + 1) + " ", from);
+    return from < 0 ? "" : tree.substring(from, to < 0 ? tree.length() : to);
+  }
+
+  /** The size of the change bar in the cell of line {@code index}, or null without one. */
+  private static String change(String tree, int index) {
+    return cell(tree, index)
+        .lines()
+        .filter(line -> line.contains("el #change "))
+        .map(line -> line.substring(line.lastIndexOf(' ') + 1))
+        .findFirst()
+        .orElse(null);
   }
 }
