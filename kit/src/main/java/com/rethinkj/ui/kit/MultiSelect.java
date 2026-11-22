@@ -155,7 +155,7 @@ public final class MultiSelect {
             }
           });
     }
-    Set<String> seen = new HashSet<>(selected.size());
+    Set<String> seen = HashSet.newHashSet(selected.size());
     for (int i = 0; i < selected.size(); i++) {
       String value = selected.get(i);
       Badge.Options options = Badge.options();
@@ -303,17 +303,14 @@ public final class MultiSelect {
       return false; // and the focus moves on, either way
     }
     if (k.modifiers() == 0) {
-      switch (k.name()) {
-        case "Escape" -> {
-          state.close();
-          return true;
-        }
-        case "Enter", "NumpadEnter" -> {
-          if (!state.list.shown.choosable(state.list.highlight)) {
-            return true;
-          }
-        }
-        default -> {}
+      String name = k.name();
+      if (name.equals("Escape")) {
+        state.close();
+        return true;
+      }
+      boolean enter = name.equals("Enter") || name.equals("NumpadEnter");
+      if (enter && !state.list.shown.choosable(state.list.highlight)) {
+        return true; // nothing highlighted to add
       }
     }
     return FilterList.key(k, state.list, ROWS, e -> e.onChoose().run());
