@@ -588,8 +588,9 @@ public final class ComboBox {
         .padding(theme.space().s())
         .keepFocus()
         .dismissGroup(state)
-        // Clear of the field's focus ring, which lies its gap apart from it.
-        .side(Side.BOTTOM, Style.Align.STRETCH, Dialog.ring(theme))
+        // Clear of the field's focus ring, which lies its gap apart from it; whole pixels, since
+        // the overlay's place is rounded.
+        .side(Side.BOTTOM, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
         .onDismiss(state::close)
         .child(list);
     return box.dismissGroup(state).overlay(panel);
