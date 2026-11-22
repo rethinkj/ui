@@ -14,6 +14,7 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -192,9 +193,7 @@ public final class Find {
       try {
         return search().compile();
       } catch (PatternSyntaxException e) {
-        error = e.getIndex() >= 0
-            ? texts.patternError(e.getDescription(), e.getIndex() + 1)
-            : e.getDescription();
+        error = patternError(texts, e);
         return null;
       }
     }
@@ -772,47 +771,99 @@ public final class Find {
     }
   }
 
-  /** What the count says. */
-  static String count(State state, String text) {
-    if (state.query.isEmpty() || state.error != null) {
-      return "";
-    }
-    if (!state.fresh(text)) {
-      return state.texts.searching();
-    }
-    Search.Matches m = state.matches;
-    if (m.stopped() && m.count() == 0) {
-      return state.texts.tooSlow();
-    }
-    if (m.count() == 0) {
-      return state.texts.noResults();
-    }
-    String total = m.complete() ? String.valueOf(m.count()) : m.count() + "+";
-    int i = m.indexOf(Math.min(state.caret, state.anchor), Math.max(state.caret, state.anchor));
-    if (i >= 0) {
-      return state.texts.match(i + 1, total);
-    }
-    return state.texts.results(total, m.count() == 1 && m.complete());
+  /** Formats a regular-expression syntax error in the view's texts. */
+  static String patternError(Texts texts, PatternSyntaxException e) {
+    return e.getIndex() >= 0
+        ? texts.patternError(e.getDescription(), e.getIndex() + 1)
+        : e.getDescription();
   }
 
-  /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
-  private static El bar(Theme theme, App<?> app, State state, String text, boolean editable) {
-    Texts texts = state.texts;
-    El panel = Popup.surface(theme, col())
+  /** What the count says, shared with {@link GridFind}. */
+  static String formatCount(
+      Texts texts,
+      boolean empty,
+      String error,
+      boolean searching,
+      boolean stopped,
+      int count,
+      boolean complete,
+      int currentIndex) {
+    if (empty || error != null) {
+      return "";
+    }
+    if (searching) {
+      return texts.searching();
+    }
+    if (stopped && count == 0) {
+      return texts.tooSlow();
+    }
+    if (count == 0) {
+      return texts.noResults();
+    }
+    String total = complete ? String.valueOf(count) : count + "+";
+    if (currentIndex >= 0) {
+      return texts.match(currentIndex + 1, total);
+    }
+    return texts.results(total, count == 1 && complete);
+  }
+
+  /** What the count says. */
+  static String count(State state, String text) {
+    Search.Matches m = state.matches;
+    int current =
+        m.indexOf(Math.min(state.caret, state.anchor), Math.max(state.caret, state.anchor));
+    return formatCount(
+        state.texts,
+        state.query.isEmpty(),
+        state.error,
+        !state.fresh(text),
+        m.stopped(),
+        m.count(),
+        m.complete(),
+        current);
+  }
+
+  /** The popup surface holding a find bar's rows. */
+  static El panel(Theme theme) {
+    return Popup.surface(theme, col())
         .padding(theme.space().xs())
         .gap(theme.space().xs());
-    // Over the top right corner of the field, clear of its scrollbar: the root's padding.
+  }
+
+  /** The floating find bar container, positioned at the top right clear of the vertical scrollbar. */
+  static El bar(Theme theme, Texts texts, float topInset, Predicate<Key> onKey, El panel) {
     Scrollbars bars = theme.scrollbars();
-    El bar = row()
+    return row()
         .key("find")
         .role("search")
         .label(texts.find())
         .padding(0, bars.strip(), 0, 0)
         .motion(theme.motion().fade())
-        .side(
-            Side.TOP, Style.Align.END, -(barHeight(theme, state) + theme.space().xs()))
-        .onKey(k -> barKey(app, state, k))
+        .side(Side.TOP, Style.Align.END, -topInset)
+        .onKey(onKey)
         .child(panel);
+  }
+
+  /** The tabular-numeral match count label, spaced a step m after the query field. */
+  static El countLabel(Theme theme, String text) {
+    El count = label(Label.Variant.SMALL, text).key("count").shrink(0).fontFeatures("+tnum");
+    count.style().minWidth = Len.px(2 * theme.size().control());
+    // The rows' gap is xs; the field stands a step m apart from what follows it.
+    float apart = theme.space().m() - theme.space().xs();
+    count.margin(0, 0, 0, apart);
+    return count;
+  }
+
+  /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
+  private static El bar(Theme theme, App<?> app, State state, String text, boolean editable) {
+    Texts texts = state.texts;
+    El panel = panel(theme);
+    El bar = bar(
+        theme,
+        texts,
+        barHeight(theme, state) + theme.space().xs(),
+        k -> barKey(app, state, k),
+        panel);
     if (state.mode == Mode.LINE) {
       panel.child(lineRow(theme, state, text));
       return bar;
@@ -831,12 +882,8 @@ public final class Find {
             .key("toggle-replace")
         : null;
     El query = queryField(theme, state);
-    String said = count(state, text);
-    El count = label(Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
-    count.style().minWidth = Len.px(2 * theme.size().control());
-    // The rows' gap is xs; the field stands a step m apart from what follows it.
+    El count = countLabel(theme, count(state, text));
     float apart = theme.space().m() - theme.space().xs();
-    count.margin(0, 0, 0, apart);
     boolean searchable = !state.query.isEmpty() && state.error == null;
     El findRow = row().gap(theme.space().xs()).align(Style.Align.CENTER);
     if (toggle != null) {
@@ -924,12 +971,79 @@ public final class Find {
     return bar;
   }
 
-  /** The height of the bar, to lay it over the field's top. */
-  static float barHeight(Theme theme, State state) {
-    int rows = state.mode == Mode.REPLACE ? 2 : 1;
+  /** The height of a find bar with {@code rows} rows, to lay it over its host's top. */
+  static float barHeight(Theme theme, int rows) {
     return rows * theme.size().control()
         + (rows - 1) * theme.space().xs()
         + 2 * (theme.space().xs() + theme.size().stroke());
+  }
+
+  /** The height of the bar, to lay it over the field's top. */
+  static float barHeight(Theme theme, State state) {
+    return barHeight(theme, state.mode == Mode.REPLACE ? 2 : 1);
+  }
+
+  /**
+   * Embeds the case, optional whole-word, and regular-expression switches inside {@code field} and
+   * marks it invalid with a danger tooltip when {@code error} is non-null.
+   */
+  static El queryField(
+      Theme theme,
+      Texts texts,
+      El field,
+      String error,
+      boolean matchCase,
+      Runnable onMatchCase,
+      Boolean wholeWord,
+      Runnable onWholeWord,
+      boolean regex,
+      Runnable onRegex) {
+    float inset = theme.space().xs();
+    float size = FieldActions.size(theme);
+    if (error != null) {
+      TextField.invalid(field);
+    }
+    El switches = row()
+        .gap(0)
+        .child(tool(
+                theme,
+                Symbol.TEXT_CASE_TITLE,
+                texts.matchCase(),
+                texts.keys("Alt", "C"),
+                matchCase,
+                onMatchCase)
+            .key("match-case")
+            .size(size, size));
+    int count = 2;
+    if (onWholeWord != null) {
+      switches.child(tool(
+              theme,
+              Symbol.TEXT_WHOLE_WORD,
+              texts.wholeWord(),
+              texts.keys("Alt", "W"),
+              wholeWord,
+              onWholeWord)
+          .key("whole-word")
+          .size(size, size));
+      count = 3;
+    }
+    switches.child(tool(
+            theme,
+            Symbol.TEXT_PERIOD_ASTERISK,
+            texts.regularExpression(),
+            texts.keys("Alt", "R"),
+            regex,
+            onRegex)
+        .key("regex")
+        .size(size, size));
+    El box = FieldActions.embed(theme, field, switches, count * size + 2 * inset)
+        .whenFocusWithin(e -> {
+          int c = error != null ? theme.status().danger() : theme.accent().color();
+          TextField.edge(theme, field, c, c);
+        });
+    return error != null
+        ? Tooltip.tooltip(box, error, Tooltip.options().kind(Callout.Kind.DANGER))
+        : box;
   }
 
   /** The field to find, with the switches of case, words and regular expressions inside. */
@@ -963,56 +1077,26 @@ public final class Find {
           return enter;
         });
     state.findField = field;
-    float inset = theme.space().xs();
-    float size = FieldActions.size(theme);
-    if (state.error != null) {
-      TextField.invalid(field);
-    }
-    El switches = row()
-        .gap(0)
-        .child(tool(
-                theme,
-                Symbol.TEXT_CASE_TITLE,
-                texts.matchCase(),
-                texts.keys("Alt", "C"),
-                state.matchCase,
-                () -> {
-                  state.matchCase = !state.matchCase;
-                  changed(state);
-                })
-            .key("match-case")
-            .size(size, size))
-        .child(tool(
-                theme,
-                Symbol.TEXT_WHOLE_WORD,
-                texts.wholeWord(),
-                texts.keys("Alt", "W"),
-                state.wholeWord,
-                () -> {
-                  state.wholeWord = !state.wholeWord;
-                  changed(state);
-                })
-            .key("whole-word")
-            .size(size, size))
-        .child(tool(
-                theme,
-                Symbol.TEXT_PERIOD_ASTERISK,
-                texts.regularExpression(),
-                texts.keys("Alt", "R"),
-                state.regex,
-                () -> {
-                  state.regex = !state.regex;
-                  changed(state);
-                })
-            .key("regex")
-            .size(size, size));
-    El box = FieldActions.embed(theme, field, switches, 3 * size + 2 * inset).whenFocusWithin(e -> {
-      int c = state.error != null ? theme.status().danger() : theme.accent().color();
-      TextField.edge(theme, field, c, c);
-    });
-    return state.error != null
-        ? Tooltip.tooltip(box, state.error, Tooltip.options().kind(Callout.Kind.DANGER))
-        : box;
+    return queryField(
+        theme,
+        texts,
+        field,
+        state.error,
+        state.matchCase,
+        () -> {
+          state.matchCase = !state.matchCase;
+          changed(state);
+        },
+        state.wholeWord,
+        () -> {
+          state.wholeWord = !state.wholeWord;
+          changed(state);
+        },
+        state.regex,
+        () -> {
+          state.regex = !state.regex;
+          changed(state);
+        });
   }
 
   /** The field of the line to go to and the lines there are. */
@@ -1061,7 +1145,7 @@ public final class Find {
    * A small square button with an icon in the bar: a switch when {@code checked} is not null. It
    * leaves the focus where it is when pressed, and Tab reaches it; its tooltip names its keys.
    */
-  private static El tool(
+  static El tool(
       Theme theme, Symbol symbol, String label, String keys, Boolean checked, Runnable onPress) {
     El button = FieldActions.button(theme, symbol, label, checked, onPress)
         .size(theme.size().control(), theme.size().control())

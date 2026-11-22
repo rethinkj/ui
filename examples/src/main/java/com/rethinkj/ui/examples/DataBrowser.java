@@ -295,6 +295,7 @@ public final class DataBrowser {
   List<Filter> filters = List.of(); // per column, on the text columns
   int[] matching = all(); // the rows below PERIOD that the filters keep, in order
   final Selection selection = new Selection(Mode.CELLS); // in the places the grid shows
+  final DataGrid.Find find = new DataGrid.Find(); // in-grid Ctrl+F find bar
   int selected = -1; // the order at the cursor, also while the filter hides it
   boolean inspecting; // whether the selected order's drawer is open
   boolean descending; // by id
@@ -679,7 +680,7 @@ public final class DataBrowser {
                     button(Button.Variant.SECONDARY, "Clear filters", state::clearFilters))
                 : null);
     if (state.app != null) { // the window's clipboard once it runs, the app's own before
-      options.copy(state.app.clipboard());
+      options.copy(state.app.clipboard()).find(state.app, state.find);
     }
     // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
     options.onLargeCopy((copy, limit) -> state.toast = String.format(

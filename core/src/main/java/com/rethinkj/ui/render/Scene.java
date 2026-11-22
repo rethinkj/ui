@@ -1299,6 +1299,10 @@ public final class Scene {
       for (Text.Box box : text.selection()) {
         box(box, left, top, scale, text.selectionColor(), opacity, clip);
       }
+    } else {
+      for (Text.Mark mark : text.marks()) {
+        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+      }
     }
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);

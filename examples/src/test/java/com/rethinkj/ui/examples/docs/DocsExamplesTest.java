@@ -91,6 +91,7 @@ class DocsExamplesTest {
       Map.entry("grid-totals", List.of("selected")),
       Map.entry("grid-empty", List.of("empty")),
       Map.entry("grid-tree", List.of("view")),
+      Map.entry("grid-find", List.of("found")),
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
       Map.entry("form-divided", List.of("view")),
@@ -188,6 +189,7 @@ class DocsExamplesTest {
     grids(all, "grid-totals", Grids::totals, 560, 300);
     grids(all, "grid-empty", Grids::empty, 520, 300);
     grids(all, "grid-tree", Grids::treeRows, 520, 280);
+    grids(all, "grid-find", Grids::found, 560, 260);
     grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
     all.put(

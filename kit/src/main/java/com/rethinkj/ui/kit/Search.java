@@ -186,6 +186,20 @@ final class Search {
   }
 
   /**
+   * Whether {@code pattern} has at least one match in {@code text}, checked on grapheme boundaries
+   * until {@code deadline}.
+   *
+   * @throws Stopped past the deadline
+   */
+  static boolean hasMatch(Pattern pattern, String text, long deadline) {
+    if (text.isEmpty()) {
+      return false;
+    }
+    Matcher m = matcher(pattern, text, 0, text.length(), deadline);
+    return find(m, new Graphemes(text), text.length());
+  }
+
+  /**
    * The matches of {@code pattern} from {@code from} to {@code to}, at most {@code limit} of them,
    * searched until the deadline.
    */
@@ -279,7 +293,7 @@ final class Search {
    */
   static final class Graphemes {
     private final String text;
-    private final BreakIterator iterator = BreakIterator.getCharacterInstance();
+    private BreakIterator iterator;
     private int from = -1; // the window, from a boundary
     private int to = -1;
 
@@ -293,6 +307,9 @@ final class Search {
       }
       if (known(at)) {
         return !crlf(at);
+      }
+      if (iterator == null) {
+        iterator = BreakIterator.getCharacterInstance();
       }
       if (from < 0 || at <= from || at + 1 >= to && to < text.length()) {
         int start = 0;
