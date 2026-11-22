@@ -1,0 +1,1 @@
+- A press on the icon of `TextField.withIcon` now focuses the field, with the caret at the start of the text in view, as a press there in the text would; this also holds for any press in a field's left padding while its text is scrolled.
