@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -175,5 +178,162 @@ class ScrollStateTest {
     app.resize(300, 200, 1);
     app.frame();
     return app;
+  }
+
+  /** Two multiline fields coupled with {@link ScrollState#scrollWith}. */
+  static final class Coupled {
+    final ScrollState left = new ScrollState();
+    final ScrollState right = new ScrollState();
+    final FieldState leftField = new FieldState();
+    final FieldState rightField = new FieldState();
+    String leftText;
+    String rightText;
+    List<El.Block> leftBlocks = List.of();
+    boolean showRight = true;
+
+    Coupled(int leftLines, int rightLines) {
+      this.leftText = numberedLines(leftLines);
+      this.rightText = numberedLines(rightLines);
+    }
+
+    private static String numberedLines(int count) {
+      StringBuilder out = new StringBuilder();
+      for (int i = 0; i < count; i++) {
+        if (i > 0) {
+          out.append('\n');
+        }
+        out.append("line ").append(i).append(" — a wide enough line for sideways scrolling");
+      }
+      return out.toString();
+    }
+  }
+
+  private static App<Coupled> coupledApp(Coupled model) {
+    App<Coupled> app = new App<>(model, m -> {
+      El left = El.text(m.leftText)
+          .editable(v -> m.leftText = v)
+          .multiline()
+          .key("left")
+          .font(Font.mono())
+          .fontSize(14)
+          .w(180)
+          .lines(6)
+          .padding(4)
+          .scrollBoth()
+          .fieldState(m.leftField)
+          .scrollState(m.left);
+      if (!m.leftBlocks.isEmpty()) {
+        left.blocks(m.leftBlocks, b -> el().h(10), null);
+      }
+      El root = El.row().wFull().hFull().padding(10).gap(10).child(left);
+      if (m.showRight) {
+        El right = El.text(m.rightText)
+            .editable(v -> m.rightText = v)
+            .multiline()
+            .key("right")
+            .font(Font.mono())
+            .fontSize(14)
+            .w(180)
+            .lines(6)
+            .padding(4)
+            .scrollBoth()
+            .fieldState(m.rightField)
+            .scrollState(m.right);
+        root.child(right);
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(420, 200, 1);
+    app.frame();
+    return app;
+  }
+
+  @Test
+  void coupledScrollMapsByAnchorsAndBlocksBothWays() {
+    TextLibraries.assumeLoaded();
+    Coupled model = new Coupled(60, 80);
+    model.left.scrollWith(
+        model.right, List.of(new ScrollState.Anchor(10, 15), new ScrollState.Anchor(20, 35)));
+    App<Coupled> app = coupledApp(model);
+    El left = app.tree().children().get(0);
+    double lh = left.text().lineHeight() / left.text().scale();
+
+    // Before first anchor (diff +5): left line 5 -> right line 10.
+    app.wheel(50, 50, 0, (float) (5 * lh));
+    app.frame();
+    assertEquals(5 * lh, model.left.y(), 0.5);
+    assertEquals(10 * lh, model.right.y(), 0.5);
+
+    // Midpoint between (10,15) and (20,35): left line 15 -> right line 25.
+    app.wheel(50, 50, 0, (float) (10 * lh));
+    app.frame();
+    assertEquals(15 * lh, model.left.y(), 0.5);
+    assertEquals(25 * lh, model.right.y(), 0.5);
+
+    // After last anchor (diff +15): left line 25 -> right line 40.
+    app.wheel(50, 50, 0, (float) (10 * lh));
+    app.frame();
+    assertEquals(25 * lh, model.left.y(), 0.5);
+    assertEquals(40 * lh, model.right.y(), 0.5);
+
+    // Reverse: scrolling right back to line 25 moves left back to line 15.
+    app.wheel(250, 50, 0, (float) (-15 * lh));
+    app.frame();
+    assertEquals(25 * lh, model.right.y(), 0.5);
+    assertEquals(15 * lh, model.left.y(), 0.5);
+
+    // Sideways: both keep the same horizontal offset.
+    app.wheel(50, 50, 40, 0);
+    app.frame();
+    assertEquals(40, model.left.x(), 0.5);
+    assertEquals(40, model.right.x(), 0.5);
+
+    // Blocks between lines count in the distance to the next line's top.
+    model.leftBlocks = List.of(El.Block.insert(12).lines(3));
+    model.left.scrollWith(model.right, List.of()); // line n -> line n
+    app.invalidate();
+    app.frame();
+    // Taking kept offsets on rebuild must NOT move the other one.
+    assertEquals(15 * lh, model.left.y(), 0.5);
+    assertEquals(25 * lh, model.right.y(), 0.5);
+
+    // ScrollState.scrollTo moves the partner on the next build: line 11 + half of (1 line + 3-line
+    // block) = 11 + 2 lines = fractional line 11.5 -> right at 11.5 * lh.
+    model.left.scrollTo(0, 13 * lh);
+    app.invalidate();
+    app.frame();
+    assertEquals(13 * lh, model.left.y(), 0.5);
+    assertEquals(11.5 * lh, model.right.y(), 0.5);
+
+    // Caret reveal in right moves left as well.
+    model.rightField.select(model.rightText.length(), model.rightText.length());
+    app.invalidate();
+    app.frame();
+    assertTrue(model.right.y() > 50 * lh, "right scrolled to end");
+    assertTrue(model.left.y() > 40 * lh, "left followed caret reveal");
+
+    // Partner out of tree is left alone.
+    double savedRight = model.right.y();
+    model.showRight = false;
+    app.invalidate();
+    app.frame();
+    app.wheel(50, 50, 0, (float) (-20 * lh));
+    app.frame();
+    assertEquals(savedRight, model.right.y(), 0.5);
+
+    // Uncoupling with null stops following for both.
+    model.showRight = true;
+    model.left.scrollWith(null, List.of());
+    app.invalidate();
+    app.frame();
+    double rightBefore = model.right.y();
+    app.wheel(50, 50, 0, (float) (5 * lh));
+    app.frame();
+    assertEquals(rightBefore, model.right.y(), 0.5);
+
+    assertThrows(
+        IllegalArgumentException.class, () -> model.left.scrollWith(model.left, List.of()));
+    assertThrows(IllegalArgumentException.class, () -> new ScrollState.Anchor(-1, 0));
   }
 }

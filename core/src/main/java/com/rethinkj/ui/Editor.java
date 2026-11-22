@@ -1,7 +1,6 @@
 package com.rethinkj.ui;
 
 import java.text.BreakIterator;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -63,41 +62,19 @@ final class Editor {
   static final boolean WORD_ENDS = !System.getProperty("os.name", "").startsWith("Windows");
 
   /** Edits that coalesce into one step of the history while they follow each other. */
-  private enum Run {
+  enum Run {
     TYPING,
     DELETING
   }
 
-  private record State(String text, int caret, int anchor) {}
-
-  /**
-   * A step of the history: {@code removed} at {@code at} replaced by {@code inserted}, with the
-   * caret and the anchor before and after.
-   */
-  private record Step(
-      int at,
-      String removed,
-      String inserted,
-      int caretBefore,
-      int anchorBefore,
-      int caretAfter,
-      int anchorAfter) {}
-
+  private final TextDocument doc;
   private El el; // in the current tree, for its handler and settings
   private String text;
+  private long revision; // the revision of doc this view's text, caret and lines match; -1 when new
   private int caret;
   private int anchor;
   private Lines lines; // of text, in a multi-line field; null otherwise
   private Lines.Budget highlightBudget;
-  // The state before the first edit that no tree has answered yet, the history as it was then, and
-  // what the last edit proposed.
-  private State before;
-  private ArrayDeque<Step> undoBefore;
-  private ArrayDeque<Step> redoBefore;
-  private String proposed;
-  private ArrayDeque<Step> undo = new ArrayDeque<>();
-  private ArrayDeque<Step> redo = new ArrayDeque<>();
-  private Run run;
   private String composition = "";
   private int compositionCursor;
   // What the pointer selects by while it is down: 1 graphemes, 2 words, 3 everything or, in a
@@ -143,16 +120,37 @@ final class Editor {
   private Lines shownLines;
 
   /**
-   * A new editor with the caret at the end of the element's string, or at its start in a
-   * multi-line field, whose text may be long.
+   * A new editor with a document of its own and the caret at the end of the element's string, or
+   * at its start in a multi-line field, whose text may be long.
    */
   Editor(El el) {
+    this(el, null);
+  }
+
+  /**
+   * A new editor backed by {@code document}, or a private one when {@code document} is null.
+   */
+  Editor(El el, TextDocument document) {
     this.el = el;
     boolean multi = el.text().multiline();
     this.text = multi ? normalized(el.text().value()) : el.text().value();
     this.caret = multi ? 0 : text.length();
     this.anchor = caret;
     this.lines = multi ? Lines.of(text) : null;
+    if (document == null) {
+      this.doc = new TextDocument();
+      this.doc.shared = false;
+      this.doc.initialize(this.text);
+      this.revision = this.doc.revision;
+    } else {
+      this.doc = document;
+      if (document.text == null) {
+        document.initialize(this.text);
+        this.revision = document.revision;
+      } else {
+        this.revision = -1;
+      }
+    }
   }
 
   // ---- The element
@@ -176,7 +174,7 @@ final class Editor {
       return;
     }
     String value = t.value();
-    answer(value.equals(proposed) || value.equals(text) ? value : normalized(value));
+    answer(value.equals(doc.proposed) || value.equals(text) ? value : normalized(value));
     lines().folds(el.folds());
     lines().blocks(el.blocks());
     unhideCaret();
@@ -189,7 +187,7 @@ final class Editor {
    * drawn, so that typing goes where the user sees the caret.
    */
   private void unhideCaret() {
-    if (caret != anchor || proposed != null || unfoldPending || !lines.hasBlocks()) {
+    if (caret != anchor || doc.answerPending() || unfoldPending || !lines.hasBlocks()) {
       return;
     }
     int line = lines.line(Math.clamp(caret, 0, text.length()));
@@ -248,65 +246,105 @@ final class Editor {
 
   /** Whether an edit waits for the app's answer, the string of the next tree. */
   boolean answerPending() {
-    return proposed != null;
+    return doc.answerPending();
   }
 
   /** Whether an edit waits for the app's answer, or onSelect has yet to hear the selection. */
   boolean selectionPending() {
-    return proposed != null || untold();
+    return doc.answerPending() || untold();
   }
 
   /** Whether onSelect has yet to hear the selection, which {@link #tell} tells now. */
   boolean untold() {
-    return proposed == null && (caret != toldCaret || anchor != toldAnchor);
+    return !doc.answerPending() && (caret != toldCaret || anchor != toldAnchor);
   }
 
   /**
    * Takes the app's answer to the edits since the last answer: the string the view now gives the
    * element, as {@link #attach} describes. {@link App} builds the view again between two edits
    * that reach a field in the same frame, so that the second builds on what the app made of the
-   * first.
+   * first. Whichever view of a shared {@link TextDocument} attaches first resolves the document's
+   * pending proposal or external change, and every other view catches up from the document's
+   * change log.
    */
   private void answer(String value) {
-    // An answered edit, or the app's own change, may leave the caret on a line a fold hides.
-    unfoldPending |= proposed != null || !value.equals(text);
-    if (proposed != null) {
-      toldCaret = -1; // the handler hears the selection after every answer, also one it had
-      // The answer is usually the proposal itself, which the first comparison finds at once.
-      if (!value.equals(proposed) && value.equals(before.text)) {
-        // Refused: as if the edits had not happened.
-        caret = before.caret;
-        anchor = before.anchor;
-        undo = undoBefore;
-        redo = redoBefore;
-        run = null;
-        relined(value);
-      } else if (!value.equals(proposed)) {
-        // Changed: one step from before the edits to what the app made of them.
-        TextChange change = TextChange.between(proposed, value);
-        caret = change.map(caret);
-        anchor = change.map(anchor);
-        undo = undoBefore;
-        redo = new ArrayDeque<>();
-        push(undo, diff(before, value, caret, anchor));
-        run = null;
-        relined(value);
+    doc.resolve(value);
+    if (revision != doc.revision) {
+      catchUp();
+    } else if (!text.equals(doc.text)) {
+      text = doc.text;
+      caret = snap(caret);
+      anchor = snap(anchor);
+    }
+  }
+
+  /** Called by {@link TextDocument#resolve} when this editor's proposal was accepted as is. */
+  void accepted(String value, long rev) {
+    text = value;
+    revision = rev;
+    toldCaret = -1; // the handler hears the selection after every answer, also one it had
+    unfoldPending = true;
+    caret = snap(caret);
+    anchor = snap(anchor);
+  }
+
+  /** Called by {@link TextDocument#resolve} when the app refused this editor's proposal. */
+  void restored(String value, int oldCaret, int oldAnchor, long rev) {
+    text = value;
+    revision = rev;
+    toldCaret = -1;
+    unfoldPending = true;
+    relined(value);
+    caret = snap(oldCaret);
+    anchor = snap(oldAnchor);
+  }
+
+  /** Called by {@link TextDocument#resolve} when the app changed this editor's proposal. */
+  void changed(String value, int newCaret, int newAnchor, long rev) {
+    text = value;
+    revision = rev;
+    toldCaret = -1;
+    unfoldPending = true;
+    relined(value);
+    caret = snap(newCaret);
+    anchor = snap(newAnchor);
+  }
+
+  /** Updates this view's text, caret, selection and lines to match {@code doc.revision}. */
+  private void catchUp() {
+    if (revision < 0) {
+      text = doc.text;
+      revision = doc.revision;
+      caret = snap(caret);
+      anchor = snap(anchor);
+      return;
+    }
+    unfoldPending = true;
+    List<TextDocument.Change> missed = doc.changesSince(revision);
+    if (missed != null) {
+      boolean external = false;
+      for (TextDocument.Change change : missed) {
+        caret = change.range().map(caret);
+        anchor = change.range().map(anchor);
+        external |= change.external();
       }
-      before = null;
-      undoBefore = null;
-      redoBefore = null;
-      proposed = null;
-    } else if (!value.equals(text)) {
-      // Changed by the app on its own: the history no longer leads to it.
-      TextChange change = TextChange.between(text, value);
+      text = doc.text;
+      if (external) {
+        relined(text);
+      } else if (lines != null) {
+        for (TextDocument.Change change : missed) {
+          TextChange r = change.range();
+          lines.edit(r.start(), r.oldEnd() - r.start(), change.inserted());
+        }
+      }
+    } else {
+      TextChange change = TextChange.between(text, doc.text);
       caret = change.map(caret);
       anchor = change.map(anchor);
-      undo.clear();
-      redo.clear();
-      run = null;
-      relined(value);
+      text = doc.text;
+      relined(text);
     }
-    text = value;
+    revision = doc.revision;
     caret = snap(caret);
     anchor = snap(anchor);
   }
@@ -318,20 +356,6 @@ final class Editor {
       lines.budget(highlightBudget);
       reveal = true;
     }
-  }
-
-  /** The step from a state to a string that differs from its text in one place. */
-  private static Step diff(State from, String to, int caretAfter, int anchorAfter) {
-    String a = from.text;
-    TextChange change = TextChange.between(a, to);
-    return new Step(
-        change.start(),
-        a.substring(change.start(), change.oldEnd()),
-        to.substring(change.start(), change.newEnd()),
-        from.caret,
-        from.anchor,
-        caretAfter,
-        anchorAfter);
   }
 
   /** Whether the element takes edits: it has a handler and is not read-only. */
@@ -397,7 +421,7 @@ final class Editor {
 
   /** Whether a pending selection or undo/redo still needs to check for hidden folds to unfold. */
   boolean hasPendingUnfold() {
-    return unfoldPending && proposed == null;
+    return unfoldPending && !doc.answerPending();
   }
 
   /**
@@ -515,7 +539,7 @@ final class Editor {
     int length = text.length() - (to - from) + fitted.length();
     newCaret = fitted(newCaret, from, inserted, fitted, length);
     newAnchor = fitted(newAnchor, from, inserted, fitted, length);
-    run = null;
+    doc.clearRun();
     unfoldPending = true;
     edit(from, to - from, fitted, newCaret, newAnchor, null, false);
     asked |= ask;
@@ -541,7 +565,7 @@ final class Editor {
     composition = "";
     anchor = snap(newAnchor);
     caret = snap(newCaret);
-    run = null;
+    doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
     reveal = true;
@@ -647,7 +671,7 @@ final class Editor {
   /** The element lost the focus: a composition ends without being committed. */
   void blur() {
     composition = "";
-    run = null;
+    doc.clearRun(this);
     unit = 1;
     escaped = false;
     changed = true;
@@ -672,10 +696,7 @@ final class Editor {
    */
   void drop() {
     leave();
-    before = null;
-    undoBefore = null;
-    redoBefore = null;
-    proposed = null;
+    doc.drop(this);
     toldCaret = caret;
     toldAnchor = anchor;
   }
@@ -1009,7 +1030,7 @@ final class Editor {
     if (delta > 0 && max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
       return; // an indent is whole or nothing, and cuts no text; an outdent only shortens
     }
-    run = null;
+    doc.clearRun();
     edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
   }
 
@@ -1069,7 +1090,7 @@ final class Editor {
     compositionCursor = cursor < 0
         ? composition.length()
         : Math.min(fitIndex(composing, cursor), composition.length());
-    run = null;
+    doc.clearRun(this);
     changed = true;
     reveal = true;
     return true;
@@ -1078,7 +1099,7 @@ final class Editor {
   void selectAll() {
     anchor = 0;
     caret = text.length();
-    run = null;
+    doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
   }
@@ -1107,50 +1128,53 @@ final class Editor {
   }
 
   void undo() {
-    if (editable() && !undo.isEmpty()) {
-      keepHistory();
-      Step step = undo.pop();
+    if (editable() && !doc.undo.isEmpty()) {
+      doc.keepHistory();
+      TextDocument.Step step = doc.undo.pop();
       // Redo comes back to the caret and selection of now, as undo to those before the edit.
-      push(
-          redo,
-          new Step(
-              step.at,
-              step.removed,
-              step.inserted,
-              step.caretBefore,
-              step.anchorBefore,
+      TextDocument.push(
+          doc.redo,
+          new TextDocument.Step(
+              step.at(),
+              step.removed(),
+              step.inserted(),
+              step.caretBefore(),
+              step.anchorBefore(),
               caret,
               anchor));
       unfoldPending = true;
-      propose(step.at, step.inserted.length(), step.removed, step.caretBefore, step.anchorBefore);
-      run = null;
+      propose(
+          step.at(),
+          step.inserted().length(),
+          step.removed(),
+          step.caretBefore(),
+          step.anchorBefore());
+      doc.clearRun();
     }
   }
 
   void redo() {
-    if (editable() && !redo.isEmpty()) {
-      keepHistory();
-      Step step = redo.pop();
-      push(
-          undo,
-          new Step(
-              step.at,
-              step.removed,
-              step.inserted,
+    if (editable() && !doc.redo.isEmpty()) {
+      doc.keepHistory();
+      TextDocument.Step step = doc.redo.pop();
+      TextDocument.push(
+          doc.undo,
+          new TextDocument.Step(
+              step.at(),
+              step.removed(),
+              step.inserted(),
               caret,
               anchor,
-              step.caretAfter,
-              step.anchorAfter));
+              step.caretAfter(),
+              step.anchorAfter()));
       unfoldPending = true;
-      propose(step.at, step.removed.length(), step.inserted, step.caretAfter, step.anchorAfter);
-      run = null;
-    }
-  }
-
-  private static void push(ArrayDeque<Step> history, Step step) {
-    history.push(step);
-    while (history.size() > HISTORY) {
-      history.removeLast();
+      propose(
+          step.at(),
+          step.removed().length(),
+          step.inserted(),
+          step.caretAfter(),
+          step.anchorAfter());
+      doc.clearRun();
     }
   }
 
@@ -1167,7 +1191,14 @@ final class Editor {
       return;
     }
     int from = Math.min(to, caret);
-    edit(from, Math.max(to, caret) - from, "", from, from, Run.DELETING, run == Run.DELETING);
+    edit(
+        from,
+        Math.max(to, caret) - from,
+        "",
+        from,
+        from,
+        Run.DELETING,
+        doc.canCoalesce(this, Run.DELETING));
   }
 
   /**
@@ -1184,7 +1215,7 @@ final class Editor {
       return false;
     }
     int at = from + inserted.length();
-    edit(from, to - from, inserted, at, at, kind, kind != null && kind == run && from == to);
+    edit(from, to - from, inserted, at, at, kind, doc.canCoalesce(this, kind) && from == to);
     return true;
   }
 
@@ -1201,48 +1232,50 @@ final class Editor {
       int newAnchor,
       Run kind,
       boolean coalesce) {
-    keepHistory();
+    doc.keepHistory();
     String gone = text.substring(at, at + removed);
-    Step top = coalesce ? undo.peek() : null;
-    Step merged = null;
-    if (top != null && removed == 0 && at == top.at + top.inserted.length()) { // typing on
-      merged = new Step(
-          top.at,
-          top.removed,
-          top.inserted + inserted,
-          top.caretBefore,
-          top.anchorBefore,
+    TextDocument.Step top = coalesce ? doc.undo.peek() : null;
+    TextDocument.Step merged = null;
+    if (top != null && removed == 0 && at == top.at() + top.inserted().length()) { // typing on
+      merged = new TextDocument.Step(
+          top.at(),
+          top.removed(),
+          top.inserted() + inserted,
+          top.caretBefore(),
+          top.anchorBefore(),
           newCaret,
           newAnchor);
-    } else if (top != null && inserted.isEmpty() && top.inserted.isEmpty()) {
-      if (at + removed == top.at) { // Backspace on
-        merged = new Step(
-            at, gone + top.removed, "", top.caretBefore, top.anchorBefore, newCaret, newAnchor);
-      } else if (at == top.at) { // Delete on
-        merged = new Step(
-            at, top.removed + gone, "", top.caretBefore, top.anchorBefore, newCaret, newAnchor);
+    } else if (top != null && inserted.isEmpty() && top.inserted().isEmpty()) {
+      if (at + removed == top.at()) { // Backspace on
+        merged = new TextDocument.Step(
+            at,
+            gone + top.removed(),
+            "",
+            top.caretBefore(),
+            top.anchorBefore(),
+            newCaret,
+            newAnchor);
+      } else if (at == top.at()) { // Delete on
+        merged = new TextDocument.Step(
+            at,
+            top.removed() + gone,
+            "",
+            top.caretBefore(),
+            top.anchorBefore(),
+            newCaret,
+            newAnchor);
       }
     }
     if (merged != null) {
-      undo.pop();
-      undo.push(merged);
+      doc.undo.pop();
+      doc.undo.push(merged);
     } else {
-      push(undo, new Step(at, gone, inserted, caret, anchor, newCaret, newAnchor));
+      TextDocument.push(
+          doc.undo, new TextDocument.Step(at, gone, inserted, caret, anchor, newCaret, newAnchor));
     }
-    redo.clear();
+    doc.redo.clear();
     propose(at, removed, inserted, newCaret, newAnchor);
-    run = kind;
-  }
-
-  /**
-   * Keeps the history as it is before the first edit, undo or redo that no tree has answered yet,
-   * for the app to refuse: each of them changes the history before it proposes the string.
-   */
-  private void keepHistory() {
-    if (before == null) {
-      undoBefore = new ArrayDeque<>(undo);
-      redoBefore = new ArrayDeque<>(redo);
-    }
+    doc.setRun(this, kind);
   }
 
   /** Hands a new string to the app, which answers with the next tree. */
@@ -1250,14 +1283,12 @@ final class Editor {
     if (lines != null && lines.hasHidden()) {
       unfoldLines(lines.line(at), lines.line(at + removed));
     }
-    if (before == null) {
-      before = new State(text, caret, anchor);
-    }
+    doc.beginProposal(this, text, caret, anchor, at, removed, inserted);
     String next = text.substring(0, at) + inserted + text.substring(at + removed);
     if (lines != null) {
       lines.edit(at, removed, inserted);
     }
-    proposed = next;
+    doc.proposed = next;
     text = next;
     // An edit can join what it puts in with a mark after it: the caret stays between graphemes.
     caret = snap(newCaret);
@@ -1320,7 +1351,7 @@ final class Editor {
     if (!extend) {
       anchor = to;
     }
-    run = null;
+    doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
     reveal = true;
@@ -1336,7 +1367,7 @@ final class Editor {
    */
   void press(int boundary, int hit, int clicks, boolean extend) {
     composition = "";
-    run = null;
+    doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
     reveal = true;
@@ -1516,7 +1547,7 @@ final class Editor {
     el.measureScroll();
     if (returning) { // not where the field this identity had before scrolled to
       returning = false;
-      el.scrollTo(leftX, leftY);
+      el.setScroll(leftX, leftY);
     }
     boolean revealed = (focused || asked) && reveal;
     // The app's selection, such as a find bar's match, comes into view below what covers the top.
@@ -1538,7 +1569,7 @@ final class Editor {
         double y = el.scrollY();
         if (shift != 0) { // what is in view stays first, then the caret comes into view
           el.measureScroll();
-          el.scrollTo(x, y + shift / scale);
+          el.setScroll(x, y + shift / scale);
         }
         scrollToCaret(t, shownCaret, covered, caretWidth, byLast);
         if (el.scrollX() == x && el.scrollY() == y) {
@@ -1550,7 +1581,7 @@ final class Editor {
       while (shift != 0) { // rows or blocks above the view were measured: what is in view stays
         double y = el.scrollY();
         el.measureScroll();
-        el.scrollTo(el.scrollX(), y + shift / scale);
+        el.setScroll(el.scrollX(), y + shift / scale);
         if (el.scrollY() == y) {
           break;
         }
@@ -1568,7 +1599,7 @@ final class Editor {
       // A view at the end of a long line stays there while its chunks are measured.
       while (atRight && t.chunksMoved()) {
         el.measureScroll();
-        el.scrollTo(Double.POSITIVE_INFINITY, el.scrollY());
+        el.setScroll(Double.POSITIVE_INFINITY, el.scrollY());
         t.layOut();
       }
     }
@@ -1576,7 +1607,7 @@ final class Editor {
     while (true) {
       el.measureScroll();
       double y = el.scrollY();
-      el.scrollTo(el.scrollX(), y + moved / scale); // within what the rows in view measured
+      el.setScroll(el.scrollX(), y + moved / scale); // within what the rows in view measured
       if (el.scrollY() == y) {
         break; // laid out where it is
       }

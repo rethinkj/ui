@@ -18,14 +18,16 @@ import java.util.function.Consumer;
  * }</pre>
  *
  * <p>The app keeps one per field, as it keeps a {@code Menu.State} per menu, and gives it to the
- * same field on every build; two fields of one tree cannot share one. A string the app changed
- * while the field was away ends the undo history when it comes back, as a string the app changes
- * on its own always does. Its composition, if an input method was composing, ends as the field
- * leaves. The object holds the field's editing state, the lines of a long text among it, until
- * the app lets go of it.
+ * same field on every build; two fields of one tree cannot share one. To show one text in several
+ * fields with a shared undo history, create a {@link TextDocument} and pass it to {@link
+ * #FieldState(TextDocument)} for each field. A string the app changed while the field was away ends
+ * the undo history when it comes back, as a string the app changes on its own always does. Its
+ * composition, if an input method was composing, ends as the field leaves. The object holds the
+ * field's editing state, the lines of a long text among it, until the app lets go of it.
  */
 public final class FieldState {
 
+  final TextDocument document;
   Editor editor;
   // The app whose tree has the field: another app of the same state takes it over, as a window
   // that a tab moves to.
@@ -39,6 +41,17 @@ public final class FieldState {
 
   public FieldState() {
     // no field, no selection asked for: a field takes the state over at its first build
+    this.document = null;
+  }
+
+  /**
+   * Creates a field state backed by {@code document}, which may be shared with other {@code
+   * FieldState} instances: fields sharing one document share a single undo and redo history and
+   * update their carets and lines from each other's edits, while keeping their own caret,
+   * selection, scroll, folds, blocks and composition.
+   */
+  public FieldState(TextDocument document) {
+    this.document = Objects.requireNonNull(document, "document");
   }
 
   /**

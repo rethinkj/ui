@@ -3193,7 +3193,7 @@ public final class App<S> {
         state.build = builds;
         state.id = id;
         if (state.editor == null) {
-          state.editor = new Editor(el);
+          state.editor = new Editor(el, state.document);
         }
         editor = state.editor;
         Editor was = editors.put(id, editor);
@@ -3275,6 +3275,30 @@ public final class App<S> {
     blink(focus.element() == null ? null : focus.element().editor());
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
+    }
+    // A coupled field follows its leader again with what layout measured, a few times at most;
+    // one still moving then follows on at the next placing.
+    boolean moved = true;
+    for (int pass = 0; pass < 3 && moved; pass++) {
+      moved = false;
+      for (Editor editor : shown) {
+        ScrollState scroll = editor.element().scrollState();
+        moved |= scroll != null && scroll.refollow(editor.element());
+      }
+      for (Editor editor : shown) {
+        Text text = editor.element().text();
+        if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
+          editor.place(editor == blinking, caretOn);
+          moved = true; // what it measured now, such as a long line's width, may let it follow on
+        }
+      }
+    }
+    for (Editor editor : shown) {
+      ScrollState scroll = editor.element().scrollState();
+      if (scroll != null && !moved) { // settled
+        scroll.followX = false;
+        scroll.followY = false;
+      }
     }
     boolean looked = false;
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {

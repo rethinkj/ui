@@ -3,10 +3,13 @@ package com.rethinkj.ui.examples.docs;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
@@ -342,6 +345,29 @@ final class Editors {
     return El.text(source).editable(this::updateSource).multiline().lineEnds(this::problemAt);
   }
   // docs:end line-ends
+  // docs:start shared-document
+  final TextDocument shared = new TextDocument();
+  final FieldState leftPane = new FieldState(shared);
+  final FieldState rightPane = new FieldState(shared);
+  final ScrollState leftScroll = new ScrollState();
+  final ScrollState rightScroll = new ScrollState();
+
+  {
+    leftScroll.scrollWith(rightScroll, List.of()); // line n beside line n
+  }
+
+  El splitView() {
+    return El.row().gap(8).child(pane(leftPane, leftScroll)).child(pane(rightPane, rightScroll));
+  }
+
+  El pane(FieldState pane, ScrollState scroll) {
+    return El.text(source)
+        .editable(this::updateSource)
+        .multiline()
+        .fieldState(pane)
+        .scrollState(scroll);
+  }
+  // docs:end shared-document
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();

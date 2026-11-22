@@ -66,6 +66,8 @@ final class Animator {
 
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
+  private final List<ScrollState> pendingFollows = new ArrayList<>();
+  private boolean visiting; // in visit, where a coupled area's partner may not have its offset yet
   private boolean started;
   private long created; // entries made so far, which orders overlays by when they opened
   private long passes; // updates so far, to find two scroll areas with one ScrollState
@@ -78,11 +80,33 @@ final class Animator {
     El.measureScrolls(root); // before the offsets are clamped to what it finds
     Map<Id, Entry> next = new HashMap<>();
     moving.clear();
+    pendingFollows.clear();
     passes++;
+    visiting = true;
     visit(root, new Id(null, part(root, 0)), started, next, now);
     entries = next; // drops the elements that are gone
+    runPendingFollows();
     started = true;
     present(now);
+  }
+
+  /**
+   * Whether a coupled area that scrolled while the tree is visited, as by {@link El#reveal}, moves
+   * its partner after the visit, when the partner has taken its own kept offset.
+   */
+  boolean defer(ScrollState state) {
+    if (visiting && !pendingFollows.contains(state)) {
+      pendingFollows.add(state);
+    }
+    return visiting;
+  }
+
+  private void runPendingFollows() {
+    visiting = false;
+    for (ScrollState state : pendingFollows) {
+      state.follow(state.el, false, false); // along the axes it moved
+    }
+    pendingFollows.clear();
   }
 
   /**
@@ -306,6 +330,7 @@ final class Animator {
     }
     Map<Id, Entry> current = entries;
     entries = before; // where visit finds the previous version of each row
+    visiting = true;
     Map<Id, Entry> next = new HashMap<>();
     Id[] ids = ids(list, id);
     for (int i = 0; i < ids.length; i++) {
@@ -328,6 +353,7 @@ final class Animator {
     }
     entries = current;
     entries.putAll(next);
+    runPendingFollows();
     entry.rowsFrom = list.firstRow();
     entry.rowsTo = list.firstRow() + ids.length;
     present(now);
@@ -444,7 +470,7 @@ final class Animator {
     int revealed = before == null ? -1 : before.revealRow();
     Object revealedKey = before == null ? null : before.revealKey();
     if (kept == null) {
-      el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
+      el.setScroll(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
     } else {
       if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
         throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
@@ -460,7 +486,11 @@ final class Animator {
       kept.id = id;
       kept.el = el;
       kept.seen = true;
-      el.scrollTo(kept.x, kept.y);
+      el.setScroll(kept.x, kept.y);
+      if (kept.followPending) { // the app's ScrollState.scrollTo moves the partner after the visit
+        kept.followPending = false;
+        kept.follow(el, false, false);
+      }
     }
     int reveal = el.revealRow();
     if (reveal >= 0 && (!seen || revealed != reveal)) {

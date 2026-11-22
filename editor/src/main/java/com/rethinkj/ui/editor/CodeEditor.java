@@ -14,6 +14,7 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
@@ -345,8 +346,24 @@ public final class CodeEditor {
    * separators U+2028 and U+2029 are each one line feed ({@link El#multiline}).
    */
   public static final class State {
-    private final FieldState field = new FieldState();
+    private final FieldState field;
     private final Find.State find = new Find.State();
+
+    /** Creates an editor state with a document of its own. */
+    public State() {
+      this.field = new FieldState();
+    }
+
+    /**
+     * Creates an editor state backed by {@code document}, which may be shared with other editors:
+     * views of one document share an undo and redo history and update their carets and lines from
+     * each other's edits, while keeping their own caret, selection, scroll, folds, blocks and find
+     * bar.
+     */
+    public State(TextDocument document) {
+      this.field = new FieldState(Objects.requireNonNull(document, "document"));
+    }
+
     private final Menu.State quickFixes = new Menu.State();
     private List<Fix> fixesShown; // the fixes of the open menu's last build
     private int caret;

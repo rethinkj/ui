@@ -1,0 +1,1 @@
+- Several fields can show one text: give each a `FieldState(TextDocument)` (or `CodeEditor.State(TextDocument)`) with the same `TextDocument`, and they share one undo history while each keeps its own caret, selection and scroll. `ScrollState.scrollWith` lets two multi-line fields scroll together, line by line or by `ScrollState.Anchor` pairs.

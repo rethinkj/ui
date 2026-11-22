@@ -2320,7 +2320,7 @@ public final class El {
       children.add(at++, field.gutterRail);
     }
     children.add(at, column);
-    scrollTo(scrollX, scrollY);
+    setScroll(scrollX, scrollY);
     text.shownIndex().gutterCells += starts.size();
     return true;
   }
@@ -2464,7 +2464,7 @@ public final class El {
     text.lineEndElements(List.copyOf(clipped));
     field.foldsExtent = maxRight;
     measureScroll();
-    scrollTo(scrollX, scrollY);
+    setScroll(scrollX, scrollY);
     return true;
   }
 
@@ -2519,7 +2519,7 @@ public final class El {
     if (field.blockCache != null) {
       field.blockCache.values().retainAll(elements); // blocks scrolled out of view are built anew
     }
-    scrollTo(scrollX, scrollY);
+    setScroll(scrollX, scrollY);
     return true;
   }
 
@@ -4673,11 +4673,26 @@ public final class El {
 
   /**
    * Sets the scroll offset, clamped to what {@link #measureScroll} found, and shifts the children
-   * by it.
+   * by it; moves any coupled partner ({@link ScrollState#scrollWith}) when the offset changed.
    *
    * @return whether the offset changed
    */
   boolean scrollTo(double x, double y) {
+    double oldX = scrollX;
+    double oldY = scrollY;
+    boolean changed = setScroll(x, y);
+    if (changed && scrollState != null && scrollState.el == this) {
+      scrollState.follow(this, scrollX != oldX, scrollY != oldY);
+    }
+    return changed;
+  }
+
+  /**
+   * Sets the scroll offset as {@link #scrollTo} does, without moving a coupled partner: for
+   * restoring a kept offset on rebuild, shifting newly built children, keeping a line in place
+   * after layout, and applying a coupled offset itself.
+   */
+  boolean setScroll(double x, double y) {
     double newX = Math.clamp(x, 0, maxScrollX);
     double newY = Math.clamp(y, minScrollY(), maxScrollY);
     boolean changed = newX != scrollX || newY != scrollY;
@@ -5199,7 +5214,7 @@ public final class El {
       measureScroll();
       scrollY += rowTop(anchor) - before; // clamped below
     }
-    scrollTo(scrollX, scrollY); // shifts the new rows
+    setScroll(scrollX, scrollY); // shifts the new rows
   }
 
   /** Whether this is a virtual list whose rows are as high as their content. */

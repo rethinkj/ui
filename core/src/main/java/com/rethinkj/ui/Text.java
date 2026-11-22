@@ -2174,6 +2174,58 @@ public final class Text implements Measure {
     }
   }
 
+  /** Whether {@link #scrolled} moved the view since the last {@link #layOut}. */
+  boolean viewStale() {
+    return viewStale;
+  }
+
+  /**
+   * The vertical scroll offset {@code y} in logical pixels as a fractional 0-based line index of
+   * this multi-line text: the line whose top lies at or before {@code y}, plus the fraction of the
+   * distance to the next line's top (blocks between lines counted in that distance).
+   */
+  double offsetToLine(double y) {
+    Lines ls = shownLines();
+    int count = ls.count();
+    double lh = lineHeight;
+    double py = y * scale;
+    double first = ls.lineTop(0, lh);
+    if (py < first) {
+      return (py - first) / lh;
+    }
+    double end = ls.lineTop(count, lh);
+    if (py >= end) {
+      return count + (py - end) / lh;
+    }
+    int slot = ls.slotAt(py, lh);
+    int line = py < ls.lineTop(slot, lh) ? slot - 1 : slot;
+    double top = ls.lineTop(line, lh);
+    double next = ls.lineTop(line + 1, lh);
+    return next > top ? line + (py - top) / (next - top) : line;
+  }
+
+  /**
+   * The vertical scroll offset in logical pixels for a fractional 0-based line index of this
+   * multi-line text, inverting {@link #offsetToLine}.
+   */
+  double lineToOffset(double line) {
+    Lines ls = shownLines();
+    int count = ls.count();
+    double lh = lineHeight;
+    double py;
+    if (line < 0) {
+      py = ls.lineTop(0, lh) + line * lh;
+    } else if (line >= count) {
+      py = ls.lineTop(count, lh) + (line - count) * lh;
+    } else {
+      int whole = (int) Math.floor(line);
+      double top = ls.lineTop(whole, lh);
+      double next = ls.lineTop(whole + 1, lh);
+      py = top + (line - whole) * (next - top);
+    }
+    return py / scale;
+  }
+
   /** The vertical scroll of a multi-line field in physical pixels; 0 for other text. */
   float scrollY() {
     return multiline ? viewY : 0;
