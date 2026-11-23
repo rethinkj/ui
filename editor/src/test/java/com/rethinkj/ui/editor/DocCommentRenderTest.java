@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.Symbol;
@@ -19,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -37,6 +39,16 @@ class DocCommentRenderTest {
 
   /** Minimal language with {@code /** ... *}{@code /} and {@code ///} doc comments. */
   private static final class Lang implements Language {
+    private final AtomicInteger commentCalls;
+
+    Lang() {
+      this(null);
+    }
+
+    Lang(AtomicInteger commentCalls) {
+      this.commentCalls = commentCalls;
+    }
+
     @Override
     public Object line(String line, Object state, Spans out) {
       return null;
@@ -44,12 +56,17 @@ class DocCommentRenderTest {
 
     @Override
     public Object comments(String line, Object state, Out out) {
+      if (commentCalls != null) {
+        commentCalls.incrementAndGet();
+      }
       int n = line.length();
       int i = 0;
       if (state == CommentState.DOC_BLOCK) {
         int close = line.indexOf("*/");
         if (close < 0) {
-          out.comment(0, n, true, true);
+          if (n > 0) { // a blank line goes unreported, as in some languages
+            out.comment(0, n, true, true);
+          }
           return CommentState.DOC_BLOCK;
         }
         out.comment(0, close + 2, true, true);
@@ -415,5 +432,93 @@ class DocCommentRenderTest {
     String cell = tree.substring(from, tree.indexOf("#line-7 ", from));
     assertTrue(cell.contains("el #marker-1 role=img label=\"First line\""), cell);
     assertFalse(cell.contains("Later line"), cell);
+  }
+
+  @Test
+  void goToLineOntoUnscannedCommentRevealsItWhileHeaderCommentRendersOnOpen() throws IOException {
+    // A header doc comment at offset 0 renders on open when the caret was never placed.
+    Doc header = new Doc("/** Header. */\nclass A {}");
+    App<Doc> headerApp = app(header, false);
+    Script.run("size 560 320 scale 2\nframe\n", headerApp, out);
+    header.editor.readerMode(true);
+    headerApp.invalidate();
+    Script.run("frame\nsnap header\n", headerApp, out);
+    assertTrue(Files.readString(out.resolve("header.tree.txt")).contains("#doc-0 "));
+
+    // Going to a doc comment past the first scan reveals it raw once the scan reaches it.
+    Doc doc = new Doc("int a;\n".repeat(20_000) + "/** Far down. */\nint b;");
+    doc.editor.readerMode(true);
+    App<Doc> app = app(doc, false);
+    // The first frame scans only the first 4,000 lines.
+    Script.run("size 560 320 scale 2\nframe\n", app, out);
+    assertTrue(Find.goToLine(doc.editor.find(), "20001"));
+    Script.run("frame\n".repeat(8) + "snap arrived\n", app, out);
+    String arrived = Files.readString(out.resolve("arrived.tree.txt"));
+    assertFalse(arrived.contains("#doc-20000 "), arrived);
+    assertTrue(
+        arrived.contains("el #doc-line-20000 role=button label=\"Render doc comment\""), arrived);
+    assertEquals(20001, doc.editor.line());
+  }
+
+  @Test
+  void toggleDocCommentWithReaderModeOffScansBoundedPastCaret() throws IOException {
+    AtomicInteger scanned = new AtomicInteger();
+    // The comment's blank lines end the first scanned part, which it goes on past.
+    Doc doc = new Doc(
+        "int a;\n".repeat(3_996) + "/** Far\n * down.\n\n\n */\n" + "int b;\n".repeat(15_000));
+    doc.language = new Lang(scanned);
+    int at = doc.text.indexOf("/** Far");
+    doc.editor.select(at, at);
+    App<Doc> app = app(doc, false);
+    Script.run("size 560 320 scale 2\nframe\n", app, out);
+    assertEquals(0, scanned.get());
+
+    CodeEditor.run(app, doc.editor, CodeEditor.Command.TOGGLE_DOC_COMMENT);
+    assertTrue(
+        scanned.get() <= 2 * Comments.LINE_BUDGET,
+        "expected bounded scan past caret, scanned " + scanned.get() + " lines");
+    Script.run("frame\nsnap toggledOn\n", app, out);
+    assertTrue(Files.readString(out.resolve("toggledOn.tree.txt")).contains("#doc-3996 "));
+
+    CodeEditor.run(app, doc.editor, CodeEditor.Command.TOGGLE_DOC_COMMENT);
+    Script.run("frame\nsnap toggledOff\n", app, out);
+    assertFalse(Files.readString(out.resolve("toggledOff.tree.txt")).contains("#doc-3996 "));
+  }
+
+  @Test
+  void editedToggleSplitAcrossScanBoundaryKeepsSecondPartRaw() {
+    CodeEditor.DocToggle edited = new CodeEditor.DocToggle(100, 300, true);
+    CodeEditor.DocRange first = new CodeEditor.DocRange(100, 180, 10, 12, 0);
+    CodeEditor.DocRange second = new CodeEditor.DocRange(220, 300, 20, 22, 0);
+
+    List<CodeEditor.DocToggle> afterFirstScan =
+        CodeEditor.reconcileDocToggles(List.of(edited), List.of(first), 200);
+    assertEquals(
+        List.of(
+            new CodeEditor.DocToggle(100, 180, false), new CodeEditor.DocToggle(200, 300, true)),
+        afterFirstScan);
+
+    List<CodeEditor.DocToggle> afterFullScan =
+        CodeEditor.reconcileDocToggles(afterFirstScan, List.of(first, second), Integer.MAX_VALUE);
+    assertEquals(
+        List.of(
+            new CodeEditor.DocToggle(100, 180, false), new CodeEditor.DocToggle(220, 300, false)),
+        afterFullScan);
+
+    // When a bound comment already starts at the boundary, the remainder advances past it so
+    // sortedDocToggles does not swallow the bound toggle.
+    CodeEditor.DocToggle atBoundary = new CodeEditor.DocToggle(200, 400, true);
+    CodeEditor.DocRange boundAtBoundary = new CodeEditor.DocRange(200, 260, 20, 22, 0);
+    CodeEditor.DocRange trailing = new CodeEditor.DocRange(320, 400, 30, 32, 0);
+    List<CodeEditor.DocToggle> mid =
+        CodeEditor.reconcileDocToggles(List.of(atBoundary), List.of(boundAtBoundary), 200);
+    assertEquals(
+        List.of(
+            new CodeEditor.DocToggle(200, 260, false), new CodeEditor.DocToggle(260, 400, true)),
+        mid);
+    assertEquals(
+        List.of(
+            new CodeEditor.DocToggle(200, 260, false), new CodeEditor.DocToggle(320, 400, false)),
+        CodeEditor.reconcileDocToggles(mid, List.of(boundAtBoundary, trailing), Integer.MAX_VALUE));
   }
 }

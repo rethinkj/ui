@@ -39,6 +39,7 @@ public final class Comments {
   private final Language language;
   private final List<Comment> comments;
   private final int scannedLines;
+  private final int boundary;
   private final boolean complete;
   // Private resume state for the next scan call when complete is false.
   private final int nextPos;
@@ -49,6 +50,7 @@ public final class Comments {
       Language language,
       List<Comment> comments,
       int scannedLines,
+      int boundary,
       boolean complete,
       int nextPos,
       Object state) {
@@ -56,6 +58,7 @@ public final class Comments {
     this.language = language;
     this.comments = comments;
     this.scannedLines = scannedLines;
+    this.boundary = boundary;
     this.complete = complete;
     this.nextPos = nextPos;
     this.state = state;
@@ -72,6 +75,15 @@ public final class Comments {
   /** The number of lines examined so far from the start of the text. */
   public int scannedLines() {
     return scannedLines;
+  }
+
+  /**
+   * Where the last line scanned starts, or the end of the last comment found when only blank lines
+   * follow it and the language's state says something goes on, or {@link Integer#MAX_VALUE} once
+   * {@link #complete}: a comment that ends before it is whole, one that reaches it may go on.
+   */
+  int boundary() {
+    return boundary;
   }
 
   /** Whether the whole text has been scanned. */
@@ -105,10 +117,13 @@ public final class Comments {
     int pos = resume ? before.nextPos : 0;
     int scanned = resume ? before.scannedLines : 0;
     Object state = resume ? before.state : null;
+    int first = pos; // where this call starts
+    int lastStart = 0;
     for (int step = 0; step < LINE_BUDGET && pos >= 0; step++) {
       int feed = text.indexOf('\n', pos);
       String line = text.substring(pos, feed < 0 ? text.length() : feed);
       int lineStart = pos;
+      lastStart = lineStart;
       state = language.comments(line, state, (from, to, doc, continued) -> {
         int start = lineStart + Math.clamp(from, 0, line.length());
         int end = Math.max(start, lineStart + Math.clamp(to, 0, line.length()));
@@ -123,11 +138,25 @@ public final class Comments {
       pos = feed < 0 ? -1 : feed + 1;
     }
     boolean complete = pos < 0;
+    int boundary = complete ? Integer.MAX_VALUE : lastStart;
+    // Something goes on: the last comment may, across blank lines a language does not report.
+    // Only one this call found or extended, so that a long run of blank lines costs one more call.
+    int end = found.isEmpty() ? -1 : found.getLast().end();
+    if (!complete && state != null && end >= first) {
+      int at = end;
+      while (at < pos && Character.isWhitespace(text.charAt(at))) {
+        at++;
+      }
+      if (at == pos) {
+        boundary = Math.min(boundary, end);
+      }
+    }
     return new Comments(
         text,
         language,
         Collections.unmodifiableList(found),
         scanned,
+        boundary,
         complete,
         pos,
         complete ? null : state);

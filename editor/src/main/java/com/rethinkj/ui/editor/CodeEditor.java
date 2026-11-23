@@ -397,6 +397,7 @@ public final class CodeEditor {
     private List<Fix> fixesShown; // the fixes of the open menu's last build
     private int caret;
     private int anchor;
+    private boolean caretPlaced; // whether the caret was explicitly placed, not the initial 0
     private String text = ""; // the string of the editor's last build
     private List<Marker> markers = List.of();
     private final Map<String, Layer> layers = new LinkedHashMap<>();
@@ -642,6 +643,7 @@ public final class CodeEditor {
       field.select(caret, anchor);
       this.caret = caret;
       this.anchor = anchor;
+      caretPlaced = true;
       return this;
     }
 
@@ -1009,16 +1011,18 @@ public final class CodeEditor {
       Comments scanned = Comments.scan(text, language, comments);
       if (scanned != comments || moved != null) {
         comments = scanned;
-        int boundary =
-            scanned.complete() ? Integer.MAX_VALUE : lineStart(text, scanned.scannedLines() - 1);
+        int boundary = scanned.boundary();
         docRanges = eligibleDocs(text, candidates(scanned, docRanges, boundary));
         docToggles = reconcileDocToggles(docToggles, docRanges, boundary);
       }
       docsText = text;
       docsRevision = revision;
-      // A caret placed in a comment, such as after typing one, shows it raw; the build that answers
-      // an edit still has the caret from before it, so the build after it checks.
-      DocRange atCaret = moved == null ? docContaining(caret) : null;
+      // A caret placed in a comment, such as by Go to Line before the scan reached it or after
+      // typing one, shows it raw; the untouched initial caret at 0 keeps a header comment rendered.
+      // The build that answers an edit still has the caret from before it, so the next one checks.
+      DocRange atCaret = moved != null || docRanges.isEmpty()
+          ? null
+          : caretPlaced ? docContainingLine(lineOf(text, caret)) : docContaining(caret);
       if (atCaret != null && isDocRendered(atCaret)) {
         revealDoc(atCaret);
       }
@@ -1027,23 +1031,36 @@ public final class CodeEditor {
       }
     }
 
-    /** Scans the whole string for the command, which acts on comments past the scanned part. */
-    private void ensureDocRanges(String text) {
-      if (language == null || (comments != null && comments.complete() && text.equals(docsText))) {
+    /**
+     * Scans {@code text} far enough past {@code throughLine} for {@link Command#TOGGLE_DOC_COMMENT}
+     * to find any doc comment on or right next to the caret's line, resuming an earlier scan when
+     * the text has not changed so later builds can go on from there.
+     */
+    private void ensureDocRanges(String text, int throughLine) {
+      if (language == null) {
         return;
       }
-      Comments scanned = text.equals(docsText) ? comments : null;
-      do {
+      boolean same = text.equals(docsText);
+      Comments scanned = same ? comments : null;
+      int through = lineEnd(text, throughLine);
+      while (scanned == null
+          || (!scanned.complete()
+              && (scanned.boundary() <= through || reachesBoundary(scanned, through)))) {
         scanned = Comments.scan(text, language, scanned);
-      } while (!scanned.complete());
+      }
+      int boundary = scanned.boundary();
+      if (same && scanned == comments) {
+        return;
+      }
       long revision = field.revision(text);
-      if (docsText != null && !text.equals(docsText)) {
-        docToggles =
-            shiftDocToggles(edits(docsText, docsRevision, text, revision), docToggles, readerMode);
+      if (docsText != null && !same) {
+        TextEdits moved = edits(docsText, docsRevision, text, revision);
+        docRanges = moveDocs(docRanges, moved);
+        docToggles = shiftDocToggles(moved, docToggles, readerMode);
       }
       comments = scanned;
-      docRanges = eligibleDocs(text, candidates(scanned, List.of(), Integer.MAX_VALUE));
-      docToggles = reconcileDocToggles(docToggles, docRanges, Integer.MAX_VALUE);
+      docRanges = eligibleDocs(text, candidates(scanned, docRanges, boundary));
+      docToggles = reconcileDocToggles(docToggles, docRanges, boundary);
       docsText = text;
       docsRevision = revision;
     }
@@ -1398,6 +1415,9 @@ public final class CodeEditor {
         .whenHovered(null)
         .fieldState(state.field)
         .onSelect((caret, anchor) -> {
+          if (caret != state.caret || anchor != state.anchor) {
+            state.caretPlaced = true;
+          }
           state.caret = caret;
           state.anchor = anchor;
         });
@@ -2511,6 +2531,7 @@ public final class CodeEditor {
     app.select(editor, next[1], next[0]);
     state.caret = next[1];
     state.anchor = next[0];
+    state.caretPlaced = true;
   }
 
   private static void foldAtCaret(App<?> app, State state, El editor, String text, int caret) {
@@ -2561,6 +2582,7 @@ public final class CodeEditor {
         app.select(editor, at, at);
         state.caret = at;
         state.anchor = at;
+        state.caretPlaced = true;
       } else {
         state.select(at, at);
       }
@@ -2771,8 +2793,8 @@ public final class CodeEditor {
     if (state.language == null) {
       return;
     }
-    state.ensureDocRanges(text);
     int line = lineOf(text, caret);
+    state.ensureDocRanges(text, line + 1);
     DocRange target = state.docContainingLine(line);
     if (target == null) {
       // Caret cannot enter a rendered block: check the rendered block immediately above this line,
@@ -2822,6 +2844,7 @@ public final class CodeEditor {
       app.select(editor, at, at);
       state.caret = at;
       state.anchor = at;
+      state.caretPlaced = true;
     } else {
       state.select(at, at);
     }
@@ -2864,7 +2887,7 @@ public final class CodeEditor {
     List<Comments.Comment> out = new ArrayList<>();
     int last = 0;
     for (Comments.Comment c : scanned.comments()) {
-      if (c.end() <= boundary) {
+      if (c.end() < boundary) {
         if (c.doc()) {
           out.add(c);
         }
@@ -2872,7 +2895,7 @@ public final class CodeEditor {
       }
     }
     for (DocRange d : before) {
-      if (d.end() > boundary && d.start() >= last) {
+      if (d.end() >= boundary && d.start() >= last) {
         out.add(new Comments.Comment(d.start(), d.end(), true));
       }
     }
@@ -3032,9 +3055,25 @@ public final class CodeEditor {
     return out;
   }
 
+  /** Whether a doc comment starting by {@code through} reaches the scan's boundary and may go on. */
+  private static boolean reachesBoundary(Comments scanned, int through) {
+    List<Comments.Comment> list = scanned.comments();
+    for (int i = list.size() - 1; i >= 0; i--) {
+      Comments.Comment c = list.get(i);
+      if (c.end() < scanned.boundary()) {
+        return false;
+      }
+      if (c.doc() && c.start() <= through) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
-   * Keeps the toggles of comments in {@code found}; an edited one takes each comment it overlaps.
-   * Toggles that end past {@code boundary}, where the scan has not been yet, stay as they are.
+   * Keeps the toggles of comments in {@code found}; an edited one takes each comment it overlaps
+   * and keeps its unscanned tail past {@code boundary} so comments found later stay raw too.
+   * Toggles that reach {@code boundary}, where the scan has not been yet, stay as they are.
    */
   static List<DocToggle> reconcileDocToggles(
       List<DocToggle> toggles, List<DocRange> found, int boundary) {
@@ -3053,14 +3092,21 @@ public final class CodeEditor {
         out.add(new DocToggle(exact.start(), exact.end(), false));
         bound = true;
       } else if (t.edited()) {
+        int rest = Math.max(t.start(), boundary);
         for (DocRange r : found) {
           if (r.start() < t.end() && t.start() < r.end()) {
             out.add(new DocToggle(r.start(), r.end(), false));
             bound = true;
+            if (r.start() <= rest) {
+              rest = Math.max(rest, r.end());
+            }
           }
         }
+        if (bound && rest < t.end()) {
+          out.add(new DocToggle(rest, t.end(), true));
+        }
       }
-      if (!bound && t.end() > boundary) {
+      if (!bound && t.end() >= boundary) {
         out.add(t);
       }
     }
@@ -3336,6 +3382,7 @@ public final class CodeEditor {
       app.select(editor, clamped, clamped);
       state.caret = clamped;
       state.anchor = clamped;
+      state.caretPlaced = true;
     } else {
       state.select(clamped, clamped);
     }

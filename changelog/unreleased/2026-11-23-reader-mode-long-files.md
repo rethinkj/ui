@@ -1,0 +1,1 @@
+- `CodeEditor` in reader mode, in long files: going to the line of a doc comment the editor has not reached yet shows it raw with the caret in it instead of on a hidden line, `TOGGLE_DOC_COMMENT` with reader mode off no longer scans the whole file on the key press, and a raw doc comment split in two by an edit keeps both parts raw.
