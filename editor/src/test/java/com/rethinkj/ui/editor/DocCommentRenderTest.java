@@ -486,6 +486,16 @@ class DocCommentRenderTest {
   }
 
   @Test
+  void aDocCommentStaysPendingAcrossMoreThanAScanOfUnreportedBlankLines() {
+    Lang lang = new Lang();
+    String text = "/** Open\n" + "\n".repeat(2 * Comments.LINE_BUDGET) + " */\nint a;";
+    Comments first = Comments.scan(text, lang, null);
+    Comments second = Comments.scan(text, lang, first);
+    assertFalse(second.complete());
+    assertEquals(second.comments().getLast().end(), second.boundary());
+  }
+
+  @Test
   void editedToggleSplitAcrossScanBoundaryKeepsSecondPartRaw() {
     CodeEditor.DocToggle edited = new CodeEditor.DocToggle(100, 300, true);
     CodeEditor.DocRange first = new CodeEditor.DocRange(100, 180, 10, 12, 0);

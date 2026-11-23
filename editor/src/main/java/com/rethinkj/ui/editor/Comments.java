@@ -78,9 +78,9 @@ public final class Comments {
   }
 
   /**
-   * Where the last line scanned starts, or the end of the last comment found when only blank lines
-   * follow it and the language's state says something goes on, or {@link Integer#MAX_VALUE} once
-   * {@link #complete}: a comment that ends before it is whole, one that reaches it may go on.
+   * Where the last line scanned starts, or the end of the last comment found, a doc comment, when
+   * only blank lines follow it and the language's state says something goes on, or {@link
+   * Integer#MAX_VALUE} once {@link #complete}: a comment that ends before it is whole, one that reaches it may go on.
    */
   int boundary() {
     return boundary;
@@ -139,11 +139,13 @@ public final class Comments {
     }
     boolean complete = pos < 0;
     int boundary = complete ? Integer.MAX_VALUE : lastStart;
-    // Something goes on: the last comment may, across blank lines a language does not report.
-    // Only one this call found or extended, so that a long run of blank lines costs one more call.
-    int end = found.isEmpty() ? -1 : found.getLast().end();
-    if (!complete && state != null && end >= first) {
-      int at = end;
+    // Something goes on: the last doc comment may, across blank lines a language does not report,
+    // if this call found or extended it or it was pending before; only this call's part is read.
+    boolean doc = !found.isEmpty() && found.getLast().doc();
+    int end = doc ? found.getLast().end() : -1;
+    boolean pending = doc && (end >= first || (resume && before.boundary == end));
+    if (!complete && state != null && pending) {
+      int at = Math.max(end, first);
       while (at < pos && Character.isWhitespace(text.charAt(at))) {
         at++;
       }
