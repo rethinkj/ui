@@ -894,7 +894,7 @@ public final class Find {
         .key("find")
         .role("search")
         .label(texts.find())
-        .padding(0, bars.strip(), 0, 0)
+        .margin(0, bars.strip(), 0, 0)
         .motion(theme.motion().fade())
         .side(Side.TOP, Style.Align.END, -topInset)
         .onKey(onKey)

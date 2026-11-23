@@ -200,7 +200,7 @@ el 0,0 560x260
               text "11" 31,299 14x16
             el 49,295 1x23
 overlay top end gap -57 on #orders role=grid label="Orders" 13,13 534x234
-  el #find role=search label="Find" 196,40 351x30
+  el #find role=search label="Find" 196,40 341x30
     el 196,40 341x30
       el 199,43 335x24
         el 199,43 200x24

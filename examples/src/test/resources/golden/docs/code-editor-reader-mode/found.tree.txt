@@ -107,7 +107,7 @@ el 0,0 580x298
               el 161,338 390x17
                 text role=paragraph "number of open orders" 161,338 390x17 readonly lines 1-1/1
 overlay top end gap -32 on #orders role=textbox label="Orders" 12,12 556x274
-  el #find role=search label="Find" 166,14 402x30
+  el #find role=search label="Find" 166,14 392x30
     el 166,14 392x30
       el 169,17 386x24
         el #toggle-replace role=button label="Toggle replace" 169,17 24x24

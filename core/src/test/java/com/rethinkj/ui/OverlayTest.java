@@ -144,6 +144,17 @@ class OverlayTest {
     assertRect(
         new float[] {10, 30, 40, 50},
         placed(10, 10, o -> o.w(20).side(Side.BOTTOM, Style.Align.STRETCH, 0)));
+    // Margins are placed outside the box: aligned by the margin box, offset by left and top.
+    assertRect(
+        new float[] {80, 34, 60, 50},
+        placed(110, 10, o -> o.margin(0, 10, 0, 0).side(Side.BOTTOM, Style.Align.END, 4)));
+    assertRect(
+        new float[] {18, 39, 60, 50},
+        placed(10, 10, o -> o.margin(5, 0, 0, 8).side(Side.BOTTOM, Style.Align.START, 4)));
+    assertRect(new float[] {70, 75, 60, 50}, placed(10, 10, o -> o.margin(10).centerInWindow()));
+    assertRect(
+        new float[] {124, 140, 60, 50},
+        placed(10, 10, o -> o.margin(0, 10, 4, 0).atWindowEdge(Side.BOTTOM, Style.Align.END, 6)));
   }
 
   @Test

@@ -151,7 +151,7 @@ el 0,0 560x220
             text "8" 13,239 7x16
           el 24,235 1x23
 overlay top end gap -57 on #orders role=grid label="Orders" 8,8 544x204
-  el #find role=search label="Find" 202,35 350x30
+  el #find role=search label="Find" 202,35 340x30
     el 202,35 340x30
       el 205,38 334x24
         el 205,38 200x24

@@ -55,9 +55,13 @@ final class Overlays {
           && Float.isNaN(l.pointX)) {
         boolean across = l.side == Side.TOP || l.side == Side.BOTTOM;
         if (across) {
-          s.minWidth = Len.px(Math.max(s.minWidth.pixelsOrZero(), el.width()));
+          float anchor =
+              Math.max(el.width() - s.marginLeft.pixelsOrZero() - s.marginRight.pixelsOrZero(), 0);
+          s.minWidth = Len.px(Math.max(s.minWidth.pixelsOrZero(), anchor));
         } else {
-          s.minHeight = Len.px(Math.max(s.minHeight.pixelsOrZero(), el.height()));
+          float anchor =
+              Math.max(el.height() - s.marginTop.pixelsOrZero() - s.marginBottom.pixelsOrZero(), 0);
+          s.minHeight = Len.px(Math.max(s.minHeight.pixelsOrZero(), anchor));
         }
       }
       Flex.layout(overlay, width, height);
@@ -214,11 +218,13 @@ final class Overlays {
   }
 
   /**
-   * Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. An
-   * overlay inside one that went to the other side of its anchor than it asked tries that other
-   * side first too when it asks the same side, so that submenus go on the way the first that
-   * flipped at the window's edge went. Along the side it keeps inside {@code dialog}, the nearest
-   * modal overlay it is in, as far as it can.
+   * Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. Its
+   * margin box (its border box plus its margins) is aligned and kept in the window, and the
+   * element itself is placed at its left and top margins inside that box. An overlay inside one
+   * that went to the other side of its anchor than it asked tries that other side first too when it
+   * asks the same side, so that submenus go on the way the first that flipped at the window's edge
+   * went. Along the side it keeps inside {@code dialog}, the nearest modal overlay it is in, as far
+   * as it can.
    */
   private static void place(
       El overlay,
@@ -236,17 +242,23 @@ final class Overlays {
     l.anchorY = y;
     float w = overlay.laidOutWidth(); // placing it anew ends what its cycle shows
     float h = overlay.laidOutHeight();
+    float ml = overlay.margin(Side.LEFT);
+    float mr = overlay.margin(Side.RIGHT);
+    float mt = overlay.margin(Side.TOP);
+    float mb = overlay.margin(Side.BOTTOM);
+    float mw = w + ml + mr;
+    float mh = h + mt + mb;
     float left;
     float top;
     if (l.centered) {
-      left = (width - w) / 2;
-      top = (height - h) / 2;
+      left = (width - mw) / 2;
+      top = (height - mh) / 2;
     } else if (l.edge != null) {
       boolean across = l.edge == Side.TOP || l.edge == Side.BOTTOM;
-      float along = edgeAlong(l.align, across ? w : h, across ? width : height, l.gap);
+      float along = edgeAlong(l.align, across ? mw : mh, across ? width : height, l.gap);
       float off = l.edge == Side.TOP || l.edge == Side.LEFT
           ? l.gap
-          : (across ? height - h : width - w) - l.gap;
+          : (across ? height - mh : width - mw) - l.gap;
       left = across ? along : off;
       top = across ? off : along;
     } else {
@@ -281,32 +293,34 @@ final class Overlays {
       float dialogRight = inDialog ? dialog.x() + dialog.width() : far;
       float dialogBottom = inDialog ? dialog.y() + dialog.height() : far;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
-        top = beside(after != turn, ay, ah, h, l.gap, height);
-        left = along(l.align, ax, aw, w, width, edge, dialogLeft, dialogRight);
+        top = beside(after != turn, ay, ah, mh, l.gap, height);
+        left = along(l.align, ax, aw, mw, width, edge, dialogLeft, dialogRight);
         l.flipped = after ? top < ay : top >= ay + ah;
       } else {
-        left = beside(after != turn, ax, aw, w, l.gap, width);
-        top = along(l.align, ay, ah, h, height, edge, dialogTop, dialogBottom);
+        left = beside(after != turn, ax, aw, mw, l.gap, width);
+        top = along(l.align, ay, ah, mh, height, edge, dialogTop, dialogBottom);
         l.flipped = after ? left < ax : left >= ax + aw;
       }
       // A tooltip that would cover its anchor, under the pointer that shows it, would take the
       // hover from the anchor and hide again: it goes to a side across if one has room.
-      if (l.avoidsAnchor && Float.isNaN(l.pointX) && overlaps(left, top, w, h, ax, ay, aw, ah)) {
+      if (l.avoidsAnchor
+          && Float.isNaN(l.pointX)
+          && overlaps(left + ml, top + mt, w, h, ax, ay, aw, ah)) {
         boolean down = l.side == Side.TOP || l.side == Side.BOTTOM;
         float acrossLeft = down
-            ? beside(true, ax, aw, w, l.gap, width)
-            : along(l.align, ax, aw, w, width, edge, dialogLeft, dialogRight);
+            ? beside(true, ax, aw, mw, l.gap, width)
+            : along(l.align, ax, aw, mw, width, edge, dialogLeft, dialogRight);
         float acrossTop = down
-            ? along(l.align, ay, ah, h, height, edge, dialogTop, dialogBottom)
-            : beside(true, ay, ah, h, l.gap, height);
-        if (!overlaps(acrossLeft, acrossTop, w, h, ax, ay, aw, ah)) {
+            ? along(l.align, ay, ah, mh, height, edge, dialogTop, dialogBottom)
+            : beside(true, ay, ah, mh, l.gap, height);
+        if (!overlaps(acrossLeft + ml, acrossTop + mt, w, h, ax, ay, aw, ah)) {
           left = acrossLeft;
           top = acrossTop;
         }
       }
     }
     // On whole pixels, as layout places everything else.
-    overlay.place(Math.round(left), Math.round(top), w, h);
+    overlay.place(Math.round(left + ml), Math.round(top + mt), w, h);
   }
 
   /**

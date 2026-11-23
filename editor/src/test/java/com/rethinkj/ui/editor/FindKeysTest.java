@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -208,8 +209,7 @@ class FindKeysTest {
   /** The rectangle {@code x,y wxh} of a dump's line, after its quoted parts. */
   private static float[] rect(String line) {
     String plain = line.replaceAll("\"(\\\\.|[^\"\\\\])*\"", "\"\"");
-    var m = java.util.regex.Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
-        .matcher(plain);
+    var m = Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)").matcher(plain);
     assertTrue(m.find(), line);
     return new float[] {
       Float.parseFloat(m.group(1)),
@@ -694,6 +694,71 @@ class FindKeysTest {
         CodeEditor.command(new com.rethinkj.ui.Key("#", com.rethinkj.ui.Key.CONTROL, false)),
         "Control+#, where a German keyboard has VS Code's");
     assertEquals(TEXT, undoAfter.apply("key L control alt"), "no formatter, no format");
+  }
+
+  @Test
+  void aPressOnTheScrollbarBesideTheFindBarPagesAndKeepsQueryFocus() throws IOException {
+    StringBuilder lines = new StringBuilder();
+    for (int i = 1; i <= 40; i++) {
+      if (i > 1) {
+        lines.append('\n');
+      }
+      lines.append("SELECT ").append(i).append(" FROM orders;");
+    }
+    Doc doc = new Doc(lines.toString());
+    App<Doc> app = app(doc);
+    Script.run("""
+        size 640 240 scale 2
+        frame
+        focus #query
+        key F control
+        frame
+        advance 0.25
+        frame
+        wheel #query 0 400
+        frame
+        snap before""", app, out);
+    String before = Files.readString(out.resolve("before.tree.txt"));
+    float[] editor = rect(line(before, "query"));
+    float[] bar = rect(line(before, "find"));
+    float strip = Theme.DARK.scrollbars().strip();
+    assertEquals(
+        editor[0] + editor[2] - strip,
+        bar[0] + bar[2],
+        1,
+        "the find bar stays clear of the vertical scrollbar:\n" + before);
+    float scrollBefore = scrollY(line(before, "query"));
+    assertTrue(scrollBefore > 0, "scrolled down so the thumb leaves the top:\n" + before);
+    assertTrue(line(before, "find-field").contains("focused"), before);
+
+    // Press on the scrollbar track right beside the open find bar.
+    float trackX = bar[0] + bar[2] + strip / 2;
+    float trackY = bar[1] + bar[3] / 2;
+    Script.run(
+        "size 640 240 scale 2\npress "
+            + trackX
+            + ","
+            + trackY
+            + "\nframe\nadvance 0.25\nframe\nsnap after",
+        app,
+        out);
+    String after = Files.readString(out.resolve("after.tree.txt"));
+    float scrollAfter = scrollY(line(after, "query"));
+    assertTrue(
+        scrollAfter < scrollBefore,
+        "pressing the scrollbar track beside the find bar paged up (before="
+            + scrollBefore
+            + ", after="
+            + scrollAfter
+            + "):\n"
+            + after);
+    assertTrue(
+        line(after, "find-field").contains("focused"), "the query field kept focus:\n" + after);
+  }
+
+  private static float scrollY(String line) {
+    var m = Pattern.compile(" scroll -?[\\d.]+,(-?[\\d.]+)").matcher(line);
+    return m.find() ? Float.parseFloat(m.group(1)) : 0;
   }
 
   @Test

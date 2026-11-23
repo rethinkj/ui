@@ -1,0 +1,1 @@
+- Fixed: a press on the vertical scrollbar beside an open find bar went to the bar; it now acts on the scrollbar and the query field keeps the focus. Core places an overlay by its margin box, so its margins are neither drawn nor hit.
