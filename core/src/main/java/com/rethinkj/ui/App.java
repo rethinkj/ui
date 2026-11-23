@@ -1376,6 +1376,9 @@ public final class App<S> {
         int at = order.indexOf(focus.element());
         int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
         El el = enter(order.get(Math.floorMod(next, order.size())), step);
+        if (animator.identity(el) == null) {
+          return true; // an edit that went in on the way removed it: the focus stays
+        }
         if (el.editor() != null && !el.text().multiline()) {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
@@ -2196,7 +2199,8 @@ public final class App<S> {
    * Focus#firstInside} picks.
    */
   private El enter(El next, int step) {
-    Animator.InRow in = animator.inRow(animator.identity(next));
+    Object nextId = animator.identity(next);
+    Animator.InRow in = animator.inRow(nextId);
     if (in == null || Animator.isBelow(focus.id(), in.listId())) {
       return next;
     }
@@ -2213,6 +2217,7 @@ public final class App<S> {
       if (editFirst(true, false, toldSizes)) { // before Tab selects in the field: a tree anew
         handled = true;
         list = animator.element(in.listId());
+        next = Objects.requireNonNullElse(animator.element(nextId), next);
       }
       if (list == null || !list.hasRow(row)) {
         return next;
