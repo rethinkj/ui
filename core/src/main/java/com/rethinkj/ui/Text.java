@@ -2537,7 +2537,7 @@ public final class Text implements Measure {
     shownLines.folds(placeholderShown ? List.of() : folds);
     List<El.Block> active = activeBlocks();
     shownLines.blocks(active);
-    shownLines.hints(placeholderShown ? List.of() : hints, shown);
+    shownLines.hints(placeholderShown ? List.of() : hints);
     wrapping();
     if (!active.isEmpty()) {
       shownLines.blocksLayout(
