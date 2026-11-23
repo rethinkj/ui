@@ -3048,7 +3048,7 @@ public final class CodeEditor {
     if (state.docHover) {
       panel.onHover(over -> {
         state.overDoc = over;
-        if (over) {
+        if (state.overDoc) {
           state.docLeftAt = Double.NaN;
         }
       });
