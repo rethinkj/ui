@@ -19,7 +19,8 @@ import java.util.Objects;
  *
  * <p>Line alignment uses Myers' {@code O(ND)} algorithm bounded to edit distance {@link
  * #MAX_DISTANCE}. When the remaining middle between the common prefix and common suffix requires a
- * greater distance, it falls back to a single {@link Kind#MODIFIED} hunk covering that middle.
+ * greater distance, it falls back to a single {@link Kind#MODIFIED} hunk covering that middle,
+ * without changed words.
  *
  * @param oldLineCount number of lines in the original text (0 when empty)
  * @param newLineCount number of lines in the modified text (0 when empty)
@@ -164,9 +165,11 @@ public record Diff(int oldLineCount, int newLineCount, List<Hunk> hunks) {
       newIds[i] = ids.computeIfAbsent(newLines[prefix + i], k -> ids.size());
     }
     int[] edits = myers(oldIds, newIds, MAX_DISTANCE);
-    if (edits == null) {
-      return new Diff(
-          oldLen, newLen, List.of(hunk(oldLines, newLines, prefix, oldEnd, prefix, newEnd)));
+    if (edits == null) { // too far apart to pair lines: the middle is one hunk, without words
+      Hunk middle = prefix == oldEnd || prefix == newEnd
+          ? hunk(oldLines, newLines, prefix, oldEnd, prefix, newEnd)
+          : new Hunk(Kind.MODIFIED, prefix, oldEnd, prefix, newEnd, List.of());
+      return new Diff(oldLen, newLen, List.of(middle));
     }
     List<Hunk> hunks = new ArrayList<>(edits.length / 4);
     for (int i = 0; i < edits.length; i += 4) {
@@ -291,7 +294,8 @@ public record Diff(int oldLineCount, int newLineCount, List<Hunk> hunks) {
     int count = 0;
     for (int i = from; i < to; i++) {
       char c = text.charAt(i);
-      if (c != ' ' && c != '\t') {
+      // A surrogate pair counts once, as tokenize keeps it in one token.
+      if (c != ' ' && c != '\t' && !Character.isLowSurrogate(c)) {
         count++;
       }
     }
@@ -397,7 +401,7 @@ public record Diff(int oldLineCount, int newLineCount, List<Hunk> hunks) {
           i++;
         }
       } else {
-        i++;
+        i += Character.charCount(line.codePointAt(i));
       }
       if (count + 2 > out.length) {
         out = Arrays.copyOf(out, out.length * 2);

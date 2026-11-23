@@ -70,6 +70,12 @@ public final class DiffView {
     private final CodeEditor.State oldEditor = new CodeEditor.State().readOnly(true);
     private final CodeEditor.State newEditor = new CodeEditor.State().readOnly(true);
     private final ScrollState oldScroll = new ScrollState();
+
+    {
+      oldEditor.diff = true;
+      newEditor.diff = true;
+    }
+
     private final ScrollState newScroll = new ScrollState();
     private final Set<Integer> expanded = new HashSet<>();
     private int currentChange = -1;
@@ -83,6 +89,8 @@ public final class DiffView {
     private String newDisplayed = "";
     private String[] oldLines = new String[0];
     private String[] newLines = new String[0];
+    private int[] oldStarts = {0};
+    private int[] newStarts = {0};
     private Diff diff = new Diff(0, 0, List.of());
     private List<Region> regions = List.of();
 
@@ -90,8 +98,6 @@ public final class DiffView {
     private Highlighter cachedHighlighter;
     private String cachedHighlighterOld;
     private Object[] oldHighlightStates;
-
-    public State() {}
 
     /** The 0-based index of the current change hunk, or -1 before navigating or when unchanged. */
     public int currentChange() {
@@ -127,6 +133,8 @@ public final class DiffView {
       newDisplayed = CodeEditor.displayed(newText);
       oldLines = Diff.splitLines(oldDisplayed);
       newLines = Diff.splitLines(newDisplayed);
+      oldStarts = lineStarts(oldLines);
+      newStarts = lineStarts(newLines);
       diff = Diff.diffLines(oldLines, newLines);
       regions = collapsibleRegions(diff);
       expanded.clear();
@@ -137,7 +145,7 @@ public final class DiffView {
 
     private Object[] oldStartStates(Highlighter highlighter) {
       if (highlighter == null || oldLines.length == 0) {
-        return null;
+        return new Object[0];
       }
       if (Objects.equals(cachedHighlighter, highlighter)
           && Objects.equals(cachedHighlighterOld, oldDisplayed)
@@ -172,10 +180,10 @@ public final class DiffView {
       int newCount = hunk.newEnd() - hunk.newStart();
       // The caret goes to the change's first line on each side that has lines of it.
       if (newCount > 0) {
-        selectEditor(app, newEditor, CodeEditor.lineStart(newDisplayed, hunk.newStart()));
+        selectEditor(app, newEditor, lineStart(newStarts, hunk.newStart()));
       }
       if (sideBySide && oldCount > 0) {
-        selectEditor(app, oldEditor, CodeEditor.lineStart(oldDisplayed, hunk.oldStart()));
+        selectEditor(app, oldEditor, lineStart(oldStarts, hunk.oldStart()));
       }
       // The change's first row goes to the top, a line or, in unified, the removed lines' block,
       // which lies after line newStart - 1 and before line newStart; the partner side follows.
@@ -248,11 +256,7 @@ public final class DiffView {
       switch (h.kind()) {
         case ADDED -> {
           addChangeRange(
-              newChanges,
-              state.newDisplayed,
-              h.newStart(),
-              h.newEnd(),
-              CodeEditor.Change.Kind.ADDED);
+              newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
             newLineTints.put(l, diffColors.added());
           }
@@ -260,7 +264,7 @@ public final class DiffView {
         case DELETED -> {
           addChangeRange(
               oldChanges,
-              state.oldDisplayed,
+              state.oldStarts,
               h.oldStart(),
               h.oldEnd(),
               CodeEditor.Change.Kind.DELETED);
@@ -271,13 +275,13 @@ public final class DiffView {
         case MODIFIED -> {
           addChangeRange(
               oldChanges,
-              state.oldDisplayed,
+              state.oldStarts,
               h.oldStart(),
               h.oldEnd(),
               CodeEditor.Change.Kind.MODIFIED);
           addChangeRange(
               newChanges,
-              state.newDisplayed,
+              state.newStarts,
               h.newStart(),
               h.newEnd(),
               CodeEditor.Change.Kind.MODIFIED);
@@ -473,6 +477,7 @@ public final class DiffView {
     int maxNewLine = Math.max(1, diff.newLineCount());
     state.newEditor.oldNumbers(new CodeEditor.State.OldNumbers(
         maxOldLine,
+        maxNewLine,
         line -> line >= 0 && line < newToOld.length && newToOld[line] >= 0
             ? String.valueOf(newToOld[line] + 1)
             : ""));
@@ -497,11 +502,7 @@ public final class DiffView {
       switch (h.kind()) {
         case ADDED -> {
           addChangeRange(
-              newChanges,
-              state.newDisplayed,
-              h.newStart(),
-              h.newEnd(),
-              CodeEditor.Change.Kind.ADDED);
+              newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
             newLineTints.put(l, diffColors.added());
           }
@@ -513,8 +514,8 @@ public final class DiffView {
               : El.Block.insert(h.newStart()).lines(oldCount);
           blocks.add(delBlock);
           deletedMap.put(delBlock, h);
-          int at = CodeEditor.lineStart(
-              state.newDisplayed, Math.min(h.newStart(), Math.max(0, diff.newLineCount() - 1)));
+          int at = lineStart(
+              state.newStarts, Math.clamp(h.newStart(), 0, Math.max(0, diff.newLineCount() - 1)));
           deletedScrollMarks.add(new Scrollbars.Mark(at, at, theme.status().danger()));
         }
         case MODIFIED -> {
@@ -523,11 +524,7 @@ public final class DiffView {
           blocks.add(delBlock);
           deletedMap.put(delBlock, h);
           addChangeRange(
-              newChanges,
-              state.newDisplayed,
-              h.newStart(),
-              h.newEnd(),
-              CodeEditor.Change.Kind.ADDED);
+              newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
             newLineTints.put(l, diffColors.added());
           }
@@ -544,7 +541,8 @@ public final class DiffView {
     }
     setDiffMarkup(state.newEditor, state.newDisplayed, newChanges);
 
-    Object[] oldStartStates = deletedMap.isEmpty() ? null : state.oldStartStates(highlighter);
+    Object[] oldStartStates =
+        deletedMap.isEmpty() ? new Object[0] : state.oldStartStates(highlighter);
     float oldColW = CodeEditor.numberWidth(theme, maxOldLine);
     float newColW = CodeEditor.numberWidth(theme, maxNewLine);
 
@@ -620,18 +618,31 @@ public final class DiffView {
 
   private static void addChangeRange(
       List<CodeEditor.Change> out,
-      String displayed,
+      int[] starts,
       int lineStart,
       int lineEndExclusive,
       CodeEditor.Change.Kind kind) {
     if (lineEndExclusive <= lineStart) {
       return;
     }
-    int from = CodeEditor.lineStart(displayed, lineStart);
-    int lastEnd = CodeEditor.lineEnd(displayed, lineEndExclusive - 1);
-    // Include the line feed after the last line so even empty changed lines have to > from.
-    int to = Math.min(lastEnd + 1, displayed.length());
-    out.add(new CodeEditor.Change(from, Math.max(from, to), kind));
+    // To the next line's start, after the line feed, so even empty changed lines have to > from.
+    int from = lineStart(starts, lineStart);
+    out.add(new CodeEditor.Change(from, lineStart(starts, lineEndExclusive), kind));
+  }
+
+  /** Where each of these lines starts in their text, and one past the text's end after them. */
+  private static int[] lineStarts(String[] lines) {
+    int[] starts = new int[lines.length + 1];
+    for (int i = 0; i < lines.length; i++) {
+      starts[i + 1] = starts[i] + lines[i].length() + 1;
+    }
+    return starts;
+  }
+
+  /** Where {@code line} starts, or the text's end for a line past the last. */
+  private static int lineStart(int[] starts, int line) {
+    int end = Math.max(0, starts[starts.length - 1] - 1);
+    return Math.min(starts[Math.clamp(line, 0, starts.length - 1)], end);
   }
 
   /**
@@ -835,9 +846,7 @@ public final class DiffView {
     for (int lineIdx = hunk.oldStart(); lineIdx < hunk.oldEnd(); lineIdx++) {
       String raw = lineIdx < state.oldLines.length ? state.oldLines[lineIdx] : "";
       List<Diff.Span> spans = oldWordSpans.get(lineIdx);
-      Object startState = oldStartStates != null && lineIdx < oldStartStates.length
-          ? oldStartStates[lineIdx]
-          : null;
+      Object startState = lineIdx < oldStartStates.length ? oldStartStates[lineIdx] : null;
       El row = El.row().wFull().grow(1).align(Style.Align.CENTER);
       if (!raw.isEmpty()) {
         Expanded expanded = expandTabs(raw);

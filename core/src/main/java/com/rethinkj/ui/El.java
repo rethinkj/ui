@@ -2490,10 +2490,9 @@ public final class El {
     java.util.Set<Integer> replacedInGutter = null;
     Map<List<Object>, El> cells = placed.isEmpty() ? Map.of() : new HashMap<>();
     if (!placed.isEmpty()) {
-      Map<Integer, Integer> ordinals = new HashMap<>();
       for (Text.PlacedBlock pb : placed) {
         int first = pb.block().first();
-        int ordinal = ordinals.merge(first, 1, Integer::sum) - 1;
+        int ordinal = pb.ordinal();
         float blockY = (float) ((pb.top() - viewY) / scale);
         float blockH = (float) (pb.height() / scale);
         List<Object> id = List.of(pb.block(), ordinal, blockH, scale, field.gutterWidth);

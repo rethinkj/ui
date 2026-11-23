@@ -15,7 +15,6 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -160,7 +159,7 @@ class DiffViewTest {
 
     // 1. Side-by-side layout: collapsed top region, modified hunks with word changes, added hunk
     // with exact filler block, and F7 / Shift+F7 navigation across all three hunks.
-    List<Path> sideFiles = Script.run("""
+    Script.run("""
         size 800 390 scale 2
         frame
         snap side-by-side
@@ -194,7 +193,7 @@ class DiffViewTest {
     model.unified = true;
     app.invalidate();
     Path unifiedOut = out.resolve("unified");
-    List<Path> unifiedFiles = Script.run("""
+    Script.run("""
         size 540 460 scale 2
         frame
         advance 1

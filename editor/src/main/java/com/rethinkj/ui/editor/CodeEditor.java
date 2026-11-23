@@ -474,6 +474,9 @@ public final class CodeEditor {
     // Package-private hooks used by DiffView to assemble diff blocks and unified gutter numbers.
     private ExtraBlocks extraBlocks;
     private OldNumbers oldNumbers;
+    // In a diff view: no band behind the caret's line, which its tints and fillers would mix with,
+    // and no folds, which would hide lines on one side only.
+    boolean diff;
 
     record ExtraBlocks(
         List<El.Block> blocks,
@@ -481,7 +484,7 @@ public final class CodeEditor {
         Consumer<El.Block> reveal,
         Function<El.Block, El> gutter) {}
 
-    record OldNumbers(int maxLine, IntFunction<String> label) {}
+    record OldNumbers(int maxLine, int newMaxLine, IntFunction<String> label) {}
 
     void extraBlocks(ExtraBlocks extraBlocks) {
       this.extraBlocks = extraBlocks;
@@ -1331,7 +1334,10 @@ public final class CodeEditor {
     if (highlighter != null) {
       editor.highlight(highlighter, highlighter);
     }
-    state.updateFolds(value, editor, editor.bracketFolds());
+    state.updateFolds(
+        value,
+        editor,
+        state.diff ? new El.BracketFolds(List.of(), 0, true) : editor.bracketFolds());
     editor.folds(state.folds(), state::ask, fold -> foldMark(theme));
     State.Marks marks = state.marksOf(value);
     List<Diagnostic> diagnostics = marks.diagnostics();
@@ -1376,7 +1382,7 @@ public final class CodeEditor {
     editor
         .decorate((line, start, text, out) -> {
           int end = start + text.length();
-          if (state.caret >= start && state.caret <= end) {
+          if (!state.diff && state.caret >= start && state.caret <= end) {
             out.lineBackground(code.line());
           }
           guides(text, code.guide(), out);
@@ -1515,7 +1521,8 @@ public final class CodeEditor {
               && (state.declaration == null || app.focused() != editor))
           || ((command == Command.FIND_USAGES || command == Command.HIGHLIGHT_USAGES)
               && (state.usages == null || app.focused() != editor))
-          || ((command == Command.FOLD || command == Command.UNFOLD) && app.focused() != editor)) {
+          || ((command == Command.FOLD || command == Command.UNFOLD)
+              && (state.diff || app.focused() != editor))) {
         return false; // keys stay the app's where not applicable
       }
       run(app, state, command);
@@ -1544,6 +1551,7 @@ public final class CodeEditor {
           && command != Command.QUICK_FIXES
           && (command != Command.QUICK_DOCUMENTATION || state.documentation != null)
           && (command != Command.GO_TO_DECLARATION || state.declaration != null)
+          && (!state.diff || (command != Command.FOLD && command != Command.UNFOLD))
           && ((command != Command.FIND_USAGES && command != Command.HIGHLIGHT_USAGES)
               || state.usages != null);
     });
@@ -1808,7 +1816,7 @@ public final class CodeEditor {
     }
     if (state.oldNumbers != null) {
       float oldW = numberWidth(theme, Math.max(1, state.oldNumbers.maxLine()));
-      float newW = numberWidth(theme, Math.max(1, lineCount(state.builtText)));
+      float newW = numberWidth(theme, Math.max(1, state.oldNumbers.newMaxLine()));
       String oldLabel = state.oldNumbers.label().apply(line.index());
       cell.child(El.text(oldLabel == null ? "" : oldLabel)
           .font(mono.font().get())
