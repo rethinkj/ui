@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Markdown;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -394,5 +396,24 @@ class DocCommentRenderTest {
     app.invalidate();
     Script.run("frame\nframe\nframe\nsnap shorter\n", app, out);
     assertTrue(Files.readString(out.resolve("shorter.tree.txt")).contains("#doc-5010 "));
+  }
+
+  @Test
+  void aRenderedCommentsCellShowsOnlyTheMarkersOfItsFirstLine() throws IOException {
+    Doc doc = new Doc(SAMPLE);
+    doc.editor.readerMode(true);
+    int first = SAMPLE.indexOf("/**");
+    int param = SAMPLE.indexOf("@param factor");
+    doc.editor.markers(List.of(
+        new CodeEditor.Marker(first, Symbol.PLAY, Icon.Variant.ACCENT, "First line", null),
+        new CodeEditor.Marker(param, Symbol.RECORD, Icon.Variant.DANGER, "Later line", null),
+        new CodeEditor.Marker(param, Symbol.RECORD, Icon.Variant.MUTED, "Later line", null)));
+    App<Doc> app = app(doc, true);
+    Script.run("size 560 320 scale 2\nframe\nsnap markers\n", app, out);
+    String tree = Files.readString(out.resolve("markers.tree.txt"));
+    int from = tree.indexOf("#line-2 ");
+    String cell = tree.substring(from, tree.indexOf("#line-7 ", from));
+    assertTrue(cell.contains("el #marker-1 role=img label=\"First line\""), cell);
+    assertFalse(cell.contains("Later line"), cell);
   }
 }

@@ -260,6 +260,79 @@ class CodeEditorMarkupTest {
   }
 
   @Test
+  void changeBarDrawsDeletionCapsOverBarAndBothCapsOnOneLine() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = "alpha\nbeta\ngamma\ndelta";
+    Doc doc = new Doc(text);
+    int betaStart = text.indexOf("beta");
+    int betaEnd = text.indexOf("\ngamma");
+    int gammaStart = betaEnd + 1;
+    int gammaEnd = text.indexOf("\ndelta");
+    int deltaStart = gammaEnd + 1;
+    int deltaEnd = text.length();
+    doc.editor.markup(
+        "vcs",
+        text,
+        List.of(
+            // Line 0: ADDED bar plus top DELETED cap.
+            new CodeEditor.Change(0, 5, CodeEditor.Change.Kind.ADDED),
+            new CodeEditor.Change(0, 0, CodeEditor.Change.Kind.DELETED),
+            // Line 1: MODIFIED bar plus bottom DELETED cap.
+            new CodeEditor.Change(betaStart, betaEnd, CodeEditor.Change.Kind.MODIFIED),
+            new CodeEditor.Change(betaEnd, betaEnd, CodeEditor.Change.Kind.DELETED),
+            // Line 2: ADDED bar plus both top and bottom DELETED caps.
+            new CodeEditor.Change(gammaStart, gammaEnd, CodeEditor.Change.Kind.ADDED),
+            new CodeEditor.Change(gammaStart, gammaStart, CodeEditor.Change.Kind.DELETED),
+            new CodeEditor.Change(gammaEnd, gammaEnd, CodeEditor.Change.Kind.DELETED),
+            // Line 3 (last line without final '\n'): two DELETED caps, no bar.
+            new CodeEditor.Change(deltaStart, deltaStart, CodeEditor.Change.Kind.DELETED),
+            new CodeEditor.Change(deltaEnd, deltaEnd, CodeEditor.Change.Kind.DELETED)));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(6)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 480 240 scale 2\nframe\nsnap caps", app, out);
+    String tree = Files.readString(out.resolve("caps.tree.txt"));
+
+    // Line 0: full bar + top cap at the cell's top, no bottom cap.
+    assertEquals("2x16", change(tree, 0), tree);
+    assertEquals("2x4", elementSize(tree, 0, "change-top"), tree);
+    assertNull(elementSize(tree, 0, "change-bottom"), tree);
+    assertEquals(elementY(tree, 0, "change"), elementY(tree, 0, "change-top"), tree);
+
+    // Line 1: full bar + bottom cap at the cell's bottom, no top cap.
+    assertEquals("2x16", change(tree, 1), tree);
+    assertNull(elementSize(tree, 1, "change-top"), tree);
+    assertEquals("2x4", elementSize(tree, 1, "change-bottom"), tree);
+    assertEquals(elementY(tree, 1, "change") + 12, elementY(tree, 1, "change-bottom"), tree);
+
+    // Line 2: full bar + both caps at top and bottom.
+    assertEquals("2x16", change(tree, 2), tree);
+    assertEquals("2x4", elementSize(tree, 2, "change-top"), tree);
+    assertEquals("2x4", elementSize(tree, 2, "change-bottom"), tree);
+    assertEquals(elementY(tree, 2, "change"), elementY(tree, 2, "change-top"), tree);
+    assertEquals(elementY(tree, 2, "change") + 12, elementY(tree, 2, "change-bottom"), tree);
+
+    // Line 3: two deletion caps without a bar, aligned to top and bottom of the lane.
+    assertEquals("2x16", change(tree, 3), tree);
+    assertEquals("2x4", elementSize(tree, 3, "change-top"), tree);
+    assertEquals("2x4", elementSize(tree, 3, "change-bottom"), tree);
+    assertEquals(elementY(tree, 3, "change"), elementY(tree, 3, "change-top"), tree);
+    assertEquals(elementY(tree, 3, "change") + 12, elementY(tree, 3, "change-bottom"), tree);
+  }
+
+  @Test
   void inlineDiagnosticsShowMostSevereMessageAfterLineWhenEnabled() throws IOException {
     TextLibraries.assumeLoaded();
     String text = "SELECT id, tax\nFROM ordrs\nWHERE status = 'paid';";
@@ -451,11 +524,29 @@ class CodeEditorMarkupTest {
 
   /** The size of the change bar in the cell of line {@code index}, or null without one. */
   private static String change(String tree, int index) {
+    return elementSize(tree, index, "change");
+  }
+
+  /** The size of element {@code key} in the cell of line {@code index}, or null without one. */
+  private static String elementSize(String tree, int index, String key) {
     return cell(tree, index)
         .lines()
-        .filter(line -> line.contains("el #change "))
+        .filter(line -> line.contains("el #" + key + " "))
         .map(line -> line.substring(line.lastIndexOf(' ') + 1))
         .findFirst()
         .orElse(null);
+  }
+
+  /** The y coordinate of element {@code key} in the cell of line {@code index}. */
+  private static int elementY(String tree, int index, String key) {
+    String line = cell(tree, index)
+        .lines()
+        .filter(l -> l.contains("el #" + key + " "))
+        .findFirst()
+        .orElseThrow(
+            () -> new AssertionError("Missing #" + key + " in cell " + index + ":\n" + tree));
+    String[] parts = line.trim().split(" ");
+    String coords = parts[parts.length - 2];
+    return Integer.parseInt(coords.substring(coords.indexOf(',') + 1));
   }
 }
