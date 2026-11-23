@@ -7,21 +7,34 @@ import com.rethinkj.ui.kit.MarkdownDocument.Code;
 import com.rethinkj.ui.kit.MarkdownDocument.CodeBlock;
 import com.rethinkj.ui.kit.MarkdownDocument.Emphasis;
 import com.rethinkj.ui.kit.MarkdownDocument.HardBreak;
+import com.rethinkj.ui.kit.MarkdownDocument.Heading;
+import com.rethinkj.ui.kit.MarkdownDocument.Image;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import com.rethinkj.ui.kit.MarkdownDocument.Item;
 import com.rethinkj.ui.kit.MarkdownDocument.Link;
 import com.rethinkj.ui.kit.MarkdownDocument.ListBlock;
 import com.rethinkj.ui.kit.MarkdownDocument.Paragraph;
+import com.rethinkj.ui.kit.MarkdownDocument.Quote;
+import com.rethinkj.ui.kit.MarkdownDocument.SoftBreak;
+import com.rethinkj.ui.kit.MarkdownDocument.Strike;
 import com.rethinkj.ui.kit.MarkdownDocument.Strong;
+import com.rethinkj.ui.kit.MarkdownDocument.Table;
 import com.rethinkj.ui.kit.MarkdownDocument.Text;
+import com.rethinkj.ui.kit.MarkdownDocument.ThematicBreak;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parses Java doc comments — traditional Javadoc ({@code /** ... *}{@code /}) and Markdown doc
@@ -32,6 +45,16 @@ final class JavadocParser {
 
   private static final int MAX_DEPTH = 32;
   private static final int MAX_TAG_SCAN = 4096;
+  // Lone surrogates: Markdown decodes an entity of one to U+FFFD, so only this parser writes them.
+  private static final char TAG_OPEN = '\uD800';
+  private static final char TAG_CLOSE = '\uDC00';
+  private static final Pattern PLACEHOLDER = Pattern.compile("\uD800(\\d{1,9})\uDC00");
+  private static final String NAME =
+      "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(?:\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*";
+  // module/, a type, #member and parameters: java.base/java.util.List#add(int, Object), reset()
+  private static final Pattern REFERENCE =
+      Pattern.compile(NAME + "/|(?:" + NAME + "/)?(?:" + NAME + "|(?:" + NAME
+          + ")?#\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)(?:\\([^()]*\\))?");
 
   private JavadocParser() {}
 
@@ -512,7 +535,7 @@ final class JavadocParser {
       return null;
     }
     if (markdown) {
-      MarkdownDocument doc = MarkdownDocument.parse(text);
+      MarkdownDocument doc = parseMarkdown(text, false);
       return doc.blocks().isEmpty() ? null : doc;
     }
     return parseJavadoc(text);
@@ -545,12 +568,219 @@ final class JavadocParser {
     if (label.isEmpty()) {
       linkContent = List.of(new Code(ref));
     } else if (markdown) {
-      MarkdownDocument labelDoc = MarkdownDocument.parse(label);
+      MarkdownDocument labelDoc = parseMarkdown(label, true);
       linkContent = firstParagraphInlines(labelDoc, label);
     } else {
       linkContent = parseJavadocInlines(label, true);
     }
     return new MarkdownDocument(List.of(new Paragraph(List.of(new Link(ref, "", linkContent)))));
+  }
+
+  /**
+   * Parses Markdown doc comment text with JEP 467 inline tags and Java reference links. Top-level
+   * {@code {@...}} tags are replaced by private-use placeholders before Markdown parsing so tags
+   * in prose expand via {@link JavadocBuilder} while tags inside code spans, code blocks, link
+   * destinations/titles, and images are restored literally.
+   */
+  private static MarkdownDocument parseMarkdown(String text, boolean inLink) {
+    List<String> tags = new ArrayList<>();
+    String prepared = substituteInlineTags(text, tags);
+    Set<String> resolvedRefs = new HashSet<>();
+    MarkdownDocument doc = MarkdownDocument.parse(
+        prepared,
+        inLink
+            ? null
+            : label -> {
+              String ref = resolveJavaReference(label);
+              if (ref != null) {
+                resolvedRefs.add(ref);
+              }
+              return ref;
+            });
+    if (!inLink && tags.isEmpty() && resolvedRefs.isEmpty()) {
+      return doc;
+    }
+    return new MarkdownDocument(rewriteBlocks(doc.blocks(), tags, resolvedRefs, inLink));
+  }
+
+  private static String substituteInlineTags(String text, List<String> tags) {
+    // a text with a lone surrogate of its own keeps its tags as text, so that it cannot fake one
+    if (!text.contains("{@") || text.codePoints().anyMatch(c -> c == TAG_OPEN || c == TAG_CLOSE)) {
+      return text;
+    }
+    Map<Integer, Integer> inlineTagEnd = JavadocBuilder.matchInlineTags(text);
+    if (inlineTagEnd.isEmpty()) {
+      return text;
+    }
+    int n = text.length();
+    StringBuilder out = new StringBuilder(n);
+    int i = 0;
+    int tick = -1;
+    while (i < n) {
+      Integer end = text.charAt(i) == '{' ? inlineTagEnd.get(i) : null;
+      if (end != null && tick < i) {
+        tick = text.indexOf('`', i) < 0 ? n : text.indexOf('`', i);
+      }
+      // shortcut: a tag with a backtick or tilde fence in it stays text, since Markdown code (a
+      // span or a fence) may begin or end inside it; an unclosed brace in an indented code line
+      // still reaches into the prose after it, and a tag over several lines of an indented code
+      // block keeps their indentation. Take code ranges from the parser if comments hit these.
+      if (end != null && tick > end && !text.substring(i, end).contains("~~~")) {
+        int index = tags.size();
+        tags.add(text.substring(i, end + 1));
+        out.append(TAG_OPEN).append(index).append(TAG_CLOSE);
+        i = end + 1;
+      } else {
+        out.append(text.charAt(i));
+        i++;
+      }
+    }
+    return out.toString();
+  }
+
+  private static List<Block> rewriteBlocks(
+      List<Block> blocks, List<String> tags, Set<String> resolvedRefs, boolean inLink) {
+    List<Block> out = new ArrayList<>(blocks.size());
+    for (Block block : blocks) {
+      switch (block) {
+        case Paragraph p -> {
+          List<Inline> content = rewriteInlines(p.content(), tags, resolvedRefs, inLink);
+          if (!content.isEmpty()) {
+            out.add(new Paragraph(content));
+          }
+        }
+        case Heading h ->
+          out.add(new Heading(
+              h.level(), rewriteInlines(h.content(), tags, resolvedRefs, inLink), h.id()));
+        case CodeBlock c ->
+          out.add(new CodeBlock(
+              restorePlaceholders(c.language(), tags), restorePlaceholders(c.code(), tags)));
+        case Quote q -> out.add(new Quote(rewriteBlocks(q.blocks(), tags, resolvedRefs, inLink)));
+        case ListBlock l -> {
+          List<Item> items = new ArrayList<>(l.items().size());
+          for (Item item : l.items()) {
+            items.add(
+                new Item(item.task(), rewriteBlocks(item.blocks(), tags, resolvedRefs, inLink)));
+          }
+          out.add(new ListBlock(l.ordered(), l.start(), l.tight(), items));
+        }
+        case Table t -> {
+          List<List<Inline>> header = new ArrayList<>(t.header().size());
+          for (List<Inline> cell : t.header()) {
+            header.add(rewriteInlines(cell, tags, resolvedRefs, inLink));
+          }
+          List<List<List<Inline>>> rows = new ArrayList<>(t.rows().size());
+          for (List<List<Inline>> row : t.rows()) {
+            List<List<Inline>> rewrittenRow = new ArrayList<>(row.size());
+            for (List<Inline> cell : row) {
+              rewrittenRow.add(rewriteInlines(cell, tags, resolvedRefs, inLink));
+            }
+            rows.add(rewrittenRow);
+          }
+          out.add(new Table(t.aligns(), header, rows));
+        }
+        case ThematicBreak tb -> out.add(tb);
+      }
+    }
+    return out;
+  }
+
+  private static List<Inline> rewriteInlines(
+      List<Inline> inlines, List<String> tags, Set<String> resolvedRefs, boolean inLink) {
+    List<Inline> out = new ArrayList<>(inlines.size());
+    for (Inline inline : inlines) {
+      switch (inline) {
+        case Text t -> expandText(t.text(), tags, inLink, out);
+        case Code c -> out.add(new Code(restorePlaceholders(c.code(), tags)));
+        case Emphasis e -> {
+          List<Inline> content = rewriteInlines(e.content(), tags, resolvedRefs, inLink);
+          if (!content.isEmpty()) {
+            out.add(new Emphasis(content));
+          }
+        }
+        case Strong s -> {
+          List<Inline> content = rewriteInlines(s.content(), tags, resolvedRefs, inLink);
+          if (!content.isEmpty()) {
+            out.add(new Strong(content));
+          }
+        }
+        case Strike s -> {
+          List<Inline> content = rewriteInlines(s.content(), tags, resolvedRefs, inLink);
+          if (!content.isEmpty()) {
+            out.add(new Strike(content));
+          }
+        }
+        case Link l -> {
+          String dest = restorePlaceholders(l.destination(), tags);
+          String title = restorePlaceholders(l.title(), tags);
+          List<Inline> content;
+          // [String] reads as {@link String}, [a list][List] as {@linkplain List a list}
+          if (resolvedRefs.contains(dest) && l.content().equals(List.of(new Text(dest)))) {
+            content = List.of(new Code(dest));
+          } else {
+            content = rewriteInlines(l.content(), tags, resolvedRefs, true);
+          }
+          if (inLink) {
+            out.addAll(content);
+          } else {
+            out.add(new Link(dest, title, content));
+          }
+        }
+        case Image img ->
+          out.add(new Image(
+              restorePlaceholders(img.source(), tags),
+              restorePlaceholders(img.title(), tags),
+              restorePlaceholders(img.alt(), tags)));
+        case SoftBreak sb -> out.add(sb);
+        case HardBreak hb -> out.add(hb);
+      }
+    }
+    return mergeAdjacentText(out);
+  }
+
+  private static void expandText(String text, List<String> tags, boolean inLink, List<Inline> out) {
+    Matcher m = PLACEHOLDER.matcher(text);
+    int pos = 0;
+    while (m.find()) {
+      String tag = tag(m, tags);
+      if (tag == null) {
+        continue;
+      }
+      if (m.start() > pos) {
+        out.add(new Text(text.substring(pos, m.start())));
+      }
+      out.addAll(parseJavadocInlineTag(tag, inLink));
+      pos = m.end();
+    }
+    if (pos < text.length()) {
+      out.add(new Text(text.substring(pos)));
+    }
+  }
+
+  private static String restorePlaceholders(String text, List<String> tags) {
+    return text.indexOf(TAG_OPEN) < 0
+        ? text
+        : PLACEHOLDER
+            .matcher(text)
+            .replaceAll(
+                m -> Matcher.quoteReplacement(Objects.requireNonNullElse(tag(m, tags), m.group())));
+  }
+
+  /** The tag a placeholder stands for, or {@code null} for one an entity like {@code &#xE000;} wrote. */
+  private static String tag(MatchResult placeholder, List<String> tags) {
+    int index = Integer.parseInt(placeholder.group(1));
+    return index < tags.size() ? tags.get(index) : null;
+  }
+
+  /**
+   * The reference a link label {@code [String]}, {@code [java.util.List]} or {@code
+   * [List#add(Object)]} names, with {@code \[} and {@code \]} unescaped, or {@code null} when the
+   * label is not a Java reference.
+   */
+  private static String resolveJavaReference(String label) {
+    return REFERENCE.matcher(label).matches() && !label.isEmpty()
+        ? collapseWhitespace(label.replace("\\[", "[").replace("\\]", "]"))
+        : null;
   }
 
   private static List<Inline> firstParagraphInlines(MarkdownDocument doc, String fallback) {
@@ -636,6 +866,12 @@ final class JavadocParser {
     JavadocBuilder builder = new JavadocBuilder(source, inLink);
     builder.parseInlineOnly();
     return builder.finishInlines();
+  }
+
+  private static List<Inline> parseJavadocInlineTag(String tagSource, boolean inLink) {
+    JavadocBuilder builder = new JavadocBuilder(tagSource, inLink);
+    builder.parseInlineOnly();
+    return builder.finishInlineTag();
   }
 
   private static final class JavadocBuilder {
@@ -769,6 +1005,15 @@ final class JavadocParser {
       inlineStack.clear();
       inlineStack.add(new InlineFrame(InlineKind.ROOT, null));
       return normalized;
+    }
+
+    List<Inline> finishInlineTag() {
+      flushProse();
+      unwindInlineStack();
+      List<Inline> merged = mergeAdjacentText(inlineStack.getFirst().children);
+      inlineStack.clear();
+      inlineStack.add(new InlineFrame(InlineKind.ROOT, null));
+      return merged;
     }
 
     /** If a blank line starts at {@code nl} (index of {@code \n}), returns the index past it. */

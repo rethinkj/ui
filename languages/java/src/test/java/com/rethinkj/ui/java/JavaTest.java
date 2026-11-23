@@ -418,6 +418,111 @@ class JavaTest {
   }
 
   @Test
+  void tripleSlashMarkdownDocCommentsHandleInlineTagsAndReferenceLinks() {
+    String javadoc = """
+        /**
+         * Uses {@code a*b*c} and {@literal x*y*z & 0}, see {@link String}, {@link Foo#bar(int, String) the bar method}, {@linkplain Baz}, {@linkplain Baz#go() go now}, and {@inheritDoc}.
+         *
+         * @param count number of {@code *items*} for {@link List}
+         * @return the {@literal *result*} or {@linkplain String text}
+         * @throws IllegalArgumentException when {@code a*b < 0}
+         * @see Foo#bar(int) custom {@code label}
+         * @deprecated use {@link #compute()} instead
+         */""";
+    String markdown = """
+        /// Uses {@code a*b*c} and {@literal x*y*z & 0}, see {@link String}, {@link Foo#bar(int, String) the bar method}, {@linkplain Baz}, {@linkplain Baz#go() go now}, and {@inheritDoc}.
+        ///
+        /// @param count number of {@code *items*} for {@link List}
+        /// @return the {@literal *result*} or {@linkplain String text}
+        /// @throws IllegalArgumentException when {@code a*b < 0}
+        /// @see Foo#bar(int) custom {@code label}
+        /// @deprecated use {@link #compute()} instead""";
+
+    DocComment expected = JAVA.docComment(javadoc);
+    DocComment actual = JAVA.docComment(markdown);
+    assertEquals(expected.body().tree(), actual.body().tree());
+    assertEquals(expected.parameters().size(), actual.parameters().size());
+    assertEquals(
+        expected.parameters().get(0).description().tree(),
+        actual.parameters().get(0).description().tree());
+    assertEquals(expected.returns().tree(), actual.returns().tree());
+    assertEquals(
+        expected.exceptions().get(0).description().tree(),
+        actual.exceptions().get(0).description().tree());
+    assertEquals(expected.see().get(0).tree(), actual.see().get(0).tree());
+    assertEquals(expected.deprecated().tree(), actual.deprecated().tree());
+
+    DocComment codeAndRefs = JAVA.docComment("""
+        /// Keep `{@code x}` and `{@link Foo}` in code spans.
+        ///
+        /// ```java
+        /// // {@code a*b*c} and {@link String}
+        /// ```
+        ///
+        ///     {@code indented}
+        ///
+        /// Links: [String], [String][], [List#add(Object)], [#field], [java.util.Map.Entry], [a list][List], [see {@link String}](https://example.com), and [Custom].
+        ///
+        /// Not links: [not a ref], [0], [(optional)], ![String].
+        ///
+        /// > Quote with {@code q*1*} and [String].
+        ///
+        /// | Tag | Ref |
+        /// | --- | --- |
+        /// | {@code t*1*} | [List] |
+        ///
+        /// [Custom]: https://example.com/custom
+        /// @see [List#add(Object)]
+        /// @see [a list][List]""");
+
+    String tree = codeAndRefs.body().tree();
+    assertTrue(tree.contains("code \"{@code x}\""), tree);
+    assertTrue(tree.contains("code \"{@link Foo}\""), tree);
+    assertTrue(tree.contains("code \"java\" \"// {@code a*b*c} and {@link String}\\n\""), tree);
+    assertTrue(tree.contains("code \"\" \"{@code indented}\\n\""), tree);
+    assertTrue(tree.contains("link \"String\"\n    code \"String\""), tree);
+    assertTrue(tree.contains("link \"List#add(Object)\"\n    code \"List#add(Object)\""), tree);
+    assertTrue(tree.contains("link \"#field\"\n    code \"#field\""), tree);
+    assertTrue(
+        tree.contains("link \"java.util.Map.Entry\"\n    code \"java.util.Map.Entry\""), tree);
+    assertTrue(tree.contains("link \"List\"\n    text \"a list\""), tree);
+    assertTrue(
+        tree.contains("link \"https://example.com\"\n    text \"see \"\n    code \"String\""),
+        tree);
+    assertTrue(tree.contains("link \"https://example.com/custom\"\n    text \"Custom\""), tree);
+    assertTrue(
+        tree.contains("text \"Not links: [not a ref], [0], [(optional)], ![String].\""), tree);
+    assertTrue(
+        tree.contains("quote\n  paragraph\n    text \"Quote with \"\n    code \"q*1*\""), tree);
+    assertTrue(tree.contains("cell\n      code \"t*1*\""), tree);
+    assertTrue(tree.contains("cell\n      link \"List\"\n        code \"List\""), tree);
+
+    assertEquals(2, codeAndRefs.see().size());
+    assertTrue(
+        codeAndRefs
+            .see()
+            .get(0)
+            .tree()
+            .contains("link \"List#add(Object)\"\n    code \"List#add(Object)\""),
+        codeAndRefs.see().get(0).tree());
+    assertTrue(
+        codeAndRefs.see().get(1).tree().contains("link \"List\"\n    text \"a list\""),
+        codeAndRefs.see().get(1).tree());
+
+    assertEquals(
+        "paragraph\n  text \"Write \"\n  code \"{@code\"\n  text \" and close it with \"\n"
+            + "  code \"}\"\n  text \".\"\n",
+        JAVA.docComment("/// Write `{@code` and close it with `}`.").body().tree());
+    assertEquals(
+        "hello and \uFFFD0\uFFFD",
+        plainText(JAVA.docComment("/// {@code hello} and &#xD800;0&#xDC00;").body()));
+    assertTrue(
+        JAVA.docComment("/// \uD83D\uDC00 {@code a*b*c}").body().tree().contains("code \"a*b*c\""));
+    assertTrue(JAVA.docComment("/// [java.base/]").body().tree().contains("link \"java.base/\""));
+    assertTrue(JAVA.docComment("/// [reset()]").body().tree().contains("link \"reset()\""));
+  }
+
+  @Test
   void untrustedPathologicalInputParsesSafelyWithoutOverflow() {
     String evil = "/** "
         + "<b>".repeat(2_000)

@@ -91,6 +91,32 @@ class MarkdownParserTest {
   }
 
   @Test
+  void referenceResolverResolvesUndefinedLinksOnly() {
+    String source = "[Foo], [Foo][], [the foo][Foo], [bar], ![Foo], and [Defined].\n\n"
+        + "[Defined]: /explicit \"t\"\n";
+    MarkdownDocument doc = MarkdownDocument.parse(
+        source, label -> label.equals("Foo") || label.equals("Defined") ? "ref:" + label : null);
+    assertEquals("""
+        paragraph
+          link "ref:Foo"
+            text "Foo"
+          text ", "
+          link "ref:Foo"
+            text "Foo"
+          text ", "
+          link "ref:Foo"
+            text "the foo"
+          text ", [bar], ![Foo], and "
+          link "/explicit" "t"
+            text "Defined"
+          text "."
+        """, doc.tree());
+    assertEquals(
+        MarkdownDocument.parse(source).tree(),
+        MarkdownDocument.parse(source, null).tree());
+  }
+
+  @Test
   void plainTextIsTheTextAsShown() {
     MarkdownDocument.Paragraph p = (MarkdownDocument.Paragraph)
         MarkdownDocument.parse("a *b* `c` [d](e)\n![f](g) h  \ni").blocks().getFirst();

@@ -94,7 +94,7 @@ Javadoc: [`JavaScript`](/api/com/rethinkj/ui/javascript/JavaScript.html), [`Type
 
 ## Java
 
-`Java.of()` implements `Language` for Java: it highlights keywords, annotations, strings, character literals, text blocks, numbers, line and block comments, and operators, marks brackets outside strings and comments, toggles line comments with `//`, reports comment and doc-comment ranges (`/** ... */` and runs of `///`), and parses Javadoc and `///` Markdown doc comments into `DocComment`. `Java` lives in its own module, `rethinkj-ui-java`, in package `com.rethinkj.ui.java`:
+`Java.of()` implements `Language` for Java: it highlights keywords, annotations, strings, character literals, text blocks, numbers, line and block comments, and operators, marks brackets outside strings and comments, toggles line comments with `//`, reports comment and doc-comment ranges (`/** ... */` and runs of `///`), and parses Javadoc and `///` Markdown doc comments (including inline tags and reference links) into `DocComment`. `Java` lives in its own module, `rethinkj-ui-java`, in package `com.rethinkj.ui.java`:
 
 ```xml
 <dependency>

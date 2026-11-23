@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,12 +32,20 @@ final class MarkdownParser {
 
   private static final int CODE_INDENT = 4;
 
-  private MarkdownParser() {}
+  private final Function<String, String> references;
+
+  private MarkdownParser(Function<String, String> references) {
+    this.references = references;
+  }
 
   static MarkdownDocument parse(String source) {
+    return parse(source, null);
+  }
+
+  static MarkdownDocument parse(String source, Function<String, String> references) {
     String text = source == null ? "" : source;
     try {
-      return read(text);
+      return read(text, references);
     } catch (RuntimeException | StackOverflowError _) {
       // shortcut: a fault of the reader shows the text as it is rather than failing the view;
       // the tests make sure it never comes to this.
@@ -46,7 +55,11 @@ final class MarkdownParser {
 
   /** As {@link #parse}, but a fault of the reader throws: for the tests. */
   static MarkdownDocument read(String text) {
-    return new MarkdownParser().run(text.replace('\0', '�'));
+    return read(text, null);
+  }
+
+  static MarkdownDocument read(String text, Function<String, String> references) {
+    return new MarkdownParser(references).run(text.replace('\0', '�'));
   }
 
   // ---- Blocks
@@ -1488,12 +1501,21 @@ final class MarkdownParser {
         label = subject.substring(opener.index, start);
       }
       if (label != null) {
-        String[] ref = refs.get(normalizeLabel(label));
+        String key = normalizeLabel(label);
+        String[] ref = key.isEmpty() ? null : refs.get(key);
         if (ref != null) {
           destination = ref[0];
           title = ref[1];
           matched = true;
           pos += n;
+        } else if (!opener.image && references != null && !key.isEmpty()) {
+          String resolved = references.apply(label);
+          if (resolved != null) {
+            destination = resolved;
+            title = "";
+            matched = true;
+            pos += n;
+          }
         }
       }
       if (!matched) {

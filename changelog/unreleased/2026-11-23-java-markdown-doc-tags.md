@@ -1,0 +1,1 @@
+- `Java.docComment` now parses Javadoc inline tags (`{@code}`, `{@link}`, `{@linkplain}`, and `{@literal}`) and JEP 467 reference links (`[Name]`, `[label][Name]`) in `///` Markdown doc comments while keeping tags literal inside Markdown code spans and code blocks; `MarkdownDocument.parse(source, references)` resolves undefined reference links through a caller-supplied function.

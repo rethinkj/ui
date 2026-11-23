@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A Markdown text read into a tree of blocks and inline parts, which {@link Markdown#markdown}
@@ -30,7 +31,18 @@ public final class MarkdownDocument {
 
   /** Reads a Markdown text; never throws, also not on text that is not Markdown. */
   public static MarkdownDocument parse(String source) {
-    return MarkdownParser.parse(source);
+    return MarkdownParser.parse(source, null);
+  }
+
+  /**
+   * Reads a Markdown text, calling {@code references} with the raw label text of any reference
+   * link that has no definition in the document; a non-null result becomes the link's destination
+   * with an empty title, while {@code null} leaves it as text. Explicit link reference definitions
+   * take precedence, and images are not passed to {@code references}. Passing {@code null} for
+   * {@code references} behaves like {@link #parse(String)}.
+   */
+  public static MarkdownDocument parse(String source, Function<String, String> references) {
+    return MarkdownParser.parse(source, references);
   }
 
   /** A block of the document. */
