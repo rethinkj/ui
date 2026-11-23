@@ -1,0 +1,1 @@
+- Hover quick documentation popovers in `CodeEditor` now wait for a short grace period (`Theme.Motion.submenuDelay`) before closing when the pointer leaves the hovered word and popover, keeping the popover open while moving into it across its rounded corner.

@@ -441,6 +441,7 @@ public final class CodeEditor {
     private boolean docHover;
     private int hoverPos = -1;
     private boolean overDoc;
+    private double docLeftAt = Double.NaN; // when the pointer left the word and the popover
     // Rendered doc comments (reader mode): off by default.
     private boolean readerMode;
     private Consumer<String> onLink;
@@ -778,6 +779,7 @@ public final class CodeEditor {
       docCaret = -1;
       docHover = false;
       overDoc = false;
+      docLeftAt = Double.NaN;
     }
 
     /**
@@ -1439,7 +1441,7 @@ public final class CodeEditor {
           .atCaret()
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
-    attachDocumentation(theme, state, editor, value, extra);
+    attachDocumentation(app, theme, state, editor, value, extra);
     attachPointerNavigation(app, state, editor, value, extra);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
@@ -2893,18 +2895,35 @@ public final class CodeEditor {
 
   /** Wires hover quick documentation and attaches the open popover overlay, if any. */
   private static void attachDocumentation(
-      Theme theme, State state, El editor, String value, String extra) {
+      App<?> app, Theme theme, State state, El editor, String value, String extra) {
     if (state.doc != null && !value.equals(state.docValue)) {
       state.closeDocumentation();
     }
     if (state.doc != null && state.caret != state.docCaret) {
       state.closeDocumentation();
     }
-    if (state.doc != null
-        && state.docHover
-        && !state.overDoc
-        && (state.hoverPos < state.docFrom || state.hoverPos >= state.docTo)) {
-      state.closeDocumentation();
+    if (state.doc != null && state.docHover) {
+      boolean outside =
+          !state.overDoc && (state.hoverPos < state.docFrom || state.hoverPos >= state.docTo);
+      if (!outside) {
+        state.docLeftAt = Double.NaN;
+      } else if (app == null) {
+        state.closeDocumentation();
+      } else if (Double.isNaN(state.docLeftAt)) {
+        // A grace period, so a pointer crossing the popover's rounded corner reaches it. Reuses
+        // submenuDelay, the same hover intent as a submenu that stays while the pointer heads in.
+        double grace = theme.motion().submenuDelay();
+        double leftAt = app.time();
+        state.docLeftAt = leftAt;
+        Runnable close = () -> {
+          if (state.docLeftAt == leftAt) { // still away since this leave
+            state.closeDocumentation();
+          }
+        };
+        // A frame later: a move of the frame the grace ends in reaches its hover handlers only at
+        // that frame's end.
+        app.after(grace, () -> app.after(0, close));
+      }
     }
     if (state.documentation != null) {
       editor.onTextHoverFor(theme.motion().tooltipDelay(), (pos, mods) -> {
@@ -2935,6 +2954,7 @@ public final class CodeEditor {
         state.docHover = true;
         state.hoverPos = pos;
         state.overDoc = false;
+        state.docLeftAt = Double.NaN;
       });
     }
     if (state.doc == null) {
@@ -2952,6 +2972,9 @@ public final class CodeEditor {
     if ((state.doc != null && state.docHover) || state.declaration != null) {
       editor.onTextPointerMove((pos, mods) -> {
         state.hoverPos = pos;
+        if (state.doc != null && state.docHover && pos >= state.docFrom && pos < state.docTo) {
+          state.docLeftAt = Double.NaN;
+        }
         if (state.declaration != null) {
           updateNavigationHover(state, editor, value, extra, pos, mods);
         }
@@ -3023,7 +3046,12 @@ public final class CodeEditor {
         .child(Markdown.fragment(state.doc, Markdown.options()))
         .side(Side.BOTTOM, Style.Align.START, 0); // no gap the pointer would cross off the word
     if (state.docHover) {
-      panel.onHover(over -> state.overDoc = over);
+      panel.onHover(over -> {
+        state.overDoc = over;
+        if (over) {
+          state.docLeftAt = Double.NaN;
+        }
+      });
     }
     return state.docFrom < state.docTo
         ? panel.atRange(state.docFrom, state.docTo)
@@ -3050,6 +3078,7 @@ public final class CodeEditor {
     state.docCaret = state.caret;
     state.docHover = false;
     state.overDoc = false;
+    state.docLeftAt = Double.NaN;
   }
 
   /** Offset inside the word at {@code caret} (for end-of-word carets), or {@code caret}. */

@@ -230,7 +230,7 @@ Because hints live in a markup layer, they move across edits: `AFTER` hints stay
 
 ## Quick documentation
 
-Call `documentation(provider)` on `CodeEditor.State` with an `IntFunction<MarkdownDocument>` that returns documentation for a character offset in the text, or `null` when nothing applies. Resting the pointer over a word for `Theme.Motion.tooltipDelay` opens a popover below the word's range, drawn with [`Markdown.fragment`](/docs/components/markdown). Moving the pointer onto the popover keeps it open; leaving both the word and the popover, pressing outside, **Escape** in the editor, typing, or moving the cursor closes it. Press **Ctrl+Q** (`Command.QUICK_DOCUMENTATION`) to show documentation for the word at the cursor (also in read-only editors).
+Call `documentation(provider)` on `CodeEditor.State` with an `IntFunction<MarkdownDocument>` that returns documentation for a character offset in the text, or `null` when nothing applies. Resting the pointer over a word for `Theme.Motion.tooltipDelay` opens a popover below the word's range, drawn with [`Markdown.fragment`](/docs/components/markdown). Moving the pointer onto the popover keeps it open; leaving both the word and the popover closes it after a short moment, and pressing outside, **Escape** in the editor, typing, or moving the cursor closes it at once. Press **Ctrl+Q** (`Command.QUICK_DOCUMENTATION`) to show documentation for the word at the cursor (also in read-only editors).
 
 ```java snippet="code-editor-documentation"
 ```

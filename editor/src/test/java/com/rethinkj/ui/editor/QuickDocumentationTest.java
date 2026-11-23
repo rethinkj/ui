@@ -152,8 +152,11 @@ class QuickDocumentationTest {
     app.frame();
     assertNotNull(findOverlay(app, "documentation"), "stays open while pointer is over popover");
 
-    // Moving away from both the word and the popover closes it.
+    // Moving away from both the word and the popover closes it after the grace period.
     app.pointerMove(2, 2);
+    app.frame();
+    app.advance(Theme.DARK.motion().submenuDelay() + 0.05);
+    app.frame();
     app.frame();
     app.advance(0.3);
     app.frame();
@@ -246,5 +249,70 @@ class QuickDocumentationTest {
     assertEquals(1, plain.parentCtrlQ, "Control+Q bubbles when no provider is configured");
     assertFalse(
         plainApp.tree().shownOverlays().stream().anyMatch(o -> "documentation".equals(o.key())));
+  }
+
+  @Test
+  void hoverPopoverSurvivesRoundedCornerGraceAndClosesAfterGracePeriod() {
+    Doc doc = new Doc(true);
+    App<Doc> app = app(doc);
+    double delay = Theme.DARK.motion().tooltipDelay();
+    double grace = Theme.DARK.motion().submenuDelay();
+
+    float[] orders = wordPoint(app, doc.text, "orders");
+    app.pointerMove(orders[0], orders[1]);
+    app.frame();
+    app.advance(delay + 0.05);
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+    El pop = findOverlay(app, "documentation");
+    assertNotNull(pop, "shown after tooltipDelay");
+
+    // Cross the popover's rounded top-left corner for one frame: outside the popover's hit area
+    // and off the word, then enter the popover before the grace period ends.
+    app.pointerMove(pop.x() + 1, pop.y() + 1);
+    app.frame();
+    assertEquals(
+        "code", app.hovered().key(), "rounded top-left corner lands on editor text below the word");
+    assertNotNull(findOverlay(app, "documentation"), "stays open during corner crossing");
+
+    // Entered just before the grace period ends, handled only in the frame it ends in.
+    app.advance(grace - 0.001);
+    app.pointerMove(pop.x() + 12, pop.y() + 12);
+    app.advance(0.002);
+    app.frame();
+    app.advance(grace + 0.05);
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+    assertNotNull(
+        findOverlay(app, "documentation"), "entering popover during grace period keeps it open");
+
+    // Returning to the word cancels a pending leave, and a later leave waits a full grace period
+    // from that leave (not from the earlier cancelled one).
+    app.pointerMove(2, 2);
+    app.frame();
+    app.advance(grace * 0.5);
+    app.frame();
+    assertNotNull(findOverlay(app, "documentation"), "stays open before grace period ends");
+
+    app.pointerMove(orders[0], orders[1]);
+    app.frame();
+    app.pointerMove(2, 2);
+    app.frame();
+    app.advance(grace * 0.55);
+    app.frame();
+    app.advance(grace * 0.4);
+    app.frame();
+    assertNotNull(
+        findOverlay(app, "documentation"),
+        "stale timer from earlier leave does not close popover early");
+
+    app.advance(grace * 0.1);
+    app.frame();
+    app.frame(); // the close is decided a frame after the grace period ends
+    app.advance(0.3);
+    app.frame();
+    assertNull(findOverlay(app, "documentation"), "closes after grace period ends");
   }
 }
