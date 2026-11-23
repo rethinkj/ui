@@ -287,6 +287,7 @@ class IconTest {
 
   @Test
   void aComboBoxThatIsOffShowsTheIconOfItsChoiceOff() {
+    TextLibraries.assumeLoaded();
     Icon picture = Icon.image(samplePicture(), "brand_mark");
     El combo = Theme.CURRENT.with(
         T,
