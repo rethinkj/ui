@@ -28,20 +28,30 @@ final class JsLexer {
   private record TemplateFrame(int braces, TemplateFrame parent) {}
 
   /**
-   * Line-end state; {@code null} stands for top-level code with no open templates and {@code
-   * regexAllowed == true}.
+   * Line-end state; {@code null} stands for top-level code with no open templates, {@code
+   * regexAllowed == true} and {@code prevWasDot == false}.
    */
-  private record State(int mode, TemplateFrame frames, boolean regexAllowed) {}
+  private record State(int mode, TemplateFrame frames, boolean regexAllowed, boolean prevWasDot) {}
 
-  private static final State STATE_NO_REGEX = new State(MODE_CODE, null, false);
-  private static final State STATE_BLOCK_COMMENT_REGEX = new State(MODE_BLOCK_COMMENT, null, true);
+  private static final State STATE_NO_REGEX = new State(MODE_CODE, null, false, false);
+  private static final State STATE_AFTER_DOT = new State(MODE_CODE, null, false, true);
+  private static final State STATE_BLOCK_COMMENT_REGEX =
+      new State(MODE_BLOCK_COMMENT, null, true, false);
   private static final State STATE_BLOCK_COMMENT_NO_REGEX =
-      new State(MODE_BLOCK_COMMENT, null, false);
-  private static final State STATE_DOC_COMMENT_REGEX = new State(MODE_DOC_COMMENT, null, true);
-  private static final State STATE_DOC_COMMENT_NO_REGEX = new State(MODE_DOC_COMMENT, null, false);
-  private static final State STATE_SINGLE_STRING = new State(MODE_SINGLE_STRING, null, false);
-  private static final State STATE_DOUBLE_STRING = new State(MODE_DOUBLE_STRING, null, false);
-  private static final State STATE_TEMPLATE = new State(MODE_TEMPLATE, null, false);
+      new State(MODE_BLOCK_COMMENT, null, false, false);
+  private static final State STATE_BLOCK_COMMENT_AFTER_DOT =
+      new State(MODE_BLOCK_COMMENT, null, false, true);
+  private static final State STATE_DOC_COMMENT_REGEX =
+      new State(MODE_DOC_COMMENT, null, true, false);
+  private static final State STATE_DOC_COMMENT_NO_REGEX =
+      new State(MODE_DOC_COMMENT, null, false, false);
+  private static final State STATE_DOC_COMMENT_AFTER_DOT =
+      new State(MODE_DOC_COMMENT, null, false, true);
+  private static final State STATE_SINGLE_STRING =
+      new State(MODE_SINGLE_STRING, null, false, false);
+  private static final State STATE_DOUBLE_STRING =
+      new State(MODE_DOUBLE_STRING, null, false, false);
+  private static final State STATE_TEMPLATE = new State(MODE_TEMPLATE, null, false, false);
 
   private static final String OPERATORS = "+-*/%<>=!&|^~?:;,.()[]{}@";
   private static final String BRACKETS = "()[]{}";
@@ -147,7 +157,6 @@ final class JsLexer {
       "in",
       "instanceof",
       "new",
-      "of",
       "return",
       "throw",
       "typeof",
@@ -178,8 +187,12 @@ final class JsLexer {
     int mode = s == null ? MODE_CODE : s.mode;
     TemplateFrame frames = s == null ? null : s.frames;
     boolean regexAllowed = s == null || s.regexAllowed;
-    boolean prevWasDot = false;
+    boolean prevWasDot = s != null && s.prevWasDot;
     boolean lineContinued = false;
+    boolean seenToken = false;
+    boolean afterControlKeyword = false;
+    long controlParens = 0L;
+    int parenDepth = 0;
 
     int n = line.length();
     int i = 0;
@@ -230,6 +243,8 @@ final class JsLexer {
             mode = MODE_CODE;
             regexAllowed = false;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else {
             i++;
           }
@@ -245,6 +260,8 @@ final class JsLexer {
             mode = MODE_CODE;
             regexAllowed = false;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '$' && i + 1 < n && line.charAt(i + 1) == '{') {
             if (spans != null) {
               spans.color(start, i, colors.string());
@@ -255,6 +272,8 @@ final class JsLexer {
             mode = MODE_CODE;
             regexAllowed = true;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
             i += 2;
           } else {
             i++;
@@ -306,20 +325,27 @@ final class JsLexer {
               }
               i = regexEnd;
               regexAllowed = false;
-              prevWasDot = false;
             } else {
               if (spans != null) {
                 spans.color(i, i + 1, colors.operator());
               }
               i++;
               regexAllowed = true;
-              prevWasDot = false;
             }
+            prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '\'' || c == '"') {
             mode = c == '\'' ? MODE_SINGLE_STRING : MODE_DOUBLE_STRING;
+            prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
             i++;
           } else if (c == '`') {
             mode = MODE_TEMPLATE;
+            prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
             i++;
           } else if (isDigit(c) || c == '.' && isDigit(next)) {
             i = scanNumber(line, i);
@@ -328,6 +354,8 @@ final class JsLexer {
             }
             regexAllowed = false;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '#' && isIdentStart(next)) {
             // Private class field or method (#field); never a keyword.
             i += 2;
@@ -336,18 +364,30 @@ final class JsLexer {
             }
             regexAllowed = false;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (isIdentStart(c)) {
             i++;
             while (i < n && isIdentPart(line.charAt(i))) {
               i++;
             }
+            boolean wasAfterControl = afterControlKeyword;
+            afterControlKeyword = false;
             if (!prevWasDot && i - start <= LONGEST_KEYWORD) {
               String word = line.substring(start, i);
               if (keywords.contains(word)) {
                 if (spans != null) {
                   spans.color(start, i, colors.keyword());
                 }
-                regexAllowed = REGEX_PRECEDING_KEYWORDS.contains(word);
+                // `of` after a binding on its line (`item of`) or in a for header is the for-of
+                // separator, where a regular expression may follow; elsewhere it is a name.
+                boolean inControlHeader = parenDepth > 0
+                    && parenDepth <= 64
+                    && (controlParens & (1L << (parenDepth - 1))) != 0;
+                regexAllowed = REGEX_PRECEDING_KEYWORDS.contains(word)
+                    || word.equals("of") && (!regexAllowed && seenToken || inControlHeader);
+                afterControlKeyword =
+                    isControlHeaderKeyword(word) || wasAfterControl && word.equals("await");
               } else {
                 regexAllowed = false;
               }
@@ -355,6 +395,7 @@ final class JsLexer {
               regexAllowed = false;
             }
             prevWasDot = false;
+            seenToken = true;
           } else if (c == '{') {
             if (spans != null) {
               spans.color(i, i + 1, colors.operator());
@@ -366,6 +407,8 @@ final class JsLexer {
             i++;
             regexAllowed = true;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '}') {
             if (spans != null) {
               spans.color(i, i + 1, colors.operator());
@@ -385,6 +428,8 @@ final class JsLexer {
               regexAllowed = true;
             }
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if ((c == '+' && next == '+') || (c == '-' && next == '-')) {
             if (spans != null) {
               spans.color(i, i + 2, colors.operator());
@@ -392,6 +437,8 @@ final class JsLexer {
             i += 2;
             regexAllowed = false;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '.' && i + 2 < n && next == '.' && line.charAt(i + 2) == '.') {
             if (spans != null) {
               spans.color(i, i + 3, colors.operator());
@@ -399,6 +446,8 @@ final class JsLexer {
             i += 3;
             regexAllowed = true;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '?' && next == '.' && !(i + 2 < n && isDigit(line.charAt(i + 2)))) {
             if (spans != null) {
               spans.color(i, i + 2, colors.operator());
@@ -406,6 +455,8 @@ final class JsLexer {
             i += 2;
             regexAllowed = false;
             prevWasDot = true;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (c == '.') {
             if (spans != null) {
               spans.color(i, i + 1, colors.operator());
@@ -413,6 +464,8 @@ final class JsLexer {
             i++;
             regexAllowed = false;
             prevWasDot = true;
+            seenToken = true;
+            afterControlKeyword = false;
           } else if (OPERATORS.indexOf(c) >= 0) {
             if (spans != null) {
               spans.color(i, i + 1, colors.operator());
@@ -420,18 +473,31 @@ final class JsLexer {
                 spans.bracket(i);
               }
             }
+            boolean closesControl = false;
+            if (c == '(') {
+              if (parenDepth < 64) {
+                long bit = 1L << parenDepth;
+                if (afterControlKeyword) {
+                  controlParens |= bit;
+                } else {
+                  controlParens &= ~bit;
+                }
+              }
+              parenDepth++;
+            } else if (c == ')' && parenDepth > 0) {
+              parenDepth--;
+              closesControl = parenDepth < 64 && (controlParens & (1L << parenDepth)) != 0;
+            }
             // A ! right after an operand on its line is TypeScript's non-null assertion: still an
             // operand.
-            boolean nonNull = typescript
-                && c == '!'
-                && !regexAllowed
-                && next != '='
-                && i > 0
-                && !Character.isWhitespace(line.charAt(i - 1));
-            regexAllowed = c != ')' && c != ']' && !nonNull;
+            boolean nonNull = typescript && c == '!' && !regexAllowed && next != '=' && seenToken;
+            regexAllowed = (c != ')' || closesControl) && c != ']' && !nonNull;
             prevWasDot = false;
+            seenToken = true;
+            afterControlKeyword = false;
             i++;
           } else {
+            afterControlKeyword = false;
             i++;
           }
         }
@@ -439,38 +505,50 @@ final class JsLexer {
     }
 
     return switch (mode) {
-      case MODE_BLOCK_COMMENT, MODE_DOC_COMMENT -> stateOf(mode, frames, regexAllowed);
+      case MODE_BLOCK_COMMENT, MODE_DOC_COMMENT -> stateOf(mode, frames, regexAllowed, prevWasDot);
       case MODE_SINGLE_STRING, MODE_DOUBLE_STRING -> {
         if (spans != null) {
           spans.color(start, n, colors.string());
         }
-        yield stateOf(lineContinued ? mode : MODE_CODE, frames, false);
+        yield stateOf(lineContinued ? mode : MODE_CODE, frames, false, false);
       }
       case MODE_TEMPLATE -> {
         if (spans != null) {
           spans.color(start, n, colors.string());
         }
-        yield stateOf(MODE_TEMPLATE, frames, false);
+        yield stateOf(MODE_TEMPLATE, frames, false, false);
       }
-      default -> stateOf(MODE_CODE, frames, regexAllowed);
+      default -> stateOf(MODE_CODE, frames, regexAllowed, prevWasDot);
     };
   }
 
-  private static State stateOf(int mode, TemplateFrame frames, boolean regexAllowed) {
+  private static State stateOf(
+      int mode, TemplateFrame frames, boolean regexAllowed, boolean prevWasDot) {
     if (frames == null) {
       return switch (mode) {
-        case MODE_CODE -> regexAllowed ? null : STATE_NO_REGEX;
+        case MODE_CODE -> prevWasDot ? STATE_AFTER_DOT : (regexAllowed ? null : STATE_NO_REGEX);
         case MODE_BLOCK_COMMENT ->
-          regexAllowed ? STATE_BLOCK_COMMENT_REGEX : STATE_BLOCK_COMMENT_NO_REGEX;
+          prevWasDot
+              ? STATE_BLOCK_COMMENT_AFTER_DOT
+              : (regexAllowed ? STATE_BLOCK_COMMENT_REGEX : STATE_BLOCK_COMMENT_NO_REGEX);
         case MODE_DOC_COMMENT ->
-          regexAllowed ? STATE_DOC_COMMENT_REGEX : STATE_DOC_COMMENT_NO_REGEX;
+          prevWasDot
+              ? STATE_DOC_COMMENT_AFTER_DOT
+              : (regexAllowed ? STATE_DOC_COMMENT_REGEX : STATE_DOC_COMMENT_NO_REGEX);
         case MODE_SINGLE_STRING -> STATE_SINGLE_STRING;
         case MODE_DOUBLE_STRING -> STATE_DOUBLE_STRING;
         case MODE_TEMPLATE -> STATE_TEMPLATE;
         default -> null;
       };
     }
-    return new State(mode, frames, regexAllowed);
+    return new State(mode, frames, regexAllowed, prevWasDot);
+  }
+
+  private static boolean isControlHeaderKeyword(String word) {
+    return switch (word) {
+      case "if", "while", "for", "with" -> true;
+      default -> false;
+    };
   }
 
   /**
@@ -478,7 +556,7 @@ final class JsLexer {
    * backslash escapes, {@code [...]} character classes and trailing flag letters. Returns the
    * exclusive end offset, or {@code -1} when no closing {@code /} appears on the line.
    */
-  private static int scanRegexEnd(String line, int slashAt) {
+  static int scanRegexEnd(String line, int slashAt) {
     int n = line.length();
     int i = slashAt + 1;
     if (i >= n) {
@@ -653,6 +731,12 @@ final class JsLexer {
   }
 
   private static boolean isIdentPart(char c) {
-    return Character.isLetterOrDigit(c) || c == '_' || c == '$';
+    if (Character.isLetterOrDigit(c) || c == '_' || c == '$' || c == '\u200C' || c == '\u200D') {
+      return true;
+    }
+    int type = Character.getType(c);
+    return type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
+        || type == Character.CONNECTOR_PUNCTUATION;
   }
 }
