@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 /**
  * The text of an element made with {@link El#text}: its string and look, and, once layout has
@@ -3038,6 +3039,11 @@ public final class Text implements Measure {
    * them after the rows are laid out moves nothing that is placed already.
    */
   void measureChunks(int... positions) {
+    if (hasOutline()) { // the outline measures its ends after the rows are laid out, too
+      positions = Arrays.copyOf(positions, positions.length + 2);
+      positions[positions.length - 2] = outlineFrom;
+      positions[positions.length - 1] = outlineTo;
+    }
     Lines lines = shownLines();
     for (int at : positions) {
       int line = lines.line(Math.clamp(at, 0, lines.length()));
@@ -3270,10 +3276,14 @@ public final class Text implements Measure {
     }
     float minX = Float.POSITIVE_INFINITY;
     float maxX = Float.NEGATIVE_INFINITY;
-    for (Map.Entry<Integer, Lines.Extent> entry : extents.entrySet()) {
-      int line = entry.getKey();
-      Lines.Extent extent = entry.getValue();
-      if (line >= vFirst
+    // Whichever is fewer: the lines of the block, or those measured.
+    Iterable<Integer> measured = vLast - vFirst < extents.size()
+        ? IntStream.rangeClosed(vFirst, vLast).boxed()::iterator
+        : extents.keySet();
+    for (int line : measured) {
+      Lines.Extent extent = extents.get(line);
+      if (extent != null
+          && line >= vFirst
           && line <= vLast
           && !lines.isHidden(line)
           && extent.from() == outlinePartFrom(lines, line, firstLine, a)
@@ -3282,7 +3292,7 @@ public final class Text implements Measure {
         maxX = Math.max(maxX, extent.right());
       }
     }
-    if (!(maxX > minX)) {
+    if (maxX <= minX) {
       return;
     }
     float x0 = minX > 0 ? Math.round(minX - viewX) - thick : Math.round(minX - viewX);
@@ -3296,10 +3306,10 @@ public final class Text implements Measure {
     float visX1 = Math.min(x1, placedWidth);
     if (visX1 > visX0) {
       if (y0 + thick > 0 && y0 < placedHeight) {
-        out.add(new Mark(new Box(visX0, (float) y0, visX1 - visX0, thick), outlineColor));
+        out.add(new Mark(new Box(visX0, y0, visX1 - visX0, thick), outlineColor));
       }
       if (y1 > 0 && y1 - thick < placedHeight) {
-        out.add(new Mark(new Box(visX0, (float) (y1 - thick), visX1 - visX0, thick), outlineColor));
+        out.add(new Mark(new Box(visX0, y1 - thick, visX1 - visX0, thick), outlineColor));
       }
     }
     double innerTop = Math.max(y0 + thick, 0.0);
