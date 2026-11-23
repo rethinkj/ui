@@ -3508,7 +3508,7 @@ public final class App<S> {
    * @param caret the caret's position in the string after the edit
    */
   public void edit(El field, int from, int to, String text, int caret) {
-    edit(field, from, to, text, caret, caret, false);
+    edit(field, from, to, text, caret, caret, false, null);
   }
 
   /**
@@ -3520,10 +3520,31 @@ public final class App<S> {
    * @param anchor the anchor's position in the string after the edit
    */
   public void edit(El field, int from, int to, String text, int caret, int anchor) {
-    edit(field, from, to, text, caret, anchor, true);
+    edit(field, from, to, text, caret, anchor, true, null);
   }
 
-  private void edit(El field, int from, int to, String text, int caret, int anchor, boolean ask) {
+  /**
+   * {@link #edit(El, int, int, String, int, int)} that runs only when the field's string is still
+   * {@code expected} when the edit runs: for an edit whose positions were computed for an earlier
+   * string, such as a quick fix.
+   *
+   * @param expected the string the field must hold for the edit to apply
+   */
+  public void edit(
+      El field, int from, int to, String text, int caret, int anchor, String expected) {
+    Objects.requireNonNull(expected, "expected");
+    edit(field, from, to, text, caret, anchor, true, expected);
+  }
+
+  private void edit(
+      El field,
+      int from,
+      int to,
+      String text,
+      int caret,
+      int anchor,
+      boolean ask,
+      String expected) {
     Objects.requireNonNull(text, "text");
     if (from < 0 || to < from) {
       throw new IllegalArgumentException(
@@ -3534,6 +3555,9 @@ public final class App<S> {
       settle();
       El now = animator.element(id);
       if (now == null || now.editor() == null) {
+        return false;
+      }
+      if (expected != null && !expected.equals(now.editor().text())) {
         return false;
       }
       now.editor().request(from, to, text, caret, anchor, ask);

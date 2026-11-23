@@ -62,7 +62,7 @@ To let two multi-line fields scroll together, give each a `ScrollState` and call
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, `onSelect`, and `textPositionAt(x, y)` to query the character offset at an element-local point). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
 
-From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit. If your app rejects the edit, the selection stays unchanged.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit, and an `expected` string after it to skip the edit if the field's string changed before it runs. If your app rejects the edit, the selection stays unchanged.
 
 ## Folding lines
 

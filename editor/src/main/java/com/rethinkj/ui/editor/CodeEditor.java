@@ -2196,14 +2196,10 @@ public final class CodeEditor {
     if (editor == null || editor.onEdit() == null || editor.isReadOnly()) {
       return;
     }
-    String text = editor.text().string();
-    if (!text.equals(revision)) {
-      return;
-    }
-    int from = Math.min(fix.from(), text.length());
-    int to = Math.min(fix.to(), text.length());
+    int from = Math.min(fix.from(), revision.length());
+    int to = Math.min(fix.to(), revision.length());
     int caret = from + fix.text().length();
-    app.edit(editor, from, to, fix.text(), caret, caret);
+    app.edit(editor, from, to, fix.text(), caret, caret, revision);
   }
 
   /**

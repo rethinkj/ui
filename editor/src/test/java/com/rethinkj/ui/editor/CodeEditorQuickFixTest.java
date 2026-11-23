@@ -121,4 +121,61 @@ class CodeEditorQuickFixTest {
     assertFalse(stale.contains("label=\"Show quick fixes\""), stale);
     assertEquals(edited, doc.text, "Alt+Enter did not apply a stale fix");
   }
+
+  @Test
+  void quickFixSkipsWhenFieldChangesInSameEvent() throws IOException {
+    TextLibraries.assumeLoaded();
+    String original = "SELECT id\nFROM ordrs\nWHERE status = 'paid';";
+    String shifted = "-- note\n" + original;
+    Doc doc = new Doc(original);
+    int from = original.indexOf("ordrs");
+    int to = from + "ordrs".length();
+    doc.editor.diagnostics(
+        original,
+        List.of(new CodeEditor.Diagnostic(
+            from,
+            to,
+            CodeEditor.Severity.ERROR,
+            "Unknown table",
+            List.of(new CodeEditor.Fix("Replace with 'orders'", from, to, "orders")))));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .onAnyKeyDown(key -> {
+              if (key.name().equals("Enter")
+                  && key.modifiers() == 0
+                  && state.text.equals(original)) {
+                state.text = shifted;
+              }
+            })
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(6)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    doc.editor.select(from + 2, from + 2);
+    Script.run("""
+        size 480 240 scale 2
+        frame
+        focus #code
+        frame
+        key Enter alt
+        frame
+        advance 0.3
+        frame
+        key Enter
+        frame
+        advance 0.3
+        frame
+        """, app, out);
+
+    assertEquals(shifted, doc.text, "quick fix must not land on text shifted in the same event");
+  }
 }

@@ -1,0 +1,1 @@
+- `CodeEditor` quick fixes now check the field's text when the queued edit runs, so a fix no longer lands on shifted text if the app edits the field in the same event; `App.edit(El, int, int, String, int, int, String)` exposes the same expected-text check for programmatic edits.
