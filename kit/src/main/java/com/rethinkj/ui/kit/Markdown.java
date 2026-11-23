@@ -821,7 +821,9 @@ public final class Markdown {
     }
     // Images among the text break the paragraph: text, image, text, each a block of its own.
     El blocks = col().gap(c.compact ? theme.space().m() : theme.space().l());
-    Object owner = p; // a run of text is kept by the paragraph, or by the image before it
+    // A run of text is kept by the image before it, the first by the content: the paragraph
+    // keeps its piece shown whole, for a view of the same document without images.
+    Object owner = content;
     List<Inline> run = new ArrayList<>();
     for (Inline part : content) {
       if (part instanceof MarkdownDocument.Image image) {

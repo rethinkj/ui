@@ -1,0 +1,1 @@
+- Showing one `MarkdownDocument` both with and without `Markdown.Options.images` now renders paragraphs that contain an inline image with the right text and links in both views instead of reusing the first view's paragraph piece.

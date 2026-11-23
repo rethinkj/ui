@@ -362,6 +362,30 @@ class MarkdownTest {
     assertEquals(commentColor, paragraph(coloredDefinitions).text().color());
   }
 
+  @Test
+  void oneDocumentShowsTheSameParagraphWithAndWithoutItsImages() throws IOException {
+    MarkdownDocument document = Markdown.parse("Before ![Inline](inline.png) and [after](#after).");
+    Map<String, com.rethinkj.ui.Image> images = Map.of("inline.png", picture(60, 30));
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.fragment(document, Markdown.options()))
+            .child(Markdown.markdown(document, Markdown.options().images(images::get))
+                .grow(1)));
+    String tree = run(app, "frame");
+    List<String> paragraphs = tree.lines()
+        .map(String::strip)
+        .filter(l -> l.contains("role=paragraph"))
+        .toList();
+    assertEquals(3, paragraphs.size(), tree);
+    assertTrue(paragraphs.get(0).contains("role=paragraph \"Before Inline and after.\""), tree);
+    assertTrue(paragraphs.get(1).contains("role=paragraph \"Before\""), tree);
+    assertTrue(paragraphs.get(2).contains("role=paragraph \"and after.\""), tree);
+    assertEquals(2, tree.lines().filter(l -> l.contains("role=link")).count(), tree);
+  }
+
   private static El paragraph(El el) {
     if ("paragraph".equals(el.role())) {
       return el;
