@@ -592,7 +592,7 @@ final class Editor {
     String[] raw = new String[n];
     int prevTo = 0;
     int max = el.maxLength();
-    int removedCp = 0;
+    int keptCp = 0; // the code points the edits keep, by what lies between them
     for (int i = 0; i < n; i++) {
       TextEdit e = edits.get(i);
       int from = Math.clamp(e.from(), prevTo, len);
@@ -600,12 +600,12 @@ final class Editor {
       froms[i] = from;
       tos[i] = to;
       raw[i] = e.text();
-      prevTo = to;
       if (max >= 0) {
-        removedCp += text.codePointCount(from, to);
+        keptCp += text.codePointCount(prevTo, from);
       }
+      prevTo = to;
     }
-    int room = max < 0 ? -1 : Math.max(0, max - text.codePointCount(0, len) + removedCp);
+    int room = max < 0 ? -1 : Math.max(0, max - keptCp - text.codePointCount(prevTo, len));
     String[] fitted = new String[n];
     for (int i = 0; i < n; i++) {
       String lined = fitLines(raw[i]);
@@ -669,20 +669,21 @@ final class Editor {
     for (int i = 0; i < froms.length; i++) {
       int gap = froms[i] - prevTo;
       if (at <= rawPos + gap) {
-        return Math.clamp(fitPos + (at - rawPos), 0, length);
+        return Math.clamp((long) fitPos + at - rawPos, 0, length);
       }
       rawPos += gap;
       fitPos += gap;
       int rawLen = raw[i].length();
       int fitLen = fitted[i].length();
       if (at <= rawPos + rawLen) {
-        return Math.clamp(fitPos + Math.min(fitIndex(raw[i], at - rawPos), fitLen), 0, length);
+        return Math.clamp(
+            (long) fitPos + Math.min(fitIndex(raw[i], at - rawPos), fitLen), 0, length);
       }
       rawPos += rawLen;
       fitPos += fitLen;
       prevTo = tos[i];
     }
-    return Math.clamp(fitPos + (at - rawPos), 0, length);
+    return Math.clamp((long) fitPos + at - rawPos, 0, length);
   }
 
   /** A selection the app asks for ({@link App#select}), which scrolls into view as a key's does. */

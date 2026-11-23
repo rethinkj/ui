@@ -48,9 +48,10 @@ final class TextEdits {
    * Builds the edits from {@code before} across sequential {@code edits}, each at offsets in the
    * string after the previous one: each edit's replaced span is diffed against its inserted text,
    * and ascending non-overlapping runs share one flat table while non-ascending edits chain.
-   * Returns {@code null} if an edit's offsets do not fit {@code before}.
+   * Returns {@code null} if an edit's offsets do not fit {@code before} or the edits do not lead
+   * to {@code after}.
    */
-  static TextEdits fromEdits(String before, List<TextEdit> edits) {
+  static TextEdits fromEdits(String before, List<TextEdit> edits, String after) {
     if (edits.isEmpty()) {
       return EMPTY;
     }
@@ -116,9 +117,10 @@ final class TextEdits {
           tail = step;
         }
       }
-      if (i < n) {
-        current = applyRun(current, edits, runStart, i);
-      }
+      current = applyRun(current, edits, runStart, i);
+    }
+    if (!current.equals(after)) {
+      return null; // from another string, such as one of the same hash ({@code recent})
     }
     return head == null ? EMPTY : head;
   }
@@ -218,6 +220,13 @@ final class TextEdits {
    * after it), or returns {@code -1} if characters are replaced on both sides of it.
    */
   int mapPointBefore(int at) {
+    for (TextEdits step = this; step != null && at >= 0; step = step.next) {
+      at = step.mapPointBeforeSingle(at);
+    }
+    return at;
+  }
+
+  private int mapPointBeforeSingle(int at) {
     int lo = 0;
     int hi = count;
     while (lo < hi) {

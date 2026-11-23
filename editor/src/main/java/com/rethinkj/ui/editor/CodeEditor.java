@@ -426,9 +426,9 @@ public final class CodeEditor {
     private String builtText;
     private long builtRevision = -1;
     // The strings built while the field's edit log reaches back, newest first, for marks computed a
-    // few builds ago; by hash and length, as their text would take too much memory.
-    // shortcut: two strings of one hash and length mix up their revisions, then the marks move by
-    // the wrong edits; keep the strings themselves if that is ever seen.
+    // few builds ago; by a 64-bit hash and length, as their text would take too much memory.
+    // shortcut: another string of the same hash and length takes its revision, which is unlikely
+    // short of crafted text; keep the strings themselves if that is ever seen.
     private final ArrayDeque<Built> recent = new ArrayDeque<>();
     // The folds the field asked to open since the last build ({@link #ask}).
     private final List<El.Fold> asked = new ArrayList<>();
@@ -736,8 +736,9 @@ public final class CodeEditor {
       Objects.requireNonNull(text, "text");
       String shown = displayed(text);
       long rev = -1;
+      long hash = hash(shown);
       for (Built built : recent) {
-        if (built.hash() == shown.hashCode() && built.length() == shown.length()) {
+        if (built.hash() == hash && built.length() == shown.length()) {
           rev = built.revision();
           break;
         }
@@ -923,7 +924,7 @@ public final class CodeEditor {
         if (fromRevision >= 0 && fromRevision < toRevision) {
           List<TextEdit> logged = field.editsSince(fromRevision, to);
           if (!logged.isEmpty()) {
-            computed = TextEdits.fromEdits(from, logged);
+            computed = TextEdits.fromEdits(from, logged, to);
           }
         }
         edits = computed != null ? computed : TextEdits.between(from, to);
@@ -959,7 +960,7 @@ public final class CodeEditor {
         folds = reconcileFolds(folds, found, text);
       }
       if (revision != builtRevision || !text.equals(builtText)) {
-        recent.addFirst(new Built(text.hashCode(), text.length(), revision));
+        recent.addFirst(new Built(hash(text), text.length(), revision));
         if (recent.size() > RECENT) {
           recent.removeLast();
         }
@@ -1179,7 +1180,16 @@ public final class CodeEditor {
         List<InlayHint> hints) {}
 
     /** A string built at {@code revision}, by its hash and length. */
-    private record Built(int hash, int length, long revision) {}
+    private record Built(long hash, int length, long revision) {}
+
+    /** FNV-1a over the characters: unlike {@link String#hashCode}, "Aa" and "BB" differ. */
+    private static long hash(String text) {
+      long hash = 0xcbf29ce484222325L;
+      for (int i = 0; i < text.length(); i++) {
+        hash = (hash ^ text.charAt(i)) * 0x100000001b3L;
+      }
+      return hash;
+    }
 
     // The string before the oldest step the field's log keeps, and one per step: 200 steps.
     private static final int RECENT = 201;
