@@ -50,10 +50,10 @@ el 0,0 700x248
           el 60,185 12x0
         el #unchanged-gutter-0 role=button label="5 unchanged lines" 13,17 63x16
           text label="more_horizontal" "\u{E823}" 39,19 12x12
-      el #unchanged-0 role=button label="5 unchanged lines" 85,17 256.5x16
+      el #unchanged-0 role=button label="5 unchanged lines" 85,17 257x16
         text label="chevron_down" "\u{F2A1}" 93,19 12x12
         text "5 unchanged lines" 109,18 104x14
-      el #block-9 85,97 256.5x16
+      el #block-9 85,97 257x16
     el 350,13 1x222
     text #new role=textbox label="Modified" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … " 'paid'\nORDER BY o.total DESC\nLIMIT 100;" length 244 351,13 336x222 readonly lines 6-15/15 focused caret 122 (9:1)
       el #rail 351,13 64x222
@@ -110,6 +110,6 @@ el 0,0 700x248
           el 398,185 12x0
         el #unchanged-gutter-0 role=button label="5 unchanged lines" 351,17 63x16
           text label="more_horizontal" "\u{E823}" 377,19 12x12
-      el #unchanged-0 role=button label="5 unchanged lines" 423,17 256.5x16
+      el #unchanged-0 role=button label="5 unchanged lines" 423,17 257x16
         text label="chevron_down" "\u{F2A1}" 431,19 12x12
         text "5 unchanged lines" 447,18 104x14
