@@ -74,9 +74,13 @@ class JsDocTest {
          * @param indented
          *     Indented description on next line.
          * @param bare
+         * @param {{ closer: "}" }} braced Quoted closing brace in type.
+         * @param [pattern="]"] Quoted closing bracket in default.
+         * @param [msg=don't] Unbalanced apostrophe falls back.
+         * @param [publisher=O'Reilly] See [What's new](/help).
          */""");
     List<DocComment.Entry> params = doc.parameters();
-    assertEquals(8, params.size());
+    assertEquals(12, params.size());
 
     assertEntry(params.get(0), "host", "string", "Target hostname.");
     assertEntry(params.get(1), "[port=5432]", "number", "Port number.");
@@ -88,6 +92,10 @@ class JsDocTest {
     assertEquals("bare", params.get(7).name());
     assertNull(params.get(7).type());
     assertNull(params.get(7).description());
+    assertEntry(params.get(8), "braced", "{ closer: \"}\" }", "Quoted closing brace in type.");
+    assertEntry(params.get(9), "[pattern=\"]\"]", null, "Quoted closing bracket in default.");
+    assertEntry(params.get(10), "[msg=don't]", null, "Unbalanced apostrophe falls back.");
+    assertEquals("[publisher=O'Reilly]", params.get(11).name(), "an apostrophe opens no string");
   }
 
   @Test

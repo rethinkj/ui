@@ -314,7 +314,7 @@ final class JsDoc {
     }
     if (content.startsWith("{@", i)) {
       // TSDoc's @throws {@link SyntaxError} description: the link's target names the error.
-      int close = findMatchingBrace(content, i);
+      int close = scanMatchingDelimiter(content, i, '{', '}', false);
       String[] words =
           close > i ? content.substring(i + 2, close).trim().split("[\\s|]+", 3) : new String[0];
       if (words.length > 1) {
@@ -624,29 +624,38 @@ final class JsDoc {
   }
 
   private static int findMatchingBrace(String s, int open) {
-    int depth = 0;
-    for (int i = open; i < s.length(); i++) {
-      char c = s.charAt(i);
-      if (c == '\\' && i + 1 < s.length()) {
-        i++;
-      } else if (c == '{') {
-        depth++;
-      } else if (c == '}' && --depth == 0) {
-        return i;
-      }
-    }
-    return -1;
+    return findMatchingDelimiter(s, open, '{', '}');
   }
 
   private static int findMatchingBracket(String s, int open) {
+    return findMatchingDelimiter(s, open, '[', ']');
+  }
+
+  private static int findMatchingDelimiter(String s, int open, char openChar, char closeChar) {
+    int match = scanMatchingDelimiter(s, open, openChar, closeChar, true);
+    return match >= 0 ? match : scanMatchingDelimiter(s, open, openChar, closeChar, false);
+  }
+
+  private static int scanMatchingDelimiter(
+      String s, int open, char openChar, char closeChar, boolean skipStrings) {
     int depth = 0;
+    char quote = 0;
     for (int i = open; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c == '\\' && i + 1 < s.length()) {
         i++;
-      } else if (c == '[') {
+      } else if (quote != 0) {
+        if (c == quote) {
+          quote = 0;
+        }
+      } else if (skipStrings
+          && (c == '\'' || c == '"' || c == '`')
+          && !Character.isLetterOrDigit(s.charAt(i - 1))) {
+        // A quote right after a letter is an apostrophe (O'Reilly, it's), not a string.
+        quote = c;
+      } else if (c == openChar) {
         depth++;
-      } else if (c == ']' && --depth == 0) {
+      } else if (c == closeChar && --depth == 0) {
         return i;
       }
     }

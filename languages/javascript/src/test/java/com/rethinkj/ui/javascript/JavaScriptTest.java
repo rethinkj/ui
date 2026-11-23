@@ -169,9 +169,46 @@ class JavaScriptTest {
         tokens(TS, "const avg = total! / count; // normalize"),
         "division after a non-null assertion");
     assertEquals(
+        List.of("!:5 /:5 ;:5 // normalize:4"),
+        tokens(TS, "total ! / count; // normalize"),
+        "division after a spaced non-null assertion");
+    assertEquals(
         List.of("const:1 =:5 (:5 ):5", "!:5 /[/*]/:2 .:5 (:5 ):5 ;:5"),
         tokens(TS, "const path = readPath()", "!/[/*]/.test(path);"),
         "a ! that starts a line is a negation");
+    assertEquals(
+        List.of("const:1 =:5 (:5 ):5", "!:5 /[/*]/:2 .:5 (:5 ):5 ;:5"),
+        tokens(TS, "const path = readPath()", "  !/[/*]/.test(path);"),
+        "an indented ! that starts a line is a negation");
+    assertEquals(
+        List.of("if:1 (:5 ):5 /[/*]/:2 .:5 (:5 ):5 ;:5"),
+        tokens(JS, "if (ready) /[/*]/.test(input);"),
+        "regex after control header on the same line");
+    assertEquals(
+        List.of(
+            "for:1 await:1 (:5 const:1 of:1 ):5 /[/*]/:2 .:5 (:5 ):5 ;:5",
+            "for:1 (:5 const:1 of:1 /[/*]/:2 .:5 (:5 ):5 ?:5 ?:5 [:5 ]:5 ):5 (:5 ):5 ;:5"),
+        tokens(
+            JS,
+            "for await (const item of stream) /[/*]/.test(item);",
+            "for (const match of /[/*]/.exec(input) ?? []) consume(match);"),
+        "regex after a for await header and after of in a for header");
+    assertEquals(
+        List.of("(:5 ):5 /:5 ;:5", "(:5 ):5 /:5 ;:5", ".:5 (:5 ):5 /:5 ;:5"),
+        tokens(JS, "(x) / y;", "f(x) / y;", "obj.if(x) / y;"),
+        "division after grouped, call and property-named parens");
+    assertEquals(
+        List.of("of:1 /:5 // note:4"),
+        tokens(JS, "of / count // note"),
+        "division after of used as an identifier");
+    assertEquals(
+        List.of(".:5", "/:5"),
+        tokens(JS, "obj.", "return / count"),
+        "keyword after trailing dot on previous line is a property name");
+    assertEquals(
+        List.of("/:5 ;:5"),
+        tokens(JS, "return\u0301 / count;"),
+        "combining mark continues an identifier so it is not a keyword");
     assertEquals(
         List.of("const:1 =:5", "/multi/g:2 ;:5"),
         tokens(JS, "const re =", "  /multi/g;"),
@@ -193,6 +230,8 @@ class JavaScriptTest {
         const a = "// not" + '/* not */';
         const b = `/** not */ ${/* in expr */ 1} // not`;
         const re = /http:\\/\\/example.com\\/*/g; // after regex
+        if (ready) /[/*]/.test(input);
+        /** After control regex. */
         /**/ const empty = 1;
         /* block
            line 2 */
@@ -206,15 +245,16 @@ class JavaScriptTest {
     Comments scanned = Comments.scan(text, JS, null);
     assertTrue(scanned.complete());
     List<Comments.Comment> list = scanned.comments();
-    assertEquals(7, list.size(), list.toString());
+    assertEquals(8, list.size(), list.toString());
 
     assertComment(text, list.get(0), "// heading", false);
     assertComment(text, list.get(1), "/* in expr */", false);
     assertComment(text, list.get(2), "// after regex", false);
-    assertComment(text, list.get(3), "/**/", false);
-    assertComment(text, list.get(4), "/* block\n   line 2 */", false);
-    assertComment(text, list.get(5), "/**\n * Doc body.\n\n * More.\n */", true);
-    assertComment(text, list.get(6), "/** single */", true);
+    assertComment(text, list.get(3), "/** After control regex. */", true);
+    assertComment(text, list.get(4), "/**/", false);
+    assertComment(text, list.get(5), "/* block\n   line 2 */", false);
+    assertComment(text, list.get(6), "/**\n * Doc body.\n\n * More.\n */", true);
+    assertComment(text, list.get(7), "/** single */", true);
 
     assertSame(scanned, Comments.scan(text, new JavaScript(C), scanned), "cached for equal lang");
   }
