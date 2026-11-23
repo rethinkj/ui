@@ -31,6 +31,14 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class HintTest {
 
+  private static final String SOURCE = """
+      var files = scan(root, true);
+      var count = files.size();""";
+  private static final int FILES_END = SOURCE.indexOf("files") + "files".length();
+  private static final int ROOT_AT = SOURCE.indexOf("root");
+  private static final int TRUE_AT = SOURCE.indexOf("true");
+  private static final int COUNT_END = SOURCE.indexOf("count") + "count".length();
+
   private static final int SHIFT = Key.SHIFT;
   private static final int CONTROL = Key.CONTROL;
 
@@ -70,31 +78,106 @@ class HintTest {
 
   @Test
   void caretStopsOnBothSidesCopyIgnoresHintsAndImageDrawsParameterHints() throws IOException {
-    assertThrows(
-        IllegalStateException.class,
-        () -> El.text("plain").hints(List.of(), h -> El.text(h.text())));
-    assertThrows(
-        IllegalStateException.class,
-        () -> El.text("one").editable(v -> {}).hints(List.of(), h -> El.text(h.text())));
-    assertThrows(
-        IllegalArgumentException.class, () -> new El.Hint(-1, El.Hint.Affinity.AFTER, "x:"));
+    App<Doc> app = start();
 
-    String source = """
-        var files = scan(root, true);
-        var count = files.size();""";
-    int filesEnd = source.indexOf("files") + "files".length();
-    int rootAt = source.indexOf("root");
-    int trueAt = source.indexOf("true");
-    int countEnd = source.indexOf("count") + "count".length();
+    Script.run("""
+        size 540 80 scale 2
+        frame
+        focus #code
+        frame
+        snap hints
+        """, app, out);
 
+    Path png = out.resolve("hints.png");
+    String tree = Files.readString(out.resolve("hints.tree.txt"));
+    Golden.assertMatches("hints", Png.decode(Files.readAllBytes(png)), tree);
+    for (int at : new int[] {FILES_END, ROOT_AT, TRUE_AT, COUNT_END}) {
+      assertTrue(tree.contains("#hint-" + at), tree);
+    }
+
+    El codeEl = field(app);
+    El end0 = codeEl.children().stream()
+        .filter(c -> "end-0".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    El hintTrue = codeEl.children().stream()
+        .filter(c -> ("hint-" + TRUE_AT).equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    assertTrue(
+        end0.x() > hintTrue.x() + hintTrue.width(), "line-end element sits after hinted line end");
+
+    // Stepping Right across the BEFORE hint at FILES_END stops on both sides.
+    app.select(field(app), FILES_END - 1, FILES_END - 1);
+    app.frame();
+    key(app, "ArrowRight"); // arrives at FILES_END -> LEFT stop (before ": List<Path>")
+    assertEquals(FILES_END, field(app).editor().caret());
+    float leftStopX = field(app).editor().caretBox()[0];
+    key(app, "ArrowRight"); // steps to DEFAULT stop (after ": List<Path>")
+    assertEquals(FILES_END, field(app).editor().caret());
+    float rightStopX = field(app).editor().caretBox()[0];
+    assertTrue(
+        rightStopX > leftStopX + 20f,
+        "Right stepped across BEFORE hint: " + leftStopX + " -> " + rightStopX);
+    key(app, "ArrowRight"); // moves to next character (space after files)
+    assertEquals(FILES_END + 1, field(app).editor().caret());
+
+    // Mirror Left across the same BEFORE hint.
+    key(app, "ArrowLeft"); // arrives at FILES_END -> DEFAULT stop (right side)
+    assertEquals(FILES_END, field(app).editor().caret());
+    assertEquals(rightStopX, field(app).editor().caretBox()[0], 0.01f);
+    key(app, "ArrowLeft"); // LEFT stop (left side)
+    assertEquals(FILES_END, field(app).editor().caret());
+    assertEquals(leftStopX, field(app).editor().caretBox()[0], 0.01f);
+    key(app, "ArrowLeft"); // moves to FILES_END - 1
+    assertEquals(FILES_END - 1, field(app).editor().caret());
+
+    // Stepping Right/Left across the AFTER hint at ROOT_AT stops on both sides.
+    app.select(field(app), ROOT_AT - 1, ROOT_AT - 1);
+    app.frame();
+    key(app, "ArrowRight"); // arrives at ROOT_AT -> DEFAULT stop (left side of "folder:")
+    assertEquals(ROOT_AT, field(app).editor().caret());
+    float folderLeftX = field(app).editor().caretBox()[0];
+    key(app, "ArrowRight"); // RIGHT stop (right side of "folder:")
+    assertEquals(ROOT_AT, field(app).editor().caret());
+    float folderRightX = field(app).editor().caretBox()[0];
+    assertTrue(
+        folderRightX > folderLeftX + 20f,
+        "Right stepped across AFTER hint: " + folderLeftX + " -> " + folderRightX);
+    key(app, "ArrowRight"); // moves to ROOT_AT + 1
+    assertEquals(ROOT_AT + 1, field(app).editor().caret());
+    key(app, "ArrowLeft"); // arrives at ROOT_AT -> RIGHT stop
+    assertEquals(ROOT_AT, field(app).editor().caret());
+    assertEquals(folderRightX, field(app).editor().caretBox()[0], 0.01f);
+    key(app, "ArrowLeft"); // DEFAULT stop (left side)
+    assertEquals(ROOT_AT, field(app).editor().caret());
+    assertEquals(folderLeftX, field(app).editor().caretBox()[0], 0.01f);
+
+    // Shift+Right selection across "folder:" and Ctrl+C copies only the string.
+    app.select(field(app), ROOT_AT - 1, ROOT_AT - 1);
+    app.frame();
+    key(app, "ArrowRight", SHIFT); // selects "(" -> ends at ROOT_AT (before hint)
+    float selBeforeHint = field(app).text().selection().getFirst().width();
+    key(app, "ArrowRight", SHIFT); // steps over hint at ROOT_AT
+    key(app, "ArrowRight", SHIFT); // selects "r" -> hint is now strictly inside selection
+    float selAcrossHint = field(app).text().selection().getFirst().width();
+    assertTrue(
+        selAcrossHint > selBeforeHint + (folderRightX - folderLeftX),
+        "selection across hint highlights the hint's width");
+    key(app, "C", CONTROL);
+    assertEquals("(r", app.clipboard().read(), "copy ignores inline hints");
+  }
+
+  /** A field with parameter and type hints; the hint at {@code TRUE_AT} counts presses. */
+  private static App<Doc> start() {
     Context<String> tag = new Context<>("default");
     Doc doc = new Doc(
-        source,
+        SOURCE,
         List.of(
-            new El.Hint(filesEnd, El.Hint.Affinity.BEFORE, ": List<Path>"),
-            new El.Hint(rootAt, El.Hint.Affinity.AFTER, "folder:"),
-            new El.Hint(trueAt, El.Hint.Affinity.AFTER, "recursive:"),
-            new El.Hint(countEnd, El.Hint.Affinity.BEFORE, ": int")));
+            new El.Hint(FILES_END, El.Hint.Affinity.BEFORE, ": List<Path>"),
+            new El.Hint(ROOT_AT, El.Hint.Affinity.AFTER, "folder:"),
+            new El.Hint(TRUE_AT, El.Hint.Affinity.AFTER, "recursive:"),
+            new El.Hint(COUNT_END, El.Hint.Affinity.BEFORE, ": int")));
 
     App<Doc> app = new App<>(
         doc,
@@ -121,102 +204,30 @@ class HintTest {
                     .fill(0xFF1C1C22)
                     .border(1, 0xFF3A3A40)
                     .whenFocused(e -> e.border(1, 0xFF3B82F6))
-                    .hints(s.hints, h -> pill(h, h.at() == trueAt ? () -> s.clicks++ : null))
+                    .hints(s.hints, h -> pill(h, h.at() == TRUE_AT ? () -> s.clicks++ : null))
                     .lineEnds(line -> line == 0
                         ? List.of(El.text(tag.get() + ":ok").fontSize(11).color(0xFF9CA3AF))
                         : List.of()))));
     app.textRendering(TextRendering.LINUX);
+    return app;
+  }
 
-    Script.run("""
-        size 540 80 scale 2
-        frame
-        focus #code
-        frame
-        snap hints
-        """, app, out);
-
-    Path png = out.resolve("hints.png");
-    String tree = Files.readString(out.resolve("hints.tree.txt"));
-    Golden.assertMatches("hints", Png.decode(Files.readAllBytes(png)), tree);
-    assertTrue(tree.contains("#hint-" + filesEnd), tree);
-    assertTrue(tree.contains("#hint-" + rootAt), tree);
-    assertTrue(tree.contains("#hint-" + trueAt), tree);
-    assertTrue(tree.contains("#hint-" + countEnd), tree);
-
+  @Test
+  void pressesOnHintsPickTheNearerStopOrRunTheHintsHandler() {
+    App<Doc> app = start();
+    app.resize(540, 80, 2);
+    app.frame();
+    focus(app);
+    Doc doc = app.state();
     El codeEl = field(app);
-    El end0 = codeEl.children().stream()
-        .filter(c -> "end-0".equals(c.key()))
-        .findFirst()
-        .orElseThrow();
-    El hintTrue = codeEl.children().stream()
-        .filter(c -> ("hint-" + trueAt).equals(c.key()))
-        .findFirst()
-        .orElseThrow();
-    assertTrue(
-        end0.x() > hintTrue.x() + hintTrue.width(), "line-end element sits after hinted line end");
-
-    // Stepping Right across the BEFORE hint at filesEnd stops on both sides.
-    app.select(field(app), filesEnd - 1, filesEnd - 1);
+    app.select(field(app), ROOT_AT, ROOT_AT);
     app.frame();
-    key(app, "ArrowRight"); // arrives at filesEnd -> LEFT stop (before ": List<Path>")
-    assertEquals(filesEnd, field(app).editor().caret());
-    float leftStopX = field(app).editor().caretBox()[0];
-    key(app, "ArrowRight"); // steps to DEFAULT stop (after ": List<Path>")
-    assertEquals(filesEnd, field(app).editor().caret());
-    float rightStopX = field(app).editor().caretBox()[0];
-    assertTrue(
-        rightStopX > leftStopX + 20f,
-        "Right stepped across BEFORE hint: " + leftStopX + " -> " + rightStopX);
-    key(app, "ArrowRight"); // moves to next character (space after files)
-    assertEquals(filesEnd + 1, field(app).editor().caret());
-
-    // Mirror Left across the same BEFORE hint.
-    key(app, "ArrowLeft"); // arrives at filesEnd -> DEFAULT stop (right side)
-    assertEquals(filesEnd, field(app).editor().caret());
-    assertEquals(rightStopX, field(app).editor().caretBox()[0], 0.01f);
-    key(app, "ArrowLeft"); // LEFT stop (left side)
-    assertEquals(filesEnd, field(app).editor().caret());
-    assertEquals(leftStopX, field(app).editor().caretBox()[0], 0.01f);
-    key(app, "ArrowLeft"); // moves to filesEnd - 1
-    assertEquals(filesEnd - 1, field(app).editor().caret());
-
-    // Stepping Right/Left across the AFTER hint at rootAt stops on both sides.
-    app.select(field(app), rootAt - 1, rootAt - 1);
-    app.frame();
-    key(app, "ArrowRight"); // arrives at rootAt -> DEFAULT stop (left side of "folder:")
-    assertEquals(rootAt, field(app).editor().caret());
     float folderLeftX = field(app).editor().caretBox()[0];
-    key(app, "ArrowRight"); // RIGHT stop (right side of "folder:")
-    assertEquals(rootAt, field(app).editor().caret());
+    key(app, "ArrowRight"); // the stop right of "folder:"
     float folderRightX = field(app).editor().caretBox()[0];
-    assertTrue(
-        folderRightX > folderLeftX + 20f,
-        "Right stepped across AFTER hint: " + folderLeftX + " -> " + folderRightX);
-    key(app, "ArrowRight"); // moves to rootAt + 1
-    assertEquals(rootAt + 1, field(app).editor().caret());
-    key(app, "ArrowLeft"); // arrives at rootAt -> RIGHT stop
-    assertEquals(rootAt, field(app).editor().caret());
-    assertEquals(folderRightX, field(app).editor().caretBox()[0], 0.01f);
-    key(app, "ArrowLeft"); // DEFAULT stop (left side)
-    assertEquals(rootAt, field(app).editor().caret());
-    assertEquals(folderLeftX, field(app).editor().caretBox()[0], 0.01f);
 
-    // Shift+Right selection across "folder:" and Ctrl+C copies only the string.
-    app.select(field(app), rootAt - 1, rootAt - 1);
-    app.frame();
-    key(app, "ArrowRight", SHIFT); // selects "(" -> ends at rootAt (before hint)
-    float selBeforeHint = field(app).text().selection().getFirst().width();
-    key(app, "ArrowRight", SHIFT); // steps over hint at rootAt
-    key(app, "ArrowRight", SHIFT); // selects "r" -> hint is now strictly inside selection
-    float selAcrossHint = field(app).text().selection().getFirst().width();
-    assertTrue(
-        selAcrossHint > selBeforeHint + (folderRightX - folderLeftX),
-        "selection across hint highlights the hint's width");
-    key(app, "C", CONTROL);
-    assertEquals("(r", app.clipboard().read(), "copy ignores inline hints");
-
-    // Selection starting at rootAt starts after the AFTER hint.
-    app.select(field(app), rootAt + 4, rootAt);
+    // Selection starting at ROOT_AT starts after the AFTER hint.
+    app.select(field(app), ROOT_AT + 4, ROOT_AT);
     app.frame();
     Text.Box rootSel = field(app).text().selection().getFirst();
     float scale = field(app).text().scale();
@@ -229,7 +240,7 @@ class HintTest {
 
     // textPositionAt returns -1 over a hint and the character offset over adjacent text.
     El hintRoot = field(app).children().stream()
-        .filter(c -> ("hint-" + rootAt).equals(c.key()))
+        .filter(c -> ("hint-" + ROOT_AT).equals(c.key()))
         .findFirst()
         .orElseThrow();
     assertEquals(
@@ -239,7 +250,7 @@ class HintTest {
                 hintRoot.x() + hintRoot.width() / 2f, hintRoot.y() + hintRoot.height() / 2f),
         "textPositionAt reports -1 over a hint");
     assertEquals(
-        rootAt,
+        ROOT_AT,
         field(app).textPositionAt(folderRightX + 2f, hintRoot.y() + hintRoot.height() / 2f),
         "textPositionAt reports the argument's offset right after the hint");
 
@@ -249,20 +260,20 @@ class HintTest {
     app.pointerDown(clickRightX, clickY);
     app.pointerUp(clickRightX, clickY);
     app.frame();
-    assertEquals(rootAt, field(app).editor().caret());
+    assertEquals(ROOT_AT, field(app).editor().caret());
     assertEquals(folderRightX, field(app).editor().caretBox()[0], 0.01f);
 
     float clickLeftX = 12 + hintRoot.x() + hintRoot.width() * 0.15f;
     app.pointerDown(clickLeftX, clickY);
     app.pointerUp(clickLeftX, clickY);
     app.frame();
-    assertEquals(rootAt, field(app).editor().caret());
+    assertEquals(ROOT_AT, field(app).editor().caret());
     assertEquals(folderLeftX, field(app).editor().caretBox()[0], 0.01f);
 
     // Pressing on an interactive hint runs its own press handler without moving caret or focus.
     int caretBeforeClick = field(app).editor().caret();
     El interactive = field(app).children().stream()
-        .filter(c -> ("hint-" + trueAt).equals(c.key()))
+        .filter(c -> ("hint-" + TRUE_AT).equals(c.key()))
         .findFirst()
         .orElseThrow();
     app.pointerDown(
@@ -279,6 +290,14 @@ class HintTest {
 
   @Test
   void wrappingChunksEdgesTabsFoldsAndThreeStopsWork() {
+    assertThrows(
+        IllegalStateException.class,
+        () -> El.text("plain").hints(List.of(), h -> El.text(h.text())));
+    assertThrows(
+        IllegalStateException.class,
+        () -> El.text("one").editable(v -> {}).hints(List.of(), h -> El.text(h.text())));
+    assertThrows(
+        IllegalArgumentException.class, () -> new El.Hint(-1, El.Hint.Affinity.AFTER, "x:"));
     // 1. Both BEFORE and AFTER hints at the same offset give 3 distinct stops and hint-<at>-1 key.
     Doc both = new Doc(
         "ab",

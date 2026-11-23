@@ -402,7 +402,7 @@ final class Editors {
   // docs:end shared-document
   // docs:start inlay-hints
   String call = "var files = scan(root, true);";
-  final List<El.Hint> callHints = List.of(
+  List<El.Hint> callHints = List.of(
       new El.Hint(
           call.indexOf("files") + "files".length(), El.Hint.Affinity.BEFORE, ": List<Path>"),
       new El.Hint(call.indexOf("root"), El.Hint.Affinity.AFTER, "folder:"),
@@ -410,6 +410,7 @@ final class Editors {
 
   void updateCall(String value) {
     call = value;
+    callHints = List.of(); // their offsets are stale; the analysis computes them for the new text
   }
 
   El renderHint(El.Hint hint) {

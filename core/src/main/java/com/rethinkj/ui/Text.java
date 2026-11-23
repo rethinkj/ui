@@ -224,6 +224,7 @@ public final class Text implements Measure {
   private BlockMeasurer blockMeasurer;
   private List<El.Hint> hints = List.of();
   private HintMeasurer hintMeasurer;
+  private static final SortedHint[] NO_HINTS = {};
   private SortedHint[] sortedHints; // sorted hints in bounds, lazily built when !hints.isEmpty()
   private List<Row> rows = List.of();
   private List<PlacedBlock> placedBlocks = List.of();
@@ -1143,7 +1144,7 @@ public final class Text implements Measure {
    * in the paragraph: what lies after it, an ellipsis, has the text's.
    */
   private Para shape(String text, Spans spans, int offset, int limit) {
-    return shape(text, spans, offset, limit, null);
+    return shape(text, spans, offset, limit, List.of());
   }
 
   private Para shape(String text, Spans spans, int offset, int limit, List<MeasuredHint> segHints) {
@@ -1156,7 +1157,7 @@ public final class Text implements Measure {
       run = shaping.shape(shaped, size, scale, features);
     }
     LineHints lineHints = null;
-    if (segHints != null && !segHints.isEmpty()) {
+    if (!segHints.isEmpty()) {
       lineHints = resolveHints(text, run, segHints);
       // Apply hints before tabs so tab stops stay on the grid after a hint.
       run = run.withGaps(text.length(), lineHints.positions, lineHints.before, lineHints.after);
@@ -1515,7 +1516,7 @@ public final class Text implements Measure {
       String sub = text.substring(from, to);
       List<MeasuredHint> segHints = hasHints
           ? segmentHints(lineStart + from, lineStart + to, i == 0, i == parts.length - 1)
-          : null;
+          : List.<MeasuredHint>of();
       // shortcut: tab stops in a chunked line are relative to the chunk's start rather than the
       // line's; pass the chunk's x modulo tabStop to GlyphRun#tabbed if long tabbed lines need
       // exact stops.
@@ -2411,14 +2412,16 @@ public final class Text implements Measure {
     }
   }
 
-  /** Hints within the shown string, sorted by offset and BEFORE before AFTER; null when none. */
+  /** Hints within the shown string, sorted by offset and BEFORE before AFTER. */
   private SortedHint[] sortedHints() {
     if (hints.isEmpty() || placeholderShown) {
-      return null;
+      return NO_HINTS;
     }
     if (sortedHints != null) {
       return sortedHints;
     }
+    // shortcut: hint offsets are taken as positions in the shown string, so while an input method
+    // composes, hints after the composition sit off by its length; map them through it if needed.
     int len = shown.length();
     List<El.Hint> ordered = new ArrayList<>(hints.size());
     for (El.Hint h : hints) {
@@ -2468,7 +2471,7 @@ public final class Text implements Measure {
 
   private boolean lineHasHints(int lineStart, int lineEnd) {
     SortedHint[] all = sortedHints();
-    if (all == null || all.length == 0) {
+    if (all.length == 0) {
       return false;
     }
     int i = lowerBound(all, lineStart);
@@ -2476,21 +2479,21 @@ public final class Text implements Measure {
   }
 
   /**
-   * Builds and measures the hints belonging to {@code [segStart, segEnd]} in {@code shown}, or
-   * null when none belong to it. At an internal chunk boundary, BEFORE goes to the chunk before
+   * Builds and measures the hints belonging to {@code [segStart, segEnd]} in {@code shown}, empty
+   * when none belong to it. At an internal chunk boundary, BEFORE goes to the chunk before
    * and AFTER to the chunk after.
    */
   private List<MeasuredHint> segmentHints(
       int segStart, int segEnd, boolean isLineStart, boolean isLineEnd) {
     SortedHint[] all = sortedHints();
-    if (all == null || all.length == 0 || hintMeasurer == null) {
-      return null;
+    if (all.length == 0 || hintMeasurer == null) {
+      return List.of();
     }
     int i = lowerBound(all, segStart);
     if (i >= all.length || all[i].hint.at() > segEnd) {
-      return null;
+      return List.of();
     }
-    List<MeasuredHint> out = null;
+    List<MeasuredHint> out = new ArrayList<>();
     double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
     for (; i < all.length && all[i].hint.at() <= segEnd; i++) {
       SortedHint sh = all[i];
@@ -2509,9 +2512,6 @@ public final class Text implements Measure {
       El built = hintMeasurer.measure(sh.hint, sh.ordinal, scale, lineHeight);
       float logical = built.margin(Side.LEFT) + built.width() + built.margin(Side.RIGHT);
       float width = (float) Math.max(0, Math.ceil(logical * scale * grid - 1e-4) / grid);
-      if (out == null) {
-        out = new ArrayList<>();
-      }
       out.add(new MeasuredHint(sh.hint, sh.ordinal, at - segStart, built, width));
     }
     return out;
@@ -2574,7 +2574,7 @@ public final class Text implements Measure {
         para = new Para(text, spans, new Chunks(line, lineStart, text, spans, splitChunks(text)));
       } else {
         List<MeasuredHint> segHints =
-            hasHints() ? segmentHints(lineStart, lineEnd, true, true) : null;
+            hasHints() ? segmentHints(lineStart, lineEnd, true, true) : List.<MeasuredHint>of();
         para = shape(text, spans, 0, text.length(), segHints);
         lines.shapedCharacters += text.length();
       }

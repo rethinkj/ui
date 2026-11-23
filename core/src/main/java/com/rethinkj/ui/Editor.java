@@ -569,6 +569,7 @@ final class Editor {
     composition = "";
     anchor = snap(newAnchor);
     caret = snap(newCaret);
+    stopAt = -1;
     doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
@@ -1109,6 +1110,7 @@ final class Editor {
   void selectAll() {
     anchor = 0;
     caret = text.length();
+    stopAt = -1;
     doc.clearRun(this);
     goal = Float.NaN;
     changed = true;
@@ -1303,6 +1305,7 @@ final class Editor {
     // An edit can join what it puts in with a mark after it: the caret stays between graphemes.
     caret = snap(newCaret);
     anchor = snap(newAnchor);
+    stopAt = -1; // an edit leaves the caret on the default stop, where typed text goes
     changed = true;
     reveal = true;
     goal = Float.NaN;

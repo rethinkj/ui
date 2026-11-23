@@ -2686,7 +2686,7 @@ public final class El {
     field.hintElements = List.copyOf(elements);
     children.addAll(field.hintElements);
     text.hintElements(field.hintElements);
-    scrollTo(scrollX, scrollY);
+    scrollTo(scrollX, scrollY); // gives the new children their scroll shift
     return true;
   }
 

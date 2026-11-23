@@ -109,7 +109,7 @@ Pass `hints(List<El.Hint>, Function<El.Hint, El>)` on a multi-line field to plac
 - Hint widths are reserved during shaping and wrapping (applied before tab stops so tabs stay on the grid). Elements are placed only for rows in view, vertically centered in the row, and keyed `hint-<at>` (and `hint-<at>-<n>` for further hints at the same offset) unless they set a key. Hints in folded or replaced lines do not show.
 - Horizontal stepping with Left and Right stops on both sides of a hint (and between a `BEFORE` group and an `AFTER` group at the same offset); word moves, Home/End, vertical moves, and edits use the default stop between the two groups. A `BEFORE` hint that ends a wrapped row has no stop on its left: the caret at its offset shows at the start of the next row.
 - Copy and cut ignore hints, selections highlight a hint only when it lies strictly inside the selected range, and `textPositionAt(x, y)` reports `-1` over a hint.
-- A press on an interactive hint runs its own press handler without moving the caret or focus; a press on a non-interactive hint places the caret at that offset at the nearer stop. Nothing in a hint takes focus.
+- A press on an interactive hint runs its own press handler without moving the caret or focus; a press on a non-interactive hint places the caret at that offset at the nearer stop, or, on a hint that ends a wrapped row, at the nearest position of that row. Nothing in a hint takes focus.
 
 ## Finding the word at the cursor
 
