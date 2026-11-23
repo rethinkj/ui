@@ -25,6 +25,10 @@ import java.util.regex.PatternSyntaxException;
  */
 final class GridFind {
 
+  // A grid of at most this many cells is counted without a look at the clock between cells, so in
+  // the build its query changes in however slow the machine; a larger one in time-budgeted slices.
+  static final int WHOLE_CELLS = 4096;
+
   private GridFind() {}
 
   /** What a scan and its cached match positions belong to. */
@@ -495,7 +499,7 @@ final class GridFind {
         editing);
   }
 
-  private static void startScan(DataGrid.Find f, Build b, Scope scope) {
+  static void startScan(DataGrid.Find f, Build b, Scope scope) {
     f.scope = scope;
     f.matchCount = 0;
     f.more = false;
@@ -506,7 +510,7 @@ final class GridFind {
     f.skipped = false;
   }
 
-  private static boolean stepScan(DataGrid.Find f, Build b, long deadline) {
+  static boolean stepScan(DataGrid.Find f, Build b, long deadline) {
     if (f.complete || f.pattern == null || f.scope == null) {
       return true;
     }
@@ -519,9 +523,10 @@ final class GridFind {
     }
     IntPredicate loaded = b.o.loaded;
     Pattern pattern = f.pattern;
+    boolean whole = (long) rowCount * cols <= WHOLE_CELLS;
     int checked = 0;
     while (f.scanRow < rowCount) {
-      if ((checked & 63) == 0 && System.nanoTime() - deadline > 0) {
+      if ((checked & 63) == 0 && !whole && System.nanoTime() - deadline > 0) {
         return false;
       }
       int r = f.scanRow;
@@ -534,7 +539,7 @@ final class GridFind {
         continue;
       }
       while (f.scanCol < cols) {
-        if ((checked & 63) == 0 && System.nanoTime() - deadline > 0) {
+        if ((checked & 63) == 0 && !whole && System.nanoTime() - deadline > 0) {
           return false;
         }
         int c = f.scanCol;

@@ -2613,7 +2613,9 @@ public final class DataGrid {
      * Escape to close and return focus to the grid while keeping the current match selected.
      *
      * <p>Searches the display text each shown column's {@link Column#cell} function supplies, in
-     * time-budgeted slices on the app's thread ({@link App#after}) so large grids stay responsive.
+     * time-budgeted slices on the app's thread ({@link App#after}) so large grids stay responsive;
+     * a grid of at most 4096 cells is counted at once, unless matching a long cell runs past the
+     * budget.
      * Rows that are not loaded ({@link #loading}) are skipped and never asked for; the count then
      * ends in {@code +}. The count and the order of the matches are those of the last search:
      * changes through {@link #changes} search again, and after the app changes cells otherwise,

@@ -269,6 +269,41 @@ class GridFindTest {
     assertEquals("1 of 1", count(app.tree().dump()));
   }
 
+  @Test
+  void smallGridCountsWholeEvenPastDeadline() {
+    int cols = 4;
+    int rows = GridFind.WHOLE_CELLS / cols;
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    DataGrid.Find find = new DataGrid.Find();
+    App<?>[] holder = new App<?>[1];
+    App<Void> app = new App<>(null, ignored -> {
+      List<DataGrid.Column> columns = List.of(
+          new DataGrid.Column("c0", 80, DataGrid.DataType.TEXT, r -> "row-" + r),
+          new DataGrid.Column("c1", 80, DataGrid.DataType.TEXT, r -> r % 16 == 0 ? "hit" : "miss"),
+          new DataGrid.Column("c2", 80, DataGrid.DataType.TEXT, r -> "val-" + r),
+          new DataGrid.Column("c3", 80, DataGrid.DataType.TEXT, r -> "end-" + r));
+      DataGrid.Options options = DataGrid.options().select(selection).find(holder[0], find);
+      return col()
+          .wFull()
+          .hFull()
+          .child(dataGrid(columns, rows, options).key("grid").grow(1));
+    });
+    holder[0] = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(560, 220, 2);
+
+    find.open = true;
+    find.query = "hit";
+    app.frame();
+
+    // Even with an already-expired deadline, a grid of WHOLE_CELLS cells counts whole in one slice.
+    long expired = System.nanoTime() - 1_000_000L;
+    GridFind.startScan(find, find.build, find.scope);
+    assertTrue(GridFind.stepScan(find, find.build, expired));
+    assertTrue(find.complete);
+    assertEquals(rows / 16, find.matchCount);
+  }
+
   private static String line(String dump, String key) {
     return dump.lines()
         .filter(l -> l.contains("#" + key + " "))
