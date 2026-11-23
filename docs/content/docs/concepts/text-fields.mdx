@@ -81,10 +81,10 @@ Pass `blocks(List<El.Block>, Function<El.Block, El>, Consumer<El.Block>)` on a m
 ```
 
 - Your app owns the block list and keeps its line indices current with the field's string; core never mutates block state. `REPLACE` blocks must not overlap each other, and several `INSERT` blocks before the same line stack in list order.
-- Block elements are built only while in view, laid out at the field's content width, and keyed `block-<first>` (and `block-<first>-<n>` for further blocks at the same line) unless they set a key. An enclosing fold hides blocks inside it.
+- Block elements are built only while in view, laid out at the field's content width, and keyed `block-<first>` (and `block-<first>-<n>` for further blocks at the same line) unless they set a key. In a field that does not wrap, blocks scroll sideways with the text and are cut off at the content box, so they never cover the gutter; like line-end elements, they do not widen the scroll range. An enclosing fold hides blocks inside it, and while an empty field shows its placeholder, `INSERT` blocks anchored to line 0 still show.
 - Up and Down step over blocks, Left and Right jump across replaced ranges, and Home/End never land inside one. Selections stay in source text, tint covered blocks, and copy hidden lines without revealing them.
-- Presses on interactive elements inside a block reach them without moving the focus (nothing in a block takes the focus, text input, or drags); pressing elsewhere in the block band places the caret at the start of the following line. An edit touching a replaced range, or a caret or selection end placed inside one by find, undo/redo, `app.select`, or `FieldState.select`, calls `reveal`.
-- Gutter line numbers stay source line numbers: inserted blocks get no gutter cell, and each replaced range gets one cell at the block's top spanning `first` through `last`.
+- Presses on interactive elements inside a block reach them without moving the focus, and show their `whenPressed` look while held (nothing in a block takes the focus, text input, or drags); pressing elsewhere in the block band places the caret at the start of the following line. An edit touching a replaced range, or a caret or selection end placed inside one by find, undo/redo, `app.select`, or `FieldState.select`, calls `reveal`.
+- Gutter line numbers stay source line numbers: inserted blocks get no gutter cell, and each replaced range gets one cell at the block's top spanning `first` through `last`, bounded and clipped to the block's band when the block is shorter than a row.
 
 ## Elements after a line's end
 
@@ -95,7 +95,7 @@ Pass `lineEnds(IntFunction<List<El>>)` on a multi-line field to place elements a
 
 - Elements are built only for shown lines whose last row is in view, never for folded or replaced lines, and laid out left to right after the line's end, after the fold mark if the line starts a fold.
 - In tree dumps an element is keyed `end-<line>` (and `end-<line>-<n>` for the `n`-th further element on the line) unless it sets a key.
-- A press on a line-end element runs its own press handler and does not move the caret or the focus; nothing in one takes the focus.
+- A press on a line-end element runs its own press handler and shows its `whenPressed` look, and does not move the caret or the focus; nothing in one takes the focus.
 - Line-end elements do not widen the field or its scroll range: one that reaches past the content box is cut off at its edge.
 
 ## Inline inlay hints

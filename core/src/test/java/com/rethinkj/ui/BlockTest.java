@@ -322,6 +322,281 @@ class BlockTest {
   }
 
   @Test
+  void horizontalScrollMovesBlocksAndClipsAtGutterWhileWrappingKeepsBlocksFixed() {
+    String longLine = " ".repeat(40) + "void deeplyIndented() {}";
+    AtomicInteger deepClicks = new AtomicInteger();
+    AtomicInteger leftClicks = new AtomicInteger();
+    AtomicInteger gutterClicks = new AtomicInteger();
+    int blockFill = 0xFFFF0000;
+    int gutterFill = 0xFF102030;
+    State state = new State(longLine + "\nsecond", El.Block.insert(0));
+    state.builder = b -> El.row()
+        .h(20)
+        .fill(blockFill)
+        .child(El.text("left").key("left-btn").fontSize(12).onPress(leftClicks::incrementAndGet))
+        .child(El.el().w(300))
+        .child(
+            El.text("3 usages").key("deep-btn").fontSize(12).onPress(deepClicks::incrementAndGet));
+    App<State> app = start(
+        state,
+        f -> f.w(200)
+            .gutter(line -> El.row()
+                .fill(gutterFill)
+                .padding(0, 4, 0, 0)
+                .onPress(gutterClicks::incrementAndGet)
+                .child(
+                    El.text(String.valueOf(line.index() + 1)).font(Font.mono()).fontSize(14))));
+
+    El f = field(app);
+    float contentLeft = f.border(Side.LEFT) + f.padding(Side.LEFT);
+    El blockBefore = findChild(f, "block-0");
+    assertEquals(contentLeft, blockBefore.x(), 0.5f, "at scrollX=0 block starts at contentLeft");
+
+    // Scroll right so the deeply indented button moves into view and the left part scrolls under
+    // the gutter.
+    app.scrollTo(f, 260, 0);
+    app.frame();
+    f = field(app);
+    float scrolledX = (float) f.scrollX();
+    assertTrue(scrolledX > 200, "field scrolled horizontally: " + scrolledX);
+    app.invalidate();
+    app.frame();
+    f = field(app);
+    assertEquals(scrolledX, (float) f.scrollX(), 0.5f, "a rebuild keeps the scroll");
+    El blockAfter = findChild(f, "block-0");
+    assertEquals(
+        contentLeft - scrolledX,
+        blockAfter.x(),
+        1.0f,
+        "block follows horizontal scroll in non-wrapping field");
+
+    // Deeply indented button is now reachable and clickable.
+    El deepBtn = findChild(blockAfter, "deep-btn");
+    float contentRight = f.width() - f.border(Side.RIGHT) - f.padding(Side.RIGHT);
+    assertTrue(
+        blockAfter.x() + deepBtn.x() + deepBtn.width() <= contentRight + 0.5f,
+        "the end of a block wider than the view comes into view");
+    float deepX = 10 + blockAfter.x() + deepBtn.x() + deepBtn.width() / 2;
+    float deepY = 10 + blockAfter.y() + deepBtn.y() + deepBtn.height() / 2;
+    app.pointerDown(deepX, deepY);
+    app.pointerUp(deepX, deepY);
+    app.frame();
+    assertEquals(
+        1, deepClicks.get(), "deeply indented block button reachable after horizontal scroll");
+
+    // Over the gutter: block's scrolled-left portion is clipped in both hit-testing and rendering.
+    float gx = 10 + 6;
+    float gy = 10 + blockAfter.y() + 10;
+    app.pointerDown(gx, gy);
+    app.pointerUp(gx, gy);
+    app.frame();
+    assertEquals(0, leftClicks.get(), "clipped part of block over gutter takes no clicks");
+    int gutterPixel = app.render().pixels().argb(Math.round(gx), Math.round(gy));
+    assertFalse(
+        gutterPixel == blockFill, "block is clipped at content left and never covers gutter");
+
+    // Wrapping field keeps blocks fixed at contentLeft.
+    State wrapped = new State("word ".repeat(30), El.Block.insert(0));
+    App<State> wrapApp = start(wrapped, el -> el.w(200).wrapText());
+    El wf = field(wrapApp);
+    El wBlock = findChild(wf, "block-0");
+    assertEquals(wf.border(Side.LEFT) + wf.padding(Side.LEFT), wBlock.x(), 0.5f);
+  }
+
+  @Test
+  void overlaysOnBlockAndLineEndPartsAttachOnFirstFrame() {
+    boolean[] menuOpen = {false};
+    AtomicInteger menuClicks = new AtomicInteger();
+    State state = new State("line0\nline1", El.Block.insert(0));
+    state.builder = b -> {
+      El btn = El.text("open").key("open-btn").fontSize(12).onPress(() -> menuOpen[0] = true);
+      if (menuOpen[0]) {
+        btn.overlay(El.row()
+            .key("block-menu")
+            .padding(4)
+            .fill(0xFF333344)
+            .child(El.text("Action").fontSize(12))
+            .onPress(menuClicks::incrementAndGet));
+      }
+      return El.row().h(20).child(btn);
+    };
+    App<State> app = start(
+        state,
+        f -> f.lineEnds(line -> line == 1
+            ? List.of(El.text("diag")
+                .key("diag-end")
+                .fontSize(12)
+                .overlay(El.text("tip").key("end-tip").fontSize(12).fill(0xFF222233)))
+            : List.of()));
+
+    // Line-end overlay attached on the initial build is laid out and shown immediately.
+    El endTip = app.tree().shownOverlays().stream()
+        .filter(o -> "end-tip".equals(o.key()))
+        .findFirst()
+        .orElse(null);
+    assertTrue(
+        endTip != null && endTip.isPlaced() && endTip.width() > 0, "line-end overlay placed");
+
+    // Clicking the block button opens its menu overlay on the very next frame.
+    El block = findChild(field(app), "block-0");
+    El openBtn = findChild(block, "open-btn");
+    float bx = 10 + block.x() + openBtn.x() + openBtn.width() / 2;
+    float by = 10 + block.y() + openBtn.y() + openBtn.height() / 2;
+    app.pointerDown(bx, by);
+    app.pointerUp(bx, by);
+    app.frame();
+
+    El menu = app.tree().shownOverlays().stream()
+        .filter(o -> "block-menu".equals(o.key()))
+        .findFirst()
+        .orElse(null);
+    assertTrue(
+        menu != null && menu.isPlaced() && menu.width() > 0, "block overlay placed on attach");
+    app.pointerDown(menu.x() + menu.width() / 2, menu.y() + menu.height() / 2);
+    app.pointerUp(menu.x() + menu.width() / 2, menu.y() + menu.height() / 2);
+    app.frame();
+    assertEquals(1, menuClicks.get(), "click on block overlay reaches handler");
+  }
+
+  @Test
+  void pressedLooksApplyToGutterBlocksAndLineEnds() {
+    int pressedColor = 0xFFAA3344;
+    AtomicInteger gutterClicks = new AtomicInteger();
+    AtomicInteger blockClicks = new AtomicInteger();
+    AtomicInteger endClicks = new AtomicInteger();
+    State state = new State("line0\nline1", El.Block.insert(1));
+    state.builder = b -> El.row()
+        .h(20)
+        .child(El.text("vision")
+            .key("vision-btn")
+            .fontSize(12)
+            .onPress(blockClicks::incrementAndGet)
+            .whenPressed(e -> e.fill(pressedColor)));
+    App<State> app = start(
+        state,
+        f -> f.gutter(line -> El.row()
+                .padding(0, 4, 0, 0)
+                .onPress(gutterClicks::incrementAndGet)
+                .whenPressed(e -> e.fill(pressedColor))
+                .child(
+                    El.text(String.valueOf(line.index() + 1)).font(Font.mono()).fontSize(14)))
+            .lineEnds(line -> line == 0
+                ? List.of(El.text("badge")
+                    .key("end-btn")
+                    .fontSize(12)
+                    .onPress(endClicks::incrementAndGet)
+                    .whenPressed(
+                        e -> e.fill(pressedColor).overlay(El.text("held").fontSize(12))))
+                : List.of()));
+
+    // 1. Gutter cell pressed look.
+    El gutter = findChild(field(app), "gutter");
+    El line0Cell = findChild(gutter, "line-0");
+    float gx = 10 + gutter.x() + line0Cell.x() + line0Cell.width() / 2;
+    float gy = 10 + gutter.y() + line0Cell.y() + line0Cell.height() / 2;
+    app.pointerDown(gx, gy);
+    app.frame();
+    assertEquals(
+        pressedColor,
+        findChild(findChild(field(app), "gutter"), "line-0").fill(),
+        "gutter cell shows whenPressed while held");
+    app.pointerUp(gx, gy);
+    app.frame();
+    assertEquals(1, gutterClicks.get());
+    assertEquals(0, findChild(findChild(field(app), "gutter"), "line-0").fill());
+
+    // 2. Block button pressed look.
+    El block = findChild(field(app), "block-1");
+    El vision = findChild(block, "vision-btn");
+    float bx = 10 + block.x() + vision.x() + vision.width() / 2;
+    float by = 10 + block.y() + vision.y() + vision.height() / 2;
+    app.pointerDown(bx, by);
+    app.frame();
+    assertEquals(
+        pressedColor,
+        findChild(findChild(field(app), "block-1"), "vision-btn").fill(),
+        "block child shows whenPressed while held");
+    app.advance(App.BLINK); // the caret blinks while the button is held
+    app.frame();
+    assertEquals(
+        pressedColor,
+        findChild(findChild(field(app), "block-1"), "vision-btn").fill(),
+        "the look stays through a caret blink");
+    app.pointerUp(bx, by);
+    app.frame();
+    assertEquals(1, blockClicks.get());
+    assertEquals(0, findChild(findChild(field(app), "block-1"), "vision-btn").fill());
+
+    // 3. Line-end button pressed look.
+    El endBtn = findChild(field(app), "end-btn");
+    float ex = 10 + endBtn.x() + endBtn.width() / 2;
+    float ey = 10 + endBtn.y() + endBtn.height() / 2;
+    app.pointerDown(ex, ey);
+    app.frame();
+    assertEquals(
+        pressedColor,
+        findChild(field(app), "end-btn").fill(),
+        "line-end element shows whenPressed while held");
+    app.advance(App.BLINK); // a blink builds the block anew, not the line-end element
+    app.frame();
+    assertEquals(1, findChild(field(app), "end-btn").overlays().size(), "the look applied once");
+    app.pointerUp(ex, ey);
+    app.frame();
+    assertEquals(1, endClicks.get());
+    assertEquals(0, findChild(field(app), "end-btn").fill());
+  }
+
+  @Test
+  void replaceBlockShorterThanARowBoundsAndClipsItsGutterCell() {
+    State state = new State("line0\nrep1\nrep2\nline3", El.Block.replace(1, 2));
+    state.builder = b -> El.el().h(6).fill(0xFF26262E);
+    App<State> app = start(
+        state,
+        f -> f.gutter(line -> El.row()
+            .padding(0, 4, 0, 0)
+            .child(El.text(String.valueOf(line.index() + 1)).font(Font.mono()).fontSize(14))));
+
+    El gutter = findChild(field(app), "gutter");
+    El cell0 = findChild(gutter, "line-0");
+    El cell1 = findChild(gutter, "line-1");
+    El cell3 = findChild(gutter, "line-3");
+    assertTrue(cell0.height() > 6, "normal row has full line height: " + cell0.height());
+    assertEquals(6f, cell1.height(), 0.01f, "replaced block's gutter cell bounded to block height");
+    assertEquals(
+        Style.Overflow.CLIP, cell1.style().overflowY, "short replaced block's gutter cell clips");
+    assertTrue(
+        cell1.y() + cell1.height() <= cell3.y() + 0.01f,
+        "short replaced cell does not overlap next row");
+  }
+
+  @Test
+  void insertAtLineZeroShowsWhilePlaceholderShows() {
+    State state = new State("", El.Block.insert(0), El.Block.insert(1), El.Block.replace(0, 0));
+    state.builder = b -> El.row().h(20).fill(0xFF26262E).child(El.text("filler").fontSize(12));
+    App<State> app = start(state, f -> f.placeholder("Type here...", 0xFF888888));
+
+    El f = field(app);
+    assertTrue(f.text().placeholderShown(), "placeholder is shown for empty field");
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("#block-0 "), "INSERT(0) shows while placeholder shows: " + dump);
+    assertFalse(dump.contains("#block-1"), "INSERT(1) stays hidden while placeholder shows");
+    assertFalse(dump.contains("#block-0-1"), "REPLACE(0,0) stays hidden while placeholder shows");
+    assertEquals(20f, findChild(f, "block-0").height(), 0.01f);
+
+    // Typing clears the placeholder and transitions to normal text.
+    type(app, "x");
+    assertFalse(field(app).text().placeholderShown());
+    assertEquals("x", state.value);
+  }
+
+  private static El findChild(El parent, String key) {
+    return parent.children().stream()
+        .filter(c -> key.equals(c.key()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No child #" + key + " in " + parent.dump()));
+  }
+
+  @Test
   void revealTriggeredBySelectFieldStateUndoAndEdit() {
     El.Block rep = El.Block.replace(1, 2);
 

@@ -242,9 +242,9 @@ public final class Text implements Measure {
 
   /**
    * Where a line of a multi-line field begins, for its gutter: its first row's (or replaced
-   * block's) top, in physical pixels from the top of the content box, after the scroll.
+   * block's) top and height, in physical pixels from the top of the content box, after the scroll.
    */
-  record Start(int line, int lastLine, float top) {}
+  record Start(int line, int lastLine, float top, float height) {}
 
   /**
    * Where a shown line's last row ends, for its fold mark and line-end elements: {@code endX} and
@@ -2523,13 +2523,23 @@ public final class Text implements Measure {
     return placedBlocks;
   }
 
+  /** The blocks to show: while the placeholder shows, only inserts before line 0. */
+  private List<El.Block> activeBlocks() {
+    return placeholderShown
+        ? blocks.stream()
+            .filter(b -> b.placement() == El.Block.Placement.INSERT && b.first() == 0)
+            .toList()
+        : blocks;
+  }
+
   private Lines shownLines() {
     prepare();
     shownLines.folds(placeholderShown ? List.of() : folds);
-    shownLines.blocks(placeholderShown ? List.of() : blocks);
+    List<El.Block> active = activeBlocks();
+    shownLines.blocks(active);
     shownLines.hints(placeholderShown ? List.of() : hints, shown);
     wrapping();
-    if (!placeholderShown && !blocks.isEmpty()) {
+    if (!active.isEmpty()) {
       shownLines.blocksLayout(
           laidOut
               ? new Wrapping(
@@ -3212,7 +3222,7 @@ public final class Text implements Measure {
     List<Start> starts = new ArrayList<>();
     for (Row row : rows) {
       if (row.row == 0) {
-        starts.add(new Start(row.line, row.line, (float) (row.top - viewY)));
+        starts.add(new Start(row.line, row.line, (float) (row.top - viewY), lineHeight));
       }
     }
     if (!placedBlocks.isEmpty()) {
@@ -3221,7 +3231,8 @@ public final class Text implements Measure {
       for (PlacedBlock pb : placedBlocks) {
         if (pb.block.placement() == El.Block.Placement.REPLACE) {
           int last = Math.min(pb.block.last(), ls.count() - 1);
-          starts.add(new Start(pb.block.first(), last, (float) (pb.top - viewY)));
+          starts.add(new Start(pb.block.first(), last, (float) (pb.top - viewY), (float)
+              Math.min(lineHeight, pb.height)));
           added = true;
         }
       }

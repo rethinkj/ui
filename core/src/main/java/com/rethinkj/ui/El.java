@@ -6,9 +6,12 @@ import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -482,6 +485,7 @@ public final class El {
     float hintCacheLineHeight = Float.NaN;
     boolean
         partsBuilt; // gutter cells, line ends, blocks or hints were built since App applied looks
+    Map<El, Set<String>> partLooks; // the looks App applied to parts of this tree, by part
     boolean bracketFoldsPending; // bracketFolds asked before Lines was attached
     boolean readOnly;
     int maxLength = -1;
@@ -2056,6 +2060,24 @@ public final class El {
   }
 
   /**
+   * For {@link App}: the names of the looks it applied to {@code part}, a part built for this
+   * tree; a part built anew has none.
+   */
+  Set<String> partLooks(El part) {
+    if (field.partLooks == null) {
+      field.partLooks = new IdentityHashMap<>();
+    }
+    return field.partLooks.computeIfAbsent(part, built -> new HashSet<>());
+  }
+
+  /** For {@link App}: drops the blocks built for this tree, after a look changed one. */
+  void dropBlockCache() {
+    if (field != null) {
+      field.blockCache = null;
+    }
+  }
+
+  /**
    * Hides ranges of lines in a {@link #multiline} field, keeping each range's {@link Fold#first
    * first} line shown with a default ellipsis mark ({@code …}) at its end and hiding lines {@code
    * first + 1} through {@link Fold#last last}. A press on the mark, an edit whose range touches a
@@ -2121,7 +2143,8 @@ public final class El {
    * unless it has a key, and {@code block-<first>-<n>} for the {@code n}-th ({@code n >= 1})
    * further block at the same line. Several {@code INSERT} blocks before the same line stack in
    * list order; {@code REPLACE} blocks must not overlap each other. A fold that hides a block's
-   * line hides the block as well, and while the field shows its placeholder it shows no blocks.
+   * line hides the block as well, and while the field shows its placeholder it shows only {@link
+   * Block.Placement#INSERT} blocks at line 0.
    *
    * <p>Presses on interactive elements inside a block reach those elements without moving the
    * focus; nothing in a block takes the focus, text input or drags. A press elsewhere in the block band places the
@@ -2327,8 +2350,12 @@ public final class El {
       built.key(ordinal == 0 ? "block-" + block.first() : "block-" + block.first() + "-" + ordinal);
     }
     built.keepFocus(); // focusing the field would scroll to the caret before the press ends
-    built.clip(); // a block draws in its band only
-    built.style.width = Len.px(contentWidth);
+    if (text.wraps()) {
+      built.style.width = Len.px(contentWidth);
+    } else if (built.style.width.kind() == Len.Kind.AUTO
+        && built.style.minWidth.pixelsOrZero() < contentWidth) {
+      built.style.minWidth = Len.px(contentWidth);
+    }
     scaleText(built, scale, text.systemFonts(), resolvedLineHeight);
     if (block.lines() > 0) {
       float exactHeight = block.lines() * lineHeight / scale;
@@ -2337,6 +2364,16 @@ public final class El {
     } else {
       Flex.layout(built, contentWidth, Measure.MAX_CONTENT);
     }
+    if (!text.wraps()) {
+      // Unclipped children wider than the view (such as deeply indented rows) stay reachable when
+      // scrolled sideways; Scene clips the block to the field's content box.
+      float[] extent = {built.width, 0};
+      built.overflow(0, 0, extent);
+      if (extent[0] > built.width) {
+        built.place(built.x, built.y, extent[0], built.height);
+      }
+    }
+    built.clip(); // a block draws in its band only
     field.blockCache.put(key, built);
     return built;
   }
@@ -2405,11 +2442,15 @@ public final class El {
       if (cell.key == null) {
         cell.key("line-" + start.line());
       }
+      float cellHeight = start.height() / scale;
       cell.style.width = Len.px(field.gutterWidth);
-      cell.style.height = Len.px(rowHeight);
+      cell.style.height = Len.px(cellHeight);
+      if (cellHeight < rowHeight) {
+        cell.clip();
+      }
       scaleText(cell, scale, text.systemFonts(), resolvedLineHeight);
-      Flex.layout(cell, field.gutterWidth, rowHeight);
-      cell.place(0, start.top() / scale, field.gutterWidth, rowHeight);
+      Flex.layout(cell, field.gutterWidth, cellHeight);
+      cell.place(0, start.top() / scale, field.gutterWidth, cellHeight);
       column.children.add(cell);
     }
     // The column stays where the content box is: the scroll that shifts it is added back.
@@ -2604,8 +2645,9 @@ public final class El {
     }
     List<Text.PlacedBlock> placed = text.placedBlocks();
     float scale = text.scale();
+    float viewX = text.wraps() ? 0 : text.viewX();
     float viewY = text.viewY();
-    List<Object> shown = List.of(placed, scrollX, scrollY, viewY, width, height);
+    List<Object> shown = List.of(placed, scrollX, scrollY, viewX, viewY, width, height);
     if (shown.equals(field.blocksShown)) {
       return false;
     }
@@ -2620,13 +2662,11 @@ public final class El {
       if (blockEl == null) {
         continue;
       }
+      float blockX = contentLeft - viewX / scale + (float) scrollX;
       float blockY = (float) ((pb.top() - viewY) / scale);
+      float blockW = text.wraps() ? contentWidth : Math.max(contentWidth, blockEl.laidOutWidth());
       float blockH = (float) (pb.height() / scale);
-      blockEl.place(
-          contentLeft + (float) scrollX,
-          contentTop + blockY + (float) scrollY,
-          contentWidth,
-          blockH);
+      blockEl.place(blockX, contentTop + blockY + (float) scrollY, blockW, blockH);
       elements.add(blockEl);
     }
     if (!field.blockElements.isEmpty()) {

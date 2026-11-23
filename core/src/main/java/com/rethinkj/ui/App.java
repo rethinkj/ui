@@ -2992,6 +2992,11 @@ public final class App<S> {
       caretOn = on;
       if (blinking != null) {
         blinking.place(true, on);
+        El field = blinking.element();
+        if (field.takePartsBuilt()) { // a block a look took was built anew
+          gutterLooks(field, animator.identity(field));
+          Overlays.place(root, width, height);
+        }
       }
       drawn = true;
     }
@@ -3302,15 +3307,16 @@ public final class App<S> {
         scroll.followY = false;
       }
     }
-    boolean looked = false;
+    boolean placeOverlays = caretOverlays;
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
       El field = entry.getValue().element();
       if (kept.contains(entry.getValue()) && field.takePartsBuilt()) {
-        looked |= gutterLooks(field, entry.getKey());
+        gutterLooks(field, entry.getKey());
+        placeOverlays = true; // those of the parts just built, which the tree's pass did not see
       }
     }
-    // Placed beside carets, which are placed now, or of gutter cells whose looks changed.
-    if (caretOverlays || looked) {
+    // Placed beside carets, which are placed now, or of field parts just built.
+    if (placeOverlays) {
       Overlays.place(root, width, height);
     }
   }
@@ -3369,38 +3375,63 @@ public final class App<S> {
   }
 
   /**
-   * Applies the looks of the moment to the cells a field's gutter has just built, after layout, as
-   * {@link #rowLooks} does to a list's rows: those under the pointer take their hover look and
-   * their {@link El#whenHoveredFor} look once it is due, such as a marker's tooltip; those the
-   * old cells had go with them.
-   *
-   * @return whether a cell took a look or the old cells had one, so that the overlays move
+   * Applies the looks of the moment to the parts a field has just built after layout (gutter
+   * cells, line-end elements and blocks), as {@link #rowLooks} does to a list's rows: those under
+   * the pointer take their hover look and their {@link El#whenHoveredFor} look once it is due,
+   * such as a marker's tooltip, and the one held down its press look; those the old parts had go
+   * with them. Lays out the overlays of the parts, also those the view attached.
    */
-  private boolean gutterLooks(El field, Object fieldId) {
+  private void gutterLooks(El field, Object fieldId) {
     boolean took = false;
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
-    boolean dropped = hovered.removeIf(id -> Animator.isBelow(id, fieldId))
-        | rested.removeIf(id -> Animator.isBelow(id, fieldId)); // not ||
+    hovered.removeIf(id -> Animator.isBelow(id, fieldId));
+    rested.removeIf(id -> Animator.isBelow(id, fieldId));
+    Object press = shown.pressed();
+    if (Animator.isBelow(press, fieldId) && animator.element(press) == null) {
+      press = null; // a part's, built anew; a text range keeps the look the build gave it
+    }
     for (Object id : pointedIds()) {
       if (Animator.isBelow(id, fieldId)) {
         El el = Animator.find(field, fieldId, id);
-        if (look(el, El::hoverLook, "whenHovered")) {
-          hovered.add(id);
-          took = true;
+        if (el == null) {
+          continue;
         }
-        if (restLook(el, id)) {
+        Set<String> had = field.partLooks(el); // a part kept from an earlier pass keeps its looks
+        if (el.hoverLook() != null) {
+          hovered.add(id);
+          took |= had.add("whenHovered") && look(el, El::hoverLook, "whenHovered");
+        }
+        if (had.contains("whenHoveredFor")) {
+          rested.add(id);
+        } else if (restLook(el, id)) {
+          had.add("whenHoveredFor");
           rested.add(id);
           took = true;
         }
       }
     }
-    if (took) {
-      for (El part : field.children()) {
+    Object pressId = pressedId();
+    El pressed = Animator.isBelow(pressId, fieldId)
+            && animator.element(pressId) == null // a text range of the field took it in the build
+        ? Animator.find(field, fieldId, pressId)
+        : null;
+    if (pressed != null && pressed.pressLook() != null) {
+      press = pressId;
+      took |= field.partLooks(pressed).add("whenPressed")
+          && look(pressed, El::pressLook, "whenPressed");
+    }
+    for (El part : field.children()) {
+      if (took) {
         El.scaleText(
             part, scale, systemFonts, field.resolvedLineHeight); // the overlays the looks attached
+      }
+      if (took || field.isFieldPart(part)) { // a block's or line end's, which the view attached
         Overlays.layout(part, width, height);
       }
+    }
+    if (took) {
+      field.dropBlockCache(); // a block keeps no look a later scroll of this tree would show
     }
     shown = new Looks(
         hovered,
@@ -3408,9 +3439,8 @@ public final class App<S> {
         shown.focused(),
         shown.focusRested(),
         shown.within(),
-        shown.pressed(),
+        press,
         shown.hoversRun());
-    return took || dropped;
   }
 
   /**
@@ -4186,6 +4216,16 @@ public final class App<S> {
     }
     Object pressId = pressedId();
     El press = pressId == null ? null : animator.element(pressId);
+    if (press == null && pressId != null) { // a field's part, built after layout: below its field
+      Object field = null;
+      for (Object at : Animator.lineage(pressId)) {
+        if (animator.element(at) == null) {
+          break;
+        }
+        field = at;
+      }
+      press = field == null ? null : Animator.find(animator.element(field), field, pressId);
+    }
     return new Looks(
         hovered,
         rested,

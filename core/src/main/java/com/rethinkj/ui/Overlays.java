@@ -160,14 +160,27 @@ final class Overlays {
       }
     }
     for (El child : el.children()) {
+      float l = clipLeft;
+      float t = clipTop;
+      float r = clipRight;
+      float b = clipBottom;
+      if (el.isFieldPart(child)) { // clipped to the field's content box, as drawn
+        l = Math.max(l, left + el.border(Side.LEFT) + el.padding(Side.LEFT));
+        t = Math.max(t, top + el.border(Side.TOP) + el.padding(Side.TOP));
+        r = Math.min(r, right - el.border(Side.RIGHT) - el.padding(Side.RIGHT));
+        b = Math.min(b, bottom - el.border(Side.BOTTOM) - el.padding(Side.BOTTOM));
+        if (!(r > l && b > t)) {
+          continue;
+        }
+      }
       place(
           child,
           left,
           top,
-          clipLeft,
-          clipTop,
-          clipRight,
-          clipBottom,
+          l,
+          t,
+          r,
+          b,
           width,
           height,
           shown,
