@@ -3018,6 +3018,7 @@ public final class App<S> {
       animator.present(time);
       if (fillRows()) { // a list that moves may show other rows
         placeEditors(false, false);
+        focus.openAndCloseParts(root, time);
         refocus();
         laidOut = true;
       }
@@ -3164,6 +3165,7 @@ public final class App<S> {
     }
     fillRows();
     placeEditors(false, false);
+    focus.openAndCloseParts(root, time);
     refocus();
     placeEditors(true, false);
     El.placeBars(root);
@@ -3187,6 +3189,7 @@ public final class App<S> {
     boolean built = fillRows();
     boolean parts = placeEditors(false, false);
     if (built || pending || parts) {
+      focus.openAndCloseParts(root, time);
       refocus();
     }
     placeEditors(true, false);
@@ -3522,18 +3525,23 @@ public final class App<S> {
     for (El part : stale) {
       again |= field.forgetBlock(part);
     }
-    for (El part : field.children()) {
-      if (part.fieldPartKey() == null) {
-        continue;
+    Set<El> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    // Twice: a look that changes a line-end element's width places its line again, and may bring
+    // elements into view.
+    for (int pass = 0; pass < 2; pass++) {
+      for (El part : List.copyOf(field.children())) {
+        if (part.fieldPartKey() == null || !seen.add(part)) {
+          continue;
+        }
+        boolean attached = hasPath && attachEditors(part, path);
+        if (relooked.contains(part) || attached) {
+          again |= field.relayoutPart(part, looked, scale, systemFonts);
+        }
+        Overlays.layout(part, width, height);
       }
-      boolean attached = hasPath && attachEditors(part, path);
-      if (relooked.contains(part) || attached) {
-        again |= field.relayoutPart(part, looked, scale, systemFonts);
-      }
-      Overlays.layout(part, width, height);
     }
     if (!relooked.isEmpty()) {
-      field.dropPartCaches(); // parts keep no look a later scroll of this tree would show
+      field.dropPartCaches(again); // parts keep no look a later scroll of this tree would show
     }
     if (El.autofocuses() != asking) {
       focus.ask(animator.autofocusInFieldParts(field, fieldId), time);
@@ -4545,6 +4553,7 @@ public final class App<S> {
     }
     if (built) {
       placeEditors(false, false);
+      focus.openAndCloseParts(root, time);
       refocus();
       placeEditors(true, false);
     }

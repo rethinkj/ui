@@ -168,7 +168,6 @@ public final class El {
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
   private FieldPart fieldPartKey; // non-null on a field's post-layout part; see Animator
   private boolean overflowsBlock; // a block its builder did not clip: wider children show
-  private FieldPart partBase; // a block's or hint's key before distinctParts tells repeats apart
 
   /** Which kind of post-layout child of a multi-line field an element is. */
   enum PartKind {
@@ -504,6 +503,8 @@ public final class El {
     List<El> hintElements = List.of();
     Object hintsShown; // what the hint elements were built for: their placements and scroll
     Map<HintKey, El> hintCache;
+    // The ordinal of the block or hint at its anchor that has each explicit key; see claimPartKey.
+    final Map<FieldPart, Integer> partOrdinals = new HashMap<>();
     float hintCacheScale = Float.NaN;
     float hintCacheLineHeight = Float.NaN;
     boolean
@@ -2098,11 +2099,14 @@ public final class El {
   /**
    * For {@link App}: drops the hints and gutter cells cached for this tree, after a look changed
    * one. Blocks keep theirs with the look, so that one a look made higher keeps the height the
-   * rows below make room for until the next build.
+   * rows below make room for until the next build; hints keep theirs when {@code keepHints} is
+   * true, so a line reshaped after a hint's width changed measures the hint with its look.
    */
-  void dropPartCaches() {
+  void dropPartCaches(boolean keepHints) {
     if (field != null) {
-      field.hintCache = null;
+      if (!keepHints) {
+        field.hintCache = null;
+      }
       field.blockGutterCells = Map.of();
     }
   }
@@ -2122,19 +2126,15 @@ public final class El {
   }
 
   /**
-   * Tells apart parts that share an anchor and an explicit key, by how many came before them: the
-   * view may give several the same key here, as it may in no other children.
+   * Rejects an explicit key that another block at the same line, or hint at the same offset, of
+   * this tree already has: the key is the part's identity, also while the other is out of view.
    */
-  private static void distinctParts(List<El> parts) {
-    if (parts.size() < 2) {
-      return;
-    }
-    Map<FieldPart, Integer> seen = new HashMap<>();
-    for (El part : parts) { // from the key it was built with: a cached part keeps its last one
-      int before = seen.merge(part.partBase, 1, Integer::sum) - 1;
-      part.fieldPartKey = before == 0
-          ? part.partBase
-          : new FieldPart(part.partBase.kind(), List.of(part.partBase, before));
+  private void claimPartKey(El built, int ordinal, String anchor) {
+    if (built.key != null
+        && field.partOrdinals.putIfAbsent(built.fieldPartKey, ordinal) instanceof Integer other
+        && other != ordinal) {
+      throw new IllegalStateException(
+          "Two " + anchor + " have the key '" + built.key + "'; give each a distinct key");
     }
   }
 
@@ -2218,7 +2218,10 @@ public final class El {
           return true;
         }
       }
-      case FOLD, LINE_END, HINT -> {
+      case FOLD, LINE_END -> {
+        if (!field.lineEndElements.contains(part)) {
+          return false; // an earlier element on the same line already pushed it out of view
+        }
         float px = part.x;
         float py = part.y;
         float oldW = part.width;
@@ -2227,15 +2230,28 @@ public final class El {
         scaleText(part, scale, systemFonts, resolvedLineHeight);
         Flex.layout(part, Float.POSITIVE_INFINITY, rowHeight);
         part.place(px, py + (oldH - part.height) / 2f, part.width, part.height);
-        float wider = part.width - oldW;
-        float middle = py + oldH / 2f;
-        int at = key.kind() != PartKind.HINT ? field.lineEndElements.indexOf(part) : -1;
-        for (int i = at + 1; at >= 0 && wider != 0 && i < field.lineEndElements.size(); i++) {
-          El next = field.lineEndElements.get(i); // those after it on its line make room
-          if (next.fieldPartKey.kind() == PartKind.LINE_END
-              && Math.abs(next.y + next.height / 2f - middle) < 0.5f) {
-            next.place(next.x + wider, next.y, next.width, next.height);
+        if (part.width != oldW) { // those after it on its line move, and may come into view
+          Map<FieldPart, El> kept = new HashMap<>();
+          for (El placed : field.lineEndElements) {
+            kept.put(placed.fieldPartKey, placed);
           }
+          boolean built = field.partsBuilt; // App goes on with the parts it has
+          field.lineEndsShown = null;
+          placeLineEnds(kept);
+          field.partsBuilt = built;
+        }
+      }
+      case HINT -> {
+        float px = part.x;
+        float py = part.y;
+        float oldH = part.height;
+        float rowHeight = text.lineHeight() / scale;
+        scaleText(part, scale, systemFonts, resolvedLineHeight);
+        Flex.layout(part, Float.POSITIVE_INFINITY, rowHeight);
+        part.place(px, py + (oldH - part.height) / 2f, part.width, part.height);
+        if (text.reshapeHint(part)) {
+          field.hintsShown = null;
+          return true;
         }
       }
     }
@@ -2325,8 +2341,9 @@ public final class El {
    * field's content width, and cached in the field's line index across rebuilds until the width,
    * scale or font changes. In a {@code .tree.txt} each block element is keyed {@code block-<first>}
    * unless it has a key, and {@code block-<first>-<n>} for the {@code n}-th ({@code n >= 1})
-   * further block at the same line. Several {@code INSERT} blocks before the same line stack in
-   * list order; {@code REPLACE} blocks must not overlap each other. Both {@code block} and {@code
+   * further block at the same line; explicit keys of blocks at the same line must differ. Several
+   * {@code INSERT} blocks before the same line stack in list order; {@code REPLACE} blocks must not
+   * overlap each other. Both {@code block} and {@code
    * reveal} receive the {@code Block} instances from {@code blocks} itself, so callers may tell
    * equal blocks apart by identity. A fold that hides a block's
    * line hides the block as well, and while the field shows its placeholder it shows only {@link
@@ -2484,7 +2501,7 @@ public final class El {
    * the string or in folded/replaced lines do not show, and while the field shows its placeholder
    * it shows no hints. In a {@code .tree.txt} a hint element without a key is keyed {@code
    * hint-<at>}, and {@code hint-<at>-<n>} for the {@code n}-th ({@code n >= 1}) further hint at
-   * the same offset.
+   * the same offset; explicit keys of hints at the same offset must differ.
    *
    * <p>Hints are not part of the field's string: copy and cut ignore them, and {@link
    * #textPositionAt} returns -1 over a hint. Horizontal stepping with Left/Right stops on both
@@ -2551,10 +2568,10 @@ public final class El {
     if (built == null) {
       throw new IllegalStateException("The hint function returned null for hint " + hint);
     }
-    // By its own key, else its place among the hints at its offset; see distinctParts.
-    built.partBase =
+    // By its own key, else its place among the hints at its offset.
+    built.fieldPartKey =
         new FieldPart(PartKind.HINT, List.of(hint.at(), built.key != null ? built.key : ordinal));
-    built.fieldPartKey = built.partBase;
+    claimPartKey(built, ordinal, "hints at offset " + hint.at());
     if (built.key == null) {
       built.key(ordinal == 0 ? "hint-" + hint.at() : "hint-" + hint.at() + "-" + ordinal);
     }
@@ -2587,11 +2604,11 @@ public final class El {
     if (built == null) {
       throw new IllegalStateException("The block function returned null for block " + block);
     }
-    // By its own key, else its place among the blocks at its line; see distinctParts.
-    built.partBase = new FieldPart(
+    // By its own key, else its place among the blocks at its line.
+    built.fieldPartKey = new FieldPart(
         PartKind.BLOCK,
         List.of(block.placement(), block.first(), built.key != null ? built.key : ordinal));
-    built.fieldPartKey = built.partBase;
+    claimPartKey(built, ordinal, "blocks at line " + block.first());
     if (built.key == null) {
       built.key(ordinal == 0 ? "block-" + block.first() : "block-" + block.first() + "-" + ordinal);
     }
@@ -2813,6 +2830,11 @@ public final class El {
    * @return whether the line-end elements were built
    */
   boolean placeLineEnds() {
+    return placeLineEnds(Map.of());
+  }
+
+  /** Like {@link #placeLineEnds()}, reusing the elements in {@code kept}, with their looks. */
+  private boolean placeLineEnds(Map<FieldPart, El> kept) {
     if (field == null || (field.folds.isEmpty() && field.lineEnds == null) || !text.laidOut()) {
       if (field != null && !field.lineEndElements.isEmpty()) {
         children.removeAll(field.lineEndElements);
@@ -2843,30 +2865,35 @@ public final class El {
       float rowTop = end.top() / scale;
       Fold fold = end.fold();
       if (fold != null) {
-        El mark = field.foldMark != null ? field.foldMark.apply(fold) : defaultFoldMark();
+        FieldPart foldKey = new FieldPart(PartKind.FOLD, fold.first());
+        El mark = kept.get(foldKey);
         if (mark == null) {
-          throw new IllegalStateException("The fold mark function returned null for fold " + fold);
-        }
-        if (mark.key == null) {
-          mark.key("fold-" + fold.first());
-        }
-        mark.fieldPartKey = new FieldPart(PartKind.FOLD, fold.first());
-        if (field.onUnfold != null) {
-          PressAtHandler existing = mark.onPress();
-          Consumer<Fold> onUnfold = field.onUnfold;
-          mark.onPress((clicks, modifiers, x, y) -> {
-            if (existing != null) {
-              existing.press(clicks, modifiers, x, y);
-            }
-            onUnfold.accept(fold);
-          });
-          if (mark.cursor == null) {
-            mark.cursor(Cursor.POINTER);
+          mark = field.foldMark != null ? field.foldMark.apply(fold) : defaultFoldMark();
+          if (mark == null) {
+            throw new IllegalStateException(
+                "The fold mark function returned null for fold " + fold);
           }
-          mark.keepFocus(); // focusing the field would scroll to the caret before the press ends
+          if (mark.key == null) {
+            mark.key("fold-" + fold.first());
+          }
+          mark.fieldPartKey = foldKey;
+          if (field.onUnfold != null) {
+            PressAtHandler existing = mark.onPress();
+            Consumer<Fold> onUnfold = field.onUnfold;
+            mark.onPress((clicks, modifiers, x, y) -> {
+              if (existing != null) {
+                existing.press(clicks, modifiers, x, y);
+              }
+              onUnfold.accept(fold);
+            });
+            if (mark.cursor == null) {
+              mark.cursor(Cursor.POINTER);
+            }
+            mark.keepFocus(); // focusing the field would scroll to the caret before the press ends
+          }
+          scaleText(mark, scale, text.systemFonts(), resolvedLineHeight);
+          Flex.layout(mark, Float.POSITIVE_INFINITY, rowHeight);
         }
-        scaleText(mark, scale, text.systemFonts(), resolvedLineHeight);
-        Flex.layout(mark, Float.POSITIVE_INFINITY, rowHeight);
         float markX = cursor + FOLD_GAP + mark.margin(Side.LEFT);
         float markY = rowTop + (rowHeight - mark.height) / 2f;
         float markRight = markX + mark.width + mark.margin(Side.RIGHT);
@@ -2911,14 +2938,20 @@ public final class El {
           int before = keyed.merge(item.key, 1, Integer::sum) - 1;
           part = before == 0 ? item.key : List.of(item.key, before);
         }
-        item.fieldPartKey = new FieldPart(PartKind.LINE_END, List.of(line, part));
-        if (item.key == null) {
-          item.key(ordinal == 0 ? "end-" + line : "end-" + line + "-" + ordinal);
+        FieldPart partKey = new FieldPart(PartKind.LINE_END, List.of(line, part));
+        El placed = kept.get(partKey);
+        if (placed != null) {
+          item = placed;
+        } else {
+          item.fieldPartKey = partKey;
+          if (item.key == null) {
+            item.key(ordinal == 0 ? "end-" + line : "end-" + line + "-" + ordinal);
+          }
+          item.keepFocus();
+          scaleText(item, scale, text.systemFonts(), resolvedLineHeight);
+          Flex.layout(item, Float.POSITIVE_INFINITY, rowHeight);
         }
         ordinal++;
-        item.keepFocus();
-        scaleText(item, scale, text.systemFonts(), resolvedLineHeight);
-        Flex.layout(item, Float.POSITIVE_INFINITY, rowHeight);
         float itemX = cursor + FOLD_GAP + item.margin(Side.LEFT);
         float itemY = rowTop + (rowHeight - item.height) / 2f;
         cursor = itemX + item.width + item.margin(Side.RIGHT);
@@ -2934,11 +2967,15 @@ public final class El {
         clipped.add(item);
       }
     }
+    // Placed again for a look: where they were among the children, which Tab follows.
+    int at = kept.isEmpty() || field.lineEndElements.isEmpty()
+        ? -1
+        : children.indexOf(field.lineEndElements.getFirst());
     if (!field.lineEndElements.isEmpty()) {
       children.removeAll(field.lineEndElements);
     }
     field.lineEndElements = List.copyOf(built);
-    children.addAll(field.lineEndElements);
+    children.addAll(at < 0 ? children.size() : at, field.lineEndElements);
     text.lineEndElements(List.copyOf(clipped));
     field.foldsExtent = maxRight;
     measureScroll();
@@ -2991,7 +3028,6 @@ public final class El {
     if (!field.blockElements.isEmpty()) {
       children.removeAll(field.blockElements);
     }
-    distinctParts(elements);
     field.blockElements = List.copyOf(elements);
     children.addAll(field.blockElements);
     if (field.blockCache != null) {
@@ -3043,7 +3079,6 @@ public final class El {
     if (!field.hintElements.isEmpty()) {
       children.removeAll(field.hintElements);
     }
-    distinctParts(elements);
     field.hintElements = List.copyOf(elements);
     children.addAll(field.hintElements);
     text.hintElements(field.hintElements);

@@ -805,7 +805,7 @@ final class Animator {
   }
 
   private static void overlays(El el, Id id, Map<Object, El> found) {
-    if (el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
+    if (el.isExiting() || el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
       return; // what cannot show opens nothing and takes no focus
     }
     if (el.holdsFocus()) {
@@ -818,11 +818,51 @@ final class Animator {
     Id[] layers = layerIds(el, id);
     for (int i = 0; i < layers.length; i++) {
       El overlay = el.overlays().get(i);
-      if (overlay.targetOpacity() != 0 && overlay.style().display != Style.Display.NONE) {
+      if (!overlay.isExiting()
+          && overlay.targetOpacity() != 0
+          && overlay.style().display != Style.Display.NONE) {
         found.put(layers[i], overlay);
       }
       overlays(overlay, layers[i], found);
     }
+  }
+
+  /**
+   * Like {@link #overlays(El)}, for overlays and {@link El#holdFocus focus holders} inside the
+   * rows of virtual lists and the post-layout parts of multi-line fields, built after layout.
+   */
+  static Map<Object, El> partOverlays(El root) {
+    Map<Object, El> found = new LinkedHashMap<>();
+    partOverlays(root, new ArrayList<>(), false, found);
+    return found;
+  }
+
+  private static void partOverlays(El el, List<El> path, boolean inPart, Map<Object, El> found) {
+    if (el.isExiting() || el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
+      return;
+    }
+    boolean inside = inPart || el.fieldPartKey() != null;
+    path.add(el);
+    if (inside && el.holdsFocus()) {
+      found.put(identities(path).getLast(), el);
+    }
+    boolean childInPart = inside || el.isVirtualList();
+    for (El child : el.children()) {
+      partOverlays(child, path, childInPart, found);
+    }
+    for (El overlay : el.overlays()) {
+      if (!overlay.isExiting()
+          && overlay.targetOpacity() != 0
+          && overlay.style().display != Style.Display.NONE) {
+        if (inside) {
+          path.add(overlay);
+          found.put(identities(path).getLast(), overlay);
+          path.removeLast();
+        }
+        partOverlays(overlay, path, inside, found);
+      }
+    }
+    path.removeLast();
   }
 
   /**
@@ -846,7 +886,11 @@ final class Animator {
       el -> el.autofocusKey() != null, El::isDefaultFocus, el -> !el.skipsTab(), el -> true);
 
   private static Id first(El top, Id id, Predicate<El> wanted) {
-    if (top.hidesFocus()) {
+    // By the opacity the view set: an overlay of a row or part opens after motion began its fade.
+    if (top.isInert()
+        || top.isExiting()
+        || top.targetOpacity() == 0
+        || top.style().display == Style.Display.NONE) {
       return null;
     }
     if (top.isFocusable() && wanted.test(top)) {
@@ -899,21 +943,13 @@ final class Animator {
     for (El child : field.children()) {
       El.FieldPart key = child.fieldPartKey();
       if (key != null) {
-        autofocus(child, new Id(id, key), found, true);
+        autofocus(child, new Id(id, key), found);
       }
     }
     return found;
   }
 
   private void autofocus(El el, Id id, List<Object> found) {
-    autofocus(el, id, found, false);
-  }
-
-  /**
-   * @param opening whether new overlays count too: no opening of the tree's sees those of field
-   *     parts, which come after layout
-   */
-  private void autofocus(El el, Id id, List<Object> found, boolean opening) {
     if (el.hidesFocus()) {
       return;
     }
@@ -926,14 +962,12 @@ final class Animator {
     }
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
-      autofocus(el.children().get(i), ids[i], found, opening);
+      autofocus(el.children().get(i), ids[i], found);
     }
     Id[] layers = layerIds(el, id);
     for (int i = 0; i < layers.length; i++) {
-      El overlay = el.overlays().get(i);
-      if (entries.containsKey(layers[i])
-          || opening && (overlay.holdsFocus() || !overlay.keepsFocus())) { // as an opening takes it
-        autofocus(overlay, layers[i], found, opening);
+      if (entries.containsKey(layers[i])) {
+        autofocus(el.overlays().get(i), layers[i], found);
       }
     }
   }

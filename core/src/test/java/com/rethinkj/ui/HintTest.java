@@ -588,4 +588,89 @@ class HintTest {
     assertEquals(
         baseExtent, field(app).text().extentHeight(), 0.5, "single hint fits on 1 row when shaped");
   }
+
+  @Test
+  void lookWideningHintReshapesItsLineAndRepeatedExplicitKeysThrow() {
+    String code = "alpha beta";
+    int betaAt = code.indexOf("beta");
+    Doc doc = new Doc(code, List.of(new El.Hint(betaAt, El.Hint.Affinity.AFTER, "arg:")));
+    App<Doc> app = new App<>(
+        doc,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(El.text(s.code)
+                .editable(v -> s.code = v)
+                .multiline()
+                .key("f")
+                .font(Font.mono())
+                .fontSize(13)
+                .w(280)
+                .lines(2)
+                .hints(
+                    s.hints,
+                    h -> El.row()
+                        .key("arg-hint")
+                        .w(30)
+                        .h(14)
+                        .whenHovered(e -> e.w(90))
+                        .child(El.text(h.text()).fontSize(11)))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 100, 1);
+    app.frame();
+
+    El f = field(app);
+    El hint = f.children().stream()
+        .filter(c -> "arg-hint".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    float betaBefore = f.text().x(betaAt) + f.text().afterGap(betaAt);
+    assertEquals(30, hint.width(), 0.01);
+
+    app.pointerMove(f.x() + hint.x() + 5, f.y() + hint.y() + 5);
+    app.frame();
+    f = field(app);
+    El widened = f.children().stream()
+        .filter(c -> "arg-hint".equals(c.key()))
+        .findFirst()
+        .orElseThrow();
+    float betaAfter = f.text().x(betaAt) + f.text().afterGap(betaAt);
+    assertEquals(90, widened.width(), 0.01, "hover look widened hint");
+    assertEquals(betaBefore + 60, betaAfter, 1.0, "text after hint shifted by width delta");
+
+    app.pointerMove(0, 0);
+    app.frame();
+    f = field(app);
+    assertEquals(
+        betaBefore,
+        f.text().x(betaAt) + f.text().afterGap(betaAt),
+        1.0,
+        "leaving hint restores text position");
+
+    // Two hints at the same offset with the same explicit key throw IllegalStateException.
+    Doc dup = new Doc(
+        code,
+        List.of(
+            new El.Hint(betaAt, El.Hint.Affinity.BEFORE, "a:"),
+            new El.Hint(betaAt, El.Hint.Affinity.AFTER, "b:")));
+    App<Doc> dupApp = new App<>(
+        dup,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(El.text(s.code)
+                .editable(v -> s.code = v)
+                .multiline()
+                .key("f")
+                .font(Font.mono())
+                .fontSize(13)
+                .w(280)
+                .lines(2)
+                .hints(s.hints, h -> El.text(h.text()).key("dup").fontSize(11))));
+    dupApp.textRendering(TextRendering.LINUX);
+    dupApp.resize(300, 100, 1);
+    IllegalStateException error = assertThrows(IllegalStateException.class, dupApp::frame);
+    assertTrue(error.getMessage().contains("offset " + betaAt), error.getMessage());
+    assertTrue(error.getMessage().contains("dup"), error.getMessage());
+  }
 }

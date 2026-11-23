@@ -1276,4 +1276,132 @@ class BlockTest {
     app.frame();
     assertEquals(20, findChild(field(app), "hovered").height());
   }
+
+  @Test
+  void overlayInBlockTakesAndRestoresFocusWithoutAutofocus() {
+    boolean[] menuOpen = {false};
+    boolean[] dialogOpen = {false};
+    State state = new State("line0\nline1", El.Block.insert(0));
+    state.builder = b -> {
+      El trigger = El.text("open")
+          .key("open-btn")
+          .fontSize(12)
+          .focusable()
+          .onPress(() -> menuOpen[0] = !menuOpen[0]);
+      if (menuOpen[0]) {
+        trigger.overlay(El.col()
+            .key("block-menu")
+            .padding(4)
+            .fill(0xFF333344)
+            .child(El.text("Rename").key("item-1").fontSize(12).focusable().onPress(() -> {
+              menuOpen[0] = false;
+              dialogOpen[0] = true;
+            }))
+            .child(El.text("Second").key("item-2").fontSize(12).focusable()));
+      }
+      El other = El.text("other")
+          .key("other-btn")
+          .fontSize(12)
+          .focusable()
+          .onPress(() -> menuOpen[0] = true);
+      return El.row().h(20).child(trigger).child(other);
+    };
+    App<State> app = start(
+        state,
+        f -> dialogOpen[0]
+            ? f.overlay(El.col().key("dialog").child(El.text("OK").key("ok").focusable()))
+            : f);
+
+    El trigger = findChild(findChild(field(app), "block-0"), "open-btn");
+    app.focus(trigger);
+    app.frame();
+    assertEquals("open-btn", app.focused().key());
+
+    key(app, "Enter");
+    assertEquals("item-1", app.focused().key(), "menu opened from block focuses first item");
+
+    menuOpen[0] = false;
+    app.invalidate();
+    app.frame();
+    assertEquals("open-btn", app.focused().key(), "closing block menu restores focus to opener");
+
+    // An item that closes the menu and opens a dialog: closing the dialog goes back to where the
+    // focus was before the menu, not to the element the menu hangs on.
+    app.focus(findChild(findChild(field(app), "block-0"), "other-btn"));
+    app.frame();
+    key(app, "Enter");
+    assertEquals("item-1", app.focused().key());
+    key(app, "Enter");
+    assertEquals("ok", app.focused().key());
+    dialogOpen[0] = false;
+    app.invalidate();
+    app.frame();
+    assertEquals("other-btn", app.focused().key(), "the dialog gives the focus back past the menu");
+  }
+
+  @Test
+  void repeatedExplicitBlockKeysAtSameLineThrow() {
+    // Each far higher than the view, so that the two are never in view together.
+    State state = new State(
+        "line0\nline1", El.Block.insert(0).lines(100), El.Block.insert(0).lines(100));
+    state.builder = b -> El.row().key("dup").child(El.text("block").fontSize(12));
+    App<State> app = start(state, UnaryOperator.identity());
+    app.scrollTo(field(app), 0, 0); // the caret at the end showed the second
+    IllegalStateException error = assertThrows(IllegalStateException.class, app::frame);
+    assertTrue(error.getMessage().contains("line 0"), error.getMessage());
+    assertTrue(error.getMessage().contains("dup"), error.getMessage());
+  }
+
+  @Test
+  void lineEndLookNarrowingRevealsHiddenElementAndWideningDropsOverflow() {
+    State state = new State("a\nb");
+    App<State> app = start(
+        state,
+        f -> f.lineEnds(line -> switch (line) {
+          case 0 ->
+            List.of(
+                El.text("wide").key("narrower").w(220).onPress(() -> {}).whenPressed(e -> e.w(40)),
+                El.text("hidden").key("revealed").w(50));
+          case 1 ->
+            List.of(
+                El.text("small").key("wider").w(40).onPress(() -> {}).whenPressed(e -> e.w(220)),
+                El.text("pushed").key("pushed").w(50));
+          default -> List.of();
+        }));
+
+    // Line 0: "revealed" starts past contentWidth and appears as soon as "narrower" shrinks.
+    assertTrue(
+        field(app).children().stream().noneMatch(c -> "revealed".equals(c.key())),
+        "second element starts out of view");
+    El narrower = findChild(field(app), "narrower");
+    float nx = 10 + field(app).x() + narrower.x() + 5;
+    float ny = 10 + field(app).y() + narrower.y() + 5;
+    app.pointerDown(nx, ny);
+    app.frame();
+    El revealed = findChild(field(app), "revealed");
+    assertEquals(40, findChild(field(app), "narrower").width(), 0.01);
+    assertTrue(
+        revealed.x() > findChild(field(app), "narrower").x() + 40,
+        "revealed element is placed after narrowed element");
+    app.pointerUp(nx, ny);
+    app.frame();
+    assertTrue(
+        field(app).children().stream().noneMatch(c -> "revealed".equals(c.key())),
+        "releasing hides trailing element again");
+
+    // Line 1: "pushed" starts in view and is dropped once "wider" pushes it past contentWidth.
+    assertNotNull(findChild(field(app), "pushed"));
+    El wider = findChild(field(app), "wider");
+    float wx = 10 + field(app).x() + wider.x() + 5;
+    float wy = 10 + field(app).y() + wider.y() + 5;
+    app.pointerDown(wx, wy);
+    app.frame();
+    assertEquals(220, findChild(field(app), "wider").width(), 0.01);
+    assertTrue(
+        field(app).children().stream().noneMatch(c -> "pushed".equals(c.key())),
+        "widening drops element pushed past content box");
+    app.pointerUp(wx, wy);
+    app.frame();
+    assertNotNull(findChild(field(app), "pushed"));
+  }
 }

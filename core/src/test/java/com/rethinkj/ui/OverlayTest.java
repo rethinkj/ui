@@ -1140,4 +1140,58 @@ class OverlayTest {
       }
     }
   }
+
+  @Test
+  void overlayInVirtualListRowTakesAndRestoresFocusWithoutAutofocus() {
+    boolean[] open = {false};
+    boolean[] showList = {true};
+    App<Object> app = app(
+        new Object(),
+        s -> {
+          El root = col().size(200, 200).child(el().key("outside").size(60, 20).focusable());
+          if (showList[0]) {
+            root.child(col().key("list").size(200, 120).rows(10, 30, i -> {
+              El trigger =
+                  el().key("btn").size(60, 20).focusable().onPress(() -> open[0] = !open[0]);
+              if (i == 0 && open[0]) {
+                trigger.overlay(col()
+                    .key("row-menu")
+                    .motion(Spring.SNAP) // fades in: it takes the focus all the same
+                    .size(80, 40)
+                    .child(el().key("item-1").size(80, 20).focusable())
+                    .child(el().key("item-2").size(80, 20).focusable()));
+              }
+              return col().h(30).child(trigger);
+            }));
+          }
+          return root;
+        },
+        200,
+        200);
+
+    El trigger = find(app, "btn");
+    app.focus(trigger);
+    app.frame();
+    assertEquals("btn", app.focused().key());
+
+    key(app, "Enter", 0);
+    assertEquals("item-1", app.focused().key(), "menu in row focuses its first focusable item");
+
+    open[0] = false;
+    app.invalidate();
+    app.frame();
+    assertEquals("btn", app.focused().key(), "closing menu restores focus to row button");
+
+    // Closing by removing the list restores focus to outside without leaking the open overlay.
+    app.focus(find(app, "outside"));
+    app.frame();
+    open[0] = true;
+    app.invalidate();
+    app.frame();
+    assertEquals("item-1", app.focused().key());
+    showList[0] = false;
+    app.invalidate();
+    app.frame();
+    assertEquals("outside", app.focused().key(), "removing list closes row overlay cleanly");
+  }
 }

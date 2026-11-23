@@ -2494,7 +2494,6 @@ public final class Text implements Measure {
       return List.of();
     }
     List<MeasuredHint> out = new ArrayList<>();
-    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
     for (; i < all.length && all[i].hint.at() <= segEnd; i++) {
       SortedHint sh = all[i];
       int at = sh.hint.at();
@@ -2510,11 +2509,66 @@ public final class Text implements Measure {
         continue;
       }
       El built = hintMeasurer.measure(sh.hint, sh.ordinal, scale, lineHeight);
-      float logical = built.margin(Side.LEFT) + built.width() + built.margin(Side.RIGHT);
-      float width = (float) Math.max(0, Math.ceil(logical * scale * grid - 1e-4) / grid);
-      out.add(new MeasuredHint(sh.hint, sh.ordinal, at - segStart, built, width));
+      out.add(new MeasuredHint(sh.hint, sh.ordinal, at - segStart, built, hintWidth(built)));
     }
     return out;
+  }
+
+  /** Physical width reserved for one measured hint element, matching {@link #segmentHints}. */
+  private float hintWidth(El built) {
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    float logical = built.margin(Side.LEFT) + built.width() + built.margin(Side.RIGHT);
+    return (float) Math.max(0, Math.ceil(logical * scale * grid - 1e-4) / grid);
+  }
+
+  /**
+   * For {@link El}: drops the shaped line containing {@code hintEl} and marks the view stale when
+   * a look changed its reserved width, so the next layout reshapes that line with the new width.
+   */
+  boolean reshapeHint(El hintEl) {
+    if (!hasHints() || rows.isEmpty()) {
+      return false;
+    }
+    float width = hintWidth(hintEl);
+    int lastLine = -1;
+    for (Row row : rows) {
+      if (row.line == lastLine) {
+        continue;
+      }
+      lastLine = row.line;
+      Para para = row.para;
+      if (para.chunks != null) {
+        for (Para chunk : para.chunks.parts) {
+          if (chunk != null && chunk.hints != null) {
+            for (HintSlot slot : chunk.hints.slots) {
+              if (slot.element == hintEl) {
+                if (width == slot.width) {
+                  return false;
+                }
+                shapedLines.remove(row.line);
+                viewStale = true;
+                return true;
+              }
+            }
+          }
+        }
+        continue;
+      }
+      if (para.hints == null) {
+        continue;
+      }
+      for (HintSlot slot : para.hints.slots) {
+        if (slot.element == hintEl) {
+          if (width == slot.width) {
+            return false;
+          }
+          shapedLines.remove(row.line);
+          viewStale = true;
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** For {@link El}: the blocks placed by the last {@link #layOut}. */
