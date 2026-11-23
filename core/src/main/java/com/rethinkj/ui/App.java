@@ -3394,20 +3394,19 @@ public final class App<S> {
     for (Object id : pointedIds()) {
       if (Animator.isBelow(id, fieldId)) {
         El el = Animator.find(field, fieldId, id);
-        if (el == null) {
-          continue;
-        }
-        Set<String> had = field.partLooks(el); // a part kept from an earlier pass keeps its looks
-        if (el.hoverLook() != null) {
+        // A part kept from an earlier pass keeps the looks it took there.
+        if (el != null && el.hoverLook() != null) {
           hovered.add(id);
-          took |= had.add("whenHovered") && look(el, El::hoverLook, "whenHovered");
+          took |= field.partLooks(el).add("whenHovered") && look(el, El::hoverLook, "whenHovered");
         }
-        if (had.contains("whenHoveredFor")) {
-          rested.add(id);
-        } else if (restLook(el, id)) {
-          had.add("whenHoveredFor");
-          rested.add(id);
-          took = true;
+        if (el != null && el.restLook() != null) {
+          if (field.partLooks(el).contains("whenHoveredFor")) {
+            rested.add(id);
+          } else if (restLook(el, id)) {
+            field.partLooks(el).add("whenHoveredFor");
+            rested.add(id);
+            took = true;
+          }
         }
       }
     }

@@ -6,6 +6,7 @@ import static com.rethinkj.ui.Fields.key;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -392,8 +393,8 @@ class BlockTest {
     app.frame();
     assertEquals(0, leftClicks.get(), "clipped part of block over gutter takes no clicks");
     int gutterPixel = app.render().pixels().argb(Math.round(gx), Math.round(gy));
-    assertFalse(
-        gutterPixel == blockFill, "block is clipped at content left and never covers gutter");
+    assertNotEquals(
+        blockFill, gutterPixel, "block is clipped at content left and never covers gutter");
 
     // Wrapping field keeps blocks fixed at contentLeft.
     State wrapped = new State("word ".repeat(30), El.Block.insert(0));
