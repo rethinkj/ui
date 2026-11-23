@@ -2396,9 +2396,9 @@ public final class Text implements Measure {
     List<El.Block> next = blocks == null ? List.of() : blocks;
     this.blockMeasurer = measurer;
     if (!next.equals(this.blocks)) {
-      this.blocks = next;
       viewStale = true;
     }
+    this.blocks = next;
   }
 
   /** For {@link El}: the inline hints of a multi-line field and their measurer. */

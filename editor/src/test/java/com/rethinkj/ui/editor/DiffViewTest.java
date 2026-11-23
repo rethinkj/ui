@@ -288,6 +288,7 @@ class DiffViewTest {
       }
       removed.append("removed line ").append(i);
     }
+    removed.append(" ".repeat(200)).append("wide"); // the last chunk is wider than the others
     String oldText = removed.toString();
     Model model = new Model();
     App<Model> app = new App<>(
@@ -351,7 +352,16 @@ class DiffViewTest {
     String bottom = Files.readString(afterRebuild.resolve("bottom.tree.txt"));
     assertTrue(bottom.contains("#deleted-300 "), "last chunk built at bottom: " + bottom);
     assertTrue(bottom.contains("#old-line-349 "), "old line 350 at bottom: " + bottom);
-    assertTrue(bottom.contains("\"removed line 350\""), "last removed line text: " + bottom);
+    assertTrue(bottom.contains("\"removed line 350"), "last removed line text: " + bottom);
+    assertEquals(
+        elementWidth(bottom, "#deleted-300 "),
+        elementWidth(boundary, "#deleted-100 "),
+        "every chunk of the run is as wide as its widest line, so the tint scrolls sideways whole");
+  }
+
+  private static float elementWidth(String tree, String marker) {
+    String line = tree.lines().filter(l -> l.contains(marker)).findFirst().orElseThrow();
+    return Float.parseFloat(line.trim().split(" ")[3].split("x")[0]);
   }
 
   private static float elementTop(String tree, String marker) {

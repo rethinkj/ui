@@ -2672,9 +2672,13 @@ public final class CodeEditor {
 
   /** Width of a line-number column holding {@code maxLine} digits at the current window scale. */
   static float numberWidth(Theme theme, int maxLine) {
+    return monoWidth(theme, "8".repeat(String.valueOf(Math.max(1, maxLine)).length()));
+  }
+
+  /** Width of {@code text} in the code font at the current window scale, rounded up. */
+  static float monoWidth(Theme theme, String text) {
     Theme.TextStyle mono = theme.type().mono();
-    int digits = String.valueOf(Math.max(1, maxLine)).length();
-    El sample = El.text("8".repeat(digits)).font(mono.font().get()).fontSize(mono.size());
+    El sample = El.text(text).font(mono.font().get()).fontSize(mono.size());
     sample.text().scale(WindowState.CURRENT.get().scale());
     return (float) Math.ceil(sample
         .text()
