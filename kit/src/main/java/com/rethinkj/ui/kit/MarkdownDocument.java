@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -43,6 +44,14 @@ public final class MarkdownDocument {
    */
   public static MarkdownDocument parse(String source, UnaryOperator<String> references) {
     return MarkdownParser.parse(source, references);
+  }
+
+  /**
+   * The lines of the text, counted from 0, that a code block holds: a fenced one with its fence
+   * lines, or an indented one.
+   */
+  public static BitSet codeLines(String source) {
+    return MarkdownParser.codeLines(source);
   }
 
   /** A block of the document. */

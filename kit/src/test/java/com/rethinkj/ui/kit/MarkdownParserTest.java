@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Stream;
@@ -135,6 +136,37 @@ class MarkdownParserTest {
   @Test
   void carriageReturnsEndLinesAsLineFeedsDo() {
     assertEquals(tree("a\nb\n\nc"), tree("a\r\nb\r\rc"));
+  }
+
+  @Test
+  void codeLinesMarksFencedAndIndentedCodeBlocksIncludingContainers() {
+    String md = """
+        Intro.
+
+        > ```java
+        > int a = 1;
+        > ```
+        > after quote fence
+
+            indented 1
+
+            indented 2
+
+        prose
+
+        - ```
+          in list
+          ```
+        - plain
+        """;
+    BitSet expected = new BitSet();
+    for (int line : new int[] {2, 3, 4, 7, 8, 9, 13, 14, 15}) {
+      expected.set(line);
+    }
+    assertEquals(expected, MarkdownDocument.codeLines(md));
+    assertEquals(expected, MarkdownDocument.codeLines(md.replace("\n", "\r\n")));
+    assertEquals(new BitSet(), MarkdownDocument.codeLines(""));
+    assertEquals(new BitSet(), MarkdownDocument.codeLines(null));
   }
 
   @Test
