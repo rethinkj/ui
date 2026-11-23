@@ -649,6 +649,11 @@ final class JsDoc {
           quote = 0;
         }
       } else if (skipStrings
+          && c == '/'
+          && s.charAt(i - 1) == '='
+          && JsLexer.scanRegexEnd(s, i) > 0) {
+        i = JsLexer.scanRegexEnd(s, i) - 1; // a regex default, =/re/
+      } else if (skipStrings
           && (c == '\'' || c == '"' || c == '`')
           && !Character.isLetterOrDigit(s.charAt(i - 1))) {
         // A quote right after a letter is an apostrophe (O'Reilly, it's), not a string.

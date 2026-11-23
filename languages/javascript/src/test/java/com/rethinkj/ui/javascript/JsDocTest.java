@@ -78,9 +78,12 @@ class JsDocTest {
          * @param [pattern="]"] Quoted closing bracket in default.
          * @param [msg=don't] Unbalanced apostrophe falls back.
          * @param [publisher=O'Reilly] See [What's new](/help).
+         * @param [pattern=/".*?"/] See ["quoted"](/help).
+         * @param [suffix=prefix+"]"] - Suffix.
+         * @param [separator=/[/_-]/] - Separator.
          */""");
     List<DocComment.Entry> params = doc.parameters();
-    assertEquals(12, params.size());
+    assertEquals(15, params.size());
 
     assertEntry(params.get(0), "host", "string", "Target hostname.");
     assertEntry(params.get(1), "[port=5432]", "number", "Port number.");
@@ -96,6 +99,10 @@ class JsDocTest {
     assertEntry(params.get(9), "[pattern=\"]\"]", null, "Quoted closing bracket in default.");
     assertEntry(params.get(10), "[msg=don't]", null, "Unbalanced apostrophe falls back.");
     assertEquals("[publisher=O'Reilly]", params.get(11).name(), "an apostrophe opens no string");
+    assertEquals(
+        "[pattern=/\".*?\"/]", params.get(12).name(), "a quote in a regex opens no string");
+    assertEntry(params.get(13), "[suffix=prefix+\"]\"]", null, "Suffix.");
+    assertEntry(params.get(14), "[separator=/[/_-]/]", null, "Separator.");
   }
 
   @Test

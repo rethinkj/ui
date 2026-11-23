@@ -194,6 +194,11 @@ class JavaScriptTest {
             "for (const match of /[/*]/.exec(input) ?? []) consume(match);"),
         "regex after a for await header and after of in a for header");
     assertEquals(
+        List.of(
+            "for:1 (:5", "const:1 of:1 /[/*]/:2 .:5 (:5 ):5 ?:5 ?:5 [:5 ]:5", "):5 (:5 ):5 ;:5"),
+        tokens(JS, "for (", "  const item of /[/*]/.exec(input) ?? []", ") consume(item);"),
+        "regex after of in a for header that spans lines");
+    assertEquals(
         List.of("(:5 ):5 /:5 ;:5", "(:5 ):5 /:5 ;:5", ".:5 (:5 ):5 /:5 ;:5"),
         tokens(JS, "(x) / y;", "f(x) / y;", "obj.if(x) / y;"),
         "division after grouped, call and property-named parens");
@@ -201,6 +206,10 @@ class JavaScriptTest {
         List.of("of:1 /:5 // note:4"),
         tokens(JS, "of / count // note"),
         "division after of used as an identifier");
+    assertEquals(
+        List.of("const:1 =:5 5:3", "of:1 /:5 =:5 // normalize:4"),
+        tokens(JS, "const count = 5", "of /= count // normalize"),
+        "division after of that starts a line");
     assertEquals(
         List.of(".:5", "/:5"),
         tokens(JS, "obj.", "return / count"),

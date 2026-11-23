@@ -379,12 +379,13 @@ final class JsLexer {
                 if (spans != null) {
                   spans.color(start, i, colors.keyword());
                 }
-                // `of` separates a for-of header, where a regular expression may follow.
+                // `of` after a binding on its line (`item of`) or in a for header is the for-of
+                // separator, where a regular expression may follow; elsewhere it is a name.
                 boolean inControlHeader = parenDepth > 0
                     && parenDepth <= 64
                     && (controlParens & (1L << (parenDepth - 1))) != 0;
-                regexAllowed =
-                    REGEX_PRECEDING_KEYWORDS.contains(word) || word.equals("of") && inControlHeader;
+                regexAllowed = REGEX_PRECEDING_KEYWORDS.contains(word)
+                    || word.equals("of") && (!regexAllowed && seenToken || inControlHeader);
                 afterControlKeyword =
                     isControlHeaderKeyword(word) || wasAfterControl && word.equals("await");
               } else {
@@ -555,7 +556,7 @@ final class JsLexer {
    * backslash escapes, {@code [...]} character classes and trailing flag letters. Returns the
    * exclusive end offset, or {@code -1} when no closing {@code /} appears on the line.
    */
-  private static int scanRegexEnd(String line, int slashAt) {
+  static int scanRegexEnd(String line, int slashAt) {
     int n = line.length();
     int i = slashAt + 1;
     if (i >= n) {
