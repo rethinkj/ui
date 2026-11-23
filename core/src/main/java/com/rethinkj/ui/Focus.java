@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -54,6 +53,8 @@ final class Focus {
   // in partOverlays, so openAndClose(tree) leaves them to openAndCloseParts(root) after layout.
   private final Map<Object, Place> opened = new LinkedHashMap<>();
   private final Set<Object> partOverlays = new HashSet<>();
+  // The open modal overlays that took the focus without an element to give it to.
+  private final Set<Object> nowhere = new HashSet<>();
   // For the open overlays that took no focus, such as a toast: where the focus was last outside
   // each, for when the keyboard moved it inside and the overlay closes.
   private final Map<Object, Place> outside = new HashMap<>();
@@ -414,27 +415,37 @@ final class Focus {
 
   private boolean openAndClose(Map<Object, El> now, boolean parts, double time) {
     boolean took = false;
+    nowhere.removeIf(overlay -> now.containsKey(overlay) && !now.get(overlay).isModal());
     List<Object> before = new ArrayList<>(opened.keySet());
     for (Object overlay : before.reversed()) {
       if (partOverlays.contains(overlay) != parts || now.containsKey(overlay)) {
         continue;
       }
       partOverlays.remove(overlay);
+      nowhere.remove(overlay);
       Place back = opened.remove(overlay);
       Place left = outside.remove(overlay);
-      boolean inside = id != null && (id.equals(overlay) || Animator.isBelow(id, overlay));
-      if (back != null && (id == null || inside)) {
+      boolean inside = id != null && within(id, overlay);
+      // Overlays opened from inside it, such as a dialog from a menu, now give the focus back to
+      // where this one would have; while a modal one of them holds it nowhere, it stays so.
+      Place giveBack = back != null ? back : left;
+      boolean handedOn = false;
+      for (Map<Object, Place> places : List.of(opened, outside)) {
+        for (Map.Entry<Object, Place> other : places.entrySet()) {
+          Place place = other.getValue();
+          if (giveBack != null
+              && place != null
+              && within(place.id(), overlay)
+              && !within(giveBack.id(), other.getKey())) {
+            other.setValue(giveBack);
+            handedOn |= places == opened && nowhere.contains(other.getKey());
+          }
+        }
+      }
+      if (back != null && (id == null && !handedOn || inside)) {
         move(back.id(), back.ring(), time);
       } else if (left != null && inside) {
         move(left.id(), left.ring(), time);
-      } else if (back != null || left != null) { // one opened from inside it: a dialog from a menu
-        Place giveBack = back != null ? back : left;
-        BiFunction<Object, Place, Place> past = (other, place) ->
-            place != null && within(place.id(), overlay) && !within(giveBack.id(), other)
-                ? giveBack
-                : place;
-        opened.replaceAll(past);
-        outside.replaceAll(past);
       }
     }
     for (Map.Entry<Object, El> overlay : now.entrySet()) {
@@ -459,6 +470,9 @@ final class Focus {
       }
       if (!takes && id != null) {
         outside.put(overlayId, new Place(id, ring));
+      }
+      if (takes && first == null) {
+        nowhere.add(overlayId);
       }
       if (takes) {
         beforeAsked = null;

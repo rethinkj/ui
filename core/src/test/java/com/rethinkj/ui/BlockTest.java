@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1281,6 +1282,7 @@ class BlockTest {
   void overlayInBlockTakesAndRestoresFocusWithoutAutofocus() {
     boolean[] menuOpen = {false};
     boolean[] dialogOpen = {false};
+    boolean[] empty = {false}; // a modal dialog without a focusable element
     State state = new State("line0\nline1", El.Block.insert(0));
     state.builder = b -> {
       El trigger = El.text("open")
@@ -1308,9 +1310,12 @@ class BlockTest {
     };
     App<State> app = start(
         state,
-        f -> dialogOpen[0]
-            ? f.overlay(El.col().key("dialog").child(El.text("OK").key("ok").focusable()))
-            : f);
+        f -> !dialogOpen[0]
+            ? f
+            : f.overlay(
+                empty[0]
+                    ? El.col().key("dialog").modal().child(El.text("Wait"))
+                    : El.col().key("dialog").child(El.text("OK").key("ok").focusable())));
 
     El trigger = findChild(findChild(field(app), "block-0"), "open-btn");
     app.focus(trigger);
@@ -1337,6 +1342,16 @@ class BlockTest {
     app.invalidate();
     app.frame();
     assertEquals("other-btn", app.focused().key(), "the dialog gives the focus back past the menu");
+
+    // The same with a modal dialog that holds the focus nowhere: the menu closing keeps it there.
+    empty[0] = true;
+    key(app, "Enter");
+    key(app, "Enter");
+    assertNull(app.focused(), "the modal dialog keeps the focus out of the field");
+    dialogOpen[0] = false;
+    app.invalidate();
+    app.frame();
+    assertEquals("other-btn", app.focused().key());
   }
 
   @Test
