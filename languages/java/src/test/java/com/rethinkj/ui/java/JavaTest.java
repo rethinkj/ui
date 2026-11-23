@@ -580,6 +580,8 @@ class JavaTest {
             .contains("code \"java\" \"@Override\\n@return inParamFence\\n\""),
         paramOpensFence.parameters().get(0).description().tree());
     assertEquals("real return", plainText(paramOpensFence.returns()));
+    assertEquals(
+        1, JAVA.docComment("/// @since ```\n/// @param x value").parameters().size());
 
     DocComment indentedInline = JAVA.docComment("""
         /// Intro

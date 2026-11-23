@@ -288,7 +288,7 @@ final class JavadocParser {
           .append('\n')
           .append(line, Math.min(skipHorizontalSpace(line, 0), indent), line.length());
     }
-    BitSet code = MarkdownDocument.codeLines(withoutName(probe.toString(), tag));
+    BitSet code = MarkdownDocument.codeLines(asMarkdown(probe.toString(), tag));
     int prose = 0;
     // a bare tag's text starts on a following line: blank lines before it go on the tag too
     while (lines.getFirst().isBlank() && prose < rest.size() && rest.get(prose).isBlank()) {
@@ -306,10 +306,19 @@ final class JavadocParser {
     return String.join("\n", out);
   }
 
-  /** The text without the name a {@code param} or {@code throws} tag starts with, line for line. */
-  private static String withoutName(String content, String tag) {
-    if (!tag.equals("param") && !tag.equals("throws") && !tag.equals("exception")) {
-      return content;
+  /**
+   * A tag's text as Markdown reads it, line for line: without the name a {@code param} or {@code
+   * throws} tag starts with, and after {@code @name} for a tag that the body shows as text.
+   */
+  private static String asMarkdown(String content, String tag) {
+    switch (tag) {
+      case "return", "see", "deprecated" -> {
+        return content;
+      }
+      case "param", "throws", "exception" -> {}
+      default -> {
+        return "@" + tag + " " + content;
+      }
     }
     int start = skipWhitespace(content, 0);
     int end = start;
@@ -326,7 +335,7 @@ final class JavadocParser {
   private static BitSet sectionCodeLines(String tag, String first, List<String> following) {
     String text = first + (following.isEmpty() ? "" : "\n" + String.join("\n", following));
     return MarkdownDocument.codeLines(
-        tag == null ? text : withoutName(dedentContinuation(text, tag), tag));
+        tag == null ? text : asMarkdown(dedentContinuation(text, tag), tag));
   }
 
   private static void appendSection(StringBuilder target, String content) {
