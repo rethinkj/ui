@@ -1,0 +1,1 @@
+- A unified `DiffView` opens a diff that removes many lines without stalling: it shows removed lines in blocks of at most 100 lines and builds only the ones in view. The functions of `El.blocks` and `El.blockGutter` now always receive the `Block` instances of the latest list, so equal blocks can be told apart by identity.

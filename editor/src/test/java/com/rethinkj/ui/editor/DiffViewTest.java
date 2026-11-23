@@ -280,6 +280,86 @@ class DiffViewTest {
   }
 
   @Test
+  void unifiedSplitsLongRemovedRunIntoChunksInOrder() throws IOException {
+    StringBuilder removed = new StringBuilder();
+    for (int i = 1; i <= 350; i++) {
+      if (i > 1) {
+        removed.append('\n');
+      }
+      removed.append("removed line ").append(i);
+    }
+    String oldText = removed.toString();
+    Model model = new Model();
+    App<Model> app = new App<>(
+            model,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(
+                    DiffView.unified(s.app, oldText, "", s.diff, null).wFull().grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    model.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // 350 removed lines split into 100 + 100 + 100 + 50: the two middle chunks are equal INSERT(1)
+    // blocks of 100 lines and must stay distinct across rebuilds.
+    Script.run("""
+        size 400 240 scale 2
+        frame
+        snap top
+        wheel #diff-unified 0 3150
+        frame
+        snap boundary
+        """, app, out);
+
+    // Rebuild at the scrolled position so Lines.blocks receives fresh equal Block instances.
+    app.invalidate();
+    Path afterRebuild = out.resolve("after-rebuild");
+    Script.run("""
+        size 400 240 scale 2
+        frame
+        snap boundary
+        wheel #diff-unified 0 3000
+        frame
+        snap bottom
+        """, app, afterRebuild);
+
+    String top = Files.readString(out.resolve("top.tree.txt"));
+    assertTrue(top.contains("#deleted-0 "), "first chunk built at top: " + top);
+    assertTrue(top.contains("#deleted-gutter-0 "), "first gutter chunk built at top: " + top);
+    assertTrue(top.contains("#old-line-0 "), "old line 1 at top: " + top);
+    assertTrue(top.contains("\"removed line 1\""), "first removed line text: " + top);
+    assertFalse(top.contains("#old-line-349 "), "far removed lines are not built on open: " + top);
+    assertFalse(top.contains("#deleted-200 "), "later chunks are not built on open: " + top);
+
+    String boundary = Files.readString(afterRebuild.resolve("boundary.tree.txt"));
+    assertTrue(boundary.contains("#deleted-100 "), "second chunk built at boundary: " + boundary);
+    assertTrue(boundary.contains("#deleted-200 "), "third chunk built at boundary: " + boundary);
+    assertTrue(
+        boundary.contains("#deleted-gutter-100 ") && boundary.contains("#deleted-gutter-200 "),
+        "gutter chunks stay distinct across equal INSERT blocks and rebuilds: " + boundary);
+    assertTrue(boundary.contains("\"removed line 200\""), boundary);
+    assertTrue(boundary.contains("\"removed line 201\""), boundary);
+    assertFalse(
+        boundary.contains("#deleted-0 "), "scrolled-out first chunk is dropped: " + boundary);
+    float y199 = elementTop(boundary, "#old-line-199 ");
+    float y200 = elementTop(boundary, "#old-line-200 ");
+    assertTrue(
+        y200 > y199 && y200 - y199 <= 24,
+        "old line 201 follows 200 without gap or overlap (" + y199 + " -> " + y200 + ")");
+
+    String bottom = Files.readString(afterRebuild.resolve("bottom.tree.txt"));
+    assertTrue(bottom.contains("#deleted-300 "), "last chunk built at bottom: " + bottom);
+    assertTrue(bottom.contains("#old-line-349 "), "old line 350 at bottom: " + bottom);
+    assertTrue(bottom.contains("\"removed line 350\""), "last removed line text: " + bottom);
+  }
+
+  private static float elementTop(String tree, String marker) {
+    String line = tree.lines().filter(l -> l.contains(marker)).findFirst().orElseThrow();
+    return Float.parseFloat(line.trim().split(" ")[2].split(",")[1]);
+  }
+
+  @Test
   void rowsBothSidesHaveScrollOneToOne() {
     // Old lines 1-2 replaced by new lines 1-4: the filler follows old line 2, beside new 3 and 4.
     Diff diff = Diff.lines("a\nb\nc\nd", "a\nB\nC\nX\nY\nd");

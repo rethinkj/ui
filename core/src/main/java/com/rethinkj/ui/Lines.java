@@ -557,6 +557,11 @@ final class Lines {
   void blocks(List<El.Block> blocks) {
     List<El.Block> next = blocks == null ? List.of() : blocks;
     if (blocksCount == count && next.equals(rawBlocks)) {
+      // Equal blocks keep their heights, but callers tell equal blocks apart by identity.
+      if (!sameInstances(next, rawBlocks)) {
+        rawBlocks = next;
+        normalizeBlocks();
+      }
       return;
     }
     rawBlocks = next;
@@ -566,6 +571,22 @@ final class Lines {
       measuredBlocks.keySet().removeIf(key -> !kept.contains(key.block()));
     }
     reconcileFoldsAndBlocks();
+  }
+
+  private static boolean sameInstances(List<El.Block> a, List<El.Block> b) {
+    if (a == b) {
+      return true;
+    }
+    int n = a.size();
+    if (n != b.size()) {
+      return false;
+    }
+    for (int i = 0; i < n; i++) {
+      if (a.get(i) != b.get(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
