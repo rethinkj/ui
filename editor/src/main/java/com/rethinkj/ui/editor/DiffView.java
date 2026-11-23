@@ -109,6 +109,9 @@ public final class DiffView {
     private String cachedHighlighterOld;
     private Object[] oldHighlightStates;
 
+    // The widest old line of each split removed run, by its first old line, for unified blocks.
+    private final Map<Integer, String> widestRemoved = new HashMap<>();
+
     /** The 0-based index of the current change hunk, or -1 before navigating or when unchanged. */
     public int currentChange() {
       return currentChange;
@@ -148,6 +151,7 @@ public final class DiffView {
       diff = Diff.diffLines(oldLines, newLines);
       regions = collapsibleRegions(diff);
       expanded.clear();
+      widestRemoved.clear();
       currentChange = -1;
       cachedHighlighterOld = null;
       oldHighlightStates = null;
@@ -920,14 +924,26 @@ public final class DiffView {
 
   /** Width of the widest line of the removed run of {@code chunk}, tabs expanded. */
   private static float widestWidth(Theme theme, State state, DeletedChunk chunk) {
-    String widest = "";
-    for (int lineIdx = chunk.runFrom(); lineIdx < chunk.runTo(); lineIdx++) {
-      String raw = lineIdx < state.oldLines.length ? state.oldLines[lineIdx] : "";
-      String text = expandTabs(raw).text();
-      if (text.length() > widest.length()) {
-        widest = text;
+    // shortcut: picks the line with the most columns, not the widest shaped one (combining marks,
+    // wide glyphs); measure each line's width if such runs lose their tint sideways.
+    String widest = state.widestRemoved.computeIfAbsent(chunk.runFrom(), from -> {
+      String found = "";
+      int foundColumns = -1;
+      for (int lineIdx = from;
+          lineIdx < chunk.runTo() && lineIdx < state.oldLines.length;
+          lineIdx++) {
+        String raw = state.oldLines[lineIdx];
+        int columns = 0;
+        for (int i = 0; i < raw.length(); i++) {
+          columns += raw.charAt(i) == '\t' ? TAB_SIZE - columns % TAB_SIZE : 1;
+        }
+        if (columns > foundColumns) {
+          found = raw;
+          foundColumns = columns;
+        }
       }
-    }
+      return expandTabs(found).text();
+    });
     return CodeEditor.monoWidth(theme, widest);
   }
 
