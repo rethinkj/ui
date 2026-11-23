@@ -17,6 +17,7 @@ import com.rethinkj.ui.kit.Theme;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,6 +53,15 @@ public final class DiffView {
 
   /** Tab stop width matching {@link CodeEditor}. */
   private static final int TAB_SIZE = 4;
+
+  /** Maximum number of removed lines placed in a single block in the unified view. */
+  private static final int MAX_DELETED_BLOCK_LINES = 100;
+
+  /**
+   * A slice {@code [from, to)} of the removed run {@code [runFrom, runTo)} shown by one
+   * removed-lines block in unified diff.
+   */
+  private record DeletedChunk(int from, int to, int runFrom, int runTo) {}
 
   /** One collapsible unchanged run between (or outside) hunks, exclusive of end indices. */
   record Region(int oldFrom, int oldTo, int newFrom, int newTo) {
@@ -99,6 +109,9 @@ public final class DiffView {
     private String cachedHighlighterOld;
     private Object[] oldHighlightStates;
 
+    // The widest old line of each split removed run, by its first old line, for unified blocks.
+    private final Map<Integer, String> widestRemoved = new HashMap<>();
+
     /** The 0-based index of the current change hunk, or -1 before navigating or when unchanged. */
     public int currentChange() {
       return currentChange;
@@ -138,6 +151,7 @@ public final class DiffView {
       diff = Diff.diffLines(oldLines, newLines);
       regions = collapsibleRegions(diff);
       expanded.clear();
+      widestRemoved.clear();
       currentChange = -1;
       cachedHighlighterOld = null;
       oldHighlightStates = null;
@@ -490,7 +504,7 @@ public final class DiffView {
 
     List<El.Block> blocks = new ArrayList<>();
     Map<El.Block, Region> collapsedMap = new HashMap<>();
-    Map<El.Block, Diff.Hunk> deletedMap = new HashMap<>();
+    Map<El.Block, DeletedChunk> deletedMap = new IdentityHashMap<>();
 
     for (Region r : collapsed) {
       El.Block nb = El.Block.replace(r.newFrom(), r.newTo() - 1).lines(1);
@@ -508,21 +522,14 @@ public final class DiffView {
           }
         }
         case DELETED -> {
-          int oldCount = h.oldEnd() - h.oldStart();
-          El.Block delBlock = diff.newLineCount() == 0
-              ? El.Block.replace(0, 0).lines(oldCount)
-              : El.Block.insert(h.newStart()).lines(oldCount);
-          blocks.add(delBlock);
-          deletedMap.put(delBlock, h);
+          addDeletedBlocks(
+              blocks, deletedMap, h.oldStart(), h.oldEnd(), h.newStart(), diff.newLineCount() == 0);
           int at = lineStart(
               state.newStarts, Math.clamp(h.newStart(), 0, Math.max(0, diff.newLineCount() - 1)));
           deletedScrollMarks.add(new Scrollbars.Mark(at, at, theme.status().danger()));
         }
         case MODIFIED -> {
-          int oldCount = h.oldEnd() - h.oldStart();
-          El.Block delBlock = El.Block.insert(h.newStart()).lines(oldCount);
-          blocks.add(delBlock);
-          deletedMap.put(delBlock, h);
+          addDeletedBlocks(blocks, deletedMap, h.oldStart(), h.oldEnd(), h.newStart(), false);
           addChangeRange(
               newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
@@ -553,9 +560,9 @@ public final class DiffView {
           if (region != null) {
             return collapsedRow(theme, texts, state, region);
           }
-          Diff.Hunk hunk = deletedMap.get(block);
-          return hunk != null
-              ? deletedLinesBlock(theme, state, hunk, highlighter, oldStartStates, oldWordSpans)
+          DeletedChunk chunk = deletedMap.get(block);
+          return chunk != null
+              ? deletedLinesBlock(theme, state, chunk, highlighter, oldStartStates, oldWordSpans)
               : fillerBlock(theme);
         },
         block -> {
@@ -569,8 +576,10 @@ public final class DiffView {
           if (region != null) {
             return collapsedGutter(theme, texts, state, region);
           }
-          Diff.Hunk hunk = deletedMap.get(block);
-          return hunk != null ? deletedLinesGutter(theme, hunk, oldColW, newColW) : null;
+          DeletedChunk chunk = deletedMap.get(block);
+          return chunk != null
+              ? deletedLinesGutter(theme, chunk.from(), chunk.to(), oldColW, newColW)
+              : null;
         }));
 
     El editor = CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
@@ -831,19 +840,47 @@ public final class DiffView {
             Symbol.MORE_HORIZONTAL, Icon.Variant.MUTED, theme.type().small().size()));
   }
 
-  /** Read-only inserted block showing deleted lines in the unified diff view. */
+  /**
+   * Splits a removed run {@code [oldStart, oldEnd)} into consecutive blocks of at most {@link
+   * #MAX_DELETED_BLOCK_LINES} lines so layout builds only the chunks in view. When the new side is
+   * empty, the first chunk replaces its single empty line and later chunks stack after it.
+   */
+  private static void addDeletedBlocks(
+      List<El.Block> blocks,
+      Map<El.Block, DeletedChunk> deletedMap,
+      int oldStart,
+      int oldEnd,
+      int newStart,
+      boolean emptyNew) {
+    for (int from = oldStart; from < oldEnd; from += MAX_DELETED_BLOCK_LINES) {
+      int to = Math.min(from + MAX_DELETED_BLOCK_LINES, oldEnd);
+      int count = to - from;
+      El.Block block = emptyNew
+          ? (from == oldStart
+              ? El.Block.replace(0, 0).lines(count)
+              : El.Block.insert(1).lines(count))
+          : El.Block.insert(newStart).lines(count);
+      blocks.add(block);
+      deletedMap.put(block, new DeletedChunk(from, to, oldStart, oldEnd));
+    }
+  }
+
+  /**
+   * Read-only inserted block showing deleted lines {@code [fromLine, toLine)} in the unified diff
+   * view.
+   */
   private static El deletedLinesBlock(
       Theme theme,
       State state,
-      Diff.Hunk hunk,
+      DeletedChunk chunk,
       Highlighter highlighter,
       Object[] oldStartStates,
       Map<Integer, List<Diff.Span>> oldWordSpans) {
     Theme.TextStyle mono = theme.type().mono();
     Theme.Diff diffColors = theme.diff();
     El container =
-        El.col().key("deleted-" + hunk.oldStart()).wFull().hFull().fill(diffColors.removed());
-    for (int lineIdx = hunk.oldStart(); lineIdx < hunk.oldEnd(); lineIdx++) {
+        El.col().key("deleted-" + chunk.from()).wFull().hFull().fill(diffColors.removed());
+    for (int lineIdx = chunk.from(); lineIdx < chunk.to(); lineIdx++) {
       String raw = lineIdx < state.oldLines.length ? state.oldLines[lineIdx] : "";
       List<Diff.Span> spans = oldWordSpans.get(lineIdx);
       Object startState = lineIdx < oldStartStates.length ? oldStartStates[lineIdx] : null;
@@ -878,19 +915,52 @@ public final class DiffView {
       }
       container.child(row);
     }
+    if (chunk.runTo() - chunk.runFrom() > MAX_DELETED_BLOCK_LINES) {
+      // Every chunk of a split run as wide as its widest line, so the tint stays whole sideways.
+      container.child(El.el().w(widestWidth(theme, state, chunk)).h(0).shrink(0));
+    }
     return container;
+  }
+
+  /** Width of the widest line of the removed run of {@code chunk}, tabs expanded. */
+  private static float widestWidth(Theme theme, State state, DeletedChunk chunk) {
+    // shortcut: picks the line with the most columns, not the widest shaped one (combining marks,
+    // wide glyphs); measure each line's width if such runs lose their tint sideways.
+    String widest = state.widestRemoved.computeIfAbsent(chunk.runFrom(), from -> {
+      String found = "";
+      int foundColumns = -1;
+      for (int lineIdx = from;
+          lineIdx < chunk.runTo() && lineIdx < state.oldLines.length;
+          lineIdx++) {
+        String raw = state.oldLines[lineIdx];
+        int columns = 0;
+        for (int i = 0; i < raw.length(); i++) {
+          columns += raw.charAt(i) == '\t' ? TAB_SIZE - columns % TAB_SIZE : 1;
+        }
+        if (columns > foundColumns) {
+          found = raw;
+          foundColumns = columns;
+        }
+      }
+      return expandTabs(found).text();
+    });
+    return CodeEditor.monoWidth(theme, widest);
   }
 
   private record DeletedHighlightKey(
       Highlighter highlighter, Object startState, List<Diff.Span> spans, int wordColor) {}
 
-  /** Gutter rows for a deleted-lines block in unified diff: old line numbers, blank new number, red bar. */
-  private static El deletedLinesGutter(Theme theme, Diff.Hunk hunk, float oldColW, float newColW) {
+  /**
+   * Gutter rows for deleted lines {@code [fromLine, toLine)} in unified diff: old numbers, blank
+   * new number, red bar.
+   */
+  private static El deletedLinesGutter(
+      Theme theme, int fromLine, int toLine, float oldColW, float newColW) {
     Theme.TextStyle mono = theme.type().mono();
     float bar = theme.size().indicator();
     float s = theme.space().s();
-    El column = El.col().key("deleted-gutter-" + hunk.oldStart()).wFull().hFull();
-    for (int lineIdx = hunk.oldStart(); lineIdx < hunk.oldEnd(); lineIdx++) {
+    El column = El.col().key("deleted-gutter-" + fromLine).wFull().hFull();
+    for (int lineIdx = fromLine; lineIdx < toLine; lineIdx++) {
       El row = El.row()
           .key("old-line-" + lineIdx)
           .align(Style.Align.CENTER)

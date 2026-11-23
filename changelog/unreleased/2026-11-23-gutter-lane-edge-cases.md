@@ -1,0 +1,1 @@
+- `CodeEditor`'s gutter shows a `DELETED` change next to an `ADDED` or `MODIFIED` bar on the same line, and deletions at both the start and end of a line, instead of hiding one of them. A rendered doc comment, whose lines share one gutter cell, shows the app markers of its first line only, instead of an arbitrary few of all its lines.

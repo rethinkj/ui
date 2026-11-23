@@ -2146,7 +2146,9 @@ public final class El {
    * scale or font changes. In a {@code .tree.txt} each block element is keyed {@code block-<first>}
    * unless it has a key, and {@code block-<first>-<n>} for the {@code n}-th ({@code n >= 1})
    * further block at the same line. Several {@code INSERT} blocks before the same line stack in
-   * list order; {@code REPLACE} blocks must not overlap each other. A fold that hides a block's
+   * list order; {@code REPLACE} blocks must not overlap each other. Both {@code block} and {@code
+   * reveal} receive the {@code Block} instances from {@code blocks} itself, so callers may tell
+   * equal blocks apart by identity. A fold that hides a block's
    * line hides the block as well, and while the field shows its placeholder it shows only {@link
    * Block.Placement#INSERT} blocks at line 0.
    *
@@ -2219,7 +2221,8 @@ public final class El {
    *
    * <p>In a {@code .tree.txt} a block gutter cell without a key is keyed {@code
    * block-gutter-<first>}, and {@code block-gutter-<first>-<n>} for the {@code n}-th ({@code n >=
-   * 1}) further block at the same line.
+   * 1}) further block at the same line. {@code cells} receives the {@code Block} instances from
+   * {@link #blocks}, so callers may tell equal blocks apart by identity.
    *
    * @param cells builds the gutter element for each placed block, or null to clear
    * @throws IllegalStateException if this is not a multi-line field

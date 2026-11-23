@@ -2396,9 +2396,9 @@ public final class Text implements Measure {
     List<El.Block> next = blocks == null ? List.of() : blocks;
     this.blockMeasurer = measurer;
     if (!next.equals(this.blocks)) {
-      this.blocks = next;
       viewStale = true;
     }
+    this.blocks = next;
   }
 
   /** For {@link El}: the inline hints of a multi-line field and their measurer. */
@@ -2537,7 +2537,7 @@ public final class Text implements Measure {
     shownLines.folds(placeholderShown ? List.of() : folds);
     List<El.Block> active = activeBlocks();
     shownLines.blocks(active);
-    shownLines.hints(placeholderShown ? List.of() : hints, shown);
+    shownLines.hints(placeholderShown ? List.of() : hints);
     wrapping();
     if (!active.isEmpty()) {
       shownLines.blocksLayout(

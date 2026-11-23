@@ -468,4 +468,124 @@ class HintTest {
     assertFalse(edgeDump.contains("folded:"), "hint on folded line is hidden: " + edgeDump);
     assertEquals(3, builtCount.get(), "folded hint was not built");
   }
+
+  @Test
+  void offScreenHintChangesUpdateWrappedExtentOnEditAndDuplicates() {
+    String text = "line\n".repeat(15) + "alpha beta";
+    El.Hint wrappingHint = new El.Hint(text.indexOf("beta"), El.Hint.Affinity.AFTER, "parameter:");
+    Doc doc = new Doc(text, List.of(wrappingHint));
+    boolean[] clearOnEdit = {false};
+    App<Doc> app = new App<>(
+        doc,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(El.text(s.code)
+                .editable(next -> {
+                  int delta = next.length() - s.code.length();
+                  s.code = next;
+                  if (clearOnEdit[0]) {
+                    s.hints = List.of();
+                    clearOnEdit[0] = false;
+                  } else if (delta != 0 && !s.hints.isEmpty()) {
+                    s.hints = s.hints.stream()
+                        .map(h -> new El.Hint(h.at() + delta, h.affinity(), h.text()))
+                        .toList();
+                  }
+                })
+                .multiline()
+                .wrapText()
+                .key("f")
+                .font(Font.mono())
+                .fontSize(13)
+                .w(120)
+                .lines(2)
+                .hints(s.hints, h -> pill(h, null))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(140, 80, 1);
+    app.frame();
+    focus(app);
+
+    float rowHeight = field(app).text().lineHeight();
+    double baseExtent = 16 * rowHeight;
+    assertEquals(
+        baseExtent,
+        field(app).text().extentHeight(),
+        0.5,
+        "last line starts unshaped off-screen at 1 estimated row");
+
+    // Scroll down to measure the last line with its hint (wraps onto 2 rows), then return to top.
+    app.select(field(app), doc.code.length(), doc.code.length());
+    app.frame();
+    assertEquals(
+        baseExtent + rowHeight, field(app).text().extentHeight(), 0.5, "wrapped onto 2 rows");
+
+    app.select(field(app), 0, 0);
+    app.frame();
+    assertEquals(0, field(app).scrollY(), 0.5, "scrolled to top");
+    assertTrue(
+        field(app).children().stream()
+            .noneMatch(c -> c.key() != null && c.key().startsWith("hint-")),
+        "last line's hint is off-screen");
+    assertEquals(
+        baseExtent + rowHeight,
+        field(app).text().extentHeight(),
+        0.5,
+        "off-screen wrapped line keeps its 2-row measurement");
+
+    // Editing line 0 while keeping the shifted hint must not forget the off-screen line's rows.
+    app.textInput("x");
+    app.frame();
+    assertEquals(
+        baseExtent + rowHeight,
+        field(app).text().extentHeight(),
+        0.5,
+        "edit on line 0 keeps unchanged off-screen line's rows");
+
+    // (a) Edit line 0 and remove the off-screen hint in one update -> extent drops by one row.
+    clearOnEdit[0] = true;
+    app.textInput("y");
+    app.frame();
+    assertEquals(0, field(app).scrollY(), 0.5, "last line stayed off-screen");
+    assertEquals(
+        baseExtent,
+        field(app).text().extentHeight(),
+        0.5,
+        "edit + hint removal forgets off-screen line's extra row");
+
+    // (b) Duplicate hints [h, h] -> [h] where two wrap and one fits -> extent drops off-screen.
+    El.Hint dup = new El.Hint(doc.code.indexOf("beta"), El.Hint.Affinity.AFTER, "ab:");
+    doc.hints = List.of(dup, dup);
+    app.invalidate();
+    app.frame();
+    app.select(field(app), doc.code.length(), doc.code.length());
+    app.frame();
+    assertEquals(
+        baseExtent + rowHeight,
+        field(app).text().extentHeight(),
+        0.5,
+        "two duplicate hints wrap last line onto 2 rows");
+
+    app.select(field(app), 0, 0);
+    app.frame();
+    assertEquals(0, field(app).scrollY(), 0.5, "scrolled to top again");
+    assertTrue(
+        field(app).children().stream()
+            .noneMatch(c -> c.key() != null && c.key().startsWith("hint-")),
+        "last line's hints are off-screen again");
+
+    doc.hints = List.of(dup);
+    app.invalidate();
+    app.frame();
+    assertEquals(
+        baseExtent,
+        field(app).text().extentHeight(),
+        0.5,
+        "removing one duplicate hint forgets off-screen line's extra row");
+    // Scrolling the last line into view confirms the single hint actually fits on 1 row.
+    app.select(field(app), doc.code.length(), doc.code.length());
+    app.frame();
+    assertEquals(
+        baseExtent, field(app).text().extentHeight(), 0.5, "single hint fits on 1 row when shaped");
+  }
 }

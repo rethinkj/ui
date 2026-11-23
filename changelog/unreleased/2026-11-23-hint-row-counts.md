@@ -1,0 +1,1 @@
+- A multi-line field's scroll range now follows inline hints (`El.hints`) that change on lines out of view, also when the text is edited in the same update or one of two identical hints is removed.

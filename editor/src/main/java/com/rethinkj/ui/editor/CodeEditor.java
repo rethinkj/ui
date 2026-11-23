@@ -215,7 +215,9 @@ public final class CodeEditor {
   /**
    * A marker in the gutter at the line of position {@code at} of the string: {@code symbol} in
    * {@code tone}'s color, with {@code label} as its tooltip, which a press on it runs {@code
-   * onPress} for, such as {@link Symbol#PLAY} "Run statement" at the first line of a statement.
+   * onPress} for, such as {@link Symbol#PLAY} "Run statement" at the first line of a statement. A
+   * rendered doc comment, whose lines share one gutter cell, shows only the markers of its first
+   * line.
    *
    * @param onPress what a press runs, or null for a marker that only shows
    */
@@ -240,6 +242,8 @@ public final class CodeEditor {
    * vertical scrollbar. For {@link Kind#DELETED}, {@code from == to} marks the point where lines
    * were removed: before the line of {@code from}, or after it where {@code from} is the end of a
    * line that is not empty, such as lines removed at the end of a text without a final line feed.
+   * Top and bottom deletion caps paint independently over any added or modified bar in the same
+   * gutter cell.
    *
    * @param from start offset in the markup layer's text, 0 or more
    * @param to end offset in the markup layer's text, at least {@code from}
@@ -698,8 +702,9 @@ public final class CodeEditor {
     /**
      * Shows {@code markers} in the gutter, each at its position's line in the current string, in
      * place of those before: each gets its own slot in the icon lane after the diagnostic slot and
-     * any {@link #markup} markers on that line. These positions are not moved with edits; for
-     * markers that move with edits, pass them to {@link #markup}.
+     * any {@link #markup} markers on that line. A rendered doc comment, whose lines share one
+     * gutter cell, shows only the markers of its first line. These positions
+     * are not moved with edits; for markers that move with edits, pass them to {@link #markup}.
      */
     public State markers(List<Marker> markers) {
       this.markers = List.copyOf(markers);
@@ -1414,7 +1419,8 @@ public final class CodeEditor {
     List<Highlight> highlights = marks.highlights();
     List<Highlight> usageHighlights = marks.usageHighlights();
     List<Change> changes = marks.changes();
-    int markerSlots = maxMarkersPerLine(state.builtText, markers);
+    String builtText = state.builtText;
+    int markerSlots = maxMarkersPerLine(builtText, markers);
     List<InlayHint> inlayHints = marks.hints();
     if (!inlayHints.isEmpty()) {
       List<El.Hint> fieldHints = new ArrayList<>(inlayHints.size());
@@ -1486,6 +1492,7 @@ public final class CodeEditor {
                 theme,
                 state,
                 editor,
+                builtText,
                 diagnostics,
                 markers,
                 markerSlots,
@@ -1847,6 +1854,7 @@ public final class CodeEditor {
       Theme theme,
       State state,
       El editor,
+      String text,
       List<Diagnostic> diagnostics,
       List<Marker> markers,
       int markerSlots,
@@ -1868,9 +1876,19 @@ public final class CodeEditor {
         .w(mono.size())
         .shrink(0));
     if (markerSlots > 0) {
+      // A rendered doc comment's one cell shows the markers of its first line only, found in the
+      // committed text that the comment and the markers count in.
+      int from = line.start();
+      int to = line.end();
+      DocRange doc = state.docAtLine(line.index());
+      if (doc != null && state.isDocRendered(doc)) {
+        from = text.lastIndexOf('\n', doc.start() - 1) + 1;
+        int nl = text.indexOf('\n', doc.start());
+        to = nl < 0 ? text.length() : nl;
+      }
       int placed = 0;
       for (Marker m : markers) {
-        if (m.at >= line.start() && m.at <= line.end()) {
+        if (m.at >= from && m.at <= to) {
           placed++;
           cell.child(appMarker(theme, m, placed).w(mono.size()).shrink(0));
           if (placed == markerSlots) {
@@ -1916,35 +1934,73 @@ public final class CodeEditor {
   /**
    * The VCS change bar of a line: full cell height for added, modified or multi-character deleted
    * lines, a short bar at the top or bottom of the cell for point deletions ({@code from == to}),
-   * or an empty fixed-width placeholder.
+   * or an empty fixed-width placeholder. When a cell has more than one mark, the top and bottom
+   * deletion caps paint independently over any bar in the same lane.
    */
   private static El changeBar(Theme theme, List<Change> changes, El.Gutter.Line line) {
     float bar = theme.size().indicator();
-    Change.Kind kind = null;
-    boolean point = false;
-    boolean after = false; // a deletion at the end of a line is after it
+    Change.Kind barKind = null;
+    boolean top = false;
+    boolean bottom = false;
     for (Change c : changes) {
       boolean isPoint = c.from == c.to;
       boolean hits = isPoint
           ? c.from >= line.start() && c.from <= line.end()
           : c.to > line.start() && c.from <= line.end();
-      if (hits) {
-        kind = c.kind;
-        point = isPoint;
-        after = c.from == line.end() && line.end() > line.start();
-        if (kind != Change.Kind.DELETED || !point) {
-          break;
+      if (!hits) {
+        continue;
+      }
+      if (c.kind == Change.Kind.DELETED && isPoint) {
+        if (c.from == line.end() && line.end() > line.start()) {
+          bottom = true;
+        } else {
+          top = true;
         }
+      } else if (barKind == null) {
+        barKind = c.kind;
+      }
+      if (barKind != null && top && bottom) {
+        break;
       }
     }
-    if (kind == null) {
+    if (barKind == null && !top && !bottom) {
       return El.el().w(bar).shrink(0);
     }
-    El mark = El.el().key("change").w(bar).shrink(0).fill(color(theme, kind));
-    if (kind == Change.Kind.DELETED && point) {
-      return mark.h(theme.size().dot()).alignSelf(after ? Style.Align.END : Style.Align.START);
+    float dot = theme.size().dot();
+    if (barKind != null && !top && !bottom) {
+      return El.el()
+          .key("change")
+          .w(bar)
+          .shrink(0)
+          .fill(color(theme, barKind))
+          .alignSelf(Style.Align.STRETCH);
     }
-    return mark.alignSelf(Style.Align.STRETCH);
+    int deleted = color(theme, Change.Kind.DELETED);
+    if (barKind == null && top != bottom) {
+      return El.el()
+          .key("change")
+          .w(bar)
+          .h(dot)
+          .shrink(0)
+          .fill(deleted)
+          .alignSelf(bottom ? Style.Align.END : Style.Align.START);
+    }
+    El lane = El.col().key("change").w(bar).shrink(0).alignSelf(Style.Align.STRETCH);
+    if (barKind != null) {
+      lane.fill(color(theme, barKind));
+    }
+    if (top && bottom) {
+      lane.justify(Style.Content.SPACE_BETWEEN);
+    } else if (bottom) {
+      lane.justify(Style.Content.END);
+    }
+    if (top) {
+      lane.child(El.el().key("change-top").w(bar).h(dot).shrink(0).fill(deleted));
+    }
+    if (bottom) {
+      lane.child(El.el().key("change-bottom").w(bar).h(dot).shrink(0).fill(deleted));
+    }
+    return lane;
   }
 
   /**
@@ -2616,9 +2672,13 @@ public final class CodeEditor {
 
   /** Width of a line-number column holding {@code maxLine} digits at the current window scale. */
   static float numberWidth(Theme theme, int maxLine) {
+    return monoWidth(theme, "8".repeat(String.valueOf(Math.max(1, maxLine)).length()));
+  }
+
+  /** Width of {@code text} in the code font at the current window scale, rounded up. */
+  static float monoWidth(Theme theme, String text) {
     Theme.TextStyle mono = theme.type().mono();
-    int digits = String.valueOf(Math.max(1, maxLine)).length();
-    El sample = El.text("8".repeat(digits)).font(mono.font().get()).fontSize(mono.size());
+    El sample = El.text(text).font(mono.font().get()).fontSize(mono.size());
     sample.text().scale(WindowState.CURRENT.get().scale());
     return (float) Math.ceil(sample
         .text()

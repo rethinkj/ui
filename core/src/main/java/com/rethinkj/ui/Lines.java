@@ -120,8 +120,9 @@ final class Lines {
   // The widths of the chunks of long lines, by line: estimated, or as measured once shaped, with
   // the spans whose fonts they were measured with.
   private Map<Integer, Chunked> chunkWidths = new HashMap<>();
-  private List<El.Hint> hints = List.of(); // what the lines were last measured with
-  private String hintsText;
+  // What the lines were last measured with, moved by each edit; null in a copy, which takes the
+  // next ones as measured: while composing, hints are shown at their offsets in the field's text.
+  private List<El.Hint> hints = List.of();
 
   private static final class Chunked {
     final Spans spans;
@@ -188,6 +189,7 @@ final class Lines {
     copy.widestLine = widestLine;
     copy.measuredFor = measuredFor;
     copy.chunkWidths = new HashMap<>(chunkWidths);
+    copy.hints = null;
     copy.blockLayout = blockLayout;
     copy.blockLineHeight = blockLineHeight;
     if (!measuredBlocks.isEmpty()) {
@@ -288,6 +290,20 @@ final class Lines {
         }
       });
       chunkWidths = moved;
+    }
+    if (hints != null && !hints.isEmpty()) {
+      int oldEnd = at + removed;
+      int newEnd = at + inserted.length();
+      List<El.Hint> moved = new ArrayList<>(hints.size());
+      for (El.Hint h : hints) {
+        int pos = h.at();
+        if (pos > length - delta) {
+          continue; // past the end, so neither shown nor counted, and moving it could overflow
+        }
+        int mapped = pos <= at ? pos : pos >= oldEnd ? pos + delta : Math.min(pos, newEnd);
+        moved.add(mapped == pos ? h : new El.Hint(mapped, h.affinity(), h.text()));
+      }
+      hints = moved;
     }
     if (!within && (hasHidden() || hasBlocks())) {
       foldsCount = count;
@@ -469,31 +485,34 @@ final class Lines {
   }
 
   /**
-   * Sets the inline hints ({@link El#hints}) the lines are measured with. When they change on the
-   * same text, where their offsets are stable, the lines whose hints changed forget their rows and
-   * widths; after an edit the hints move with the text, and the edited lines are measured again.
+   * Sets the inline hints ({@link El#hints}) the lines are measured with. Lines whose hints changed
+   * forget their rows and widths; hints stored from before are mapped through each {@link #edit},
+   * so unchanged lines after an edit keep their measurements.
    */
-  void hints(List<El.Hint> next, String text) {
+  void hints(List<El.Hint> next) {
     if (next == hints) {
-      hintsText = text;
       return;
     }
-    if (!next.equals(hints) && text.equals(hintsText)) {
-      Set<El.Hint> kept = new HashSet<>(hints);
-      Set<El.Hint> added = new HashSet<>(next);
-      for (El.Hint hint : next) {
-        if (!kept.contains(hint)) {
-          forget(line(Math.min(hint.at(), length)));
-        }
-      }
+    if (hints != null && !next.equals(hints)) {
+      // Counted, so [h, h] to [h] changes; hints past the end are not shown and change nothing.
+      Map<El.Hint, Integer> counts = new HashMap<>();
       for (El.Hint hint : hints) {
-        if (!added.contains(hint)) {
-          forget(line(Math.min(hint.at(), length)));
+        if (hint.at() <= length) {
+          counts.merge(hint, 1, Integer::sum);
         }
       }
+      for (El.Hint hint : next) {
+        if (hint.at() <= length) {
+          counts.merge(hint, -1, Integer::sum);
+        }
+      }
+      counts.forEach((hint, count) -> {
+        if (count != 0) {
+          forget(line(hint.at()));
+        }
+      });
     }
     hints = next;
-    hintsText = text;
   }
 
   /** Forgets what was measured of line {@code line}: its rows, chunk widths and widest width. */
@@ -538,6 +557,11 @@ final class Lines {
   void blocks(List<El.Block> blocks) {
     List<El.Block> next = blocks == null ? List.of() : blocks;
     if (blocksCount == count && next.equals(rawBlocks)) {
+      // Equal blocks keep their heights, but callers tell equal blocks apart by identity.
+      if (!sameInstances(next, rawBlocks)) {
+        rawBlocks = next;
+        normalizeBlocks();
+      }
       return;
     }
     rawBlocks = next;
@@ -547,6 +571,22 @@ final class Lines {
       measuredBlocks.keySet().removeIf(key -> !kept.contains(key.block()));
     }
     reconcileFoldsAndBlocks();
+  }
+
+  private static boolean sameInstances(List<El.Block> a, List<El.Block> b) {
+    if (a == b) {
+      return true;
+    }
+    int n = a.size();
+    if (n != b.size()) {
+      return false;
+    }
+    for (int i = 0; i < n; i++) {
+      if (a.get(i) != b.get(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
