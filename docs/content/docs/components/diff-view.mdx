@@ -7,7 +7,7 @@ description: Two versions of a text side by side or unified, with changed lines 
 
 Javadoc: [`DiffView`](/api/com/rethinkj/ui/editor/DiffView.html), [`Diff`](/api/com/rethinkj/ui/editor/Diff.html).
 
-- Added lines are tinted green, removed lines red and modified lines blue, with the changed words inside them stronger. The gutter's change lane and the scrollbar mark each change.
+- Added lines are tinted green and removed lines red. Side by side, lines that replace others are tinted blue on both sides; unified, they show as removed lines above added ones. The changed words inside them are stronger. The gutter's change lane and the scrollbar mark each change.
 - Unchanged lines more than three away from a change collapse into a row that expands on a press.
 - **F7** goes to the next change and **Shift+F7** to the one before. `DiffView.State.nextChange()` and `previousChange()` do the same from a button.
 - Both sides are read-only. `Diff.lines(oldText, newText)` gives the changes without a view.
@@ -16,7 +16,7 @@ Javadoc: [`DiffView`](/api/com/rethinkj/ui/editor/DiffView.html), [`Diff`](/api/
 
 The old text on the left, the new one on the right. Empty space of the exact height keeps the lines of each change beside each other, and the two sides scroll together.
 
-<Shot src="examples/docs/diff-view-side-by-side/view-{theme}" alt="An SQL query in two versions side by side: unchanged lines collapsed at the top, modified lines tinted blue with the changed words stronger, and empty space opposite the added lines" />
+<Shot src="examples/docs/diff-view-side-by-side/view-{theme}" alt="An SQL query in two versions side by side: unchanged lines collapsed at the top, an added line tinted green on the right, a modified line tinted blue on both sides with the changed word stronger, a removed line tinted red on the left, and empty space opposite the added and removed lines" />
 
 ```java snippet="diff-view-side-by-side"
 ```
@@ -25,7 +25,7 @@ The old text on the left, the new one on the right. Empty space of the exact hei
 
 One editor with the new text. Removed lines show above the lines that replace them, with their old numbers in a second column of line numbers.
 
-<Shot src="examples/docs/diff-view-unified/view-{theme}" alt="The same change unified: old and new line numbers in two columns, removed lines tinted red with old numbers only, added lines tinted green with new numbers only" />
+<Shot src="examples/docs/diff-view-unified/view-{theme}" alt="The same change unified: old and new line numbers in two columns, removed lines tinted red with old numbers only, added lines tinted green with new numbers only, and the modified line as a red line above a green one" />
 
 ```java snippet="diff-view-unified"
 ```

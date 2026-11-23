@@ -812,6 +812,7 @@ final class Editors {
         o.total
       FROM orders o
       WHERE o.status = 'pending'
+        AND o.total > 0
         AND o.legacy = false
       ORDER BY o.total DESC
       LIMIT 50;""";
@@ -824,13 +825,13 @@ final class Editors {
 
       SELECT
         o.id,
-        o.total,
-        o.tax
+        o.tax,
+        o.total
       FROM orders o
-      JOIN customers c ON c.id = o.cid
       WHERE o.status = 'paid'
+        AND o.total > 0
       ORDER BY o.total DESC
-      LIMIT 100;""";
+      LIMIT 50;""";
   final DiffView.State diffState = new DiffView.State();
 
   static El diffSideBySide(Editors state) {
