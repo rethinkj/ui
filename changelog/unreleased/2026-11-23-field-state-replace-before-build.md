@@ -1,0 +1,1 @@
+- `FieldState.replace` and `FieldState.replaceSelection` (and `CodeEditor.State.replace` / `replaceSelection`) called before the field's first build are now kept in order and applied when the field first attaches, after any pending `select`, as the same undo steps through `onEdit` instead of being dropped.

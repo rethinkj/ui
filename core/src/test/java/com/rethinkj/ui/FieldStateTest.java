@@ -305,6 +305,44 @@ class FieldStateTest {
   }
 
   @Test
+  void replaceBeforeFirstBuildAppliesWhenTheFieldAttaches() {
+    TextLibraries.assumeLoaded();
+    App<Model> app = started();
+    FieldState state = app.state().fields[1]; // tab 1 has never been built
+    state.select(6, 0);
+    state.replaceSelection("VALUES");
+    state.replace(6, 6, " /*ok*/", 7);
+
+    choose(app, 1);
+    assertEquals("VALUES /*ok*/ 2", app.state().sql[1]);
+    assertEquals("VALUES /*ok*/| 2", show(app));
+
+    app.undo(field(app));
+    app.frame();
+    assertEquals("VALUES 2", app.state().sql[1]);
+    assertEquals("VALUES| 2", show(app));
+
+    app.undo(field(app));
+    app.frame();
+    assertEquals("SELECT 2", app.state().sql[1]);
+    assertEquals("^SELECT| 2", show(app));
+
+    // Selecting the tab and replacing in the same handler on a never-attached field.
+    App<Model> fromHandler = started();
+    FieldState unbuilt = fromHandler.state().fields[1];
+    fromHandler.post(() -> {
+      fromHandler.state().active = 1;
+      unbuilt.replace(8, 8, " ORDER BY 1", 11);
+    });
+    fromHandler.frame();
+    assertEquals("SELECT 2 ORDER BY 1", fromHandler.state().sql[1]);
+    assertEquals("SELECT 2 ORDER BY 1|", show(fromHandler));
+    fromHandler.undo(field(fromHandler));
+    fromHandler.frame();
+    assertEquals("SELECT 2", fromHandler.state().sql[1]);
+  }
+
+  @Test
   void aStringTheAppChangedMeanwhileEndsTheHistory() {
     TextLibraries.assumeLoaded();
     App<Model> app = started();

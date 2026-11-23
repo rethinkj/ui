@@ -651,7 +651,9 @@ public final class CodeEditor {
      * Replaces the selection by {@code text}, or puts it in at the caret, with the caret after it,
      * as one step of the undo history, such as a snippet from a button beside the editor: right
      * after the handler that calls it, in the editor of the tree built from what the handler
-     * changed ({@link FieldState#replaceSelection}); nothing while the editor is not in it.
+     * changed ({@link FieldState#replaceSelection}); before the editor's first build, edits are
+     * kept in order and run when it first attaches. Once it has been in a tree, nothing happens
+     * while it is not in it.
      */
     public State replaceSelection(String text) {
       field.replaceSelection(text);

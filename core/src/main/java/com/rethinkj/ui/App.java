@@ -209,6 +209,9 @@ public final class App<S> {
   // The next build between inputs builds the rows too: a field, maybe in one, waits for the app's
   // answer to an edit an app asked for, or told its selection, after which actions may look for it.
   private boolean rowsKept;
+  // Fields whose FieldState holds edits asked before their first build, in the order attached:
+  // they go in once the tree that attached them is complete, before the next input (editFirst).
+  private final List<FieldState> firstEdits = new ArrayList<>();
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
@@ -1821,6 +1824,7 @@ public final class App<S> {
   public double nextChange() {
     if (scheduler.waiting()
         || resizeDue
+        || !firstEdits.isEmpty()
         || cycling
         || rowsWanted
         || hasPendingHighlights()
@@ -2177,6 +2181,9 @@ public final class App<S> {
       fillRows();
       placeEditors(false, false); // the parts of its fields, where the focus may be
       refocus();
+      if (editFirst(true, false, toldSizes)) { // before the field takes the input; refocuses
+        handled = true;
+      }
     }
   }
 
@@ -2203,7 +2210,11 @@ public final class App<S> {
       scrolled |= list.scrollTo(list.scrollX(), list.offsetShowing(row));
       fillRows();
       placeEditors(false, false); // the parts of its fields, which Tab may enter
-      if (!list.hasRow(row)) {
+      if (editFirst(true, false, toldSizes)) { // before Tab selects in the field: a tree anew
+        handled = true;
+        list = animator.element(in.listId());
+      }
+      if (list == null || !list.hasRow(row)) {
         return next;
       }
     }
@@ -2936,6 +2947,9 @@ public final class App<S> {
       if (focus.waits()) {
         drawn |= settle(); // the focused row that a scroll of this frame brought back takes input
       }
+      if (!firstEdits.isEmpty() && editFirst(true, false, toldSizes)) {
+        drawn = handled = true; // of rows that motion built: before the input, after it a last tree
+      }
       if (untold() || hasPendingUnfolds()) {
         // A selection a build applied or moved, also one of rows that scrolling filled: a
         // FieldState's, or the app's answer to an edit. It reaches onSelect as a handler's input
@@ -2977,8 +2991,9 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
-      stale |=
-          tellUnfolds() | tellSelections(); // of fields in those rows, which the rebuild then shows
+      stale |= tellUnfolds()
+          | tellSelections() // of fields in those rows, which the rebuild shows
+          | !firstEdits.isEmpty(); // of fields in rows that an earlier frame built
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
     // tree built between inputs, which may lack the rows under the pointer and would end their
@@ -3121,6 +3136,14 @@ public final class App<S> {
    *     El#onResize} handlers; another only notes that sizes changed, for the last to tell
    */
   private void build(boolean between, boolean last) {
+    Map<Object, Long> told = toldSizes;
+    buildTree(between, last);
+    if (editFirst(between, last, told) && !last) {
+      handled = true; // the frame builds its last tree for what the field's handler changed
+    }
+  }
+
+  private void buildTree(boolean between, boolean last) {
     List<Object> ids = Animator.identities(pointed());
     long start = System.nanoTime();
     El built = WindowState.CURRENT.with(
@@ -3194,7 +3217,60 @@ public final class App<S> {
     }
     placeEditors(true, false);
     El.placeBars(root);
+    if (editFirst(true, false, toldSizes)) {
+      handled = true; // the frame builds its last tree for what the field's handler changed
+    }
     return true;
+  }
+
+  /**
+   * Runs the edits that {@link FieldState#replace} and {@link FieldState#replaceSelection} kept
+   * for fields not yet built, now that the tree that attached them is complete and before they
+   * take input, one at a time, building the view again for the app's answer to each.
+   *
+   * @return whether an edit went to its field's handler
+   */
+  private boolean editFirst(boolean between, boolean last, Map<Object, Long> told) {
+    if (firstEdits.isEmpty()) {
+      return false;
+    }
+    boolean edited = false;
+    boolean outside = !scheduler.dispatching();
+    if (outside) {
+      scheduler.beginHandler(); // what the fields' handlers ask for runs before the next input
+    }
+    try {
+      while (!firstEdits.isEmpty()) {
+        FieldState state = firstEdits.removeFirst();
+        El now = state.app == this && !gone(state.id, true) ? animator.element(state.id) : null;
+        if (state.pending == null
+            || now == null
+            || now.fieldState() != state
+            || state.editor.answerPending()) {
+          continue; // the next build that attaches the field takes them up again
+        }
+        Consumer<Editor> step = state.pending.removeFirst();
+        if (state.pending.isEmpty()) {
+          state.pending = null;
+        }
+        handled = true; // a handler that throws may have changed the state
+        step.accept(state.editor);
+        if (state.editor.answerPending()) {
+          edited = true;
+          rowsKept = true; // the field may be in a row
+          toldSizes = told; // the sizes are told from the tree that answers
+          resized.clear();
+          buildTree(between, last); // attaches the field again if more edits wait
+        } else if (state.pending != null) {
+          firstEdits.add(state); // refused before the handler, as by a read-only field
+        }
+      }
+    } finally {
+      if (outside) {
+        scheduler.endHandler();
+      }
+    }
+    return edited;
   }
 
   /**
@@ -3275,6 +3351,9 @@ public final class App<S> {
         }
         editor.select(state.caret, state.anchor);
         state.caret = -1;
+      }
+      if (state != null && state.pending != null && !firstEdits.contains(state)) {
+        firstEdits.add(state);
       }
       el.editor(editor);
       el.text().unfocused(!id.equals(focus.id())); // El#ellipsis shortens it without the focus

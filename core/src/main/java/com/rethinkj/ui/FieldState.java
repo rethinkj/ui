@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -39,6 +40,8 @@ public final class FieldState {
   // A selection the app asked for, which the field takes at its next build; -1 for none.
   int caret = -1;
   int anchor = -1;
+  // Edits asked before the field first attached, run in order once it does.
+  List<Consumer<Editor>> pending;
 
   public FieldState() {
     // no field, no selection asked for: a field takes the state over at its first build
@@ -78,9 +81,11 @@ public final class FieldState {
    * selected, with the caret after it, as one step of the undo history: for a button or a menu
    * beside the field, such as one that puts in a snippet. Called in a handler, the frame edits
    * right after it, as {@link App#edit} does, in the tree built from what the handler changed;
-   * the edit goes to the field's {@link El#editable onEdit} handler as typed text does. Nothing
-   * happens when this field is not in that tree, as when the handler switched to another tab, or
-   * when it is read-only or disabled.
+   * the edit goes to the field's {@link El#editable onEdit} handler as typed text does. Before
+   * the field's first build, edits asked on this state are kept in order and run when the field
+   * first attaches, after any {@link #select} asked before then and before it takes input. Once the field has been in a
+   * tree, nothing happens when it is not in that tree, as when the handler switched to another
+   * tab, or when it is read-only or disabled.
    */
   public void replaceSelection(String text) {
     Objects.requireNonNull(text, "text");
@@ -109,7 +114,8 @@ public final class FieldState {
    * with the caret. The positions are taken as they are, not moved to a grapheme boundary as
    * {@link #select} moves them, and clamped to the string the field has when the edit runs. Undo
    * brings back the selection the field had before. Unlike {@link App#edit}, it needs no field of
-   * the last frame's tree, and {@code caret} is a position in {@code text}, not in the new string.
+   * the last frame's tree, and {@code caret} is a position in {@code text}, not in the new string;
+   * before the field's first build, edits are kept in order and run when it first attaches.
    *
    * @param from the first position, an index into the string from 0
    * @param to the position after the last, at least {@code from}
@@ -174,8 +180,13 @@ public final class FieldState {
   }
 
   private void edit(Consumer<Editor> edit) {
-    if (app instanceof App<?> owner) {
+    if (app instanceof App<?> owner && pending == null) {
       owner.edit(this, edit);
+    } else { // before the field's first build, or after edits from then: in the order asked
+      if (pending == null) {
+        pending = new ArrayList<>();
+      }
+      pending.add(edit);
     }
   }
 }
