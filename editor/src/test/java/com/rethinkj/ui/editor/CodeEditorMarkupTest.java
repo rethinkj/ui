@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.text.TextRendering;
@@ -98,6 +99,22 @@ class CodeEditorMarkupTest {
     assertEquals(-1, capped.mapRange(10, 15), "middle range is dropped");
     int tailBefore = largeBefore.indexOf("TAIL");
     assertEquals(largeAfter.indexOf("TAIL"), capped.mapRange(tailBefore, tailBefore + 4));
+
+    // Line-start marker mapping drops a point at the start of a removed span ending with '\n'
+    // while keeping plain point mapping unchanged and tracking intermediate strings across chains.
+    TextEdits deleteLine = TextEdits.between("alpha\nbeta\n", "beta\n");
+    assertEquals(-1, deleteLine.mapLineStart(0), "line-start marker of deleted line goes");
+    assertEquals(0, deleteLine.mapLineStart(6), "next line's marker moves up");
+    assertEquals(0, deleteLine.mapPoint(0), "plain point mapping stays as before");
+    assertEquals(0, TextEdits.between("alpha\n", "ha\n").mapLineStart(0), "partial delete keeps");
+    assertEquals(1, TextEdits.between("ab\ncd", "acd").mapLineStart(1), "join of lines keeps");
+    TextEdits touching = TextEdits.fromEdits(
+        " \nnext", List.of(new TextEdit(0, 1, ""), new TextEdit(0, 1, "")), "next");
+    assertEquals(-1, touching.mapLineStart(0), "touching deletions remove the line together");
+    TextEdits chained =
+        TextEdits.fromEdits("a\nb\n", List.of(new TextEdit(2, 4, ""), new TextEdit(0, 2, "")), "");
+    assertEquals(-1, chained.mapLineStart(0), "chained delete drops first line's marker");
+    assertEquals(-1, chained.mapLineStart(2), "chained delete drops second line's marker");
   }
 
   static final class Doc {
@@ -513,6 +530,101 @@ class CodeEditorMarkupTest {
     assertTrue(
         middle.contains("squiggle " + shiftedBadCol + "-" + (shiftedBadCol + "bad_col".length())),
         middle);
+  }
+
+  @Test
+  void deletingLineDropsItsLineStartMarkerAndKeepsTheNextLines() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = "SELECT id\nSELECT id\nFROM orders;";
+    Doc doc = new Doc(text);
+    doc.editor.markup(
+        "app",
+        text,
+        List.of(
+            new CodeEditor.Marker(0, Symbol.PLAY, Icon.Variant.ACCENT, "First marker", null),
+            new CodeEditor.Marker(10, Symbol.RECORD, Icon.Variant.DANGER, "Second marker", null)));
+    doc.editor.markup(
+        "vcs", text, List.of(new CodeEditor.Change(0, 0, CodeEditor.Change.Kind.DELETED)));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(5)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Ctrl+Shift+K on line 0 drops line 0's marker, moves line 1's marker up to line 0, and keeps
+    // non-marker points (such as a DELETED change cap) as before.
+    Script.run("""
+        size 480 200 scale 2
+        frame
+        focus #code
+        key K control shift
+        frame
+        snap after
+        """, app, out);
+    assertEquals("SELECT id\nFROM orders;", doc.text);
+    String after = Files.readString(out.resolve("after.tree.txt"));
+    String line0 = cell(after, 0);
+    assertFalse(line0.contains("First marker"), line0);
+    assertTrue(line0.contains("Second marker"), line0);
+    assertEquals("2x4", change(after, 0), after);
+  }
+
+  @Test
+  void sameStringEditBatchMovesMarkers() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = "x\nx\n";
+    Doc doc = new Doc(text);
+    doc.editor.markup(
+        "app",
+        text,
+        List.of(
+            new CodeEditor.Marker(0, Symbol.PLAY, Icon.Variant.ACCENT, "Top marker", null),
+            new CodeEditor.Marker(2, Symbol.RECORD, Icon.Variant.DANGER, "Bottom marker", null)));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(5)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 480 200 scale 2\nframe\nsnap before", app, out);
+    String before = Files.readString(out.resolve("before.tree.txt"));
+    assertTrue(cell(before, 0).contains("Top marker"), before);
+    assertTrue(cell(before, 1).contains("Bottom marker"), before);
+
+    // Insert "x\n" at 0 and delete the last "x\n": string stays "x\nx\n", Top marker moves from 0
+    // to 2 (line 1) and Bottom marker on the deleted line goes.
+    app.edit(doc.editor.editor(), List.of(new TextEdit(0, 0, "x\n"), new TextEdit(2, 4, "")), 0);
+    Script.run("size 480 200 scale 2\nframe\nsnap after", app, out);
+    assertEquals("x\nx\n", doc.text);
+    String after = Files.readString(out.resolve("after.tree.txt"));
+    assertFalse(cell(after, 0).contains("Top marker"), after);
+    assertFalse(cell(after, 0).contains("Bottom marker"), after);
+    assertTrue(cell(after, 1).contains("Top marker"), after);
+    assertFalse(cell(after, 1).contains("Bottom marker"), after);
+
+    // Undoing the batch logs no character edits, so the original markers come back.
+    Script.run("size 480 200 scale 2\nfocus #code\nkey Z control\nframe\nsnap undone", app, out);
+    String undone = Files.readString(out.resolve("undone.tree.txt"));
+    assertTrue(cell(undone, 0).contains("Top marker"), undone);
+    assertTrue(cell(undone, 1).contains("Bottom marker"), undone);
   }
 
   /** The tree dump of the gutter cell of line {@code index}. */

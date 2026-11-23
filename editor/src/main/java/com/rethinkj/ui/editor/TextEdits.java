@@ -27,20 +27,26 @@ final class TextEdits {
   // All of many long matches stays fast; past it they are taken as logged.
   private static final int REFINE_LIMIT = 100_000;
 
-  static final TextEdits EMPTY = new TextEdits(new int[0], new int[0], new int[0], new int[0], 0);
+  static final TextEdits EMPTY =
+      new TextEdits(new int[0], new int[0], new int[0], new int[0], new boolean[0], 0);
 
   private final int[] oldFrom;
   private final int[] oldTo;
   private final int[] newFrom;
   private final int[] newTo;
+  // Whether each edit removes whole lines of that step's old string, their last line feed with
+  // them.
+  private final boolean[] lines;
   private final int count;
   private TextEdits next;
 
-  private TextEdits(int[] oldFrom, int[] oldTo, int[] newFrom, int[] newTo, int count) {
+  private TextEdits(
+      int[] oldFrom, int[] oldTo, int[] newFrom, int[] newTo, boolean[] lines, int count) {
     this.oldFrom = oldFrom;
     this.oldTo = oldTo;
     this.newFrom = newFrom;
     this.newTo = newTo;
+    this.lines = lines;
     this.count = count;
   }
 
@@ -107,7 +113,7 @@ final class TextEdits {
         }
         runDelta += inserted.length() - (origTo - origFrom);
       }
-      TextEdits step = out.build();
+      TextEdits step = out.build(current);
       if (step != EMPTY) {
         if (head == null) {
           head = step;
@@ -160,14 +166,14 @@ final class TextEdits {
       newEnd--;
     }
     if (prefix == oldEnd || prefix == newEnd) {
-      return single(prefix, oldEnd, prefix, newEnd);
+      return single(before, prefix, oldEnd, prefix, newEnd);
     }
     if (sameNonWhitespace(before, after, prefix, oldEnd, newEnd)) {
       return whitespaceEdits(before, after, prefix, oldEnd, newEnd);
     }
     Builder out = new Builder();
     if (myers(before, prefix, oldEnd, after, prefix, newEnd, MAX_DISTANCE, out)) {
-      return out.build();
+      return out.build(before);
     }
     return byLine(before, after, prefix, oldEnd, newEnd);
   }
@@ -184,7 +190,7 @@ final class TextEdits {
     int len = Math.max(0, to - from);
     int at = from;
     for (TextEdits step = this; step != null; step = step.next) {
-      at = step.mapSingle(at, at + len);
+      at = step.mapSingle(at, at + len, false);
       if (at < 0) {
         return -1;
       }
@@ -192,7 +198,8 @@ final class TextEdits {
     return at;
   }
 
-  private int mapSingle(int from, int end) {
+  // With lineStart, a point at the start of removed whole lines is touched too.
+  private int mapSingle(int from, int end, boolean lineStart) {
     int lo = 0;
     int hi = count;
     while (lo < hi) {
@@ -203,7 +210,7 @@ final class TextEdits {
         hi = mid;
       }
     }
-    if (lo < count && oldFrom[lo] < end) {
+    if (lo < count && (oldFrom[lo] < end || (lineStart && oldFrom[lo] == from && lines[lo]))) {
       return -1;
     }
     int shift = lo == 0 ? 0 : newTo[lo - 1] - oldTo[lo - 1];
@@ -213,6 +220,18 @@ final class TextEdits {
   /** Maps a point {@code at}, moving with the text after it, or returns {@code -1} if touched. */
   int mapPoint(int at) {
     return mapRange(at, at);
+  }
+
+  /**
+   * Maps a point {@code at} for a gutter marker: like {@link #mapPoint}, except a point at the
+   * start of removed whole lines is touched, so deleting a line drops the marker at its start
+   * instead of leaving it on the line that moves up into its place.
+   */
+  int mapLineStart(int at) {
+    for (TextEdits step = this; step != null && at >= 0; step = step.next) {
+      at = step.mapSingle(at, at, true);
+    }
+    return at;
   }
 
   /**
@@ -244,9 +263,19 @@ final class TextEdits {
     return at + shift;
   }
 
-  private static TextEdits single(int oldFrom, int oldTo, int newFrom, int newTo) {
+  private static TextEdits single(String before, int oldFrom, int oldTo, int newFrom, int newTo) {
     return new TextEdits(
-        new int[] {oldFrom}, new int[] {oldTo}, new int[] {newFrom}, new int[] {newTo}, 1);
+        new int[] {oldFrom},
+        new int[] {oldTo},
+        new int[] {newFrom},
+        new int[] {newTo},
+        new boolean[] {wholeLines(before, oldFrom, oldTo)},
+        1);
+  }
+
+  /** Whether {@code text[from, to)} is whole lines, from a line start to a line feed. */
+  private static boolean wholeLines(String text, int from, int to) {
+    return to > from && text.charAt(to - 1) == '\n' && (from == 0 || text.charAt(from - 1) == '\n');
   }
 
   /** Whether {@code before[prefix..oldEnd)} and {@code after[prefix..newEnd)} have the same non-white-space characters in the same order. */
@@ -289,7 +318,7 @@ final class TextEdits {
       }
       out.addTrimmed(before, after, i0, i, j0, j, 0);
       if (i == oldEnd && j == newEnd) {
-        return out.build();
+        return out.build(before);
       }
       while (i < oldEnd
           && j < newEnd
@@ -347,7 +376,7 @@ final class TextEdits {
             0);
       }
     }
-    return out.build();
+    return out.build(before);
   }
 
   /** Where each line of {@code text[from, to)} starts, its line feed with it, and {@code to}. */
@@ -520,8 +549,21 @@ final class TextEdits {
       }
     }
 
-    TextEdits build() {
-      return count == 0 ? EMPTY : new TextEdits(oldFrom, oldTo, newFrom, newTo, count);
+    TextEdits build(String before) {
+      if (count == 0) {
+        return EMPTY;
+      }
+      // Edits that touch, such as the matches of a Replace All, remove one span together: each
+      // one starting a line counts if the span from it reaches a line feed.
+      boolean[] lines = new boolean[count];
+      boolean feed = false;
+      for (int i = count - 1; i >= 0; i--) {
+        boolean touches = i + 1 < count && oldFrom[i + 1] == oldTo[i];
+        boolean ends = oldTo[i] > oldFrom[i] && before.charAt(oldTo[i] - 1) == '\n';
+        feed = ends || (touches && feed);
+        lines[i] = feed && (oldFrom[i] == 0 || before.charAt(oldFrom[i] - 1) == '\n');
+      }
+      return new TextEdits(oldFrom, oldTo, newFrom, newTo, lines, count);
     }
   }
 }

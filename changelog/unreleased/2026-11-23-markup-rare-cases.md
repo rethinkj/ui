@@ -1,0 +1,1 @@
+- Fixed: deleting a line in `CodeEditor` drops a gutter `Marker` at its start instead of leaving it on the line that moves up into its place, and a batch of edits that ends at the string it started from moves markup, folds and doc-comment toggles by its edits.
