@@ -2716,9 +2716,12 @@ public final class Text implements Measure {
 
   /**
    * The vertical scroll offset in logical pixels for a fractional 0-based line index of this
-   * multi-line text, inverting {@link #offsetToLine}.
+   * multi-line text, as last laid out: line {@code n} is the top of that line, and the fraction
+   * runs on through the {@link El#blocks blocks} inserted after it. Below 0 and beyond the last
+   * line it goes on by whole line heights, so {@code -k} is the top of a block of {@code k} lines
+   * before the first line.
    */
-  double lineToOffset(double line) {
+  public double lineToOffset(double line) {
     Lines ls = shownLines();
     int count = ls.count();
     double lh = lineHeight;

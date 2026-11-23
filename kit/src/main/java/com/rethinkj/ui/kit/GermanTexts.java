@@ -522,6 +522,21 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String unchangedLines(int count) {
+    return count == 1 ? "1 unveränderte Zeile" : count + " unveränderte Zeilen";
+  }
+
+  @Override
+  public String original() {
+    return "Original";
+  }
+
+  @Override
+  public String modified() {
+    return "Geändert";
+  }
+
+  @Override
   public String formatProblem(Formatted.Kind kind) {
     return switch (kind) {
       case UNEXPECTED -> "Hier nicht erwartet";

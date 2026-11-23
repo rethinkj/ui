@@ -110,6 +110,8 @@ class DocsExamplesTest {
       Map.entry("code-editor-reader-mode", List.of("rendered")),
       Map.entry("code-editor-navigation", List.of("usages")),
       Map.entry("code-editor-inlay-hints", List.of("view")),
+      Map.entry("diff-view-side-by-side", List.of("view")),
+      Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
@@ -225,6 +227,8 @@ class DocsExamplesTest {
     editors(all, "code-editor-reader-mode", Editors::readerMode, 580, 298);
     editors(all, "code-editor-navigation", Editors::navigation, 520, 250);
     editors(all, "code-editor-inlay-hints", Editors::inlayHints, 580, 152);
+    editors(all, "diff-view-side-by-side", Editors::diffSideBySide, 700, 248);
+    editors(all, "diff-view-unified", Editors::diffUnified, 540, 284);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
         "highlighter",

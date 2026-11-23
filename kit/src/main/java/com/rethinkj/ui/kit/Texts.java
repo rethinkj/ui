@@ -506,6 +506,21 @@ public interface Texts {
     return "Usages";
   }
 
+  /** A collapsed region of unchanged lines in a diff view: {@code 12 unchanged lines}. */
+  default String unchangedLines(int count) {
+    return count == 1 ? "1 unchanged line" : count + " unchanged lines";
+  }
+
+  /** The original (left) pane of a side-by-side diff view. */
+  default String original() {
+    return "Original";
+  }
+
+  /** The modified (right) pane of a side-by-side diff view. */
+  default String modified() {
+    return "Modified";
+  }
+
   /**
    * What kept a text of code from formatting ({@link Formatted.Problem}), as a diagnostic of the
    * code editor says it.

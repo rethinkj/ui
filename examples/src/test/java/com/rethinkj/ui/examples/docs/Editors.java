@@ -11,6 +11,7 @@ import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.editor.CodeEditor;
+import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
@@ -797,6 +798,58 @@ final class Editors {
 
   void cteQuery(String value) {
     cteQuery = value;
+  }
+
+  String oldQuery = """
+      -- Monthly revenue report
+      -- Owner: analytics
+      -- Warehouse: main
+      -- Schedule: daily
+      -- Retention: 90 days
+
+      SELECT
+        o.id,
+        o.total
+      FROM orders o
+      WHERE o.status = 'pending'
+        AND o.legacy = false
+      ORDER BY o.total DESC
+      LIMIT 50;""";
+  String newQuery = """
+      -- Monthly revenue report
+      -- Owner: analytics
+      -- Warehouse: main
+      -- Schedule: daily
+      -- Retention: 90 days
+
+      SELECT
+        o.id,
+        o.total,
+        o.tax
+      FROM orders o
+      JOIN customers c ON c.id = o.cid
+      WHERE o.status = 'paid'
+      ORDER BY o.total DESC
+      LIMIT 100;""";
+  final DiffView.State diffState = new DiffView.State();
+
+  static El diffSideBySide(Editors state) {
+    // docs:start diff-view-side-by-side
+    El diff = DiffView.sideBySide(
+            state.app, state.oldQuery, state.newQuery, state.diffState, Sql.of())
+        .wFull()
+        .h(224);
+    // docs:end diff-view-side-by-side
+    return Frame.of(diff);
+  }
+
+  static El diffUnified(Editors state) {
+    // docs:start diff-view-unified
+    El diff = DiffView.unified(state.app, state.oldQuery, state.newQuery, state.diffState, Sql.of())
+        .wFull()
+        .h(260);
+    // docs:end diff-view-unified
+    return Frame.of(diff);
   }
 
   static El navigation(Editors state) {

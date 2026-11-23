@@ -1,0 +1,107 @@
+el 0,0 540x284
+  text #diff-unified role=textbox label="Modified" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … " 'paid'\nORDER BY o.total DESC\nLIMIT 100;" length 244 12,12 516x260 readonly lines 6-15/15 focused caret 122 (9:1)
+    el #rail 13,13 83x258
+    el #gutter 13,17 82x242
+      el #line-5 13,33 82x16
+        el 19,41 12x0
+        text "6" 35,33 15x16
+        text "6" 54,33 15x16
+        el 73,41 2x0
+        el 79,41 12x0
+      el #line-6 13,49 82x16
+        el 19,57 12x0
+        text "7" 35,49 15x16
+        text "7" 54,49 15x16
+        el 73,57 2x0
+        el 79,57 12x0
+      el #line-7 13,65 82x16
+        el 19,73 12x0
+        text "8" 35,65 15x16
+        text "8" 54,65 15x16
+        el 73,73 2x0
+        el 79,73 12x0
+      el #line-8 13,97 82x16
+        el 19,105 12x0
+        text "" 35,97 15x16
+        text "9" 54,97 15x16
+        el #change 73,97 2x16
+        el 79,105 12x0
+      el #line-9 13,113 82x16
+        el 19,121 12x0
+        text "" 35,113 15x16
+        text "10" 54,113 15x16
+        el #change 73,113 2x16
+        el 79,121 12x0
+      el #line-10 13,129 82x16
+        el 19,137 12x0
+        text "10" 35,129 15x16
+        text "11" 54,129 15x16
+        el 73,137 2x0
+        el 79,137 12x0
+      el #line-11 13,177 82x16
+        el 19,185 12x0
+        text "" 35,177 15x16
+        text "12" 54,177 15x16
+        el #change 73,177 2x16
+        el 79,185 12x0
+      el #line-12 13,193 82x16
+        el 19,201 12x0
+        text "" 35,193 15x16
+        text "13" 54,193 15x16
+        el #change 73,193 2x16
+        el 79,201 12x0
+      el #line-13 13,209 82x16
+        el 19,217 12x0
+        text "13" 35,209 15x16
+        text "14" 54,209 15x16
+        el 73,217 2x0
+        el 79,217 12x0
+      el #line-14 13,241 82x16
+        el 19,249 12x0
+        text "" 35,241 15x16
+        text "15" 54,241 15x16
+        el #change 73,241 2x16
+        el 79,249 12x0
+      el #unchanged-gutter-0 role=button label="5 unchanged lines" 13,17 82x16
+        text label="more_horizontal" "\u{E823}" 48,19 12x12
+      el #deleted-gutter-8 13,81 82x16
+        el #old-line-8 13,81 82x16
+          el 19,89 12x0
+          text "9" 35,81 15x16
+          el 54,89 15x0
+          el #change 73,81 2x16
+          el 79,89 12x0
+      el #deleted-gutter-10 13,145 82x32
+        el #old-line-10 13,145 82x16
+          el 19,153 12x0
+          text "11" 35,145 15x16
+          el 54,153 15x0
+          el #change 73,145 2x16
+          el 79,153 12x0
+        el #old-line-11 13,161 82x16
+          el 19,169 12x0
+          text "12" 35,161 15x16
+          el 54,169 15x0
+          el #change 73,161 2x16
+          el 79,169 12x0
+      el #deleted-gutter-13 13,225 82x16
+        el #old-line-13 13,225 82x16
+          el 19,233 12x0
+          text "14" 35,225 15x16
+          el 54,233 15x0
+          el #change 73,225 2x16
+          el 79,233 12x0
+    el #unchanged-0 role=button label="5 unchanged lines" 104,17 415x16
+      text label="chevron_down" "\u{F2A1}" 112,19 12x12
+      text "5 unchanged lines" 128,18 104x14
+    el #deleted-8 104,81 415x16
+      el 104,81 415x16
+        text "  o.total" 104,81 65x16
+    el #deleted-10 104,145 415x32
+      el 104,145 415x16
+        text "WHERE o.status = 'pending'" 104,145 189x16
+      el 104,161 415x16
+        text "  AND o.legacy = false" 104,161 160x16
+    el #deleted-13 104,225 415x16
+      el 104,225 415x16
+        text "LIMIT 50;" 104,225 65x16

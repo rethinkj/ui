@@ -693,4 +693,27 @@ class BlockTest {
     assertEquals(80, field(app).editor().lineIndex().totalBlockPixels(), "still measured");
     assertEquals(scrolled, field(app).scrollY(), "a rebuild does not move the view");
   }
+
+  @Test
+  void blockGutterPlacesCellsForInsertAndOverridesReplace() {
+    El.Block insert = El.Block.insert(1).lines(2);
+    El.Block replace = El.Block.replace(2, 3).lines(1);
+    State state = new State("a\nb\nc\nd\ne", insert, replace);
+    App<State> app = start(
+        state,
+        f -> f.gutter(line -> El.text(String.valueOf(line.index() + 1))
+                .font(Font.mono())
+                .fontSize(14)
+                .padding(0, 4, 0, 0))
+            .blockGutter(block -> block.equals(insert)
+                ? El.text("del").key("del-gutter").font(Font.mono()).fontSize(14)
+                : El.text("...").key("rep-gutter").font(Font.mono()).fontSize(14)));
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("#del-gutter"), dump);
+    assertTrue(dump.contains("#rep-gutter"), dump);
+    assertFalse(dump.contains("#line-2 "), "blockGutter replaced line 2's gutter cell: " + dump);
+    assertTrue(dump.contains("#line-0 "), dump);
+    assertTrue(dump.contains("#line-1 "), dump);
+    assertTrue(dump.contains("#line-4 "), dump);
+  }
 }

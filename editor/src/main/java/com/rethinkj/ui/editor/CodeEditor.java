@@ -32,10 +32,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -469,6 +471,29 @@ public final class CodeEditor {
     private int navTo = -1;
     private Location navTarget;
     private Layer usagesShown; // the usages layer HIGHLIGHT_USAGES set, not one of the app's
+    // Package-private hooks used by DiffView to assemble diff blocks and unified gutter numbers.
+    private ExtraBlocks extraBlocks;
+    private OldNumbers oldNumbers;
+
+    record ExtraBlocks(
+        List<El.Block> blocks,
+        Function<El.Block, El> builder,
+        Consumer<El.Block> reveal,
+        Function<El.Block, El> gutter) {}
+
+    record OldNumbers(int maxLine, IntFunction<String> label) {}
+
+    void extraBlocks(ExtraBlocks extraBlocks) {
+      this.extraBlocks = extraBlocks;
+    }
+
+    void oldNumbers(OldNumbers oldNumbers) {
+      this.oldNumbers = oldNumbers;
+    }
+
+    El editor() {
+      return editor;
+    }
 
     /**
      * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
@@ -1560,31 +1585,62 @@ public final class CodeEditor {
     }
     Map<Integer, CodeVision.Row> vision = state.visionRows;
     List<DocRange> rendered = state.renderedDocs();
-    if (vision.isEmpty() && rendered.isEmpty()) {
+    State.ExtraBlocks extra = state.extraBlocks;
+    List<El.Block> extraList = extra == null ? List.of() : extra.blocks();
+    if (vision.isEmpty() && rendered.isEmpty() && extraList.isEmpty()) {
       return;
     }
-    List<El.Block> blocks = new ArrayList<>(vision.size() + rendered.size());
+    List<El.Block> blocks = new ArrayList<>(vision.size() + rendered.size() + extraList.size());
     for (int line : vision.keySet()) {
       blocks.add(El.Block.insert(line));
     }
+    Set<El.Block> extraSet = extraList.isEmpty() ? Set.of() : new HashSet<>(extraList);
+    blocks.addAll(extraList);
     Map<El.Block, DocRange> docs = new HashMap<>();
     for (DocRange doc : rendered) {
-      El.Block block = El.Block.replace(doc.firstLine(), doc.lastLine());
-      blocks.add(block);
-      docs.put(block, doc);
+      if (!overlapsReplace(extraList, doc.firstLine(), doc.lastLine())) {
+        El.Block block = El.Block.replace(doc.firstLine(), doc.lastLine());
+        blocks.add(block);
+        docs.put(block, doc);
+      }
     }
-    float space = rendered.isEmpty() ? 0 : spaceWidth(theme);
+    float space = docs.isEmpty() ? 0 : spaceWidth(theme);
     editor.blocks(
         blocks,
-        block -> block.placement() == El.Block.Placement.INSERT
-            ? CodeVision.row(theme, editor, block.first(), vision.get(block.first()))
-            : renderedDoc(theme, state, docs.get(block), space),
         block -> {
+          if (extraSet.contains(block)) {
+            return extra.builder().apply(block);
+          }
+          return block.placement() == El.Block.Placement.INSERT
+              ? CodeVision.row(theme, editor, block.first(), vision.get(block.first()))
+              : renderedDoc(theme, state, docs.get(block), space);
+        },
+        block -> {
+          if (extraSet.contains(block)) {
+            if (extra.reveal() != null) {
+              extra.reveal().accept(block);
+            }
+            return;
+          }
           DocRange doc = docs.get(block);
           if (doc != null) {
             state.revealDoc(doc);
           }
         });
+    if (extra != null && extra.gutter() != null) {
+      editor.blockGutter(extra.gutter());
+    }
+  }
+
+  private static boolean overlapsReplace(List<El.Block> blocks, int first, int last) {
+    for (El.Block block : blocks) {
+      if (block.placement() == El.Block.Placement.REPLACE
+          && block.first() <= last
+          && block.last() >= first) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Guides at each step of indentation in the white space that starts {@code text}. */
@@ -1750,33 +1806,57 @@ public final class CodeEditor {
         cell.child(El.el().w(mono.size()).shrink(0));
       }
     }
-    cell.child(El.text(String.valueOf(line.index() + 1))
-        .font(mono.font().get())
-        .fontSize(mono.size())
-        .color(line.caret() ? theme.text().primary() : theme.text().muted())
-        .textAlign(Style.Align.END)
-        .grow(1));
+    if (state.oldNumbers != null) {
+      float oldW = numberWidth(theme, Math.max(1, state.oldNumbers.maxLine()));
+      float newW = numberWidth(theme, Math.max(1, lineCount(state.builtText)));
+      String oldLabel = state.oldNumbers.label().apply(line.index());
+      cell.child(El.text(oldLabel == null ? "" : oldLabel)
+          .font(mono.font().get())
+          .fontSize(mono.size())
+          .color(theme.text().muted())
+          .textAlign(Style.Align.END)
+          .w(oldW)
+          .shrink(0));
+      cell.child(El.text(String.valueOf(line.index() + 1))
+          .font(mono.font().get())
+          .fontSize(mono.size())
+          .color(line.caret() ? theme.text().primary() : theme.text().muted())
+          .textAlign(Style.Align.END)
+          .w(newW)
+          .shrink(0));
+    } else {
+      cell.child(El.text(String.valueOf(line.index() + 1))
+          .font(mono.font().get())
+          .fontSize(mono.size())
+          .color(line.caret() ? theme.text().primary() : theme.text().muted())
+          .textAlign(Style.Align.END)
+          .grow(1));
+    }
     cell.child(changeBar(theme, changes, line));
     cell.child(gutterControl(app, theme, state, editor, cell, line));
     return cell;
   }
 
   /**
-   * The VCS change bar of a line: full cell height for added or modified lines, a short bar at the
-   * top of the cell for lines deleted before it, or an empty fixed-width placeholder.
+   * The VCS change bar of a line: full cell height for added, modified or multi-character deleted
+   * lines, a short bar at the top or bottom of the cell for point deletions ({@code from == to}),
+   * or an empty fixed-width placeholder.
    */
   private static El changeBar(Theme theme, List<Change> changes, El.Gutter.Line line) {
     float bar = theme.size().indicator();
     Change.Kind kind = null;
+    boolean point = false;
     boolean after = false; // a deletion at the end of a line is after it
     for (Change c : changes) {
-      boolean hits = c.kind == Change.Kind.DELETED || c.from == c.to
+      boolean isPoint = c.from == c.to;
+      boolean hits = isPoint
           ? c.from >= line.start() && c.from <= line.end()
           : c.to > line.start() && c.from <= line.end();
       if (hits) {
         kind = c.kind;
+        point = isPoint;
         after = c.from == line.end() && line.end() > line.start();
-        if (kind != Change.Kind.DELETED) {
+        if (kind != Change.Kind.DELETED || !point) {
           break;
         }
       }
@@ -1785,7 +1865,7 @@ public final class CodeEditor {
       return El.el().w(bar).shrink(0);
     }
     El mark = El.el().key("change").w(bar).shrink(0).fill(color(theme, kind));
-    if (kind == Change.Kind.DELETED) {
+    if (kind == Change.Kind.DELETED && point) {
       return mark.h(theme.size().dot()).alignSelf(after ? Style.Align.END : Style.Align.START);
     }
     return mark.alignSelf(Style.Align.STRETCH);
@@ -2384,7 +2464,7 @@ public final class CodeEditor {
   record Folded(El.Fold lines, int open, int close) {}
 
   /** {@code text} as a field shows it, with each line break one line feed ({@link El#multiline}). */
-  private static String displayed(String text) {
+  static String displayed(String text) {
     return text.replace("\r\n", "\n")
         .replace('\r', '\n')
         .replace('\u2028', '\n')
@@ -2460,6 +2540,18 @@ public final class CodeEditor {
       }
     }
     return sorted(out);
+  }
+
+  /** Width of a line-number column holding {@code maxLine} digits at the current window scale. */
+  static float numberWidth(Theme theme, int maxLine) {
+    Theme.TextStyle mono = theme.type().mono();
+    int digits = String.valueOf(Math.max(1, maxLine)).length();
+    El sample = El.text("8".repeat(digits)).font(mono.font().get()).fontSize(mono.size());
+    sample.text().scale(WindowState.CURRENT.get().scale());
+    return (float) Math.ceil(sample
+        .text()
+        .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+        .width());
   }
 
   /** Width of one monospace space at the current window scale, for indenting rendered comments. */
@@ -2843,7 +2935,7 @@ public final class CodeEditor {
     return sortedDocToggles(out);
   }
 
-  private static int lineCount(String text) {
+  static int lineCount(String text) {
     int lines = 1;
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) == '\n') {
@@ -2853,7 +2945,7 @@ public final class CodeEditor {
     return lines;
   }
 
-  private static int lineStart(String text, int targetLine) {
+  static int lineStart(String text, int targetLine) {
     if (targetLine <= 0) {
       return 0;
     }
@@ -2869,7 +2961,7 @@ public final class CodeEditor {
     return text.length();
   }
 
-  private static int lineOf(String text, int index) {
+  static int lineOf(String text, int index) {
     int line = 0;
     int limit = Math.min(index, text.length());
     for (int i = 0; i < limit; i++) {
@@ -2880,7 +2972,7 @@ public final class CodeEditor {
     return line;
   }
 
-  private static int lineEnd(String text, int targetLine) {
+  static int lineEnd(String text, int targetLine) {
     int line = 0;
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) == '\n') {
@@ -3106,7 +3198,7 @@ public final class CodeEditor {
   }
 
   /** Moves the caret to {@code at} in this editor and reveals it through folds and scrolling. */
-  private static void goTo(App<?> app, State state, El editor, int at) {
+  static void goTo(App<?> app, State state, El editor, int at) {
     int clamped = Math.clamp(at, 0, editor.text().string().length());
     if (app != null) {
       app.select(editor, clamped, clamped);

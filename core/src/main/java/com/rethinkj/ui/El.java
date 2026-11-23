@@ -470,6 +470,10 @@ public final class El {
     float foldsExtent; // farthest right edge of placed fold marks, in logical content coordinates
     List<Block> blocks = List.of();
     Function<Block, El> blockBuilder;
+    Function<Block, El> blockGutter;
+    // Laid out block gutter cells without looks, by block, ordinal, height and scale: scrolling
+    // only moves them.
+    Map<List<Object>, El> blockGutterCells = Map.of();
     Consumer<Block> onReveal;
     List<El> blockElements = List.of();
     Object blocksShown; // what the block elements were built for: their placed bands and scroll
@@ -2207,6 +2211,54 @@ public final class El {
   }
 
   /**
+   * Builds gutter cells for visible {@link #blocks line blocks} in this {@link #multiline} field's
+   * {@link #gutter}, spanning each block's height in the gutter column. Returning {@code null} for
+   * a block leaves {@link Block.Placement#INSERT} blocks without a gutter cell and lets {@link
+   * Block.Placement#REPLACE} blocks keep their normal line cell; returning a non-null element for
+   * a {@code REPLACE} block replaces that line cell. Passing {@code null} clears the handler.
+   *
+   * <p>In a {@code .tree.txt} a block gutter cell without a key is keyed {@code
+   * block-gutter-<first>}, and {@code block-gutter-<first>-<n>} for the {@code n}-th ({@code n >=
+   * 1}) further block at the same line.
+   *
+   * @param cells builds the gutter element for each placed block, or null to clear
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El blockGutter(Function<Block, El> cells) {
+    Text t = editableOnly("blockGutter");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "blockGutter is for multi-line fields: call it after multiline().");
+    }
+    field.blockGutter = Context.captured(cells);
+    field.blockGutterCells = Map.of();
+    field.gutterShown = null;
+    return this;
+  }
+
+  /**
+   * Whether this element and those in it look the same whatever the pointer, the focus and the
+   * clock do.
+   */
+  private boolean looksStill() {
+    if (hoverLook != null
+        || focusLook != null
+        || focusWithinLook != null
+        || pressLook != null
+        || restLook != null
+        || focusRestLook != null
+        || cycle != null) {
+      return false;
+    }
+    for (El child : children) {
+      if (!child.looksStill()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Places elements after the end of lines of a {@link #multiline} field, such as inline blame or
    * a diagnostic's message. Core calls {@code elements} with the line index (from 0) of each shown
    * line whose last row is in view, and only for those, each time it places them; returning null or
@@ -2422,8 +2474,10 @@ public final class El {
       return false;
     }
     List<Text.Start> starts = text.lineStarts();
+    List<Text.PlacedBlock> placed = field.blockGutter == null ? List.of() : text.placedBlocks();
     float scale = text.scale();
-    List<Object> shown = List.of(starts, caretLine, scrollX, scrollY, width, height);
+    float viewY = field.blockGutter == null ? 0 : text.viewY();
+    List<Object> shown = List.of(starts, placed, viewY, caretLine, scrollX, scrollY, width, height);
     if (shown.equals(field.gutterShown)) {
       return false;
     }
@@ -2432,7 +2486,54 @@ public final class El {
     float rowHeight = text.lineHeight() / scale;
     float top = border(Side.TOP) + padding(Side.TOP);
     El column = el().key("gutter").clip();
+    List<El> blockCells = null;
+    java.util.Set<Integer> replacedInGutter = null;
+    Map<List<Object>, El> cells = placed.isEmpty() ? Map.of() : new HashMap<>();
+    if (!placed.isEmpty()) {
+      Map<Integer, Integer> ordinals = new HashMap<>();
+      for (Text.PlacedBlock pb : placed) {
+        int first = pb.block().first();
+        int ordinal = ordinals.merge(first, 1, Integer::sum) - 1;
+        float blockY = (float) ((pb.top() - viewY) / scale);
+        float blockH = (float) (pb.height() / scale);
+        List<Object> id = List.of(pb.block(), ordinal, blockH, scale, field.gutterWidth);
+        El cell = field.blockGutterCells.get(id);
+        if (cell == null && !field.blockGutterCells.containsKey(id)) {
+          cell = field.blockGutter.apply(pb.block());
+          if (cell != null) {
+            if (cell.key == null) {
+              cell.key(
+                  ordinal == 0 ? "block-gutter-" + first : "block-gutter-" + first + "-" + ordinal);
+            }
+            cell.style.width = Len.px(field.gutterWidth);
+            cell.style.height = Len.px(blockH);
+            scaleText(cell, scale, text.systemFonts(), resolvedLineHeight);
+            Flex.layout(cell, field.gutterWidth, blockH);
+          }
+        }
+        if (cell == null || cell.looksStill()) { // a look applied by the pointer would stay
+          cells.put(id, cell);
+        }
+        if (cell == null) {
+          continue;
+        }
+        cell.place(0, blockY, field.gutterWidth, blockH);
+        if (blockCells == null) {
+          blockCells = new ArrayList<>();
+        }
+        blockCells.add(cell);
+        if (pb.block().placement() == Block.Placement.REPLACE) {
+          if (replacedInGutter == null) {
+            replacedInGutter = new java.util.HashSet<>();
+          }
+          replacedInGutter.add(first);
+        }
+      }
+    }
     for (Text.Start start : starts) {
+      if (replacedInGutter != null && replacedInGutter.contains(start.line())) {
+        continue;
+      }
       boolean caret = caretLine >= start.line() && caretLine <= start.lastLine();
       El cell = gutterCell(start.line(), start.lastLine(), caret);
       if (cell == null) {
@@ -2453,6 +2554,10 @@ public final class El {
       cell.place(0, start.top() / scale, field.gutterWidth, cellHeight);
       column.children.add(cell);
     }
+    if (blockCells != null) {
+      column.children.addAll(blockCells);
+    }
+    field.blockGutterCells = cells;
     // The column stays where the content box is: the scroll that shifts it is added back.
     column.place(
         border(Side.LEFT) + field.gutterLeft + (float) scrollX,

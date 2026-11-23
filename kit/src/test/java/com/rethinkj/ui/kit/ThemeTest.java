@@ -203,6 +203,25 @@ class ThemeTest {
       check(failures, token, color, marked, 4.5);
       check(failures, token, color, selectedMatch, 3);
     });
+    // Diff tints: line tints on the raised surface, word tints over their line tints, and filler.
+    Theme.Diff diff = t.diff();
+    int addedLine = over(s.raised(), diff.added());
+    int removedLine = over(s.raised(), diff.removed());
+    int modifiedLine = over(s.raised(), diff.modified());
+    Map<String, Integer> diffBg = Map.of(
+        "diff added",
+        addedLine,
+        "diff added word",
+        over(addedLine, diff.addedWord()),
+        "diff removed",
+        removedLine,
+        "diff removed word",
+        over(removedLine, diff.removedWord()),
+        "diff modified",
+        modifiedLine,
+        "diff modified word",
+        over(modifiedLine, diff.modifiedWord()));
+    text.forEach((token, color) -> check(failures, token, color, diffBg, 4.5));
     // The gutter's rail, also in a marked block: its numbers muted, the caret's as text, and its
     // markers 3:1, as icons.
     Map<String, Integer> rail =
@@ -717,6 +736,8 @@ class ThemeTest {
     }
     assertEquals(Theme.Danger.DARK, Theme.DARK.danger());
     assertEquals(Theme.Danger.LIGHT, Theme.LIGHT.danger());
+    assertEquals(Theme.Diff.DARK, Theme.DARK.diff());
+    assertEquals(Theme.Diff.LIGHT, Theme.LIGHT.diff());
   }
 
   /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */

@@ -1,0 +1,12 @@
+# Side-by-side diff view with collapsed unchanged lines, intraline changes, filler blocks and F7 navigation.
+size 700 248 scale 2
+frame
+snap view
+focus #new
+key F7
+frame
+key F7
+frame
+key F7 shift
+frame
+snap navigated

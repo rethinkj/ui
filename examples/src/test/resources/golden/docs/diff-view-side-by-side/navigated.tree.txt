@@ -1,0 +1,115 @@
+el 0,0 700x248
+  el #diff-side-by-side 12,12 676x224
+    text #old role=textbox label="Original" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … " = false\nORDER BY o.total DESC\nLIMIT 50;" length 227 13,13 337x222 readonly lines 6-14/14
+      el #rail 13,13 64x222
+      el #gutter 13,17 63x206
+        el #line-5 13,33 63x16
+          el 19,41 12x0
+          text "6" 35,33 15x16
+          el 54,41 2x0
+          el 60,41 12x0
+        el #line-6 13,49 63x16
+          el 19,57 12x0
+          text "7" 35,49 15x16
+          el 54,57 2x0
+          el 60,57 12x0
+        el #line-7 13,65 63x16
+          el 19,73 12x0
+          text "8" 35,65 15x16
+          el 54,73 2x0
+          el 60,73 12x0
+        el #line-8 13,81 63x16
+          el 19,89 12x0
+          text "9" 35,81 15x16
+          el #change 54,81 2x16
+          el 60,89 12x0
+        el #line-9 13,113 63x16
+          el 19,121 12x0
+          text "10" 35,113 15x16
+          el 54,121 2x0
+          el 60,121 12x0
+        el #line-10 13,129 63x16
+          el 19,137 12x0
+          text "11" 35,129 15x16
+          el #change 54,129 2x16
+          el 60,137 12x0
+        el #line-11 13,145 63x16
+          el 19,153 12x0
+          text "12" 35,145 15x16
+          el #change 54,145 2x16
+          el 60,153 12x0
+        el #line-12 13,161 63x16
+          el 19,169 12x0
+          text "13" 35,161 15x16
+          el 54,169 2x0
+          el 60,169 12x0
+        el #line-13 13,177 63x16
+          el 19,185 12x0
+          text "14" 35,177 15x16
+          el #change 54,177 2x16
+          el 60,185 12x0
+        el #unchanged-gutter-0 role=button label="5 unchanged lines" 13,17 63x16
+          text label="more_horizontal" "\u{E823}" 39,19 12x12
+      el #unchanged-0 role=button label="5 unchanged lines" 85,17 256.5x16
+        text label="chevron_down" "\u{F2A1}" 93,19 12x12
+        text "5 unchanged lines" 109,18 104x14
+      el #block-9 85,97 256.5x16
+    el 350,13 1x222
+    text #new role=textbox label="Modified" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … " 'paid'\nORDER BY o.total DESC\nLIMIT 100;" length 244 351,13 336x222 readonly lines 6-15/15 focused caret 122 (9:1)
+      el #rail 351,13 64x222
+      el #gutter 351,17 63x206
+        el #line-5 351,33 63x16
+          el 357,41 12x0
+          text "6" 373,33 15x16
+          el 392,41 2x0
+          el 398,41 12x0
+        el #line-6 351,49 63x16
+          el 357,57 12x0
+          text "7" 373,49 15x16
+          el 392,57 2x0
+          el 398,57 12x0
+        el #line-7 351,65 63x16
+          el 357,73 12x0
+          text "8" 373,65 15x16
+          el 392,73 2x0
+          el 398,73 12x0
+        el #line-8 351,81 63x16
+          el 357,89 12x0
+          text "9" 373,81 15x16
+          el #change 392,81 2x16
+          el 398,89 12x0
+        el #line-9 351,97 63x16
+          el 357,105 12x0
+          text "10" 373,97 15x16
+          el #change 392,97 2x16
+          el 398,105 12x0
+        el #line-10 351,113 63x16
+          el 357,121 12x0
+          text "11" 373,113 15x16
+          el 392,121 2x0
+          el 398,121 12x0
+        el #line-11 351,129 63x16
+          el 357,137 12x0
+          text "12" 373,129 15x16
+          el #change 392,129 2x16
+          el 398,137 12x0
+        el #line-12 351,145 63x16
+          el 357,153 12x0
+          text "13" 373,145 15x16
+          el #change 392,145 2x16
+          el 398,153 12x0
+        el #line-13 351,161 63x16
+          el 357,169 12x0
+          text "14" 373,161 15x16
+          el 392,169 2x0
+          el 398,169 12x0
+        el #line-14 351,177 63x16
+          el 357,185 12x0
+          text "15" 373,177 15x16
+          el #change 392,177 2x16
+          el 398,185 12x0
+        el #unchanged-gutter-0 role=button label="5 unchanged lines" 351,17 63x16
+          text label="more_horizontal" "\u{E823}" 377,19 12x12
+      el #unchanged-0 role=button label="5 unchanged lines" 423,17 256.5x16
+        text label="chevron_down" "\u{F2A1}" 431,19 12x12
+        text "5 unchanged lines" 447,18 104x14

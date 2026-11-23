@@ -72,7 +72,52 @@ public record Theme(
     Prose prose,
     Badges badge,
     Danger danger,
-    Callouts callout) {
+    Callouts callout,
+    Diff diff) {
+
+  /** A theme whose diff views look as {@link Diff#DARK} or {@link Diff#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger,
+      Callouts callout) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        lightness(surface.raised()) < 0.5 ? Diff.DARK : Diff.LIGHT);
+  }
 
   /** A theme whose callouts look as {@link Callouts#DARK} or {@link Callouts#LIGHT}. */
   public Theme(
@@ -447,6 +492,52 @@ public record Theme(
         case SUCCESS -> success;
       };
     }
+  }
+
+  /**
+   * Translucent tints for diff views ({@code DiffView}) laid over the editor's raised surface:
+   * calm line backgrounds for added, removed and modified lines, stronger tints of the same hue
+   * behind changed words inside modified lines, and a neutral filler fill for alignment blocks.
+   * Primary text and every syntax token of {@link Code} keep 4.5:1 contrast on each line tint and
+   * on each word tint laid over its line tint.
+   *
+   * @param added translucent, behind added lines
+   * @param addedWord translucent, laid over {@code added} behind changed words in added lines
+   * @param removed translucent, behind removed lines
+   * @param removedWord translucent, laid over {@code removed} behind changed words in removed lines
+   * @param modified translucent, behind modified lines
+   * @param modifiedWord translucent, laid over {@code modified} behind changed words in modified
+   *     lines
+   * @param filler translucent, for alignment filler blocks where the other side has extra lines
+   */
+  public record Diff(
+      int added,
+      int addedWord,
+      int removed,
+      int removedWord,
+      int modified,
+      int modifiedWord,
+      int filler) {
+
+    /** For dark surfaces. */
+    public static final Diff DARK = new Diff(
+        alpha(GREEN_492, 0.07f),
+        alpha(GREEN_492, 0.18f),
+        alpha(RED_493, 0.06f),
+        alpha(RED_493, 0.16f),
+        alpha(BLUE_496, 0.05f),
+        alpha(BLUE_496, 0.14f),
+        alpha(GRAY_298, 0.20f));
+
+    /** For light surfaces. */
+    public static final Diff LIGHT = new Diff(
+        alpha(GREEN_823, 0.35f),
+        alpha(GREEN_823, 0.6f),
+        alpha(RED_803, 0.35f),
+        alpha(RED_803, 0.6f),
+        alpha(BLUE_918, 0.8f),
+        alpha(BLUE_782, 0.5f),
+        alpha(GRAY_773, 0.22f));
   }
 
   /**
@@ -1645,7 +1736,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withText(TextColors text) {
@@ -1668,7 +1760,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withBorder(Borders border) {
@@ -1691,7 +1784,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1714,7 +1808,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   /**
@@ -1745,7 +1840,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withSpace(Spacing space) {
@@ -1768,7 +1864,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withRadius(Radii radius) {
@@ -1791,7 +1888,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withType(Type type) {
@@ -1814,7 +1912,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withSize(Sizes size) {
@@ -1837,7 +1936,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withMotion(Motion motion) {
@@ -1860,7 +1960,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withGrid(Grid grid) {
@@ -1883,7 +1984,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -1906,7 +2008,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withCode(Code code) {
@@ -1929,7 +2032,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -1952,7 +2056,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withProse(Prose prose) {
@@ -1975,7 +2080,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withBadge(Badges badge) {
@@ -1998,7 +2104,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withDanger(Danger danger) {
@@ -2021,7 +2128,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withCaption(Caption caption) {
@@ -2044,7 +2152,8 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
   }
 
   public Theme withCallout(Callouts callout) {
@@ -2067,7 +2176,32 @@ public record Theme(
         prose,
         badge,
         danger,
-        callout);
+        callout,
+        diff);
+  }
+
+  public Theme withDiff(Diff diff) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff);
   }
 
   /**

@@ -1,0 +1,12 @@
+# Unified diff view with deleted-line inserted blocks, dual line numbers and F7 navigation.
+size 540 284 scale 2
+frame
+snap view
+focus #diff-unified
+key F7
+frame
+key F7
+frame
+key F7 shift
+frame
+snap navigated
