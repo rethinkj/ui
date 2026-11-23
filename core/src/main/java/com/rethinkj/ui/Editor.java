@@ -129,6 +129,7 @@ final class Editor {
    */
   Editor(El el) {
     this(el, null);
+    doc.logged = false; // no FieldState to read the log
   }
 
   /**
@@ -143,7 +144,6 @@ final class Editor {
     this.lines = multi ? Lines.of(text) : null;
     if (document == null) {
       this.doc = new TextDocument();
-      this.doc.shared = false;
       this.doc.initialize(this.text);
       this.revision = this.doc.revision;
     } else {
@@ -327,18 +327,35 @@ final class Editor {
     List<TextDocument.Change> missed = doc.changesSince(revision); // behind, so empty if evicted
     if (!missed.isEmpty()) {
       boolean external = false;
+      int editCount = 0;
       for (TextDocument.Change change : missed) {
-        caret = change.range().map(caret);
-        anchor = change.range().map(anchor);
-        external |= change.external();
+        if (change.external()) {
+          caret = change.externalRange().map(caret);
+          anchor = change.externalRange().map(anchor);
+          external = true;
+        } else {
+          for (TextEdit edit : change.edits()) {
+            TextChange r =
+                new TextChange(edit.from(), edit.to(), edit.from() + edit.text().length());
+            caret = r.map(caret);
+            anchor = r.map(anchor);
+          }
+          editCount += change.edits().size();
+        }
       }
       text = doc.text;
       if (external) {
         relined(text);
       } else if (lines != null) {
-        for (TextDocument.Change change : missed) {
-          TextChange r = change.range();
-          lines.edit(r.start(), r.oldEnd() - r.start(), change.inserted());
+        if (editCount <= 32) {
+          for (TextDocument.Change change : missed) {
+            for (TextEdit edit : change.edits()) {
+              lines.edit(edit.from(), edit.to() - edit.from(), edit.text());
+            }
+          }
+        } else {
+          lines = Lines.of(text);
+          lines.budget(highlightBudget);
         }
       }
     } else {
@@ -417,6 +434,10 @@ final class Editor {
 
   String text() {
     return text;
+  }
+
+  TextDocument document() {
+    return doc;
   }
 
   String composition() {
@@ -550,6 +571,82 @@ final class Editor {
   }
 
   /**
+   * Several ascending, non-overlapping edits asked for by the app ({@link App#edit(El, List,
+   * int)}): applied as one step of the undo history while recording each edit individually in the
+   * document's change log.
+   */
+  void request(List<TextEdit> edits, int newCaret, int newAnchor, boolean ask) {
+    if (!editable() || edits.isEmpty()) {
+      return;
+    }
+    if (edits.size() == 1) {
+      TextEdit only = edits.getFirst();
+      request(only.from(), only.to(), only.text(), newCaret, newAnchor, ask);
+      return;
+    }
+    composition = "";
+    int len = text.length();
+    int n = edits.size();
+    int[] froms = new int[n];
+    int[] tos = new int[n];
+    String[] raw = new String[n];
+    int prevTo = 0;
+    int max = el.maxLength();
+    int removedCp = 0;
+    for (int i = 0; i < n; i++) {
+      TextEdit e = edits.get(i);
+      int from = Math.clamp(e.from(), prevTo, len);
+      int to = Math.clamp(e.to(), from, len);
+      froms[i] = from;
+      tos[i] = to;
+      raw[i] = e.text();
+      prevTo = to;
+      if (max >= 0) {
+        removedCp += text.codePointCount(from, to);
+      }
+    }
+    int room = max < 0 ? -1 : Math.max(0, max - text.codePointCount(0, len) + removedCp);
+    String[] fitted = new String[n];
+    for (int i = 0; i < n; i++) {
+      String lined = fitLines(raw[i]);
+      if (room >= 0) {
+        lined = fitToRoom(lined, room);
+        room -= lined.codePointCount(0, lined.length());
+      }
+      fitted[i] = lined;
+    }
+    int firstFrom = froms[0];
+    int lastTo = tos[n - 1];
+    StringBuilder span = new StringBuilder();
+    List<TextDocument.PendingEdit> pending = new ArrayList<>(n);
+    int delta = 0;
+    for (int i = 0; i < n; i++) {
+      if (i > 0) {
+        span.append(text, tos[i - 1], froms[i]);
+      }
+      span.append(fitted[i]);
+      pending.add(new TextDocument.PendingEdit(froms[i] + delta, tos[i] - froms[i], fitted[i]));
+      delta += fitted[i].length() - (tos[i] - froms[i]);
+    }
+    String spanInserted = span.toString();
+    int newLength = len + delta;
+    int caretAfter = fitted(newCaret, froms, tos, raw, fitted, newLength);
+    int anchorAfter = fitted(newAnchor, froms, tos, raw, fitted, newLength);
+    doc.clearRun();
+    unfoldPending = true;
+    doc.keepHistory();
+    String gone = text.substring(firstFrom, lastTo);
+    TextDocument.push(
+        doc.undo,
+        new TextDocument.Step(
+            firstFrom, gone, spanInserted, caret, anchor, caretAfter, anchorAfter));
+    doc.redo.clear();
+    propose(firstFrom, lastTo - firstFrom, spanInserted, pending, caretAfter, anchorAfter);
+    doc.setRun(this, null);
+    asked |= ask;
+  }
+
+  /**
    * Where the app put a position after replacing from {@code from} by {@code inserted}, moved as
    * the line breaks and the limit moved it in {@code fitted}, in a string of {@code length}.
    */
@@ -561,6 +658,31 @@ final class Editor {
           : at - inserted.length() + fitted.length();
     }
     return Math.clamp(at, 0, length);
+  }
+
+  /** {@link #fitted(int, int, String, String, int)} across several non-overlapping edits. */
+  private static int fitted(
+      int at, int[] froms, int[] tos, String[] raw, String[] fitted, int length) {
+    int rawPos = 0;
+    int fitPos = 0;
+    int prevTo = 0;
+    for (int i = 0; i < froms.length; i++) {
+      int gap = froms[i] - prevTo;
+      if (at <= rawPos + gap) {
+        return Math.clamp(fitPos + (at - rawPos), 0, length);
+      }
+      rawPos += gap;
+      fitPos += gap;
+      int rawLen = raw[i].length();
+      int fitLen = fitted[i].length();
+      if (at <= rawPos + rawLen) {
+        return Math.clamp(fitPos + Math.min(fitIndex(raw[i], at - rawPos), fitLen), 0, length);
+      }
+      rawPos += rawLen;
+      fitPos += fitLen;
+      prevTo = tos[i];
+    }
+    return Math.clamp(fitPos + (at - rawPos), 0, length);
   }
 
   /** A selection the app asks for ({@link App#select}), which scrolls into view as a key's does. */
@@ -1292,10 +1414,30 @@ final class Editor {
 
   /** Hands a new string to the app, which answers with the next tree. */
   private void propose(int at, int removed, String inserted, int newCaret, int newAnchor) {
+    propose(
+        at,
+        removed,
+        inserted,
+        List.of(new TextDocument.PendingEdit(at, removed, inserted)),
+        newCaret,
+        newAnchor);
+  }
+
+  /**
+   * Hands a new string produced by {@code edits} (spanning {@code at} to {@code at + removed},
+   * replaced by {@code inserted}) to the app, which answers with the next tree.
+   */
+  private void propose(
+      int at,
+      int removed,
+      String inserted,
+      List<TextDocument.PendingEdit> edits,
+      int newCaret,
+      int newAnchor) {
     if (lines != null && lines.hasHidden()) {
       unfoldLines(lines.line(at), lines.line(at + removed));
     }
-    doc.beginProposal(this, text, caret, anchor, at, removed, inserted);
+    doc.beginProposal(this, text, caret, anchor, edits);
     String next = text.substring(0, at) + inserted + text.substring(at + removed);
     if (lines != null) {
       lines.edit(at, removed, inserted);
@@ -1319,8 +1461,16 @@ final class Editor {
       return inserted;
     }
     int room = max - text.codePointCount(0, text.length()) + text.codePointCount(from, to);
+    return fitToRoom(inserted, room);
+  }
+
+  /** The longest start of {@code inserted}, in whole graphemes, within {@code room} code points. */
+  private static String fitToRoom(String inserted, int room) {
     if (inserted.codePointCount(0, inserted.length()) <= room) {
       return inserted;
+    }
+    if (room <= 0) {
+      return "";
     }
     BreakIterator chars = characters(inserted);
     int end = 0;

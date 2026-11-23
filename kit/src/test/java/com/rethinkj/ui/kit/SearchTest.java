@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.TextEdit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -182,11 +183,13 @@ class SearchTest {
         "a!",
         Search.replacement(greedy, a, "aa", 0, 1, 1, "$1!", NONE),
         "the match that a search up to 1 finds, not the longer one after it");
-    assertEquals("a!", Search.replaceAll(greedy, a, "aa", 0, 1, "$1!", NONE).text());
+    assertEquals(
+        List.of(new TextEdit(0, 1, "a!")), Search.replaceAll(greedy, a, "aa", 0, 1, "$1!", NONE));
     assertNull(Search.replacement(greedy, a, "aa", 0, 2, 1, "x", NONE), "beyond the part");
-    Search.Replaced all = Search.replaceAll(swap, p, text, 0, text.length(), "$2=$1", NONE);
-    assertEquals(new Search.Replaced(0, 12, "1=a, 2=b", 2), all);
-    assertNull(Search.replaceAll(swap, p, text, 0, 3, "x", NONE), "no match inside 0 to 3");
+    List<TextEdit> all = Search.replaceAll(swap, p, text, 0, text.length(), "$2=$1", NONE);
+    assertEquals(List.of(new TextEdit(0, 5, "1=a"), new TextEdit(7, 12, "2=b")), all);
+    assertEquals(
+        List.of(), Search.replaceAll(swap, p, text, 0, 3, "x", NONE), "no match inside 0 to 3");
   }
 
   @Test

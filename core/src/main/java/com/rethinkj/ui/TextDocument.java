@@ -27,6 +27,9 @@ public final class TextDocument {
   /** The most answered changes kept for views that were out of the tree to catch up by. */
   static final int CHANGE_LIMIT = Editor.HISTORY * 2;
 
+  /** The most edits the log keeps across its changes, as a Replace All logs one per match. */
+  static final int EDIT_LIMIT = 100_000;
+
   /**
    * A step of the history: {@code removed} at {@code at} replaced by {@code inserted}, with the
    * caret and the anchor before and after.
@@ -43,8 +46,17 @@ public final class TextDocument {
   /** One edit applied to produce the pending proposal. */
   record PendingEdit(int at, int removed, String inserted) {}
 
-  /** One answered change to the document, tagged with the revision it produced. */
-  record Change(long revision, TextChange range, String inserted, boolean external) {}
+  /**
+   * One answered change to the document, tagged with the revision it produced. For an external
+   * change set by the app, {@code externalRange} holds the spanning diff and {@code edits} is
+   * empty; otherwise {@code edits} holds the sequential edits applied to reach this revision, with
+   * {@code appChanged} true when the app modified the proposal.
+   */
+  record Change(long revision, List<TextEdit> edits, TextChange externalRange, boolean appChanged) {
+    boolean external() {
+      return externalRange != null;
+    }
+  }
 
   // The text as last answered by the app; null until the first editor initializes it.
   String text;
@@ -68,8 +80,9 @@ public final class TextDocument {
   List<PendingEdit> pendingEdits;
 
   private final ArrayDeque<Change> changes = new ArrayDeque<>();
-  // False for the document of a field without one of the app's: it has no other view to log for.
-  boolean shared = true;
+  private int loggedEdits;
+  // False for the document of a field without a FieldState: nothing reads its log.
+  boolean logged = true;
 
   /** Creates a document with no text yet; the first field that attaches initializes it. */
   public TextDocument() {
@@ -125,23 +138,21 @@ public final class TextDocument {
     }
   }
 
-  /** Records the start of a proposal (or another edit before the build) from {@code editor}. */
+  /** Records the start of a proposal (or more edits before the build) from {@code editor}. */
   void beginProposal(
       Editor editor,
       String textBefore,
       int caretBefore,
       int anchorBefore,
-      int at,
-      int removed,
-      String inserted) {
+      List<PendingEdit> edits) {
     if (proposer == null) {
       proposer = editor;
       beforeText = textBefore;
       beforeCaret = caretBefore;
       beforeAnchor = anchorBefore;
-      pendingEdits = new ArrayList<>(1);
+      pendingEdits = new ArrayList<>(edits.size());
     }
-    pendingEdits.add(new PendingEdit(at, removed, inserted));
+    pendingEdits.addAll(edits);
   }
 
   /**
@@ -169,8 +180,9 @@ public final class TextDocument {
         text = value;
         p.restored(value, bc, ba, revision);
       } else if (value.equals(prop)) {
-        // Accepted: record the real edits so every other view updates its caret and lines by them.
-        recordEdits(edits);
+        // Accepted: record the real edits so other views and markup trackers follow them.
+        revision++;
+        recordChange(new Change(revision, toTextEdits(edits), null, false));
         text = value;
         p.accepted(value, revision);
       } else {
@@ -194,13 +206,16 @@ public final class TextDocument {
                 anchorAfter));
         clearRun();
         // The real edits, then what the app changed of them, for the other views to follow.
-        recordEdits(edits);
+        List<TextEdit> all = new ArrayList<>(edits.size() + 1);
+        for (PendingEdit edit : edits) {
+          all.add(new TextEdit(edit.at(), edit.at() + edit.removed(), edit.inserted()));
+        }
+        all.add(new TextEdit(
+            fromProposed.start(),
+            fromProposed.oldEnd(),
+            value.substring(fromProposed.start(), fromProposed.newEnd())));
         revision++;
-        recordChange(new Change(
-            revision,
-            fromProposed,
-            value.substring(fromProposed.start(), fromProposed.newEnd()),
-            false));
+        recordChange(new Change(revision, List.copyOf(all), null, true));
         text = value;
         p.changed(value, caretAfter, anchorAfter, revision);
       }
@@ -212,9 +227,68 @@ public final class TextDocument {
       clearRun();
       revision++;
       // Views re-line after it, so it keeps no copy of the inserted text.
-      recordChange(new Change(revision, change, null, true));
+      recordChange(new Change(revision, List.of(), change, true));
       text = value;
     }
+  }
+
+  /**
+   * The revision of {@code value} as this document shows it: before {@link #resolve} runs in the
+   * current build, anticipates the revision {@code resolve(value)} will produce.
+   */
+  long revisionFor(String value) {
+    if (proposer != null) {
+      return !value.equals(proposed) && value.equals(beforeText) ? revision : revision + 1;
+    }
+    return value.equals(text) ? revision : revision + 1;
+  }
+
+  /**
+   * The field's own sequential edits after {@code sinceRevision} to reach {@code value}, or an
+   * empty list when up to date or when the edits are not known.
+   */
+  List<TextEdit> editsSince(long sinceRevision, String value) {
+    if (sinceRevision < 0) {
+      return List.of();
+    }
+    boolean includePending;
+    if (proposer != null) {
+      if (value.equals(proposed)) {
+        includePending = true;
+      } else if (value.equals(beforeText)) {
+        includePending = false;
+      } else {
+        return List.of(); // app changed the proposal
+      }
+    } else if (value.equals(text)) {
+      includePending = false;
+    } else {
+      return List.of(); // app replaced the string externally
+    }
+    long target = includePending ? revision + 1 : revision;
+    if (sinceRevision >= target) {
+      return List.of();
+    }
+    List<TextEdit> out = new ArrayList<>();
+    if (sinceRevision < revision) {
+      if (changes.isEmpty() || changes.peekFirst().revision() > sinceRevision + 1) {
+        return List.of(); // log no longer reaches back
+      }
+      for (Change change : changes) {
+        if (change.revision() > sinceRevision) {
+          if (change.external() || change.appChanged()) {
+            return List.of();
+          }
+          out.addAll(change.edits());
+        }
+      }
+    }
+    if (includePending) {
+      for (PendingEdit edit : pendingEdits) {
+        out.add(new TextEdit(edit.at(), edit.at() + edit.removed(), edit.inserted()));
+      }
+    }
+    return List.copyOf(out);
   }
 
   /**
@@ -249,25 +323,22 @@ public final class TextDocument {
     }
   }
 
-  private void recordEdits(List<PendingEdit> edits) {
+  private static List<TextEdit> toTextEdits(List<PendingEdit> edits) {
+    List<TextEdit> out = new ArrayList<>(edits.size());
     for (PendingEdit edit : edits) {
-      revision++;
-      recordChange(new Change(
-          revision,
-          new TextChange(
-              edit.at(), edit.at() + edit.removed(), edit.at() + edit.inserted().length()),
-          edit.inserted(),
-          false));
+      out.add(new TextEdit(edit.at(), edit.at() + edit.removed(), edit.inserted()));
     }
+    return List.copyOf(out);
   }
 
   private void recordChange(Change change) {
-    if (!shared) {
-      return; // one view, which never catches up by the log
+    if (!logged) {
+      return;
     }
     changes.addLast(change);
-    while (changes.size() > CHANGE_LIMIT) {
-      changes.removeFirst();
+    loggedEdits += change.edits().size();
+    while (!changes.isEmpty() && (changes.size() > CHANGE_LIMIT || loggedEdits > EDIT_LIMIT)) {
+      loggedEdits -= changes.removeFirst().edits().size();
     }
   }
 

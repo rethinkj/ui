@@ -1,7 +1,9 @@
 package com.rethinkj.ui.editor;
 
+import com.rethinkj.ui.TextEdit;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,6 +23,10 @@ final class TextEdits {
   // Within a changed line, which keeps a diff of every line of a text below 128 times its length.
   private static final int LINE_DISTANCE = 128;
 
+  // The characters the edits after the first of fromEdits are diffed in at most, so that a Replace
+  // All of many long matches stays fast; past it they are taken as logged.
+  private static final int REFINE_LIMIT = 100_000;
+
   static final TextEdits EMPTY = new TextEdits(new int[0], new int[0], new int[0], new int[0], 0);
 
   private final int[] oldFrom;
@@ -28,6 +34,7 @@ final class TextEdits {
   private final int[] newFrom;
   private final int[] newTo;
   private final int count;
+  private TextEdits next;
 
   private TextEdits(int[] oldFrom, int[] oldTo, int[] newFrom, int[] newTo, int count) {
     this.oldFrom = oldFrom;
@@ -35,6 +42,102 @@ final class TextEdits {
     this.newFrom = newFrom;
     this.newTo = newTo;
     this.count = count;
+  }
+
+  /**
+   * Builds the edits from {@code before} across sequential {@code edits}, each at offsets in the
+   * string after the previous one: each edit's replaced span is diffed against its inserted text,
+   * and ascending non-overlapping runs share one flat table while non-ascending edits chain.
+   * Returns {@code null} if an edit's offsets do not fit {@code before}.
+   */
+  static TextEdits fromEdits(String before, List<TextEdit> edits) {
+    if (edits.isEmpty()) {
+      return EMPTY;
+    }
+    String current = before;
+    TextEdits head = null;
+    TextEdits tail = null;
+    int i = 0;
+    int n = edits.size();
+    int refined = 0;
+    while (i < n) {
+      int runStart = i;
+      int prevOldEnd = 0;
+      int delta = 0;
+      while (i < n) {
+        TextEdit e = edits.get(i);
+        int origFrom = e.from() - delta;
+        int origTo = e.to() - delta;
+        if (origFrom < prevOldEnd || origTo > current.length()) {
+          break;
+        }
+        prevOldEnd = origTo;
+        delta += e.text().length() - (origTo - origFrom);
+        i++;
+      }
+      if (i == runStart) {
+        return null;
+      }
+      Builder out = new Builder();
+      int runDelta = 0;
+      for (int k = runStart; k < i; k++) {
+        TextEdit e = edits.get(k);
+        int origFrom = e.from() - runDelta;
+        int origTo = e.to() - runDelta;
+        int newFrom = e.from();
+        String inserted = e.text();
+        int size = origTo - origFrom + inserted.length();
+        if (origTo - origFrom == inserted.length() && current.startsWith(inserted, origFrom)) {
+          continue; // replaced by itself, such as a match of a Replace All: nothing changed
+        }
+        boolean refine = k == 0 || refined + size <= REFINE_LIMIT;
+        refined += refine && k > 0 ? size : 0;
+        if (origFrom == origTo || inserted.isEmpty() || !refine) {
+          out.add(origFrom, origTo, newFrom, newFrom + inserted.length());
+        } else {
+          TextEdits inner = between(current.substring(origFrom, origTo), inserted);
+          for (int j = 0; j < inner.count; j++) {
+            out.add(
+                origFrom + inner.oldFrom[j],
+                origFrom + inner.oldTo[j],
+                newFrom + inner.newFrom[j],
+                newFrom + inner.newTo[j]);
+          }
+        }
+        runDelta += inserted.length() - (origTo - origFrom);
+      }
+      TextEdits step = out.build();
+      if (step != EMPTY) {
+        if (head == null) {
+          head = step;
+          tail = step;
+        } else {
+          tail.next = step;
+          tail = step;
+        }
+      }
+      if (i < n) {
+        current = applyRun(current, edits, runStart, i);
+      }
+    }
+    return head == null ? EMPTY : head;
+  }
+
+  private static String applyRun(String text, List<TextEdit> edits, int fromIdx, int toIdx) {
+    StringBuilder out = new StringBuilder(text.length());
+    int pos = 0;
+    int delta = 0;
+    for (int k = fromIdx; k < toIdx; k++) {
+      TextEdit e = edits.get(k);
+      int origFrom = e.from() - delta;
+      int origTo = e.to() - delta;
+      out.append(text, pos, origFrom);
+      out.append(e.text());
+      pos = origTo;
+      delta += e.text().length() - (origTo - origFrom);
+    }
+    out.append(text, pos, text.length());
+    return out.toString();
   }
 
   /** Computes the edits from {@code before} to {@code after}. */
@@ -76,7 +179,18 @@ final class TextEdits {
    * sides of it. When untouched, a range keeps its length {@code to - from}.
    */
   int mapRange(int from, int to) {
-    int end = Math.max(to, from);
+    int len = Math.max(0, to - from);
+    int at = from;
+    for (TextEdits step = this; step != null; step = step.next) {
+      at = step.mapSingle(at, at + len);
+      if (at < 0) {
+        return -1;
+      }
+    }
+    return at;
+  }
+
+  private int mapSingle(int from, int end) {
     int lo = 0;
     int hi = count;
     while (lo < hi) {

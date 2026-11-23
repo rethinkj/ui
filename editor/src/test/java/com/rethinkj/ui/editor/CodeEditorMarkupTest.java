@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
@@ -307,6 +308,138 @@ class CodeEditorMarkupTest {
     assertTrue(on.contains("text #end-0 \"Unknown column tax\""), on);
     assertTrue(on.contains("text #end-1 \"Table alias missing\""), on);
     assertFalse(on.contains("#end-2"), on);
+  }
+
+  @Test
+  void deletingFirstOfTwoIdenticalLinesDropsItsDiagnosticAndKeepsTheSeconds() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = "SELECT id\nSELECT id\nFROM orders;";
+    Doc doc = new Doc(text);
+    doc.editor.diagnostics(
+        text,
+        List.of(
+            new CodeEditor.Diagnostic(0, 6, CodeEditor.Severity.ERROR, "First line error"),
+            new CodeEditor.Diagnostic(10, 16, CodeEditor.Severity.WARNING, "Second line warning")));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(5)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Ctrl+Shift+K on line 0 deletes the first identical line: its diagnostic goes and line 1's
+    // diagnostic moves up to line 0.
+    Script.run("""
+        size 480 200 scale 2
+        frame
+        focus #code
+        key K control shift
+        frame
+        snap after
+        """, app, out);
+    assertEquals("SELECT id\nFROM orders;", doc.text);
+    String after = Files.readString(out.resolve("after.tree.txt"));
+    assertFalse(after.contains("First line error"), after);
+    assertTrue(after.contains("warning=\"Second line warning\""), after);
+    assertTrue(after.contains("squiggle 0-6"), after);
+
+    // Marks an analysis computed for the string before the delete, which arrive a build later,
+    // move by the same delete.
+    doc.editor.diagnostics(
+        text,
+        List.of(
+            new CodeEditor.Diagnostic(0, 6, CodeEditor.Severity.ERROR, "Late first"),
+            new CodeEditor.Diagnostic(10, 16, CodeEditor.Severity.WARNING, "Late second")));
+    app.invalidate();
+    Script.run("size 480 200 scale 2\nframe\nsnap late", app, out);
+    String late = Files.readString(out.resolve("late.tree.txt"));
+    assertFalse(late.contains("Late first"), late);
+    assertTrue(late.contains("warning=\"Late second\""), late);
+  }
+
+  @Test
+  void regexReplaceAllAcrossManyJoinedLinesKeepsDiagnosticsAndFoldsBetweenMatches()
+      throws IOException {
+    TextLibraries.assumeLoaded();
+    // 340 statements (beyond the 1000-line diff cap and 200-step log cap) with a diagnostic and a
+    // folded block lying right in the middle between replacements.
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < 170; i++) {
+      sb.append("SELECT old_id,\n  region_id\nFROM t_").append(i).append(";\n");
+    }
+    int midLine = 170 * 3;
+    int badCol = sb.length() + "WHERE ".length();
+    sb.append("WHERE bad_col IN (\n  1,\n  2\n);\n");
+    for (int i = 170; i < 340; i++) {
+      sb.append("SELECT old_id,\n  region_id\nFROM t_").append(i).append(";\n");
+    }
+    String initial = sb.toString();
+    Doc doc = new Doc(initial);
+    doc.editor.diagnostics(
+        initial,
+        List.of(new CodeEditor.Diagnostic(
+            badCol, badCol + "bad_col".length(), CodeEditor.Severity.ERROR, "Unknown column")));
+    doc.editor.folds(List.of(new El.Fold(midLine, midLine + 2)));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(12)
+                    .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Replace All with regex `old_id,\s+region_id` -> `customer_id`, joining two lines per match.
+    Script.run("""
+        size 640 320 scale 2
+        frame
+        focus #code
+        key H control
+        frame
+        advance 0.25
+        frame
+        key A control
+        type "old_id,\\\\s+region_id"
+        key R alt
+        focus #replace
+        type "customer_id"
+        key Enter alt control
+        frame
+        key Escape
+        frame
+        """, app, out);
+    assertFalse(doc.text.contains("old_id"), "all 340 matches replaced");
+    int shiftedMidLine = midLine - 170;
+    assertEquals(
+        List.of(new El.Fold(shiftedMidLine, shiftedMidLine + 2)),
+        doc.editor.folds(),
+        "fold between replacements survived and moved up by 170 lines");
+
+    // Scroll to the middle diagnostic and verify its squiggle and gutter marker survived.
+    int shiftedBadCol = doc.text.indexOf("bad_col");
+    assertTrue(shiftedBadCol > 0);
+    doc.editor.select(shiftedBadCol, shiftedBadCol);
+    app.invalidate();
+    Script.run("size 640 320 scale 2\nframe\nsnap middle", app, out);
+    String middle = Files.readString(out.resolve("middle.tree.txt"));
+    assertTrue(middle.contains("error=\"Unknown column\""), middle);
+    assertTrue(
+        middle.contains("squiggle " + shiftedBadCol + "-" + (shiftedBadCol + "bad_col".length())),
+        middle);
   }
 
   /** The tree dump of the gutter cell of line {@code index}. */

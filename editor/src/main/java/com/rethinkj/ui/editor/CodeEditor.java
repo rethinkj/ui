@@ -16,6 +16,7 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextDocument;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.WindowState;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
@@ -28,6 +29,7 @@ import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -422,11 +424,20 @@ public final class CodeEditor {
     private List<Folded> folds = new ArrayList<>();
     private String builtValue;
     private String builtText;
+    private long builtRevision = -1;
+    // The strings built while the field's edit log reaches back, newest first, for marks computed a
+    // few builds ago; by hash and length, as their text would take too much memory.
+    // shortcut: two strings of one hash and length mix up their revisions, then the marks move by
+    // the wrong edits; keep the strings themselves if that is ever seen.
+    private final ArrayDeque<Built> recent = new ArrayDeque<>();
     // The folds the field asked to open since the last build ({@link #ask}).
     private final List<El.Fold> asked = new ArrayList<>();
-    // The last edits computed, between these two strings, which the folds and the layers share.
+    // The last edits computed, between these two strings and revisions, which folds and layers
+    // share.
     private String editsFrom;
+    private long editsFromRevision = -1;
     private String editsTo;
+    private long editsToRevision = -1;
     private TextEdits edits;
     private List<El.BracketFold> ranges = List.of();
     // Code vision: the rows of the last build's value and entries, rebuilt when either changes.
@@ -452,6 +463,7 @@ public final class CodeEditor {
     private List<DocRange> docRanges = List.of();
     private List<DocToggle> docToggles = new ArrayList<>();
     private String docsText; // the string the doc ranges and toggles are positions in
+    private long docsRevision = -1;
     private final Map<String, DocComment> parsedDocs = new LinkedHashMap<>(16, 0.75f, true) {
       @Override
       protected boolean removeEldestEntry(Map.Entry<String, DocComment> eldest) {
@@ -722,7 +734,15 @@ public final class CodeEditor {
         return this;
       }
       Objects.requireNonNull(text, "text");
-      layers.put(layer, new Layer(displayed(text), copy));
+      String shown = displayed(text);
+      long rev = -1;
+      for (Built built : recent) {
+        if (built.hash() == shown.hashCode() && built.length() == shown.length()) {
+          rev = built.revision();
+          break;
+        }
+      }
+      layers.put(layer, new Layer(shown, rev, copy));
       return this;
     }
 
@@ -894,11 +914,23 @@ public final class CodeEditor {
       asked.add(fold);
     }
 
-    private TextEdits edits(String from, String to) {
-      if (!from.equals(editsFrom) || !to.equals(editsTo)) { // the same strings at once
-        edits = TextEdits.between(from, to);
+    private TextEdits edits(String from, long fromRevision, String to, long toRevision) {
+      if (fromRevision != editsFromRevision
+          || toRevision != editsToRevision
+          || !from.equals(editsFrom)
+          || !to.equals(editsTo)) { // the same strings and revisions at once
+        TextEdits computed = null;
+        if (fromRevision >= 0 && fromRevision < toRevision) {
+          List<TextEdit> logged = field.editsSince(fromRevision, to);
+          if (!logged.isEmpty()) {
+            computed = TextEdits.fromEdits(from, logged);
+          }
+        }
+        edits = computed != null ? computed : TextEdits.between(from, to);
         editsFrom = from;
+        editsFromRevision = fromRevision;
         editsTo = to;
+        editsToRevision = toRevision;
       }
       return edits;
     }
@@ -915,18 +947,26 @@ public final class CodeEditor {
     private void updateFolds(String value, El editor, El.BracketFolds found) {
       // The field's string is read again only for a new value: it converts line breaks anew.
       String text = value.equals(builtValue) ? builtText : editor.text().string();
+      long revision = field.revision(text);
       if (value.equals(builtValue)) {
         asked.forEach(this::unfold);
       }
       asked.clear();
       if (!folds.isEmpty()) {
         if (builtText != null && !text.equals(builtText)) {
-          folds = shiftFolds(edits(builtText, text), folds);
+          folds = shiftFolds(edits(builtText, builtRevision, text, revision), folds);
         }
         folds = reconcileFolds(folds, found, text);
       }
+      if (revision != builtRevision || !text.equals(builtText)) {
+        recent.addFirst(new Built(text.hashCode(), text.length(), revision));
+        if (recent.size() > RECENT) {
+          recent.removeLast();
+        }
+      }
       builtValue = value;
       builtText = text;
+      builtRevision = revision;
       ranges = found.folds();
     }
 
@@ -948,10 +988,14 @@ public final class CodeEditor {
         comments = null;
         docRanges = List.of();
         docsText = null;
+        docsRevision = -1;
         return;
       }
       String text = builtText;
-      TextEdits moved = docsText == null || docsText.equals(text) ? null : edits(docsText, text);
+      long revision = builtRevision;
+      TextEdits moved = docsText == null || docsText.equals(text)
+          ? null
+          : edits(docsText, docsRevision, text, revision);
       if (moved != null) {
         docRanges = moveDocs(docRanges, moved);
         docToggles = shiftDocToggles(moved, docToggles, readerMode);
@@ -965,6 +1009,7 @@ public final class CodeEditor {
         docToggles = reconcileDocToggles(docToggles, docRanges, boundary);
       }
       docsText = text;
+      docsRevision = revision;
       // A caret placed in a comment, such as after typing one, shows it raw; the build that answers
       // an edit still has the caret from before it, so the build after it checks.
       DocRange atCaret = moved == null ? docContaining(caret) : null;
@@ -985,13 +1030,16 @@ public final class CodeEditor {
       do {
         scanned = Comments.scan(text, language, scanned);
       } while (!scanned.complete());
+      long revision = field.revision(text);
       if (docsText != null && !text.equals(docsText)) {
-        docToggles = shiftDocToggles(edits(docsText, text), docToggles, readerMode);
+        docToggles =
+            shiftDocToggles(edits(docsText, docsRevision, text, revision), docToggles, readerMode);
       }
       comments = scanned;
       docRanges = eligibleDocs(text, candidates(scanned, List.of(), Integer.MAX_VALUE));
       docToggles = reconcileDocToggles(docToggles, docRanges, Integer.MAX_VALUE);
       docsText = text;
+      docsRevision = revision;
     }
 
     /** The doc comment that holds {@code at} after its first character, or null. */
@@ -1130,28 +1178,37 @@ public final class CodeEditor {
         List<Change> changes,
         List<InlayHint> hints) {}
 
+    /** A string built at {@code revision}, by its hash and length. */
+    private record Built(int hash, int length, long revision) {}
+
+    // The string before the oldest step the field's log keeps, and one per step: 200 steps.
+    private static final int RECENT = 201;
+
     private static final class Layer {
       final String text;
       final List<Mark> original;
       String checked; // the value the marks were last moved to
+      long checkedRevision; // the field revision of checked, or -1 if unknown
       List<Mark> mapped;
 
-      Layer(String text, List<Mark> original) {
+      Layer(String text, long revision, List<Mark> original) {
         this.text = text;
         this.original = original;
         checked = text;
+        checkedRevision = revision;
         mapped = original;
       }
 
-      List<Mark> marksFor(String value, State state) {
+      List<Mark> marksFor(String value, long revision, State state) {
         if (!value.equals(checked)) { // the same string at once
           if (value.equals(text)) {
             mapped = original;
           } else if (!mapped.isEmpty()) {
-            mapped = moved(mapped, state.edits(checked, value));
+            mapped = moved(mapped, state.edits(checked, checkedRevision, value, revision));
           }
           checked = value;
         }
+        checkedRevision = revision;
         return mapped;
       }
 
@@ -1226,7 +1283,8 @@ public final class CodeEditor {
         boolean isUsages = USAGES_LAYER.equals(entry.getKey());
         Layer layer = entry.getValue();
         boolean fresh = layer.text.equals(builtText);
-        for (Mark mark : layer.marksFor(builtText, this)) { // in the string as the field shows it
+        for (Mark mark :
+            layer.marksFor(builtText, builtRevision, this)) { // in the string as the field shows it
           switch (mark) {
             case Diagnostic d -> {
               diagnostics.add(d);

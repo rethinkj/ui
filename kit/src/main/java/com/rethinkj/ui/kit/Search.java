@@ -1,7 +1,10 @@
 package com.rethinkj.ui.kit;
 
+import com.rethinkj.ui.TextEdit;
 import java.text.BreakIterator;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -421,12 +424,12 @@ final class Search {
   }
 
   /**
-   * Every match from {@code from} to {@code to} replaced: the span from the first match's start to
-   * the last one's end and the text that takes its place; null for no match.
+   * Every match from {@code from} to {@code to} as an individual {@link TextEdit}, in ascending
+   * order without overlapping; empty for no match.
    *
    * @throws Stopped past the deadline
    */
-  static Replaced replaceAll(
+  static List<TextEdit> replaceAll(
       Query query,
       Pattern pattern,
       String text,
@@ -436,23 +439,11 @@ final class Search {
       long deadline) {
     Matcher m = matcher(pattern, text, from, to, deadline);
     Graphemes graphemes = new Graphemes(text);
-    StringBuilder out = new StringBuilder();
-    int first = -1;
-    int last = -1;
-    int count = 0;
+    List<TextEdit> edits = new ArrayList<>();
     while (find(m, graphemes, to)) {
-      if (first < 0) {
-        first = m.start();
-      } else {
-        out.append(text, last, m.start());
-      }
-      out.append(query.regex() ? expand(m, replacement) : replacement);
-      last = m.end();
-      count++;
+      String with = query.regex() ? expand(m, replacement) : replacement;
+      edits.add(new TextEdit(m.start(), m.end(), with));
     }
-    return first < 0 ? null : new Replaced(first, last, out.toString(), count);
+    return edits;
   }
-
-  /** What {@link #replaceAll} replaces: {@code from} to {@code to} by {@code text}. */
-  record Replaced(int from, int to, String text, int count) {}
 }

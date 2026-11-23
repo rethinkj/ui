@@ -3536,6 +3536,33 @@ public final class App<S> {
     edit(field, from, to, text, caret, anchor, true, expected);
   }
 
+  /**
+   * Applies {@code edits} to a text field's string and puts the caret at {@code caret} of the new
+   * string, as one step of its undo history: each edit's offsets are in the current string, in
+   * ascending order without overlapping, and are logged individually for {@link
+   * FieldState#editsSince} and shared views (such as Replace All).
+   *
+   * @param edits replacements in ascending order without overlapping; empty does nothing
+   * @param caret the caret's position in the string after the edits
+   * @throws IllegalArgumentException if {@code edits} are out of order or overlap
+   */
+  public void edit(El field, List<TextEdit> edits, int caret) {
+    edit(field, edits, caret, caret, false);
+  }
+
+  /**
+   * {@link #edit(El, List, int)} that selects from {@code anchor} to {@code caret} of the new
+   * string after the edits and scrolls it into view as {@link #select} does.
+   *
+   * @param edits replacements in ascending order without overlapping; empty does nothing
+   * @param caret the caret's position in the string after the edits
+   * @param anchor the anchor's position in the string after the edits
+   * @throws IllegalArgumentException if {@code edits} are out of order or overlap
+   */
+  public void edit(El field, List<TextEdit> edits, int caret, int anchor) {
+    edit(field, edits, caret, anchor, true);
+  }
+
   private void edit(
       El field,
       int from,
@@ -3561,6 +3588,34 @@ public final class App<S> {
         return false;
       }
       now.editor().request(from, to, text, caret, anchor, ask);
+      handled |= now.editor().answerPending();
+      rowsKept |= now.editor().answerPending();
+      return true;
+    });
+  }
+
+  private void edit(El field, List<TextEdit> edits, int caret, int anchor, boolean ask) {
+    Objects.requireNonNull(edits, "edits");
+    List<TextEdit> copy = List.copyOf(edits);
+    int prevTo = 0;
+    for (TextEdit edit : copy) {
+      if (edit.from() < prevTo) {
+        throw new IllegalArgumentException(
+            "edits must be in ascending order without overlapping, got " + edit);
+      }
+      prevTo = edit.to();
+    }
+    Object id = fieldId(field, "edit");
+    if (copy.isEmpty()) {
+      return;
+    }
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      now.editor().request(copy, caret, anchor, ask);
       handled |= now.editor().answerPending();
       rowsKept |= now.editor().answerPending();
       return true;

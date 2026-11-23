@@ -13,6 +13,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.Work;
 import java.util.ArrayList;
 import java.util.List;
@@ -691,10 +692,10 @@ public final class Find {
     }
     String text = field.text().string();
     For target = state.target(text.length());
-    Search.Replaced replaced;
+    List<TextEdit> edits;
     state.replaceError = null;
     try {
-      replaced = Texts.CURRENT.with(
+      edits = Texts.CURRENT.with(
           state.texts,
           () -> Search.replaceAll(
               state.search(),
@@ -711,13 +712,17 @@ public final class Find {
       state.replaceError = wrong.getMessage();
       return;
     }
-    if (replaced == null) {
+    if (edits.isEmpty()) {
       return;
     }
-    int end = replaced.from() + replaced.text().length();
-    app.edit(field, replaced.from(), replaced.to(), replaced.text(), end);
+    int delta = 0;
+    for (TextEdit e : edits) {
+      delta += e.text().length() - (e.to() - e.from());
+    }
+    int end = edits.getLast().to() + delta;
+    app.edit(field, edits, end);
     if (state.inSelection()) {
-      state.scopeTo += replaced.text().length() - (replaced.to() - replaced.from());
+      state.scopeTo += delta;
     }
   }
 

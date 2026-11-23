@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -126,6 +127,42 @@ public final class FieldState {
       int at = Math.min(from, editor.text().length()); // the caret goes into the text where it is
       editor.request(at, to, text, at + caret, at + caret, false);
     });
+  }
+
+  /**
+   * The revision of {@code text} as this field shows it (with line feeds only in a multi-line
+   * field), starting at 0 and advancing by one on each change; during a build before the field
+   * attaches, includes a pending edit that produced {@code text} or a change by the app away from
+   * the field's last text.
+   */
+  public long revision(String text) {
+    Objects.requireNonNull(text, "text");
+    TextDocument doc = document();
+    if (doc == null || doc.text == null) {
+      return 0;
+    }
+    return doc.revisionFor(text);
+  }
+
+  /**
+   * The edits the field itself made after {@code revision} to reach {@code text} (as this field
+   * shows it, with line feeds only in a multi-line field), in order, each at UTF-16 offsets in the
+   * string after the previous one; empty when {@code revision} already matches {@code text}, or
+   * when the edits are not known (because the log no longer reaches back to {@code revision}, a
+   * change since then was set or modified by the app, or {@code text} does not match the field's
+   * text or pending edit).
+   */
+  public List<TextEdit> editsSince(long revision, String text) {
+    Objects.requireNonNull(text, "text");
+    TextDocument doc = document();
+    if (doc == null || doc.text == null) {
+      return List.of();
+    }
+    return doc.editsSince(revision, text);
+  }
+
+  private TextDocument document() {
+    return editor != null ? editor.document() : document;
   }
 
   private static void checkCaret(String text, int caret) {

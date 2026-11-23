@@ -27,7 +27,7 @@ By default, `App` tracks a field's cursor, selection, scroll offset, undo histor
 
 To preserve cursor, selection, scroll position, and undo history across tab switches or windows, store a `FieldState` in your app state and pass it to `.fieldState(...)`. Active IME composition is not preserved and ends if the field leaves the tree. You can also set the selection ahead of the next build with `fieldState.select(caret, anchor)`.
 
-From a handler (such as a button that inserts a snippet), call `fieldState.replaceSelection(text)`. It replaces the selection right after the handler, as one undo step. The cursor moves to the end of the inserted text, or to `caret` within it when you call `replaceSelection(text, caret)`. To replace a specific range instead of the selection, call `fieldState.replace(from, to, text, caret)`. It replaces characters `from` to `to`, and Ctrl+Z restores the previous selection.
+From a handler (such as a button that inserts a snippet), call `fieldState.replaceSelection(text)`. It replaces the selection right after the handler, as one undo step. The cursor moves to the end of the inserted text, or to `caret` within it when you call `replaceSelection(text, caret)`. To replace a specific range instead of the selection, call `fieldState.replace(from, to, text, caret)`. It replaces characters `from` to `to`, and Ctrl+Z restores the previous selection. To follow the edits a field itself made (for example, to shift markup without diffing), call `fieldState.revision(text)` and `fieldState.editsSince(revision, text)`, which return sequential `TextEdit`s when all changes since `revision` came from the field.
 
 ## One document in several views
 
@@ -62,7 +62,7 @@ To let two multi-line fields scroll together, give each a `ScrollState` and call
 
 See [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) for additional options (custom mask character, caret/selection colors, `tabIndents`, tab width, `onSelect`, and `textPositionAt(x, y)` to query the character offset at an element-local point). `onSelect` runs after every edit once your app has handled it, so its offsets always match your app's string. A field that is not in the tree, such as one in a row scrolled out of view, gets the call once it is back. If your app rejects an edit, `onSelect` reports the restored selection. The build right after an edit still sees the caret your `onSelect` handler stored before the edit. The following build, after `onSelect` runs, sees the new caret.
 
-From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit, and an `expected` string after it to skip the edit if the field's string changed before it runs. If your app rejects the edit, the selection stays unchanged.
+From event handlers, you can programmatically edit or undo/redo a field with `app.edit(field, from, to, text, caret)`, `app.edit(field, edits, caret)` (for several non-overlapping `TextEdit`s in one undo step), `app.select(field, caret, anchor)`, `app.undo(field)`, and `app.redo(field)`. You can also pass an `anchor` argument to `app.edit` to select text with the edit, and an `expected` string after it to skip the edit if the field's string changed before it runs. If your app rejects the edit, the selection stays unchanged.
 
 ## Folding lines
 

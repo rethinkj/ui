@@ -6,10 +6,13 @@ import static com.rethinkj.ui.Fields.key;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -326,5 +329,51 @@ class TextDocumentTest {
     assertEquals(">hello", model.text);
     key(app, "Z", Key.CONTROL);
     assertEquals("hello", model.text);
+  }
+
+  @Test
+  void multiEditIsOneUndoStepLogsEachEditAndMapsSharedCaretBetweenEdits() {
+    TextLibraries.assumeLoaded();
+    Model model = new Model("foo mid foo");
+    App<Model> app = start(model);
+    model.right.select(5, 5); // inside "mid"
+    app.invalidate();
+    app.frame();
+    long beforeRev = model.left.revision(model.text);
+
+    // Out-of-order or overlapping edits are rejected.
+    El left = find(app, "left");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> app.edit(left, List.of(new TextEdit(4, 6, "x"), new TextEdit(5, 7, "y")), 0));
+
+    // Apply two non-overlapping edits as one undo step.
+    app.edit(left, List.of(new TextEdit(0, 3, "quux"), new TextEdit(8, 11, "quux")), 13);
+    app.frame();
+    assertEquals("quux mid quux", model.text);
+    assertEquals(13, find(app, "left").editor().caret());
+    assertEquals(6, find(app, "right").editor().caret(), "caret inside middle stays between edits");
+    long afterRev = model.left.revision(model.text);
+    assertEquals(beforeRev + 1, afterRev);
+    assertEquals(
+        List.of(new TextEdit(0, 3, "quux"), new TextEdit(9, 12, "quux")),
+        model.left.editsSince(beforeRev, model.text),
+        "sequential offsets after the previous edit");
+
+    // One undo reverts both replacements at once; redo reapplies them.
+    app.focus(find(app, "left"));
+    app.frame();
+    key(app, "Z", Key.CONTROL);
+    assertEquals("foo mid foo", model.text);
+    key(app, "Y", Key.CONTROL);
+    assertEquals("quux mid quux", model.text);
+
+    // An external app replacement leaves editsSince empty while advancing the revision.
+    long beforeExt = model.left.revision(model.text);
+    model.text = "replaced";
+    app.invalidate();
+    app.frame();
+    assertEquals(beforeExt + 1, model.left.revision(model.text));
+    assertTrue(model.left.editsSince(beforeExt, model.text).isEmpty());
   }
 }
