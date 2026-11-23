@@ -99,9 +99,12 @@ class CodeEditorMarkupTest {
     assertEquals(-1, capped.mapRange(10, 15), "middle range is dropped");
     int tailBefore = largeBefore.indexOf("TAIL");
     assertEquals(largeAfter.indexOf("TAIL"), capped.mapRange(tailBefore, tailBefore + 4));
+  }
 
-    // Line-start marker mapping drops a point at the start of a removed span ending with '\n'
-    // while keeping plain point mapping unchanged and tracking intermediate strings across chains.
+  @Test
+  void textEditsDropsALineStartMarkerWithItsRemovedLines() {
+    // Line-start marker mapping drops a point at the start of removed whole lines while keeping
+    // plain point mapping unchanged and tracking intermediate strings across chains.
     TextEdits deleteLine = TextEdits.between("alpha\nbeta\n", "beta\n");
     assertEquals(-1, deleteLine.mapLineStart(0), "line-start marker of deleted line goes");
     assertEquals(0, deleteLine.mapLineStart(6), "next line's marker moves up");
