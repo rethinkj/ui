@@ -373,13 +373,15 @@ class FoldTest {
     assertEquals(1, clicks.get(), "line-end press handler ran");
     assertEquals(List.of(), state.unfolded, "clicking line-end did not unfold");
     assertEquals(caretBefore, field(app).editor().caret(), "clicking line-end kept caret");
-    key(app, "Tab"); // a pressable line-end element is not in the focus order
+    key(app, "Tab"); // Tab reaches the focusable line-end element
     app.frame();
+    assertEquals("end-1", app.focused().key());
     float editableX = 10 + end5.x() + end5.width() / 2;
     float editableY = 10 + end5.y() + end5.height() / 2;
-    app.pointerDown(editableX, editableY); // nothing in a line-end element takes text input
+    app.pointerDown(editableX, editableY); // clicking editable line-end focuses it, not outer caret
     app.pointerUp(editableX, editableY);
     app.frame();
+    assertEquals("end-5", app.focused().key());
     assertEquals(caretBefore, field(app).editor().caret(), "clicking line-end kept caret");
 
     // Wrapping field: the fold mark clamps as before; a line-end element is cut off at the edge.

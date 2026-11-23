@@ -794,10 +794,12 @@ public final class App<S> {
    * #rowLooks} if rows with fields need one.
    */
   private boolean opensMenu(El el) {
+    Object id = animator.identity(el);
     return el.onSecondaryPress() != null
         || el.fieldMenu() != null
             && el.takesEdits()
-            && animator.inRow(animator.identity(el)) == null;
+            && animator.inRow(id) == null
+            && !Animator.inFieldPart(id);
   }
 
   /** Runs the element's {@link El#onSecondaryPress} handler, or else opens its field's menu. */
@@ -849,11 +851,6 @@ public final class App<S> {
    * a press in a text field, which takes the focus.
    */
   private static boolean keepsFocus(List<El> hit) {
-    for (int i = 0; i + 1 < hit.size(); i++) {
-      if (hit.get(i).isFieldPart(hit.get(i + 1))) {
-        return true; // built after layout, nothing in a field part has an identity to focus
-      }
-    }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       return false;
     }
@@ -2178,6 +2175,7 @@ public final class App<S> {
       Animator.InRow in = animator.inRow(focus.id());
       in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row()));
       fillRows();
+      placeEditors(false, false); // the parts of its fields, where the focus may be
       refocus();
     }
   }
@@ -2204,6 +2202,7 @@ public final class App<S> {
     if (!list.hasRow(row)) {
       scrolled |= list.scrollTo(list.scrollX(), list.offsetShowing(row));
       fillRows();
+      placeEditors(false, false); // the parts of its fields, which Tab may enter
       if (!list.hasRow(row)) {
         return next;
       }
@@ -2247,8 +2246,10 @@ public final class App<S> {
     El shown = focus.refocus(this::focusables, time);
     if (shown != null) {
       reveal(shown);
-      if (fillRows()) {
-        refocus(); // its row was built again
+      boolean rebuilt = fillRows();
+      rebuilt |= placeEditors(false, false);
+      if (rebuilt) {
+        refocus(); // its row or field part was built again
       }
     }
   }
@@ -2333,6 +2334,32 @@ public final class App<S> {
         x += path.get(j).x();
         y += path.get(j).y();
       }
+      El next = path.get(i + 1);
+      if (area.isFieldPart(next) || area.isGutterColumn(next)) {
+        float viewX = areaX + area.border(Side.LEFT) + area.padding(Side.LEFT);
+        float viewY = areaY + area.border(Side.TOP) + area.padding(Side.TOP);
+        float viewW = Math.max(
+            0,
+            area.width()
+                - area.border(Side.LEFT)
+                - area.padding(Side.LEFT)
+                - area.border(Side.RIGHT)
+                - area.padding(Side.RIGHT)
+                - area.coverX());
+        float viewH = Math.max(
+            0,
+            area.height()
+                - area.border(Side.TOP)
+                - area.padding(Side.TOP)
+                - area.border(Side.BOTTOM)
+                - area.padding(Side.BOTTOM)
+                - area.coverY());
+        double nextX = area.isFieldPart(next)
+            ? area.scrollX() + revealDelta(x, el.width(), viewX, viewW)
+            : area.scrollX();
+        area.scrollTo(nextX, area.scrollY() + revealDelta(y, el.height(), viewY, viewH));
+        continue;
+      }
       // With its ring as far as the area's padding has room for it, so that the clip cuts none
       // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
       float ring = Scene.RING + el.focusRingGap();
@@ -2415,8 +2442,21 @@ public final class App<S> {
     }
     if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
       for (El child : el.children()) {
-        if (!el.isFieldPart(child)) { // built after layout, a field part has no identity to focus
-          focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, shown, found);
+        float l = clipLeft;
+        float r = clipRight;
+        if (el.isFieldPart(child)) { // cut off at the content box, as far as the field scrolls
+          l = Math.max(
+              l, left + el.border(Side.LEFT) + el.padding(Side.LEFT) - (float) el.scrollX());
+          r = Math.min(
+              r,
+              right
+                  - el.border(Side.RIGHT)
+                  - el.padding(Side.RIGHT)
+                  - el.coverX()
+                  + (float) (el.maxScrollX() - el.scrollX()));
+        }
+        if (r > l) {
+          focusables(child, left, top, l, clipTop, r, clipBottom, shown, found);
         }
       }
     }
@@ -2977,12 +3017,13 @@ public final class App<S> {
       drawn = true;
       animator.present(time);
       if (fillRows()) { // a list that moves may show other rows
+        placeEditors(false, false);
         refocus();
         laidOut = true;
       }
     }
     if (laidOut) {
-      placeEditors();
+      placeEditors(true, false);
     }
     if (root != null && hasPendingHighlights()) {
       drawn |= catchUpHighlights();
@@ -2991,11 +3032,11 @@ public final class App<S> {
     if (on != caretOn) {
       caretOn = on;
       if (blinking != null) {
+        int asking = El.autofocuses();
         blinking.place(true, on);
         El field = blinking.element();
         if (field.takePartsBuilt()) { // a block a look took was built anew
-          gutterLooks(field, animator.identity(field));
-          Overlays.place(root, width, height);
+          finishBuiltParts(field, animator.identity(field), asking);
         }
       }
       drawn = true;
@@ -3108,8 +3149,10 @@ public final class App<S> {
     handled = false;
     changedOutside = false;
     scrolled = false;
-    rowsPending =
-        between && !rowsKept && (focus.id() == null || animator.inRow(focus.id()) == null);
+    rowsPending = between
+        && !rowsKept
+        && (focus.id() == null
+            || animator.inRow(focus.id()) == null && !Animator.inFieldPart(focus.id()));
     rowsKept = false;
     endPresses(false);
     if (rowsPending) {
@@ -3120,8 +3163,9 @@ public final class App<S> {
       return;
     }
     fillRows();
+    placeEditors(false, false);
     refocus();
-    placeEditors();
+    placeEditors(true, false);
     El.placeBars(root);
   }
 
@@ -3140,12 +3184,12 @@ public final class App<S> {
     boolean pending = rowsPending;
     scrolled = false;
     rowsPending = false;
-    if (fillRows() || pending) {
+    boolean built = fillRows();
+    boolean parts = placeEditors(false, false);
+    if (built || pending || parts) {
       refocus();
-      placeEditors();
-    } else {
-      placeEditors(); // a multi-line field that scrolled lays out the rows it shows now
     }
+    placeEditors(true, false);
     El.placeBars(root);
     return true;
   }
@@ -3179,9 +3223,11 @@ public final class App<S> {
    * leads from the root to the parent of {@code el}. {@link #placeEditors} forgets the editors of
    * fields that are gone.
    */
-  private void attachEditors(El el, List<El> path) {
+  private boolean attachEditors(El el, List<El> path) {
     path.add(el);
-    if (el.isEditable()) {
+    boolean attached = false;
+    if (el.isEditable() && el.editor() == null) {
+      attached = true;
       Object id = Animator.identities(path).getLast();
       FieldState state = el.fieldState();
       Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
@@ -3231,27 +3277,156 @@ public final class App<S> {
       el.text().unfocused(!id.equals(focus.id())); // El#ellipsis shortens it without the focus
     }
     for (El child : el.children()) {
-      attachEditors(child, path);
+      attached |= attachEditors(child, path);
     }
     for (El overlay : el.overlays()) {
-      attachEditors(overlay, path);
+      attached |= attachEditors(overlay, path);
     }
     path.removeLast();
+    return attached;
   }
 
   /**
-   * After a rebuild, or after a virtual list built rows: forgets the editors of fields that are
-   * gone, follows the focus with the caret, and places the caret, selection and scroll of every
-   * field for its new layout. The editor of a focused field whose row scrolled out of the rows
-   * that exist stays, with the focus, for when the row comes back, and so does one whose
-   * selection is pending ({@link El#isSelectionPending}) while its row is out, both of a list that
-   * is not leaving; the editors of other fields in such rows go with them, as
-   * everything else the app keeps of a row. An editor without a {@link FieldState} that is
-   * forgotten here ends its pending selection ({@link Editor#drop}), as it cannot come back. A
-   * field that fades out ({@link El#isExiting}) has lost its editor, and with it its caret,
-   * selection and composition.
+   * Places the caret, selection, scroll and post-layout parts of every field in the tree. When
+   * {@code sweep} is true, updates the blinking editor from the current focus and forgets editors
+   * of fields that left the tree, only after all field parts are built and registered so fields
+   * inside rebuilt parts keep their editors across scrolling and rebuilds.
+   *
+   * @return whether any field built or updated its post-layout parts
    */
-  private void placeEditors() {
+  private boolean placeEditors(boolean sweep, boolean force) {
+    Editor prevBlinking = blinking;
+    boolean blinkMoved = false;
+    if (sweep) {
+      blinkMoved = blink(focus.element() == null ? null : focus.element().editor());
+    }
+    // By element: a field rebuilt in a part keeps its editor and must be placed again.
+    Set<El> placed = Collections.newSetFromMap(new IdentityHashMap<>());
+    boolean partsBuilt = false;
+    boolean needOverlays = caretOverlays;
+    for (int round = 0; round < 4; round++) {
+      List<Editor> shown = new ArrayList<>();
+      collectEditors(root, shown);
+      List<Editor> toPlace = new ArrayList<>();
+      for (Editor editor : shown) {
+        if (placed.contains(editor.element())) {
+          continue;
+        }
+        boolean needs = force
+            || !sweep
+            || round > 0
+            || (blinkMoved && (editor == blinking || editor == prevBlinking))
+            || (editor.element().text().multiline() && editor.element().text().viewStale());
+        if (needs) {
+          toPlace.add(editor);
+        }
+      }
+      if (toPlace.isEmpty()) {
+        break;
+      }
+      int asking = El.autofocuses();
+      for (Editor editor : toPlace) {
+        boolean focused = editor == blinking
+            && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
+        editor.place(focused, caretOn);
+        placed.add(editor.element());
+      }
+      // A coupled field follows its leader again with what layout measured, a few times at most;
+      // one still moving then follows on at the next placing.
+      boolean moved = true;
+      for (int pass = 0; pass < 3 && moved; pass++) {
+        moved = false;
+        for (Editor editor : shown) {
+          ScrollState scroll = editor.element().scrollState();
+          moved |= scroll != null && scroll.refollow(editor.element());
+        }
+        for (Editor editor : shown) {
+          Text text = editor.element().text();
+          if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
+            boolean focused = editor == blinking
+                && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
+            editor.place(focused, caretOn);
+            placed.add(editor.element());
+            moved = true; // what it measured now, such as a long line's width, may let it follow on
+          }
+        }
+      }
+      for (Editor editor : shown) {
+        ScrollState scroll = editor.element().scrollState();
+        if (scroll != null && !moved) { // settled
+          scroll.followX = false;
+          scroll.followY = false;
+        }
+      }
+      if (caretOverlays) {
+        needOverlays = true;
+      }
+      List<El> builtFields = new ArrayList<>();
+      for (Editor editor : shown) {
+        El field = editor.element();
+        if (field.takePartsBuilt()) {
+          Object fieldId = animator.identity(field);
+          if (fieldId != null) {
+            if (finishParts(field, fieldId, asking)) {
+              placed.remove(field); // a block a look made higher: its rows make room next round
+            }
+            builtFields.add(field);
+          }
+        }
+      }
+      if (builtFields.isEmpty()) {
+        break;
+      }
+      partsBuilt = true;
+      // Place overlays of the newly built parts before filling any virtual lists inside them.
+      caretOverlays = Overlays.place(root, width, height);
+      needOverlays = false;
+      if (hover.in()) {
+        // An overlay just placed on a part may now be under the pointer; apply its hover looks.
+        List<Object> under = pointedIds();
+        boolean reapplied = false;
+        for (El field : builtFields) {
+          Object fieldId = animator.identity(field);
+          if (fieldId == null) {
+            continue;
+          }
+          for (Object id : under) {
+            if (Animator.isInFieldPart(id, fieldId) && !this.shown.hovered().contains(id)) {
+              if (finishParts(field, fieldId, asking)) {
+                placed.remove(field);
+              }
+              reapplied = true;
+              break;
+            }
+          }
+        }
+        if (reapplied) {
+          caretOverlays = Overlays.place(root, width, height);
+        }
+      }
+      if (fillRows()) {
+        needOverlays = false;
+      }
+    }
+    if (partsBuilt) {
+      endPresses(true); // of field parts that left the tree
+      timeOverlays();
+    } else if (needOverlays) {
+      Overlays.place(root, width, height);
+    }
+    if (sweep) {
+      sweepEditors();
+    }
+    return partsBuilt;
+  }
+
+  /**
+   * Forgets the editors of fields that are gone from the current tree. The editor of a focused
+   * field whose row scrolled out of the rows that exist stays, with the focus, for when the row
+   * comes back, and so does one whose selection is pending ({@link El#isSelectionPending}) while
+   * its row is out, both of a list that is not leaving.
+   */
+  private void sweepEditors() {
     List<Editor> shown = new ArrayList<>();
     collectEditors(root, shown);
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -3279,46 +3454,80 @@ public final class App<S> {
       }
       return true;
     });
-    blink(focus.element() == null ? null : focus.element().editor());
-    for (Editor editor : shown) {
-      editor.place(editor == blinking, caretOn);
+  }
+
+  /**
+   * Finishes parts a field just built outside {@link #placeEditors} (such as on a caret blink):
+   * applies looks, attaches editors, registers identities, lays out and places overlays, and fills
+   * any nested virtual lists.
+   */
+  private void finishBuiltParts(El field, Object fieldId, int asking) {
+    if (fieldId == null) {
+      return;
     }
-    // A coupled field follows its leader again with what layout measured, a few times at most;
-    // one still moving then follows on at the next placing.
-    boolean moved = true;
-    for (int pass = 0; pass < 3 && moved; pass++) {
-      moved = false;
-      for (Editor editor : shown) {
-        ScrollState scroll = editor.element().scrollState();
-        moved |= scroll != null && scroll.refollow(editor.element());
-      }
-      for (Editor editor : shown) {
-        Text text = editor.element().text();
-        if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
-          editor.place(editor == blinking, caretOn);
-          moved = true; // what it measured now, such as a long line's width, may let it follow on
+    boolean again = finishParts(field, fieldId, asking);
+    caretOverlays = Overlays.place(root, width, height);
+    if (fillRows() || again) {
+      placeEditors(false, false);
+    } else {
+      List<Editor> nested = new ArrayList<>();
+      for (El part : field.children()) {
+        if (part.fieldPartKey() != null) {
+          collectEditors(part, nested);
         }
       }
-    }
-    for (Editor editor : shown) {
-      ScrollState scroll = editor.element().scrollState();
-      if (scroll != null && !moved) { // settled
-        scroll.followX = false;
-        scroll.followY = false;
+      if (!nested.isEmpty()) {
+        for (Editor editor : nested) {
+          editor.place(editor == blinking, caretOn);
+        }
+        for (Editor editor : nested) {
+          El sub = editor.element();
+          if (sub.takePartsBuilt()) {
+            finishBuiltParts(sub, animator.identity(sub), asking);
+          }
+        }
+        caretOverlays = Overlays.place(root, width, height);
       }
     }
-    boolean placeOverlays = caretOverlays;
-    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
-      El field = entry.getValue().element();
-      if (kept.contains(entry.getValue()) && field.takePartsBuilt()) {
-        gutterLooks(field, entry.getKey());
-        placeOverlays = true; // those of the parts just built, which the tree's pass did not see
+    timeOverlays();
+  }
+
+  /**
+   * Runs the post-build steps for a field whose post-layout parts were built or updated: applies
+   * looks, attaches editors inside parts and their overlays, re-layouts parts whose looks or
+   * editors changed them, lays out overlays of every built part, records autofocuses, and
+   * registers the parts' identities in the animator.
+   *
+   * @return whether a block a look made higher wants the field placed again
+   */
+  private boolean finishParts(El field, Object fieldId, int asking) {
+    Set<El> looked = Collections.newSetFromMap(new IdentityHashMap<>());
+    Set<El> stale = Collections.newSetFromMap(new IdentityHashMap<>());
+    Set<El> relooked = gutterLooks(field, fieldId, looked, stale);
+    List<El> path = new ArrayList<>();
+    boolean hasPath = pathTo(root, field, path);
+    boolean again = false;
+    for (El part : stale) {
+      again |= field.forgetBlock(part);
+    }
+    for (El part : field.children()) {
+      if (part.fieldPartKey() == null) {
+        continue;
       }
+      boolean attached = hasPath && attachEditors(part, path);
+      if (relooked.contains(part) || attached) {
+        again |= field.relayoutPart(part, looked, scale, systemFonts);
+      }
+      Overlays.layout(part, width, height);
     }
-    // Placed beside carets, which are placed now, or of field parts just built.
-    if (placeOverlays) {
-      Overlays.place(root, width, height);
+    if (!relooked.isEmpty()) {
+      field.dropPartCaches(); // parts keep no look a later scroll of this tree would show
     }
+    if (El.autofocuses() != asking) {
+      focus.ask(animator.autofocusInFieldParts(field, fieldId), time);
+    }
+    animator.fieldParts(field, fieldId, relooked, time);
+    return again;
   }
 
   /**
@@ -3333,7 +3542,7 @@ public final class App<S> {
       gained |= editor.element().text().advanceHighlight();
     }
     if (gained) {
-      placeEditors();
+      placeEditors(true, true);
     }
     return gained;
   }
@@ -3375,29 +3584,36 @@ public final class App<S> {
   }
 
   /**
-   * Applies the looks of the moment to the parts a field has just built after layout (gutter
-   * cells, line-end elements and blocks), as {@link #rowLooks} does to a list's rows: those under
-   * the pointer take their hover look and their {@link El#whenHoveredFor} look once it is due,
-   * such as a marker's tooltip, and the one held down its press look; those the old parts had go
-   * with them. Lays out the overlays of the parts, also those the view attached.
+   * Applies the looks of the moment to the post-layout parts a field has built (gutter cells,
+   * fold marks, line-end elements, blocks and inline hints), as {@link #rowLooks} does to a list's
+   * rows: hover, hover-rest, focus, focus-rest, focus-within and pressed looks; those the old
+   * parts had go with them.
+   *
+   * @param looked receives every element that took a new look in this call
+   * @param stale receives the blocks cached with a look that no longer applies
+   * @return the direct built parts of {@code field} containing an element in {@code looked}
    */
-  private void gutterLooks(El field, Object fieldId) {
-    boolean took = false;
+  private Set<El> gutterLooks(El field, Object fieldId, Set<El> looked, Set<El> stale) {
+    Set<El> relooked = Collections.newSetFromMap(new IdentityHashMap<>());
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
-    hovered.removeIf(id -> Animator.isBelow(id, fieldId));
-    rested.removeIf(id -> Animator.isBelow(id, fieldId));
-    Object press = shown.pressed();
-    if (Animator.isBelow(press, fieldId) && animator.element(press) == null) {
-      press = null; // a part's, built anew; a text range keeps the look the build gave it
-    }
+    List<Object> within = new ArrayList<>(shown.within());
+    hovered.removeIf(id -> Animator.isInFieldPart(id, fieldId));
+    rested.removeIf(id -> Animator.isInFieldPart(id, fieldId));
+    within.removeIf(id -> Animator.isInFieldPart(id, fieldId));
+    Object focused = Animator.isInFieldPart(shown.focused(), fieldId) ? null : shown.focused();
+    boolean focusRested =
+        Animator.isInFieldPart(this.focus.id(), fieldId) ? false : shown.focusRested();
+    Object press = Animator.isInFieldPart(shown.pressed(), fieldId) ? null : shown.pressed();
     for (Object id : pointedIds()) {
-      if (Animator.isBelow(id, fieldId)) {
+      if (Animator.isInFieldPart(id, fieldId)) {
         El el = Animator.find(field, fieldId, id);
         // A part kept from an earlier pass keeps the looks it took there.
         if (el != null && el.hoverLook() != null) {
           hovered.add(id);
-          took |= field.partLooks(el).add("whenHovered") && look(el, El::hoverLook, "whenHovered");
+          if (field.partLooks(el).add("whenHovered") && look(el, El::hoverLook, "whenHovered")) {
+            looked.add(el);
+          }
         }
         if (el != null && el.restLook() != null) {
           if (field.partLooks(el).contains("whenHoveredFor")) {
@@ -3405,41 +3621,113 @@ public final class App<S> {
           } else if (restLook(el, id)) {
             field.partLooks(el).add("whenHoveredFor");
             rested.add(id);
-            took = true;
+            looked.add(el);
+          }
+        }
+      }
+    }
+    if (Animator.isInFieldPart(this.focus.id(), fieldId)) {
+      El el = Animator.find(field, fieldId, this.focus.id());
+      if (el != null && el.isFocusable()) {
+        if (el.focusLook() != null) {
+          focused = this.focus.id();
+          if (field.partLooks(el).add("whenFocused") && look(el, El::focusLook, "whenFocused")) {
+            looked.add(el);
+          }
+        }
+        if (el.focusRestLook() != null) {
+          if (field.partLooks(el).contains("whenFocusVisibleFor")) {
+            focusRested = true;
+          } else if (focusRested(el)) {
+            delayedLook(el, el.focusRestLook(), "whenFocusVisibleFor");
+            field.partLooks(el).add("whenFocusVisibleFor");
+            focusRested = true;
+            looked.add(el);
+          }
+        }
+      }
+      for (Object id : Animator.lineage(this.focus.id())) {
+        if (Animator.isInFieldPart(id, fieldId)) {
+          El anc = Animator.find(field, fieldId, id);
+          if (anc != null && anc.focusWithinLook() != null) {
+            within.add(id);
+            if (field.partLooks(anc).add("whenFocusWithin")
+                && look(anc, El::focusWithinLook, "whenFocusWithin")) {
+              looked.add(anc);
+            }
           }
         }
       }
     }
     Object pressId = pressedId();
-    El pressed = Animator.isBelow(pressId, fieldId)
-            && animator.element(pressId) == null // a text range of the field took it in the build
-        ? Animator.find(field, fieldId, pressId)
-        : null;
-    if (pressed != null && pressed.pressLook() != null) {
-      press = pressId;
-      took |= field.partLooks(pressed).add("whenPressed")
-          && look(pressed, El::pressLook, "whenPressed");
-    }
-    for (El part : field.children()) {
-      if (took) {
-        El.scaleText(
-            part, scale, systemFonts, field.resolvedLineHeight); // the overlays the looks attached
-      }
-      if (took || field.isFieldPart(part)) { // a block's or line end's, which the view attached
-        Overlays.layout(part, width, height);
+    if (Animator.isInFieldPart(pressId, fieldId)) {
+      El pressed = Animator.find(field, fieldId, pressId);
+      if (pressed != null && pressed.pressLook() != null) {
+        press = pressId;
+        if (field.partLooks(pressed).add("whenPressed")
+            && look(pressed, El::pressLook, "whenPressed")) {
+          looked.add(pressed);
+        }
       }
     }
-    if (took) {
-      field.dropBlockCache(); // a block keeps no look a later scroll of this tree would show
+    if (!looked.isEmpty()) {
+      for (El part : field.children()) {
+        if (part.fieldPartKey() != null && containsAny(part, looked)) {
+          relooked.add(part);
+        }
+      }
     }
-    shown = new Looks(
-        hovered,
-        rested,
-        shown.focused(),
-        shown.focusRested(),
-        shown.within(),
-        press,
-        shown.hoversRun());
+    List<Object> lost = new ArrayList<>(); // by look: one may end while another stays
+    for (Object id : shown.hovered()) {
+      if (!hovered.contains(id)) {
+        lost.add(id);
+      }
+    }
+    for (Object id : shown.rested()) {
+      if (!rested.contains(id)) {
+        lost.add(id);
+      }
+    }
+    for (Object id : shown.within()) {
+      if (!within.contains(id)) {
+        lost.add(id);
+      }
+    }
+    if (!Objects.equals(shown.focused(), focused)) {
+      lost.add(shown.focused());
+    }
+    if (!Objects.equals(shown.pressed(), press)) {
+      lost.add(shown.pressed());
+    }
+    for (Object id : lost) {
+      El el = id != null && Animator.isInFieldPart(id, fieldId)
+          ? Animator.find(field, fieldId, id)
+          : null;
+      for (El part : field.children()) {
+        if (el != null && field.isFieldBlock(part) && containsAny(part, Set.of(el))) {
+          stale.add(part); // a block keeps its look in the cache: built anew without it
+        }
+      }
+    }
+    shown = new Looks(hovered, rested, focused, focusRested, within, press, shown.hoversRun());
+    return relooked;
+  }
+
+  private static boolean containsAny(El el, Set<El> targets) {
+    if (targets.contains(el)) {
+      return true;
+    }
+    for (El child : el.children()) {
+      if (containsAny(child, targets)) {
+        return true;
+      }
+    }
+    for (El overlay : el.overlays()) {
+      if (containsAny(overlay, targets)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -3860,7 +4148,8 @@ public final class App<S> {
     timeOverlays(root, open);
     shownTimes
         .keySet()
-        .removeIf(id -> !open.contains(id) && !(rowsPending && animator.inRow(id) != null));
+        .removeIf(id -> !open.contains(id)
+            && !(rowsPending && (animator.inRow(id) != null || Animator.inFieldPart(id))));
   }
 
   private void timeOverlays(El el, Set<Object> open) {
@@ -3933,16 +4222,11 @@ public final class App<S> {
     if (in != null && !in.list().hasRow(in.row())) {
       return rowsBuilt || in.row() >= in.list().rowCount();
     }
-    El above = null;
     for (Object at : Animator.lineage(id)) {
       El el = animator.element(at);
-      if (el == null) {
-        return above == null || !above.hasFieldParts();
-      }
-      if (el.isExiting()) {
+      if (el == null || el.isExiting()) {
         return true;
       }
-      above = el;
     }
     return false;
   }
@@ -4248,8 +4532,9 @@ public final class App<S> {
       relooking.clear();
     }
     if (built) {
+      placeEditors(false, false);
       refocus();
-      placeEditors();
+      placeEditors(true, false);
     }
     return built;
   }
@@ -4294,16 +4579,6 @@ public final class App<S> {
     }
     Object pressId = pressedId();
     El press = pressId == null ? null : animator.element(pressId);
-    if (press == null && pressId != null) { // a field's part, built after layout: below its field
-      Object field = null;
-      for (Object at : Animator.lineage(pressId)) {
-        if (animator.element(at) == null) {
-          break;
-        }
-        field = at;
-      }
-      press = field == null ? null : Animator.find(animator.element(field), field, pressId);
-    }
     return new Looks(
         hovered,
         rested,
@@ -4915,12 +5190,14 @@ public final class App<S> {
   }
 
   /**
-   * The index in {@code hit} of the editable field that takes a press, or -1: inside a line block,
-   * the field the block is in if it takes edits and nothing in the block takes presses, drags or
-   * pointer-down (also not a text field: a block takes no text input); else the last element if it
-   * takes edits.
+   * The index in {@code hit} of the editable field that takes a press, or -1: the last element if
+   * it takes edits; else inside a line block or inline hint, the field it is in if that field
+   * takes edits and nothing in the block or hint takes presses, drags or pointer-down.
    */
   private static int fieldPressIndex(List<El> hit) {
+    if (!hit.isEmpty() && hit.getLast().takesEdits()) {
+      return hit.size() - 1;
+    }
     for (int i = hit.size() - 2; i >= 0; i--) {
       El el = hit.get(i);
       if (el.isFieldBlock(hit.get(i + 1)) || el.isFieldHint(hit.get(i + 1))) {
@@ -4933,10 +5210,10 @@ public final class App<S> {
         return el.takesEdits() ? i : -1;
       }
       if (el.isFieldPart(hit.get(i + 1))) {
-        return -1; // nothing in a line-end element takes text input
+        return -1;
       }
     }
-    return !hit.isEmpty() && hit.getLast().takesEdits() ? hit.size() - 1 : -1;
+    return -1;
   }
 
   /** Whether {@code (x, y)} lies inside a multi-line field's content box (where its blocks and line-end elements clip). */

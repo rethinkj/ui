@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
@@ -297,29 +298,421 @@ class BlockTest {
   }
 
   @Test
-  void aFocusableControlInABlockTakesPressesButNotTheFocus() {
+  void tabVisitsBlockAndLineEndFocusablesInOrderAndActivatesWithEnter() {
+    int focusedColor = 0xFF3355AA;
+    AtomicInteger endClicks = new AtomicInteger();
     State state = new State("a\nb\nc", El.Block.insert(1));
     state.builder = b -> El.row()
         .h(20)
         .child(El.text("press")
-            .key("btn")
+            .key("block-btn")
             .fontSize(12)
             .focusable()
+            .whenFocused(e -> e.fill(focusedColor))
             .onPress(() -> state.visionClicks++));
-    App<State> app = start(state, UnaryOperator.identity());
-    key(app, "Tab"); // from the field: nothing in the block takes the focus
+    App<State> app = new App<>(
+        state,
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .padding(10)
+            .child(El.text("before").key("before").fontSize(12).focusable())
+            .child(El.text(s.value)
+                .editable(v -> s.value = v)
+                .multiline()
+                .key("f")
+                .font(Font.mono())
+                .fontSize(14)
+                .w(240)
+                .lines(6)
+                .padding(4)
+                .lineEnds(line -> line == 0
+                    ? List.of(El.text("end")
+                        .key("end-btn")
+                        .fontSize(12)
+                        .focusable()
+                        .onPress(endClicks::incrementAndGet))
+                    : List.of())
+                .blocks(s.blocks, s.builder, s::reveal))
+            .child(El.text("after").key("after").fontSize(12).focusable()));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(320, 260, 1);
+    app.frame();
+
+    // Forward Tab order: before -> f -> end-btn -> block-btn -> after.
+    app.focus(app.tree().children().getFirst());
+    app.frame();
+    assertEquals("before", app.focused().key());
     key(app, "Tab");
-    El block = field(app).children().stream()
-        .filter(child -> "block-1".equals(child.key()))
-        .findFirst()
-        .orElseThrow();
-    El button = block.children().getFirst();
-    float x = 10 + block.x() + button.x() + button.width() / 2;
-    float y = 10 + block.y() + button.y() + button.height() / 2;
+    assertEquals("f", app.focused().key());
+    key(app, "Tab");
+    assertEquals("end-btn", app.focused().key());
+    key(app, "Enter");
+    assertEquals(1, endClicks.get(), "Enter activates focused line-end control");
+    key(app, "Tab");
+    assertEquals("block-btn", app.focused().key());
+    assertEquals(focusedColor, app.focused().fill(), "whenFocused look applies to block child");
+    key(app, "Enter");
+    assertEquals(1, state.visionClicks, "Enter activates focused block control");
+    key(app, "Tab");
+    assertEquals("after", app.focused().key());
+
+    // Reverse Shift+Tab order: after -> block-btn -> end-btn -> f -> before.
+    key(app, "Tab", SHIFT);
+    assertEquals("block-btn", app.focused().key());
+    key(app, "Tab", SHIFT);
+    assertEquals("end-btn", app.focused().key());
+    key(app, "Tab", SHIFT);
+    assertEquals("f", app.focused().key());
+    key(app, "Tab", SHIFT);
+    assertEquals("before", app.focused().key());
+
+    // Pressing block-btn with pointer runs handler without stealing focus from before.
+    El f = app.tree().children().get(1);
+    El block = findChild(f, "block-1");
+    El button = findChild(block, "block-btn");
+    float x = f.x() + block.x() + button.x() + button.width() / 2;
+    float y = f.y() + block.y() + button.y() + button.height() / 2;
     app.pointerDown(x, y);
     app.pointerUp(x, y);
     app.frame();
-    assertEquals(1, state.visionClicks);
+    assertEquals(2, state.visionClicks);
+    assertEquals("before", app.focused().key());
+  }
+
+  @Test
+  void textFieldInInsertedBlockTakesFocusTypingAndSurvivesScrollAndBlink() {
+    StringBuilder lines = new StringBuilder();
+    for (int i = 0; i < 14; i++) {
+      if (i > 0) {
+        lines.append('\n');
+      }
+      lines.append("line ").append(i);
+    }
+    String[] comment = {"hi"};
+    State state = new State(lines.toString(), El.Block.insert(1));
+    state.builder = b -> El.row()
+        .h(24)
+        .padding(2)
+        .child(El.text(comment[0])
+            .editable(v -> comment[0] = v)
+            .key("comment")
+            .font(Font.mono())
+            .fontSize(12)
+            .w(120)
+            .whenPressed(e -> e.fill(0xFF334455)));
+    App<State> app = start(state, f -> f.lines(6));
+    String outerBefore = state.value;
+
+    El f = field(app);
+    El block = findChild(f, "block-1");
+    El input = findChild(block, "comment");
+    float ix = 10 + block.x() + input.x() + input.width() - 4;
+    float iy = 10 + block.y() + input.y() + input.height() / 2;
+    app.pointerDown(ix, iy);
+    app.pointerUp(ix, iy);
+    app.frame();
+    assertEquals("comment", app.focused().key(), "clicking field in block focuses it");
+
+    type(app, "!");
+    assertEquals("hi!", comment[0], "typed text goes to inner field");
+    assertEquals(outerBefore, state.value, "outer field text is unchanged");
+
+    // Scroll outer field while keeping block in view: inner field's editor survives (undo works).
+    app.scrollTo(field(app), 0, 10);
+    app.frame();
+    assertEquals("comment", app.focused().key(), "focus survives scroll rebuilding block");
+    key(app, "Z", CONTROL);
+    assertEquals("hi", comment[0], "inner field editor undo history survived part rebuild");
+    assertEquals(outerBefore, state.value);
+
+    // Caret blink on outer field after a pressed look drops block cache still registers identities.
+    focus(app);
+    El f2 = field(app);
+    El b2 = findChild(f2, "block-1");
+    El inp2 = findChild(b2, "comment");
+    float bx = 10 + b2.x() + inp2.x() + 4;
+    float by = 10 + b2.y() + inp2.y() + inp2.height() / 2;
+    app.pointerMove(bx, by);
+    app.frame();
+    app.advance(App.BLINK);
+    app.frame();
+    key(app, "Tab");
+    assertEquals("comment", app.focused().key(), "block child keeps identity after caret blink");
+  }
+
+  @Test
+  void dragInsideABlockRunsThroughStartMoveAndEnd() {
+    List<Drag.Phase> phases = new ArrayList<>();
+    State state = new State("a\nb\nc", El.Block.insert(1));
+    state.builder = b -> El.row()
+        .h(22)
+        .child(El.text("drag").key("handle").fontSize(12).w(60).onDrag(d -> phases.add(d.phase())));
+    App<State> app = start(state, UnaryOperator.identity());
+
+    El block = findChild(field(app), "block-1");
+    El handle = findChild(block, "handle");
+    float x = 10 + block.x() + handle.x() + handle.width() / 2;
+    float y = 10 + block.y() + handle.y() + handle.height() / 2;
+    app.pointerDown(x, y);
+    app.frame();
+    app.pointerMove(x + 15, y);
+    app.frame();
+    app.pointerMove(x + 30, y);
+    app.frame();
+    app.pointerUp(x + 30, y);
+    app.frame();
+
+    assertEquals(List.of(Drag.Phase.START, Drag.Phase.MOVE, Drag.Phase.END), phases);
+  }
+
+  @Test
+  void blockOverlaySortsAboveModalKeepsFocusFillsListAndAttachesLookField() {
+    boolean[] menuOpen = {false};
+    String[] menuInput = {""};
+    String[] lookInput = {""};
+    State state = new State("line0\nline1", El.Block.insert(0));
+    state.builder = b -> {
+      El openBtn = El.text("open").key("open-btn").fontSize(12).onPress(() -> menuOpen[0] = true);
+      if (menuOpen[0]) {
+        openBtn.overlay(El.col()
+            .key("block-menu")
+            .padding(4)
+            .fill(0xFF333344)
+            .child(El.text(menuInput[0])
+                .editable(v -> menuInput[0] = v)
+                .key("menu-input")
+                .font(Font.mono())
+                .fontSize(12)
+                .w(100))
+            .child(El.col()
+                .key("menu-list")
+                .w(100)
+                .h(40)
+                .rows(5, 20, i -> El.text("row-" + i).fontSize(12))));
+      }
+      El hoverHost = El.text("hover")
+          .key("hover-host")
+          .fontSize(12)
+          .whenHovered(e -> e.overlay(El.col()
+              .key("look-pop")
+              .padding(2)
+              .fill(0xFF223344)
+              .child(El.text(lookInput[0])
+                  .editable(v -> lookInput[0] = v)
+                  .key("look-input")
+                  .font(Font.mono())
+                  .fontSize(12)
+                  .w(80))));
+      return El.row().h(20).gap(8).child(openBtn).child(hoverHost);
+    };
+    App<State> app = new App<>(
+        state,
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(El.col()
+                .key("dlg")
+                .modal()
+                .w(280)
+                .h(200)
+                .padding(8)
+                .fill(0xFF1A1A22)
+                .child(El.text(s.value)
+                    .editable(v -> s.value = v)
+                    .multiline()
+                    .key("f")
+                    .font(Font.mono())
+                    .fontSize(14)
+                    .w(240)
+                    .lines(6)
+                    .padding(4)
+                    .gutter(line -> {
+                      El cell = El.text(String.valueOf(line.index() + 1))
+                          .font(Font.mono())
+                          .fontSize(14)
+                          .padding(0, 4, 0, 0);
+                      if (line.index() == 0) {
+                        cell.overlay(El.text("g-tip").key("g-tip").fontSize(12).fill(0xFF222233));
+                      }
+                      return cell;
+                    })
+                    .blocks(s.blocks, s.builder, s::reveal))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(360, 260, 1);
+    app.frame();
+
+    // View-attached overlay on a gutter cell is laid out even without any look applying.
+    El gTip = app.tree().shownOverlays().stream()
+        .filter(o -> "g-tip".equals(o.key()))
+        .findFirst()
+        .orElse(null);
+    assertTrue(gTip != null && gTip.isPlaced() && gTip.width() > 0, "gutter overlay laid out");
+
+    // Open block menu from inside the modal dialog: placed in same pass, sorted above modal,
+    // and virtual list inside it gets its rows filled.
+    El dlg = app.tree().shownOverlays().stream()
+        .filter(o -> "dlg".equals(o.key()))
+        .findFirst()
+        .orElseThrow();
+    El f = dlg.children().getFirst();
+    El block = findChild(f, "block-0");
+    El openBtn = findChild(block, "open-btn");
+    float bx = dlg.x() + f.x() + block.x() + openBtn.x() + openBtn.width() / 2;
+    float by = dlg.y() + f.y() + block.y() + openBtn.y() + openBtn.height() / 2;
+    app.pointerDown(bx, by);
+    app.pointerUp(bx, by);
+    app.frame();
+
+    List<El> shown = app.tree().shownOverlays();
+    int dlgIdx = -1;
+    int menuIdx = -1;
+    for (int i = 0; i < shown.size(); i++) {
+      if ("dlg".equals(shown.get(i).key())) {
+        dlgIdx = i;
+      } else if ("block-menu".equals(shown.get(i).key())) {
+        menuIdx = i;
+      }
+    }
+    assertTrue(menuIdx > dlgIdx && dlgIdx >= 0, "block overlay sorts above enclosing modal");
+    El menu = shown.get(menuIdx);
+    El menuList = findChild(menu, "menu-list");
+    assertFalse(menuList.children().isEmpty(), "virtual list in block overlay has rows filled");
+
+    // Text field inside block overlay takes focus, keeps focus across rebuilds, and takes typing.
+    El mInput = findChild(menu, "menu-input");
+    float mx = menu.x() + mInput.x() + mInput.width() / 2;
+    float my = menu.y() + mInput.y() + mInput.height() / 2;
+    app.pointerDown(mx, my);
+    app.pointerUp(mx, my);
+    app.frame();
+    assertEquals("menu-input", app.focused().key(), "field in block menu keeps focus after frame");
+    type(app, "ok");
+    assertEquals("ok", menuInput[0], "typing reaches field in block menu");
+    assertEquals("menu-input", app.focused().key(), "focus stays in block menu after typing");
+
+    // Overlay attached by whenHovered on a block child attaches editors to fields inside it.
+    menuOpen[0] = false;
+    app.invalidate();
+    app.frame();
+    El dlg2 = app.tree().shownOverlays().stream()
+        .filter(o -> "dlg".equals(o.key()))
+        .findFirst()
+        .orElseThrow();
+    El f2 = dlg2.children().getFirst();
+    El b2 = findChild(f2, "block-0");
+    El hoverHost = findChild(b2, "hover-host");
+    float hx = dlg2.x() + f2.x() + b2.x() + hoverHost.x() + hoverHost.width() / 2;
+    float hy = dlg2.y() + f2.y() + b2.y() + hoverHost.y() + hoverHost.height() / 2;
+    app.pointerMove(hx, hy);
+    app.frame();
+    El lookPop = app.tree().shownOverlays().stream()
+        .filter(o -> "look-pop".equals(o.key()))
+        .findFirst()
+        .orElse(null);
+    assertTrue(lookPop != null && lookPop.isPlaced(), "hover look overlay on block placed");
+    El lInput = findChild(lookPop, "look-input");
+    assertTrue(lInput.editor() != null, "editor attached to field inside look-added overlay");
+  }
+
+  @Test
+  void revealUsesContentBoxAnimationDoesNotDoubleScrollAndLooksRelayoutParts() {
+    String longLine = " ".repeat(40) + "void target() {}";
+    State state = new State(longLine + "\nline1\nline2\nline3\nline4\nline5", El.Block.insert(0));
+    state.builder = b -> El.row()
+        .h(20)
+        .motion(Spring.SNAP)
+        .child(El.text("left")
+            .key("left-btn")
+            .fontSize(12)
+            .focusable()
+            .onPress(() -> {})
+            .whenPressed(e -> e.padding(8)))
+        .child(El.el().w(260))
+        .child(El.text("right").key("right-btn").fontSize(12).focusable());
+    App<State> app = start(
+        state,
+        f -> f.w(200)
+            .lines(3)
+            .gutter(line -> El.row()
+                .padding(0, 12, 0, 0)
+                .child(
+                    El.text(String.valueOf(line.index() + 1)).font(Font.mono()).fontSize(14)))
+            .lineEnds(line -> line == 0
+                ? List.of(El.text("end")
+                    .key("size-end")
+                    .fontSize(12)
+                    .onPress(() -> {})
+                    .whenPressed(e -> e.padding(8)))
+                : List.of()));
+
+    // 1. Scroll right so left-btn sits behind the gutter (inside border box, left of content box),
+    // then focus left-btn: reveal must scroll left until left-btn is clear of the gutter.
+    app.scrollTo(field(app), 16, 0);
+    app.frame();
+    El f = field(app);
+    float contentLeft = f.border(Side.LEFT) + f.padding(Side.LEFT);
+    assertTrue(contentLeft > 16, "gutter widens contentLeft: " + contentLeft);
+    El leftBtn = findChild(findChild(f, "block-0"), "left-btn");
+    app.focus(leftBtn);
+    app.frame();
+    f = field(app);
+    El blockAfterReveal = findChild(f, "block-0");
+    El leftAfterReveal = findChild(blockAfterReveal, "left-btn");
+    assertTrue(
+        blockAfterReveal.x() + leftAfterReveal.x() >= contentLeft - 0.5f,
+        "focused block child revealed inside content box, clear of gutter");
+
+    // 2. Animation does not apply scroll offset twice to a block with motion.
+    app.scrollTo(field(app), 60, 20);
+    app.frame();
+    app.advance(0.05);
+    app.frame();
+    f = field(app);
+    El animBlock = findChild(f, "block-0");
+    assertEquals(
+        contentLeft - (float) f.scrollX(),
+        animBlock.x(),
+        1.0f,
+        "animated block x applies scrollX once");
+    float contentTop = f.border(Side.TOP) + f.padding(Side.TOP);
+    assertEquals(
+        contentTop - (float) f.scrollY(),
+        animBlock.y(),
+        1.0f,
+        "animated block y applies scrollY once");
+
+    // 3. Pressed look changing size re-layouts both block children and line-end elements.
+    app.scrollTo(field(app), 0, 0);
+    app.frame();
+    f = field(app);
+    El b0 = findChild(f, "block-0");
+    El lBtn = findChild(b0, "left-btn");
+    float beforeW = lBtn.width();
+    float bx = 10 + b0.x() + lBtn.x() + lBtn.width() / 2;
+    float by = 10 + b0.y() + lBtn.y() + lBtn.height() / 2;
+    app.pointerDown(bx, by);
+    app.frame();
+    El lBtnPressed = findChild(findChild(field(app), "block-0"), "left-btn");
+    assertEquals(beforeW + 16f, lBtnPressed.width(), 0.5f, "block child re-laid out on press look");
+    app.pointerUp(bx, by);
+    app.frame();
+
+    // Short text so line-end element is in view; press it and verify size grows.
+    state.value = "hi\nline1";
+    app.invalidate();
+    app.frame();
+    El endBefore = findChild(field(app), "size-end");
+    float endW = endBefore.width();
+    float ex = 10 + endBefore.x() + endBefore.width() / 2;
+    float ey = 10 + endBefore.y() + endBefore.height() / 2;
+    app.pointerDown(ex, ey);
+    app.frame();
+    El endPressed = findChild(field(app), "size-end");
+    assertEquals(
+        endW + 16f, endPressed.width(), 0.5f, "line-end element re-laid out on press look");
+    app.pointerUp(ex, ey);
+    app.frame();
   }
 
   @Test
@@ -715,5 +1108,171 @@ class BlockTest {
     assertTrue(dump.contains("#line-0 "), dump);
     assertTrue(dump.contains("#line-1 "), dump);
     assertTrue(dump.contains("#line-4 "), dump);
+  }
+
+  @Test
+  void looksThatResizePartsMakeRoomAndPartsOutOfReachSkipTab() {
+    State state = new State("a\nb\nc", El.Block.insert(1), El.Block.insert(0));
+    state.builder = b -> b.first() == 0
+        ? El.row().h(20).child(El.el().w(400)).child(El.text("far").key("far").focusable())
+        : El.row()
+            .key("grows")
+            .child(El.text("press").h(20))
+            .onPress(() -> {})
+            .whenPressed(e -> e.h(60));
+    App<State> app = start(
+        state,
+        f -> f.lineEnds(line -> line == 0
+            ? List.of(
+                El.text("first").key("first").w(40).onPress(() -> {}).whenPressed(e -> e.w(90)),
+                El.text("second").key("second").w(50))
+            : List.of()));
+    El field = field(app);
+    El block = findChild(field, "grows");
+    double below = field.text().lineToOffset(1);
+    app.pointerDown(10 + field.x() + block.x() + 100, 10 + field.y() + block.y() + 5);
+    app.frame();
+    field = field(app);
+    assertEquals(60, findChild(field, "grows").height());
+    assertEquals(below + 40, field.text().lineToOffset(1), 0.5, "the rows below make room");
+    app.pointerUp(10 + field.x() + block.x() + 100, 10 + field.y() + block.y() + 5);
+    app.frame();
+
+    El first = findChild(field(app), "first");
+    float gap = findChild(field(app), "second").x() - first.x() - first.width();
+    app.pointerDown(10 + field(app).x() + first.x() + 5, 10 + field(app).y() + first.y() + 5);
+    app.frame();
+    first = findChild(field(app), "first");
+    assertEquals(90, first.width());
+    assertEquals(gap, findChild(field(app), "second").x() - first.x() - first.width(), 0.01);
+    app.pointerUp(0, 0);
+    app.frame();
+
+    key(app, "Tab"); // from the field: "far" lies past the content box, which does not scroll
+    assertNotEquals("far", app.focused() == null ? null : app.focused().key());
+  }
+
+  @Test
+  void fieldsInPartsKeepTheirCaretAndComeBackWithTheirRow() {
+    String[] input = {"1234567890".repeat(5)};
+    boolean[] before = {false};
+    State state = new State("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten");
+    App<State> app = start(
+        state,
+        f -> f.lineEnds(line -> {
+          if (line != 2) {
+            return List.of();
+          }
+          El nested = El.text(input[0])
+              .key("nested")
+              .font(Font.mono())
+              .fontSize(14)
+              .w(100)
+              .editable(v -> input[0] = v);
+          return before[0] ? List.of(El.text("x"), nested) : List.of(nested);
+        }));
+    app.focus(findChild(field(app), "nested"));
+    app.frame();
+    Editor editor = findChild(field(app), "nested").editor();
+    float scroll = findChild(field(app), "nested").text().scroll();
+    app.scrollTo(field(app), 0, 7); // builds the line-end element anew
+    app.frame();
+    El nested = findChild(field(app), "nested");
+    assertEquals("nested", app.focused().key());
+    assertEquals(editor, nested.editor());
+    assertEquals(scroll, nested.text().scroll(), "its caret stays in view");
+    before[0] = true; // an element before it on its line: it keeps its identity by its key
+    app.invalidate();
+    app.frame();
+    assertEquals("nested", app.focused().key());
+    assertEquals(editor, findChild(field(app), "nested").editor());
+
+    String[] comment = {"hi"};
+    App<String> list = new App<>(
+        "",
+        s -> El.col()
+            .padding(10)
+            .child(El.col()
+                .key("list")
+                .w(250)
+                .h(200)
+                .rows(
+                    100,
+                    120,
+                    row -> row == 0
+                        ? El.text("a\nb")
+                            .key("f")
+                            .editable(v -> {})
+                            .multiline()
+                            .lines(3)
+                            .blocks(
+                                List.of(El.Block.insert(0)),
+                                b -> El.row()
+                                    .child(El.text(comment[0])
+                                        .key("comment")
+                                        .w(100)
+                                        .editable(v -> comment[0] = v)),
+                                b -> {})
+                        : El.text("row " + row))));
+    list.textRendering(TextRendering.LINUX);
+    list.resize(320, 250, 1);
+    list.frame();
+    El row = list.tree().children().getFirst().children().getFirst();
+    list.focus(findChild(findChild(row, "block-0"), "comment"));
+    list.frame();
+    list.scrollToRow(list.tree().children().getFirst(), 50);
+    list.frame();
+    type(list, "!"); // brings the row back, with the block the focus is in
+    assertEquals("comment", list.focused().key());
+    assertEquals("hi!", comment[0]);
+  }
+
+  @Test
+  void partsWithRepeatedKeysStayApartAndCachedBlocksDropLooksThatEnd() {
+    String[] input = {"edit"};
+    State state = new State(
+        "1234567890".repeat(20) + "\n" + "line\n".repeat(20),
+        El.Block.insert(0),
+        El.Block.insert(3));
+    state.builder = b -> b.first() == 0
+        ? El.row()
+            .h(24)
+            .child(El.el().w(250).shrink(0))
+            .child(El.text(input[0]).key("item").w(60).shrink(0).editable(v -> input[0] = v))
+        : El.row().key("hovered").h(20).whenHovered(e -> e.h(60));
+    App<State> app = start(
+        state,
+        f -> f.gutter(line -> El.text("x").key("cell"))
+            .lineEnds(line -> line == 1 || line == 2
+                ? List.of(El.text("run").key("run"), El.text("a"), El.text("b").key("end-1-1"))
+                : List.of())); // the second's generated key on line 1 is end-1-1 too
+    assertEquals(
+        2,
+        field(app).children().stream().filter(c -> "run".equals(c.key())).count(),
+        "the same key on two lines");
+
+    // A block wider than the view keeps its width once its field has an editor.
+    app.scrollTo(field(app), 170, 0);
+    app.frame();
+    El block = findChild(field(app), "block-0");
+    El item = findChild(block, "item");
+    float x = 10 + field(app).x() + block.x() + item.x() + 10;
+    float y = 10 + field(app).y() + block.y() + item.y() + item.height() / 2;
+    app.pointerDown(x, y);
+    app.pointerUp(x, y);
+    app.frame();
+    assertEquals(310, findChild(field(app), "block-0").width(), 0.5);
+    assertEquals("item", app.focused().key());
+
+    // Scrolled away from a still pointer, a block drops the look the cache kept.
+    app.scrollTo(field(app), 0, 0);
+    app.frame();
+    El hovered = findChild(field(app), "hovered");
+    app.pointerMove(10 + field(app).x() + hovered.x() + 30, 10 + field(app).y() + hovered.y() + 5);
+    app.frame();
+    assertEquals(60, findChild(field(app), "hovered").height());
+    app.scrollTo(field(app), 0, 80); // past the pointer, which stays where it was
+    app.frame();
+    assertEquals(20, findChild(field(app), "hovered").height());
   }
 }

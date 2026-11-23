@@ -3,12 +3,14 @@ package com.rethinkj.ui;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.motion.Track;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -56,7 +58,24 @@ final class Animator {
    * The part is the element's key or, when it has none, its index as an Integer; for a row of a
    * virtual list, the row's index.
    */
-  private record Id(Id parent, Object part) {}
+  private record Id(Id parent, Object part, int hash) {
+    Id(Id parent, Object part) { // the hash once: a record's would walk all the parents each time
+      this(parent, part, 31 * (parent == null ? 0 : parent.hash) + part.hashCode());
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof Id id
+          && hash == id.hash
+          && part.equals(id.part)
+          && Objects.equals(parent, id.parent);
+    }
+
+    @Override
+    public int hashCode() {
+      return hash;
+    }
+  }
 
   /** The part of an overlay's identity: its key or index among its anchor's overlays. */
   private record Layer(Object part) {}
@@ -180,18 +199,23 @@ final class Animator {
         ids.add(id);
         continue;
       }
+      El parent = i > 0 ? path.get(i - 1) : null;
+      if (el.fieldPartKey() != null) {
+        id = new Id(id, el.fieldPartKey());
+        ids.add(id);
+        continue;
+      }
       int index = 0;
-      if (i > 0) {
-        for (El sibling : path.get(i - 1).children()) {
+      if (parent != null) {
+        for (El sibling : parent.children()) {
           if (sibling == el) {
             break;
           }
-          if (!sibling.isExiting()) {
+          if (!sibling.isExiting() && sibling.fieldPartKey() == null) {
             index++;
           }
         }
       }
-      El parent = i > 0 ? path.get(i - 1) : null;
       id = new Id(
           id,
           parent != null && parent.isVirtualList()
@@ -233,6 +257,26 @@ final class Animator {
   static boolean isBelow(Object identity, Object ancestor) {
     for (Id id = identity == null ? null : ((Id) identity).parent(); id != null; id = id.parent()) {
       if (id.equals(ancestor)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether {@code identity} is a post-layout part of {@code field} or inside one. */
+  static boolean isInFieldPart(Object identity, Object field) {
+    for (Id id = (Id) identity; id != null && id.parent() != null; id = id.parent()) {
+      if (id.part() instanceof El.FieldPart && field.equals(id.parent())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether {@code identity} is a post-layout part of any field or inside one. */
+  static boolean inFieldPart(Object identity) {
+    for (Id id = (Id) identity; id != null; id = id.parent()) {
+      if (id.part() instanceof El.FieldPart) {
         return true;
       }
     }
@@ -291,9 +335,21 @@ final class Animator {
       int i = id.part() instanceof Integer row ? row - parent.firstRow() : -1;
       return i >= 0 && i < children.size() ? children.get(i) : null;
     }
-    for (int i = 0; i < children.size(); i++) {
-      if (id.part().equals(part(children.get(i), i))) {
-        return children.get(i);
+    if (id.part() instanceof El.FieldPart) {
+      for (El child : children) {
+        if (id.part().equals(child.fieldPartKey())) {
+          return child;
+        }
+      }
+      return null;
+    }
+    int index = 0;
+    for (El child : children) {
+      if (child.fieldPartKey() != null) {
+        continue;
+      }
+      if (id.part().equals(part(child, index++))) {
+        return child;
       }
     }
     return null;
@@ -339,13 +395,13 @@ final class Animator {
       if (kept == null) {
         visit(row, ids[i], false, true, next, now);
       } else { // at once, as visit moves a row; what is inside it stays where it was
-        kept.x = row.x();
-        kept.y = row.y();
+        kept.x = row.placedX();
+        kept.y = row.placedY();
         kept.width = row.width();
         kept.height = row.height();
         if (kept.tracks != null) {
-          kept.tracks[0].set(row.x());
-          kept.tracks[1].set(row.y());
+          kept.tracks[0].set(row.placedX());
+          kept.tracks[1].set(row.placedY());
           kept.tracks[2].set(row.width());
           kept.tracks[3].set(row.height());
         }
@@ -356,6 +412,73 @@ final class Animator {
     runPendingFollows();
     entry.rowsFrom = list.firstRow();
     entry.rowsTo = list.firstRow() + ids.length;
+    present(now);
+  }
+
+  /**
+   * Takes the post-layout parts a multi-line field of the current tree has built (gutter, fold
+   * marks, line-end elements, line blocks and inline hints): each gets the entries of the part
+   * with the same key that the field had, and entries of parts that are gone are forgotten. A part
+   * moves with its field at once, without springing. Parts kept unchanged from an earlier pass
+   * keep their entries, and only their placed rectangle updates.
+   */
+  void fieldParts(El field, Object identity, Set<El> relooked, double now) {
+    Id id = (Id) identity;
+    Entry entry = entries.get(id);
+    if (entry == null) {
+      return; // not in the tree the last update took
+    }
+    Set<El> keptParts = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (El child : field.children()) {
+      El.FieldPart key = child.fieldPartKey();
+      if (key == null || relooked.contains(child)) {
+        continue;
+      }
+      Entry old = entries.get(new Id(id, key));
+      if (old != null && old.el == child) {
+        keptParts.add(child);
+      }
+    }
+    Map<Id, Entry> before = new HashMap<>();
+    for (Object key : entry.partKeys) {
+      Id partId = new Id(id, key);
+      Entry old = entries.get(partId);
+      if (old != null && !keptParts.contains(old.el)) {
+        move(old.el, partId, before);
+      }
+    }
+    Map<Id, Entry> current = entries;
+    entries = before; // where visit finds the previous version of each part
+    visiting = true;
+    Map<Id, Entry> next = new HashMap<>();
+    List<Object> keys = new ArrayList<>();
+    for (El child : field.children()) {
+      El.FieldPart key = child.fieldPartKey();
+      if (key == null) {
+        continue;
+      }
+      Id partId = new Id(id, key);
+      keys.add(key);
+      if (keptParts.contains(child)) {
+        Entry kept = current.get(partId);
+        kept.x = child.placedX();
+        kept.y = child.placedY();
+        kept.width = child.width();
+        kept.height = child.height();
+        if (kept.tracks != null) {
+          kept.tracks[0].set(child.placedX());
+          kept.tracks[1].set(child.placedY());
+          kept.tracks[2].set(child.width());
+          kept.tracks[3].set(child.height());
+        }
+      } else {
+        visit(child, partId, false, true, next, now);
+      }
+    }
+    entries = current;
+    entries.putAll(next);
+    runPendingFollows();
+    entry.partKeys = keys.isEmpty() ? List.of() : List.copyOf(keys);
     present(now);
   }
 
@@ -385,6 +508,10 @@ final class Animator {
    * @param row whether {@code el} is a row of a virtual list, whose rectangle changes at once
    */
   private void visit(El el, Id id, boolean enters, boolean row, Map<Id, Entry> next, double now) {
+    if (el.isExiting()) {
+      keep(el, id, next, now);
+      return;
+    }
     if (el.style().display == Style.Display.NONE) {
       return; // forgotten, so that it appears again without moving, like a new element
     }
@@ -463,6 +590,18 @@ final class Animator {
       if (before != null) {
         keepLeaving(before, el, id, next, now);
       }
+      if (el.hasFieldParts()) {
+        // Its parts come later; until then the parts it had keep their entries for them.
+        for (Object key : entry.partKeys) {
+          Id partId = new Id(id, key);
+          Entry old = entries.get(partId);
+          if (old != null) {
+            keep(old.el, partId, next, now);
+          }
+        }
+      } else {
+        entry.partKeys = List.of();
+      }
     }
     // Clamped to the new content; also shifts the leaving children, which are the old ones.
     ScrollState kept = el.scrollState();
@@ -522,6 +661,9 @@ final class Animator {
     Id[] ids = ids(before, id);
     for (int i = 0; i < ids.length; i++) {
       El child = before.children().get(i);
+      if (child.fieldPartKey() != null) {
+        continue; // field parts are tracked by fieldParts, not as leaving view children
+      }
       Entry entry = next.get(ids[i]);
       if (entry != null) {
         anchor = entry.el;
@@ -627,9 +769,11 @@ final class Animator {
       El child = children.get(i);
       ids[i] = new Id(
           id,
-          el.isVirtualList()
-              ? Integer.valueOf(el.firstRow() + i)
-              : child.isExiting() ? child.key() : part(child, index++));
+          child.fieldPartKey() != null
+              ? child.fieldPartKey()
+              : el.isVirtualList()
+                  ? Integer.valueOf(el.firstRow() + i)
+                  : child.isExiting() ? child.key() : part(child, index++));
     }
     return ids;
   }
@@ -744,6 +888,22 @@ final class Animator {
     return found;
   }
 
+  /**
+   * The elements in the post-layout parts of {@code field}, with identity {@code fieldId}, that
+   * ask for the focus with {@link El#autofocus}.
+   */
+  List<Object> autofocusInFieldParts(El field, Object fieldId) {
+    List<Object> found = new ArrayList<>();
+    Id id = (Id) fieldId;
+    for (El child : field.children()) {
+      El.FieldPart key = child.fieldPartKey();
+      if (key != null) {
+        autofocus(child, new Id(id, key), found);
+      }
+    }
+    return found;
+  }
+
   private void autofocus(El el, Id id, List<Object> found) {
     if (el.hidesFocus()) {
       return;
@@ -774,8 +934,8 @@ final class Animator {
   /** One animated number of an element as it is now. */
   private static double value(El el, int index) {
     return switch (index) {
-      case 0 -> el.x();
-      case 1 -> el.y();
+      case 0 -> el.placedX();
+      case 1 -> el.placedY();
       case 2 -> el.width();
       case 3 -> el.height();
       case RADIUS, RADIUS + 1, RADIUS + 2, RADIUS + 3 -> el.cornerRadius(index - RADIUS);
@@ -816,6 +976,8 @@ final class Animator {
     // For a virtual list: the rows that have entries, from rowsFrom to rowsTo, exclusive.
     int rowsFrom;
     int rowsTo;
+    // For a multi-line field: the post-layout field part keys that have entries.
+    List<Object> partKeys = List.of();
 
     Entry(Id id, long opened) {
       this.id = id;
@@ -844,8 +1006,8 @@ final class Animator {
 
     /** Keeps what a visit finds of {@code el}. */
     void take(El el) {
-      x = el.x();
-      y = el.y();
+      x = el.placedX();
+      y = el.placedY();
       width = el.width();
       height = el.height();
       opacity = el.opacity();

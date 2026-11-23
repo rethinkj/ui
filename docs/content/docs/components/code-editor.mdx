@@ -210,7 +210,7 @@ Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, igno
 
 ## Code vision
 
-Call `codeVision(list)` on `CodeEditor.State` to place muted hint rows above declarations — such as usage counts or authorship — without turning them into editable text. Each `CodeEditor.Vision(line, symbol, label, onPress)` takes a 0-based line index, an optional leading `Icon`, a label, and an optional press handler (`null` for read-only entries). Entries for the same line share one inserted row in list order, aligned with that line's indentation in the code font. Clickable entries keep focus in the editor when pressed, and an enclosing fold hides entries inside it. The editor computes nothing itself; pass `List.of()` to clear them.
+Call `codeVision(list)` on `CodeEditor.State` to place muted hint rows above declarations — such as usage counts or authorship — without turning them into editable text. Each `CodeEditor.Vision(line, symbol, label, onPress)` takes a 0-based line index, an optional leading `Icon`, a label, and an optional press handler (`null` for read-only entries). Entries for the same line share one inserted row in list order, aligned with that line's indentation in the code font. Clickable entries keep focus in the editor when pressed, can be reached by keyboard (Tab after Ctrl+M, or Shift+Tab from after the editor) and activated with Enter or Space, and an enclosing fold hides entries inside it. The editor computes nothing itself; pass `List.of()` to clear them.
 
 <Shot src="examples/docs/code-editor-vision/view-{theme}" alt="Two SQL view declarations in the code editor, each preceded by a muted code vision row showing clickable usage counts and an author name with a person icon" />
 

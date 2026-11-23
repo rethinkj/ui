@@ -120,6 +120,54 @@ class CodeVisionTest {
     assertEquals(x1, x4, 0.01f, "1-tab line aligns with 4-space line");
   }
 
+  @Test
+  void keyboardTabReachesAndActivatesClickableVisionEntries() throws IOException {
+    Doc doc = new Doc(SAMPLE);
+    AtomicInteger classUsages = new AtomicInteger();
+    AtomicInteger methodUsages = new AtomicInteger();
+    doc.editor.codeVision(List.of(
+        new CodeEditor.Vision(0, null, "1 usage", classUsages::incrementAndGet),
+        new CodeEditor.Vision(1, null, "3 usages", methodUsages::incrementAndGet),
+        new CodeEditor.Vision(1, Symbol.PERSON, "Ada Lovelace", null),
+        new CodeEditor.Vision(4, null, "2 usages", null)));
+    App<Doc> app = app(doc);
+
+    Script.run("""
+        size 480 280 scale 2
+        frame
+        focus #code
+        frame
+        key M control
+        key Tab
+        frame
+        """, app, out);
+    assertEquals("1 usage", app.focused().label(), "Tab enters first clickable vision entry");
+
+    Script.run("""
+        key Enter
+        frame
+        key Tab
+        frame
+        """, app, out);
+    assertEquals(1, classUsages.get(), "Enter activates focused vision entry");
+    assertEquals("3 usages", app.focused().label(), "Tab moves to next clickable vision entry");
+
+    Script.run("""
+        key Space
+        frame
+        key Tab shift
+        frame
+        """, app, out);
+    assertEquals(1, methodUsages.get(), "Space activates focused vision entry");
+    assertEquals("1 usage", app.focused().label(), "Shift+Tab returns to previous vision entry");
+
+    Script.run("""
+        key Tab shift
+        frame
+        """, app, out);
+    assertEquals("code", app.focused().key(), "Shift+Tab returns to editor");
+  }
+
   private static El findBlock(El field, String key) {
     return field.children().stream()
         .filter(c -> key.equals(c.key()))

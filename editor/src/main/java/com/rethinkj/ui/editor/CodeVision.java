@@ -84,6 +84,7 @@ final class CodeVision {
         .label(entry.label())
         .radius(theme.radius().small())
         .cursor(Cursor.POINTER)
+        .focusable()
         .keepFocus()
         .motion(theme.motion().feedback())
         .onPress(entry.onPress())

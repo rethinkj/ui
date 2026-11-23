@@ -2684,6 +2684,11 @@ public final class Text implements Measure {
     }
   }
 
+  /** For {@link El}: lays out the view again, as a block in it changed its height. */
+  void restale() {
+    viewStale = true;
+  }
+
   /** Whether {@link #scrolled} moved the view since the last {@link #layOut}. */
   boolean viewStale() {
     return viewStale;
