@@ -1676,6 +1676,11 @@ public final class Text implements Measure {
       return (float) (xs[i] + widths[i] * local / (bounds[i + 1] - bounds[i]));
     }
 
+    /** Whether the chunk that position {@code at} is in has been shaped. */
+    boolean shapedAt(int at) {
+      return parts[chunkOfOffset(Math.clamp(at, 0, text.length() - 1))] != null;
+    }
+
     void emitLines(float baseline, double viewLeft, double viewRight, List<Line> out) {
       int n = parts.length;
       if (xs[n] <= viewLeft || viewRight <= 0) {
@@ -3275,11 +3280,23 @@ public final class Text implements Measure {
       }
       if (segFrom < segTo) {
         // A long line's chunks are not shaped here: that would move glyphs already placed.
+        // An estimate does not replace what was measured of the same part of the line.
         Para para = row.para;
-        float left = para.chunks != null ? 0 : para.pen(0);
-        float x0 = para.chunks != null ? para.chunks.penEstimate(segFrom) : para.pen(segFrom);
-        float x1 = para.chunks != null ? para.chunks.penEstimate(segTo) : para.pen(segTo);
-        extents.put(row.line, new Lines.Extent(from, to, x0 - left, x1 - left));
+        Lines.Extent kept = extents.get(row.line);
+        if (para.chunks == null) {
+          float left = para.pen(0);
+          extents.put(
+              row.line,
+              new Lines.Extent(from, to, para.pen(segFrom) - left, para.pen(segTo) - left));
+        } else if (para.chunks.shapedAt(segFrom) && para.chunks.shapedAt(segTo)
+            || kept == null
+            || kept.from() != from
+            || kept.to() != to) {
+          extents.put(
+              row.line,
+              new Lines.Extent(
+                  from, to, para.chunks.penEstimate(segFrom), para.chunks.penEstimate(segTo)));
+        }
       } else {
         extents.remove(row.line);
       }
