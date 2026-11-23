@@ -71,6 +71,7 @@ Style an element dynamically based on hover, press, or focus state (combine with
 | `whenHovered(element -> …)` | Applies styles while hovered |
 | `whenPressed(element -> …)` | Applies styles while pressed |
 | `whenFocused(element -> …)`, `whenFocusWithin(element -> …)` | Applies styles while this element (or a child) is focused |
+| `onFocusIn(handler)` | Runs when keyboard focus moves from outside this element into it or a descendant (by pointer, Tab, or code) |
 | `whenHoveredFor(seconds, element -> …)` | Applies styles or attaches an overlay after hovering for a delay (used by [Tooltip](/docs/components/tooltip)) |
 | `whenFocusVisibleFor(seconds, element -> …)` | Same as above for keyboard focus (clears on blur or non-navigation key press) |
 | `onHoverFor(seconds, handler)` | Runs a handler once after hovering for a delay (`0` runs immediately on hover) |

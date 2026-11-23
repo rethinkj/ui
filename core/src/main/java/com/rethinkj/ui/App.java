@@ -242,6 +242,7 @@ public final class App<S> {
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private final Set<Object> relooking = new HashSet<>(); // lists that build their rows anew
   private final Focus focus = new Focus(animator); // the keyboard focus
+  private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -1827,14 +1828,15 @@ public final class App<S> {
   public double nextChange() {
     if (scheduler.waiting()
         || resizeDue
+        || focusMoved()
         || !firstEdits.isEmpty()
         || cycling
         || rowsWanted
         || hasPendingHighlights()
         || bracketsDue()) {
-      // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, rows that the
-      // measured heights of a list show and the last frame had no passes left for, or
-      // highlighting that hit its per-frame line budget
+      // handlers that a frame queued, such as El#onRowsBuilt or the El#onFocusIn of a focus that
+      // the last rebuild moved, an El#cycle, rows that the measured heights of a list show and the
+      // last frame had no passes left for, or highlighting that hit its per-frame line budget
       return time;
     }
     double next = Math.min(restDue, shownDue);
@@ -2955,12 +2957,13 @@ public final class App<S> {
       if (!firstEdits.isEmpty() && editFirst(true, false, toldSizes)) {
         drawn = handled = true; // of rows that motion built: before the input, after it a last tree
       }
-      if (untold() || hasPendingUnfolds()) {
-        // A selection a build applied or moved, also one of rows that scrolling filled: a
-        // FieldState's, or the app's answer to an edit. It reaches onSelect as a handler's input
-        // would, before the next input: what the handler asks for and changes comes first.
+      if (untold() || hasPendingUnfolds() || focusMoved()) {
+        // A selection or focus move a build applied, also of rows that scrolling filled: a
+        // FieldState's, an autofocus, or the app's answer to an edit. It reaches onSelect and
+        // onFocusIn as a handler's input would, before the next input: what the handler asks for
+        // and changes comes first.
         scheduler.addFirst(() -> {
-          boolean told = tellUnfolds() | tellSelections();
+          boolean told = tellUnfolds() | tellSelections() | tellFocusIn();
           rowsKept |= told;
           return told;
         });
@@ -2968,7 +2971,7 @@ public final class App<S> {
       scheduler.beginHandler();
       try {
         stale |= scheduler.poll().getAsBoolean();
-        stale |= tellUnfolds() | tellSelections();
+        stale |= tellUnfolds() | tellSelections() | tellFocusIn();
       } catch (RuntimeException | Error e) {
         handled = true; // it may have changed the state: the next input gets a tree built anew
         throw e;
@@ -2998,6 +3001,7 @@ public final class App<S> {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
       stale |= tellUnfolds()
           | tellSelections() // of fields in those rows, which the rebuild shows
+          | tellFocusIn()
           | !firstEdits.isEmpty(); // of fields in rows that an earlier frame built
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
@@ -3021,8 +3025,8 @@ public final class App<S> {
       try {
         for (int pass = 0; pass < 2 && stale; pass++) {
           rebuild();
-          // A caret that the app's string moved, or of a new field: its handler is told, once.
-          if (tellUnfolds() | tellSelections() | pendingBracketFolds()) {
+          // A caret that the app's string moved, or of a new field, or a focus move: told once.
+          if (tellUnfolds() | tellSelections() | tellFocusIn() | pendingBracketFolds()) {
             rebuild();
           }
           List<El> path = pointed();
@@ -3858,6 +3862,41 @@ public final class App<S> {
       }
     }
     return false;
+  }
+
+  /** Whether the focus identity changed since {@link #tellFocusIn} last ran. */
+  private boolean focusMoved() {
+    return !Objects.equals(focus.id(), toldFocus);
+  }
+
+  /**
+   * Tells the {@link El#onFocusIn} handlers of the elements whose subtree the focus just moved into
+   * from outside, when the focused identity changed.
+   *
+   * @return whether a handler ran, which the next input or rebuild should show
+   */
+  private boolean tellFocusIn() {
+    Object now = focus.id();
+    if (Objects.equals(now, toldFocus)) {
+      return false;
+    }
+    Object was = toldFocus;
+    toldFocus = now;
+    if (now == null) {
+      return false;
+    }
+    boolean told = false;
+    for (Object id : Animator.lineage(now)) {
+      if (within(was, id)) {
+        continue;
+      }
+      El el = animator.element(id);
+      if (el != null && !el.isExiting() && !el.isInert() && el.onFocusIn() != null) {
+        handled = told = true;
+        el.onFocusIn().run();
+      }
+    }
+    return told;
   }
 
   /** Asks the unfold handlers of fields whose pending selection or undo landed on a hidden line. */

@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -644,6 +645,51 @@ class FocusTest {
     app.frame();
     press(app, 5, 5);
     assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "a press focuses too");
+  }
+
+  @Test
+  void onFocusInRunsOnTabAndPointerPressIntoATextField() {
+    TextLibraries.assumeLoaded();
+    int[] entered = {0};
+    App<int[]> app = start(
+        new App<>(
+            entered,
+            n -> col()
+                .children(
+                    el().key("outside").focusable().size(40, 20),
+                    col()
+                        .key("pane")
+                        .fill(n[0] > 0 ? 0xFFFFFFFF : 0xFF000000)
+                        .onFocusIn(() -> n[0]++)
+                        .children(
+                            El.text("abc").key("field").editable(v -> {}).size(60, 20),
+                            el().key("button").focusable().size(40, 20)))),
+        100,
+        100);
+    tab(app);
+    assertEquals("outside", focusedKey(app));
+    assertEquals(0, entered[0]);
+
+    tab(app);
+    assertEquals("field", focusedKey(app));
+    assertEquals(1, entered[0], "Tab into the text field runs onFocusIn once");
+    assertEquals(0xFFFFFFFF, find(app.tree(), "pane").fill(), "and the view shows what it changed");
+
+    tab(app);
+    assertEquals("button", focusedKey(app));
+    assertEquals(1, entered[0], "moving within the subtree does not run it again");
+
+    tab(app);
+    assertEquals("outside", focusedKey(app));
+    press(app, 10, 30); // into the text field
+    assertEquals("field", focusedKey(app));
+    assertEquals(2, entered[0], "a pointer press into the text field runs it once more");
+
+    app.focus(find(app.tree(), "outside"));
+    app.frame();
+    app.focus(find(app.tree(), "button"));
+    app.frame();
+    assertEquals(3, entered[0], "so does App.focus");
   }
 
   // Keys

@@ -542,6 +542,7 @@ public final class El {
     WheelHandler onWheel;
     Consumer<String> onText;
     Consumer<String> onTypeAhead;
+    Runnable onFocusIn;
     Consumer<String> onEdit;
     SelectHandler onSelect;
     SizeHandler onResize;
@@ -577,6 +578,7 @@ public final class El {
       copy.onWheel = handlers.onWheel;
       copy.onText = handlers.onText;
       copy.onTypeAhead = handlers.onTypeAhead;
+      copy.onFocusIn = handlers.onFocusIn;
       copy.onEdit = handlers.onEdit;
       copy.onHover = handlers.onHover;
       copy.onTextPointerMove = handlers.onTextPointerMove;
@@ -601,6 +603,7 @@ public final class El {
           && onWheel == a.onWheel
           && onText == a.onText
           && onTypeAhead == a.onTypeAhead
+          && onFocusIn == a.onFocusIn
           && onEdit == a.onEdit
           && onHover == a.onHover
           && onTextPointerMove == a.onTextPointerMove
@@ -3711,6 +3714,20 @@ public final class El {
   }
 
   /**
+   * Runs {@code handler} when the keyboard focus moves from outside this element into it or into an
+   * element below it, whether by a pointer press, Tab, {@link App#focus}, {@link #autofocus} or an
+   * overlay opening or closing. Moves of the focus within this element do not run it again; once
+   * the focus leaves this element and comes back, it runs again. Like {@link #onPress}, it runs in
+   * {@link App#frame}, and the view is built again from what it changes.
+   *
+   * @param handler the handler, or null for none
+   */
+  public El onFocusIn(Runnable handler) {
+    handlers().onFocusIn = handler;
+    return this;
+  }
+
+  /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
    * already there a new rectangle, fill, border color, radius, opacity, text color or {@link #arc}
    * sweep, {@link App} moves it there with {@code spring} instead of at once. Children are placed
@@ -4623,6 +4640,11 @@ public final class El {
   /** The handler of {@link #onPressOutside}, or null. */
   public Runnable onPressOutside() {
     return handlers == null ? null : handlers.onPressOutside;
+  }
+
+  /** The handler of {@link #onFocusIn}, or null. */
+  public Runnable onFocusIn() {
+    return handlers == null ? null : handlers.onFocusIn;
   }
 
   public Consumer<Drag> onDrag() {
