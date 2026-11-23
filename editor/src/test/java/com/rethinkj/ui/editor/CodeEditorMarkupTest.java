@@ -623,8 +623,20 @@ class CodeEditorMarkupTest {
     assertTrue(cell(after, 1).contains("Top marker"), after);
     assertFalse(cell(after, 1).contains("Bottom marker"), after);
 
-    // Undoing the batch logs no character edits, so the original markers come back.
-    Script.run("size 480 200 scale 2\nfocus #code\nkey Z control\nframe\nsnap undone", app, out);
+    // Alt+Down on line 0 replaces the two identical lines by themselves: the moved markers stay.
+    Script.run("size 480 200 scale 2\nfocus #code\nkey ArrowDown alt\nframe\nsnap moved", app, out);
+    assertEquals("x\nx\n", doc.text);
+    String moved = Files.readString(out.resolve("moved.tree.txt"));
+    assertFalse(cell(moved, 0).contains("Top marker"), moved);
+    assertTrue(cell(moved, 1).contains("Top marker"), moved);
+    assertFalse(moved.contains("Bottom marker"), moved);
+
+    // Undoing Alt+Down keeps them; undoing the batch logs no edit and brings back the originals.
+    Script.run("size 480 200 scale 2\nkey Z control\nframe\nsnap kept", app, out);
+    String kept = Files.readString(out.resolve("kept.tree.txt"));
+    assertTrue(cell(kept, 1).contains("Top marker"), kept);
+    assertFalse(kept.contains("Bottom marker"), kept);
+    Script.run("size 480 200 scale 2\nkey Z control\nframe\nsnap undone", app, out);
     String undone = Files.readString(out.resolve("undone.tree.txt"));
     assertTrue(cell(undone, 0).contains("Top marker"), undone);
     assertTrue(cell(undone, 1).contains("Bottom marker"), undone);

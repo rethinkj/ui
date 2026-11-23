@@ -1255,10 +1255,9 @@ public final class CodeEditor {
       List<Mark> marksFor(String value, long revision, State state) {
         boolean textChanged = !value.equals(checked);
         if (textChanged || (seen && checkedRevision >= 0 && revision > checkedRevision)) {
-          // Back at text, as after an undo, unless edits that left the string as it was moved them.
+          // Back at text, as after an undo or unknown history, unless the field logged edits since.
           if (value.equals(text)
-              && (textChanged
-                  || state.edits(checked, checkedRevision, value, revision) == TextEdits.EMPTY)) {
+              && (textChanged || state.field.editsSince(checkedRevision, value).isEmpty())) {
             mapped = original;
           } else if (!mapped.isEmpty()) {
             mapped = moved(mapped, state.edits(checked, checkedRevision, value, revision));
@@ -1271,6 +1270,9 @@ public final class CodeEditor {
       }
 
       private static List<Mark> moved(List<Mark> marks, TextEdits edits) {
+        if (edits == TextEdits.EMPTY) {
+          return marks;
+        }
         List<Mark> out = new ArrayList<>(marks.size());
         for (Mark mark : marks) {
           Mark shifted = shift(mark, edits);

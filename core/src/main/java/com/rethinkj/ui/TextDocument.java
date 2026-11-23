@@ -32,7 +32,8 @@ public final class TextDocument {
 
   /**
    * A step of the history: {@code removed} at {@code at} replaced by {@code inserted}, with the
-   * caret and the anchor before and after.
+   * caret and the anchor before and after, and whether it is a batch of edits that ended at the
+   * string it started from: undoing such a step logs no edit, so markup takes back its marks.
    */
   record Step(
       int at,
@@ -41,7 +42,20 @@ public final class TextDocument {
       int caretBefore,
       int anchorBefore,
       int caretAfter,
-      int anchorAfter) {}
+      int anchorAfter,
+      boolean sameBatch) {
+
+    Step(
+        int at,
+        String removed,
+        String inserted,
+        int caretBefore,
+        int anchorBefore,
+        int caretAfter,
+        int anchorAfter) {
+      this(at, removed, inserted, caretBefore, anchorBefore, caretAfter, anchorAfter, false);
+    }
+  }
 
   /** One edit applied to produce the pending proposal. */
   record PendingEdit(int at, int removed, String inserted) {}

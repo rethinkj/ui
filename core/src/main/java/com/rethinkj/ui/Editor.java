@@ -639,7 +639,14 @@ final class Editor {
     TextDocument.push(
         doc.undo,
         new TextDocument.Step(
-            firstFrom, gone, spanInserted, caret, anchor, caretAfter, anchorAfter));
+            firstFrom,
+            gone,
+            spanInserted,
+            caret,
+            anchor,
+            caretAfter,
+            anchorAfter,
+            gone.equals(spanInserted)));
     doc.redo.clear();
     propose(firstFrom, lastTo - firstFrom, spanInserted, pending, caretAfter, anchorAfter);
     doc.setRun(this, null);
@@ -1276,12 +1283,17 @@ final class Editor {
               step.caretBefore(),
               step.anchorBefore(),
               caret,
-              anchor));
+              anchor,
+              step.sameBatch()));
       unfoldPending = true;
       propose(
           step.at(),
           step.inserted().length(),
           step.removed(),
+          step.sameBatch()
+              ? List.of()
+              : List.of(new TextDocument.PendingEdit(
+                  step.at(), step.inserted().length(), step.removed())),
           step.caretBefore(),
           step.anchorBefore());
       doc.clearRun();
@@ -1301,7 +1313,8 @@ final class Editor {
               caret,
               anchor,
               step.caretAfter(),
-              step.anchorAfter()));
+              step.anchorAfter(),
+              step.sameBatch()));
       unfoldPending = true;
       propose(
           step.at(),

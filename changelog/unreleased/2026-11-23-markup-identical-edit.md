@@ -1,0 +1,1 @@
+- Fixed: after an edit batch that ends at the string it started from, an edit in `CodeEditor` that changes no characters, such as Alt+Down on two identical lines, keeps the markup where the batch moved it instead of bringing back the marks it had before.
