@@ -260,10 +260,10 @@ final class JavadocParser {
   }
 
   /**
-   * A {@code ///} block tag's text with the common indentation of the lines that go on its first
-   * line removed, up to the first blank line outside a code block or a line that starts a block
-   * tag: {@code @param x} followed by an indented description is prose, and an indented code block
-   * after a blank line stays code.
+   * A {@code ///} block tag's text with the lines that go on its first line dedented, up to the
+   * first blank line outside a code block or a line that starts a block tag: {@code @param x}
+   * followed by an indented description is prose, a list item opened on the first line keeps its
+   * lines, and an indented code block after a blank line stays code.
    */
   private static String dedentContinuation(String content, String tag) {
     List<String> lines = Arrays.asList(content.split("\n", -1));
@@ -271,24 +271,41 @@ final class JavadocParser {
       return content;
     }
     List<String> rest = lines.subList(1, lines.size());
-    // Which lines are code is read with each line dedented by at most the first one's indentation.
-    // shortcut: a list opened on the tag's first line, or continuation lines indented less than the
-    // first of them, can turn a line inside code into a block tag; track the container's
-    // indentation if real comments hit it.
-    int indent = 0;
-    for (String line : rest) {
-      if (!line.isBlank()) {
-        indent = skipHorizontalSpace(line, 0);
+    // Each line is dedented by the least indentation of the lines up to it, so that its dedent
+    // depends only on the lines before it and a code fence's lines lose no more than its opener.
+    // The lines of a list item opened on the tag's first line are already indented to it. A code
+    // fence opened there is dedented by the indentation its code and closer share: the lines
+    // before the closer are code anyway.
+    String first = asMarkdown(lines.getFirst(), tag);
+    String fence = fenceOpener(first);
+    int indent = opensListItem(first) || fence != null ? 0 : Integer.MAX_VALUE;
+    int codeIndent = Integer.MAX_VALUE;
+    for (String line : fence == null ? List.<String>of() : rest) {
+      int lineIndent = skipHorizontalSpace(line, 0);
+      int end = lineIndent;
+      while (end < line.length() && line.charAt(end) == fence.charAt(0)) {
+        end++;
+      }
+      if (end - lineIndent >= fence.length()
+          && skipHorizontalSpace(line, end) == line.length()
+          && lineIndent - Math.min(codeIndent, lineIndent) <= 3) {
+        indent = Math.min(codeIndent, lineIndent);
         break;
       }
+      if (!line.isBlank()) {
+        codeIndent = Math.min(codeIndent, lineIndent);
+      }
     }
-    StringBuilder probe = new StringBuilder(lines.getFirst());
+    List<String> dedented = new ArrayList<>(rest.size());
     for (String line : rest) {
-      probe
-          .append('\n')
-          .append(line, Math.min(skipHorizontalSpace(line, 0), indent), line.length());
+      int lineIndent = skipHorizontalSpace(line, 0);
+      if (!line.isBlank()) {
+        indent = Math.min(indent, lineIndent);
+      }
+      dedented.add(line.substring(Math.min(lineIndent, indent)));
     }
-    BitSet code = MarkdownDocument.codeLines(asMarkdown(probe.toString(), tag));
+    BitSet code = MarkdownDocument.codeLines(
+        asMarkdown(lines.getFirst() + "\n" + String.join("\n", dedented), tag));
     int prose = 0;
     // a bare tag's text starts on a following line: blank lines before it go on the tag too
     while (lines.getFirst().isBlank() && prose < rest.size() && rest.get(prose).isBlank()) {
@@ -301,9 +318,39 @@ final class JavadocParser {
     }
     List<String> out = new ArrayList<>(lines.size());
     out.add(lines.getFirst());
-    out.addAll(stripCommonIndent(rest.subList(0, prose)));
+    out.addAll(dedented.subList(0, prose));
     out.addAll(rest.subList(prose, rest.size()));
     return String.join("\n", out);
+  }
+
+  /** The run of backticks or tildes that opens a code fence at the start of {@code line}, or null. */
+  private static String fenceOpener(String line) {
+    int start = skipHorizontalSpace(line, 0);
+    int end = start;
+    while (end < line.length() && line.charAt(end) == line.charAt(start)) {
+      end++;
+    }
+    boolean opens = start <= 3
+        && end - start >= 3
+        && (line.charAt(start) == '~' || line.charAt(start) == '`' && line.indexOf('`', end) < 0);
+    return opens ? line.substring(start, end) : null;
+  }
+
+  /** Whether {@code line} starts with a list item's marker. */
+  private static boolean opensListItem(String line) {
+    int marker = skipHorizontalSpace(line, 0);
+    int end = marker;
+    while (end < line.length()
+        && end - marker < 9
+        && line.charAt(end) >= '0'
+        && line.charAt(end) <= '9') {
+      end++;
+    }
+    String markers = end > marker ? ".)" : "-+*";
+    if (marker > 3 || end == line.length() || markers.indexOf(line.charAt(end)) < 0) {
+      return false;
+    }
+    return end + 1 == line.length() || isHorizontalSpace(line.charAt(end + 1));
   }
 
   /**

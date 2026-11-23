@@ -599,6 +599,93 @@ class JavaTest {
   }
 
   @Test
+  void tripleSlashMarkdownBlockTagContinuationKeepsMixedIndentAndListFencesConsistent() {
+    DocComment listFence = JAVA.docComment("""
+        /// @return - ```java
+        ///   @Override
+        ///       indented();
+        ///   ```
+        /// @param x value""");
+    assertNull(listFence.body());
+    assertEquals(1, listFence.parameters().size());
+    assertEquals("x", listFence.parameters().get(0).name());
+    assertEquals("""
+        list bullet tight
+          item
+            code "java" "@Override\\n    indented();\\n"
+        """, listFence.returns().tree());
+
+    DocComment listFenceIndentedFirst = JAVA.docComment("""
+        /// @return - ```java
+        ///       indented();
+        ///   ```
+        /// @param x value""");
+    assertEquals(1, listFenceIndentedFirst.parameters().size());
+    assertEquals("""
+        list bullet tight
+          item
+            code "java" "    indented();\\n"
+        """, listFenceIndentedFirst.returns().tree());
+
+    DocComment fenceToClosure = JAVA.docComment("""
+        /// @return ```java
+        ///     return result;
+        /// }
+        /// ```
+        /// @param x value""");
+    assertEquals(1, fenceToClosure.parameters().size());
+    assertEquals("""
+        code "java" "    return result;\\n}\\n"
+        """, fenceToClosure.returns().tree());
+
+    DocComment indentedMarker = JAVA.docComment("""
+        /// @return ```md
+        /// text
+        ///     ```
+        /// @param inExample
+        /// ```
+        /// @param x value""");
+    assertEquals(1, indentedMarker.parameters().size());
+    assertEquals("x", indentedMarker.parameters().get(0).name());
+
+    DocComment fenceAfterProse = JAVA.docComment("""
+        /// @return text
+        ///   more
+        /// ```md
+        ///     ```
+        /// @param inExample
+        /// ```
+        /// @param x value""");
+    assertEquals(1, fenceAfterProse.parameters().size());
+    assertEquals("x", fenceAfterProse.parameters().get(0).name());
+
+    DocComment mixedIndent = JAVA.docComment("""
+        /// @return
+        ///     ```
+        ///    @param x value
+        /// tail""");
+    assertNull(mixedIndent.body());
+    assertTrue(mixedIndent.parameters().isEmpty());
+    assertNotNull(mixedIndent.returns());
+    assertEquals("""
+        code "" "@param x value\\ntail\\n"
+        """, mixedIndent.returns().tree());
+
+    DocComment sinceMixedIndent = JAVA.docComment("""
+        /// @since ```beta
+        ///     ```
+        ///    @param x value
+        /// tail""");
+    assertTrue(sinceMixedIndent.parameters().isEmpty());
+    assertNotNull(sinceMixedIndent.body());
+    assertEquals("""
+        paragraph
+          text "@since ```beta"
+        code "" "@param x value\\ntail\\n"
+        """, sinceMixedIndent.body().tree());
+  }
+
+  @Test
   void untrustedPathologicalInputParsesSafelyWithoutOverflow() {
     String evil = "/** "
         + "<b>".repeat(2_000)

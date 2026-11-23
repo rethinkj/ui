@@ -1,0 +1,1 @@
+- `Java.docComment` reads the lines that continue a `///` block tag the same way when it splits the tags and when it renders them, also when they are indented unevenly or the tag's first line opens a list item or a code fence: such a tag no longer swallows the next tag, and a line inside its code is no longer read as a tag.
