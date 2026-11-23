@@ -120,6 +120,16 @@ final class Lines {
   // The widths of the chunks of long lines, by line: estimated, or as measured once shaped, with
   // the spans whose fonts they were measured with.
   private Map<Integer, Chunked> chunkWidths = new HashMap<>();
+  // Where the text of lines an outline (El#outline) covered lies, by line, as shaped with the
+  // highlighting in outlineFor: kept while those lines scroll out of view, moved by each edit.
+  private Object outlineFor;
+  private Map<Integer, Extent> outlineExtents = new HashMap<>();
+
+  /**
+   * Where the text of an outline's part {@code from} to {@code to} of a line lies, in physical
+   * pixels from the row's left; {@code to} is -1 for the line's end.
+   */
+  record Extent(int from, int to, float left, float right) {}
   // What the lines were last measured with, moved by each edit; null in a copy, which takes the
   // next ones as measured: while composing, hints are shown at their offsets in the field's text.
   private List<El.Hint> hints = List.of();
@@ -189,6 +199,8 @@ final class Lines {
     copy.widestLine = widestLine;
     copy.measuredFor = measuredFor;
     copy.chunkWidths = new HashMap<>(chunkWidths);
+    copy.outlineFor = outlineFor;
+    copy.outlineExtents = new HashMap<>(outlineExtents);
     copy.hints = null;
     copy.blockLayout = blockLayout;
     copy.blockLineHeight = blockLineHeight;
@@ -290,6 +302,15 @@ final class Lines {
         }
       });
       chunkWidths = moved;
+    }
+    if (!outlineExtents.isEmpty()) {
+      Map<Integer, Extent> moved = new HashMap<>();
+      outlineExtents.forEach((line, kept) -> {
+        if (line < first || line > last) {
+          moved.put(line > last ? line + newCount - oldCount : line, kept);
+        }
+      });
+      outlineExtents = moved;
     }
     if (hints != null && !hints.isEmpty()) {
       int oldEnd = at + removed;
@@ -458,6 +479,7 @@ final class Lines {
       widest = 0;
       widestLine = -1;
       chunkWidths.clear();
+      outlineExtents.clear();
     }
   }
 
@@ -477,6 +499,18 @@ final class Lines {
       widest = width;
       widestLine = line;
     }
+  }
+
+  /**
+   * The extents of the text of lines an outline has shaped, by line, for it to fill in: another
+   * {@code highlighting}, whose fonts the widths depend on, forgets them.
+   */
+  Map<Integer, Extent> outlineExtents(Object highlighting) {
+    if (!Objects.equals(highlighting, outlineFor)) {
+      outlineFor = highlighting;
+      outlineExtents.clear();
+    }
+    return outlineExtents;
   }
 
   /** The widest line shaped since it was last edited, in physical pixels. */
@@ -522,6 +556,7 @@ final class Lines {
       widestLine = -1;
     }
     chunkWidths.remove(line);
+    outlineExtents.remove(line);
     if (rows != null && rows[line] > 0) {
       int before = effective(line);
       rows[line] = 0;

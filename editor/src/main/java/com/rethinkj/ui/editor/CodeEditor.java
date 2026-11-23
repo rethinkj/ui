@@ -404,6 +404,7 @@ public final class CodeEditor {
     private List<Vision> codeVision = List.of();
     private int blockFrom;
     private int blockTo;
+    private boolean blockOutline;
     private boolean occurrences = true;
     private boolean inlineDiagnostics;
     private boolean findBar = true;
@@ -690,7 +691,8 @@ public final class CodeEditor {
     /**
      * Marks the lines of characters {@code from} to {@code to} of the string on the gutter's rail,
      * tinted with {@code code().block()} beside a line in the accent's edge, such as the statement
-     * that Control+Enter would run. {@code from == to} marks none.
+     * that Control+Enter would run. With {@link #blockOutline} on, also draws a thin outline around
+     * the block's text in the code area. {@code from == to} marks none.
      */
     public State block(int from, int to) {
       blockFrom = from;
@@ -701,6 +703,16 @@ public final class CodeEditor {
     /** Marks no block of lines. */
     public State noBlock() {
       return block(0, 0);
+    }
+
+    /**
+     * Whether the {@link #block marked block} also draws a thin outline around its text in the code
+     * area, in the accent's edge color, from the smallest start column of its lines to after its
+     * widest line; off unless set.
+     */
+    public State blockOutline(boolean on) {
+      blockOutline = on;
+      return this;
     }
 
     /**
@@ -1381,7 +1393,8 @@ public final class CodeEditor {
    * The editor: the code area of the theme, whose gutter lies on a rail of the band's color with a
    * hairline at its right ({@link Theme.Borders#divider}) and shows the number of each line,
    * muted but on the caret's line, after a column of markers ({@link State#markers}, {@link
-   * State#diagnostics}); a {@link State#block marked block} tints the rail. The caret's line has
+   * State#diagnostics}); a {@link State#block marked block} tints the rail, and with {@link
+   * State#blockOutline} on also outlines its text in the code area. The caret's line has
    * {@code code().line()} behind it, the bracket before or after the caret and the one that matches
    * it ({@link El#matchingBracket}, among those the highlighter marks) {@code code().bracket()},
    * and the white space that starts a line {@code code().guide()} at each step of four columns.
@@ -1497,6 +1510,9 @@ public final class CodeEditor {
       state.closeUsagesMenu();
     }
     wireBlocks(theme, state, value, editor);
+    if (state.blockOutline && state.blockFrom < state.blockTo) {
+      editor.outline(state.blockFrom, state.blockTo, theme.accent().edge());
+    }
     if (state.inlineDiagnostics && !diagnostics.isEmpty()) {
       Map<Integer, Diagnostic> inline = inlineDiagnosticsByLine(state.builtText, diagnostics);
       if (!inline.isEmpty()) {

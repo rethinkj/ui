@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * The text of an element made with {@link El#text}: its string and look, and, once layout has
@@ -150,6 +151,9 @@ public final class Text implements Measure {
   private Highlighter highlighter;
   private Object highlightKey;
   private Decorator decorator;
+  private int outlineFrom;
+  private int outlineTo;
+  private int outlineColor;
   private List<Mark> marks = List.of();
   // The decorator's underlines and squiggles in the lines laid out, as pairs of string positions,
   // for the dump.
@@ -555,8 +559,8 @@ public final class Text implements Measure {
 
   /**
    * What a text draws behind its glyphs (and behind a multi-line field's selection) on the rows of
-   * {@link #lines}: the backgrounds of lines, then those of ranges, then the lines under ranges,
-   * each in the order the lines and their {@link Spans} have them.
+   * {@link #lines}: the backgrounds of lines, then those of ranges, then any {@link El#outline},
+   * then the lines under ranges, each in the order the lines and their {@link Spans} have them.
    */
   public List<Mark> marks() {
     lines();
@@ -672,6 +676,17 @@ public final class Text implements Measure {
   void decorator(Decorator decorator) {
     this.decorator = decorator;
     viewStale = true;
+  }
+
+  void outline(int from, int to, int argb) {
+    this.outlineFrom = from;
+    this.outlineTo = to;
+    this.outlineColor = argb;
+    viewStale = true;
+  }
+
+  private boolean hasOutline() {
+    return outlineFrom < outlineTo && outlineColor >>> 24 != 0;
   }
 
   void align(Style.Align align) {
@@ -3079,12 +3094,14 @@ public final class Text implements Measure {
     return gained;
   }
 
-  /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
+  /** The marks of the rows laid out, from the highlighter's spans, decorator and outline. */
   private List<Mark> marks(List<Row> placed) {
     underlined = new int[0];
     squiggled = new int[0];
+    boolean outlined = hasOutline();
     if (placeholderShown
-        || decorator == null
+        || !outlined
+            && decorator == null
             && (highlighter == null
                 || placed.stream()
                     .noneMatch(row -> row.para.spans != null
@@ -3189,10 +3206,128 @@ public final class Text implements Measure {
       }
     }
     lineMarks.addAll(ranges);
+    if (outlined) {
+      addOutlineMarks(placed, lines, thick, lineMarks);
+    }
     lineMarks.addAll(unders);
     underlined = ranges(decorated, lines, Spans.UNDERLINE);
     squiggled = ranges(decorated, lines, Spans.SQUIGGLE);
     return List.copyOf(lineMarks);
+  }
+
+  /**
+   * Appends up to four thin border rectangles around {@link #outlineFrom}..{@link #outlineTo} in
+   * {@link #outlineColor}: horizontally from the smallest start column of the range's laid-out
+   * non-blank rows to after its widest, and vertically from its first visible line's top to its
+   * last visible line's bottom.
+   */
+  private void addOutlineMarks(List<Row> placed, Lines lines, float thick, List<Mark> out) {
+    int a = Math.clamp(outlineFrom, 0, lines.length());
+    int b = Math.clamp(outlineTo, a, lines.length());
+    if (b <= a || wraps) {
+      return;
+    }
+    int firstLine = lines.line(a);
+    int lastLine = lines.line(b - 1);
+    int vFirst = lines.visibleAtOrAfter(firstLine);
+    int vLast = lines.visibleAtOrBefore(lastLine);
+    if (vFirst < 0 || vLast < 0 || vFirst > vLast) {
+      return;
+    }
+    double lh = lineHeight;
+    double top = lines.lineTop(vFirst, lh);
+    double bottom = lines.slotTop(vLast + 1, lh);
+    if (bottom - viewY <= 0 || top - viewY >= placedHeight) {
+      return;
+    }
+    // shortcut: lines of the block never shaped, never in view, do not widen it yet; it grows as
+    // they come into view, as the width of the text does (Lines#widest).
+    Map<Integer, Lines.Extent> extents =
+        lines.outlineExtents(highlighter == null ? null : Optional.ofNullable(highlightKey));
+    for (Row row : placed) {
+      if (row.line < vFirst || row.line > vLast) {
+        continue;
+      }
+      String text = row.para.text;
+      int from = outlinePartFrom(lines, row.line, firstLine, a);
+      int to = outlinePartTo(lines, row.line, lastLine, b);
+      int segFrom = from;
+      int segTo = to < 0 ? text.length() : to;
+      while (segFrom < segTo && isOutlineBlank(text.charAt(segFrom))) {
+        segFrom++;
+      }
+      while (segTo > segFrom && isOutlineBlank(text.charAt(segTo - 1))) {
+        segTo--;
+      }
+      if (segFrom < segTo) {
+        float left = row.para.pen(0);
+        extents.put(
+            row.line,
+            new Lines.Extent(from, to, row.para.pen(segFrom) - left, row.para.pen(segTo) - left));
+      } else {
+        extents.remove(row.line);
+      }
+    }
+    float minX = Float.POSITIVE_INFINITY;
+    float maxX = Float.NEGATIVE_INFINITY;
+    for (Map.Entry<Integer, Lines.Extent> entry : extents.entrySet()) {
+      int line = entry.getKey();
+      Lines.Extent extent = entry.getValue();
+      if (line >= vFirst
+          && line <= vLast
+          && !lines.isHidden(line)
+          && extent.from() == outlinePartFrom(lines, line, firstLine, a)
+          && extent.to() == outlinePartTo(lines, line, lastLine, b)) {
+        minX = Math.min(minX, extent.left());
+        maxX = Math.max(maxX, extent.right());
+      }
+    }
+    if (!(maxX > minX)) {
+      return;
+    }
+    float x0 = minX > 0 ? Math.round(minX - viewX) - thick : Math.round(minX - viewX);
+    float x1 = Math.round(maxX - viewX) + thick;
+    long y0 = Math.round(top - viewY);
+    long y1 = Math.round(bottom - viewY);
+    if (x1 <= 0 || x0 >= placedWidth || y1 <= y0) {
+      return;
+    }
+    float visX0 = Math.max(x0, 0);
+    float visX1 = Math.min(x1, placedWidth);
+    if (visX1 > visX0) {
+      if (y0 + thick > 0 && y0 < placedHeight) {
+        out.add(new Mark(new Box(visX0, (float) y0, visX1 - visX0, thick), outlineColor));
+      }
+      if (y1 > 0 && y1 - thick < placedHeight) {
+        out.add(new Mark(new Box(visX0, (float) (y1 - thick), visX1 - visX0, thick), outlineColor));
+      }
+    }
+    double innerTop = Math.max(y0 + thick, 0.0);
+    double innerBottom = Math.min(y1 - thick, placedHeight);
+    if (innerBottom > innerTop) {
+      float iy = (float) innerTop;
+      float ih = (float) (innerBottom - innerTop);
+      if (x0 + thick > 0 && x0 < placedWidth) {
+        out.add(new Mark(new Box(x0, iy, thick, ih), outlineColor));
+      }
+      if (x1 > 0 && x1 - thick < placedWidth) {
+        out.add(new Mark(new Box(x1 - thick, iy, thick, ih), outlineColor));
+      }
+    }
+  }
+
+  /** Where the outline's part of {@code line} starts in it. */
+  private static int outlinePartFrom(Lines lines, int line, int firstLine, int from) {
+    return line == firstLine ? from - lines.start(line) : 0;
+  }
+
+  /** Where the outline's part of {@code line} ends in it, or -1 at the line's end. */
+  private static int outlinePartTo(Lines lines, int line, int lastLine, int to) {
+    return line == lastLine && to < lines.end(line) ? to - lines.start(line) : -1;
+  }
+
+  private static boolean isOutlineBlank(char c) {
+    return c == ' ' || c == '\t';
   }
 
   /**

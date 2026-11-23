@@ -1918,6 +1918,31 @@ public final class El {
             });
   }
 
+  /**
+   * Draws a thin rectangular outline behind the text of a {@link #multiline} field around
+   * characters {@code from} to {@code to} in {@code argb}: horizontally from the smallest start
+   * column of the range's non-blank lines (starting at {@code from} on its first line) to after its
+   * widest line (ending at {@code to} on its last line), and vertically from the top of its first
+   * visible line to the bottom of its last, following scroll, {@link #folds} and {@link #blocks}
+   * without changing layout. Lines of the range that have not been in view yet widen it once they
+   * come into view. {@code from >= to}, a transparent color or a field that {@link #wrapText wraps}
+   * draws nothing. The range is clamped to the text.
+   *
+   * @param from start offset in the field's shown text
+   * @param to end offset in the field's shown text
+   * @param argb color as 0xAARRGGBB, or 0 for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El outline(int from, int to, int argb) {
+    Text t = editableOnly("outline");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "outline is for multi-line fields: call it after multiline().");
+    }
+    t.outline(from, to, argb);
+    return this;
+  }
+
   // Editing, for elements made with text()
 
   /**

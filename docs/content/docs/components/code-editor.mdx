@@ -134,7 +134,7 @@ By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/
 ## Gutter, markers and diagnostics
 
 The left gutter displays lanes in a fixed order — icons, line numbers, a version control change bar, and fold or doc-comment toggles. You can attach:
-- **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run).
+- **Marked blocks (`block(from, to)`):** Highlights a range of lines on the gutter rail (for example, the SQL statement that Ctrl+Enter will run). Call `blockOutline(true)` (off by default) to also draw a thin outline around the block's text in the code area.
 - **Markers (`markers(list)`):** Clickable or static gutter icons with tooltips, at positions in the current string.
 - **Markup layers (`markup(layer, text, list)`):** Named layers of `CodeEditor.Mark` items — `Diagnostic`, `Marker`, `Highlight` (a background in `code().occurrence()`, such as usages of a symbol), `Change` (version control change bars), or `InlayHint` (an inline hint inside a line) — computed for `text`. Each provider uses its own layer name (such as `"analysis"`, `"vcs"`, `"references"`, `"hints"`, or `"app"`), and all layers show together. Marks move across edits elsewhere in the text without growing at their ends; a mark whose own text is edited is dropped, so is a `Marker` at the start of deleted lines, and undoing back to `text` restores the originals. The editor finds the edits by comparing the old and new text, so a very large bulk edit, beyond its limits, can also drop marks between its changes. Clear a layer with `noMarkup(layer)`.
 - **Diagnostics (`diagnostics(text, list)`):** Shorthand for `markup("diagnostics", text, list)` (and `noDiagnostics()` for `noMarkup("diagnostics")`). Draws a squiggly underline under errors (`ERROR`) or warnings (`WARNING`) and adds a gutter marker with the message tooltip. Diagnostics move with edits elsewhere, are dropped when their own characters are edited, and come back when undoing back to `text`.
@@ -317,6 +317,7 @@ Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlig
 | `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string |
 | `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines |
 | `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail |
+| `blockOutline(boolean)` | Draws a thin outline around the marked block's text in the code area (off by default) |
 | `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges |
 | `documentation(provider)` | Supplies an `IntFunction<MarkdownDocument>` for hover and Ctrl+Q quick documentation |
 | `readerMode(boolean)`, `readerMode()` | Enables/disables rendered doc comments for `Language` highlighters (off by default) |

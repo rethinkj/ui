@@ -1,0 +1,1 @@
+- `CodeEditor.State.blockOutline(true)` draws a thin outline around the text of the marked `block(from, to)` in the code area, as database tools mark the statement Control+Enter runs; it is off unless set. Multi-line fields get the same outline with `El.outline(from, to, argb)`.
