@@ -2,7 +2,7 @@ package com.rethinkj.ui.kit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * A Markdown text read into a tree of blocks and inline parts, which {@link Markdown#markdown}
@@ -41,7 +41,7 @@ public final class MarkdownDocument {
    * take precedence, and images are not passed to {@code references}. Passing {@code null} for
    * {@code references} behaves like {@link #parse(String)}.
    */
-  public static MarkdownDocument parse(String source, Function<String, String> references) {
+  public static MarkdownDocument parse(String source, UnaryOperator<String> references) {
     return MarkdownParser.parse(source, references);
   }
 

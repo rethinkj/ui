@@ -50,7 +50,7 @@ final class JavadocParser {
   private static final char TAG_CLOSE = '\uDC00';
   private static final Pattern PLACEHOLDER = Pattern.compile("\uD800(\\d{1,9})\uDC00");
   private static final String NAME =
-      "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(?:\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*";
+      "\\p{javaJavaIdentifierStart}[\\p{javaJavaIdentifierPart}.]*+(?<!\\.)";
   // module/, a type, #member and parameters: java.base/java.util.List#add(int, Object), reset()
   private static final Pattern REFERENCE =
       Pattern.compile(NAME + "/|(?:" + NAME + "/)?(?:" + NAME + "|(?:" + NAME
@@ -616,16 +616,20 @@ final class JavadocParser {
     StringBuilder out = new StringBuilder(n);
     int i = 0;
     int tick = -1;
+    int tilde = -1;
     while (i < n) {
       Integer end = text.charAt(i) == '{' ? inlineTagEnd.get(i) : null;
       if (end != null && tick < i) {
         tick = text.indexOf('`', i) < 0 ? n : text.indexOf('`', i);
       }
+      if (end != null && tilde < i) {
+        tilde = text.indexOf("~~~", i) < 0 ? n : text.indexOf("~~~", i);
+      }
       // shortcut: a tag with a backtick or tilde fence in it stays text, since Markdown code (a
       // span or a fence) may begin or end inside it; an unclosed brace in an indented code line
       // still reaches into the prose after it, and a tag over several lines of an indented code
       // block keeps their indentation. Take code ranges from the parser if comments hit these.
-      if (end != null && tick > end && !text.substring(i, end).contains("~~~")) {
+      if (end != null && tick > end && tilde + 3 > end) {
         int index = tags.size();
         tags.add(text.substring(i, end + 1));
         out.append(TAG_OPEN).append(index).append(TAG_CLOSE);

@@ -451,7 +451,10 @@ class JavaTest {
         actual.exceptions().get(0).description().tree());
     assertEquals(expected.see().get(0).tree(), actual.see().get(0).tree());
     assertEquals(expected.deprecated().tree(), actual.deprecated().tree());
+  }
 
+  @Test
+  void tripleSlashMarkdownDocCommentsKeepTagsInCodeAndLinkReferences() {
     DocComment codeAndRefs = JAVA.docComment("""
         /// Keep `{@code x}` and `{@link Foo}` in code spans.
         ///
@@ -510,9 +513,14 @@ class JavaTest {
         codeAndRefs.see().get(1).tree());
 
     assertEquals(
-        "paragraph\n  text \"Write \"\n  code \"{@code\"\n  text \" and close it with \"\n"
-            + "  code \"}\"\n  text \".\"\n",
-        JAVA.docComment("/// Write `{@code` and close it with `}`.").body().tree());
+        """
+        paragraph
+          text "Write "
+          code "{@code"
+          text " and close it with "
+          code "}"
+          text "."
+        """, JAVA.docComment("/// Write `{@code` and close it with `}`.").body().tree());
     assertEquals(
         "hello and \uFFFD0\uFFFD",
         plainText(JAVA.docComment("/// {@code hello} and &#xD800;0&#xDC00;").body()));

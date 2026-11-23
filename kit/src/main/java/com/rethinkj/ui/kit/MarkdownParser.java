@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,9 +32,9 @@ final class MarkdownParser {
 
   private static final int CODE_INDENT = 4;
 
-  private final Function<String, String> references;
+  private final UnaryOperator<String> references;
 
-  private MarkdownParser(Function<String, String> references) {
+  private MarkdownParser(UnaryOperator<String> references) {
     this.references = references;
   }
 
@@ -42,7 +42,7 @@ final class MarkdownParser {
     return parse(source, null);
   }
 
-  static MarkdownDocument parse(String source, Function<String, String> references) {
+  static MarkdownDocument parse(String source, UnaryOperator<String> references) {
     String text = source == null ? "" : source;
     try {
       return read(text, references);
@@ -58,7 +58,7 @@ final class MarkdownParser {
     return read(text, null);
   }
 
-  static MarkdownDocument read(String text, Function<String, String> references) {
+  static MarkdownDocument read(String text, UnaryOperator<String> references) {
     return new MarkdownParser(references).run(text.replace('\0', '�'));
   }
 

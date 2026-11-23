@@ -92,8 +92,11 @@ class MarkdownParserTest {
 
   @Test
   void referenceResolverResolvesUndefinedLinksOnly() {
-    String source = "[Foo], [Foo][], [the foo][Foo], [bar], ![Foo], and [Defined].\n\n"
-        + "[Defined]: /explicit \"t\"\n";
+    String source = """
+        [Foo], [Foo][], [the foo][Foo], [bar], ![Foo], and [Defined].
+
+        [Defined]: /explicit "t"
+        """;
     MarkdownDocument doc = MarkdownDocument.parse(
         source, label -> label.equals("Foo") || label.equals("Defined") ? "ref:" + label : null);
     assertEquals("""
