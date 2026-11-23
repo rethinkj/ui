@@ -65,7 +65,7 @@ el 0,0 520x210
         el 53,230 2x0
         el 59,230 12x0
 overlay top end gap -32 on #report role=textbox label="Report" 12,12 496x178
-  el #find role=search label="Find" 106,14 402x30
+  el #find role=search label="Find" 106,14 392x30
     el 106,14 392x30
       el 109,17 386x24
         el #toggle-replace role=button label="Toggle replace" 109,17 24x24

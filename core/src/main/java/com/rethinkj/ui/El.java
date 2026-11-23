@@ -3828,12 +3828,13 @@ public final class El {
    * overlays, so that one with a key and {@link #motion} fades in when it opens and out when it
    * closes.
    *
-   * <p>After layout, {@link App} lays the overlay out on its own, at most as large as the window,
-   * and places it as {@link #side}, {@link #atPoint} or {@link #centerInWindow} say, beside this
-   * element's rectangle as shown, moved by the scroll offsets above it; it follows the element
-   * from frame to frame. It shows only while this element does: not while this element is clipped
-   * away entirely, invisible or leaving. Overlays are drawn in the order they opened, a submenu
-   * above its menu, each over everything opened before.
+   * <p>After layout, {@link App} lays the overlay out on its own, at most as large as the window
+   * less its {@link #margin margins}, and places its margin box as {@link #side}, {@link #atPoint},
+   * {@link #centerInWindow} or {@link #atWindowEdge} say, beside this element's rectangle as shown,
+   * moved by the scroll offsets above it; its margins stay outside its box, so they are neither
+   * drawn nor hit, and it follows the element from frame to frame. It shows only while this element
+   * does: not while this element is clipped away entirely, invisible or leaving. Overlays are drawn
+   * in the order they opened, a submenu above its menu, each over everything opened before.
    *
    * <p>A press outside the overlays that are open calls the {@link #onDismiss} handlers of those
    * above the point, the newest first, and goes no further: a menu closes, and what lies under the
