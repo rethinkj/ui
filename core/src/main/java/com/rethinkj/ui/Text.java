@@ -1663,6 +1663,19 @@ public final class Text implements Measure {
       return (float) xs[i] + p.pen(local);
     }
 
+    /**
+     * Where position {@code at} lies, as {@link #pen}, without shaping a chunk: in one not shaped
+     * yet, as far into its estimated width as {@code at} is into its characters.
+     */
+    float penEstimate(int at) {
+      int i = chunkOfOffset(Math.clamp(at, 0, text.length() - 1));
+      int local = Math.clamp(at - bounds[i], 0, bounds[i + 1] - bounds[i]);
+      if (parts[i] != null) {
+        return (float) xs[i] + parts[i].pen(local);
+      }
+      return (float) (xs[i] + widths[i] * local / (bounds[i + 1] - bounds[i]));
+    }
+
     void emitLines(float baseline, double viewLeft, double viewRight, List<Line> out) {
       int n = parts.length;
       if (xs[n] <= viewLeft || viewRight <= 0) {
@@ -3039,11 +3052,6 @@ public final class Text implements Measure {
    * them after the rows are laid out moves nothing that is placed already.
    */
   void measureChunks(int... positions) {
-    if (hasOutline()) { // the outline measures its ends after the rows are laid out, too
-      positions = Arrays.copyOf(positions, positions.length + 2);
-      positions[positions.length - 2] = outlineFrom;
-      positions[positions.length - 1] = outlineTo;
-    }
     Lines lines = shownLines();
     for (int at : positions) {
       int line = lines.line(Math.clamp(at, 0, lines.length()));
@@ -3266,10 +3274,12 @@ public final class Text implements Measure {
         segTo--;
       }
       if (segFrom < segTo) {
-        float left = row.para.pen(0);
-        extents.put(
-            row.line,
-            new Lines.Extent(from, to, row.para.pen(segFrom) - left, row.para.pen(segTo) - left));
+        // A long line's chunks are not shaped here: that would move glyphs already placed.
+        Para para = row.para;
+        float left = para.chunks != null ? 0 : para.pen(0);
+        float x0 = para.chunks != null ? para.chunks.penEstimate(segFrom) : para.pen(segFrom);
+        float x1 = para.chunks != null ? para.chunks.penEstimate(segTo) : para.pen(segTo);
+        extents.put(row.line, new Lines.Extent(from, to, x0 - left, x1 - left));
       } else {
         extents.remove(row.line);
       }
