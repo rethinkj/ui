@@ -294,21 +294,16 @@ final class Lines {
     if (hints != null && !hints.isEmpty()) {
       int oldEnd = at + removed;
       int newEnd = at + inserted.length();
-      List<El.Hint> moved = null;
-      for (int i = 0; i < hints.size(); i++) {
-        El.Hint h = hints.get(i);
+      List<El.Hint> moved = new ArrayList<>(hints.size());
+      for (El.Hint h : hints) {
         int pos = h.at();
-        int mapped = pos <= at ? pos : pos >= oldEnd ? pos + delta : Math.min(pos, newEnd);
-        if (mapped != pos) {
-          if (moved == null) {
-            moved = new ArrayList<>(hints);
-          }
-          moved.set(i, new El.Hint(mapped, h.affinity(), h.text()));
+        if (pos > length - delta) {
+          continue; // past the end, so neither shown nor counted, and moving it could overflow
         }
+        int mapped = pos <= at ? pos : pos >= oldEnd ? pos + delta : Math.min(pos, newEnd);
+        moved.add(mapped == pos ? h : new El.Hint(mapped, h.affinity(), h.text()));
       }
-      if (moved != null) {
-        hints = moved;
-      }
+      hints = moved;
     }
     if (!within && (hasHidden() || hasBlocks())) {
       foldsCount = count;
