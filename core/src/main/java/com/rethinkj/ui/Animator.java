@@ -348,7 +348,8 @@ final class Animator {
       if (child.fieldPartKey() != null) {
         continue;
       }
-      if (id.part().equals(part(child, index++))) {
+      // As ids numbers them: in a field part of the current tree, one may be leaving.
+      if (id.part().equals(child.isExiting() ? child.key() : part(child, index++))) {
         return child;
       }
     }
@@ -898,13 +899,21 @@ final class Animator {
     for (El child : field.children()) {
       El.FieldPart key = child.fieldPartKey();
       if (key != null) {
-        autofocus(child, new Id(id, key), found);
+        autofocus(child, new Id(id, key), found, true);
       }
     }
     return found;
   }
 
   private void autofocus(El el, Id id, List<Object> found) {
+    autofocus(el, id, found, false);
+  }
+
+  /**
+   * @param opening whether new overlays count too: no opening of the tree's sees those of field
+   *     parts, which come after layout
+   */
+  private void autofocus(El el, Id id, List<Object> found, boolean opening) {
     if (el.hidesFocus()) {
       return;
     }
@@ -917,12 +926,14 @@ final class Animator {
     }
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
-      autofocus(el.children().get(i), ids[i], found);
+      autofocus(el.children().get(i), ids[i], found, opening);
     }
     Id[] layers = layerIds(el, id);
     for (int i = 0; i < layers.length; i++) {
-      if (entries.containsKey(layers[i])) {
-        autofocus(el.overlays().get(i), layers[i], found);
+      El overlay = el.overlays().get(i);
+      if (entries.containsKey(layers[i])
+          || opening && (overlay.holdsFocus() || !overlay.keepsFocus())) { // as an opening takes it
+        autofocus(overlay, layers[i], found, opening);
       }
     }
   }

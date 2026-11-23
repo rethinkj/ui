@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -168,6 +168,7 @@ public final class El {
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
   private FieldPart fieldPartKey; // non-null on a field's post-layout part; see Animator
   private boolean overflowsBlock; // a block its builder did not clip: wider children show
+  private FieldPart partBase; // a block's or hint's key before distinctParts tells repeats apart
 
   /** Which kind of post-layout child of a multi-line field an element is. */
   enum PartKind {
@@ -2087,7 +2088,9 @@ public final class El {
    */
   Set<String> partLooks(El part) {
     if (field.partLooks == null) {
-      field.partLooks = new IdentityHashMap<>();
+      // Weak: El keeps identity equality, and scrolling builds gutter cells anew under a pointer
+      // that stays, while a hint the shaped text holds may come back with its look.
+      field.partLooks = new WeakHashMap<>();
     }
     return field.partLooks.computeIfAbsent(part, built -> new HashSet<>());
   }
@@ -2127,12 +2130,11 @@ public final class El {
       return;
     }
     Map<FieldPart, Integer> seen = new HashMap<>();
-    for (El part : parts) {
-      int before = seen.merge(part.fieldPartKey, 1, Integer::sum) - 1;
-      if (before > 0) {
-        part.fieldPartKey =
-            new FieldPart(part.fieldPartKey.kind(), List.of(part.fieldPartKey, before));
-      }
+    for (El part : parts) { // from the key it was built with: a cached part keeps its last one
+      int before = seen.merge(part.partBase, 1, Integer::sum) - 1;
+      part.fieldPartKey = before == 0
+          ? part.partBase
+          : new FieldPart(part.partBase.kind(), List.of(part.partBase, before));
     }
   }
 
@@ -2209,8 +2211,8 @@ public final class El {
           }
           blockW = Math.max(contentWidth, extent[0]);
         }
-        boolean grew = part.height != bh;
-        part.place(bx, by, blockW, part.height);
+        boolean grew = !exact && part.height != bh;
+        part.place(bx, by, blockW, exact ? bh : part.height); // the band Text keeps, unrounded
         if (grew) {
           text.restale(); // the rows below make room for it, measured from the block cache
           return true;
@@ -2492,8 +2494,8 @@ public final class El {
    * wrapped row has no stop on its left, since the caret at its offset shows at the start of the
    * next row. A press on an interactive hint runs its own press handler without moving the caret
    * or focus; a press on a non-interactive hint places the caret at that offset at the nearer stop,
-   * or, on a hint that ends a wrapped row, at the nearest position of that row. Nothing in a hint
-   * takes focus.
+   * or, on a hint that ends a wrapped row, at the nearest position of that row. A focusable hint
+   * takes the focus, and Tab and Shift+Tab reach it in order.
    *
    * @param hints the inline hints to show, empty for none
    * @param hint builds the element for each hint
@@ -2550,8 +2552,9 @@ public final class El {
       throw new IllegalStateException("The hint function returned null for hint " + hint);
     }
     // By its own key, else its place among the hints at its offset; see distinctParts.
-    built.fieldPartKey =
+    built.partBase =
         new FieldPart(PartKind.HINT, List.of(hint.at(), built.key != null ? built.key : ordinal));
+    built.fieldPartKey = built.partBase;
     if (built.key == null) {
       built.key(ordinal == 0 ? "hint-" + hint.at() : "hint-" + hint.at() + "-" + ordinal);
     }
@@ -2585,9 +2588,10 @@ public final class El {
       throw new IllegalStateException("The block function returned null for block " + block);
     }
     // By its own key, else its place among the blocks at its line; see distinctParts.
-    built.fieldPartKey = new FieldPart(
+    built.partBase = new FieldPart(
         PartKind.BLOCK,
         List.of(block.placement(), block.first(), built.key != null ? built.key : ordinal));
+    built.fieldPartKey = built.partBase;
     if (built.key == null) {
       built.key(ordinal == 0 ? "block-" + block.first() : "block-" + block.first() + "-" + ordinal);
     }
@@ -2699,6 +2703,9 @@ public final class El {
             }
             cell.style.width = Len.px(field.gutterWidth);
             cell.style.height = Len.px(blockH);
+            if (blockH < rowHeight) {
+              cell.clip(); // as a line's cell: it draws in its band only
+            }
             scaleText(cell, scale, text.systemFonts(), resolvedLineHeight);
             Flex.layout(cell, field.gutterWidth, blockH);
           }

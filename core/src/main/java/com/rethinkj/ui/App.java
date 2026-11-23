@@ -3415,6 +3415,9 @@ public final class App<S> {
       Overlays.place(root, width, height);
     }
     if (sweep) {
+      if (partsBuilt) {
+        refocusPart();
+      }
       sweepEditors();
     }
     return partsBuilt;
@@ -3490,6 +3493,15 @@ public final class App<S> {
       }
     }
     timeOverlays();
+    refocusPart();
+  }
+
+  /** Follows the focus to the part built anew with its identity, as a placement after a rebuild does. */
+  private void refocusPart() {
+    // Also after an autofocus in a part asked for it, which leaves no element until refocus.
+    if (focus.id() != null && !focus.waits() && focus.element() != animator.element(focus.id())) {
+      refocus();
+    }
   }
 
   /**

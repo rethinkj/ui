@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -612,7 +613,7 @@ class BlockTest {
         .orElse(null);
     assertTrue(lookPop != null && lookPop.isPlaced(), "hover look overlay on block placed");
     El lInput = findChild(lookPop, "look-input");
-    assertTrue(lInput.editor() != null, "editor attached to field inside look-added overlay");
+    assertNotNull(lInput.editor(), "editor attached to field inside look-added overlay");
   }
 
   @Test
