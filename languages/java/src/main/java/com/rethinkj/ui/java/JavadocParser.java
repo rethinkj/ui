@@ -24,6 +24,7 @@ import com.rethinkj.ui.kit.MarkdownDocument.ThematicBreak;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -205,7 +206,7 @@ final class JavadocParser {
       String tag = section.tag();
       String content = section.content().toString();
       if (markdown && tag != null) {
-        content = dedentContinuation(content);
+        content = dedentContinuation(content, tag);
       }
       if (tag == null) {
         appendSection(bodyText, content);
@@ -260,30 +261,72 @@ final class JavadocParser {
 
   /**
    * A {@code ///} block tag's text with the common indentation of the lines that go on its first
-   * line, up to the first blank line outside a fence, removed: {@code @param x} followed by an indented description
-   * is prose, and an indented code block after a blank line stays code.
+   * line removed, up to the first blank line outside a code block or a line that starts a block
+   * tag: {@code @param x} followed by an indented description is prose, and an indented code block
+   * after a blank line stays code.
    */
-  private static String dedentContinuation(String content) {
-    // a bare tag's text starts on the next line, indented: then all of it continues the tag
-    boolean bare = !content.isEmpty() && isHorizontalSpace(content.charAt(0));
-    int nl = bare ? -1 : content.indexOf('\n');
-    if (!bare && nl < 0) {
+  private static String dedentContinuation(String content, String tag) {
+    List<String> lines = Arrays.asList(content.split("\n", -1));
+    if (lines.size() < 2) {
       return content;
     }
-    List<String> rest = Arrays.asList(content.substring(nl + 1).split("\n", -1));
-    int prose = 0;
-    int fence = bare ? 0 : openingFence(content.substring(0, nl)); // a blank line in it goes on
-    while (prose < rest.size() && (fence != 0 || !rest.get(prose).isBlank())) {
-      String line = rest.get(prose++);
-      if (fence == 0) {
-        fence = openingFence(line);
-      } else if (isClosingFence(line, fence > 0 ? '`' : '~', Math.abs(fence))) {
-        fence = 0;
+    List<String> rest = lines.subList(1, lines.size());
+    // Which lines are code is read with each line dedented by at most the first one's indentation.
+    // shortcut: a list opened on the tag's first line, or continuation lines indented less than the
+    // first of them, can turn a line inside code into a block tag; track the container's
+    // indentation if real comments hit it.
+    int indent = 0;
+    for (String line : rest) {
+      if (!line.isBlank()) {
+        indent = skipHorizontalSpace(line, 0);
+        break;
       }
     }
-    List<String> lines = new ArrayList<>(stripCommonIndent(rest.subList(0, prose)));
-    lines.addAll(rest.subList(prose, rest.size()));
-    return content.substring(0, nl + 1) + String.join("\n", lines);
+    StringBuilder probe = new StringBuilder(lines.getFirst());
+    for (String line : rest) {
+      probe
+          .append('\n')
+          .append(line, Math.min(skipHorizontalSpace(line, 0), indent), line.length());
+    }
+    BitSet code = MarkdownDocument.codeLines(withoutName(probe.toString(), tag));
+    int prose = 0;
+    // a bare tag's text starts on a following line: blank lines before it go on the tag too
+    while (lines.getFirst().isBlank() && prose < rest.size() && rest.get(prose).isBlank()) {
+      prose++;
+    }
+    while (prose < rest.size()
+        && (code.get(prose + 1)
+            || !rest.get(prose).isBlank() && matchBlockTag(rest.get(prose), true) == null)) {
+      prose++;
+    }
+    List<String> out = new ArrayList<>(lines.size());
+    out.add(lines.getFirst());
+    out.addAll(stripCommonIndent(rest.subList(0, prose)));
+    out.addAll(rest.subList(prose, rest.size()));
+    return String.join("\n", out);
+  }
+
+  /** The text without the name a {@code param} or {@code throws} tag starts with, line for line. */
+  private static String withoutName(String content, String tag) {
+    if (!tag.equals("param") && !tag.equals("throws") && !tag.equals("exception")) {
+      return content;
+    }
+    int start = skipWhitespace(content, 0);
+    int end = start;
+    while (end < content.length() && !Character.isWhitespace(content.charAt(end))) {
+      end++;
+    }
+    return content.substring(0, start) + content.substring(skipHorizontalSpace(content, end));
+  }
+
+  /**
+   * The code lines of a section as Markdown reads it, line 0 being the section's first line: the
+   * body's first line, or what follows a block tag's name.
+   */
+  private static BitSet sectionCodeLines(String tag, String first, List<String> following) {
+    String text = first + (following.isEmpty() ? "" : "\n" + String.join("\n", following));
+    return MarkdownDocument.codeLines(
+        tag == null ? text : withoutName(dedentContinuation(text, tag), tag));
   }
 
   private static void appendSection(StringBuilder target, String content) {
@@ -298,67 +341,69 @@ final class JavadocParser {
 
   /**
    * Splits stripped lines into the initial body section (tag {@code null}) and subsequent block tag
-   * sections, ignoring {@code @} inside fenced code blocks (Markdown) or inside {@code <pre>} and
-   * inline {@code {@...}} tags (Javadoc).
+   * sections, ignoring {@code @} inside code blocks (Markdown) or inside {@code <pre>} and inline
+   * {@code {@...}} tags (Javadoc).
    */
   private static List<Section> splitBlockTags(List<String> lines, boolean markdown) {
     List<Section> sections = new ArrayList<>();
     Section current = new Section(null, new StringBuilder());
     sections.add(current);
 
-    // Markdown fenced-code state.
-    char fenceChar = 0;
-    int fenceLen = 0;
+    if (markdown) {
+      // a tag section keeps every line, so that line k of its text is line start + k
+      int start = 0;
+      String first = lines.isEmpty() ? "" : lines.getFirst();
+      BitSet code = null;
+      int windowEnd = -1;
+      for (int i = 0; i < lines.size(); i++) {
+        String line = lines.get(i);
+        Split tag = matchBlockTag(line, true);
+        if (tag != null && i > start) {
+          // Code status depends only on the lines before, so the window may run past the
+          // section; it grows by doubling to keep the comment's parsing linear.
+          if (code == null || i > windowEnd) {
+            windowEnd = code == null ? i : Math.min(lines.size() - 1, start + 2 * (i - start));
+            code = sectionCodeLines(current.tag(), first, lines.subList(start + 1, windowEnd + 1));
+          }
+          if (code.get(i - start)) {
+            tag = null;
+          }
+        }
+        if (tag != null) {
+          current = new Section(tag.head(), new StringBuilder(tag.rest()));
+          sections.add(current);
+          start = i;
+          first = tag.rest();
+          code = null;
+        } else if (current.tag() != null) {
+          current.content().append('\n').append(line);
+        } else {
+          appendLine(current.content(), line);
+        }
+      }
+      return sections;
+    }
+
     // Javadoc <pre> and {@...} state.
     boolean inPre = false;
     int braceDepth = 0;
 
     for (String line : lines) {
-      if (markdown) {
-        if (fenceChar != 0) {
-          appendLine(current.content(), line);
-          if (isClosingFence(line, fenceChar, fenceLen)) {
-            fenceChar = 0;
-            fenceLen = 0;
-          }
-          continue;
-        }
-        int opened = openingFence(line);
-        if (opened != 0) {
-          fenceChar = opened > 0 ? '`' : '~';
-          fenceLen = Math.abs(opened);
-          appendLine(current.content(), line);
-          continue;
-        }
-        Split tag = matchBlockTag(line, true);
+      if (!inPre && braceDepth == 0) {
+        Split tag = matchBlockTag(line, false);
         if (tag != null) {
           current = new Section(tag.head(), new StringBuilder(tag.rest()));
           sections.add(current);
-          int fence = openingFence(tag.rest());
-          if (fence != 0) {
-            fenceChar = fence > 0 ? '`' : '~';
-            fenceLen = Math.abs(fence);
-          }
+          int[] state = updateJavadocState(tag.rest(), inPre, braceDepth);
+          inPre = state[0] != 0;
+          braceDepth = state[1];
           continue;
         }
-        appendLine(current.content(), line);
-      } else {
-        if (!inPre && braceDepth == 0) {
-          Split tag = matchBlockTag(line, false);
-          if (tag != null) {
-            current = new Section(tag.head(), new StringBuilder(tag.rest()));
-            sections.add(current);
-            int[] state = updateJavadocState(tag.rest(), inPre, braceDepth);
-            inPre = state[0] != 0;
-            braceDepth = state[1];
-            continue;
-          }
-        }
-        appendLine(current.content(), line);
-        int[] state = updateJavadocState(line, inPre, braceDepth);
-        inPre = state[0] != 0;
-        braceDepth = state[1];
       }
+      appendLine(current.content(), line);
+      int[] state = updateJavadocState(line, inPre, braceDepth);
+      inPre = state[0] != 0;
+      braceDepth = state[1];
     }
     return sections;
   }
@@ -368,73 +413,6 @@ final class JavadocParser {
       sb.append('\n');
     }
     sb.append(line);
-  }
-
-  /**
-   * If {@code line} opens a CommonMark fenced code block (0..3 leading spaces, 3+ backticks with no
-   * backticks in the info string, or 3+ tildes), returns {@code +len} for backticks or {@code -len}
-   * for tildes; otherwise 0.
-   */
-  private static int openingFence(String line) {
-    int i = fenceStart(line);
-    int n = line.length();
-    if (i >= n) {
-      return 0;
-    }
-    char c = line.charAt(i);
-    if (c != '`' && c != '~') {
-      return 0;
-    }
-    int start = i;
-    while (i < n && line.charAt(i) == c) {
-      i++;
-    }
-    int len = i - start;
-    if (len < 3) {
-      return 0;
-    }
-    if (c == '`' && line.indexOf('`', i) >= 0) {
-      return 0;
-    }
-    return c == '`' ? len : -len;
-  }
-
-  /**
-   * Where a fence on {@code line} would start: past its indentation, block quote markers and a list
-   * item's marker. shortcut: any indentation counts and a closer's container is not checked, so a
-   * fence-like line inside an indented code block or a fence is taken for a fence; good enough for
-   * splitting off block tags, track containers if real doc comments hit it.
-   */
-  private static int fenceStart(String line) {
-    int n = line.length();
-    int i = skipHorizontalSpace(line, 0);
-    while (i < n && line.charAt(i) == '>') {
-      i = skipHorizontalSpace(line, i + 1);
-    }
-    int m = i;
-    while (m < n && line.charAt(m) >= '0' && line.charAt(m) <= '9') {
-      m++;
-    }
-    boolean ordered = m > i && m < n && (line.charAt(m) == '.' || line.charAt(m) == ')');
-    boolean bullet = m == i && m < n && "-+*".indexOf(line.charAt(m)) >= 0;
-    if ((ordered || bullet) && m + 1 < n && isHorizontalSpace(line.charAt(m + 1))) {
-      i = skipHorizontalSpace(line, m + 1);
-    }
-    return i;
-  }
-
-  private static boolean isClosingFence(String line, char fenceChar, int fenceLen) {
-    int n = line.length();
-    int i = fenceStart(line);
-    if (i >= n || line.charAt(i) != fenceChar) {
-      return false;
-    }
-    int count = 0;
-    while (i < n && line.charAt(i) == fenceChar) {
-      count++;
-      i++;
-    }
-    return count >= fenceLen && isBlank(line, i);
   }
 
   /** Tracks {@code <pre>} and {@code {@...}} brace depth across lines of traditional Javadoc. */
@@ -612,34 +590,57 @@ final class JavadocParser {
     if (inlineTagEnd.isEmpty()) {
       return text;
     }
+    BitSet codeLines = MarkdownDocument.codeLines(text);
     int n = text.length();
+    int[] lineOf = codeLines.isEmpty() ? null : lineNumbers(text);
+    int nextCode = codeLines.nextSetBit(0);
     StringBuilder out = new StringBuilder(n);
     int i = 0;
     int tick = -1;
-    int tilde = -1;
     while (i < n) {
       Integer end = text.charAt(i) == '{' ? inlineTagEnd.get(i) : null;
-      if (end != null && tick < i) {
-        tick = text.indexOf('`', i) < 0 ? n : text.indexOf('`', i);
+      if (end != null) {
+        if (tick < i) {
+          tick = text.indexOf('`', i);
+          if (tick < 0) {
+            tick = n;
+          }
+        }
+        boolean touchesCode = false;
+        if (lineOf != null) {
+          int startLine = lineOf[i];
+          if (nextCode >= 0 && nextCode < startLine) {
+            nextCode = codeLines.nextSetBit(startLine);
+          }
+          touchesCode = nextCode >= 0 && nextCode <= lineOf[end];
+        }
+        // shortcut: a tag containing a backtick stays text, since an inline Markdown code span may
+        // start or end inside it; fenced and indented code blocks are excluded via codeLines.
+        if (tick > end && !touchesCode) {
+          int index = tags.size();
+          tags.add(text.substring(i, end + 1));
+          out.append(TAG_OPEN).append(index).append(TAG_CLOSE);
+          i = end + 1;
+          continue;
+        }
       }
-      if (end != null && tilde < i) {
-        tilde = text.indexOf("~~~", i) < 0 ? n : text.indexOf("~~~", i);
-      }
-      // shortcut: a tag with a backtick or tilde fence in it stays text, since Markdown code (a
-      // span or a fence) may begin or end inside it; an unclosed brace in an indented code line
-      // still reaches into the prose after it, and a tag over several lines of an indented code
-      // block keeps their indentation. Take code ranges from the parser if comments hit these.
-      if (end != null && tick > end && tilde + 3 > end) {
-        int index = tags.size();
-        tags.add(text.substring(i, end + 1));
-        out.append(TAG_OPEN).append(index).append(TAG_CLOSE);
-        i = end + 1;
-      } else {
-        out.append(text.charAt(i));
-        i++;
-      }
+      out.append(text.charAt(i));
+      i++;
     }
     return out.toString();
+  }
+
+  private static int[] lineNumbers(String text) {
+    int n = text.length();
+    int[] lineOf = new int[n];
+    int line = 0;
+    for (int i = 0; i < n; i++) {
+      lineOf[i] = line;
+      if (text.charAt(i) == '\n') {
+        line++;
+      }
+    }
+    return lineOf;
   }
 
   private static List<Block> rewriteBlocks(

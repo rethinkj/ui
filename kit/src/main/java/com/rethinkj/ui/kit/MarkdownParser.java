@@ -4,6 +4,7 @@ import com.rethinkj.ui.kit.MarkdownDocument.Align;
 import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -33,9 +34,11 @@ final class MarkdownParser {
   private static final int CODE_INDENT = 4;
 
   private final UnaryOperator<String> references;
+  private final BitSet codeLines;
 
-  private MarkdownParser(UnaryOperator<String> references) {
+  private MarkdownParser(UnaryOperator<String> references, BitSet codeLines) {
     this.references = references;
+    this.codeLines = codeLines;
   }
 
   static MarkdownDocument parse(String source) {
@@ -53,13 +56,24 @@ final class MarkdownParser {
     }
   }
 
+  static BitSet codeLines(String source) {
+    String text = source == null ? "" : source;
+    BitSet lines = new BitSet();
+    try {
+      new MarkdownParser(null, lines).scanBlocks(text.replace('\0', '\uFFFD'));
+      return lines;
+    } catch (RuntimeException | StackOverflowError _) {
+      return lines;
+    }
+  }
+
   /** As {@link #parse}, but a fault of the reader throws: for the tests. */
   static MarkdownDocument read(String text) {
     return read(text, null);
   }
 
   static MarkdownDocument read(String text, UnaryOperator<String> references) {
-    return new MarkdownParser(references).run(text.replace('\0', '�'));
+    return new MarkdownParser(references, null).run(text.replace('\0', '�'));
   }
 
   // ---- Blocks
@@ -83,6 +97,7 @@ final class MarkdownParser {
     boolean open = true;
     boolean lastLineBlank;
     int startLine;
+    int endLine;
     final StringBuilder content = new StringBuilder();
     int level; // a heading's
     // A list's and an item's marker.
@@ -138,6 +153,15 @@ final class MarkdownParser {
   private boolean partiallyConsumedTab;
 
   private MarkdownDocument run(String text) {
+    scanBlocks(text);
+    List<Block> blocks = new ArrayList<>();
+    for (B b : doc.children) {
+      convert(b, blocks);
+    }
+    return new MarkdownDocument(identify(blocks));
+  }
+
+  private void scanBlocks(String text) {
     int at = 0;
     int length = text.length();
     while (at <= length) {
@@ -162,11 +186,6 @@ final class MarkdownParser {
       finish(tip);
       tip = parent;
     }
-    List<Block> blocks = new ArrayList<>();
-    for (B b : doc.children) {
-      convert(b, blocks);
-    }
-    return new MarkdownDocument(identify(blocks));
   }
 
   private void incorporate(String ln) {
@@ -184,6 +203,9 @@ final class MarkdownParser {
       findNextNonspace();
       int result = continues(container);
       if (result == 2) {
+        if (codeLines != null) {
+          codeLines.set(lineNumber - 1);
+        }
         return;
       }
       if (result == 1) {
@@ -228,6 +250,10 @@ final class MarkdownParser {
     if (t == FENCE || t == INDENTED || t == HEADING) {
       if (t != HEADING) {
         addLine();
+        if (codeLines != null) {
+          codeLines.set(lineNumber - 1);
+          container.endLine = lineNumber;
+        }
       }
     } else if (t == TABLE) {
       if (!blank && offset < line.length()) {
@@ -669,14 +695,19 @@ final class MarkdownParser {
         String code = b.content.toString();
         int end = code.length();
         // Blank lines at the end belong to what follows.
+        int trimmed = 0;
         while (end > 0) {
           int lineStart = code.lastIndexOf('\n', end - 2) + 1;
           if (!code.substring(lineStart, end).isBlank()) {
             break;
           }
           end = lineStart;
+          trimmed++;
         }
         b.content.setLength(end);
+        if (codeLines != null && trimmed > 0) {
+          codeLines.clear(b.endLine - trimmed, b.endLine);
+        }
       }
       case LIST -> b.tight = tight(b);
       default -> {}

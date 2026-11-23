@@ -531,6 +531,72 @@ class JavaTest {
   }
 
   @Test
+  void tripleSlashMarkdownDocCommentsMatchParserCodeBlocks() {
+    DocComment indentedFence = JAVA.docComment("""
+        /// Intro.
+        ///
+        ///     ```
+        ///     @param inIndented
+        ///
+        /// @param a after indented""");
+    assertTrue(
+        indentedFence.body().tree().contains("code \"\" \"```\\n@param inIndented\\n\""),
+        indentedFence.body().tree());
+    assertEquals(1, indentedFence.parameters().size());
+    assertEquals("a", indentedFence.parameters().get(0).name());
+    assertEquals("after indented", plainText(indentedFence.parameters().get(0).description()));
+
+    DocComment quotedCloserInFence = JAVA.docComment("""
+        /// ```markdown
+        /// > ```
+        /// @param inFence
+        /// ```
+        /// @param b after fence""");
+    assertTrue(
+        quotedCloserInFence
+            .body()
+            .tree()
+            .contains("code \"markdown\" \"> ```\\n@param inFence\\n\""),
+        quotedCloserInFence.body().tree());
+    assertEquals(1, quotedCloserInFence.parameters().size());
+    assertEquals("b", quotedCloserInFence.parameters().get(0).name());
+    assertEquals(
+        "after fence", plainText(quotedCloserInFence.parameters().get(0).description()));
+
+    DocComment paramOpensFence = JAVA.docComment("""
+        /// @param x ```java
+        /// @Override
+        /// @return inParamFence
+        /// ```
+        /// @return real return""");
+    assertEquals(1, paramOpensFence.parameters().size());
+    assertEquals("x", paramOpensFence.parameters().get(0).name());
+    assertTrue(
+        paramOpensFence
+            .parameters()
+            .get(0)
+            .description()
+            .tree()
+            .contains("code \"java\" \"@Override\\n@return inParamFence\\n\""),
+        paramOpensFence.parameters().get(0).description().tree());
+    assertEquals("real return", plainText(paramOpensFence.returns()));
+
+    DocComment indentedInline = JAVA.docComment("""
+        /// Intro
+        ///
+        ///     {@code open
+        ///
+        /// Outside }""");
+    assertEquals("""
+        paragraph
+          text "Intro"
+        code "" "{@code open\\n"
+        paragraph
+          text "Outside }"
+        """, indentedInline.body().tree());
+  }
+
+  @Test
   void untrustedPathologicalInputParsesSafelyWithoutOverflow() {
     String evil = "/** "
         + "<b>".repeat(2_000)

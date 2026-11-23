@@ -1,0 +1,1 @@
+- `Java.docComment` now splits `///` Markdown doc comments into body and block tags and skips inline `{@...}` tags in code blocks using `MarkdownDocument.codeLines`, so fenced code blocks inside containers, backticks inside indented code, fences right after `@param` / `@throws` names, and unclosed inline tags in indented code all follow CommonMark block parsing.
