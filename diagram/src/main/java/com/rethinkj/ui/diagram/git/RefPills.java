@@ -47,12 +47,14 @@ public final class RefPills {
    *
    * @param refs the commit's refs, in any order
    * @param lane the ARGB color of the commit's lane, used for branch, HEAD and remote pills
+   * @param background the row's opaque background color (normal, hovered or selected), used so that
+   *     branch and remote pill text meets 4.5:1 contrast on it
    * @param nameWidth maximum width in logical pixels of each pill's name text before it ends in an
    *     ellipsis
    * @param most maximum number of ref pills shown before remaining refs collapse into a {@code +n}
    *     pill
    */
-  public static El pills(List<Ref> refs, int lane, float nameWidth, int most) {
+  public static El pills(List<Ref> refs, int lane, int background, float nameWidth, int most) {
     Objects.requireNonNull(refs, "refs");
     if (!(nameWidth > 0 && Float.isFinite(nameWidth))) {
       throw new IllegalArgumentException("nameWidth must be positive and finite, was " + nameWidth);
@@ -69,7 +71,7 @@ public final class RefPills {
     }
     int shown = Math.min(items.size(), most);
     for (int i = 0; i < shown; i++) {
-      strip.child(pill(items.get(i), lane, nameWidth, theme, texts));
+      strip.child(pill(items.get(i), lane, background, nameWidth, theme, texts));
     }
     if (items.size() > most) {
       List<Pill> hidden = items.subList(most, items.size());
@@ -82,6 +84,19 @@ public final class RefPills {
       strip.child(Tooltip.tooltip(overflow, tip));
     }
     return strip;
+  }
+
+  /** Ordered, folded ref labels for a commit row's accessible label in a tree dump. */
+  static List<String> labels(List<Ref> refs, DiagramTexts texts) {
+    List<Pill> items = order(refs);
+    if (items.isEmpty()) {
+      return List.of();
+    }
+    List<String> out = new ArrayList<>(items.size());
+    for (Pill item : items) {
+      out.add(label(item, texts));
+    }
+    return out;
   }
 
   /** One pill to draw after ordering and folding synced remotes into their local branches. */
@@ -162,19 +177,22 @@ public final class RefPills {
     return slash > 0 && slash < remoteName.length() - 1 ? remoteName.substring(slash + 1) : null;
   }
 
-  private static El pill(Pill item, int lane, float nameWidth, Theme theme, DiagramTexts texts) {
+  private static El pill(
+      Pill item, int lane, int background, float nameWidth, Theme theme, DiagramTexts texts) {
     Theme.Badges badges = theme.badge();
     float height = badges.row();
     float iconSize = badges.text().size();
     float side = theme.space().s() + theme.space().xs();
     int solid = Colors.alpha(lane, 1);
+    int opaqueBg = Colors.alpha(background, 1);
     int panel = theme.surface().panel();
     String tip = label(item, texts);
 
     El pill = row()
         .label(tip)
         .h(height)
-        .shrink(0)
+        .minSize(0, 0) // shrinks to its name's ellipsis where the strip has less room
+        .clip() // and below its glyphs, without spilling onto the next pill
         .align(Style.Align.CENTER)
         .gap(theme.space().xs())
         .padding(0, side);
@@ -201,14 +219,15 @@ public final class RefPills {
       }
       case BRANCH -> {
         int fill = Colors.alpha(solid, TINT_ALPHA);
-        int branchInk = readable(solid, Colors.over(panel, fill), theme.text().primary());
+        int branchInk =
+            readable(solid, Colors.over(opaqueBg, fill), theme.text().primary());
         pill.radius(height / 2)
             .fill(fill)
             .child(Icon.icon(Symbol.BRANCH, Icon.Variant.MUTED, iconSize).color(branchInk));
         yield branchInk;
       }
       case REMOTE -> {
-        int remoteInk = readable(solid, panel, theme.text().primary());
+        int remoteInk = readable(solid, opaqueBg, theme.text().primary());
         pill.radius(height / 2)
             .border(theme.size().stroke(), solid)
             .child(Icon.icon(Symbol.CLOUD, Icon.Variant.MUTED, iconSize).color(remoteInk));

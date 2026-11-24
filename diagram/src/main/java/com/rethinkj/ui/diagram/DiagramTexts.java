@@ -1,6 +1,12 @@
 package com.rethinkj.ui.diagram;
 
 import com.rethinkj.ui.Context;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZonedDateTime;
 
 /**
  * The texts the diagram's components write themselves, in one language, as the kit's {@link
@@ -197,5 +203,157 @@ public interface DiagramTexts {
    */
   default String moreRefs(int count, String names) {
     return (count == 1 ? "1 more ref: " : count + " more refs: ") + names;
+  }
+
+  /** The title of a {@link com.rethinkj.ui.diagram.git.GitLog}. */
+  default String history() {
+    return "History";
+  }
+
+  /** A count of commits in a git log's header: {@code 1 commit}, {@code 24 commits}. */
+  default String commits(int count) {
+    return count == 1 ? "1 commit" : count + " commits";
+  }
+
+  /** Shown when a git log has no commits. */
+  default String noCommits() {
+    return "No commits";
+  }
+
+  /** The heading of the graph column in a git log. */
+  default String graphColumn() {
+    return "Graph";
+  }
+
+  /** The heading of the message column in a git log. */
+  default String messageColumn() {
+    return "Message";
+  }
+
+  /** The heading of the author column in a git log. */
+  default String authorColumn() {
+    return "Author";
+  }
+
+  /** The heading of the date column in a git log. */
+  default String dateColumn() {
+    return "Date";
+  }
+
+  /** The heading of the commit hash column in a git log. */
+  default String commitColumn() {
+    return "Commit";
+  }
+
+  /** A count of branches in a git log's footer: {@code 1 branch}, {@code 4 branches}. */
+  default String branches(int count) {
+    return count == 1 ? "1 branch" : count + " branches";
+  }
+
+  /** A count of tags in a git log's footer: {@code 1 tag}, {@code 3 tags}. */
+  default String tags(int count) {
+    return count == 1 ? "1 tag" : count + " tags";
+  }
+
+  /** The prefix of a commit row's label in a tree dump: {@code commit a41f9c2}. */
+  default String commitLabel(String shortHash) {
+    return "commit " + shortHash;
+  }
+
+  /** A month's short name as shown in dates: {@code Nov}. */
+  default String monthShort(Month month) {
+    return switch (month) {
+      case JANUARY -> "Jan";
+      case FEBRUARY -> "Feb";
+      case MARCH -> "Mar";
+      case APRIL -> "Apr";
+      case MAY -> "May";
+      case JUNE -> "Jun";
+      case JULY -> "Jul";
+      case AUGUST -> "Aug";
+      case SEPTEMBER -> "Sep";
+      case OCTOBER -> "Oct";
+      case NOVEMBER -> "Nov";
+      case DECEMBER -> "Dec";
+    };
+  }
+
+  /** A commit authored less than a minute ago: {@code just now}. */
+  default String justNow() {
+    return "just now";
+  }
+
+  /** A commit authored less than an hour ago: {@code 38 min ago}. */
+  default String minutesAgo(int minutes) {
+    return minutes + " min ago";
+  }
+
+  /** A commit authored less than a day ago: {@code 2 h ago}. */
+  default String hoursAgo(int hours) {
+    return hours + " h ago";
+  }
+
+  /** A commit authored between one and two days ago: {@code yesterday}. */
+  default String yesterday() {
+    return "yesterday";
+  }
+
+  /** A commit authored between two and six days ago: {@code 3 days ago}. */
+  default String daysAgo(int days) {
+    return days + " days ago";
+  }
+
+  /**
+   * A short date for an older commit: {@code Nov 16} in the current year, {@code Nov 16, 2025} in
+   * another.
+   */
+  default String shortDate(LocalDate date, boolean withYear) {
+    String base = monthShort(date.getMonth()) + " " + date.getDayOfMonth();
+    return withYear ? base + ", " + date.getYear() : base;
+  }
+
+  /** A full date and time for a commit's tooltip: {@code Nov 24, 2026, 09:30}. */
+  default String fullDate(ZonedDateTime date) {
+    return String.format(
+        "%s %d, %d, %02d:%02d",
+        monthShort(date.getMonth()),
+        date.getDayOfMonth(),
+        date.getYear(),
+        date.getHour(),
+        date.getMinute());
+  }
+
+  /**
+   * A commit's time relative to {@code clock}: {@code just now}, {@code 38 min ago}, {@code 2 h
+   * ago}, {@code yesterday}, {@code 3 days ago}, then {@link #shortDate} for a week or more (or a
+   * time after {@code clock}).
+   */
+  default String relativeDate(Instant time, Clock clock) {
+    Instant now = clock.instant();
+    long seconds = Duration.between(time, now).getSeconds();
+    if (seconds < 0) {
+      ZonedDateTime at = time.atZone(clock.getZone());
+      ZonedDateTime ref = now.atZone(clock.getZone());
+      return shortDate(at.toLocalDate(), at.getYear() != ref.getYear());
+    }
+    if (seconds < 60) {
+      return justNow();
+    }
+    long minutes = seconds / 60;
+    if (minutes < 60) {
+      return minutesAgo((int) minutes);
+    }
+    if (minutes < 1440) {
+      return hoursAgo((int) (minutes / 60));
+    }
+    if (minutes < 2880) {
+      return yesterday();
+    }
+    if (minutes < 10080) {
+      return daysAgo((int) (minutes / 1440));
+    }
+    ZonedDateTime at = time.atZone(clock.getZone());
+    ZonedDateTime ref = now.atZone(clock.getZone());
+    return shortDate(at.toLocalDate(), at.getYear() != ref.getYear());
   }
 }

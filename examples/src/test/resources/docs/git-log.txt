@@ -1,0 +1,10 @@
+# The commit history of GitLogs: select one commit, then extend a range with Shift+click.
+size 920 507
+frame
+press #row-3
+frame
+snap view
+
+press #row-5 shift
+frame
+snap range

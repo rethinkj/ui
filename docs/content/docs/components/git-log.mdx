@@ -1,0 +1,57 @@
+---
+title: GitLog
+description: Virtual commit history with a branch graph, ref pills, selection, and keyboard navigation.
+---
+
+`GitLog.gitLog` shows a repository's commit history with a branch graph inside a flush [card](/docs/components/card): a header with its title, commit count, and the app's actions, a column header, a virtual list of commits (`El.rows`), and a footer with optional status text and branch and tag counts. It is in the optional module `rethinkj-ui-diagram`, package `com.rethinkj.ui.diagram.git`, and never runs git itself. Javadoc: [`GitLog`](/api/com/rethinkj/ui/diagram/git/GitLog.html).
+
+<Shot src="examples/docs/git-log/view-{theme}" alt="A commit history card showing a multi-branch commit graph, colored ref pills, commit subjects, initials avatars, relative dates, short hashes, and a selected commit" />
+
+## Example
+
+Keep a `GitLog.State` in your app state and pass plain `Commit` and `Ref` records, newest first in topological order (`git log --topo-order`):
+
+```java snippet="git-log"
+```
+
+| Record | Fields | Notes |
+| --- | --- | --- |
+| `Commit` | `id`, `parents`, `subject`, `author`, `time` | First parent first; empty `parents` for a root commit; two or more parents mark a merge commit |
+| `Ref` | `name`, `kind`, `commit` | `Ref.Kind`: `HEAD`, `BRANCH`, `REMOTE`, `TAG` |
+
+`GitLog.State` caches the laid-out `CommitGraph` and appends only newly added tail commits when the list grows, rebuilding otherwise. Pass a fixed `java.time.Clock` to `new GitLog.State(clock)` for deterministic relative dates and tooltips in tests.
+
+`GitLog.options()` sets `onOpen(Consumer<Commit>)` for Enter on the current commit and `status(String)` for the footer's leading text (such as `"1 ahead of origin/main"`). Trailing `El... actions` sit at the right of the header.
+
+## Rows and graph
+
+Each row is `GraphStyle.rowHeight` tall (32 px by default) and shows:
+
+- **Graph**: `GraphCell` with smooth S-curves in `Theme.lanes()` colors, filled dots for commits, hollow rings for merges, a holed dot for `HEAD`, and an outer ring on the current commit. Hovering a row emphasizes its lane and fades all others.
+- **Message**: `RefPills` (`HEAD`, local branches, remote branches, and tags, with matching remotes folded into their local branch's pill), followed by the commit subject (muted for merge commits).
+- **Author**: a deterministic initials `Avatar` and the author's name.
+- **Date**: a relative time (`38 min ago`, `2 h ago`, `yesterday`, `3 days ago`, or a short date for older commits), with the full date and time in its tooltip.
+- **Commit**: the seven-character short hash in the theme's monospaced font.
+
+Provide a custom `GraphStyle` with `app.provide(GraphStyle.CURRENT, ...)` to change row height, lane spacing, dot radii, or fading.
+
+## Selection and keyboard
+
+<Shot src="examples/docs/git-log/range-{theme}" alt="A commit history with a three-commit range selected between anchor and cursor" />
+
+Clicking a row selects it; Shift+click and Shift with navigation keys select a range between `state.anchor()` and `state.cursor()` (or ordered via `state.rangeStart()` and `state.rangeEnd()`) so your app can compare its two ends. While the list has the focus:
+
+| Key | Action |
+| --- | --- |
+| `ArrowUp`, `ArrowDown` | Move the cursor one row and scroll it into view |
+| `PageUp`, `PageDown` | Move the cursor by one visible page |
+| `Home`, `End` | Move to the first or last commit |
+| `Shift` + navigation key | Extend the range from the anchor to the new cursor |
+| `Enter` | Call `onOpen` with the cursor's commit |
+
+## In a tree dump
+
+The virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+
+```text file="examples/src/test/resources/golden/docs/git-log/view.tree.txt" start="el #row-3 role=row" count="6"
+```

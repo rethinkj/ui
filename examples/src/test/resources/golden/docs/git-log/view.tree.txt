@@ -1,0 +1,271 @@
+el 0,0 920x507
+  el 12,12 896x483
+    el 13,13 894x40
+      text role=heading "History" 29,25 50x17 level=3
+      el label="18 commits" 87,22 81x22
+        text "18 commits" 95,26 65x15
+      el 176,33 626x0
+      el role=button label="Fetch" 810,21 81x24
+        text label="arrow_download" "\u{F14F}" 823,25 16x16
+        text "Fetch" 843,25 35x16
+    el #header role=row 13,53 894x28
+      el role=columnheader label="Graph" 13,60 96x15
+        text "Graph" 29,60 35x15
+      el role=columnheader label="Message" 109,60 434x15
+        text "Message" 117,60 51x15
+      el role=columnheader label="Author" 543,60 176x15
+        text "Author" 551,60 39x15
+      el role=columnheader label="Date" 719,60 100x15
+        text "Date" 727,60 27x15
+      el role=columnheader label="Commit" 819,60 88x15
+        text "Commit" 827,60 45x15
+    el #rows role=grid label="History" 13,81 894x384 rows 0-14/18 thumb-y 899,83 6x253.33 focused
+      el #row-0 role=row label="commit a41f9c2, Show query duration in the status bar, Mara Lindqvist, 38 min ago, HEAD → main" 13,81 894x32 pos=1/18
+        el 13,81 96x32
+          el label="●" 13,81 96x32
+            el 21,89 16x16
+            el 23,91 12x12
+        el 109,81 434x32
+          el 117,88 48x18
+            el label="HEAD → main" 117,88 48x18
+              el 123,95 4x4
+              text "main" 131,90 28x15
+          text "Show query duration in the status bar" 169,89 366x16
+        el 543,81 176x32
+          el role=img label="Mara Lindqvist" 551,87 20x20
+            text "ML" 555,92 12x10
+          text "Mara Lindqvist" 579,89 132x16
+        el 719,81 100x32
+          text "38 min ago" 727,90 62x15
+        el 819,81 88x32
+          text "a41f9c2" 827,89 49x16
+      el #row-1 role=row label="commit 9d2e6b1, Export the diagram as SVG, Jonas Weber, 2 h ago, Branch feature/er-export, in sync with origin/feature/er-export" 13,113 894x32 pos=2/18
+        el 13,113 96x32
+          el label="│ ●" 13,113 96x32
+            el 39,123 12x12
+        el 109,113 434x32
+          el 117,120 138x18
+            el label="Branch feature/er-export, in sync with origin/feature/er-export" 117,120 138x18
+              text label="branch" "\u{F0A6}" 123,123 12x12
+              text "feature/er-export" 137,122 98x15
+              text label="cloud" "\u{E382}" 237,123 12x12
+          text "Export the diagram as SVG" 259,121 276x16
+        el 543,113 176x32
+          el role=img label="Jonas Weber" 551,119 20x20
+            text "JW" 555,124 13x10
+          text "Jonas Weber" 579,121 132x16
+        el 719,113 100x32
+          text "2 h ago" 727,122 41x15
+        el 819,113 88x32
+          text "9d2e6b1" 827,121 49x16
+      el #row-2 role=row label="commit 7be3d10, Merge branch 'fix/null-timestamps', Priya Raman, 3 h ago, Remote branch origin/main" 13,145 894x32 pos=3/18
+        el 13,145 96x32
+          el label="● │ ╮" 13,145 96x32
+            el 21,153 16x16
+            el 23,155 12x12
+        el 109,145 434x32
+          el 117,152 92x18
+            el label="Remote branch origin/main" 117,152 92x18
+              text label="cloud" "\u{E382}" 124,155 12x12
+              text "origin/main" 138,154 64x15
+          text "Merge branch 'fix/null-timestamps'" 213,153 322x16
+        el 543,145 176x32
+          el role=img label="Priya Raman" 551,151 20x20
+            text "PR" 556,156 10x10
+          text "Priya Raman" 579,153 132x16
+        el 719,145 100x32
+          text "3 h ago" 727,154 41x15
+        el 819,145 88x32
+          text "7be3d10" 827,153 49x16
+      el #row-3 role=row label="commit 6c0d5a8, Keep the last fifty statements per connection, Aiko Tanaka, 5 h ago, Branch feature/query-history" 13,177 894x32 selected current pos=4/18
+        el 13,177 96x32
+          el label="│ │ │ ●" 13,177 96x32
+            el 71,187 12x12
+            el 67,183 20x20
+        el 109,177 434x32
+          el 117,184 147x18
+            el label="Branch feature/query-history" 117,184 147x18
+              text label="branch" "\u{F0A6}" 123,187 12x12
+              text "feature/query-history" 137,186 121x15
+          text "Keep the last fifty statements per connection" 268,185 267x16
+        el 543,177 176x32
+          el role=img label="Aiko Tanaka" 551,183 20x20
+            text "AT" 556,188 10x10
+          text "Aiko Tanaka" 579,185 132x16
+        el 719,177 100x32
+          text "5 h ago" 727,186 41x15
+        el 819,177 88x32
+          text "6c0d5a8" 827,185 49x16
+        el 13,181 3x24
+      el #row-4 role=row label="commit 2f9b8d4, Render NULL timestamps as an empty cell, Priya Raman, yesterday" 13,209 894x32 pos=5/18
+        el 13,209 96x32
+          el label="│ │ ● │" 13,209 96x32
+            el 55,219 12x12
+        el 109,209 434x32
+          text "Render NULL timestamps as an empty cell" 117,217 418x16
+        el 543,209 176x32
+          el role=img label="Priya Raman" 551,215 20x20
+            text "PR" 556,220 10x10
+          text "Priya Raman" 579,217 132x16
+        el 719,209 100x32
+          text "yesterday" 727,218 56x15
+        el 819,209 88x32
+          text "2f9b8d4" 827,217 49x16
+      el #row-5 role=row label="commit c3a8f40, Route edges around frames on export, Jonas Weber, yesterday" 13,241 894x32 pos=6/18
+        el 13,241 96x32
+          el label="│ ● │ │" 13,241 96x32
+            el 39,251 12x12
+        el 109,241 434x32
+          text "Route edges around frames on export" 117,249 418x16
+        el 543,241 176x32
+          el role=img label="Jonas Weber" 551,247 20x20
+            text "JW" 555,252 13x10
+          text "Jonas Weber" 579,249 132x16
+        el 719,241 100x32
+          text "yesterday" 727,250 56x15
+        el 819,241 88x32
+          text "c3a8f40" 827,249 49x16
+      el #row-6 role=row label="commit b81e2f3, Merge branch 'main' into feature/query-history, Aiko Tanaka, 2 days ago" 13,273 894x32 pos=7/18
+        el 13,273 96x32
+          el label="├ │ │ ●" 13,273 96x32
+            el 69,281 16x16
+            el 71,283 12x12
+        el 109,273 434x32
+          text "Merge branch 'main' into feature/query-history" 117,281 418x16
+        el 543,273 176x32
+          el role=img label="Aiko Tanaka" 551,279 20x20
+            text "AT" 556,284 10x10
+          text "Aiko Tanaka" 579,281 132x16
+        el 719,273 100x32
+          text "2 days ago" 727,282 61x15
+        el 819,273 88x32
+          text "b81e2f3" 827,281 49x16
+      el #row-7 role=row label="commit e5c1a77, Merge branch 'release/0.9', Luis Ortega, 2 days ago" 13,305 894x32 pos=8/18
+        el 13,305 96x32
+          el label="● │ │ │ ╮" 13,305 96x32
+            el 21,313 16x16
+            el 23,315 12x12
+        el 109,305 434x32
+          text "Merge branch 'release/0.9'" 117,313 418x16
+        el 543,305 176x32
+          el role=img label="Luis Ortega" 551,311 20x20
+            text "LO" 556,316 10x10
+          text "Luis Ortega" 579,313 132x16
+        el 719,305 100x32
+          text "2 days ago" 727,314 61x15
+        el 819,305 88x32
+          text "e5c1a77" 827,313 49x16
+      el #row-8 role=row label="commit d47a1c9, Add a failing test for NULL timestamps, Priya Raman, 3 days ago" 13,337 894x32 pos=9/18
+        el 13,337 96x32
+          el label="│ │ ● │ │" 13,337 96x32
+            el 55,347 12x12
+        el 109,337 434x32
+          text "Add a failing test for NULL timestamps" 117,345 418x16
+        el 543,337 176x32
+          el role=img label="Priya Raman" 551,343 20x20
+            text "PR" 556,348 10x10
+          text "Priya Raman" 579,345 132x16
+        el 719,337 100x32
+          text "3 days ago" 727,346 61x15
+        el 819,337 88x32
+          text "d47a1c9" 827,345 49x16
+      el #row-9 role=row label="commit 88aa1f0, Fix crash when a connection drops mid-query, Luis Ortega, 3 days ago, Branch release/0.9, in sync with origin/release/0.9, Tag v0.9.1" 13,369 894x32 pos=10/18
+        el 13,369 96x32
+          el label="│ │ │ │ ●" 13,369 96x32
+            el 87,379 12x12
+        el 109,369 434x32
+          el 117,376 167x18
+            el label="Branch release/0.9, in sync with origin/release/0.9" 117,376 104x18
+              text label="branch" "\u{F0A6}" 123,379 12x12
+              text "release/0.9" 137,378 64x15
+              text label="cloud" "\u{E382}" 203,379 12x12
+            el label="Tag v0.9.1" 225,376 59x18
+              text label="tag" "\u{EC70}" 231,379 12x12
+              text "v0.9.1" 245,378 33x15
+          text "Fix crash when a connection drops mid-query" 288,377 247x16
+        el 543,369 176x32
+          el role=img label="Luis Ortega" 551,375 20x20
+            text "LO" 556,380 10x10
+          text "Luis Ortega" 579,377 132x16
+        el 719,369 100x32
+          text "3 days ago" 727,378 61x15
+        el 819,369 88x32
+          text "88aa1f0" 827,377 49x16
+      el #row-10 role=row label="commit 5ea9c61, Search the history with fuzzy matching, Aiko Tanaka, 4 days ago" 13,401 894x32 pos=11/18
+        el 13,401 96x32
+          el label="│ │ │ ● │" 13,401 96x32
+            el 71,411 12x12
+        el 109,401 434x32
+          text "Search the history with fuzzy matching" 117,409 418x16
+        el 543,401 176x32
+          el role=img label="Aiko Tanaka" 551,407 20x20
+            text "AT" 556,412 10x10
+          text "Aiko Tanaka" 579,409 132x16
+        el 719,401 100x32
+          text "4 days ago" 727,410 62x15
+        el 819,401 88x32
+          text "5ea9c61" 827,409 49x16
+      el #row-11 role=row label="commit ff31b72, Add an export dialog for diagrams, Jonas Weber, 5 days ago" 13,433 894x32 pos=12/18
+        el 13,433 96x32
+          el label="├ ● │ │ │" 13,433 96x32
+            el 39,443 12x12
+        el 109,433 434x32
+          text "Add an export dialog for diagrams" 117,441 418x16
+        el 543,433 176x32
+          el role=img label="Jonas Weber" 551,439 20x20
+            text "JW" 555,444 13x10
+          text "Jonas Weber" 579,441 132x16
+        el 719,433 100x32
+          text "5 days ago" 727,442 61x15
+        el 819,433 88x32
+          text "ff31b72" 827,441 49x16
+      el #row-12 role=row label="commit 0b4c7e2, Bump wgpu-native to 24.0.3, Mara Lindqvist, 5 days ago" 13,465 894x32 pos=13/18
+        el 13,465 96x32
+          el label="● ─ ╯ │ │" 13,465 96x32
+            el 23,475 12x12
+        el 109,465 434x32
+          text "Bump wgpu-native to 24.0.3" 117,473 418x16
+        el 543,465 176x32
+          el role=img label="Mara Lindqvist" 551,471 20x20
+            text "ML" 555,476 12x10
+          text "Mara Lindqvist" 579,473 132x16
+        el 719,465 100x32
+          text "5 days ago" 727,474 61x15
+        el 819,465 88x32
+          text "0b4c7e2" 827,473 49x16
+      el #row-13 role=row label="commit 41d0e93, Store executed statements in a history table, Aiko Tanaka, 6 days ago" 13,497 894x32 pos=14/18
+        el 13,497 96x32
+          el label="│     ● │" 13,497 96x32
+            el 71,507 12x12
+        el 109,497 434x32
+          text "Store executed statements in a history table" 117,505 418x16
+        el 543,497 176x32
+          el role=img label="Aiko Tanaka" 551,503 20x20
+            text "AT" 556,508 10x10
+          text "Aiko Tanaka" 579,505 132x16
+        el 719,497 100x32
+          text "6 days ago" 727,506 61x15
+        el 819,497 88x32
+          text "41d0e93" 827,505 49x16
+      el #row-14 role=row label="commit 3e7d2b5, Prepare release 0.9.0, Luis Ortega, Nov 16, Tag v0.9.0" 13,529 894x32 pos=15/18
+        el 13,529 96x32
+          el label="│     │ ●" 13,529 96x32
+            el 87,539 12x12
+        el 109,529 434x32
+          el 117,536 62x18
+            el label="Tag v0.9.0" 117,536 62x18
+              text label="tag" "\u{EC70}" 123,539 12x12
+              text "v0.9.0" 137,538 36x15
+          text "Prepare release 0.9.0" 183,537 352x16
+        el 543,529 176x32
+          el role=img label="Luis Ortega" 551,535 20x20
+            text "LO" 556,540 10x10
+          text "Luis Ortega" 579,537 132x16
+        el 719,529 100x32
+          text "Nov 16" 727,538 38x15
+        el 819,529 88x32
+          text "3e7d2b5" 827,537 49x16
+    el 13,465 894x29
+      text "1 ahead of origin/main" 29,473 124x15
+      el 165,480 607x0
+      text "4 branches · 2 tags" 784,473 107x15

@@ -47,10 +47,11 @@ class RefPillsTest {
 
   private static El showcase() {
     Theme theme = Theme.CURRENT.get();
+    int bg = theme.surface().panel();
     return col()
         .wFull()
         .hFull()
-        .fill(theme.surface().panel())
+        .fill(bg)
         .padding(theme.space().l())
         .gap(theme.space().m())
         // Row 1: HEAD branch in sync with origin/main (plus duplicate BRANCH entry) and a tag.
@@ -61,6 +62,7 @@ class RefPillsTest {
                 new Ref("main", Kind.BRANCH, "c1"),
                 new Ref("main", Kind.HEAD, "c1")),
             BLUE,
+            bg,
             120,
             4))
         // Row 2: local branch in sync with its remote, plus a separate remote branch.
@@ -70,16 +72,19 @@ class RefPillsTest {
                 new Ref("origin/release", Kind.REMOTE, "c2"),
                 new Ref("release", Kind.BRANCH, "c2")),
             GREEN,
+            bg,
             120,
             4))
         // Row 3 & 4: local branch and its remote on different commits (not in sync).
-        .child(RefPills.pills(List.of(new Ref("feat/pills", Kind.BRANCH, "c3")), VIOLET, 120, 4))
+        .child(
+            RefPills.pills(List.of(new Ref("feat/pills", Kind.BRANCH, "c3")), VIOLET, bg, 120, 4))
         .child(RefPills.pills(
-            List.of(new Ref("origin/feat/pills", Kind.REMOTE, "c4")), VIOLET, 120, 4))
+            List.of(new Ref("origin/feat/pills", Kind.REMOTE, "c4")), VIOLET, bg, 120, 4))
         // Row 5: detached HEAD on a bright lane (dark contrasting text) alongside a local branch.
         .child(RefPills.pills(
             List.of(new Ref("hotfix", Kind.BRANCH, "c5"), new Ref("HEAD", Kind.HEAD, "c5")),
             AMBER,
+            bg,
             120,
             4))
         // Row 6: truncated long name and +n overflow collapsing hidden refs.
@@ -91,6 +96,7 @@ class RefPillsTest {
                 new Ref("origin/staging", Kind.REMOTE, "c6"),
                 new Ref("v2.0.0", Kind.TAG, "c6")),
             TEAL,
+            bg,
             110,
             3));
   }
@@ -131,5 +137,41 @@ class RefPillsTest {
     assertTrue(
         overflowTip.contains("role=tooltip label=\"2 more refs: v2.0.0-rc.1, v2.0.0\""),
         overflowTip);
+  }
+
+  @Test
+  void branchAndRemoteTextMeetsContrastOnEveryRowBackground() {
+    for (Theme theme : List.of(Theme.DARK, Theme.LIGHT)) {
+      int panel = theme.surface().panel();
+      int[] backgrounds = {
+        panel,
+        Colors.over(panel, theme.surface().hover()),
+        theme.grid().selected(),
+        theme.grid().selectedInactive()
+      };
+      for (int bg : backgrounds) {
+        for (int lane : theme.lanes().colors()) {
+          Theme.CURRENT.with(theme, () -> {
+            El branchStrip =
+                RefPills.pills(List.of(new Ref("dev", Kind.BRANCH, "c1")), lane, bg, 120, 4);
+            El branchPill = branchStrip.children().getFirst();
+            int pillBg = Colors.over(bg, branchPill.fill());
+            int branchInk = branchPill.children().get(1).text().color();
+            assertTrue(
+                Colors.contrast(branchInk, pillBg) >= 4.5,
+                () -> "branch contrast below 4.5: " + Colors.contrast(branchInk, pillBg));
+
+            El remoteStrip =
+                RefPills.pills(List.of(new Ref("origin/dev", Kind.REMOTE, "c1")), lane, bg, 120, 4);
+            El remotePill = remoteStrip.children().getFirst();
+            int remoteInk = remotePill.children().get(1).text().color();
+            assertTrue(
+                Colors.contrast(remoteInk, bg) >= 4.5,
+                () -> "remote contrast below 4.5: " + Colors.contrast(remoteInk, bg));
+            return null;
+          });
+        }
+      }
+    }
   }
 }
