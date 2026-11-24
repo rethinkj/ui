@@ -535,6 +535,15 @@ class ThemeTest {
       check(failures, "avatar " + Integer.toHexString(fill), fill, surfaces, 3);
       check(failures, "avatar initials", badges.onAvatar(), Map.of("avatar", fill), 4.5);
     }
+    // Lanes: each color 3:1 on the window, the panel and the selected row.
+    Map<String, Integer> laneBg = Map.of(
+        "window", s.window(),
+        "panel", s.panel(),
+        "grid selected", g.selected(),
+        "grid selected inactive", g.selectedInactive());
+    for (int color : t.lanes().colors()) {
+      check(failures, "lane " + Colors.toHex(color), color, laneBg, 3);
+    }
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 
@@ -744,6 +753,8 @@ class ThemeTest {
     assertEquals(Theme.Danger.LIGHT, Theme.LIGHT.danger());
     assertEquals(Theme.Diff.DARK, Theme.DARK.diff());
     assertEquals(Theme.Diff.LIGHT, Theme.LIGHT.diff());
+    assertEquals(Theme.Lanes.DARK, Theme.DARK.lanes());
+    assertEquals(Theme.Lanes.LIGHT, Theme.LIGHT.lanes());
   }
 
   /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */

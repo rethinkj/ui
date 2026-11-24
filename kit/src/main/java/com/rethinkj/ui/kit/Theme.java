@@ -73,7 +73,54 @@ public record Theme(
     Badges badge,
     Danger danger,
     Callouts callout,
-    Diff diff) {
+    Diff diff,
+    Lanes lanes) {
+
+  /** A theme whose graph lanes look as {@link Lanes#DARK} or {@link Lanes#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger,
+      Callouts callout,
+      Diff diff) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lightness(surface.raised()) < 0.5 ? Lanes.DARK : Lanes.LIGHT);
+  }
 
   /** A theme whose diff views look as {@link Diff#DARK} or {@link Diff#LIGHT}. */
   public Theme(
@@ -538,6 +585,31 @@ public record Theme(
         alpha(BLUE_918, 0.8f),
         alpha(BLUE_782, 0.5f),
         alpha(GRAY_773, 0.22f));
+  }
+
+  /**
+   * The colors of parallel lanes, such as branches in a commit graph, indexed modulo the list's
+   * size. Each color stands out 3:1 or more from the window, the panel and a selected row in both
+   * default themes.
+   *
+   * @param colors opaque lane colors in order, at least one
+   */
+  public record Lanes(List<Integer> colors) {
+
+    public Lanes {
+      if (colors.isEmpty()) {
+        throw new IllegalArgumentException("at least one lane color");
+      }
+      colors = List.copyOf(colors);
+    }
+
+    /** For dark surfaces. */
+    public static final Lanes DARK = new Lanes(List.of(
+        BLUE_694, VIOLET_700, TEAL_700, PINK_702, AMBER_745, GREEN_702, PURPLE_702, ORANGE_702));
+
+    /** For light surfaces. */
+    public static final Lanes LIGHT = new Lanes(List.of(
+        BLUE_447, VIOLET_478, TEAL_490, PINK_491, AMBER_491, GREEN_492, PURPLE_490, ORANGE_488));
   }
 
   /**
@@ -1818,7 +1890,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withText(TextColors text) {
@@ -1842,7 +1915,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withBorder(Borders border) {
@@ -1866,7 +1940,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1890,7 +1965,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   /**
@@ -1922,7 +1998,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withSpace(Spacing space) {
@@ -1946,7 +2023,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withRadius(Radii radius) {
@@ -1970,7 +2048,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withType(Type type) {
@@ -1994,7 +2073,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withSize(Sizes size) {
@@ -2018,7 +2098,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withMotion(Motion motion) {
@@ -2042,7 +2123,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withGrid(Grid grid) {
@@ -2066,7 +2148,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -2090,7 +2173,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withCode(Code code) {
@@ -2114,7 +2198,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -2138,7 +2223,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withProse(Prose prose) {
@@ -2162,7 +2248,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withBadge(Badges badge) {
@@ -2186,7 +2273,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withDanger(Danger danger) {
@@ -2210,7 +2298,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withCaption(Caption caption) {
@@ -2234,7 +2323,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withCallout(Callouts callout) {
@@ -2258,7 +2348,8 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
   }
 
   public Theme withDiff(Diff diff) {
@@ -2282,7 +2373,33 @@ public record Theme(
         badge,
         danger,
         callout,
-        diff);
+        diff,
+        lanes);
+  }
+
+  public Theme withLanes(Lanes lanes) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lanes);
   }
 
   /**

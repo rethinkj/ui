@@ -1,0 +1,1 @@
+- Added `GraphCell` and `GraphStyle` in the diagram module to draw one row's cell of a `CommitGraph` with smooth S-curves, commit/merge/HEAD/selected dot shapes and opaque faded lanes, and added `Theme.Lanes` (`Theme.lanes()`, `Theme.withLanes`) with dark and light lane color palettes in kit.
