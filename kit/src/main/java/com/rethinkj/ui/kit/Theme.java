@@ -831,8 +831,21 @@ public record Theme(
    *     line, the edge of a selected card, the mark of a navigation list's selected item; it
    *     stands out 3:1 from the surfaces and the grid's selection, which the full accent does not
    *     on a dark surface
+   * @param edgeMuted translucent, a quieter {@code edge} for the active tab's line in a tab group
+   *     that is not the active one ({@link Tabs.Options#active})
    */
-  public record Accent(int color, int hover, int pressed, int selection, int edge) {
+  public record Accent(int color, int hover, int pressed, int selection, int edge, int edgeMuted) {
+
+    /** An accent whose muted edge is {@code edge} translucent for its lightness. */
+    public Accent(int color, int hover, int pressed, int selection, int edge) {
+      this(
+          color,
+          hover,
+          pressed,
+          selection,
+          edge,
+          alpha(edge, lightness(edge) > 0.5 ? 0.18f : 0.45f));
+    }
 
     /** An accent whose selection is its color at 40 % opacity and whose edge is its color. */
     public Accent(int color, int hover, int pressed) {
@@ -860,8 +873,15 @@ public record Theme(
    */
   public enum Hue {
     BLUE(
-        new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
-        new Accent(BLUE_447, BLUE_391, BLUE_335, alpha(BLUE_447, 0.35f), BLUE_447)),
+        new Accent(
+            BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694, alpha(BLUE_694, 0.18f)),
+        new Accent(
+            BLUE_447,
+            BLUE_391,
+            BLUE_335,
+            alpha(BLUE_447, 0.35f),
+            BLUE_447,
+            alpha(BLUE_447, 0.45f))),
     VIOLET(VIOLET_478, VIOLET_700),
     PURPLE(PURPLE_490, PURPLE_702),
     PINK(PINK_491, PINK_702),
@@ -882,13 +902,24 @@ public record Theme(
 
     Hue(int fill, int edge) {
       this(
-          new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24), alpha(fill, 0.4f), edge),
+          new Accent(
+              fill,
+              mix(fill, BLACK, 0.12),
+              mix(fill, BLACK, 0.24),
+              alpha(fill, 0.4f),
+              edge,
+              alpha(edge, 0.18f)),
           light(mix(fill, BLACK, 0.25)));
     }
 
     private static Accent light(int fill) {
       return new Accent(
-          fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24), alpha(fill, 0.35f), fill);
+          fill,
+          mix(fill, BLACK, 0.12),
+          mix(fill, BLACK, 0.24),
+          alpha(fill, 0.35f),
+          fill,
+          alpha(fill, 0.45f));
     }
 
     /** The accent of this hue for a dark theme. */
@@ -1020,6 +1051,7 @@ public record Theme(
    *     wrap; its padding, icon and keycaps come on top
    * @param drawer the width of a {@link Drawer} along the left or right edge, unless its content
    *     sets one
+   * @param minTabGroup the least width and height of a group in a split of {@link TabGroups}
    */
   public record Sizes(
       float control,
@@ -1042,7 +1074,56 @@ public record Theme(
       float controlSmall,
       float controlLarge,
       float tooltip,
-      float drawer) {
+      float drawer,
+      float minTabGroup) {
+
+    /** Sizes whose split tab groups have a minimum of 120. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot,
+        float paletteTop,
+        float paletteField,
+        float paletteRow,
+        float controlSmall,
+        float controlLarge,
+        float tooltip,
+        float drawer) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          paletteTop,
+          paletteField,
+          paletteRow,
+          controlSmall,
+          controlLarge,
+          tooltip,
+          drawer,
+          120);
+    }
 
     /** Sizes whose drawers are 360 wide. */
     public Sizes(
@@ -1566,8 +1647,8 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 16),
       new TextStyle(Font::sans, 12),
       new TextStyle(Font::sansSemibold, 16));
-  private static final Sizes SIZE =
-      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320, 360);
+  private static final Sizes SIZE = new Sizes(
+      24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320, 360, 120);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12);

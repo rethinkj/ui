@@ -23,7 +23,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 - Double-click a table (or press Enter) to open it in a tab. `localhost/shop/public/orders` loads one million rows.
 - Type inside the SQL editor: autocomplete suggests columns, tables, and SQL keywords. Press **Ctrl+Enter** to run the query. Unknown table names are underlined as errors.
 - Press **Ctrl+Shift+P** to open the command palette (`@` searches tables, `:` jumps to a line).
-- Drag a tab outside the window to tear it off into its own window, then drag it back to dock it.
+- Drag a tab outside the window to tear it off into its own window, drag it back to dock it, or right-click a tab (or press **Ctrl+\**) to split groups side by side or stacked within any window.
 
 <Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
 
@@ -67,9 +67,9 @@ The editor uses two state methods as handlers: editing updates the query and cle
 ```java snippet="workbench-suggest"
 ```
 
-### Tear-off tabs
+### Tear-off and split tabs
 
-All windows share a single `TabGroups` instance ([TabGroups](/docs/components/tab-groups)):
+All windows share a single `TabGroups` instance with `splits(true)` ([TabGroups](/docs/components/tab-groups)):
 
 ```java snippet="workbench-groups"
 ```

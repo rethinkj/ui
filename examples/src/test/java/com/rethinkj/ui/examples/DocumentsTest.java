@@ -79,8 +79,8 @@ class DocumentsTest {
     assertEquals(
         List.of("Cannot open big.txt: it is larger than 1024 KB", "No file dialog: No portal"),
         toastsOf(folder, "failed"));
-    assertEquals("Dropped text", s.groups.main().activeTab().title);
-    assertEquals("dropped text", s.groups.main().activeTab().text);
+    assertEquals("Dropped text", s.groups.main().active().activeTab().title);
+    assertEquals("dropped text", s.groups.main().active().activeTab().text);
   }
 
   /**
@@ -112,7 +112,7 @@ class DocumentsTest {
         frame
         snap empty
         """, s.app, folder.resolve("out"));
-    assertTrue(s.groups.main().tabs().isEmpty());
+    assertTrue(s.groups.main().active().tabs().isEmpty());
     assertTrue(
         Files.readString(folder.resolve("out/empty.tree.txt")).contains("No documents"),
         "the empty state");
@@ -142,7 +142,8 @@ class DocumentsTest {
         frame
         snap dropped
         """.formatted(quoted), s.app, folder.resolve("out"));
-    List<String> titles = s.groups.main().tabs().stream().map(d -> d.title).toList();
+    List<String> titles =
+        s.groups.main().active().tabs().stream().map(d -> d.title).toList();
     assertEquals(
         List.of("eins.txt", "zwei.sql", "drei.md"),
         titles.subList(titles.size() - 3, titles.size()));
@@ -178,7 +179,7 @@ class DocumentsTest {
         "Notes' caret is its own, not Readme's: " + notes);
     assertEquals(
         "Tabs that move, tear off and dock.\nDrag one out of the bar.",
-        s.groups.main().activeTab().text,
+        s.groups.main().active().activeTab().text,
         "Readme's history came back with it");
   }
 

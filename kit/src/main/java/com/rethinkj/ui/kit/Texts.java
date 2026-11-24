@@ -305,6 +305,16 @@ public interface Texts {
     return "Move back to main window";
   }
 
+  /** A tab's menu item that splits its group with a new group to its right. */
+  default String splitRight() {
+    return "Split right";
+  }
+
+  /** A tab's menu item that splits its group with a new group below it. */
+  default String splitDown() {
+    return "Split down";
+  }
+
   /** A breadcrumb's button that lists the parts it hides. */
   default String hiddenParts() {
     return "Hidden parts";

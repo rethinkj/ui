@@ -163,6 +163,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     final Menu.State gridMenu = new Menu.State();
     Work committing; // the changes on their way to the server
     boolean inGrid; // the grid had the focus last rather than the query: what Edit acts on
+    String key; // its query's key: the table's path, made unique for another tab of that table
 
     /** The Start tab, which says how to open a table. */
     Opened() {
@@ -181,6 +182,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     /** A table's tab, over what the server has written to it. */
     Opened(Node table, TableRows.Stored stored) {
       this.table = table;
+      key = table.path();
       data = new TableRows(stored);
       changes = new GridChanges(data);
       layout =
@@ -268,9 +270,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Set<Node> refused = new HashSet<>(); // servers whose last answer was a failure
   Node selected;
   final Opened start = new Opened();
+  private int copies; // tabs opened for a table that had one already
   // docs:start workbench-groups
   // The tabs of every window: the first window's, Start among them, and those torn off.
   final TabGroups<Opened> groups = new TabGroups<>(List.of(start), this::openWindow)
+      .splits(true)
       .onClosed(this::closed)
       .onCloseTab(this::closeTab);
   // docs:end workbench-groups
@@ -287,7 +291,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final MenuBar.State bar = new MenuBar.State();
   // The command palette of each window, and what it finds after @, made anew when a server
   // connects.
-  final Map<TabGroups.Group<Opened>, CommandPalette.State> palettes = new IdentityHashMap<>();
+  final Map<TabGroups.Frame<Opened>, CommandPalette.State> palettes = new IdentityHashMap<>();
   private List<FilterList.Entry> catalog;
   private int connected; // servers that answered so far, which the catalog is made for
   private int cataloged = -1;
@@ -303,7 +307,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    *
    * @param doing what goes on, as in "before you close the tab"
    */
-  record Question(TabGroups.Group<Opened> group, List<Opened> tabs, String doing, Runnable then) {}
+  record Question(TabGroups.Frame<Opened> frame, List<Opened> tabs, String doing, Runnable then) {}
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -499,12 +503,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         }
       }
     }
-    openTab(groups.main(), table);
+    openTab(groups.main().active(), table);
   }
 
   private void openTab(TabGroups.Group<Opened> group, Node table) {
     Opened opened =
         new Opened(table, stored.computeIfAbsent(table.path(), path -> new TableRows.Stored()));
+    if (tables().stream().anyMatch(other -> other.table == table)) { // both may show, split
+      opened.key += "~" + ++copies;
+    }
     opened.editor.markers(List.of(
         new CodeEditor.Marker(0, Symbol.PLAY, Variant.ACCENT, "Run statement", () -> run(opened))));
     ask(opened, Integer.MAX_VALUE, null, 0, 0);
@@ -522,15 +529,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The active tab of a window if it shows a table, else null. */
-  static Opened shown(TabGroups.Group<Opened> group) {
-    Opened opened = group.activeTab();
+  static Opened shown(TabGroups.Frame<Opened> frame) {
+    Opened opened = frame.active().activeTab();
     return opened == null || opened.table == null ? null : opened;
   }
 
   /** The table File's New query opens another tab of: the active tab's, else the selected. */
-  Node queryTable(TabGroups.Group<Opened> group) {
-    if (shown(group) != null) {
-      return shown(group).table;
+  Node queryTable(TabGroups.Frame<Opened> frame) {
+    if (shown(frame) != null) {
+      return shown(frame).table;
     }
     if (selected == null || selected.kind != Kind.TABLE && selected.kind != Kind.COLUMN) {
       return null;
@@ -544,7 +551,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    */
   void run(Opened opened) {
     opened.completion.close();
-    unsaved(groups.groupOf(opened), List.of(opened), "run the query", () -> runQuery(opened));
+    TabGroups.Group<Opened> group = groups.groupOf(opened);
+    unsaved(
+        group == null ? null : group.frame(),
+        List.of(opened),
+        "run the query",
+        () -> runQuery(opened));
   }
 
   private void runQuery(Opened opened) {
@@ -686,8 +698,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The command palette of a window. */
-  CommandPalette.State palette(TabGroups.Group<Opened> group) {
-    return palettes.computeIfAbsent(group, forGroup -> new CommandPalette.State());
+  CommandPalette.State palette(TabGroups.Frame<Opened> frame) {
+    return palettes.computeIfAbsent(frame, forFrame -> new CommandPalette.State());
   }
 
   /**
@@ -695,12 +707,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * @} the tables and columns of the connected servers, and after {@code :} a line of the active
    * tab's query.
    */
-  El commandPalette(TabGroups.Group<Opened> group) {
-    CommandPalette.State palette = palette(group);
+  El commandPalette(TabGroups.Frame<Opened> frame) {
+    CommandPalette.State palette = palette(frame);
     if (!palette.isOpen()) {
       return null;
     }
-    List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(group)));
+    List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(frame)));
     commands.add(FilterList.entry("Change theme…", () -> changeTheme(palette)));
     return CommandPalette.palette(
         palette,
@@ -708,7 +720,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         List.of(
             new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalog())),
             new CommandPalette.Source(
-                ":", "to go to a line", FilterList.Entries.by(text -> line(shown(group), text)))));
+                ":", "to go to a line", FilterList.Entries.by(text -> line(shown(frame), text)))));
   }
 
   /** The themes, each shown as the keys or the pointer reach it, the one before on Escape. */
@@ -796,7 +808,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   /** The user closes a tab: at once, or once its changes are committed or discarded. */
   void closeTab(TabGroups.Group<Opened> group, int index) {
     Opened opened = group.tabs().get(index);
-    unsaved(group, List.of(opened), "close the tab", () -> {
+    unsaved(group.frame(), List.of(opened), "close the tab", () -> {
       TabGroups.Group<Opened> now = groups.groupOf(opened); // where it is once the answer comes
       if (now != null) {
         groups.close(now, now.tabs().indexOf(opened));
@@ -811,9 +823,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /**
    * Runs {@code then} at once when none of {@code tabs} has changes not committed, else asks in
-   * the window of {@code group} whether to commit or discard them first.
+   * the window of {@code frame} whether to commit or discard them first.
    */
-  void unsaved(TabGroups.Group<Opened> group, List<Opened> tabs, String doing, Runnable then) {
+  void unsaved(TabGroups.Frame<Opened> frame, List<Opened> tabs, String doing, Runnable then) {
     for (Opened opened : tabs) {
       if (!edited(opened)) {
         return;
@@ -825,7 +837,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (changed.isEmpty()) {
       then.run();
     } else {
-      question = new Question(group == null ? groups.main() : group, changed, doing, then);
+      question = new Question(frame == null ? groups.main() : frame, changed, doing, then);
     }
   }
 
@@ -938,12 +950,17 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   void nextChanged() {
     List<TabGroups.Group<Opened>> all = groups.groups();
     List<int[]> places = new ArrayList<>(); // group, tab
+    int from = 0;
+    TabGroups.Group<Opened> current = groups.main().active();
     for (int groupIndex = 0; groupIndex < all.size(); groupIndex++) {
-      for (int tab = 0; tab < all.get(groupIndex).tabs().size(); tab++) {
+      TabGroups.Group<Opened> group = all.get(groupIndex);
+      for (int tab = 0; tab < group.tabs().size(); tab++) {
+        if (group == current && tab == current.active()) {
+          from = places.size();
+        }
         places.add(new int[] {groupIndex, tab});
       }
     }
-    int from = groups.main().active();
     for (int step = 1; step <= places.size(); step++) {
       int[] at = places.get((from + step) % places.size());
       TabGroups.Group<Opened> group = all.get(at[0]);
@@ -963,14 +980,14 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * app's icon and a view of its own over the same state.
    */
   // docs:start workbench-window
-  Windows.Handle openWindow(TabGroups.Group<Opened> group, Window.Options options) {
+  Windows.Handle openWindow(TabGroups.Frame<Opened> frame, Window.Options options) {
     App<Workbench> window =
-        new App<>(this, state -> state.windowView(group)).provide(Theme.CURRENT, Workbench::theme);
+        new App<>(this, state -> state.windowView(frame)).provide(Theme.CURRENT, Workbench::theme);
     window.textRendering(app.textRendering());
     Windows windows = app.windows();
     windows.of(app).onCloseRequest(this::exit); // closing the first window closes them all
     return windows.open(
-        group.activeTab().title(),
+        frame.active().activeTab().title(),
         TAB_WIDTH,
         TAB_HEIGHT,
         options.frameless().minimumSize(480, 320).icon(Identity.icon(MARK, Symbol.DATABASE)),
@@ -978,10 +995,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
   // docs:end workbench-window
 
-  /** The app of a group's window, where its fields and handlers are. */
+  /** The app of a frame's window, where its fields and handlers are. */
   @SuppressWarnings("unchecked") // every window runs an app of this state
+  App<Workbench> appOf(TabGroups.Frame<Opened> frame) {
+    return frame.window() == null ? app : (App<Workbench>) frame.window().app();
+  }
+
+  /** The app of a group's window, where its fields and handlers are. */
   App<Workbench> appOf(TabGroups.Group<Opened> group) {
-    return group.window() == null ? app : (App<Workbench>) group.window().app();
+    return appOf(group.frame());
   }
 
   /**
@@ -1242,10 +1264,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The dialog that asks about changes not committed, in its window, or null. */
-  El question(TabGroups.Group<Opened> group) {
+  El question(TabGroups.Frame<Opened> frame) {
     Theme theme = Theme.CURRENT.get();
     Question asked = question;
-    if (asked == null || asked.group() != group) {
+    if (asked == null || asked.frame() != frame) {
       return null;
     }
     int count = asked.tabs().stream().mapToInt(opened -> opened.changes.count()).sum();
@@ -1276,9 +1298,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The statements that Commit sends for a tab's changes, in a dialog of its window, or null. */
-  El preview(TabGroups.Group<Opened> group) {
+  El preview(TabGroups.Frame<Opened> frame) {
     Opened opened = previewing;
-    if (opened == null || groups.groupOf(opened) != group) {
+    TabGroups.Group<Opened> group = opened == null ? null : groups.groupOf(opened);
+    if (group == null || group.frame() != frame) {
       return null;
     }
     Node schema = opened.table.parent;
@@ -1357,22 +1380,22 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /**
    * The view of a tab's window, the workbench in small: the title bar with the active tab's
-   * title over the group's tabs, without the catalog, the theme's switch and the menu bar,
+   * title over the frame's tabs, without the catalog, the theme's switch and the menu bar,
    * whose key combinations work here too, for this window's tabs.
    */
-  El windowView(TabGroups.Group<Opened> group) {
+  El windowView(TabGroups.Frame<Opened> frame) {
     Theme theme = Theme.CURRENT.get();
-    El tabs = tabs(group);
-    Opened active = group.activeTab();
+    El tabs = tabs(frame);
+    Opened active = frame.active().activeTab();
     return col()
         .wFull()
         .hFull()
         .fill(theme.surface().window())
         .onKey(
-            or(Menu.shortcuts(menus(group)).or(CommandPalette.keys(palette(group))), tabs.onKey()))
-        .overlay(commandPalette(group))
-        .overlay(question(group))
-        .overlay(preview(group))
+            or(Menu.shortcuts(menus(frame)).or(CommandPalette.keys(palette(frame))), tabs.onKey()))
+        .overlay(commandPalette(frame))
+        .overlay(question(frame))
+        .overlay(preview(frame))
         .child(titleBar(
             AppIcon.appIcon(16, MARK, Symbol.DATABASE),
             active == null ? "Workbench" : active.title()))
@@ -1390,10 +1413,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The tabs of a window, each the tab's content over a footer with its status. */
-  private El tabs(TabGroups.Group<Opened> group) {
-    boolean main = group == groups.main();
+  private El tabs(TabGroups.Frame<Opened> frame) {
+    boolean main = frame == groups.main();
     return groups.tabs(
-        group,
+        frame,
         opened -> opened.table == null
             ? new Tab("Start", false, false)
             : new Tab(opened.table.name).icon(Symbol.TABLE),
@@ -1403,7 +1426,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           Opened shown = opened == null || opened.table == null ? null : opened;
           return col()
               .grow(1)
-              .child(shown == null ? start() : table(this, shown, appOf(group)))
+              .child(shown == null ? start() : table(this, shown, appOf(frame)))
               .child(Card.footer(
                   Label.label(Label.Variant.MUTED, status(shown, main))
                       .key("status")
@@ -1417,29 +1440,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The menus of the title bar, for the tabs of a window. */
-  List<Menu.Item> menus(TabGroups.Group<Opened> group) {
-    Opened opened = shown(group);
-    Node table = queryTable(group);
+  List<Menu.Item> menus(TabGroups.Frame<Opened> frame) {
+    Opened opened = shown(frame);
+    Node table = queryTable(frame);
+    TabGroups.Group<Opened> active = frame.active();
     return List.of(
         Menu.submenu(
             "&File",
             List.of(
-                Menu.item("New query", table == null ? null : () -> openTab(group, table))
+                Menu.item("New query", table == null ? null : () -> openTab(active, table))
                     .icon(Symbol.ADD)
                     .shortcut(Key.CONTROL, "N"),
                 Menu.item(
-                        "Close tab", opened == null ? null : () -> closeTab(group, group.active()))
+                        "Close tab",
+                        opened == null ? null : () -> closeTab(active, active.active()))
                     .shortcut(Key.CONTROL, "W"),
                 Menu.separator(),
                 Menu.item("Exit", this::exit))),
-        Menu.submenu("&Edit", edits(opened, appOf(group))),
+        Menu.submenu("&Edit", edits(opened, appOf(frame))),
         Menu.submenu(
             "&View",
             List.of(
-                Menu.item("Command palette…", palette(group)::open)
+                Menu.item("Command palette…", palette(frame)::open)
                     .icon(Symbol.SEARCH)
                     .shortcut("Ctrl+Shift+P"),
-                Menu.item("Go to table…", () -> palette(group).open("@"))
+                Menu.item("Go to table…", () -> palette(frame).open("@"))
                     .icon(Symbol.TABLE)
                     .shortcut(Key.CONTROL, "P"),
                 Menu.separator(),
@@ -1603,7 +1628,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /** The query field of a tab in the tree of the window it is in. */
   private static El query(Opened opened, App<Workbench> app) {
-    return find(app.tree(), "query-" + opened.table.path());
+    return find(app.tree(), "query-" + opened.key);
   }
 
   /** The element with this key in the tree of the last frame, or null. */
@@ -1703,7 +1728,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     // docs:start workbench-editor
     El area = codeEditor(
             app, opened.query, opened.editor, Sql.of(), text -> state.editQuery(opened, text))
-        .key("query-" + opened.table.path())
+        .key("query-" + opened.key)
         .label("Query")
         .wFull()
         .shrink(0);

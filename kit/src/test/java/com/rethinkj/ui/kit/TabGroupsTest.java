@@ -3,6 +3,8 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -11,8 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Side;
+import com.rethinkj.ui.kit.TabGroups.Frame;
 import com.rethinkj.ui.kit.TabGroups.Group;
 import com.rethinkj.ui.kit.Tabs.Tab;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
@@ -25,13 +30,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Tabs in several windows ({@link TabGroups}), driven by scripts: moving along the bar with the
- * pointer and the keys, Escape, tearing off into a window that follows the pointer, docking into
- * the bar of the main window and of another window at a place, the only tab of a window, closing a
- * window, the menu, and tabs without the handlers.
+ * Tabs in several windows and split groups ({@link TabGroups}), driven by scripts: moving along
+ * the bar with the pointer and the keys, Escape, tearing off into a window that follows the
+ * pointer, docking into the bar of the main window and of another window at a place, the only tab
+ * of a window, closing a window, the menu, splitting within a window, active group tracking, and
+ * tabs without the handlers.
  *
  * <p>The main window is 400 by 160 at 100,100 on the script's screen and shows the tabs alone,
- * a, b, c and d; a window torn off is 300 by 160 and shows its group the same way. In both the
+ * a, b, c and d; a window torn off is 300 by 160 and shows its frame the same way. In both the
  * bar's tabs are 32 high from y 1, a from x 3, b from 48, c from 94 and d from 139; the scripts
  * press them 5 pixels inside their left edge, since a tab's center is on its cross.
  */
@@ -55,18 +61,16 @@ class TabGroupsTest {
       groups.onClosed(closed::add);
     }
 
-    Windows.Handle open(Group<String> group, Window.Options options) {
+    Windows.Handle open(Frame<String> frame, Window.Options options) {
       return app.windows()
-          .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
+          .open(frame.active().activeTab(), 300, 160, options, new App<>(this, s -> s.view(frame)));
     }
 
-    El view(Group<String> group) {
-      return col()
-          .wFull()
-          .hFull()
-          .child(groups
-              .tabs(group, Tab::new, s -> s == null ? null : Label.label(s).key("text"))
-              .grow(1));
+    El view(Frame<String> frame) {
+      El tabs = groups
+          .tabs(frame, Tab::new, s -> s == null ? null : Label.label(s).key("text"))
+          .grow(1);
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs);
     }
   }
 
@@ -109,7 +113,7 @@ class TabGroupsTest {
     assertTrue(line(moving, "#marker").startsWith("el #marker 92,"), "between b and c: " + moving);
     Docs d = app.state();
     assertEquals(List.of(List.of("b", "a", "c", "d")), order(d));
-    assertEquals(1, d.groups.main().active(), "a stays active");
+    assertEquals(1, d.groups.main().active().active(), "a stays active");
     assertFalse(tree("s").contains("#marker") || tree("s").contains("grabbed"));
   }
 
@@ -126,7 +130,7 @@ class TabGroupsTest {
         key End
         key PageDown control shift  # the last stays last""");
     assertEquals(List.of(List.of("b", "a", "c", "d")), order(app.state()));
-    assertEquals(3, app.state().groups.main().active());
+    assertEquals(3, app.state().groups.main().active().active());
   }
 
   @Test
@@ -141,7 +145,7 @@ class TabGroupsTest {
         snap given-up
         up 140,17""");
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(app.state()));
-    assertEquals(0, app.state().groups.main().active(), "the release on d chose nothing");
+    assertEquals(0, app.state().groups.main().active().active(), "the release on d chose nothing");
     String tree = tree("given-up");
     assertFalse(tree.contains("#marker") || tree.contains("grabbed"), tree);
   }
@@ -188,7 +192,7 @@ class TabGroupsTest {
     assertTrue(line(tree("docking"), "#marker").startsWith("el #marker 91,"), tree("docking"));
     Docs d = app.state();
     assertEquals(List.of(List.of("a", "c", "b", "d")), order(d));
-    assertEquals(2, d.groups.main().active(), "the docked tab is active");
+    assertEquals(2, d.groups.main().active().active(), "the docked tab is active");
     assertFalse(Files.exists(out.resolve("b-s.png")), "its window closed");
   }
 
@@ -253,7 +257,7 @@ class TabGroupsTest {
           if (!k.name().equals("F2")) {
             return false;
           }
-          s.groups.toNewWindow(s.groups.main(), 3);
+          s.groups.toNewWindow(s.groups.main().active(), 3);
           s.groups.closeAll(s.groups.main());
           return true;
         }));
@@ -317,7 +321,7 @@ class TabGroupsTest {
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(d), "nothing closed yet");
     assertFalse(tree("s").contains("#add"), "no + without onAdd");
     assertFalse(tree("s").contains("#overflow"), "4 short tabs fit without overflow");
-    d.groups.close(d.groups.main(), 0); // the user agreed
+    d.groups.close(d.groups.main().active(), 0); // the user agreed
     assertEquals(List.of("a"), d.closed);
 
     List<Group<String>> added = new ArrayList<>();
@@ -326,8 +330,8 @@ class TabGroupsTest {
       d.groups.add(group, group.tabs().size(), "new-" + added.size());
     });
     run(app, "frame\npress #add\nframe\nfocus #tablist\nkey T control");
-    assertEquals(List.of(d.groups.main(), d.groups.main()), added);
-    Group<String> detached = d.groups.toNewWindow(d.groups.main(), 0);
+    assertEquals(List.of(d.groups.main().active(), d.groups.main().active()), added);
+    Group<String> detached = d.groups.toNewWindow(d.groups.main().active(), 0);
     run(app, "window b\nframe\npress #add\nwindow main");
     assertSame(detached, added.getLast());
   }
@@ -356,6 +360,8 @@ class TabGroupsTest {
     assertTrue(
         line(tree("c-menu"), "label=\"Move to new window\"").contains("disabled"),
         "a window's only tab is in a window of its own: " + tree("c-menu"));
+    assertFalse(
+        tree("c-menu").contains("Split right"), "split items are hidden while splits(false)");
     run(app, """
         window c
         press label="Move back to main window"
@@ -365,11 +371,358 @@ class TabGroupsTest {
     assertNull(d.groups.groupOf("x"));
   }
 
+  // Splitting within a window
+
+  @Test
+  void splitRightShowsTwoGroupsAndClosingTheRightGroupsLastTabLeavesOne() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+    String image = "tab-groups-split-dark";
+    Script.run("""
+        size 400 160
+        frame
+        press #tab-1 right
+        frame
+        advance 1
+        frame
+        press label="Split right"
+        frame
+        advance 1
+        frame
+        snap %s""".formatted(image), app, out);
+    Golden.assertMatches(
+        image,
+        Png.decode(Files.readAllBytes(out.resolve(image + ".png"))),
+        Files.readString(out.resolve(image + ".tree.txt")));
+
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+    List<Group<String>> splitGroups = d.groups.main().groups();
+    assertEquals(2, splitGroups.size());
+    Group<String> left = splitGroups.get(0);
+    Group<String> right = splitGroups.get(1);
+    assertSame(d.groups.main(), left.frame());
+    assertSame(d.groups.main(), right.frame());
+    assertSame(right, d.groups.main().active(), "the new split group is active");
+    El leftRoot = find(app.tree(), "group-0");
+    El rightRoot = find(app.tree(), "group-1");
+    assertNotNull(leftRoot);
+    assertNotNull(rightRoot);
+    assertSame(find(rightRoot, "tablist"), app.focused(), "focus went to the new group's bar");
+    assertEquals(
+        Theme.DARK.accent().edge(),
+        find(rightRoot, "tab-0").children().getFirst().fill(),
+        "active group gets the accent line");
+    assertEquals(
+        Theme.DARK.accent().edgeMuted(),
+        find(leftRoot, "tab-" + left.active()).children().getFirst().fill(),
+        "inactive group gets the muted line");
+
+    // Closing the right group's last tab removes it, leaves one unsplit group and moves focus back.
+    Script.run("size 400 160\nkey W control\nframe", app, out);
+    assertEquals(List.of(List.of("a", "c", "d")), order(d));
+    assertEquals(1, d.groups.main().groups().size());
+    assertSame(left, d.groups.main().active());
+    assertNull(find(app.tree(), "group-0"), "a single-group frame renders without #group-<id>");
+    assertNull(find(app.tree(), "divider"), "no split divider left");
+    assertSame(find(app.tree(), "tablist"), app.focused(), "focus moved to the staying group");
+    assertEquals(
+        Theme.DARK.accent().edge(),
+        find(app.tree(), "tab-" + left.active()).children().getFirst().fill(),
+        "the staying group has the accent line again");
+  }
+
+  @Test
+  void splitDownRoomCheckDoublePressResetAndNestedOrder() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+
+    // At 400x160: width 400 >= 2*120+8 fits Split right, height 160 < 248 disables Split down.
+    Script.run("""
+        size 400 160
+        frame
+        press #tab-0 right
+        frame
+        advance 1
+        frame
+        snap narrow-h
+        key Escape
+        frame""", app, out);
+    String narrowH = tree("narrow-h");
+    assertFalse(line(narrowH, "label=\"Split right\"").contains("disabled"), narrowH);
+    assertTrue(line(narrowH, "label=\"Split down\"").contains("disabled"), narrowH);
+
+    // At 240x160: neither fits.
+    Script.run("""
+        size 240 160
+        frame
+        press #tab-0 right
+        frame
+        advance 1
+        frame
+        snap too-small
+        key Escape
+        frame""", app, out);
+    String tooSmall = tree("too-small");
+    assertTrue(line(tooSmall, "label=\"Split right\"").contains("disabled"), tooSmall);
+    assertTrue(line(tooSmall, "label=\"Split down\"").contains("disabled"), tooSmall);
+
+    // At 400x300: Split down works, divider resizes and double press resets to half.
+    Script.run("""
+        size 400 300
+        frame
+        press #tab-1 right
+        frame
+        advance 1
+        frame
+        press label="Split down"
+        frame""", app, out);
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+    El top = find(app.tree(), "group-0");
+    El bottom = find(app.tree(), "group-1");
+    assertEquals(top.height(), bottom.height(), 1f, "equal halves at first");
+
+    // In the bottom group (only 1 tab), both Split right and Split down are disabled.
+    Script.run("""
+        size 400 300
+        press role=tab label="b" right
+        frame
+        advance 1
+        frame
+        snap one-tab
+        key Escape
+        frame""", app, out);
+    String oneTab = tree("one-tab");
+    assertTrue(line(oneTab, "label=\"Split right\"").contains("disabled"), oneTab);
+    assertTrue(line(oneTab, "label=\"Split down\"").contains("disabled"), oneTab);
+
+    // Drag divider up, then double press resets to half.
+    Script.run("""
+        size 400 300
+        down #divider
+        move 200,130
+        up 200,130
+        frame""", app, out);
+    assertTrue(find(app.tree(), "first").height() < find(app.tree(), "second").height());
+    Script.run("""
+        size 400 300
+        press #divider clicks 2
+        frame""", app, out);
+    assertEquals(
+        find(app.tree(), "first").height(),
+        find(app.tree(), "second").height(),
+        1f,
+        "double press resets to half");
+
+    // Split top group left with c: order is top-left first (new left, top-right, bottom), and ids
+    // never repeat even after closing a group.
+    Group<String> topGroup = d.groups.main().groups().get(0);
+    Group<String> leftTop = d.groups.split(topGroup, 1, topGroup, Side.LEFT);
+    app.invalidate();
+    Script.run("size 400 300\nframe", app, out);
+    assertEquals(List.of(List.of("c"), List.of("a", "d"), List.of("b")), order(d));
+    assertNotNull(find(app.tree(), "group-2"));
+    d.groups.close(leftTop, 0);
+    Group<String> again = d.groups.split(topGroup, 1, topGroup, Side.RIGHT);
+    app.invalidate();
+    Script.run("size 400 300\nframe\nadvance 1\nframe", app, out);
+    assertNull(find(app.tree(), "group-2"));
+    assertNotNull(find(app.tree(), "group-3"), "group ids never repeat");
+    assertSame(again, d.groups.main().active());
+  }
+
+  @Test
+  void aTornOffWindowSplitsTooAndClosingItDrainsAllGroups() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+    Script.run("size 400 160\nframe", app, out);
+    // Split main first so main has two groups, active is the right one.
+    d.groups.split(d.groups.main().active(), 3, d.groups.main().active(), Side.RIGHT);
+    Group<String> mainRight = d.groups.main().active();
+    // Move b to a new window and dock c into it so the torn-off window has [b, c].
+    Group<String> detached = d.groups.toNewWindow(d.groups.main().groups().get(0), 1);
+    d.groups.dock(d.groups.main().groups().get(0), 1, detached, 1);
+    Frame<String> floating = detached.frame();
+    assertEquals(2, d.groups.frames().size());
+
+    // Split c right inside the torn-off window (300x160 has width 300 >= 248).
+    Script.run("""
+        size 400 160
+        frame
+        window b
+        press #tab-1 right
+        frame
+        advance 1
+        frame
+        press label="Split right"
+        frame""", app, out);
+    assertEquals(2, floating.groups().size(), "torn-off window split into two groups");
+    assertEquals(List.of("b"), floating.groups().get(0).tabs());
+    assertEquals(List.of("c"), floating.groups().get(1).tabs());
+
+    // In a split torn-off window, a 1-tab group is NOT "alone": Move to new window is enabled.
+    Script.run("""
+        size 400 160
+        window b
+        press role=tab label="c" right
+        frame
+        advance 1
+        frame
+        snap split-torn-menu
+        key Escape
+        frame""", app, out);
+    String menu = tree("b-split-torn-menu");
+    assertFalse(
+        line(menu, "label=\"Move to new window\"").contains("disabled"),
+        "a split torn-off window's group is not alone: " + menu);
+
+    // Closing the split torn-off window drains all groups into main's active group and closes once.
+    Script.run("""
+        size 400 160
+        window b
+        close
+        frame
+        window main""", app, out);
+    assertEquals(1, d.groups.frames().size());
+    assertFalse(floating.window().isOpen());
+    assertEquals(List.of("d", "b", "c"), mainRight.tabs(), "docked into main's active group");
+
+    // With closeAll, closing a split torn-off window closes all tabs across its groups.
+    d.groups.onWindowClose(d.groups::closeAll);
+    Group<String> detached2 = d.groups.toNewWindow(mainRight, 1);
+    d.groups.dock(mainRight, 1, detached2, 1);
+    d.groups.split(detached2, 1, detached2, Side.RIGHT);
+    Frame<String> floating2 = detached2.frame();
+    Script.run("""
+        size 400 160
+        frame
+        window b
+        close
+        frame
+        window main""", app, out);
+    assertEquals(1, d.groups.frames().size());
+    assertFalse(floating2.window().isOpen());
+    assertEquals(List.of("b", "c"), d.closed);
+  }
+
+  @Test
+  void controlBackslashSplitsTheActiveTabRight() throws IOException {
+    // Splits off: Control+\ does nothing.
+    App<Docs> off = start();
+    Script.run("size 400 160\nframe\nfocus #tablist\nkey \\ control\nframe", off, out);
+    assertEquals(1, off.state().groups.main().groups().size());
+
+    // Splits on: Control+\ from the bar splits active tab right.
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+    Script.run("size 400 160\nframe\nfocus #tablist\nkey \\ control\nframe", app, out);
+    assertEquals(List.of(List.of("b", "c", "d"), List.of("a")), order(d));
+    assertSame(d.groups.main().groups().get(1), d.groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // On a 1-tab group, Control+\ does nothing.
+    Script.run("size 400 160\nkey \\ control\nframe", app, out);
+    assertEquals(2, d.groups.main().groups().size());
+
+    // From outside the tabs when the app hands tabs.onKey() to the root: acts on frame.active().
+    TabGroups<String> tg = new TabGroups<>(List.of("x", "y", "z"), (f, o) -> null).splits(true);
+    App<Object> withOutside = new App<>(new Object(), s -> {
+      El tabs = tg.tabs(tg.main(), Tab::new, t -> Label.label(t));
+      return col()
+          .wFull()
+          .hFull()
+          .onKey(tabs.onKey())
+          .children(El.el().key("outside").focusable().size(10, 10), tabs.grow(1));
+    });
+    Script.run("size 400 160\nframe\nfocus #outside\nkey \\ control\nframe", withOutside, out);
+    assertEquals(2, tg.main().groups().size(), "frame root onKey delegates to active group");
+    assertEquals(List.of("y", "z"), tg.main().groups().get(0).tabs());
+    assertEquals(List.of("x"), tg.main().groups().get(1).tabs());
+  }
+
+  @Test
+  void activeGroupFollowsFocusPressAndDockAndClosedGroupHandsFocusToSibling() throws IOException {
+    TabGroups<String> groups =
+        new TabGroups<>(List.of("a", "b", "c", "d"), (f, o) -> null).splits(true);
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(
+          groups.main(),
+          Tab::new,
+          t -> col()
+              .children(
+                  El.el().key("field-" + t).focusable().size(40, 20),
+                  TextField.textField("", text -> {}).key("edit-" + t),
+                  Label.label("body-" + t).key("lbl-" + t)));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+
+    Script.run("size 600 200\nframe", app, out);
+    Group<String> g0 = groups.main().active();
+    Group<String> g1 = groups.split(g0, 1, g0, Side.RIGHT); // g0=[a,c,d], g1=[b]
+    Script.run("size 600 200\nframe", app, out);
+    assertSame(g1, groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // Moving focus into g0 (onFocusIn) makes g0 active.
+    Script.run("size 600 200\nfocus #field-a\nframe", app, out);
+    assertSame(g0, groups.main().active());
+    assertSame(find(app.tree(), "field-a"), app.focused());
+
+    // Pressing the already-active tab of g1 makes g1 active while keeping focus in #field-a.
+    Script.run("size 600 200\npress role=tab label=\"b\" at left+5\nframe", app, out);
+    assertSame(g1, groups.main().active());
+    assertSame(find(app.tree(), "field-a"), app.focused(), "focus stayed where it was");
+
+    // A press into g0's text field, which keeps the press to itself, makes g0 active.
+    Script.run("size 600 200\npress #edit-a\nframe", app, out);
+    assertSame(g0, groups.main().active());
+
+    // Pressing a non-focusable label inside g0 makes g0 active.
+    Script.run("size 600 200\npress role=tab label=\"b\" at left+5\nframe", app, out);
+    assertSame(g1, groups.main().active());
+    Script.run("size 600 200\npress #lbl-a\nframe", app, out);
+    assertSame(g0, groups.main().active());
+
+    // Docking a tab into g1 makes the tab active, g1 active, and focuses g1's bar.
+    groups.dock(g0, 1, g1, 1); // c -> g1
+    Script.run("size 600 200\nframe", app, out);
+    assertSame(g1, groups.main().active());
+    assertEquals("c", g1.activeTab());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // 3-way split: Split(g0, Split(g1, g2)); closing focused g2 gives focus to its sibling g1.
+    Group<String> g2 = groups.split(g1, 1, g1, Side.RIGHT); // g1=[b], g2=[c]
+    Script.run("size 600 200\nframe", app, out);
+    assertSame(g2, groups.main().active());
+    assertSame(find(find(app.tree(), "group-2"), "tablist"), app.focused());
+    Script.run("size 600 200\nkey W control\nframe", app, out);
+    assertEquals(List.of(g0, g1), groups.main().groups());
+    assertSame(g1, groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // dockAll on main's active group never docks into itself.
+    List<String> before = List.copyOf(g1.tabs());
+    groups.dockAll(g1);
+    assertEquals(before, g1.tabs());
+    assertNotEquals(g0, groups.main().active());
+
+    // Keys go to the active group, also while the focus stays in another one.
+    Script.run(
+        "size 600 200\nfocus #field-a\npress role=tab label=\"b\" at left+5\nkey W control\nframe",
+        app,
+        out);
+    assertEquals(List.of("a", "d"), g0.tabs(), "Control+W closed b, of the active group");
+    assertEquals(List.of(g0), groups.main().groups());
+  }
+
   // Focus
 
   @Test
   void eachTabsContentRemembersItsOwnFocus() throws IOException {
-    TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c"), (g, o) -> null);
+    TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c"), (f, o) -> null);
     App<Object> app = new App<>(
         new Object(),
         s -> col()
@@ -398,7 +751,7 @@ class TabGroupsTest {
                                         .size(10, 10)))
                     .grow(1)));
     Script.run("size 400 160\nframe\nfocus #refresh\nfocus #tree\nframe", app, out);
-    app.post(() -> groups.select(groups.main(), 1)); // while the focus is outside, as from a tree
+    app.post(() -> groups.select(groups.main().active(), 1)); // while the focus is outside
     Script.run("await\nframe", app, out);
     app.focus(find(app.tree(), "panel"));
     app.frame();
@@ -406,14 +759,14 @@ class TabGroupsTest {
 
     Script.run("key Tab control shift\nframe", app, out);
     assertEquals("Refresh", app.focused().label(), "back where it was in a");
-    assertEquals(0, groups.main().active());
+    assertEquals(0, groups.main().active().active());
 
-    app.post(() -> groups.select(groups.main(), 2));
+    app.post(() -> groups.select(groups.main().active(), 2));
     Script.run("focus #tree\nawait\nframe", app, out);
     app.focus(find(app.tree(), "panel"));
     app.frame(); // c's Refresh, waiting for a grid
     Script.run("key Tab control\nframe", app, out);
-    assertEquals(0, groups.main().active(), "around to a");
+    assertEquals(0, groups.main().active().active(), "around to a");
     assertEquals("Refresh", app.focused().label(), "a's own memory, not its grid");
   }
 
@@ -456,7 +809,7 @@ class TabGroupsTest {
         """, docs.app, out);
     Group<String> floating = docs.groups.groupOf("b");
     assertTrue(docs.groups.isDragging());
-    assertNotSame(floating, docs.groups.main());
+    assertNotSame(floating.frame(), docs.groups.main());
     docs.app.post(() -> {
       docs.groups.add(floating, 1, "new query");
       docs.groups.close(floating, 0);
@@ -482,16 +835,17 @@ class TabGroupsTest {
       App<Many> app;
       final TabGroups<String> groups = new TabGroups<>(titles, this::open);
 
-      Windows.Handle open(Group<String> group, Window.Options options) {
+      Windows.Handle open(Frame<String> frame, Window.Options options) {
         return app.windows()
-            .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
+            .open(
+                frame.active().activeTab(), 300, 160, options, new App<>(this, s -> s.view(frame)));
       }
 
-      El view(Group<String> group) {
+      El view(Frame<String> frame) {
         return col()
             .wFull()
             .hFull()
-            .child(groups.tabs(group, Tab::new, s -> null).grow(1));
+            .child(groups.tabs(frame, Tab::new, s -> null).grow(1));
       }
     }
     Many many = new Many();
@@ -507,7 +861,7 @@ class TabGroupsTest {
         frame
         press #item-12
         frame""", many.app, out);
-    assertEquals(12, many.groups.main().active());
+    assertEquals(12, many.groups.main().active().active());
     assertTrue(find(many.app.tree(), "tablist").scrollX() > 0);
   }
 }

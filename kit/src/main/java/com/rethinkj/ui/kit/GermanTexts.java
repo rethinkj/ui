@@ -296,6 +296,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String splitRight() {
+    return "Nach rechts teilen";
+  }
+
+  @Override
+  public String splitDown() {
+    return "Nach unten teilen";
+  }
+
+  @Override
   public String hiddenParts() {
     return "Ausgeblendete Teile";
   }

@@ -93,7 +93,7 @@ public final class Documents {
   boolean dark = true;
   final MenuBar.State bar = new MenuBar.State();
   final Toasts toasts = new Toasts(); // notifications at the bottom of the first window
-  TabGroups.Group<Doc> dropping; // the group whose window a file manager's drag is over
+  TabGroups.Frame<Doc> dropping; // the frame whose window a file manager's drag is over
   // docs:start documents-groups
   final TabGroups<Doc> groups = new TabGroups<>(
       List.of(
@@ -139,17 +139,17 @@ public final class Documents {
     });
   }
 
-  /** Opens the window of a group of tabs, titled after its tab, a smaller copy of the first. */
+  /** Opens the window of a frame of tabs, titled after its tab, a smaller copy of the first. */
   // docs:start documents-window
-  Windows.Handle open(TabGroups.Group<Doc> group, Window.Options options) {
+  Windows.Handle open(TabGroups.Frame<Doc> frame, Window.Options options) {
     @SuppressWarnings("unchecked")
     App<Documents>[] window = new App[1];
-    window[0] = new App<>(this, state -> state.view(group, window[0]))
+    window[0] = new App<>(this, state -> state.view(frame, window[0]))
         .provide(Theme.CURRENT, Documents::theme);
     window[0].textRendering(app.textRendering());
     return app.windows()
         .open(
-            group.activeTab().title,
+            frame.active().activeTab().title,
             TAB_WIDTH,
             TAB_HEIGHT,
             options.frameless().minimumSize(240, 160).icon(Identity.icon(MARK, Symbol.DOCUMENT)),
@@ -158,23 +158,23 @@ public final class Documents {
   // docs:end documents-window
 
   /**
-   * A window's view: the title bar over the group's tabs, a card on the window's background. The
+   * A window's view: the title bar over the frame's tabs, a card on the window's background. The
    * first window's title bar has the menus; every window takes dropped files.
    *
    * @param window the window's app, which a document's find bar selects in
    */
-  El view(TabGroups.Group<Doc> group, App<Documents> window) {
+  El view(TabGroups.Frame<Doc> frame, App<Documents> window) {
     Theme theme = Theme.CURRENT.get();
     // docs:start documents-tabs
     El tabs = groups.tabs(
-        group,
+        frame,
         document -> new Tab(document.title).icon(Symbol.DOCUMENT),
         document -> document == null
             ? EmptyState.emptyState(
                 Symbol.DOCUMENT, "No documents", "Drag a tab here from another window.", null)
             : editor(document, window));
     // docs:end documents-tabs
-    if (dropping == group) { // the card's edge in the accent, as wide as before
+    if (dropping == frame) { // the card's edge in the accent, as wide as before
       tabs.border(theme.size().stroke(), theme.accent().edge());
     }
     El dark = Button.icon(
@@ -185,9 +185,9 @@ public final class Documents {
         .wFull()
         .hFull()
         .fill(theme.surface().window())
-        .onFileDrop(dropped -> drop(group, dropped));
-    if (group == groups.main()) {
-      List<Menu.Item> menus = menus(group);
+        .onFileDrop(dropped -> drop(frame, dropped));
+    if (frame == groups.main()) {
+      List<Menu.Item> menus = menus(frame);
       // The tabs' keys from anywhere; an empty group has none.
       Predicate<Key> keys = MenuBar.keys(bar, menus);
       root.onKey(tabs.onKey() == null ? keys : keys.or(tabs.onKey()))
@@ -202,21 +202,21 @@ public final class Documents {
         .grow(1)
         .padding(0, theme.space().m(), theme.space().m(), theme.space().m())
         .child(tabs.grow(1)));
-    if (dropping == group) {
+    if (dropping == frame) {
       root.overlay(hint());
-    } else if (group == groups.main()) {
+    } else if (frame == groups.main()) {
       root.overlay(toasts.view());
     }
     return root;
   }
 
   /** The menus of the first window's title bar. */
-  List<Menu.Item> menus(TabGroups.Group<Doc> group) {
-    Doc active = group.tabs().isEmpty() ? null : group.activeTab();
+  List<Menu.Item> menus(TabGroups.Frame<Doc> frame) {
+    Doc active = frame.active().activeTab();
     return List.of(Menu.submenu(
         "&File",
         List.of(
-            Menu.item("Open…", () -> openFiles(group))
+            Menu.item("Open…", () -> openFiles(frame))
                 .icon(Symbol.FOLDER_OPEN)
                 .shortcut(Key.CONTROL, "O"),
             Menu.item("Save As…", active == null ? null : () -> saveAs(active))
@@ -226,13 +226,13 @@ public final class Documents {
 
   /** File › Open…: the system's dialog, then each file read off the app's thread. */
   // docs:start documents-open
-  void openFiles(TabGroups.Group<Doc> group) {
+  void openFiles(TabGroups.Frame<Doc> frame) {
     app.fileDialog(
         FileDialog.open("Open")
             .filter("Documents", "sql", "txt", "md")
             .filter("All files", "*")
             .many(),
-        choice -> read(group, choice.paths()),
+        choice -> read(frame, choice.paths()),
         this::noFileDialog);
   }
 
@@ -278,15 +278,16 @@ public final class Documents {
 
   /** A drag from a file manager: the look while it is over, new tabs when it drops. */
   // docs:start documents-drop
-  void drop(TabGroups.Group<Doc> group, Drop drop) {
+  void drop(TabGroups.Frame<Doc> frame, Drop drop) {
     switch (drop.phase()) {
-      case OVER -> dropping = group;
+      case OVER -> dropping = frame;
       case LEAVE -> dropping = null;
       case DROP -> {
         dropping = null;
         if (drop.payload() instanceof List<?> files) {
-          read(group, files.stream().map(Path.class::cast).toList());
+          read(frame, files.stream().map(Path.class::cast).toList());
         } else if (drop.payload() instanceof String text) {
+          TabGroups.Group<Doc> group = frame.active();
           groups.add(group, group.tabs().size(), new Doc("Dropped text", text));
         }
       }
@@ -296,10 +297,11 @@ public final class Documents {
 
   /**
    * Reads files off the app's thread with a progress toast, then puts each into a new tab of the
-   * group, in the order given, and finishes the toast with the result. One piece of work for all,
-   * so that the tabs come in the order of the files, not in the order their reads end.
+   * frame's active group, in the order given, and finishes the toast with the result. One piece of
+   * work for all, so that the tabs come in the order of the files, not in the order their reads
+   * end.
    */
-  void read(TabGroups.Group<Doc> group, List<Path> files) {
+  void read(TabGroups.Frame<Doc> frame, List<Path> files) {
     if (files.isEmpty()) {
       return;
     }
@@ -328,7 +330,8 @@ public final class Documents {
         },
         reading::progress,
         read -> {
-          TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
+          TabGroups.Frame<Doc> target = groups.frames().contains(frame) ? frame : groups.main();
+          TabGroups.Group<Doc> to = target.active();
           int opened = 0;
           List<String> failed = new ArrayList<>();
           for (int index = 0; index < files.size(); index++) {

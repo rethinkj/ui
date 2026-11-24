@@ -45,18 +45,18 @@ class TabTearOffWindowTest {
     final TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c", "d"), this::open);
     final List<String> log = new ArrayList<>();
 
-    Windows.Handle open(TabGroups.Group<String> group, Window.Options options) {
-      log.add("open " + group.activeTab());
-      return app.windows()
-          .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
+    Windows.Handle open(TabGroups.Frame<String> frame, Window.Options options) {
+      String title = frame.active().activeTab();
+      log.add("open " + title);
+      return app.windows().open(title, 300, 160, options, new App<>(this, s -> s.view(frame)));
     }
 
-    El view(TabGroups.Group<String> group) {
+    El view(TabGroups.Frame<String> frame) {
       return col()
           .wFull()
           .hFull()
           .child(groups
-              .tabs(group, Tab::new, s -> s == null ? null : Label.label(s))
+              .tabs(frame, Tab::new, s -> s == null ? null : Label.label(s))
               .grow(1));
     }
   }
@@ -102,8 +102,8 @@ class TabTearOffWindowTest {
       run(loop, () -> "b torn off and docked: " + d.log + " " + d.groups.groups());
 
       assertEquals(List.of("open b", "torn true"), d.log);
-      assertEquals(List.of("a", "c", "b", "d"), d.groups.main().tabs());
-      assertEquals(2, d.groups.main().active());
+      assertEquals(List.of("a", "c", "b", "d"), d.groups.main().active().tabs());
+      assertEquals(2, d.groups.main().active().active());
       assertFalse(d.groups.isDragging());
     }
   }

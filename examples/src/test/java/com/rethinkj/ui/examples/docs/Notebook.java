@@ -35,21 +35,21 @@ final class Notebook {
   final TabGroups<Note> groups = new TabGroups<>(
       List.of(new Note("Groceries", "Milk"), new Note("Ideas", "A tree of tables")), this::open);
 
-  /** Opens the window of a group of tabs that left the first window. */
-  Windows.Handle open(TabGroups.Group<Note> group, Window.Options options) {
+  /** Opens the window of a frame of tabs that left the first window. */
+  Windows.Handle open(TabGroups.Frame<Note> frame, Window.Options options) {
     return app.windows()
         .open(
-            group.activeTab().title,
+            frame.active().activeTab().title,
             420,
             260,
             options,
             // the same state: a change shows in all windows
-            new App<>(this, state -> state.view(group))
+            new App<>(this, state -> state.view(frame))
                 .provide(Theme.CURRENT, state -> state.theme));
   }
 
   /** The view of a window: the first one shows groups.main(). */
-  El view(TabGroups.Group<Note> group) {
+  El view(TabGroups.Frame<Note> frame) {
     return col()
         .wFull()
         .hFull()
@@ -57,7 +57,7 @@ final class Notebook {
         .padding(theme.space().m())
         .child(groups
             .tabs(
-                group,
+                frame,
                 note -> new Tabs.Tab(note.title, true, false).icon(Symbol.DOCUMENT),
                 note -> note == null // a group without tabs
                     ? null

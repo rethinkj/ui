@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Theme;
@@ -80,7 +81,8 @@ class WorkbenchTest {
     assertEquals("@cust", s.palette(s.groups.main()).text());
     assertTrue(app.tree().dump().contains("label=\"customers\""), "found among the tables");
     Script.run("size 1000 600\nkey Enter\nframe\nawait\nframe\nadvance 1\nframe", app, out);
-    assertEquals("customers", s.groups.main().activeTab().title(), "the best match opened");
+    assertEquals(
+        "customers", s.groups.main().active().activeTab().title(), "the best match opened");
     assertFalse(s.palette(s.groups.main()).isOpen());
   }
 
@@ -207,7 +209,7 @@ class WorkbenchTest {
     Workbench.Opened customers = s.tables().getLast();
     Script.run(MOVE_ORDERS_OUT, app, out);
     TabGroups.Group<Workbench.Opened> window = s.groups.groupOf(orders);
-    s.groups.dock(s.groups.main(), 1, window, 1); // customers, active, beside orders
+    s.groups.dock(s.groups.main().active(), 1, window, 1); // customers, active, beside orders
     app.windows().of(app).raise(); // the first window in front
     Script.run("""
         size 1000 600
@@ -225,7 +227,7 @@ class WorkbenchTest {
         """, app, out);
     assertEquals(List.of(orders, customers), window.tabs());
     assertEquals(0, window.active(), "orders chosen in its window");
-    assertEquals(List.of(s.start), s.groups.main().tabs(), "and not opened again");
+    assertEquals(List.of(s.start), s.groups.main().active().tabs(), "and not opened again");
     assertTrue(windowOf(s, orders).tree().dump().contains("hovered"), "which is in front");
   }
 
@@ -543,7 +545,7 @@ class WorkbenchTest {
     s.tables().get(1).changes.clear();
     changed(app);
     Script.run("size 1000 600\nframe\npress #changes\nframe", app, out);
-    assertEquals(1, s.groups.main().active(), "orders, which has the change");
+    assertEquals(1, s.groups.main().active().active(), "orders, which has the change");
   }
 
   @Test
@@ -560,7 +562,78 @@ class WorkbenchTest {
     Script.run("size 1000 600\nkey W control\nframe\nawait\nframe", app, out);
     assertTrue(s.tables().isEmpty());
     assertEquals(-1, customers.rows, "its answer never arrived");
-    assertEquals(0, s.groups.main().active());
+    assertEquals(0, s.groups.main().active().active());
     assertNull(s.message);
+  }
+
+  /**
+   * Splitting and unsplitting re-parent the staying group: its query caret and grid scroll survive
+   * because Workbench keeps them in each tab's state (CodeEditor.State and DataGrid.Selection).
+   */
+  @Test
+  void splittingAndUnsplittingKeepTheStayingGroupsCaretAndScroll() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS + """
+        press #query-localhost/shop/public/orders
+        key End control
+        key ArrowLeft
+        key ArrowLeft
+        frame
+        wheel #grid-localhost/shop/public/orders 0 600
+        frame
+        press role=treeitem label="customers" clicks 2
+        frame
+        await
+        frame
+        advance 1
+        frame
+        """, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    int caretBefore = orders.editor.caret();
+    assertTrue(caretBefore > 0, "caret placed in orders query");
+    // Switch back to orders to verify its scroll, then split customers right.
+    Script.run("""
+        size 1000 600
+        press role=tab label="orders"
+        frame
+        """, app, out);
+    double scrollBefore = findRowsScroll(app.tree());
+    assertTrue(scrollBefore > 0, "orders grid is scrolled: " + scrollBefore);
+
+    // Split customers right via context menu: orders stays on the left, customers moves right.
+    Script.run("""
+        size 1000 600
+        press role=tab label="customers" right
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Split right"
+        frame
+        """, app, out);
+    assertEquals(2, s.groups.main().groups().size());
+    assertEquals(orders, s.groups.main().groups().get(0).activeTab());
+    assertEquals(caretBefore, orders.editor.caret(), "orders caret survived split");
+    assertEquals(scrollBefore, findRowsScroll(app.tree()), "orders grid scroll survived split");
+
+    // Close customers (last tab in right group): unsplit back to one group; orders keeps both.
+    Script.run("size 1000 600\nkey W control\nframe", app, out);
+    assertEquals(1, s.groups.main().groups().size());
+    assertEquals(orders, s.groups.main().active().activeTab());
+    assertEquals(caretBefore, orders.editor.caret(), "orders caret survived unsplit");
+    assertEquals(scrollBefore, findRowsScroll(app.tree()), "orders grid scroll survived unsplit");
+  }
+
+  private static double findRowsScroll(El el) {
+    if ("rows".equals(el.key()) && el.scrollY() > 0) {
+      return el.scrollY();
+    }
+    for (El child : el.children()) {
+      double found = findRowsScroll(child);
+      if (found > 0) {
+        return found;
+      }
+    }
+    return 0;
   }
 }

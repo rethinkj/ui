@@ -410,8 +410,14 @@ class ThemeTest {
       check(failures, what, color, grid, 3);
     });
     // Tabs on their band: another tab in muted text, in primary under the pointer and pressed,
-    // where its cross can be hovered and pressed too; the active one's line in the accent's edge.
+    // where its cross can be hovered and pressed too; the active one's line in the accent's edge,
+    // and in an inactive group its muted edge, visible on the band yet quieter than the edge.
     int tabHovered = over(s.band(), s.hover());
+    int mutedLine = over(s.band(), t.accent().edgeMuted());
+    check(failures, "muted tab line", mutedLine, Map.of("band", s.band()), 1.5);
+    if (contrast(mutedLine, s.band()) >= contrast(t.accent().edge(), s.band())) {
+      failures.add("muted tab line is not quieter than accent edge on band");
+    }
     check(failures, "muted text", t.text().muted(), Map.of("band", s.band()), 4.5);
     check(
         failures,

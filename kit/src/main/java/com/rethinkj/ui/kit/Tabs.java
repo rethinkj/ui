@@ -362,6 +362,8 @@ public final class Tabs {
     private Consumer<TearOff> onTearOff;
     private boolean tearOffAtStart;
     private boolean switchKeys = true;
+    private boolean active = true;
+    private Object focusBar;
     private Dock onDock;
     private Menu.State menu;
     private List<Menu.Item> menuItems = List.of();
@@ -452,6 +454,22 @@ public final class Tabs {
      */
     public Options switchKeys(boolean on) {
       this.switchKeys = on;
+      return this;
+    }
+
+    /**
+     * Whether this bar is the active group's, so that its active tab shows the accent line ({@link
+     * Theme.Accent#edge}) instead of the muted one ({@link Theme.Accent#edgeMuted}); true by
+     * default.
+     */
+    public Options active(boolean on) {
+      this.active = on;
+      return this;
+    }
+
+    /** Moves the focus to this bar's tablist when {@code key} is new; used by {@link TabGroups}. */
+    Options focusBar(Object key) {
+      this.focusBar = key;
       return this;
     }
 
@@ -695,6 +713,7 @@ public final class Tabs {
     list.style().minHeight = Len.px(height);
     boolean indicator = line && active >= 0 && active < tabs.size();
     list.revealRow(indicator ? active + 1 : active);
+    int indicatorColor = options.active ? theme.accent().edge() : theme.accent().edgeMuted();
     if (indicator) {
       // One element under whichever tab is active, so that it slides there; the first child, so
       // that the tabs lie over it and take the presses, also where it slides across them.
@@ -705,7 +724,7 @@ public final class Tabs {
           .absolute(inset, height - stroke)
           .h(stroke)
           .radius(stroke, stroke, 0, 0)
-          .fill(theme.accent().edge())
+          .fill(indicatorColor)
           .motion(theme.motion().move());
       under.style().right = Len.px(inset);
       list.child(under);
@@ -721,6 +740,7 @@ public final class Tabs {
               i,
               i == active,
               line,
+              indicatorColor,
               height,
               grabbed && !dragging.torn,
               dragging != null && dragging.isActive(),
@@ -874,6 +894,9 @@ public final class Tabs {
       if (options.menu != null) { // the Menu key and Shift+F10 on the bar: the active tab's menu
         list.onSecondaryPress(options.menu::openAt);
       }
+      if (options.focusBar != null) {
+        list.autofocus(options.focusBar);
+      }
       list.focusable().keepFocus().focusRing(theme.accent().edge()).onKey(k -> {
         if (k.modifiers() != 0) {
           return false;
@@ -960,6 +983,7 @@ public final class Tabs {
       int index,
       boolean active,
       boolean line,
+      int indicatorColor,
       float height,
       boolean muted,
       boolean quiet,
@@ -987,10 +1011,7 @@ public final class Tabs {
         .shrink(0);
     if (active && !line) {
       float stroke = theme.size().indicator();
-      el.child(el().absolute(0, height - stroke)
-          .h(stroke)
-          .wFull()
-          .fill(theme.accent().edge()));
+      el.child(el().absolute(0, height - stroke).h(stroke).wFull().fill(indicatorColor));
     }
     El dot = null;
     if (tab.modified()) {

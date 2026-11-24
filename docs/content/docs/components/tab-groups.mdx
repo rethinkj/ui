@@ -1,13 +1,13 @@
 ---
 title: TabGroups
-description: Multi-window tab manager supporting drag reordering, tearing tabs off into new windows, and docking them back.
+description: Multi-window and split tab manager supporting drag reordering, split panes, tearing tabs off into new windows, and docking them back.
 ---
 
-`TabGroups` manages tabs across multiple windows, just like a web browser or IDE: users can reorder tabs, drag a tab out into a new floating window, and drop it onto any other window's tab bar. Store one `TabGroups` in your shared app state and render each window with `groups.tabs(...)`.
+`TabGroups` manages tabs across multiple windows and split groups, just like a web browser or IDE: users can reorder tabs, split groups side by side or stacked within any window, drag a tab out into a new floating window, and drop it onto any group's tab bar. Store one `TabGroups` in your shared app state and render each window with `groups.tabs(frame, ...)`.
 
-For single-window tabs without tear-off support, use [Tabs](/docs/components/tabs).
+For single-window tabs without splitting or tear-off support, use [Tabs](/docs/components/tabs).
 
-Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html).
+Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html), [`TabGroups.Frame`](/api/com/rethinkj/ui/kit/TabGroups.Frame.html), [`TabGroups.Group`](/api/com/rethinkj/ui/kit/TabGroups.Group.html).
 
 <Shot src="examples/docs/tab-groups/moved-{theme}" alt="The first window, Groceries its one tab left, after Ideas moved to a window of its own" />
 
@@ -18,9 +18,9 @@ Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html).
 ```java snippet="tab-groups"
 ```
 
-- The window-opener callback opens a new window running an `App` over the same state so all windows stay synchronized. Pass the provided `Window.Options` through (adding `frameless()` or an icon if desired).
-- `groups.main()` returns the primary window's tab group.
-- `groups.tabs(group, tabToUi, tabToContent)` builds the tab bar and active content (`tabToContent` receives `null` when a group is empty).
+- Every window has a `TabGroups.Frame<T>` holding a binary tree of splits whose leaves are `TabGroups.Group<T>` instances. `groups.main()` returns the primary window's frame; `groups.frames()` lists every open frame.
+- The window-opener callback receives the new `Frame<T>` and opens a window running an `App` over the same state so all windows stay synchronized. Pass the provided `Window.Options` through (adding `frameless()` or an icon if desired).
+- `groups.tabs(frame, tabToUi, tabToContent)` builds the frame's tab bar(s) and active content (`tabToContent` receives `null` when a group is empty). Hand `tabs.onKey()` to your window root so tab shortcuts act on the frame's active group from anywhere in the window.
 
 Example headless script moving a tab to a new window via its context menu:
 
@@ -30,23 +30,34 @@ Example headless script moving a tab to a new window via its context menu:
 ```text file="examples/src/test/resources/golden/docs/tab-groups/ideas-moved.tree.txt" start="#tablist" count="2"
 ```
 
+## Splitting within a window
+
+Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable them in every window (including torn-off windows).
+
+- Each tab's context menu adds **Split right** (`Ctrl+\`) and **Split down**, disabled for a group's only tab or whenever both halves would be smaller than `Theme.Sizes.minTabGroup`. On keyboard layouts where `\` requires AltGr (such as German), use the tab context menu or drag instead of `Ctrl+\`.
+- Split groups render with `Split.cards` starting at a 0.5 share; double-clicking or pressing Enter on a divider resets it to half.
+- When a group in a split becomes empty, it leaves its frame and its sibling takes the split's place (handing keyboard focus to that sibling if the closed group had focus). A frame with one group renders identically to a plain `Tabs` component; in a split frame, each group's root is keyed `#group-<id>` from a counter that never repeats.
+- `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the full accent line under its active tab; inactive groups show `Theme.Accent.edgeMuted`.
+- Programmatically split with `groups.split(from, index, beside, side)` (`Side.LEFT`, `RIGHT`, `TOP`, `BOTTOM`), inspect `frame.groups()` (top-left first) and `group.frame()`.
+
 ## Callbacks and programmatic control
 
 | Method | Description |
 | --- | --- |
-| `onWindowClose(group -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
+| `splits(boolean)` | Enables splitting within windows (off by default) |
+| `onWindowClose(frame -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
 | `onClosed(tab -> …)` | Notification after a tab is closed |
 | `onAdd(group -> …)` | Shows a `+` button and binds Ctrl+T in each group's bar, passing the group |
 
-You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
+You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `split`, `toNewWindow`, `dockAll`, `closeAll`, `frames`, `groups`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
 
-## Focus and state across windows
+## Focus and state across splits and windows
 
-`TabGroups` remembers keyboard focus per tab automatically. To preserve text cursors, undo history, or scroll positions when moving a tab to another window, store `FieldState` or `ScrollState` inside each tab's own model object (see [Several windows](/docs/concepts/windows)).
+`TabGroups` remembers keyboard focus per tab automatically. Moving a group into or out of a split re-parents it in the element tree, just as moving a tab to another window does — so identity-bound state (caret, undo history, scroll offsets, remembered focus) does not survive a split, unsplit, or window move unless you store `FieldState` or `ScrollState` inside each tab's own model object (see [Several windows](/docs/concepts/windows) and the [Workbench](/docs/examples/workbench) example).
 
 ## User interaction
 
-- Drag a tab along a bar to reorder, drag it outside to tear off into a new window, or drop it onto another window's tab bar to dock it. Press **Escape** to cancel a drag. When you tear off a tab near a screen edge, the new window shifts fully into the screen's work area (above the taskbar) as far as its minimum size allows. On Wayland, the compositor places the window instead.
-- Right-click any tab for **Move to new window** and **Move back to main window** (essential on Linux Wayland, where apps cannot position floating windows).
+- Drag a tab along a bar to reorder, drag it outside to tear off into a new window, or drop it onto another group's tab bar to dock it. Press **Escape** to cancel a drag. When you tear off a tab near a screen edge, the new window shifts fully into the screen's work area (above the taskbar) as far as its minimum size allows. On Wayland, the compositor places the window instead.
+- Right-click any tab for **Move to new window** and **Move back to main window** (essential on Linux Wayland, where apps cannot position floating windows), plus **Split right** and **Split down** when splits are enabled.
 - When a group's tabs overflow its bar, an **All tabs** button appears at the bar's end to list every tab in the group and scroll the chosen one into view.
