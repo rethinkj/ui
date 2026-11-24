@@ -16,20 +16,26 @@ import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Split;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Toolbar;
 import com.rethinkj.ui.kit.Tooltip;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
 
 /**
@@ -55,7 +61,11 @@ import java.util.function.IntPredicate;
  * <p>A press selects a row; Shift with a press or with the navigation keys selects a range between
  * {@link State#anchor()} and {@link State#cursor()} so the app can compare the two ends. While the
  * list has the focus, Up, Down, Page Up, Page Down, Home and End move the cursor and keep it
- * scrolled into view, and Enter runs {@link Options#onOpen}.
+ * scrolled into view, Enter runs {@link Options#onOpen}, and Shift+F10 or the Menu key open the
+ * context menu. Context menus for a commit, a selected range and a ref pill are filled by the app
+ * via {@link Options#commitMenu}, {@link Options#rangeMenu} and {@link Options#refMenu}; header
+ * tool islands for the branch scope ({@link Scope}) and first-parent view appear when {@link
+ * Options#scope} or {@link Options#firstParent} are configured.
  *
  * <p>The header holds a filter field that matches commit subjects and
  * authors by case-insensitive substring and commit hashes by prefix. Non-matching commits are
@@ -89,6 +99,9 @@ public final class GitLog {
   /** So dominant a share of the shrinking that the ref pills keep their width, as in a footer. */
   static final float SUBJECT_SHRINK = 1e9f;
 
+  /** So dominant a share of the header's room that the tools take it all from the card's spacer. */
+  private static final float TOOLS_GROW = 1e9f;
+
   private GitLog() {}
 
   /**
@@ -114,6 +127,13 @@ public final class GitLog {
     private int loaded;
     private final Clock clock;
     private Split.Position detailsSplit = Split.Position.share(0.5f);
+    private final Toolbar.State tools = new Toolbar.State();
+    private final Menu.State scopeMenu = new Menu.State();
+    private final Menu.State contextMenu = new Menu.State();
+    private MenuKind menuKind;
+    private String menuCommitId;
+    private String menuOlderId;
+    private Ref menuRef;
 
     /** A state using the system default time-zone clock. */
     public State() {
@@ -295,6 +315,87 @@ public final class GitLog {
     void detailsSplit(Split.Position position) {
       this.detailsSplit = position;
     }
+
+    private void openCommitMenu(String commitId, float x, float y) {
+      menuKind = MenuKind.COMMIT;
+      menuCommitId = commitId;
+      menuOlderId = null;
+      menuRef = null;
+      contextMenu.openAt(x, y);
+    }
+
+    private void openRangeMenu(String newerId, String olderId, float x, float y) {
+      menuKind = MenuKind.RANGE;
+      menuCommitId = newerId;
+      menuOlderId = olderId;
+      menuRef = null;
+      contextMenu.openAt(x, y);
+    }
+
+    private void openRefMenu(String commitId, Ref ref, float x, float y) {
+      menuKind = MenuKind.REF;
+      menuCommitId = commitId;
+      menuOlderId = null;
+      menuRef = ref;
+      contextMenu.openAt(x, y);
+    }
+
+    private void closeMenu() {
+      contextMenu.close();
+      menuKind = null;
+      menuCommitId = null;
+      menuOlderId = null;
+      menuRef = null;
+    }
+  }
+
+  private enum MenuKind {
+    COMMIT,
+    RANGE,
+    REF
+  }
+
+  /**
+   * Which branches' history the log is currently showing, controlled by the app through {@link
+   * Options#scope(Scope, Consumer)}.
+   *
+   * @param kind whether all branches, the current branch, or a single named branch is shown
+   * @param branch the branch name when {@code kind} is {@link Kind#BRANCH}, null otherwise
+   */
+  public record Scope(Kind kind, String branch) {
+
+    /** The kind of a branch {@link Scope}. */
+    public enum Kind {
+      /** Commits reachable from all branches. */
+      ALL,
+      /** Commits reachable from the checked-out branch. */
+      CURRENT,
+      /** Commits reachable from one chosen local branch. */
+      BRANCH
+    }
+
+    /** History across all branches. */
+    public static final Scope ALL = new Scope(Kind.ALL, null);
+
+    /** History of the checked-out branch. */
+    public static final Scope CURRENT = new Scope(Kind.CURRENT, null);
+
+    public Scope {
+      Objects.requireNonNull(kind, "kind");
+      if (kind == Kind.BRANCH) {
+        Objects.requireNonNull(branch, "branch");
+        if (branch.isEmpty()) {
+          throw new IllegalArgumentException("branch must not be empty");
+        }
+      } else {
+        branch = null;
+      }
+    }
+
+    /** History of the named local branch. */
+    public static Scope branch(String name) {
+      return new Scope(Kind.BRANCH, name);
+    }
   }
 
   /** Optional configuration of a {@link GitLog}; {@link #options()} starts empty. */
@@ -303,6 +404,13 @@ public final class GitLog {
     private Consumer<Commit> onOpen;
     private String status;
     private El details;
+    private Function<Commit, List<Menu.Item>> commitMenu;
+    private BiFunction<Commit, Commit, List<Menu.Item>> rangeMenu;
+    private Function<Ref, List<Menu.Item>> refMenu;
+    private Scope scope = Scope.ALL;
+    private Consumer<Scope> onScope;
+    private boolean firstParent;
+    private Consumer<Boolean> onFirstParent;
     private Runnable onMore;
     private int total = -1;
 
@@ -350,6 +458,59 @@ public final class GitLog {
       this.total = total;
       return this;
     }
+
+    /**
+     * Context menu items for a single commit, opened on a secondary press on a commit row or with
+     * Shift+F10 / the Menu key; null for none. When {@link #refMenu} is also set, each ref on the
+     * commit is appended as a submenu after a separator.
+     */
+    public Options commitMenu(Function<Commit, List<Menu.Item>> items) {
+      this.commitMenu = items;
+      return this;
+    }
+
+    /**
+     * Context menu items for a selected commit range, given its newer and older endpoint commits,
+     * opened when a secondary press or Shift+F10 / the Menu key targets a selected range; null for
+     * none.
+     */
+    public Options rangeMenu(BiFunction<Commit, Commit, List<Menu.Item>> items) {
+      this.rangeMenu = items;
+      return this;
+    }
+
+    /**
+     * Context menu items for a ref, opened on a secondary press on its pill and appended as a
+     * submenu per ref in the commit menu; null for none.
+     */
+    public Options refMenu(Function<Ref, List<Menu.Item>> items) {
+      this.refMenu = items;
+      return this;
+    }
+
+    /**
+     * Shows the branch scope dropdown in the header with {@code scope} selected and calls {@code
+     * onScope} when the user picks another choice; null {@code onScope} hides the control.
+     */
+    public Options scope(Scope scope, Consumer<Scope> onScope) {
+      this.scope = scope == null ? Scope.ALL : scope;
+      this.onScope = onScope;
+      return this;
+    }
+
+    /**
+     * Shows the first-parent toggle in the header with state {@code on} and calls {@code
+     * onFirstParent} when toggled; null {@code onFirstParent} hides the control.
+     */
+    public Options firstParent(boolean on, Consumer<Boolean> onFirstParent) {
+      this.firstParent = on;
+      this.onFirstParent = onFirstParent;
+      return this;
+    }
+
+    private boolean hasMenu() {
+      return commitMenu != null || rangeMenu != null || refMenu != null;
+    }
   }
 
   /** Default options for {@link #gitLog(State, List, List, Options, El...)}. */
@@ -394,7 +555,7 @@ public final class GitLog {
     state.clamp(count);
 
     Map<String, List<Ref>> refsByCommit = new HashMap<>();
-    Set<String> localBranches = new HashSet<>();
+    Set<String> localBranches = new LinkedHashSet<>();
     int tagCount = 0;
     for (Ref ref : refs) {
       Objects.requireNonNull(ref, "ref");
@@ -432,12 +593,16 @@ public final class GitLog {
         .radius(theme.badge().toolbar() / 2);
     El filterControl =
         GitLogFind.filterControl(state, commits, needle, matchCount, rowHeight, theme, texts);
-    El[] barItems = new El[actions.length + 3];
-    barItems[0] = countBadge;
-    barItems[1] = Card.spacer();
-    barItems[2] = filterControl;
-    System.arraycopy(actions, 0, barItems, 3, actions.length);
-    El header = Card.toolbar(texts.history(), null, barItems);
+    El tools = viewTools(state, localBranches, options, texts);
+    List<El> barList = new ArrayList<>(actions.length + 4);
+    barList.add(countBadge);
+    barList.add(Card.spacer());
+    barList.add(filterControl);
+    if (tools != null) {
+      barList.add(tools);
+    }
+    barList.addAll(Arrays.asList(actions));
+    El header = Card.toolbar(texts.history(), null, barList.toArray(El[]::new));
     // After the toolbar's shrink(0): the filter gives way before the app's actions.
     filterControl.shrink(1).minSize(0, 0);
 
@@ -446,6 +611,7 @@ public final class GitLog {
 
     El body;
     if (count == 0 && !hasMore) {
+      state.closeMenu();
       body = col()
           .key("rows")
           .grow(1)
@@ -489,6 +655,7 @@ public final class GitLog {
 
       state.list = list;
       list.onKey(key -> handleKey(key, state, commits, options.onOpen, list, rowHeight));
+      attachMenus(list, state, commits, refsByCommit, options);
       list.rows(
           count + (hasMore ? 1 : 0),
           rowHeight,
@@ -496,10 +663,12 @@ public final class GitLog {
               ? loadingRow(theme, texts, rowHeight)
               : commitRow(
                   index,
+                  commits,
                   commits.get(index),
                   refsByCommit.getOrDefault(commits.get(index).id(), List.of()),
                   graph,
                   state,
+                  options,
                   focused[0],
                   rangeStart,
                   rangeEnd,
@@ -597,10 +766,12 @@ public final class GitLog {
 
   private static El commitRow(
       int index,
+      List<Commit> commits,
       Commit commit,
       List<Ref> rowRefs,
       CommitGraph graph,
       State state,
+      Options options,
       boolean focused,
       int rangeStart,
       int rangeEnd,
@@ -672,13 +843,17 @@ public final class GitLog {
         .padding(0, theme.space().m())
         .clip();
     if (!rowRefs.isEmpty()) {
+      RefPills.RefPress refPress = options.refMenu != null
+          ? (ref, x, y) -> state.openRefMenu(commit.id(), branchOf(ref, rowRefs), x, y)
+          : null;
       messageCell.child(RefPills.pills(
               rowRefs,
               laneColor,
               rowBg,
               theme.size().minTabGroup() + theme.space().xxl(),
               MAX_REF_PILLS,
-              dimmed ? fading : 0)
+              dimmed ? fading : 0,
+              refPress)
           .shrink(1) // pills give way so the subject keeps its share of a narrow column
           .minSize(0, 0)
           .clip());
@@ -786,6 +961,17 @@ public final class GitLog {
             state.hoveredRow = -1;
           }
         });
+
+    if (options.hasMenu()) {
+      r.onSecondaryPress((x, y) -> {
+        boolean inSelection =
+            state.rangeStart() >= 0 && index >= state.rangeStart() && index <= state.rangeEnd();
+        if (!inSelection) {
+          state.select(index);
+        }
+        openRowMenu(state, commits, options, index, x, y);
+      });
+    }
 
     if (isEndpoint) {
       float barWidth = theme.callout().bar();
@@ -900,5 +1086,194 @@ public final class GitLog {
       out.append(", ").append(refLabel);
     }
     return out.toString();
+  }
+
+  private static El viewTools(
+      State state, Set<String> localBranches, Options options, DiagramTexts texts) {
+    if (options.onScope == null && options.onFirstParent == null) {
+      state.scopeMenu.close();
+      return null;
+    }
+    List<Toolbar.Item> items = new ArrayList<>(3);
+    items.add(Toolbar.spacer()); // the islands sit at the end, next to the app's actions
+    if (options.onScope != null) {
+      Scope scope = options.scope;
+      String label = switch (scope.kind()) {
+        case ALL -> texts.allBranches();
+        case CURRENT -> texts.currentBranch();
+        case BRANCH -> scope.branch();
+      };
+      Consumer<Scope> choose = next -> {
+        if (!next.equals(scope)) { // the checked choice again reloads nothing
+          options.onScope.accept(next);
+        }
+      };
+      List<Menu.Item> choices = new ArrayList<>(localBranches.size() + 3);
+      choices.add(Menu.item(texts.allBranches(), () -> choose.accept(Scope.ALL))
+          .checked(scope.kind() == Scope.Kind.ALL));
+      choices.add(Menu.item(texts.currentBranch(), () -> choose.accept(Scope.CURRENT))
+          .checked(scope.kind() == Scope.Kind.CURRENT));
+      if (!localBranches.isEmpty()) {
+        choices.add(Menu.separator());
+        for (String branch : localBranches) {
+          choices.add(Menu.item(branch, () -> choose.accept(Scope.branch(branch)))
+              .checked(scope.kind() == Scope.Kind.BRANCH && branch.equals(scope.branch())));
+        }
+      }
+      items.add(Toolbar.group(Toolbar.menu(Symbol.BRANCH, label, state.scopeMenu, choices)));
+    } else {
+      state.scopeMenu.close();
+    }
+    if (options.onFirstParent != null) {
+      items.add(Toolbar.group(Toolbar.toggle(
+          Symbol.NUMBER_CIRCLE_1,
+          texts.firstParent(),
+          options.firstParent,
+          options.onFirstParent)));
+    }
+    // Its width comes from the header, not from its items, so what does not fit goes into More.
+    return Toolbar.toolbar(state.tools, texts.branchScope(), items)
+        .grow(TOOLS_GROW)
+        .basis(0)
+        .minSize(Theme.CURRENT.get().size().control(), 0); // room for the More button
+  }
+
+  private static void attachMenus(
+      El list,
+      State state,
+      List<Commit> commits,
+      Map<String, List<Ref>> refsByCommit,
+      Options options) {
+    if (!options.hasMenu()) {
+      state.closeMenu();
+      return;
+    }
+    list.onSecondaryPress((x, y) -> {
+      if (state.cursor >= 0 && state.cursor < commits.size()) {
+        openRowMenu(state, commits, options, state.cursor, x, y);
+      }
+    });
+    List<Menu.Item> items = List.of();
+    if (state.contextMenu.isOpen()) {
+      items = buildMenuItems(state, commits, refsByCommit, options);
+      if (items.isEmpty()) {
+        state.closeMenu();
+      }
+    } else {
+      state.closeMenu();
+    }
+    Menu.contextMenu(list, state.contextMenu, items);
+  }
+
+  private static void openRowMenu(
+      State state, List<Commit> commits, Options options, int row, float x, float y) {
+    if (state.hasRange()
+        && row >= state.rangeStart()
+        && row <= state.rangeEnd()
+        && options.rangeMenu != null) {
+      state.openRangeMenu(
+          commits.get(state.rangeStart()).id(), commits.get(state.rangeEnd()).id(), x, y);
+    } else {
+      state.openCommitMenu(commits.get(row).id(), x, y);
+    }
+  }
+
+  private static List<Menu.Item> buildMenuItems(
+      State state, List<Commit> commits, Map<String, List<Ref>> refsByCommit, Options options) {
+    if (state.menuKind == null || state.menuCommitId == null) {
+      return List.of();
+    }
+    Commit target = findCommit(commits, state.menuCommitId);
+    if (target == null) {
+      return List.of();
+    }
+    return switch (state.menuKind) {
+      case COMMIT ->
+        commitMenuItems(target, refsByCommit.getOrDefault(target.id(), List.of()), options);
+      case RANGE -> {
+        if (options.rangeMenu == null || state.menuOlderId == null) {
+          yield List.of();
+        }
+        Commit older = findCommit(commits, state.menuOlderId);
+        if (older == null) {
+          yield List.of();
+        }
+        List<Menu.Item> items = options.rangeMenu.apply(target, older);
+        yield items == null ? List.of() : items;
+      }
+      case REF -> {
+        if (options.refMenu == null || state.menuRef == null) {
+          yield List.of();
+        }
+        List<Ref> commitRefs = refsByCommit.getOrDefault(target.id(), List.of());
+        if (!commitRefs.contains(state.menuRef)) {
+          yield List.of();
+        }
+        List<Menu.Item> items = options.refMenu.apply(state.menuRef);
+        yield items == null ? List.of() : items;
+      }
+    };
+  }
+
+  private static List<Menu.Item> commitMenuItems(
+      Commit commit, List<Ref> rowRefs, Options options) {
+    List<Menu.Item> items = new ArrayList<>();
+    if (options.commitMenu != null) {
+      List<Menu.Item> base = options.commitMenu.apply(commit);
+      if (base != null) {
+        items.addAll(base);
+      }
+    }
+    if (options.refMenu != null && !rowRefs.isEmpty()) {
+      List<Menu.Item> refSubmenus = new ArrayList<>();
+      for (Ref ref : rowRefs) {
+        if (branchOf(ref, rowRefs) != ref) {
+          continue; // HEAD of a branch in the list: its branch has the entry
+        }
+        List<Menu.Item> refItems = options.refMenu.apply(ref);
+        if (refItems != null && !refItems.isEmpty()) {
+          refSubmenus.add(Menu.submenu(refTitle(ref, DiagramTexts.CURRENT.get()), refItems));
+        }
+      }
+      if (!refSubmenus.isEmpty()) {
+        if (!items.isEmpty()) {
+          items.add(Menu.separator());
+        }
+        items.addAll(refSubmenus);
+      }
+    }
+    return items;
+  }
+
+  /** A ref's submenu title with its kind, apart from a branch and a tag of the same name. */
+  private static String refTitle(Ref ref, DiagramTexts texts) {
+    return switch (ref.kind()) {
+      case HEAD ->
+        RefPills.DETACHED.equals(ref.name()) ? texts.detachedHead() : texts.headBranch(ref.name());
+      case BRANCH -> texts.branch(ref.name());
+      case REMOTE -> texts.remoteBranch(ref.name());
+      case TAG -> texts.tag(ref.name());
+    };
+  }
+
+  /** The local branch that a HEAD ref names, when it is among the refs; else the ref itself. */
+  private static Ref branchOf(Ref ref, List<Ref> rowRefs) {
+    if (ref.kind() == Ref.Kind.HEAD) {
+      for (Ref other : rowRefs) {
+        if (other.kind() == Ref.Kind.BRANCH && other.name().equals(ref.name())) {
+          return other;
+        }
+      }
+    }
+    return ref;
+  }
+
+  private static Commit findCommit(List<Commit> commits, String id) {
+    for (Commit commit : commits) {
+      if (commit.id().equals(id)) {
+        return commit;
+      }
+    }
+    return null;
   }
 }

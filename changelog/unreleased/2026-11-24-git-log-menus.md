@@ -1,0 +1,1 @@
+- `GitLog` opens context menus the app fills for a commit, a selected range and a ref (right press, Shift+F10, Menu key), and shows a branch scope and a first-parent toggle in its header (`GitLog.options().commitMenu(…).rangeMenu(…).refMenu(…).scope(…).firstParent(…)`). `Toolbar.menu` adds a menu button that a toolbar group can hold.

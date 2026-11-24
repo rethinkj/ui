@@ -49,6 +49,19 @@ Clicking a row selects it; Shift+click and Shift with navigation keys select a r
 | `Home`, `End` | Move to the first or last commit |
 | `Shift` + navigation key | Extend the range from the anchor to the new cursor |
 | `Enter` | Call `onOpen` with the cursor's commit |
+| `Shift+F10`, `ContextMenu` | Open the context menu for the cursor's commit or selected range |
+
+## Menus and views
+
+<Shot src="examples/docs/git-log-menus/menu-{theme}" alt="A commit history with the branch scope dropdown and first-parent toggle in the header, and an open commit context menu showing actions and a ref submenu" />
+
+The app fills the menus and keeps the view; the log shows it and reports changes:
+
+```java snippet="git-log-menus"
+```
+
+- `commitMenu` fills the menu of one commit, `rangeMenu` the menu of a selected range with its newer and older end, and `refMenu` the menu of a ref pill. A right press on a row outside the selection selects it first; Shift+F10 and the Menu key open the cursor's menu. With `refMenu` set, a commit's menu also lists each of its refs as a submenu.
+- `scope` adds the branch scope (`Scope.ALL`, `Scope.CURRENT` or `Scope.branch(name)` of a local branch in `refs`) and `firstParent` a first-parent toggle, each only with its callback. The app applies the change and reloads the history from git.
 
 ## Filter and go to a ref
 

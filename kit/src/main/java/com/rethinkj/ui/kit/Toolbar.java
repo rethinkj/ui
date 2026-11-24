@@ -11,13 +11,13 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * A row of icon buttons, buttons, toggle buttons, split buttons, groups and a space that grows, as
- * above a grid or an editor. A group gathers tools that belong together on a tinted, rounded
- * surface of their own. What does not fit moves, from the end, into a menu behind a More button
- * ({@link Symbol#MORE_HORIZONTAL}), as the same actions: a toggle as a checked item, a split button
- * as a submenu, a group between lines. The toolbar learns its width and the width of each item
- * from the layout ({@link El#onResize}) and keeps them in its {@link State}; the frame that brings
- * a new width already shows what fits it.
+ * A row of icon buttons, buttons, toggle buttons, menu buttons, split buttons, groups and a space
+ * that grows, as above a grid or an editor. A group gathers tools that belong together on a tinted,
+ * rounded surface of their own. What does not fit moves, from the end, into a menu behind a More
+ * button ({@link Symbol#MORE_HORIZONTAL}), as the same actions: a toggle as a checked item, a menu
+ * or split button as a submenu, a group between lines. The toolbar learns its width and the width
+ * of each item from the layout ({@link El#onResize}) and keeps them in its {@link State}; the frame
+ * that brings a new width already shows what fits it.
  *
  * <pre>{@code
  * Toolbar.toolbar(state.toolbar, "Query", List.of(
@@ -46,6 +46,7 @@ public final class Toolbar {
     BUTTON,
     TEXT,
     TOGGLE,
+    MENU,
     SPLIT,
     GROUP,
     SPACER
@@ -91,16 +92,16 @@ public final class Toolbar {
     }
 
     /**
-     * This button or split button with a button's options: its state, such as {@link
+     * This button, menu button or split button with a button's options: its state, such as {@link
      * Button.State#BUSY}, its tone and shortcut. Its icon is the item's and its size the
      * toolbar's, whatever the options say. In the More menu, an item that is busy or off cannot be
-     * chosen, a split button that is off has no submenu, and the tone and shortcut show as a menu
-     * shows them.
+     * chosen, a menu or split button that is off has no submenu, and the tone and shortcut show as
+     * a menu shows them.
      *
      * @throws IllegalArgumentException for a toggle, a group or a spacer
      */
     public Item options(Button.Options options) {
-      if (kind != Kind.BUTTON && kind != Kind.TEXT && kind != Kind.SPLIT) {
+      if (kind != Kind.BUTTON && kind != Kind.TEXT && kind != Kind.MENU && kind != Kind.SPLIT) {
         throw new IllegalArgumentException(
             "a " + kind.name().toLowerCase(Locale.ROOT) + " takes no button options");
       }
@@ -174,6 +175,25 @@ public final class Toolbar {
         null);
   }
 
+  /**
+   * A ghost button with an icon, if any, and text that opens a dropdown menu ({@link Button#menu});
+   * in the More menu it becomes a submenu.
+   */
+  public static Item menu(Icon icon, String text, Menu.State menu, List<Menu.Item> items) {
+    return new Item(
+        Kind.MENU,
+        text,
+        icon,
+        Button.Variant.GHOST,
+        false,
+        null,
+        null,
+        Objects.requireNonNull(menu, "menu"),
+        List.copyOf(items),
+        null,
+        null);
+  }
+
   /** A split button ({@link Button#split}): the main action and a menu of related ones. */
   public static Item split(
       Button.Variant variant,
@@ -201,7 +221,8 @@ public final class Toolbar {
    * own, a little apart from the items beside it; the tools stand lower by the surface's padding.
    * In the More menu, lines set them apart from the other items.
    *
-   * @param members icon buttons, buttons and toggles: no split button, spacer or group
+   * @param members icon buttons, buttons, toggles and menu buttons: no split button, spacer or
+   *     group
    * @throws IllegalArgumentException for no members or one that a group cannot hold
    */
   public static Item group(Item... members) {
@@ -209,8 +230,11 @@ public final class Toolbar {
       throw new IllegalArgumentException("a group holds at least one item");
     }
     for (Item member : members) {
-      if (member.kind != Kind.BUTTON && member.kind != Kind.TEXT && member.kind != Kind.TOGGLE) {
-        throw new IllegalArgumentException("a group holds buttons and toggles, not a "
+      if (member.kind != Kind.BUTTON
+          && member.kind != Kind.TEXT
+          && member.kind != Kind.TOGGLE
+          && member.kind != Kind.MENU) {
+        throw new IllegalArgumentException("a group holds buttons, toggles and menus, not a "
             + member.kind.name().toLowerCase(Locale.ROOT));
       }
     }
@@ -244,7 +268,7 @@ public final class Toolbar {
         flat.size(),
         i -> flat.get(i).kind == Kind.SPACER
             ? null // takes what is left, nothing when nothing is
-            : state.fitting.width(id(flat, i))
+            : state.fitting.width(id(flat, i), i)
                 + (opens(groups, i) ? 2 * theme.space().xs() + margins(theme, i) : 0));
     El bar = state.fitting.row(theme).role("toolbar").label(label);
     List<El> stops = new ArrayList<>();
@@ -256,7 +280,7 @@ public final class Toolbar {
         bar.child(el);
         continue;
       }
-      el.onResize(state.fitting.measure(id(flat, i)));
+      el.onResize(state.fitting.measure(id(flat, i), i));
       if (groups.get(i) < 0) {
         bar.child(el);
         continue;
@@ -321,10 +345,20 @@ public final class Toolbar {
         .fill(theme.surface().hover());
   }
 
-  /** The key of an item's width in the state: its label, or its kind and place. */
+  /**
+   * The key of an item's width in the state: its label, or its kind and place; apart from the More
+   * button's key, also for an item labeled "more", and from an earlier item with the same label.
+   */
   private static String id(List<Item> items, int i) {
     Item item = items.get(i);
-    return item.label != null ? item.label : item.kind + "-" + i;
+    if (item.label == null) {
+      return item.kind + "-" + i;
+    }
+    int same = 0;
+    for (int j = 0; j < i; j++) {
+      same += item.label.equals(items.get(j).label) ? 1 : 0;
+    }
+    return "label " + same + " " + item.label; // the count first: no label can make another's key
   }
 
   /** Builds an item; the elements Tab and the arrows reach go into {@code stops}. */
@@ -336,6 +370,10 @@ public final class Toolbar {
       case TEXT ->
         stop(stops, Button.button(item.variant, item.label, item.onPress, item.with(item.icon)));
       case TOGGLE -> stop(stops, Button.toggleIcon(item.icon, item.label, item.on, item.onToggle));
+      case MENU ->
+        stop(
+            stops,
+            Button.menu(item.variant, item.label, item.menu, item.items, item.with(item.icon)));
       case SPLIT -> {
         El split = Button.split(
             item.variant, item.label, item.onPress, item.menu, item.items, item.with(item.icon));
@@ -363,6 +401,17 @@ public final class Toolbar {
       case TOGGLE ->
         Menu.item(item.label, item.onToggle == null ? null : () -> item.onToggle.accept(!item.on))
             .checked(item.on);
+      case MENU -> {
+        item.menu.close(); // off the bar, its menu would else open again when it comes back
+        // as the menu button, its entry opens no menu when busy, off or with nothing to choose
+        Menu.Item button = Button.entry(item.label, item.icon, () -> {}, item.with(item.icon));
+        if (!button.isEnabled() || item.items.stream().noneMatch(Menu.Item::isEnabled)) {
+          yield Button.entry(item.label, item.icon, null, item.with(item.icon));
+        }
+        Menu.Item sub = Menu.submenu(item.label, item.items);
+        sub = item.icon != null ? sub.icon(item.icon) : sub;
+        yield button.dangerous() ? sub.danger() : sub;
+      }
       case SPLIT -> {
         item.menu.close(); // off the bar, its menu would else open again when it comes back
         if (item.with(item.icon).off()) { // as the split button, its entry opens no menu

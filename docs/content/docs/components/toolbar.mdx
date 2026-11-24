@@ -3,7 +3,7 @@ title: Toolbar
 description: Responsive action bar of buttons, toggles, split buttons, and groups that moves overflowing items into a More menu.
 ---
 
-`Toolbar.toolbar` arranges icon buttons, labeled buttons, toggles, split buttons, groups, and spacers in a single horizontal row. When the toolbar narrows, trailing items automatically move into a **More** overflow menu. For a simple card title bar with a few buttons, `Card.toolbar` ([Card](/docs/components/card)) is simpler.
+`Toolbar.toolbar` arranges icon buttons, labeled buttons, toggles, menu buttons, split buttons, groups, and spacers in a single horizontal row. When the toolbar narrows, trailing items automatically move into a **More** overflow menu. For a simple card title bar with a few buttons, `Card.toolbar` ([Card](/docs/components/card)) is simpler.
 
 Javadoc: [`Toolbar`](/api/com/rethinkj/ui/kit/Toolbar.html), [`Toolbar.Item`](/api/com/rethinkj/ui/kit/Toolbar.Item.html).
 
@@ -21,6 +21,7 @@ Store a `Toolbar.State` in your app state.
 | `Toolbar.button(icon, label, onPress)` | Icon button with tooltip |
 | `Toolbar.text([variant,] icon, text, onPress)` | Labeled button |
 | `Toolbar.toggle(icon, label, on, onToggle)` | Toggle button (appears as a checked item in the More menu) |
+| `Toolbar.menu(icon, text, menu, items)` | Ghost button that opens a dropdown menu (appears as a submenu in the More menu) |
 | `Toolbar.split(variant, icon, text, onPress, menu, items)` | Split button (appears as a submenu in the More menu) |
 | `Toolbar.group(items...)` | Visually grouped tools (separated by dividers in the More menu) |
 | `Toolbar.spacer()` | Flexible space pushing following items to the right |

@@ -40,6 +40,12 @@ public final class RefPills {
   /** Minimum WCAG contrast ratio for text and icons on a pill's background. */
   private static final double MIN_CONTRAST = 4.5;
 
+  /** Handler notified when the user secondary-presses a ref pill. */
+  @FunctionalInterface
+  interface RefPress {
+    void press(Ref ref, float x, float y);
+  }
+
   private RefPills() {}
 
   /**
@@ -55,15 +61,21 @@ public final class RefPills {
    *     pill
    */
   public static El pills(List<Ref> refs, int lane, int background, float nameWidth, int most) {
-    return pills(refs, lane, background, nameWidth, most, 0);
+    return pills(refs, lane, background, nameWidth, most, 0, null);
   }
 
   /**
    * Builds a horizontal row of pills, optionally dimmed by mixing colors opaquely towards {@code
-   * background} by {@code fading} (0 for full strength).
+   * background} by {@code fading} (0 for full strength), with an optional secondary-press handler.
    */
   static El pills(
-      List<Ref> refs, int lane, int background, float nameWidth, int most, float fading) {
+      List<Ref> refs,
+      int lane,
+      int background,
+      float nameWidth,
+      int most,
+      float fading,
+      RefPress onSecondaryPress) {
     Objects.requireNonNull(refs, "refs");
     if (!(nameWidth > 0 && Float.isFinite(nameWidth))) {
       throw new IllegalArgumentException("nameWidth must be positive and finite, was " + nameWidth);
@@ -80,12 +92,13 @@ public final class RefPills {
     }
     int shown = Math.min(items.size(), most);
     for (int i = 0; i < shown; i++) {
-      strip.child(pill(items.get(i), lane, background, nameWidth, fading, theme, texts));
+      strip.child(
+          pill(items.get(i), lane, background, nameWidth, fading, theme, texts, onSecondaryPress));
     }
     if (items.size() > most) {
       List<Pill> hidden = items.subList(most, items.size());
       String names = hidden.stream()
-          .flatMap(pill -> Stream.concat(Stream.of(pill.name()), pill.remotes().stream()))
+          .flatMap(pill -> Stream.concat(Stream.of(pill.ref().name()), pill.remotes().stream()))
           .collect(Collectors.joining(", "));
       String tip = texts.moreRefs(hidden.size(), names);
       El overflow =
@@ -115,7 +128,7 @@ public final class RefPills {
   }
 
   /** One pill to draw after ordering and folding synced remotes into their local branches. */
-  private record Pill(Ref.Kind kind, String name, boolean detached, List<String> remotes) {}
+  private record Pill(Ref ref, boolean detached, List<String> remotes) {}
 
   private static List<Pill> order(List<Ref> refs) {
     List<Ref> heads = new ArrayList<>();
@@ -136,22 +149,22 @@ public final class RefPills {
     for (Ref head : heads) {
       boolean detached = DETACHED.equals(head.name());
       List<String> synced = detached ? List.of() : takeRemotes(head, remotes, consumed);
-      pills.add(new Pill(Ref.Kind.HEAD, head.name(), detached, synced));
+      pills.add(new Pill(head, detached, synced));
     }
     for (Ref branch : branches) {
       if (isHeadBranch(branch, heads)) {
         continue;
       }
       List<String> synced = takeRemotes(branch, remotes, consumed);
-      pills.add(new Pill(Ref.Kind.BRANCH, branch.name(), false, synced));
+      pills.add(new Pill(branch, false, synced));
     }
     for (int i = 0; i < remotes.size(); i++) {
       if (!consumed[i]) {
-        pills.add(new Pill(Ref.Kind.REMOTE, remotes.get(i).name(), false, List.of()));
+        pills.add(new Pill(remotes.get(i), false, List.of()));
       }
     }
     for (Ref tag : tags) {
-      pills.add(new Pill(Ref.Kind.TAG, tag.name(), false, List.of()));
+      pills.add(new Pill(tag, false, List.of()));
     }
     return pills;
   }
@@ -199,7 +212,8 @@ public final class RefPills {
       float nameWidth,
       float fading,
       Theme theme,
-      DiagramTexts texts) {
+      DiagramTexts texts,
+      RefPress onSecondaryPress) {
     Theme.Badges badges = theme.badge();
     float height = badges.row();
     float iconSize = badges.text().size();
@@ -218,7 +232,7 @@ public final class RefPills {
         .gap(theme.space().xs())
         .padding(0, side);
 
-    int ink = switch (item.kind()) {
+    int ink = switch (item.ref().kind()) {
       case HEAD -> {
         // Of the theme's inks for a colored fill, the one that stands out most on the lane's color.
         int headInk = theme.text().onAccent();
@@ -275,7 +289,7 @@ public final class RefPills {
       }
     };
 
-    El text = El.text(item.name())
+    El text = El.text(item.ref().name())
         .font(badges.text().font().get())
         .fontSize(badges.text().size())
         .color(ink)
@@ -287,15 +301,19 @@ public final class RefPills {
     if (!item.remotes().isEmpty()) {
       pill.child(Icon.icon(Symbol.CLOUD, Icon.Variant.MUTED, iconSize).color(ink));
     }
+    if (onSecondaryPress != null) {
+      pill.onSecondaryPress((x, y) -> onSecondaryPress.press(item.ref(), x, y));
+    }
     return Tooltip.tooltip(pill, tip);
   }
 
   private static String label(Pill item, DiagramTexts texts) {
-    String base = switch (item.kind()) {
-      case HEAD -> item.detached() ? texts.detachedHead() : texts.headBranch(item.name());
-      case BRANCH -> texts.branch(item.name());
-      case REMOTE -> texts.remoteBranch(item.name());
-      case TAG -> texts.tag(item.name());
+    String name = item.ref().name();
+    String base = switch (item.ref().kind()) {
+      case HEAD -> item.detached() ? texts.detachedHead() : texts.headBranch(name);
+      case BRANCH -> texts.branch(name);
+      case REMOTE -> texts.remoteBranch(name);
+      case TAG -> texts.tag(name);
     };
     return item.remotes().isEmpty() ? base : texts.inSync(base, String.join(", ", item.remotes()));
   }

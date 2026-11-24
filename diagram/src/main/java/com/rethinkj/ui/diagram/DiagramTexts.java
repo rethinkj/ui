@@ -393,6 +393,26 @@ public interface DiagramTexts {
     return "renamed";
   }
 
+  /** The label of the branch scope toolbar in a git log's header. */
+  default String branchScope() {
+    return "Branch scope";
+  }
+
+  /** The scope choice showing commits across all branches. */
+  default String allBranches() {
+    return "All branches";
+  }
+
+  /** The scope choice showing commits of the checked-out branch. */
+  default String currentBranch() {
+    return "Current branch";
+  }
+
+  /** The toggle that restricts a git log to first-parent history. */
+  default String firstParent() {
+    return "First parent";
+  }
+
   /** A month's short name as shown in dates: {@code Nov}. */
   default String monthShort(Month month) {
     return switch (month) {

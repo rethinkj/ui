@@ -14,6 +14,7 @@ import com.rethinkj.ui.diagram.git.Ref;
 import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import java.time.Clock;
@@ -58,6 +59,93 @@ final class GitLogs {
     // reload commits and refs from the repository
   }
   // docs:end git-log
+
+  // docs:start git-log-menus
+  GitLog.Scope scope = GitLog.Scope.ALL;
+  boolean firstParent;
+
+  static El menus(GitLogs state) {
+    Theme theme = Theme.CURRENT.get();
+    return col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .child(gitLog(
+                state.log,
+                state.commits,
+                state.refs,
+                GitLog.options()
+                    .commitMenu(state::commitMenu)
+                    .rangeMenu(state::rangeMenu)
+                    .refMenu(state::refMenu)
+                    .scope(state.scope, state::selectScope)
+                    .firstParent(state.firstParent, state::toggleFirstParent)
+                    .status("1 ahead of origin/main"),
+                button(Button.Variant.SECONDARY, Symbol.ARROW_DOWNLOAD, "Fetch", state::fetch))
+            .grow(1));
+  }
+
+  List<Menu.Item> commitMenu(Commit commit) {
+    return List.of(
+        Menu.item("Cherry-pick", () -> cherryPick(commit)).icon(Symbol.BRANCH),
+        Menu.item("Create branch…", () -> createBranch(commit)).icon(Symbol.ADD),
+        Menu.item("Copy hash", () -> copyHash(commit)).icon(Symbol.COPY));
+  }
+
+  List<Menu.Item> rangeMenu(Commit newer, Commit older) {
+    return List.of(
+        Menu.item("Compare commits", () -> compare(newer, older)),
+        Menu.item("Squash range…", () -> squash(newer, older)));
+  }
+
+  List<Menu.Item> refMenu(Ref ref) {
+    return List.of(
+        Menu.item("Checkout " + ref.name(), () -> checkout(ref)),
+        Menu.item("Delete " + ref.name(), () -> deleteRef(ref)).danger());
+  }
+
+  void selectScope(GitLog.Scope nextScope) {
+    scope = nextScope;
+    // reload commits for the chosen branch scope
+  }
+
+  void toggleFirstParent(boolean enabled) {
+    firstParent = enabled;
+    // reload commits with or without --first-parent
+  }
+  // docs:end git-log-menus
+
+  /** What the sample's git would run, as an app would hand it to git. */
+  String lastCommand;
+
+  private void cherryPick(Commit commit) {
+    lastCommand = "git cherry-pick " + commit.id();
+  }
+
+  private void createBranch(Commit commit) {
+    lastCommand = "git branch <name> " + commit.id();
+  }
+
+  private void copyHash(Commit commit) {
+    lastCommand = "copy " + commit.id();
+  }
+
+  private void compare(Commit newer, Commit older) {
+    lastCommand = "git diff " + older.id() + " " + newer.id();
+  }
+
+  private void squash(Commit newer, Commit older) {
+    lastCommand = "git rebase -i " + older.id() + "^ # up to " + newer.id();
+  }
+
+  private void checkout(Ref ref) {
+    lastCommand = "git checkout " + ref.name();
+  }
+
+  private void deleteRef(Ref ref) {
+    lastCommand = "git branch -d " + ref.name();
+  }
 
   App<?> app;
   final DiffView.State diff = new DiffView.State();
