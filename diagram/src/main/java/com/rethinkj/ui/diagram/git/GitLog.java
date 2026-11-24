@@ -24,6 +24,7 @@ import com.rethinkj.ui.kit.Toolbar;
 import com.rethinkj.ui.kit.Tooltip;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -549,9 +550,7 @@ public final class GitLog {
     if (tools != null) {
       barList.add(tools);
     }
-    for (El action : actions) {
-      barList.add(action);
-    }
+    barList.addAll(Arrays.asList(actions));
     El header = Card.toolbar(texts.history(), null, barList.toArray(El[]::new));
 
     El columns =

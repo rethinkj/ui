@@ -116,19 +116,36 @@ final class GitLogs {
   }
   // docs:end git-log-menus
 
-  private void cherryPick(Commit commit) {}
+  /** What the sample's git would run, as an app would hand it to git. */
+  String lastCommand;
 
-  private void createBranch(Commit commit) {}
+  private void cherryPick(Commit commit) {
+    lastCommand = "git cherry-pick " + commit.id();
+  }
 
-  private void copyHash(Commit commit) {}
+  private void createBranch(Commit commit) {
+    lastCommand = "git branch <name> " + commit.id();
+  }
 
-  private void compare(Commit newer, Commit older) {}
+  private void copyHash(Commit commit) {
+    lastCommand = "copy " + commit.id();
+  }
 
-  private void squash(Commit newer, Commit older) {}
+  private void compare(Commit newer, Commit older) {
+    lastCommand = "git diff " + older.id() + " " + newer.id();
+  }
 
-  private void checkout(Ref ref) {}
+  private void squash(Commit newer, Commit older) {
+    lastCommand = "git rebase -i " + older.id() + "^ # up to " + newer.id();
+  }
 
-  private void deleteRef(Ref ref) {}
+  private void checkout(Ref ref) {
+    lastCommand = "git checkout " + ref.name();
+  }
+
+  private void deleteRef(Ref ref) {
+    lastCommand = "git branch -d " + ref.name();
+  }
 
   App<?> app;
   final DiffView.State diff = new DiffView.State();
