@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples.docs;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
@@ -16,6 +17,7 @@ import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.Chat;
 import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -920,6 +922,76 @@ final class Editors {
     El card = Card.card(body, sections).wFull();
     // docs:end markdown-fragment
     return Frame.of(card);
+  }
+
+  final Button.Copied questionCopied = new Button.Copied();
+  final Button.Copied answerCopied = new Button.Copied();
+  boolean queryToolOpen = true;
+  boolean checkToolOpen;
+  boolean indexToolOpen;
+  final MarkdownDocument chatReply = Markdown.parse("""
+      The `orders` table has no composite index on `status` and `created_at`, \
+      so PostgreSQL falls back to a sequential scan:
+
+      ```sql
+      CREATE INDEX orders_status_created ON orders (status, created_at);
+      ```""");
+
+  void toggleQueryTool() {
+    queryToolOpen = !queryToolOpen;
+  }
+
+  void toggleCheckTool() {
+    checkToolOpen = !checkToolOpen;
+  }
+
+  void toggleIndexTool() {
+    indexToolOpen = !indexToolOpen;
+  }
+
+  static El chat(Editors state) {
+    // docs:start chat
+    Clipboard clipboard = state.app.clipboard();
+    El question = Chat.user(
+        "Why did the orders query slow down?",
+        Chat.options().copy(clipboard).copied(state.questionCopied).time("14:31"));
+    El inspect = Chat.tool(
+        Symbol.CODE,
+        "Inspect EXPLAIN plan",
+        Chat.ToolState.DONE,
+        state.queryToolOpen,
+        state::toggleQueryTool,
+        Label.label(Label.Variant.MONO, "Seq Scan on orders  (cost=0.00..48210.00 rows=1840)"));
+    El check = Chat.tool(
+        Symbol.DATABASE,
+        "Check replica lag",
+        Chat.ToolState.FAILED,
+        state.checkToolOpen,
+        state::toggleCheckTool,
+        Label.label(Label.Variant.MUTED, "Replica connection timed out."));
+    El answer = Chat.agent(
+        Chat.options()
+            .copy(clipboard, Markdown.text(state.chatReply))
+            .copied(state.answerCopied)
+            .time("14:32"),
+        inspect,
+        check,
+        Markdown.fragment(
+            state.chatReply, Markdown.options().copy(clipboard).languages(Editors::highlighter)));
+    El followUp = Chat.agent(
+        Chat.tool(
+            Symbol.PLAY,
+            "Verify index size",
+            Chat.ToolState.RUNNING,
+            state.indexToolOpen,
+            state::toggleIndexTool,
+            Label.label(
+                Label.Variant.MONO,
+                "SELECT pg_size_pretty(pg_relation_size('orders_status_created'));")),
+        Chat.working());
+    El transcript = Card.card(question, answer, followUp).wFull();
+    // docs:end chat
+    return Frame.of(transcript);
   }
 
   // docs:start markdown-languages

@@ -544,6 +544,17 @@ class ThemeTest {
     for (int color : t.lanes().colors()) {
       check(failures, "lane " + Colors.toHex(color), color, laneBg, 3);
     }
+    // Chat user bubbles: primary, muted and selected text on the bubble fill.
+    int bubble = t.chat().bubble();
+    Map<String, Integer> bubbleBg = Map.of("chat bubble", bubble);
+    check(failures, "chat bubble text", t.text().primary(), bubbleBg, 4.5);
+    check(failures, "chat bubble muted text", t.text().muted(), bubbleBg, 4.5);
+    check(
+        failures,
+        "chat bubble selected text",
+        t.text().primary(),
+        Map.of("chat bubble selected", over(bubble, t.accent().selection())),
+        4.5);
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 
@@ -755,6 +766,8 @@ class ThemeTest {
     assertEquals(Theme.Diff.LIGHT, Theme.LIGHT.diff());
     assertEquals(Theme.Lanes.DARK, Theme.DARK.lanes());
     assertEquals(Theme.Lanes.LIGHT, Theme.LIGHT.lanes());
+    assertEquals(Theme.Chat.DARK, Theme.DARK.chat());
+    assertEquals(Theme.Chat.LIGHT, Theme.LIGHT.chat());
   }
 
   /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */

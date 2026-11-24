@@ -121,6 +121,7 @@ class DocsExamplesTest {
       Map.entry("diff-view-side-by-side", List.of("view")),
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
+      Map.entry("chat", List.of("view")),
       Map.entry("image", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
@@ -269,6 +270,7 @@ class DocsExamplesTest {
             200));
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "markdown-fragment", Editors::markdownFragment, 520, 196);
+    editors(all, "chat", Editors::chat, 580, 416);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
     all.put(
