@@ -189,9 +189,20 @@ class GitLogTest {
 
   private static final class Harness {
     final GitLog.State log = new GitLog.State(CLOCK);
-    final List<Commit> commits = sampleCommits();
+    final List<Commit> commits;
     final List<Ref> refs = sampleRefs();
     final List<String> opened = new ArrayList<>();
+    Runnable onMore;
+    int total = -1;
+    Runnable onAction = () -> {};
+
+    Harness() {
+      this(sampleCommits());
+    }
+
+    Harness(List<Commit> commits) {
+      this.commits = new ArrayList<>(commits);
+    }
 
     El view() {
       Theme theme = Theme.CURRENT.get();
@@ -206,8 +217,14 @@ class GitLogTest {
                   refs,
                   GitLog.options()
                       .onOpen(commit -> opened.add(commit.id()))
+                      .onMore(onMore)
+                      .total(total)
                       .status("1 ahead of origin/main"),
-                  Button.button(Button.Variant.SECONDARY, Symbol.ARROW_DOWNLOAD, "Fetch", () -> {}))
+                  Button.button(
+                      Button.Variant.SECONDARY,
+                      Symbol.ARROW_DOWNLOAD,
+                      "Fetch",
+                      () -> onAction.run()))
               .grow(1));
     }
   }
@@ -421,5 +438,166 @@ class GitLogTest {
     ZonedDateTime tipTime = NOW.minus(Duration.ofMinutes(300)).atZone(ZoneOffset.UTC);
     assertEquals("Nov 24, 2026, 09:30", en.fullDate(tipTime));
     assertEquals("24. Nov. 2026, 09:30", de.fullDate(tipTime));
+
+    assertEquals("12 of 24", en.commitsOf(12, 24));
+    assertEquals("12 von 24", de.commitsOf(12, 24));
+    assertEquals("Loading older commits…", en.loadingCommits());
+    assertEquals("Ältere Commits werden geladen…", de.loadingCommits());
+  }
+
+  @Test
+  void appendingTwoPagesMatchesOneBuildAndKeepsSelectionAndScroll() throws IOException {
+    assumeText();
+    List<Commit> all = sampleCommits();
+
+    Harness whole = new Harness(all);
+    Path wholeOut = out.resolve("whole");
+    Script.run("""
+        size 960 360 scale 2
+        frame
+        press #row-3
+        scroll #rows row 4
+        frame
+        snap view
+        """, app(whole), wholeOut);
+
+    Harness paged = new Harness(all.subList(0, 12));
+    paged.total = all.size();
+    paged.onAction = () -> paged.commits.addAll(all.subList(12, all.size()));
+    Path pagedOut = out.resolve("paged");
+    Script.run("""
+        size 960 360 scale 2
+        frame
+        press #row-3
+        scroll #rows row 4
+        frame
+        snap before
+        press label="Fetch"
+        frame
+        focus #rows
+        advance 1
+        frame
+        snap after
+        """, app(paged), pagedOut);
+
+    assertEquals(all.size(), paged.log.graph().size());
+    for (int i = 0; i < all.size(); i++) {
+      assertEquals(whole.log.graph().column(i), paged.log.graph().column(i), "column at " + i);
+      assertEquals(whole.log.graph().color(i), paged.log.graph().color(i), "color at " + i);
+      assertEquals(whole.log.graph().text(i), paged.log.graph().text(i), "graph text at " + i);
+    }
+
+    assertEquals(3, paged.log.cursor());
+    assertEquals(3, paged.log.anchor());
+
+    String before = Files.readString(pagedOut.resolve("before.tree.txt"));
+    String after = Files.readString(pagedOut.resolve("after.tree.txt"));
+    String expected = Files.readString(wholeOut.resolve("view.tree.txt"));
+    assertTrue(before.contains("label=\"12 of 24\""), before);
+    assertTrue(after.contains("label=\"24 commits\""), after);
+    assertEquals(
+        rowLine(before, "#row-4 ").replace("pos=5/12", "pos=5/24"),
+        rowLine(after, "#row-4 "),
+        "scroll position should stay put when a page is appended");
+    assertEquals(expected, after);
+  }
+
+  @Test
+  void scrollingToEndAsksForMoreOncePerPageAndKeepsLoadingRowUnselectable() throws IOException {
+    assumeText();
+    List<Commit> all = sampleCommits();
+    Harness harness = new Harness(all.subList(0, 12));
+    harness.total = all.size();
+    List<Integer> askedAt = new ArrayList<>();
+    harness.onMore = () -> askedAt.add(harness.commits.size());
+
+    // While scrolled at the top with rows left below the viewport, onMore is not called yet.
+    Script.run("""
+        size 960 360 scale 2
+        frame
+        frame
+        """, app(harness), out.resolve("top"));
+    assertEquals(List.of(), askedAt);
+
+    int[] page = {0};
+    harness.onAction = () -> {
+      if (page[0] == 0) {
+        assertEquals(List.of(12), askedAt);
+        harness.commits.addAll(all.subList(12, 18));
+        page[0] = 1;
+      } else {
+        assertEquals(List.of(12, 18), askedAt);
+        harness.commits.addAll(all.subList(18, all.size()));
+        harness.onMore = null;
+      }
+    };
+
+    List<Path> files = Script.run("""
+        size 960 360 scale 2
+        frame
+        scroll #rows row 12
+        frame
+        frame
+        snap loading
+        wheel #rows 0 200
+        frame
+        wheel #rows 0 -64
+        frame
+        wheel #rows 0 200
+        frame
+        frame
+        press #row-11
+        frame
+        key ArrowDown
+        key PageDown
+        key End
+        frame
+        press #loading
+        frame
+        snap still-loading
+        press label="Fetch"
+        frame
+        frame
+        scroll #rows row 18
+        frame
+        frame
+        wheel #rows 0 200
+        frame
+        frame
+        snap second-page
+        press label="Fetch"
+        frame
+        frame
+        snap complete
+        """, app(harness), out);
+
+    Golden.assertSnaps("git-log-dark-", files, "loading");
+
+    String loadingTree = Files.readString(out.resolve("loading.tree.txt"));
+    assertTrue(loadingTree.contains("label=\"12 of 24\""), loadingTree);
+    assertTrue(
+        loadingTree.contains("#loading role=row label=\"Loading older commits…\""), loadingTree);
+
+    // Neither the keys nor a press move the selection onto the loading row.
+    assertEquals(11, harness.log.cursor());
+    assertEquals(11, harness.log.anchor());
+
+    // Asked once for the first page's end and once again after appending the second page.
+    assertEquals(List.of(12, 18), askedAt);
+
+    String secondPage = Files.readString(out.resolve("second-page.tree.txt"));
+    assertTrue(secondPage.contains("label=\"18 of 24\""), secondPage);
+    assertTrue(secondPage.contains("#loading role=row"), secondPage);
+
+    String complete = Files.readString(out.resolve("complete.tree.txt"));
+    assertTrue(complete.contains("label=\"24 commits\""), complete);
+    assertFalse(complete.contains("#loading"), complete);
+  }
+
+  private static String rowLine(String tree, String prefix) {
+    return tree.lines()
+        .filter(line -> line.contains(prefix))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError(prefix + " not found in:\n" + tree));
   }
 }

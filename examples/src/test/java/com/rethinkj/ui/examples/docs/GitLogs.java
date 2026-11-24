@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 /** The example of the GitLog page: a multi-branch commit history with selection and a range. */
@@ -204,6 +205,36 @@ final class GitLogs {
             0,
             7));
   }
+
+  // docs:start git-log-paging
+  static final class Paged {
+    static final int PAGE = 200;
+
+    final GitLog.State log = new GitLog.State();
+    final List<Commit> history; // stands in for the repository, which git reads page by page
+    final List<Commit> commits = new ArrayList<>();
+    final List<Ref> refs = List.of();
+
+    Paged(List<Commit> history) {
+      this.history = history;
+    }
+
+    static El view(Paged state) {
+      boolean more = state.commits.size() < state.history.size();
+      return gitLog(
+              state.log,
+              state.commits,
+              state.refs,
+              GitLog.options().onMore(more ? state::loadMore : null).total(state.history.size()))
+          .grow(1);
+    }
+
+    void loadMore() {
+      int end = Math.min(commits.size() + PAGE, history.size());
+      commits.addAll(history.subList(commits.size(), end));
+    }
+  }
+  // docs:end git-log-paging
 
   private static Commit commit(
       String id, List<String> parents, String author, long minutesAgo, String subject) {
