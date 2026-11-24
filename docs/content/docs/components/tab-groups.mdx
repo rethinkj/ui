@@ -34,7 +34,7 @@ Example headless script moving a tab to a new window via its context menu:
 
 Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable them in every window (including torn-off windows).
 
-- Each tab's context menu adds **Split right** (`Ctrl+\`) and **Split down**, disabled for a group's only tab or whenever both halves would be smaller than `Theme.Sizes.minTabGroup`. On keyboard layouts where `\` requires AltGr (such as German), use the tab context menu or drag instead of `Ctrl+\`.
+- Each tab's context menu adds **Split right** (`Ctrl+\`) and **Split down**, disabled for a group's only tab or whenever both halves would be smaller than `Theme.Sizes.minTabGroup`. On keyboard layouts where `\` requires AltGr (such as German), use the tab's context menu instead of `Ctrl+\`.
 - Split groups render with `Split.cards` starting at a 0.5 share; double-clicking or pressing Enter on a divider resets it to half.
 - When a group in a split becomes empty, it leaves its frame and its sibling takes the split's place (handing keyboard focus to that sibling if the closed group had focus). A frame with one group renders identically to a plain `Tabs` component; in a split frame, each group's root is keyed `#group-<id>` from a counter that never repeats.
 - `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the full accent line under its active tab; inactive groups show `Theme.Accent.edgeMuted`.
@@ -54,7 +54,7 @@ You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `d
 
 ## Focus and state across splits and windows
 
-`TabGroups` remembers keyboard focus per tab automatically. Moving a group into or out of a split re-parents it in the element tree, just as moving a tab to another window does — so identity-bound state (caret, undo history, scroll offsets, remembered focus) does not survive a split, unsplit, or window move unless you store `FieldState` or `ScrollState` inside each tab's own model object (see [Several windows](/docs/concepts/windows) and the [Workbench](/docs/examples/workbench) example).
+`TabGroups` remembers keyboard focus per tab automatically. Moving a group into or out of a split re-parents it in the element tree, just as moving a tab to another window does — so identity-bound state (caret, undo history, scroll offsets, remembered focus) does not survive a split, unsplit, or window move. Keep a field's caret and undo history in a `FieldState` and a scroll offset in a `ScrollState` inside each tab's own model object; the remembered focus starts anew (see [Several windows](/docs/concepts/windows) and the [Workbench](/docs/examples/workbench) example).
 
 ## User interaction
 

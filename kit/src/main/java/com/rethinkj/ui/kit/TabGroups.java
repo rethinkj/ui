@@ -112,13 +112,21 @@ public final class TabGroups<T> {
     Windows.Handle open(Frame<T> frame, Window.Options options);
   }
 
-  private sealed interface Node<T> permits Leaf, Branch {}
+  private sealed interface Node<T> permits Leaf, Branch {
+    /** Adds the groups of this node to {@code into}, top left first. */
+    void collect(List<Group<T>> into);
+  }
 
   private static final class Leaf<T> implements Node<T> {
     final Group<T> group;
 
     Leaf(Group<T> group) {
       this.group = group;
+    }
+
+    @Override
+    public void collect(List<Group<T>> into) {
+      into.add(group);
     }
   }
 
@@ -132,6 +140,12 @@ public final class TabGroups<T> {
       this.direction = direction;
       this.first = first;
       this.second = second;
+    }
+
+    @Override
+    public void collect(List<Group<T>> into) {
+      first.collect(into);
+      second.collect(into);
     }
   }
 
@@ -161,7 +175,7 @@ public final class TabGroups<T> {
     /** Every group in this frame, top left first. */
     public List<Group<T>> groups() {
       List<Group<T>> list = new ArrayList<>();
-      collect(root, list);
+      root.collect(list);
       return Collections.unmodifiableList(list);
     }
 
@@ -199,15 +213,6 @@ public final class TabGroups<T> {
       List<Node<T>> sibling = new ArrayList<>(1);
       root = remove(root, group, sibling);
       return firstGroup(sibling.getFirst());
-    }
-
-    private static <T> void collect(Node<T> node, List<Group<T>> into) {
-      if (node instanceof Leaf<T> leaf) {
-        into.add(leaf.group);
-      } else if (node instanceof Branch<T> branch) {
-        collect(branch.first, into);
-        collect(branch.second, into);
-      }
     }
 
     private static <T> boolean contains(Node<T> node, Group<T> group) {
@@ -577,12 +582,23 @@ public final class TabGroups<T> {
         .drag(dragging)
         .id(group)
         .active(!split || group.frame.active == group)
-        .onAdd(onAdd == null ? null : () -> onAdd.accept(group))
+        .onAdd(
+            onAdd == null
+                ? null
+                : () -> {
+                  if (hasGroup(group)) { // not a bar of a view built before its group left
+                    onAdd.accept(group);
+                  }
+                })
         .overflow(group.overflow)
         .onMove((from, to) -> move(group, from, to))
         .onTearOff(this::torn)
         .tearOffAtStart(alone)
-        .onDock((from, i, at) -> dock(cast(from), i, group, at))
+        .onDock((from, i, at) -> {
+          if (hasGroup(cast(from)) && hasGroup(group)) { // as onAdd
+            dock(cast(from), i, group, at);
+          }
+        })
         .contextMenu(group.menu, items);
     if (group.frame.focusGroup == group && group.frame.focusToken != null) {
       options.focusBar(group.frame.focusToken);
@@ -623,9 +639,12 @@ public final class TabGroups<T> {
     if (!splits || group.tabs.size() < 2) {
       return false;
     }
-    float available = direction == Split.Direction.ROW ? group.width : group.height;
-    return !Float.isNaN(available)
-        && available >= 2 * theme.size().minTabGroup() + theme.space().m();
+    boolean row = direction == Split.Direction.ROW;
+    float along = row ? group.width : group.height;
+    float across = row ? group.height : group.width;
+    float min = theme.size().minTabGroup();
+    // NaN until laid out compares false: no split before the group has a size.
+    return along >= 2 * min + theme.space().m() && across >= min;
   }
 
   private void splitAt(Group<T> group, T target, Side side) {
@@ -649,6 +668,7 @@ public final class TabGroups<T> {
 
   /** Adds a tab to a group, before the tab at {@code at}, and makes it the active one. */
   public void add(Group<T> group, int at, T tab) {
+    requireOpen(group);
     T d = dragged();
     insert(group, at, tab);
     follow(d);
@@ -686,6 +706,8 @@ public final class TabGroups<T> {
    * this leaves it empty; a torn-off frame's only group closes its window.
    */
   public void dock(Group<T> from, int index, Group<T> to, int at) {
+    requireOpen(from);
+    requireOpen(to);
     T d = dragged();
     if (from == to) {
       from.active = Tabs.move(from.tabs, from.active, index, at > index ? at - 1 : at);
@@ -718,13 +740,10 @@ public final class TabGroups<T> {
    * active, focuses the new group's bar, and returns the new group.
    */
   public Group<T> split(Group<T> from, int index, Group<T> beside, Side side) {
-    Objects.requireNonNull(from, "from");
-    Objects.requireNonNull(beside, "beside");
+    requireOpen(from);
+    requireOpen(beside);
     Objects.requireNonNull(side, "side");
     Objects.checkIndex(index, from.tabs.size());
-    if (!hasGroup(from) || !hasGroup(beside)) {
-      throw new IllegalArgumentException("group is not open");
-    }
     if (from == beside && from.tabs.size() == 1) {
       throw new IllegalArgumentException("cannot split a group's only tab beside itself");
     }
@@ -803,6 +822,13 @@ public final class TabGroups<T> {
     return frames.contains(group.frame) && group.frame.contains(group);
   }
 
+  /** A group that left its frame, or whose window closed, takes no tabs. */
+  private void requireOpen(Group<T> group) {
+    if (!hasGroup(Objects.requireNonNull(group, "group"))) {
+      throw new IllegalArgumentException("The group is no longer open: " + group);
+    }
+  }
+
   /** The tab being dragged, or null. */
   private T dragged() {
     for (Group<T> g : groups()) {
@@ -874,7 +900,7 @@ public final class TabGroups<T> {
         }
         if (hadFocus) {
           requestFocus(replacement);
-        } else {
+        } else if (frame.focusGroup == group) {
           frame.focusGroup = null;
           frame.focusToken = null;
         }
