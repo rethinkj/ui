@@ -151,6 +151,15 @@ class CardTest {
     float[] card = rect(line(narrow, "#card"));
     float[] last = rect(line(narrow, "label=\"Last page\""));
     assertTrue(last[0] + last[2] <= card[0] + card[2], narrow);
+
+    // Where the 160 px minimum plus the fixed controls no longer fit, start yields below 160 so
+    // the controls still stay inside the card.
+    String tighter = run(280, null, minStart);
+    float tighterStart = rect(line(tighter, START))[2];
+    assertTrue(tighterStart > 0 && tighterStart < 160, tighter);
+    float[] tighterCard = rect(line(tighter, "#card"));
+    float[] tighterLast = rect(line(tighter, "label=\"Last page\""));
+    assertTrue(tighterLast[0] + tighterLast[2] <= tighterCard[0] + tighterCard[2], tighter);
   }
 
   private String layout(int width, Supplier<El> toolbar) throws IOException {

@@ -474,8 +474,11 @@ final class Flexbox {
   }
 
   private void constants(float knownWidth, float knownHeight) {
-    minM = main(minWidth, minHeight);
-    minC = cross(minWidth, minHeight);
+    // A yielding minimum takes the smaller size its parent gave it (Style.minYields).
+    float minW = s.minYields ? min(minWidth, in.knownWidth()) : minWidth;
+    float minH = s.minYields ? min(minHeight, in.knownHeight()) : minHeight;
+    minM = main(minW, minH);
+    minC = cross(minW, minH);
     maxM = main(maxWidth, maxHeight);
     maxC = cross(maxWidth, maxHeight);
 
@@ -845,6 +848,26 @@ final class Flexbox {
             item.frozen = item.violation < 0;
           } else {
             item.frozen = true;
+          }
+        }
+      }
+    }
+
+    // Not in CSS: Style.minYields lets a minimum give way to what still overflows.
+    if (shrinking && Float.isFinite(innerM)) {
+      float usedM = totalGap;
+      for (int i = line.start; i < line.end; i++) {
+        usedM += items.get(i).outerTargetM;
+      }
+      float overflow = usedM - innerM;
+      for (int i = line.start; i < line.end && overflow > 0; i++) {
+        Item item = items.get(i);
+        if (item.s.minYields && item.shrink > 0) {
+          float cut = Math.min(overflow, item.targetM - item.edgesM);
+          if (cut > 0) {
+            item.targetM -= cut;
+            item.outerTargetM -= cut;
+            overflow -= cut;
           }
         }
       }

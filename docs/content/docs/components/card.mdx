@@ -38,7 +38,7 @@ Javadoc: [`Card`](/api/com/rethinkj/ui/kit/Card.html).
 
 `null` children are ignored, so conditional expressions like `changed ? callout(...) : null` work cleanly.
 
-If a card is too narrow for its footer, `start` shrinks first, down to a minimum width the app gives it, such as `start.minSize(160, 0)`, or else to nothing; a text there is shortened to one line with an ellipsis. Next, text items at the end are shortened with an ellipsis down to any minimum width set on them, while buttons and other controls at the end keep their size and stay inside the card. If a text item at the end has `shrink(0)`, it keeps its size. If the card is narrower than the parts that keep their size, plus the footer's padding and gaps, those parts run past its edge.
+If a card is too narrow for its footer, `start` shrinks first, down to a minimum width the app gives it, such as `start.minSize(160, 0)`, or else to nothing; a text there is shortened to one line with an ellipsis. Next, text items at the end are shortened with an ellipsis down to any minimum width set on them, while buttons and other controls at the end keep their size and stay inside the card; a text item at the end with `shrink(0)` keeps its size too. If the footer still does not fit, `start` yields below its minimum width (down to nothing) before anything overflows. Only if the card is narrower than what keeps its size at the end, plus the footer's padding and gaps, do those parts run past its edge.
 
 ## In a tree dump
 

@@ -141,4 +141,13 @@ public final class Style {
    * {@link El#follow}.
    */
   public String follow;
+
+  /**
+   * Not in CSS: when true, the element's minimum size along its parent's main axis gives way where
+   * the line would otherwise overflow. After flexible lengths are resolved, if the items plus gaps
+   * still exceed the container's inner main size, a yielding item that shrinks ({@link #shrink}
+   * greater than 0) is shrunk below its minimum by the overflow, down to no less than its padding
+   * and border; false, the default, holds the minimum as CSS does.
+   */
+  public boolean minYields;
 }

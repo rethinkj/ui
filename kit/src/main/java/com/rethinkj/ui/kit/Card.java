@@ -206,11 +206,12 @@ public final class Card {
    * <p>Where the card is too narrow for it all, {@code start} gives way first, down to any minimum
    * width the app gave it or to nothing (a text is shortened to one line with an {@link
    * El#ellipsis ellipsis}). Then the texts at the end are shortened to one line with an ellipsis,
-   * in proportion to their widths, while the other parts at the end, such as buttons, keep their
-   * size and stay inside the card. A text at the end that the app gives {@code shrink(0)} keeps
-   * its size too, and one with a minimum width is shortened only down to it. Where the card is
-   * narrower than the parts that keep their size, with the footer's padding and gaps, they still
-   * run past its edge.
+   * in proportion to their widths, down to any minimum width set on them, while the other parts at
+   * the end, such as buttons, keep their size and stay inside the card; a text at the end that the
+   * app gives {@code shrink(0)} keeps its size too. If the line still does not fit, {@code start}
+   * yields below its minimum width (down to nothing) before anything overflows. Only where the
+   * card is narrower than what still keeps its size at the end, with the footer's padding and
+   * gaps, do those parts run past its edge.
    *
    * @param start at the left; null for none
    * @param end at the right, in the order shown
@@ -232,6 +233,7 @@ public final class Card {
         start.style().minWidth = Len.ZERO;
       }
       start.style().minHeight = Len.ZERO;
+      start.style().minYields = true;
       if (isStatusText(start)) {
         start.ellipsis().maxLines(1);
       }

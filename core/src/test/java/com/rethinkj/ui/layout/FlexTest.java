@@ -302,4 +302,32 @@ class FlexTest {
     assertEquals(40, third.x());
     assertEquals(-20, fourth.x());
   }
+
+  @Test
+  void aYieldingMinimumGivesWayBeforeTheLineOverflows() {
+    El yielding = col().size(200, 10).minSize(120, 0).padding(0, 10).child(el().h(10));
+    yielding.style().minYields = true;
+    El other = el().size(100, 10).minSize(0, 0);
+    El fixed = el().size(100, 10).shrink(0);
+    El line = row().size(260, 10).gap(10).children(yielding, other, fixed);
+
+    // With room for the minimum and the fixed sibling, the minimum holds while the sibling shrinks.
+    Flex.layout(line, 260, 10);
+    assertEquals(120, yielding.width());
+    assertEquals(20, other.width());
+    assertEquals(260, fixed.x() + fixed.width());
+
+    // Where the minimum plus the fixed sibling would overflow, the yielding item shrinks below it.
+    line.w(180);
+    Flex.layout(line, 180, 10);
+    assertEquals(60, yielding.width());
+    assertEquals(0, other.width());
+    assertEquals(180, fixed.x() + fixed.width());
+
+    // It stops at its padding and border, and only then does the fixed sibling overflow.
+    line.w(110);
+    Flex.layout(line, 110, 10);
+    assertEquals(20, yielding.width());
+    assertEquals(140, fixed.x() + fixed.width());
+  }
 }

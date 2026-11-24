@@ -1,0 +1,1 @@
+- Fixed: a minimum width set on `Card.footer`'s `start` element now yields below that minimum (down to nothing) after the end texts have shortened, instead of pushing controls at the end past the card's edge. Added `Style.minYields` to let a flex item's minimum main size give way where the line would otherwise overflow.
