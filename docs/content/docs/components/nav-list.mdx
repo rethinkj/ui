@@ -22,10 +22,24 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 | --- | --- |
 | `navList(entries, selected, onSelect)` | List of `NavList.Entry` items and headings (`selected` index includes headings) |
 | `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
-| `NavList.item([icon,] label)` | Navigation item with optional `.count(text)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
-| `NavList.heading(label)` | Non-selectable section heading |
+| `NavList.item([icon,] label)` | Navigation item with optional `.detail(text)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
+| `NavList.heading(label)` | Non-selectable section heading with optional `.count(text)` and `.open(open, onToggle)` |
 
 Inside a card, wrap the list with `Card.inset(list)`.
+
+## Second line, trailing elements, and collapsible groups
+
+Items can carry a quiet second line (`.detail(text)`), a trailing element after the count (`.trailing(element)`, such as a time the app formats and a status icon), and action buttons at the far right (`.actions(buttons...)`) that show only while the item is selected or under the pointer; pressing one does not select the item. Headings can show a quiet count (`.count(text)`) and open and close the group below them (`.open(open, onToggle)`): the app keeps which groups are open and leaves a closed group's items out of the entries.
+
+All rows share one height, so that the virtual form stays virtual: two lines high when any item has a detail, or in the virtual form when its first item has one.
+
+```java snippet="nav-list-sessions-types"
+```
+
+```java snippet="nav-list-sessions"
+```
+
+<Shot src="examples/docs/navigation-sessions/view-{theme}" alt="Sessions grouped by project: the open project api with two sessions, each with a branch under its title and an age at the right, the selected one with a pin button, and the closed project docs with its count 2" />
 
 ## Values instead of indexes
 
@@ -42,11 +56,11 @@ Use `navList(values, selected, value -> item, onSelect)` (or with an extra `valu
 
 ## Keyboard
 
-One Tab stop. **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items.
+The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items. Collapsible headings are focusable buttons; **Enter** or **Space** while focused runs `onToggle`.
 
 ## In a tree dump
 
-`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set):
+`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any detail text, trailing element, and action buttons as children. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

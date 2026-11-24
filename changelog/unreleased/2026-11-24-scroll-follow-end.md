@@ -1,0 +1,1 @@
+- `ScrollState.followEnd()`, `atEnd()`, and `scrollToEnd()` keep plain scroll areas and virtual lists (`El.rows`, including `RowHeights`) at their bottom end as rows are appended or the last row grows, stop following when scrolled away, and resume once back at the end.

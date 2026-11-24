@@ -37,7 +37,9 @@ import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.TitleBar;
 import com.rethinkj.ui.kit.Toolbar;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** The examples of the pages about cards, structure, navigation and status. */
 final class Layouts {
@@ -366,9 +368,42 @@ final class Layouts {
   // docs:end nav-list-types
 
   Area area = Area.VIEWS;
+  // docs:start nav-list-sessions-types
+  record Session(String title, String place, String age) {}
+
+  record Project(String name, List<Session> sessions) {}
+  // docs:end nav-list-sessions-types
+
+  final List<Project> projects = List.of(
+      new Project(
+          "api",
+          List.of(
+              new Session("Fix login redirect", "feat/auth", "2m"),
+              new Session("Rate limits", "main", "7h"))),
+      new Project(
+          "docs",
+          List.of(
+              new Session("Getting started", "main", "1d"),
+              new Session("Theme page", "main", "3d"))));
+  final Set<String> closed = new HashSet<>(Set.of("docs"));
+  Session session = projects.getFirst().sessions().getFirst();
 
   void area(Area value) {
     area = value;
+  }
+
+  void select(Session value) {
+    session = value;
+  }
+
+  void toggle(String project) {
+    if (!closed.remove(project)) {
+      closed.add(project);
+    }
+  }
+
+  void pin(Session value) {
+    said = "pin " + value.title();
   }
 
   static El typedNavigation(Layouts state) {
@@ -382,6 +417,34 @@ final class Layouts {
         .label("Sections");
     // docs:end nav-list-typed
     return Frame.of(Card.flush(Card.inset(sections)).w(220).grow(1));
+  }
+
+  static El sessions(Layouts state) {
+    // docs:start nav-list-sessions
+    List<NavList.Entry> entries = new ArrayList<>();
+    List<Session> rows = new ArrayList<>(); // the session of each row, null for a heading
+    int selected = -1;
+    for (Project project : state.projects) {
+      boolean open = !state.closed.contains(project.name());
+      entries.add(NavList.heading(project.name())
+          .count(String.valueOf(project.sessions().size()))
+          .open(open, () -> state.toggle(project.name())));
+      rows.add(null);
+      for (Session session : open ? project.sessions() : List.<Session>of()) {
+        if (session == state.session) {
+          selected = entries.size();
+        }
+        entries.add(NavList.item(session.title())
+            .detail(session.place())
+            .trailing(Label.label(Label.Variant.SMALL, session.age()))
+            .actions(Button.icon(GHOST, Symbol.PIN, "Pin", () -> state.pin(session))));
+        rows.add(session);
+      }
+    }
+    El list = NavList.navList(entries, selected, index -> state.select(rows.get(index)))
+        .label("Sessions");
+    // docs:end nav-list-sessions
+    return Frame.of(Card.flush(Card.inset(list)).w(280).grow(1));
   }
 
   static El split(Layouts state) {
