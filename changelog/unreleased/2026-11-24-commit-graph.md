@@ -1,0 +1,1 @@
+- The diagram module's new `CommitGraph` lays out a commit history in lanes, as a Git log shows it: commits go in newest first, as `Commit` records and in pages, and each row tells the commit's column and color and the lines above and below it, or prints itself as a lane string such as `│ ● ╮`.
