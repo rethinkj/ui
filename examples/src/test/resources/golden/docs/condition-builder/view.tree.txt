@@ -1,0 +1,139 @@
+el 0,0 640x216
+  el role=group label="Conditions" 12,12 616x192
+    el 12,12 616x24
+      el 12,12 301x24
+        el #join role=radiogroup label="Join" 12,12 102x24
+          el #thumb 15,15 52x18
+          el #choice-0 role=radio label="AND" 15,15 52x18 checked
+            text "AND" 27,16 28x16
+          el #choice-1 role=radio label="OR" 69,15 42x18 checked=false
+            text "OR" 81,16 18x16
+        el #add-condition role=button label="Add condition" 118,12 106x24
+          text label="add" "\u{F108}" 131,16 16x16
+          text "Condition" 151,16 60x16
+        el #add-group role=button label="Add group" 228,12 85x24
+          text label="add" "\u{F108}" 241,16 16x16
+          text "Group" 261,16 39x16
+    el 12,40 616x164
+      el 20,40 2x164
+      el 30,40 598x164
+        el #row-0 30,40 598x24
+          el 30,40 16x24
+            el #enabled-0 role=checkbox label="Enable condition" 26,42 24x20 checked
+              el 30,44 16x16
+                text "✓" 33,44 11x16
+          el 50,40 550x24
+            el #field-0 role=combobox label="Status" 50,40 140x24 expanded=false
+              el #lead 59,44 16x16
+                text label="tag" "\u{EC70}" 59,44 16x16
+              text "Status" 79,44 82x16
+              text label="chevron_down" "\u{F2A2}" 165,44 16x16
+            el #operator-0 role=combobox label="=" 194,40 120x24 expanded=false
+              text "=" 203,44 82x16
+              text label="chevron_down" "\u{F2A2}" 289,44 16x16
+            el #value-0 role=combobox label="active" 318,40 282x24 expanded=false
+              text "active" 327,44 244x16
+              text label="chevron_down" "\u{F2A2}" 575,44 16x16
+          el #remove-0 role=button label="Remove condition" 604,40 24x24
+            text label="dismiss" "\u{F368}" 608,44 16x16
+        el #clause-1 role=group label="Condition group" 30,68 598x108
+          el 30,68 598x24
+            el 30,68 16x24
+              el #enabled-1 role=checkbox label="Enable group" 26,70 24x20 checked
+                el 30,72 16x16
+                  text "✓" 33,72 11x16
+            el 50,68 301x24
+              el #join-1 role=radiogroup label="Join" 50,68 102x24
+                el #thumb 107,71 42x18
+                el #choice-0 role=radio label="AND" 53,71 52x18 checked=false
+                  text "AND" 65,72 28x16
+                el #choice-1 role=radio label="OR" 107,71 42x18 checked
+                  text "OR" 119,72 18x16
+              el #add-condition-1 role=button label="Add condition" 156,68 106x24
+                text label="add" "\u{F108}" 169,72 16x16
+                text "Condition" 189,72 60x16
+              el #add-group-1 role=button label="Add group" 266,68 85x24
+                text label="add" "\u{F108}" 279,72 16x16
+                text "Group" 299,72 39x16
+            el 355,80 245x0
+            el #remove-1 role=button label="Remove group" 604,68 24x24
+              text label="dismiss" "\u{F368}" 608,72 16x16
+          el 30,96 598x80
+            el 38,96 2x80
+            el 48,96 580x80
+              el #row-1-0 48,96 580x24
+                el 48,96 16x24
+                  el #enabled-1-0 role=checkbox label="Enable condition" 44,98 24x20 checked
+                    el 48,100 16x16
+                      text "✓" 51,100 11x16
+                el 68,96 532x24
+                  el #field-1-0 role=combobox label="Age" 68,96 140x24 expanded=false
+                    el #lead 77,100 16x16
+                      text label="number_symbol" "\u{F57C}" 77,100 16x16
+                    text "Age" 97,100 82x16
+                    text label="chevron_down" "\u{F2A2}" 183,100 16x16
+                  el #operator-1-0 role=combobox label=">" 212,96 120x24 expanded=false
+                    text ">" 221,100 82x16
+                    text label="chevron_down" "\u{F2A2}" 307,100 16x16
+                  text #value-1-0 role=textbox label="Value" "30" 336,96 264x24
+                el #remove-1-0 role=button label="Remove condition" 604,96 24x24
+                  text label="dismiss" "\u{F368}" 608,100 16x16
+              el #row-1-1 48,124 580x24
+                el 48,124 16x24
+                  el #enabled-1-1 role=checkbox label="Enable condition" 44,126 24x20 checked
+                    el 48,128 16x16
+                      text "✓" 51,128 11x16
+                el 68,124 532x24
+                  el #field-1-1 role=combobox label="Country" 68,124 140x24 expanded=false
+                    el #lead 77,128 16x16
+                      text label="tag" "\u{EC70}" 77,128 16x16
+                    text "Country" 97,128 82x16
+                    text label="chevron_down" "\u{F2A2}" 183,128 16x16
+                  el #operator-1-1 role=combobox label="in" 212,124 120x24 expanded=false
+                    text "in" 221,128 82x16
+                    text label="chevron_down" "\u{F2A2}" 307,128 16x16
+                  el #values-1-1 role=combobox label="Value" 336,124 264x24 expanded=false value="DE, AT"
+                    el #token-DE label="DE" 339,127 40x18
+                      text "DE" 345,129 16x15
+                      el #remove role=button label="Remove DE" 363,129 14x14
+                        text label="dismiss" "\u{F367}" 364,130 12x12
+                    el #token-AT label="AT" 381,127 39x18
+                      text "AT" 387,129 15x15
+                      el #remove role=button label="Remove AT" 404,129 14x14
+                        text label="dismiss" "\u{F367}" 405,130 12x12
+                    text #input role=textbox "" 422,127 175x18
+                el #remove-1-1 role=button label="Remove condition" 604,124 24x24
+                  text label="dismiss" "\u{F368}" 608,128 16x16
+              el #row-1-2 48,152 580x24
+                el 48,152 16x24
+                  el #enabled-1-2 role=checkbox label="Enable condition" 44,154 24x20 checked=false
+                    el 48,156 16x16
+                el 68,152 532x24
+                  el #field-1-2 role=combobox label="Email" 68,152 140x24 expanded=false
+                    el #lead 77,156 16x16
+                      text label="text_case_title" "\u{ECEC}" 77,156 16x16
+                    text "Email" 97,156 82x16
+                    text label="chevron_down" "\u{F2A2}" 183,156 16x16
+                  el #operator-1-2 role=combobox label="contains" 212,152 120x24 expanded=false
+                    text "contains" 221,156 82x16
+                    text label="chevron_down" "\u{F2A2}" 307,156 16x16
+                  text #value-1-2 role=textbox label="Value" "@test." 336,152 264x24
+                el #remove-1-2 role=button label="Remove condition" 604,152 24x24
+                  text label="dismiss" "\u{F368}" 608,156 16x16
+        el #row-2 30,180 598x24
+          el 30,180 16x24
+            el #enabled-2 role=checkbox label="Enable condition" 26,182 24x20 checked
+              el 30,184 16x16
+                text "✓" 33,184 11x16
+          el 50,180 550x24
+            el #field-2 role=combobox label="Deleted at" 50,180 140x24 expanded=false
+              el #lead 59,184 16x16
+                text label="calendar_clock" "\u{E243}" 59,184 16x16
+              text "Deleted at" 79,184 82x16
+              text label="chevron_down" "\u{F2A2}" 165,184 16x16
+            el #operator-2 role=combobox label="is null" 194,180 120x24 expanded=false
+              text "is null" 203,184 82x16
+              text label="chevron_down" "\u{F2A2}" 289,184 16x16
+            el 318,180 282x0
+          el #remove-2 role=button label="Remove condition" 604,180 24x24
+            text label="dismiss" "\u{F368}" 608,184 16x16

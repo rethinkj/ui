@@ -17,6 +17,8 @@ import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.ConditionBuilder;
+import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DatePicker;
 import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Form;
@@ -66,6 +68,8 @@ final class Controls {
   final ComboBox.State productBox = new ComboBox.State();
   List<String> schemas = List.of("public", "sales");
   final MultiSelect.State schemasState = new MultiSelect.State();
+  ConditionBuilder.Clause conditions = defaultConditions();
+  final ConditionBuilder.State conditionsState = new ConditionBuilder.State();
   String chosenTable = "orders";
   final ComboBox.State chosenTableBox = new ComboBox.State();
   final ComboBox.State clearableTableBox = new ComboBox.State();
@@ -463,6 +467,64 @@ final class Controls {
         .w(240);
     // docs:end multi-select
     return Frame.of(schemas);
+  }
+
+  void conditions(ConditionBuilder.Clause value) {
+    conditions = value;
+  }
+
+  private static ConditionBuilder.Clause defaultConditions() {
+    return new ConditionBuilder.Clause(
+        ConditionBuilder.Join.AND,
+        List.of(
+            new ConditionBuilder.Comparison("status", "eq", List.of("active"), true),
+            new ConditionBuilder.Clause(
+                ConditionBuilder.Join.OR,
+                List.of(
+                    new ConditionBuilder.Comparison("age", "gt", List.of("30"), true),
+                    new ConditionBuilder.Comparison("country", "in", List.of("DE", "AT"), true),
+                    new ConditionBuilder.Comparison("email", "contains", List.of("@test."), false)),
+                true),
+            new ConditionBuilder.Comparison("deleted_at", "is_null", List.of(), true)),
+        true);
+  }
+
+  static El conditionBuilder(Controls state) {
+    // docs:start condition-builder
+    var eq = new ConditionBuilder.Operator("eq", "=", ConditionBuilder.Arity.ONE);
+    var gt = new ConditionBuilder.Operator("gt", ">", ConditionBuilder.Arity.ONE);
+    var between = new ConditionBuilder.Operator("between", "between", ConditionBuilder.Arity.TWO);
+    var in = new ConditionBuilder.Operator("in", "in", ConditionBuilder.Arity.MANY);
+    var contains =
+        new ConditionBuilder.Operator("contains", "contains", ConditionBuilder.Arity.ONE);
+    var isNull = new ConditionBuilder.Operator("is_null", "is null", ConditionBuilder.Arity.NONE);
+    List<ConditionBuilder.Field> fields = List.of(
+        new ConditionBuilder.Field(
+            "status",
+            "Status",
+            DataGrid.DataType.ENUM,
+            List.of("active", "paused", "archived"),
+            List.of(eq, in, isNull)),
+        new ConditionBuilder.Field(
+            "age", "Age", DataGrid.DataType.INTEGER, List.of(), List.of(eq, gt, between, isNull)),
+        new ConditionBuilder.Field(
+            "country",
+            "Country",
+            DataGrid.DataType.ENUM,
+            List.of("DE", "AT", "CH", "NL"),
+            List.of(eq, in, isNull)),
+        new ConditionBuilder.Field(
+            "email", "Email", DataGrid.DataType.TEXT, List.of(), List.of(contains, eq, isNull)),
+        new ConditionBuilder.Field(
+            "deleted_at",
+            "Deleted at",
+            DataGrid.DataType.DATE_TIME,
+            List.of(),
+            List.of(isNull, eq, between)));
+    El builder = ConditionBuilder.conditionBuilder(
+        fields, state.conditions, state.conditionsState, state::conditions);
+    // docs:end condition-builder
+    return Frame.of(builder);
   }
 
   void selectTable(String name) {

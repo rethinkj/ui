@@ -854,4 +854,89 @@ public interface Texts {
   default String expectedBoolean() {
     return "Expected true or false";
   }
+
+  // Condition builder
+
+  /** The root group label of a {@link ConditionBuilder}. */
+  default String conditions() {
+    return "Conditions";
+  }
+
+  /** The group label of a nested clause in a {@link ConditionBuilder}. */
+  default String conditionGroup() {
+    return "Condition group";
+  }
+
+  /** Shown when a {@link ConditionBuilder} has no conditions yet. */
+  default String noConditions() {
+    return "No conditions";
+  }
+
+  /** Text of the button that adds a condition row. */
+  default String condition() {
+    return "Condition";
+  }
+
+  /** Text of the button that adds a nested group. */
+  default String group() {
+    return "Group";
+  }
+
+  /** Accessible label of the button that adds a condition row. */
+  default String addCondition() {
+    return "Add condition";
+  }
+
+  /** Accessible label of the button that adds a nested group. */
+  default String addGroup() {
+    return "Add group";
+  }
+
+  /** Label and tooltip of the button that removes a condition row. */
+  default String removeCondition() {
+    return "Remove condition";
+  }
+
+  /** Label and tooltip of the button that removes a nested group. */
+  default String removeGroup() {
+    return "Remove group";
+  }
+
+  /** Label of the checkbox that switches a condition row on or off. */
+  default String enableCondition() {
+    return "Enable condition";
+  }
+
+  /** Label of the checkbox that switches a nested group on or off. */
+  default String enableGroup() {
+    return "Enable group";
+  }
+
+  /** Fallback label of a condition's field selector when no field is chosen. */
+  default String field() {
+    return "Field";
+  }
+
+  /** Fallback label of a condition's operator selector when no operator is chosen. */
+  default String operator() {
+    return "Operator";
+  }
+
+  /** Label of a clause's AND/OR switch. */
+  default String conditionJoin() {
+    return "Join";
+  }
+
+  /** Label of a {@link ConditionBuilder.Join} choice in a clause's switch. */
+  default String conditionJoin(ConditionBuilder.Join join) {
+    return switch (join) {
+      case AND -> "AND";
+      case OR -> "OR";
+    };
+  }
+
+  /** Separator shown between the start and end inputs of a two-value condition. */
+  default String rangeSeparator() {
+    return "–";
+  }
 }

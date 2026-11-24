@@ -902,4 +902,87 @@ public class GermanTexts implements Texts {
   public String expectedBoolean() {
     return "Erwartet wird true oder false";
   }
+
+  @Override
+  public String conditions() {
+    return "Bedingungen";
+  }
+
+  @Override
+  public String conditionGroup() {
+    return "Bedingungsgruppe";
+  }
+
+  @Override
+  public String noConditions() {
+    return "Keine Bedingungen";
+  }
+
+  @Override
+  public String condition() {
+    return "Bedingung";
+  }
+
+  @Override
+  public String group() {
+    return "Gruppe";
+  }
+
+  @Override
+  public String addCondition() {
+    return "Bedingung hinzufügen";
+  }
+
+  @Override
+  public String addGroup() {
+    return "Gruppe hinzufügen";
+  }
+
+  @Override
+  public String removeCondition() {
+    return "Bedingung entfernen";
+  }
+
+  @Override
+  public String removeGroup() {
+    return "Gruppe entfernen";
+  }
+
+  @Override
+  public String enableCondition() {
+    return "Bedingung aktivieren";
+  }
+
+  @Override
+  public String enableGroup() {
+    return "Gruppe aktivieren";
+  }
+
+  @Override
+  public String field() {
+    return "Feld";
+  }
+
+  @Override
+  public String operator() {
+    return "Operator";
+  }
+
+  @Override
+  public String conditionJoin() {
+    return "Verknüpfung";
+  }
+
+  @Override
+  public String conditionJoin(ConditionBuilder.Join join) {
+    return switch (join) {
+      case AND -> "UND";
+      case OR -> "ODER";
+    };
+  }
+
+  @Override
+  public String rangeSeparator() {
+    return "–";
+  }
 }

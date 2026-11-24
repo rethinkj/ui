@@ -67,6 +67,7 @@ class DocsExamplesTest {
       Map.entry("choices", List.of("view")),
       Map.entry("date-picker", List.of("open", "datetime")),
       Map.entry("multi-select", List.of("open")),
+      Map.entry("condition-builder", List.of("view")),
       Map.entry("combo-entries", List.of("open")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("command-palette", List.of("tables")),
@@ -144,6 +145,7 @@ class DocsExamplesTest {
     controls(all, "hue-button", Controls::huePickerButton, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
     controls(all, "multi-select", Controls::multiSelect, 268, 168);
+    controls(all, "condition-builder", Controls::conditionBuilder, 640, 216);
     controls(all, "combo-entries", Controls::comboEntries, 460, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);

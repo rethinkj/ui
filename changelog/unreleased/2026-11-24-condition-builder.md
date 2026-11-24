@@ -1,0 +1,1 @@
+- `ConditionBuilder` edits a tree of conditions: fields, operators and text values in AND/OR clauses that nest, with a value input that follows each field's type. It is controlled, hands the app a new tree on every edit, and `ConditionBuilder.applicable(...)` returns the tree without switched-off, incomplete and invalid conditions.

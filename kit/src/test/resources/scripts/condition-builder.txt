@@ -1,0 +1,6 @@
+# A two-level condition builder (ConditionBuilderTest):
+# status = active AND (age > 30 OR country in [DE, AT] OR email contains "@test." switched off)
+# AND deleted_at is null.
+size 640 216 scale 2
+frame
+snap view

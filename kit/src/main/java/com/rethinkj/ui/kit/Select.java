@@ -83,11 +83,30 @@ public final class Select {
    */
   public static El select(
       List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
+    return select(choices, null, selected, state, onSelect);
+  }
+
+  /**
+   * A select whose choices may each carry a leading icon, shown both in the closed box and in the
+   * menu (with the check mark at the right of the current choice).
+   */
+  static El select(
+      List<String> choices,
+      List<? extends Icon> icons,
+      int selected,
+      Menu.State state,
+      IntConsumer onSelect) {
     Theme theme = Theme.CURRENT.get();
     boolean enabled = onSelect != null;
-    String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
+    boolean valid = selected >= 0 && selected < choices.size();
+    String text = valid ? choices.get(selected) : "";
+    Icon currentIcon =
+        valid && icons != null && selected < icons.size() ? icons.get(selected) : null;
+    El lead = currentIcon == null
+        ? null
+        : Icon.icon(currentIcon, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Button.Look look = look(theme, enabled);
-    El select = box(theme, look, text, null, enabled).expanded(state.isOpen());
+    El select = box(theme, look, text, lead, enabled).expanded(state.isOpen());
     if (!enabled) {
       return select;
     }
@@ -98,7 +117,13 @@ public final class Select {
     List<Menu.Item> items = new ArrayList<>();
     for (int i = 0; i < choices.size(); i++) {
       int choice = i;
-      items.add(Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected));
+      Menu.Item item =
+          Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected);
+      Icon icon = icons != null && i < icons.size() ? icons.get(i) : null;
+      if (icon != null) {
+        item = item.leading(() -> Icon.icon(icon, Icon.Variant.MUTED));
+      }
+      items.add(item);
     }
     // As a button: a press leaves the focus where it is, and its menu gives it back there.
     Button.enable(theme, look, select, open);

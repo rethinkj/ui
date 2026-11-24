@@ -1,0 +1,62 @@
+---
+title: ConditionBuilder
+description: Controlled editor for nested AND/OR conditions, with a value input by field type.
+---
+
+`ConditionBuilder.conditionBuilder` edits a tree of conditions made of fields, operators, and values organized into nested AND/OR clauses. It filters nothing and knows no query language; your app supplies the fields and operators, keeps the root `Clause` and a `ConditionBuilder.State`, and turns `ConditionBuilder.applicable` into its own query.
+
+Javadoc: [`ConditionBuilder`](/api/com/rethinkj/ui/kit/ConditionBuilder.html), [`ConditionBuilder.State`](/api/com/rethinkj/ui/kit/ConditionBuilder.State.html), [`ConditionBuilder.Clause`](/api/com/rethinkj/ui/kit/ConditionBuilder.Clause.html), [`ConditionBuilder.Field`](/api/com/rethinkj/ui/kit/ConditionBuilder.Field.html).
+
+<Shot src="examples/docs/condition-builder/view-{theme}" alt="A two-level condition builder with AND and nested OR clauses and a switched-off row" />
+
+## Example
+
+```java snippet="condition-builder"
+```
+
+Store the root `ConditionBuilder.Clause` and a `ConditionBuilder.State` in your app state. Every edit—including every keystroke in a value field—passes a new immutable root `Clause` to `onChange`; passing `null` disables the builder. Values stay as text (dates and times in ISO 8601), so half-typed values remain in the tree.
+
+| Method | Description |
+| --- | --- |
+| `conditionBuilder(fields, root, state, onChange)` | Controlled editor for a tree of conditions |
+| `applicable(root, fields)` | Returns a copy without switched-off, incomplete, or invalid conditions and without empty clauses |
+
+## Model
+
+All model types live inside `ConditionBuilder`:
+
+- `Field(id, label, type, choices, operators)` describes a filterable field using `DataGrid.DataType` (which supplies the field's icon and how its values are checked).
+- `Operator(id, label, arity)` describes an operator with `Arity.NONE`, `ONE`, `TWO`, or `MANY`.
+- `Condition` is a sealed interface permitted by `Comparison(field, operator, values, enabled)` and `Clause(join, conditions, enabled)` with `Join.AND` or `Join.OR`.
+
+Switched-off rows and clauses are drawn muted while staying editable. `applicable(root, fields)` strips switched-off, incomplete, and invalid rows as well as switched-off or empty clauses (also under `OR`).
+
+## Value inputs
+
+The value input follows the operator's `Arity` and the field's `DataType` and `choices`:
+
+| Arity | Control |
+| --- | --- |
+| `NONE` | No value input (for example `is null`) |
+| `ONE` | [Select](/docs/components/select) for fields with `choices` or `BOOLEAN`; formatted [TextField](/docs/components/text-field) (`Format.BIG_INTEGER` / `Format.DECIMAL`) for numbers; plain `TextField` (ISO 8601 checked for `DATE`, `TIME`, `DATE_TIME`) otherwise |
+| `TWO` | Two single-value inputs separated by `–` ("from – to") |
+| `MANY` | [MultiSelect](/docs/components/multi-select) over the field's `choices` |
+
+Changing a row's field keeps the operator if the new field offers it (else switches to its first operator) and keeps the values if the field type and operator arity stay the same and the new field offers them (else clears them). Invalid non-empty values are marked with `TextField.invalid` and their format's error message; incomplete rows are not marked.
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| Tab / Shift+Tab | Move through controls in reading order |
+| Add condition / Add group | Focus the new row's field selector |
+| Remove row or group | Focus the remove button of the next item, or the clause's Add condition button |
+
+Each embedded control (`Segmented`, `Checkbox`, `Select`, `TextField`, `MultiSelect`, `Button`) keeps its own keyboard shortcuts.
+
+## In a tree dump
+
+The root and each nested clause are `role=group` with `role=radiogroup` for the AND/OR switch, `role=combobox` for field, operator, choice, and multi-select controls, `role=textbox` for text and number inputs, `role=checkbox` for enable toggles, and `role=button` for add and remove actions.
+
+```text file="examples/src/test/resources/golden/docs/condition-builder/view.tree.txt" start="role=group" count="18"
+```
