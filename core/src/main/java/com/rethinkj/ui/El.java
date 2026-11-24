@@ -3696,7 +3696,7 @@ public final class El {
    * input, {@link App#scrollTo}, {@link App#scrollToRow} or a {@link ScrollState} moves it, nor
    * when the input moved nothing, as a wheel at the end. As a {@code DataGrid}'s rows are an area
    * inside the element {@code dataGrid} returns, a handler on that element hears them. Like {@link
-   * #onPress}, it runs in {@link App#frame}, once per input that moved an area, the innermost
+   * #onPress}, it runs in {@link App#frame}, after the input that moved an area, the innermost
    * handler first, and the view is built again from what it changes.
    *
    * @param handler the handler, or null for none

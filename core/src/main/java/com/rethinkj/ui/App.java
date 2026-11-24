@@ -1303,6 +1303,7 @@ public final class App<S> {
   public void keyDown(Key key, Runnable untaken) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      keyScroll = true; // also for what its handlers ask, as App.focus, and the field it wakes
       hover.keyDown(key);
       rowGoals.clear();
       if (edits(key)) {
@@ -1318,7 +1319,6 @@ public final class App<S> {
           || fieldWaits();
       Object before = focus.id();
       keyUntaken = false;
-      keyScroll = true; // also for what its handlers ask, as App.focus
       anyKeyDown(key);
       boolean took = keyDownAt(key);
       if (keyUntaken && untaken != null) {
@@ -2204,7 +2204,8 @@ public final class App<S> {
   private void wake() {
     if (focus.element() == null && focus.waits()) {
       Animator.InRow in = animator.inRow(focus.id());
-      in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row()));
+      keyRevealed(
+          in.listId(), in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row())));
       fillRows();
       placeEditors(false, false); // the parts of its fields, where the focus may be
       refocus();
@@ -2235,7 +2236,9 @@ public final class App<S> {
         ? was.row()
         : list.rowInView(step < 0);
     if (!list.hasRow(row)) {
-      scrolled |= list.scrollTo(list.scrollX(), list.offsetShowing(row));
+      boolean moved = list.scrollTo(list.scrollX(), list.offsetShowing(row));
+      scrolled |= moved;
+      keyRevealed(in.listId(), moved);
       fillRows();
       placeEditors(false, false); // the parts of its fields, which Tab may enter
       if (editFirst(true, false, toldSizes)) { // before Tab selects in the field: a tree anew
@@ -3952,6 +3955,13 @@ public final class App<S> {
       }
     }
     return told;
+  }
+
+  /** Records an area that a key's focus move scrolled, for {@link #tellRevealedScrolls}. */
+  private void keyRevealed(Object area, boolean moved) {
+    if (moved && (keyScroll || focusByKey)) {
+      revealedScrolls.add(area);
+    }
   }
 
   /** Runs the {@link El#onUserScroll} handlers of {@code area} and around it, innermost first. */
