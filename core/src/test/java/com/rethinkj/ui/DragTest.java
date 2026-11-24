@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.motion.Spring;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,12 +37,16 @@ class DragTest {
    * presses and drags. 300 by 100.
    */
   private static App<Bar> bar() {
+    return bar(null);
+  }
+
+  private static App<Bar> bar(Spring motion) {
     App<Bar> app = new App<>(new Bar(), b -> {
       b.views++;
       float start = b.width;
       El root = row().wFull().hFull().fill(GRAY).onPress(() -> b.log.add("root"));
       if (b.shown) {
-        root.child(el().key("bar")
+        El bar = el().key("bar")
             .size(b.width, 20)
             .fill(GRAY)
             .child(el().key("handle")
@@ -54,7 +59,11 @@ class DragTest {
                 .onDrag(d -> {
                   b.log.add(d.phase() + " " + d.dx() + "," + d.dy());
                   b.width = d.phase() == Drag.Phase.CANCEL ? start : start + d.dx();
-                })));
+                }));
+        if (motion != null) {
+          bar.motion(motion);
+        }
+        root.child(bar);
       }
       return root;
     });
@@ -133,6 +142,26 @@ class DragTest {
     app.frame();
     assertEquals(List.of("START 35.0,0.0", "CANCEL 55.0,0.0"), bar.log, "nothing after that");
     assertEquals(100, bar.width);
+  }
+
+  @Test
+  void aDragIsCancelledWhenAnAncestorStartsExiting() {
+    App<Bar> app = bar(Spring.SNAP);
+    Bar bar = app.state();
+    app.pointerDown(95, 10);
+    app.pointerMove(130, 10);
+    app.frame();
+    bar.shown = false;
+    app.resize(300, 100, 1); // rebuilds without the bar, which starts fading out
+    app.frame();
+    assertTrue(find(app, "bar").isExiting());
+    app.pointerMove(150, 10);
+    app.pointerMove(170, 10);
+    app.pointerUp(170, 10);
+    app.frame();
+    assertEquals(List.of("START 35.0,0.0", "CANCEL 55.0,0.0"), bar.log, "nothing after that");
+    assertEquals(100, bar.width);
+    assertTrue(find(app, "bar").isExiting(), "still fading out");
   }
 
   @Test

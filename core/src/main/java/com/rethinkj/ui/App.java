@@ -1122,10 +1122,10 @@ public final class App<S> {
     if (d.over) {
       return false;
     }
-    El el = animator.element(d.id);
+    El el = animator.liveElement(d.id);
     // A drag that carries a payload goes on without its element: what moves is the payload, as a
     // tab torn out of its bar.
-    boolean left = el == null || el.isExiting();
+    boolean left = el == null;
     boolean gone = left && d.payload == null;
     d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
     double[] at = left ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
@@ -4365,13 +4365,7 @@ public final class App<S> {
     if (in != null && !in.list().hasRow(in.row())) {
       return rowsBuilt || in.row() >= in.list().rowCount();
     }
-    for (Object at : Animator.lineage(id)) {
-      El el = animator.element(at);
-      if (el == null || el.isExiting()) {
-        return true;
-      }
-    }
-    return false;
+    return animator.liveElement(id) == null;
   }
 
   /** @param inRows whether {@code el} is in a row of a virtual list */
@@ -5126,7 +5120,7 @@ public final class App<S> {
    */
   private List<El> pointed() {
     Object held = held();
-    El el = held == null ? null : animator.element(held);
+    El el = held == null ? null : animator.liveElement(held);
     List<El> path = new ArrayList<>();
     if (el != null && pathTo(root, el, path)) {
       return fromOverlay(path);
