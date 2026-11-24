@@ -220,7 +220,7 @@ final class GitLogFind {
       List<Ref> refs,
       float rowHeight,
       DiagramTexts texts) {
-    Set<String> loaded = new HashSet<>(commits.size() * 2);
+    Set<String> loaded = HashSet.newHashSet(commits.size());
     for (Commit commit : commits) {
       loaded.add(commit.id());
     }

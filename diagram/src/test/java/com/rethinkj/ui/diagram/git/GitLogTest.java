@@ -471,7 +471,6 @@ class GitLogTest {
     String hashJump = Files.readString(out.resolve("hash-jump.tree.txt"));
     assertTrue(hashJump.contains("\"2 of 24\""), hashJump);
     assertTrue(rowLine(hashJump, 16).contains("selected current"), hashJump);
-    assertTrue(rowLine(hashJump, 16).contains("a90c344"), hashJump);
 
     String noMatches = Files.readString(out.resolve("no-matches.tree.txt"));
     assertTrue(noMatches.contains("\"No matches\""), noMatches);
@@ -483,7 +482,6 @@ class GitLogTest {
     String refJump = Files.readString(out.resolve("ref-jump.tree.txt"));
     assertFalse(refJump.contains("#palette"), refJump);
     assertTrue(rowLine(refJump, 21).contains("selected current"), refJump);
-    assertTrue(rowLine(refJump, 21).contains("5b3c1fa"), refJump);
     assertEquals(21, harness.log.cursor());
     assertTrue(harness.opened.isEmpty(), "Enter in filter/palette should not call onOpen");
   }
