@@ -316,6 +316,7 @@ class TabGroupsTest {
     assertEquals(List.of("a"), asked);
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(d), "nothing closed yet");
     assertFalse(tree("s").contains("#add"), "no + without onAdd");
+    assertFalse(tree("s").contains("#overflow"), "4 short tabs fit without overflow");
     d.groups.close(d.groups.main(), 0); // the user agreed
     assertEquals(List.of("a"), d.closed);
 
@@ -469,5 +470,44 @@ class TabGroupsTest {
     Windows.Place place =
         docs.app.windows().place(docs.app, window.x() - main.x() + 20, window.y() - main.y() + 17);
     assertSame(window, place.window(), window.app().tree().dump());
+  }
+
+  @Test
+  void anOverflowingGroupShowsItsOwnOverflowMenu() throws IOException {
+    List<String> titles = new ArrayList<>();
+    for (int i = 0; i < 15; i++) {
+      titles.add("tab-" + i);
+    }
+    class Many {
+      App<Many> app;
+      final TabGroups<String> groups = new TabGroups<>(titles, this::open);
+
+      Windows.Handle open(Group<String> group, Window.Options options) {
+        return app.windows()
+            .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
+      }
+
+      El view(Group<String> group) {
+        return col()
+            .wFull()
+            .hFull()
+            .child(groups.tabs(group, Tab::new, s -> null).grow(1));
+      }
+    }
+    Many many = new Many();
+    many.app = new App<>(many, s -> s.view(s.groups.main()));
+    Script.run("""
+        size 400 200
+        frame
+        press #overflow
+        frame
+        advance 1
+        frame
+        wheel #menu 0 1000
+        frame
+        press #item-12
+        frame""", many.app, out);
+    assertEquals(12, many.groups.main().active());
+    assertTrue(find(many.app.tree(), "tablist").scrollX() > 0);
   }
 }

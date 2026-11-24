@@ -86,6 +86,7 @@ el 0,0 1000x600
                 text "orders" 354,49 40x16
                 el #close-1 role=button label="Close orders" 398,49 16x16
                   text label="dismiss" "\u{F368}" 398,49 16x16
+            el #room 422,57 26x0
           el #panel role=tabpanel label="orders" 277,74 714x488
             el #content-1 277,74 714x488
               el 277,74 714x488

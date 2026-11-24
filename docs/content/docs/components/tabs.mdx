@@ -7,7 +7,7 @@ description: Tab bar over active tab content in card style or compact underline 
 
 For tabs that tear off into separate windows, use [TabGroups](/docs/components/tab-groups). For a compact 2–3 option toggle, use [Segmented](/docs/components/segmented).
 
-Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/rethinkj/ui/kit/Tabs.Tab.html), [`Tabs.Options`](/api/com/rethinkj/ui/kit/Tabs.Options.html).
+Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/rethinkj/ui/kit/Tabs.Tab.html), [`Tabs.Options`](/api/com/rethinkj/ui/kit/Tabs.Options.html), [`Tabs.Overflow`](/api/com/rethinkj/ui/kit/Tabs.Overflow.html).
 
 <Shot src="examples/docs/tabs/view-{theme}" alt="A card with the tabs orders, customers marked as changed, and query 1, followed by a new-tab button, orders active with its close button" />
 
@@ -42,11 +42,14 @@ For nested tabs inside a card or pane (such as Result / Messages below a query),
 | Option | Description |
 | --- | --- |
 | `onAdd(state::addTab)` | Shows a `+` button after the last tab (pinned at the bar's end on overflow, and shown in an empty bar) and binds Ctrl+T |
+| `overflow(state.overflow)` | Shows an overflow button at the bar's end while tabs do not fit, opening a dropdown of all tabs |
 | `onMove((from, to) -> …)` | Enables tab reordering (`Tabs.move(list, active, from, to)` helper updates your list and returns the new active index) |
 | `drag(Tabs.Dragging)`, `onTearOff(...)`, `id(...)`, `onDock(...)` | Low-level drag-and-drop and cross-bar docking (handled automatically by [TabGroups](/docs/components/tab-groups)) |
 | `contextMenu(menuState, items)` | Right-click / Menu-key context menu on tabs |
 | `variant(Tabs.Variant.LINE)` | Compact underline style instead of default `CARD` |
 | `switchKeys(false)` | Lets Ctrl+Tab / Ctrl+PageUp/Down bubble to an outer `Tabs` bar when nesting tabs |
+
+To list all tabs when a bar overflows, keep one `Tabs.Overflow` instance per bar in your state and pass it to `Tabs.options().overflow(state.overflow)`. While the tabs do not fit, a button at the bar's end opens a dropdown listing every tab in bar order with its icon and the active tab checked; choosing a tab selects it and scrolls it into view, including when it is already active and scrolled off-screen.
 
 ## Keyboard
 
@@ -63,7 +66,7 @@ Give each tab's content a unique `.key(...)` so focus is remembered per tab when
 
 ## In a tree dump
 
-`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), new-tab button as `role=button` (`#add`, `label="New tab"`), active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
+`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), new-tab button as `role=button` (`#add`, `label="New tab"`), overflow button as `role=button` (`#overflow`, `label="All tabs"`) while the tabs overflow and its empty room `#room` otherwise, active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

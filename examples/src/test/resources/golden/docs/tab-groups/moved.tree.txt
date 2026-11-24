@@ -8,6 +8,7 @@ el 0,0 420x260
           text "Groceries" 39,17 61x16
           el #close-0 role=button label="Close Groceries" 104,17 16x16
             text label="dismiss" "\u{F368}" 104,17 16x16
+      el #room 128,25 26x0
     el #panel role=tabpanel label="Groceries" 9,42 402x209
       el #content-0 9,42 402x209
         el 9,42 402x209

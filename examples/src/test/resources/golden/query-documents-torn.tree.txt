@@ -28,6 +28,7 @@ el 0,0 480x300
             text "Query" 39,41 38x16
             el #close-0 role=button label="Close Query" 81,41 16x16
               text label="dismiss" "\u{F368}" 81,41 16x16
+        el #room 105,49 26x0
       el #panel role=tabpanel label="Query" 9,66 462x225
         el #content-1 9,66 462x225
           el 9,66 462x225

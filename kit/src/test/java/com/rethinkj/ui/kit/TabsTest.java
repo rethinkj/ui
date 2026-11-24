@@ -490,6 +490,112 @@ class TabsTest {
     assertEquals(List.of("tab-1"), state.titles);
   }
 
+  @Test
+  void overflowListsAllTabsAndRevealsTheChosenOne() throws IOException {
+    class State {
+      final List<String> titles = new java.util.ArrayList<>();
+      int active;
+      int selects;
+      final Tabs.Overflow overflow = new Tabs.Overflow();
+
+      State(int count) {
+        for (int i = 1; i <= count; i++) {
+          titles.add("query-" + i);
+        }
+      }
+
+      El view() {
+        List<Tab> built = new java.util.ArrayList<>(titles.size());
+        for (int i = 0; i < titles.size(); i++) {
+          Tab tab = new Tab(titles.get(i));
+          if (i == 0 || i == 20) {
+            tab = tab.icon(Symbol.TABLE);
+          }
+          built.add(tab);
+        }
+        return col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    built,
+                    active,
+                    i -> {
+                      active = i;
+                      selects++;
+                    },
+                    null,
+                    null,
+                    Tabs.options().onAdd(() -> {}).overflow(overflow))
+                .grow(1));
+      }
+    }
+    State state = new State(25);
+    App<State> app = new App<>(state, State::view);
+    Script.run("size 400 240\nframe", app, out);
+
+    El add = find(app, "add");
+    El overflow = find(app, "overflow");
+    assertNotNull(overflow);
+    assertEquals("button", overflow.role());
+    assertEquals("All tabs", overflow.label());
+    assertTrue(x(app, overflow) > x(app, add), "overflow comes after +");
+
+    // Open the menu: all 25 tabs in bar order, active checked, icons shown on unchecked tabs.
+    Script.run("size 400 240\npress #overflow\nframe\nadvance 1\nframe", app, out);
+    assertTrue(state.overflow.menu().isOpen());
+    El menu = find(app, "overflow").overlays().stream()
+        .filter(e -> "menu".equals(e.key()))
+        .findFirst()
+        .orElseThrow();
+    assertEquals(25, menu.children().size());
+    assertEquals("query-1", menu.children().get(0).label());
+    assertEquals("query-25", menu.children().get(24).label());
+    assertTrue(dumpLine(app, "item-0").contains(" checked"), dumpLine(app, "item-0"));
+    assertFalse(dumpLine(app, "item-20").contains(" checked"), dumpLine(app, "item-20"));
+    assertTrue(
+        menu.children().get(20).dump().contains("label=\"table\""),
+        menu.children().get(20).dump());
+
+    // Choose an off-screen tab: it becomes active and scrolls into view.
+    Script.run("size 400 240\nwheel #menu 0 1000\nframe\npress #item-20\nframe", app, out);
+    assertEquals(20, state.active);
+    assertEquals(1, state.selects);
+    assertFalse(state.overflow.menu().isOpen());
+    El list = find(app, "tablist");
+    El chosen = find(app, "tab-20");
+    assertTrue(list.scrollX() > 0);
+    assertTrue(x(app, chosen) >= x(app, list), "chosen tab's start is in view");
+    assertTrue(
+        x(app, chosen) + chosen.width() <= x(app, list) + list.width(),
+        "chosen tab's end is in view");
+
+    // Scroll the active tab off-screen to the right, then choose it again from the overflow menu.
+    Script.run("size 400 240\nwheel #tablist 0 -10000\nframe", app, out);
+    assertEquals(0, find(app, "tablist").scrollX());
+    assertTrue(
+        x(app, find(app, "tab-20"))
+            >= x(app, find(app, "tablist")) + find(app, "tablist").width(),
+        "active tab was scrolled off-screen");
+    Script.run(
+        "size 400 240\npress #overflow\nframe\nadvance 1\nframe\nwheel #menu 0 1000\nframe\n"
+            + "press #item-20\nframe",
+        app,
+        out);
+    assertEquals(20, state.active);
+    assertEquals(1, state.selects, "already active: onSelect not called again");
+    list = find(app, "tablist");
+    chosen = find(app, "tab-20");
+    assertTrue(list.scrollX() > 0, "active tab scrolled back into view");
+    assertTrue(x(app, chosen) >= x(app, list));
+    assertTrue(x(app, chosen) + chosen.width() <= x(app, list) + list.width());
+
+    // Three tabs fit: no #overflow button.
+    State few = new State(3);
+    App<State> small = new App<>(few, State::view);
+    Script.run("size 400 240\nframe", small, out);
+    assertNull(find(small, "overflow"));
+  }
+
   // Without handlers
 
   @Test
@@ -505,13 +611,14 @@ class TabsTest {
                     null,
                     i -> {},
                     null,
-                    Tabs.options().onAdd(() -> {}))
+                    Tabs.options().onAdd(() -> {}).overflow(new Tabs.Overflow()))
                 .grow(1)));
     run(app, "frame\nkey Tab\nframe");
     assertNull(app.focused());
     assertFalse(find(app, "tablist").isFocusable());
     assertNull(find(app, "close-0"));
     assertNull(find(app, "add"));
+    assertNull(find(app, "overflow"));
     assertNull(find(app, "tab-1").onPress());
     assertEquals(
         T.text().disabled(), find(app, "tab-1").children().getFirst().text().color());

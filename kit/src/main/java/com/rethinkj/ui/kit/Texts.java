@@ -292,6 +292,11 @@ public interface Texts {
     return "New tab";
   }
 
+  /** A tab bar's button that lists all its tabs when they overflow. */
+  default String allTabs() {
+    return "All tabs";
+  }
+
   default String moveToNewWindow() {
     return "Move to new window";
   }

@@ -28,6 +28,7 @@ el 0,0 480x300
             text "Ideas" 39,41 33x16
             el #close-0 role=button label="Close Ideas" 76,41 16x16
               text label="dismiss" "\u{F368}" 76,41 16x16
+        el #room 100,49 26x0
         el #marker 98,37 2x24
       el #panel role=tabpanel label="Ideas" 9,66 462x225
         el #content-2 9,66 462x225

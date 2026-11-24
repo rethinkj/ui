@@ -81,6 +81,7 @@ el 0,0 1000x600
               el #tab-0 role=tab label="Start" 279,41 44x32 selected
                 el 279,71 44x2
                 text "Start" 287,49 28x16
+            el #room 323,57 26x0
           el #panel role=tabpanel label="Start" 277,74 714x488
             el #content-0 277,74 714x488
               el 277,74 714x488

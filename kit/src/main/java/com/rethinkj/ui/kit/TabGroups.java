@@ -100,6 +100,7 @@ public final class TabGroups<T> {
     int active = -1;
     Windows.Handle window; // null for the main group
     final Menu.State menu = new Menu.State();
+    final Tabs.Overflow overflow = new Tabs.Overflow();
     T menuTab; // the tab the menu opened for, while it is open
 
     private Group() {}
@@ -270,6 +271,7 @@ public final class TabGroups<T> {
             .drag(dragging)
             .id(group)
             .onAdd(onAdd == null ? null : () -> onAdd.accept(group))
+            .overflow(group.overflow)
             .onMove((from, to) -> move(group, from, to))
             .onTearOff(this::torn)
             .tearOffAtStart(alone)

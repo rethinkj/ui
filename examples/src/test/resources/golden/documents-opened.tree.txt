@@ -56,6 +56,7 @@ el 0,0 640x360
             text "orders.sql" 518,41 63x16
             el #close-5 role=button label="Close orders.sql" 585,41 16x16
               text label="dismiss" "\u{F368}" 585,41 16x16
+        el #room 609,49 20x0
       el #panel role=tabpanel label="orders.sql" 9,66 622x285
         el #content-4 9,66 622x285
           el 9,66 622x285
