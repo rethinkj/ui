@@ -148,7 +148,8 @@ public final class TextField {
    * A text area: a field of several lines ({@link El#multiline}) in the frame of {@link
    * #textField}, in the body type, that wraps its lines at its width and is four lines high, with
    * the theme's scrollbars. Enter breaks a line; Tab moves the focus. The result is the field, so a
-   * view goes on with {@code .lines(n)} for another height, {@code .h(...)} or {@code .grow(1)} to
+   * view goes on with {@code .lines(n)} for another height, {@code .lines(1).maxLines(n)} to grow
+   * with its text up to {@code n} lines before scrolling, {@code .h(...)} or {@code .grow(1)} to
    * let layout size it, {@code .wrapText(false)}, {@code .readOnly()} or {@code .w(...)}.
    *
    * @param value the string to show, from the app's state, with a line feed for each line break
