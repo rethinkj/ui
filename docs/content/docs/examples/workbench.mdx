@@ -20,9 +20,10 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 ## What to try
 
 - Expand `staging` in the tree: it connects in the background with a loading spinner. `prod-eu` fails to connect and shows the reason in the status bar.
-- Double-click a table (or press Enter) to open it in a tab. `localhost/shop/public/orders` loads one million rows.
+- Double-click a table (or press Enter) to open it in a tab. `localhost/shop/public/orders` loads one million rows. Click **+** in a tab bar (or press **Ctrl+T**) to open another query tab for the group's active table or the table selected in the tree. When tabs overflow the bar, use the tab list button on the right to jump to any tab.
 - Type inside the SQL editor: autocomplete suggests columns, tables, and SQL keywords. Press **Ctrl+Enter** to run the query. Unknown table names are underlined as errors.
 - Press **Ctrl+Shift+P** to open the command palette (`@` searches tables, `:` jumps to a line).
+- Press **Ctrl+B** (or **View → Toggle sidebar**), or double-click the sidebar divider, to collapse the catalog sidebar and restore it at its previous width.
 - Drag a tab outside the window to tear it off into its own window, drag it back to dock it, drop it on an edge of a group to split it there, or right-click a tab (or press `Ctrl+\`) to split groups side by side or stacked within any window.
 
 <Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
@@ -69,10 +70,12 @@ The editor uses two state methods as handlers: editing updates the query and cle
 
 ### Tear-off and split tabs
 
-All windows share a single `TabGroups` instance with `splits(true)` ([TabGroups](/docs/components/tab-groups)):
+All windows share a single `TabGroups` instance with `splits(true)` and `onAdd` ([TabGroups](/docs/components/tab-groups)):
 
 ```java snippet="workbench-groups"
 ```
+
+<Shot dark="examples/workbench-split-dark-2x" light="examples/workbench-split-light-2x" alt="Two split tab groups side by side in the Workbench: orders on the left and customers on the right" />
 
 When a user tears off a tab, the opener creates a new window with its own `App` sharing the same state ([Several windows](/docs/concepts/windows)):
 

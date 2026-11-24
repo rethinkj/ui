@@ -215,3 +215,33 @@ frame
 advance 1
 frame
 snap workbench-changes                     # Commit (4) and Revert; 4 changes in the status bar
+
+# Split groups side by side: open customers via the palette and split it right.
+press #revert
+frame
+key P control
+frame
+type "customers"
+frame
+key Enter
+frame
+await
+frame
+advance 1
+frame
+press role=tab label="customers" right
+frame
+advance 0.25
+frame
+press role=menuitem label="Split right"
+frame
+advance 1
+frame
+size 1000 600 scale 2
+frame
+snap workbench-split-dark-2x
+press role=button label="Dark theme"
+frame
+advance 1
+frame
+snap workbench-split-light-2x

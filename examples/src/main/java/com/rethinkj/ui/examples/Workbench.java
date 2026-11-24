@@ -44,6 +44,7 @@ import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Split.Direction;
+import com.rethinkj.ui.kit.Split.Part;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
@@ -275,6 +276,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   // The tabs of every window: the first window's, Start among them, and those torn off.
   final TabGroups<Opened> groups = new TabGroups<>(List.of(start), this::openWindow)
       .splits(true)
+      .onAdd(this::addTab)
       .onClosed(this::closed)
       .onCloseTab(this::closeTab);
   // docs:end workbench-groups
@@ -519,6 +521,21 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     taskbar(); // again, now that the tab counts
   }
 
+  /** Opens a new query tab in {@code group}, or tells the user to select a table first. */
+  void addTab(TabGroups.Group<Opened> group) {
+    Node table = queryTable(group);
+    if (table == null) {
+      tell("Select a table first");
+      return;
+    }
+    openTab(group, table);
+  }
+
+  /** Collapses the sidebar, or restores it at its last width. */
+  void toggleSidebar() {
+    sidebar = sidebar.isCollapsed() ? sidebar.restore() : sidebar.collapse(Part.FIRST);
+  }
+
   /** The tables open in tabs, in every window. */
   List<Opened> tables() {
     List<Opened> all = new ArrayList<>();
@@ -534,10 +551,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return opened == null || opened.table == null ? null : opened;
   }
 
-  /** The table File's New query opens another tab of: the active tab's, else the selected. */
-  Node queryTable(TabGroups.Frame<Opened> frame) {
-    if (shown(frame) != null) {
-      return shown(frame).table;
+  /**
+   * The table a new query tab opens for: the group's active tab's, else the selected in the tree.
+   */
+  Node queryTable(TabGroups.Group<Opened> group) {
+    Opened opened = group.activeTab();
+    if (opened != null && opened.table != null) {
+      return opened.table;
     }
     if (selected == null || selected.kind != Kind.TABLE && selected.kind != Kind.COLUMN) {
       return null;
@@ -1221,7 +1241,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .child(Split.cards(
                 Direction.ROW,
                 state.sidebar,
-                SIDEBAR,
+                SIDEBAR.collapse(Part.FIRST),
                 position -> state.sidebar = position,
                 catalog,
                 160,
@@ -1442,8 +1462,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   /** The menus of the title bar, for the tabs of a window. */
   List<Menu.Item> menus(TabGroups.Frame<Opened> frame) {
     Opened opened = shown(frame);
-    Node table = queryTable(frame);
     TabGroups.Group<Opened> active = frame.active();
+    Node table = queryTable(active);
     return List.of(
         Menu.submenu(
             "&File",
@@ -1467,6 +1487,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 Menu.item("Go to table…", () -> palette(frame).open("@"))
                     .icon(Symbol.TABLE)
                     .shortcut(Key.CONTROL, "P"),
+                Menu.separator(),
+                Menu.item("Toggle sidebar", frame == groups.main() ? this::toggleSidebar : null)
+                    .shortcut(Key.CONTROL, "B"),
                 Menu.separator(),
                 Menu.item("Dark theme", () -> dark = true).checked(dark),
                 Menu.item("Light theme", () -> dark = false).checked(!dark))),
