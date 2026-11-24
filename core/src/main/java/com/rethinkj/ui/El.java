@@ -1426,7 +1426,8 @@ public final class El {
         || before.rows.heightsVersion != rows.heightsVersion - 1) {
       return y;
     }
-    return rows.heights.moved(y);
+    double top = before.rowsTop(); // the offset in the rows' coordinates, the padding kept
+    return y < top ? y : top + rows.heights.moved(y - top);
   }
 
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */
@@ -1444,7 +1445,7 @@ public final class El {
    * -1 when it is gone.
    */
   int rowWithKey(Object key) {
-    return key == null ? rows.rowCount : rows.heights.indexOf(key);
+    return key == null ? rows.rowCount : rows.heights == null ? -1 : rows.heights.indexOf(key);
   }
 
   /** Where a row starts below the top of the content box. */
@@ -5909,7 +5910,8 @@ public final class El {
   void layoutRows(float scale, boolean systemFonts) {
     // Rows that turn out higher or lower above the one at the top move it: the offset follows.
     boolean follow = followsEnd();
-    int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
+    int anchor =
+        rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY - rowsTop()), 0, rows.rowCount);
     double before = rows.heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
       El row = children.get(i);
@@ -5955,7 +5957,8 @@ public final class El {
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
   void layoutRow(int index, float scale, boolean systemFonts) {
     boolean follow = followsEnd();
-    int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
+    int anchor =
+        rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY - rowsTop()), 0, rows.rowCount);
     double before = rows.heights == null ? 0 : rowTop(anchor);
     if (placeRow(index, scale, systemFonts)) {
       measureScroll();

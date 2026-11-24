@@ -656,14 +656,16 @@ final class Animator {
         revealed = kept.revealRow;
         revealedKey = kept.revealKey;
       }
+      boolean carried = before != null && kept.el == before; // not a new state's own offset
       kept.owner = this;
       kept.pass = passes;
       kept.id = id;
       kept.el = el;
       kept.seen = true;
       boolean end = kept.toEnd || kept.followEnd && kept.atEnd;
-      double y =
-          end ? Double.POSITIVE_INFINITY : kept.placed ? kept.y : el.movedScrollY(before, kept.y);
+      double y = end
+          ? Double.POSITIVE_INFINITY
+          : kept.placed || !carried ? kept.y : el.movedScrollY(before, kept.y);
       kept.placed = false;
       el.setScroll(kept.x, y);
       if (kept.followPending) { // the app's ScrollState.scrollTo moves the partner after the visit

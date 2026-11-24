@@ -168,7 +168,7 @@ public final class RowHeights {
 
   /** The index of the row with this key, or -1. */
   int indexOf(Object rowKey) {
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; key != null && i < count; i++) {
       if (keys[i].equals(rowKey)) {
         return i;
       }

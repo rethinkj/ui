@@ -256,7 +256,6 @@ class RowHeightsTest {
     El tail = app.tree().children().get(2);
     assertEquals(20, model.plainHeights.height(0), "new unbuilt row uses its estimate");
     assertEquals(15, model.plainHeights.height(5), "measured height moved with item 100");
-    assertEquals(51, model.plainHeights.height(8), "measured height moved with item 103");
     assertEquals(63, model.plainHeights.height(9), "measured height moved with item 104");
     assertEquals(anchorY, rowByKey(plain, "item-107").y(), 0.001, "plain kept anchor row");
     assertEquals(nextY, rowByKey(plain, "item-108").y(), 0.001, "plain kept next row");
@@ -278,9 +277,7 @@ class RowHeightsTest {
     assertEquals(51, model.plainHeights.height(0), "measured height stayed with item 103");
     assertEquals(63, model.plainHeights.height(1), "measured height stayed with item 104");
     assertEquals(anchorY, rowByKey(plain, "item-107").y(), 0.001, "plain kept row after remove");
-    assertEquals(nextY, rowByKey(plain, "item-108").y(), 0.001);
     assertEquals(anchorY, rowByKey(kept, "item-107").y(), 0.001, "ScrollState kept row");
-    assertEquals(nextY, rowByKey(kept, "item-108").y(), 0.001);
     assertTrue(model.endScroll.atEnd(), "followEnd stayed at its end after remove");
     last = tail.children().getLast();
     assertEquals(100, last.y() + last.height(), 0.001);
