@@ -47,7 +47,7 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 | Method | Description |
 | --- | --- |
 | `splits(boolean)` | Enables splitting within windows (off by default) |
-| `onWindowClose(frame -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
+| `onWindowClose(frame -> …)` | Action when a detached window closes, by a close request or the app's `Handle.close()`: `dockAll` (default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
 | `onClosed(tab -> …)` | Notification after a tab is closed |
 | `onAdd(group -> …)` | Shows a `+` button and binds Ctrl+T in each group's bar, passing the group |

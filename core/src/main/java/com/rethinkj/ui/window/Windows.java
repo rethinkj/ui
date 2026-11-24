@@ -170,6 +170,9 @@ public interface Windows {
      */
     void onClosed(Runnable handler);
 
+    /** The handler {@link #onClosed(Runnable)} set, or null. */
+    Runnable onClosed();
+
     /**
      * What runs once the window has shown its first frame, as its presenter reports ({@link
      * WindowLoop.Presenter#presented}): on the app's thread as a task of the window's app, in its

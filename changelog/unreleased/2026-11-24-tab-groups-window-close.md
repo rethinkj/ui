@@ -1,0 +1,1 @@
+- Fixed: a `TabGroups` window that the app closes itself with `Windows.Handle.close()` now runs `onWindowClose` too, so its tabs dock or close and its frame leaves `frames()`; an `onClosed` handler the `Opener` set on the window still runs. New `Windows.Handle.onClosed()` returns the handler set with `onClosed(Runnable)`.

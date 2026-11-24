@@ -891,6 +891,11 @@ public final class Script {
     }
 
     @Override
+    public Runnable onClosed() {
+      return onClosed;
+    }
+
+    @Override
     public void dropTarget(boolean on) {
       dropTarget = on;
     }
