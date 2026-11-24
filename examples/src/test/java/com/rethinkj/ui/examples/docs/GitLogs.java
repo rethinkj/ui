@@ -4,10 +4,15 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.diagram.git.GitLog.gitLog;
 import static com.rethinkj.ui.kit.Button.button;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.diagram.git.Change;
 import com.rethinkj.ui.diagram.git.Commit;
+import com.rethinkj.ui.diagram.git.CommitDetails;
 import com.rethinkj.ui.diagram.git.GitLog;
 import com.rethinkj.ui.diagram.git.Ref;
+import com.rethinkj.ui.editor.DiffView;
+import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -52,6 +57,153 @@ final class GitLogs {
     // reload commits and refs from the repository
   }
   // docs:end git-log
+
+  App<?> app;
+  final DiffView.State diff = new DiffView.State();
+  Change chosen = sampleChanges().getFirst();
+
+  // docs:start git-log-details
+  static El withDetails(GitLogs state) {
+    Theme theme = Theme.CURRENT.get();
+    Commit commit = state.selected();
+    List<Change> changes = state.changesOf(commit);
+    Change chosen = changes.contains(state.chosen) ? state.chosen : null;
+    El details = CommitDetails.details(
+        state.log,
+        state.commits,
+        state.refs,
+        CommitDetails.options()
+            .body(state.bodyOf(commit))
+            .changes(changes)
+            .chosen(chosen)
+            .onChoose(state::choose)
+            .diff(state.diffOf(chosen)));
+    return col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .padding(theme.space().l())
+        .child(gitLog(state.log, state.commits, state.refs, GitLog.options().details(details))
+            .grow(1));
+  }
+
+  void choose(Change change) {
+    chosen = change;
+  }
+
+  El diffOf(Change change) {
+    if (change == null) {
+      return null;
+    }
+    return DiffView.unified(app, oldSource(change), newSource(change), diff, Java.of())
+        .wFull()
+        .h(184);
+  }
+  // docs:end git-log-details
+
+  /** The selected commit, or null for none or a range. */
+  Commit selected() {
+    return log.cursor() < 0 || log.hasRange() ? null : commits.get(log.cursor());
+  }
+
+  /** The sample's one commit with a body and changes, as an app would load them. */
+  private static boolean hasDetails(Commit commit) {
+    return commit != null && commit.id().equals("6c0d5a8");
+  }
+
+  String bodyOf(Commit commit) {
+    return hasDetails(commit)
+        ? "Older statements fall off the end once a connection has fifty. The limit used to be"
+            + " global, so one busy connection pushed out the history of every other."
+        : null;
+  }
+
+  List<Change> changesOf(Commit commit) {
+    return hasDetails(commit) ? sampleChanges() : List.of();
+  }
+
+  /** The chosen file before the commit, as an app would read it from the repository. */
+  String oldSource(Change change) {
+    return switch (change.status()) {
+      case ADDED -> "";
+      case DELETED -> """
+          final class UnboundedLog {
+            private final List<Statement> statements = new ArrayList<>();
+
+            void add(Statement statement) {
+              statements.add(statement);
+            }
+          }""";
+      default -> """
+        final class QueryHistory {
+          private final HistoryStore store;
+          private final Deque<Statement> statements = new ArrayDeque<>();
+
+          void add(ConnectionId connection, Statement statement) {
+            statements.addFirst(statement);
+            if (statements.size() > 500) {
+              statements.removeLast();
+            }
+            store.save(connection, statement);
+          }
+        }""";
+    };
+  }
+
+  /** The chosen file after the commit. */
+  String newSource(Change change) {
+    return switch (change.status()) {
+      case DELETED -> "";
+      case ADDED -> """
+          class QueryHistoryTest {
+            @Test
+            void keepsFiftyStatementsPerConnection() {
+              var history = new QueryHistory(new MemoryStore());
+              for (int i = 0; i < 60; i++) {
+                history.add(ConnectionId.of("main"), Statement.of("select " + i));
+              }
+              assertEquals(50, history.statements(ConnectionId.of("main")).size());
+            }
+          }""";
+      default -> """
+        final class QueryHistory {
+          private static final int LIMIT = 50;
+          private final HistoryStore store;
+          private final Map<ConnectionId, Deque<Statement>> byConnection = new HashMap<>();
+
+          void add(ConnectionId connection, Statement statement) {
+            var statements = byConnection.computeIfAbsent(connection, id -> new ArrayDeque<>());
+            statements.addFirst(statement);
+            if (statements.size() > LIMIT) {
+              statements.removeLast();
+            }
+            store.save(connection, statement);
+          }
+        }""";
+    };
+  }
+
+  private static List<Change> sampleChanges() {
+    return List.of(
+        new Change(
+            Change.Status.MODIFIED,
+            "console/src/main/java/com/example/history/QueryHistory.java",
+            null,
+            4,
+            2),
+        new Change(
+            Change.Status.ADDED,
+            "console/src/test/java/com/example/history/QueryHistoryTest.java",
+            null,
+            10,
+            0),
+        new Change(
+            Change.Status.DELETED,
+            "console/src/main/java/com/example/history/UnboundedLog.java",
+            null,
+            0,
+            7));
+  }
 
   private static Commit commit(
       String id, List<String> parents, String author, long minutesAgo, String subject) {

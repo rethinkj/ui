@@ -1,0 +1,124 @@
+el 0,0 680x500
+  el #details label="Commit" 12,12 656x476
+    el 13,13 654x38
+      text role=heading "Commit" 29,24 53x17 level=3
+      el #hash 90,21 69x22
+        text "7be3d10" 99,24 51x16
+      el 167,32 484x0
+    el role=separator 13,51 654x1
+    el #body-7be3d10 13,52 654x435
+      el 29,68 622x55
+        text "Merge branch 'fix/null-timestamps'" 29,68 622x20
+        text "A NULL in a timestamp column threw while formatting. It now renders as an empty, muted cell and shares the formatter across export paths." 29,92 622x31
+      el #properties 29,135 622x106
+        el role=list 38,140 604x96
+          el role=listitem label="Author" 38,140 604x24 value="Priya Raman"
+            el 42,140 48x24
+              text "Author" 42,144 48x15
+            el 96,138 544x28
+              el 98,142 104x20
+                el role=img label="Priya Raman" 98,142 20x20
+                  text "PR" 103,147 10x9
+                text "Priya Raman" 126,144 76x15
+          el role=listitem label="Date" 38,164 604x24 value="Nov 24, 2026, 11:20"
+            el 42,164 48x24
+              text "Date" 42,168 48x15
+            el 96,162 544x28
+              el 98,168 178x15
+                text "Nov 24, 2026, 11:20" 98,168 121x15
+                text "· 3 h ago" 223,168 53x15
+          el role=listitem label="Parents" 38,188 604x24 value="e5c1a77, 2f9b8d4"
+            el 42,188 48x24
+              text "Parents" 42,192 48x15
+            el 96,186 544x28
+              el 98,190 166x20
+                el #parent-e5c1a77 role=button label="commit e5c1a77" 98,190 81x20
+                  el 107,197 6x6
+                  text "e5c1a77" 119,192 51x16
+                el #parent-2f9b8d4 role=button label="commit 2f9b8d4" 183,190 81x20
+                  el 192,197 6x6
+                  text "2f9b8d4" 204,192 51x16
+          el role=listitem label="Refs" 38,212 604x24 value="Branch release/0.9, Remote branch origin/main, Tag v0.9.2, Tag v0.9.2-rc1"
+            el 42,212 48x24
+              text "Refs" 42,216 48x15
+            el 96,210 544x28
+              el 98,215 341x18
+                el label="Branch release/0.9" 98,215 91x18
+                  text label="branch" "\u{F0A6}" 104,218 12x12
+                  text "release/0.9" 118,216 65x15
+                el label="Remote branch origin/main" 193,215 92x18
+                  text label="cloud" "\u{E382}" 200,218 12x12
+                  text "origin/main" 214,216 64x15
+                el label="Tag v0.9.2" 289,215 62x18
+                  text label="tag" "\u{EC70}" 295,218 12x12
+                  text "v0.9.2" 309,216 36x15
+                el label="Tag v0.9.2-rc1" 355,215 84x18
+                  text label="tag" "\u{EC70}" 361,218 12x12
+                  text "v0.9.2-rc1" 375,216 58x15
+      el 29,253 622x140
+        el 29,253 622x18
+          text role=heading "Changes" 29,254 55x15 level=4
+          el label="4 files" 92,253 48x18
+            text "4 files" 98,254 36x15
+          el 148,262 444x0
+          text "+78" 600,254 21x16
+          text "−50" 629,254 22x16
+        el #files role=list label="Changes" 29,275 622x118
+          el #file-0 role=button label="modified console/src/main/java/com/example/console/Cells.java, +24 −9" 29,275 622x28 selected
+            el label="M" 37,280 18x18
+              text "M" 41,281 11x15
+            text "Cells.java" 63,281 60x15
+            text "console/…/example/console" 131,281 432x15
+            el 571,281 72x16
+              text "+24" 571,281 22x16
+              text "−9" 597,281 14x16
+              el 615,285 28x8
+                el 615,285 4x8
+                el 621,285 4x8
+                el 627,285 4x8
+                el 633,285 4x8
+                el 639,285 4x8
+          el #file-1 role=button label="added console/src/test/java/com/example/console/CellsTest.java, +48 −0" 29,305 622x28
+            el label="A" 37,310 18x18
+              text "A" 42,311 8x15
+            text "CellsTest.java" 63,311 85x15
+            text "console/…/example/console" 156,311 407x15
+            el 571,311 72x16
+              text "+48" 571,311 22x16
+              text "−0" 597,311 14x16
+              el 615,315 28x8
+                el 615,315 4x8
+                el 621,315 4x8
+                el 627,315 4x8
+                el 633,315 4x8
+                el 639,315 4x8
+          el #file-2 role=button label="renamed console/src/main/java/com/example/console/TimestampFormat.java, +6 −4" 29,335 622x28
+            el label="R" 37,340 18x18
+              text "R" 42,341 8x15
+            text "TimestampFormat.java" 63,341 142x15
+            text "console/…/example/console" 213,341 357x15
+            el 578,341 65x16
+              text "+6" 578,341 15x16
+              text "−4" 597,341 14x16
+              el 615,345 28x8
+                el 615,345 4x8
+                el 621,345 4x8
+                el 627,345 4x8
+                el 633,345 4x8
+                el 639,345 4x8
+          el #file-3 role=button label="deleted console/src/main/java/com/example/console/LegacyCells.java, +0 −37" 29,365 622x28
+            el label="D" 37,370 18x18
+              text "D" 42,371 8x15
+            text "LegacyCells.java" 63,371 105x15
+            text "console/…/example/console" 176,371 387x15
+            el 571,371 72x16
+              text "+0" 571,371 14x16
+              text "−37" 589,371 22x16
+              el 615,375 28x8
+                el 615,375 4x8
+                el 621,375 4x8
+                el 627,375 4x8
+                el 633,375 4x8
+                el 639,375 4x8
+      el #diff-slot 29,405 622x64
+        text "Diff of console/src/main/java/com/example/console/Cells.java" 150,429 380x15

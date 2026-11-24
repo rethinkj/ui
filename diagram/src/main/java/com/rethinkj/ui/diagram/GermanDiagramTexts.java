@@ -232,6 +232,96 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String commit() {
+    return "Commit";
+  }
+
+  @Override
+  public String compare() {
+    return "Vergleichen";
+  }
+
+  @Override
+  public String author() {
+    return "Autor";
+  }
+
+  @Override
+  public String date() {
+    return "Datum";
+  }
+
+  @Override
+  public String parent() {
+    return "Vorgänger";
+  }
+
+  @Override
+  public String parents() {
+    return "Vorgänger";
+  }
+
+  @Override
+  public String refs() {
+    return "Referenzen";
+  }
+
+  @Override
+  public String changes() {
+    return "Änderungen";
+  }
+
+  @Override
+  public String files(int count) {
+    return count == 1 ? "1 Datei" : count + " Dateien";
+  }
+
+  @Override
+  public String from() {
+    return "Von";
+  }
+
+  @Override
+  public String to() {
+    return "Bis";
+  }
+
+  @Override
+  public String authors() {
+    return "Autoren";
+  }
+
+  @Override
+  public String authors(int count) {
+    return count == 1 ? "1 Autor" : count + " Autoren";
+  }
+
+  @Override
+  public String noCommitSelected() {
+    return "Kein Commit ausgewählt";
+  }
+
+  @Override
+  public String changeAdded() {
+    return "hinzugefügt";
+  }
+
+  @Override
+  public String changeModified() {
+    return "geändert";
+  }
+
+  @Override
+  public String changeDeleted() {
+    return "gelöscht";
+  }
+
+  @Override
+  public String changeRenamed() {
+    return "umbenannt";
+  }
+
+  @Override
   public String monthShort(Month month) {
     return switch (month) {
       case JANUARY -> "Jan.";

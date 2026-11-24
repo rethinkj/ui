@@ -18,6 +18,7 @@ Keep a `GitLog.State` in your app state and pass plain `Commit` and `Ref` record
 | --- | --- | --- |
 | `Commit` | `id`, `parents`, `subject`, `author`, `time` | First parent first; empty `parents` for a root commit; two or more parents mark a merge commit |
 | `Ref` | `name`, `kind`, `commit` | `Ref.Kind`: `HEAD`, `BRANCH`, `REMOTE`, `TAG` |
+| `Change` | `status`, `path`, `oldPath`, `added`, `removed` | `Change.Status`: `ADDED`, `MODIFIED`, `DELETED`, `RENAMED`; `oldPath` is non-null only for `RENAMED` |
 
 `GitLog.State` caches the laid-out `CommitGraph` and appends only newly added tail commits when the list grows, rebuilding otherwise. Pass a fixed `java.time.Clock` to `new GitLog.State(clock)` for deterministic relative dates and tooltips in tests.
 
@@ -48,6 +49,19 @@ Clicking a row selects it; Shift+click and Shift with navigation keys select a r
 | `Home`, `End` | Move to the first or last commit |
 | `Shift` + navigation key | Extend the range from the anchor to the new cursor |
 | `Enter` | Call `onOpen` with the cursor's commit |
+
+## Details
+
+Pass a [`CommitDetails`](/api/com/rethinkj/ui/diagram/git/CommitDetails.html) panel to `GitLog.options().details(...)` to show the selected commit below the log in a vertical [split](/docs/components/split), or place `CommitDetails.details(...)` anywhere on its own.
+
+<Shot src="examples/docs/git-log-details/view-{theme}" alt="A commit history above a commit details panel showing the commit message, properties, changed files, and a unified DiffView" />
+
+The app supplies the commit's body, changed files (`Change`), and chosen file on demand when a commit is selected, and fills the `diff` slot with any element such as `DiffView` from the editor module (`rethinkj-ui-diagram` does not depend on `rethinkj-ui-editor`):
+
+```java snippet="git-log-details"
+```
+
+Pressing a parent hash chip selects that parent in the log. When a range is selected (`state.hasRange()`), the panel shows a compare summary of the older (`From`) and newer (`To`) ends, the distinct authors, the app's actions, and any changes and diff supplied.
 
 ## In a tree dump
 

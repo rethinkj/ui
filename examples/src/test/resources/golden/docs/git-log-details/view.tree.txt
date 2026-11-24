@@ -1,0 +1,368 @@
+el 0,0 920x880
+  el 12,12 896x856
+    el #first 12,12 896x274
+      el label="History" 12,12 896x274.01
+        el 13,13 894x38
+          text role=heading "History" 29,24 50x17 level=3
+          el label="18 commits" 87,21 81x22
+            text "18 commits" 95,25 65x15
+          el 176,32 715x0
+        el #header role=row 13,51 894x28
+          el role=columnheader label="Graph" 13,58 96x15
+            text "Graph" 29,58 35x15
+          el role=columnheader label="Message" 109,58 434x15
+            text "Message" 117,58 51x15
+          el role=columnheader label="Author" 543,58 176x15
+            text "Author" 551,58 39x15
+          el role=columnheader label="Date" 719,58 100x15
+            text "Date" 727,58 27x15
+          el role=columnheader label="Commit" 819,58 88x15
+            text "Commit" 827,58 45x15
+        el #rows role=grid label="History" 13,79 894x177 rows 0-8/18 thumb-y 899,81 6x53.16 focused
+          el #row-0 role=row label="commit a41f9c2, Show query duration in the status bar, Mara Lindqvist, 38 min ago, HEAD → main" 13,79 894x32 pos=1/18
+            el 13,79 96x32
+              el label="●" 13,79 96x32
+                el 21,87 16x16
+                el 23,89 12x12
+            el 109,79 434x32
+              el 117,86 48x18
+                el label="HEAD → main" 117,86 48x18
+                  el 123,93 4x4
+                  text "main" 131,88 28x15
+              text "Show query duration in the status bar" 169,87 366x16
+            el 543,79 176x32
+              el role=img label="Mara Lindqvist" 551,85 20x20
+                text "ML" 555,90 12x10
+              text "Mara Lindqvist" 579,87 132x16
+            el 719,79 100x32
+              text "38 min ago" 727,88 62x15
+            el 819,79 88x32
+              text "a41f9c2" 827,87 49x16
+          el #row-1 role=row label="commit 9d2e6b1, Export the diagram as SVG, Jonas Weber, 2 h ago, Branch feature/er-export, in sync with origin/feature/er-export" 13,111 894x32 pos=2/18
+            el 13,111 96x32
+              el label="│ ●" 13,111 96x32
+                el 39,121 12x12
+            el 109,111 434x32
+              el 117,118 138x18
+                el label="Branch feature/er-export, in sync with origin/feature/er-export" 117,118 138x18
+                  text label="branch" "\u{F0A6}" 123,121 12x12
+                  text "feature/er-export" 137,120 98x15
+                  text label="cloud" "\u{E382}" 237,121 12x12
+              text "Export the diagram as SVG" 259,119 276x16
+            el 543,111 176x32
+              el role=img label="Jonas Weber" 551,117 20x20
+                text "JW" 555,122 13x10
+              text "Jonas Weber" 579,119 132x16
+            el 719,111 100x32
+              text "2 h ago" 727,120 41x15
+            el 819,111 88x32
+              text "9d2e6b1" 827,119 49x16
+          el #row-2 role=row label="commit 7be3d10, Merge branch 'fix/null-timestamps', Priya Raman, 3 h ago, Remote branch origin/main" 13,143 894x32 pos=3/18
+            el 13,143 96x32
+              el label="● │ ╮" 13,143 96x32
+                el 21,151 16x16
+                el 23,153 12x12
+            el 109,143 434x32
+              el 117,150 92x18
+                el label="Remote branch origin/main" 117,150 92x18
+                  text label="cloud" "\u{E382}" 124,153 12x12
+                  text "origin/main" 138,152 64x15
+              text "Merge branch 'fix/null-timestamps'" 213,151 322x16
+            el 543,143 176x32
+              el role=img label="Priya Raman" 551,149 20x20
+                text "PR" 556,154 10x10
+              text "Priya Raman" 579,151 132x16
+            el 719,143 100x32
+              text "3 h ago" 727,152 41x15
+            el 819,143 88x32
+              text "7be3d10" 827,151 49x16
+          el #row-3 role=row label="commit 6c0d5a8, Keep the last fifty statements per connection, Aiko Tanaka, 5 h ago, Branch feature/query-history" 13,175 894x32 selected current pos=4/18
+            el 13,175 96x32
+              el label="│ │ │ ●" 13,175 96x32
+                el 71,185 12x12
+                el 67,181 20x20
+            el 109,175 434x32
+              el 117,182 147x18
+                el label="Branch feature/query-history" 117,182 147x18
+                  text label="branch" "\u{F0A6}" 123,185 12x12
+                  text "feature/query-history" 137,184 121x15
+              text "Keep the last fifty statements per connection" 268,183 267x16
+            el 543,175 176x32
+              el role=img label="Aiko Tanaka" 551,181 20x20
+                text "AT" 556,186 10x10
+              text "Aiko Tanaka" 579,183 132x16
+            el 719,175 100x32
+              text "5 h ago" 727,184 41x15
+            el 819,175 88x32
+              text "6c0d5a8" 827,183 49x16
+            el 13,179 3x24
+          el #row-4 role=row label="commit 2f9b8d4, Render NULL timestamps as an empty cell, Priya Raman, yesterday" 13,207 894x32 pos=5/18
+            el 13,207 96x32
+              el label="│ │ ● │" 13,207 96x32
+                el 55,217 12x12
+            el 109,207 434x32
+              text "Render NULL timestamps as an empty cell" 117,215 418x16
+            el 543,207 176x32
+              el role=img label="Priya Raman" 551,213 20x20
+                text "PR" 556,218 10x10
+              text "Priya Raman" 579,215 132x16
+            el 719,207 100x32
+              text "yesterday" 727,216 56x15
+            el 819,207 88x32
+              text "2f9b8d4" 827,215 49x16
+          el #row-5 role=row label="commit c3a8f40, Route edges around frames on export, Jonas Weber, yesterday" 13,239 894x32 pos=6/18
+            el 13,239 96x32
+              el label="│ ● │ │" 13,239 96x32
+                el 39,249 12x12
+            el 109,239 434x32
+              text "Route edges around frames on export" 117,247 418x16
+            el 543,239 176x32
+              el role=img label="Jonas Weber" 551,245 20x20
+                text "JW" 555,250 13x10
+              text "Jonas Weber" 579,247 132x16
+            el 719,239 100x32
+              text "yesterday" 727,248 56x15
+            el 819,239 88x32
+              text "c3a8f40" 827,247 49x16
+          el #row-6 role=row label="commit b81e2f3, Merge branch 'main' into feature/query-history, Aiko Tanaka, 2 days ago" 13,271 894x32 pos=7/18
+            el 13,271 96x32
+              el label="├ │ │ ●" 13,271 96x32
+                el 69,279 16x16
+                el 71,281 12x12
+            el 109,271 434x32
+              text "Merge branch 'main' into feature/query-history" 117,279 418x16
+            el 543,271 176x32
+              el role=img label="Aiko Tanaka" 551,277 20x20
+                text "AT" 556,282 10x10
+              text "Aiko Tanaka" 579,279 132x16
+            el 719,271 100x32
+              text "2 days ago" 727,280 61x15
+            el 819,271 88x32
+              text "b81e2f3" 827,279 49x16
+          el #row-7 role=row label="commit e5c1a77, Merge branch 'release/0.9', Luis Ortega, 2 days ago" 13,303 894x32 pos=8/18
+            el 13,303 96x32
+              el label="● │ │ │ ╮" 13,303 96x32
+                el 21,311 16x16
+                el 23,313 12x12
+            el 109,303 434x32
+              text "Merge branch 'release/0.9'" 117,311 418x16
+            el 543,303 176x32
+              el role=img label="Luis Ortega" 551,309 20x20
+                text "LO" 556,314 10x10
+              text "Luis Ortega" 579,311 132x16
+            el 719,303 100x32
+              text "2 days ago" 727,312 61x15
+            el 819,303 88x32
+              text "e5c1a77" 827,311 49x16
+          el #row-8 role=row label="commit d47a1c9, Add a failing test for NULL timestamps, Priya Raman, 3 days ago" 13,335 894x32 pos=9/18
+            el 13,335 96x32
+              el label="│ │ ● │ │" 13,335 96x32
+                el 55,345 12x12
+            el 109,335 434x32
+              text "Add a failing test for NULL timestamps" 117,343 418x16
+            el 543,335 176x32
+              el role=img label="Priya Raman" 551,341 20x20
+                text "PR" 556,346 10x10
+              text "Priya Raman" 579,343 132x16
+            el 719,335 100x32
+              text "3 days ago" 727,344 61x15
+            el 819,335 88x32
+              text "d47a1c9" 827,343 49x16
+        el 13,256 894x29
+          el 29,271 743x0
+          text "4 branches · 2 tags" 784,264 107x15
+    el #rest 12,286 896x582
+      el #second 12,294 896x574
+        el #details label="Commit" 12,294 896x573.99
+          el 13,295 894x38
+            text role=heading "Commit" 29,306 54x17 level=3
+            el #hash 91,303 67x22
+              text "6c0d5a8" 100,306 49x16
+            el 166,314 725x0
+          el role=separator 13,333 894x1
+          el #body-6c0d5a8 13,334 894x533
+            el 29,350 862x55
+              text "Keep the last fifty statements per connection" 29,350 862x19
+              text "Older statements fall off the end once a connection has fifty. The limit used to be global, so one busy connection pushed out the history of every other." 29,373 862x32
+            el #properties 29,417 862x106
+              el role=list 38,422 844x96
+                el role=listitem label="Author" 38,422 844x24 value="Aiko Tanaka"
+                  el 42,422 43x24
+                    text "Author" 42,426 43x16
+                  el 91,420 789x28
+                    el 93,424 102x20
+                      el role=img label="Aiko Tanaka" 93,424 20x20
+                        text "AT" 98,429 10x10
+                      text "Aiko Tanaka" 121,426 74x16
+                el role=listitem label="Date" 38,446 844x24 value="Nov 24, 2026, 09:30"
+                  el 42,446 43x24
+                    text "Date" 42,450 43x16
+                  el 91,444 789x28
+                    el 93,450 188x16
+                      text "Nov 24, 2026, 09:30" 93,450 129x16
+                      text "· 5 h ago" 226,450 55x16
+                el role=listitem label="Parent" 38,470 844x24 value="b81e2f3"
+                  el 42,470 43x24
+                    text "Parent" 42,474 43x16
+                  el 91,468 789x28
+                    el 93,472 79x20
+                      el #parent-b81e2f3 role=button label="commit b81e2f3" 93,472 79x20
+                        el 102,479 6x6
+                        text "b81e2f3" 114,474 49x16
+                el role=listitem label="Refs" 38,494 844x24 value="Branch feature/query-history"
+                  el 42,494 43x24
+                    text "Refs" 42,498 43x16
+                  el 91,492 789x28
+                    el 93,497 147x18
+                      el label="Branch feature/query-history" 93,497 147x18
+                        text label="branch" "\u{F0A6}" 99,500 12x12
+                        text "feature/query-history" 113,499 121x15
+            el 29,535 862x110
+              el 29,535 862x18
+                text role=heading "Changes" 29,536 56x16 level=4
+                el label="3 files" 93,535 47x18
+                  text "3 files" 99,537 35x15
+                el 148,544 692x0
+                text "+14" 848,536 21x16
+                text "−9" 877,536 14x16
+              el #files role=list label="Changes" 29,557 862x88
+                el #file-0 role=button label="modified console/src/main/java/com/example/history/QueryHistory.java, +4 −2" 29,557 862x28 selected
+                  el label="M" 37,562 18x18
+                    text "M" 41,564 11x15
+                  text "QueryHistory.java" 63,563 111x16
+                  text "console/…/example/history" 182,564 629x15
+                  el 819,563 64x16
+                    text "+4" 819,563 14x16
+                    text "−2" 837,563 14x16
+                    el 855,567 28x8
+                      el 855,567 4x8
+                      el 861,567 4x8
+                      el 867,567 4x8
+                      el 873,567 4x8
+                      el 879,567 4x8
+                el #file-1 role=button label="added console/src/test/java/com/example/history/QueryHistoryTest.java, +10 −0" 29,587 862x28
+                  el label="A" 37,592 18x18
+                    text "A" 42,594 9x15
+                  text "QueryHistoryTest.java" 63,593 137x16
+                  text "console/…/example/history" 208,594 596x15
+                  el 812,593 71x16
+                    text "+10" 812,593 21x16
+                    text "−0" 837,593 14x16
+                    el 855,597 28x8
+                      el 855,597 4x8
+                      el 861,597 4x8
+                      el 867,597 4x8
+                      el 873,597 4x8
+                      el 879,597 4x8
+                el #file-2 role=button label="deleted console/src/main/java/com/example/history/UnboundedLog.java, +0 −7" 29,617 862x28
+                  el label="D" 37,622 18x18
+                    text "D" 42,624 9x15
+                  text "UnboundedLog.java" 63,623 125x16
+                  text "console/…/example/history" 196,624 615x15
+                  el 819,623 64x16
+                    text "+0" 819,623 14x16
+                    text "−7" 837,623 14x16
+                    el 855,627 28x8
+                      el 855,627 4x8
+                      el 861,627 4x8
+                      el 867,627 4x8
+                      el 873,627 4x8
+                      el 879,627 4x8
+            text #diff-unified role=textbox label="Modified" "final class QueryHistory {\n  private static final int LIMIT = 50;\n  private final HistoryStore store" … "store.save(connection, statement);\n  }\n}" length 489 29,657 862x184 readonly lines 1-9/14 thumb-y 882,660 6x126.95
+              el #rail 30,658 81x182
+              el #gutter 30,662 80x166
+                el #line-0 30,662 80x16
+                  el 36,670 12x0
+                  text "1" 52,662 14x16
+                  text "1" 70,662 14x16
+                  el 88,670 2x0
+                  el 94,670 12x0
+                el #line-1 30,678 80x16
+                  el 36,686 12x0
+                  text "" 52,678 14x16
+                  text "2" 70,678 14x16
+                  el #change 88,678 2x16
+                  el 94,686 12x0
+                el #line-2 30,694 80x16
+                  el 36,702 12x0
+                  text "2" 52,694 14x16
+                  text "3" 70,694 14x16
+                  el 88,702 2x0
+                  el 94,702 12x0
+                el #line-3 30,726 80x16
+                  el 36,734 12x0
+                  text "" 52,726 14x16
+                  text "4" 70,726 14x16
+                  el #change 88,726 2x16
+                  el 94,734 12x0
+                el #line-4 30,742 80x16
+                  el 36,750 12x0
+                  text "4" 52,742 14x16
+                  text "5" 70,742 14x16
+                  el 88,750 2x0
+                  el 94,750 12x0
+                el #line-5 30,758 80x16
+                  el 36,766 12x0
+                  text "5" 52,758 14x16
+                  text "6" 70,758 14x16
+                  el 88,766 2x0
+                  el 94,766 12x0
+                el #line-6 30,774 80x16
+                  el 36,782 12x0
+                  text "" 52,774 14x16
+                  text "7" 70,774 14x16
+                  el #change 88,774 2x16
+                  el 94,782 12x0
+                el #line-7 30,790 80x16
+                  el 36,798 12x0
+                  text "6" 52,790 14x16
+                  text "8" 70,790 14x16
+                  el 88,798 2x0
+                  el 94,798 12x0
+                el #line-8 30,822 80x16
+                  el 36,830 12x0
+                  text "" 52,822 14x16
+                  text "9" 70,822 14x16
+                  el #change 88,822 2x16
+                  el 94,830 12x0
+                el #line-9 30,838 80x16
+                  el 36,846 12x0
+                  text "8" 52,838 14x16
+                  text "10" 70,838 14x16
+                  el 88,846 2x0
+                  el 94,846 12x0
+                el #line-10 30,854 80x16
+                  el 36,862 12x0
+                  text "9" 52,854 14x16
+                  text "11" 70,854 14x16
+                  el 88,862 2x0
+                  el 94,862 12x0
+                el #line-11 30,870 80x16
+                  el 36,878 12x0
+                  text "10" 52,870 14x16
+                  text "12" 70,870 14x16
+                  el 88,878 2x0
+                  el 94,878 12x0
+                el #deleted-gutter-2 30,710 80x16
+                  el #old-line-2 30,710 80x16
+                    el 36,718 12x0
+                    text "3" 52,710 14x16
+                    el 70,718 14x0
+                    el #change 88,710 2x16
+                    el 94,718 12x0
+                el #deleted-gutter-6 30,806 80x16
+                  el #old-line-6 30,806 80x16
+                    el 36,814 12x0
+                    text "7" 52,806 14x16
+                    el 70,814 14x0
+                    el #change 88,806 2x16
+                    el 94,814 12x0
+              el #deleted-2 119,710 763x16
+                el 119,710 763x16
+                  text "  private final Deque<Statement> statements = new ArrayDeque<>();" 119,710 455x16
+              el #deleted-6 119,806 763x16
+                el 119,806 763x16
+                  text "    if (statements.size() > 500) {" 119,806 238x16
+      el #divider role=separator label="Resize History" 12,286 896x8 value="share 0.3231132"
+        el 12,286 896x8
+          el 12,290 896x1

@@ -125,7 +125,8 @@ class DocsExamplesTest {
       Map.entry("canvas-arrange", List.of("view")),
       Map.entry("canvas-edges", List.of("view")),
       Map.entry("er-diagram", List.of("view", "selected", "skeleton", "names")),
-      Map.entry("git-log", List.of("view", "range")));
+      Map.entry("git-log", List.of("view", "range")),
+      Map.entry("git-log-details", List.of("view")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -185,6 +186,17 @@ class DocsExamplesTest {
         "er-diagram",
         new Example(t -> new App<>(new SchemaDiagram(), SchemaDiagram::window), 1040, 720));
     all.put("git-log", new Example(t -> new App<>(new GitLogs(), GitLogs::view), 920, 507));
+    all.put(
+        "git-log-details",
+        new Example(
+            t -> {
+              GitLogs state = new GitLogs();
+              App<GitLogs> app = new App<>(state, GitLogs::withDetails);
+              state.app = app;
+              return app;
+            },
+            920,
+            880));
     overlays(all, "menu", Overlays::menus, 360, 260);
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);

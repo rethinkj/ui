@@ -15,6 +15,7 @@ import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import java.time.Clock;
@@ -72,7 +73,7 @@ public final class GitLog {
   private static final double RANGE_MIX = 0.55;
 
   /** So dominant a share of the shrinking that the ref pills keep their width, as in a footer. */
-  private static final float SUBJECT_SHRINK = 1e9f;
+  static final float SUBJECT_SHRINK = 1e9f;
 
   private GitLog() {}
 
@@ -90,6 +91,7 @@ public final class GitLog {
     private int anchor = -1;
     private int hoveredRow = -1;
     private final Clock clock;
+    private Split.Position detailsSplit = Split.Position.share(0.5f);
 
     /** A state using the system default time-zone clock. */
     public State() {
@@ -231,6 +233,18 @@ public final class GitLog {
     private static boolean sameNode(Commit a, Commit b) {
       return a == b || (a.id().equals(b.id()) && a.parents().equals(b.parents()));
     }
+
+    Clock clock() {
+      return clock;
+    }
+
+    Split.Position detailsSplit() {
+      return detailsSplit;
+    }
+
+    void detailsSplit(Split.Position position) {
+      this.detailsSplit = position;
+    }
   }
 
   /** Optional configuration of a {@link GitLog}; {@link #options()} starts empty. */
@@ -238,6 +252,7 @@ public final class GitLog {
 
     private Consumer<Commit> onOpen;
     private String status;
+    private El details;
 
     private Options() {}
 
@@ -253,6 +268,15 @@ public final class GitLog {
      */
     public Options status(String status) {
       this.status = status;
+      return this;
+    }
+
+    /**
+     * A details panel shown below the log card in a vertical {@link Split#cards} split, such as
+     * {@link CommitDetails#details}; null for the log card alone.
+     */
+    public Options details(El details) {
+      this.details = details;
       return this;
     }
   }
@@ -407,7 +431,20 @@ public final class GitLog {
         Label.label(Label.Variant.SMALL, countsText).color(theme.text().muted());
     El footer = Card.footer(statusEl, countsEl);
 
-    return Card.flush(header, columns, body, footer);
+    El card = Card.flush(header, columns, body, footer);
+    if (options.details == null) {
+      return card;
+    }
+    float minHeight = theme.size().minTabGroup();
+    return Split.cards(
+        Split.Direction.COLUMN,
+        state.detailsSplit(),
+        Split.Position.share(0.5f),
+        state::detailsSplit,
+        card.label(texts.history()),
+        minHeight,
+        options.details,
+        minHeight);
   }
 
   private static El columnHeader(
@@ -689,8 +726,13 @@ public final class GitLog {
     return true;
   }
 
-  private static String shortHash(String id) {
+  static String shortHash(String id) {
     return id.length() > SHORT_HASH ? id.substring(0, SHORT_HASH) : id;
+  }
+
+  static int laneColor(Theme theme, int chain) {
+    List<Integer> palette = theme.lanes().colors();
+    return palette.get(Math.floorMod(chain, palette.size()));
   }
 
   private static String rowLabel(

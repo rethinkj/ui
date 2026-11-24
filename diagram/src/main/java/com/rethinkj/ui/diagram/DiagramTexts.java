@@ -260,6 +260,96 @@ public interface DiagramTexts {
     return "commit " + shortHash;
   }
 
+  /** The title of a {@link com.rethinkj.ui.diagram.git.CommitDetails} panel for one commit. */
+  default String commit() {
+    return "Commit";
+  }
+
+  /** The title of a {@link com.rethinkj.ui.diagram.git.CommitDetails} panel for a commit range. */
+  default String compare() {
+    return "Compare";
+  }
+
+  /** The author property name in a commit's details. */
+  default String author() {
+    return "Author";
+  }
+
+  /** The date property name in a commit's details. */
+  default String date() {
+    return "Date";
+  }
+
+  /** The property name for a single parent commit in a commit's details. */
+  default String parent() {
+    return "Parent";
+  }
+
+  /** The property name for multiple parent commits in a commit's details. */
+  default String parents() {
+    return "Parents";
+  }
+
+  /** The refs property name in a commit's details. */
+  default String refs() {
+    return "Refs";
+  }
+
+  /** The heading of the changed files section in a commit's details. */
+  default String changes() {
+    return "Changes";
+  }
+
+  /** A count of changed files in a commit's details: {@code 1 file}, {@code 5 files}. */
+  default String files(int count) {
+    return count == 1 ? "1 file" : count + " files";
+  }
+
+  /** The older endpoint property name in a range comparison. */
+  default String from() {
+    return "From";
+  }
+
+  /** The newer endpoint property name in a range comparison. */
+  default String to() {
+    return "To";
+  }
+
+  /** The authors property name in a range comparison. */
+  default String authors() {
+    return "Authors";
+  }
+
+  /** A count of distinct authors in a range comparison: {@code 1 author}, {@code 3 authors}. */
+  default String authors(int count) {
+    return count == 1 ? "1 author" : count + " authors";
+  }
+
+  /** Shown in {@link com.rethinkj.ui.diagram.git.CommitDetails} when no commit is selected. */
+  default String noCommitSelected() {
+    return "No commit selected";
+  }
+
+  /** The accessible status word for an added file in a commit's details. */
+  default String changeAdded() {
+    return "added";
+  }
+
+  /** The accessible status word for a modified file in a commit's details. */
+  default String changeModified() {
+    return "modified";
+  }
+
+  /** The accessible status word for a deleted file in a commit's details. */
+  default String changeDeleted() {
+    return "deleted";
+  }
+
+  /** The accessible status word for a renamed file in a commit's details. */
+  default String changeRenamed() {
+    return "renamed";
+  }
+
   /** A month's short name as shown in dates: {@code Nov}. */
   default String monthShort(Month month) {
     return switch (month) {
