@@ -476,6 +476,17 @@ class PartsTest {
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=menuitem label=\"All branches\""), dump);
     assertFalse(state.branchMenu.isOpen());
+
+    state.chosen = null;
+    Script.run("""
+        press role=menuitem label="All branches"
+        frame
+        advance 0.3
+        frame
+        press role=menuitem label="main"
+        frame
+        """, app, out);
+    assertEquals("main", state.chosen, "the submenu in More chooses");
   }
 
   @Test
