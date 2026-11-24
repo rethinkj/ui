@@ -1745,23 +1745,19 @@ public final class El {
    * an ellipsis; without it the text ends with that line. A single-line field that {@link
    * #wrapText wraps} is as high as its lines up to this many; while it has the focus its last line
    * runs on without the ellipsis and scrolls with the caret. The tree dump shows the whole string.
-   * A {@link #multiline} field has {@link #lines} instead and scrolls.
+   *
+   * <p>On a {@link #multiline} field whose style gives it no height, layout measures it as high as
+   * its rows between {@link #lines} and {@code count}, and it scrolls once its text has more rows.
+   * When {@code count} is smaller than {@link #lines}, {@link #lines} wins; {@link #fitLines} wins
+   * over {@code maxLines}.
    */
   public El maxLines(int count) {
     if (count < 1) {
       throw new IllegalArgumentException("maxLines must be 1 or more, was " + count);
     }
-    Text t = textOnly("maxLines");
-    if (t.multiline()) {
-      throw new IllegalStateException(MULTILINE_MAX_LINES);
-    }
-    t.maxLines(count);
+    textOnly("maxLines").maxLines(count);
     return this;
   }
-
-  private static final String MULTILINE_MAX_LINES =
-      "A multiline() field cannot have maxLines(): lines(n) says how many lines it shows, and it"
-          + " scrolls to the rest. Leave out maxLines() or multiline().";
 
   /**
    * Shapes the text with these OpenType features, in HarfBuzz's syntax, after the defaults of
@@ -1997,8 +1993,9 @@ public final class El {
    * ({@link #scroll}) that shows its lines from the top of its content box, wrapped at its width
    * with {@link #wrapText}, or not, and then scrolling sideways too, with bars if it has {@link
    * #scrollbars}. The wheel scrolls it while it can, and its ancestors beyond. Layout measures it
-   * 0 wide and {@link #lines} lines high, as a single-line field is one line high; the style
-   * usually gives it its size.
+   * 0 wide and {@link #lines} lines high (or between {@link #lines} and {@link #maxLines} when
+   * {@link #maxLines} is set, or as high as all its rows with {@link #fitLines}), as a single-line
+   * field is one line high; the style usually gives it its size.
    *
    * <p>The keys of a single-line field work across lines, and these besides: Enter breaks the
    * line (the field takes it, so an ancestor's Enter does not run; Control+Enter goes on to the
@@ -2025,9 +2022,6 @@ public final class El {
       throw new IllegalStateException(
           "A masked field cannot be multiline(): a password has one line. Leave out multiline()"
               + " or masked().");
-    }
-    if (t.maxLines() > 0) {
-      throw new IllegalStateException(MULTILINE_MAX_LINES);
     }
     t.multiline(true);
     scrollArea = true;
@@ -3119,8 +3113,10 @@ public final class El {
 
   /**
    * How many lines high layout measures a {@link #multiline} field whose style gives it no height,
-   * as the {@code rows} of an HTML {@code textarea}; 1 unless set. The lines have the font's line
-   * height at the window's scale, so that exactly this many fit.
+   * as the {@code rows} of an HTML {@code textarea}; 1 unless set. With {@link #maxLines}, this is
+   * the smallest number of lines and the field grows with its rows up to {@link #maxLines} before
+   * scrolling. The lines have the font's line height at the window's scale, so that exactly this
+   * many fit.
    */
   public El lines(int count) {
     Text t = editableOnly("lines");
@@ -3135,7 +3131,9 @@ public final class El {
    * Makes a {@link #multiline} field exactly as high as all its rows at the width layout gives it,
    * however many there are, so that it never scrolls up and down: a paragraph of a document that
    * a read-only field shows for selecting and copying. Unlike {@link #lines} every row is shaped
-   * and laid out, so it is for texts of a few screens at most.
+   * and laid out, so it is for texts of a few screens at most; for a field that grows up to a
+   * limit and then scrolls, use {@link #lines} with {@link #maxLines}. {@code fitLines} wins over
+   * {@link #maxLines} until {@link #lines} sets a count again.
    */
   public El fitLines() {
     Text t = editableOnly("fitLines");

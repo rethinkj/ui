@@ -880,6 +880,11 @@ public final class Text implements Measure {
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
         return new Size(0, fittedHeight(width) / scale, firstBaseline / scale);
       }
+      if (multiline && maxLines > visibleLines) { // El#maxLines: grows between lines and maxLines
+        float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
+        int rows = Math.max(visibleLines, fittedRows(width, maxLines));
+        return new Size(0, rows * lineHeight / scale, firstBaseline / scale);
+      }
       return new Size(
           0, (multiline ? visibleLines : 1) * lineHeight / scale, firstBaseline / scale);
     }
@@ -2683,7 +2688,9 @@ public final class Text implements Measure {
     if (limit != para.limit) { // new, or shaped before layout placed the text at another width
       para.breakInto(limit);
       if (lines.wraps()) {
-        lines.rows(line, para.rowCount());
+        if (laidOut) { // before layout, the rows the lines keep are those of the last width
+          lines.rows(line, para.rowCount());
+        }
       } else {
         lines.measured(line, para.totalWidth());
       }
@@ -2697,7 +2704,7 @@ public final class Text implements Measure {
    */
   private float fittedHeight(float width) {
     Lines lines = shownLines();
-    float rowsHeight = fittedRows(width) * lineHeight;
+    float rowsHeight = fittedRows(width, Integer.MAX_VALUE) * lineHeight;
     if (!lines.hasBlocks()) {
       return rowsHeight;
     }
@@ -2720,18 +2727,23 @@ public final class Text implements Measure {
   }
 
   /**
-   * For {@link El#fitLines}: the rows of every line at a content box this wide, in logical pixels
-   * or {@link Measure#MAX_CONTENT} or MIN, each line shaped once.
+   * For {@link El#fitLines} and {@link El#maxLines}: the rows of lines at a content box this wide,
+   * in logical pixels or {@link Measure#MAX_CONTENT} or MIN, stopping once {@code maxRows} are
+   * counted so that long texts stay cheap.
    */
-  private int fittedRows(float width) {
+  private int fittedRows(float width, int maxRows) {
     Lines lines = shownLines();
-    if (!wraps || width == MAX_CONTENT || Float.isInfinite(width) || Float.isNaN(width)) {
-      return lines.shownCount(); // a row per shown line, whatever width wrapping measured
+    if (lines.shownCount() >= maxRows
+        || !wraps
+        || width == MAX_CONTENT
+        || Float.isInfinite(width)
+        || Float.isNaN(width)) {
+      return Math.min(lines.shownCount(), maxRows); // at least one row per shown line
     }
     float limit = width == MIN_CONTENT ? 0 : width * scale + SLACK;
     int rows = 0;
     for (int line = lines.firstVisible();
-        line >= 0 && line < lines.count();
+        line >= 0 && line < lines.count() && rows < maxRows;
         line = lines.nextVisible(line)) {
       para(line); // shaped, and its rows counted at the placed width once that is known
       Para para = shapedLines.get(line);
@@ -2744,7 +2756,7 @@ public final class Text implements Measure {
         rows++;
       }
     }
-    return rows;
+    return Math.min(rows, maxRows);
   }
 
   /** The number of lines of the shown string. */
