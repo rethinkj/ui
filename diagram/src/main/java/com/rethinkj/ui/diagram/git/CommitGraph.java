@@ -35,7 +35,7 @@ public final class CommitGraph {
   private int[] columns = new int[0];
   private int[] colors = new int[0];
   // gapOffsets[r]..gapOffsets[r + 1] is the slice of gapLines (in ints, 3 per line) for above(r).
-  private int[] gapOffsets = new int[] {0};
+  private int[] gapOffsets = {0};
   private int[] gapLines = new int[0];
   private int gapLength;
 
@@ -51,7 +51,9 @@ public final class CommitGraph {
   private int nextColor;
 
   /** Creates an empty commit graph. */
-  public CommitGraph() {}
+  public CommitGraph() {
+    // no rows and no open lanes: the first page starts the history
+  }
 
   /**
    * Appends a page of commits (newest first, in topological order), continuing from any open lanes
