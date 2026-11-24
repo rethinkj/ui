@@ -1,0 +1,34 @@
+el 0,0 304x212
+  el 12,12 280x188
+    el 13,13 278x186
+      el role=listbox label="Sessions" 17,17 270x178
+        el 17,17 270x44
+          el #item-0 role=button label="api" 19,35 266x24 expanded
+            text label="chevron_down" "\u{F2A1}" 25,41 12x12
+            text "api" 41,40 227x15
+            text "2" 272,40 7x15
+        el #item-1 role=option label="Fix login redirect" 17,61 270x44 selected pos=2/4
+          el 17,63 270x40
+            el 19,75 2x16
+            el 25,67 204x33
+              text "Fix login redirect" 25,67 204x16
+              text "feat/auth" 25,85 204x15
+            text "2m" 233,76 18x15
+            el 255,71 24x24
+              el role=button label="Pin" 255,71 24x24
+                text label="pin" "\u{F600}" 259,75 16x16
+        el #item-2 role=option label="Rate limits" 17,105 270x44 pos=3/4
+          el 17,107 270x40
+            el 19,119 2x16
+            el 25,111 236x33
+              text "Rate limits" 25,111 236x16
+              text "main" 25,129 236x15
+            text "7h" 265,120 14x15
+            el
+              el role=button label="Pin"
+                text label="pin" "\u{F600}"
+        el 17,149 270x44
+          el #item-3 role=button label="docs" 19,167 266x24 expanded=false
+            text label="chevron_right" "\u{F2AE}" 25,173 12x12
+            text "docs" 41,172 227x15
+            text "2" 272,172 7x15

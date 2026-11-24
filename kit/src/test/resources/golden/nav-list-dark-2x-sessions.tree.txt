@@ -1,0 +1,42 @@
+el 0,0 320x212
+  el 12,12 296x188
+    el 13,13 294x186
+      el #sessions role=listbox 17,17 286x178
+        el 17,17 286x44
+          el #item-0 role=button label="Active" 19,35 282x24 expanded
+            text label="chevron_down" "\u{F2A1}" 25,41 12x12
+            text "Active" 41,40 243x14
+            text "2" 288,40 7x14
+        el #item-1 role=option label="Fix login redirect" 17,61 286x44 selected pos=2/4
+          el 17,63 286x40
+            el 19,75 2x16
+            el 25,67 188x32
+              text "Fix login redirect" 25,67 188x16
+              text "api · feat/auth" 25,85 188x14
+            el 217,76 32x14
+              text "2m" 217,76 18x14
+              text label="checkmark_circle" "\u{E307}" 237,77 12x12
+            el 253,73 42x20
+              el role=button label="Pin login" 253,73 20x20
+                text label="pin" "\u{F600}" 255,75 16x16
+              el role=button label="More login" 275,73 20x20
+                text label="more_horizontal" "\u{E823}" 277,75 16x16
+        el #item-2 role=option label="Add NavList second line and groups" 17,105 286x44 pos=3/4 hovered
+          el 17,107 286x40
+            el 19,119 2x16
+            el 25,111 192x32
+              text "Add NavList second line and groups" 25,111 192x16
+              text "ui · feat/navlist-sessions" 25,129 192x14
+            el 221,120 28x14
+              text "7h" 221,120 14x14
+              text label="clock" "\u{F2DB}" 237,121 12x12
+            el 253,117 42x20
+              el role=button label="Pin navlist" 253,117 20x20
+                text label="pin" "\u{F600}" 255,119 16x16
+              el role=button label="More navlist" 275,117 20x20
+                text label="more_horizontal" "\u{E823}" 277,119 16x16
+        el 17,149 286x44
+          el #item-3 role=button label="Recent" 19,167 282x24 expanded=false
+            text label="chevron_right" "\u{F2AE}" 25,173 12x12
+            text "Recent" 41,172 242x14
+            text "4" 287,172 8x14
