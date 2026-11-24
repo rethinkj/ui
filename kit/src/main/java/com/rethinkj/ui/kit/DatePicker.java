@@ -11,7 +11,6 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.render.Scene;
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -601,12 +600,12 @@ public final class DatePicker {
   }
 
   /**
-   * Replaces only the date part of a grid cell's or filter's text, keeping any typed time,
-   * fraction, or offset; for a {@code DATE_TIME} column without a time part, appends {@code 00:00}
-   * (or {@code 00:00Z} when the column requires an offset).
+   * Replaces only the date part of a date or date-time text, keeping any typed time, fraction, or
+   * offset; for {@link DataGrid.DataType#DATE_TIME} without a time part, appends {@code 00:00} (or
+   * {@code 00:00Z} when the format requires an offset).
    */
-  static String replaceDate(Column column, String text, LocalDate day) {
-    if (column.type() != DataGrid.DataType.DATE_TIME) {
+  static String replaceDate(DataGrid.DataType type, Format<?> format, String text, LocalDate day) {
+    if (type != DataGrid.DataType.DATE_TIME) {
       return day.toString();
     }
     // The time is the digits before the first colon and what follows, also behind a date typed
@@ -626,10 +625,10 @@ public final class DatePicker {
       return day + (separated ? typed.substring(at - 1, at) : " ") + typed.substring(at);
     }
     String local = day + " 00:00";
-    if (GridEdit.check(column, local) == null) {
+    if (ValueInputs.check(type, format, local) == null) {
       return local;
     }
     String utc = day + " 00:00Z";
-    return GridEdit.check(column, utc) == null ? utc : local;
+    return ValueInputs.check(type, format, utc) == null ? utc : local;
   }
 }

@@ -138,20 +138,11 @@ final class GridEdit {
     if (!c.editing().choices().isEmpty() && !c.editing().choices().contains(value)) {
       return Texts.CURRENT.get().notAChoice();
     }
-    if (c.cells() != null) { // a choice too: a narrowed format refuses some
-      return c.cells().format().parseText(value).error();
-    }
-    if (!c.editing().choices().isEmpty()) {
+    Format<?> format = c.cells() != null ? c.cells().format() : null;
+    if (format == null && !c.editing().choices().isEmpty()) {
       return null;
     }
-    return switch (c.type()) {
-      case INTEGER -> Format.BIG_INTEGER.parseText(value).error();
-      case DECIMAL -> Format.DECIMAL.parseText(value).error();
-      case DATE -> Format.DATE.parseText(value).error();
-      case TIME -> Format.ANY_TIME.parseText(value).error();
-      case DATE_TIME -> Format.ANY_DATE_TIME.parseText(value).error();
-      default -> null;
-    };
+    return ValueInputs.check(c.type(), format, value);
   }
 
   private static boolean truthy(String value) {
@@ -1222,7 +1213,8 @@ final class GridEdit {
         sel.edit.calendar,
         DatePicker.parseDatePrefix(sel.edit.draft),
         day -> {
-          sel.edit.draft = DatePicker.replaceDate(c, sel.edit.draft, day);
+          Format<?> format = c.cells() != null ? c.cells().format() : null;
+          sel.edit.draft = DatePicker.replaceDate(c.type(), format, sel.edit.draft, day);
           sel.edit.error = null;
           sel.edit.calendar.close();
           commit(b, Move.NONE);

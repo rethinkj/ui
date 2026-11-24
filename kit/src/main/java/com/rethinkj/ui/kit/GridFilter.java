@@ -12,7 +12,6 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.DataGrid.Build;
 import com.rethinkj.ui.kit.DataGrid.Column;
-import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Filter;
 import com.rethinkj.ui.kit.DataGrid.Filter.Between;
 import com.rethinkj.ui.kit.DataGrid.Filter.Kind;
@@ -22,13 +21,6 @@ import com.rethinkj.ui.kit.DataGrid.Filter.RegexMatch;
 import com.rethinkj.ui.kit.DataGrid.Filter.Spec;
 import com.rethinkj.ui.kit.DataGrid.Filter.TextMatch;
 import com.rethinkj.ui.kit.DataGrid.Selection;
-import java.time.DateTimeException;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -216,8 +208,9 @@ final class GridFilter {
   private static Draft made(Texts texts, Selection sel, Column c, int column) {
     Kind kind = sel.filter.kind;
     String value = sel.filter.value;
+    Format<?> format = formatOf(c);
     if (kind == Kind.EQUALS && ordered(c) && !value.isBlank()) {
-      String error = GridEdit.check(c, value.strip()); // equality needs a value
+      String error = ValueInputs.check(c.type(), format, value.strip()); // equality needs a value
       if (error != null) {
         return new Invalid("value", error);
       }
@@ -225,13 +218,13 @@ final class GridFilter {
     if (kind == Kind.BETWEEN && ordered(c)) {
       String from = value.strip();
       String to = sel.filter.to.strip();
-      String fromError = from.isEmpty() ? null : GridEdit.check(c, from);
-      String toError = to.isEmpty() ? null : GridEdit.check(c, to);
+      String fromError = from.isEmpty() ? null : ValueInputs.check(c.type(), format, from);
+      String toError = to.isEmpty() ? null : ValueInputs.check(c.type(), format, to);
       if (fromError != null || toError != null) { // both wrong: both marked, From's message
         String field = toError == null ? "from" : fromError == null ? "to" : null;
         return new Invalid(field, fromError != null ? fromError : toError);
       }
-      if (!from.isEmpty() && !to.isEmpty() && above(c, column, from, to)) {
+      if (!from.isEmpty() && !to.isEmpty() && ValueInputs.above(c.type(), format, from, to)) {
         return new Invalid(null, texts.fromAboveTo());
       }
     }
@@ -262,89 +255,32 @@ final class GridFilter {
     return spec == null ? new Empty() : new Valid(new Filter(column, spec));
   }
 
+  /** The column's cell format, or null when the column holds plain strings. */
+  private static Format<?> formatOf(Column c) {
+    return c.cells() != null ? c.cells().format() : null;
+  }
+
   /**
    * Whether {@code from} lies above {@code to} as the column's values are ordered, as SQL
-   * compares them: typed cells by their format's values, numbers and dates by theirs, and times by
-   * the time, which their text does not tell where offsets differ. An interval's order is the
-   * app's to know, so a range of intervals is never refused.
+   * compares them ({@link ValueInputs#above}).
    */
   static boolean above(Column c, int column, String from, String to) {
-    if (c.cells() != null) {
-      return above(c.cells().format(), column, from, to);
-    }
-    return switch (c.type()) {
-      case INTEGER -> above(Format.BIG_INTEGER, column, from, to);
-      case DECIMAL -> above(Format.DECIMAL, column, from, to);
-      case DATE -> above(Format.DATE, column, from, to);
-      case TIME, DATE_TIME -> timeAbove(c.type() == DataType.TIME, from, to);
-      default -> false;
-    };
+    return ValueInputs.above(c.type(), formatOf(c), from, to);
   }
 
-  private static boolean timeAbove(boolean time, String from, String to) {
-    Format<TemporalAccessor> any = time ? Format.ANY_TIME : Format.ANY_DATE_TIME;
-    Format.Parsed<TemporalAccessor> low = any.parseText(from);
-    Format.Parsed<TemporalAccessor> high = any.parseText(to);
-    if (!low.valid() || !high.valid()) {
-      return false;
-    }
-    boolean offset = low.value().isSupported(ChronoField.OFFSET_SECONDS);
-    if (offset != high.value().isSupported(ChronoField.OFFSET_SECONDS)) {
-      return false; // a local time against one with an offset: no order to go by
-    }
-    try {
-      return offset
-          ? offsetAbove(time, low.value(), high.value())
-          : localAbove(time, low.value(), high.value());
-    } catch (DateTimeException _) {
-      return false; // an offset java.time does not take, such as +19:00: no order to go by
-    }
-  }
-
-  private static boolean offsetAbove(boolean time, TemporalAccessor low, TemporalAccessor high) {
-    return time
-        ? OffsetTime.from(low).isAfter(OffsetTime.from(high))
-        : OffsetDateTime.from(low).isAfter(OffsetDateTime.from(high));
-  }
-
-  private static boolean localAbove(boolean time, TemporalAccessor low, TemporalAccessor high) {
-    return time
-        ? LocalTime.from(low).isAfter(LocalTime.from(high))
-        : LocalDateTime.from(low).isAfter(LocalDateTime.from(high));
-  }
-
-  private static <V> boolean above(Format<V> format, int column, String from, String to) {
-    Format.Parsed<V> low = format.parseText(from);
-    Format.Parsed<V> high = format.parseText(to);
-    if (!low.valid() || !high.valid() || low.value() == null || high.value() == null) {
-      return false;
-    }
-    // the same instant at two offsets is no empty range in SQL, though compareTo orders them
-    if (low.value() instanceof OffsetDateTime a && high.value() instanceof OffsetDateTime b) {
-      return a.isAfter(b);
-    }
-    if (low.value() instanceof OffsetTime a && high.value() instanceof OffsetTime b) {
-      return a.isAfter(b);
-    }
-    return !new Filter(column, new Between("", to)).matches(low.value(), format);
+  private static boolean invalid(Draft draft, String key) {
+    return draft instanceof Invalid invalid
+        && (invalid.field() == null || invalid.field().equals(key));
   }
 
   /** Marks the field invalid when {@code draft} reports an error on its key or on all fields. */
   private static El field(El field, Draft draft, String key) {
-    return draft instanceof Invalid invalid
-            && (invalid.field() == null || invalid.field().equals(key))
-        ? TextField.invalid(field)
-        : field;
+    return invalid(draft, key) ? TextField.invalid(field) : field;
   }
 
   /** Whether the column's filters compare values, as numbers and dates do. */
   private static boolean ordered(Column c) {
     return kinds(c).getFirst() == Kind.BETWEEN;
-  }
-
-  /** Whether the column takes a date calendar in its filter fields. */
-  private static boolean dateColumn(Column c) {
-    return c.type() == DataType.DATE || c.type() == DataType.DATE_TIME;
   }
 
   /** A date or date-time filter field with an embedded calendar button and popover. */
@@ -362,43 +298,23 @@ final class GridFilter {
       DatePicker.State otherCalendar,
       Menu.State kinds,
       Consumer<String> onChange) {
-    El input = field(textField(value, placeholder, onChange).key(key).wFull(), draft, key);
-    if (autofocus) {
-      input.autofocus();
-    }
-    Runnable open = () -> {
-      otherCalendar.close();
-      kinds.close();
-      calendar.open();
-    };
-    Runnable toggle = () -> {
-      if (calendar.isOpen()) {
-        calendar.close();
-      } else {
-        open.run();
-      }
-    };
-    El box = DatePicker.embedField(
-            theme, texts, input, calendar, column.type() == DataType.DATE_TIME, true, open, toggle)
+    return ValueInputs.dateField(
+            theme,
+            texts,
+            column.type(),
+            formatOf(column),
+            value,
+            placeholder,
+            key,
+            autofocus,
+            invalid(draft, key),
+            calendar,
+            () -> {
+              otherCalendar.close();
+              kinds.close();
+            },
+            onChange)
         .w(width);
-    if (!calendar.isOpen()) {
-      return box;
-    }
-    return box.overlay(DatePicker.calendarPanel(
-        theme,
-        texts,
-        DatePicker.CLOCK.get(),
-        calendar,
-        DatePicker.parseDatePrefix(value),
-        day -> {
-          onChange.accept(DatePicker.replaceDate(column, value, day));
-          calendar.close();
-        },
-        () -> {
-          onChange.accept("");
-          calendar.close();
-        },
-        null));
   }
 
   /** Whether the popover holds equality with nothing to be equal to, which it does not apply. */
@@ -452,7 +368,7 @@ final class GridFilter {
             .w(width));
     switch (sel.filter.kind) {
       case CONTAINS, STARTS_WITH, EQUALS, EXACTLY, MATCHES -> {
-        if (sel.filter.kind == Kind.EQUALS && dateColumn(c)) {
+        if (sel.filter.kind == Kind.EQUALS && ValueInputs.dateType(c.type())) {
           content.child(dateField(
               theme,
               texts,
@@ -478,7 +394,7 @@ final class GridFilter {
         }
       }
       case BETWEEN -> {
-        if (dateColumn(c)) {
+        if (ValueInputs.dateType(c.type())) {
           content.child(dateField(
               theme,
               texts,
