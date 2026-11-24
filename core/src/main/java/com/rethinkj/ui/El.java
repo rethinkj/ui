@@ -1427,7 +1427,9 @@ public final class El {
       return y;
     }
     double top = before.rowsTop(); // the offset in the rows' coordinates, the padding kept
-    return y < top ? y : top + rows.heights.moved(y - top);
+    double moved = rows.heights.moved(Math.max(0, y - top));
+    // Rows that come above a list scrolled into its top padding put its first row at the top.
+    return y < top && moved == 0 ? y : top + moved;
   }
 
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */

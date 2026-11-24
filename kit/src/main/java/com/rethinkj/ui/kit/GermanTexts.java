@@ -1014,4 +1014,14 @@ public class GermanTexts implements Texts {
       case FAILED -> "Fehlgeschlagen";
     };
   }
+
+  @Override
+  public String transcript() {
+    return "Verlauf";
+  }
+
+  @Override
+  public String jumpToNewest() {
+    return "Zum Neuesten";
+  }
 }

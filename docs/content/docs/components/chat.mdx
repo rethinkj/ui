@@ -21,6 +21,7 @@ Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com
 | `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
 | `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
 | `working()` / `working(text)` | Quiet status row with a spinner and `Texts.working()` (or custom text) for the bottom of an active message |
+| `transcript(count, message, scroll, heights)` / `transcript(count, message, scroll, heights, onLoadOlder)` | Virtual scrollable transcript centered up to `Theme.Prose.measure()` that follows the newest message, shows a floating jump button while scrolled up, and optionally requests older messages at the top |
 
 ## Options
 
@@ -39,13 +40,24 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 
 `Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). Closed by default, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
 
+## Transcript
+
+`Chat.transcript` renders a virtual list of messages of any height centered in a readable column up to `Theme.Prose.measure()` wide. Keep a [`ScrollState`](/api/com/rethinkj/ui/ScrollState.html) and a [`RowHeights`](/api/com/rethinkj/ui/RowHeights.html) in your app state and pass the same instances on every build. While the user is at the bottom, appended messages and a growing last message (such as a streaming [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html) updated with `next`) stay pinned to the end. Scrolling up holds the current place and shows a floating `Jump to newest` button over the bottom until the user presses it or scrolls back to the end.
+
+Pass an optional `onLoadOlder` callback to fetch earlier messages when the top of the list comes into view (pass `null` while loading or once no older messages remain), and construct `RowHeights` with a stable key per message (`new RowHeights(estimate, key)`) so inserting older messages at index `0` keeps what is in view at the same place.
+
+<Shot src="examples/docs/chat-transcript/view-{theme}" alt="A scrollable chat transcript scrolled slightly up from the bottom with a floating Jump to newest button centered over its bottom" />
+
+```java snippet="chat-transcript"
+```
+
 ## Localization and theming
 
-All built-in labels (`User message`, `Agent message`, `Copy message`, `Working…`, and tool state names) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
+All built-in labels (`Transcript`, `Jump to newest`, `User message`, `Agent message`, `Copy message`, `Working…`, and tool state names) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
 
 ## In a tree dump
 
-User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, and `Chat.working` is `role=status`:
+`Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, and `Chat.working` is `role=status`:
 
 ```text file="examples/src/test/resources/golden/docs/chat/view.tree.txt" start="role=article" count="18"
 ```

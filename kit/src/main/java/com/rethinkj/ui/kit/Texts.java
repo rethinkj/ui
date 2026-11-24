@@ -970,4 +970,16 @@ public interface Texts {
       case FAILED -> "Failed";
     };
   }
+
+  // Chat transcript
+
+  /** Accessible label of a {@link Chat#transcript} message list. */
+  default String transcript() {
+    return "Transcript";
+  }
+
+  /** Label of the floating button in {@link Chat#transcript} that scrolls to the newest message. */
+  default String jumpToNewest() {
+    return "Jump to newest";
+  }
 }

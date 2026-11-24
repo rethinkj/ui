@@ -8,6 +8,7 @@ import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Formatted;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.TextDocument;
@@ -992,6 +993,78 @@ final class Editors {
     El transcript = Card.card(question, answer, followUp).wFull();
     // docs:end chat
     return Frame.of(transcript);
+  }
+
+  record ChatEntry(int id, boolean fromUser, String text, MarkdownDocument document) {}
+
+  final List<ChatEntry> transcriptMessages = new ArrayList<>(
+      List.of(
+          new ChatEntry(
+              1, true, "Why did the orders query slow down after Monday's release?", null),
+          new ChatEntry(
+              2,
+              false,
+              null,
+              Markdown.parse(
+                  "The `orders` table grew past 1.8M rows and has no composite index on `(status, created_at)`, "
+                      + "so PostgreSQL switched from an index scan to a sequential scan.")),
+          new ChatEntry(3, true, "Can we add the index without blocking writes?", null),
+          new ChatEntry(4, false, null, Markdown.parse("""
+              Yes — build it concurrently so writes keep running:
+
+              ```sql
+              CREATE INDEX CONCURRENTLY orders_status_created
+                ON orders (status, created_at);
+              ```""")),
+          new ChatEntry(5, true, "How much space will that take?", null),
+          new ChatEntry(
+              6,
+              false,
+              null,
+              Markdown.parse(
+                  "About 68 MB for the current 1.8M rows. Run `ANALYZE orders;` afterward so the planner picks it up immediately.")),
+          new ChatEntry(7, true, "Should we drop the single-column index on status?", null),
+          new ChatEntry(
+              8,
+              false,
+              null,
+              Markdown.parse(
+                  "Yes — `orders_status_created` leads with `status`, so it serves equality lookups on `status` alone too."))));
+
+  final List<ChatEntry> olderMessages = List.of(
+      new ChatEntry(-2, true, "Which queries got slower this week?", null),
+      new ChatEntry(-1, false, null, Markdown.parse("Only the open orders query, since Monday.")));
+
+  // docs:start chat-transcript
+  final ScrollState transcriptScroll = new ScrollState().followEnd();
+  final RowHeights transcriptHeights =
+      new RowHeights(index -> 72, index -> transcriptMessages.get(index).id());
+  boolean hasOlderMessages = true;
+
+  void loadOlderMessages() {
+    // Here from memory; an app asks its store for the page before the first message.
+    transcriptMessages.addAll(0, olderMessages);
+    hasOlderMessages = false;
+  }
+
+  El renderMessage(int index) {
+    ChatEntry entry = transcriptMessages.get(index);
+    return entry.fromUser() ? Chat.user(entry.text()) : Chat.agent(entry.document());
+  }
+
+  static El chatTranscriptView(Editors state) {
+    return Chat.transcript(
+            state.transcriptMessages.size(),
+            state::renderMessage,
+            state.transcriptScroll,
+            state.transcriptHeights,
+            state.hasOlderMessages ? state::loadOlderMessages : null)
+        .grow(1);
+  }
+  // docs:end chat-transcript
+
+  static El chatTranscript(Editors state) {
+    return Frame.of(Card.flush(chatTranscriptView(state)).wFull().grow(1));
   }
 
   // docs:start markdown-languages

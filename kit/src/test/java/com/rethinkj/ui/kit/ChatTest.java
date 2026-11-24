@@ -8,10 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -171,5 +175,181 @@ class ChatTest {
     assertTrue(dump.contains("role=article label=\"Agentennachricht\""), dump);
     assertTrue(dump.contains("role=status label=\"Arbeitet…\""), dump);
     assertTrue(dump.contains("role=progressbar"), dump);
+  }
+
+  private record TranscriptMessage(int id, boolean fromUser, String text, MarkdownDocument doc) {}
+
+  private static final class TranscriptState {
+    final List<TranscriptMessage> messages = new ArrayList<>();
+    final ScrollState scroll = new ScrollState();
+    final RowHeights heights =
+        new RowHeights(index -> 64, index -> messages.get(index).id());
+    final StringBuilder lastSource = new StringBuilder("Initial streaming summary for `orders`.");
+    int olderRequests;
+    boolean hasOlder = true;
+
+    TranscriptState() {
+      for (int id = 6; id <= 12; id++) {
+        if (id % 2 == 0) {
+          messages.add(new TranscriptMessage(
+              id, true, "Question " + id + ": check query plan for orders table.", null));
+        } else {
+          messages.add(
+              new TranscriptMessage(
+                  id,
+                  false,
+                  null,
+                  Markdown.parse(
+                      "Answer "
+                          + id
+                          + ": the planner scanned `orders` sequentially because no composite index covers `status` and `created_at`.")));
+        }
+      }
+      messages.add(new TranscriptMessage(13, false, null, Markdown.parse(lastSource.toString())));
+    }
+
+    void appendToLast(String extra) {
+      int last = messages.size() - 1;
+      TranscriptMessage current = messages.get(last);
+      lastSource.append("\n\n").append(extra);
+      messages.set(
+          last,
+          new TranscriptMessage(
+              current.id(), false, null, current.doc().next(lastSource.toString())));
+    }
+
+    void requestOlder() {
+      olderRequests++;
+    }
+
+    void prependOlder() {
+      List<TranscriptMessage> older = new ArrayList<>();
+      for (int id = 1; id <= 5; id++) {
+        older.add(new TranscriptMessage(
+            id,
+            id % 2 == 1,
+            id % 2 == 1 ? "Older question " + id + " from earlier in the session." : null,
+            id % 2 == 1
+                ? null
+                : Markdown.parse("Older answer "
+                    + id
+                    + ": checked index bloat and vacuum stats across all partitions.")));
+      }
+      messages.addAll(0, older);
+      hasOlder = false;
+    }
+
+    El render(int index) {
+      TranscriptMessage entry = messages.get(index);
+      El element = entry.fromUser() ? Chat.user(entry.text()) : Chat.agent(entry.doc());
+      return element.key("msg-" + entry.id());
+    }
+  }
+
+  private static El rowContaining(El root, String key) {
+    El list = findByKey(root, "list");
+    for (El row : list.children()) {
+      if (findByKey(row, key) != null) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  private static El findByKey(El root, String key) {
+    if (key.equals(root.key())) {
+      return root;
+    }
+    for (El child : root.children()) {
+      El found = findByKey(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  @Test
+  void transcriptFollowsStreamingShowsJumpButtonAndLoadsOlder() throws IOException {
+    TranscriptState state = new TranscriptState();
+    App<TranscriptState> app = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Chat.transcript(
+                        s.messages.size(),
+                        s::render,
+                        s.scroll,
+                        s.heights,
+                        s.hasOlder ? s::requestOlder : null)
+                    .key("transcript")
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    // Starts at the bottom, centered to Theme.Prose.measure(), with no jump button and no older
+    // load.
+    Script.run("size 820 320 scale 2\nframe", app, out);
+    assertTrue(state.scroll.atEnd(), "starts following at end");
+    assertEquals(0, state.olderRequests, "does not ask for older messages at bottom");
+    String initialDump = app.tree().dump();
+    assertTrue(initialDump.contains("role=log label=\"Transcript\""), initialDump);
+    assertFalse(initialDump.contains("label=\"Jump to newest\""), initialDump);
+    El lastMessage = findByKey(app.tree(), "msg-13");
+    assertTrue(lastMessage != null, "newest message is built");
+    assertEquals(
+        Theme.DARK.prose().measure(), lastMessage.width(), 1.0f, "capped to prose measure");
+    assertTrue(lastMessage.x() > 20f, "centered in 820px viewport: x=" + lastMessage.x());
+
+    // Streaming into the last message keeps the transcript at the end.
+    double yBeforeStream = state.scroll.y();
+    state.appendToLast(
+        "Adding a composite index on `(status, created_at)` drops execution time from 4.2 s to 12 ms.\n\n"
+            + "```sql\nCREATE INDEX CONCURRENTLY orders_status_created ON orders (status, created_at);\n```");
+    app.invalidate();
+    Script.run("frame", app, out);
+    assertTrue(state.scroll.atEnd(), "still at end while streaming");
+    assertTrue(state.scroll.y() > yBeforeStream, "scrolled further down as last message grew");
+    assertFalse(
+        app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
+
+    // Scrolling up stops following, shows the floating jump button, and stays put while streaming.
+    Script.run("wheel role=log 0 -160\nframe\nadvance 1\nframe", app, out);
+    assertFalse(state.scroll.atEnd(), "scrolled away from end");
+    double stayedAt = state.scroll.y();
+    assertTrue(
+        app.tree().dump().contains("role=button label=\"Jump to newest\""),
+        app.tree().dump());
+    state.appendToLast("Run `ANALYZE orders;` after creating the index so the planner uses it.");
+    app.invalidate();
+    List<Path> scrolledFiles = Script.run("frame\nsnap scrolled", app, out);
+    assertFalse(state.scroll.atEnd(), "stays away from end while last message grows");
+    assertEquals(stayedAt, state.scroll.y(), 0.5, "scroll position stayed put while streaming");
+    assertTrue(
+        app.tree().dump().contains("role=button label=\"Jump to newest\""),
+        app.tree().dump());
+    Golden.assertSnaps("chat-transcript-dark-2x-", scrolledFiles, "scrolled");
+
+    // Pressing the floating button jumps back to the end, hides the button, and resumes following.
+    List<Path> bottomFiles = Script.run(
+        "press role=button label=\"Jump to newest\"\nframe\nadvance 1\nframe\nsnap bottom",
+        app,
+        out);
+    assertTrue(state.scroll.atEnd(), "back at end after pressing jump button");
+    assertFalse(
+        app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
+    Golden.assertSnaps("chat-transcript-dark-2x-", bottomFiles, "bottom");
+
+    // At the top it asks for older messages, and those that arrive keep the first one in view: it
+    // moves up by the padding above it, which scrolls away.
+    Script.run("wheel role=log 0 -2000\nframe\nframe", app, out);
+    assertEquals(1, state.olderRequests, "asked once for older messages at the top");
+    assertEquals(Theme.DARK.space().m(), rowContaining(app.tree(), "msg-6").y(), 0.5f);
+    state.prependOlder();
+    app.invalidate();
+    Script.run("frame", app, out);
+    assertEquals(0, rowContaining(app.tree(), "msg-6").y(), 0.5f, app.tree().dump());
   }
 }
