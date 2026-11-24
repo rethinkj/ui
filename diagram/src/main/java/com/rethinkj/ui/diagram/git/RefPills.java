@@ -261,7 +261,8 @@ public final class RefPills {
     double high = 1;
     for (int i = 0; i < 12; i++) {
       double mid = (low + high) / 2;
-      if (Colors.contrast(Colors.mix(color, target, mid), background) >= MIN_CONTRAST) {
+      int trial = Colors.over(background, Colors.mix(color, target, mid));
+      if (Colors.contrast(trial, background) >= MIN_CONTRAST) {
         high = mid;
       } else {
         low = mid;
