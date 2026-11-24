@@ -125,7 +125,7 @@ class DocsExamplesTest {
       Map.entry("canvas-arrange", List.of("view")),
       Map.entry("canvas-edges", List.of("view")),
       Map.entry("er-diagram", List.of("view", "selected", "skeleton", "names")),
-      Map.entry("git-log", List.of("view", "range")),
+      Map.entry("git-log", List.of("view", "range", "filtered")),
       Map.entry("git-log-details", List.of("view")),
       Map.entry("git-log-menus", List.of("menu")));
 

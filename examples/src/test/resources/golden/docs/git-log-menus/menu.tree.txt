@@ -5,8 +5,12 @@ el 0,0 920x507
       el label="18 commits" 87,22 81x22
         text "18 commits" 95,26 65x15
       el 176,33 0x0
-      el role=toolbar label="Branch scope" 184,21 618x24
-        el 184,33 423x0
+      el 184,21 200x24
+        el 184,21 200x24
+          text role=textbox label="Filter commits" "" 184,21 200x24
+          text label="search" "\u{EA7C}" 188,25 16x16
+      el role=toolbar label="Branch scope" 392,21 410x24
+        el 392,33 215x0
         el role=group 613,21 147x24
           el role=button label="All branches" 615,23 143x20 expanded=false
             text label="branch" "\u{F0A6}" 628,25 16x16

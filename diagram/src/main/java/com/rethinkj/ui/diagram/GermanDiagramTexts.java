@@ -1,5 +1,6 @@
 package com.rethinkj.ui.diagram;
 
+import com.rethinkj.ui.diagram.git.Ref;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZonedDateTime;
@@ -239,6 +240,36 @@ public class GermanDiagramTexts implements DiagramTexts {
   @Override
   public String commitLabel(String shortHash) {
     return "Commit " + shortHash;
+  }
+
+  @Override
+  public String filterCommits() {
+    return "Commits filtern";
+  }
+
+  @Override
+  public String commitMatches(int matches, int total) {
+    return matches + " von " + total;
+  }
+
+  @Override
+  public String noMatches() {
+    return "Keine Treffer";
+  }
+
+  @Override
+  public String goToRef() {
+    return "Gehe zu Referenz";
+  }
+
+  @Override
+  public String refKind(Ref.Kind kind) {
+    return switch (kind) {
+      case HEAD -> "HEAD";
+      case BRANCH -> "Branch";
+      case REMOTE -> "Remote-Branch";
+      case TAG -> "Tag";
+    };
   }
 
   @Override

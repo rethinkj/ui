@@ -4,7 +4,11 @@ el 0,0 960x360
       text role=heading "History" 29,25 49x17 level=3
       el label="12 of 24" 86,22 62x22
         text "12 of 24" 94,26 46x14
-      el 156,33 687x0
+      el 156,33 479x0
+      el 643,21 200x24
+        el 643,21 200x24
+          text role=textbox label="Filter commits" "" 643,21 200x24
+          text label="search" "\u{EA7C}" 647,25 16x16
       el role=button label="Fetch" 851,21 80x24
         text label="arrow_download" "\u{F14F}" 864,25 16x16
         text "Fetch" 884,25 34x16

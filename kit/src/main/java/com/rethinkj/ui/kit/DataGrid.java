@@ -846,7 +846,7 @@ public final class DataGrid {
 
     /**
      * The kinds of filter, as the header's popover offers them and {@link Texts#filterKind}
-     * names them; a {@link TextMatch} takes the first three.
+     * names them; a {@link TextMatch} takes the first four.
      */
     public enum Kind {
       /** Text with the value in it, whatever the case. */
@@ -855,6 +855,8 @@ public final class DataGrid {
       STARTS_WITH,
       /** The value, whatever the case. */
       EQUALS,
+      /** The value exactly, case and all. */
+      EXACTLY,
       /** Text in which a regular expression finds a match ({@link RegexMatch}). */
       MATCHES,
       /** A range ({@link Between}). */
@@ -869,9 +871,11 @@ public final class DataGrid {
     public sealed interface Spec permits TextMatch, RegexMatch, Between, OneOf, NullCheck {}
 
     /**
-     * Text with {@code value} in it, beginning with it or equal to it, whatever the case.
+     * Text with {@code value} in it, beginning with it or equal to it (whatever the case, or case
+     * and all for {@link Kind#EXACTLY}).
      *
-     * @param kind {@link Kind#CONTAINS}, {@link Kind#STARTS_WITH} or {@link Kind#EQUALS}
+     * @param kind {@link Kind#CONTAINS}, {@link Kind#STARTS_WITH}, {@link Kind#EQUALS} or {@link
+     *     Kind#EXACTLY}
      * @param value the text, null for empty
      */
     public record TextMatch(Kind kind, String value) implements Spec {
@@ -879,7 +883,10 @@ public final class DataGrid {
        * @throws IllegalArgumentException for another kind
        */
       public TextMatch {
-        if (kind != Kind.CONTAINS && kind != Kind.STARTS_WITH && kind != Kind.EQUALS) {
+        if (kind != Kind.CONTAINS
+            && kind != Kind.STARTS_WITH
+            && kind != Kind.EQUALS
+            && kind != Kind.EXACTLY) {
           throw new IllegalArgumentException("Not a kind of text: " + kind);
         }
         value = value == null ? "" : value;
@@ -951,12 +958,15 @@ public final class DataGrid {
       }
       return switch (spec) {
         case TextMatch(Kind kind, String value) -> {
+          if (kind == Kind.EXACTLY) {
+            yield cell.equals(value);
+          }
           String low = cell.toLowerCase(Locale.ROOT);
           String want = value.toLowerCase(Locale.ROOT);
           yield switch (kind) {
             case CONTAINS -> low.contains(want);
             case STARTS_WITH -> low.startsWith(want);
-            default -> low.equals(want); // EQUALS, the only other kind a TextMatch takes
+            default -> low.equals(want); // EQUALS, the only other kind left
           };
         }
         case RegexMatch regex -> regex.pattern.matcher(cell).find();
@@ -1024,6 +1034,7 @@ public final class DataGrid {
           switch (kind) {
             case CONTAINS -> texts.contains(title, value);
             case STARTS_WITH -> texts.startsWith(title, value);
+            case EXACTLY -> texts.equalsExactly(title, value);
             default -> title + " = " + value;
           };
         case RegexMatch regex -> texts.matches(title, regex.expression());

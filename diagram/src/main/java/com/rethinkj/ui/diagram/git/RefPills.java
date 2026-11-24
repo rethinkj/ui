@@ -61,16 +61,20 @@ public final class RefPills {
    *     pill
    */
   public static El pills(List<Ref> refs, int lane, int background, float nameWidth, int most) {
-    return pills(refs, lane, background, nameWidth, most, null);
+    return pills(refs, lane, background, nameWidth, most, 0, null);
   }
 
-  /** Like {@link #pills(List, int, int, float, int)}, with an optional secondary-press handler. */
+  /**
+   * Builds a horizontal row of pills, optionally dimmed by mixing colors opaquely towards {@code
+   * background} by {@code fading} (0 for full strength), with an optional secondary-press handler.
+   */
   static El pills(
       List<Ref> refs,
       int lane,
       int background,
       float nameWidth,
       int most,
+      float fading,
       RefPress onSecondaryPress) {
     Objects.requireNonNull(refs, "refs");
     if (!(nameWidth > 0 && Float.isFinite(nameWidth))) {
@@ -88,7 +92,8 @@ public final class RefPills {
     }
     int shown = Math.min(items.size(), most);
     for (int i = 0; i < shown; i++) {
-      strip.child(pill(items.get(i), lane, background, nameWidth, theme, texts, onSecondaryPress));
+      strip.child(
+          pill(items.get(i), lane, background, nameWidth, fading, theme, texts, onSecondaryPress));
     }
     if (items.size() > most) {
       List<Pill> hidden = items.subList(most, items.size());
@@ -98,6 +103,12 @@ public final class RefPills {
       String tip = texts.moreRefs(hidden.size(), names);
       El overflow =
           Badge.badge("+" + hidden.size()).radius(theme.badge().row() / 2).label(tip);
+      if (fading > 0) {
+        int opaqueBg = Colors.alpha(background, 1);
+        Theme.Tone neutral = theme.badge().neutral();
+        overflow.fill(Colors.mix(Colors.over(opaqueBg, neutral.soft()), opaqueBg, fading));
+        overflow.children().getFirst().color(Colors.mix(neutral.softText(), opaqueBg, fading));
+      }
       strip.child(Tooltip.tooltip(overflow, tip));
     }
     return strip;
@@ -199,6 +210,7 @@ public final class RefPills {
       int lane,
       int background,
       float nameWidth,
+      float fading,
       Theme theme,
       DiagramTexts texts,
       RefPress onSecondaryPress) {
@@ -230,39 +242,50 @@ public final class RefPills {
             headInk = candidate;
           }
         }
+        int pillFill = fading > 0 ? Colors.mix(solid, opaqueBg, fading) : solid;
+        int dimInk = fading > 0 ? Colors.mix(headInk, pillFill, fading) : headInk;
         float dot = theme.size().dot();
         pill.radius(height / 2)
-            .fill(solid)
+            .fill(pillFill)
             .child(el().size(dot, dot)
                 .shrink(0)
                 .margin(0, theme.space().xs(), 0, 0)
                 .radius(dot / 2)
-                .fill(headInk));
-        yield headInk;
+                .fill(dimInk));
+        yield dimInk;
       }
       case BRANCH -> {
         int fill = Colors.alpha(solid, TINT_ALPHA);
         int branchInk =
             readable(solid, Colors.over(opaqueBg, fill), theme.text().primary());
+        int pillFill =
+            fading > 0 ? Colors.mix(Colors.over(opaqueBg, fill), opaqueBg, fading) : fill;
+        int dimInk = fading > 0 ? Colors.mix(branchInk, opaqueBg, fading) : branchInk;
         pill.radius(height / 2)
-            .fill(fill)
-            .child(Icon.icon(Symbol.BRANCH, Icon.Variant.MUTED, iconSize).color(branchInk));
-        yield branchInk;
+            .fill(pillFill)
+            .child(Icon.icon(Symbol.BRANCH, Icon.Variant.MUTED, iconSize).color(dimInk));
+        yield dimInk;
       }
       case REMOTE -> {
         int remoteInk = readable(solid, opaqueBg, theme.text().primary());
+        int border = fading > 0 ? Colors.mix(solid, opaqueBg, fading) : solid;
+        int dimInk = fading > 0 ? Colors.mix(remoteInk, opaqueBg, fading) : remoteInk;
         pill.radius(height / 2)
-            .border(theme.size().stroke(), solid)
-            .child(Icon.icon(Symbol.CLOUD, Icon.Variant.MUTED, iconSize).color(remoteInk));
-        yield remoteInk;
+            .border(theme.size().stroke(), border)
+            .child(Icon.icon(Symbol.CLOUD, Icon.Variant.MUTED, iconSize).color(dimInk));
+        yield dimInk;
       }
       case TAG -> {
         Theme.Tone neutral = badges.neutral();
         int tagInk = neutral.softText();
+        int pillFill = fading > 0
+            ? Colors.mix(Colors.over(opaqueBg, neutral.soft()), opaqueBg, fading)
+            : neutral.soft();
+        int dimInk = fading > 0 ? Colors.mix(tagInk, opaqueBg, fading) : tagInk;
         pill.radius(theme.radius().small())
-            .fill(neutral.soft())
-            .child(Icon.icon(Symbol.TAG, Icon.Variant.MUTED, iconSize).color(tagInk));
-        yield tagInk;
+            .fill(pillFill)
+            .child(Icon.icon(Symbol.TAG, Icon.Variant.MUTED, iconSize).color(dimInk));
+        yield dimInk;
       }
     };
 

@@ -14,6 +14,7 @@ import com.rethinkj.ui.diagram.DiagramTexts;
 import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Progress;
@@ -66,13 +67,23 @@ import java.util.function.IntPredicate;
  * tool islands for the branch scope ({@link Scope}) and first-parent view appear when {@link
  * Options#scope} or {@link Options#firstParent} are configured.
  *
- * <p>In a tree dump the virtual list is {@code role=grid} with key {@code rows}, the column header
- * is {@code role=row} with key {@code header} and {@code role=columnheader} cells, and each commit
- * row is {@code role=row} with key {@code row-<index>}, a label such as {@code commit a41f9c2, Show
- * query duration, Mara Lindqvist, 38 min ago, HEAD → main}, {@code selected} and {@code current}
- * states, and its graph cell labeled with {@link CommitGraph#text(int)}. While {@link
- * Options#onMore} is set, a non-selectable row with key {@code loading} follows the last loaded
- * commit.
+ * <p>The header holds a filter field that matches commit subjects and
+ * authors by case-insensitive substring and commit hashes by prefix. Non-matching commits are
+ * dimmed while the graph stays whole, and matched text is highlighted. Enter in the field and F3
+ * jump to the next match (wrapping at the end), and Shift+Enter in the field and Shift+F3 jump to
+ * the previous; the first jump for a filter of at least four hex digits goes to the commit whose
+ * hash starts with it. Control+F focuses the field and Control+G opens a fuzzy "Go to ref" popup ({@link CommandPalette}) listing refs
+ * whose commit is loaded; choosing one selects its row and scrolls it into view. These keys work
+ * while the focus is within the log.
+ *
+ * <p>In a tree dump the filter field is labeled by its placeholder ({@link
+ * DiagramTexts#filterCommits}), the virtual list is {@code role=grid} with key {@code rows}, the
+ * column header is {@code role=row} with key {@code header} and {@code role=columnheader} cells,
+ * and each commit row is {@code role=row} with key {@code row-<index>}, a label such as {@code
+ * commit a41f9c2, Show query duration, Mara Lindqvist, 38 min ago, HEAD → main}, {@code selected}
+ * and {@code current} states, and its graph cell labeled with {@link CommitGraph#text(int)}. While
+ * {@link Options#onMore} is set, a non-selectable row with key {@code loading} follows the last
+ * loaded commit.
  */
 public final class GitLog {
 
@@ -106,6 +117,11 @@ public final class GitLog {
     private int cursor = -1;
     private int anchor = -1;
     private int hoveredRow = -1;
+    private String filter = "";
+    final CommandPalette.State palette = new CommandPalette.State();
+    int filterFocus;
+    String jumped = ""; // the filter the last jump was for
+    El list; // the commit list of the last build, null while it is empty
     private int askedAt = -1;
     private Runnable onMore; // of the last build, which a queued onRowsBuilt may outlive
     private int loaded;
@@ -192,6 +208,33 @@ public final class GitLog {
     public void clearSelection() {
       cursor = -1;
       anchor = -1;
+    }
+
+    /** The filter text matching commit subjects, authors and hash prefixes; empty for none. */
+    public String filter() {
+      return filter;
+    }
+
+    /** Sets the filter text; empty clears the filter. */
+    public void filter(String filter) {
+      if (!Objects.requireNonNull(filter, "filter").equals(this.filter)) {
+        this.filter = filter;
+        jumped = "";
+      }
+    }
+
+    ScrollState scroll() {
+      return scroll;
+    }
+
+    /** The row of the commit {@code id} in the last laid-out history, or {@code -1}. */
+    int row(String id) {
+      for (int i = 0; i < laidOut.size(); i++) {
+        if (laidOut.get(i).id().equals(id)) {
+          return i;
+        }
+      }
+      return -1;
     }
 
     void extend(int row) {
@@ -533,6 +576,11 @@ public final class GitLog {
     float dateColWidth = theme.size().field() / 2;
     float commitColWidth = 3 * theme.size().control() + theme.space().xl();
 
+    String needle = GitLogFind.normalize(state.filter());
+    int matchCount = needle.isEmpty() ? count : GitLogFind.countMatches(commits, needle);
+    float rowHeight = style.rowHeight();
+    state.list = null;
+
     boolean hasMore = options.onMore != null;
     state.onMore = options.onMore;
     state.loaded = count;
@@ -543,15 +591,20 @@ public final class GitLog {
     El countBadge = Badge.badge(
             countText(texts, count, options.total), Badge.options().toolbar())
         .radius(theme.badge().toolbar() / 2);
+    El filterControl =
+        GitLogFind.filterControl(state, commits, needle, matchCount, rowHeight, theme, texts);
     El tools = viewTools(state, localBranches, options, texts);
-    List<El> barList = new ArrayList<>(actions.length + 3);
+    List<El> barList = new ArrayList<>(actions.length + 4);
     barList.add(countBadge);
     barList.add(Card.spacer());
+    barList.add(filterControl);
     if (tools != null) {
       barList.add(tools);
     }
     barList.addAll(Arrays.asList(actions));
     El header = Card.toolbar(texts.history(), null, barList.toArray(El[]::new));
+    // After the toolbar's shrink(0): the filter gives way before the app's actions.
+    filterControl.shrink(1).minSize(0, 0);
 
     El columns =
         columnHeader(theme, texts, graphColWidth, authorColWidth, dateColWidth, commitColWidth);
@@ -568,7 +621,6 @@ public final class GitLog {
           .child(Label.label(Label.Variant.MUTED, texts.noCommits()));
     } else {
       boolean[] focused = {false};
-      float rowHeight = style.rowHeight();
       int hoveredChain =
           state.hoveredRow >= 0 && state.hoveredRow < count ? graph.color(state.hoveredRow) : -1;
       IntPredicate faded = hoveredChain >= 0 ? chain -> chain != hoveredChain : null;
@@ -601,6 +653,7 @@ public final class GitLog {
             maybeAskMore(state, last);
           });
 
+      state.list = list;
       list.onKey(key -> handleKey(key, state, commits, options.onOpen, list, rowHeight));
       attachMenus(list, state, commits, refsByCommit, options);
       list.rows(
@@ -621,6 +674,8 @@ public final class GitLog {
                   rangeEnd,
                   hasRange,
                   faded,
+                  needle,
+                  style.fading(),
                   theme,
                   texts,
                   rowHeight,
@@ -639,7 +694,9 @@ public final class GitLog {
         Label.label(Label.Variant.SMALL, countsText).color(theme.text().muted());
     El footer = Card.footer(statusEl, countsEl);
 
-    El card = Card.flush(header, columns, body, footer);
+    El card = Card.flush(header, columns, body, footer)
+        .onKey(key -> GitLogFind.handleCardKey(key, state, commits, refs, needle, rowHeight, texts))
+        .overlay(CommandPalette.palette(state.palette, List.of(), List.of()));
     if (options.details == null) {
       return card;
     }
@@ -720,6 +777,8 @@ public final class GitLog {
       int rangeEnd,
       boolean hasRange,
       IntPredicate faded,
+      String needle,
+      float fading,
       Theme theme,
       DiagramTexts texts,
       float rowHeight,
@@ -733,6 +792,9 @@ public final class GitLog {
     boolean isInRange = isSelected && !isEndpoint;
     boolean isHovered = index == state.hoveredRow;
     boolean isMerge = commit.parents().size() >= 2;
+    boolean filtering = !needle.isEmpty();
+    boolean matched = !filtering || GitLogFind.matches(commit, needle);
+    boolean dimmed = filtering && !matched;
 
     int panel = theme.surface().panel();
     int selFill = focused ? theme.grid().selected() : theme.grid().selectedInactive();
@@ -762,6 +824,7 @@ public final class GitLog {
     String fullDate = texts.fullDate(commit.time().atZone(state.clock.getZone()));
     String rowLabel =
         rowLabel(shortHash, commit.subject(), commit.author(), relativeDate, rowRefs, texts);
+    int matchBg = isCurrent ? theme.code().current() : theme.code().match();
 
     El graphBox = row()
         .w(graphColWidth)
@@ -789,24 +852,44 @@ public final class GitLog {
               rowBg,
               theme.size().minTabGroup() + theme.space().xxl(),
               MAX_REF_PILLS,
+              dimmed ? fading : 0,
               refPress)
           .shrink(1) // pills give way so the subject keeps its share of a narrow column
           .minSize(0, 0)
           .clip());
     }
     Theme.TextStyle bodyType = theme.type().body();
+    int subjectColor = isMerge ? theme.text().muted() : theme.text().primary();
     El subject = El.text(commit.subject())
         .font(bodyType.font().get())
         .fontSize(bodyType.size())
-        .color(isMerge ? theme.text().muted() : theme.text().primary())
+        .color(dimmed ? theme.text().disabled() : subjectColor)
         .grow(1)
         .shrink(SUBJECT_SHRINK)
         .ellipsis();
+    if (filtering && matched) {
+      GitLogFind.highlightSubstrings(subject, commit.subject(), needle, matchBg);
+    }
     // The subject gives way first, down to the date column's width, then the pills, then the rest.
     subject.style().minWidth = Len.px(dateColWidth);
     subject.style().minYields = true;
     messageCell.child(subject);
 
+    El avatar = Avatar.avatar(commit.author(), null, theme.size().controlSmall());
+    if (dimmed) {
+      GitLogFind.dimAvatar(avatar, rowBg, fading);
+    }
+    int authorColor = dimmed ? theme.text().disabled() : theme.text().primary();
+    El authorText = El.text(commit.author())
+        .font(bodyType.font().get())
+        .fontSize(bodyType.size())
+        .color(authorColor)
+        .grow(1)
+        .ellipsis()
+        .minSize(0, 0);
+    if (filtering && matched) {
+      GitLogFind.highlightSubstrings(authorText, commit.author(), needle, matchBg);
+    }
     El authorCell = row()
         .w(authorColWidth)
         .h(rowHeight)
@@ -815,16 +898,11 @@ public final class GitLog {
         .gap(theme.space().m())
         .padding(0, theme.space().m())
         .clip()
-        .child(Avatar.avatar(commit.author(), null, theme.size().controlSmall()))
-        .child(El.text(commit.author())
-            .font(bodyType.font().get())
-            .fontSize(bodyType.size())
-            .color(theme.text().primary())
-            .grow(1)
-            .ellipsis()
-            .minSize(0, 0));
+        .child(avatar)
+        .child(authorText);
 
     Theme.TextStyle smallType = theme.type().small();
+    int mutedColor = dimmed ? theme.text().disabled() : theme.text().muted();
     El dateCell = Tooltip.tooltip(
         row()
             .w(dateColWidth)
@@ -836,12 +914,17 @@ public final class GitLog {
             .child(El.text(relativeDate)
                 .font(smallType.font().get())
                 .fontSize(smallType.size())
-                .color(theme.text().muted())
+                .color(mutedColor)
                 .ellipsis()
                 .minSize(0, 0)),
         fullDate);
 
     Theme.TextStyle monoType = theme.type().mono();
+    El hashText =
+        El.text(shortHash).font(monoType.font().get()).fontSize(monoType.size()).color(mutedColor);
+    if (filtering && matched) {
+      GitLogFind.highlightPrefix(hashText, shortHash, commit.id(), needle, matchBg);
+    }
     El commitCell = row()
         .w(commitColWidth)
         .h(rowHeight)
@@ -849,10 +932,7 @@ public final class GitLog {
         .align(Style.Align.CENTER)
         .padding(0, theme.space().xl(), 0, theme.space().m())
         .clip()
-        .child(El.text(shortHash)
-            .font(monoType.font().get())
-            .fontSize(monoType.size())
-            .color(theme.text().muted()));
+        .child(hashText);
 
     El r = row()
         .key("row-" + index)
