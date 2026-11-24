@@ -918,4 +918,97 @@ class TextAreaTest {
         "the caret's row under the pointer: " + caret);
     assertEquals(26, caretLine(app.get()), "the press, on the first row the jump left in view");
   }
+
+  @Test
+  void aGrowingFieldFollowsItsRowsBetweenLinesAndMaxLinesAndScrollsBeyond() {
+    // Line height 18, padding 4 on each side (8 total): 1..4 lines are 26, 44, 62, 80 pixels high.
+    App<Model> app = focused("", f -> f.wrapText().lines(1).maxLines(4));
+    assertEquals(26, field(app).height(), "starts at its smallest height");
+    assertEquals(0, field(app).scrollY());
+
+    type(app, "one");
+    key(app, "Enter");
+    assertEquals(44, field(app).height(), "grows to two lines on the same frame");
+    assertEquals(0, field(app).scrollY());
+    assertEquals(18, field(app).text().caret().y(), "caret on the second line");
+
+    // A line that wraps onto two rows grows the field by both rows.
+    type(app, "the quick brown fox jumps over");
+    assertEquals(62, field(app).height(), "wrapped line grows to three rows");
+    assertEquals(0, field(app).scrollY());
+    assertEquals(36, field(app).text().caret().y(), "caret on the wrapped row");
+
+    key(app, "Enter");
+    type(app, "four");
+    assertEquals(80, field(app).height(), "reaches maxLines");
+    assertEquals(0, field(app).scrollY());
+    assertEquals(54, field(app).text().caret().y(), "caret on the fourth row");
+
+    // Passing the limit stops growing, scrolls, and keeps the caret in view.
+    key(app, "Enter");
+    type(app, "five");
+    assertEquals(80, field(app).height(), "stops at maxLines");
+    assertEquals(18, field(app).scrollY(), "scrolls one row");
+    Text.Box caret = field(app).text().caret();
+    assertTrue(caret.y() >= 0 && caret.y() + 18 <= 72, "caret stays in view: " + caret);
+
+    // Pasting many lines stays at maxLines, keeps the caret in view, and shapes only visible lines.
+    int shapedBefore = field(app).editor().lineIndex().shaped;
+    app.clipboard().write("\n" + "line\n".repeat(200) + "end");
+    key(app, "V", CONTROL);
+    assertEquals(80, field(app).height(), "still at maxLines after a long paste");
+    assertTrue(
+        field(app).scrollY() > 3000, "scrolled to the pasted end: " + field(app).scrollY());
+    caret = field(app).text().caret();
+    assertTrue(caret.y() >= 0 && caret.y() + 18 <= 72, "caret stays in view: " + caret);
+    assertTrue(
+        field(app).editor().lineIndex().shaped - shapedBefore < 40,
+        "a long paste did not shape all lines");
+
+    // Deleting shrinks the field back and leaves a valid scroll offset.
+    key(app, "Z", CONTROL);
+    assertEquals(80, field(app).height(), "back to five rows");
+    assertEquals(18, field(app).scrollY(), "scroll offset clamped back");
+    for (int i = 0; i < 5; i++) {
+      key(app, "Backspace"); // removes "five" and the line break before it
+    }
+    assertEquals(80, field(app).height(), "four rows fit without scrolling");
+    assertEquals(0, field(app).scrollY(), "scroll back at the top");
+    for (int i = 0; i < 5; i++) {
+      key(app, "Backspace"); // removes "four" and the line break before it
+    }
+    assertEquals(62, field(app).height(), "shrinks to three rows");
+    assertEquals(0, field(app).scrollY());
+    key(app, "A", CONTROL);
+    key(app, "Backspace");
+    assertEquals(26, field(app).height(), "shrinks back to its minimum");
+    assertEquals(0, field(app).scrollY());
+    assertEquals(0, field(app).text().caret().y());
+
+    // A rebuild keeps the scroll offset; a wider field scrolls to its last row.
+    UnaryOperator<El> growing = f -> f.wrapText().lines(1).maxLines(4).wFull();
+    String paragraph = ("a".repeat(29) + " ").repeat(20); // a row a word, wide or not
+    App<Model> pasted = focused("", growing);
+    pasted.clipboard().write(paragraph);
+    key(pasted, "V", CONTROL);
+    double scrolled = field(pasted).scrollY();
+    assertTrue(scrolled > 0, "a paragraph longer than four rows scrolls: " + scrolled);
+    pasted.invalidate();
+    pasted.frame();
+    assertEquals(scrolled, field(pasted).scrollY(), "a rebuild keeps the scroll offset");
+    pasted.resize(420, 240, 1);
+    pasted.frame();
+    pasted.wheel(50, 30, 0, 5000);
+    pasted.frame();
+    assertEquals(20 * 18 - 4 * 18, field(pasted).scrollY(), "widened, it scrolls to its last row");
+
+    // Combinations: lines() wins when maxLines < lines; fitLines() wins over maxLines; either
+    // order with multiline() works.
+    App<Model> clamped = focused("a\nb\nc\nd", f -> f.lines(3).maxLines(2));
+    assertEquals(3 * 18 + 8, field(clamped).height(), "lines wins when maxLines is smaller");
+    App<Model> fitted = focused("a\nb\nc\nd", f -> f.fitLines().maxLines(2));
+    assertEquals(4 * 18 + 8, field(fitted).height(), "fitLines wins over maxLines");
+    El beforeMultiline = El.text("a\nb").editable(s -> {}).maxLines(3).multiline();
+    assertTrue(beforeMultiline.text().multiline());
+  }
 }

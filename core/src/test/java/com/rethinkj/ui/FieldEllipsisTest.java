@@ -3,7 +3,6 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.TextLibraries;
@@ -127,15 +126,5 @@ class FieldEllipsisTest {
     assertTrue(
         text.text().lines().getLast().glyphs().width() <= 80,
         "the last line's glyphs stay inside the box");
-  }
-
-  @Test
-  void aMultilineFieldRefusesMaxLines() {
-    assertThrows(
-        IllegalStateException.class,
-        () -> El.text("a").editable(v -> {}).multiline().maxLines(3));
-    assertThrows(
-        IllegalStateException.class,
-        () -> El.text("a").editable(v -> {}).maxLines(3).multiline());
   }
 }

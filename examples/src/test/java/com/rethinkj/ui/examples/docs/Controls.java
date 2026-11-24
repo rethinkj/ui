@@ -84,6 +84,8 @@ final class Controls {
   boolean revealed;
   String note = "Ship by Friday,\nfrom the north warehouse.";
   String sql = "SELECT id,\n\tname\nFROM t;";
+  String message =
+      "Check the migration on staging\nbefore we tag the release.\nThen notify the team.";
   final Menu.State runMenu = new Menu.State();
   final Menu.State exportMenu = new Menu.State();
   final Image logo = logoImage();
@@ -595,6 +597,20 @@ final class Controls {
 
   void sql(String value) {
     sql = value;
+  }
+
+  void message(String value) {
+    message = value;
+  }
+
+  static El growingTextArea(Controls state) {
+    // docs:start growing-text-area
+    El composer = TextField.textArea(state.message, "Message", state::message)
+        .lines(1)
+        .maxLines(6)
+        .w(280);
+    // docs:end growing-text-area
+    return Frame.of(composer);
   }
 
   static El fields(Controls state) {
