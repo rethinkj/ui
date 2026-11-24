@@ -532,7 +532,7 @@ public final class Chat {
         }
         El chip = Badge.badge(name, badge).key("attachment-" + i).shrink(1);
         chip.style().minWidth = Len.ZERO;
-        chip.style().maxWidth = Len.percent(100);
+        chip.style().maxWidth = Len.percent(1);
         // A long name gives way to keep its remove button: the badge's icon, then its name.
         chip.children().get(1).maxLines(1).ellipsis().shrink(1).minSize(0, 0);
         chips.child(chip);
