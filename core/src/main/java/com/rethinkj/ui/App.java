@@ -3203,6 +3203,7 @@ public final class App<S> {
     focus.openAndCloseParts(root, time);
     refocus();
     placeEditors(true, false);
+    focus.endClaim(); // rows that scrolling builds later ask as usual
     El.placeBars(root);
   }
 

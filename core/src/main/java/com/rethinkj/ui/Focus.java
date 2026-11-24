@@ -37,7 +37,7 @@ final class Focus {
   private boolean reveal; // scroll the focused element into view after the next rebuild
   private Place beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
   private List<Object> askedNext = List.of(); // the others that asked with it, in tree order
-  private boolean claimed; // an El#takeFocus element took the focus in this tree: none else asks
+  private boolean claimed; // an El#takeFocus element took the focus in this build: none else asks
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -389,9 +389,14 @@ final class Focus {
     }
   }
 
-  /** Whether an {@link El#takeFocus} element took the focus in the current tree. */
+  /** Whether an {@link El#takeFocus} element took the focus in the build that runs. */
   boolean claimed() {
     return claimed;
+  }
+
+  /** Ends the build in which an {@link El#takeFocus} element may have taken the focus. */
+  void endClaim() {
+    claimed = false;
   }
 
   /**
@@ -401,7 +406,7 @@ final class Focus {
    * {@link El#autofocus} element or else its first focusable one, without a ring, unless it {@link
    * El#keepFocus keeps the focus} where it is. Unless one did, the first element that asks for the
    * focus with {@link El#autofocus} takes it; the first that {@link El#takeFocus takes the focus}
-   * then takes it from them, and nothing that asks later in this tree takes it from that one. A
+   * then takes it from them, and nothing that asks later in this build takes it from that one. A
    * modal overlay without one takes the focus away until it closes. An element that {@link
    * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
    * #refocus} finds the element after layout.
