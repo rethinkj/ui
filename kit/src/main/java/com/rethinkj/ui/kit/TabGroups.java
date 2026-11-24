@@ -373,6 +373,7 @@ public final class TabGroups<T> {
   private Group<T> origin; // where a torn tab came from, to go back on a cancel; null if none
   private Frame<T> originFrame;
   private int originIndex;
+  private Object originToken; // its frame's focus request when the tab left, to see a newer one
   private int startX; // where a window moved by its only tab lay
   private int startY;
   private Group<T> zoneGroup; // group whose panel shows a drop-zone preview, or null
@@ -1041,8 +1042,8 @@ public final class TabGroups<T> {
     origin = null;
     originFrame = null;
     clearZone();
-    if (emptied != null) {
-      prune(emptied);
+    if (emptied != null) { // a dock into its own window asked for the focus: it keeps it
+      prune(emptied, emptied.frame.focusToken == originToken);
     }
   }
 
@@ -1070,18 +1071,18 @@ public final class TabGroups<T> {
       group.active--;
     }
     if (prune && group.tabs.isEmpty()) {
-      prune(group);
+      prune(group, true);
     }
     return tab;
   }
 
-  private void prune(Group<T> group) {
+  private void prune(Group<T> group, boolean handFocus) {
     if (!group.tabs.isEmpty() || !hasGroup(group)) {
       return;
     }
     Frame<T> frame = group.frame;
     if (frame.isSplit()) {
-      boolean hadFocus = group.focused;
+      boolean hadFocus = group.focused && handFocus;
       Group<T> replacement = frame.remove(group);
       if (frame.active == group) {
         frame.active = replacement;
@@ -1143,6 +1144,7 @@ public final class TabGroups<T> {
       } else { // a window of its own, under the pointer
         origin = group;
         originFrame = group.frame;
+        originToken = group.frame.focusToken;
         originIndex = o.index();
         float scale = o.window() == null ? 1 : o.window().screenScale();
         Group<T> made = openWindow(

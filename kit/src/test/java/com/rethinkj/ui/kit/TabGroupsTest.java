@@ -912,12 +912,11 @@ class TabGroupsTest {
         line(app.tree().dump(), "#divider").replace(" hovered", ""),
         "divider position restored on Escape");
 
-    // Tear off again and release outside: the emptied split group is pruned on commit.
+    // Tear off again, the first step already outside, and release outside: the emptied split
+    // group is pruned on commit.
     Script.run("""
         size 400 160 at 100,100
         down role=tab label="b" at left+5
-        move 200,17
-        frame
         move screen 600,400
         frame
         up screen 600,400
@@ -926,12 +925,29 @@ class TabGroupsTest {
     assertEquals(List.of(left), d.groups.main().groups(), "emptied split group pruned on commit");
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
 
-    // Place b's window adjacent to main (at 500,100): dragging straight over b does not tear off,
-    // shows no zones in b, and docks into b's bar.
+    // Place b's window adjacent to main (at 500,100). While it takes no drops, a release over it
+    // tears nothing off and moves nothing.
     Script.run("""
         window b
         size 300 160 at 500,100
         frame
+        window main""", app, out);
+    Windows.Handle b = d.groups.frames().get(1).active().window();
+    b.dropTarget(false);
+    Script.run("""
+        down role=tab label="c" at left+5
+        move 80,17
+        frame
+        move screen 600,200
+        frame
+        up screen 600,200
+        frame""", app, out);
+    b.dropTarget(true);
+    assertEquals(2, d.groups.frames().size(), "no window opened over a window that takes no drops");
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+
+    // Dragging straight over b does not tear off, shows no zones in b, and docks into b's bar.
+    Script.run("""
         window main
         down role=tab label="c" at left+5
         move 80,17

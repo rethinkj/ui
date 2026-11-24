@@ -1148,7 +1148,8 @@ public final class App<S> {
         outside,
         place.window(),
         place.window() == null ? Float.NaN : place.x(),
-        place.window() == null ? Float.NaN : place.y()));
+        place.window() == null ? Float.NaN : place.y(),
+        place.outsideAll()));
     handled = true;
     return true;
   }
@@ -1157,7 +1158,8 @@ public final class App<S> {
   private Windows.Place place(float px, float py, boolean outside) {
     Windows.Place place = windows.place(this, px, py);
     if (place == null) { // no runner: this window alone, at the origin of the screen
-      place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
+      place = new Windows.Place(
+          px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py, false);
     }
     return place;
   }

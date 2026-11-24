@@ -1179,8 +1179,8 @@ public final class Script {
       float sy = from.y + y * from.scale;
       Win at = under(sx, sy, true);
       return at == null
-          ? new Place(sx, sy, null, Float.NaN, Float.NaN)
-          : new Place(sx, sy, at, (sx - at.x) / at.scale, (sy - at.y) / at.scale);
+          ? new Place(sx, sy, null, Float.NaN, Float.NaN, under(sx, sy, false) == null)
+          : new Place(sx, sy, at, (sx - at.x) / at.scale, (sy - at.y) / at.scale, false);
     }
   }
 

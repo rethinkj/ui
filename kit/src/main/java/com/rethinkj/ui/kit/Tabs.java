@@ -448,13 +448,11 @@ public final class Tabs {
 
     /**
      * Whether a drag tears its tab off only once the pointer leaves every window of the app
-     * ({@code d.outside() && d.window() == null}) instead of on leaving the bar by more than {@link
-     * Theme.Sizes#control}; false by default. With this on, dragging over the content of the same
-     * window stays inside (for drop zones, as in {@link TabGroups#splits}), and without a window
-     * runner a drag stays inside. Because {@link Drag#window()} is also null over a window that
-     * takes no drops ({@link Windows.Handle#dropTarget}), such a window cannot be told apart from
-     * outside every window; on Wayland, where the pointer is not reported outside a window, a tab's
-     * menu is the way to move it to a new window.
+     * ({@link Drag#outsideAll}) instead of on leaving the bar by more than {@link
+     * Theme.Sizes#control}; false by default. With this on, dragging over the content of the
+     * window stays inside, as for the drop zones of {@link TabGroups#splits}, and without a window
+     * runner a drag never tears off. On Wayland, where the pointer is not reported outside a
+     * window, a tab's menu is the way to move it to a new window.
      */
     public Options tearOffOutside(boolean on) {
       this.tearOffOutside = on;
@@ -572,7 +570,7 @@ public final class Tabs {
     boolean moving = phase == Drag.Phase.START || phase == Drag.Phase.MOVE;
     float reach = theme.size().control();
     boolean leave = o.tearOffOutside
-        ? g.window != null && d.outside() && d.window() == null // no runner: stays inside
+        ? d.outsideAll()
         : d.outside() || d.y() < -reach || d.y() > height(theme, o) + reach;
     if (moving && !g.torn && o.onTearOff != null && leave) {
       g.torn = true;

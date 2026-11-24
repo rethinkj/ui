@@ -96,8 +96,10 @@ public interface Windows {
    * @param screenX the point in screen units, see {@link Windows}
    * @param window the window there, or null
    * @param x the point in logical pixels of {@code window}; NaN without one
+   * @param outsideAll whether the point lies outside every open window of the runner, drop target
+   *     or not, as {@link com.rethinkj.ui.Drag#outsideAll}
    */
-  record Place(float screenX, float screenY, Handle window, float x, float y) {}
+  record Place(float screenX, float screenY, Handle window, float x, float y, boolean outsideAll) {}
 
   /** An open window of a runner; on the app's thread. */
   interface Handle {
