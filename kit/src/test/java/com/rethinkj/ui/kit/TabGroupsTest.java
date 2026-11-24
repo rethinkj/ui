@@ -644,6 +644,29 @@ class TabGroupsTest {
   }
 
   @Test
+  void aSplitFocusesTheNewBarOverAnAutofocusInTheStayingGroup() throws IOException {
+    // The split moves the staying group to another parent, so an open find bar there is new too.
+    TabGroups<String> groups = new TabGroups<>(List.of("a", "b"), (f, o) -> null).splits(true);
+    App<Object> app = new App<>(
+        new Object(),
+        s -> groups
+            .tabs(
+                groups.main(),
+                Tab::new,
+                t -> Label.label(t)
+                    .overlay(El.el().key("find").focusable().size(40, 10).autofocus("open")))
+            .grow(1));
+    Script.run("size 600 200\nframe", app, out);
+    assertEquals("find", app.focused().key());
+
+    Group<String> g0 = groups.main().active();
+    Group<String> g1 = groups.split(g0, 1, g0, Side.RIGHT);
+    Script.run("size 600 200\nframe", app, out); // within the frame
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+    assertSame(g1, groups.main().active());
+  }
+
+  @Test
   void activeGroupFollowsFocusPressAndDockAndClosedGroupHandsFocusToSibling() throws IOException {
     TabGroups<String> groups =
         new TabGroups<>(List.of("a", "b", "c", "d"), (f, o) -> null).splits(true);

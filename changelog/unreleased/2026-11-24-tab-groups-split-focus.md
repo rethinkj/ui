@@ -1,0 +1,1 @@
+- Fixed: after `TabGroups.split`, the focus goes to the moved tab's bar also when the group that stays holds an open `El.autofocus` element, such as a find bar or a cell editor, instead of staying there.
