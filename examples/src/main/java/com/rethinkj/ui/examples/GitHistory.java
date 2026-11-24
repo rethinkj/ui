@@ -381,7 +381,8 @@ public final class GitHistory {
       String name = fields[1];
       if (!fields[3].isEmpty()) {
         continue; // a symbolic ref, as origin/HEAD
-      } else if (name.startsWith("refs/heads/")) {
+      }
+      if (name.startsWith("refs/heads/")) {
         boolean checkedOut = fields[2].equals("*");
         onBranch |= checkedOut;
         refs.add(
@@ -450,10 +451,10 @@ public final class GitHistory {
 
     @Override
     public List<Ref> refs() throws IOException {
-      String head = text(run(List.of("rev-parse", "--verify", "--quiet", "HEAD"), null, true));
+      String head = text(run(List.of("rev-parse", "--verify", "--quiet", "HEAD"), null, true))
+          .strip();
       return parseRefs(
-          git(List.of("for-each-ref", "--format=" + REF_FORMAT)),
-          head == null ? null : head.strip());
+          git(List.of("for-each-ref", "--format=" + REF_FORMAT)), head.isEmpty() ? null : head);
     }
 
     @Override
@@ -504,10 +505,12 @@ public final class GitHistory {
     }
 
     private String file(String commit, String path) throws IOException {
-      byte[] bytes = run(List.of("show", commit + ":" + path), null, false);
-      if (bytes.length > LARGEST) {
-        return "(too large to show)";
+      String object = commit + ":" + path;
+      if (Long.parseLong(git(List.of("cat-file", "-s", object)).strip()) > LARGEST) {
+        return "(too large to show)"; // asked first, so that it is never read whole
       }
+      // a blob only: for a submodule, git names the commit, which fails with its message
+      byte[] bytes = run(List.of("cat-file", "blob", object), null, false);
       for (byte b : bytes) {
         if (b == 0) {
           return "(binary file)";
@@ -546,12 +549,12 @@ public final class GitHistory {
     }
 
     private static String text(byte[] bytes) {
-      return bytes == null ? null : new String(bytes, StandardCharsets.UTF_8);
+      return new String(bytes, StandardCharsets.UTF_8);
     }
 
     /**
-     * Git's output for {@code input} on its standard input, or null when it fails and {@code
-     * mayFail}; else its message as the error.
+     * Git's output for {@code input} on its standard input, or nothing when it fails and
+     * {@code mayFail}; else its message as the error.
      */
     private byte[] run(List<String> arguments, String input, boolean mayFail) throws IOException {
       // what the output is read as, whatever the user's configuration says
@@ -580,7 +583,7 @@ public final class GitHistory {
           return output;
         }
         if (mayFail) {
-          return null;
+          return new byte[0];
         }
         throw new IOException(message.isEmpty() ? "git exited with " + exit : message);
       } catch (InterruptedException interrupted) {
