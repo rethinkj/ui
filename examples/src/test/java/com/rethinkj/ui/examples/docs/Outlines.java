@@ -1,5 +1,7 @@
 package com.rethinkj.ui.examples.docs;
 
+import com.rethinkj.ui.El;
+import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.CodeBlock;
@@ -12,6 +14,24 @@ import java.util.List;
 final class Outlines {
 
   private Outlines() {}
+
+  // docs:start markdown-stream
+  /** State of a view whose Markdown answer arrives one piece at a time. */
+  static final class StreamingAnswer {
+    private final StringBuilder text = new StringBuilder();
+    private MarkdownDocument document = MarkdownDocument.parse("");
+
+    /** Appends the next piece from the stream and reuses unchanged blocks. */
+    void append(String piece) {
+      text.append(piece);
+      document = document.next(text.toString());
+    }
+
+    El view() {
+      return Markdown.markdown(document, Markdown.options()).grow(1);
+    }
+  }
+  // docs:end markdown-stream
 
   // docs:start markdown-model
   /** The SQL of a document's code blocks, those in quotes and lists too: to run them. */

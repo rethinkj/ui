@@ -1,6 +1,8 @@
 package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -267,5 +269,129 @@ class MarkdownParserTest {
     assertTrue(
         bytes[1] < 3 * bytes[0],
         "twice the run allocated " + bytes[0] + " and then " + bytes[1] + " bytes");
+  }
+
+  @Test
+  void streamingWithNextMatchesFullParseAndReusesUnchangedBlocks() throws IOException {
+    String all;
+    try (InputStream in = getClass().getResourceAsStream("/markdown/commonmark.txt")) {
+      all = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    String[] parts = all.split("\n" + FENCE + " example\n", -1);
+    for (int i = 1; i < parts.length; i++) {
+      String part = parts[i];
+      int dot = part.indexOf("\n.\n");
+      String markdown = part.substring(0, dot + 1).replace('→', '\t');
+      String whole = MarkdownDocument.parse(markdown).tree();
+      MarkdownDocument doc = MarkdownDocument.parse("");
+      for (int end = 1; end <= markdown.length(); end++) {
+        String prefix = markdown.substring(0, end);
+        doc = doc.next(prefix);
+        assertEquals(
+            MarkdownDocument.parse(prefix).tree(),
+            doc.tree(),
+            "example " + i + " at " + end + ":\n" + prefix);
+        assertEquals(
+            whole,
+            MarkdownDocument.parse(prefix).next(markdown).tree(),
+            "example " + i + " from " + end + ":\n" + markdown);
+      }
+      // Also when next() receives a shorter or unrelated text, and CRLF split across chunks.
+      String crlf = markdown.replace("\n", "\r\n");
+      if (crlf.length() >= 2) {
+        MarkdownDocument split = MarkdownDocument.parse(crlf.substring(0, crlf.length() / 2));
+        split = split.next(crlf);
+        assertEquals(MarkdownDocument.parse(crlf).tree(), split.tree());
+        split = split.next("other");
+        assertEquals(MarkdownDocument.parse("other").tree(), split.tree());
+      }
+    }
+
+    // Reference resolver is preserved and later link definitions still take precedence.
+    MarkdownDocument withRef = MarkdownDocument.parse(
+        "See [Foo].\n\nStill typing", label -> label.equals("Foo") ? "ref:Foo" : null);
+    withRef = withRef.next("See [Foo].\n\nStill typing more");
+    assertEquals(
+        MarkdownDocument.parse(
+                "See [Foo].\n\nStill typing more", label -> label.equals("Foo") ? "ref:Foo" : null)
+            .tree(),
+        withRef.tree());
+    withRef = withRef.next("See [Foo].\n\n[Foo]: /explicit\n");
+    assertEquals(
+        MarkdownDocument.parse(
+                "See [Foo].\n\n[Foo]: /explicit\n", label -> label.equals("Foo") ? "ref:Foo" : null)
+            .tree(),
+        withRef.tree());
+
+    // Lines read in the context of an open block: a table's header, a line that starts a
+    // paragraph which then has no text.
+    for (String[] grown : new String[][] {
+      {"Intro\n2. A | B\n--- | ---\n", "x | y\n"}, {"    code\n\u2003\n", "    continuation\n"}
+    }) {
+      assertEquals(
+          MarkdownDocument.parse(grown[0] + grown[1]).tree(),
+          MarkdownDocument.parse(grown[0]).next(grown[0] + grown[1]).tree());
+    }
+    // A heading or a thematic break takes no more lines, and a list before a growing paragraph
+    // reads the same again: kept while the next block grows.
+    for (String closed :
+        new String[] {"# Heading\n", "Heading\n===\n", "***\n", "1. one\n2. two\n\n"}) {
+      MarkdownDocument before = MarkdownDocument.parse(closed);
+      for (String text : new String[] {closed + "Text", closed + "Text grows"}) {
+        MarkdownDocument after = before.next(text);
+        assertSame(before.blocks().getFirst(), after.blocks().getFirst(), text);
+        before = after;
+      }
+    }
+
+    // A document made of blocks reads the text in full and keeps the blocks that read the same.
+    MarkdownDocument made =
+        new MarkdownDocument(MarkdownDocument.parse("# Answer").blocks());
+    MarkdownDocument read = made.next("# Answer\n\nMore");
+    assertEquals(MarkdownDocument.parse("# Answer\n\nMore").tree(), read.tree());
+    assertSame(made.blocks().getFirst(), read.blocks().getFirst());
+
+    // A growing answer: unchanged blocks before the growing one keep their object identity,
+    // duplicate headings stay uniquely identified, and unfinished constructs parse sensibly.
+    String part1 = """
+        # Answer
+
+        Here is a query:
+
+        ```sql
+        SELECT 1;
+        ```
+
+        - first
+        - second
+
+        | col | val |
+        | --- | --- |
+        | a   | 1   |
+
+        # Answer
+
+        More""";
+    MarkdownDocument first = MarkdownDocument.parse(part1);
+    String part2 = part1 + " text arrives here.\n\n```java\nint x = 1;";
+    MarkdownDocument second = first.next(part2);
+    assertEquals(MarkdownDocument.parse(part2).tree(), second.tree());
+    for (int i = 0; i < 6; i++) {
+      assertSame(first.blocks().get(i), second.blocks().get(i), "block " + i + " reused");
+    }
+    assertEquals(
+        List.of("answer", "answer-1"),
+        second.headings().stream().map(MarkdownDocument.Heading::id).toList());
+    assertInstanceOf(MarkdownDocument.CodeBlock.class, second.blocks().getLast());
+
+    String halfTable = part2 + "\n```\n\n| k | v |\n|---|---|\n| 1 |";
+    MarkdownDocument third = second.next(halfTable);
+    assertEquals(MarkdownDocument.parse(halfTable).tree(), third.tree());
+    assertInstanceOf(MarkdownDocument.Table.class, third.blocks().getLast());
+
+    String halfList = halfTable + " 2 |\n\n- one\n- tw";
+    MarkdownDocument fourth = third.next(halfList);
+    assertEquals(MarkdownDocument.parse(halfList).tree(), fourth.tree());
+    assertInstanceOf(MarkdownDocument.ListBlock.class, fourth.blocks().getLast());
   }
 }
