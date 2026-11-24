@@ -1,0 +1,17 @@
+# GitHistory: the first screen, read from stored git output, with the details raised to show the diff.
+size 1040 940 scale 2
+frame
+await
+frame
+await
+frame
+await
+frame
+down #divider
+move 520,362
+up 520,362
+leave
+frame
+advance 0.2
+frame
+snap git-history

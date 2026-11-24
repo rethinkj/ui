@@ -1,0 +1,11 @@
+a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01	refs/heads/main	*	
+9d2e6b15c8a4f0e2d7b3a9c1f5e8d2b4a6c0e3f4	refs/heads/feature/export	 	
+6c0d5a83f1e7b2c9d4a6f8e0b3c5d7a9f2e4b6c8	refs/heads/feature/search	 	
+88aa1f03c7e2b9d4a6f1c8e5b0d3a7f9c2e4b6d8	refs/heads/release/1.0	 	
+a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01	refs/remotes/origin/main	 	
+9d2e6b15c8a4f0e2d7b3a9c1f5e8d2b4a6c0e3f4	refs/remotes/origin/feature/export	 	
+88aa1f03c7e2b9d4a6f1c8e5b0d3a7f9c2e4b6d8	refs/remotes/origin/release/1.0	 	
+3e7d2b51a8c4f9e0d6b2a7c5f3e1d8b4a9c6f0e2	refs/tags/v1.0.0	 	
+88aa1f03c7e2b9d4a6f1c8e5b0d3a7f9c2e4b6d8	refs/tags/v1.0.1	 	
+7be3d104a9f2c8e1b6d3a5c7e9f0b2d4a6c8e1f2	refs/tags/v1.1.0	 	
+a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01	refs/remotes/origin/HEAD	 	refs/remotes/origin/main

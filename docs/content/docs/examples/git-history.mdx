@@ -1,0 +1,51 @@
+---
+title: GitHistory
+description: Git repository history browser with branch graph, paged loading, branch scope, commit details, and file diffs.
+---
+
+GitHistory browses a local Git repository's history in a frameless window with a custom [TitleBar](/docs/components/title-bar). It runs `git` in the background, loads commits page by page into [GitLog](/docs/components/git-log), shows the selected commit's body and changed files in `CommitDetails`, and renders the chosen file's changes with [DiffView](/docs/components/diff-view).
+
+**Demonstrates:** [GitLog](/docs/components/git-log), [DiffView](/docs/components/diff-view), [Background work](/docs/concepts/background-work), and [TitleBar](/docs/components/title-bar).
+
+<Shot src="examples/git-history" alt="GitHistory showing a multi-branch commit graph with branch and tag pills above a commit details panel with changed files and a unified Java diff" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=GitHistory
+```
+
+Pass a repository path as an argument to browse another repository:
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=GitHistory -Dargs="/path/to/repo"
+```
+
+## What to try
+
+- Click a commit or move with **ArrowUp** and **ArrowDown** to load its message body, changed files, and first file's diff in the panel below.
+- Click any changed file in the details panel to switch the diff, or click a parent hash chip to jump to that parent commit.
+- Switch the branch scope dropdown between **All branches**, **Current branch**, and any local branch, or toggle **First parent** to follow the main line.
+- Press **Ctrl+F** to filter commits by message, author, or hash prefix, or **Ctrl+G** to jump to a branch or tag.
+- Scroll down a long history to load older commits in pages as you reach the end.
+
+## How it works
+
+Every git call runs off the app's thread through [`App.background`](/docs/concepts/background-work). The first page brings the number of commits and the refs along; reaching the end of the list reads the next page, and a change of scope or first-parent cancels what is being read and starts again:
+
+```java snippet="git-history-read"
+```
+
+The view passes the log, the details of the selected commit and the diff of the chosen file to [GitLog](/docs/components/git-log). The log tells no one about its selection, so the view reads the cursor as it is built and asks for the details when it moved:
+
+```java snippet="git-history-view"
+```
+
+The commits come from `git log` with a format whose fields are apart by the unit separator, so no subject can break them; the refs come from `git for-each-ref`:
+
+```java snippet="git-history-parse"
+```
+
+Full source: [`GitHistory.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/GitHistory.java).
