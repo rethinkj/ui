@@ -2,12 +2,14 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Split.split;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static com.rethinkj.ui.kit.Workbench.y;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,7 +19,9 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Split.Direction;
+import com.rethinkj.ui.kit.Split.Part;
 import com.rethinkj.ui.kit.Split.Position;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -313,6 +317,250 @@ class SplitTest {
     assertThrows(IllegalArgumentException.class, () -> Position.first(-1));
     assertThrows(IllegalArgumentException.class, () -> Position.second(Float.POSITIVE_INFINITY));
     assertEquals(Position.first(0), new Position(Position.Kind.FIRST, 0));
+
+    Position open = Position.first(240);
+    assertFalse(open.isCollapsed());
+    assertNull(open.collapsed());
+    assertThrows(NullPointerException.class, () -> open.collapse(null));
+    Position collapsed = open.collapse(Part.FIRST);
+    assertTrue(collapsed.isCollapsed());
+    assertEquals(Part.FIRST, collapsed.collapsed());
+    assertEquals(Position.Kind.FIRST, collapsed.kind());
+    assertEquals(240, collapsed.value());
+    assertEquals(open, collapsed.restore());
+    assertEquals(open, open.restore());
+  }
+
+  // Collapsing and restoring
+
+  @Test
+  void enterCollapsesAndRestoresAndKeepsKeysOutOfTheCollapsedPart() throws IOException {
+    final class State {
+      Position split = Position.first(260);
+      String filter = "";
+      String query = "";
+      int shortcuts;
+    }
+    State state = new State();
+    App<State> app = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .hFull()
+                .fill(T.surface().window())
+                .child(split(
+                        Direction.ROW,
+                        s.split,
+                        Position.first(200).collapse(Part.FIRST),
+                        p -> s.split = p,
+                        col()
+                            .key("left")
+                            .label("Schema")
+                            .onKey(k -> {
+                              if (k.name().equals("F5")) {
+                                s.shortcuts++;
+                                return true;
+                              }
+                              return false;
+                            })
+                            .child(
+                                textField(s.filter, "Filter", v -> s.filter = v).key("filter")),
+                        120,
+                        col()
+                            .key("right")
+                            .child(textField(s.query, "Query", v -> s.query = v).key("query")),
+                        160)
+                    .key("split")
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> T);
+    app.textRendering(TextRendering.LINUX);
+
+    // Tab reaches filter -> query -> divider; Enter collapses FIRST, keeping 260 (not reset's 200).
+    run(app, "frame\nkey Tab\nkey Tab\nkey Tab\nframe");
+    assertEquals(find(app, "divider"), app.focused());
+    run(app, "key Enter\nframe");
+    assertEquals(Position.first(260).collapse(Part.FIRST), state.split);
+    assertEquals(0, find(app, "first").width());
+    assertEquals(479, find(app, "second").width());
+    assertEquals(1, x(app, find(app, "second")));
+    El divider = find(app, "divider");
+    assertEquals(0, x(app, divider));
+    assertEquals(7, divider.width());
+    assertEquals(0, x(app, divider.children().getFirst()));
+    assertTrue(dumpLine(app, "divider").contains(" value=\"first 260 collapsed first\""));
+    assertTrue(find(app, "first").children().isEmpty());
+
+    // Tab skips the collapsed part, and no key reaches it; focus goes only between query & divider.
+    run(app, "key F5\nkey Tab\nframe");
+    assertEquals(0, state.shortcuts);
+    assertEquals(find(app, "query"), app.focused());
+    run(app, "type \"ok\"\nkey F5\nframe");
+    assertEquals("", state.filter);
+    assertEquals("ok", state.query);
+    assertEquals(0, state.shortcuts);
+    assertThrows(Script.Failure.class, () -> run(app, "press #filter\nframe"));
+
+    // Tab to divider, Enter restores to the last position (260), and keys reach the first part.
+    run(app, "key Tab\nkey Enter\nframe");
+    assertEquals(Position.first(260), state.split);
+    assertParts(app, 260, 219);
+    assertTrue(dumpLine(app, "divider").contains(" value=\"first 260\""));
+    run(app, "press #filter\nframe\ntype \"tbl\"\nkey F5\nframe");
+    assertEquals("tbl", state.filter);
+    assertEquals(1, state.shortcuts);
+
+    // Collapsing while focus is inside the first part recovers focus out of it (core recovery).
+    run(app, "press #divider clicks 2\nframe");
+    assertEquals(Position.first(260).collapse(Part.FIRST), state.split);
+    assertNotEquals(find(app, "filter"), app.focused());
+    run(app, "type \"x\"\nframe");
+    assertEquals("tbl", state.filter, "typing after collapse does not reach the collapsed field");
+    run(app, "press #divider clicks 2\nframe");
+    assertEquals(Position.first(260), state.split);
+  }
+
+  @Test
+  void doublePressAndEnterRestoreBeforeResetAndWorkWithoutReset() throws IOException {
+    App<Workbench> app = start(Position.first(300).collapse(Part.FIRST));
+    Workbench w = app.state();
+    // Workbench.splitView has an open reset (Position.first(200)): first Enter restores 300.
+    run(app, "key Tab\nkey Enter\nframe");
+    assertEquals(Position.first(300), w.sidebar);
+    assertParts(app, 300, 179);
+    // Second Enter (now open) goes to reset (200).
+    run(app, "key Enter\nframe");
+    assertEquals(Workbench.SIDEBAR, w.sidebar);
+    assertParts(app, 200, 279);
+
+    // Without reset (null), double press and Enter still restore a collapsed part.
+    Position[] pos = {Position.second(180).collapse(Part.SECOND)};
+    App<Object> noReset = new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(split(Direction.ROW, pos[0], null, p -> pos[0] = p, col(), 120, col(), 160)
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> T);
+    noReset.textRendering(TextRendering.LINUX);
+    run(noReset, "frame\npress #divider clicks 2\nframe");
+    assertEquals(Position.second(180), pos[0]);
+    pos[0] = Position.second(180).collapse(Part.SECOND);
+    run(noReset, "frame\nkey Tab\nkey Enter\nframe");
+    assertEquals(Position.second(180), pos[0]);
+  }
+
+  @Test
+  void draggingAndArrowKeysAwayFromACollapsedPartRestoreItAtLeastAtMinimum() throws IOException {
+    // FIRST collapsed: ArrowLeft stays collapsed; ArrowRight restores at minFirst (120).
+    App<Workbench> app = start(Position.first(260).collapse(Part.FIRST));
+    Workbench w = app.state();
+    run(app, "key Tab\nkey ArrowLeft\nframe");
+    assertEquals(Position.first(260).collapse(Part.FIRST), w.sidebar);
+    assertEquals(List.of(), w.log);
+    run(app, "key ArrowRight\nframe");
+    assertEquals(Position.first(120), w.sidebar);
+    assertParts(app, 120, 359);
+
+    // Dragging right from collapsed FIRST restores at least at minFirst, and cancel restores
+    // collapsed.
+    w.sidebar = Position.first(260).collapse(Part.FIRST);
+    run(app, "frame");
+    app.pointerDown(2, 100);
+    app.pointerMove(40, 100);
+    app.frame();
+    assertEquals(Position.first(120), w.sidebar);
+    app.pointerDown(10, 10); // cancelled drag
+    app.frame();
+    assertEquals(Position.first(260).collapse(Part.FIRST), w.sidebar);
+
+    run(app, "down 2,100\nmove 222,100\nup 222,100\nframe");
+    assertEquals(Position.first(220), w.sidebar);
+    assertParts(app, 220, 259);
+
+    // SECOND collapsed with SHARE: ArrowRight stays collapsed; ArrowLeft restores at minSecond
+    // (160).
+    w.sidebar = Position.second(200).collapse(Part.SECOND);
+    run(app, "frame");
+    assertEquals(479, find(app, "first").width());
+    assertEquals(0, find(app, "second").width());
+    El divider = find(app, "divider");
+    assertEquals(473, x(app, divider));
+    assertEquals(7, divider.width());
+    assertEquals(479, x(app, divider.children().getFirst()));
+    assertTrue(dumpLine(app, "divider").contains(" value=\"second 200 collapsed second\""));
+
+    run(app, "key Tab\nkey ArrowRight\nframe");
+    assertEquals(Position.second(200).collapse(Part.SECOND), w.sidebar);
+    run(app, "key ArrowLeft\nframe");
+    assertEquals(Position.second(160), w.sidebar);
+    assertParts(app, 319, 160);
+
+    // Dragging left from collapsed SECOND restores beyond minSecond when dragged further.
+    w.sidebar = Position.second(200).collapse(Part.SECOND);
+    run(app, "frame\ndown 476,100\nmove 276,100\nup 276,100\nframe");
+    assertEquals(Position.second(200), w.sidebar);
+    assertParts(app, 279, 200);
+
+    // Narrower than the first part's minimum, the line of a collapsed second part stays inside;
+    // where both minimums just fit, an arrow still restores.
+    w.sidebar = Position.second(200).collapse(Part.SECOND);
+    run(app, "size 100 200\nframe");
+    assertEquals(93, x(app, find(app, "divider")));
+    run(app, "size 281 200\nframe\nfocus #divider\nkey ArrowLeft\nframe");
+    assertEquals(Position.second(160), w.sidebar);
+  }
+
+  @Test
+  void collapsedCardsDropTheGapAndColumnCollapsesVertically() throws IOException {
+    // Split.cards: gap disappears while collapsed, divider stays grabbable at edge, drag restores
+    // accounting for the gap when open.
+    Workbench w = new Workbench(T);
+    w.sidebar = Position.first(200).collapse(Part.FIRST);
+    App<Workbench> cards = w.app(Workbench::paddedCardsView);
+    float m = T.space().m();
+    run(cards, "size 520 200\nframe");
+    float inner = 520 - 2 * m;
+    assertEquals(0, find(cards, "first").width());
+    assertEquals(inner, find(cards, "second").width(), "no gap while collapsed");
+    assertEquals(m, x(cards, find(cards, "second")));
+    run(cards, "move #divider\nframe");
+    assertEquals(Cursor.EW_RESIZE, cards.cursor());
+
+    w.sidebar = Position.second(200).collapse(Part.SECOND);
+    run(cards, "frame");
+    assertEquals(inner, find(cards, "first").width(), "no gap while second is collapsed");
+    assertEquals(0, find(cards, "second").width());
+    El divider = find(cards, "divider");
+    float at = x(cards, divider) + divider.width() / 2;
+    run(
+        cards,
+        "down " + at + ",100\nmove " + (at - 200) + ",100\nup " + (at - 200) + ",100\nframe");
+    assertEquals(Position.second(200), w.sidebar);
+    assertEquals(inner - m - 200, find(cards, "first").width());
+    assertEquals(200, find(cards, "second").width());
+
+    // Direction.COLUMN: collapsing FIRST and SECOND sets height to 0 and arrows restore at min
+    // (40).
+    Workbench cw = new Workbench(T);
+    cw.editor = Position.share(0.5f).collapse(Part.FIRST);
+    App<Workbench> colApp = cw.app(Workbench::columnView);
+    run(colApp, "size 300 201\nframe");
+    assertEquals(0, find(colApp, "first").height());
+    assertEquals(200, find(colApp, "second").height());
+    assertEquals(0, y(colApp, find(colApp, "divider")));
+    run(colApp, "key Tab\nkey ArrowDown\nframe");
+    assertEquals(Position.share(0.2f), cw.editor, "40 of 200");
+    assertEquals(40, find(colApp, "first").height());
+
+    cw.editor = Position.share(0.5f).collapse(Part.SECOND);
+    run(colApp, "frame");
+    assertEquals(200, find(colApp, "first").height());
+    assertEquals(0, find(colApp, "second").height());
+    assertEquals(194, y(colApp, find(colApp, "divider")));
+    run(colApp, "key ArrowUp\nframe");
+    assertEquals(Position.share(0.8f), cw.editor, "160 of 200, leaving second at 40");
+    assertEquals(40, find(colApp, "second").height());
   }
 
   private static El line(App<?> app) {
