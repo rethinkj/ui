@@ -1,0 +1,1 @@
+- A drag inside an element that starts fading out with `El.motion` now ends with `Drag.Phase.CANCEL`, as when the element leaves at once, instead of getting `MOVE` and `END` until the fade ends.

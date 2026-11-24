@@ -172,6 +172,24 @@ final class Animator {
   }
 
   /**
+   * The element of the current tree that has this {@link #identity}, or null if it is not there or
+   * it or an ancestor is leaving.
+   */
+  El liveElement(Object identity) {
+    Entry leaf = entries.get(identity);
+    if (leaf == null || leaf.el.isExiting()) {
+      return null;
+    }
+    for (Id id = leaf.id.parent(); id != null; id = id.parent()) {
+      Entry entry = entries.get(id);
+      if (entry == null || entry.el.isExiting()) {
+        return null;
+      }
+    }
+    return leaf.el;
+  }
+
+  /**
    * The identities of a path of elements of the current tree, from the root down, such as hit
    * testing finds; none of them is leaving.
    */
