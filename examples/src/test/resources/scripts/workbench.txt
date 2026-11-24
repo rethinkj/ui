@@ -145,11 +145,11 @@ snap workbench-dark-2x
 # there, and its tab docked back into the first window's bar.
 size 1000 600 at 100,100                   # one pixel per pixel again, at a place on the screen
 frame
-down #tab-1                                # orders out of the bar, down into its rows
+down #tab-1                                # orders out of the bar, down out of the window
 move 380,60
-move 380,300
+move 380,700
 frame
-up 380,300
+up 380,700
 frame                                      # its own window under the pointer, titled orders
 window orders
 press #query-localhost/shop/public/orders
