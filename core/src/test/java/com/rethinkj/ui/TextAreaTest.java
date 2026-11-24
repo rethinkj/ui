@@ -957,6 +957,41 @@ class TextAreaTest {
   }
 
   @Test
+  void aFieldPlacedAtItsMinimumWidthIsMeasuredAtThatWidth() {
+    // The sibling makes the column 120 wide, where the 34 mono characters wrap to three rows; at
+    // the field's minimum width of 60 each word takes a row. Without a minimum height, the
+    // field's automatic minimum height is measured at 60 as well.
+    for (boolean minHeight : new boolean[] {true, false}) {
+      El field = El.text("aaaa bbbb cccc dddd eeee ffff gggg")
+          .editable(value -> {})
+          .multiline()
+          .wrapText()
+          .fitLines()
+          .font(Font.mono())
+          .fontSize(14)
+          .alignSelf(Style.Align.START);
+      if (minHeight) {
+        field.minSize(60, 0);
+      } else {
+        field.style().minWidth = Len.px(60);
+      }
+      El tree = El.col()
+          .wFull()
+          .hFull()
+          .align(Style.Align.START)
+          .child(El.col().children(field, El.el().size(120, 10)));
+      App<Object> app = new App<>(new Object(), state -> tree);
+      app.textRendering(TextRendering.LINUX);
+      app.resize(800, 400, 1);
+      app.frame();
+      El inner = app.tree().children().getFirst();
+      assertEquals(60, inner.children().getFirst().width(), app.tree().dump());
+      assertEquals(7 * 18, inner.children().getFirst().height(), app.tree().dump());
+      assertEquals(7 * 18 + 10, inner.height(), app.tree().dump());
+    }
+  }
+
+  @Test
   void aGrowingFieldFollowsItsRowsBetweenLinesAndMaxLines() {
     // Rows of 18 and a padding of 4 at each side: 1 to 4 rows are 26, 44, 62 and 80 high.
     App<Model> app = focused("", f -> f.wrapText().lines(1).maxLines(4));
