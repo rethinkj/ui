@@ -130,9 +130,10 @@ public final class GraphCell {
     float centerY = rowHeight / 2;
     float stroke = style.stroke();
     int n = style.curveSegments();
-    // Extend tilted S-curves past u = 0.5 by enough steps to cover half the stroke width so the
-    // row's clip cuts the full stroke cleanly at the edge without a notch.
-    int extra = Math.min(n, Math.max(1, (int) Math.ceil(stroke * n / rowHeight)));
+    // Lines run past the row's edges by half a stroke plus the up to one logical pixel that Flex
+    // moves a rounded edge, so the row's clip cuts the full stroke where the neighbor goes on.
+    float over = 1 + stroke / 2;
+    int extra = Math.clamp((long) Math.ceil(over * 2 * n / rowHeight), 1, n);
 
     for (Line line : lines) {
       boolean isFaded = faded != null && faded.test(line.color());
@@ -143,8 +144,8 @@ public final class GraphCell {
       float xFrom = laneX(line.from(), style);
       float xTo = laneX(line.to(), style);
       if (line.from() == line.to()) {
-        float y1 = upperHalfOfRow ? 0 : centerY;
-        float y2 = upperHalfOfRow ? centerY : rowHeight;
+        float y1 = upperHalfOfRow ? -over : centerY;
+        float y2 = upperHalfOfRow ? centerY : rowHeight + over;
         out.add(new Segment(xFrom, y1, xFrom, y2, stroke, color));
       } else {
         int start = upperHalfOfRow ? n - extra : 0;

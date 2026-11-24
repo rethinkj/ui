@@ -76,17 +76,17 @@ public record GraphStyle(
       throw new IllegalArgumentException(
           "sizes must be finite and positive (inset, headHoleRadius and halo may be 0)");
     }
-    if (!(mergeWidth < mergeRadius)) {
+    if (mergeWidth >= mergeRadius) {
       throw new IllegalArgumentException(
           "mergeWidth must be less than mergeRadius, were " + mergeWidth + " and " + mergeRadius);
     }
-    if (!(headHoleRadius < headRadius)) {
+    if (headHoleRadius >= headRadius) {
       throw new IllegalArgumentException("headHoleRadius must be less than headRadius, were "
           + headHoleRadius
           + " and "
           + headRadius);
     }
-    if (!(selectionWidth < selectionRadius)) {
+    if (selectionWidth >= selectionRadius) {
       throw new IllegalArgumentException("selectionWidth must be less than selectionRadius, were "
           + selectionWidth
           + " and "
