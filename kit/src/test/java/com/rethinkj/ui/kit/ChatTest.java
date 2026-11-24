@@ -106,11 +106,13 @@ class ChatTest {
                         .time("14:32"))))
         .provide(Theme.CURRENT, s -> Theme.DARK);
     agentApp.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 500 200\nframe\npress role=button label=\"Copy message\"\nframe\n"
-            + "press role=button label=\"Retry\"\nframe",
-        agentApp,
-        out);
+    Script.run("""
+        size 500 200
+        frame
+        press role=button label="Copy message"
+        frame
+        press role=button label="Retry"
+        frame""", agentApp, out);
     assertEquals("Add a composite index on (status, created_at).", clipboard.read());
     assertEquals(1, retries[0]);
     assertTrue(agentApp.tree().dump().contains("14:32"));
