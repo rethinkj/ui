@@ -360,8 +360,8 @@ public final class Chat {
   /**
    * A virtual chat transcript like {@link #transcript(int, IntFunction, ScrollState, RowHeights)}
    * that also calls {@code onLoadOlder} when the top of the list comes into view (when row {@code
-   * 0} is built). Pass {@code null} for {@code onLoadOlder} while loading or once no older messages
-   * remain. Construct {@code heights} with a stable key per message so inserting older messages at
+   * 0} is built). One look at the top can call it more than once: the app ignores the calls while a
+   * page loads, and passes {@code null} once no older messages remain. Construct {@code heights} with a stable key per message so inserting older messages at
    * index {@code 0} keeps what is in view at the same place.
    *
    * @param count number of messages
@@ -393,16 +393,15 @@ public final class Chat {
         .padding(theme.space().m(), theme.space().xl())
         .scrollbars(theme.scrollbars())
         .scrollState(scroll)
-        .onUserScroll(() -> {}) // builds the view again: the jump button follows atEnd()
-        .rows(
-            count,
-            heights,
-            index -> col()
-                .align(Style.Align.CENTER)
-                .padding(theme.space().m(), 0)
-                .child(Objects.requireNonNull(message.apply(index), "message")
-                    .wFull()
-                    .maxSize(measure, Float.POSITIVE_INFINITY)));
+        // Both build the view again, so that the jump button follows atEnd(): one after the user
+        // scrolled, the other after a resize or a scroll by the app changed the rows in view.
+        .onUserScroll(() -> {})
+        .onRowsInView((first, last) -> {})
+        .rows(count, heights, index -> {
+          El at = Objects.requireNonNull(message.apply(index), "message").wFull();
+          at.style().maxWidth = Len.px(measure);
+          return col().align(Style.Align.CENTER).padding(theme.space().m(), 0).child(at);
+        });
     if (onLoadOlder != null) {
       list.onRowsBuilt((first, last) -> {
         if (first == 0) {

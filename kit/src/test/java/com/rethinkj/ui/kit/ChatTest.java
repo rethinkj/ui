@@ -345,11 +345,17 @@ class ChatTest {
     // At the top it asks for older messages, and those that arrive keep the first one in view: it
     // moves up by the padding above it, which scrolls away.
     Script.run("wheel role=log 0 -2000\nframe\nframe", app, out);
-    assertEquals(1, state.olderRequests, "asked once for older messages at the top");
+    assertTrue(state.olderRequests > 0, "asked for older messages at the top");
     assertEquals(Theme.DARK.space().m(), rowContaining(app.tree(), "msg-6").y(), 0.5f);
     state.prependOlder();
     app.invalidate();
     Script.run("frame", app, out);
     assertEquals(0, rowContaining(app.tree(), "msg-6").y(), 0.5f, app.tree().dump());
+
+    // Away from the end, the button goes once the window grows until all messages fit.
+    assertTrue(app.tree().dump().contains("label=\"Jump to newest\""));
+    Script.run("size 820 3000 scale 2\nframe\nframe", app, out);
+    assertFalse(
+        app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
   }
 }

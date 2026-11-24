@@ -1042,9 +1042,11 @@ final class Editors {
   boolean hasOlderMessages = true;
 
   void loadOlderMessages() {
-    // Here from memory; an app asks its store for the page before the first message.
-    transcriptMessages.addAll(0, olderMessages);
-    hasOlderMessages = false;
+    if (hasOlderMessages) { // may be called again before the next build
+      // Here from memory; an app asks its store for the page before the first message.
+      transcriptMessages.addAll(0, olderMessages);
+      hasOlderMessages = false;
+    }
   }
 
   El renderMessage(int index) {

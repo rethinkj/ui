@@ -44,7 +44,7 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 
 `Chat.transcript` renders a virtual list of messages of any height centered in a readable column up to `Theme.Prose.measure()` wide. Keep a [`ScrollState`](/api/com/rethinkj/ui/ScrollState.html) and a [`RowHeights`](/api/com/rethinkj/ui/RowHeights.html) in your app state and pass the same instances on every build. While the user is at the bottom, appended messages and a growing last message (such as a streaming [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html) updated with `next`) stay pinned to the end. Scrolling up holds the current place and shows a floating `Jump to newest` button over the bottom until the user presses it or scrolls back to the end.
 
-Pass an optional `onLoadOlder` callback to fetch earlier messages when the top of the list comes into view (pass `null` while loading or once no older messages remain), and construct `RowHeights` with a stable key per message (`new RowHeights(estimate, key)`) so inserting older messages at index `0` keeps what is in view at the same place.
+Pass an optional `onLoadOlder` callback to fetch earlier messages when the top of the list comes into view (it can be called more than once for one look at the top, so ignore the calls while a page loads, and pass `null` once no older messages remain), and construct `RowHeights` with a stable key per message (`new RowHeights(estimate, key)`) so inserting older messages at index `0` keeps what is in view at the same place.
 
 <Shot src="examples/docs/chat-transcript/view-{theme}" alt="A scrollable chat transcript scrolled slightly up from the bottom with a floating Jump to newest button centered over its bottom" />
 
