@@ -823,6 +823,20 @@ class TabGroupsTest {
         line(tree("bottom-on-right"), "#zone").contains("value=\"bottom\""),
         tree("bottom-on-right"));
     assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
+
+    // The center of its own group of several tabs moves the tab to the end, active: d, which is
+    // there already, behind the active c.
+    Script.run("""
+        size 400 300 at 100,100
+        down role=tab label="d" at left+5
+        move 30,17
+        frame
+        move 100,160
+        frame
+        up 100,160
+        frame""", app, out);
+    assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
+    assertEquals("d", d.groups.main().groups().getFirst().activeTab());
   }
 
   @Test

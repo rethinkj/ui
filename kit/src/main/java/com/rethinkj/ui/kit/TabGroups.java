@@ -744,6 +744,10 @@ public final class TabGroups<T> {
       }
     } else {
       dock(from, index, group, group.tabs.size());
+      if (from == group) { // as after a dock into another group: the moved tab is active
+        select(group, group.tabs.size() - 1);
+        requestFocus(group);
+      }
     }
   }
 
