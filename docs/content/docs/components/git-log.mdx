@@ -49,9 +49,20 @@ Clicking a row selects it; Shift+click and Shift with navigation keys select a r
 | `Shift` + navigation key | Extend the range from the anchor to the new cursor |
 | `Enter` | Call `onOpen` with the cursor's commit |
 
+## Loading in pages
+
+For long histories, load older commits page by page and append each page to the `commits` list you pass to `GitLog.gitLog`. `GitLog.State` appends only the new tail to its `CommitGraph` so lanes continue seamlessly, while selection and scroll position stay as they are.
+
+```java snippet="git-log-paging"
+```
+
+- `onMore(Runnable)` is called once when the list scrolls near its last loaded row, and not again until `commits` grows. Pass `null` (the default) once all commits are loaded to hide the loading row and stop asking.
+- `total(int)` shows `"n of total"` (`DiagramTexts.commitsOf`) in the header badge while fewer than `total` commits are loaded, and falls back to `"n commits"` when negative (the default) or once all commits have arrived.
+- While `onMore` is set, a muted non-selectable loading row (`DiagramTexts.loadingCommits`, key `loading`) sits after the last loaded commit; keyboard navigation stops at the last commit row.
+
 ## In a tree dump
 
-The virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. While `onMore` is set, the trailing loading row has key `loading` and `role=row`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/git-log/view.tree.txt" start="el #row-3 role=row" count="6"
 ```

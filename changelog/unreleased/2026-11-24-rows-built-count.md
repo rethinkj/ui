@@ -1,0 +1,1 @@
+- `El.onRowsBuilt` now also tells the rows again when the number of rows changes while the same rows stay built, as its Javadoc says, so a list that appends a short page near its end is asked for the next one.

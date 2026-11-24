@@ -215,6 +215,18 @@ public interface DiagramTexts {
     return count == 1 ? "1 commit" : count + " commits";
   }
 
+  /**
+   * A count of loaded commits out of a known total in a git log's header: {@code 12 of 24}.
+   */
+  default String commitsOf(int loaded, int total) {
+    return loaded + " of " + total;
+  }
+
+  /** The row at the end of a git log while older commits are loading. */
+  default String loadingCommits() {
+    return "Loading older commits…";
+  }
+
   /** Shown when a git log has no commits. */
   default String noCommits() {
     return "No commits";

@@ -187,6 +187,16 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String commitsOf(int loaded, int total) {
+    return loaded + " von " + total;
+  }
+
+  @Override
+  public String loadingCommits() {
+    return "Ältere Commits werden geladen…";
+  }
+
+  @Override
   public String noCommits() {
     return "Keine Commits";
   }

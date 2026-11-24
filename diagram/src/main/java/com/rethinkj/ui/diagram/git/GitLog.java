@@ -15,6 +15,7 @@ import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import java.time.Clock;
@@ -58,7 +59,9 @@ import java.util.function.IntPredicate;
  * is {@code role=row} with key {@code header} and {@code role=columnheader} cells, and each commit
  * row is {@code role=row} with key {@code row-<index>}, a label such as {@code commit a41f9c2, Show
  * query duration, Mara Lindqvist, 38 min ago, HEAD → main}, {@code selected} and {@code current}
- * states, and its graph cell labeled with {@link CommitGraph#text(int)}.
+ * states, and its graph cell labeled with {@link CommitGraph#text(int)}. While {@link
+ * Options#onMore} is set, a non-selectable row with key {@code loading} follows the last loaded
+ * commit.
  */
 public final class GitLog {
 
@@ -89,6 +92,9 @@ public final class GitLog {
     private int cursor = -1;
     private int anchor = -1;
     private int hoveredRow = -1;
+    private int askedAt = -1;
+    private Runnable onMore; // of the last build, which a queued onRowsBuilt may outlive
+    private int loaded;
     private final Clock clock;
 
     /** A state using the system default time-zone clock. */
@@ -215,6 +221,7 @@ public final class GitLog {
       graph = new CommitGraph();
       laidOut = new ArrayList<>(commits);
       graph.append(commits);
+      askedAt = -1;
       return graph;
     }
 
@@ -238,6 +245,8 @@ public final class GitLog {
 
     private Consumer<Commit> onOpen;
     private String status;
+    private Runnable onMore;
+    private int total = -1;
 
     private Options() {}
 
@@ -253,6 +262,25 @@ public final class GitLog {
      */
     public Options status(String status) {
       this.status = status;
+      return this;
+    }
+
+    /**
+     * Told when the list scrolls near its last loaded row so the app can load older commits, once
+     * until the commit list grows; null (the default) means the history is complete.
+     */
+    public Options onMore(Runnable onMore) {
+      this.onMore = onMore;
+      return this;
+    }
+
+    /**
+     * The number of commits in the whole history when the app knows it, or negative when unknown.
+     * While fewer commits than {@code total} are loaded, the header count reads {@link
+     * DiagramTexts#commitsOf}; otherwise it shows {@link DiagramTexts#commits}.
+     */
+    public Options total(int total) {
+      this.total = total;
       return this;
     }
   }
@@ -320,7 +348,15 @@ public final class GitLog {
     float dateColWidth = theme.size().field() / 2;
     float commitColWidth = 3 * theme.size().control() + theme.space().xl();
 
-    El countBadge = Badge.badge(texts.commits(count), Badge.options().toolbar())
+    boolean hasMore = options.onMore != null;
+    state.onMore = options.onMore;
+    state.loaded = count;
+    if (!hasMore) {
+      state.askedAt = -1;
+    }
+
+    El countBadge = Badge.badge(
+            countText(texts, count, options.total), Badge.options().toolbar())
         .radius(theme.badge().toolbar() / 2);
     El[] barItems = new El[actions.length + 2];
     barItems[0] = countBadge;
@@ -332,7 +368,7 @@ public final class GitLog {
         columnHeader(theme, texts, graphColWidth, authorColWidth, dateColWidth, commitColWidth);
 
     El body;
-    if (count == 0) {
+    if (count == 0 && !hasMore) {
       body = col()
           .key("rows")
           .grow(1)
@@ -372,30 +408,33 @@ public final class GitLog {
             if (state.hoveredRow < first || state.hoveredRow > last) {
               state.hoveredRow = -1;
             }
+            maybeAskMore(state, last);
           });
 
       list.onKey(key -> handleKey(key, state, commits, options.onOpen, list, rowHeight));
       list.rows(
-          count,
+          count + (hasMore ? 1 : 0),
           rowHeight,
-          index -> commitRow(
-              index,
-              commits.get(index),
-              refsByCommit.getOrDefault(commits.get(index).id(), List.of()),
-              graph,
-              state,
-              focused[0],
-              rangeStart,
-              rangeEnd,
-              hasRange,
-              faded,
-              theme,
-              texts,
-              rowHeight,
-              graphColWidth,
-              authorColWidth,
-              dateColWidth,
-              commitColWidth));
+          index -> index == count
+              ? loadingRow(theme, texts, rowHeight)
+              : commitRow(
+                  index,
+                  commits.get(index),
+                  refsByCommit.getOrDefault(commits.get(index).id(), List.of()),
+                  graph,
+                  state,
+                  focused[0],
+                  rangeStart,
+                  rangeEnd,
+                  hasRange,
+                  faded,
+                  theme,
+                  texts,
+                  rowHeight,
+                  graphColWidth,
+                  authorColWidth,
+                  dateColWidth,
+                  commitColWidth));
       body = list;
     }
 
@@ -691,6 +730,34 @@ public final class GitLog {
 
   private static String shortHash(String id) {
     return id.length() > SHORT_HASH ? id.substring(0, SHORT_HASH) : id;
+  }
+
+  private static String countText(DiagramTexts texts, int count, int total) {
+    return total >= 0 && count < total ? texts.commitsOf(count, total) : texts.commits(count);
+  }
+
+  private static void maybeAskMore(State state, int last) {
+    // El.rows overscans by El.OVERSCAN rows, so reaching count - 1 already gives lookahead.
+    int count = state.loaded;
+    if (state.onMore != null && last >= count - 1 && count > state.askedAt) {
+      state.askedAt = count;
+      state.onMore.run();
+    }
+  }
+
+  private static El loadingRow(Theme theme, DiagramTexts texts, float rowHeight) {
+    String text = texts.loadingCommits();
+    return row()
+        .key("loading")
+        .role("row")
+        .label(text)
+        .h(rowHeight)
+        .center()
+        .gap(theme.space().m())
+        .padding(0, theme.space().xl())
+        .fill(theme.surface().panel())
+        .child(Progress.spinner())
+        .child(Label.label(Label.Variant.MUTED, text));
   }
 
   private static String rowLabel(

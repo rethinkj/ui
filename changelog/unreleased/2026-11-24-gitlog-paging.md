@@ -1,0 +1,1 @@
+- `GitLog` loads long histories in pages: `GitLog.options().onMore(...)` is told once when the list nears its last loaded commit, a loading row follows that commit until the app passes `null`, and `total(...)` shows "12 of 24" in the header. Appending commits keeps the lanes, selection and scroll position.
