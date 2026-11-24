@@ -705,6 +705,7 @@ public interface Texts {
       case CONTAINS -> "Contains";
       case STARTS_WITH -> "Starts with";
       case EQUALS -> "Equals";
+      case EXACTLY -> "Equals exactly";
       case MATCHES -> "Matches regular expression";
       case BETWEEN -> "Between";
       case ONE_OF -> "One of";
@@ -720,6 +721,10 @@ public interface Texts {
 
   default String startsWith(String column, String value) {
     return column + " starts with " + value;
+  }
+
+  default String equalsExactly(String column, String value) {
+    return column + " is exactly " + value;
   }
 
   default String matches(String column, String value) {

@@ -28,7 +28,7 @@ A `Filter` is a column and a `Spec`, a sealed type with one record per shape of 
 
 | Spec | Keeps |
 | --- | --- |
-| `new TextMatch(Kind, value)` | Text that `CONTAINS`, `STARTS_WITH` or `EQUALS` the value, whatever the case |
+| `new TextMatch(Kind, value)` | Text that `CONTAINS`, `STARTS_WITH` or `EQUALS` the value, whatever the case, or `EXACTLY` (the value exactly, case and all) |
 | `new RegexMatch(expression)` | Text in which a case-insensitive regular expression finds a match; compiled once, it throws `PatternSyntaxException` for an invalid expression |
 | `new Between(from, to)` | A range, as numbers where both ends are (leave either end empty for an open end) |
 | `new OneOf(values)` | Any listed value |

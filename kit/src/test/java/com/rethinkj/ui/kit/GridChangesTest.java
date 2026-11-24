@@ -282,6 +282,11 @@ class GridChangesTest {
     assertEquals(false, contains.matches(null), "NULL contains nothing");
     assertEquals(
         true, new Filter(0, new TextMatch(Filter.Kind.STARTS_WITH, "ada")).matches("Ada Lovelace"));
+    assertEquals(true, new Filter(0, new TextMatch(Filter.Kind.EQUALS, "Ada")).matches("ada"));
+    Filter exactly = new Filter(0, new TextMatch(Filter.Kind.EXACTLY, "Ada"));
+    assertEquals(true, exactly.matches("Ada"));
+    assertEquals(false, exactly.matches("ada"));
+    assertEquals("name is exactly Ada", exactly.describe("name"));
     Filter regex = new Filter(0, new RegexMatch("^a.a\\b"));
     assertEquals(true, regex.matches("Ada Lovelace"));
     assertEquals(regex, new Filter(0, new RegexMatch("^a.a\\b")), "equal by the expression");

@@ -109,6 +109,7 @@ final class GridFilter {
             Kind.CONTAINS,
             Kind.STARTS_WITH,
             Kind.EQUALS,
+            Kind.EXACTLY,
             Kind.MATCHES,
             Kind.IS_NULL,
             Kind.NOT_NULL);
@@ -237,7 +238,8 @@ final class GridFilter {
     Spec spec;
     try {
       spec = switch (kind) {
-        case CONTAINS, STARTS_WITH, EQUALS -> value.isEmpty() ? null : new TextMatch(kind, value);
+        case CONTAINS, STARTS_WITH, EQUALS, EXACTLY ->
+          value.isEmpty() ? null : new TextMatch(kind, value);
         case MATCHES -> value.isEmpty() ? null : new RegexMatch(value);
         case BETWEEN ->
           value.isBlank() && sel.filter.to.isBlank()
@@ -401,7 +403,7 @@ final class GridFilter {
 
   /** Whether the popover holds equality with nothing to be equal to, which it does not apply. */
   private static boolean incomplete(Selection sel, Column c) {
-    return sel.filter.kind == Kind.EQUALS
+    return (sel.filter.kind == Kind.EQUALS || sel.filter.kind == Kind.EXACTLY)
         && (ordered(c) ? sel.filter.value.isBlank() : sel.filter.value.isEmpty());
   }
 
@@ -449,7 +451,7 @@ final class GridFilter {
             .key("kind")
             .w(width));
     switch (sel.filter.kind) {
-      case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
+      case CONTAINS, STARTS_WITH, EQUALS, EXACTLY, MATCHES -> {
         if (sel.filter.kind == Kind.EQUALS && dateColumn(c)) {
           content.child(dateField(
               theme,

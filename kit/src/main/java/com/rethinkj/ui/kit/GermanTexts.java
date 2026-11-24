@@ -734,6 +734,7 @@ public class GermanTexts implements Texts {
       case CONTAINS -> "Enthält";
       case STARTS_WITH -> "Beginnt mit";
       case EQUALS -> "Ist gleich";
+      case EXACTLY -> "Ist genau gleich";
       case MATCHES -> "Passt zum regulären Ausdruck";
       case BETWEEN -> "Zwischen";
       case ONE_OF -> "Einer von";
@@ -750,6 +751,11 @@ public class GermanTexts implements Texts {
   @Override
   public String startsWith(String column, String value) {
     return column + " beginnt mit " + value;
+  }
+
+  @Override
+  public String equalsExactly(String column, String value) {
+    return column + " ist genau " + value;
   }
 
   @Override

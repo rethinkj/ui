@@ -74,6 +74,25 @@ class GridFilterTest {
     assertTrue(app.tree().dump().contains("label=\"customer contains ada\""));
     run(app, "press label=\"Remove customer contains ada\"\nframe");
     assertEquals(List.of(), ledger.filters);
+    run(app, """
+        move #column-1
+        frame
+        press #filter-1
+        frame
+        advance 1
+        frame
+        press #kind
+        frame
+        advance 1
+        frame
+        press label="Equals exactly"
+        frame
+        press #value
+        type "Ada"
+        key Enter
+        frame""");
+    assertEquals(
+        List.of(new Filter(1, new Filter.TextMatch(Filter.Kind.EXACTLY, "Ada"))), ledger.filters);
   }
 
   @Test

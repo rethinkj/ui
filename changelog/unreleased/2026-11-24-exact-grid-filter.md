@@ -1,0 +1,1 @@
+- `DataGrid.Filter.Kind.EXACTLY` keeps a text column's value exactly, case and all; the header's filter offers it as **Equals exactly**. An app that filters on a server can send it as an equality that respects case, which an index can answer, instead of a case-insensitive comparison. A `Texts` that overrides `filterKind` with a switch over every kind needs a case for it.
