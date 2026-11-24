@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -384,6 +386,66 @@ class MarkdownTest {
     assertTrue(paragraphs.get(1).contains("role=paragraph \"Before\""), tree);
     assertTrue(paragraphs.get(2).contains("role=paragraph \"and after.\""), tree);
     assertEquals(2, tree.lines().filter(l -> l.contains("role=link")).count(), tree);
+  }
+
+  @Test
+  void aStreamingDocumentBuildsOnlyTheBlocksThatChanged() throws IOException {
+    String step1 = """
+        # Answer
+
+        Intro paragraph with *style*.
+
+        ```sql
+        SELECT 1;
+        SELECT 2;
+        ```
+
+        Start""";
+    String step2 = step1 + " of the growing paragraph.";
+    String step3 = step2 + "\n\n- item one\n- item two\n\nFinal note.";
+    int[] sqlLines = new int[1];
+    Highlighter sql = (line, state, out) -> {
+      sqlLines[0]++;
+      out.color(0, line.length(), Theme.DARK.code().keyword());
+      return null;
+    };
+    Markdown.Options options =
+        Markdown.options().languages(language -> language.equals("sql") ? sql : null);
+    for (boolean fragment : new boolean[] {false, true}) {
+      Function<MarkdownDocument, El> show = document -> fragment
+          ? Markdown.fragment(document, options)
+          : Markdown.markdown(document, options).grow(1);
+      MarkdownDocument[] current = {Markdown.parse(step1)};
+      App<Object> app = new App<>(
+          new Object(),
+          state -> col()
+              .wFull()
+              .hFull()
+              .fill(Theme.DARK.surface().panel())
+              .child(show.apply(current[0])));
+      sqlLines[0] = 0;
+      Markdown.piecesBuilt = 0;
+      run(app, "frame");
+      assertEquals(2, sqlLines[0]);
+      assertEquals(3, Markdown.piecesBuilt, "heading and two paragraphs");
+
+      current[0] = current[0].next(step2);
+      Markdown.piecesBuilt = 0;
+      run(app, "frame");
+      assertEquals(1, Markdown.piecesBuilt, "the growing paragraph only");
+      current[0] = current[0].next(step3);
+      String streamed = run(app, "frame");
+      assertEquals(2, sqlLines[0], "the code block is not highlighted again");
+
+      App<Object> whole = new App<>(
+          new Object(),
+          state -> col()
+              .wFull()
+              .hFull()
+              .fill(Theme.DARK.surface().panel())
+              .child(show.apply(Markdown.parse(step3))));
+      assertEquals(run(whole, "frame"), streamed);
+    }
   }
 
   private static El paragraph(El el) {

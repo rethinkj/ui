@@ -43,6 +43,13 @@ Pair it with `Markdown.definitions(sections, options)` for labeled documentation
 ```java snippet="markdown-fragment"
 ```
 
+## Streaming
+
+When a document grows at its end while streaming, keep the `MarkdownDocument` in your state and replace it with `document.next(text)` for each piece. Blocks that did not change keep their identity, so `Markdown.markdown` and `Markdown.fragment` reuse what they already built, highlighted, and measured for them, while unfinished constructs at the end (such as an unclosed code fence, table, or list) render as CommonMark reads them so far.
+
+```java snippet="markdown-stream"
+```
+
 ## Document AST
 
 `MarkdownDocument` exposes its parsed structure as Java records (`document.blocks()`, `document.headings()`, `MarkdownDocument.plainText(content)`):
