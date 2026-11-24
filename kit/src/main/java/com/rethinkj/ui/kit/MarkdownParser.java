@@ -93,8 +93,8 @@ final class MarkdownParser {
   }
 
   /**
-   * Reads the text anew from the last line before which nothing but the top-level blocks above it
-   * was open, as far as the text did not change: those blocks are closed and stay as they are, and
+   * Reads the text anew from the last safe restart line whose settle offset in {@link #fresh} lies
+   * within the unchanged prefix: the top-level blocks above it are closed and stay as they are, and
    * a reader that starts at that line reads the rest as a reader of the whole text does.
    */
   private static MarkdownDocument nextRead(MarkdownDocument previous, String text) {
@@ -120,7 +120,13 @@ final class MarkdownParser {
       }
     }
     MarkdownParser rest = new MarkdownParser(previous.references, null);
-    int cut = n == 0 ? 0 : fresh[n];
+    int cut = 0;
+    if (n > 0) {
+      cut = fresh[n];
+      while (cut > 0 && text.charAt(cut - 1) != '\n' && text.charAt(cut - 1) != '\r') {
+        cut--;
+      }
+    }
     rest.scanBlocks(text.substring(cut).replace('\0', '\uFFFD'));
     if (n > 0 && !rest.refs.isEmpty()) {
       // A definition can change the links above it.
@@ -143,7 +149,7 @@ final class MarkdownParser {
     }
     int[] starts =
         n == 0 ? new int[rest.fresh.length] : Arrays.copyOf(fresh, n + rest.fresh.length);
-    for (int i = 0; i < rest.fresh.length; i++) {
+    for (int i = n == 0 ? 0 : 1; i < rest.fresh.length; i++) {
       starts[n + i] = rest.fresh[i] < 0 ? -1 : cut + rest.fresh[i];
     }
     MarkdownDocument result =
@@ -236,8 +242,13 @@ final class MarkdownParser {
   private boolean indented;
   private boolean blank;
   private boolean partiallyConsumedTab;
-  // For each number of top-level blocks, the offset of the first line before which those and
-  // nothing else were open (an open heading or thematic break takes no more lines), or -1.
+  // For each number of top-level blocks, the settle offset of the first line where a reader can
+  // restart with those blocks kept, or -1. When nothing above the line is open (an open heading or
+  // thematic break takes no more lines), this is the line's start. When a line after a blank line
+  // closes an open top-level list and starts a new top-level block with a non-list-marker
+  // character, this is the offset just past that character: once the prefix is unchanged that far,
+  // the line's indent is fixed and cannot continue or extend the list, so nextRead restarts at that
+  // line's start.
   private int[] fresh = {-1};
 
   private MarkdownDocument run(String raw) {
@@ -252,26 +263,35 @@ final class MarkdownParser {
   private void scanBlocks(String text) {
     int at = 0;
     int length = text.length();
+    boolean prevBlank = false;
     while (at <= length) {
       int end = at;
       while (end < length && text.charAt(end) != '\n' && text.charAt(end) != '\r') {
         end++;
       }
       if (tip == doc || tip.parent == doc && (tip.type == HEADING || tip.type == BREAK)) {
-        int count = doc.children.size();
-        if (count >= fresh.length) {
-          int was = fresh.length;
-          fresh = Arrays.copyOf(fresh, Math.max(count + 1, was * 2));
-          Arrays.fill(fresh, was, fresh.length, -1);
-        }
-        if (fresh[count] < 0) {
-          fresh[count] = at;
-        }
+        recordFresh(doc.children.size(), at);
       }
       if (end == length && at == length && at > 0) {
         break; // the text ends in a line break: no last empty line
       }
+      int nonspace = at;
+      while (nonspace < end && isSpaceOrTab(text.charAt(nonspace))) {
+        nonspace++;
+      }
+      boolean lineBlank = nonspace == end;
+      B listBefore = prevBlank ? doc.last() : null;
+      int countBefore = doc.children.size();
+      boolean openList = listBefore != null && listBefore.type == LIST && listBefore.open;
       incorporate(text.substring(at, end));
+      if (openList
+          && !listBefore.open
+          && doc.children.size() > countBefore
+          && !lineBlank
+          && !isListMarkerStart(text.charAt(nonspace))) {
+        recordFresh(countBefore, nonspace + 1);
+      }
+      prevBlank = lineBlank;
       if (end < length
           && text.charAt(end) == '\r'
           && end + 1 < length
@@ -285,6 +305,21 @@ final class MarkdownParser {
       finish(tip);
       tip = parent;
     }
+  }
+
+  private void recordFresh(int count, int pos) {
+    if (count >= fresh.length) {
+      int was = fresh.length;
+      fresh = Arrays.copyOf(fresh, Math.max(count + 1, was * 2));
+      Arrays.fill(fresh, was, fresh.length, -1);
+    }
+    if (fresh[count] < 0) {
+      fresh[count] = pos;
+    }
+  }
+
+  private static boolean isListMarkerStart(char c) {
+    return c == '-' || c == '+' || c == '*' || c >= '0' && c <= '9';
   }
 
   private void incorporate(String ln) {

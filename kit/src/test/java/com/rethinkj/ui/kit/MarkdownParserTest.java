@@ -333,7 +333,7 @@ class MarkdownParserTest {
           MarkdownDocument.parse(grown[0]).next(grown[0] + grown[1]).tree());
     }
     // A heading or a thematic break takes no more lines, and a list before a growing paragraph
-    // reads the same again: kept while the next block grows.
+    // closes once the paragraph's line settles: kept without re-reading while the next block grows.
     for (String closed :
         new String[] {"# Heading\n", "Heading\n===\n", "***\n", "1. one\n2. two\n\n"}) {
       MarkdownDocument before = MarkdownDocument.parse(closed);
@@ -343,6 +343,39 @@ class MarkdownParserTest {
         before = after;
       }
     }
+
+    // A paragraph that grows after a top-level list reads on from the paragraph's line: a block
+    // standing in for the list stays, piece after piece.
+    String list = "1. one\n2. two\n\n";
+    MarkdownDocument parsed = MarkdownDocument.parse(list + "Text");
+    MarkdownDocument standIn = new MarkdownDocument(
+        List.of(new MarkdownDocument.ThematicBreak(), parsed.blocks().get(1)),
+        parsed.source,
+        null,
+        parsed.fresh,
+        false);
+    MarkdownDocument grown = standIn.next(list + "Text grows").next(list + "Text grows on");
+    assertSame(standIn.blocks().getFirst(), grown.blocks().getFirst(), "the list was read again");
+    // Until the paragraph's line is the same up to its first character, the list is read again.
+    for (String[] trap : new String[][] {
+      {"1. a\n\nT", "1. a\n\n   T"},
+      {"1. a\n\n T", "1. a\n\n   T"},
+      {"1. a\n\n2", "1. a\n\n2. b"},
+      {"- a\n\n-", "- a\n\n- x"},
+      {"- a\n\n-x", "- a\n\n- x"},
+      {"1. a\n\n#", "1. a\n\n#a"}
+    }) {
+      assertEquals(
+          MarkdownDocument.parse(trap[1]).tree(),
+          MarkdownDocument.parse(trap[0]).next(trap[1]).tree(),
+          trap[0] + " -> " + trap[1]);
+    }
+    assertEquals(
+        MarkdownDocument.parse("1. a\n\n   Text").tree(),
+        MarkdownDocument.parse("1. a\n\nT")
+            .next("1. a\n\nText")
+            .next("1. a\n\n   Text")
+            .tree());
 
     // A document made of blocks reads the text in full and keeps the blocks that read the same.
     MarkdownDocument made =
