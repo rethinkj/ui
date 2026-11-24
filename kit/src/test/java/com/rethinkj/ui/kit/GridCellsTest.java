@@ -351,7 +351,6 @@ class GridCellsTest {
     run(app, "key Escape\nframe\nfocus #orders\nframe\nkey F10 shift\nframe");
     assertEquals("1,2", opened.getLast(), "keyboard uses the cursor's cell");
 
-    run(app, "key Escape\nframe\npress #cell-1-2 right\nframe");
     orders.count = 1;
     app.invalidate();
     run(app, "frame");

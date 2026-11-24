@@ -2012,7 +2012,7 @@ public final class DataGrid {
     void menuAt(Build b, int row, int column) {
       menuRow = row;
       menuColumn = column;
-      menuKey = b.o.rowKey == null ? 0 : keyAt(b.o.rowKey, b.rowCount, row);
+      menuKey = b.o.rowKey == null || row < 0 ? 0 : keyAt(b.o.rowKey, b.rowCount, row);
     }
 
     static long keyAt(IntToLongFunction key, int count, int place) {
@@ -3120,6 +3120,14 @@ public final class DataGrid {
     }
     reveal(b);
     if (options.menu != null) {
+      if (sel != null) {
+        Menu.State menu = options.menu;
+        grid.onSecondaryPress((x, y) -> { // the keyboard, or a press outside the cells
+          boolean shown = sel.row() < b.rows; // an unkeyed grid may have shrunk past it
+          sel.menuAt(b, shown ? sel.row() : -1, shown ? sel.column() : -1);
+          menu.openAt(x, y);
+        });
+      }
       Menu.contextMenu(grid, options.menu, menuItems(b));
     }
     if (sel == null) {
