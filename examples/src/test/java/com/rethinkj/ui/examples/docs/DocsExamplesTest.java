@@ -65,6 +65,7 @@ class DocsExamplesTest {
       Map.entry("cards-window", List.of("view")),
       Map.entry("button-options", List.of("menu")),
       Map.entry("choices", List.of("view")),
+      Map.entry("growing-text-area", List.of("view")),
       Map.entry("date-picker", List.of("open", "datetime")),
       Map.entry("multi-select", List.of("open")),
       Map.entry("condition-builder", List.of("view")),
@@ -150,6 +151,7 @@ class DocsExamplesTest {
     controls(all, "combo-entries", Controls::comboEntries, 460, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
+    controls(all, "growing-text-area", Controls::growingTextArea, 304, 82);
     controls(all, "parts", Controls::parts, 400, 200);
     controls(all, "icon-own", Controls::ownIcons, 132, 48);
     controls(all, "values", Controls::values, 360, 240);

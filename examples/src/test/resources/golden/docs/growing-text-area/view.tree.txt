@@ -1,0 +1,2 @@
+el 0,0 304x82
+  text role=textbox label="Message" "Check the migration on staging\nbefore we tag the release.\nThen notify the team." 12,12 280x58 lines 1-3/3

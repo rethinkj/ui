@@ -1,0 +1,1 @@
+- `El.maxLines(n)` now works on `El.multiline()` fields (including `TextField.textArea`): the field grows with its rows between `lines(min)` and `maxLines(max)` on the same frame and scrolls once its text is longer.
