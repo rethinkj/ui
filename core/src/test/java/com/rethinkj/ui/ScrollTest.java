@@ -359,4 +359,92 @@ class ScrollTest {
     app.frame();
     assertEquals(100, app.tree().scrollY(), "200 high, not what the area that clips holds");
   }
+
+  @Test
+  void onUserScrollHearsUserInputInnermostFirstAndIgnoresAppAndLayout() {
+    Scrollbars look = new Scrollbars(6, 2, 3, 24, 0xFF505050, 0xFF707070, 0xFF909090);
+    List<String> events = new ArrayList<>();
+    float[] boxHeight = {50};
+    App<float[]> app = new App<>(
+        boxHeight,
+        h -> col()
+            .key("outer")
+            .size(100, 100)
+            .onUserScroll(() -> events.add("outer"))
+            .child(col()
+                .key("inner")
+                .scroll()
+                .scrollbars(look)
+                .size(100, h[0])
+                .onUserScroll(() -> events.add("inner"))
+                .child(el().key("top").focusable().h(20).shrink(0))
+                .child(el().h(160).shrink(0))
+                .child(el().key("bottom").focusable().h(20).shrink(0))));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals(List.of(), events, "initial layout does not trigger onUserScroll");
+
+    // Wheel over inner area runs inner then outer once.
+    app.wheel(50, 25, 0, 30);
+    app.frame();
+    assertEquals(30, find(app, "inner").scrollY());
+    assertEquals(List.of("inner", "outer"), events);
+    events.clear();
+
+    // App.scrollTo does not run onUserScroll.
+    app.scrollTo(find(app, "inner"), 0, 150);
+    app.frame();
+    assertEquals(150, find(app, "inner").scrollY());
+    assertEquals(List.of(), events);
+
+    // Wheel at the end cannot move: does not run onUserScroll.
+    app.wheel(50, 25, 0, 20);
+    app.frame();
+    assertEquals(150, find(app, "inner").scrollY());
+    assertEquals(List.of(), events);
+
+    // Layout change that clamps the offset (taller area reduces maxScrollY from 150 to 120).
+    boxHeight[0] = 80;
+    app.invalidate();
+    app.frame();
+    assertEquals(120, find(app, "inner").scrollY());
+    assertEquals(List.of(), events, "layout clamp does not trigger onUserScroll");
+
+    // Pressing the scrollbar track above the thumb pages up and triggers onUserScroll.
+    Scrollbars.Bar bar = find(app, "inner").verticalBar();
+    app.pointerDown(bar.trackX() + 3, bar.trackY() + 2);
+    app.pointerUp(bar.trackX() + 3, bar.trackY() + 2);
+    app.frame();
+    assertEquals(40, find(app, "inner").scrollY());
+    assertEquals(List.of("inner", "outer"), events);
+    events.clear();
+
+    // Dragging the scrollbar thumb triggers onUserScroll.
+    bar = find(app, "inner").verticalBar();
+    app.pointerDown(bar.thumbX() + 3, bar.thumbY() + 4);
+    app.pointerMove(bar.thumbX() + 3, bar.thumbY() + 20);
+    app.pointerUp(bar.thumbX() + 3, bar.thumbY() + 20);
+    app.frame();
+    assertTrue(find(app, "inner").scrollY() > 40);
+    assertEquals(List.of("inner", "outer"), events);
+    events.clear();
+
+    // PageUp triggers onUserScroll, and Tab revealing an out-of-view child triggers it too.
+    app.scrollTo(find(app, "inner"), 0, 0);
+    app.frame();
+    app.focus(find(app, "top"));
+    app.frame();
+    assertEquals(List.of(), events);
+
+    app.keyDown(new Key("PageDown"));
+    app.frame();
+    assertEquals(80, find(app, "inner").scrollY());
+    assertEquals(List.of("inner", "outer"), events);
+    events.clear();
+
+    app.keyDown(new Key("Tab"));
+    app.frame();
+    assertEquals(120, find(app, "inner").scrollY());
+    assertEquals(List.of("inner", "outer"), events);
+  }
 }

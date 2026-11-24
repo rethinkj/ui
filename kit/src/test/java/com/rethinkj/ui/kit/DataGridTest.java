@@ -861,4 +861,77 @@ class DataGridTest {
     }
     return null;
   }
+
+  @Test
+  void onUserScrollHearsWheelAndControlHomeButNotLayoutResize() {
+    Orders orders = new Orders(T, 50, 7, DataGrid.Mode.CELLS);
+    orders.selection.select(0, 0);
+    boolean[] panel = {true};
+    int[] userScrolls = {0};
+    App<Orders> app = new App<>(
+        orders,
+        o -> Theme.CURRENT.with(T, () -> {
+          El grid = DataGrid.dataGrid(o.columns(), o.count, DataGrid.options().select(o.selection))
+              .key("grid")
+              .grow(1)
+              .onUserScroll(() -> userScrolls[0]++);
+          El root = col()
+              .size(560, 240)
+              .child(button(Variant.SECONDARY, "Toggle", () -> panel[0] = !panel[0])
+                  .key("toggle"))
+              .child(grid);
+          if (panel[0]) {
+            root.child(El.el().key("panel").h(80).shrink(0));
+          }
+          return root;
+        }));
+    app.resize(560, 240, 1);
+    app.frame();
+    assertEquals(0, userScrolls[0]);
+
+    // Wheel over the rows runs the handler on the grid element once.
+    El rows = find(app, "rows");
+    app.wheel(x(app, rows) + 40, y(app, rows) + 40, 0, 100);
+    app.frame();
+    assertEquals(100, find(app, "rows").scrollY());
+    assertEquals(1, userScrolls[0]);
+
+    // Jump to the end via Selection.scrollToRow, then press Toggle to hide the panel so the taller
+    // grid clamps its vertical offset: neither counts as a user scroll.
+    orders.selection.scrollToRow(49);
+    app.invalidate();
+    app.frame();
+    double atEnd = find(app, "rows").scrollY();
+    assertEquals(1, userScrolls[0], "Selection.scrollToRow is not a user scroll");
+
+    El toggle = find(app, "toggle");
+    float tx = x(app, toggle) + toggle.width() / 2;
+    float ty = y(app, toggle) + toggle.height() / 2;
+    app.pointerDown(tx, ty);
+    app.pointerUp(tx, ty);
+    app.frame();
+    assertTrue(find(app, "rows").scrollY() < atEnd, "taller grid clamped its offset");
+    assertEquals(1, userScrolls[0], "changing the grid's height is not a user scroll");
+
+    // Focus the grid (cursor is still on cell 0,0), scroll it sideways, then press Control+Home:
+    // the reveal key changes and scrolls the grid back to the left, which counts as a user scroll.
+    app.focus(find(app, "grid"));
+    app.frame();
+    app.scrollTo(find(app, "grid"), 200, 0);
+    app.frame();
+    assertEquals(200, find(app, "grid").scrollX());
+    assertEquals(1, userScrolls[0]);
+
+    app.keyDown(new Key("Home", Key.CONTROL, false));
+    app.keyUp(new Key("Home", Key.CONTROL, false));
+    app.frame();
+    assertEquals(0, find(app, "grid").scrollX());
+    assertEquals(2, userScrolls[0], "Control+Home scrolled the grid back sideways");
+
+    // Pressing Control+Home again when already at the left edge moves nothing.
+    app.keyDown(new Key("Home", Key.CONTROL, false));
+    app.keyUp(new Key("Home", Key.CONTROL, false));
+    app.frame();
+    assertEquals(2, userScrolls[0]);
+  }
 }

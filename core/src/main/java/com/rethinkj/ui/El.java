@@ -540,6 +540,7 @@ public final class El {
     Predicate<Key> onKey;
     Predicate<Key> onKeyUp;
     WheelHandler onWheel;
+    Runnable onUserScroll;
     Consumer<String> onText;
     Consumer<String> onTypeAhead;
     Runnable onFocusIn;
@@ -576,6 +577,7 @@ public final class El {
       copy.onKey = handlers.onKey;
       copy.onKeyUp = handlers.onKeyUp;
       copy.onWheel = handlers.onWheel;
+      copy.onUserScroll = handlers.onUserScroll;
       copy.onText = handlers.onText;
       copy.onTypeAhead = handlers.onTypeAhead;
       copy.onFocusIn = handlers.onFocusIn;
@@ -601,6 +603,7 @@ public final class El {
           && onKey == a.onKey
           && onKeyUp == a.onKeyUp
           && onWheel == a.onWheel
+          && onUserScroll == a.onUserScroll
           && onText == a.onText
           && onTypeAhead == a.onTypeAhead
           && onFocusIn == a.onFocusIn
@@ -3684,6 +3687,25 @@ public final class El {
     return this;
   }
 
+  /**
+   * Tells {@code handler} that the user moved the view of this scroll area or of a scroll area
+   * inside it: by the wheel, by a scrollbar (dragging its thumb, pressing its track or a tick), by
+   * PageUp or PageDown outside a text field, or by a key after which an area shows something else
+   * it keeps in view ({@link #revealRow}, {@link #reveal}, the focus). A text field's own keys move
+   * its caret, which {@link #onSelect} tells. Not when layout, a rebuild without such
+   * input, {@link App#scrollTo}, {@link App#scrollToRow} or a {@link ScrollState} moves it, nor
+   * when the input moved nothing, as a wheel at the end. As a {@code DataGrid}'s rows are an area
+   * inside the element {@code dataGrid} returns, a handler on that element hears them. Like {@link
+   * #onPress}, it runs in {@link App#frame}, once per input that moved an area, the innermost
+   * handler first, and the view is built again from what it changes.
+   *
+   * @param handler the handler, or null for none
+   */
+  public El onUserScroll(Runnable handler) {
+    handlers().onUserScroll = handler;
+    return this;
+  }
+
   /** Like {@link #onKey}, for keys that are released. Released keys do nothing by default. */
   public El onKeyUp(Predicate<Key> handler) {
     handlers().onKeyUp = handler;
@@ -4866,6 +4888,10 @@ public final class El {
 
   public WheelHandler onWheel() {
     return handlers == null ? null : handlers.onWheel;
+  }
+
+  public Runnable onUserScroll() {
+    return handlers == null ? null : handlers.onUserScroll;
   }
 
   public Consumer<String> onText() {

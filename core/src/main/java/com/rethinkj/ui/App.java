@@ -201,6 +201,9 @@ public final class App<S> {
   private boolean resizeDue;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean keyUntaken; // nothing took the key that keyDownAt dispatched last
+  private boolean keyScroll; // the input last run was a key-down: its reveals are the user's
+  private boolean focusByKey; // a key moved the focus, or asked to: revealing it is the user's
+  private final List<Object> revealedScrolls = new ArrayList<>(); // areas such a reveal moved
   // The focused element took text when the last key was dispatched: its text goes in (keyText).
   private boolean keyToText;
   private boolean scrolled; // something scrolled since the rows and bars were placed
@@ -430,8 +433,9 @@ public final class App<S> {
       case Selecting(Object field) -> drag(field, x, y);
       case Grab(Object id, boolean vertical, float grip) -> {
         El area = animator.element(id);
-        scrolled |= area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
-        yield false;
+        boolean moved = area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
+        scrolled |= moved;
+        yield moved && tellUserScroll(area);
       }
       case Press p -> p.drag() != null && pull(p.drag(), x, y);
       case ActiveDrag a -> pull(a.drag(), x, y);
@@ -543,11 +547,18 @@ public final class App<S> {
         capture = IDLE;
         int mark = vertical ? area.tickAt(y) : -1;
         if (mark >= 0) {
-          area.scrollTo(area.scrollX(), area.centerOffset(mark));
+          boolean moved = area.scrollTo(area.scrollX(), area.centerOffset(mark));
           area.editor().center(mark);
           scrolled = true; // a frame centers it as measured, also where the estimate did not move
+          if (moved) {
+            changed |= tellUserScroll(hit.reversed());
+          }
         } else {
-          scrolled |= area.page(vertical, along < start ? -1 : 1);
+          boolean moved = area.page(vertical, along < start ? -1 : 1);
+          scrolled |= moved;
+          if (moved) {
+            changed |= tellUserScroll(hit.reversed());
+          }
         }
       }
       return changed;
@@ -1307,6 +1318,7 @@ public final class App<S> {
           || fieldWaits();
       Object before = focus.id();
       keyUntaken = false;
+      keyScroll = true; // also for what its handlers ask, as App.focus
       anyKeyDown(key);
       boolean took = keyDownAt(key);
       if (keyUntaken && untaken != null) {
@@ -1315,6 +1327,7 @@ public final class App<S> {
       if (focus.keyed(before)) {
         handled = true;
       }
+      focusByKey |= !Objects.equals(before, focus.id());
       return took;
     });
   }
@@ -1405,7 +1418,11 @@ public final class App<S> {
         area = overlay == null ? null : pageArea(overlay, direction);
       }
       if (area != null) {
-        scrolled |= area.page(true, direction);
+        boolean moved = area.page(true, direction);
+        scrolled |= moved;
+        if (moved) {
+          tellUserScroll(area);
+        }
         return true;
       }
     }
@@ -1984,7 +2001,10 @@ public final class App<S> {
     }
     Object id = element == null ? null : animator.identity(element);
     boolean into = element != null && !element.isFocusable();
+    boolean byKey = keyScroll; // asked by a key's handler: its reveal is the user's
     enqueue(() -> {
+      keyScroll = byKey;
+      focusByKey |= byKey;
       settle();
       El now = id == null ? null : animator.element(id);
       List<El> order = focusables();
@@ -2266,6 +2286,7 @@ public final class App<S> {
     El shown = focus.refocus(this::focusables, time);
     if (shown != null) {
       reveal(shown);
+      focusByKey = false;
       boolean rebuilt = fillRows();
       rebuilt |= placeEditors(false, false);
       if (rebuilt) {
@@ -2377,7 +2398,11 @@ public final class App<S> {
         double nextX = area.isFieldPart(next)
             ? area.scrollX() + revealDelta(x, el.width(), viewX, viewW)
             : area.scrollX();
-        area.scrollTo(nextX, area.scrollY() + revealDelta(y, el.height(), viewY, viewH));
+        if (area.scrollTo(nextX, area.scrollY() + revealDelta(y, el.height(), viewY, viewH))
+            && (keyScroll || focusByKey)
+            && animator.wasSeen(area)) {
+          revealedScrolls.add(animator.identity(area));
+        }
         continue;
       }
       // With its ring as far as the area's padding has room for it, so that the clip cuts none
@@ -2387,12 +2412,17 @@ public final class App<S> {
       float right = Math.min(ring, area.padding(Side.RIGHT));
       float up = Math.min(ring, area.padding(Side.TOP));
       float down = Math.min(ring, area.padding(Side.BOTTOM));
-      area.scrollTo(
-          area.scrollX()
-              + revealDelta(
-                  x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
-          area.scrollY()
-              + revealDelta(y - up, el.height() + up + down, areaY, area.height() - area.coverY()));
+      if (area.scrollTo(
+              area.scrollX()
+                  + revealDelta(
+                      x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
+              area.scrollY()
+                  + revealDelta(
+                      y - up, el.height() + up + down, areaY, area.height() - area.coverY()))
+          && (keyScroll || focusByKey)
+          && animator.wasSeen(area)) {
+        revealedScrolls.add(animator.identity(area));
+      }
     }
   }
 
@@ -2557,25 +2587,35 @@ public final class App<S> {
           break; // it scrolls: the handlers around it are not asked
         }
       }
-      scrolled |=
-          scroll(areas, true, deltaX, false) | scroll(areas, false, deltaY, sideways); // not ||
+      El movedX = scroll(areas, true, deltaX, false);
+      El movedY = scroll(areas, false, deltaY, sideways);
+      if (movedX != null || movedY != null) {
+        scrolled = true;
+        int from = movedX == null
+            ? areas.indexOf(movedY)
+            : movedY == null
+                ? areas.indexOf(movedX)
+                : Math.min(areas.indexOf(movedX), areas.indexOf(movedY));
+        return tellUserScroll(areas.subList(from, areas.size()));
+      }
       return false;
     });
   }
 
   /** @param sideways whether an area that scrolls only sideways takes a vertical delta sideways */
-  private static boolean scroll(List<El> areas, boolean horizontal, float delta, boolean sideways) {
+  private static El scroll(List<El> areas, boolean horizontal, float delta, boolean sideways) {
     for (El area : areas) {
       if (area.canScroll(horizontal, delta)) {
-        return horizontal
+        boolean moved = horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
             : area.scrollTo(area.scrollX(), area.scrollY() + delta);
+        return moved ? area : null;
       }
       if (sideways && scrollsSideways(area, delta)) {
-        return area.scrollTo(area.scrollX() + delta, area.scrollY());
+        return area.scrollTo(area.scrollX() + delta, area.scrollY()) ? area : null;
       }
     }
-    return false;
+    return null;
   }
 
   /** Whether an area that scrolls only sideways can move by this vertical delta sideways. */
@@ -2944,6 +2984,8 @@ public final class App<S> {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
     ran = false;
+    keyScroll = false;
+    revealedScrolls.clear();
     Object wasFocused = focus.id();
     boolean hadRing = focus.ring();
     boolean drawn = false;
@@ -2959,21 +3001,22 @@ public final class App<S> {
       if (!firstEdits.isEmpty() && editFirst(true, false, toldSizes)) {
         drawn = handled = true; // of rows that motion built: before the input, after it a last tree
       }
-      if (untold() || hasPendingUnfolds() || focusMoved()) {
-        // A selection or focus move a build applied, also of rows that scrolling filled: a
-        // FieldState's, an autofocus, or the app's answer to an edit. It reaches onSelect and
-        // onFocusIn as a handler's input would, before the next input: what the handler asks for
-        // and changes comes first.
+      if (untold() || hasPendingUnfolds() || focusMoved() || !revealedScrolls.isEmpty()) {
+        // A selection, focus move or key-driven reveal a build applied, also of rows that
+        // scrolling filled: a FieldState's, an autofocus, or the app's answer to an edit. It
+        // reaches onSelect, onFocusIn and onUserScroll as a handler's input would, before the next
+        // input: what the handler asks for and changes comes first.
         scheduler.addFirst(() -> {
-          boolean told = tellUnfolds() | tellSelections() | tellFocusIn();
+          boolean told = tellUnfolds() | tellSelections() | tellFocusIn() | tellRevealedScrolls();
           rowsKept |= told;
           return told;
         });
       }
       scheduler.beginHandler();
+      keyScroll = false; // the build above was the last input's; keyDown sets it for its own
       try {
         stale |= scheduler.poll().getAsBoolean();
-        stale |= tellUnfolds() | tellSelections() | tellFocusIn();
+        stale |= tellUnfolds() | tellSelections() | tellFocusIn() | tellRevealedScrolls();
       } catch (RuntimeException | Error e) {
         handled = true; // it may have changed the state: the next input gets a tree built anew
         throw e;
@@ -3004,6 +3047,7 @@ public final class App<S> {
       stale |= tellUnfolds()
           | tellSelections() // of fields in those rows, which the rebuild shows
           | tellFocusIn()
+          | tellRevealedScrolls()
           | !firstEdits.isEmpty(); // of fields in rows that an earlier frame built
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
@@ -3028,13 +3072,19 @@ public final class App<S> {
         for (int pass = 0; pass < 2 && stale; pass++) {
           rebuild();
           // A caret that the app's string moved, or of a new field, or a focus move: told once.
-          if (tellUnfolds() | tellSelections() | tellFocusIn() | pendingBracketFolds()) {
+          if (tellUnfolds()
+              | tellSelections()
+              | tellFocusIn()
+              | tellRevealedScrolls()
+              | pendingBracketFolds()) {
             rebuild();
           }
           List<El> path = pointed();
           stale = !wanted(path, Animator.identities(path)).equals(shown);
         }
       } finally {
+        keyScroll = false;
+        revealedScrolls.clear();
         scheduler.takeAsked();
       }
       stale = false;
@@ -3049,6 +3099,8 @@ public final class App<S> {
         laidOut = true;
       }
     }
+    keyScroll = focusByKey = false;
+    revealedScrolls.clear();
     if (laidOut) {
       placeEditors(true, false);
     }
@@ -3095,6 +3147,7 @@ public final class App<S> {
       build(false, true);
       while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
         resizeRounds++;
+        keyScroll = false; // what onResize handlers change is not the key's
         tellResized();
         build(false, true);
       }
@@ -3177,7 +3230,7 @@ public final class App<S> {
     } else {
       toldSizes = sizes;
     }
-    animator.update(root, time);
+    animator.update(root, time, keyScroll ? revealedScrolls : null);
     untimed = true;
     stale = false;
     ran |= handled;
@@ -3899,6 +3952,52 @@ public final class App<S> {
       }
     }
     return told;
+  }
+
+  /** Runs the {@link El#onUserScroll} handlers of {@code area} and around it, innermost first. */
+  private boolean tellUserScroll(El area) {
+    return tellUserScroll(around(area));
+  }
+
+  /** {@code area} and the elements around it up to the root or its overlay, innermost first. */
+  private List<El> around(El area) {
+    List<El> path = new ArrayList<>();
+    return root != null && pathTo(root, area, path) ? fromOverlay(path).reversed() : List.of();
+  }
+
+  /**
+   * Runs the {@link El#onUserScroll} handlers along {@code path}, innermost first.
+   *
+   * @return whether a handler ran
+   */
+  private boolean tellUserScroll(List<El> path) {
+    boolean told = false;
+    for (El el : path) {
+      if (el.onUserScroll() != null) {
+        handled = told = true;
+        el.onUserScroll().run();
+      }
+    }
+    return told;
+  }
+
+  /** Runs the {@link El#onUserScroll} handlers around the areas a key's reveal moved, once each. */
+  private boolean tellRevealedScrolls() {
+    if (revealedScrolls.isEmpty()) {
+      return false;
+    }
+    Map<El, Integer> depths = new HashMap<>(); // of each element around them, from the root
+    for (Object id : revealedScrolls) {
+      El area = animator.element(id);
+      List<El> path = area == null ? List.of() : around(area);
+      for (int i = 0; i < path.size(); i++) {
+        depths.put(path.get(i), path.size() - 1 - i);
+      }
+    }
+    revealedScrolls.clear();
+    List<El> path = new ArrayList<>(depths.keySet());
+    path.sort((a, b) -> depths.get(b) - depths.get(a)); // innermost first
+    return tellUserScroll(path);
   }
 
   /** Asks the unfold handlers of fields whose pending selection or undo landed on a hidden line. */

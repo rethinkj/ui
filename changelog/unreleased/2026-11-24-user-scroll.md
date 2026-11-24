@@ -1,0 +1,1 @@
+- `El.onUserScroll(handler)` runs when the user scrolls an area or one inside it (by wheel, scrollbar, PageUp/PageDown, or a key-driven reveal), apart from layout, `App.scrollTo`, `App.scrollToRow`, or `ScrollState`.

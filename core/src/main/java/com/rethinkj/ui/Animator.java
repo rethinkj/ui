@@ -86,6 +86,7 @@ final class Animator {
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
   private final List<ScrollState> pendingFollows = new ArrayList<>();
+  private List<Object> revealed; // while tracking key-driven reveals of existing scroll areas
   private boolean visiting; // in visit, where a coupled area's partner may not have its offset yet
   private boolean started;
   private long created; // entries made so far, which orders overlays by when they opened
@@ -93,16 +94,23 @@ final class Animator {
 
   /**
    * Takes a tree that layout has just placed: its values become the targets at {@code now}, and
-   * the elements that are leaving are put back into it.
+   * the elements that are leaving are put back into it. When {@code revealed} is not null, the
+   * identity of every scroll area that was in the tree before and whose offset changed by {@link
+   * El#revealRow} or {@link El#reveal} is added to it.
    */
-  void update(El root, double now) {
+  void update(El root, double now, List<Object> revealed) {
     El.measureScrolls(root); // before the offsets are clamped to what it finds
     Map<Id, Entry> next = new HashMap<>();
     moving.clear();
     pendingFollows.clear();
     passes++;
     visiting = true;
-    visit(root, new Id(null, part(root, 0)), started, next, now);
+    this.revealed = revealed;
+    try {
+      visit(root, new Id(null, part(root, 0)), started, next, now);
+    } finally {
+      this.revealed = null;
+    }
     entries = next; // drops the elements that are gone
     runPendingFollows();
     started = true;
@@ -160,6 +168,13 @@ final class Animator {
       }
     }
     return null;
+  }
+
+  /** Whether {@code el} was in the tree before the last update. */
+  boolean wasSeen(El el) {
+    Object id = identity(el);
+    Entry entry = id == null ? null : entries.get(id);
+    return entry != null && entry.seen;
   }
 
   /**
@@ -650,6 +665,9 @@ final class Animator {
         kept.follow(el, false, false);
       }
     }
+    entry.seen = before != null; // not a ScrollState's area back in the tree
+    double beforeX = el.scrollX();
+    double beforeY = el.scrollY();
     int reveal = el.revealRow();
     if (reveal >= 0 && (!seen || revealed != reveal)) {
       if (el.isVirtualList()) {
@@ -663,6 +681,11 @@ final class Animator {
     Object key = el.revealKey();
     if (key != null && el.isScrollArea() && (!seen || !key.equals(revealedKey))) {
       el.revealArea();
+    }
+    if (this.revealed != null
+        && before != null
+        && (el.scrollX() != beforeX || el.scrollY() != beforeY)) {
+      this.revealed.add(id);
     }
     if (kept != null) {
       kept.revealRow = reveal;
@@ -1041,6 +1064,7 @@ final class Animator {
     int rowsTo;
     // For a multi-line field: the post-layout field part keys that have entries.
     List<Object> partKeys = List.of();
+    boolean seen; // whether this element was in the tree before the last update
 
     Entry(Id id, long opened) {
       this.id = id;

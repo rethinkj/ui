@@ -2435,7 +2435,9 @@ public final class DataGrid {
      * too, after {@link Selection#scrollToRow}, a new size or number of rows, and when the grid
      * first shows; -1 and -1 where no row is whole. Each change costs a rebuild of the view,
      * shared with the handler of {@link #loading} where that is due too, and a scroll that
-     * changes neither row costs none ({@link El#onRowsInView}). It needs no {@link #select}.
+     * changes neither row costs none ({@link El#onRowsInView}). It needs no {@link #select}. To
+     * hear only when the user scrolls the grid, apart from layout or {@link Selection#scrollToRow},
+     * attach {@link El#onUserScroll} to the element {@link #dataGrid} returns.
      */
     public Options onRowsInView(El.RowsHandler handler) {
       this.onRowsInView = handler;
