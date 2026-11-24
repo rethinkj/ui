@@ -18,12 +18,18 @@ Store a `Split.Position` in your app state and pass `Split.cards(direction, posi
 
 | Parameter | Description |
 | --- | --- |
-| `position` | Current divider position (`Position.first(px)`, `Position.second(px)`, or `Position.share(fraction)`) |
-| `reset` | Position restored when double-clicking the divider (or `null`) |
-| `onMove` | Handler receiving the updated `Position` (`null` locks the divider) |
+| `position` | Current divider position (`Position.first(px)`, `Position.second(px)`, or `Position.share(fraction)`), optionally collapsed via `.collapse(Split.Part.FIRST)` or `.collapse(Split.Part.SECOND)` |
+| `reset` | Position restored on double-click or Enter when open, or a collapsed position to toggle collapsing that part while keeping the current size/share (or `null`) |
+| `onMove` | Handler receiving the updated `Position`, including collapse and restore (`null` locks the divider) |
 | `minFirst`, `minSecond` | Minimum pixel sizes for each pane |
 
 Choosing the right `Position` controls resize behavior: `first(px)` keeps the left/top pane fixed (good for sidebars), `second(px)` keeps the right/bottom pane fixed, and `share(fraction)` keeps a proportional split.
+
+## Collapsing
+
+`position.collapse(Split.Part.FIRST)` or `position.collapse(Split.Part.SECOND)` collapses a pane while keeping its `kind` and `value`, so `position.restore()` returns to the last open position (`position.isCollapsed()` reports whether a pane is collapsed). A collapsed pane takes zero size and leaves the tree (no focus, pointer, or keys; what is kept of its elements, such as a scroll offset, starts anew on restore), and the other pane has no minimum then; in `Split.cards` the gap between cards goes too. The divider stays at the edge and can still be grabbed.
+
+Pass a collapsed `reset` (such as `Split.Position.first(160).collapse(Split.Part.FIRST)`) to make double-clicking or pressing Enter on the divider toggle collapse instead of resetting; collapsing through that gesture keeps the current `kind` and `value` rather than `reset`'s. Dragging or pressing an arrow key away from a collapsed pane restores it, at least at its minimum.
 
 ## In a window
 
@@ -36,11 +42,11 @@ Leave a `theme.space().m()` gap between `Split.cards` and a [StatusBar](/docs/co
 
 ## Keyboard
 
-The divider is one Tab stop (after the second pane). **Arrow keys** along the split direction move it by `theme.size().step()`.
+The divider is one Tab stop (after the second pane). **Arrow keys** along the split direction move it by `theme.size().step()`, or restore a collapsed pane (at least at its minimum) when moving away from it. **Enter** restores a collapsed pane, or otherwise goes to `reset` (toggling collapse when `reset` is itself collapsed).
 
 ## In a tree dump
 
-The divider is `role=separator` labeled `"Resize <first label>"` with its position as `value`:
+The divider is `role=separator` labeled `"Resize <first label>"` with its position as `value` (appending `collapsed first` or `collapsed second` while collapsed):
 
 ```text file="examples/src/test/resources/golden/docs/split/view.tree.txt" start="#divider" count="1"
 ```

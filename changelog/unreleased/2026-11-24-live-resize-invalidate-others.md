@@ -1,0 +1,1 @@
+- Fixed: during a live resize, the other open windows of the same state showed the old state until their next input when a handler ran in an earlier frame of the resize step but not in its last one; `WindowLoop` now updates them whenever any of those frames ran a handler.

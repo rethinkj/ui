@@ -37,6 +37,7 @@ Example headless script moving a tab to a new window via its context menu:
 | `onWindowClose(group -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
 | `onClosed(tab -> …)` | Notification after a tab is closed |
+| `onAdd(group -> …)` | Shows a `+` button and binds Ctrl+T in each group's bar, passing the group |
 
 You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
 

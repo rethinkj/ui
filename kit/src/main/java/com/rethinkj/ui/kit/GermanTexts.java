@@ -276,6 +276,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String newTab() {
+    return "Neuer Tab";
+  }
+
+  @Override
   public String moveToNewWindow() {
     return "In neues Fenster verschieben";
   }

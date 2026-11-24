@@ -315,8 +315,20 @@ class TabGroupsTest {
     run(app, "focus #tablist\nkey W control");
     assertEquals(List.of("a"), asked);
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(d), "nothing closed yet");
+    assertFalse(tree("s").contains("#add"), "no + without onAdd");
     d.groups.close(d.groups.main(), 0); // the user agreed
     assertEquals(List.of("a"), d.closed);
+
+    List<Group<String>> added = new ArrayList<>();
+    d.groups.onAdd(group -> {
+      added.add(group);
+      d.groups.add(group, group.tabs().size(), "new-" + added.size());
+    });
+    run(app, "frame\npress #add\nframe\nfocus #tablist\nkey T control");
+    assertEquals(List.of(d.groups.main(), d.groups.main()), added);
+    Group<String> detached = d.groups.toNewWindow(d.groups.main(), 0);
+    run(app, "window b\nframe\npress #add\nwindow main");
+    assertSame(detached, added.getLast());
   }
 
   // The menu

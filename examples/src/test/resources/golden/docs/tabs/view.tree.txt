@@ -19,6 +19,9 @@ el 0,0 480x220
           text "query 1" 273,21 45x16
           el #close-2 role=button label="Close query 1" 322,21 16x16
             text label="dismiss" "\u{F368}" 322,21 16x16
+      el 348,17 24x24
+        el #add role=button label="New tab" 348,17 24x24
+          text label="add" "\u{F108}" 352,21 16x16
     el #panel role=tabpanel label="orders" 13,46 454x161
       el 13,46 454x161
         text "The rows of orders" 25,58 430x16

@@ -730,7 +730,7 @@ public final class WindowLoop {
           if (releasedIn.remove(e)) {
             focusAfterRelease = true;
           }
-          for (Entry other : invalidateOthers(e)) {
+          for (Entry other : invalidateOthers(e, e.app.ranHandlers())) {
             if (!held.contains(other)) {
               (entries.indexOf(other) < i ? again : due).add(other);
             }
@@ -779,12 +779,12 @@ public final class WindowLoop {
   }
 
   /**
-   * After a frame of {@code e}: when it ran a handler, a task or an action ({@link
-   * App#ranHandlers}), the other open apps of the same state build their views again, and are
-   * returned, to be drawn.
+   * After one or more frames of {@code e}: when {@code ran} holds (any of them ran a handler, a
+   * task or an action, {@link App#ranHandlers}), the other open apps of the same state build their
+   * views again, and are returned, to be drawn.
    */
-  private List<Entry> invalidateOthers(Entry e) {
-    if (!e.app.ranHandlers()) {
+  private List<Entry> invalidateOthers(Entry e, boolean ran) {
+    if (!ran) {
       return List.of();
     }
     List<Entry> others = new ArrayList<>();
@@ -1067,13 +1067,16 @@ public final class WindowLoop {
       when !drawing -> {
         tick();
         draw(e, !redraw.live());
+        boolean ran = e.app.ranHandlers();
         // During the system's live resize no other frame comes until the next step: what the
         // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
         for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
           draw(e, false);
+          ran |= e.app.ranHandlers();
         }
-        // The frame may have run a task that arrived, which the others show at once too.
-        for (Entry other : invalidateOthers(e)) {
+        // Any of those frames may have run a handler or a task that arrived, which the others show
+        // at once too.
+        for (Entry other : invalidateOthers(e, ran)) {
           draw(other, false);
         }
       }
