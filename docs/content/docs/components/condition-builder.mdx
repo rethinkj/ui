@@ -7,7 +7,7 @@ description: Controlled editor for nested AND/OR conditions, with a value input 
 
 Javadoc: [`ConditionBuilder`](/api/com/rethinkj/ui/kit/ConditionBuilder.html), [`ConditionBuilder.State`](/api/com/rethinkj/ui/kit/ConditionBuilder.State.html), [`ConditionBuilder.Clause`](/api/com/rethinkj/ui/kit/ConditionBuilder.Clause.html), [`ConditionBuilder.Field`](/api/com/rethinkj/ui/kit/ConditionBuilder.Field.html).
 
-<Shot src="examples/docs/condition-builder/view-{theme}" alt="A two-level condition builder with AND and nested OR clauses and a switched-off row" />
+<Shot src="examples/docs/condition-builder/view-{theme}" alt="A two-level condition builder with AND and nested OR clauses, a date range, and a switched-off row" />
 
 ## Example
 
@@ -29,7 +29,7 @@ All model types live inside `ConditionBuilder`:
 - `Operator(id, label, arity)` describes an operator with `Arity.NONE`, `ONE`, `TWO`, or `MANY`.
 - `Condition` is a sealed interface permitted by `Comparison(field, operator, values, enabled)` and `Clause(join, conditions, enabled)` with `Join.AND` or `Join.OR`.
 
-Switched-off rows and clauses are drawn muted while staying editable. `applicable(root, fields)` strips switched-off, incomplete, and invalid rows as well as switched-off or empty clauses (also under `OR`).
+Switched-off rows and clauses are drawn muted while staying editable. `applicable(root, fields)` strips switched-off, incomplete, invalid, and reversed-range rows as well as switched-off or empty clauses (also under `OR`).
 
 ## Value inputs
 
@@ -38,11 +38,11 @@ The value input follows the operator's `Arity` and the field's `DataType` and `c
 | Arity | Control |
 | --- | --- |
 | `NONE` | No value input (for example `is null`) |
-| `ONE` | [Select](/docs/components/select) for fields with `choices` or `BOOLEAN`; formatted [TextField](/docs/components/text-field) (`Format.BIG_INTEGER` / `Format.DECIMAL`) for numbers; plain `TextField` (ISO 8601 checked for `DATE`, `TIME`, `DATE_TIME`) otherwise |
-| `TWO` | Two single-value inputs separated by `–` ("from – to") |
+| `ONE` | [Select](/docs/components/select) for fields with `choices` or `BOOLEAN`; date field with a calendar picker for `DATE` and `DATE_TIME`; formatted [TextField](/docs/components/text-field) (`Format.BIG_INTEGER` / `Format.DECIMAL`) for numbers; plain `TextField` (ISO 8601 checked for `TIME`) otherwise |
+| `TWO` | Two single-value inputs separated by `–` ("from – to"); reversed ranges (start after end) are marked invalid with a message and dropped by `applicable` |
 | `MANY` | [MultiSelect](/docs/components/multi-select) over the field's `choices`, which `MANY` needs |
 
-Changing a row's field keeps the operator if the new field offers it (else switches to its first operator) and keeps the values if the field type and operator arity stay the same and the new field offers them (else clears them). Invalid non-empty values are marked with `TextField.invalid` and their format's error message; incomplete rows are not marked.
+Changing a row's field keeps the operator if the new field offers it (else switches to its first operator) and keeps the values if the field type and operator arity stay the same and the new field offers them (else clears them). Invalid non-empty values are marked with `TextField.invalid` and their format's error message; a reversed range marks both ends invalid and shows an alert message below the range; incomplete rows are not marked.
 
 ## Keyboard
 
@@ -52,7 +52,7 @@ Changing a row's field keeps the operator if the new field offers it (else switc
 | Add condition / Add group | Focus the new row's field selector |
 | Remove row or group | Focus the remove button of the next item, or the clause's Add condition button |
 
-Each embedded control (`Segmented`, `Checkbox`, `Select`, `TextField`, `MultiSelect`, `Button`) keeps its own keyboard shortcuts.
+Each embedded control (`Segmented`, `Checkbox`, `Select`, `DatePicker`, `TextField`, `MultiSelect`, `Button`) keeps its own keyboard shortcuts.
 
 ## In a tree dump
 

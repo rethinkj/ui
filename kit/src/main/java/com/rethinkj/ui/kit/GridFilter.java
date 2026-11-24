@@ -264,7 +264,7 @@ final class GridFilter {
    * Whether {@code from} lies above {@code to} as the column's values are ordered, as SQL
    * compares them ({@link ValueInputs#above}).
    */
-  static boolean above(Column c, int column, String from, String to) {
+  static boolean above(Column c, String from, String to) {
     return ValueInputs.above(c.type(), formatOf(c), from, to);
   }
 

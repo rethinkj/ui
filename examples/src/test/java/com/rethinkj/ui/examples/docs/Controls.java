@@ -485,6 +485,8 @@ final class Controls {
                     new ConditionBuilder.Comparison("country", "in", List.of("DE", "AT"), true),
                     new ConditionBuilder.Comparison("email", "contains", List.of("@test."), false)),
                 true),
+            new ConditionBuilder.Comparison(
+                "created_on", "between", List.of("2026-01-01", "2026-12-31"), true),
             new ConditionBuilder.Comparison("deleted_at", "is_null", List.of(), true)),
         true);
   }
@@ -515,6 +517,8 @@ final class Controls {
             List.of(eq, in, isNull)),
         new ConditionBuilder.Field(
             "email", "Email", DataGrid.DataType.TEXT, List.of(), List.of(contains, eq, isNull)),
+        new ConditionBuilder.Field(
+            "created_on", "Created on", DataGrid.DataType.DATE, List.of(), List.of(eq, between)),
         new ConditionBuilder.Field(
             "deleted_at",
             "Deleted at",

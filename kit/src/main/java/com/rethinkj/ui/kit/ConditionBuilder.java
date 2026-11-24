@@ -26,8 +26,10 @@ import java.util.function.Consumer;
  *
  * <p>Controlled: every edit passes a new immutable root {@link Clause} to {@code onChange},
  * including half-typed values while editing; a null {@code onChange} disables the builder. Values
- * are kept as text (dates and times in ISO 8601). {@link #applicable} strips switched-off,
- * incomplete and invalid comparisons as well as empty or switched-off clauses.
+ * are kept as text (dates and times in ISO 8601); {@link DataType#DATE} and {@link
+ * DataType#DATE_TIME} fields without choices use a date field with a calendar picker, while {@link
+ * DataType#TIME} uses a plain text field. {@link #applicable} strips switched-off, incomplete,
+ * invalid and reversed-range comparisons as well as empty or switched-off clauses.
  *
  * <p>Each clause shows a header with a {@link Segmented} AND/OR switch and buttons to add a
  * condition or a nested group; a nested clause also has a checkbox to switch it off and a remove
@@ -36,8 +38,10 @@ import java.util.function.Consumer;
  *
  * <p>Changing a row's field keeps its operator when the new field offers it (else its first
  * operator) and keeps its values when the field type and operator arity stay the same and the new
- * field offers them (else clears them). Invalid non-empty values are marked with {@link TextField#invalid} and their
- * format's error message; incomplete rows are not marked.
+ * field offers them (else clears them). Invalid non-empty values are marked with {@link
+ * TextField#invalid} and their format's error message; for an operator of {@link Arity#TWO}, a
+ * reversed range (both ends valid and start after end) marks both ends invalid with {@link
+ * Texts#fromAboveTo()} and shows an alert message below the range; incomplete rows are not marked.
  *
  * <p>Keyboard: Tab moves in reading order and each control keeps its own keys. Adding a condition
  * or a group focuses the new row's field; removing focuses the remove button of the next item in
@@ -144,12 +148,14 @@ public final class ConditionBuilder {
   }
 
   /**
-   * UI state of a {@link ConditionBuilder}: open dropdowns, multi-select states and pending focus
-   * moves. Kept by the app alongside its root {@link Clause}, like {@link MultiSelect.State}.
+   * UI state of a {@link ConditionBuilder}: open dropdowns, multi-select states, date pickers and
+   * pending focus moves. Kept by the app alongside its root {@link Clause}, like {@link
+   * MultiSelect.State}.
    */
   public static final class State {
     private final Map<String, Menu.State> menus = new HashMap<>();
     private final Map<String, MultiSelect.State> multiSelects = new HashMap<>();
+    private final Map<String, DatePicker.State> calendars = new HashMap<>();
     private String focusKey; // consumed by the next build, so a stale request never fires later
     private int focusSerial;
 
@@ -161,6 +167,11 @@ public final class ConditionBuilder {
     MultiSelect.State multiSelect(String key, Set<String> used) {
       used.add(key);
       return multiSelects.computeIfAbsent(key, _ -> new MultiSelect.State());
+    }
+
+    DatePicker.State calendar(String key, Set<String> used) {
+      used.add(key);
+      return calendars.computeIfAbsent(key, _ -> new DatePicker.State());
     }
 
     void requestFocus(String key) {
@@ -175,11 +186,15 @@ public final class ConditionBuilder {
       for (MultiSelect.State ms : multiSelects.values()) {
         ms.close();
       }
+      for (DatePicker.State calendar : calendars.values()) {
+        calendar.close();
+      }
     }
 
-    void prune(Set<String> usedMenus, Set<String> usedMulti) {
+    void prune(Set<String> usedMenus, Set<String> usedMulti, Set<String> usedCalendars) {
       menus.keySet().retainAll(usedMenus);
       multiSelects.keySet().retainAll(usedMulti);
+      calendars.keySet().retainAll(usedCalendars);
     }
   }
 
@@ -205,7 +220,7 @@ public final class ConditionBuilder {
     El body = root.conditions().isEmpty()
         ? build.emptyRoot(root, onChange)
         : build.clause(root, "", true, true, onChange, null);
-    state.prune(build.usedMenus, build.usedMulti);
+    state.prune(build.usedMenus, build.usedMulti, build.usedCalendars);
     return body.wFull().role("group").label(texts.conditions());
   }
 
@@ -261,7 +276,8 @@ public final class ConditionBuilder {
       case TWO ->
         values.size() == 2
             && isValidSingle(field, values.get(0))
-            && isValidSingle(field, values.get(1));
+            && isValidSingle(field, values.get(1))
+            && !ValueInputs.above(field.type(), null, values.get(0), values.get(1));
       case MANY -> {
         List<String> choices = choicesOf(field);
         if (values.isEmpty() || choices.isEmpty()) {
@@ -286,6 +302,12 @@ public final class ConditionBuilder {
       return choices.contains(value);
     }
     return ValueInputs.check(field.type(), null, value) == null;
+  }
+
+  private static boolean isReversedRange(Field field, String from, String to) {
+    return isValidSingle(field, from)
+        && isValidSingle(field, to)
+        && ValueInputs.above(field.type(), null, from, to);
   }
 
   private static Map<String, Field> fieldsById(List<Field> fields) {
@@ -338,6 +360,7 @@ public final class ConditionBuilder {
     final boolean interactive;
     final Set<String> usedMenus = new HashSet<>();
     final Set<String> usedMulti = new HashSet<>();
+    final Set<String> usedCalendars = new HashSet<>();
     final String focusKey;
 
     Build(Theme theme, Texts texts, List<Field> fields, State state, boolean interactive) {
@@ -607,11 +630,13 @@ public final class ConditionBuilder {
                   comparison.operator(),
                   next.isEmpty() ? List.of() : List.of(next),
                   comparison.enabled()));
-          yield singleValueInput(field, current, texts.value(), "value" + suffix, onEdit);
+          yield singleValueInput(field, current, texts.value(), "value" + suffix, null, onEdit);
         }
         case TWO -> {
           String from = !comparison.values().isEmpty() ? comparison.values().get(0) : "";
           String to = comparison.values().size() >= 2 ? comparison.values().get(1) : "";
+          boolean reversed = isReversedRange(field, from, to);
+          String rangeError = reversed ? texts.fromAboveTo() : null;
           Consumer<String> onFrom = onChange == null
               ? null
               : next -> onChange.accept(new Comparison(
@@ -626,15 +651,31 @@ public final class ConditionBuilder {
                   comparison.operator(),
                   from.isEmpty() && next.isEmpty() ? List.of() : List.of(from, next),
                   comparison.enabled()));
-          El fromInput = singleValueInput(field, from, texts.from(), "from" + suffix, onFrom);
-          El toInput = singleValueInput(field, to, texts.to(), "to" + suffix, onTo);
-          yield row()
+          El fromInput =
+              singleValueInput(field, from, texts.from(), "from" + suffix, rangeError, onFrom);
+          El toInput = singleValueInput(field, to, texts.to(), "to" + suffix, rangeError, onTo);
+          El range = col()
               .grow(1)
               .minSize(0, 0)
-              .align(Style.Align.CENTER)
               .gap(theme.space().xs())
-              .children(
-                  fromInput, label(Label.Variant.MUTED, texts.rangeSeparator()).shrink(0), toInput);
+              .child(row()
+                  .wFull()
+                  .wrap() // a date-time range too narrow to show both values breaks onto two lines
+                  .align(Style.Align.CENTER)
+                  .gap(theme.space().xs())
+                  .children(
+                      fromInput,
+                      label(Label.Variant.MUTED, texts.rangeSeparator()).shrink(0),
+                      toInput));
+          if (reversed) {
+            range.child(label(rangeError)
+                .key("error" + suffix)
+                .role("alert")
+                .label(rangeError)
+                .wrapText()
+                .color(theme.status().danger()));
+          }
+          yield range;
         }
         case MANY -> {
           List<String> choices = choicesOf(field);
@@ -656,7 +697,12 @@ public final class ConditionBuilder {
     }
 
     private El singleValueInput(
-        Field field, String current, String placeholder, String key, Consumer<String> onEdit) {
+        Field field,
+        String current,
+        String placeholder,
+        String key,
+        String rangeError,
+        Consumer<String> onEdit) {
       List<String> choices = choicesOf(field);
       if (!choices.isEmpty()) {
         int chosen = choices.indexOf(current);
@@ -670,10 +716,44 @@ public final class ConditionBuilder {
         if (chosen < 0) {
           select.label(placeholder);
         }
+        if (rangeError != null) {
+          select.invalid(true).errorMessage(rangeError);
+        }
         select.style().width = Len.AUTO;
         select.grow(1).minSize(0, 0);
         applyFocus(select);
         return select;
+      }
+      String error = current.isEmpty() ? null : ValueInputs.check(field.type(), null, current);
+      if (error == null) {
+        error = rangeError;
+      }
+      if (ValueInputs.dateType(field.type())) {
+        DatePicker.State calendar = state.calendar(key, usedCalendars);
+        El box = ValueInputs.dateField(
+            theme,
+            texts,
+            field.type(),
+            v -> ValueInputs.check(field.type(), null, v) == null,
+            current,
+            placeholder,
+            key,
+            false,
+            error != null,
+            calendar,
+            state::closeAll,
+            onEdit);
+        El input = box.children().getFirst();
+        if (error != null) {
+          input.errorMessage(error);
+        }
+        box.style().width = Len.AUTO;
+        // a date-time needs the header filter's field width to show its minutes beside the button
+        float least = field.type() == DataType.DATE_TIME ? theme.size().field() : 0;
+        box.style().minYields = true; // where even one line is narrower, it shrinks like the rest
+        box.grow(1).minSize(least, 0);
+        applyFocus(input);
+        return box;
       }
       Format<?> format = numberFormat(field.type());
       Consumer<String> filtered = onEdit == null
@@ -687,7 +767,6 @@ public final class ConditionBuilder {
             onEdit.accept(next);
           };
       El input = TextField.textField(current, placeholder, filtered).key(key);
-      String error = current.isEmpty() ? null : ValueInputs.check(field.type(), null, current);
       if (error != null) {
         TextField.invalid(input).errorMessage(error);
       }

@@ -210,16 +210,16 @@ class GridFilterTest {
   void aRangeIsRefusedOnlyWhereFromIsSurelyAboveToInTheValuesOrder() {
     // Times with offsets are ordered by the time, not by their text, as SQL orders them.
     DataGrid.Column at = new DataGrid.Column("at", 100, DataGrid.DataType.DATE_TIME, row -> null);
-    assertTrue(GridFilter.above(at, 0, "2026-11-13T09:00+00:00", "2026-11-13T10:00+02:00"));
-    assertFalse(GridFilter.above(at, 0, "2026-11-13T10:00+02:00", "2026-11-13T09:00+00:00"));
+    assertTrue(GridFilter.above(at, "2026-11-13T09:00+00:00", "2026-11-13T10:00+02:00"));
+    assertFalse(GridFilter.above(at, "2026-11-13T10:00+02:00", "2026-11-13T09:00+00:00"));
     DataGrid.Column time = new DataGrid.Column("time", 100, DataGrid.DataType.TIME, row -> null);
-    assertFalse(GridFilter.above(time, 0, "14:30+19:00", "14:30+01:00"), "no such offset");
+    assertFalse(GridFilter.above(time, "14:30+19:00", "14:30+01:00"), "no such offset");
     DataGrid.Column day = new DataGrid.Column("day", 100, DataGrid.DataType.DATE, row -> null);
-    assertFalse(GridFilter.above(day, 0, "9999-01-01", "+10000-01-01"));
+    assertFalse(GridFilter.above(day, "9999-01-01", "+10000-01-01"));
     DataGrid.Column typed = DataGrid.<java.time.OffsetDateTime>table(i -> null)
         .column("at", 100, Format.OFFSET_DATE_TIME, v -> v);
     assertFalse(
-        GridFilter.above(typed, 0, "2026-11-13T10:00+01:00", "2026-11-13T09:00Z"), "one instant");
+        GridFilter.above(typed, "2026-11-13T10:00+01:00", "2026-11-13T09:00Z"), "one instant");
   }
 
   @Test

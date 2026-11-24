@@ -145,7 +145,7 @@ class DocsExamplesTest {
     controls(all, "hue-button", Controls::huePickerButton, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
     controls(all, "multi-select", Controls::multiSelect, 268, 168);
-    controls(all, "condition-builder", Controls::conditionBuilder, 640, 216);
+    controls(all, "condition-builder", Controls::conditionBuilder, 640, 244);
     controls(all, "combo-entries", Controls::comboEntries, 460, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);

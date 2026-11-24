@@ -17,8 +17,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
- * Typed value inputs and checks shared by filter UIs ({@link GridFilter}) that work from a {@link
- * DataType} and an optional {@link Format} without needing a {@link DataGrid.Column}.
+ * Typed value inputs and checks shared by filter UIs ({@link GridFilter}, {@link ConditionBuilder})
+ * that work from a {@link DataType} and an optional {@link Format} without needing a {@link
+ * DataGrid.Column}.
  */
 final class ValueInputs {
 
@@ -133,6 +134,10 @@ final class ValueInputs {
       DatePicker.State calendar,
       Runnable beforeOpen,
       Consumer<String> onChange) {
+    boolean enabled = onChange != null;
+    if (!enabled) {
+      calendar.close();
+    }
     El input = textField(value, placeholder, onChange).key(key).wFull();
     if (invalid) {
       input = TextField.invalid(input);
@@ -154,8 +159,8 @@ final class ValueInputs {
       }
     };
     El box = DatePicker.embedField(
-        theme, texts, input, calendar, type == DataType.DATE_TIME, true, open, toggle);
-    if (!calendar.isOpen()) {
+        theme, texts, input, calendar, type == DataType.DATE_TIME, enabled, open, toggle);
+    if (!enabled || !calendar.isOpen()) {
       return box;
     }
     return box.overlay(DatePicker.calendarPanel(
