@@ -406,6 +406,90 @@ class TabsTest {
         java.nio.file.Files.readString(out.resolve(image + ".tree.txt")));
   }
 
+  @Test
+  void onAddShowsAPlusButtonAndBindsControlT() throws IOException {
+    class State {
+      final List<String> titles = new java.util.ArrayList<>(List.of("one"));
+      int active;
+      boolean allowAdd = true;
+
+      void add() {
+        titles.add("tab-" + (titles.size() + 1));
+        active = titles.size() - 1;
+      }
+
+      El view() {
+        Tabs.Options options = Tabs.options();
+        if (allowAdd) {
+          options.onAdd(this::add);
+        }
+        El built = tabs(
+                titles.stream().map(Tab::new).toList(),
+                active,
+                i -> active = i,
+                i -> {
+                  titles.remove(i);
+                  active = Math.min(active, titles.size() - 1);
+                },
+                null,
+                options)
+            .grow(1);
+        return col().wFull().hFull().onKey(built.onKey()).child(built);
+      }
+    }
+    State state = new State();
+    App<State> app = new App<>(state, State::view);
+    run(app, "frame");
+    El add = find(app, "add");
+    assertNotNull(add);
+    assertEquals("button", add.role());
+    assertEquals("New tab", add.label());
+    El first = find(app, "tab-0");
+    assertEquals(
+        x(app, first) + first.width() + T.space().xs(),
+        x(app, add),
+        "right after the last tab while they fit");
+
+    run(app, "press #add\nframe");
+    assertEquals(List.of("one", "tab-2"), state.titles);
+    assertEquals(1, state.active);
+
+    run(app, "focus #tablist\nkey T control\nframe");
+    assertEquals(List.of("one", "tab-2", "tab-3"), state.titles);
+
+    // Overflow: + stays pinned at the bar's end.
+    for (int i = 0; i < 6; i++) {
+      state.titles.add("overflow-tab-" + i);
+    }
+    run(app, "frame");
+    El bar = find(app, "bar");
+    El pinned = find(app, "add");
+    assertEquals(
+        x(app, bar) + bar.width() - T.space().xs(),
+        x(app, pinned) + pinned.width(),
+        "pinned at the bar's end once tabs overflow");
+
+    // Empty bar: + still shows, press and Control+T both add.
+    state.titles.clear();
+    state.active = -1;
+    run(app, "frame");
+    assertNotNull(find(app, "add"));
+    run(app, "press #add\nframe");
+    assertEquals(List.of("tab-1"), state.titles);
+
+    state.titles.clear();
+    state.active = -1;
+    run(app, "frame\nkey T control\nframe");
+    assertEquals(List.of("tab-1"), state.titles, "Control+T adds in an empty bar too");
+
+    // Without onAdd: no + and Control+T has no effect.
+    state.allowAdd = false;
+    run(app, "frame");
+    assertNull(find(app, "add"));
+    run(app, "focus #tablist\nkey T control\nframe");
+    assertEquals(List.of("tab-1"), state.titles);
+  }
+
   // Without handlers
 
   @Test
@@ -415,12 +499,19 @@ class TabsTest {
         s -> col()
             .wFull()
             .hFull()
-            .child(tabs(List.of(new Tab("one"), new Tab("two")), 0, null, i -> {}, null)
+            .child(tabs(
+                    List.of(new Tab("one"), new Tab("two")),
+                    0,
+                    null,
+                    i -> {},
+                    null,
+                    Tabs.options().onAdd(() -> {}))
                 .grow(1)));
     run(app, "frame\nkey Tab\nframe");
     assertNull(app.focused());
     assertFalse(find(app, "tablist").isFocusable());
     assertNull(find(app, "close-0"));
+    assertNull(find(app, "add"));
     assertNull(find(app, "tab-1").onPress());
     assertEquals(
         T.text().disabled(), find(app, "tab-1").children().getFirst().text().color());

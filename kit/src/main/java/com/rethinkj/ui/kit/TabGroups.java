@@ -139,6 +139,7 @@ public final class TabGroups<T> {
   private Consumer<Group<T>> onWindowClose = this::dockAll;
   private Consumer<T> onClosed = tab -> {};
   private ObjIntConsumer<Group<T>> onCloseTab = this::close;
+  private Consumer<Group<T>> onAdd;
 
   // The drag that has left its bar, while it lasts.
   private Group<T> following; // the group whose window follows the pointer
@@ -180,6 +181,15 @@ public final class TabGroups<T> {
   /** Told of each tab the user closes, after it left its group: to cancel its work, say. */
   public TabGroups<T> onClosed(Consumer<T> handler) {
     this.onClosed = Objects.requireNonNull(handler, "handler");
+    return this;
+  }
+
+  /**
+   * Lets the user add a tab to a group, by its bar's plus button or Control+T: the handler gets
+   * that group and typically calls {@link #add}; null, the default, shows no button.
+   */
+  public TabGroups<T> onAdd(Consumer<Group<T>> handler) {
+    this.onAdd = handler;
     return this;
   }
 
@@ -259,6 +269,7 @@ public final class TabGroups<T> {
         Tabs.options()
             .drag(dragging)
             .id(group)
+            .onAdd(onAdd == null ? null : () -> onAdd.accept(group))
             .onMove((from, to) -> move(group, from, to))
             .onTearOff(this::torn)
             .tearOffAtStart(alone)

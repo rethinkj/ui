@@ -9,7 +9,7 @@ For tabs that tear off into separate windows, use [TabGroups](/docs/components/t
 
 Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/rethinkj/ui/kit/Tabs.Tab.html), [`Tabs.Options`](/api/com/rethinkj/ui/kit/Tabs.Options.html).
 
-<Shot src="examples/docs/tabs/view-{theme}" alt="A card with the tabs orders, customers marked as changed, and query 1, orders active with its close button" />
+<Shot src="examples/docs/tabs/view-{theme}" alt="A card with the tabs orders, customers marked as changed, and query 1, followed by a new-tab button, orders active with its close button" />
 
 ## Example
 
@@ -41,6 +41,7 @@ For nested tabs inside a card or pane (such as Result / Messages below a query),
 
 | Option | Description |
 | --- | --- |
+| `onAdd(state::addTab)` | Shows a `+` button after the last tab (pinned at the bar's end on overflow, and shown in an empty bar) and binds Ctrl+T |
 | `onMove((from, to) -> …)` | Enables tab reordering (`Tabs.move(list, active, from, to)` helper updates your list and returns the new active index) |
 | `drag(Tabs.Dragging)`, `onTearOff(...)`, `id(...)`, `onDock(...)` | Low-level drag-and-drop and cross-bar docking (handled automatically by [TabGroups](/docs/components/tab-groups)) |
 | `contextMenu(menuState, items)` | Right-click / Menu-key context menu on tabs |
@@ -54,6 +55,7 @@ For nested tabs inside a card or pane (such as Result / Messages below a query),
 | Left, Right, Home, End | Switch tabs while the tab bar is focused |
 | Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PageDown, Ctrl+PageUp | Next / previous tab |
 | Ctrl+W, Ctrl+F4 | Close active tab |
+| Ctrl+T | Add a tab (when `onAdd` is set, also in an empty bar) |
 | Ctrl+Shift+PageUp, Ctrl+Shift+PageDown | Reorder active tab (when `onMove` is set) |
 | Menu key, Shift+F10 | Open tab context menu |
 
@@ -61,7 +63,7 @@ Give each tab's content a unique `.key(...)` so focus is remembered per tab when
 
 ## In a tree dump
 
-`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
+`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), new-tab button as `role=button` (`#add`, `label="New tab"`), active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```
