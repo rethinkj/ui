@@ -31,7 +31,7 @@ Inside a card, wrap the list with `Card.inset(list)`.
 
 Items can carry a quiet second line (`.detail(text)`), a trailing element after the count (`.trailing(element)`, such as a time the app formats and a status icon), and action buttons at the far right (`.actions(buttons...)`) that show only while the item is selected or under the pointer; pressing one does not select the item. Headings can show a quiet count (`.count(text)`) and open and close the group below them (`.open(open, onToggle)`): the app keeps which groups are open and leaves a closed group's items out of the entries.
 
-All rows share one height, so that the virtual form stays virtual: two lines high when any item has a detail, or in the virtual form when its first entry, or the one after a heading there, is an item with one.
+All rows share one height, so that the virtual form stays virtual: two lines high when any item has a detail, or in the virtual form when its first item has one.
 
 ```java snippet="nav-list-sessions-types"
 ```
