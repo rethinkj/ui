@@ -82,7 +82,9 @@ public final class ConditionBuilder {
    * @param id stable identifier stored in {@link Comparison#field}
    * @param label text shown in the field selector
    * @param type kind of data, supplying the icon and validation format
-   * @param choices fixed values for {@link Select} and {@link MultiSelect}; empty for free input
+   * @param choices fixed values for {@link Select} and {@link MultiSelect}; empty for free input.
+   *     An operator of {@link Arity#MANY} needs them: without choices its comparison is never
+   *     applicable
    * @param operators operators offered for this field, in display order
    */
   public record Field(
@@ -230,11 +232,8 @@ public final class ConditionBuilder {
         continue;
       }
       switch (condition) {
-        case Comparison comparison -> {
-          if (isApplicable(comparison, byId)) {
-            kept.add(comparison);
-          }
-        }
+        case Comparison comparison when isApplicable(comparison, byId) -> kept.add(comparison);
+        case Comparison _ -> {}
         case Clause nested -> {
           List<Condition> children = applicableConditions(nested.conditions(), byId);
           if (!children.isEmpty()) {
@@ -611,7 +610,7 @@ public final class ConditionBuilder {
           yield singleValueInput(field, current, texts.value(), "value" + suffix, onEdit);
         }
         case TWO -> {
-          String from = comparison.values().size() >= 1 ? comparison.values().get(0) : "";
+          String from = !comparison.values().isEmpty() ? comparison.values().get(0) : "";
           String to = comparison.values().size() >= 2 ? comparison.values().get(1) : "";
           Consumer<String> onFrom = onChange == null
               ? null

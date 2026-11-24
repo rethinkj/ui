@@ -40,7 +40,7 @@ The value input follows the operator's `Arity` and the field's `DataType` and `c
 | `NONE` | No value input (for example `is null`) |
 | `ONE` | [Select](/docs/components/select) for fields with `choices` or `BOOLEAN`; formatted [TextField](/docs/components/text-field) (`Format.BIG_INTEGER` / `Format.DECIMAL`) for numbers; plain `TextField` (ISO 8601 checked for `DATE`, `TIME`, `DATE_TIME`) otherwise |
 | `TWO` | Two single-value inputs separated by `–` ("from – to") |
-| `MANY` | [MultiSelect](/docs/components/multi-select) over the field's `choices` |
+| `MANY` | [MultiSelect](/docs/components/multi-select) over the field's `choices`, which `MANY` needs |
 
 Changing a row's field keeps the operator if the new field offers it (else switches to its first operator) and keeps the values if the field type and operator arity stay the same and the new field offers them (else clears them). Invalid non-empty values are marked with `TextField.invalid` and their format's error message; incomplete rows are not marked.
 
