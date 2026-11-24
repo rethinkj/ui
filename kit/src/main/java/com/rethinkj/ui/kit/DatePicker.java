@@ -602,9 +602,10 @@ public final class DatePicker {
   /**
    * Replaces only the date part of a date or date-time text, keeping any typed time, fraction, or
    * offset; for {@link DataGrid.DataType#DATE_TIME} without a time part, appends {@code 00:00} (or
-   * {@code 00:00Z} when the format requires an offset).
+   * {@code 00:00Z} when only that {@code fits}).
    */
-  static String replaceDate(DataGrid.DataType type, Format<?> format, String text, LocalDate day) {
+  static String replaceDate(
+      DataGrid.DataType type, Predicate<String> fits, String text, LocalDate day) {
     if (type != DataGrid.DataType.DATE_TIME) {
       return day.toString();
     }
@@ -625,10 +626,10 @@ public final class DatePicker {
       return day + (separated ? typed.substring(at - 1, at) : " ") + typed.substring(at);
     }
     String local = day + " 00:00";
-    if (ValueInputs.check(type, format, local) == null) {
+    if (fits.test(local)) {
       return local;
     }
     String utc = day + " 00:00Z";
-    return ValueInputs.check(type, format, utc) == null ? utc : local;
+    return fits.test(utc) ? utc : local;
   }
 }

@@ -1213,8 +1213,8 @@ final class GridEdit {
         sel.edit.calendar,
         DatePicker.parseDatePrefix(sel.edit.draft),
         day -> {
-          Format<?> format = c.cells() != null ? c.cells().format() : null;
-          sel.edit.draft = DatePicker.replaceDate(c.type(), format, sel.edit.draft, day);
+          sel.edit.draft =
+              DatePicker.replaceDate(c.type(), v -> check(c, v) == null, sel.edit.draft, day);
           sel.edit.error = null;
           sel.edit.calendar.close();
           commit(b, Move.NONE);

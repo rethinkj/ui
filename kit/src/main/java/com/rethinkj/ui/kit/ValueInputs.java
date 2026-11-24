@@ -14,6 +14,7 @@ import java.time.OffsetTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Typed value inputs and checks shared by filter UIs ({@link GridFilter}) that work from a {@link
@@ -114,15 +115,16 @@ final class ValueInputs {
   }
 
   /**
-   * A date or date-time input field with an embedded calendar button and popover. When {@code
-   * beforeOpen} is non-null, it runs before the calendar opens (for example to close sibling
-   * popovers or menus).
+   * A date or date-time input field with an embedded calendar button and popover. A picked day
+   * gets the default time that {@code fits}, as {@link DatePicker#replaceDate} picks it. When
+   * {@code beforeOpen} is non-null, it runs before the calendar opens (for example to close
+   * sibling popovers or menus).
    */
   static El dateField(
       Theme theme,
       Texts texts,
       DataType type,
-      Format<?> format,
+      Predicate<String> fits,
       String value,
       String placeholder,
       String key,
@@ -163,7 +165,7 @@ final class ValueInputs {
         calendar,
         DatePicker.parseDatePrefix(value),
         day -> {
-          onChange.accept(DatePicker.replaceDate(type, format, value, day));
+          onChange.accept(DatePicker.replaceDate(type, fits, value, day));
           calendar.close();
         },
         () -> {

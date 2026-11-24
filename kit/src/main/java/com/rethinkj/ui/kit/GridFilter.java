@@ -302,7 +302,7 @@ final class GridFilter {
             theme,
             texts,
             column.type(),
-            formatOf(column),
+            v -> GridEdit.check(column, v) == null,
             value,
             placeholder,
             key,
