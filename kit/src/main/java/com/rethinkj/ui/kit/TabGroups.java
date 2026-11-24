@@ -69,8 +69,9 @@ import java.util.function.Predicate;
  *   <li>A group in a split that empties leaves its frame and its sibling takes the split's place;
  *       when that group had the focus, the focus goes to the group taking its place. A frame's
  *       only group stays when empty in the main frame, or closes its window in another. Closing a
- *       frame's window ({@link Windows.Handle#onCloseRequest}) runs {@link #onWindowClose}: {@link
- *       #dockAll(Frame)} unless set, or {@link #closeAll(Frame)}.
+ *       frame's window, by a close request ({@link Windows.Handle#onCloseRequest}) or by the
+ *       app's {@link Windows.Handle#close()}, runs {@link #onWindowClose} for a frame still in
+ *       {@link #frames()}: {@link #dockAll(Frame)} unless set, or {@link #closeAll(Frame)}.
  * </ul>
  *
  * <p>A frame with one group renders as {@link Tabs#tabs} alone; a split frame renders its tree
@@ -104,7 +105,10 @@ public final class TabGroups<T> {
   @FunctionalInterface
   public interface Opener<T> {
     /**
-     * Opens a window for {@code frame}, which holds one group with one tab, and returns it.
+     * Opens a window for {@code frame}, which holds one group with one tab, and returns it. {@link
+     * TabGroups} sets the returned handle's {@link Windows.Handle#onCloseRequest} and {@link
+     * Windows.Handle#onClosed(Runnable)} handlers, calling an {@code onClosed} handler the opener
+     * set after its own.
      *
      * @param options where the window opens, if anywhere in particular: add the app's own and pass
      *     them to {@link Windows#open}
@@ -366,7 +370,9 @@ public final class TabGroups<T> {
 
   /**
    * What closing a frame's window does: {@link #dockAll(Frame)} unless set, or {@link
-   * #closeAll(Frame)}.
+   * #closeAll(Frame)}. Runs on a close request ({@link Windows.Handle#onCloseRequest}) and also
+   * once the window has closed in another way, such as the app's {@link Windows.Handle#close()},
+   * for a frame still in {@link #frames()}.
    */
   public TabGroups<T> onWindowClose(Consumer<Frame<T>> handler) {
     this.onWindowClose = Objects.requireNonNull(handler, "handler");
@@ -929,6 +935,20 @@ public final class TabGroups<T> {
     frame.window.onCloseRequest(() -> {
       if (frames.contains(frame)) {
         onWindowClose.accept(frame);
+      }
+    });
+    Runnable app = frame.window.onClosed();
+    frame.window.onClosed(() -> {
+      if (dragging.isActive() && dragging.startBar instanceof Group<?> g && g.frame == frame) {
+        // The drag began in this window, whose press went with it.
+        dragging.clear();
+        stopFollowing();
+      }
+      if (frames.contains(frame)) {
+        onWindowClose.accept(frame);
+      }
+      if (app != null) {
+        app.run();
       }
     });
     return group;

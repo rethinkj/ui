@@ -231,6 +231,7 @@ public final class Tabs {
    */
   public static final class Dragging {
     Object bar; // the bar of the tab being dragged, by Options.id
+    Object startBar; // the bar the drag began in, whose window holds the press
     int index = -1; // and its index there; -1 while nothing is dragged
     boolean torn; // it left its bar
     float grabX;
@@ -278,6 +279,7 @@ public final class Tabs {
 
     void clear() {
       bar = null;
+      startBar = null;
       index = -1;
       torn = false;
       window = null;
@@ -532,6 +534,7 @@ public final class Tabs {
     if (phase == Drag.Phase.START) {
       g.clear();
       g.bar = o.id;
+      g.startBar = o.id;
       g.index = index;
       g.grabX = (float) d.x() - d.dx();
       g.grabY = (float) d.y() - d.dy();

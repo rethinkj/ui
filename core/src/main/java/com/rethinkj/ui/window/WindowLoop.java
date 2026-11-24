@@ -331,6 +331,11 @@ public final class WindowLoop {
     }
 
     @Override
+    public Runnable onClosed() {
+      return onClosed;
+    }
+
+    @Override
     public void onShown(Runnable handler) {
       onShown = handler;
     }

@@ -56,14 +56,17 @@ class TabGroupsTest {
     App<Docs> app;
     final TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c", "d"), this::open);
     final List<String> closed = new ArrayList<>();
+    final List<String> closedWindows = new ArrayList<>();
 
     Docs() {
       groups.onClosed(closed::add);
     }
 
     Windows.Handle open(Frame<String> frame, Window.Options options) {
-      return app.windows()
+      Windows.Handle handle = app.windows()
           .open(frame.active().activeTab(), 300, 160, options, new App<>(this, s -> s.view(frame)));
+      handle.onClosed(() -> closedWindows.add(handle.title()));
+      return handle;
     }
 
     El view(Frame<String> frame) {
@@ -308,6 +311,46 @@ class TabGroupsTest {
         window main""");
     assertEquals(List.of(List.of("a", "c", "d")), order(d));
     assertEquals(List.of("b"), d.closed);
+  }
+
+  @Test
+  void closingAWindowDirectlyRunsOnWindowCloseAndTheOpenersHandler() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    Script.run(
+        "size 400 160 at 100,100\nframe\n" + TEAR_B
+            + "move screen 400,400\nup screen 400,400\nframe",
+        app,
+        out);
+    assertEquals(2, d.groups.frames().size());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nframe", app, out);
+    assertEquals(1, d.groups.frames().size());
+    assertEquals(List.of(List.of("a", "c", "d", "b")), order(d));
+    assertEquals(List.of("b"), d.closedWindows);
+
+    // Closing the following window mid-drag still lets Escape end the drag cleanly.
+    Script.run(TEAR_B, app, out);
+    assertTrue(d.groups.isDragging());
+    assertEquals(2, d.groups.frames().size());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nkey Escape\nframe", app, out);
+    assertFalse(d.groups.isDragging());
+    assertEquals(1, d.groups.frames().size());
+    assertEquals(List.of(List.of("a", "d", "b", "c")), order(d));
+    assertEquals(List.of("b", "c"), d.closedWindows);
+
+    // Closing the window whose only tab is dragged, where the press began, ends the drag, also
+    // when its first step is already outside it.
+    run(
+        app,
+        TEAR_B
+            + "move screen 400,400\nup screen 400,400\nframe\nwindow d\ndown 8,17\nmove 40,300\nframe");
+    assertTrue(d.groups.isDragging());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nframe", app, out);
+    assertFalse(d.groups.isDragging());
+    assertEquals(1, d.groups.frames().size());
   }
 
   @Test
