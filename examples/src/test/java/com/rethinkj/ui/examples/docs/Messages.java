@@ -4,6 +4,8 @@ import static com.rethinkj.ui.El.col;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.RowHeights;
+import com.rethinkj.ui.ScrollState;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Theme;
 import java.util.List;
@@ -47,4 +49,37 @@ final class Messages {
     // docs:end row-heights-list
     return Frame.of(list);
   }
+
+  // docs:start follow-end
+  final ScrollState transcript = new ScrollState().followEnd();
+
+  void onScroll() {
+    // nothing to keep: the view is built again and shows the button when away from the end
+  }
+
+  static El following(Messages state) {
+    Theme theme = Theme.CURRENT.get();
+    El list = col()
+        .key("transcript")
+        .wFull()
+        .grow(1)
+        .scrollbars(theme.scrollbars())
+        .scrollState(state.transcript)
+        .onUserScroll(state::onScroll)
+        .rows(
+            state.log.size(),
+            state.heights,
+            row -> col()
+                .key("row-" + row)
+                .wFull()
+                .padding(theme.space().xs(), theme.space().m())
+                .child(Label.label(state.log.get(row)).wrapText()));
+    El root = col().wFull().hFull().child(list);
+    if (!state.transcript.atEnd()) {
+      root.child(
+          Button.button(Button.Variant.SECONDARY, "Jump to newest", state.transcript::scrollToEnd));
+    }
+    return root;
+  }
+  // docs:end follow-end
 }

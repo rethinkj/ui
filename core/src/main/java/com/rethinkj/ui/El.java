@@ -5361,6 +5361,8 @@ public final class El {
     if (scrollState != null && scrollState.el == this) {
       scrollState.x = newX;
       scrollState.y = newY;
+      scrollState.atEnd = newY >= maxScrollY - SLACK;
+      scrollState.toEnd &= scrollState.atEnd; // scrolled away before its rows were measured
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
@@ -5854,11 +5856,23 @@ public final class El {
   }
 
   /**
+   * Whether this area follows its vertical end, or was sent there since the last build, and was at
+   * it before the current layout.
+   */
+  private boolean followsEnd() {
+    return scrollState != null
+        && scrollState.el == this
+        && (scrollState.followEnd || scrollState.toEnd)
+        && scrollState.atEnd;
+  }
+
+  /**
    * Lays out each row that {@link #makeRows} built on its own, with the list's inner width and the
    * row height, and places it below the previous one; a row it kept only moves to its place.
    */
   void layoutRows(float scale, boolean systemFonts) {
     // Rows that turn out higher or lower above the one at the top move it: the offset follows.
+    boolean follow = followsEnd();
     int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
     double before = rows.heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
@@ -5867,12 +5881,12 @@ public final class El {
         double top = rows.heights == null ? row.contentTop : rowsTop() + rowTop(rows.firstRow + i);
         row.place(rowsLeft(), (float) (top - rowTop(rows.firstRow)), rowWidth(), row.height);
       } else {
-        layoutRow(i, scale, systemFonts);
+        placeRow(i, scale, systemFonts);
       }
     }
     if (rows.heights != null) {
       measureScroll();
-      scrollY += rowTop(anchor) - before; // clamped below
+      scrollY = follow ? maxScrollY : scrollY + rowTop(anchor) - before; // clamped below
     }
     setScroll(scrollX, scrollY); // shifts the new rows
   }
@@ -5904,6 +5918,20 @@ public final class El {
 
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
   void layoutRow(int index, float scale, boolean systemFonts) {
+    boolean follow = followsEnd();
+    int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
+    double before = rows.heights == null ? 0 : rowTop(anchor);
+    if (placeRow(index, scale, systemFonts)) {
+      measureScroll();
+      setScroll(scrollX, follow ? maxScrollY : scrollY + rowTop(anchor) - before);
+    }
+  }
+
+  /**
+   * Lays out the row that is the child with this index and places it; returns whether a {@link
+   * RowHeights} measurement changed its height.
+   */
+  private boolean placeRow(int index, float scale, boolean systemFonts) {
     float left = rowsLeft();
     float inner = rowWidth();
     El row = children.get(index);
@@ -5922,7 +5950,7 @@ public final class El {
         below.place(
             left, (float) (rowsTop() + rowTop(rows.firstRow + i) - first), inner, below.height);
       }
-      return;
+      return moved;
     }
     row.style.height = Len.px(rows.rowHeight);
     scaleText(row, scale, systemFonts, resolvedLineHeight);
@@ -5933,6 +5961,7 @@ public final class El {
     Flex.layout(row, inner, rows.rowHeight, 0, (float) (top - whole));
     row.contentTop = whole + row.y;
     row.place(left, (float) (row.contentTop - rowTop(rows.firstRow)), inner, row.height);
+    return false;
   }
 
   /**

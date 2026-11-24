@@ -21,7 +21,8 @@ import java.util.List;
  * same area on every build; two areas of one tree cannot share one. Offsets are clamped to the
  * content as always, and a {@link El#revealRow} or {@link El#reveal} that the area had before it
  * left counts as seen, so that it comes back without scrolling to them. Two areas can follow each
- * other's scrolling with {@link #scrollWith}.
+ * other's scrolling with {@link #scrollWith}, and an area can stay at its vertical end as content
+ * grows with {@link #followEnd}.
  */
 public final class ScrollState {
 
@@ -46,6 +47,10 @@ public final class ScrollState {
 
   double x;
   double y;
+  boolean followEnd;
+  boolean atEnd = true;
+  // Asked for its end by scrollToEnd until its rows are measured: those rows keep it there.
+  boolean toEnd;
   // The element that has it now, the only one whose scrolling writes here: not the one of an
   // older tree, which may still fade out or wait in another app for that app's rebuild.
   El el;
@@ -92,6 +97,35 @@ public final class ScrollState {
   }
 
   /**
+   * Keeps the area at its vertical end as its content grows (new children or rows, or a taller
+   * last row) while it is already at its end, as a chat transcript or log does. Scrolling away
+   * from the end stops following; reaching the end again, or calling {@link #scrollToEnd}, resumes
+   * it.
+   *
+   * @return this scroll state
+   */
+  public ScrollState followEnd() {
+    followEnd = true;
+    return this;
+  }
+
+  /**
+   * Whether the area's vertical offset was at its bottom end when last laid out (also {@code true}
+   * when the content fits and nothing scrolls).
+   */
+  public boolean atEnd() {
+    return atEnd;
+  }
+
+  /**
+   * Moves the area to its vertical end at the next build of the view, keeping its horizontal
+   * offset. When {@link #followEnd} is on, following resumes from there.
+   */
+  public void scrollToEnd() {
+    scrollTo(x, Double.POSITIVE_INFINITY);
+  }
+
+  /**
    * Sets the offsets the area takes at the next build of the view, clamped to its content then:
    * {@code scrollTo(0, 0)} for its start, as after a new query result. When this state is coupled
    * with another ({@link #scrollWith}), the partner follows on that build.
@@ -110,6 +144,8 @@ public final class ScrollState {
     followPending = followX || followY;
     this.x = x;
     this.y = y;
+    toEnd = y == Double.POSITIVE_INFINITY;
+    atEnd = toEnd || atEnd && !movedY; // sideways keeps following
     if (partner != null) {
       partner.followX &= !movedX;
       partner.followY &= !movedY;
