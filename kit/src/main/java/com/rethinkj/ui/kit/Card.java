@@ -203,13 +203,14 @@ public final class Card {
    * hairline along its top, {@code start} at the left and the rest at the right, as status texts
    * in muted labels.
    *
-   * <p>Where the card is too narrow for it all, {@code start} gives way first, down to nothing.
-   * Then the texts at the end are shortened to one line with an {@link El#ellipsis ellipsis}, in
-   * proportion to their widths, while the other parts at the end, such as buttons, keep their size
-   * and stay inside the card. A text at the end that the app gives {@code shrink(0)} keeps its
-   * size too, and one with a minimum width is shortened only down to it. Where the card is narrower
-   * than the parts that keep their size, with the footer's padding and gaps, they still run past
-   * its edge.
+   * <p>Where the card is too narrow for it all, {@code start} gives way first, down to any minimum
+   * width the app gave it or to nothing (a text is shortened to one line with an {@link
+   * El#ellipsis ellipsis}). Then the texts at the end are shortened to one line with an ellipsis,
+   * in proportion to their widths, while the other parts at the end, such as buttons, keep their
+   * size and stay inside the card. A text at the end that the app gives {@code shrink(0)} keeps
+   * its size too, and one with a minimum width is shortened only down to it. Where the card is
+   * narrower than the parts that keep their size, with the footer's padding and gaps, they still
+   * run past its edge.
    *
    * @param start at the left; null for none
    * @param end at the right, in the order shown
@@ -226,17 +227,20 @@ public final class Card {
         .border(theme.size().stroke(), 0, 0, 0, theme.border().divider());
     if (start != null) {
       // So dominant a share of the shrinking that the texts at the end keep their width, to the
-      // last bit of a float, until the start is gone.
-      row.child(start.shrink(START_SHRINK).minSize(0, 0));
+      // last bit of a float, until the start reaches its minimum.
+      if (Len.AUTO.equals(start.style().minWidth)) {
+        start.style().minWidth = Len.ZERO;
+      }
+      start.style().minHeight = Len.ZERO;
+      if (isStatusText(start)) {
+        start.ellipsis().maxLines(1);
+      }
+      row.child(start.shrink(START_SHRINK));
     }
     row.child(el().grow(1));
     for (El part : end) {
       // A status text, not a field or a link; one the app gives shrink(0) stays as it is.
-      boolean status = part.text() != null
-          && !part.isFocusable()
-          && !part.isEditable()
-          && part.onPress() == null;
-      if (status && part.style().shrink > 0) {
+      if (isStatusText(part) && part.style().shrink > 0) {
         if (Len.AUTO.equals(part.style().minWidth)) {
           part.style().minWidth = Len.ZERO;
         }
@@ -247,6 +251,13 @@ public final class Card {
       }
     }
     return row;
+  }
+
+  private static boolean isStatusText(El part) {
+    return part.text() != null
+        && !part.isFocusable()
+        && !part.isEditable()
+        && part.onPress() == null;
   }
 
   /**

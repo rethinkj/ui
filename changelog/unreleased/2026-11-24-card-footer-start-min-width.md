@@ -1,0 +1,1 @@
+- `Card.footer` now honors a minimum width set on its `start` element instead of resetting it to zero, letting `start` shrink down to that minimum before the end texts shorten, and automatically shortens a status-text `start` to one line with an ellipsis.

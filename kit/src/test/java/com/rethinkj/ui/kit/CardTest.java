@@ -29,6 +29,7 @@ class CardTest {
   private static final String ROWS = "\"Rows 1–7\"";
 
   private final Path out = Path.of("target/card-test");
+  private El start;
   private El read;
   private El rows;
 
@@ -37,8 +38,9 @@ class CardTest {
     TextLibraries.assumeLoaded();
   }
 
-  private El view(Theme theme) {
+  private El view(Theme theme, Supplier<El> startFactory) {
     Button.Options small = Button.options().size(Button.Size.SMALL);
+    start = startFactory.get();
     read = Label.label(Label.Variant.MUTED, "Read 200 rows in 28 ms");
     rows = Label.label(Label.Variant.MUTED, "Rows 1–7");
     return col()
@@ -48,9 +50,7 @@ class CardTest {
         .child(Card.flush(
                 el().grow(1),
                 Card.footer(
-                    Label.label(
-                            Label.Variant.MUTED, "About 1,000,000 rows, as the server estimates")
-                        .ellipsis(),
+                    start,
                     read,
                     rows,
                     row()
@@ -81,7 +81,15 @@ class CardTest {
 
   /** Runs the view in a window this wide and returns the tree, after a snap if one is named. */
   private String run(int width, String snap) throws IOException {
-    App<Object> app = new App<>(new Object(), s -> view(Theme.DARK));
+    return run(
+        width,
+        snap,
+        () -> Label.label(Label.Variant.MUTED, "About 1,000,000 rows, as the server estimates")
+            .ellipsis());
+  }
+
+  private String run(int width, String snap, Supplier<El> startFactory) throws IOException {
+    App<Object> app = new App<>(new Object(), s -> view(Theme.DARK, startFactory));
     Script.run("size " + width + " 120\nframe" + (snap == null ? "" : "\nsnap " + snap), app, out);
     return app.tree().dump();
   }
@@ -94,8 +102,8 @@ class CardTest {
 
     // The start gives way first, and the texts at the end keep their width while it is there.
     String middle = run(480, null);
-    float start = rect(line(middle, START))[2];
-    assertTrue(start > 0 && start < rect(line(wide, START))[2], middle);
+    float startWidth = rect(line(middle, START))[2];
+    assertTrue(startWidth > 0 && startWidth < rect(line(wide, START))[2], middle);
     assertEquals(rect(line(wide, READ))[2], rect(line(middle, READ))[2], middle);
     assertEquals(rect(line(wide, ROWS))[2], rect(line(middle, ROWS))[2], middle);
     assertFalse(read.text().shortened() || rows.text().shortened(), middle);
@@ -108,6 +116,37 @@ class CardTest {
         Png.decode(Files.readAllBytes(out.resolve(image + ".png"))),
         Files.readString(out.resolve(image + ".tree.txt")));
     assertEquals(0, rect(line(narrow, START))[2], narrow);
+    assertTrue(read.text().shortened() && rows.text().shortened(), narrow);
+    float[] card = rect(line(narrow, "#card"));
+    float[] last = rect(line(narrow, "label=\"Last page\""));
+    assertTrue(last[0] + last[2] <= card[0] + card[2], narrow);
+  }
+
+  @Test
+  void aFooterStartWithAMinimumWidthKeepsItWhileTheEndTextsShorten() throws IOException {
+    Supplier<El> minStart =
+        () -> Label.label(Label.Variant.MUTED, "About 1,000,000 rows, as the server estimates")
+            .minSize(160, 0);
+
+    String wide = run(1000, null, minStart);
+    float fullStart = rect(line(wide, START))[2];
+    assertTrue(fullStart > 160, wide);
+    assertFalse(
+        start.text().shortened() || read.text().shortened() || rows.text().shortened(), wide);
+
+    // While room remains above the minimum, start shrinks with an ellipsis and end texts stay full.
+    String middle = run(560, null, minStart);
+    float middleStart = rect(line(middle, START))[2];
+    assertTrue(middleStart > 160 && middleStart < fullStart, middle);
+    assertTrue(start.text().shortened(), middle);
+    assertEquals(rect(line(wide, READ))[2], rect(line(middle, READ))[2], middle);
+    assertEquals(rect(line(wide, ROWS))[2], rect(line(middle, ROWS))[2], middle);
+    assertFalse(read.text().shortened() || rows.text().shortened(), middle);
+
+    // Once start hits its minimum width, it holds there and the end texts shorten instead.
+    String narrow = run(424, null, minStart);
+    assertEquals(160, rect(line(narrow, START))[2], narrow);
+    assertTrue(start.text().shortened(), narrow);
     assertTrue(read.text().shortened() && rows.text().shortened(), narrow);
     float[] card = rect(line(narrow, "#card"));
     float[] last = rect(line(narrow, "label=\"Last page\""));
