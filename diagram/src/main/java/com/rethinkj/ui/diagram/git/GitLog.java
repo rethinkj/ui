@@ -305,16 +305,12 @@ public final class GitLog {
       Objects.requireNonNull(ref, "ref");
       refsByCommit.computeIfAbsent(ref.commit(), ignored -> new ArrayList<>(2)).add(ref);
       switch (ref.kind()) {
-        case BRANCH -> localBranches.add(ref.name());
-        case HEAD -> {
-          if (!"HEAD".equals(ref.name())) {
-            localBranches.add(ref.name());
-          }
-        }
+        case BRANCH, HEAD -> localBranches.add(ref.name());
         case TAG -> tagCount++;
         case REMOTE -> {}
       }
     }
+    localBranches.remove(RefPills.DETACHED); // a detached HEAD names no branch
 
     float graphCellWidth =
         graph.width() > 0 ? 2 * style.inset() + (graph.width() - 1) * style.laneWidth() : 0;
@@ -687,7 +683,7 @@ public final class GitLog {
     }
     if (next == from) { // revealRow shows only another row; bring this one back if scrolled away
       double top = next * (double) rowHeight;
-      double y = Math.max(Math.min(list.scrollY(), top), top + rowHeight - list.height());
+      double y = Math.clamp(list.scrollY(), Math.min(top, top + rowHeight - list.height()), top);
       state.scroll.scrollTo(list.scrollX(), y);
     }
     return true;

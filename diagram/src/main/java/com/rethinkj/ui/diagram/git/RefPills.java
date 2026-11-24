@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 public final class RefPills {
 
   /** The branch name of a detached {@link Ref.Kind#HEAD}. */
-  private static final String DETACHED = "HEAD";
+  static final String DETACHED = "HEAD";
 
   /** Opacity of a local branch pill's tinted fill in linear light. */
   private static final float TINT_ALPHA = 0.14f;

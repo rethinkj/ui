@@ -242,7 +242,7 @@ class GitLogTest {
         snap date-tip
         """, app(harness), out);
 
-    Golden.assertSnaps("git-log-dark-", files, "view");
+    Golden.assertSnaps("git-log-dark-", files, "view", "hovered");
 
     String viewTree = Files.readString(out.resolve("view.tree.txt"));
     assertTrue(
@@ -261,11 +261,9 @@ class GitLogTest {
     assertTrue(row3Line.contains("selected current"), row3Line);
     assertTrue(viewTree.contains("label=\"" + harness.log.graph().text(3) + "\""), viewTree);
 
-    // Hovering a row fades other lanes in the rendered graph and leaving restores them.
+    // The stored hovered image shows the other lanes faded; leaving restores them.
     byte[] viewPng = Files.readAllBytes(out.resolve("view.png"));
-    byte[] hoveredPng = Files.readAllBytes(out.resolve("hovered.png"));
     byte[] unhoveredPng = Files.readAllBytes(out.resolve("unhovered.png"));
-    assertFalse(java.util.Arrays.equals(viewPng, hoveredPng), "hover should fade other lanes");
     assertTrue(java.util.Arrays.equals(viewPng, unhoveredPng), "leaving should restore lanes");
 
     String tipTree = Files.readString(out.resolve("date-tip.tree.txt"));
@@ -277,7 +275,7 @@ class GitLogTest {
     assumeText();
     Harness harness = new Harness();
     // Viewport tall enough for ~6 rows so End / PageDown / Home exercise scrolling into view.
-    List<Path> files = Script.run("""
+    Script.run("""
         size 860 320 scale 2
         frame
         press #row-1
