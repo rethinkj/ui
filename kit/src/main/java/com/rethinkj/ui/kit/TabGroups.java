@@ -651,11 +651,6 @@ public final class TabGroups<T> {
             body,
             options)
         .onResize((w, h) -> {
-          // A split moves the other groups too, so an autofocus there asks in the same build;
-          // in the build after the first layout only this bar asks again, with a new key.
-          if (Float.isNaN(group.width) && group.frame.focusGroup == group) {
-            group.frame.focusToken = new Object();
-          }
           group.width = w;
           group.height = h;
         });

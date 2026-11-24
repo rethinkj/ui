@@ -3242,6 +3242,7 @@ public final class App<S> {
     scrolled = false;
     rowsPending = between
         && !rowsKept
+        && !focus.claimed() // what the rows ask for waits for no later build, which has no claim
         && (focus.id() == null
             || animator.inRow(focus.id()) == null && !Animator.inFieldPart(focus.id()));
     rowsKept = false;
@@ -3258,6 +3259,7 @@ public final class App<S> {
     focus.openAndCloseParts(root, time);
     refocus();
     placeEditors(true, false);
+    focus.endClaim(); // rows that scrolling builds later ask as usual
     El.placeBars(root);
   }
 

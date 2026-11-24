@@ -1,0 +1,1 @@
+- Added `El.takeFocus(key)`: like `autofocus(key)`, but the build that gives it a new key moves the focus to it also where other elements, overlays that open or rows ask for the focus in that build. `TabGroups` uses it for the moved tab's bar, so keys pressed in the same frame as a split, such as Control+W or Tab, act from that bar.

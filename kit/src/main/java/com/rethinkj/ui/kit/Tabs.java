@@ -913,7 +913,7 @@ public final class Tabs {
         list.onSecondaryPress(options.menu::openAt);
       }
       if (options.focusBar != null) {
-        list.autofocus(options.focusBar);
+        list.takeFocus(options.focusBar);
       }
       list.focusable().keepFocus().focusRing(theme.accent().edge()).onKey(k -> {
         if (k.modifiers() != 0) {

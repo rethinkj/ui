@@ -37,6 +37,7 @@ final class Focus {
   private boolean reveal; // scroll the focused element into view after the next rebuild
   private Place beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
   private List<Object> askedNext = List.of(); // the others that asked with it, in tree order
+  private boolean claimed; // an El#takeFocus element took the focus in this build: none else asks
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -388,20 +389,41 @@ final class Focus {
     }
   }
 
+  /** Whether an {@link El#takeFocus} element took the focus in the build that runs. */
+  boolean claimed() {
+    return claimed;
+  }
+
+  /** Ends the build in which an {@link El#takeFocus} element may have taken the focus. */
+  void endClaim() {
+    claimed = false;
+  }
+
   /**
    * Before layout of a tree the view has just built: each overlay it no longer has gives the
    * focus back to where it was before the overlay took it, the newest first, if the focus is
    * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
    * {@link El#autofocus} element or else its first focusable one, without a ring, unless it {@link
    * El#keepFocus keeps the focus} where it is. Unless one did, the first element that asks for the
-   * focus with {@link El#autofocus} takes it.
-   * A modal overlay without one takes the focus away until it closes. An element that {@link
+   * focus with {@link El#autofocus} takes it; the first that {@link El#takeFocus takes the focus}
+   * then takes it from them, and nothing that asks later in this build takes it from that one. A
+   * modal overlay without one takes the focus away until it closes. An element that {@link
    * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
    * #refocus} finds the element after layout.
    */
   void openAndClose(El tree, double time) {
+    claimed = false;
+    List<Object> asked = animator.autofocus(tree);
     if (!openAndClose(Animator.overlays(tree), false, time)) {
-      ask(animator.autofocus(tree), time);
+      ask(asked, time);
+    }
+    for (Object each : asked) {
+      El el = Animator.find(tree, each);
+      if (el != null && el.takesFocus()) {
+        ask(List.of(each), time);
+        claimed = true;
+        return;
+      }
     }
   }
 
@@ -462,8 +484,9 @@ final class Focus {
       }
       El el = overlay.getValue();
       Object first = Animator.firstFocusable(el, overlayId);
-      boolean takes =
-          (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal() && !el.isInert());
+      boolean takes = (!claimed || el.isModal())
+          && (el.holdsFocus() || !el.keepsFocus())
+          && (first != null || el.isModal() && !el.isInert());
       opened.put(overlayId, takes ? new Place(id, ring) : null);
       if (parts) {
         partOverlays.add(overlayId);
@@ -490,7 +513,7 @@ final class Focus {
    * can, and gives the focus back to where it was when none can.
    */
   void ask(List<Object> asked, double time) {
-    if (asked.isEmpty()) {
+    if (asked.isEmpty() || claimed) {
       return;
     }
     List<Object> next = new ArrayList<>(asked.subList(1, asked.size()));
