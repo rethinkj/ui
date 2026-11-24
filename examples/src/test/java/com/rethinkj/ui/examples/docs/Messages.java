@@ -53,7 +53,9 @@ final class Messages {
   // docs:start follow-end
   final ScrollState transcript = new ScrollState().followEnd();
 
-  void onScroll() {} // rebuilds the view so the button appears when scrolling away
+  void onScroll() {
+    // nothing to keep: the view is built again and shows the button when away from the end
+  }
 
   static El following(Messages state) {
     Theme theme = Theme.CURRENT.get();

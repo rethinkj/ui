@@ -2677,6 +2677,9 @@ public final class App<S> {
       El el = id == null ? null : animator.element(id);
       scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
       if (el != null) {
+        if (el.scrollState() != null) {
+          el.scrollState().toEnd = false; // the later row wins over a pending scrollToEnd
+        }
         rowGoals.put(id, row);
       }
       return false;
@@ -4557,8 +4560,9 @@ public final class App<S> {
         || !el.measuresRows()
         || el.rowCount() == 0
         || el.hasRow(el.rowCount() - 1);
-    if (kept != null && kept.el == el && range.length == 0 && tail) {
-      kept.toEnd = false; // its last rows measured: a scrollToEnd is done
+    if (kept != null && kept.el == el && kept.toEnd) {
+      rowGoals.remove(Animator.identities(path).getLast()); // the later scrollToEnd wins
+      kept.toEnd = range.length != 0 || !tail; // done once its last rows are measured
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);

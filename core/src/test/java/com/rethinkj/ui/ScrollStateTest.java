@@ -376,9 +376,7 @@ class ScrollStateTest {
     });
     app.resize(200, 100, 1);
     app.frame();
-    assertTrue(model.listScroll.atEnd(), "fits at first");
-    assertTrue(model.plainScroll.atEnd());
-    assertEquals(0, list(app).scrollY());
+    assertBoth(app, true, 0, "fits at first");
 
     // Appending rows past the viewport (actual 35px > 20px estimate) follows on the same frame.
     for (int i = 0; i < 6; i++) {
@@ -386,56 +384,37 @@ class ScrollStateTest {
     }
     app.invalidate();
     app.frame();
-    double end = model.total() - 100;
-    assertTrue(model.listScroll.atEnd());
-    assertTrue(model.plainScroll.atEnd());
-    assertEquals(end, list(app).scrollY(), "virtual list followed appended rows");
-    assertEquals(end, panel(app).scrollY(), "plain scroll area followed appended children");
+    assertBoth(app, true, model.total() - 100, "followed appended rows");
 
     // Growing the last row (streaming answer) stays at the new end on the same frame.
     model.sizes.set(model.sizes.size() - 1, 90f);
     app.invalidate();
     app.frame();
-    end = model.total() - 100;
-    assertTrue(model.listScroll.atEnd());
-    assertTrue(model.plainScroll.atEnd());
-    assertEquals(end, list(app).scrollY(), "virtual list followed taller last row");
-    assertEquals(end, panel(app).scrollY(), "plain scroll area followed taller last child");
+    double end = model.total() - 100;
+    assertBoth(app, true, end, "followed a taller last row");
 
     // Scrolling up stops following for both areas.
     app.wheel(50, 50, 0, -80);
     app.wheel(150, 50, 0, -80);
     app.frame();
-    assertFalse(model.listScroll.atEnd());
-    assertFalse(model.plainScroll.atEnd());
-    double stayed = list(app).scrollY();
-    assertEquals(end - 80, stayed);
+    assertBoth(app, false, end - 80, "scrolled up");
 
     model.sizes.add(40f);
     model.sizes.set(model.sizes.size() - 1, 70f);
     app.invalidate();
     app.frame();
-    assertFalse(model.listScroll.atEnd());
-    assertFalse(model.plainScroll.atEnd());
-    assertEquals(stayed, list(app).scrollY(), "stayed where the user scrolled");
-    assertEquals(stayed, panel(app).scrollY());
+    assertBoth(app, false, end - 80, "stayed where the user scrolled");
 
     // Reaching the end again resumes following.
     app.wheel(50, 50, 0, 500);
     app.wheel(150, 50, 0, 500);
     app.frame();
-    end = model.total() - 100;
-    assertTrue(model.listScroll.atEnd());
-    assertTrue(model.plainScroll.atEnd());
-    assertEquals(end, list(app).scrollY());
+    assertBoth(app, true, model.total() - 100, "wheeled back to the end");
 
     model.sizes.add(45f);
     app.invalidate();
     app.frame();
-    end = model.total() - 100;
-    assertTrue(model.listScroll.atEnd());
-    assertEquals(end, list(app).scrollY(), "resumed following after wheeling to end");
-    assertEquals(end, panel(app).scrollY());
+    assertBoth(app, true, model.total() - 100, "resumed following");
 
     // Reveal above the end stops following; scrollToEnd() jumps back and resumes it.
     model.reveal = 0;
@@ -448,9 +427,16 @@ class ScrollStateTest {
     model.sizes.add(50f);
     app.invalidate();
     app.frame();
-    end = model.total() - 100;
     assertTrue(model.listScroll.atEnd());
-    assertEquals(end, list(app).scrollY(), "scrollToEnd moved to end and resumed following");
+    assertEquals(model.total() - 100, list(app).scrollY(), "scrollToEnd went to the end");
+  }
+
+  /** Asserts the offset of both areas of the transcript and whether they are at their end. */
+  private static void assertBoth(App<Transcript> app, boolean atEnd, double y, String what) {
+    assertEquals(atEnd, app.state().listScroll.atEnd(), what);
+    assertEquals(atEnd, app.state().plainScroll.atEnd(), what);
+    assertEquals(y, list(app).scrollY(), what);
+    assertEquals(y, panel(app).scrollY(), what);
   }
 
   @Test
