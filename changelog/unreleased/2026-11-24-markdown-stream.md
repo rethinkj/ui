@@ -1,0 +1,1 @@
+- `MarkdownDocument.next(String)` incrementally updates a parsed document as text streams in, reusing unchanged top-level blocks and what `Markdown.markdown` and `Markdown.fragment` already built, highlighted, and measured for them.

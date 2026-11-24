@@ -74,7 +74,56 @@ public record Theme(
     Danger danger,
     Callouts callout,
     Diff diff,
-    Lanes lanes) {
+    Lanes lanes,
+    Chat chat) {
+
+  /** A theme whose chat messages look as {@link Chat#DARK} or {@link Chat#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger,
+      Callouts callout,
+      Diff diff,
+      Lanes lanes) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lanes,
+        lightness(surface.raised()) < 0.5 ? Chat.DARK : Chat.LIGHT);
+  }
 
   /** A theme whose graph lanes look as {@link Lanes#DARK} or {@link Lanes#LIGHT}. */
   public Theme(
@@ -610,6 +659,30 @@ public record Theme(
     /** For light surfaces. */
     public static final Lanes LIGHT = new Lanes(List.of(
         BLUE_447, VIOLET_478, TEAL_490, PINK_491, AMBER_491, GREEN_492, PURPLE_490, ORANGE_488));
+  }
+
+  /**
+   * How {@link com.rethinkj.ui.kit.Chat} messages look: the fill of a user message's bubble and
+   * the largest share of the message's width it may take before wrapping.
+   *
+   * @param bubble opaque fill of a user message's bubble, on which primary, muted and selected
+   *     text keep 4.5:1 contrast
+   * @param bubbleWidth maximum fraction of the message's width a user bubble takes, in {@code (0,
+   *     1]}
+   */
+  public record Chat(int bubble, float bubbleWidth) {
+
+    public Chat {
+      if (!(bubbleWidth > 0 && bubbleWidth <= 1)) {
+        throw new IllegalArgumentException("bubble width must be in (0, 1]: " + bubbleWidth);
+      }
+    }
+
+    /** For dark surfaces. */
+    public static final Chat DARK = new Chat(GRAY_157, 0.8f);
+
+    /** For light surfaces. */
+    public static final Chat LIGHT = new Chat(GRAY_968, 0.8f);
   }
 
   /**
@@ -1891,7 +1964,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withText(TextColors text) {
@@ -1916,7 +1990,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withBorder(Borders border) {
@@ -1941,7 +2016,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1966,7 +2042,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   /**
@@ -1999,7 +2076,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withSpace(Spacing space) {
@@ -2024,7 +2102,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withRadius(Radii radius) {
@@ -2049,7 +2128,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withType(Type type) {
@@ -2074,7 +2154,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withSize(Sizes size) {
@@ -2099,7 +2180,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withMotion(Motion motion) {
@@ -2124,7 +2206,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withGrid(Grid grid) {
@@ -2149,7 +2232,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -2174,7 +2258,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withCode(Code code) {
@@ -2199,7 +2284,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -2224,7 +2310,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withProse(Prose prose) {
@@ -2249,7 +2336,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withBadge(Badges badge) {
@@ -2274,7 +2362,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withDanger(Danger danger) {
@@ -2299,7 +2388,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withCaption(Caption caption) {
@@ -2324,7 +2414,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withCallout(Callouts callout) {
@@ -2349,7 +2440,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withDiff(Diff diff) {
@@ -2374,7 +2466,8 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
   }
 
   public Theme withLanes(Lanes lanes) {
@@ -2399,7 +2492,34 @@ public record Theme(
         danger,
         callout,
         diff,
-        lanes);
+        lanes,
+        chat);
+  }
+
+  public Theme withChat(Chat chat) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lanes,
+        chat);
   }
 
   /**

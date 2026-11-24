@@ -1,0 +1,55 @@
+el 0,0 580x416
+  el 12,12 556x390
+    el role=article label="User message" 29,29 522x61
+      el 277,29 274x35
+        text role=paragraph "Why did the orders query slow down?" 290,38 248x17
+      el 488,66 63x24
+        el #copy role=button label="Copy message" 488,66 24x24
+          text label="copy" "\u{F32A}" 492,70 16x16
+        text "14:31" 516,71 35x15
+    el role=article label="Agent message" 29,102 522x217
+      el 29,102 522x63
+        el role=button label="Inspect EXPLAIN plan" 30,103 520x28 expanded value="Done"
+          text label="code" "\u{F339}" 38,109 16x16
+          text "Inspect EXPLAIN plan" 58,109 444x16
+          text label="Done" "\u{F297}" 506,109 16x16
+          text label="chevron_up" "\u{F2B5}" 526,109 16x16
+        el role=separator 30,131 520x1
+        el 30,132 520x32
+          text "Seq Scan on orders  (cost=0.00..48210.00 rows=1840)" 38,140 504x16
+      el 29,173 522x30
+        el role=button label="Check replica lag" 30,174 520x28 invalid expanded=false value="Failed"
+          text label="database" "\u{F0D7}" 38,180 16x16
+          text "Check replica lag" 58,180 444x16
+          text label="Failed" "\u{F3F0}" 506,180 16x16
+          text label="chevron_down" "\u{F2A2}" 526,180 16x16
+      el 29,211 522x76
+        text role=paragraph "The orders table has no composite index on status and created_at, so PostgreSQL falls back to a sequential scan:" 29,211 522x34 readonly lines 1-1/1
+        el role=group 29,253 522x34
+          text role=code label="sql" "CREATE INDEX orders_status_created ON orders (status, created_at);" 30,254 520x32 readonly lines 1-1/1
+          el #copy role=button label="Copy code" 522,258 24x24
+            text label="copy" "\u{F32A}" 526,262 16x16
+      el 29,295 63x24
+        el #copy role=button label="Copy message" 29,295 24x24
+          text label="copy" "\u{F32A}" 33,299 16x16
+        text "14:32" 57,300 35x15
+    el role=article label="Agent message" 29,331 522x54
+      el 29,331 522x30
+        el role=button label="Verify index size" 30,332 520x28 busy expanded=false value="Running"
+          text label="play" "\u{E990}" 38,338 16x16
+          text "Verify index size" 58,338 444x16
+          el role=progressbar label="Running" 506,338 16x16
+            el 506,338 16x16
+            el 506,338 16x16
+            el 506,338 16x16
+            el 506,338 16x16
+            el 506,338 16x16
+          text label="chevron_down" "\u{F2A2}" 526,338 16x16
+      el role=status label="Working…" 29,369 522x16
+        el role=progressbar label="Loading" 29,369 16x16
+          el 29,369 16x16
+          el 29,369 16x16
+          el 29,369 16x16
+          el 29,369 16x16
+          el 29,369 16x16
+        text "Working…" 49,369 62x16

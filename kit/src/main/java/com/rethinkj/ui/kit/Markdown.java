@@ -72,8 +72,11 @@ import java.util.function.Function;
  * stays where it is. Without {@link Options#images}, an image shows as its description: in a
  * frame alone in its paragraph, in muted text among other text.
  *
- * <p>What the component makes of a document for a theme it keeps with the document, so a
- * rebuild of the view reads nothing again and highlights nothing again.
+ * <p>What the component makes of a document for a theme it keeps with the document, so a rebuild of
+ * the view reads nothing again and highlights nothing again. To show a document that grows while it
+ * streams, keep it in the state and replace it with {@link MarkdownDocument#next
+ * document.next(text)} as each piece arrives: unchanged blocks keep their identity and what the
+ * component made of them.
  *
  * <p>For Markdown embedded inside another element—such as a rendered documentation comment, a
  * quick-documentation popover or completion details—use {@link #fragment} (a plain, non-scrolling
@@ -415,11 +418,7 @@ public final class Markdown {
     }
     Theme theme = c.theme;
     MarkdownDocument.ListBlock list = (MarkdownDocument.ListBlock) u.block;
-    float column = c.prepared
-        .columns
-        .computeIfAbsent(WindowState.CURRENT.get().scale(), s -> new IdentityHashMap<>())
-        .computeIfAbsent(list, l -> markerColumn(c, list));
-    El item = item(c, list, u.item, column);
+    El item = item(c, list, u.item, markerColumn(c, list));
     boolean lastItem = u.item + 1 == list.items().size();
     float below = list.tight() ? theme.space().xs() : theme.space().l();
     if (lastItem) {
@@ -451,9 +450,18 @@ public final class Markdown {
     String text; // the whole document's, for Control+C after Control+A
 
     Prepared(MarkdownDocument document, Theme theme) {
+      this(document, theme, new double[0]);
+    }
+
+    /** With the heights of the first rows as they were, the others estimated. */
+    Prepared(MarkdownDocument document, Theme theme, double[] kept) {
       this.document = document;
-      this.units = units(document);
+      List<Unit> units = units(document);
+      this.units = units;
       this.heights = new RowHeights(i -> {
+        if (i < kept.length) {
+          return kept[i];
+        }
         Unit u = units.get(i);
         return (u.item < 0
                 ? estimate(theme, u.block)
@@ -463,6 +471,60 @@ public final class Markdown {
                         .sum())
             + theme.space().l();
       });
+    }
+  }
+
+  private static void takeOver(Block block, Prepared old, Prepared target) {
+    switch (block) {
+      case MarkdownDocument.Heading h -> copyPiece(h, old, target);
+      case MarkdownDocument.Paragraph p -> {
+        copyPiece(p, old, target);
+        copyPiece(p.content(), old, target);
+        for (Inline inline : p.content()) {
+          if (inline instanceof MarkdownDocument.Image image) {
+            copyPiece(image, old, target);
+          }
+        }
+      }
+      case MarkdownDocument.Quote q -> {
+        for (Block child : q.blocks()) {
+          takeOver(child, old, target);
+        }
+      }
+      case MarkdownDocument.ListBlock l -> {
+        for (var entry : old.columns.entrySet()) {
+          Float width = entry.getValue().get(l);
+          if (width != null) {
+            target
+                .columns
+                .computeIfAbsent(entry.getKey(), s -> new IdentityHashMap<>())
+                .put(l, width);
+          }
+        }
+        for (MarkdownDocument.Item item : l.items()) {
+          for (Block child : item.blocks()) {
+            takeOver(child, old, target);
+          }
+        }
+      }
+      case MarkdownDocument.Table table -> {
+        for (List<Inline> cell : table.header()) {
+          copyPiece(cell, old, target);
+        }
+        for (List<List<Inline>> row : table.rows()) {
+          for (List<Inline> cell : row) {
+            copyPiece(cell, old, target);
+          }
+        }
+      }
+      case MarkdownDocument.CodeBlock _, MarkdownDocument.ThematicBreak _ -> {}
+    }
+  }
+
+  private static void copyPiece(Object owner, Prepared old, Prepared target) {
+    Piece piece = old.pieces.get(owner);
+    if (piece != null) {
+      target.pieces.put(owner, piece);
     }
   }
 
@@ -498,13 +560,48 @@ public final class Markdown {
   private static Prepared prepared(Theme theme, MarkdownDocument document) {
     synchronized (document) {
       if (document.prepared instanceof Prepared p && document.preparedFor == theme) {
-        return p;
+        if (p.document == document) {
+          return p;
+        }
+        // Handed over by MarkdownDocument#next: take what the blocks kept from it are made of.
+        Prepared next = prepareFrom(document, theme, p);
+        document.prepared = next;
+        return next;
       }
       Prepared p = new Prepared(document, theme);
       document.prepared = p;
       document.preparedFor = theme;
       return p;
     }
+  }
+
+  /**
+   * A Prepared for a document that keeps the first blocks of an earlier one, with what was made of
+   * those blocks and the heights of their rows, and nothing that leads to the earlier document.
+   */
+  private static Prepared prepareFrom(MarkdownDocument document, Theme theme, Prepared old) {
+    List<Block> oldBlocks = old.document.blocks();
+    List<Block> blocks = document.blocks();
+    int reused = 0;
+    while (reused < Math.min(oldBlocks.size(), blocks.size())
+        && oldBlocks.get(reused) == blocks.get(reused)) {
+      reused++;
+    }
+    // The last row had no space below it, which it has now that blocks follow it.
+    int rows = 0;
+    while (rows < Math.min(old.units.size() - 1, old.heights.count())
+        && old.units.get(rows).index < reused) {
+      rows++;
+    }
+    double[] kept = new double[rows];
+    for (int i = 0; i < rows; i++) {
+      kept[i] = old.heights.height(i);
+    }
+    Prepared p = new Prepared(document, theme, kept);
+    for (int i = 0; i < reused; i++) {
+      takeOver(blocks.get(i), old, p);
+    }
+    return p;
   }
 
   /** A range of a piece's text that a highlighter gives: a font, a color or a line. */
@@ -527,9 +624,11 @@ public final class Markdown {
     final String text;
     final List<Span> spans;
     final List<Link> links;
+    final int color; // of the text, which struck-out parts are struck in
 
-    Piece(String text, List<Span> spans, List<Link> links) {
+    Piece(String text, List<Span> spans, List<Link> links, int color) {
       this.text = text;
+      this.color = color;
       this.spans = List.copyOf(spans);
       this.links = List.copyOf(links);
     }
@@ -561,17 +660,20 @@ public final class Markdown {
 
   private static final int STRONG = 2;
 
+  static int piecesBuilt; // for tests
+
   /** Makes the piece of a run of inline parts, once per document and theme. */
   private static Piece piece(Context c, Object owner, List<Inline> content, boolean heading) {
     Piece kept = c.prepared.pieces.get(owner);
-    if (kept != null) {
+    if (kept != null && kept.color == c.color) {
       return kept;
     }
+    piecesBuilt++;
     StringBuilder text = new StringBuilder();
     List<Span> spans = new ArrayList<>();
     List<Link> links = new ArrayList<>();
     inline(c, content, 0, null, false, heading, text, spans, links);
-    Piece piece = new Piece(text.toString(), spans, links);
+    Piece piece = new Piece(text.toString(), spans, links, c.color);
     c.prepared.pieces.put(owner, piece);
     return piece;
   }
@@ -959,8 +1061,16 @@ public final class Markdown {
     return out;
   }
 
-  /** How wide the markers of a list are: its widest number, or room for a bullet. */
+  /** How wide the markers of a list are, measured once per scale: see {@link #measureMarkers}. */
   private static float markerColumn(Context c, MarkdownDocument.ListBlock list) {
+    return c.prepared
+        .columns
+        .computeIfAbsent(WindowState.CURRENT.get().scale(), s -> new IdentityHashMap<>())
+        .computeIfAbsent(list, l -> measureMarkers(c, list));
+  }
+
+  /** How wide the markers of a list are: its widest number, or room for a bullet. */
+  private static float measureMarkers(Context c, MarkdownDocument.ListBlock list) {
     Theme theme = c.theme;
     float column = theme.space().l();
     if (list.ordered()) {

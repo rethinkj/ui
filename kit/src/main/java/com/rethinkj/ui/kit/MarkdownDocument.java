@@ -10,24 +10,63 @@ import java.util.function.UnaryOperator;
  * shows. {@link #parse} reads CommonMark with the GitHub extensions tables, task list items,
  * strikethrough and bare URLs; it never throws and takes time in proportion to the text. Raw HTML
  * stays text. An app parses a document once and keeps it in its state, so that a rebuild of the
- * view does not read it again: the component keeps what it makes of the document with it. Two
- * documents are equal only when they are the same object.
+ * view does not read it again: the component keeps what it makes of the document with it. For a
+ * document that grows while it streams, keep it in the state and replace it with {@link
+ * #next(String) document.next(text)} as each piece arrives, so unchanged blocks and what the
+ * component made of them are reused. Two documents are equal only when they are the same object.
  */
 public final class MarkdownDocument {
 
   private final List<Block> blocks;
+  // Kept for next(): null on documents made with the public constructor or the fault fallback.
+  final String source;
+  final UnaryOperator<String> references;
+  final int[] fresh; // see MarkdownParser#fresh
+  final boolean hasReferenceDefinitions;
   // What Markdown made of the document for a theme, kept with it; see Markdown#prepared.
   Object prepared;
   Theme preparedFor;
 
   /** A document of these blocks, as {@link #parse} gives one. */
   public MarkdownDocument(List<Block> blocks) {
+    this(blocks, null, null, null, false);
+  }
+
+  MarkdownDocument(
+      List<Block> blocks,
+      String source,
+      UnaryOperator<String> references,
+      int[] fresh,
+      boolean hasReferenceDefinitions) {
     this.blocks = List.copyOf(blocks);
+    this.source = source;
+    this.references = references;
+    this.fresh = fresh;
+    this.hasReferenceDefinitions = hasReferenceDefinitions;
+  }
+
+  /** Hands what Markdown made of this document to the next, which takes over what it keeps. */
+  synchronized void handOver(MarkdownDocument next) {
+    next.prepared = prepared;
+    next.preparedFor = preparedFor;
   }
 
   /** The document's blocks in order. */
   public List<Block> blocks() {
     return blocks;
+  }
+
+  /**
+   * The document of a text that goes on from this document's text, as {@link #parse(String)} with
+   * the same reference resolver would give it, reusing top-level blocks that did not change and
+   * what {@link Markdown} already made of them. Keep the document in the app's state and replace it
+   * with {@code document.next(text)} as more text arrives while streaming; any text works, also one
+   * that does not extend this document's text, in which case less or nothing is reused. A document
+   * read with a reference resolver reads the whole text again, with the same resolver, and keeps
+   * the blocks that read as they did.
+   */
+  public MarkdownDocument next(String source) {
+    return MarkdownParser.next(this, source);
   }
 
   /** Reads a Markdown text; never throws, also not on text that is not Markdown. */

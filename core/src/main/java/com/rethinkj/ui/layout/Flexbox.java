@@ -409,6 +409,24 @@ final class Flexbox {
         return new Out(knownWidth, 0, Float.NaN);
       }
     }
+    // The width comes before the height: a column that fits its width to its content takes that
+    // width first, so that its items are measured at the width they end up with. Not when it
+    // wraps: there an item stretches to its line, which is narrower than the column.
+    if (!isRow && !isWrap && !some(knownWidth) && in.axis() != HORIZONTAL) {
+      knownWidth = node.layout(new In(
+              false,
+              in.inherent(),
+              HORIZONTAL,
+              in.knownWidth(),
+              in.knownHeight(),
+              in.widthDefinite(),
+              in.heightDefinite(),
+              in.parentWidth(),
+              in.parentHeight(),
+              in.availableWidth(),
+              in.availableHeight()))
+          .width();
+    }
 
     constants(knownWidth, knownHeight);
 

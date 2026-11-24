@@ -4,6 +4,7 @@ import com.rethinkj.ui.kit.MarkdownDocument.Align;
 import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,8 @@ final class MarkdownParser {
     } catch (RuntimeException | StackOverflowError _) {
       // shortcut: a fault of the reader shows the text as it is rather than failing the view;
       // the tests make sure it never comes to this.
-      return new MarkdownDocument(List.of(new MarkdownDocument.CodeBlock("", text)));
+      return new MarkdownDocument(
+          List.of(new MarkdownDocument.CodeBlock("", text)), null, references, null, false);
     }
   }
 
@@ -73,7 +75,90 @@ final class MarkdownParser {
   }
 
   static MarkdownDocument read(String text, UnaryOperator<String> references) {
-    return new MarkdownParser(references, null).run(text.replace('\0', '�'));
+    return new MarkdownParser(references, null).run(text);
+  }
+
+  static MarkdownDocument next(MarkdownDocument previous, String source) {
+    String text = source == null ? "" : source;
+    try {
+      return nextRead(previous, text);
+    } catch (RuntimeException | StackOverflowError _) {
+      return new MarkdownDocument(
+          List.of(new MarkdownDocument.CodeBlock("", text)),
+          null,
+          previous.references,
+          null,
+          false);
+    }
+  }
+
+  /**
+   * Reads the text anew from the last line before which nothing but the top-level blocks above it
+   * was open, as far as the text did not change: those blocks are closed and stay as they are, and
+   * a reader that starts at that line reads the rest as a reader of the whole text does.
+   */
+  private static MarkdownDocument nextRead(MarkdownDocument previous, String text) {
+    boolean resolved = previous.references != null; // which may answer otherwise now
+    if (text.equals(previous.source) && !resolved) {
+      return previous;
+    }
+    List<Block> oldBlocks = previous.blocks();
+    int[] fresh = previous.fresh;
+    int n = 0; // without its text (a document made of blocks), read in full
+    if (previous.source != null && !previous.hasReferenceDefinitions && !resolved) {
+      int p = commonPrefix(previous.source, text);
+      if (p > 0
+          && (p < previous.source.length()
+                  && previous.source.charAt(p - 1) == '\r'
+                  && previous.source.charAt(p) == '\n'
+              || p < text.length() && text.charAt(p - 1) == '\r' && text.charAt(p) == '\n')) {
+        p--; // a line ends at a carriage return only if no line feed follows it
+      }
+      n = Math.min(fresh.length - 1, oldBlocks.size());
+      while (n > 0 && (fresh[n] < 0 || fresh[n] > p)) {
+        n--;
+      }
+    }
+    MarkdownParser rest = new MarkdownParser(previous.references, null);
+    int cut = n == 0 ? 0 : fresh[n];
+    rest.scanBlocks(text.substring(cut).replace('\0', '\uFFFD'));
+    if (n > 0 && !rest.refs.isEmpty()) {
+      // A definition can change the links above it.
+      n = 0;
+      cut = 0;
+      rest = new MarkdownParser(previous.references, null);
+      rest.scanBlocks(text.replace('\0', '\uFFFD'));
+    }
+    List<Block> blocks = new ArrayList<>(oldBlocks.subList(0, n));
+    for (B b : rest.doc.children) {
+      rest.convert(b, blocks);
+    }
+    blocks = identify(blocks);
+    // A block read again as it was, such as a list before a paragraph that grows, is kept too.
+    for (int i = n; i < Math.min(blocks.size(), oldBlocks.size()); i++) {
+      if (!blocks.get(i).equals(oldBlocks.get(i))) {
+        break;
+      }
+      blocks.set(i, oldBlocks.get(i));
+    }
+    int[] starts =
+        n == 0 ? new int[rest.fresh.length] : Arrays.copyOf(fresh, n + rest.fresh.length);
+    for (int i = 0; i < rest.fresh.length; i++) {
+      starts[n + i] = rest.fresh[i] < 0 ? -1 : cut + rest.fresh[i];
+    }
+    MarkdownDocument result =
+        new MarkdownDocument(blocks, text, previous.references, starts, !rest.refs.isEmpty());
+    previous.handOver(result);
+    return result;
+  }
+
+  private static int commonPrefix(String a, String b) {
+    int limit = Math.min(a.length(), b.length());
+    int i = 0;
+    while (i < limit && a.charAt(i) == b.charAt(i)) {
+      i++;
+    }
+    return i;
   }
 
   // ---- Blocks
@@ -151,14 +236,17 @@ final class MarkdownParser {
   private boolean indented;
   private boolean blank;
   private boolean partiallyConsumedTab;
+  // For each number of top-level blocks, the offset of the first line before which those and
+  // nothing else were open (an open heading or thematic break takes no more lines), or -1.
+  private int[] fresh = {-1};
 
-  private MarkdownDocument run(String text) {
-    scanBlocks(text);
+  private MarkdownDocument run(String raw) {
+    scanBlocks(raw.replace('\0', '\uFFFD'));
     List<Block> blocks = new ArrayList<>();
     for (B b : doc.children) {
       convert(b, blocks);
     }
-    return new MarkdownDocument(identify(blocks));
+    return new MarkdownDocument(identify(blocks), raw, references, fresh, !refs.isEmpty());
   }
 
   private void scanBlocks(String text) {
@@ -168,6 +256,17 @@ final class MarkdownParser {
       int end = at;
       while (end < length && text.charAt(end) != '\n' && text.charAt(end) != '\r') {
         end++;
+      }
+      if (tip == doc || tip.parent == doc && (tip.type == HEADING || tip.type == BREAK)) {
+        int count = doc.children.size();
+        if (count >= fresh.length) {
+          int was = fresh.length;
+          fresh = Arrays.copyOf(fresh, Math.max(count + 1, was * 2));
+          Arrays.fill(fresh, was, fresh.length, -1);
+        }
+        if (fresh[count] < 0) {
+          fresh[count] = at;
+        }
       }
       if (end == length && at == length && at > 0) {
         break; // the text ends in a line break: no last empty line
@@ -987,33 +1086,60 @@ final class MarkdownParser {
   }
 
   private static List<Block> identify(List<Block> blocks, Map<String, Integer> seen) {
-    List<Block> out = new ArrayList<>(blocks.size());
-    for (Block b : blocks) {
-      out.add(
-          switch (b) {
-            case MarkdownDocument.Heading h -> {
-              // As GitHub: the next number of the slug whose id is not given yet, given ids taken.
-              String slug = slug(MarkdownDocument.plainText(h.content()));
-              String id = slug;
-              while (seen.containsKey(id)) {
-                id = slug + "-" + seen.merge(slug, 1, Integer::sum);
-              }
-              seen.put(id, 0);
-              yield new MarkdownDocument.Heading(h.level(), h.content(), id);
-            }
-            case MarkdownDocument.Quote q -> new MarkdownDocument.Quote(identify(q.blocks(), seen));
-            case MarkdownDocument.ListBlock l ->
-              new MarkdownDocument.ListBlock(
-                  l.ordered(),
-                  l.start(),
-                  l.tight(),
-                  l.items().stream()
-                      .map(i -> new MarkdownDocument.Item(i.task(), identify(i.blocks(), seen)))
-                      .toList());
-            default -> b;
-          });
+    List<Block> out = null;
+    for (int i = 0; i < blocks.size(); i++) {
+      Block b = blocks.get(i);
+      Block identified = switch (b) {
+        case MarkdownDocument.Heading h -> {
+          // As GitHub: the next number of the slug whose id is not given yet, given ids taken.
+          String slug = slug(MarkdownDocument.plainText(h.content()));
+          String id = slug;
+          while (seen.containsKey(id)) {
+            id = slug + "-" + seen.merge(slug, 1, Integer::sum);
+          }
+          seen.put(id, 0);
+          yield id.equals(h.id()) ? h : new MarkdownDocument.Heading(h.level(), h.content(), id);
+        }
+        case MarkdownDocument.Quote q -> {
+          List<Block> inner = identify(q.blocks(), seen);
+          yield inner == q.blocks() ? q : new MarkdownDocument.Quote(inner);
+        }
+        case MarkdownDocument.ListBlock l -> {
+          List<MarkdownDocument.Item> items = identifyItems(l.items(), seen);
+          yield items == l.items()
+              ? l
+              : new MarkdownDocument.ListBlock(l.ordered(), l.start(), l.tight(), items);
+        }
+        default -> b;
+      };
+      if (identified != b && out == null) {
+        out = new ArrayList<>(blocks.size());
+        out.addAll(blocks.subList(0, i));
+      }
+      if (out != null) {
+        out.add(identified);
+      }
     }
-    return out;
+    return out == null ? blocks : out;
+  }
+
+  private static List<MarkdownDocument.Item> identifyItems(
+      List<MarkdownDocument.Item> items, Map<String, Integer> seen) {
+    List<MarkdownDocument.Item> out = null;
+    for (int i = 0; i < items.size(); i++) {
+      MarkdownDocument.Item item = items.get(i);
+      List<Block> inner = identify(item.blocks(), seen);
+      MarkdownDocument.Item identified =
+          inner == item.blocks() ? item : new MarkdownDocument.Item(item.task(), inner);
+      if (identified != item && out == null) {
+        out = new ArrayList<>(items.size());
+        out.addAll(items.subList(0, i));
+      }
+      if (out != null) {
+        out.add(identified);
+      }
+    }
+    return out == null ? items : out;
   }
 
   /** GitHub's anchor of a heading: lower case, spaces as hyphens, other punctuation left out. */

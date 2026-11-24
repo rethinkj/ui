@@ -1,0 +1,51 @@
+---
+title: Chat
+description: User message bubbles, full-width Markdown agent responses, collapsible tool call rows, and a working spinner.
+---
+
+`Chat` provides the building blocks of a chat transcript in the theme's tokens: right-aligned user message bubbles sized to their text up to `Theme.Chat.bubbleWidth()`, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, and a quiet working indicator with a spinner.
+
+Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html).
+
+<Shot src="examples/docs/chat/view-{theme}" alt="A chat card showing a right-aligned user bubble, an agent answer with an open tool call, a failed tool call, Markdown prose with SQL, and a running tool call above a working spinner" />
+
+## Example
+
+```java snippet="chat"
+```
+
+| Method | Description |
+| --- | --- |
+| `user(text)` / `user(text, options)` | Right-aligned user bubble sized to its text up to `Theme.Chat.bubbleWidth()`, with optional quiet footer |
+| `agent(document)` / `agent(document, options)` | Full-width agent answer rendered via `Markdown.fragment` |
+| `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
+| `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
+| `working()` / `working(text)` | Quiet status row with a spinner and `Texts.working()` (or custom text) for the bottom of an active message |
+
+## Options
+
+Configure message footers and Markdown rendering with `Chat.options()`:
+
+| Option | Description |
+| --- | --- |
+| `time(text)` | Muted timestamp shown in tabular figures under the message |
+| `copy(clipboard)` | Adds a quiet copy button that writes the message text (or `Markdown.text(document)`) to `clipboard` |
+| `copy(clipboard, text)` | Adds a quiet copy button that writes explicit `text` to `clipboard` (for composed `agent(options, parts…)` messages) |
+| `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on the copy button; keep one `Button.Copied` per message |
+| `actions(El…)` | Adds extra quiet actions (such as ghost icon buttons) to the message footer |
+| `markdown(Markdown.Options)` | Forwards custom `Markdown.Options` to `Markdown.fragment` in `agent(document, options)` |
+
+## Tool calls
+
+`Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). Closed by default, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
+
+## Localization and theming
+
+All built-in labels (`User message`, `Agent message`, `Copy message`, `Working…`, and tool state names) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
+
+## In a tree dump
+
+User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, and `Chat.working` is `role=status`:
+
+```text file="examples/src/test/resources/golden/docs/chat/view.tree.txt" start="role=article" count="18"
+```
