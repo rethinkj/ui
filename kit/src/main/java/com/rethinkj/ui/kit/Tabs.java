@@ -555,7 +555,8 @@ public final class Tabs {
       g.firstY = d.windowY() - (float) d.y();
       g.window = d.window();
       g.torn = o.onTearOff != null && o.tearOffAtStart;
-      if (!g.torn && o.onMove != null) { // the bar's drop handler ran before this step
+      // The bar's drop handler ran before this step, if the pointer is still over the bar.
+      if (!g.torn && o.onMove != null && d.y() >= 0 && d.y() < height(theme, o)) {
         mark(theme, o, list, built, built.get(index).x() + (float) d.x());
       }
     }
