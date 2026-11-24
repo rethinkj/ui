@@ -1,6 +1,7 @@
 package com.rethinkj.ui.diagram;
 
 import com.rethinkj.ui.Context;
+import com.rethinkj.ui.diagram.git.Ref;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -258,6 +259,36 @@ public interface DiagramTexts {
   /** The prefix of a commit row's label in a tree dump: {@code commit a41f9c2}. */
   default String commitLabel(String shortHash) {
     return "commit " + shortHash;
+  }
+
+  /** The placeholder and label of the field that filters commits in a git log. */
+  default String filterCommits() {
+    return "Filter commits";
+  }
+
+  /** How many commits match the active filter out of all loaded commits: {@code 3 of 24}. */
+  default String commitMatches(int matches, int total) {
+    return matches + " of " + total;
+  }
+
+  /** Shown beside the filter field when no commit matches the active filter. */
+  default String noMatches() {
+    return "No matches";
+  }
+
+  /** The placeholder and label of the popup that jumps to a ref in a git log. */
+  default String goToRef() {
+    return "Go to ref";
+  }
+
+  /** The kind of a git ref as a detail in the "Go to ref" popup. */
+  default String refKind(Ref.Kind kind) {
+    return switch (kind) {
+      case HEAD -> "HEAD";
+      case BRANCH -> "Branch";
+      case REMOTE -> "Remote branch";
+      case TAG -> "Tag";
+    };
   }
 
   /** A month's short name as shown in dates: {@code Nov}. */

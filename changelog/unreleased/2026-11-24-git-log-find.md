@@ -1,0 +1,1 @@
+- `GitLog` has a filter field in its header (Control+F, or `GitLog.State.filter(String)`) that matches subjects, authors and hash prefixes: other commits are dimmed and the graph stays whole, Enter and F3 jump to the next match, Shift+F3 to the previous, and Control+G opens a popup to go to a ref.

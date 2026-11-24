@@ -8,3 +8,15 @@ snap view
 press #row-5 shift
 frame
 snap range
+
+key F control
+frame
+type "export"
+frame
+key Enter
+frame
+key Enter
+frame
+advance 0.5
+frame
+snap filtered

@@ -49,9 +49,23 @@ Clicking a row selects it; Shift+click and Shift with navigation keys select a r
 | `Shift` + navigation key | Extend the range from the anchor to the new cursor |
 | `Enter` | Call `onOpen` with the cursor's commit |
 
+## Filter and go to a ref
+
+<Shot src="examples/docs/git-log/filtered-{theme}" alt="A commit history filtered by export with three matching commits highlighted, non-matching commits dimmed, and a 3 of 18 match count in the header" />
+
+The filter field in the header matches commit subjects and authors by case-insensitive substring and commit hashes by prefix (full or short). Non-matching commits are dimmed while the branch graph stays whole, matched text is highlighted in the row, and a match count such as `3 of 18` (or `No matches`) appears beside the field. Read or change the filter programmatically with `state.filter()` and `state.filter(String)`. The first jump for a filter of four or more hex digits goes to the commit whose hash starts with it. These keys work while the focus is within the log:
+
+| Key | Action |
+| --- | --- |
+| `Control+F` | Focus the filter field |
+| `Enter` (in field), `F3` | Jump to the next matching commit (wraps at the end) |
+| `Shift+Enter` (in field), `Shift+F3` | Jump to the previous matching commit |
+| `Escape` (in field) | Clear the filter |
+| `Control+G` | Open a fuzzy **Go to ref** popup listing refs on loaded commits; choosing one selects its commit and scrolls it into view |
+
 ## In a tree dump
 
-The virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The filter field is labeled by its placeholder (`Filter commits`), the virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. The **Go to ref** popup renders as a [`CommandPalette`](/docs/components/command-palette) overlay whose field is labeled `Go to ref`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/git-log/view.tree.txt" start="el #row-3 role=row" count="6"
 ```

@@ -189,8 +189,8 @@ class GitLogTest {
 
   private static final class Harness {
     final GitLog.State log = new GitLog.State(CLOCK);
-    final List<Commit> commits = sampleCommits();
-    final List<Ref> refs = sampleRefs();
+    List<Commit> commits = sampleCommits();
+    List<Ref> refs = sampleRefs();
     final List<String> opened = new ArrayList<>();
 
     El view() {
@@ -369,6 +369,134 @@ class GitLogTest {
   }
 
   @Test
+  void filterJumpsMatchesHashPrefixAndGoToRef() throws IOException {
+    assumeText();
+    Harness harness = new Harness();
+    // A ref at an unloaded commit is left out of Go to ref; a subject naming a later hash is passed
+    // over by the first jump for that hash.
+    List<Ref> refs = new ArrayList<>(harness.refs);
+    refs.add(new Ref("stale/unloaded", Kind.BRANCH, "deadbeef"));
+    harness.refs = refs;
+    List<Commit> commits = new ArrayList<>(harness.commits);
+    commits.set(
+        14, commit("3e7d2b5", List.of("a90c344"), "Luis Ortega", 11800, "Prepare to undo a90c344"));
+    harness.commits = commits;
+
+    List<Path> files = Script.run("""
+        size 960 571 scale 2
+        frame
+        press #row-0
+        frame
+        key F control
+        frame
+        type "null"
+        frame
+        key F3
+        frame
+        advance 0.5
+        frame
+        snap filtered
+        key F3
+        frame
+        snap match-2
+        key F3
+        frame
+        snap match-3
+        key F3
+        frame
+        snap match-wrap
+        key F3 shift
+        frame
+        snap match-prev
+        key Enter shift
+        frame
+        snap match-shift-enter
+        key Escape
+        frame
+        type "ortega"
+        frame
+        key Enter
+        frame
+        snap author-jump
+        key Escape
+        frame
+        type "a90c3"
+        frame
+        key Enter
+        frame
+        snap hash-jump
+        key Escape
+        frame
+        type "zzzzzz"
+        frame
+        snap no-matches
+        key Escape
+        frame
+        key G control
+        frame
+        snap ref-popup
+        type "0.8"
+        frame
+        key Enter
+        frame
+        snap ref-jump
+        """, app(harness), out);
+
+    Golden.assertSnaps("git-log-dark-", files, "filtered");
+
+    String filtered = Files.readString(out.resolve("filtered.tree.txt"));
+    assertTrue(filtered.contains("label=\"Filter commits\" \"null\""), filtered);
+    assertTrue(filtered.contains("\"3 of 24\""), filtered);
+    assertTrue(rowLine(filtered, 2).contains("selected current"), filtered);
+
+    String match2 = Files.readString(out.resolve("match-2.tree.txt"));
+    assertTrue(rowLine(match2, 4).contains("selected current"), match2);
+
+    String match3 = Files.readString(out.resolve("match-3.tree.txt"));
+    assertTrue(rowLine(match3, 8).contains("selected current"), match3);
+
+    String matchWrap = Files.readString(out.resolve("match-wrap.tree.txt"));
+    assertTrue(rowLine(matchWrap, 2).contains("selected current"), matchWrap);
+
+    String matchPrev = Files.readString(out.resolve("match-prev.tree.txt"));
+    assertTrue(rowLine(matchPrev, 8).contains("selected current"), matchPrev);
+
+    String shiftEnter = Files.readString(out.resolve("match-shift-enter.tree.txt"));
+    assertTrue(rowLine(shiftEnter, 4).contains("selected current"), shiftEnter);
+
+    String authorJump = Files.readString(out.resolve("author-jump.tree.txt"));
+    assertTrue(authorJump.contains("\"5 of 24\""), authorJump);
+    assertTrue(rowLine(authorJump, 7).contains("selected current"), authorJump);
+
+    String hashJump = Files.readString(out.resolve("hash-jump.tree.txt"));
+    assertTrue(hashJump.contains("\"2 of 24\""), hashJump);
+    assertTrue(rowLine(hashJump, 16).contains("selected current"), hashJump);
+    assertTrue(rowLine(hashJump, 16).contains("a90c344"), hashJump);
+
+    String noMatches = Files.readString(out.resolve("no-matches.tree.txt"));
+    assertTrue(noMatches.contains("\"No matches\""), noMatches);
+
+    String refPopup = Files.readString(out.resolve("ref-popup.tree.txt"));
+    assertTrue(refPopup.contains("label=\"Go to ref\""), refPopup);
+    assertFalse(refPopup.contains("stale/unloaded"), refPopup);
+
+    String refJump = Files.readString(out.resolve("ref-jump.tree.txt"));
+    assertFalse(refJump.contains("#palette"), refJump);
+    assertTrue(rowLine(refJump, 21).contains("selected current"), refJump);
+    assertTrue(rowLine(refJump, 21).contains("5b3c1fa"), refJump);
+    assertEquals(21, harness.log.cursor());
+    assertTrue(harness.opened.isEmpty(), "Enter in filter/palette should not call onOpen");
+  }
+
+  private static String rowLine(String tree, int index) {
+    String prefix = "#row-" + index + " role=row";
+    return tree.lines()
+        .filter(line -> line.contains(prefix))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Missing " + prefix + " in:\n" + tree));
+  }
+
+  @Test
   void stateAppendsToCachedGraphWhenHistoryGrowsAndRebuildsOtherwise() {
     GitLog.State state = new GitLog.State(CLOCK);
     List<Commit> commits = new ArrayList<>();
@@ -421,5 +549,16 @@ class GitLogTest {
     ZonedDateTime tipTime = NOW.minus(Duration.ofMinutes(300)).atZone(ZoneOffset.UTC);
     assertEquals("Nov 24, 2026, 09:30", en.fullDate(tipTime));
     assertEquals("24. Nov. 2026, 09:30", de.fullDate(tipTime));
+
+    assertEquals("Filter commits", en.filterCommits());
+    assertEquals("Commits filtern", de.filterCommits());
+    assertEquals("3 of 24", en.commitMatches(3, 24));
+    assertEquals("3 von 24", de.commitMatches(3, 24));
+    assertEquals("No matches", en.noMatches());
+    assertEquals("Keine Treffer", de.noMatches());
+    assertEquals("Go to ref", en.goToRef());
+    assertEquals("Gehe zu Referenz", de.goToRef());
+    assertEquals("Remote branch", en.refKind(Kind.REMOTE));
+    assertEquals("Remote-Branch", de.refKind(Kind.REMOTE));
   }
 }

@@ -125,7 +125,7 @@ class DocsExamplesTest {
       Map.entry("canvas-arrange", List.of("view")),
       Map.entry("canvas-edges", List.of("view")),
       Map.entry("er-diagram", List.of("view", "selected", "skeleton", "names")),
-      Map.entry("git-log", List.of("view", "range")));
+      Map.entry("git-log", List.of("view", "range", "filtered")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
