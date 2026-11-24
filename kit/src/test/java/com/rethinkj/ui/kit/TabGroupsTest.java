@@ -775,9 +775,9 @@ class TabGroupsTest {
     assertEquals(1, d.groups.frames().size(), "dragging over content stayed in the window");
     assertTrue(line(rightTree, "#zone").contains("value=\"right\""), rightTree);
     assertTrue(line(tree("left"), "#zone").contains("value=\"left\""), tree("left"));
-    assertFalse(
-        tree("top-no-room").contains("#zone"),
-        "without vertical room the top is center, which on the tab's own group takes nothing");
+    assertTrue(
+        line(tree("top-no-room"), "#zone").contains("value=\"center\""),
+        "without vertical room, top falls back to center: " + tree("top-no-room"));
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
     assertSame(d.groups.main().groups().get(1), d.groups.main().active());
     assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());

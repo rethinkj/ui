@@ -777,7 +777,7 @@ public final class TabGroups<T> {
         picked = Zone.BOTTOM;
       }
     }
-    return picked == Zone.CENTER && dragging.bar == group ? null : picked; // already there
+    return picked;
   }
 
   private static El zonePreview(Zone zone, Theme theme) {
