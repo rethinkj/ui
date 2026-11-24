@@ -249,9 +249,9 @@ public final class App<S> {
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
-  // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
+  // The rows each list with an onRowsBuilt handler told last, first, last and their number, by the
   // list's identity, for the lists the last fillRows found; a list that comes back tells again.
-  private final Map<Object, Long> toldRows = new HashMap<>();
+  private final Map<Object, ToldRows> toldRows = new HashMap<>();
   private final Set<Object> rowLists = new HashSet<>(); // those it found, while it walks
   // Likewise the rows in view each list with an onRowsInView handler told last, and those lists
   // as the last walk of fillRows found them, to tell once the frame has settled.
@@ -4619,15 +4619,17 @@ public final class App<S> {
     return rows;
   }
 
+  /** The rows a list told its {@link El#onRowsBuilt} handler, out of how many it had. */
+  private record ToldRows(int first, int last, int count) {}
+
   /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */
   private void tellRows(El list, Object id, int first, int last) {
     El.RowsHandler handler = list.onRowsBuilt();
     if (handler == null || last < first) {
       return;
     }
-    long rows = (long) first << 32 | last & 0xFFFFFFFFL;
-    Long before = toldRows.put(id, rows);
-    if (before == null || before != rows) {
+    ToldRows rows = new ToldRows(first, last, list.rowCount());
+    if (!rows.equals(toldRows.put(id, rows))) {
       if (list.onRowsInView() != null) {
         heldRows.put(id, () -> handler.accept(first, last)); // see tellInView
         return;

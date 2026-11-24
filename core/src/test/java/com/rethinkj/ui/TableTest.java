@@ -174,6 +174,9 @@ class TableTest {
     assertEquals(List.of("0-7", "press"), app.state().lines);
     run(app, "scroll #list row 100\nframe\nframe");
     assertEquals("97-107", app.state().lines.getLast());
+    app.state().rows++; // the same rows built, out of more
+    run(app, "press #row-100\nframe\nframe");
+    assertEquals(List.of("press", "97-107"), app.state().lines.subList(3, 5));
   }
 
   @Test

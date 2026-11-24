@@ -18,6 +18,7 @@ Keep a `GitLog.State` in your app state and pass plain `Commit` and `Ref` record
 | --- | --- | --- |
 | `Commit` | `id`, `parents`, `subject`, `author`, `time` | First parent first; empty `parents` for a root commit; two or more parents mark a merge commit |
 | `Ref` | `name`, `kind`, `commit` | `Ref.Kind`: `HEAD`, `BRANCH`, `REMOTE`, `TAG` |
+| `Change` | `status`, `path`, `oldPath`, `added`, `removed` | `Change.Status`: `ADDED`, `MODIFIED`, `DELETED`, `RENAMED`; `oldPath` is non-null only for `RENAMED` |
 
 `GitLog.State` caches the laid-out `CommitGraph` and appends only newly added tail commits when the list grows, rebuilding otherwise. Pass a fixed `java.time.Clock` to `new GitLog.State(clock)` for deterministic relative dates and tooltips in tests.
 
@@ -63,9 +64,33 @@ The filter field in the header matches commit subjects and authors by case-insen
 | `Escape` (in field) | Clear the filter |
 | `Control+G` | Open a fuzzy **Go to ref** popup listing refs on loaded commits; choosing one selects its commit and scrolls it into view |
 
+## Loading in pages
+
+For long histories, load older commits page by page and append each page to the `commits` list you pass to `GitLog.gitLog`. `GitLog.State` appends only the new tail to its `CommitGraph` so lanes continue seamlessly, while selection and scroll position stay as they are.
+
+```java snippet="git-log-paging"
+```
+
+- `onMore(Runnable)` is called once when the list scrolls near its last loaded row, and not again until `commits` grows. Pass `null` (the default) once all commits are loaded to hide the loading row and stop asking.
+- `total(int)` shows `"n of total"` (`DiagramTexts.commitsOf`) in the header badge while fewer than `total` commits are loaded, and falls back to `"n commits"` when negative (the default) or once all commits have arrived.
+- While `onMore` is set, a muted non-selectable loading row (`DiagramTexts.loadingCommits`, key `loading`) sits after the last loaded commit; keyboard navigation stops at the last commit row.
+
+## Details
+
+Pass a [`CommitDetails`](/api/com/rethinkj/ui/diagram/git/CommitDetails.html) panel to `GitLog.options().details(...)` to show the selected commit below the log in a vertical [split](/docs/components/split), or place `CommitDetails.details(...)` anywhere on its own.
+
+<Shot src="examples/docs/git-log-details/view-{theme}" alt="A commit history above a commit details panel showing the commit message, properties, changed files, and a unified DiffView" />
+
+The app supplies the commit's body, changed files (`Change`), and chosen file on demand when a commit is selected, and fills the `diff` slot with any element such as `DiffView` from the editor module (`rethinkj-ui-diagram` does not depend on `rethinkj-ui-editor`):
+
+```java snippet="git-log-details"
+```
+
+Pressing a parent hash chip selects that parent in the log. When a range is selected (`state.hasRange()`), the panel shows a compare summary of the older (`From`) and newer (`To`) ends, the distinct authors, the app's actions, and any changes and diff supplied.
+
 ## In a tree dump
 
-The filter field is labeled by its placeholder (`Filter commits`), the virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. The **Go to ref** popup renders as a [`CommandPalette`](/docs/components/command-palette) overlay whose field is labeled `Go to ref`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
+The filter field is labeled by its placeholder (`Filter commits`), the virtual list is `role=grid` with key `rows`, the column header is `role=row` with `role=columnheader` cells, and each commit row is `role=row` with key `row-<index>`, a label naming its short hash, subject, author, relative date, and refs, `selected` and `current` states, and its graph cell labeled with `CommitGraph.text(row)`. While `onMore` is set, the trailing loading row has key `loading` and `role=row`. The **Go to ref** popup is a [`CommandPalette`](/docs/components/command-palette) overlay whose field is labeled `Go to ref`. Texts come from `DiagramTexts.CURRENT`, with `GermanDiagramTexts` for German:
 
 ```text file="examples/src/test/resources/golden/docs/git-log/view.tree.txt" start="el #row-3 role=row" count="6"
 ```

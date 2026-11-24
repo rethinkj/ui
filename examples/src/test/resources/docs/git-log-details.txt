@@ -1,0 +1,13 @@
+# The commit history with its details panel below and DiffView in the diff slot.
+size 920 880
+frame
+press #row-3
+frame
+down #divider
+move 460,290
+up 460,290
+leave
+frame
+advance 0.2
+frame
+snap view
