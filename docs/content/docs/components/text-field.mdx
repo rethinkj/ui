@@ -63,6 +63,15 @@ For typed values, use `ValueField.valueField(format, value, draft, onChange)` wi
 
 <Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />
 
+### Growing with its text
+
+With `.lines(min).maxLines(max)` a text area is as high as its text, between `min` and `max` lines, and scrolls once the text is longer. Its height follows typing, pasting and deleting:
+
+```java snippet="growing-text-area"
+```
+
+<Shot src="examples/docs/growing-text-area/view-{theme}" alt="A growing text area with lines(1) and maxLines(6), grown to three lines of text" />
+
 ## Keyboard
 
 Standard navigation and editing shortcuts: Arrow keys, Home/End (with **Shift** to select, **Ctrl** by word), Backspace/Delete, **Ctrl+A/C/X/V/Z/Y**. Tabbing into a single-line field selects all text. In multi-line fields, **Enter** inserts a newline and **Ctrl+Enter** bubbles to app key handlers. In a read-only field, **Enter** bubbles too.

@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -923,18 +924,26 @@ class TextAreaTest {
   @Test
   void aColumnThatFitsItsContentMeasuresAWrappedFieldAtItsOwnWidth() {
     // The sibling makes the column 120 wide, where the 34 mono characters wrap to three rows.
-    UnaryOperator<El> column = inner -> inner.children(
-        El.text("aaaa bbbb cccc dddd eeee ffff gggg")
+    BiFunction<El, UnaryOperator<El>, El> column = (inner, lines) -> inner.children(
+        lines.apply(El.text("aaaa bbbb cccc dddd eeee ffff gggg")
             .editable(value -> {})
             .multiline()
             .wrapText()
-            .fitLines()
             .font(Font.mono())
-            .fontSize(14),
+            .fontSize(14)),
         El.el().size(120, 10));
     List<El> trees = List.of(
-        El.col().wFull().hFull().align(Style.Align.START).child(column.apply(El.col())),
-        El.col().hFull().child(column.apply(El.col().wFull())));
+        El.col()
+            .wFull()
+            .hFull()
+            .align(Style.Align.START)
+            .child(column.apply(El.col(), El::fitLines)),
+        El.col()
+            .wFull()
+            .hFull()
+            .align(Style.Align.START)
+            .child(column.apply(El.col(), field -> field.lines(1).maxLines(4))),
+        El.col().hFull().child(column.apply(El.col().wFull(), El::fitLines)));
     for (El tree : trees) {
       App<Object> app = new App<>(new Object(), state -> tree);
       app.textRendering(TextRendering.LINUX);
@@ -945,5 +954,67 @@ class TextAreaTest {
       assertEquals(3 * 18 + 10, inner.height(), app.tree().dump());
       assertEquals(3 * 18, inner.children().getFirst().height(), app.tree().dump());
     }
+  }
+
+  @Test
+  void aGrowingFieldFollowsItsRowsBetweenLinesAndMaxLines() {
+    // Rows of 18 and a padding of 4 at each side: 1 to 4 rows are 26, 44, 62 and 80 high.
+    App<Model> app = focused("", f -> f.wrapText().lines(1).maxLines(4));
+    assertEquals(26, field(app).height(), "starts at its smallest height");
+
+    type(app, "one");
+    key(app, "Enter");
+    assertEquals(44, field(app).height(), "grows to two rows on the same frame");
+    type(app, "the quick brown fox jumps over");
+    assertEquals(62, field(app).height(), "a wrapped line grows it by both rows");
+    key(app, "Enter");
+    type(app, "four");
+    assertEquals(80, field(app).height(), "reaches maxLines");
+    assertEquals(0, field(app).scrollY());
+
+    key(app, "Enter");
+    type(app, "five");
+    assertEquals(80, field(app).height(), "stops at maxLines");
+    assertEquals(18, field(app).scrollY(), "scrolls one row");
+    assertEquals(54, field(app).text().caret().y(), "the caret on the last row in view");
+
+    for (int i = 0; i < 5; i++) {
+      key(app, "Backspace"); // "five" and the line break before it
+    }
+    assertEquals(80, field(app).height());
+    assertEquals(0, field(app).scrollY(), "four rows fit without scrolling");
+    key(app, "A", CONTROL);
+    key(app, "Backspace");
+    assertEquals(26, field(app).height(), "shrinks back to its minimum");
+
+    App<Model> clamped = focused("a\nb\nc\nd", f -> f.lines(3).maxLines(2));
+    assertEquals(62, field(clamped).height(), "lines wins when maxLines is smaller");
+    App<Model> fitted = focused("a\nb\nc\nd", f -> f.fitLines().maxLines(2));
+    assertEquals(80, field(fitted).height(), "fitLines wins over maxLines");
+  }
+
+  @Test
+  void aGrowingFieldKeepsItsScrollThroughPastesRebuildsAndWidening() {
+    App<Model> app = focused("", f -> f.wrapText().lines(1).maxLines(4));
+    app.clipboard().write("line\n".repeat(200) + "end");
+    key(app, "V", CONTROL);
+    assertEquals(80, field(app).height(), "a long paste stays at maxLines");
+    assertEquals(201 * 18 - 4 * 18, field(app).scrollY(), "scrolled to the caret at the end");
+    assertTrue(field(app).editor().lineIndex().shaped < 40, "only the lines in view shaped");
+
+    String paragraph = ("a".repeat(29) + " ").repeat(20); // a word a row, at either width
+    App<Model> wide = focused("", f -> f.wrapText().lines(1).maxLines(4).wFull());
+    wide.clipboard().write(paragraph);
+    key(wide, "V", CONTROL);
+    double scrolled = field(wide).scrollY();
+    assertTrue(scrolled > 0, "a paragraph longer than four rows scrolls: " + scrolled);
+    wide.invalidate();
+    wide.frame();
+    assertEquals(scrolled, field(wide).scrollY(), "a rebuild keeps the scroll offset");
+    wide.resize(420, 240, 1);
+    wide.frame();
+    wide.wheel(50, 30, 0, 5000);
+    wide.frame();
+    assertEquals(20 * 18 - 4 * 18, field(wide).scrollY(), "widened, it scrolls to its last row");
   }
 }

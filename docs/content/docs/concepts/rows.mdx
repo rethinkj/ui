@@ -27,7 +27,8 @@ description: Render lists of up to a million rows efficiently using virtual scro
 | `reveal(key, x, y, w, h)` | Scrolls to keep a rectangle visible whenever `key` changes |
 | `onRowsBuilt((first, last) -> …)` | Notifies you which row indices were built (useful for lazy data loading) |
 | `onRowsInView((first, last) -> …)` | Notifies you when the first or last row fully in view changes (useful for a status line like "Rows 201–223") |
-| `scrollState(ScrollState)` | Preserves scroll position across view switches; couple two areas with `ScrollState.scrollWith` |
+| `scrollState(ScrollState)` | Preserves scroll position across view switches; couple two areas with `ScrollState.scrollWith`, or stay at the bottom with `ScrollState.followEnd()` |
+| `ScrollState.atEnd()` / `scrollToEnd()` | Checks whether the area is at its vertical end and scrolls it to the end on the next build |
 | `scrollbars(theme.scrollbars())` | Adds draggable scrollbars |
 | `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |
 | `coverY()` | After layout, returns how much of the list's bottom a horizontal scrollbar covers |
@@ -55,3 +56,10 @@ For items with different heights (like log entries, wrapping text, or Markdown b
 - Create a new `RowHeights` whenever you insert, delete, sort, or reorder rows (appending to the end is fine).
 
 See [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html) for helper methods to query row heights and offsets.
+
+## Following the end
+
+For a chat transcript or log where new entries arrive at the bottom (or the last row grows as an answer streams in), call `followEnd()` on the area's [`ScrollState`](/api/com/rethinkj/ui/ScrollState.html). It works on both plain scroll areas (`El.scroll()`) and virtual lists (`El.rows` with or without `RowHeights`). While the area is at its bottom end, added content and taller last rows keep it there on the same frame. Scrolling away (with the wheel, scrollbar, keys, or `reveal`) stops following; reaching the end again or calling `scrollToEnd()` resumes it. Ask `atEnd()` to show a "Jump to newest" button when the user has scrolled up:
+
+```java snippet="follow-end"
+```

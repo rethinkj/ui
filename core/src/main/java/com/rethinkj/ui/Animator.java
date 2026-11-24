@@ -659,7 +659,8 @@ final class Animator {
       kept.id = id;
       kept.el = el;
       kept.seen = true;
-      el.setScroll(kept.x, kept.y);
+      boolean end = kept.toEnd || kept.followEnd && kept.atEnd;
+      el.setScroll(kept.x, end ? Double.POSITIVE_INFINITY : kept.y);
       if (kept.followPending) { // the app's ScrollState.scrollTo moves the partner after the visit
         kept.followPending = false;
         kept.follow(el, false, false);

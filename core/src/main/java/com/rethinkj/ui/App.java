@@ -2677,6 +2677,9 @@ public final class App<S> {
       El el = id == null ? null : animator.element(id);
       scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
       if (el != null) {
+        if (el.scrollState() != null) {
+          el.scrollState().toEnd = false; // the later row wins over a pending scrollToEnd
+        }
         rowGoals.put(id, row);
       }
       return false;
@@ -4552,6 +4555,15 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
+    ScrollState kept = el.scrollState();
+    boolean tail = !el.isVirtualList()
+        || !el.measuresRows()
+        || el.rowCount() == 0
+        || el.hasRow(el.rowCount() - 1);
+    if (kept != null && kept.el == el && kept.toEnd) {
+      rowGoals.remove(Animator.identities(path).getLast()); // the later scrollToEnd wins
+      kept.toEnd = range.length != 0 || !tail; // done once its last rows are measured
+    }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());

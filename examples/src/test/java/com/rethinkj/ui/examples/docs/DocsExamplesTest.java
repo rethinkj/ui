@@ -65,6 +65,7 @@ class DocsExamplesTest {
       Map.entry("cards-window", List.of("view")),
       Map.entry("button-options", List.of("menu")),
       Map.entry("choices", List.of("view")),
+      Map.entry("growing-text-area", List.of("view")),
       Map.entry("date-picker", List.of("open", "datetime")),
       Map.entry("multi-select", List.of("open")),
       Map.entry("condition-builder", List.of("view")),
@@ -89,6 +90,7 @@ class DocsExamplesTest {
       Map.entry("parts", List.of("view")),
       Map.entry("icon-own", List.of("view")),
       Map.entry("navigation", List.of("view")),
+      Map.entry("navigation-sessions", List.of("view")),
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
@@ -121,6 +123,7 @@ class DocsExamplesTest {
       Map.entry("diff-view-side-by-side", List.of("view")),
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
+      Map.entry("chat", List.of("view")),
       Map.entry("image", List.of("view")),
       Map.entry("canvas", List.of("view")),
       Map.entry("canvas-arrange", List.of("view")),
@@ -149,6 +152,7 @@ class DocsExamplesTest {
     controls(all, "combo-entries", Controls::comboEntries, 460, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
+    controls(all, "growing-text-area", Controls::growingTextArea, 304, 82);
     controls(all, "parts", Controls::parts, 400, 200);
     controls(all, "icon-own", Controls::ownIcons, 132, 48);
     controls(all, "values", Controls::values, 360, 240);
@@ -170,6 +174,7 @@ class DocsExamplesTest {
     layouts(all, "dividers", Layouts::dividers, 280, 140);
     layouts(all, "navigation", Layouts::navigation, 440, 220); // wide, for the tile's crop
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
+    layouts(all, "navigation-sessions", Layouts::sessions, 304, 212);
     layouts(all, "split", Layouts::split, 520, 240);
     layouts(all, "cards-window", Layouts::cardsWindow, 520, 280);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
@@ -269,6 +274,7 @@ class DocsExamplesTest {
             200));
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "markdown-fragment", Editors::markdownFragment, 520, 196);
+    editors(all, "chat", Editors::chat, 580, 416);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
     all.put(

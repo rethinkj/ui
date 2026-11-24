@@ -1745,23 +1745,19 @@ public final class El {
    * an ellipsis; without it the text ends with that line. A single-line field that {@link
    * #wrapText wraps} is as high as its lines up to this many; while it has the focus its last line
    * runs on without the ellipsis and scrolls with the caret. The tree dump shows the whole string.
-   * A {@link #multiline} field has {@link #lines} instead and scrolls.
+   *
+   * <p>On a {@link #multiline} field whose style gives it no height, layout measures it as high as
+   * its rows between {@link #lines} and {@code count}, and it scrolls once its text has more rows.
+   * When {@code count} is smaller than {@link #lines}, {@link #lines} wins; {@link #fitLines} wins
+   * over {@code maxLines}.
    */
   public El maxLines(int count) {
     if (count < 1) {
       throw new IllegalArgumentException("maxLines must be 1 or more, was " + count);
     }
-    Text t = textOnly("maxLines");
-    if (t.multiline()) {
-      throw new IllegalStateException(MULTILINE_MAX_LINES);
-    }
-    t.maxLines(count);
+    textOnly("maxLines").maxLines(count);
     return this;
   }
-
-  private static final String MULTILINE_MAX_LINES =
-      "A multiline() field cannot have maxLines(): lines(n) says how many lines it shows, and it"
-          + " scrolls to the rest. Leave out maxLines() or multiline().";
 
   /**
    * Shapes the text with these OpenType features, in HarfBuzz's syntax, after the defaults of
@@ -1997,8 +1993,9 @@ public final class El {
    * ({@link #scroll}) that shows its lines from the top of its content box, wrapped at its width
    * with {@link #wrapText}, or not, and then scrolling sideways too, with bars if it has {@link
    * #scrollbars}. The wheel scrolls it while it can, and its ancestors beyond. Layout measures it
-   * 0 wide and {@link #lines} lines high, as a single-line field is one line high; the style
-   * usually gives it its size.
+   * 0 wide and {@link #lines} lines high (or between {@link #lines} and {@link #maxLines} when
+   * {@link #maxLines} is set, or as high as all its rows with {@link #fitLines}), as a single-line
+   * field is one line high; the style usually gives it its size.
    *
    * <p>The keys of a single-line field work across lines, and these besides: Enter breaks the
    * line (the field takes it, so an ancestor's Enter does not run; Control+Enter goes on to the
@@ -2025,9 +2022,6 @@ public final class El {
       throw new IllegalStateException(
           "A masked field cannot be multiline(): a password has one line. Leave out multiline()"
               + " or masked().");
-    }
-    if (t.maxLines() > 0) {
-      throw new IllegalStateException(MULTILINE_MAX_LINES);
     }
     t.multiline(true);
     scrollArea = true;
@@ -3119,8 +3113,10 @@ public final class El {
 
   /**
    * How many lines high layout measures a {@link #multiline} field whose style gives it no height,
-   * as the {@code rows} of an HTML {@code textarea}; 1 unless set. The lines have the font's line
-   * height at the window's scale, so that exactly this many fit.
+   * as the {@code rows} of an HTML {@code textarea}; 1 unless set. With {@link #maxLines}, this is
+   * the smallest number of lines and the field grows with its rows up to {@link #maxLines} before
+   * scrolling. The lines have the font's line height at the window's scale, so that exactly this
+   * many fit.
    */
   public El lines(int count) {
     Text t = editableOnly("lines");
@@ -3135,7 +3131,9 @@ public final class El {
    * Makes a {@link #multiline} field exactly as high as all its rows at the width layout gives it,
    * however many there are, so that it never scrolls up and down: a paragraph of a document that
    * a read-only field shows for selecting and copying. Unlike {@link #lines} every row is shaped
-   * and laid out, so it is for texts of a few screens at most.
+   * and laid out, so it is for texts of a few screens at most; for a field that grows up to a
+   * limit and then scrolls, use {@link #lines} with {@link #maxLines}. {@code fitLines} wins over
+   * {@link #maxLines} until {@link #lines} sets a count again.
    */
   public El fitLines() {
     Text t = editableOnly("fitLines");
@@ -5363,6 +5361,8 @@ public final class El {
     if (scrollState != null && scrollState.el == this) {
       scrollState.x = newX;
       scrollState.y = newY;
+      scrollState.atEnd = newY >= maxScrollY - SLACK;
+      scrollState.toEnd &= scrollState.atEnd; // scrolled away before its rows were measured
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
@@ -5856,11 +5856,23 @@ public final class El {
   }
 
   /**
+   * Whether this area follows its vertical end, or was sent there since the last build, and was at
+   * it before the current layout.
+   */
+  private boolean followsEnd() {
+    return scrollState != null
+        && scrollState.el == this
+        && (scrollState.followEnd || scrollState.toEnd)
+        && scrollState.atEnd;
+  }
+
+  /**
    * Lays out each row that {@link #makeRows} built on its own, with the list's inner width and the
    * row height, and places it below the previous one; a row it kept only moves to its place.
    */
   void layoutRows(float scale, boolean systemFonts) {
     // Rows that turn out higher or lower above the one at the top move it: the offset follows.
+    boolean follow = followsEnd();
     int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
     double before = rows.heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
@@ -5869,12 +5881,12 @@ public final class El {
         double top = rows.heights == null ? row.contentTop : rowsTop() + rowTop(rows.firstRow + i);
         row.place(rowsLeft(), (float) (top - rowTop(rows.firstRow)), rowWidth(), row.height);
       } else {
-        layoutRow(i, scale, systemFonts);
+        placeRow(i, scale, systemFonts);
       }
     }
     if (rows.heights != null) {
       measureScroll();
-      scrollY += rowTop(anchor) - before; // clamped below
+      scrollY = follow ? maxScrollY : scrollY + rowTop(anchor) - before; // clamped below
     }
     setScroll(scrollX, scrollY); // shifts the new rows
   }
@@ -5906,6 +5918,20 @@ public final class El {
 
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
   void layoutRow(int index, float scale, boolean systemFonts) {
+    boolean follow = followsEnd();
+    int anchor = rows.heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rows.rowCount);
+    double before = rows.heights == null ? 0 : rowTop(anchor);
+    if (placeRow(index, scale, systemFonts)) {
+      measureScroll();
+      setScroll(scrollX, follow ? maxScrollY : scrollY + rowTop(anchor) - before);
+    }
+  }
+
+  /**
+   * Lays out the row that is the child with this index and places it; returns whether a {@link
+   * RowHeights} measurement changed its height.
+   */
+  private boolean placeRow(int index, float scale, boolean systemFonts) {
     float left = rowsLeft();
     float inner = rowWidth();
     El row = children.get(index);
@@ -5924,7 +5950,7 @@ public final class El {
         below.place(
             left, (float) (rowsTop() + rowTop(rows.firstRow + i) - first), inner, below.height);
       }
-      return;
+      return moved;
     }
     row.style.height = Len.px(rows.rowHeight);
     scaleText(row, scale, systemFonts, resolvedLineHeight);
@@ -5935,6 +5961,7 @@ public final class El {
     Flex.layout(row, inner, rows.rowHeight, 0, (float) (top - whole));
     row.contentTop = whole + row.y;
     row.place(left, (float) (row.contentTop - rowTop(rows.firstRow)), inner, row.height);
+    return false;
   }
 
   /**
