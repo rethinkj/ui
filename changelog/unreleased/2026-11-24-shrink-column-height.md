@@ -1,0 +1,1 @@
+- A column that fits its width to its content, for example under `align(START)` or without a width at the root, now takes that width before it measures the height of its children, so wrapped text and `fitLines()` fields get the height they need at the column's actual width instead of at the width available to it.

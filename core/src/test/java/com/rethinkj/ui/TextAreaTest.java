@@ -14,6 +14,7 @@ import com.rethinkj.ui.Fields.Model;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -917,5 +918,32 @@ class TextAreaTest {
         caret.y() <= pointer && pointer < caret.y() + caret.height(),
         "the caret's row under the pointer: " + caret);
     assertEquals(26, caretLine(app.get()), "the press, on the first row the jump left in view");
+  }
+
+  @Test
+  void aColumnThatFitsItsContentMeasuresAWrappedFieldAtItsOwnWidth() {
+    // The sibling makes the column 120 wide, where the 34 mono characters wrap to three rows.
+    UnaryOperator<El> column = inner -> inner.children(
+        El.text("aaaa bbbb cccc dddd eeee ffff gggg")
+            .editable(value -> {})
+            .multiline()
+            .wrapText()
+            .fitLines()
+            .font(Font.mono())
+            .fontSize(14),
+        El.el().size(120, 10));
+    List<El> trees = List.of(
+        El.col().wFull().hFull().align(Style.Align.START).child(column.apply(El.col())),
+        El.col().hFull().child(column.apply(El.col().wFull())));
+    for (El tree : trees) {
+      App<Object> app = new App<>(new Object(), state -> tree);
+      app.textRendering(TextRendering.LINUX);
+      app.resize(800, 400, 1);
+      app.frame();
+      El inner = app.tree().children().getFirst();
+      assertEquals(120, inner.width(), app.tree().dump());
+      assertEquals(3 * 18 + 10, inner.height(), app.tree().dump());
+      assertEquals(3 * 18, inner.children().getFirst().height(), app.tree().dump());
+    }
   }
 }
