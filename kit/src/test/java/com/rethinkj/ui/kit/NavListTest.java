@@ -196,11 +196,16 @@ class NavListTest {
     Script.run("press label=\"Pin navlist\"\nframe\n", app, out);
     assertEquals(1, pinned);
     assertEquals(1, selected, "pressing an action must not select the item");
-    Script.run(
-        "press label=\"More navlist\"\nframe\nadvance 1\nframe\nmove label=\"Rename\"\nframe\n"
-            + "press label=\"Rename\"\nframe\n",
-        app,
-        out);
+    Script.run("""
+        press label="More navlist"
+        frame
+        advance 1
+        frame
+        move label="Rename"
+        frame
+        press label="Rename"
+        frame
+        """, app, out);
     assertEquals(1, renamed, "the menu of an action stays while the pointer is in it");
     assertEquals(1, selected);
     // Pointer and press arrive in one frame, before the actions show up under the pointer.

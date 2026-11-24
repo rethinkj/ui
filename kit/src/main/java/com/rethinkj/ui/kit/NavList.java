@@ -43,8 +43,8 @@ import java.util.function.IntFunction;
  * builds only the items in view, the general list of one selection among many. All rows, headings
  * included, share one height so the virtual form stays virtual: {@link Theme.Sizes#control} high
  * with {@link Theme.Spacing#xs} above and below, or two lines high when items have a {@link
- * Item#detail} (in the list form when any item has a detail; in the virtual form when the first
- * item entry has a detail). The selected item has the fill of the grid's selection, {@link
+ * Item#detail} (in the list form when any item has a detail; in the virtual form when its first
+ * entry, or the one after a heading there, is an item with a detail). The selected item has the fill of the grid's selection, {@link
  * Theme.Grid#selected} while the list has the focus, a mark of {@link Theme.Accent#edge} at its
  * left, which stands out from the surfaces also where the inactive selection's fill does not, its
  * icon in that color and its text in {@link Theme.Type#strong}. A count is a quiet {@link Badge}; a
@@ -293,13 +293,12 @@ public final class NavList {
   public static El navList(
       int count, IntFunction<? extends Entry> entry, int selected, IntConsumer onSelect) {
     Theme theme = Theme.CURRENT.get();
-    boolean twoLine = false;
-    for (int i = 0; i < count; i++) {
-      if (entry.apply(i) instanceof Item item) {
-        twoLine = item.detail() != null;
-        break;
-      }
+    // Two entries at most, so that a rebuild builds no more than the rows in view.
+    Entry first = count > 0 ? entry.apply(0) : null;
+    if (first instanceof Heading && count > 1) {
+      first = entry.apply(1);
     }
+    boolean twoLine = first instanceof Item item && item.detail() != null;
     Rows rows = new Rows(theme, count, entry, selected, onSelect, twoLine);
     return rows.list(col().rows(count, rows.height, rows::build));
   }
