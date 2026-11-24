@@ -52,10 +52,11 @@ import java.util.function.IntConsumer;
  * after the active one, around at the ends, and Home and End the first and the last; the focus
  * stays on the bar, as in WAI-ARIA's tabs, so that the user can go on choosing. From anywhere
  * inside, the bar or the content, Control+Tab and Control+Page Down choose the next tab and
- * Control+Shift+Tab and Control+Page Up the one before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
- * closed. Keys go up from the focused element, so these work while the focus is inside; tabs in
- * the content of other tabs leave the four that choose to the outer ones with {@link
- * Options#switchKeys}. From the
+ * Control+Shift+Tab and Control+Page Up the one before, around at the ends, Control+W and
+ * Control+F4 close the active tab if it can be closed, and with {@link Options#onAdd} Control+T
+ * adds a tab, also in an empty bar. Keys go up from the focused element, so these work while the
+ * focus is inside; tabs in the content of other tabs leave the four that choose to the outer ones
+ * with {@link Options#switchKeys}. From the
  * content the focus goes into the content of the tab that takes over: to the element where it
  * was last in that content, else to its {@link El#defaultFocus} or {@link El#autofocus} element or
  * its first focusable one, else to the bar (see {@link com.rethinkj.ui.App#focused}). The focus is
@@ -86,11 +87,11 @@ import java.util.function.IntConsumer;
  *
  * <p>In a tree dump the bar is {@code #tablist} with {@code role=tablist}, the tabs {@code
  * role=tab} with the title as label and the key {@code tab-<index>}, a busy one {@code busy}, a
- * modified one {@code modified},
- * their crosses {@code
- * role=button} with the label {@code Close} and the title and the key {@code close-<index>}, and
- * the content is in {@code #panel} with {@code role=tabpanel} and the active tab's title as label.
- * The tab being dragged is {@code grabbed}, and the line where it would go is {@code #marker}.
+ * modified one {@code modified}, their crosses {@code role=button} with the label {@code Close}
+ * and the title and the key {@code close-<index>}, the button of {@link Options#onAdd} {@code
+ * #add} with {@code role=button} and the label {@code New tab}, and the content is in {@code
+ * #panel} with {@code role=tabpanel} and the active tab's title as label. The tab being dragged is
+ * {@code grabbed}, and the line where it would go is {@code #marker}.
  * The component needs a size of its own or room to grow; its content fills the rest of it. It
  * takes no minimum size from its content, so that a list of rows there scrolls inside it.
  *
@@ -286,13 +287,14 @@ public final class Tabs {
   }
 
   /**
-   * What the tabs do besides choosing and closing: moving, tearing off, docking and a menu, and
-   * how they look. Each is off until a call turns it on; the view makes the options anew with the
-   * tabs.
+   * What the tabs do besides choosing and closing: adding, moving, tearing off, docking and a menu,
+   * and how they look. Each is off until a call turns it on; the view makes the options anew with
+   * the tabs.
    */
   public static final class Options {
     private Dragging dragging;
     private Object id;
+    private Runnable onAdd;
     private Move onMove;
     private Consumer<TearOff> onTearOff;
     private boolean tearOffAtStart;
@@ -307,6 +309,16 @@ public final class Tabs {
     /** How the tabs look; {@link Variant#CARD} by default. */
     public Options variant(Variant variant) {
       this.variant = Objects.requireNonNull(variant, "variant");
+      return this;
+    }
+
+    /**
+     * Lets the user add a tab, by a plus button after the last tab (pinned at the bar's end once
+     * the tabs overflow, and shown in an empty bar too) and with Control+T from inside the tabs;
+     * null, the default, shows no button.
+     */
+    public Options onAdd(Runnable handler) {
+      this.onAdd = handler;
       return this;
     }
 
@@ -555,7 +567,10 @@ public final class Tabs {
     return tabs(tabs, active, onSelect, onClose, content, options());
   }
 
-  /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu, a look. */
+  /**
+   * The tabs with what {@code options} turns on: adding, moving, tearing off, docking, a menu, a
+   * look.
+   */
   public static El tabs(
       List<Tab> tabs,
       int active,
@@ -593,6 +608,8 @@ public final class Tabs {
         .scrollBoth();
     // Sideways only: the wheel moves the tabs left and right.
     list.style().overflowY = Style.Overflow.HIDDEN;
+    // Shrinks below its tabs so trailing buttons stay at the bar's end once the tabs overflow.
+    list.style().minWidth = Len.ZERO;
     // As high without tabs as with them, so that an empty bar still takes a tab dropped on it.
     list.style().minHeight = Len.px(height);
     boolean indicator = line && active >= 0 && active < tabs.size();
@@ -658,9 +675,26 @@ public final class Tabs {
         .key("bar")
         .fill(line ? 0 : theme.surface().band())
         .padding(0, line ? theme.space().s() : theme.space().xs())
+        .gap(theme.space().xs())
+        .align(Style.Align.CENTER)
         .shrink(0)
         .border(0, 0, theme.size().stroke(), 0, theme.border().divider())
         .child(list);
+    if (enabled && options.onAdd != null) {
+      // In a row without motion of its own, so that the button's spring leaves its place alone
+      // and it follows the bar at once when the tabs or the width change.
+      bar.child(row()
+          .shrink(0)
+          .child(Button.icon(
+                  Button.Variant.GHOST,
+                  Symbol.ADD,
+                  Texts.CURRENT.get().newTab(),
+                  options.onAdd,
+                  Button.options()
+                      .size(line ? Button.Size.SMALL : Button.Size.REGULAR)
+                      .shortcut(Key.CONTROL, "T"))
+              .key("add")));
+    }
     if (enabled && dragging != null) {
       bar.onDrop(d -> over(theme, options, list, built, d));
       if (dragging.slot >= 0 && Objects.equals(dragging.overBar, options.id)) {
@@ -693,36 +727,50 @@ public final class Tabs {
     // It fills the room it is given: a list of rows in the content is no minimum.
     root.style().minWidth = Len.ZERO;
     root.style().minHeight = Len.ZERO;
-    if (!enabled || tabs.isEmpty()) {
+    if (!enabled) {
       return root;
     }
-
-    int last = tabs.size() - 1;
-    // Tab reaches the bar; a press on a tab leaves the focus where it is, so that from the content
-    // it goes on into the new content.
-    if (options.menu != null) { // the Menu key and Shift+F10 on the bar: the active tab's menu
-      list.onSecondaryPress(options.menu::openAt);
+    if (!tabs.isEmpty()) {
+      int last = tabs.size() - 1;
+      // Tab reaches the bar; a press on a tab leaves the focus where it is, so that from the
+      // content it goes on into the new content.
+      if (options.menu != null) { // the Menu key and Shift+F10 on the bar: the active tab's menu
+        list.onSecondaryPress(options.menu::openAt);
+      }
+      list.focusable().keepFocus().focusRing(theme.accent().edge()).onKey(k -> {
+        if (k.modifiers() != 0) {
+          return false;
+        }
+        int from = active;
+        int next = switch (k.name()) {
+          case "ArrowLeft" -> from <= 0 ? last : from - 1;
+          case "ArrowRight" -> from >= last || from < 0 ? 0 : from + 1;
+          case "Home" -> 0;
+          case "End" -> last;
+          default -> -1;
+        };
+        if (next < 0) {
+          return false;
+        }
+        select.accept(next);
+        return true;
+      });
+    } else if (options.onAdd == null) {
+      return root;
     }
-    list.focusable().keepFocus().focusRing(theme.accent().edge()).onKey(k -> {
-      if (k.modifiers() != 0) {
-        return false;
-      }
-      int from = active;
-      int next = switch (k.name()) {
-        case "ArrowLeft" -> from <= 0 ? last : from - 1;
-        case "ArrowRight" -> from >= last || from < 0 ? 0 : from + 1;
-        case "Home" -> 0;
-        case "End" -> last;
-        default -> -1;
-      };
-      if (next < 0) {
-        return false;
-      }
-      select.accept(next);
-      return true;
-    });
     return root.onKey(k -> {
       String name = k.name();
+      if (k.modifiers() == Key.CONTROL && name.equals("T") && options.onAdd != null) {
+        if (options.menu != null) {
+          options.menu.close();
+        }
+        options.onAdd.run();
+        return true;
+      }
+      if (tabs.isEmpty()) {
+        return false;
+      }
+      int last = tabs.size() - 1;
       int from = active;
       boolean tab =
           options.switchKeys && name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL;

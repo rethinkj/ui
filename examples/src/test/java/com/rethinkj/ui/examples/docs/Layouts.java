@@ -58,6 +58,7 @@ final class Layouts {
       new Tabs.Tab("customers", true, true).icon(Symbol.TABLE),
       new Tabs.Tab("query 1", true, false).icon(Symbol.CODE)));
   int tab;
+  int queries = 1;
   int result;
   final Breadcrumb.State crumbs = new Breadcrumb.State();
   final Toolbar.State tools = new Toolbar.State();
@@ -167,6 +168,11 @@ final class Layouts {
 
   void tab(int index) {
     tab = index;
+  }
+
+  void addTab() {
+    tabs.add(new Tabs.Tab("query " + (++queries)).icon(Symbol.CODE));
+    tab = tabs.size() - 1;
   }
 
   void result(int index) {
@@ -436,7 +442,13 @@ final class Layouts {
             .padding(theme.space().l())
             .grow(1)
             .child(Label.label("The rows of " + state.tabs.get(state.tab).title()));
-    El tabs = Tabs.tabs(state.tabs, state.tab, state::tab, index -> close(state, index), content);
+    El tabs = Tabs.tabs(
+        state.tabs,
+        state.tab,
+        state::tab,
+        index -> close(state, index),
+        content,
+        Tabs.options().onAdd(state::addTab));
     // docs:end tabs
     return Frame.of(tabs.wFull().grow(1));
   }

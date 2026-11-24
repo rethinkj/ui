@@ -1,0 +1,1 @@
+- `Tabs.Options.onAdd(Runnable)` adds a `+` icon button (`#add`, label from `Texts.newTab()`, `"New tab"` / `"Neuer Tab"`) right after the last tab, pinned at the bar's end on overflow and shown in an empty bar, and binds Control+T inside the tabs. `TabGroups.onAdd(Consumer<Group<T>>)` enables it per group.

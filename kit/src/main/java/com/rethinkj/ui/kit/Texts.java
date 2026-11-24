@@ -287,6 +287,11 @@ public interface Texts {
     return "Close " + tab;
   }
 
+  /** A tab bar's button that opens a new tab. */
+  default String newTab() {
+    return "New tab";
+  }
+
   default String moveToNewWindow() {
     return "Move to new window";
   }
