@@ -707,12 +707,23 @@ public final class WindowLoop {
    * three rounds, so that apps whose handlers run in turn come to an end.
    */
   private void pass(List<Entry> open, long[] early) {
-    tick();
     Set<Entry> held = new HashSet<>();
     Set<Entry> due = new HashSet<>();
     for (int i = 0; i < open.size(); i++) {
       (early[i] > 0 ? held : due).add(open.get(i));
     }
+    pass(due, held, null, false);
+  }
+
+  /**
+   * Draws {@code due} and the windows their frames invalidate, but not {@code held}, in up to three
+   * rounds. {@code always}, if not null, is presented in its first frame even if nothing changed.
+   * With {@code followUp}, as for a {@link Redraw}, each window drawn is drawn again while its app
+   * has {@link App#handlersWaiting} (up to three times) before the others of its state are
+   * invalidated.
+   */
+  private void pass(Set<Entry> due, Set<Entry> held, Entry always, boolean followUp) {
+    tick();
     drawing = true;
     Throwable failed = null;
     try {
@@ -726,11 +737,22 @@ public final class WindowLoop {
           }
           e.fresh = false;
           e.input = false;
-          draw(e, false);
+          draw(e, round == 0 && e == always);
+          boolean ran = e.app.ranHandlers();
+          if (followUp) {
+            // During the system's live resize no other frame comes until the next step: what a
+            // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
+            for (int step = 0;
+                step < 3 && running && e.isOpen() && e.app.handlersWaiting();
+                step++) {
+              draw(e, false);
+              ran |= e.app.ranHandlers();
+            }
+          }
           if (releasedIn.remove(e)) {
             focusAfterRelease = true;
           }
-          for (Entry other : invalidateOthers(e, e.app.ranHandlers())) {
+          for (Entry other : invalidateOthers(e, ran)) {
             if (!held.contains(other)) {
               (entries.indexOf(other) < i ? again : due).add(other);
             }
@@ -1065,20 +1087,7 @@ public final class WindowLoop {
       // In a pass, the frame comes anyway.
       case Redraw redraw
       when !drawing -> {
-        tick();
-        draw(e, !redraw.live());
-        boolean ran = e.app.ranHandlers();
-        // During the system's live resize no other frame comes until the next step: what the
-        // frame queued, such as a list's onRowsBuilt handler, shows now, not a step late.
-        for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
-          draw(e, false);
-          ran |= e.app.ranHandlers();
-        }
-        // Any of those frames may have run a handler or a task that arrived, which the others show
-        // at once too.
-        for (Entry other : invalidateOthers(e, ran)) {
-          draw(other, false);
-        }
+        pass(new HashSet<>(List.of(e)), Set.of(), redraw.live() ? null : e, true);
       }
       case CloseRequested _ -> {
         if (e.onClose != null) {

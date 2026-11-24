@@ -1,0 +1,1 @@
+- Fixed: during a live resize, the other open windows of the same state now show at once what their own handlers changed, and what those handlers change shows in the resized window too, instead of a step late.
