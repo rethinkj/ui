@@ -13,5 +13,6 @@ Kit components include built-in text such as find bar buttons, data grid menus a
 - **Customize specific strings:** Override a method (such as `noResults()`) in a subclass of `GermanTexts` or an anonymous `Texts` implementation.
 - **Add another language:** Implement `Texts`. Every method defaults to English, so any method you leave out falls back to English. Methods with parameters, such as `match(3, "17")`, return the full phrase so each language can use its own word order.
 - `Format` messages and `Menu.shortcutText` use the active `Texts` where they are called. Built-in kit handlers use their view's `Texts`. If your own handler calls `format.parse`, read `Texts.CURRENT.get()` in the view and call `parse` inside `Texts.CURRENT.with(texts, …)`.
+- The optional diagram module follows the same pattern with [`DiagramTexts`](/api/com/rethinkj/ui/diagram/DiagramTexts.html)`.CURRENT` and [`GermanDiagramTexts`](/api/com/rethinkj/ui/diagram/GermanDiagramTexts.html).
 
 Numbers and dates are not localized. `Format` always uses a period as the decimal separator and writes dates in ISO 8601. For another style, create your own format with `Format.of`.

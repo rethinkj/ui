@@ -1,0 +1,127 @@
+---
+title: CodeEditor
+description: Multi-line code editor with line numbers, code folding, code vision, syntax highlighting, gutter markers, diagnostics, find bar, and line commands.
+---
+
+`CodeEditor.codeEditor` is a multi-line code editor capable of handling 100,000+ lines. It includes line numbers, [syntax highlighting](/docs/components/code-editor/languages) (such as `Sql`, `Json`, `JavaScript`, `TypeScript`, and `Java`), [gutter markers, diagnostics, and quick fixes](/docs/components/code-editor/gutter-and-diagnostics), [folding, code vision, and inlay hints](/docs/components/code-editor/folding-and-hints), [quick documentation, rendered doc comments, and symbol navigation](/docs/components/code-editor/navigation-and-docs), current-line and matching-bracket highlights, word-occurrence highlights, indentation guides, a built-in [Find](/docs/components/find) bar, and line editing shortcuts.
+
+For plain notes or prose, use a [text area](/docs/components/text-field#text-areas). To add autocomplete, wrap it with [Completion](/docs/components/completion).
+
+`CodeEditor` lives in its own module, `rethinkj-ui-editor`, in package `com.rethinkj.ui.editor`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-editor</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/editor/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`Language`](/api/com/rethinkj/ui/editor/Language.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
+
+<Shot src="languages/sql/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers on a rail, a run marker and a marked statement on the rail, an error marked with a squiggle, keywords in color and a bracket pair highlighted" />
+
+## Example
+
+```java snippet="code-editor"
+```
+
+- `state.sql` is the document string, updated via `onChange`.
+- `state.editor` is a `CodeEditor.State` stored in your app state (one per tab/editor) to preserve cursor, selection, scroll position, and undo history across tab switches.
+- `Sql.of()` highlights standard SQL (see [Languages and highlighting](/docs/components/code-editor/languages#sql)). Call it in the view so it picks up the active theme's code colors, and ensure custom highlighters implement `equals` (e.g., as a record) so lines are not re-highlighted unnecessarily.
+- Passing `state.app` enables the built-in find bar, line commands, and F8 to jump to diagnostics. The 4-argument overload `codeEditor(value, editorState, highlighter, onChange)` omits them.
+- Use `.lines(n)` for a fixed line height, or size/grow it in a flex layout.
+
+`line()` and `column()` on `CodeEditor.State` return the cursor's line and column numbers, starting at 1 (for example, for a [StatusBar](/docs/components/status-bar)). Columns count characters the same way positions do, so a tab counts as one character no matter how wide it looks. Both values reflect the text from the editor's last build, so read them after building the editor (such as in a status bar below it).
+
+```java snippet="code-editor-position"
+```
+
+## Placeholder and read-only
+
+Pass a placeholder after the value to show a hint while the editor is empty. Like a [text area](/docs/components/text-field#text-areas), the placeholder also acts as the label unless you set one with `.label(...)`. If you set a different label, the tree dump shows the placeholder as `placeholder="..."`.
+
+To make a read-only editor, call `readOnly(true)` on `CodeEditor.State` and pass `null` for `onChange`. Users can still select, copy, and search the text with the find bar, but cannot change it. In a tree dump, it is marked `readonly`. If you pass `null` for `onChange` without `readOnly(true)`, the editor is disabled instead.
+
+```java snippet="code-editor-read-only"
+```
+
+```java snippet="code-editor-placeholder"
+```
+
+<Shot src="examples/docs/code-editor-placeholder/view-{theme}" alt="An empty SQL editor that says Type a query, above an editor that shows the statement of a view and cannot be changed" />
+
+## Embedded in a card
+
+By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/components/card) or panel, wrap it with `CodeEditor.embedded(editor)` to remove the outer border and corners so it sits edge-to-edge with a top accent line on focus:
+
+<Shot src="languages/sql/code-editor-embedded-{theme}-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
+
+```java snippet="code-editor-embedded"
+```
+
+## Inserting text
+
+To insert a snippet from a button or menu, call `replaceSelection(text)` on `CodeEditor.State` in its handler. It replaces the current selection (or inserts at the cursor) and puts the cursor after the inserted text. To place the cursor at `caret` inside `text` instead (such as between the parentheses of `()`), call `replaceSelection(text, caret)`. To edit a range you calculated (such as a line below the cursor), call `replace(from, to, text, caret)`. It replaces the exact characters from `from` to `to`, and Ctrl+Z restores the previous selection. The edit runs right after the handler, calls `onChange` like typed text, and counts as one undo step for Ctrl+Z. Edits asked before the editor's first build (such as in a tab not yet shown) are kept in order and run when it first attaches; once it has been in a tree, nothing happens if the editor is no longer in the tree after the handler.
+
+```java snippet="code-editor-insert"
+```
+
+## State API
+
+| `CodeEditor.State` method | Description |
+| --- | --- |
+| `caret()`, `anchor()` | Current cursor and selection anchor offsets |
+| `line()`, `column()` | Current 1-based cursor line and column from the last build |
+| `select(caret, anchor)` | Sets cursor/selection and scrolls it into view on the next build |
+| `replaceSelection(text)` | Replaces the selection with `text` right after the handler, as one undo step |
+| `replaceSelection(text, caret)` | Same as above, placing the cursor at `caret` inside `text` (from 0 to its length) |
+| `replace(from, to, text, caret)` | Replaces characters from `from` to `to` with `text` in the same way, placing the cursor at `caret` inside `text` |
+| `markup(layer, text, list)`, `noMarkup(layer)` | Sets or clears a named layer of `CodeEditor.Mark` items (`Diagnostic`, `Marker`, `Highlight`, `Change`, `InlayHint`) for `text`, moving them across edits. See [Gutter and diagnostics](/docs/components/code-editor/gutter-and-diagnostics) |
+| `diagnostics(text, list)`, `noDiagnostics()` | Shorthand for `markup("diagnostics", text, list)` and `noMarkup("diagnostics")`. See [Gutter and diagnostics](/docs/components/code-editor/gutter-and-diagnostics) |
+| `inlineDiagnostics(boolean)` | Shows the most severe diagnostic's message muted after each line's end (off by default). See [Inline diagnostics](/docs/components/code-editor/gutter-and-diagnostics#inline-diagnostics) |
+| `markers(list)` | Sets gutter `CodeEditor.Marker(at, symbol, tone, label, onPress)` items at positions in the current string. See [Gutter lanes](/docs/components/code-editor/gutter-and-diagnostics#gutter-lanes) |
+| `codeVision(list)` | Sets `CodeEditor.Vision(line, symbol, label, onPress)` hint rows above lines. See [Code vision](/docs/components/code-editor/folding-and-hints#code-vision) |
+| `block(from, to)`, `noBlock()` | Highlights a line range on the gutter rail. See [Marked blocks](/docs/components/code-editor/gutter-and-diagnostics#marked-blocks) |
+| `blockOutline(boolean)` | Draws a thin outline around the marked block's text in the code area (off by default). See [Marked blocks](/docs/components/code-editor/gutter-and-diagnostics#marked-blocks) |
+| `folds()`, `folds(list)` | Reads or restores the editor's folded `El.Fold` line ranges. See [Folding](/docs/components/code-editor/folding-and-hints#folding) |
+| `documentation(provider)` | Supplies an `IntFunction<MarkdownDocument>` for hover and Ctrl+Q quick documentation. See [Quick documentation](/docs/components/code-editor/navigation-and-docs#quick-documentation) |
+| `readerMode(boolean)`, `readerMode()` | Enables/disables rendered doc comments for `Language` highlighters (off by default). See [Rendered doc comments](/docs/components/code-editor/navigation-and-docs#rendered-doc-comments) |
+| `onLink(destination -> …)` | Receives the destination of a link pressed inside a rendered doc comment. See [Rendered doc comments](/docs/components/code-editor/navigation-and-docs#rendered-doc-comments) |
+| `declaration(provider)` | Supplies an `IntFunction<CodeEditor.Location>` for Ctrl+B and Ctrl+click go to declaration. See [Navigation and usages](/docs/components/code-editor/navigation-and-docs#navigation-and-usages) |
+| `usages(provider)` | Supplies an `IntFunction<List<CodeEditor.Location>>` for Alt+F7 find usages and Ctrl+Shift+F7 highlight usages. See [Navigation and usages](/docs/components/code-editor/navigation-and-docs#navigation-and-usages) |
+| `onOpen(handler)` | Receives a `CodeEditor.Location` in another document when navigating outside this editor. See [Navigation and usages](/docs/components/code-editor/navigation-and-docs#navigation-and-usages) |
+| `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
+| `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
+| `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
+
+## Keyboard commands
+
+| Shortcut | `CodeEditor.Command` | Action |
+| --- | --- | --- |
+| Ctrl+D | `SELECT_NEXT` | Select current word, then next occurrence |
+| Ctrl+Shift+D | `DUPLICATE_LINES` | Duplicate current or selected lines |
+| Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move lines up or down |
+| Ctrl+Shift+K | `DELETE_LINES` | Delete current or selected lines |
+| Ctrl+/ (or Ctrl+Shift+7, Ctrl+#, Ctrl+Numpad/) | `TOGGLE_COMMENT` | Toggle line comments using `lineComment()` |
+| Ctrl+Alt+L | `FORMAT` | Format all text using `formatter()`, or show why formatting failed |
+| Ctrl+Shift+[ | `FOLD` | Fold the innermost bracket range around the cursor |
+| Ctrl+Shift+] | `UNFOLD` | Unfold the folded range at or around the cursor |
+| Alt+Enter | `QUICK_FIXES` | Open the menu of quick fixes for diagnostics at the cursor |
+| Ctrl+Q | `QUICK_DOCUMENTATION` | Show documentation for the symbol at the cursor |
+| — | `TOGGLE_DOC_COMMENT` | Switch the doc comment at the cursor between rendered and raw; no key, as Ctrl+Alt+Q is AltGr+Q (`@`) on some layouts |
+| Ctrl+B | `GO_TO_DECLARATION` | Go to the declaration of the symbol at the cursor |
+| Alt+F7 | `FIND_USAGES` | Open a menu of usages of the symbol at the cursor |
+| Ctrl+Shift+F7 | `HIGHLIGHT_USAGES` | Highlight usages of the symbol at the cursor in this document |
+| F8, Shift+F8 | — | Go to the next or previous diagnostic and show its message |
+
+Trigger any command from a menu with `CodeEditor.run(app, editorState, command)`. Some Linux desktops (such as Xfce and Cinnamon) use Ctrl+Alt+L to lock the screen before the app receives it. Providing a menu item still lets users format on those desktops. To add custom shortcuts (like Ctrl+Enter) without overriding built-in shortcuts, use `editor.onKeyFirst(...)`.
+
+Also supports all standard [multi-line text field shortcuts](/docs/concepts/text-fields): auto-indent on Enter, Tab indentation (**Ctrl+M** toggles Tab between indent and focus navigation), smart Home, and Ctrl+Z / Ctrl+Y undo/redo.
+
+## In a tree dump
+
+`role=textbox` with visible line range (`lines`), diagnostic squiggles (`squiggle <from>-<to>`), cursor `(line:col)` when focused, `#rail`, and `#gutter` containing `#line-<index>` elements (see each feature page for its gutter, fold, hint, and overlay keys):
+
+```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="17"
+```

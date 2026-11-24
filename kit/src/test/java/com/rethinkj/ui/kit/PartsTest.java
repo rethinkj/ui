@@ -66,9 +66,7 @@ class PartsTest {
   void looksAsStored(String theme, int scale) throws IOException {
     check("badges", theme, scale, 560, 400, Parts::badges, "");
     check("detail", theme, scale, 720, 420, Parts::detail, "");
-    if (theme.equals("dark")) { // narrow: the toolbar's end and the breadcrumb's start in menus
-      check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
-    }
+    check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
     check(
         "popover",
         theme,

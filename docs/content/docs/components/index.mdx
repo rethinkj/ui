@@ -1,27 +1,41 @@
 ---
 title: Components
-description: Ready-made UI components in rethinkj-ui-kit, with screenshots, code examples, and options.
+description: Ready-made UI components in rethinkj-ui-kit, rethinkj-ui-editor, and rethinkj-ui-diagram, with screenshots, code examples, and options.
 ---
 
-`rethinkj-ui-kit` (package `com.rethinkj.ui.kit`) provides ready-made desktop components built on `core`. Every component is a static method returning an `El` that you can chain further (for example, `Button.button(PRIMARY, "Run", onRun).key("run")`).
+`rethinkj-ui-kit` (package `com.rethinkj.ui.kit`) provides ready-made desktop components built on `core`, complemented by the optional `rethinkj-ui-editor` and `rethinkj-ui-diagram` modules. Every component is a static method returning an `El` that you can chain further (for example, `Button.button(PRIMARY, "Run", onRun).key("run")`).
 
 Components automatically read styling from `Theme.CURRENT` ([Themes](/docs/concepts/themes)). Your app owns all state, and passing a `null` handler disables a control.
 
-Javadoc: [`com.rethinkj.ui.kit`](/api/com/rethinkj/ui/kit/package-summary.html).
+Javadoc: [`com.rethinkj.ui.kit`](/api/com/rethinkj/ui/kit/package-summary.html), [`com.rethinkj.ui.editor`](/api/com/rethinkj/ui/editor/package-summary.html), [`com.rethinkj.ui.diagram`](/api/com/rethinkj/ui/diagram/package-summary.html), [`com.rethinkj.ui.diagram.er`](/api/com/rethinkj/ui/diagram/er/package-summary.html).
 
 ## Data
 
 <Tiles>
 <Tile href="/docs/components/data-grid" title="DataGrid" description="Data table for up to a million rows with selection, sorting, editing, and filters." src="examples/docs/grid/selected-{theme}" />
 <Tile href="/docs/components/tree" title="Tree" description="Expandable hierarchical tree for servers, folders, and schemas." src="kit/tree-{theme}-opened" />
-<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code editor with line numbers, syntax highlighting, and line commands, from the editor module." src="languages/sql/code-editor-{theme}-2x-brackets" />
-<Tile href="/docs/components/diff-view" title="DiffView" description="Two versions of a text side by side or unified, from the editor module." src="examples/docs/diff-view-side-by-side/view-{theme}" />
-<Tile href="/docs/components/find" title="Find" description="Find and replace bar for multi-line text fields." src="languages/sql/find-{theme}-2x-replace" />
-<Tile href="/docs/components/completion" title="Completion" description="Autocomplete popup at the text cursor." src="examples/workbench-completion" />
 <Tile href="/docs/components/markdown" title="Markdown" description="Scrollable Markdown document viewer." src="examples/manual-{theme}-2x-top" />
 <Tile href="/docs/components/properties" title="Properties" description="Key-value list with selectable, copyable values." src="examples/docs/details/view-{theme}" crop="role=list" />
-<Tile href="/docs/components/canvas" title="Canvas" description="Pannable, zoomable area of nodes, from the optional diagram module." src="examples/docs/canvas/view-{theme}" />
-<Tile href="/docs/components/er-diagram" title="ErDiagram" description="Entity relationship diagram of database schemas, from the optional diagram module." src="examples/docs/er-diagram/selected-{theme}" />
+</Tiles>
+
+## Editor
+
+`CodeEditor` and `DiffView` live in the optional `rethinkj-ui-editor` module; `Find` and `Completion` live in `rethinkj-ui-kit` and work with any text field or code editor.
+
+<Tiles>
+<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code editor with line numbers, syntax highlighting, diagnostics, folding, and line commands." src="languages/sql/code-editor-{theme}-2x-brackets" />
+<Tile href="/docs/components/diff-view" title="DiffView" description="Two versions of a text side by side or unified." src="examples/docs/diff-view-side-by-side/view-{theme}" />
+<Tile href="/docs/components/find" title="Find" description="Find and replace bar for multi-line text fields." src="languages/sql/find-{theme}-2x-replace" />
+<Tile href="/docs/components/completion" title="Completion" description="Autocomplete popup at the text cursor." src="examples/docs/code-editor/completions-{theme}" />
+</Tiles>
+
+## Diagrams
+
+`Canvas` and `ErDiagram` live in the optional `rethinkj-ui-diagram` module.
+
+<Tiles>
+<Tile href="/docs/components/canvas" title="Canvas" description="Pannable, zoomable area of nodes with routed edges and automatic layout." src="examples/docs/canvas/view-{theme}" />
+<Tile href="/docs/components/er-diagram" title="ErDiagram" description="Entity relationship diagram of database schemas with crow's-foot edges." src="examples/docs/er-diagram/selected-{theme}" />
 </Tiles>
 
 ## Frame

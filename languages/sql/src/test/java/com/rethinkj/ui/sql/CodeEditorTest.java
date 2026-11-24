@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * The kit's {@link CodeEditor} with {@link Sql}, driven by {@code code-editor.txt}, with stored
@@ -158,26 +159,29 @@ class CodeEditorTest {
     assertTrue(tree.contains(" lines 9-11/16"), "scrolled into view: " + tree);
   }
 
-  @Test
-  void embeddedLooksAsStored() throws IOException {
-    Theme t = Theme.DARK;
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void embeddedLooksAsStored(String name) throws IOException {
+    Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     Sql sql = new Sql(t.code());
     App<Query> app = new App<>(
-        new Query(),
-        s -> col()
-            .wFull()
-            .hFull()
-            .padding(12)
-            .fill(t.surface().window())
-            .child(Card.flush(
-                Card.toolbar("orders.sql", null),
-                CodeEditor.embedded(codeEditor(s.sql, s.editor, sql, v -> s.sql = v)
-                    .key("query")
-                    .lines(6)))));
+            new Query(),
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(12)
+                .fill(t.surface().window())
+                .child(Card.flush(
+                    Card.toolbar("orders.sql", null),
+                    CodeEditor.embedded(codeEditor(s.sql, s.editor, sql, v -> s.sql = v)
+                        .key("query")
+                        .lines(6)))))
+        .provide(Theme.CURRENT, s -> t);
     app.textRendering(TextRendering.LINUX);
     // The pointer gives it the focus: no ring, the hairline along its top in the accent's edge.
     String script =
         "size 440 200 scale 2\nframe\npress #query\nframe\nadvance 1\nframe\nsnap focused\n";
-    Golden.assertSnaps("code-editor-embedded-dark-2x-", Script.run(script, app, out), "focused");
+    Golden.assertSnaps(
+        "code-editor-embedded-" + name + "-2x-", Script.run(script, app, out), "focused");
   }
 }

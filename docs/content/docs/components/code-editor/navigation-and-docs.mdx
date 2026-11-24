@@ -1,0 +1,50 @@
+---
+title: Navigation and documentation
+description: Hover and Ctrl+Q quick documentation, rendered doc comments in reader mode, go to declaration, and find or highlight usages in CodeEditor.
+---
+
+Wire documentation providers and symbol resolvers on `CodeEditor.State` to add hover/Ctrl+Q quick documentation, rendered doc comments for `Language` highlighters, and go-to-declaration / find-usages navigation to [CodeEditor](/docs/components/code-editor).
+
+Javadoc: [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`CodeEditor.Location`](/api/com/rethinkj/ui/editor/CodeEditor.Location.html), [`DocComment`](/api/com/rethinkj/ui/editor/DocComment.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
+
+## Quick documentation
+
+Call `documentation(provider)` on `CodeEditor.State` with an `IntFunction<MarkdownDocument>` that returns documentation for a character offset in the text, or `null` when nothing applies. Resting the pointer over a word for `Theme.Motion.tooltipDelay` opens a popover below the word's range, drawn with [`Markdown.fragment`](/docs/components/markdown). Moving the pointer onto the popover keeps it open; leaving both the word and the popover closes it after a short moment, and pressing outside, **Escape** in the editor, typing, or moving the cursor closes it at once. Press **Ctrl+Q** (`Command.QUICK_DOCUMENTATION`) to show documentation for the word at the cursor (also in read-only editors).
+
+```java snippet="code-editor-documentation"
+```
+
+<Shot src="examples/docs/code-editor-documentation/shown-{theme}" alt="SQL in the code editor with the pointer resting on orders and its Markdown documentation open in a popover below the word" />
+
+## Rendered doc comments
+
+When the highlighter implements `Language` (such as [`Java.of()`](/docs/components/code-editor/languages#java), [`JavaScript.of()`](/docs/components/code-editor/languages#javascript-and-typescript), or `TypeScript.of()`), calling `readerMode(true)` on `CodeEditor.State` renders standalone doc comments in place of their raw lines: formatted prose in the code theme's comment color indented to the comment's column, labeled parameter, return, exception, deprecation, and see-also sections with code-styled names, and clickable links forwarded to `onLink(handler)` on `CodeEditor.State`. Comments that share a line with code stay raw.
+
+<Shot src="examples/docs/code-editor-reader-mode/rendered-{theme}" alt="Java code in the code editor with a Javadoc comment rendered in place of its raw lines, showing formatted prose, a link, a Params table with code chips, Returns and Throws sections, and a pencil toggle in the gutter" />
+
+```java snippet="code-editor-reader-mode-state"
+```
+
+```java snippet="code-editor-reader-mode"
+```
+
+Reader mode is off by default. `CodeEditor.run(app, editorState, CodeEditor.Command.TOGGLE_DOC_COMMENT)` switches the doc comment at the caret between rendered and raw, in either mode; bind it to a menu item or a key of the app. In reader mode, the gutter button does the same (pencil to edit, eye to render again). The caret never enters a rendered comment: arrow keys step over it, and copying across it copies the raw text. Finding into it, going to a line inside it, or selecting into it shows it raw, and so does placing the caret in it after its first character, as when typing a new comment; it stays raw while it is edited. In a long file, comments are found a bounded part per frame.
+
+## Navigation and usages
+
+Supply `declaration(provider)` (`IntFunction<CodeEditor.Location>`), `usages(provider)` (`IntFunction<List<CodeEditor.Location>>`), and `onOpen(handler)` (`Consumer<CodeEditor.Location>`) on `CodeEditor.State` to wire symbol navigation from the app:
+
+- **Go to declaration (`Ctrl+B` or `Ctrl+click`):** Jumps to `location.from()`, scrolling and unfolding into view when `location.document()` is `null`, or passes the `Location` to `onOpen` for another document. Holding **Ctrl** while hovering a word with a declaration underlines it and shows a pointer cursor.
+- **Find usages (`Alt+F7`):** Opens a menu at the cursor listing the reported usages; choosing one navigates to it. A `null` label derives `"<line>: <trimmed line>"` for this document and uses `document` for another.
+- **Highlight usages (`Ctrl+Shift+F7`):** Marks same-document usages in the `"usages"` markup layer and along the scrollbar until **Escape** in the editor (after closing any documentation popover or F8 diagnostic message).
+
+All three commands also work in read-only editors, and pass their shortcut through to the app when the corresponding provider is not set.
+
+```java snippet="code-editor-navigation"
+```
+
+<Shot src="examples/docs/code-editor-navigation/usages-{theme}" alt="SQL in the code editor with usages of paid_orders highlighted and the Find Usages menu open at the cursor" />
+
+## In a tree dump
+
+Doc-comment toggles in the gutter are `#doc-line-<index>`, and each visible rendered doc comment is `#doc-<first>`. When quick documentation is open, it appears as an overlay `#documentation` with `role=dialog` and `label="Documentation"` (localized via `Texts`). When find usages is open, it appears as an overlay `#usages` with `role=menu` and `label="Usages"` (localized via `Texts`).

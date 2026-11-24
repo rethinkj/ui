@@ -1,0 +1,76 @@
+el 0,0 330x420
+  el 12,12 306x86
+    el 29,29 272x52
+      el #crumbs role=navigation label="Breadcrumb" 29,29 272x24
+        el #more 29,29 42x24
+          el role=button label="Hidden parts" 29,29 24x24 expanded=false
+            text label="more_horizontal" "\u{E823}" 33,33 16x16
+          el 55,29 16x24
+            text label="chevron_right" "\u{F2AE}" 57,35 12x12
+        el #crumb-3 73,29 228x24
+          el role=link label="orders_by_customer_and_month" 73,29 228x24 current
+            text label="table" "\u{EBF4}" 77,33 16x16
+            text "orders_by_customer_and_month" 97,33 200x16
+      el 29,57 272x24
+        el #tools role=toolbar label="Table" 29,57 191x24
+          el role=button label="Refresh" 29,57 24x24
+            text label="arrow_clockwise" "\u{E0AA}" 33,61 16x16
+          el #split 55,57 93x24
+            el #main role=button label="Run" 55,57 70x24
+              text label="play" "\u{E990}" 68,61 16x16
+              text "Run" 88,61 24x16
+            el 125,57 1x24
+            el #arrow role=button label="More Run" 126,57 22x24 expanded=false
+              text label="chevron_down" "\u{F2A2}" 129,61 16x16
+          el role=group 154,57 28x24
+            el role=button label="Wrap values" 156,59 24x20 checked=false
+              text label="text_t" "\u{ECAE}" 160,61 16x16
+          el #more role=button label="More" 188,57 24x24
+            text label="more_horizontal" "\u{E823}" 192,61 16x16
+        el #filter role=button label="Filter" 224,57 77x24
+          text label="filter" "\u{E60A}" 237,61 16x16
+          text "Filter" 257,61 31x16
+  el 12,110 306x298
+    el 29,127 272x222
+      el 29,127 272x144
+        text role=heading "Table" 29,127 272x16 level=3
+        el role=list label="Table" 25,145 280x126
+          el role=listitem label="Schema" 25,145 280x24 value="public"
+            el 29,145 72x24
+              text "Schema" 29,149 72x15
+            text role=textbox "public" 109,145 160x24 readonly
+            el #copy role=button label="Copy Schema" 277,145 24x24
+              text label="copy" "\u{F32A}" 281,149 16x16
+          el role=listitem label="Rows" 25,169 280x24 value="1,000,000"
+            el 29,169 72x24
+              text "Rows" 29,173 72x15
+            text role=textbox "1,000,000" 109,169 160x24 readonly
+            el #copy role=button label="Copy Rows" 277,169 24x24
+              text label="copy" "\u{F32A}" 281,173 16x16
+          el role=listitem label="Owner" 25,193 280x24 value="shop_admin"
+            el 29,193 72x24
+              text "Owner" 29,197 72x15
+            text role=textbox "shop_admin" 109,193 160x24 readonly
+            el #copy role=button label="Copy Owner" 277,193 24x24
+              text label="copy" "\u{F32A}" 281,197 16x16
+          el role=listitem label="Comment" 25,217 280x54 value="Every order a customer placed, by month, for the reports of the sales team"
+            el 29,217 72x24
+              text "Comment" 29,221 72x15
+            text role=textbox "Every order a customer placed, by month, for the reports of the sales team" 109,217 160x54 readonly
+            el #copy role=button label="Copy Comment" 277,217 24x24
+              text label="copy" "\u{F32A}" 281,221 16x16
+      el 29,283 272x66
+        text role=heading "Storage" 29,283 272x16 level=3
+        el role=list label="Storage" 25,301 280x48
+          el role=listitem label="Size" 25,301 280x24 value="128 MB"
+            el 29,301 72x24
+              text "Size" 29,305 72x15
+            text role=textbox "128 MB" 109,301 160x24 readonly
+            el #copy role=button label="Copy Size" 277,301 24x24
+              text label="copy" "\u{F32A}" 281,305 16x16
+          el role=listitem label="Tablespace" 25,325 280x24 value="pg_default"
+            el 29,325 72x24
+              text "Tablespace" 29,329 72x15
+            text role=textbox "pg_default" 109,325 160x24 readonly
+            el #copy role=button label="Copy Tablespace" 277,325 24x24
+              text label="copy" "\u{F32A}" 281,329 16x16

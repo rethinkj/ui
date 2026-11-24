@@ -1,0 +1,9 @@
+{
+  "title": "CodeEditor",
+  "pages": [
+    "languages",
+    "gutter-and-diagnostics",
+    "folding-and-hints",
+    "navigation-and-docs"
+  ]
+}

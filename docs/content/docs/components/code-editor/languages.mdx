@@ -1,0 +1,115 @@
+---
+title: Languages and highlighting
+description: Built-in SQL, JSON, JavaScript, TypeScript, and Java highlighters, JSON formatting, custom Highlighter and Language implementations, and decorators.
+---
+
+[CodeEditor](/docs/components/code-editor) accepts any [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html) or [`Language`](/api/com/rethinkj/ui/editor/Language.html). Ready-made highlighters live in separate language modules so your app only depends on the languages it shows. All built-in highlighters read colors from `Theme.CURRENT`, so call `.of()` inside your view function.
+
+Javadoc: [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Language`](/api/com/rethinkj/ui/editor/Language.html), [`Spans`](/api/com/rethinkj/ui/Spans.html), [`Decorator`](/api/com/rethinkj/ui/Decorator.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
+
+## SQL
+
+`Sql.of()` highlights PostgreSQL SQL, and `Sql.of(Sql.Dialect.MYSQL)` highlights MySQL and MariaDB SQL. `Sql` lives in its own module, `rethinkj-ui-sql`, in package `com.rethinkj.ui.sql`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-sql</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`Sql`](/api/com/rethinkj/ui/sql/Sql.html).
+
+## JSON
+
+`Json.of()` highlights JSON according to RFC 8259: member names, strings, numbers, `true`, `false`, `null`, and brackets. Only brackets outside strings are matched. A member name uses the `property` color from `Theme.Code` when its colon is on the same line. Invalid JSON is highlighted as far as possible. Because JSON has no comments, Ctrl+/ does nothing.
+
+`Json` lives in its own module, `rethinkj-ui-json`, in package `com.rethinkj.ui.json`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-json</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+```java snippet="code-editor-json"
+```
+
+<Shot src="examples/docs/code-editor-json/view-{theme}" alt="A JSON document in the code editor, its member names, strings, numbers and literals each in a color of their own" />
+
+### Formatting JSON
+
+The editor does not wrap lines, so format minified JSON (such as a database column value) before displaying it. `Json.format` puts each member and array element on its own line with four-space indentation. It keeps numbers, escape sequences, and member order as written. Multi-line text fields convert line separators (U+2028) and paragraph separators (U+2029) into line feeds, which breaks JSON strings that contain them directly. To avoid this, `Json.format` escapes them as `\u2028` and `\u2029`. If your app displays JSON without formatting it, replace those two characters in strings with these escapes yourself. `Json.format` returns a `Formatted` result with either the formatted text or, for invalid JSON, the first problem's position and kind. You can show that problem as a [diagnostic](/docs/components/code-editor/gutter-and-diagnostics) with `Texts.formatProblem`. Because event handlers run outside the view, pass the texts you read in the view with `Texts.CURRENT.get()`:
+
+```java snippet="code-editor-json-format"
+```
+
+You can then show `cell` with `codeEditor(state.app, state.cell, state.cellEditor, Json.of(), null)`. In an editable editor, **Ctrl+Alt+L** formats the text with `Json.format` as one undo step (Ctrl+Z) and keeps the cursor on the same token. If the JSON is invalid, the text stays unchanged, and the problem appears as an error diagnostic with its message above the cursor until the text changes. `Json.format` is safe for untrusted text. Deeply nested values do not use extra call stack, and input whose formatted text would exceed 64 Mi characters returns the `TOO_LARGE` kind.
+
+Javadoc: [`Json`](/api/com/rethinkj/ui/json/Json.html), [`Formatted`](/api/com/rethinkj/ui/Formatted.html).
+
+## JavaScript and TypeScript
+
+`JavaScript.of()` and `TypeScript.of()` highlight JavaScript and TypeScript: keywords (TypeScript adds its own and its primitive types), strings, template literals with `${...}`, regular expression literals, numbers, comments, and brackets. As a [`Language`](/api/com/rethinkj/ui/editor/Language.html), each reports its `//`, `/* ... */` and `/** ... */` comments and parses JSDoc and TSDoc into a [`DocComment`](/api/com/rethinkj/ui/editor/DocComment.html). JSX is not highlighted. Both live in `rethinkj-ui-javascript`, in package `com.rethinkj.ui.javascript`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-javascript</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+<Shot src="languages/javascript/typescript-{theme}-2x-view" alt="TypeScript in the code editor with a JSDoc comment, interface and type keywords, a template literal with interpolation, a regular expression literal and a matching bracket pair highlighted" />
+
+Javadoc: [`JavaScript`](/api/com/rethinkj/ui/javascript/JavaScript.html), [`TypeScript`](/api/com/rethinkj/ui/javascript/TypeScript.html).
+
+## Java
+
+`Java.of()` implements `Language` for Java: it highlights keywords, annotations, strings, character literals, text blocks, numbers, line and block comments, and operators, marks brackets outside strings and comments, toggles line comments with `//`, reports comment and doc-comment ranges (`/** ... */` and runs of `///`), and parses Javadoc and `///` Markdown doc comments (including inline tags and reference links) into `DocComment`. `Java` lives in its own module, `rethinkj-ui-java`, in package `com.rethinkj.ui.java`:
+
+```xml
+<dependency>
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-java</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Javadoc: [`Java`](/api/com/rethinkj/ui/java/Java.html).
+
+<Shot src="languages/java/java-{theme}-2x-code" alt="Java source in the code editor with a Javadoc comment, a triple-slash Markdown doc comment, an annotation, a text block, strings, numbers and comments highlighted in color" />
+
+## Writing a custom highlighter
+
+Implement `Highlighter` to support other languages. It processes one line at a time, receiving the state from the previous line and returning the state at the end of the current line (for multi-line strings or block comments):
+
+```java snippet="highlighter"
+```
+
+- `Object line(String line, Object state, Spans out)` receives the line without `\n`, the previous line's end state (`null` for line 0), and a `Spans` builder. Return a value object (enum, record, `Boolean.TRUE`, or `null`) so state changes can be compared with `equals`.
+- Keep highlighters pure (depending only on `line` and `state`) and implement `equals` (e.g., as a Java `record`).
+- Override `lineComment()` (e.g., `"//"`, `"--"`) to enable **Ctrl+/** commenting.
+- Override `formatter()` to enable **Ctrl+Alt+L** formatting. Return a function (such as `Json::format`) that takes the editor's text with line feeds only and returns a `Formatted`. If the text cannot be formatted, the function returns the first problem and its position in the text instead of throwing. When the formatter only changes whitespace (as `Json::format` does), the cursor stays on the same token. The default is `null`, which means the language has no formatter and the command does nothing.
+- Override `wordCharacters()` to specify extra characters that count as part of a word besides letters, digits, and `_` (such as `"$"` for JavaScript). Word-based features then treat `$gt` as a single word: Ctrl+Arrow, double-click, word-occurrence highlights, Ctrl+D (both the first selection and next matches), the find bar's word at the cursor and whole-word search, and [Completion](/docs/components/completion).
+- Override `marksBrackets()` to return `true` and call `out.bracket(at)` on code brackets so brackets inside strings or comments are ignored during bracket matching.
+
+To also report the ranges of comments and doc comments and parse doc comments into `DocComment` (used by [Rendered doc comments](/docs/components/code-editor/navigation-and-docs#rendered-doc-comments)), implement `Language` (as [`Java.of()`](#java) does), a `Highlighter` with these methods, and pass it to `codeEditor` in place of the highlighter. `Comments.scan` finds the ranges of at most 4,000 lines per call, so a text of many lines does not block a frame; the limit does not cover the work on one very long line. `Language.of(highlighter)` makes a language of a highlighter without comments, such as `Sql.of()` or `Json.of()`.
+
+### Spans
+
+`Spans` ranges use `[from, to)` character offsets within the line (later overlapping ranges win). Available methods: `color`, `font`, `background`, `underline`, `squiggle`, `strike`, `guide` (vertical indentation guide), and `lineBackground`. See [`Spans` Javadoc](/api/com/rethinkj/ui/Spans.html).
+
+## Custom decorators
+
+A `Decorator` runs on visible lines during layout to add dynamic backgrounds or underlines (such as search matches or custom highlights) without caching state:
+
+```java snippet="decorator"
+```
+
+<Shot src="examples/docs/highlighter/view-{theme}" alt="An INI file in the code editor colored by the custom Ini highlighter with TODO underlined in warning amber by a custom decorator" />
+
+Use `editor.alsoDecorate(mine)` to layer on top of the editor's built-in highlights (`El.decorate` would replace them).

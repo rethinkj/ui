@@ -1,0 +1,41 @@
+---
+title: SchemaDiagram
+description: Entity relationship diagram of a shop's database schemas with crow's-foot edges, filtering, levels of detail, and automatic layout.
+---
+
+SchemaDiagram displays two schemas (`public` and `billing`) of a shop database in an interactive [ErDiagram](/docs/components/er-diagram) inside a frameless window with a custom [TitleBar](/docs/components/title-bar). Its nine tables cover self-references, junction tables, multiple foreign keys between the same two tables, and cross-schema references.
+
+**Demonstrates:** [ErDiagram](/docs/components/er-diagram), [Canvas](/docs/components/canvas), [Card](/docs/components/card), and [TitleBar](/docs/components/title-bar).
+
+<Shot src="examples/docs/er-diagram/view-{theme}" alt="Nine tables of a shop in the schema frames public and billing, with crow's-foot edges between their key columns" />
+
+## Run it
+
+From the cloned repository root (see [Build from source](/docs/get-started/from-source)):
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=SchemaDiagram
+```
+
+## What to try
+
+- Click a table to highlight its foreign keys and related tables while dimming unrelated ones. Press **]** and **[** to step through related tables, or arrow keys to move between tables.
+- Drag a table (or hold **Shift** with arrow keys) to move and pin it. Click **Arrange** to re-lay out unpinned tables or **Arrange all** to unpin everything.
+- Turn the scroll wheel to pan and **Ctrl+wheel** (or **+**, **-**, **0**) to zoom in, zoom out to skeleton and name-only detail levels, and fit the diagram.
+- Type in the filter box to isolate matching tables, or switch between **All columns**, **Keys only**, and **Collapsed**.
+
+<Shot src="examples/docs/er-diagram/selected-{theme}" alt="The table order outlined in the accent color, its four edges and the rows at their ends highlighted, the unrelated tables dimmed" />
+
+## How it works
+
+The view keeps an `ErDiagram.State` and a map of pinned table positions in the app state and passes the schemas to [`ErDiagram.erDiagram`](/docs/components/er-diagram):
+
+```java snippet="er-diagram"
+```
+
+Schemas, tables, columns, and foreign keys are plain Java records built from your own metadata source (such as JDBC `DatabaseMetaData`):
+
+```java snippet="er-schema"
+```
+
+Full source: [`SchemaDiagram.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/SchemaDiagram.java).

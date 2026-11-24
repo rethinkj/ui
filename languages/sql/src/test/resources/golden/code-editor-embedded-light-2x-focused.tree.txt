@@ -1,0 +1,64 @@
+el 0,0 440x200
+  el 12,12 416x148
+    el 13,13 414x33
+      text role=heading "orders.sql" 29,21 69x17 level=3
+      el 106,30 305x0
+    text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 13,46 414x113 lines 1-6/16 squiggle 161-167 thumb-x 15,151 379.54x6 thumb-y 419,49 6x41.39 focused caret 107 (4:17)
+      el #rail 13,47 80x112
+      el #gutter 13,51 79x96
+        el #line-0 13,51 79x16
+          el 19,59 12x0
+          el 35,59 12x0
+          text "1" 51,51 15x16
+          el 70,59 2x0
+          el 76,59 12x0
+        el #line-1 13,67 79x16
+          el 19,75 12x0
+          el #marker-1 role=button label="Run statement" 35,69 12x12
+            text label="play" "\u{E98F}" 35,69 12x12
+          text "2" 51,67 15x16
+          el 70,75 2x0
+          el 76,75 12x0
+        el #line-2 13,83 79x16
+          el 19,91 12x0
+          el 35,91 12x0
+          text "3" 51,83 15x16
+          el 70,91 2x0
+          el 76,91 12x0
+        el #line-3 13,99 79x16
+          el 19,107 12x0
+          el 35,107 12x0
+          text "4" 51,99 15x16
+          el 70,107 2x0
+          el 76,107 12x0
+        el #line-4 13,115 79x16
+          el #marker role=img label="Error" 19,117 12x12 error="column o.note does not exist"
+            text label="dismiss" "\u{F367}" 19,117 12x12
+          el 35,123 12x0
+          text "5" 51,115 15x16
+          el 70,123 2x0
+          el 76,123 12x0
+        el #line-5 13,131 79x16
+          el 19,139 12x0
+          el 35,139 12x0
+          text "6" 51,131 15x16
+          el 70,139 2x0
+          el 76,139 12x0
+        el #line-6 13,147 79x16
+          el 19,155 12x0
+          el 35,155 12x0
+          text "7" 51,147 15x16
+          el 70,155 2x0
+          el 76,155 12x0
+        el #line-7 13,163 79x16
+          el 19,171 12x0
+          el 35,171 12x0
+          text "8" 51,163 15x16
+          el 70,171 2x0
+          el 76,171 12x0
+        el #line-8 13,179 79x16
+          el 19,187 12x0
+          el 35,187 12x0
+          text "9" 51,179 15x16
+          el 70,187 2x0
+          el 76,187 12x0

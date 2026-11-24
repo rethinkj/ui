@@ -1,0 +1,43 @@
+---
+title: Folding, code vision and inlay hints
+description: Collapsible bracket folds, inline code vision rows, and parameter or type inlay hints in CodeEditor.
+---
+
+[CodeEditor](/docs/components/code-editor) supports collapsing multi-line bracket blocks, inserting muted code vision rows above declarations, and rendering inline parameter or type hints inside lines without modifying the document text.
+
+Javadoc: [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`CodeEditor.Vision`](/api/com/rethinkj/ui/editor/CodeEditor.Vision.html), [`CodeEditor.InlayHint`](/api/com/rethinkj/ui/editor/CodeEditor.InlayHint.html), [`El.Fold`](/api/com/rethinkj/ui/El.Fold.html), [`El.Hint`](/api/com/rethinkj/ui/El.Hint.html).
+
+## Folding
+
+Multi-line bracket pairs (`()`, `[]`, `{}`) can be collapsed in the editor, ignoring brackets inside strings and comments when the highlighter marks brackets (such as `Json` and `Sql`). Folded lines show a chevron (`›`) in the gutter and a clickable `…` pill at the end of the line; hovering a line that starts a foldable block reveals its fold chevron (`⌄`). Press **Ctrl+Shift+[** to fold the innermost block around the cursor (moving the cursor to the end of its first line) and **Ctrl+Shift+]** to unfold it. Folding also works in read-only editors.
+
+<Shot src="examples/docs/code-editor-folding/folded-{theme}" alt="A JSON document in the code editor with the customer object folded to a single line showing a right chevron in the gutter and a clickable ellipsis pill" />
+
+`CodeEditor.State` keeps the active folds across rebuilds, shifts folds below inserted or removed lines, and drops a fold if an edit removes its brackets. Read `folds()` and call `folds(list)` to save and restore folded ranges per document:
+
+```java snippet="code-editor-folding"
+```
+
+## Code vision
+
+Call `codeVision(list)` on `CodeEditor.State` to place muted hint rows above declarations — such as usage counts or authorship — without turning them into editable text. Each `CodeEditor.Vision(line, symbol, label, onPress)` takes a 0-based line index, an optional leading `Symbol`, a label, and an optional press handler (`null` for read-only entries). Entries for the same line share one inserted row in list order, aligned with that line's indentation in the code font. Clickable entries keep focus in the editor when pressed, can be reached by keyboard (Tab after Ctrl+M, or Shift+Tab from after the editor) and activated with Enter or Space, and an enclosing fold hides entries inside it. The editor computes nothing itself; pass `List.of()` to clear them.
+
+<Shot src="examples/docs/code-editor-vision/view-{theme}" alt="Two SQL view declarations in the code editor, each preceded by a muted code vision row showing clickable usage counts and an author name with a person icon" />
+
+```java snippet="code-editor-vision"
+```
+
+## Inlay hints
+
+Pass `CodeEditor.InlayHint(at, affinity, text)` marks through `markup(layer, text, list)` on `CodeEditor.State` to show inline parameter names (`El.Hint.Affinity.AFTER`) and inferred types (`El.Hint.Affinity.BEFORE`) inside lines without adding them to the code. Hints render as muted, rounded pills in the code font, reserve width during shaping, let the caret stop on both sides, and are ignored by copy and cut.
+
+<Shot src="examples/docs/code-editor-inlay-hints/view-{theme}" alt="Java code in the code editor with inline parameter name hints folder: and recursive: before arguments and inferred type hints : List<Path> and : int after variable names" />
+
+```java snippet="code-editor-inlay-hints"
+```
+
+Because hints live in a markup layer, they move across edits: `AFTER` hints stay with the text after `at` (text inserted at `at` lands before them), `BEFORE` hints stay with the text before `at` (text inserted at `at` lands after them), hints inside replaced text are dropped, and undoing back to `text` restores the originals.
+
+## In a tree dump
+
+Fold toggles in the gutter are `#fold-line-<index>`, visible folded pills are `#fold-<first>`, visible code vision rows are `#vision-<line>`, and visible inlay hints are `#hint-<at>`.
