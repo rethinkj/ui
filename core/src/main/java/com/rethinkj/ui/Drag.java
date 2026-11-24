@@ -31,6 +31,9 @@ import com.rethinkj.ui.window.Windows;
  *     target}, and without a runner
  * @param windowX where the pointer is in {@code window}, in its logical pixels; NaN without one
  * @param windowY the same downwards
+ * @param outsideAll whether the pointer is outside every open window of the runner, also one that
+ *     is no drop target; false without a runner, and on Wayland, whose windows' places nobody knows,
+ *     outside the drag's own window alone
  */
 public record Drag(
     Phase phase,
@@ -43,11 +46,12 @@ public record Drag(
     boolean outside,
     Windows.Handle window,
     float windowX,
-    float windowY) {
+    float windowY,
+    boolean outsideAll) {
 
   /** A step that knows nothing of the screen, as in a test of a drag handler. */
   public Drag(Phase phase, float dx, float dy, double x, double y) {
-    this(phase, dx, dy, x, y, Float.NaN, Float.NaN, false, null, Float.NaN, Float.NaN);
+    this(phase, dx, dy, x, y, Float.NaN, Float.NaN, false, null, Float.NaN, Float.NaN, false);
   }
 
   /**

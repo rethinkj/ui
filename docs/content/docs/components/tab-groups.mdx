@@ -34,7 +34,9 @@ Example headless script moving a tab to a new window via its context menu:
 
 Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable them in every window (including torn-off windows).
 
-- Each tab's context menu adds **Split right** (`Ctrl+\`) and **Split down**, disabled for a group's only tab or whenever both halves would be smaller than `Theme.Sizes.minTabGroup`. On keyboard layouts where `\` requires AltGr (such as German), use the tab's context menu instead of `Ctrl+\`.
+- Each tab's context menu adds **Split right** (`Ctrl+\`) and **Split down**, disabled for a group's only tab or whenever both halves would be smaller than `Theme.Sizes.minTabGroup`. On keyboard layouts where `\` requires AltGr (such as German), use the tab's context menu or drag to an edge instead of `Ctrl+\`.
+- While dragging a tab within the window the drag started in, each group's panel shows drop zones on top of its content (including content with its own `onDrop`, such as a `Tree`): the outer third toward an edge splits the tab out to that side wherever both halves fit `Theme.Sizes.minTabGroup`, and the center docks it at the end of that group. Zones are off on the dragged tab's own group when it holds only that tab, and off once a tab has been torn off into a following window (only tab bars take the tab then). A preview overlay marks the target area (`#zone` with `value="left"`, `"right"`, `"top"`, `"bottom"`, or `"center"` in tree dumps).
+- With splits on, a drag tears its tab off into a new window only once the pointer leaves every window of the app (without a window runner, it stays inside). An emptied source group is pruned only when the drag commits, so pressing **Escape** restores the tab to its original group, split, and divider position.
 - Split groups render with `Split.cards` starting at a 0.5 share; double-clicking or pressing Enter on a divider resets it to half.
 - When a group in a split becomes empty, it leaves its frame and its sibling takes the split's place (handing keyboard focus to that sibling if the closed group had focus). A frame with one group renders identically to a plain `Tabs` component; in a split frame, each group's root is keyed `#group-<id>` from a counter that never repeats.
 - `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the full accent line under its active tab; inactive groups show `Theme.Accent.edgeMuted`.
@@ -45,7 +47,7 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 | Method | Description |
 | --- | --- |
 | `splits(boolean)` | Enables splitting within windows (off by default) |
-| `onWindowClose(frame -> …)` | Action when closing a detached window: `dockAll` (default) or `closeAll` |
+| `onWindowClose(frame -> …)` | Action when a detached window closes, by a close request or the app's `Handle.close()`: `dockAll` (default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
 | `onClosed(tab -> …)` | Notification after a tab is closed |
 | `onAdd(group -> …)` | Shows a `+` button and binds Ctrl+T in each group's bar, passing the group |
@@ -58,6 +60,6 @@ You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `d
 
 ## User interaction
 
-- Drag a tab along a bar to reorder, drag it outside to tear off into a new window, or drop it onto another group's tab bar to dock it. Press **Escape** to cancel a drag. When you tear off a tab near a screen edge, the new window shifts fully into the screen's work area (above the taskbar) as far as its minimum size allows. On Wayland, the compositor places the window instead.
+- Drag a tab along a bar to reorder, drag it onto a group's outer edge or center to split or dock when splits are enabled, drag it outside to tear off into a new window, or drop it onto another group's tab bar to dock it. Press **Escape** to cancel a drag and return the tab where it came from (including its split and divider position). When you tear off a tab near a screen edge, the new window shifts fully into the screen's work area (above the taskbar) as far as its minimum size allows. On Wayland, the compositor places the window instead.
 - Right-click any tab for **Move to new window** and **Move back to main window** (essential on Linux Wayland, where apps cannot position floating windows), plus **Split right** and **Split down** when splits are enabled.
 - When a group's tabs overflow its bar, an **All tabs** button appears at the bar's end to list every tab in the group and scroll the chosen one into view.

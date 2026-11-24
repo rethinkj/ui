@@ -331,6 +331,11 @@ public final class WindowLoop {
     }
 
     @Override
+    public Runnable onClosed() {
+      return onClosed;
+    }
+
+    @Override
     public void onShown(Runnable handler) {
       onShown = handler;
     }
@@ -408,18 +413,22 @@ public final class WindowLoop {
         sx = at[0];
         sy = at[1];
       }
+      boolean outsideAll = true;
       for (Entry entry : front) {
-        if (!entry.dropTarget || !entry.isOpen() || !known && entry != from) {
+        if (!entry.isOpen() || !known && entry != from) {
           continue;
         }
         float u = entry.window.unitsPerLogical();
         float lx = (sx - entry.window.x()) / u;
         float ly = (sy - entry.window.y()) / u;
         if (lx >= 0 && ly >= 0 && lx < entry.window.width() && ly < entry.window.height()) {
-          return new Place(sx, sy, entry, lx, ly);
+          if (entry.dropTarget) {
+            return new Place(sx, sy, entry, lx, ly, false);
+          }
+          outsideAll = false;
         }
       }
-      return new Place(sx, sy, null, Float.NaN, Float.NaN);
+      return new Place(sx, sy, null, Float.NaN, Float.NaN, outsideAll);
     }
   }
 

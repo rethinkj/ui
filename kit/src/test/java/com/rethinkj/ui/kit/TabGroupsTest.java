@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Side;
@@ -56,14 +57,17 @@ class TabGroupsTest {
     App<Docs> app;
     final TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c", "d"), this::open);
     final List<String> closed = new ArrayList<>();
+    final List<String> closedWindows = new ArrayList<>();
 
     Docs() {
       groups.onClosed(closed::add);
     }
 
     Windows.Handle open(Frame<String> frame, Window.Options options) {
-      return app.windows()
+      Windows.Handle handle = app.windows()
           .open(frame.active().activeTab(), 300, 160, options, new App<>(this, s -> s.view(frame)));
+      handle.onClosed(() -> closedWindows.add(handle.title()));
+      return handle;
     }
 
     El view(Frame<String> frame) {
@@ -308,6 +312,46 @@ class TabGroupsTest {
         window main""");
     assertEquals(List.of(List.of("a", "c", "d")), order(d));
     assertEquals(List.of("b"), d.closed);
+  }
+
+  @Test
+  void closingAWindowDirectlyRunsOnWindowCloseAndTheOpenersHandler() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    Script.run(
+        "size 400 160 at 100,100\nframe\n" + TEAR_B
+            + "move screen 400,400\nup screen 400,400\nframe",
+        app,
+        out);
+    assertEquals(2, d.groups.frames().size());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nframe", app, out);
+    assertEquals(1, d.groups.frames().size());
+    assertEquals(List.of(List.of("a", "c", "d", "b")), order(d));
+    assertEquals(List.of("b"), d.closedWindows);
+
+    // Closing the following window mid-drag still lets Escape end the drag cleanly.
+    Script.run(TEAR_B, app, out);
+    assertTrue(d.groups.isDragging());
+    assertEquals(2, d.groups.frames().size());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nkey Escape\nframe", app, out);
+    assertFalse(d.groups.isDragging());
+    assertEquals(1, d.groups.frames().size());
+    assertEquals(List.of(List.of("a", "d", "b", "c")), order(d));
+    assertEquals(List.of("b", "c"), d.closedWindows);
+
+    // Closing the window whose only tab is dragged, where the press began, ends the drag, also
+    // when its first step is already outside it.
+    run(
+        app,
+        TEAR_B
+            + "move screen 400,400\nup screen 400,400\nframe\nwindow d\ndown 8,17\nmove 40,300\nframe");
+    assertTrue(d.groups.isDragging());
+    d.groups.frames().get(1).window().close();
+    Script.run("frame\nframe", app, out);
+    assertFalse(d.groups.isDragging());
+    assertEquals(1, d.groups.frames().size());
   }
 
   @Test
@@ -739,6 +783,271 @@ class TabGroupsTest {
         out);
     assertEquals(List.of("a", "d"), g0.tabs(), "Control+W closed b, of the active group");
     assertEquals(List.of(g0), groups.main().groups());
+  }
+
+  @Test
+  void edgeDropSplitsAGroupShowsZonePreviewAndRespectsRoomAndSingleTab() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+    String image = "tab-groups-drop-zone-dark";
+
+    // At 400x160: width fits horizontal split, height 160 < 248 does not fit vertical split.
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        down 52,17
+        move 80,17
+        frame
+        move 340,100
+        frame
+        snap %s
+        move 50,100
+        frame
+        snap left
+        move 200,45
+        frame
+        snap top-no-room
+        move 340,100
+        frame
+        up 340,100
+        frame""".formatted(image), app, out);
+    String rightTree = Files.readString(out.resolve(image + ".tree.txt"));
+    Golden.assertMatches(
+        image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), rightTree);
+    assertEquals(1, d.groups.frames().size(), "dragging over content stayed in the window");
+    assertTrue(line(rightTree, "#zone").contains("value=\"right\""), rightTree);
+    assertTrue(line(tree("left"), "#zone").contains("value=\"left\""), tree("left"));
+    assertTrue(
+        line(tree("top-no-room"), "#zone").contains("value=\"center\""),
+        "without vertical room, top falls back to center: " + tree("top-no-room"));
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+    assertSame(d.groups.main().groups().get(1), d.groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // Dragging the lone tab of a split group: no zones on its own panel; Escape cancels a zone.
+    Script.run("""
+        size 400 300 at 100,100
+        frame
+        advance 1
+        frame
+        down role=tab label="b" at left+5
+        move 250,17
+        frame
+        move 300,150
+        frame
+        snap own-lone
+        move 100,260
+        frame
+        snap other-bottom
+        key Escape
+        frame
+        snap escaped
+        up 100,260
+        frame""", app, out);
+    assertFalse(tree("own-lone").contains("#zone"), "no zone on lone tab's own group");
+    assertTrue(
+        line(tree("other-bottom"), "#zone").contains("value=\"bottom\""), tree("other-bottom"));
+    assertFalse(tree("escaped").contains("#zone"), "Escape clears the zone preview");
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d), "Escape kept layout");
+
+    // Dropping a tab from the left group on the bottom edge of the 1-tab right group splits it.
+    Script.run("""
+        size 400 300 at 100,100
+        down 8,17
+        move 30,17
+        frame
+        move 300,260
+        frame
+        snap bottom-on-right
+        up 300,260
+        frame""", app, out);
+    assertTrue(
+        line(tree("bottom-on-right"), "#zone").contains("value=\"bottom\""),
+        tree("bottom-on-right"));
+    assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
+
+    // The center of its own group of several tabs moves the tab to the end, active: d, which is
+    // there already, behind the active c.
+    Script.run("""
+        size 400 300 at 100,100
+        down role=tab label="d" at left+5
+        move 30,17
+        frame
+        move 100,160
+        frame
+        up 100,160
+        frame""", app, out);
+    assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
+    assertEquals("d", d.groups.main().groups().getFirst().activeTab());
+  }
+
+  @Test
+  void centerDropDocksOverContentWithItsOwnOnDrop() throws IOException {
+    List<Drop> contentDrops = new ArrayList<>();
+    TabGroups<String> groups =
+        new TabGroups<>(List.of("a", "b", "c", "d"), (f, o) -> null).splits(true);
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(
+          groups.main(),
+          Tab::new,
+          t -> t == null
+              ? null
+              : col()
+                  .wFull()
+                  .hFull()
+                  .child(El.el().key("inner-" + t).wFull().hFull().onDrop(contentDrops::add)));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+    Script.run("size 400 160\nframe", app, out);
+    Group<String> left = groups.main().active();
+    Group<String> right = groups.split(left, 1, left, Side.RIGHT); // left=[a,c,d], right=[b]
+    groups.dock(left, 2, right, 1); // left=[a,c], right=[b,d]
+    Script.run("""
+        size 400 160
+        frame
+        down role=tab label="d" at left+5
+        move 280,17
+        frame
+        move 100,100
+        frame
+        snap center
+        up 100,100
+        frame""", app, out);
+    assertTrue(line(tree("center"), "#zone").contains("value=\"center\""), tree("center"));
+    assertTrue(contentDrops.isEmpty(), "drop layer intercepted before content's own onDrop");
+    assertEquals(List.of("a", "c", "d"), left.tabs());
+    assertEquals(List.of("b"), right.tabs());
+    assertEquals("d", left.activeTab());
+    assertSame(left, groups.main().active());
+    assertSame(find(find(app.tree(), "group-0"), "tablist"), app.focused());
+  }
+
+  @Test
+  void tearOffWithSplitsLeavesAllWindowsAndEscapeRestoresSplitAndDivider() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+
+    // Split right and move the divider away from 0.5.
+    Script.run("size 400 160 at 100,100\nframe", app, out);
+    Group<String> left = d.groups.main().active();
+    Group<String> right = d.groups.split(left, 1, left, Side.RIGHT); // [a,c,d] | [b]
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        down #divider
+        move 150,80
+        up 150,80
+        frame
+        snap before-tear""", app, out);
+    String dividerBefore = line(tree("before-tear"), "#divider").replace(" hovered", "");
+    assertFalse(dividerBefore.contains("share 0.5"), dividerBefore);
+
+    // Tear off the only tab of the right split group by leaving the window; Escape restores it.
+    Script.run("""
+        size 400 160 at 100,100
+        down role=tab label="b" at left+5
+        move 200,17
+        frame
+        move screen 600,400
+        frame
+        move screen 180,200
+        frame
+        snap following-over-main
+        key Escape
+        frame""", app, out);
+    assertFalse(
+        tree("following-over-main").contains("#zone"),
+        "once a window follows the pointer, only bars take the tab");
+    assertFalse(tree("following-over-main").contains("#drop"));
+    assertEquals(1, d.groups.frames().size(), "Escape closed the torn-off window");
+    assertEquals(List.of(left, right), d.groups.main().groups(), "original split group restored");
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+    assertEquals(
+        dividerBefore,
+        line(app.tree().dump(), "#divider").replace(" hovered", ""),
+        "divider position restored on Escape");
+
+    // Tear off again, the first step already outside, and release outside: the emptied split
+    // group is pruned on commit.
+    Script.run("""
+        size 400 160 at 100,100
+        down role=tab label="b" at left+5
+        move screen 600,400
+        frame
+        up screen 600,400
+        frame""", app, out);
+    assertEquals(2, d.groups.frames().size());
+    assertEquals(List.of(left), d.groups.main().groups(), "emptied split group pruned on commit");
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+
+    // Place b's window adjacent to main (at 500,100). While it takes no drops, a release over it
+    // tears nothing off and moves nothing.
+    Script.run("""
+        window b
+        size 300 160 at 500,100
+        frame
+        window main""", app, out);
+    Windows.Handle b = d.groups.frames().get(1).active().window();
+    b.dropTarget(false);
+    Script.run("""
+        down role=tab label="c" at left+5
+        move 80,17
+        frame
+        move screen 600,200
+        frame
+        up screen 600,200
+        frame""", app, out);
+    b.dropTarget(true);
+    assertEquals(2, d.groups.frames().size(), "no window opened over a window that takes no drops");
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+
+    // Dragging straight over b does not tear off, shows no zones in b, and docks into b's bar.
+    Script.run("""
+        window main
+        down role=tab label="c" at left+5
+        move 80,17
+        frame
+        move screen 600,200
+        frame
+        snap over-other-panel
+        move screen 580,117
+        frame
+        up screen 580,117
+        frame""", app, out);
+    assertFalse(tree("b-over-other-panel").contains("#zone"), "other window offers no zones");
+    assertFalse(tree("b-over-other-panel").contains("#drop"));
+    assertEquals(2, d.groups.frames().size(), "no third window opened over another window");
+    assertEquals(List.of(List.of("a", "d"), List.of("b", "c")), order(d));
+
+    // Without a window runner, dragging outside the app stays inside and never calls the opener.
+    int[] opened = {0};
+    TabGroups<String> standalone = new TabGroups<>(List.of("x", "y"), (f, o) -> {
+          opened[0]++;
+          return null;
+        })
+        .splits(true);
+    App<Object> noRunner = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(standalone
+                .tabs(standalone.main(), Tab::new, t -> Label.label(t))
+                .grow(1)));
+    noRunner.resize(400, 160, 1);
+    noRunner.frame();
+    noRunner.pointerDown(52, 17);
+    noRunner.frame();
+    noRunner.pointerMove(80, 17);
+    noRunner.frame();
+    noRunner.pointerMove(80, 250);
+    noRunner.frame();
+    noRunner.pointerUp(80, 250);
+    noRunner.frame();
+    assertEquals(0, opened[0], "without a window runner a drag stays inside");
+    assertEquals(1, standalone.frames().size());
   }
 
   // Focus
