@@ -1086,9 +1086,7 @@ public final class WindowLoop {
       case DisplayChanged _ -> refreshRate(e); // another display, or another mode of it
       // In a pass, the frame comes anyway.
       case Redraw redraw
-      when !drawing -> {
-        pass(new HashSet<>(List.of(e)), Set.of(), redraw.live() ? null : e, true);
-      }
+      when !drawing -> pass(new HashSet<>(List.of(e)), Set.of(), redraw.live() ? null : e, true);
       case CloseRequested _ -> {
         if (e.onClose != null) {
           app.post(e.onClose);
