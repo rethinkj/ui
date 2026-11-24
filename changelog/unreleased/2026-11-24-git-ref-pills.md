@@ -1,0 +1,1 @@
+- Added `Ref` and `RefPills` in `com.rethinkj.ui.diagram.git` to render a commit's git refs (HEAD, local branches, remote branches, synced local+remote branches, tags, truncated names with tooltips, and `+n` overflow) as pills, plus `Symbol.CLOUD` and ref pill texts in `DiagramTexts` / `GermanDiagramTexts`.

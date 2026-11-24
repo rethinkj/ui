@@ -157,4 +157,45 @@ public interface DiagramTexts {
   default String expand() {
     return "Expand";
   }
+
+  /** A local git branch pill's label and tooltip: {@code Branch main}. */
+  default String branch(String name) {
+    return "Branch " + name;
+  }
+
+  /** The git branch that HEAD points to: {@code HEAD → main}. */
+  default String headBranch(String name) {
+    return "HEAD → " + name;
+  }
+
+  /** Detached HEAD, pointing at a commit rather than a branch. */
+  default String detachedHead() {
+    return "HEAD (detached)";
+  }
+
+  /** A remote git branch pill's label and tooltip: {@code Remote branch origin/main}. */
+  default String remoteBranch(String name) {
+    return "Remote branch " + name;
+  }
+
+  /** A git tag pill's label and tooltip: {@code Tag v1.0}. */
+  default String tag(String name) {
+    return "Tag " + name;
+  }
+
+  /**
+   * A local or HEAD branch in sync with one or more remote branches on the same commit: {@code
+   * Branch main, in sync with origin/main}.
+   */
+  default String inSync(String ref, String remotes) {
+    return ref + ", in sync with " + remotes;
+  }
+
+  /**
+   * The overflow pill for refs hidden beyond the limit: {@code 1 more ref: v1.0}, {@code 2 more
+   * refs: origin/dev, v1.0}.
+   */
+  default String moreRefs(int count, String names) {
+    return (count == 1 ? "1 more ref: " : count + " more refs: ") + names;
+  }
 }

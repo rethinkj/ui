@@ -7,7 +7,7 @@ import java.util.Locale;
 
 /**
  * The icons of the default icon font, {@link com.rethinkj.ui.text.Font#icons()} (Fluent
- * UI System Icons), that the kit names: 121 of them, for a database tool, the parts of a
+ * UI System Icons), that the kit names: 122 of them, for a database tool, the parts of a
  * window and the data in a table. {@link Icon#icon} shows one.
  *
  * <p>Each symbol is Fluent's icon of the same name: {@link #CHEVRON_RIGHT} is {@code
@@ -54,6 +54,7 @@ public enum Symbol implements Icon {
   CIRCLE(0xE331, 0xF2BA, 0, 0xF2BC, 0xF00D6, 0xE332, 0xE333),
   CLIPBOARD_PASTE(0, 0xE35A, 0xF2D5, 0xF2D6, 0xF0A6F, 0xF020B, 0),
   CLOCK(0xF2DB, 0xF2DC, 0xF2DD, 0xF2DE, 0xF2DF, 0xE36E, 0xF2E0),
+  CLOUD(0, 0xE382, 0xF2E4, 0xF2E5, 0xE383, 0xE384, 0xF2E6),
   CODE(0, 0xF339, 0xF2EF, 0xF2F0, 0, 0, 0),
   COLUMN_SINGLE(0, 0xF0116, 0, 0, 0, 0, 0),
   COPY(0, 0xF32A, 0xF32B, 0xF32C, 0xF07D5, 0xF0006, 0xF0C6F),

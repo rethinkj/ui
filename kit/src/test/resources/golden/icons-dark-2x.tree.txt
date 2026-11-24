@@ -164,338 +164,342 @@ el 0,0 800x896
     text label="clock" "\u{F2DD}" 32,284 20x20
     text "clock" 60,286 33x16
   el 200,280 200x28
-    text label="code" "\u{F339}" 208,286 16x16
-    text label="code" "\u{F2EF}" 232,284 20x20
-    text "code" 260,286 31x16
+    text label="cloud" "\u{E382}" 208,286 16x16
+    text label="cloud" "\u{F2E4}" 232,284 20x20
+    text "cloud" 260,286 34x16
   el 400,280 200x28
-    text label="column_single" "\u{F0116}" 408,286 16x16
-    text label="column_single" "\u{F0116}" 432,284 20x20
-    text "column_single" 460,286 87x16
+    text label="code" "\u{F339}" 408,286 16x16
+    text label="code" "\u{F2EF}" 432,284 20x20
+    text "code" 460,286 31x16
   el 600,280 200x28
-    text label="copy" "\u{F32A}" 608,286 16x16
-    text label="copy" "\u{F32B}" 632,284 20x20
-    text "copy" 660,286 30x16
+    text label="column_single" "\u{F0116}" 608,286 16x16
+    text label="column_single" "\u{F0116}" 632,284 20x20
+    text "column_single" 660,286 87x16
   el 0,308 200x28
-    text label="cube" "\u{F334}" 8,314 16x16
-    text label="cube" "\u{F335}" 32,312 20x20
-    text "cube" 60,314 31x16
+    text label="copy" "\u{F32A}" 8,314 16x16
+    text label="copy" "\u{F32B}" 32,312 20x20
+    text "copy" 60,314 30x16
   el 200,308 200x28
-    text label="cut" "\u{F038C}" 208,314 16x16
-    text label="cut" "\u{F33A}" 232,312 20x20
-    text "cut" 260,314 19x16
+    text label="cube" "\u{F334}" 208,314 16x16
+    text label="cube" "\u{F335}" 232,312 20x20
+    text "cube" 260,314 31x16
   el 400,308 200x28
-    text label="database" "\u{F0D7}" 408,314 16x16
-    text label="database" "\u{E466}" 432,312 20x20
-    text "database" 460,314 57x16
+    text label="cut" "\u{F038C}" 408,314 16x16
+    text label="cut" "\u{F33A}" 432,312 20x20
+    text "cut" 460,314 19x16
   el 600,308 200x28
-    text label="delete" "\u{E47B}" 608,314 16x16
-    text label="delete" "\u{F34C}" 632,312 20x20
-    text "delete" 660,314 38x16
+    text label="database" "\u{F0D7}" 608,314 16x16
+    text label="database" "\u{E466}" 632,312 20x20
+    text "database" 660,314 57x16
   el 0,336 200x28
-    text label="dismiss" "\u{F368}" 8,342 16x16
-    text label="dismiss" "\u{F369}" 32,340 20x20
-    text "dismiss" 60,342 46x16
+    text label="delete" "\u{E47B}" 8,342 16x16
+    text label="delete" "\u{F34C}" 32,340 20x20
+    text "delete" 60,342 38x16
   el 200,336 200x28
-    text label="dismiss_circle" "\u{F36C}" 208,342 16x16
-    text label="dismiss_circle" "\u{F36D}" 232,340 20x20
-    text "dismiss_circle" 260,342 85x16
+    text label="dismiss" "\u{F368}" 208,342 16x16
+    text label="dismiss" "\u{F369}" 232,340 20x20
+    text "dismiss" 260,342 46x16
   el 400,336 200x28
-    text label="document" "\u{E4D7}" 408,342 16x16
-    text label="document" "\u{F378}" 432,340 20x20
-    text "document" 460,342 62x16
+    text label="dismiss_circle" "\u{F36C}" 408,342 16x16
+    text label="dismiss_circle" "\u{F36D}" 432,340 20x20
+    text "dismiss_circle" 460,342 85x16
   el 600,336 200x28
-    text label="document_data" "\u{F0DD}" 608,342 16x16
-    text label="document_data" "\u{E4F7}" 632,340 20x20
-    text "document_data" 660,342 94x16
+    text label="document" "\u{E4D7}" 608,342 16x16
+    text label="document" "\u{F378}" 632,340 20x20
+    text "document" 660,342 62x16
   el 0,364 200x28
-    text label="document_table" "\u{E54A}" 8,370 16x16
-    text label="document_table" "\u{E54B}" 32,368 20x20
-    text "document_table" 60,370 98x16
+    text label="document_data" "\u{F0DD}" 8,370 16x16
+    text label="document_data" "\u{E4F7}" 32,368 20x20
+    text "document_data" 60,370 94x16
   el 200,364 200x28
-    text label="edit" "\u{F3DC}" 208,370 16x16
-    text label="edit" "\u{F3DD}" 232,368 20x20
-    text "edit" 260,370 23x16
+    text label="document_table" "\u{E54A}" 208,370 16x16
+    text label="document_table" "\u{E54B}" 232,368 20x20
+    text "document_table" 260,370 98x16
   el 400,364 200x28
-    text label="error_circle" "\u{F3F0}" 408,370 16x16
-    text label="error_circle" "\u{F3F1}" 432,368 20x20
-    text "error_circle" 460,370 69x16
+    text label="edit" "\u{F3DC}" 408,370 16x16
+    text label="edit" "\u{F3DD}" 432,368 20x20
+    text "edit" 460,370 23x16
   el 600,364 200x28
-    text label="eye" "\u{E5F1}" 608,370 16x16
-    text label="eye" "\u{E5F2}" 632,368 20x20
-    text "eye" 660,370 22x16
+    text label="error_circle" "\u{F3F0}" 608,370 16x16
+    text label="error_circle" "\u{F3F1}" 632,368 20x20
+    text "error_circle" 660,370 69x16
   el 0,392 200x28
-    text label="eye_off" "\u{E5F4}" 8,398 16x16
-    text label="eye_off" "\u{E5F5}" 32,396 20x20
-    text "eye_off" 60,398 45x16
+    text label="eye" "\u{E5F1}" 8,398 16x16
+    text label="eye" "\u{E5F2}" 32,396 20x20
+    text "eye" 60,398 22x16
   el 200,392 200x28
-    text label="filter" "\u{E60A}" 208,398 16x16
-    text label="filter" "\u{F406}" 232,396 20x20
-    text "filter" 260,398 28x16
+    text label="eye_off" "\u{E5F4}" 208,398 16x16
+    text label="eye_off" "\u{E5F5}" 232,396 20x20
+    text "eye_off" 260,398 45x16
   el 400,392 200x28
-    text label="filter_dismiss" "\u{E60C}" 408,398 16x16
-    text label="filter_dismiss" "\u{E60D}" 432,396 20x20
-    text "filter_dismiss" 460,398 80x16
+    text label="filter" "\u{E60A}" 408,398 16x16
+    text label="filter" "\u{F406}" 432,396 20x20
+    text "filter" 460,398 28x16
   el 600,392 200x28
-    text label="fingerprint" "\u{F03F9}" 608,398 16x16
-    text label="fingerprint" "\u{E611}" 632,396 20x20
-    text "fingerprint" 660,398 64x16
+    text label="filter_dismiss" "\u{E60C}" 608,398 16x16
+    text label="filter_dismiss" "\u{E60D}" 632,396 20x20
+    text "filter_dismiss" 660,398 80x16
   el 0,420 200x28
-    text label="flash" "\u{E617}" 8,426 16x16
-    text label="flash" "\u{E618}" 32,424 20x20
-    text "flash" 60,426 30x16
+    text label="fingerprint" "\u{F03F9}" 8,426 16x16
+    text label="fingerprint" "\u{E611}" 32,424 20x20
+    text "fingerprint" 60,426 64x16
   el 200,420 200x28
-    text label="folder" "\u{E643}" 208,426 16x16
-    text label="folder" "\u{F418}" 232,424 20x20
-    text "folder" 260,426 36x16
+    text label="flash" "\u{E617}" 208,426 16x16
+    text label="flash" "\u{E618}" 232,424 20x20
+    text "flash" 260,426 30x16
   el 400,420 200x28
-    text label="folder_open" "\u{F42D}" 408,426 16x16
-    text label="folder_open" "\u{F42E}" 432,424 20x20
-    text "folder_open" 460,426 73x16
+    text label="folder" "\u{E643}" 408,426 16x16
+    text label="folder" "\u{F418}" 432,424 20x20
+    text "folder" 460,426 36x16
   el 600,420 200x28
-    text label="globe" "\u{E6B1}" 608,426 16x16
-    text label="globe" "\u{F45A}" 632,424 20x20
-    text "globe" 660,426 35x16
+    text label="folder_open" "\u{F42D}" 608,426 16x16
+    text label="folder_open" "\u{F42E}" 632,424 20x20
+    text "folder_open" 660,426 73x16
   el 0,448 200x28
-    text label="history" "\u{E705}" 8,454 16x16
-    text label="history" "\u{F47E}" 32,452 20x20
-    text "history" 60,454 42x16
+    text label="globe" "\u{E6B1}" 8,454 16x16
+    text label="globe" "\u{F45A}" 32,452 20x20
+    text "globe" 60,454 35x16
   el 200,448 200x28
-    text label="image" "\u{F487}" 208,454 16x16
-    text label="image" "\u{F488}" 232,452 20x20
-    text "image" 260,454 37x16
+    text label="history" "\u{E705}" 208,454 16x16
+    text label="history" "\u{F47E}" 232,452 20x20
+    text "history" 260,454 42x16
   el 400,448 200x28
-    text label="info" "\u{F4A2}" 408,454 16x16
-    text label="info" "\u{F4A3}" 432,452 20x20
-    text "info" 460,454 23x16
+    text label="image" "\u{F487}" 408,454 16x16
+    text label="image" "\u{F488}" 432,452 20x20
+    text "image" 460,454 37x16
   el 600,448 200x28
-    text label="key" "\u{E740}" 608,454 16x16
-    text label="key" "\u{F4B6}" 632,452 20x20
-    text "key" 660,454 22x16
+    text label="info" "\u{F4A2}" 608,454 16x16
+    text label="info" "\u{F4A3}" 632,452 20x20
+    text "info" 660,454 23x16
   el 0,476 200x28
-    text label="key_multiple" "\u{F0274}" 8,482 16x16
-    text label="key_multiple" "\u{E745}" 32,480 20x20
-    text "key_multiple" 60,482 75x16
+    text label="key" "\u{E740}" 8,482 16x16
+    text label="key" "\u{F4B6}" 32,480 20x20
+    text "key" 60,482 22x16
   el 200,476 200x28
-    text label="lightbulb" "\u{F4D5}" 208,482 16x16
-    text label="lightbulb" "\u{F4D6}" 232,480 20x20
-    text "lightbulb" 260,482 53x16
+    text label="key_multiple" "\u{F0274}" 208,482 16x16
+    text label="key_multiple" "\u{E745}" 232,480 20x20
+    text "key_multiple" 260,482 75x16
   el 400,476 200x28
-    text label="link" "\u{F4E3}" 408,482 16x16
-    text label="link" "\u{F4E4}" 432,480 20x20
-    text "link" 460,482 21x16
+    text label="lightbulb" "\u{F4D5}" 408,482 16x16
+    text label="lightbulb" "\u{F4D6}" 432,480 20x20
+    text "lightbulb" 460,482 53x16
   el 600,476 200x28
-    text label="location" "\u{F4F7}" 608,482 16x16
-    text label="location" "\u{F4F8}" 632,480 20x20
-    text "location" 660,482 48x16
+    text label="link" "\u{F4E3}" 608,482 16x16
+    text label="link" "\u{F4E4}" 632,480 20x20
+    text "link" 660,482 21x16
   el 0,504 200x28
-    text label="lock_closed" "\u{E78E}" 8,510 16x16
-    text label="lock_closed" "\u{E78F}" 32,508 20x20
-    text "lock_closed" 60,510 72x16
+    text label="location" "\u{F4F7}" 8,510 16x16
+    text label="location" "\u{F4F8}" 32,508 20x20
+    text "location" 60,510 48x16
   el 200,504 200x28
-    text label="lock_open" "\u{E794}" 208,510 16x16
-    text label="lock_open" "\u{E795}" 232,508 20x20
-    text "lock_open" 260,510 62x16
+    text label="lock_closed" "\u{E78E}" 208,510 16x16
+    text label="lock_closed" "\u{E78F}" 232,508 20x20
+    text "lock_closed" 260,510 72x16
   el 400,504 200x28
-    text label="mail" "\u{E7A1}" 408,510 16x16
-    text label="mail" "\u{F506}" 432,508 20x20
-    text "mail" 460,510 25x16
+    text label="lock_open" "\u{E794}" 408,510 16x16
+    text label="lock_open" "\u{E795}" 432,508 20x20
+    text "lock_open" 460,510 62x16
   el 600,504 200x28
-    text label="math_formula" "\u{E7E1}" 608,510 16x16
-    text label="math_formula" "\u{E7E2}" 632,508 20x20
-    text "math_formula" 660,510 83x16
+    text label="mail" "\u{E7A1}" 608,510 16x16
+    text label="mail" "\u{F506}" 632,508 20x20
+    text "mail" 660,510 25x16
   el 0,532 200x28
-    text label="maximize" "\u{F533}" 8,538 16x16
-    text label="maximize" "\u{E7EB}" 32,536 20x20
-    text "maximize" 60,538 58x16
+    text label="math_formula" "\u{E7E1}" 8,538 16x16
+    text label="math_formula" "\u{E7E2}" 32,536 20x20
+    text "math_formula" 60,538 83x16
   el 200,532 200x28
-    text label="money" "\u{F54E}" 208,538 16x16
-    text label="money" "\u{F54F}" 232,536 20x20
-    text "money" 260,538 41x16
+    text label="maximize" "\u{F533}" 208,538 16x16
+    text label="maximize" "\u{E7EB}" 232,536 20x20
+    text "maximize" 260,538 58x16
   el 400,532 200x28
-    text label="more_horizontal" "\u{E823}" 408,538 16x16
-    text label="more_horizontal" "\u{E823}" 432,536 20x20
-    text "more_horizontal" 460,538 98x16
+    text label="money" "\u{F54E}" 408,538 16x16
+    text label="money" "\u{F54F}" 432,536 20x20
+    text "money" 460,538 41x16
   el 600,532 200x28
-    text label="more_vertical" "\u{E829}" 608,538 16x16
-    text label="more_vertical" "\u{F556}" 632,536 20x20
-    text "more_vertical" 660,538 81x16
+    text label="more_horizontal" "\u{E823}" 608,538 16x16
+    text label="more_horizontal" "\u{E823}" 632,536 20x20
+    text "more_horizontal" 660,538 98x16
   el 0,560 200x28
-    text label="navigation" "\u{E85F}" 8,566 16x16
-    text label="navigation" "\u{E85F}" 32,564 20x20
-    text "navigation" 60,566 63x16
+    text label="more_vertical" "\u{E829}" 8,566 16x16
+    text label="more_vertical" "\u{F556}" 32,564 20x20
+    text "more_vertical" 60,566 81x16
   el 200,560 200x28
-    text label="number_circle_1" "\u{E884}" 208,566 16x16
-    text label="number_circle_1" "\u{E885}" 232,564 20x20
-    text "number_circle_1" 260,566 96x16
+    text label="navigation" "\u{E85F}" 208,566 16x16
+    text label="navigation" "\u{E85F}" 232,564 20x20
+    text "navigation" 260,566 63x16
   el 400,560 200x28
-    text label="number_symbol" "\u{F57C}" 408,566 16x16
-    text label="number_symbol" "\u{F57D}" 432,564 20x20
-    text "number_symbol" 460,566 97x16
+    text label="number_circle_1" "\u{E884}" 408,566 16x16
+    text label="number_circle_1" "\u{E885}" 432,564 20x20
+    text "number_circle_1" 460,566 96x16
   el 600,560 200x28
-    text label="open" "\u{F581}" 608,566 16x16
-    text label="open" "\u{F582}" 632,564 20x20
-    text "open" 660,566 31x16
+    text label="number_symbol" "\u{F57C}" 608,566 16x16
+    text label="number_symbol" "\u{F57D}" 632,564 20x20
+    text "number_symbol" 660,566 97x16
   el 0,588 200x28
-    text label="panel_left" "\u{E8AF}" 8,594 16x16
-    text label="panel_left" "\u{E8B0}" 32,592 20x20
-    text "panel_left" 60,594 60x16
+    text label="open" "\u{F581}" 8,594 16x16
+    text label="open" "\u{F582}" 32,592 20x20
+    text "open" 60,594 31x16
   el 200,588 200x28
-    text label="panel_right" "\u{E8BC}" 208,594 16x16
-    text label="panel_right" "\u{E8BD}" 232,592 20x20
-    text "panel_right" 260,594 68x16
+    text label="panel_left" "\u{E8AF}" 208,594 16x16
+    text label="panel_left" "\u{E8B0}" 232,592 20x20
+    text "panel_left" 260,594 60x16
   el 400,588 200x28
-    text label="pause" "\u{F5A0}" 408,594 16x16
-    text label="pause" "\u{F5A1}" 432,592 20x20
-    text "pause" 460,594 38x16
+    text label="panel_right" "\u{E8BC}" 408,594 16x16
+    text label="panel_right" "\u{E8BD}" 432,592 20x20
+    text "panel_right" 460,594 68x16
   el 600,588 200x28
-    text label="people" "\u{F5A7}" 608,594 16x16
-    text label="people" "\u{F5A8}" 632,592 20x20
-    text "people" 660,594 42x16
+    text label="pause" "\u{F5A0}" 608,594 16x16
+    text label="pause" "\u{F5A1}" 632,592 20x20
+    text "pause" 660,594 38x16
   el 0,616 200x28
-    text label="person" "\u{F5BC}" 8,622 16x16
-    text label="person" "\u{F5BD}" 32,620 20x20
-    text "person" 60,622 43x16
+    text label="people" "\u{F5A7}" 8,622 16x16
+    text label="people" "\u{F5A8}" 32,620 20x20
+    text "people" 60,622 42x16
   el 200,616 200x28
-    text label="pin" "\u{F600}" 208,622 16x16
-    text label="pin" "\u{F601}" 232,620 20x20
-    text "pin" 260,622 19x16
+    text label="person" "\u{F5BC}" 208,622 16x16
+    text label="person" "\u{F5BD}" 232,620 20x20
+    text "person" 260,622 43x16
   el 400,616 200x28
-    text label="play" "\u{E990}" 408,622 16x16
-    text label="play" "\u{F605}" 432,620 20x20
-    text "play" 460,622 26x16
+    text label="pin" "\u{F600}" 408,622 16x16
+    text label="pin" "\u{F601}" 432,620 20x20
+    text "pin" 460,622 19x16
   el 600,616 200x28
-    text label="plug_connected" "\u{F0393}" 608,622 16x16
-    text label="plug_connected" "\u{E999}" 632,620 20x20
-    text "plug_connected" 660,622 98x16
+    text label="play" "\u{E990}" 608,622 16x16
+    text label="play" "\u{F605}" 632,620 20x20
+    text "play" 660,622 26x16
   el 0,644 200x28
-    text label="plug_disconnected" "\u{F0394}" 8,650 16x16
-    text label="plug_disconnected" "\u{F609}" 32,648 20x20
-    text "plug_disconnected" 60,650 116x16
+    text label="plug_connected" "\u{F0393}" 8,650 16x16
+    text label="plug_connected" "\u{E999}" 32,648 20x20
+    text "plug_connected" 60,650 98x16
   el 200,644 200x28
-    text label="prohibited" "\u{F705}" 208,650 16x16
-    text label="prohibited" "\u{F62D}" 232,648 20x20
-    text "prohibited" 260,650 62x16
+    text label="plug_disconnected" "\u{F0394}" 208,650 16x16
+    text label="plug_disconnected" "\u{F609}" 232,648 20x20
+    text "plug_disconnected" 260,650 116x16
   el 400,644 200x28
-    text label="question_circle" "\u{F63C}" 408,650 16x16
-    text label="question_circle" "\u{F63D}" 432,648 20x20
-    text "question_circle" 460,650 92x16
+    text label="prohibited" "\u{F705}" 408,650 16x16
+    text label="prohibited" "\u{F62D}" 432,648 20x20
+    text "prohibited" 460,650 62x16
   el 600,644 200x28
-    text label="record" "\u{F660}" 608,650 16x16
-    text label="record" "\u{F661}" 632,648 20x20
-    text "record" 660,650 40x16
+    text label="question_circle" "\u{F63C}" 608,650 16x16
+    text label="question_circle" "\u{F63D}" 632,648 20x20
+    text "question_circle" 660,650 92x16
   el 0,672 200x28
-    text label="record_stop" "\u{F759}" 8,678 16x16
-    text label="record_stop" "\u{F75A}" 32,676 20x20
-    text "record_stop" 60,678 73x16
+    text label="record" "\u{F660}" 8,678 16x16
+    text label="record" "\u{F661}" 32,676 20x20
+    text "record" 60,678 40x16
   el 200,672 200x28
-    text label="save" "\u{EA43}" 208,678 16x16
-    text label="save" "\u{F67F}" 232,676 20x20
-    text "save" 260,678 29x16
+    text label="record_stop" "\u{F759}" 208,678 16x16
+    text label="record_stop" "\u{F75A}" 232,676 20x20
+    text "record_stop" 260,678 73x16
   el 400,672 200x28
-    text label="search" "\u{EA7C}" 408,678 16x16
-    text label="search" "\u{F68F}" 432,676 20x20
-    text "search" 460,678 42x16
+    text label="save" "\u{EA43}" 408,678 16x16
+    text label="save" "\u{F67F}" 432,676 20x20
+    text "save" 460,678 29x16
   el 600,672 200x28
-    text label="select_all_on" "\u{F04B9}" 608,678 16x16
-    text label="select_all_on" "\u{EA86}" 632,676 20x20
-    text "select_all_on" 660,678 78x16
+    text label="search" "\u{EA7C}" 608,678 16x16
+    text label="search" "\u{F68F}" 632,676 20x20
+    text "search" 660,678 42x16
   el 0,700 200x28
-    text label="server" "\u{F1DC}" 8,706 16x16
-    text label="server" "\u{F769}" 32,704 20x20
-    text "server" 60,706 39x16
+    text label="select_all_on" "\u{F04B9}" 8,706 16x16
+    text label="select_all_on" "\u{EA86}" 32,704 20x20
+    text "select_all_on" 60,706 78x16
   el 200,700 200x28
-    text label="settings" "\u{F6A8}" 208,706 16x16
-    text label="settings" "\u{F6A9}" 232,704 20x20
-    text "settings" 260,706 49x16
+    text label="server" "\u{F1DC}" 208,706 16x16
+    text label="server" "\u{F769}" 232,704 20x20
+    text "server" 260,706 39x16
   el 400,700 200x28
-    text label="shapes" "\u{F6AC}" 408,706 16x16
-    text label="shapes" "\u{F6AD}" 432,704 20x20
-    text "shapes" 460,706 44x16
+    text label="settings" "\u{F6A8}" 408,706 16x16
+    text label="settings" "\u{F6A9}" 432,704 20x20
+    text "settings" 460,706 49x16
   el 600,700 200x28
-    text label="shield" "\u{EAC3}" 608,706 16x16
-    text label="shield" "\u{F6BE}" 632,704 20x20
-    text "shield" 660,706 36x16
+    text label="shapes" "\u{F6AC}" 608,706 16x16
+    text label="shapes" "\u{F6AD}" 632,704 20x20
+    text "shapes" 660,706 44x16
   el 0,728 200x28
-    text label="split_horizontal" "\u{EB58}" 8,734 16x16
-    text label="split_horizontal" "\u{EB59}" 32,732 20x20
-    text "split_horizontal" 60,734 92x16
+    text label="shield" "\u{EAC3}" 8,734 16x16
+    text label="shield" "\u{F6BE}" 32,732 20x20
+    text "shield" 60,734 36x16
   el 200,728 200x28
-    text label="split_vertical" "\u{EB5F}" 208,734 16x16
-    text label="split_vertical" "\u{EB60}" 232,732 20x20
-    text "split_vertical" 260,734 75x16
+    text label="split_horizontal" "\u{EB58}" 208,734 16x16
+    text label="split_horizontal" "\u{EB59}" 232,732 20x20
+    text "split_horizontal" 260,734 92x16
   el 400,728 200x28
-    text label="square_multiple" "\u{EB95}" 408,734 16x16
-    text label="square_multiple" "\u{EB96}" 432,732 20x20
-    text "square_multiple" 460,734 97x16
+    text label="split_vertical" "\u{EB5F}" 408,734 16x16
+    text label="split_vertical" "\u{EB60}" 432,732 20x20
+    text "split_vertical" 460,734 75x16
   el 600,728 200x28
-    text label="star" "\u{F70E}" 608,734 16x16
-    text label="star" "\u{F70F}" 632,732 20x20
-    text "star" 660,734 23x16
+    text label="square_multiple" "\u{EB95}" 608,734 16x16
+    text label="square_multiple" "\u{EB96}" 632,732 20x20
+    text "square_multiple" 660,734 97x16
   el 0,756 200x28
-    text label="stop" "\u{F729}" 8,762 16x16
-    text label="stop" "\u{F72A}" 32,760 20x20
-    text "stop" 60,762 27x16
+    text label="star" "\u{F70E}" 8,762 16x16
+    text label="star" "\u{F70F}" 32,760 20x20
+    text "star" 60,762 23x16
   el 200,756 200x28
-    text label="subtract" "\u{EBCF}" 208,762 16x16
-    text label="subtract" "\u{EBD0}" 232,760 20x20
-    text "subtract" 260,762 51x16
+    text label="stop" "\u{F729}" 208,762 16x16
+    text label="stop" "\u{F72A}" 232,760 20x20
+    text "stop" 260,762 27x16
   el 400,756 200x28
-    text label="table" "\u{EBF4}" 408,762 16x16
-    text label="table" "\u{F75D}" 432,760 20x20
-    text "table" 460,762 30x16
+    text label="subtract" "\u{EBCF}" 408,762 16x16
+    text label="subtract" "\u{EBD0}" 432,760 20x20
+    text "subtract" 460,762 51x16
   el 600,756 200x28
-    text label="table_simple" "\u{EC50}" 608,762 16x16
-    text label="table_simple" "\u{EC51}" 632,760 20x20
-    text "table_simple" 660,762 76x16
+    text label="table" "\u{EBF4}" 608,762 16x16
+    text label="table" "\u{F75D}" 632,760 20x20
+    text "table" 660,762 30x16
   el 0,784 200x28
-    text label="tag" "\u{EC70}" 8,790 16x16
-    text label="tag" "\u{F77C}" 32,788 20x20
-    text "tag" 60,790 20x16
+    text label="table_simple" "\u{EC50}" 8,790 16x16
+    text label="table_simple" "\u{EC51}" 32,788 20x20
+    text "table_simple" 60,790 76x16
   el 200,784 200x28
-    text label="text_asterisk" "\u{F03A7}" 208,790 16x16
-    text label="text_asterisk" "\u{F7A3}" 232,788 20x20
-    text "text_asterisk" 260,790 77x16
+    text label="tag" "\u{EC70}" 208,790 16x16
+    text label="tag" "\u{F77C}" 232,788 20x20
+    text "tag" 260,790 20x16
   el 400,784 200x28
-    text label="text_bullet_list_ltr" "\u{ECD8}" 408,790 16x16
-    text label="text_bullet_list_ltr" "\u{ECD9}" 432,788 20x20
-    text "text_bullet_list_ltr" 460,790 106x16
+    text label="text_asterisk" "\u{F03A7}" 408,790 16x16
+    text label="text_asterisk" "\u{F7A3}" 432,788 20x20
+    text "text_asterisk" 460,790 77x16
   el 600,784 200x28
-    text label="text_case_title" "\u{ECEC}" 608,790 16x16
-    text label="text_case_title" "\u{ECED}" 632,788 20x20
-    text "text_case_title" 660,790 86x16
+    text label="text_bullet_list_ltr" "\u{ECD8}" 608,790 16x16
+    text label="text_bullet_list_ltr" "\u{ECD9}" 632,788 20x20
+    text "text_bullet_list_ltr" 660,790 106x16
   el 0,812 200x28
-    text label="text_period_asterisk" "\u{ED4A}" 8,818 16x16
-    text label="text_period_asterisk" "\u{ED4A}" 32,816 20x20
-    text "text_period_asterisk" 60,818 123x16
+    text label="text_case_title" "\u{ECEC}" 8,818 16x16
+    text label="text_case_title" "\u{ECED}" 32,816 20x20
+    text "text_case_title" 60,818 86x16
   el 200,812 200x28
-    text label="text_sort_ascending" "\u{ED5A}" 208,818 16x16
-    text label="text_sort_ascending" "\u{F802}" 232,816 20x20
-    text "text_sort_ascending" 260,818 122x16
+    text label="text_period_asterisk" "\u{ED4A}" 208,818 16x16
+    text label="text_period_asterisk" "\u{ED4A}" 232,816 20x20
+    text "text_period_asterisk" 260,818 123x16
   el 400,812 200x28
-    text label="text_sort_descending" "\u{ED5C}" 408,818 16x16
-    text label="text_sort_descending" "\u{F803}" 432,816 20x20
-    text "text_sort_descending" 460,818 131x16
+    text label="text_sort_ascending" "\u{ED5A}" 408,818 16x16
+    text label="text_sort_ascending" "\u{F802}" 432,816 20x20
+    text "text_sort_ascending" 460,818 122x16
   el 600,812 200x28
-    text label="text_t" "\u{ECAE}" 608,818 16x16
-    text label="text_t" "\u{ED63}" 632,816 20x20
-    text "text_t" 660,818 33x16
+    text label="text_sort_descending" "\u{ED5C}" 608,818 16x16
+    text label="text_sort_descending" "\u{F803}" 632,816 20x20
+    text "text_sort_descending" 660,818 131x16
   el 0,840 200x28
-    text label="text_whole_word" "\u{F03A4}" 8,846 16x16
-    text label="text_whole_word" "\u{ED68}" 32,844 20x20
-    text "text_whole_word" 60,846 102x16
+    text label="text_t" "\u{ECAE}" 8,846 16x16
+    text label="text_t" "\u{ED63}" 32,844 20x20
+    text "text_t" 60,846 33x16
   el 200,840 200x28
-    text label="timer" "\u{ED86}" 208,846 16x16
-    text label="timer" "\u{ED88}" 232,844 20x20
-    text "timer" 260,846 31x16
+    text label="text_whole_word" "\u{F03A4}" 208,846 16x16
+    text label="text_whole_word" "\u{ED68}" 232,844 20x20
+    text "text_whole_word" 260,846 102x16
   el 400,840 200x28
-    text label="warning" "\u{F868}" 408,846 16x16
-    text label="warning" "\u{F869}" 432,844 20x20
-    text "warning" 460,846 49x16
+    text label="timer" "\u{ED86}" 408,846 16x16
+    text label="timer" "\u{ED88}" 432,844 20x20
+    text "timer" 460,846 31x16
   el 600,840 200x28
-    text label="weather_moon" "\u{EE44}" 608,846 16x16
-    text label="weather_moon" "\u{F87D}" 632,844 20x20
-    text "weather_moon" 660,846 91x16
+    text label="warning" "\u{F868}" 608,846 16x16
+    text label="warning" "\u{F869}" 632,844 20x20
+    text "warning" 660,846 49x16
   el 0,868 200x28
-    text label="window" "\u{EE5D}" 8,874 16x16
-    text label="window" "\u{F8B5}" 32,872 20x20
-    text "window" 60,874 48x16
+    text label="weather_moon" "\u{EE44}" 8,874 16x16
+    text label="weather_moon" "\u{F87D}" 32,872 20x20
+    text "weather_moon" 60,874 91x16
+  el 200,868 200x28
+    text label="window" "\u{EE5D}" 208,874 16x16
+    text label="window" "\u{F8B5}" 232,872 20x20
+    text "window" 260,874 48x16

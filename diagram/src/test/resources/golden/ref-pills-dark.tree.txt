@@ -1,0 +1,44 @@
+el 0,0 368x172
+  el 12,12 344x18
+    el label="HEAD → main, in sync with origin/main" 12,12 62x18
+      el 18,19 4x4
+      text "main" 26,14 28x14
+      text label="cloud" "\u{E382}" 56,15 12x12
+    el label="Tag v1.0" 78,12 49x18
+      text label="tag" "\u{EC70}" 84,15 12x12
+      text "v1.0" 98,14 23x14
+  el 12,38 344x18
+    el label="Branch release, in sync with origin/release" 12,38 82x18
+      text label="branch" "\u{F0A6}" 18,41 12x12
+      text "release" 32,40 42x14
+      text label="cloud" "\u{E382}" 76,41 12x12
+    el label="Remote branch upstream/next" 98,38 112x18
+      text label="cloud" "\u{E382}" 105,41 12x12
+      text "upstream/next" 119,40 84x14
+  el 12,64 344x18
+    el label="Branch feat/pills" 12,64 76x18
+      text label="branch" "\u{F0A6}" 18,67 12x12
+      text "feat/pills" 32,66 50x14
+  el 12,90 344x18
+    el label="Remote branch origin/feat/pills" 12,90 115x18
+      text label="cloud" "\u{E382}" 19,93 12x12
+      text "origin/feat/pills" 33,92 87x14
+  el 12,116 344x18
+    el label="HEAD (detached)" 12,116 53x18
+      el 18,123 4x4
+      text "HEAD" 26,118 33x14
+    el label="Branch hotfix" 69,116 59x18
+      text label="branch" "\u{F0A6}" 75,119 12x12
+      text "hotfix" 89,118 33x14
+  el 12,142 344x18
+    el label="Branch feature/very-long-branch-name-for-ellipsis" 12,142 136x18
+      text label="branch" "\u{F0A6}" 18,145 12x12
+      text "feature/very-long-branch-name-for-ellipsis" 32,144 110x14
+    el label="Branch dev" 152,142 47x18
+      text label="branch" "\u{F0A6}" 158,145 12x12
+      text "dev" 172,144 21x14
+    el label="Remote branch origin/staging" 203,142 108x18
+      text label="cloud" "\u{E382}" 210,145 12x12
+      text "origin/staging" 224,144 80x14
+    el label="2 more refs: v2.0.0-rc.1, v2.0.0" 315,142 27x18
+      text "+2" 321,144 15x14

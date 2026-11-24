@@ -136,4 +136,39 @@ public class GermanDiagramTexts implements DiagramTexts {
   public String expand() {
     return "Ausklappen";
   }
+
+  @Override
+  public String branch(String name) {
+    return "Branch " + name;
+  }
+
+  @Override
+  public String headBranch(String name) {
+    return "HEAD → " + name;
+  }
+
+  @Override
+  public String detachedHead() {
+    return "HEAD (losgelöst)";
+  }
+
+  @Override
+  public String remoteBranch(String name) {
+    return "Remote-Branch " + name;
+  }
+
+  @Override
+  public String tag(String name) {
+    return "Tag " + name;
+  }
+
+  @Override
+  public String inSync(String ref, String remotes) {
+    return ref + ", synchron mit " + remotes;
+  }
+
+  @Override
+  public String moreRefs(int count, String names) {
+    return (count == 1 ? "1 weitere Referenz: " : count + " weitere Referenzen: ") + names;
+  }
 }

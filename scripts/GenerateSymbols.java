@@ -42,7 +42,7 @@ public class GenerateSymbols {
       arrow_sort_up arrow_sync arrow_undo arrow_up arrow_upload braces branch calendar_ltr checkmark
       checkmark_circle chevron_double_down chevron_double_up chevron_down chevron_left chevron_right
       chevron_up circle
-      clipboard_paste clock code column_single copy cube cut database delete dismiss
+      clipboard_paste clock cloud code column_single copy cube cut database delete dismiss
       dismiss_circle document document_table edit error_circle eye eye_off filter
       filter_dismiss folder folder_open history info key key_multiple lightbulb link lock_closed
       lock_open
