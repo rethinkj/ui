@@ -276,6 +276,7 @@ public final class App<S> {
   private Windows windows = Windows.NONE;
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Editor blinking; // the editor of the focused field
+  private ScopeSelection scopeSelection; // active selection across read-only fields in a scope
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -430,7 +431,7 @@ public final class App<S> {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
     }
     return switch (capture) {
-      case Selecting(Object field) -> drag(field, x, y);
+      case Selecting s -> drag(s, x, y);
       case Grab(Object id, boolean vertical, float grip) -> {
         El area = animator.element(id);
         boolean moved = area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
@@ -566,8 +567,43 @@ public final class App<S> {
     int fieldIndex = fieldPressIndex(hit);
     if (fieldIndex >= 0) {
       El field = hit.get(fieldIndex);
-      capture =
-          new Selecting(Animator.identities(hit.subList(0, fieldIndex + 1)).getLast());
+      List<El> fieldPath = hit.subList(0, fieldIndex + 1);
+      Object fieldId = Animator.identities(fieldPath).getLast();
+      boolean shift = (modifiers & Key.SHIFT) != 0;
+      El scope = scopeField(field) ? scopeOf(fieldPath) : null;
+      Object scopeId = scope == null ? null : identityOn(fieldPath, scope);
+      if (shift && scope != null && scopeId != null) {
+        Object anchorId = null;
+        int anchorFrom = 0;
+        int anchorTo = 0;
+        if (scopeSelection != null && scopeSelection.scopeId.equals(scopeId)) {
+          El anchorEl = animator.liveElement(scopeSelection.anchorId);
+          if (anchorEl != null && scopeField(anchorEl)) {
+            anchorId = scopeSelection.anchorId;
+            anchorFrom = scopeSelection.anchorFrom;
+            anchorTo = scopeSelection.anchorTo;
+          }
+        }
+        if (anchorId == null && focus.element() != null && scopeField(focus.element())) {
+          List<El> focusPath = new ArrayList<>();
+          if (pathTo(root, focus.element(), focusPath) && scopeOf(focusPath) == scope) {
+            anchorId = focus.id();
+            anchorFrom = focus.element().editor().anchor();
+            anchorTo = anchorFrom;
+          }
+        }
+        if (anchorId != null && (!anchorId.equals(fieldId) || scopeSelection != null)) {
+          selectAcrossScope(scope, scopeId, anchorId, anchorFrom, anchorTo, 1, field, x, y);
+          capture = new Selecting(fieldId, scopeId, anchorId, anchorFrom, anchorTo, 1);
+          if (field.onPointerDown() != null) {
+            double[] pos = content(field, x, y);
+            field.onPointerDown().press(clicks, modifiers, pos[0], pos[1]);
+            handled = true;
+          }
+          return true;
+        }
+      }
+      clearScopeSelection(null);
       focus.set(field, false, time);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
@@ -577,7 +613,15 @@ public final class App<S> {
           caret.stop(),
           editor.fromShown(field.text().hit(at[0], at[1])),
           clicks,
-          (modifiers & Key.SHIFT) != 0);
+          shift);
+      if (scope != null && scopeId != null) {
+        int unit = shift ? 1 : Math.clamp(clicks, 1, field.text().multiline() ? 4 : 3);
+        int from = shift ? editor.anchor() : editor.start();
+        int to = shift ? editor.anchor() : editor.end();
+        capture = new Selecting(fieldId, scopeId, fieldId, from, to, unit);
+      } else {
+        capture = new Selecting(fieldId);
+      }
       if (field.onPointerDown() != null) {
         double[] pos = content(field, x, y);
         field.onPointerDown().press(clicks, modifiers, pos[0], pos[1]);
@@ -585,6 +629,7 @@ public final class App<S> {
       }
       return true;
     }
+    changed |= clearScopeSelection(null);
     Target target = target(x, y);
     capture = target == null
         ? IDLE
@@ -623,7 +668,7 @@ public final class App<S> {
     // A press holds while its handlers run, without its drag; all else ends before them.
     capture = held instanceof Press p ? p.withoutDrag() : IDLE;
     boolean changed = switch (held) {
-      case Selecting(Object field) -> drag(field, x, y);
+      case Selecting s -> drag(s, x, y);
       case ActiveDrag(Dragging drag) -> step(drag, Drag.Phase.END, x - drag.x, y - drag.y);
       case Press(Object id, int clicks, int modifiers, Dragging drag) -> {
         if (drag != null && drag.started) {
@@ -1064,8 +1109,50 @@ public final class App<S> {
   /** A drag that has started and goes on after its element has left the tree. */
   private record ActiveDrag(Dragging drag) implements Capture {}
 
-  /** A press selecting in the text field with this identity. */
-  private record Selecting(Object id) implements Capture {}
+  /**
+   * A press selecting in a text field: the pressed field's identity, and when inside a {@link
+   * El#selectionScope}, the scope's identity, the anchor field's identity and initial range, and
+   * the selection unit (1 graphemes, 2 words, 3 lines/all, 4 all).
+   */
+  private record Selecting(
+      Object id, Object scopeId, Object anchorId, int anchorFrom, int anchorTo, int unit)
+      implements Capture {
+    Selecting(Object id) {
+      this(id, null, null, 0, 0, 1);
+    }
+  }
+
+  /** A selection spanning several read-only fields inside one {@link El#selectionScope}. */
+  private static final class ScopeSelection {
+    final Object scopeId;
+    final Object anchorId;
+    final int anchorFrom;
+    final int anchorTo;
+    final Set<Editor> editors = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    ScopeSelection(Object scopeId, Object anchorId, int anchorFrom, int anchorTo) {
+      this.scopeId = scopeId;
+      this.anchorId = anchorId;
+      this.anchorFrom = anchorFrom;
+      this.anchorTo = anchorTo;
+    }
+  }
+
+  /** One read-only field in a {@link El#selectionScope}, with its full and clipped window bounds. */
+  private record ScopeField(
+      El el,
+      float left,
+      float top,
+      float right,
+      float bottom,
+      float clipLeft,
+      float clipTop,
+      float clipRight,
+      float clipBottom) {
+    boolean visible() {
+      return clipLeft < clipRight && clipTop < clipBottom;
+    }
+  }
 
   /**
    * A press on the thumb of a scroll area's bar: the area's identity, which bar, and how far from
@@ -1341,17 +1428,29 @@ public final class App<S> {
       capture = IDLE;
       return changed;
     }
+    // The focused field of a selection across a scope waits for its row, as after a scroll.
+    if (isCopy(key)
+        && focus.element() == null
+        && focus.waits()
+        && isScopeSelected(editors.get(focus.id()))) {
+      copyScopeSelection();
+      handled = true;
+      return true;
+    }
     List<El> path = focusPath();
     boolean called = false;
     for (El el : path.reversed()) {
       if (el.onKey() != null) {
         called = true;
         if (el.onKey().test(key)) {
+          if (key.modifiers() == Key.CONTROL && key.name().equals("A")) {
+            clearScopeSelection(null);
+          }
           handled = true;
           return true;
         }
       }
-      if (el == focus.element() && el.editor() != null && el.editor().key(key, clipboard)) {
+      if (el == focus.element() && el.editor() != null && handleFieldKey(el, key)) {
         handled |= el.editor().answerPending(); // it handed an edit to the app
         return true;
       }
@@ -1395,6 +1494,7 @@ public final class App<S> {
         if (animator.identity(el) == null) {
           return true; // an edit that went in on the way removed it: the focus stays
         }
+        clearScopeSelection(null);
         if (el.editor() != null && !el.text().multiline()) {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
@@ -2015,12 +2115,20 @@ public final class App<S> {
         }
         boolean fallback = !now.isDefaultFocus() && focus.lastInside(id, order) == null;
         boolean due = focus.set(now, true, time);
+        if (due && !isScopeSelected(now.editor())) {
+          clearScopeSelection(null);
+        }
         if (fallback) {
           focus.awaitInside(id);
         }
         return due;
       }
-      return (id == null || now != null && order.contains(now)) && focus.set(now, true, time);
+      boolean due =
+          (id == null || now != null && order.contains(now)) && focus.set(now, true, time);
+      if (due && (now == null || !isScopeSelected(now.editor()))) {
+        clearScopeSelection(null);
+      }
+      return due;
     });
   }
 
@@ -3428,7 +3536,9 @@ public final class App<S> {
         firstEdits.add(state);
       }
       el.editor(editor);
-      el.text().unfocused(!id.equals(focus.id())); // El#ellipsis shortens it without the focus
+      // El#ellipsis shortens it without the focus, but not while it shows a part of a scope's
+      // selection, which Editor#place keeps in view.
+      el.text().unfocused(!id.equals(focus.id()) && !isScopeSelected(editor));
     }
     for (El child : el.children()) {
       attached |= attachEditors(child, path);
@@ -3482,7 +3592,7 @@ public final class App<S> {
       for (Editor editor : toPlace) {
         boolean focused = editor == blinking
             && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
-        editor.place(focused, caretOn);
+        editor.place(focused, focused || isScopeSelected(editor), caretOn);
         placed.add(editor.element());
       }
       // A coupled field follows its leader again with what layout measured, a few times at most;
@@ -3499,7 +3609,7 @@ public final class App<S> {
           if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
             boolean focused = editor == blinking
                 && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
-            editor.place(focused, caretOn);
+            editor.place(focused, focused || isScopeSelected(editor), caretOn);
             placed.add(editor.element());
             moved = true; // what it measured now, such as a long line's width, may let it follow on
           }
@@ -3604,6 +3714,9 @@ public final class App<S> {
               && !gone(animator.inRow(entry.getKey()).listId(), true))) {
         return false; // an edit's answer, or onSelect's hearing of it, waits for its row
       }
+      if (scopeSelection != null) {
+        scopeSelection.editors.remove(editor);
+      }
       if (state == null) {
         editor.drop(); // gone for good; its element may be fading out
       } else if (state.app == this) { // not taken by another app's tree meanwhile
@@ -3611,6 +3724,9 @@ public final class App<S> {
       }
       return true;
     });
+    if (scopeSelection != null && scopeSelection.editors.isEmpty()) {
+      scopeSelection = null;
+    }
   }
 
   /**
@@ -3635,7 +3751,8 @@ public final class App<S> {
       }
       if (!nested.isEmpty()) {
         for (Editor editor : nested) {
-          editor.place(editor == blinking, caretOn);
+          boolean focused = editor == blinking;
+          editor.place(focused, focused || isScopeSelected(editor), caretOn);
         }
         for (Editor editor : nested) {
           El sub = editor.element();
@@ -4187,6 +4304,9 @@ public final class App<S> {
       if (capture instanceof Selecting s && s.id().equals(id)) {
         capture = IDLE;
       }
+      if (isScopeSelected(now.editor())) {
+        clearScopeSelection(now.editor());
+      }
       now.editor().select(caret, anchor);
       handled |= now.editor().unfoldPending();
       scrolled = true; // its jump is placed before the next input hit tests, as a scroll's is
@@ -4266,9 +4386,19 @@ public final class App<S> {
     }
   }
 
-  /** The pointer moved while a press selects in a field. */
-  private boolean drag(Object field, float x, float y) {
-    El el = animator.element(field);
+  /** The pointer moved while a press selects in a field, or across fields of a {@link El#selectionScope}. */
+  private boolean drag(Selecting s, float x, float y) {
+    if (s.scopeId() != null) {
+      El scope = animator.liveElement(s.scopeId());
+      if (scope != null) {
+        List<El> hit = hit(x, y);
+        int under = fieldPressIndex(hit); // on the edge two fields share, the one hit tests find
+        El target = under < 0 ? null : hit.get(under);
+        return selectAcrossScope(
+            scope, s.scopeId(), s.anchorId(), s.anchorFrom(), s.anchorTo(), s.unit(), target, x, y);
+      }
+    }
+    El el = animator.element(s.id());
     if (el == null || el.editor() == null || el.text() == null) {
       return false;
     }
@@ -4277,6 +4407,318 @@ public final class App<S> {
     return editor.drag(
         editor.fromShown(el.text().nearest(at[0], at[1])),
         editor.fromShown(el.text().hit(at[0], at[1])));
+  }
+
+  /** Whether {@code el} is a read-only, unmasked text field that can join a selection scope. */
+  private static boolean scopeField(El el) {
+    return el.isEditable()
+        && el.isReadOnly()
+        && el.editor() != null
+        && el.text() != null
+        && !el.text().masked();
+  }
+
+  /** The outermost {@link El#selectionScope} on {@code path} inside its overlay layer, or null. */
+  private static El scopeOf(List<El> path) {
+    for (El el : fromOverlay(path)) {
+      if (el.isSelectionScope()) {
+        return el;
+      }
+    }
+    return null;
+  }
+
+  /** The identity of {@code target}, an element on {@code path}. */
+  private static Object identityOn(List<El> path, El target) {
+    List<El> layer = fromOverlay(path);
+    int index = layer.indexOf(target);
+    return index < 0 ? null : Animator.identities(layer.subList(0, index + 1)).getLast();
+  }
+
+  /** Whether {@code editor} belongs to the active cross-field selection. */
+  private boolean isScopeSelected(Editor editor) {
+    return editor != null && scopeSelection != null && scopeSelection.editors.contains(editor);
+  }
+
+  /** Collapses every field in the active cross-field selection except {@code keep}, and ends it. */
+  private boolean clearScopeSelection(Editor keep) {
+    if (scopeSelection == null) {
+      return false;
+    }
+    ScopeSelection old = scopeSelection;
+    scopeSelection = null;
+    boolean changed = false;
+    for (Editor editor : old.editors) {
+      if (editor != keep) {
+        changed |= editor.collapse();
+      }
+    }
+    return changed || !old.editors.isEmpty();
+  }
+
+  /** Handles a key on the focused field; one that moves the caret ends a cross-field selection. */
+  private boolean handleFieldKey(El el, Key key) {
+    if (isCopy(key) && isScopeSelected(el.editor())) {
+      copyScopeSelection();
+      return true;
+    }
+    boolean took = el.editor().key(key, clipboard);
+    if (took && scopeSelection != null && clearsScopeSelection(key)) {
+      clearScopeSelection(el.editor());
+    }
+    return took;
+  }
+
+  /** Copies the selected text of all scope-selected fields in tree order, joined with {@code "\n"}. */
+  private void copyScopeSelection() {
+    El scope = animator.liveElement(scopeSelection.scopeId);
+    if (scope == null) {
+      return;
+    }
+    StringBuilder out = new StringBuilder();
+    for (ScopeField field : scopeFields(scope)) {
+      Editor editor = field.el.editor();
+      if (scopeSelection.editors.contains(editor) && editor.hasSelection()) {
+        String part = editor.selectedText();
+        if (!part.isEmpty()) {
+          if (!out.isEmpty()) {
+            out.append('\n');
+          }
+          out.append(part);
+        }
+      }
+    }
+    if (!out.isEmpty()) {
+      clipboard.write(out.toString());
+    }
+  }
+
+  private static boolean isCopy(Key key) {
+    return key.modifiers() == Key.CONTROL
+        && (key.name().equals("C") || key.name().equals("Insert"));
+  }
+
+  private static boolean clearsScopeSelection(Key key) {
+    String name = key.name();
+    if (key.modifiers() == Key.CONTROL && name.equals("A")) {
+      return true;
+    }
+    return switch (name) {
+      case "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown" ->
+        true;
+      default -> false;
+    };
+  }
+
+  /** Collects the built read-only, unmasked fields inside {@code scope} in tree order. */
+  private List<ScopeField> scopeFields(El scope) {
+    List<El> path = new ArrayList<>();
+    if (scope == null || root == null || !pathTo(root, scope, path)) {
+      return List.of();
+    }
+    List<El> layer = fromOverlay(path);
+    float originX = 0;
+    float originY = 0;
+    float clipL = Float.NEGATIVE_INFINITY;
+    float clipT = Float.NEGATIVE_INFINITY;
+    float clipR = Float.POSITIVE_INFINITY;
+    float clipB = Float.POSITIVE_INFINITY;
+    for (int i = 0; i < layer.size() - 1; i++) {
+      El el = layer.get(i);
+      originX += el.x();
+      originY += el.y();
+      if (el.style().overflowX != Style.Overflow.VISIBLE) {
+        clipL = Math.max(clipL, originX);
+        clipR = Math.min(clipR, originX + el.width());
+      }
+      if (el.style().overflowY != Style.Overflow.VISIBLE) {
+        clipT = Math.max(clipT, originY);
+        clipB = Math.min(clipB, originY + el.height());
+      }
+    }
+    List<ScopeField> out = new ArrayList<>();
+    collectScopeFields(scope, originX, originY, clipL, clipT, clipR, clipB, out);
+    return out;
+  }
+
+  private static void collectScopeFields(
+      El el,
+      float parentX,
+      float parentY,
+      float clipL,
+      float clipT,
+      float clipR,
+      float clipB,
+      List<ScopeField> out) {
+    if (!el.isPlaced()
+        || el.isExiting()
+        || el.opacity() == 0
+        || el.style().display == Style.Display.NONE
+        || el.isInert()) {
+      return;
+    }
+    float left = parentX + el.x();
+    float top = parentY + el.y();
+    float right = left + el.width();
+    float bottom = top + el.height();
+    if (scopeField(el)) {
+      out.add(new ScopeField(
+          el,
+          left,
+          top,
+          right,
+          bottom,
+          Math.max(left, clipL),
+          Math.max(top, clipT),
+          Math.min(right, clipR),
+          Math.min(bottom, clipB)));
+    }
+    float nextClipL = clipL;
+    float nextClipT = clipT;
+    float nextClipR = clipR;
+    float nextClipB = clipB;
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      nextClipL = Math.max(clipL, left);
+      nextClipR = Math.min(clipR, right);
+    }
+    if (el.style().overflowY != Style.Overflow.VISIBLE) {
+      nextClipT = Math.max(clipT, top);
+      nextClipB = Math.min(clipB, bottom);
+    }
+    for (El child : el.children()) {
+      collectScopeFields(child, left, top, nextClipL, nextClipT, nextClipR, nextClipB, out);
+    }
+  }
+
+  /**
+   * The index of the field nearest to {@code (x, y)}, preferring vertical proximity over horizontal
+   * proximity so moving past the right end of a short line stays on that line.
+   */
+  private static int nearestScopeField(List<ScopeField> fields, float x, float y) {
+    int best = -1;
+    float bestDy = Float.POSITIVE_INFINITY;
+    float bestDx = Float.POSITIVE_INFINITY;
+    for (boolean clippedOnly : new boolean[] {true, false}) {
+      for (int i = 0; i < fields.size(); i++) {
+        ScopeField f = fields.get(i);
+        if (clippedOnly && !f.visible()) {
+          continue;
+        }
+        float l = clippedOnly ? f.clipLeft : f.left;
+        float t = clippedOnly ? f.clipTop : f.top;
+        float r = clippedOnly ? f.clipRight : f.right;
+        float b = clippedOnly ? f.clipBottom : f.bottom;
+        float dx = x < l ? l - x : x > r ? x - r : 0;
+        float dy = y < t ? t - y : y > b ? y - b : 0;
+        if (dy < bestDy || (dy == bestDy && dx < bestDx)) {
+          bestDy = dy;
+          bestDx = dx;
+          best = i;
+        }
+      }
+      if (best >= 0) {
+        return best;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Updates selections across {@code scope} from the anchor field to {@code targetField} (or the
+   * nearest field to {@code (x, y)} when null), collapsing all other fields of the scope.
+   */
+  private boolean selectAcrossScope(
+      El scope,
+      Object scopeId,
+      Object anchorId,
+      int anchorFrom,
+      int anchorTo,
+      int unit,
+      El targetField,
+      float x,
+      float y) {
+    List<ScopeField> fields = scopeFields(scope);
+    El anchorEl = animator.liveElement(anchorId);
+    int anchorIdx = -1;
+    int targetIdx = -1;
+    for (int i = 0; i < fields.size(); i++) {
+      El el = fields.get(i).el;
+      if (el == anchorEl) {
+        anchorIdx = i;
+      }
+      if (el == targetField) {
+        targetIdx = i;
+      }
+    }
+    if (anchorIdx < 0) {
+      return false;
+    }
+    if (targetIdx < 0) {
+      targetIdx = nearestScopeField(fields, x, y);
+    }
+    if (targetIdx < 0) {
+      return false;
+    }
+    El target = fields.get(targetIdx).el;
+    float[] at = local(target, x, y);
+    Editor targetEditor = target.editor();
+    int boundary = targetEditor.fromShown(target.text().nearest(at[0], at[1]));
+    int hit = targetEditor.fromShown(target.text().hit(at[0], at[1]));
+    boolean changed = false;
+    if (targetIdx == anchorIdx) {
+      changed |= clearScopeSelection(targetEditor);
+      for (int i = 0; i < fields.size(); i++) {
+        if (i != anchorIdx) {
+          changed |= fields.get(i).el.editor().collapse();
+        }
+      }
+      changed |= targetEditor.dragFrom(anchorFrom, anchorTo, unit, boundary, hit);
+      changed |= focus.set(target, false, time);
+      return changed;
+    }
+    int fromIdx = Math.min(anchorIdx, targetIdx);
+    int toIdx = Math.max(anchorIdx, targetIdx);
+    boolean forward = targetIdx > anchorIdx;
+    Set<Editor> nextEditors = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (int i = fromIdx; i <= toIdx; i++) {
+      nextEditors.add(fields.get(i).el.editor());
+    }
+    if (scopeSelection != null) {
+      for (Editor old : scopeSelection.editors) {
+        if (!nextEditors.contains(old)) {
+          changed |= old.collapse();
+        }
+      }
+    }
+    for (int i = 0; i < fields.size(); i++) {
+      Editor editor = fields.get(i).el.editor();
+      if (i < fromIdx || i > toIdx) {
+        changed |= editor.collapse();
+      } else if (i == anchorIdx) {
+        changed |= forward
+            ? editor.setRange(anchorFrom, editor.text().length(), false)
+            : editor.setRange(anchorTo, 0, false);
+      } else if (i == targetIdx) {
+        int end = editor.dragEnd(boundary, hit, unit, forward);
+        changed |= forward
+            ? editor.setRange(0, end, true)
+            : editor.setRange(editor.text().length(), end, true);
+      } else {
+        changed |= forward
+            ? editor.setRange(0, editor.text().length(), false)
+            : editor.setRange(editor.text().length(), 0, false);
+      }
+    }
+    boolean scopeChanged = scopeSelection == null
+        || !scopeSelection.scopeId.equals(scopeId)
+        || !scopeSelection.anchorId.equals(anchorId)
+        || !scopeSelection.editors.equals(nextEditors);
+    ScopeSelection next = new ScopeSelection(scopeId, anchorId, anchorFrom, anchorTo);
+    next.editors.addAll(nextEditors);
+    scopeSelection = next;
+    changed |= scopeChanged;
+    changed |= focus.set(target, false, time);
+    return changed;
   }
 
   /**

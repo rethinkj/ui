@@ -43,11 +43,14 @@ import java.util.function.Function;
  * }</pre>
  *
  * <p>Every block of text is a read-only multi-line field ({@link El#fitLines}), as high as its
- * rows, so that a press and a drag select inside it and Control+C copies that; Tab passes the
- * fields by ({@link El#skipTab}) and reaches the links. Control+A selects the whole document,
- * which then shows as selected, and Control+C copies all of it as text ({@link #text}); a press
- * anywhere ends that. A selection does not reach from one block into the next: the fields are
- * apart, and a selection across them would need one editor over several fields.
+ * rows, and the document's list is a {@link El#selectionScope selection scope}, so a press and a
+ * drag—or Shift+press—selects across blocks (for the rows that are built) and Control+C copies the
+ * selected text of all of them in order with a line break between blocks; Tab passes the fields by
+ * ({@link El#skipTab}) and reaches the links. Control+A selects the whole document, which then
+ * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere ends
+ * that. {@link #fragment} marks its column as a selection scope too, and several fragments in one
+ * container (such as a list of chat messages) join into one selection when the app marks the
+ * container {@link El#selectionScope}.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
  * its text as the label, in {@link Theme.Prose#link} and underlined, with the pointer's cursor and
@@ -224,6 +227,7 @@ public final class Markdown {
     El list = col()
         .role("document")
         .key("markdown")
+        .selectionScope()
         .padding(theme.space().xxl())
         .scrollbars(theme.scrollbars())
         .rows(
@@ -250,8 +254,9 @@ public final class Markdown {
    * its container, without padding or a maximum measure: for rendered documentation comments,
    * popovers and completion details embedded inside another element. A container that sizes to
    * its content gives the fragment a width. Links, images, code-block highlighting and copying
-   * follow {@code options} as in {@link #markdown}; Ctrl+A selects the text of one block, not the
-   * whole document.
+   * follow {@code options} as in {@link #markdown}; a selection reaches across the fragment's
+   * blocks (and across several fragments when their enclosing container is marked {@link
+   * El#selectionScope}), while Ctrl+A selects the text of one block, not the whole document.
    */
   public static El fragment(MarkdownDocument document, Options options) {
     Objects.requireNonNull(document, "document");
@@ -267,7 +272,7 @@ public final class Markdown {
 
   private static El fragment(Theme theme, MarkdownDocument document, Options options, int color) {
     Context c = new Context(theme, options, prepared(theme, document), color, 0, true);
-    El out = col().minSize(0, 0);
+    El out = col().minSize(0, 0).selectionScope();
     blocks(c, document.blocks(), false, out);
     return out;
   }
