@@ -711,6 +711,61 @@ class TabGroupsTest {
   }
 
   @Test
+  void keysInTheFrameOfASplitFindTheFocusOnTheNewBar() throws IOException {
+    // Control+W right after the split closes the moved tab, also where the staying group shows a
+    // tab with an open find bar that asks for the focus.
+    TabGroups<String> groups = new TabGroups<>(List.of("a", "b"), (f, o) -> null).splits(true);
+    Group<String> first = groups.main().active();
+    List<Group<String>> closedIn = new ArrayList<>();
+    groups.onCloseTab((group, index) -> {
+      closedIn.add(group);
+      groups.close(group, index);
+    });
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(
+          groups.main(),
+          Tab::new,
+          t -> t.equals("a")
+              ? col()
+                  .children(
+                      Label.label(t).overlay(findBar("find")),
+                      col()
+                          .key("list")
+                          .h(60)
+                          .rows(
+                              3,
+                              20,
+                              i -> i == 0
+                                  ? Label.label("row").overlay(findBar("edit"))
+                                  : Label.label("row")))
+              : Label.label(t));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+    groups.select(first, 1);
+    Script.run("size 600 200\nframe\nfocus #tablist\nframe", app, out);
+    Script.run("size 600 200\nkey \\ control\nkey W control\nframe", app, out);
+    assertEquals(1, closedIn.size());
+    assertNotSame(first, closedIn.getFirst()); // in the new group, so the split came first
+    assertEquals(
+        List.of(List.of("a")), groups.main().groups().stream().map(Group::tabs).toList());
+
+    // Tab right after the split moves the focus on from the new bar, and it stays there.
+    TabGroups<String> plain = new TabGroups<>(List.of("a", "b"), (f, o) -> null).splits(true);
+    App<Object> other = new App<>(new Object(), s -> {
+      El tabs = plain.tabs(plain.main(), Tab::new, t -> Label.label(t));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+    Script.run("size 600 200\nframe\nfocus #tablist\nframe", other, out);
+    Script.run("size 600 200\nkey \\ control\nkey Tab\nframe\nframe", other, out);
+    assertEquals(2, plain.main().groups().size());
+    assertNotSame(find(find(other.tree(), "group-1"), "tablist"), other.focused());
+  }
+
+  private static El findBar(String key) {
+    return El.el().key(key).focusable().size(40, 10).autofocus("open");
+  }
+
+  @Test
   void activeGroupFollowsFocusPressAndDockAndClosedGroupHandsFocusToSibling() throws IOException {
     TabGroups<String> groups =
         new TabGroups<>(List.of("a", "b", "c", "d"), (f, o) -> null).splits(true);

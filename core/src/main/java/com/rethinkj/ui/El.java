@@ -95,6 +95,7 @@ public final class El {
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
   private Object autofocus; // see #autofocus(Object)
+  private boolean takesFocus; // see #takeFocus
   private Consumer<El> focusWithinLook; // see #whenFocusWithin
   private Consumer<El> pressLook;
   private Cursor cursor;
@@ -4442,6 +4443,25 @@ public final class El {
     this.autofocus = key;
     AUTOFOCUSES.incrementAndGet();
     return this;
+  }
+
+  /**
+   * Like {@link #autofocus(Object)}, and it wins: the build that gives this element a new {@code
+   * key} moves the focus to it also where {@link #autofocus} elements, overlays that open and the
+   * rows of virtual lists ask for the focus in that build, so that the input that waits for this
+   * tree finds it there. A tab group's bar takes the focus so after a split, which may show a
+   * tab whose content asks for it. Not for the rows of a virtual list nor inside an overlay,
+   * where how it ranks among the elements that ask for the focus is not defined.
+   *
+   * @param key compared with {@link Object#equals}; null takes no focus
+   */
+  public El takeFocus(Object key) {
+    this.takesFocus = true;
+    return autofocus(key);
+  }
+
+  boolean takesFocus() {
+    return takesFocus;
   }
 
   /**

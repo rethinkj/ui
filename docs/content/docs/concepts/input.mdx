@@ -47,6 +47,7 @@ A [`Drag`](/api/com/rethinkj/ui/Drag.html) provides `phase` (`START`, `MOVE`, `E
 | `keepFocus()` | Prevents clicking this element from stealing keyboard focus (used by toolbar buttons acting on an editor) |
 | `skipTab()` | Allows click focus, but skips this element during Tab navigation |
 | `autofocus()`, `autofocus(key)` | Focuses the element when it first appears; with a non-null `key`, re-triggers whenever `key` changes (e.g., focusing the first invalid field after Save) |
+| `takeFocus(key)` | Like `autofocus(key)`, but wins over the `autofocus` elements, opening overlays and rows that ask for the focus in the same build (e.g., a tab group's bar after a split) |
 | `defaultFocus()` | Marks the preferred focus target when `app.focus(container)` focuses an enclosing container (for example, focusing a page's data grid instead of its toolbar) |
 | `focusRing(argb)`, `focusRingGap(px)` | Customizes the keyboard focus ring color and gap |
 
