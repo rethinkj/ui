@@ -286,27 +286,31 @@ public final class Split {
       two.style().marginTop = Len.px(-overSecond);
       rest.style().minHeight = Len.px(minRest);
     }
-    if (collapsed == Part.FIRST) {
-      one.basis(0).grow(0).shrink(0);
-      rest.basis(0).grow(1).shrink(0);
-    } else if (collapsed == Part.SECOND) {
-      one.basis(0).grow(1).shrink(0);
-      two.shrink(0);
-      rest.basis(stroke + overFirst).grow(0).shrink(0);
-    } else {
+    switch (collapsed) {
+      case FIRST -> {
+        one.basis(0).grow(0).shrink(0);
+        rest.basis(0).grow(1).shrink(0);
+      }
+      case SECOND -> {
+        one.basis(0).grow(1).shrink(0);
+        two.shrink(0);
+        rest.basis(stroke + overFirst).grow(0).shrink(0);
+      }
       // The second part with the line is "rest": stroke + overFirst more than the second part.
-      switch (position.kind()) {
-        case FIRST -> {
-          one.basis(position.value()).grow(0).shrink(1);
-          rest.basis(0).grow(1).shrink(0);
-        }
-        case SECOND -> {
-          one.basis(0).grow(1).shrink(0);
-          rest.basis(position.value() + stroke + overFirst).grow(0).shrink(1);
-        }
-        case SHARE -> {
-          one.basis(0).grow(position.value()).shrink(0);
-          rest.basis(stroke + overFirst).grow(1 - position.value()).shrink(0);
+      case null -> {
+        switch (position.kind()) {
+          case FIRST -> {
+            one.basis(position.value()).grow(0).shrink(1);
+            rest.basis(0).grow(1).shrink(0);
+          }
+          case SECOND -> {
+            one.basis(0).grow(1).shrink(0);
+            rest.basis(position.value() + stroke + overFirst).grow(0).shrink(1);
+          }
+          case SHARE -> {
+            one.basis(0).grow(position.value()).shrink(0);
+            rest.basis(stroke + overFirst).grow(1 - position.value()).shrink(0);
+          }
         }
       }
     }
@@ -324,7 +328,8 @@ public final class Split {
       // The parts fill the content box, whatever the split's padding and border resolve to.
       float room = Math.max(size(one, across) + size(rest, across) - overFirst - openStroke, 0);
       float from = collapsed == null ? size(one, across) : collapsed == Part.FIRST ? 0 : room;
-      float size = Math.max(minFirst, Math.min(from + (float) delta, room - minSecond));
+      // Without room for both minimums the bounds would cross; minFirst wins.
+      float size = Math.clamp(from + (float) delta, minFirst, Math.max(minFirst, room - minSecond));
       // Without room for both minimums the line cannot move, and keeps its position; the pixel
       // allows for the rounding of the parts' sizes. A collapsed part is restored all the same,
       // and layout keeps the minimums as it does for a narrow split.
