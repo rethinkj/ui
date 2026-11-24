@@ -14,17 +14,23 @@ import java.util.stream.IntStream;
 /** The example of rows as high as their content, for the page about lists of many rows. */
 final class Messages {
 
-  final List<String> log = IntStream.range(0, 10_000)
-      .mapToObj(number -> number % 7 == 0
-          ? "Query " + number + " took 4.2 s: the planner chose a sequential scan of orders, which"
-              + " has no index on customer_id"
-          : "Query " + number + " took 12 ms")
+  record Entry(int id, String text) {}
+
+  final List<Entry> log = IntStream.range(0, 10_000)
+      .mapToObj(number -> new Entry(
+          number,
+          number % 7 == 0
+              ? "Query " + number + " took 4.2 s: the planner chose a sequential scan of orders,"
+                  + " which has no index on customer_id"
+              : "Query " + number + " took 12 ms"))
       .toList();
 
   // docs:start row-heights
   // In the state: estimated from the length of the text until a row is built, then measured.
-  final RowHeights heights =
-      new RowHeights(row -> 20 + 16 * Math.floor(log.get(row).length() / 40.0));
+  // The key keeps each row's height and scroll position when rows are inserted or removed above.
+  final RowHeights heights = new RowHeights(
+      row -> 20 + 16 * Math.floor(log.get(row).text().length() / 40.0),
+      row -> log.get(row).id());
   // docs:end row-heights
 
   static El view(Messages state) {
@@ -45,7 +51,7 @@ final class Messages {
                 .role("listitem")
                 .wFull()
                 .padding(theme.space().xs(), theme.space().m())
-                .child(Label.label(state.log.get(row)).wrapText()));
+                .child(Label.label(state.log.get(row).text()).wrapText()));
     // docs:end row-heights-list
     return Frame.of(list);
   }
@@ -73,7 +79,7 @@ final class Messages {
                 .key("row-" + row)
                 .wFull()
                 .padding(theme.space().xs(), theme.space().m())
-                .child(Label.label(state.log.get(row)).wrapText()));
+                .child(Label.label(state.log.get(row).text()).wrapText()));
     El root = col().wFull().hFull().child(list);
     if (!state.transcript.atEnd()) {
       root.child(

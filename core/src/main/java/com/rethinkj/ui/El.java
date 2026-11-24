@@ -460,6 +460,7 @@ public final class El {
     int rowCount;
     float rowHeight;
     RowHeights heights; // rows as high as their content; null for rows of rowHeight
+    int heightsVersion; // heights.version() when this element was built
     RowBuilder rowBuilder;
     boolean spans; // the row function takes the part of the rows in view sideways
     float spanFrom; // the part rows are built for, in their coordinates
@@ -1408,7 +1409,42 @@ public final class El {
     rows(count, 1, row);
     rows.heights = Objects.requireNonNull(heights, "heights");
     heights.count(count);
+    rows.heightsVersion = heights.version();
     return this;
+  }
+
+  /**
+   * Translates {@code y} from {@code before} when both lists share the same keyed {@link
+   * RowHeights} and its rows changed once between them.
+   */
+  double movedScrollY(El before, double y) {
+    if (rows == null
+        || rows.heights == null
+        || before == null
+        || before.rows == null
+        || before.rows.heights != rows.heights
+        || before.rows.heightsVersion != rows.heightsVersion - 1) {
+      return y;
+    }
+    return rows.heights.moved(y);
+  }
+
+  /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */
+  int rowsVersion() {
+    return rows == null || rows.heights == null ? 0 : rows.heightsVersion;
+  }
+
+  /** The key of a row of this list's keyed {@link RowHeights}, or null. */
+  Object rowKey(int row) {
+    return rows == null || rows.heights == null ? null : rows.heights.key(row);
+  }
+
+  /**
+   * Where the row with this key is now; for null, the key of one past the last row, the count.
+   * -1 when it is gone.
+   */
+  int rowWithKey(Object key) {
+    return key == null ? rows.rowCount : rows.heights.indexOf(key);
   }
 
   /** Where a row starts below the top of the content box. */

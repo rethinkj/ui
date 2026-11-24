@@ -643,7 +643,9 @@ final class Animator {
     int revealed = before == null ? -1 : before.revealRow();
     Object revealedKey = before == null ? null : before.revealKey();
     if (kept == null) {
-      el.setScroll(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
+      el.setScroll(
+          before == null ? 0 : before.scrollX(),
+          before == null ? 0 : el.movedScrollY(before, before.scrollY()));
     } else {
       if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
         throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
@@ -660,7 +662,10 @@ final class Animator {
       kept.el = el;
       kept.seen = true;
       boolean end = kept.toEnd || kept.followEnd && kept.atEnd;
-      el.setScroll(kept.x, end ? Double.POSITIVE_INFINITY : kept.y);
+      double y =
+          end ? Double.POSITIVE_INFINITY : kept.placed ? kept.y : el.movedScrollY(before, kept.y);
+      kept.placed = false;
+      el.setScroll(kept.x, y);
       if (kept.followPending) { // the app's ScrollState.scrollTo moves the partner after the visit
         kept.followPending = false;
         kept.follow(el, false, false);

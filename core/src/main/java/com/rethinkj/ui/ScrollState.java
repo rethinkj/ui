@@ -67,6 +67,8 @@ public final class ScrollState {
   List<Anchor> anchors = List.of();
   // True after scrollTo() so the next build moves the partner once both areas are attached.
   boolean followPending;
+  // The app's scrollTo since the last build: the offset is the app's, not one to keep rows at.
+  boolean placed;
   // The axes along which this area moved its partner since the app last settled them: once both
   // fields are laid out and measured what came into view, the partner follows again.
   boolean followX;
@@ -142,6 +144,7 @@ public final class ScrollState {
     followX |= movedX;
     followY |= movedY;
     followPending = followX || followY;
+    placed = true;
     this.x = x;
     this.y = y;
     toEnd = y == Double.POSITIVE_INFINITY;
