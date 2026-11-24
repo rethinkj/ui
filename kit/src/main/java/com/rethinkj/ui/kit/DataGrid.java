@@ -1304,6 +1304,12 @@ public final class DataGrid {
     void accept(int row, int column);
   }
 
+  /** Told the cell a context menu opened on, gives the app's items for it. */
+  @FunctionalInterface
+  public interface CellMenu {
+    List<Menu.Item> items(int row, int column);
+  }
+
   /**
    * A rectangle of selected cells, its rows and columns from 0 and both ends included; one of
    * whole rows reaches {@link #ALL} columns, whatever the columns are.
@@ -1417,6 +1423,10 @@ public final class DataGrid {
     final GridEdit.State edit = new GridEdit.State();
     final GridFilter.State filter = new GridFilter.State();
     final GridColumns.State columns = new GridColumns.State();
+    // The cell a context menu opened on by a press, and its row's key; -1 for the cursor's.
+    int menuRow = -1;
+    int menuColumn = -1;
+    long menuKey;
     boolean pressedCell; // the last press on the rows was on a cell or a row number: drags select
     // With rows told apart by keys (Options.rowKey, Options.changes): the rows the selection was
     // on when the last build began, their places and keys, so that it follows them when the app
@@ -1799,6 +1809,7 @@ public final class DataGrid {
       ranges.clear();
       ranges.addAll(carried);
       edgeColumn = to.applyAsInt(edgeColumn);
+      menuColumn = to.applyAsInt(menuColumn);
       edit.onColumnsChanged(to);
       filter.onColumnsChanged(to);
       columns.onColumnsChanged(to);
@@ -1996,6 +2007,12 @@ public final class DataGrid {
         to[i] = p >= 0 && p < rows ? p : -1;
       }
       return to;
+    }
+
+    void menuAt(Build b, int row, int column) {
+      menuRow = row;
+      menuColumn = column;
+      menuKey = b.o.rowKey == null ? 0 : keyAt(b.o.rowKey, b.rowCount, row);
     }
 
     static long keyAt(IntToLongFunction key, int count, int place) {
@@ -2228,7 +2245,7 @@ public final class DataGrid {
     long copyLimit = 100_000;
     ObjLongConsumer<Copy> onLargeCopy;
     Menu.State menu;
-    List<Menu.Item> menuItems = List.of();
+    CellMenu menuItems;
     IntPredicate loaded;
     El.RowsHandler onRows;
     El.RowsHandler onRowsInView;
@@ -2403,14 +2420,24 @@ public final class DataGrid {
       return this;
     }
 
-    /**
-     * Opens a {@link Menu} where the secondary button is pressed on a cell, which first selects
-     * the cell unless it is selected, and with the Menu key or Shift+F10: Copy and Copy with
-     * headers when the grid copies, and then {@code items}.
-     */
+    /** Opens the menu of {@link #contextMenu(Menu.State, CellMenu)} with the same items on any cell. */
     public Options contextMenu(Menu.State state, List<Menu.Item> items) {
+      List<Menu.Item> copy = List.copyOf(items);
+      return contextMenu(state, (row, column) -> copy);
+    }
+
+    /**
+     * Opens a {@link Menu} on a secondary press on a cell (which first selects the cell unless it
+     * is selected), on a row number (keeping the selection), elsewhere on the grid, or with the
+     * Menu key or Shift+F10: built-in items such as Copy, editing actions and the column submenu,
+     * and then what {@code items} returns while the menu is open. {@code items} is told the cell
+     * the menu opened on: the pressed cell, or with the keyboard the cell that holds the focus,
+     * such as a cell's button; the pressed row and column -1 for a row number; else the cursor's
+     * cell; and -1, -1 without {@link #select}. The menu closes when that row moves or is gone.
+     */
+    public Options contextMenu(Menu.State state, CellMenu items) {
       this.menu = state;
-      this.menuItems = List.copyOf(items);
+      this.menuItems = Objects.requireNonNull(items, "items");
       return this;
     }
 
@@ -2747,6 +2774,10 @@ public final class DataGrid {
         CellMessage to = cellError;
         cellError = (r, c) -> to.message(r, full[c]);
       }
+      if (menuItems != null) {
+        CellMenu to = menuItems;
+        menuItems = (r, c) -> to.items(r, c < 0 || c >= full.length ? -1 : full[c]);
+      }
       if (totals != null) {
         IntFunction<Total> to = totals;
         totals = c -> to.apply(full[c]);
@@ -2983,6 +3014,18 @@ public final class DataGrid {
     }
     if (sel != null && !sel.columns.menu.isOpen()) {
       sel.columns.menuColumn = -1;
+    }
+    if (sel != null
+        && options.menu != null
+        && (sel.menuRow >= b.rows
+            || sel.menuRow >= 0
+                && options.rowKey != null
+                && Selection.keyAt(options.rowKey, rowCount, sel.menuRow) != sel.menuKey)) {
+      options.menu.close(); // the row it opened on moved or is gone
+    }
+    if (sel != null && (options.menu == null || !options.menu.isOpen())) {
+      sel.menuRow = -1;
+      sel.menuColumn = -1;
     }
     if (sel != null
         && (!sel.filter.popover.isOpen()
@@ -3708,6 +3751,13 @@ public final class DataGrid {
       if (sel != null) {
         number.onPointerDown(
             (clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true, clicks, modifiers));
+        if (b.o.menu != null) {
+          Menu.State menu = b.o.menu;
+          number.onSecondaryPress((x, y) -> {
+            sel.menuAt(b, i, -1);
+            menu.openAt(x, y);
+          });
+        }
       }
       // The lines in the frozen part are filled, so that nothing scrolled under it shows.
       El after = line(theme, false).fill(fill);
@@ -4001,6 +4051,7 @@ public final class DataGrid {
       if (b.o.menu != null) {
         Menu.State menu = b.o.menu;
         box.onSecondaryPress((x, y) -> {
+          sel.menuAt(b, i, c); // before onSelect, which may change the rows
           if (!sel.contains(i, c)) {
             change(b, () -> sel.select(i, c, false));
           }
@@ -4382,8 +4433,8 @@ public final class DataGrid {
           canRun(b, Command.COPY_WITH_HEADERS) ? () -> run(b, Command.COPY_WITH_HEADERS) : null));
     }
     GridEdit.menuItems(b, items);
-    // The header's menu of the cursor's column, which the keyboard reaches from here (Shift+F10).
-    int c = b.sel == null ? -1 : b.sel.column();
+    // The header's menu of the column it opened on, or the cursor's (Shift+F10, row number).
+    int c = b.sel == null ? -1 : b.sel.menuColumn >= 0 ? b.sel.menuColumn : b.sel.column();
     List<Menu.Item> column = c < 0 || c >= b.columns.size() ? List.of() : GridColumns.items(b, c);
     if (!column.isEmpty()) {
       if (!items.isEmpty()) {
@@ -4392,10 +4443,20 @@ public final class DataGrid {
       items.add(Menu.submenu(b.texts.column(b.columns.get(c).title()), column)
           .icon(Symbol.COLUMN_SINGLE));
     }
-    if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
-      items.add(Menu.separator());
+    List<Menu.Item> app = List.of();
+    if (b.o.menu.isOpen() && b.o.menuItems != null) {
+      // Opened by the keyboard or outside the cells: the cursor's cell.
+      boolean pressed = b.sel != null && b.sel.menuRow >= 0;
+      app = b.o.menuItems.items(
+          pressed ? b.sel.menuRow : b.sel == null ? -1 : b.sel.row(),
+          pressed ? b.sel.menuColumn : b.sel == null ? -1 : b.sel.column());
     }
-    items.addAll(b.o.menuItems);
+    if (!app.isEmpty()) {
+      if (!items.isEmpty()) {
+        items.add(Menu.separator());
+      }
+      items.addAll(app);
+    }
     return items;
   }
 

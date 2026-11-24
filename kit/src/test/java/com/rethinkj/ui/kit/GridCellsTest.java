@@ -316,6 +316,49 @@ class GridCellsTest {
   }
 
   @Test
+  void theContextMenuTellsTheAppWhichCellOrRowNumberItOpenedOn() throws IOException {
+    Orders orders = new Orders(T, 20, 4, Mode.ROWS);
+    List<String> opened = new ArrayList<>();
+    orders.more = o -> o.rowNumbers().contextMenu(orders.menu, (row, column) -> {
+      opened.add(row + "," + column);
+      return List.of(Menu.item(
+          "Cell " + row + "," + column, () -> orders.log.add("act " + row + "," + column)));
+    });
+    App<Orders> app = start(orders);
+    Selection s = orders.selection;
+    assertTrue(opened.isEmpty(), "not asked while closed");
+
+    run(app, """
+        press #cell-0-1
+        press #cell-1-2 shift
+        frame
+        press #cell-0-1 right
+        frame
+        advance 0.25
+        frame""");
+    assertEquals(List.of(new Range(0, 0, 1, ALL)), s.ranges(), "keeps both rows");
+    assertEquals(List.of(1, 2), List.of(s.row(), s.column()), "cursor stays on row 1");
+    assertEquals("0,1", opened.getLast());
+    assertTrue(
+        app.tree().dump().contains("label=\"Column customer\""), app.tree().dump());
+    run(app, "press role=menuitem label=\"Cell 0,1\"\nframe");
+    assertEquals("act 0,1", orders.log.getLast());
+
+    run(app, "press #number-0 right\nframe\nadvance 0.25\nframe");
+    assertEquals(List.of(new Range(0, 0, 1, ALL)), s.ranges(), "row number keeps selection");
+    assertEquals("0,-1", opened.getLast());
+    assertTrue(app.tree().dump().contains("label=\"Column email\""), app.tree().dump());
+    run(app, "key Escape\nframe\nfocus #orders\nframe\nkey F10 shift\nframe");
+    assertEquals("1,2", opened.getLast(), "keyboard uses the cursor's cell");
+
+    run(app, "key Escape\nframe\npress #cell-1-2 right\nframe");
+    orders.count = 1;
+    app.invalidate();
+    run(app, "frame");
+    assertFalse(orders.menu.isOpen(), "closes when the row it opened on is gone");
+  }
+
+  @Test
   void aCopyBeyondTheLimitOrOfRowsNotLoadedIsLeftToTheApp() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     List<Copy> left = new ArrayList<>();

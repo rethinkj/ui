@@ -29,7 +29,7 @@ Pass `options().copy(app.clipboard())` to enable **Ctrl+C** and **Ctrl+Insert** 
 | `copyLimit(cells)` | Max cells copied synchronously (default `100,000`) |
 | `onLargeCopy(handler)` | Called when a copy exceeds the limit or includes unloaded rows, so you can export in the background |
 | `copyLimit(cells, handler)` | Sets both limit and handler together |
-| `contextMenu(menuState, items)` | Adds Copy, Copy with headers, Paste, Set NULL, Insert/Delete row, and a `Column <title>` submenu before your custom items |
+| `contextMenu(menuState, items)` | Adds Copy, Copy with headers, Paste, Set NULL, Insert/Delete row, and a `Column <title>` submenu before your custom items (a fixed list or `(row, column) -> items` for the cell the menu opened on, with column `-1` on a row number) |
 
 Use `DataGrid.copyText(columns, ranges, headers, nullText)` and `DataGrid.parseText(text)` to format or parse TSV directly.
 

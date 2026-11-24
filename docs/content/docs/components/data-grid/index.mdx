@@ -91,7 +91,7 @@ Enable features with `DataGrid.options()` (all features are off by default):
 | `frozen(int columns)` | Keeps the first `N` columns fixed while scrolling horizontally |
 | `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Enables Ctrl+C tab-separated copy. See [Copying](/docs/components/data-grid/selection#copying) |
 | `commands(Commands)` | Lets external menus trigger Copy, Paste, and Select All. See [Commands](/docs/components/data-grid/selection#commands-from-an-external-menu) |
-| `contextMenu(Menu.State, items)` | Right-click menu with built-in Copy, Paste, Set NULL, Insert/Delete row, column actions, plus your custom items |
+| `contextMenu(Menu.State, items)` | Right-click menu with built-in Copy, Paste, Set NULL, Insert/Delete row, column actions, plus your custom items (a fixed list or `(row, column) -> items` for the opened cell) |
 | `sort(keys, onSort)` | Header sorting indicators and click handling. See [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Drag column edges to resize; double-click to auto-fit |
 | `fitColumns(Fit)` | Auto-fits all column widths once per result. See [Fitting columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
