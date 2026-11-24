@@ -7,17 +7,23 @@ import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
+import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
- * Chat messages in the theme's tokens: a user message in a bubble at the end side ({@link #user}),
- * an agent's answer as Markdown prose or composed parts over the full width ({@link #agent}),
- * collapsible one-line tool call rows ({@link #tool}), and a spinner line while the agent is still
- * working ({@link #working}).
+ * Chat messages and composer in the theme's tokens: a user message in a bubble at the end side
+ * ({@link #user}), an agent's answer as Markdown prose or composed parts over the full width
+ * ({@link #agent}), collapsible one-line tool call rows ({@link #tool}), a spinner line while the
+ * agent is still working ({@link #working}), and a growing composer card with an action bar ({@link
+ * #composer}).
  *
  * <pre>{@code
  * El question = Chat.user(
@@ -32,19 +38,30 @@ import java.util.Objects;
  *     tool,
  *     Markdown.fragment(state.reply, Markdown.options().copy(app.clipboard())),
  *     state.working ? Chat.working() : null);
+ * El input = Chat.composer(
+ *     state.draft, state::draft, state::send,
+ *     Chat.composerOptions()
+ *         .attachments(state.files, state::removeFile)
+ *         .working(state.working, state::stop)
+ *         .onFiles(state::addFiles));
  * }</pre>
  *
  * <p>All state stays in the app: whether a tool call is open is passed in and flipped by its {@code
- * onToggle} handler, and copy confirmation uses a caller-owned {@link Button.Copied}. Passing a
- * null {@code onToggle} disables expanding a tool call.
+ * onToggle} handler, copy confirmation uses a caller-owned {@link Button.Copied}, and the composer
+ * receives its text, attachments and working flag from the app. Passing a null {@code onToggle}
+ * disables expanding a tool call.
  *
  * <p>In a tree dump, user and agent messages are {@code role=article} labeled by {@link
  * Texts#userMessage} and {@link Texts#agentMessage}, a tool call's header row is {@code
  * role=button} with the title as its label, {@link Texts#toolState} as its {@code value}, {@code
  * expanded} or {@code expanded=false}, {@code busy} while running and {@code invalid} when failed,
- * and {@link #working} is {@code role=status}.
+ * {@link #working} is {@code role=status}, and {@link #composer} contains a {@code role=textbox}
+ * field, removable attachment chips, and a {@code role=button} labeled by {@link Texts#send} or
+ * {@link Texts#stop}.
  */
 public final class Chat {
+
+  private static final int COMPOSER_MAX_LINES = 6;
 
   /** The execution state shown on a {@link #tool} call row. */
   public enum ToolState {
@@ -122,10 +139,86 @@ public final class Chat {
     }
   }
 
+  /**
+   * Options for {@link #composer}: placeholder, working/stop state, attachment chips, action bar
+   * slots and file drops; {@link #composerOptions()} is a plain one.
+   */
+  public static final class ComposerOptions {
+    private String placeholder;
+    private boolean working;
+    private Runnable onStop;
+    private List<String> attachments = List.of();
+    private IntConsumer onRemoveAttachment;
+    private List<El> start = List.of();
+    private List<El> end = List.of();
+    private Consumer<List<Path>> onFiles;
+
+    private ComposerOptions() {}
+
+    /**
+     * Placeholder shown while the field is empty, and its accessible label; null uses {@link
+     * Texts#composerPlaceholder()}.
+     */
+    public ComposerOptions placeholder(String placeholder) {
+      this.placeholder = placeholder;
+      return this;
+    }
+
+    /**
+     * While {@code working} is true, the send button turns into a stop button that runs {@code
+     * onStop} (disabled when {@code onStop} is null) and Enter does not send.
+     */
+    public ComposerOptions working(boolean working, Runnable onStop) {
+      this.working = working;
+      this.onStop = onStop;
+      return this;
+    }
+
+    /**
+     * Attachment chips shown in a row above the action bar; {@code onRemove} receives the index of the chip
+     * whose remove button was pressed, or null for non-removable chips.
+     */
+    public ComposerOptions attachments(List<String> names, IntConsumer onRemove) {
+      this.attachments = names == null ? List.of() : List.copyOf(names);
+      this.onRemoveAttachment = onRemove;
+      return this;
+    }
+
+    /**
+     * Controls placed at the start of the action bar, such as an attach button. Nulls are skipped.
+     */
+    public ComposerOptions start(El... elements) {
+      this.start = List.of(Section.present(elements));
+      return this;
+    }
+
+    /**
+     * Controls placed at the end of the action bar before the send/stop button, such as a {@link
+     * Select} for the model. Nulls are skipped.
+     */
+    public ComposerOptions end(El... elements) {
+      this.end = List.of(Section.present(elements));
+      return this;
+    }
+
+    /**
+     * Runs when files are dropped onto the composer ({@link El#onFileDrop} at {@link
+     * Drop.Phase#DROP}).
+     */
+    public ComposerOptions onFiles(Consumer<List<Path>> onFiles) {
+      this.onFiles = onFiles;
+      return this;
+    }
+  }
+
   private Chat() {}
 
   public static Options options() {
     return new Options();
+  }
+
+  public static ComposerOptions composerOptions() {
+    return new ComposerOptions();
   }
 
   /** A user message in a right-aligned bubble without footer actions or time. */
@@ -328,6 +421,143 @@ public final class Chat {
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
         .children(Progress.spinner(), label(Label.Variant.MUTED, shown));
+  }
+
+  /**
+   * A chat composer card with a growing multi-line field and a send button, using {@link
+   * #composerOptions()}.
+   */
+  public static El composer(String text, Consumer<String> onChange, Runnable onSend) {
+    return composer(text, onChange, onSend, composerOptions());
+  }
+
+  /**
+   * A chat composer card: a borderless multi-line field that grows with its text up to {@value
+   * #COMPOSER_MAX_LINES} lines before scrolling, above removable attachment chips and an action
+   * bar with {@code start} slots, {@code end} slots and a send button that turns into a stop button
+   * while working. Plain Enter sends when the text is not blank and not working; Shift+Enter
+   * inserts a new line; Enter during an input method composition does not send.
+   *
+   * @param text the current draft text from the app's state
+   * @param onChange receives the updated text on each edit; null disables the field
+   * @param onSend runs on plain Enter or pressing Send when {@code text} is not blank and not
+   *     working; null disables sending
+   * @param options placeholder, working/stop state, attachments, bar slots and file drop handler
+   */
+  public static El composer(
+      String text, Consumer<String> onChange, Runnable onSend, ComposerOptions options) {
+    Objects.requireNonNull(text, "text");
+    Objects.requireNonNull(options, "options");
+    Theme theme = Theme.CURRENT.get();
+    Texts texts = Texts.CURRENT.get();
+    String placeholder =
+        options.placeholder != null ? options.placeholder : texts.composerPlaceholder();
+    boolean canSend = !options.working && onSend != null && !text.isBlank();
+
+    El field = TextField.textArea(text, placeholder, onChange)
+        .key("field")
+        .wFull()
+        .lines(1)
+        .maxLines(COMPOSER_MAX_LINES)
+        .padding(theme.space().xs(), theme.space().s())
+        .radius(0)
+        .fill(0)
+        .border(0, 0)
+        .focusRing(0)
+        .whenHovered(null)
+        .whenFocused(null)
+        .onKeyFirst(key -> {
+          if (key.modifiers() == 0
+              && (key.name().equals("Enter") || key.name().equals("NumpadEnter"))) {
+            if (canSend && !key.repeat()) {
+              onSend.run();
+            }
+            return true;
+          }
+          return false;
+        });
+    field.style().minWidth = Len.ZERO;
+
+    // The app's slots get parents of their own, so their keys cannot meet the action's, and they
+    // give way before the send/stop button does.
+    El start = row()
+        .key("start")
+        .grow(1)
+        .shrink(1)
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .children(options.start.toArray(El[]::new));
+    start.style().minWidth = Len.ZERO;
+    El end = row()
+        .key("end")
+        .shrink(1)
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .children(options.end.toArray(El[]::new));
+    end.style().minWidth = Len.ZERO;
+    El bar = row()
+        .key("bar")
+        .wFull()
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .children(start, end);
+    El action = options.working
+        ? Button.icon(Button.Variant.SECONDARY, Symbol.STOP, texts.stop(), options.onStop)
+            .key("action")
+        : Button.icon(
+                Button.Variant.PRIMARY, Symbol.ARROW_UP, texts.send(), canSend ? onSend : null)
+            .key("action");
+    bar.child(action.shrink(0));
+
+    El card = Card.surface(theme, Card.Variant.OUTLINED)
+        .wFull()
+        .padding(theme.space().m())
+        .gap(theme.space().s())
+        .child(field);
+    if (!options.attachments.isEmpty()) {
+      El chips = row()
+          .key("attachments")
+          .wFull()
+          .wrap()
+          .gap(theme.space().xs())
+          .align(Style.Align.CENTER)
+          .motion(theme.motion().feedback());
+      chips.style().minWidth = Len.ZERO;
+      for (int i = 0; i < options.attachments.size(); i++) {
+        String name = options.attachments.get(i);
+        int index = i;
+        Badge.Options badge = Badge.options().icon(Symbol.DOCUMENT).toolbar();
+        if (options.onRemoveAttachment != null) {
+          badge.onRemove(() -> options.onRemoveAttachment.accept(index));
+        }
+        El chip = Badge.badge(name, badge).key("attachment-" + i).shrink(1);
+        chip.style().minWidth = Len.ZERO;
+        chip.style().maxWidth = Len.percent(100);
+        // A long name gives way to keep its remove button: the badge's icon, then its name.
+        chip.children().get(1).maxLines(1).ellipsis().shrink(1).minSize(0, 0);
+        chips.child(chip);
+      }
+      card.child(chips);
+    }
+    card.child(bar)
+        .whenFocusWithin(e -> e.border(theme.size().stroke(), theme.accent().edge()));
+    card.style().minWidth = Len.ZERO;
+    if (options.onFiles != null) {
+      card.onFileDrop(drop -> {
+        if (drop.phase() == Drop.Phase.DROP && drop.payload() instanceof List<?> raw) {
+          List<Path> paths = new ArrayList<>(raw.size());
+          for (Object item : raw) {
+            if (item instanceof Path path) {
+              paths.add(path);
+            }
+          }
+          if (!paths.isEmpty()) {
+            options.onFiles.accept(List.copyOf(paths));
+          }
+        }
+      });
+    }
+    return card;
   }
 
   private static El agentMessage(Options options, String copyText, El[] parts) {

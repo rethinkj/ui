@@ -1,0 +1,24 @@
+el 0,0 520x160
+  el #composer 12,12 496x131
+    text #field role=textbox label="Write a message" "Explain the sequential scan on orders\nand suggest a composite index." 21,21 478x35 lines 1-2/2
+    el #attachments 21,60 478x46
+      el #attachment-0 label="orders.sql" 21,60 102x22
+        text label="document" "\u{E4D7}" 29,65 12x12
+        text "orders.sql" 43,64 58x14
+        el #remove role=button label="Remove orders.sql" 103,62 18x18
+          text label="dismiss" "\u{F367}" 106,65 12x12
+      el #attachment-1 label="explain-analyze-of-the-orders-query-with-buffers-timing-and-settings-on-replica.json" 21,84 478x22
+        text label="document" "\u{E4D7}" 29,89 12x12
+        text "explain-analyze-of-the-orders-query-with-buffers-timing-and-settings-on-replica.json" 43,88 434x14
+        el #remove role=button label="Remove explain-analyze-of-the-orders-query-with-buffers-timing-and-settings-on-replica.json" 479,86 18x18
+          text label="dismiss" "\u{F367}" 482,89 12x12
+    el #bar 21,110 478x24
+      el #start 21,110 326x24
+        el #attach role=button label="Attach file" 21,110 24x24
+          text label="add" "\u{F108}" 25,114 16x16
+      el #end 351,110 120x24
+        el #model role=combobox label="Model" 351,110 120x24 expanded=false
+          text "Sonnet" 360,114 82x16
+          text label="chevron_down" "\u{F2A2}" 446,114 16x16
+      el #action role=button label="Send" 475,110 24x24
+        text label="arrow_up" "\u{F1B4}" 479,114 16x16

@@ -1,11 +1,11 @@
 ---
 title: Chat
-description: User message bubbles, full-width Markdown agent responses, collapsible tool call rows, and a working spinner.
+description: User message bubbles, full-width Markdown agent responses, collapsible tool call rows, a working spinner, and a growing composer card.
 ---
 
-`Chat` provides the building blocks of a chat transcript in the theme's tokens: right-aligned user message bubbles sized to their text up to `Theme.Chat.bubbleWidth()`, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, and a quiet working indicator with a spinner.
+`Chat` provides the building blocks of a chat transcript and composer in the theme's tokens: right-aligned user message bubbles sized to their text up to `Theme.Chat.bubbleWidth()`, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, a quiet working indicator with a spinner, and a growing multi-line composer with an action bar.
 
-Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html).
+Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ComposerOptions`](/api/com/rethinkj/ui/kit/Chat.ComposerOptions.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html).
 
 <Shot src="examples/docs/chat/view-{theme}" alt="A chat card showing a right-aligned user bubble, an agent answer with an open tool call, a failed tool call, Markdown prose with SQL, and a running tool call above a working spinner" />
 
@@ -21,6 +21,7 @@ Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com
 | `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
 | `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
 | `working()` / `working(text)` | Quiet status row with a spinner and `Texts.working()` (or custom text) for the bottom of an active message |
+| `composer(text, onChange, onSend)` / `composer(text, onChange, onSend, options)` | Composer card with a growing multi-line field and an action bar below it |
 
 ## Options
 
@@ -39,13 +40,35 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 
 `Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). Closed by default, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
 
+## Composer
+
+`Chat.composer` is the input card at the bottom of a chat: a borderless multi-line field that grows with its text up to six lines before scrolling, above a row of removable attachment chips and an action bar with start slots, end slots (such as a `Select` for the model), and a send button that switches to a stop button while the agent works.
+
+<Shot src="examples/docs/chat-composer/view-{theme}" alt="A chat composer card with a two-line prompt, an attach button, two removable file chips, a model select, and a primary send button" />
+
+```java snippet="chat-composer"
+```
+
+Plain `Enter` sends when the text is not blank and the agent is not working; `Shift+Enter` inserts a new line. While an input method is composing, `Enter` stays with the input method and does not send. Dropping files onto the card delivers their paths to `onFiles`.
+
+Configure the composer with `Chat.composerOptions()`:
+
+| Option | Description |
+| --- | --- |
+| `placeholder(text)` | Placeholder and accessible label of the field; defaults to `Texts.composerPlaceholder()` |
+| `working(boolean, onStop)` | While `true`, turns the send button into a stop button that runs `onStop` and suppresses `Enter` |
+| `attachments(names, onRemove)` | Removable file chips in a row above the action bar; `onRemove` receives the removed chip's index (or `null` for non-removable chips) |
+| `start(El…)` | Elements placed at the start of the action bar, such as an attach button; `null` entries are skipped |
+| `end(El…)` | Elements placed at the end of the action bar before the send/stop button, such as a `Select`; `null` entries are skipped |
+| `onFiles(Consumer<List<Path>>)` | Receives file paths dropped onto the composer card via `El.onFileDrop` |
+
 ## Localization and theming
 
-All built-in labels (`User message`, `Agent message`, `Copy message`, `Working…`, and tool state names) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
+All built-in labels (`User message`, `Agent message`, `Copy message`, `Working…`, tool state names, `Write a message`, `Send`, `Stop`, and chip removal labels) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
 
 ## In a tree dump
 
-User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, and `Chat.working` is `role=status`:
+User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:
 
 ```text file="examples/src/test/resources/golden/docs/chat/view.tree.txt" start="role=article" count="18"
 ```

@@ -1014,4 +1014,19 @@ public class GermanTexts implements Texts {
       case FAILED -> "Fehlgeschlagen";
     };
   }
+
+  @Override
+  public String composerPlaceholder() {
+    return "Nachricht schreiben";
+  }
+
+  @Override
+  public String send() {
+    return "Senden";
+  }
+
+  @Override
+  public String stop() {
+    return "Stoppen";
+  }
 }

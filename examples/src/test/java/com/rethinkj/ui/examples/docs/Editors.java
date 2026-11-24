@@ -24,6 +24,8 @@ import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
+import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
@@ -31,6 +33,7 @@ import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.sql.Sql;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -992,6 +995,66 @@ final class Editors {
     El transcript = Card.card(question, answer, followUp).wFull();
     // docs:end chat
     return Frame.of(transcript);
+  }
+
+  String composerText = "Explain the sequential scan on orders\nand suggest a composite index.";
+  final List<String> composerFiles = new ArrayList<>(List.of("orders.sql", "explain.json"));
+  final Menu.State modelMenu = new Menu.State();
+  int modelIndex;
+  boolean composerWorking;
+
+  void composerText(String value) {
+    composerText = value;
+  }
+
+  void sendComposer() {
+    composerText = "";
+    composerWorking = true;
+  }
+
+  void stopComposer() {
+    composerWorking = false;
+  }
+
+  void attachFile() {
+    composerFiles.add("schema.sql");
+  }
+
+  void removeComposerFile(int index) {
+    composerFiles.remove(index);
+  }
+
+  void addComposerFiles(List<Path> files) {
+    for (Path path : files) {
+      composerFiles.add(path.getFileName().toString());
+    }
+  }
+
+  void selectModel(int index) {
+    modelIndex = index;
+  }
+
+  static El chatComposer(Editors state) {
+    // docs:start chat-composer
+    El composer = Chat.composer(
+        state.composerText,
+        state::composerText,
+        state::sendComposer,
+        Chat.composerOptions()
+            .placeholder("Ask about your queries")
+            .working(state.composerWorking, state::stopComposer)
+            .attachments(state.composerFiles, state::removeComposerFile)
+            .start(Button.icon(Button.Variant.GHOST, Symbol.ADD, "Attach file", state::attachFile))
+            .end(Select.select(
+                    List.of("Sonnet", "Opus"),
+                    state.modelIndex,
+                    state.modelMenu,
+                    state::selectModel)
+                .label("Model")
+                .w(120))
+            .onFiles(state::addComposerFiles));
+    // docs:end chat-composer
+    return Frame.of(composer);
   }
 
   // docs:start markdown-languages

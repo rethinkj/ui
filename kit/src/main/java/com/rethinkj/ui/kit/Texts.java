@@ -970,4 +970,19 @@ public interface Texts {
       case FAILED -> "Failed";
     };
   }
+
+  /** Default placeholder and accessible label of a {@link Chat#composer} field. */
+  default String composerPlaceholder() {
+    return "Write a message";
+  }
+
+  /** Accessible label and tooltip of the send button in a {@link Chat#composer}. */
+  default String send() {
+    return "Send";
+  }
+
+  /** Accessible label and tooltip of the stop button in a {@link Chat#composer} while working. */
+  default String stop() {
+    return "Stop";
+  }
 }

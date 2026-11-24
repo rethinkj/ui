@@ -1,0 +1,4 @@
+# Chat composer with multi-line text, attachment chips, attach button, model select and send button.
+size 520 160 scale 2
+frame
+snap view
