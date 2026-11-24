@@ -422,6 +422,63 @@ class PartsTest {
   }
 
   @Test
+  void toolbarMenuItemWorksInGroupAndBecomesSubmenuInMore() throws IOException {
+    final class MenuBar {
+      final Toolbar.State toolbar = new Toolbar.State();
+      final Menu.State branchMenu = new Menu.State();
+      String chosen;
+
+      El view() {
+        return col()
+            .wFull()
+            .hFull()
+            .child(Toolbar.toolbar(
+                toolbar,
+                "History",
+                List.of(
+                    Toolbar.text(null, "Refresh", () -> {}),
+                    Toolbar.group(Toolbar.menu(
+                        Symbol.BRANCH,
+                        "All branches",
+                        branchMenu,
+                        List.of(
+                            Menu.item("All branches", () -> chosen = "all").checked(true),
+                            Menu.item("main", () -> chosen = "main")))))));
+      }
+    }
+
+    MenuBar state = new MenuBar();
+    App<MenuBar> app = new App<>(state, MenuBar::view);
+    Script.run("""
+        size 360 180
+        frame
+        frame
+        press role=button label="All branches"
+        frame
+        advance 0.3
+        frame
+        press role=menuitem label="main"
+        frame
+        """, app, out);
+    assertEquals("main", state.chosen);
+
+    Script.run("""
+        size 120 180
+        frame
+        frame
+        advance 1
+        frame
+        press role=button label="More"
+        frame
+        advance 0.3
+        frame
+        """, app, out);
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=menuitem label=\"All branches\""), dump);
+    assertFalse(state.branchMenu.isOpen());
+  }
+
+  @Test
   void escapeClosesAPopoverWithNothingToFocusInItAndGivesTheFocusBack() throws IOException {
     Popover.State state = new Popover.State();
     App<Popover.State> app = new App<>(

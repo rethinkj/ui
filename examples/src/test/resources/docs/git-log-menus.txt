@@ -1,0 +1,9 @@
+# Commit history with branch scope, first-parent toggle, and an open commit context menu.
+size 920 507
+frame
+frame
+press #row-3 right
+frame
+advance 0.3
+frame
+snap menu

@@ -16,6 +16,7 @@ import com.rethinkj.ui.diagram.GermanDiagramTexts;
 import com.rethinkj.ui.diagram.Golden;
 import com.rethinkj.ui.diagram.git.Ref.Kind;
 import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.Font;
@@ -599,5 +600,184 @@ class GitLogTest {
         .filter(line -> line.contains(prefix))
         .findFirst()
         .orElseThrow(() -> new AssertionError(prefix + " not found in:\n" + tree));
+  }
+
+  @Test
+  void contextMenusScopeAndFirstParent() throws IOException {
+    assumeText();
+    final class MenuHarness {
+      final GitLog.State log = new GitLog.State(CLOCK);
+      List<Commit> commits = sampleCommits();
+      final List<Ref> refs = new ArrayList<>(sampleRefs());
+      GitLog.Scope scope = GitLog.Scope.ALL;
+      boolean firstParent;
+      final List<String> events = new ArrayList<>();
+
+      El view() {
+        Theme theme = Theme.CURRENT.get();
+        return col()
+            .wFull()
+            .hFull()
+            .fill(theme.surface().window())
+            .padding(theme.space().l())
+            .child(GitLog.gitLog(
+                    log,
+                    commits,
+                    refs,
+                    GitLog.options()
+                        .commitMenu(commit -> List.of(
+                            Menu.item("Cherry-pick", () -> events.add("pick:" + commit.id())),
+                            Menu.item("Copy hash", () -> events.add("copy:" + commit.id()))))
+                        .rangeMenu((newer, older) -> List.of(Menu.item(
+                            "Compare range",
+                            () -> events.add("range:" + newer.id() + ".." + older.id()))))
+                        .refMenu(ref -> List.of(Menu.item(
+                            "Checkout " + ref.name(),
+                            () -> events.add("ref:" + ref.kind() + ":" + ref.name()))))
+                        .scope(scope, next -> {
+                          scope = next;
+                          events.add("scope:" + next.kind() + ":" + next.branch());
+                        })
+                        .firstParent(firstParent, on -> {
+                          firstParent = on;
+                          events.add("firstParent:" + on);
+                        }),
+                    Button.button(
+                        Button.Variant.SECONDARY, Symbol.ARROW_DOWNLOAD, "Fetch", () -> {}))
+                .grow(1));
+      }
+    }
+
+    MenuHarness harness = new MenuHarness();
+    harness.refs.add(new Ref("main", Kind.BRANCH, "a41f9c2")); // the branch HEAD is on
+    App<MenuHarness> app = new App<>(harness, MenuHarness::view);
+    app.provide(Theme.CURRENT, ignored -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("""
+        size 960 571 scale 2
+        frame
+        frame
+        press #row-3 right
+        frame
+        advance 0.3
+        frame
+        snap commit-menu
+        press role=menuitem label="Cherry-pick"
+        frame
+        key F10 shift
+        frame
+        advance 0.3
+        frame
+        snap key-menu
+        press role=menuitem label="Copy hash"
+        frame
+        press #row-1
+        frame
+        press #row-3 shift
+        frame
+        press #row-2 right
+        frame
+        advance 0.3
+        frame
+        snap range-menu
+        press role=menuitem label="Compare range"
+        frame
+        press label="HEAD → main" right
+        frame
+        advance 0.3
+        frame
+        snap ref-menu
+        press role=menuitem label="Checkout main"
+        frame
+        press role=button label="All branches"
+        frame
+        advance 0.3
+        frame
+        snap scope-menu
+        press role=menuitem label="feature/er-export"
+        frame
+        press role=button label="feature/er-export"
+        frame
+        advance 0.3
+        frame
+        press role=menuitem label="Current branch"
+        frame
+        press role=button label="First parent"
+        frame
+        snap updated
+        """, app, out);
+
+    // Commit menu includes commit items and per-ref submenu.
+    String commitMenu = Files.readString(out.resolve("commit-menu.tree.txt"));
+    assertTrue(commitMenu.contains("role=menuitem label=\"Cherry-pick\""), commitMenu);
+    assertTrue(
+        commitMenu.contains("role=menuitem label=\"Branch feature/query-history\""), commitMenu);
+
+    // Shift+F10 opened the commit menu for the focused row.
+    String keyMenu = Files.readString(out.resolve("key-menu.tree.txt"));
+    assertTrue(keyMenu.contains("role=menuitem label=\"Copy hash\""), keyMenu);
+
+    // Secondary press inside the selected range kept the range and opened the range menu.
+    String rangeMenu = Files.readString(out.resolve("range-menu.tree.txt"));
+    assertTrue(rangeMenu.contains("role=menuitem label=\"Compare range\""), rangeMenu);
+    assertTrue(harness.log.hasRange());
+    assertEquals(1, harness.log.rangeStart());
+    assertEquals(3, harness.log.rangeEnd());
+
+    // Secondary press on a ref pill opened that ref's menu.
+    String refMenu = Files.readString(out.resolve("ref-menu.tree.txt"));
+    assertTrue(refMenu.contains("role=menuitem label=\"Checkout main\""), refMenu);
+
+    // Scope dropdown shows All branches (checked), Current branch, and local branches (no remotes).
+    String scopeMenu = Files.readString(out.resolve("scope-menu.tree.txt"));
+    assertTrue(
+        scopeMenu
+            .lines()
+            .anyMatch(line ->
+                line.contains("role=menuitem label=\"All branches\"") && line.contains("checked")),
+        scopeMenu);
+    assertTrue(scopeMenu.contains("role=menuitem label=\"Current branch\""), scopeMenu);
+    assertTrue(scopeMenu.contains("role=menuitem label=\"main\""), scopeMenu);
+    assertTrue(scopeMenu.contains("role=menuitem label=\"feature/er-export\""), scopeMenu);
+    assertFalse(scopeMenu.contains("role=menuitem label=\"origin/main\""), scopeMenu);
+
+    // Updated header reflects Current branch and checked First parent toggle.
+    String updated = Files.readString(out.resolve("updated.tree.txt"));
+    assertTrue(updated.contains("role=button label=\"Current branch\""), updated);
+    assertTrue(
+        updated
+            .lines()
+            .anyMatch(line ->
+                line.contains("role=button label=\"First parent\"") && line.contains("checked")),
+        updated);
+
+    assertEquals(
+        List.of(
+            "pick:6c0d5a8",
+            "copy:6c0d5a8",
+            "range:9d2e6b1..6c0d5a8",
+            "ref:BRANCH:main",
+            "scope:BRANCH:feature/er-export",
+            "scope:CURRENT:null",
+            "firstParent:true"),
+        harness.events);
+
+    // A long branch name leaves the header's tools and actions inside a narrow log.
+    harness.scope =
+        GitLog.Scope.branch("feature/a-branch-name-much-longer-than-the-header-has-room");
+    Script.run("size 680 571 scale 2\nframe\nframe\nadvance 1\nframe\nsnap narrow\n", app, out);
+    String narrow = Files.readString(out.resolve("narrow.tree.txt"));
+    assertTrue(narrow.contains("role=button label=\"More\""), narrow);
+    assertTrue(narrow.contains("role=button label=\"Fetch\""), narrow);
+
+    // Menu closes when the commit it opened on disappears from the history.
+    Script.run("press #row-0 right\nframe\nadvance 0.3\nframe\n", app, out);
+    assertTrue(app.tree().dump().contains("role=menu"));
+    harness.commits = harness.commits.subList(1, harness.commits.size());
+    app.invalidate();
+    Script.run("frame\nadvance 1\nframe\n", app, out);
+    String afterRemove = app.tree().dump();
+    assertFalse(afterRemove.contains("role=menu"), afterRemove);
   }
 }

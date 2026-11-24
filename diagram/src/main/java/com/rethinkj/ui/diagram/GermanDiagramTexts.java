@@ -332,6 +332,26 @@ public class GermanDiagramTexts implements DiagramTexts {
   }
 
   @Override
+  public String branchScope() {
+    return "Branch-Auswahl";
+  }
+
+  @Override
+  public String allBranches() {
+    return "Alle Branches";
+  }
+
+  @Override
+  public String currentBranch() {
+    return "Aktueller Branch";
+  }
+
+  @Override
+  public String firstParent() {
+    return "Nur erster Eltern-Commit";
+  }
+
+  @Override
   public String monthShort(Month month) {
     return switch (month) {
       case JANUARY -> "Jan.";
