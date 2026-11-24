@@ -53,7 +53,7 @@ For items with different heights (like log entries, wrapping text, or Markdown b
 - Pass an estimate function (`IntToDoubleFunction`, > 0 logical pixels) based on what you know before layout (such as text length). Closer estimates reduce scrollbar thumb jumping.
 - Scrolling stays smooth even with a million variable-height rows, and scroll positions auto-adjust when rows above the viewport are measured.
 - `app.scrollToRow(list, row)` keeps tracking the target row as earlier rows are measured until the user scrolls or clicks.
-- Create a new `RowHeights` whenever you insert, delete, sort, or reorder rows (appending to the end is fine).
+- Pass a key function (`new RowHeights(estimate, key)`) returning a unique, stable key per row (such as a message ID) when rows can be inserted, removed, or reordered before the view: measured heights stay with their row and the scroll position moves on the same frame so the row in view does not jump. Without a key, heights stay by index (appending at the end is fine; otherwise create a new `RowHeights`).
 
 See [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html) for helper methods to query row heights and offsets.
 

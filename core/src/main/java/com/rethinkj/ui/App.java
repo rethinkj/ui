@@ -224,7 +224,11 @@ public final class App<S> {
   private boolean rowKeyHooks; // the rows the lists built last have an El#onAnyKeyDown handler
   // The row each list was last asked to scroll to (scrollToRow), by identity, until the user's
   // next press, key or wheel: content that grows meanwhile takes the row to the top after all.
-  private final Map<Object, Integer> rowGoals = new HashMap<>();
+  private final Map<Object, RowGoal> rowGoals = new HashMap<>();
+
+  /** A row {@link #scrollToRow} sent a list to, with the version and key of its keyed rows. */
+  private record RowGoal(int row, int version, Object key) {}
+
   private boolean untimed; // the tree was built and timeOverlays has not looked at it yet
   private final Animator animator = new Animator();
   private double time;
@@ -2688,7 +2692,7 @@ public final class App<S> {
         if (el.scrollState() != null) {
           el.scrollState().toEnd = false; // the later row wins over a pending scrollToEnd
         }
-        rowGoals.put(id, row);
+        rowGoals.put(id, new RowGoal(row, el.rowsVersion(), el.rowKey(row)));
       }
       return false;
     });
@@ -2697,13 +2701,18 @@ public final class App<S> {
   /** Takes each list that {@link #scrollToRow} sent to a row there again; whether one moved. */
   private boolean followRowGoals() {
     boolean moved = false;
-    for (Iterator<Map.Entry<Object, Integer>> i = rowGoals.entrySet().iterator(); i.hasNext(); ) {
-      Map.Entry<Object, Integer> goal = i.next();
+    for (Iterator<Map.Entry<Object, RowGoal>> i = rowGoals.entrySet().iterator(); i.hasNext(); ) {
+      Map.Entry<Object, RowGoal> goal = i.next();
       El el = animator.element(goal.getKey());
-      if (el == null || !el.isVirtualList() || goal.getValue() > el.rowCount()) {
+      int row = el == null || !el.isVirtualList() ? -1 : goal.getValue().row();
+      if (row >= 0 && el.rowsVersion() != goal.getValue().version()) { // rows came or went
+        row = el.rowWithKey(goal.getValue().key());
+        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key()));
+      }
+      if (row < 0 || row > el.rowCount()) {
         i.remove(); // the list or the row is gone: one that comes back is not followed
       } else {
-        moved |= el.scrollTo(el.scrollX(), el.rowOffset(goal.getValue()));
+        moved |= el.scrollTo(el.scrollX(), el.rowOffset(row));
       }
     }
     return moved;
