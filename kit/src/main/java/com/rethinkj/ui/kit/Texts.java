@@ -939,4 +939,35 @@ public interface Texts {
   default String rangeSeparator() {
     return "–";
   }
+
+  // Chat
+
+  /** Accessible label of a user message in a {@link Chat}. */
+  default String userMessage() {
+    return "User message";
+  }
+
+  /** Accessible label of an agent message in a {@link Chat}. */
+  default String agentMessage() {
+    return "Agent message";
+  }
+
+  /** Label and tooltip of the button that copies a {@link Chat} message's text. */
+  default String copyMessage() {
+    return "Copy message";
+  }
+
+  /** Default label of the {@link Chat#working()} indicator while the agent works. */
+  default String working() {
+    return "Working…";
+  }
+
+  /** State label of a {@link Chat#tool} call row. */
+  default String toolState(Chat.ToolState state) {
+    return switch (state) {
+      case RUNNING -> "Running";
+      case DONE -> "Done";
+      case FAILED -> "Failed";
+    };
+  }
 }

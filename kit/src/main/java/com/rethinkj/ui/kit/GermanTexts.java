@@ -985,4 +985,33 @@ public class GermanTexts implements Texts {
   public String rangeSeparator() {
     return "–";
   }
+
+  @Override
+  public String userMessage() {
+    return "Benutzernachricht";
+  }
+
+  @Override
+  public String agentMessage() {
+    return "Agentennachricht";
+  }
+
+  @Override
+  public String copyMessage() {
+    return "Nachricht kopieren";
+  }
+
+  @Override
+  public String working() {
+    return "Arbeitet…";
+  }
+
+  @Override
+  public String toolState(Chat.ToolState state) {
+    return switch (state) {
+      case RUNNING -> "Läuft";
+      case DONE -> "Fertig";
+      case FAILED -> "Fehlgeschlagen";
+    };
+  }
 }
