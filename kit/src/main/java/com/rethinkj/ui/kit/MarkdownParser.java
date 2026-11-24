@@ -148,10 +148,7 @@ final class MarkdownParser {
     }
     MarkdownDocument result =
         new MarkdownDocument(blocks, text, previous.references, starts, !rest.refs.isEmpty());
-    synchronized (previous) { // what Markdown made of the blocks kept, which it takes over
-      result.prepared = previous.prepared;
-      result.preparedFor = previous.preparedFor;
-    }
+    previous.handOver(result);
     return result;
   }
 

@@ -45,6 +45,12 @@ public final class MarkdownDocument {
     this.hasReferenceDefinitions = hasReferenceDefinitions;
   }
 
+  /** Hands what Markdown made of this document to the next, which takes over what it keeps. */
+  synchronized void handOver(MarkdownDocument next) {
+    next.prepared = prepared;
+    next.preparedFor = preparedFor;
+  }
+
   /** The document's blocks in order. */
   public List<Block> blocks() {
     return blocks;
