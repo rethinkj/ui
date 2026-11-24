@@ -1,0 +1,1 @@
+- `Format.DATE_TIME`, `OFFSET_DATE_TIME`, `dateTime` and `offsetDateTime` require exactly one `T` or space between the date and the time: `2026-11-24T 14:30` and `2026-11-2414:30` are no longer valid.

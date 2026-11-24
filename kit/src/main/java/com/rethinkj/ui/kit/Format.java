@@ -98,34 +98,17 @@ public final class Format<T> {
       DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT);
   private static final DateTimeFormatter ISO_LOCAL_TIME =
       DateTimeFormatter.ISO_LOCAL_TIME.withResolverStyle(ResolverStyle.STRICT);
-  // A date, a T or a space, and a time with an offset or without: 2026-11-13 14:30.
-  private static final DateTimeFormatter ISO_DATE_TIME = new DateTimeFormatterBuilder()
-      .parseCaseInsensitive()
-      .append(DateTimeFormatter.ISO_LOCAL_DATE)
-      .optionalStart()
-      .appendLiteral('T')
-      .optionalEnd()
-      .optionalStart()
-      .appendLiteral(' ')
-      .optionalEnd()
-      .append(DateTimeFormatter.ISO_TIME)
-      .toFormatter(Locale.ROOT)
-      .withResolverStyle(ResolverStyle.STRICT);
+  // A date, one T (in either case) or one space, and a time with an offset or without:
+  // 2026-11-13 14:30.
+  private static final Function<String, TemporalAccessor> ISO_DATE_TIME =
+      dateTimeParser(DateTimeFormatter.ISO_TIME);
   // The same with an offset in any of the spellings of Offset: Z, +00:00, +00.
-  private static final DateTimeFormatter ISO_DATE_TIME_ANY_OFFSET = new DateTimeFormatterBuilder()
-      .parseCaseInsensitive()
-      .append(DateTimeFormatter.ISO_LOCAL_DATE)
-      .optionalStart()
-      .appendLiteral('T')
-      .optionalEnd()
-      .optionalStart()
-      .appendLiteral(' ')
-      .optionalEnd()
-      .append(DateTimeFormatter.ISO_LOCAL_TIME)
-      .parseLenient()
-      .appendOffset("+HH:MM:ss", "Z")
-      .toFormatter(Locale.ROOT)
-      .withResolverStyle(ResolverStyle.STRICT);
+  private static final Function<String, TemporalAccessor> ISO_DATE_TIME_ANY_OFFSET =
+      dateTimeParser(new DateTimeFormatterBuilder()
+          .append(DateTimeFormatter.ISO_LOCAL_TIME)
+          .parseLenient()
+          .appendOffset("+HH:MM:ss", "Z")
+          .toFormatter(Locale.ROOT));
 
   // A number, then a unit: b, kb or kib and so on, in any case.
   private static final Pattern BYTES_TEXT = Pattern.compile(
@@ -752,9 +735,39 @@ public final class Format<T> {
     return b.toFormatter(Locale.ROOT);
   }
 
+  /**
+   * Parses a date, then one {@code T} (in either case) or one space, then {@code time}. Two
+   * separate formatters are needed because {@link DateTimeFormatterBuilder}'s optional sections
+   * cannot require one of two literals without also accepting both or neither.
+   */
+  private static Function<String, TemporalAccessor> dateTimeParser(DateTimeFormatter time) {
+    DateTimeFormatter withSpace = dateTime(' ', time);
+    DateTimeFormatter withT = dateTime('T', time);
+    return s -> (s.indexOf(' ') >= 0 ? withSpace : withT).parse(s);
+  }
+
+  private static DateTimeFormatter dateTime(char separator, DateTimeFormatter time) {
+    return new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral(separator)
+        .append(time)
+        .toFormatter(Locale.ROOT)
+        .withResolverStyle(ResolverStyle.STRICT);
+  }
+
   private static <T> Format<T> temporal(
       Function<? super T, String> text,
       DateTimeFormatter format,
+      Function<TemporalAccessor, T> from,
+      Function<Texts, String> message,
+      DataType type) {
+    return temporal(text, format::parse, from, message, type);
+  }
+
+  private static <T> Format<T> temporal(
+      Function<? super T, String> text,
+      Function<String, TemporalAccessor> parse,
       Function<TemporalAccessor, T> from,
       Function<Texts, String> message,
       DataType type) {
@@ -762,7 +775,7 @@ public final class Format<T> {
         text,
         s -> {
           try {
-            T value = from.apply(format.parse(s.strip()));
+            T value = from.apply(parse.apply(s.strip()));
             return value == null ? Parsed.error(message.apply(texts())) : Parsed.of(value);
           } catch (java.time.DateTimeException _) {
             return Parsed.error(message.apply(texts()));

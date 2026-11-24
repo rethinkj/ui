@@ -100,6 +100,15 @@ class FormatTest {
         Format.DATE_TIME.parse("2026-11-13T14:30").value());
     refused(
         Format.DATE_TIME, "2026-11-13 14:30Z", "Expected a date and time such as 2026-11-13 14:30");
+    // Exactly one separator, a T or a space, in both parsers of a date and a time.
+    for (String text : List.of("2026-11-13T 14:30", "2026-11-1314:30")) {
+      refused(Format.DATE_TIME, text, "Expected a date and time such as 2026-11-13 14:30");
+      assertFalse(
+          Format.offsetDateTime(0, Format.Offset.SHORT).parse(text + "+01").valid());
+    }
+    assertTrue(Format.offsetDateTime(0, Format.Offset.SHORT)
+        .parse("2026-11-13T14:30+01")
+        .valid());
     roundTrip(
         Format.OFFSET_DATE_TIME,
         OffsetDateTime.of(2026, 11, 13, 14, 30, 0, 0, ZoneOffset.ofHours(1)),
