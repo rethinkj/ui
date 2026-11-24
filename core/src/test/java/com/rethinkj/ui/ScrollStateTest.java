@@ -3,12 +3,14 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -339,5 +341,137 @@ class ScrollStateTest {
         List.of(new ScrollState.Anchor(10, 15), new ScrollState.Anchor(20, 15));
     assertThrows(
         IllegalArgumentException.class, () -> model.left.scrollWith(model.right, crossing));
+  }
+
+  /** A transcript of variable-height rows and a plain scroll area, both following their end. */
+  static final class Transcript {
+    final ScrollState listScroll = new ScrollState().followEnd();
+    final ScrollState plainScroll = new ScrollState().followEnd();
+    final RowHeights heights = new RowHeights(i -> 20);
+    final List<Float> sizes = new ArrayList<>();
+    int reveal = -1;
+
+    double total() {
+      return sizes.stream().mapToDouble(Float::doubleValue).sum();
+    }
+  }
+
+  @Test
+  void followEndTracksAppendsAndGrowthUntilScrolledAway() {
+    Transcript model = new Transcript();
+    model.sizes.add(30f); // fits in the 100px viewport at first
+    App<Transcript> app = new App<>(model, m -> {
+      El list = col()
+          .key("list")
+          .w(100)
+          .h(100)
+          .rows(m.sizes.size(), m.heights, i -> el().key("row-" + i).h(m.sizes.get(i)))
+          .revealRow(m.reveal)
+          .scrollState(m.listScroll);
+      El plain = col().key("plain").scroll().w(100).h(100).scrollState(m.plainScroll);
+      for (int i = 0; i < m.sizes.size(); i++) {
+        plain.child(el().key("item-" + i).h(m.sizes.get(i)));
+      }
+      return El.row().children(list, plain);
+    });
+    app.resize(200, 100, 1);
+    app.frame();
+    assertTrue(model.listScroll.atEnd(), "fits at first");
+    assertTrue(model.plainScroll.atEnd());
+    assertEquals(0, list(app).scrollY());
+
+    // Appending rows past the viewport (actual 35px > 20px estimate) follows on the same frame.
+    for (int i = 0; i < 6; i++) {
+      model.sizes.add(35f);
+    }
+    app.invalidate();
+    app.frame();
+    double end = model.total() - 100;
+    assertTrue(model.listScroll.atEnd());
+    assertTrue(model.plainScroll.atEnd());
+    assertEquals(end, list(app).scrollY(), "virtual list followed appended rows");
+    assertEquals(end, panel(app).scrollY(), "plain scroll area followed appended children");
+
+    // Growing the last row (streaming answer) stays at the new end on the same frame.
+    model.sizes.set(model.sizes.size() - 1, 90f);
+    app.invalidate();
+    app.frame();
+    end = model.total() - 100;
+    assertTrue(model.listScroll.atEnd());
+    assertTrue(model.plainScroll.atEnd());
+    assertEquals(end, list(app).scrollY(), "virtual list followed taller last row");
+    assertEquals(end, panel(app).scrollY(), "plain scroll area followed taller last child");
+
+    // Scrolling up stops following for both areas.
+    app.wheel(50, 50, 0, -80);
+    app.wheel(150, 50, 0, -80);
+    app.frame();
+    assertFalse(model.listScroll.atEnd());
+    assertFalse(model.plainScroll.atEnd());
+    double stayed = list(app).scrollY();
+    assertEquals(end - 80, stayed);
+
+    model.sizes.add(40f);
+    model.sizes.set(model.sizes.size() - 1, 70f);
+    app.invalidate();
+    app.frame();
+    assertFalse(model.listScroll.atEnd());
+    assertFalse(model.plainScroll.atEnd());
+    assertEquals(stayed, list(app).scrollY(), "stayed where the user scrolled");
+    assertEquals(stayed, panel(app).scrollY());
+
+    // Reaching the end again resumes following.
+    app.wheel(50, 50, 0, 500);
+    app.wheel(150, 50, 0, 500);
+    app.frame();
+    end = model.total() - 100;
+    assertTrue(model.listScroll.atEnd());
+    assertTrue(model.plainScroll.atEnd());
+    assertEquals(end, list(app).scrollY());
+
+    model.sizes.add(45f);
+    app.invalidate();
+    app.frame();
+    end = model.total() - 100;
+    assertTrue(model.listScroll.atEnd());
+    assertEquals(end, list(app).scrollY(), "resumed following after wheeling to end");
+    assertEquals(end, panel(app).scrollY());
+
+    // Reveal above the end stops following; scrollToEnd() jumps back and resumes it.
+    model.reveal = 0;
+    app.invalidate();
+    app.frame();
+    assertFalse(model.listScroll.atEnd());
+    assertEquals(0, list(app).scrollY());
+
+    model.listScroll.scrollToEnd();
+    model.sizes.add(50f);
+    app.invalidate();
+    app.frame();
+    end = model.total() - 100;
+    assertTrue(model.listScroll.atEnd());
+    assertEquals(end, list(app).scrollY(), "scrollToEnd moved to end and resumed following");
+  }
+
+  @Test
+  void scrollToEndReachesTheMeasuredEndWithoutFollowing() {
+    ScrollState state = new ScrollState();
+    RowHeights heights = new RowHeights(row -> 20); // half of what the rows measure
+    App<ScrollState> app = new App<>(
+        state,
+        s -> col()
+            .key("list")
+            .w(100)
+            .h(100)
+            .rows(20, heights, row -> el().key("row-" + row).h(40))
+            .scrollState(s));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertFalse(state.atEnd());
+
+    state.scrollToEnd();
+    app.invalidate();
+    app.frame();
+    assertTrue(state.atEnd(), "at the end of the rows as measured");
   }
 }

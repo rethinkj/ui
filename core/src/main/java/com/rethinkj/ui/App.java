@@ -4552,6 +4552,14 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
+    ScrollState kept = el.scrollState();
+    boolean tail = !el.isVirtualList()
+        || !el.measuresRows()
+        || el.rowCount() == 0
+        || el.hasRow(el.rowCount() - 1);
+    if (kept != null && kept.el == el && range.length == 0 && tail) {
+      kept.toEnd = false; // its last rows measured: a scrollToEnd is done
+    }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());
