@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
@@ -42,6 +43,13 @@ class WorkbenchTest {
         Snaps.line("workbench", "orders-workbench-torn", "#status")
             .contains("\"localhost/shop/public/orders · 5 rows\""),
         "the answer in the torn window");
+    assertTrue(
+        Snaps.line("workbench", "workbench-split-dark-2x", "#group-0").contains("#group-0")
+            && Snaps.line("workbench", "workbench-split-dark-2x", "#group-2").contains("#group-2"),
+        "two split groups side by side");
+    assertTrue(
+        Snaps.line("workbench", "workbench-split-dark-2x", "#add").contains("label=\"New tab\""),
+        "plus button in the tab bar");
   }
 
   @Test
@@ -622,6 +630,61 @@ class WorkbenchTest {
     assertEquals(orders, s.groups.main().active().activeTab());
     assertEquals(caretBefore, orders.editor.caret(), "orders caret survived unsplit");
     assertEquals(scrollBefore, findRowsScroll(app.tree()), "orders grid scroll survived unsplit");
+  }
+
+  /**
+   * The tab bar's plus button and Ctrl+T open a query tab for the group's active table, else the
+   * selected table in the tree, else show a status message.
+   */
+  @Test
+  void plusButtonAndCtrlTOpenAQueryTabOrPromptToSelectATable() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run("size 1000 600\nframe\npress #add\nframe", app, out);
+    assertTrue(s.tables().isEmpty(), "no table open or selected");
+    assertEquals("Select a table first", s.message);
+    assertTrue(dump(app).contains("Select a table first"), dump(app));
+
+    // Selecting a table in the tree lets the plus button open it in that group.
+    Script.run("""
+        size 1000 600
+        press role=treeitem label="customers"
+        frame
+        press #add
+        frame
+        await
+        frame""", app, out);
+    assertEquals(1, s.tables().size());
+    assertEquals("customers", s.groups.main().active().activeTab().title());
+
+    // Ctrl+T opens another query tab for the active tab's table.
+    Script.run("size 1000 600\nkey T control\nframe\nawait\nframe", app, out);
+    assertEquals(2, s.tables().size());
+    assertEquals("customers", s.groups.main().active().activeTab().title());
+    assertEquals(3, s.groups.main().active().tabs().size(), "Start plus two customers tabs");
+  }
+
+  /** Ctrl+B and double-clicking the divider collapse the sidebar; it comes back at its width. */
+  @Test
+  void theSidebarCollapsesAndRestoresAtItsLastWidth() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    s.sidebar = Split.Position.first(300);
+    Script.run("size 1000 600\nframe\nkey B control\nframe", app, out);
+    assertTrue(s.sidebar.isCollapsed(), "collapsed via Ctrl+B");
+    assertEquals(300, s.sidebar.value());
+    assertFalse(dump(app).contains("#catalog"), "sidebar removed from tree while collapsed");
+    assertTrue(dump(app).contains("first 300 collapsed first"), dump(app));
+
+    Script.run("size 1000 600\nkey B control\nframe", app, out);
+    assertFalse(s.sidebar.isCollapsed(), "restored via Ctrl+B");
+    assertEquals(300, s.sidebar.value(), "previous width preserved");
+    assertTrue(dump(app).contains("#catalog"), "sidebar back in tree");
+
+    // The divider's reset is collapsed, so a double click collapses too.
+    Script.run("size 1000 600\npress #divider clicks 2\nframe", app, out);
+    assertTrue(s.sidebar.isCollapsed(), "collapsed by double-clicking divider");
+    assertEquals(300, s.sidebar.value());
   }
 
   private static double findRowsScroll(El el) {
