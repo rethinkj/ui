@@ -576,11 +576,16 @@ class TabsTest {
         x(app, find(app, "tab-20"))
             >= x(app, find(app, "tablist")) + find(app, "tablist").width(),
         "active tab was scrolled off-screen");
-    Script.run(
-        "size 400 240\npress #overflow\nframe\nadvance 1\nframe\nwheel #menu 0 1000\nframe\n"
-            + "press #item-20\nframe",
-        app,
-        out);
+    Script.run("""
+        size 400 240
+        press #overflow
+        frame
+        advance 1
+        frame
+        wheel #menu 0 1000
+        frame
+        press #item-20
+        frame""", app, out);
     assertEquals(20, state.active);
     assertEquals(1, state.selects, "already active: onSelect not called again");
     list = find(app, "tablist");

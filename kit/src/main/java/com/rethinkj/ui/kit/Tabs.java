@@ -300,20 +300,20 @@ public final class Tabs {
     float addWidth = Float.NaN;
     float[] tabWidths = new float[0];
     Object revealKey;
-    int revealIndex = -1;
+    float revealX;
+    float revealWidth;
 
     /** The menu of all tabs. */
     public Menu.State menu() {
       return menu;
     }
 
+    /** Grows only: a tab that comes back at an index tells no size again if its size is kept. */
     void resize(int count) {
-      if (tabWidths.length != count) {
+      if (tabWidths.length < count) {
         int prev = tabWidths.length;
         tabWidths = Arrays.copyOf(tabWidths, count);
-        if (count > prev) {
-          Arrays.fill(tabWidths, prev, count, Float.NaN);
-        }
+        Arrays.fill(tabWidths, prev, count, Float.NaN);
       }
     }
 
@@ -323,13 +323,14 @@ public final class Tabs {
       }
     }
 
-    boolean overflows(float available, float gap) {
-      if (tabWidths.length == 0 || Float.isNaN(barWidth) || Float.isNaN(available)) {
+    boolean overflows(int count, float available, float gap) {
+      if (count == 0 || Float.isNaN(barWidth) || Float.isNaN(available)) {
         return false;
       }
       float total = -gap;
       boolean any = false;
-      for (float w : tabWidths) {
+      for (int i = 0; i < count; i++) {
+        float w = tabWidths[i];
         if (Float.isNaN(w)) {
           return any && total > available;
         }
@@ -339,20 +340,11 @@ public final class Tabs {
       return total > available;
     }
 
-    void reveal(int index) {
+    /** Scrolls the list to show this tab of the view the user chose it in, once. */
+    void reveal(El tab, El list) {
       revealKey = new Object();
-      revealIndex = index;
-    }
-
-    float tabLeft(int index, float gap) {
-      float x = 0;
-      for (int i = 0; i < index; i++) {
-        if (Float.isNaN(tabWidths[i])) {
-          return Float.NaN;
-        }
-        x += tabWidths[i] + gap;
-      }
-      return x;
+      revealX = tab.x() + (float) list.scrollX();
+      revealWidth = tab.width();
     }
   }
 
@@ -805,13 +797,13 @@ public final class Tabs {
       if (options.onAdd != null) {
         available -= overflow.addWidth + gap;
       }
-      if (overflow.overflows(available, gap)) {
+      if (overflow.overflows(tabs.size(), available, gap)) {
         List<Menu.Item> items = new ArrayList<>(tabs.size());
         for (int i = 0; i < tabs.size(); i++) {
           int index = i;
           items.add(Menu.item(tabs.get(i).title(), () -> {
                 if (index == active) { // another tab comes into view as the active one
-                  overflow.reveal(index);
+                  overflow.reveal(built.get(index), list);
                 }
                 select.accept(index);
               })
@@ -835,14 +827,9 @@ public final class Tabs {
         room.style().marginLeft = Len.px(-gap); // the bar's gap before it is part of its width
         bar.child(room);
       }
-      if (overflow.revealKey != null && overflow.revealIndex < tabs.size()) {
-        float left = overflow.tabLeft(overflow.revealIndex, gap);
-        float width = overflow.tabWidths[overflow.revealIndex];
-        if (!Float.isNaN(left) && !Float.isNaN(width)) {
-          list.reveal(overflow.revealKey, left, 0, width, height);
-          // Once only: a later build without it must not bring the old choice back.
-          overflow.revealKey = null;
-        }
+      if (overflow.revealKey != null) {
+        list.reveal(overflow.revealKey, overflow.revealX, 0, overflow.revealWidth, height);
+        overflow.revealKey = null; // once: a later build must not bring the old choice back
       }
     }
     if (enabled && dragging != null) {
