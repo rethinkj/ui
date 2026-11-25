@@ -720,8 +720,14 @@ public final class App<S> {
       Target focus = target(x, y, El::isFocusable);
       this.focus.set(focus == null ? null : focus.el, false, time);
     }
-    // A press on or in a field of a selection across a scope keeps it, for that field's menu.
-    if (hit.stream().noneMatch(e -> isScopeSelected(e.editor()))) {
+    // A press in a field of a selection across a scope keeps it, for that field's menu: the
+    // innermost field hit, as a field in another's line ends takes the press.
+    Editor innermost = hit.reversed().stream()
+        .map(El::editor)
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
+    if (!isScopeSelected(innermost)) {
       any |= clearScopeSelection(null);
     }
     return any;
