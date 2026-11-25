@@ -295,7 +295,7 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
     el 412,399 446x345
       el 412,399 446x304
         el role=toolbar label="Providers" 412,399 41x304
-          el #item 0 role=button label="All providers" 416,403 32x32 checked focused
+          el #item 0 role=button label="All providers" 416,403 32x32 checked
             text label="shapes" "\u{F6AC}" 424,411 16x16
           el role=separator 420,441 24x1
           el #item 1 role=button label="Northstar" 416,448 32x32 checked=false
@@ -307,7 +307,7 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
         el 453,399 276x304
           el 461,407 260x288
             el 461,407 260x32
-              text #query role=textbox label="Search models" "" 461,407 260x32
+              text #query role=textbox label="Search models" "" 461,407 260x32 focused caret 0
               text label="search" "\u{EA7C}" 469,415 16x16
             el #options role=listbox label="Search models" 461,443 260x252 rows 0-8/9
               el #group-0 role=group label="Northstar" 461,443 260x28 pos=1/9

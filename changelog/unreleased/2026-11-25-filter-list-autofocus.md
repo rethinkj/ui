@@ -1,0 +1,1 @@
+- `FilterList.filterList(state, placeholder, entries, true)` gives the search field the focus as its popover opens, also when something focusable comes before it, such as a rail.

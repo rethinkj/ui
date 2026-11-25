@@ -337,8 +337,9 @@ public final class FilterList {
    * Popover}, a {@link Card} or a side panel. Typing filters the list; Up and Down, Page Up and
    * Page Down, Home and End move the highlight while the field keeps the focus; Enter or a press
    * on an entry runs its {@link Entry#onChoose}. The field does not take focus on its own (inside
-   * a {@link Popover} it receives focus as the first focusable element), and Escape is left to the
-   * parent.
+   * a {@link Popover} it receives focus as the first focusable element; pass {@code true} to {@link
+   * #filterList(State, String, Entries, boolean)} when something focusable comes before it), and
+   * Escape is left to the parent.
    *
    * <p>The element is {@code size().palette()} wide by default (override with {@code .w(...)} or
    * {@code .wFull()}), its field {@code size().paletteField()} high, and its list at most {@value
@@ -349,6 +350,20 @@ public final class FilterList {
    * @param entries where the entries come from
    */
   public static El filterList(State state, String placeholder, Entries entries) {
+    return filterList(state, placeholder, entries, false);
+  }
+
+  /**
+   * Like {@link #filterList(State, String, Entries)}, and with {@code autofocus} the search field
+   * takes the focus as the list appears ({@link El#autofocus}): as its {@link Popover} opens, also
+   * when something focusable comes before it there.
+   *
+   * @param state what the list keeps between builds
+   * @param placeholder shown while the field is empty, and used as the label of the field and list
+   * @param entries where the entries come from
+   * @param autofocus whether the search field takes the focus as the list appears
+   */
+  public static El filterList(State state, String placeholder, Entries entries, boolean autofocus) {
     Objects.requireNonNull(state, "state");
     Objects.requireNonNull(entries, "entries");
     Theme theme = Theme.CURRENT.get();
@@ -361,6 +376,9 @@ public final class FilterList {
         // Enter without an entry to choose stays here, not a dialog's default button.
         .onKey(k -> key(k, state, CommandPalette.ROWS, choose)
             || k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("NumpadEnter")));
+    if (autofocus) {
+      field.autofocus();
+    }
     Shown shown = shown(state, entries);
     return col()
         .w(theme.size().palette())

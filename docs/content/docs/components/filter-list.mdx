@@ -19,7 +19,7 @@ Javadoc: [`FilterList`](/api/com/rethinkj/ui/kit/FilterList.html), [`FilterList.
 - Store a `FilterList.State` in your app state (`state.modelFilter.text()` reads the typed query).
 - Choosing an entry runs its `onChoose` handler. Close a surrounding `Popover` inside that handler.
 - The element defaults to `size().palette()` width; override it with `.w(...)` or `.wFull()`.
-- The field does not take focus on its own: inside a `Popover` it receives focus automatically as the first focusable element; inside a `Card` or side panel it does not steal focus.
+- The field does not take focus on its own: inside a `Popover` it receives focus automatically as the first focusable element; inside a `Card` or side panel it does not steal focus. When something focusable comes before it in a popover, such as a rail of providers, pass `true` as a fourth argument and the field takes the focus as the popover opens.
 
 <Shot src="examples/docs/filter-list/typed-{theme}" alt="The filter list narrowed by typing at, highlighting the matching characters" />
 
