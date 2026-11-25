@@ -334,6 +334,7 @@ class CpuRendererEquivalenceTest {
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.GRADIENT);
     color(data, at + Scene.GRADIENT_FROM, random);
     color(data, at + Scene.GRADIENT_TO, random);
+    color(data, at + Scene.GRADIENT_UNDER, random);
     put(data, at + Scene.GRADIENT_X1, position(random, width));
     put(data, at + Scene.GRADIENT_Y1, position(random, height));
     if (gradientKind == Scene.GRADIENT_RADIAL) {

@@ -375,12 +375,12 @@ import java.util.Map;
  * 68  startY       f32   y1 (linear) or center y (radial), in logical pixels
  * 72  endX         f32   x2 (linear) or radius x (radial), in logical pixels
  * 76  endY         f32   y2 (linear) or radius y (radial), in logical pixels
- * 80  unused       f32 x 4   0
+ * 80  under       f32 x 4   r, g, b, a: the element's fill when it has no border, else 0
  * </pre>
  *
  * <p>As WGSL it is read as an {@code Instance}, with {@code gradientKind} in {@code shape.x},
- * {@code from} in {@code fill}, {@code to} bitcast from {@code more}, and the resolved geometry in
- * {@code radii}. It is drawn where its rectangle and its clip are, with the coverage of its square
+ * {@code from} in {@code fill}, {@code to} bitcast from {@code more}, the resolved geometry in
+ * {@code radii} and {@code under} in {@code borders}. It is drawn where its rectangle and its clip are, with the coverage of its square
  * rectangle and of its clip, as an image is. For a pixel centered at {@code p}, in logical pixels:
  *
  * <pre>
@@ -389,7 +389,8 @@ import java.util.Map;
  * radial: t = clamp(|((p.x - startX) / endX, (p.y - startY) / endY)|, 0, 1),
  *         or 1 when endX &lt;= 0 or endY &lt;= 0
  * s       = t * t * (3 - 2 * t)
- * output  = (from + (to - from) * s) * coverage, blended as a rectangle's fill
+ * g       = from + (to - from) * s
+ * output  = (g + under * (1 - g.a)) * coverage, blended as a rectangle's fill
  * </pre>
  *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
@@ -541,6 +542,7 @@ public final class Scene {
   public static final int GRADIENT_Y1 = 68;
   public static final int GRADIENT_X2 = 72;
   public static final int GRADIENT_Y2 = 76;
+  public static final int GRADIENT_UNDER = 80;
 
   /** A linear gradient in {@link #GRADIENT_KIND}. */
   public static final int GRADIENT_LINEAR = 0;
@@ -795,8 +797,16 @@ public final class Scene {
       shadow(shadows.get(i), left, top, width, height, radii, opacity, clip);
     }
     int[] colors = el.borderColors();
+    // Without a border the background carries the fill, so that their shared edge is smoothed
+    // once and not twice.
+    boolean carries = el.background() != null
+        && el.arcSweep() >= 1
+        && borders[0] + borders[1] + borders[2] + borders[3] == 0;
     // A transparent side is no border, as one transparent color is, and all of them none at all.
-    if (colors != null && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0 && inside) {
+    if (colors != null
+        && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0
+        && inside
+        && !carries) {
       // The whole rectangle once per side, each clipped to its part, so that every pixel is drawn
       // once: the top border's rows, the bottom border's rows and the left and right halves
       // between them, also of the corners. The cuts lie on physical pixels unless a spring moves
@@ -828,7 +838,7 @@ public final class Scene {
           arc(el);
         }
       }
-    } else if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
+    } else if ((el.fill() >>> 24 != 0 || hasBorder) && inside && !carries) {
       rect(
           left,
           top,
@@ -843,7 +853,18 @@ public final class Scene {
       arc(el);
     }
     if (el.background() != null && inside) {
-      background(el.background(), left, top, width, height, borders, radii, opacity, clip, free);
+      background(
+          el.background(),
+          carries ? el.fill() : 0,
+          left,
+          top,
+          width,
+          height,
+          borders,
+          radii,
+          opacity,
+          clip,
+          free);
     }
     if (el.image() != null && inside) {
       image(el, left, top, width, height, borders, radii, opacity, clip, free);
@@ -1010,6 +1031,7 @@ public final class Scene {
    */
   private void background(
       Background background,
+      int under,
       float left,
       float top,
       float width,
@@ -1061,14 +1083,16 @@ public final class Scene {
         y2 = resolve(radial.radiusY(), h);
       }
     }
-    if ((from | to) >>> 24 == 0) {
+    if ((from | to | under) >>> 24 == 0) {
       return;
     }
+    // A corner of sides of different widths is an ellipse inside the border; a circle with its
+    // longer half axis stays within it, so that the background never covers the border.
     float[] inner = {
-      Math.max(radii[0] - Math.max(borders[3], borders[0]), 0),
-      Math.max(radii[1] - Math.max(borders[1], borders[0]), 0),
-      Math.max(radii[2] - Math.max(borders[1], borders[2]), 0),
-      Math.max(radii[3] - Math.max(borders[3], borders[2]), 0)
+      Math.max(radii[0] - Math.min(borders[3], borders[0]), 0),
+      Math.max(radii[1] - Math.min(borders[1], borders[0]), 0),
+      Math.max(radii[2] - Math.min(borders[1], borders[2]), 0),
+      Math.max(radii[3] - Math.min(borders[3], borders[2]), 0)
     };
     int own = clip;
     if (inner[0] > 0 || inner[1] > 0 || inner[2] > 0 || inner[3] > 0) {
@@ -1101,9 +1125,7 @@ public final class Scene {
     put(offset + GRADIENT_Y1, y1);
     put(offset + GRADIENT_X2, x2);
     put(offset + GRADIENT_Y2, y2);
-    for (int slot = GRADIENT_Y2 + 4; slot < STRIDE; slot += 4) {
-      put(offset + slot, 0);
-    }
+    color(offset + GRADIENT_UNDER, under, opacity);
     count++;
   }
 

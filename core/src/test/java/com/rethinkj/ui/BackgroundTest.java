@@ -134,4 +134,43 @@ class BackgroundTest {
     app.frame();
     assertEquals(1, clicks.get(), "click hits the element normally");
   }
+
+  @Test
+  void leavesTheBorderWholeAndSmoothsARoundedEdgeOnce() {
+    Background opaque =
+        Background.linear(Len.ZERO, Len.ZERO, Len.percent(1), Len.ZERO, 0xFFFF0000, 0xFF0000FF);
+    // Sides of different widths round their inner corners as ellipses.
+    Pixels bare =
+        Headless.render(card().border(10, 2, 2, 2, 0xFF22C55E), 60, 40, 1.25f).pixels();
+    Pixels painted = Headless.render(
+            card().border(10, 2, 2, 2, 0xFF22C55E).background(opaque), 60, 40, 1.25f)
+        .pixels();
+    for (int y = 0; y < 50; y++) {
+      for (int x = 0; x < 75; x++) {
+        if (bare.argb(x, y) == 0xFF22C55E) {
+          assertEquals(0xFF22C55E, painted.argb(x, y), "border at " + x + ", " + y);
+        }
+      }
+    }
+    // Without a border, an opaque background over the fill has the edge of the fill alone.
+    Pixels fill = Headless.render(card().fill(0xFFFFFFFF), 60, 40, 1.25f).pixels();
+    Pixels over = Headless.render(
+            card()
+                .fill(0xFFFFFFFF)
+                .background(Background.linear(
+                    Len.ZERO, Len.ZERO, Len.percent(1), Len.ZERO, 0xFFFFFFFF, 0xFFFFFFFF)),
+            60,
+            40,
+            1.25f)
+        .pixels();
+    for (int y = 0; y < 50; y++) {
+      for (int x = 0; x < 75; x++) {
+        assertEquals(fill.argb(x, y), over.argb(x, y), "edge at " + x + ", " + y);
+      }
+    }
+  }
+
+  private static El card() {
+    return el().size(60, 40).radius(12);
+  }
 }

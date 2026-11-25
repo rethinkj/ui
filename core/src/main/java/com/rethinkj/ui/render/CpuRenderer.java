@@ -522,6 +522,7 @@ public final class CpuRenderer {
     int kind = scene.getInt(i, Scene.GRADIENT_KIND);
     double[] from = color(scene, i, Scene.GRADIENT_FROM);
     double[] to = color(scene, i, Scene.GRADIENT_TO);
+    double[] under = color(scene, i, Scene.GRADIENT_UNDER);
     double x1 = scene.get(i, Scene.GRADIENT_X1);
     double y1 = scene.get(i, Scene.GRADIENT_Y1);
     double x2 = scene.get(i, Scene.GRADIENT_X2);
@@ -587,13 +588,15 @@ public final class CpuRenderer {
           t = length > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / length, 0, 1) : 0;
         }
         double s = t * t * (3 - 2 * t);
+        double a = from[3] + (to[3] - from[3]) * s;
+        double rest = 1 - a;
         blend(
             frame,
             (row + px) * 4,
-            (from[0] + (to[0] - from[0]) * s) * coverage,
-            (from[1] + (to[1] - from[1]) * s) * coverage,
-            (from[2] + (to[2] - from[2]) * s) * coverage,
-            (from[3] + (to[3] - from[3]) * s) * coverage,
+            (from[0] + (to[0] - from[0]) * s + under[0] * rest) * coverage,
+            (from[1] + (to[1] - from[1]) * s + under[1] * rest) * coverage,
+            (from[2] + (to[2] - from[2]) * s + under[2] * rest) * coverage,
+            (a + under[3] * rest) * coverage,
             blends);
       }
     }

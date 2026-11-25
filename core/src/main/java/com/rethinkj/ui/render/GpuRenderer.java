@@ -102,7 +102,7 @@ public final class GpuRenderer implements AutoCloseable {
       // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
       // shape, phase in more.x), a color glyph (a glyph whose page lies in color_atlas and whose
       // fill holds its opacity) or a gradient (gradient kind in shape.x, from in fill, to in more,
-      // geometry in radii). The slots in which they differ are declared as u32
+      // geometry in radii, the fill under it in borders). The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -589,7 +589,8 @@ public final class GpuRenderer implements AutoCloseable {
           }
           let s = t * t * (3.0 - 2.0 * t);
           let to = bitcast<vec4f>(instance.more);
-          return (instance.fill + (to - instance.fill) * s) * grad_cover;
+          let g = instance.fill + (to - instance.fill) * s;
+          return (g + instance.borders * (1.0 - g.a)) * grad_cover;
         }
         if instance.kind == LINE {
           let a = instance.rect.xy;

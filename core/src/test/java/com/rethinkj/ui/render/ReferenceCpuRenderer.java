@@ -338,14 +338,17 @@ final class ReferenceCpuRenderer {
         int at = (py * width + px) * 4;
         double fromA = scene.get(i, Scene.GRADIENT_FROM + 12);
         double toA = scene.get(i, Scene.GRADIENT_TO + 12);
-        double alpha = (fromA + (toA - fromA) * s) * coverage;
+        double gradientA = fromA + (toA - fromA) * s;
+        double rest = 1 - gradientA;
+        double alpha = (gradientA + scene.get(i, Scene.GRADIENT_UNDER + 12) * rest) * coverage;
         if (blends != null) {
           blends.blend(frame, at, alpha);
         }
         for (int c = 0; c < 4; c++) {
           double from = scene.get(i, Scene.GRADIENT_FROM + c * 4);
           double to = scene.get(i, Scene.GRADIENT_TO + c * 4);
-          double source = (from + (to - from) * s) * coverage;
+          double under = scene.get(i, Scene.GRADIENT_UNDER + c * 4);
+          double source = (from + (to - from) * s + under * rest) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
         }
       }
