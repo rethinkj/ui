@@ -820,8 +820,6 @@ final class Editor {
     blur();
     el.text().dropComposition();
     place(false, false);
-    leftX = el.scrollX();
-    leftY = el.scrollY();
   }
 
   /**
@@ -846,6 +844,10 @@ final class Editor {
    * it: the field scrolls to where it was when it left, or to the start the first time.
    */
   void returned() {
+    if (!returning) { // not again before placeLines: another build of the frame, unscrolled
+      leftX = el.scrollX(); // of the field it was attached to last, which moved or left
+      leftY = el.scrollY();
+    }
     returning = true;
   }
 

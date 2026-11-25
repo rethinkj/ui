@@ -132,6 +132,27 @@ class FieldStateTest {
     assertSame(app.state().fields[0].editor, field(app).editor());
   }
 
+  @Test
+  void theScrollComesBackAfterAFieldWithoutOneTookItsPlace() {
+    TextLibraries.assumeLoaded();
+    App<Model> app = started();
+    app.focus(field(app));
+    app.frame();
+    key(app, "End", Key.CONTROL);
+    double scrolled = field(app).scrollY();
+    assertTrue(scrolled > 0, "scrolled to the end");
+    app.focus(app.tree().children().get(1)); // not revealed by its caret when it comes back
+    app.frame();
+
+    app.state().keep = false;
+    app.invalidate();
+    app.frame();
+    app.state().keep = true;
+    app.invalidate();
+    app.frame();
+    assertEquals(scrolled, field(app).scrollY());
+  }
+
   /** The view of a window that shows the first query while {@code active} names it. */
   private static App<Model> window(Model model, int window) {
     App<Model> app = new App<>(

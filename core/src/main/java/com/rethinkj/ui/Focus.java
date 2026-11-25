@@ -245,8 +245,9 @@ final class Focus {
   }
 
   /**
-   * Finds the focused element in a new tree by its identity, or where the focus goes when it is
-   * gone or can no longer take it ({@link #recover}).
+   * Finds the focused element in a new tree by its identity (or, for a text field with a {@link
+   * FieldState}, by that state when its identity moved), or where the focus goes when it is gone or
+   * can no longer take it ({@link #recover}).
    *
    * @param focusables the elements of the tree that can take the focus, in tree order
    * @return the focused element if it is due to be scrolled into view now, else null
@@ -269,6 +270,7 @@ final class Focus {
         awaiting = null;
       }
     }
+    FieldState state = element == null ? null : element.fieldState();
     if (element != null) {
       element.focused(false);
     }
@@ -289,6 +291,7 @@ final class Focus {
         reveal = false;
         return refocus(focusables, time);
       }
+      state = null; // an autofocus element took the focus at this identity
     }
     if (el == null && waits()) {
       element = null; // kept by its identity until the row exists again
@@ -296,6 +299,19 @@ final class Focus {
       return null;
     }
     List<El> order = focusables.get();
+    if (state != null && (el == null || el.fieldState() != state || !order.contains(el))) {
+      for (El candidate : order) {
+        if (candidate.fieldState() == state) {
+          el = candidate;
+          id = animator.identity(el);
+          Animator.InRow in = animator.inRow(id);
+          if (in != null) {
+            remembered.put(in.listId(), id);
+          }
+          break;
+        }
+      }
+    }
     if (el == null || !order.contains(el)) {
       el = recover(id, order);
       if (el == null) {

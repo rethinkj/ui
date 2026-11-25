@@ -258,6 +258,7 @@ public final class App<S> {
   private final Set<Object> relooking = new HashSet<>(); // lists that build their rows anew
   private final Focus focus = new Focus(animator); // the keyboard focus
   private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
+  private FieldState toldState; // and its field's FieldState, which keeps it when the field moves
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -3762,7 +3763,11 @@ public final class App<S> {
       attached = true;
       Object id = Animator.identities(path).getLast();
       FieldState state = el.fieldState();
-      Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
+      Editor editor = state == null ? editors.get(id) : null;
+      if (state == null && (editor == null || editor.element().fieldState() != null)) {
+        editor = new Editor(el); // not the editor of a field with a FieldState that moved on
+        editors.put(id, editor);
+      }
       if (state != null) {
         if (state.app == this && state.build == builds && !state.id.equals(id)) {
           throw new IllegalStateException("Two text fields have the same FieldState. Give each"
@@ -3813,7 +3818,7 @@ public final class App<S> {
       // El#ellipsis shortens it without the focus, but not while it shows a part of a scope's
       // selection, which Editor#place keeps in view.
       boolean inScopeSelection = applyScopeSelectionOnAttach(el, path, id, editor);
-      el.text().unfocused(!id.equals(focus.id()) && !inScopeSelection);
+      el.text().unfocused(!hasFocus(id, state) && !inScopeSelection);
     }
     for (El child : el.children()) {
       attached |= attachEditors(child, path);
@@ -3823,6 +3828,15 @@ public final class App<S> {
     }
     path.removeLast();
     return attached;
+  }
+
+  /**
+   * Whether the field with identity {@code id} and {@code state} has the focus, also when it moved
+   * since the focus found it: {@link Focus#refocus} follows a field by its FieldState.
+   */
+  private boolean hasFocus(Object id, FieldState state) {
+    FieldState focused = focus.element() == null ? null : focus.element().fieldState();
+    return focused != null ? focused == state : id.equals(focus.id());
   }
 
   /**
@@ -3870,7 +3884,9 @@ public final class App<S> {
       int asking = El.autofocuses();
       for (Editor editor : toPlace) {
         boolean focused = editor == blinking
-            && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
+            && (sweep
+                || hasFocus(
+                    animator.identity(editor.element()), editor.element().fieldState()));
         editor.place(focused, focused || scopeSelected.contains(editor), caretOn);
         placed.add(editor.element());
       }
@@ -3887,7 +3903,9 @@ public final class App<S> {
           Text text = editor.element().text();
           if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
             boolean focused = editor == blinking
-                && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
+                && (sweep
+                    || hasFocus(
+                        animator.identity(editor.element()), editor.element().fieldState()));
             editor.place(focused, focused || scopeSelected.contains(editor), caretOn);
             placed.add(editor.element());
             moved = true; // what it measured now, such as a long line's width, may let it follow on
@@ -4330,6 +4348,8 @@ public final class App<S> {
    */
   private boolean tellFocusIn() {
     Object now = focus.id();
+    FieldState wasState = toldState;
+    toldState = focus.element() == null ? null : focus.element().fieldState();
     if (Objects.equals(now, toldFocus)) {
       return false;
     }
@@ -4340,8 +4360,8 @@ public final class App<S> {
     }
     boolean told = false;
     for (Object id : Animator.lineage(now)) {
-      if (within(was, id)) {
-        continue;
+      if (within(was, id) || id.equals(now) && toldState != null && toldState == wasState) {
+        continue; // the field itself moved with its FieldState, not the focus
       }
       El el = animator.element(id);
       if (el != null && !el.isExiting() && !el.isInert() && el.onFocusIn() != null) {

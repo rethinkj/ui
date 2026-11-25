@@ -6,6 +6,8 @@ import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,6 +17,7 @@ import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -242,6 +245,115 @@ class FocusTest {
     app.frame();
     assertNull(app.focused());
     assertFalse(app.tree().dump().contains("focused"));
+  }
+
+  @Test
+  void aFieldWithAFieldStateKeepsTheFocusWhenSiblingsAreAddedOrRemovedBeforeIt() {
+    TextLibraries.assumeLoaded();
+    FieldState target = new FieldState();
+    int[] entered = {0};
+    record Entry(String[] text, FieldState state) {}
+    List<Entry> entries = new ArrayList<>(List.of(
+        new Entry(new String[] {"first"}, null), new Entry(new String[] {"second"}, target)));
+    App<List<Entry>> app = new App<>(entries, list -> {
+      El root = col().wFull().hFull().gap(4);
+      for (Entry entry : list) {
+        El field =
+            El.text(entry.text()[0]).editable(v -> entry.text()[0] = v).w(120).h(24);
+        root.child(
+            entry.state() == null
+                ? field
+                : field.fieldState(entry.state()).onFocusIn(() -> entered[0]++));
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    start(app, 200, 120);
+
+    app.focus(app.tree().children().get(1));
+    app.frame();
+    assertSame(target, app.focused().fieldState());
+    assertNotNull(app.focused().text().caret(), "caret shown before insert");
+
+    // Insert before it: index 1 is now "first", but focus follows target to index 2.
+    entries.add(0, new Entry(new String[] {"zero"}, null));
+    app.invalidate();
+    app.frame();
+    assertNotNull(app.focused());
+    assertSame(target, app.focused().fieldState(), "focus follows FieldState across insert");
+    assertSame(app.tree().children().get(2), app.focused());
+    assertNotNull(app.focused().text().caret(), "caret stays visible after insert");
+    assertNotSame(app.focused().editor(), app.tree().children().get(1).editor(), "its old index");
+    app.textInput("!");
+    app.frame();
+    assertEquals("zero", entries.get(0).text()[0]);
+    assertEquals("first", entries.get(1).text()[0]);
+    assertEquals("second!", entries.get(2).text()[0], "typing still goes to the FieldState field");
+
+    // Remove both siblings before it: old index 2 is gone, focus follows target to index 0.
+    entries.remove(0);
+    entries.remove(0);
+    app.invalidate();
+    app.frame();
+    assertNotNull(app.focused());
+    assertSame(target, app.focused().fieldState(), "focus follows FieldState across remove");
+    assertSame(app.tree().children().getFirst(), app.focused());
+    assertNotNull(app.focused().text().caret(), "caret stays visible after remove");
+    app.textInput("?");
+    app.frame();
+    assertEquals("second!?", entries.getFirst().text()[0]);
+    assertEquals(1, entered[0], "onFocusIn runs once, not when the field moves");
+  }
+
+  @Test
+  void aRootSelectionScopeCopiesAfterASiblingIsAddedBeforeAFocusedFieldState() {
+    TextLibraries.assumeLoaded();
+    FieldState beta = new FieldState();
+    record Item(String key, String text) {}
+    List<Item> items = new ArrayList<>(List.of(
+        new Item("a", "Alpha one"), new Item("b", "Beta two"), new Item("c", "Gamma three")));
+    App<List<Item>> app = new App<>(items, list -> {
+      El root = col().wFull().hFull().selectionScope().gap(8);
+      for (Item item : list) {
+        El field =
+            El.text(item.text()).editable(v -> {}).readOnly().w(180).h(24).padding(0, 4);
+        root.child(item.key().equals("b") ? field.fieldState(beta) : field.key(item.key()));
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    start(app, 220, 200);
+
+    // Drag from "a" (y 0..24) into unkeyed "b" (y 32..56): focus lands on "b".
+    app.pointerDown(32, 12);
+    app.pointerMove(36, 44);
+    app.pointerUp(36, 44);
+    app.frame();
+    assertNotNull(app.focused());
+    assertSame(beta, app.focused().fieldState());
+    key(app, "C", Key.CONTROL);
+    String expected = app.clipboard().read();
+    assertTrue(expected.contains("\n"), "cross-field selection copied: " + expected);
+
+    // Insert a keyed sibling before "a": index 1 is now keyed "a", so old index 1 has no element.
+    items.add(0, new Item("pre", "Inserted zero"));
+    app.invalidate();
+    app.frame();
+    assertNotNull(app.focused(), "focus is not lost in the root selection scope");
+    assertSame(beta, app.focused().fieldState());
+    app.clipboard().write("stale");
+    key(app, "C", Key.CONTROL);
+    assertEquals(expected, app.clipboard().read(), "Control+C copies the selection after insert");
+
+    // Remove the inserted sibling before "a": focus follows beta back to index 1.
+    items.remove(0);
+    app.invalidate();
+    app.frame();
+    assertNotNull(app.focused());
+    assertSame(beta, app.focused().fieldState());
+    app.clipboard().write("stale");
+    key(app, "C", Key.CONTROL);
+    assertEquals(expected, app.clipboard().read(), "Control+C copies the selection after remove");
   }
 
   /** Two pages of a panel, each with its own fields, as two tabs' contents; a key flips them. */

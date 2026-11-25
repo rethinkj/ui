@@ -1,0 +1,1 @@
+- Keyboard focus now follows a text field with a `FieldState` when siblings are added or removed before it, even without a key, so typing and Control+C in an `El.selectionScope()` continue to act on it.
