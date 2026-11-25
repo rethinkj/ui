@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Side;
+import com.rethinkj.ui.Style;
+import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -502,10 +505,64 @@ class PartsTest {
                 s,
                 "Details",
                 Label.label("Read-only information"))));
-    Script.run("size 400 200\nframe\nfocus #details\nkey Enter\nframe\n", app, out);
+    Script.run("size 400 200\nframe\n", app, out);
+    assertTrue(
+        StructureTest.line(app.tree().dump(), "#details ").contains(" expanded=false"),
+        app.tree().dump());
+    Script.run("focus #details\nkey Enter\nframe\n", app, out);
     assertEquals("popover", app.focused().key(), "the popover itself took the focus");
+    String open = StructureTest.line(app.tree().dump(), "#details ");
+    assertTrue(open.contains(" expanded") && !open.contains("expanded=false"), open);
     Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
     assertFalse(state.isOpen());
     assertEquals("details", app.focused().key());
+    assertTrue(
+        StructureTest.line(app.tree().dump(), "#details ").contains(" expanded=false"),
+        app.tree().dump());
+  }
+
+  @Test
+  void theContentOfAFlushPopoverMeetsItsBorder() throws IOException {
+    Theme theme = Theme.DARK;
+    Popover.State state = new Popover.State();
+    App<Popover.State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(theme.space().l())
+            .fill(theme.surface().window())
+            .child(Popover.flush(
+                Button.button(Button.Variant.SECONDARY, "Picker", s::toggle).key("picker"),
+                s,
+                Side.BOTTOM,
+                Style.Align.START,
+                "Picker",
+                col()
+                    .key("body")
+                    .w(120)
+                    .h(40)
+                    .fill(theme.accent().color())
+                    .child(El.el().h(20))
+                    .child(Divider.divider().key("sep")))));
+    // at 1.5 the content's edges fall between pixels, where it must still meet the border
+    Script.run(
+        "size 300 200 scale 1.5\nframe\npress #picker\nframe\nadvance 0.25\nframe\nsnap flush\n",
+        app,
+        out);
+    String dump = app.tree().dump();
+    float[] panel = StructureTest.rect(StructureTest.line(dump, "#popover "));
+    float[] sep = StructureTest.rect(StructureTest.line(dump, "#sep "));
+    Pixels image = Png.decode(Files.readAllBytes(out.resolve("flush.png")));
+    int left = Math.round(panel[0] * 1.5f); // the border's column and row, 1 pixel wide at 1.5
+    int top = Math.round(panel[1] * 1.5f);
+    int accent = theme.accent().color();
+    assertEquals(accent, image.argb(left + 1, top + 15), "the fill meets the left border");
+    assertEquals(accent, image.argb(left + 30, top + 1), "the fill meets the top border");
+    assertFalse(image.argb(left + 30, top) == accent, "the top border stays visible");
+    assertFalse(image.argb(left + 2, top + 1) == accent, "the rounded corner stays visible");
+    int divider = Math.round(sep[1] * 1.5f);
+    assertEquals(
+        image.argb(left + 30, divider), image.argb(left + 1, divider), "the divider meets it");
   }
 }

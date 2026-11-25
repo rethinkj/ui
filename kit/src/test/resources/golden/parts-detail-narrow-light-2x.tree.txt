@@ -27,7 +27,7 @@ el 0,0 330x420
               text label="text_t" "\u{ECAE}" 160,61 16x16
           el #more role=button label="More" 188,57 24x24
             text label="more_horizontal" "\u{E823}" 192,61 16x16
-        el #filter role=button label="Filter" 224,57 77x24
+        el #filter role=button label="Filter" 224,57 77x24 expanded=false
           text label="filter" "\u{E60A}" 237,61 16x16
           text "Filter" 257,61 31x16
   el 12,110 306x298
