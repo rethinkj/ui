@@ -115,10 +115,7 @@ final class Focus {
     if (el != null) {
       el.focused(true);
       noteRecent(); // here too: another request of the same frame may move it on before a rebuild
-      Animator.InRow in = animator.inRow(id);
-      if (in != null) {
-        remembered.put(in.listId(), id);
-      }
+      remember(id);
     }
     return ring;
   }
@@ -171,6 +168,13 @@ final class Focus {
       if (recent.size() > 16) {
         recent.removeLast();
       }
+    }
+  }
+
+  /** Notes the element with this identity as the last that had the focus in the lists around it. */
+  private void remember(Object id) {
+    for (Animator.InRow in = animator.inRow(id); in != null; in = animator.inRow(in.listId())) {
+      remembered.put(in.listId(), id);
     }
   }
 
@@ -299,10 +303,7 @@ final class Focus {
         if (candidate.fieldState() == state) {
           el = candidate;
           id = animator.identity(el);
-          Animator.InRow in = animator.inRow(id);
-          if (in != null) {
-            remembered.put(in.listId(), id);
-          }
+          remember(id);
           break;
         }
       }
@@ -326,10 +327,7 @@ final class Focus {
       since = time;
       keyed = false;
       typeAhead.setLength(0);
-      Animator.InRow in = animator.inRow(id);
-      if (in != null) {
-        remembered.put(in.listId(), id);
-      }
+      remember(id);
     }
     element = el;
     el.focused(true);

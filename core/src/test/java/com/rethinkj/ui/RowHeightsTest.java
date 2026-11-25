@@ -154,7 +154,8 @@ class RowHeightsTest {
 
   /**
    * Tab goes to a focusable row of a list in a row that isn't built, several screens down, and
-   * shows it; on to a row of the outer list that isn't built either; Shift+Tab goes back.
+   * shows it; on to a row of the outer list that isn't built either; Shift+Tab goes back, also
+   * into the last row of the inner list when the outer list builds its row anew.
    */
   @Test
   void tabReachesFocusableRowsThatAreNotBuiltAndShowsThem() {
@@ -169,7 +170,7 @@ class RowHeightsTest {
                 el().key("list")
                     .h(100)
                     .rows(
-                        2,
+                        7,
                         outer,
                         i -> i == 0
                             ? el().key("inner")
@@ -179,7 +180,7 @@ class RowHeightsTest {
                                     j -> j == 0 || j == 150
                                         ? el().key("link-" + j).focusable().h(20)
                                         : el().h(20))
-                            : el().key("end").focusable().h(20)),
+                            : i == 6 ? el().key("end").focusable().h(20) : el().h(50)),
                 el().key("after").focusable().h(20)));
     app.resize(200, 200, 1);
     app.frame();
@@ -198,11 +199,14 @@ class RowHeightsTest {
   }
 
   /**
-   * Tab back into a list in a row goes to the row that had the focus there, also when the outer
-   * list scrolled it out of its view meanwhile.
+   * Tab into a list in a row goes to its first row in view of the outer list, and back into it to
+   * the row that had the focus there, also when the outer list scrolled that row, or its own row
+   * that holds the inner list, out of its view meanwhile.
    */
   @Test
   void tabReturnsToTheRowOfAListInARowThatTheOuterListScrolledAway() {
+    RowHeights outer = new RowHeights(i -> 100);
+    RowHeights inner = new RowHeights(j -> 20);
     App<Object> app = new App<>(
         new Object(),
         s -> col()
@@ -213,26 +217,35 @@ class RowHeightsTest {
                 el().key("list")
                     .h(100)
                     .rows(
-                        1,
-                        new RowHeights(i -> 800),
-                        i -> el().key("inner")
-                            .rows(
-                                40,
-                                new RowHeights(j -> 20),
-                                j -> el().key("row-" + j).focusable().h(20)))));
+                        9,
+                        outer,
+                        i -> i == 0
+                            ? el().key("inner")
+                                .rows(
+                                    40,
+                                    inner,
+                                    j -> el().key("row-" + j).focusable().h(20))
+                            : el().h(100))));
     app.resize(200, 200, 1);
     app.frame();
     app.scrollTo(find(app.tree(), "list"), 0, 300);
     app.frame();
-    app.focus(find(app.tree(), "row-16"));
-    app.frame();
     app.focus(find(app.tree(), "before"));
-    app.scrollTo(find(app.tree(), "list"), 0, 0);
     app.frame();
-    assertEquals(null, find(app.tree(), "row-16"), "out of the outer list's view");
     tab(app, 0);
-    assertEquals("row-16", key(app.focused()), app.tree().dump());
-    assertInView(app);
+    assertEquals(
+        "row-15", key(app.focused()), "the first row in view: " + app.tree().dump());
+    tab(app, 0);
+    assertEquals("row-16", key(app.focused()));
+    for (double offset : new double[] {0, 1500}) {
+      app.focus(find(app.tree(), "before"));
+      app.scrollTo(find(app.tree(), "list"), 0, offset);
+      app.frame();
+      assertEquals(null, find(app.tree(), "row-16"), "out of the outer list's view");
+      tab(app, 0);
+      assertEquals("row-16", key(app.focused()), app.tree().dump());
+      assertInView(app);
+    }
   }
 
   private static void tab(App<?> app, int modifiers) {

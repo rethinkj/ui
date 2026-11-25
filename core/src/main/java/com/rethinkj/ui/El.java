@@ -6414,11 +6414,20 @@ public final class El {
    * where none is whole, the first one in view. 0 for a list without rows.
    */
   int rowInView(boolean last) {
-    double from = scrollY - rowsTop(); // the content at the top of the border box
+    return rowInView(last, 0, height);
+  }
+
+  /**
+   * Like {@link #rowInView(boolean)}, inside the part of the border box from {@code shownTop} to
+   * {@code shownBottom} that the areas around the list leave visible.
+   */
+  int rowInView(boolean last, double shownTop, double shownBottom) {
+    double offset = scrollY - rowsTop(); // the content at the top of the border box
+    double from = offset + Math.max(shownTop, 0);
+    double to = Math.max(offset + Math.min(shownBottom, height - coverY), from);
     long top = rowAfter(from);
-    long bottom = rowAt(from + height - coverY) - (rows.heights == null ? 1 : 0);
-    if (rows.heights != null
-        && rowTop((int) Math.min(bottom + 1, rows.rowCount)) > from + height - coverY) {
+    long bottom = rowAt(to) - (rows.heights == null ? 1 : 0);
+    if (rows.heights != null && rowTop((int) Math.min(bottom + 1, rows.rowCount)) > to) {
       bottom--; // the row at the bottom edge is not whole
     }
     if (top > bottom) {

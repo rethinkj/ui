@@ -544,6 +544,31 @@ class RowsTest {
     assertEquals("row-5001", key(app.focused()), "row by row inside the list");
   }
 
+  /** Tab past a long list without anything to focus in its rows builds only some of them. */
+  @Test
+  void tabPassesALongListWithoutStopsAndBuildsFewOfItsRows() {
+    int[] calls = {0};
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .size(200, 240)
+            .children(
+                el().key("before").focusable().h(20),
+                el().key("list").h(200).rows(1_000_000, 28, i -> {
+                  calls[0]++;
+                  return el().h(28);
+                }),
+                el().key("after").focusable().h(20)));
+    app.resize(200, 240, 1);
+    app.frame();
+    app.focus(find(app.tree(), "before"));
+    app.frame();
+    calls[0] = 0;
+    tab(app, 0);
+    assertEquals("after", key(app.focused()));
+    assertTrue(calls[0] < 10_000, calls[0] + " rows built");
+  }
+
   private static boolean hasRing(Scene scene) {
     for (int i = 0; i < scene.count(); i++) {
       if (scene.get(i, Scene.BORDER_WIDTH) == Scene.RING) {
