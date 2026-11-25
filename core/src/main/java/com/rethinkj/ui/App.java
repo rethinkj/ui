@@ -2364,6 +2364,9 @@ public final class App<S> {
       this.active = active;
       blinkStart = time;
       if (!active) { // its key comes up elsewhere, if at all
+        if (capture instanceof Selecting s) {
+          s.moved = false; // no edge scroll until the pointer moves again
+        }
         keyPressed = null;
         keyPressKey = null;
         hover.clearModifiers();
@@ -4593,8 +4596,9 @@ public final class App<S> {
   /** The pointer moved while a press selects in a field, or across fields of a {@link El#selectionScope}. */
   private boolean drag(Selecting s, float x, float y) {
     if (s.scopeId() != null) {
+      boolean held = capture == s; // a release has ended the capture already
       remapScopeSelection();
-      if (capture != s) {
+      if (held && capture != s) {
         return false; // the keyed anchor row left the list
       }
       El scope = animator.liveElement(s.scopeId());
@@ -4692,7 +4696,7 @@ public final class App<S> {
       if (scope != null) {
         if (list == null) {
           if (scopeSelection.anchorFrom.row() >= 0 || scopeSelection.end.row() >= 0) {
-            scopeSelection = null;
+            clearScopeSelection(null); // its ranges go with it
           }
         } else {
           int version = list.rowsVersion();
@@ -4701,7 +4705,7 @@ public final class App<S> {
                 remapRow(list, scopeSelection.anchorFrom.row(), scopeSelection.anchorRowKey);
             int endRow = remapRow(list, scopeSelection.end.row(), scopeSelection.endRowKey);
             if (anchorRow == Integer.MIN_VALUE || endRow == Integer.MIN_VALUE) {
-              scopeSelection = null;
+              clearScopeSelection(null); // its ranges go with it
             } else {
               scopeSelection.anchorFrom = scopeSelection.anchorFrom.inRow(anchorRow);
               scopeSelection.anchorTo = scopeSelection.anchorTo.inRow(anchorRow);
@@ -4712,7 +4716,7 @@ public final class App<S> {
           if (scopeSelection != null
               && (scopeSelection.anchorFrom.row() >= list.rowCount()
                   || scopeSelection.end.row() >= list.rowCount())) {
-            scopeSelection = null;
+            clearScopeSelection(null); // its ranges go with it
           }
         }
       }
@@ -4781,7 +4785,7 @@ public final class App<S> {
       if (container == null) {
         return false;
       }
-      ordinal = fieldOrdinalIn(container, el, row >= 0 ? null : scopeList(container), false);
+      ordinal = fieldOrdinalIn(container, el, row >= 0 ? null : scopeList(container));
       if (ordinal < 0) {
         return false;
       }
@@ -4879,7 +4883,7 @@ public final class App<S> {
     if (container == null) {
       return false;
     }
-    int ordinal = fieldOrdinalIn(container, el, skipList, true);
+    int ordinal = fieldOrdinalIn(container, el, skipList);
     return ordinal >= 0 && scopeSelection.covers(row, ordinal);
   }
 
@@ -4923,7 +4927,8 @@ public final class App<S> {
 
   /** Handles a key on the focused field; one that moves the caret ends a cross-field selection. */
   private boolean handleFieldKey(El el, Key key) {
-    if (isCopy(key) && isScopeSelected(el.editor())) {
+    // By the scope, not the field: the focus stays at its row index when keyed rows move.
+    if (isCopy(key) && isScopeSelectedId(animator.identity(el))) {
       copyScopeSelection();
       return true;
     }
@@ -4961,13 +4966,12 @@ public final class App<S> {
       int toRow = Math.min(list.rowCount() - 1, scopeSelection.finish().row());
       List<El> rowFields = new ArrayList<>();
       for (int row = fromRow; row <= toRow; row++) {
-        boolean built = list.hasRow(row);
         El rowEl = list.rowElement(row);
         if (rowEl == null) {
           continue;
         }
         rowFields.clear();
-        collectRowFields(rowEl, built, rowFields);
+        collectRowFields(rowEl, rowFields);
         for (int ord = 0; ord < rowFields.size(); ord++) {
           appendScopeSlice(out, fieldText(rowFields.get(ord)), row, ord);
         }
@@ -5045,7 +5049,7 @@ public final class App<S> {
       if (target == null) {
         return null;
       }
-      int ordinal = fieldOrdinalIn(rowEl, target, null, list.hasRow(row));
+      int ordinal = fieldOrdinalIn(rowEl, target, null);
       return ordinal < 0 ? null : new ScopePosition(row, ordinal, waiting.anchor());
     }
     return null;
@@ -5061,20 +5065,25 @@ public final class App<S> {
     return null;
   }
 
+  /**
+   * Whether the fields inside {@code el} count for a scope's positions. Only what a row as built
+   * and the same row as its function builds it anew agree on counts: not placement or opacity,
+   * which looks such as hovering change.
+   */
+  private static boolean numbered(El el) {
+    return !el.isExiting() && el.style().display != Style.Display.NONE && !el.isInert();
+  }
+
   /** Collects the read-only, unmasked fields inside one virtual list row in tree order. */
-  private static void collectRowFields(El el, boolean built, List<El> out) {
-    if (built && !el.isPlaced()
-        || el.isExiting()
-        || el.opacity() == 0
-        || el.style().display == Style.Display.NONE
-        || el.isInert()) {
+  private static void collectRowFields(El el, List<El> out) {
+    if (!numbered(el)) {
       return;
     }
-    if (built ? scopeField(el) : isScopeFieldCandidate(el)) {
+    if (isScopeFieldCandidate(el)) {
       out.add(el);
     }
     for (El child : el.children()) {
-      collectRowFields(child, built, out);
+      collectRowFields(child, out);
     }
   }
 
@@ -5082,28 +5091,23 @@ public final class App<S> {
    * The ordinal of {@code target} among read-only unmasked fields in {@code container} (skipping
    * {@code skipList} when non-null), or -1 if not found.
    */
-  private static int fieldOrdinalIn(El container, El target, El skipList, boolean built) {
+  private static int fieldOrdinalIn(El container, El target, El skipList) {
     int[] count = {0};
-    return findOrdinal(container, target, skipList, built, count) ? count[0] : -1;
+    return findOrdinal(container, target, skipList, count) ? count[0] : -1;
   }
 
-  private static boolean findOrdinal(El el, El target, El skipList, boolean built, int[] count) {
-    if (el == skipList
-        || built && !el.isPlaced()
-        || el.isExiting()
-        || el.opacity() == 0
-        || el.style().display == Style.Display.NONE
-        || el.isInert()) {
+  private static boolean findOrdinal(El el, El target, El skipList, int[] count) {
+    if (el == skipList || !numbered(el)) {
       return false;
     }
     if (el == target) {
       return true;
     }
-    if (built ? scopeField(el) : isScopeFieldCandidate(el)) {
+    if (isScopeFieldCandidate(el)) {
       count[0]++;
     }
     for (El child : el.children()) {
-      if (findOrdinal(child, target, skipList, built, count)) {
+      if (findOrdinal(child, target, skipList, count)) {
         return true;
       }
     }
@@ -5139,7 +5143,7 @@ public final class App<S> {
     List<ScopeField> out = new ArrayList<>();
     El list = scopeList(scope);
     collectScopeFields(
-        scope, list, -1, new int[] {0}, originX, originY, clipL, clipT, clipR, clipB, out);
+        scope, list, -1, new int[] {0}, true, originX, originY, clipL, clipT, clipR, clipB, out);
     return out;
   }
 
@@ -5148,6 +5152,7 @@ public final class App<S> {
       El list,
       int row,
       int[] ordinal,
+      boolean shown,
       float parentX,
       float parentY,
       float clipL,
@@ -5155,13 +5160,10 @@ public final class App<S> {
       float clipR,
       float clipB,
       List<ScopeField> out) {
-    if (!el.isPlaced()
-        || el.isExiting()
-        || el.opacity() == 0
-        || el.style().display == Style.Display.NONE
-        || el.isInert()) {
+    if (!numbered(el)) {
       return;
     }
+    shown &= el.isPlaced() && el.opacity() != 0; // a hidden field keeps its ordinal
     float left = parentX + el.x();
     float top = parentY + el.y();
     float right = left + el.width();
@@ -5186,6 +5188,7 @@ public final class App<S> {
             list,
             el.firstRow() + i,
             new int[] {0},
+            shown,
             left,
             top,
             nextClipL,
@@ -5196,23 +5199,27 @@ public final class App<S> {
       }
       return;
     }
-    if (scopeField(el)) {
-      out.add(new ScopeField(
-          el,
-          row,
-          ordinal[0]++,
-          left,
-          top,
-          right,
-          bottom,
-          Math.max(left, clipL),
-          Math.max(top, clipT),
-          Math.min(right, clipR),
-          Math.min(bottom, clipB)));
+    if (isScopeFieldCandidate(el)) {
+      int index = ordinal[0]++;
+      if (shown && el.editor() != null) {
+        out.add(new ScopeField(
+            el,
+            row,
+            index,
+            left,
+            top,
+            right,
+            bottom,
+            Math.max(left, clipL),
+            Math.max(top, clipT),
+            Math.min(right, clipR),
+            Math.min(bottom, clipB)));
+      }
     }
     for (El child : el.children()) {
       collectScopeFields(
-          child, list, row, ordinal, left, top, nextClipL, nextClipT, nextClipR, nextClipB, out);
+          child, list, row, ordinal, shown, left, top, nextClipL, nextClipT, nextClipR, nextClipB,
+          out);
     }
   }
 

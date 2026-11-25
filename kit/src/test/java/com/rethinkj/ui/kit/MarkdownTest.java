@@ -504,6 +504,7 @@ class MarkdownTest {
     // Two fragments inside an enclosing selectionScope() join into one selection.
     MarkdownDocument first = Markdown.parse("Message one text.");
     MarkdownDocument second = Markdown.parse("Message two text.");
+    MarkdownDocument third = Markdown.parse("Message three text.");
     App<Object> chat = new App<>(
             new Object(),
             state -> col()
@@ -514,7 +515,8 @@ class MarkdownTest {
                 .selectionScope()
                 .fill(Theme.DARK.surface().panel())
                 .child(Markdown.fragment(first, Markdown.options()))
-                .child(Markdown.fragment(second, Markdown.options())))
+                .child(Markdown.fragment(second, Markdown.options()))
+                .child(Markdown.fragment(third, Markdown.options())))
         .provide(Theme.CURRENT, state -> Theme.DARK);
     chat.textRendering(TextRendering.LINUX);
     Script.run("""
@@ -522,12 +524,12 @@ class MarkdownTest {
         frame
         down text="Message one text." at left+52
         move text="Message two text." at left+70
-        up text="Message two text." at left+70
+        up text="Message three text." at left+70
         frame
         key C control
         frame""", chat, out);
     String joined = chat.clipboard().read();
-    assertTrue(joined.contains("one text.\nMessage"), joined);
+    assertTrue(joined.contains("one text.\nMessage two text.\nMessage"), joined); // up's place
   }
 
   @Test
