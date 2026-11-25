@@ -294,7 +294,7 @@ public final class Markdown {
    * blocks (and across several fragments when their enclosing container is marked {@link
    * El#selectionScope}), while Ctrl+A selects the text of one block, not the whole document. With
    * {@link Options#virtual} it is a virtual list of its blocks instead of a column, for a long
-   * document in a scroll area or in a row of a chat transcript.
+   * document in a row of a virtual list with {@link RowHeights}, such as a chat transcript.
    */
   public static El fragment(MarkdownDocument document, Options options) {
     Objects.requireNonNull(document, "document");
