@@ -129,9 +129,12 @@ public final class Text implements Measure {
   private static final int CHUNK_SIZE = 2048;
   private static final int CHUNK_WINDOW = 128;
 
-  // The shaped lines a text keeps in one tree, and their characters: measuring and laying out each
-  // walk every line of a long wrapping text, so a text within both finds its lines shaped once.
+  // The shaped lines a text keeps in one tree: measuring and laying out each walk every line of a
+  // long wrapping text, so a text within both finds its lines shaped once. Beyond 4,096 lines,
+  // their
+  // characters are bounded too.
   private static final int SHAPED_LINES = 16_384;
+  private static final int SHAPED_LINES_ANY_LENGTH = 4096;
   private static final int SHAPED_CHARACTERS = 1 << 20;
 
   private final String string;
@@ -2691,7 +2694,9 @@ public final class Text implements Measure {
     Lines lines = shownLines();
     Para para = shapedLines.get(line);
     if (para == null) {
-      if (shapedLines.size() >= SHAPED_LINES || shapedLineCharacters >= SHAPED_CHARACTERS) {
+      int kept = shapedLines.size();
+      if (kept >= SHAPED_LINES
+          || kept >= SHAPED_LINES_ANY_LENGTH && shapedLineCharacters >= SHAPED_CHARACTERS) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
         shapedLineCharacters = 0;
       }
