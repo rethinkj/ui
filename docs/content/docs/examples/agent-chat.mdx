@@ -5,9 +5,9 @@ description: An agent chat app with a grouped session sidebar, streaming Markdow
 
 AgentChat puts the kit's chat building blocks together in a three-pane layout: collapsible project groups of sessions on the left, a virtual transcript that streams Markdown and collapsible tool calls above a growing composer in the middle, and a toggleable changes panel with unified diffs on the right. No network is used; a simulated agent drives replies deterministically on the app's clock.
 
-**Demonstrates:** [Chat](/docs/components/chat), [NavList](/docs/components/nav-list), [Markdown](/docs/components/markdown), [Split](/docs/components/split), and [DiffView](/docs/components/diff-view).
+**Demonstrates:** [Chat](/docs/components/chat), [NavList](/docs/components/nav-list), [Markdown](/docs/components/markdown), [Split](/docs/components/split), [DiffView](/docs/components/diff-view), [Popover](/docs/components/popover), [FilterList](/docs/components/filter-list), [Rail](/docs/components/rail), and [Segmented](/docs/components/segmented).
 
-<Shot src="examples/agent-chat-{theme}" alt="AgentChat showing a sidebar of sessions grouped by project on the left, a chat transcript with an expanded tool call and a streamed Markdown answer with a list and SQL code block above a composer in the middle, and a changes panel with a unified SQL diff on the right" />
+<Shot src="examples/agent-chat-{theme}" alt="AgentChat showing a sidebar of sessions grouped by project on the left, a chat transcript with an expanded tool call and a streamed Markdown answer with a list and SQL code block above a composer with the closed model picker button in the middle, and a changes panel with a unified SQL diff on the right" />
 
 ## Run it
 
@@ -20,6 +20,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=AgentChat
 ## What to try
 
 - Send a prompt from the composer (**Enter** sends, **Shift+Enter** adds a line) and watch tool calls run and Markdown stream into the transcript.
+- Click the model button in the composer to open the model picker popover above it: filter by provider on the left rail, search models in the middle, adjust reasoning level on the right, or toggle speed at the bottom.
 - Press **Stop** while an answer is streaming, or click any tool call row to expand its output.
 - Drag across paragraphs in the transcript to select across messages.
 - Collapse and expand project groups in the sidebar, pin a session on hover, start a **New session**, or toggle the **Changes** panel from the chat toolbar.
@@ -38,6 +39,15 @@ The sidebar builds a [NavList](/docs/components/nav-list) from project headings 
 The middle card pairs `Chat.transcript` with `Chat.composer`. Each agent message composes `Chat.tool` rows, a `Markdown.fragment` for the growing document, and `Chat.working` while active:
 
 ```java snippet="agent-chat-transcript"
+```
+
+### Model picker popover
+
+The composer's trailing button shows the provider's symbol, the model name, and the reasoning level as a muted inline subtitle (`Button.options().subtitle(...)`). Clicking it opens a `Popover.flush` above the button combining a provider [Rail](/docs/components/rail), a searchable [FilterList](/docs/components/filter-list) with shortcuts and a check mark on the active model, a [NavList](/docs/components/nav-list) of reasoning levels, and a [Segmented](/docs/components/segmented) speed toggle separated by full-bleed dividers:
+
+<Shot src="examples/agent-chat-picker-{theme}" alt="AgentChat with the model picker popover open above the composer button, showing a provider icon rail on the left, a searchable model list with shortcuts and a check mark in the middle, reasoning levels on the right, and a Standard or Fast speed toggle along the bottom" />
+
+```java snippet="agent-chat-model-picker"
 ```
 
 ### Deterministic streaming on the app's clock

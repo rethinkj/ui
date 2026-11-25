@@ -347,6 +347,15 @@ class PartsTest {
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=dialog label=\"Filter rows\""), dump);
     assertEquals("column", app.focused().key(), "the first field has the focus");
+    String[] at = StructureTest.line(dump, "role=dialog")
+        .replaceAll(".* (\\d+),(\\d+) .*", "$1 $2")
+        .split(" ");
+    more(
+        app,
+        out,
+        720,
+        "press " + (Integer.parseInt(at[0]) + 4) + "," + (Integer.parseInt(at[1]) + 4) + "\nframe");
+    assertEquals("popover", app.focused().key(), "a press on its padding keeps the focus in it");
     more(app, out, 720, "key Escape\nframe\nadvance 0.25\nframe");
     assertTrue(!app.state().filter.isOpen());
     assertEquals("filter", app.focused().key(), "back on the button");

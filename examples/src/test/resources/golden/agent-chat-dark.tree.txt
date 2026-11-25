@@ -168,13 +168,15 @@ el 0,0 1280x800
                 el 277,714 618x65
                   text #field role=textbox label="Ask about storefront…" "" 286,723 600x19 lines 1-1/1 focused caret 0 (1:1)
                   el #bar 286,746 600x24
-                    el #start 286,746 440x24
+                    el #start 286,746 447x24
                       el role=button label="Attach file" 286,746 24x24
                         text label="add" "\u{F108}" 290,750 16x16
-                    el #end 730,746 128x24
-                      el role=combobox label="Model" 730,746 128x24 expanded=false
-                        text "Balanced" 739,750 90x16
-                        text label="chevron_down" "\u{F2A2}" 833,750 16x16
+                    el #end 737,746 121x24
+                      el #model-picker role=button label="Atlas 3 High" 737,746 121x24 expanded=false
+                        text label="star" "\u{F70E}" 750,750 16x16
+                        el 770,750 75x16
+                          text "Atlas 3" 770,750 43x16
+                          text "High" 817,750 28x16
                     el #action role=button label="Send" 862,746 24x24 disabled
                       text label="arrow_up" "\u{F1B4}" 866,750 16x16
           el #rest 912,32 360x760
