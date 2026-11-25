@@ -2833,7 +2833,7 @@ public final class Text implements Measure {
       } else {
         para = shapeLine(lines, line);
         if (keeps(para)) {
-          kept.put(line, para);
+          kept().put(line, para); // anew: a hint shaped with it may have changed the color
         } else if (para.chunks == null) {
           provisional = true;
         }
