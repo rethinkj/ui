@@ -492,6 +492,149 @@ class MarkdownTest {
   }
 
   @Test
+  void imagesInLinksAndEmphasisShowAsImagesAndThoseSideBySideWrap() throws IOException {
+    App<Doc> app = app("""
+        [![CI](ci.png)](https://ci.example.com)&nbsp;*![Docs](docs.png)* **![License](license.png)**
+
+        Before [![Build](build.png)](https://build.example.com) and after.
+
+        *Read ![Guide](guide.png) first* and [![Status](status.png) build](https://status.example.com)
+
+        [![Banner](banner.png)](https://banner.example.com)
+        """);
+    for (String badge : List.of("ci.png", "docs.png", "license.png")) {
+      app.state().images.put(badge, picture(80, 20));
+    }
+    app.state().images.put("build.png", picture(60, 20));
+    app.state().images.put("guide.png", picture(40, 20));
+    app.state().images.put("status.png", picture(40, 20));
+    app.state().images.put("banner.png", picture(2000, 500));
+    String tree = run(app, "frame");
+    // Linked, emphasized and strong images sit side by side in one row.
+    float[] ci = bounds(tree, "image role=img label=\"CI\"");
+    float[] docs = bounds(tree, "image role=img label=\"Docs\"");
+    float[] license = bounds(tree, "image role=img label=\"License\"");
+    assertTrue(
+        ci[1] == docs[1] && docs[1] == license[1] && ci[0] < docs[0] && docs[0] < license[0], tree);
+    // Among text, a linked image breaks the paragraph; inside emphasis or a link too, and the
+    // link's text stays a link to the same destination.
+    assertTrue(tree.contains("role=paragraph \"Before\""), tree);
+    assertTrue(tree.contains("role=paragraph \"and after.\""), tree);
+    assertTrue(tree.contains("role=paragraph \"Read\""), tree);
+    assertTrue(line(tree, "image role=img label=\"Guide\"").contains(" 40x20"), tree);
+    assertTrue(
+        line(tree, "role=link label=\"Status\"").contains("value=\"https://status.example.com\""),
+        tree);
+    assertTrue(
+        line(tree, "role=link label=\"build\"").contains("value=\"https://status.example.com\""),
+        tree);
+    // A large linked image is as wide as the page, and its link as large as it.
+    assertTrue(line(tree, "role=link label=\"Banner\"").contains(" 592x148"), tree);
+
+    // A press, and Tab then Enter, hand the destination to onLink.
+    run(app, "press role=link label=\"CI\"\nframe");
+    String focused = run(app, "key Tab\nframe");
+    assertTrue(line(focused, "role=link label=\"Build\"").contains(" focused"), focused);
+    run(app, "key Enter\nframe");
+    assertEquals(List.of("https://ci.example.com", "https://build.example.com"), app.state().links);
+
+    // Narrower, the row of three badges wraps the third onto a line of its own.
+    Script.run("size 220 480 scale 2\nframe\nsnap narrow\n", app, out);
+    String narrow = Files.readString(out.resolve("narrow.tree.txt"));
+    ci = bounds(narrow, "image role=img label=\"CI\"");
+    docs = bounds(narrow, "image role=img label=\"Docs\"");
+    license = bounds(narrow, "image role=img label=\"License\"");
+    assertEquals(ci[1], docs[1], 0.5f, narrow);
+    assertTrue(license[1] > ci[1] + ci[3], narrow);
+  }
+
+  @Test
+  void headingsAndCellsOfImagesShowThemAndMixedOnesTheirAltText() throws IOException {
+    String source = """
+        # [![Logo](logo.png "Project logo")](https://logo.example.com)
+
+        ## Status ![CI](ci.png)
+
+        | ![Col](col.png) | Notes |
+        | :---: | --- |
+        | [![Badge](badge.png)](https://badge.example.com) | See ![Tip](tip.png) |
+        """;
+    App<Doc> app = app(source);
+    for (String image : List.of("logo.png", "ci.png", "col.png", "badge.png", "tip.png")) {
+      app.state().images.put(image, picture(50, 20));
+    }
+    String tree = run(app, "frame");
+    // The heading keeps its role, level and anchor, and shows its linked image.
+    assertTrue(line(tree, "#heading-logo").contains("role=heading"), tree);
+    assertTrue(line(tree, "#heading-logo").contains(" level=1"), tree);
+    assertTrue(
+        line(tree, "role=link label=\"Logo\"").contains("value=\"https://logo.example.com\""),
+        tree);
+    assertTrue(line(tree, "#heading-status-ci").contains("role=heading \"Status CI\""), tree);
+    assertTrue(line(tree, "image role=img label=\"Col\"").contains(" 50x20"), tree);
+    assertTrue(
+        line(tree, "role=link label=\"Badge\"").contains("value=\"https://badge.example.com\""),
+        tree);
+    assertTrue(tree.contains("\"See Tip\""), tree);
+    assertFalse(tree.contains("label=\"Tip\""), tree);
+    // A linked image's title is its tooltip.
+    tree = run(app, "move role=link label=\"Logo\"\nframe\nadvance 1\nframe");
+    assertTrue(line(tree, "role=tooltip").contains("label=\"Project logo\""), tree);
+
+    // Without Options#images, the images stay their alt text and a linked one a text link.
+    MarkdownDocument parsed = Markdown.parse(source);
+    App<Object> noImages = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.markdown(parsed, Markdown.options()).grow(1)));
+    String plain = run(noImages, "frame");
+    assertFalse(plain.contains("role=img"), plain);
+    assertTrue(line(plain, "#heading-logo").contains("role=heading \"Logo\""), plain);
+  }
+
+  @Test
+  void streamingNextKeepsPiecesAroundNestedImages() throws IOException {
+    String step1 = """
+        # ![Logo](logo.png)
+
+        Before [![CI](ci.png)](https://ci.example.com) and after.
+
+        | ![Col](col.png) | Text |
+        | --- | --- |
+        | ![Cell](cell.png) | Value |
+
+        Start""";
+    String step2 = step1 + " of the growing paragraph.";
+    Map<String, com.rethinkj.ui.Image> images = Map.of(
+        "logo.png", picture(60, 24),
+        "ci.png", picture(80, 20),
+        "col.png", picture(50, 20),
+        "cell.png", picture(50, 20));
+    Markdown.Options options = Markdown.options().images(images::get);
+    MarkdownDocument[] current = {Markdown.parse(step1)};
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .fill(Theme.DARK.surface().panel())
+            .child(Markdown.markdown(current[0], options).grow(1)));
+    Markdown.piecesBuilt = 0;
+    run(app, "frame");
+    assertEquals(5, Markdown.piecesBuilt, "two runs around linked image, two text cells, start");
+
+    current[0] = current[0].next(step2);
+    Markdown.piecesBuilt = 0;
+    String tree = run(app, "frame");
+    assertEquals(1, Markdown.piecesBuilt, "only the growing paragraph");
+    assertTrue(tree.contains("role=paragraph \"Before\""), tree);
+    assertTrue(tree.contains("role=paragraph \"and after.\""), tree);
+    assertTrue(tree.contains("role=paragraph \"Start of the growing paragraph.\""), tree);
+  }
+
+  @Test
   void aStreamingDocumentBuildsOnlyTheBlocksThatChanged() throws IOException {
     String step1 = """
         # Answer
