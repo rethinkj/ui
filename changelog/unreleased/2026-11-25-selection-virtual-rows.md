@@ -1,0 +1,1 @@
+- A selection across an `El.selectionScope()` reaches beyond the built rows of a virtual list: it survives rows that scroll out and come back, Shift+click and a held drag extend it from an anchor out of view, Control+C copies every row it covers, and a drag held near the top or bottom edge of the list scrolls it.

@@ -161,9 +161,9 @@ public final class RowHeights {
     return oldY;
   }
 
-  /** The key of a row, or null without a key function or past the last row. */
+  /** The key of a row, or null without a key function or outside the rows. */
   Object key(int row) {
-    return key == null || row >= count ? null : keys[row];
+    return key == null || row < 0 || row >= count ? null : keys[row];
   }
 
   /** The index of the row with this key, or -1. */

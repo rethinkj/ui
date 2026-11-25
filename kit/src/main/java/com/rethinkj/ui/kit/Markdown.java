@@ -44,7 +44,7 @@ import java.util.function.Function;
  *
  * <p>Every block of text is a read-only multi-line field ({@link El#fitLines}), as high as its
  * rows, and the document's list is a {@link El#selectionScope selection scope}, so a press and a
- * drag—or Shift+press—selects across blocks (for the rows that are built) and Control+C copies the
+ * drag—or Shift+press—selects across blocks, including rows out of view, and Control+C copies the
  * selected text of all of them in order with a line break between blocks; Tab passes the fields by
  * ({@link El#skipTab}) and reaches the links. Control+A selects the whole document, which then
  * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere ends
