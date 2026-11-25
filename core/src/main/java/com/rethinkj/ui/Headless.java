@@ -17,8 +17,13 @@ import java.util.List;
  */
 public final class Headless {
 
-  // How often a snapshot lays out rows again or builds more, at most: rows that keep changing.
+  // How often a snapshot lays out rows again or builds more, at most, beyond once per row of the
+  // list: against rows that keep changing.
   private static final int MAX_PASSES = 1024;
+
+  private static int passes(El list) {
+    return Math.max(MAX_PASSES, list.rowCount());
+  }
 
   /**
    * @param pixels the rendered image
@@ -102,7 +107,7 @@ public final class Headless {
       List<El> children = el.children();
       for (int i = 0; i < children.size(); i++) {
         boolean grew = fillRows(children.get(i), left, top, clip, windowWidth, windowHeight, scale);
-        if (grew && el.isVirtualList() && el.measuresRows() && round < MAX_PASSES) {
+        if (grew && el.isVirtualList() && el.measuresRows() && round < passes(el)) {
           el.layoutRow(i, scale, false);
           el.remeasureRow(i);
           settle(children.get(i));
@@ -134,7 +139,7 @@ public final class Headless {
         left, top, clip[0], clip[1], clip[2], clip[3], windowWidth, windowHeight, false);
     int[] last = El.NO_ROWS;
     for (int pass = 0;
-        range.length != 0 && !Arrays.equals(range, last) && pass < MAX_PASSES;
+        range.length != 0 && !Arrays.equals(range, last) && pass < passes(el);
         pass++) {
       last = range;
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
