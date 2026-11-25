@@ -3210,24 +3210,27 @@ public final class App<S> {
       if (caret != null) { // where the selection's caret is, below a find bar over the scope
         List<El> path = new ArrayList<>();
         El scope = root != null && pathTo(root, target, path) ? scopeOf(path) : null;
-        reveal(
-            target,
-            caret[0],
-            caret[1],
-            caret[2],
-            caret[3],
-            false,
-            scope,
-            scope == null ? 0 : scope.scopeCoveredTop());
+        return reveal(
+                target,
+                caret[0],
+                caret[1],
+                caret[2],
+                caret[3],
+                false,
+                scope,
+                scope == null ? 0 : scope.scopeCoveredTop())
+            || list.scrollY() != y;
       } else if (target != null) {
-        reveal(target, 0, 0, target.width(), target.height(), false, null, 0);
+        return reveal(target, 0, 0, target.width(), target.height(), false, null, 0)
+            || list.scrollY() != y;
       } else if (inner != null) {
         El nested = (El) inner[0];
         int innerRow = (Integer) inner[1];
         // A list of a height of its own scrolls to the row first, then the areas around it.
         boolean moved = nested.scrollTo(nested.scrollX(), nested.offsetShowing(innerRow));
         double[] span = nested.rowSpan(innerRow);
-        reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
+        moved |=
+            reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
         return moved || list.scrollY() != y;
       }
     }
