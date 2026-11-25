@@ -142,7 +142,7 @@ A read-only multi-line text field lets users select and copy paragraphs. To plac
 - **Navigation & selection:** Arrow keys, Home, End, Page Up/Down (with **Shift** to select and **Ctrl** to jump by word), double-click to select a word, triple-click to select a line.
 - **Editing:** Backspace, Delete, **Ctrl+A** (select all), **Ctrl+C/X/V** (copy/cut/paste), **Ctrl+Z** (undo), **Ctrl+Y** / **Ctrl+Shift+Z** (redo).
 - **Multi-line:** **Enter** inserts a newline (auto-indenting when `tabIndents` is enabled). **Ctrl+Enter** bubbles to your app's `onKey` handlers, and **Enter** also bubbles in a read-only field.
-- **Read-only text:** A focused read-only field shows no caret until text is selected, and its caret does not blink. In a read-only `fitLines()` field, **Page Up/Down**, **Home** and **End** (alone or with **Ctrl**) scroll the area around it, as in a browser; a read-only field that scrolls itself goes to its start or end with **Home** and **End**.
+- **Read-only text:** A focused read-only field shows no caret until text is selected, and its caret does not blink. In a read-only field, **Home** and **End** (alone or with **Ctrl**) scroll the field, or the area around it, to its start or end, as in a browser, unless the field can still scroll sideways that way; in a read-only `fitLines()` field, **Page Up/Down** scroll the area around it.
 - **IME:** Input methods compose inline with an underline (shown as `composing "…"` in tree dumps). Making the field read-only ends any active composition, just like losing focus.
 
 ## In a tree dump
