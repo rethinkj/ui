@@ -1,0 +1,1 @@
+- `RowHeights` takes a version per row (`new RowHeights(estimate, key, version)`). With it, a find bar over a chat transcript or another virtual list in a selection scope no longer builds every row that is out of view on each frame, only the rows whose version changed.
