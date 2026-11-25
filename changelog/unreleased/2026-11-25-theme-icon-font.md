@@ -1,0 +1,1 @@
+- **Breaking:** `Theme.Type` gained `icons` (the icon font of `Icon` symbols, default `Font::icons`) and `count` (the font of `AppIcon.count`, default `Font::sansBold`) as its last two components, so a theme that constructs `Theme.Type` directly must pass them. `Icon`, `AppIcon.count` and every text element of `ErDiagram` now take their fonts from the theme.
