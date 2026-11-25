@@ -63,11 +63,13 @@ import java.util.regex.Pattern;
  * when there is any, {@code <name>.opened.txt} with the addresses the app opened so far ({@link
  * App#openUri}), one per line, when there are any, {@code <name>.notifications.txt} with the
  * notifications the app showed so far ({@link App#notify(String, String, Runnable, Consumer)}),
- * one per line as quoted title and body, when there are any, and {@code <name>.tray.txt} with the
- * window's tray tooltip and menu ({@link App#tray}), when it has one; a script opens no browser,
- * shows no desktop notification and no system tray icon, {@code notification click "<title>"}
- * clicks a notification and {@code tray click "<label>" ["<label>"...]} a tray entry. A {@code
- * press} and a {@code wheel} act at their target's position without moving the pointer: what
+ * one per line as quoted title and body, when there are any, {@code <name>.tray.txt} with the
+ * window's tray tooltip and menu ({@link App#tray}), when it has one, and {@code
+ * <name>.windows.txt} with the open windows front to back (marking hidden ones with {@code
+ * hidden}) when more than one window is open or any open window is hidden; a script opens no
+ * browser, shows no desktop notification and no system tray icon, {@code notification click
+ * "<title>"} clicks a notification and {@code tray click "<label>" ["<label>"...]} a tray entry. A
+ * {@code press} and a {@code wheel} act at their target's position without moving the pointer: what
  * looks hovered stays where {@code move} left it.
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
@@ -625,14 +627,19 @@ public final class Script {
               written.add(trayFile);
             }
             // The open windows front first: the title as `window` takes it, and the files' prefix.
-            if (each == open.getFirst() && open.size() > 1) {
+            if (each == open.getFirst()
+                && (open.size() > 1 || open.stream().anyMatch(w -> w.hidden))) {
               Path windows = folder.resolve(name + ".windows.txt").normalize();
               Files.writeString(
                   windows,
                   String.join(
                       "",
                       desk.front.stream()
-                          .map(w -> TreeDumper.quote(w.title) + " " + slug(w.title) + "\n")
+                          .map(w -> TreeDumper.quote(w.title)
+                              + " "
+                              + slug(w.title)
+                              + (w.hidden ? " hidden" : "")
+                              + "\n")
                           .toList()));
               written.add(windows);
             }
@@ -815,6 +822,7 @@ public final class Script {
     float scale = 1;
     boolean sized;
     boolean open = true;
+    boolean hidden;
     boolean fresh; // opened since the last frame step
     boolean shown; // a frame step has drawn it
     boolean dropTarget = true;
@@ -887,6 +895,22 @@ public final class Script {
         desk.front.remove(this);
         desk.front.addFirst(this);
       }
+    }
+
+    @Override
+    public void hide() {
+      hidden = open;
+    }
+
+    @Override
+    public void show() {
+      hidden = false;
+      raise();
+    }
+
+    @Override
+    public boolean isHidden() {
+      return open && hidden;
     }
 
     @Override
@@ -1306,12 +1330,18 @@ public final class Script {
       pointer = to;
     }
 
-    /** The topmost open window whose content holds a point of the screen, or null. */
+    /** The topmost visible open window whose content holds a point of the screen, or null. */
     Win under(float sx, float sy, boolean drops) {
       for (Win w : front) {
         float x = (sx - w.x) / w.scale;
         float y = (sy - w.y) / w.scale;
-        if (w.open && (!drops || w.dropTarget) && x >= 0 && y >= 0 && x < w.width && y < w.height) {
+        if (w.open
+            && !w.hidden
+            && (!drops || w.dropTarget)
+            && x >= 0
+            && y >= 0
+            && x < w.width
+            && y < w.height) {
           return w;
         }
       }
@@ -1347,9 +1377,10 @@ public final class Script {
         }
         due = again;
       }
-      // Every open window has drawn now; it shows, so its handler runs in the next frame step.
+      // Every visible open window has drawn now; it shows, so its handler runs in the next frame
+      // step.
       for (Win w : open()) {
-        if (!w.shown) {
+        if (!w.shown && !w.hidden) {
           w.shown = true;
           if (w.onShown != null) {
             w.app.request(w.onShown);

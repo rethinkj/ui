@@ -224,6 +224,7 @@ public final class WindowLoop {
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
+    boolean redraw; // shown again after hide(): present the next frame even if nothing changed
     boolean showing; // the window shows the last frame presented
     boolean shown; // it has shown its first frame
     // Opened under the pointer during a press (Window.Options.underPointer): shown without
@@ -286,6 +287,30 @@ public final class WindowLoop {
         window.raise();
         toFront(this);
       }
+    }
+
+    @Override
+    public void hide() {
+      if (isOpen() && !window.isHidden()) {
+        redraw = false;
+        showing = false;
+        window.hide();
+      }
+    }
+
+    @Override
+    public void show() {
+      if (isOpen() && window.isHidden()) {
+        window.show();
+        redraw = true;
+        Window.wake();
+      }
+      raise();
+    }
+
+    @Override
+    public boolean isHidden() {
+      return isOpen() && window.isHidden();
     }
 
     @Override
@@ -417,7 +442,7 @@ public final class WindowLoop {
       }
       boolean outsideAll = true;
       for (Entry entry : front) {
-        if (!entry.isOpen() || !known && entry != from) {
+        if (!entry.isOpen() || entry.isHidden() || !known && entry != from) {
           continue;
         }
         float u = entry.window.unitsPerLogical();
@@ -623,7 +648,7 @@ public final class WindowLoop {
         boolean held = false;
         for (int i = 0; i < open.size(); i++) {
           Entry e = open.get(i);
-          early[i] = holdBack(now - e.started, e.frameNanos, e.input);
+          early[i] = e.isHidden() ? 0 : holdBack(now - e.started, e.frameNanos, e.input);
           held |= early[i] > 0;
         }
         pass(open, early);
@@ -640,7 +665,9 @@ public final class WindowLoop {
           if (early[i] > 0) { // more input may come before the frame can be shown
             // A post ends this wait early, and the next turn waits for the rest of the refresh.
             wait = Math.max(1, (early[i] + 999_999) / 1_000_000);
-          } else if (e.app.isMoving() || e.presenter.pending()) {
+          } else if (!e.isHidden() && e.redraw) {
+            wait = 0;
+          } else if (!e.isHidden() && (e.app.isMoving() || e.presenter.pending())) {
             wait = Math.max(0, (e.frameNanos - (System.nanoTime() - e.presented)) / 1_000_000);
           } else {
             double change = e.app.nextChange() - e.app.time();
@@ -1269,10 +1296,12 @@ public final class WindowLoop {
     long now = System.nanoTime();
     App<?> app = e.app;
     Frame frame = null;
-    if (app.frame() || always || e.presenter.pending()) {
-      if (!e.isOpen()) {
-        return; // a handler of the frame closed it
-      }
+    boolean changed = app.frame();
+    if (!e.isOpen() || e.isHidden()) {
+      return; // a handler closed or hid it; hidden windows draw no frames
+    }
+    if (changed || always || e.redraw || e.presenter.pending()) {
+      e.redraw = false;
       long built = System.nanoTime();
       Scene scene = app.scene();
       long drawing = System.nanoTime();

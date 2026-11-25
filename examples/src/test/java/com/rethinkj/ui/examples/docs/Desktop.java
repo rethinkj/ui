@@ -11,6 +11,7 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -140,7 +141,7 @@ final class Desktop {
         Tray.of(
             icon,
             "Lights",
-            Tray.button("Show window", () -> raiseMain(app)),
+            Tray.button("Show window", () -> showMain(app)),
             Tray.checkbox("Lights on", app.state().on, checked -> setLights(app, icon, checked)),
             Tray.separator(),
             Tray.submenu(
@@ -152,8 +153,13 @@ final class Desktop {
         error -> noTray(app, error));
   }
 
-  static void raiseMain(App<Lights> app) {
-    app.windows().of(app).raise();
+  static void hideOnClose(App<Lights> app) {
+    Windows.Handle window = app.windows().of(app);
+    window.onCloseRequest(window::hide);
+  }
+
+  static void showMain(App<Lights> app) {
+    app.windows().of(app).show();
   }
 
   static void setLights(App<Lights> app, WindowIcon icon, boolean on) {

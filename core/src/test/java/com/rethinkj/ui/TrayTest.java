@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.window.WindowIcon;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -179,5 +181,36 @@ class TrayTest {
 
     assertThrows(IllegalArgumentException.class, () -> Tray.button("", () -> {}));
     assertThrows(NullPointerException.class, () -> Tray.of(null, "Lights"));
+  }
+
+  @Test
+  void aCloseRequestHidesTheWindowToItsTrayWhichShowsItAgainAndQuits(@TempDir Path out)
+      throws IOException {
+    App<State> app = trayApp();
+    Script.run("size 80 40\nframe\n", app, out);
+    Windows.Handle window = app.windows().of(app);
+    window.onCloseRequest(window::hide);
+    app.tray(
+        Tray.of(
+            ICON, "Lights", Tray.button("Show", window::show), Tray.button("Quit", window::close)),
+        error -> fail(error));
+
+    List<Path> written = Script.run("""
+        close
+        frame
+        snap hidden
+        tray click "Show"
+        await
+        frame
+        snap shown
+        tray click "Quit"
+        await
+        frame
+        """, app, out);
+
+    assertEquals("\"main\" main hidden\n", Files.readString(out.resolve("hidden.windows.txt")));
+    assertTrue(written.contains(out.resolve("hidden.tray.txt")), written::toString);
+    assertFalse(written.contains(out.resolve("shown.windows.txt")), written::toString);
+    assertFalse(window.isOpen());
   }
 }

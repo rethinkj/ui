@@ -82,9 +82,9 @@ public interface Windows {
   /**
    * Where a point of the window that runs {@code app} lies on the screen, and which window, if
    * any, lies there, for {@link App}'s drags; null if no open window runs {@code app}. The window
-   * there is the topmost of the runner's windows that are {@link Handle#dropTarget drop targets}
-   * and whose content holds the point: the runner keeps them in the order they last opened, were
-   * raised or took the keyboard focus, as the system cannot say which lies on top.
+   * there is the topmost of the runner's visible windows that are {@link Handle#dropTarget drop
+   * targets} and whose content holds the point: the runner keeps them in the order they last
+   * opened, were raised or took the keyboard focus, as the system cannot say which lies on top.
    *
    * @param x the point in logical pixels of {@code app}'s window, also outside it
    */
@@ -122,6 +122,26 @@ public interface Windows {
     void raise();
 
     /**
+     * Hides the window: it disappears from the screen and the taskbar and draws no frames while
+     * staying open ({@link #isOpen()} stays true, {@link Windows#all()} and {@link Windows#of} keep
+     * it, and its app, state and tray icon stay). Its app still runs posted tasks, such as from a
+     * tray menu. Does nothing when the window is closed or already hidden.
+     */
+    void hide();
+
+    /**
+     * Shows a hidden window again, and brings the window to the front with the keyboard focus, as
+     * {@link #raise()} does, also when it was not hidden. Does nothing when the window is closed.
+     */
+    void show();
+
+    /**
+     * Whether the window is hidden: true after {@link #hide()} until {@link #show()} or {@link
+     * #close()}.
+     */
+    boolean isHidden();
+
+    /**
      * Moves the content's top left corner to this point of the screen; on Wayland nothing moves.
      * A window that follows the pointer is moved by its drag handler on each step, to {@link
      * com.rethinkj.ui.Drag#screenX} less where it holds the window, times {@link #screenScale}.
@@ -146,10 +166,11 @@ public interface Windows {
     /**
      * What a request to close the window does: the close button, Alt+F4, the taskbar, a script's
      * {@code close}. With a handler, the request runs it as a task of the window's app, and only
-     * the handler closes the window, now or later, as after a dialog that asks to save; not
-     * closing it is a veto. Without one, the request closes the window, or, when it is the last
-     * of a {@link WindowLoop}, ends the loop and leaves the window open for its owner, as a loop
-     * of one window always did.
+     * the handler closes the window, now or later, as after a dialog that asks to save; it may
+     * also {@link #hide} the window to the tray instead of closing it, and not closing it is a
+     * veto. Without one, the request closes the window, or, when it is the last of a {@link
+     * WindowLoop}, ends the loop and leaves the window open for its owner, as a loop of one window
+     * always did.
      *
      * @param handler the handler, or null for that default
      */

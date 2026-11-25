@@ -1,0 +1,1 @@
+- `Windows.Handle` and `Window` can `hide()` a window and `show()` it again, as to close an app to its tray icon from `onCloseRequest`. A hidden window stays open with its app and tray icon, has no taskbar button and draws no frames; a script's `snap` marks it `hidden` in `<name>.windows.txt`.

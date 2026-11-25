@@ -18,11 +18,11 @@ Call `app.windows().open(title, width, height, options, newApp)` from any handle
 ```java snippet="tab-groups"
 ```
 
-It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html) with `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `onShown(handler)`, `isOpen()`, and window position/scale getters. Use `windows.all()` to list all open windows or `windows.of(app)` to find a specific app's handle.
+It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html) with `close()`, `raise()`, `hide()`, `show()`, `isHidden()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `onShown(handler)`, `isOpen()`, and window position/scale getters. Use `windows.all()` to list all open windows or `windows.of(app)` to find a specific app's handle.
 
 ## Handling window close
 
-- **`onCloseRequest(handler)`:** Runs when the user clicks the close button or presses Alt+F4. Your handler can close the window immediately, show a confirmation dialog, or ignore the request. Without a handler, the window closes directly (or ends `WindowLoop` if it is the last open window).
+- **`onCloseRequest(handler)`:** Runs when the user clicks the close button or presses Alt+F4. Your handler can close the window immediately, hide it to the system tray with `window.hide()`, show a confirmation dialog, or ignore the request. A hidden window stays open (keeping its state and tray icon) with no taskbar button and draws no frames until `window.show()` shows it again and brings it to the front. Without a handler, the window closes directly (or ends `WindowLoop` if it is the last open window).
 - **`onClosed(handler)`:** Runs on the UI thread after a window closes (as long as at least one other window stays open). Use it to clean up per-window state:
 
 ```java snippet="window-closed"

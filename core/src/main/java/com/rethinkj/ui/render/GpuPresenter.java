@@ -200,8 +200,8 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     drawNanos = 0;
     int pixelWidth = window.pixelWidth();
     int pixelHeight = window.pixelHeight();
-    if (pixelWidth <= 0 || pixelHeight <= 0 || window.isMinimized()) {
-      return; // nothing to draw into; the window asks for a redraw when it is restored
+    if (pixelWidth <= 0 || pixelHeight <= 0 || window.isMinimized() || window.isHidden()) {
+      return; // nothing to draw into; the window asks for a redraw when it is restored or shown
     }
     Device device = context.device(surface);
     Surface.Configuration configuration = surface.configuration();
