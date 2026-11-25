@@ -1148,9 +1148,10 @@ final class Editors {
   // docs:end markdown-languages
 
   // docs:start prose-fonts
-  // Kept in the state and derived again only when the app changes its theme, since Markdown keeps
-  // what it measured for the theme it was built with
-  Theme reading = readingTheme(Theme.DARK);
+  // The app's theme and the reading theme derived from it, derived again only when the app's
+  // theme changes, since Markdown keeps what it measured for the theme it was built with
+  Theme base;
+  Theme reading;
 
   // Larger text and code for the answers
   static Theme readingTheme(Theme theme) {
@@ -1172,6 +1173,11 @@ final class Editors {
   }
 
   static El answer(Editors state) {
+    Theme theme = Theme.CURRENT.get();
+    if (theme != state.base) {
+      state.base = theme;
+      state.reading = readingTheme(theme);
+    }
     return Theme.CURRENT.with(
         state.reading, () -> Markdown.fragment(state.summary, Markdown.options()));
   }
