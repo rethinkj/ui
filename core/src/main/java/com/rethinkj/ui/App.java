@@ -2688,26 +2688,35 @@ public final class App<S> {
       outer = up;
     }
     El found = rememberedIn(outer.listId(), step);
-    El inner = found == null ? animator.element(in.listId()) : null;
+    // Else at the row in view of the innermost list that shows: one in a row of overscan does not.
+    Animator.InRow showing = in;
+    while (showing != outer && shown(showing.list()) == null) {
+      showing = animator.inRow(showing.listId());
+    }
+    El inner = found == null ? animator.element(showing.listId()) : null;
     if (inner != null) {
-      found = inRow(in.listId(), rowInView(inner, step < 0), step);
+      found = inRow(showing.listId(), rowInView(inner, step < 0), step);
     }
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
   }
 
   /**
    * The row of this list that holds the element that last had the focus in it, or -1; for Tab, -1
-   * too where that row is not built and holds nothing Tab stops at now.
+   * too where that row is not built and the element, as the row function builds it, is no stop of
+   * Tab's now.
    */
   private int lastRow(El list, Object listId, int step) {
     Object last = focus.lastInList(listId);
     int row = last == null ? -1 : Animator.rowIn(last, listId);
-    if (row >= list.rowCount()
-        || step != 0
-            && row >= 0
-            && !list.hasRow(row)
-            && !stopsTab(list.rowElement(row), step, true)) {
+    if (row >= list.rowCount()) {
       return -1;
+    }
+    if (step != 0 && row >= 0 && !list.hasRow(row)) {
+      tabScan--;
+      El was = Animator.find(list.rowElement(row), Animator.row(listId, row), last, true);
+      if (was == null || !was.isFocusable() || was.skipsTab() || !numbered(was)) {
+        return -1;
+      }
     }
     return row;
   }
@@ -2717,9 +2726,18 @@ public final class App<S> {
    * list as high as its rows in a row of another list, that one shows only some.
    */
   private int rowInView(El list, boolean last) {
+    float[] part = shown(list);
+    return part == null ? list.rowInView(last) : list.rowInView(last, part[0], part[1]);
+  }
+
+  /**
+   * The part of the list's border box that the window and the areas around it leave visible, as
+   * {@code {top, bottom}} relative to it; null where none is, or it is not in the tree.
+   */
+  private float[] shown(El list) {
     List<El> path = new ArrayList<>();
     if (root == null || !pathTo(root, list, path)) {
-      return list.rowInView(last);
+      return null;
     }
     path = fromOverlay(path); // an overlay lies over the areas around its anchor
     float top = 0;
@@ -2732,7 +2750,9 @@ public final class App<S> {
         clipBottom = Math.min(clipBottom, top + el.height());
       }
     }
-    return list.rowInView(last, clipTop - top, clipBottom - top);
+    float from = Math.max(clipTop - top, 0);
+    float to = Math.min(clipBottom - top, list.height());
+    return to > from ? new float[] {from, to} : null;
   }
 
   /**

@@ -361,6 +361,14 @@ final class Animator {
    * element there that has this identity, or null if it is not below {@code top}.
    */
   static El find(El top, Object topIdentity, Object identity) {
+    return find(top, topIdentity, identity, false);
+  }
+
+  /**
+   * Like {@link #find(El, Object, Object)}; with {@code build}, a row that a virtual list on the
+   * way lacks is built by its row function, not kept.
+   */
+  static El find(El top, Object topIdentity, Object identity, boolean build) {
     Id id = (Id) identity;
     if (id.equals(topIdentity)) {
       return top;
@@ -368,7 +376,7 @@ final class Animator {
     if (id.parent() == null) {
       return null;
     }
-    El parent = find(top, topIdentity, id.parent());
+    El parent = find(top, topIdentity, id.parent(), build);
     if (parent == null) {
       return null;
     }
@@ -383,8 +391,12 @@ final class Animator {
     }
     List<El> children = parent.children(); // nothing is leaving yet
     if (parent.isVirtualList()) {
-      int i = id.part() instanceof Integer row ? row - parent.firstRow() : -1;
-      return i >= 0 && i < children.size() ? children.get(i) : null;
+      int row = id.part() instanceof Integer index ? index : -1;
+      if (build && row >= 0 && !parent.hasRow(row)) {
+        return parent.rowElement(row);
+      }
+      int i = row - parent.firstRow();
+      return row >= 0 && i >= 0 && i < children.size() ? children.get(i) : null;
     }
     if (id.part() instanceof El.FieldPart) {
       for (El child : children) {

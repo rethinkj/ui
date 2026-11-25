@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
@@ -256,6 +257,39 @@ class RowHeightsTest {
     app.frame();
     tab(app, 0);
     assertEquals("row-20", key(app.focused()), app.tree().dump());
+  }
+
+  /** Tab into a list goes to its row in view, not into a list in a row built above the view. */
+  @Test
+  void tabEntersTheOuterRowInViewNotAListInARowAboveIt() {
+    RowHeights outer = new RowHeights(i -> 60);
+    RowHeights[] inner = new RowHeights[30];
+    Arrays.setAll(inner, i -> new RowHeights(j -> 20));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .children(
+                el().key("before").focusable().h(20),
+                el().key("list")
+                    .h(120)
+                    .rows(
+                        30,
+                        outer,
+                        i -> el().key("inner")
+                            .rows(
+                                3,
+                                inner[i],
+                                j -> el().key("r" + i + "-" + j).focusable().h(20)))));
+    app.resize(200, 200, 1);
+    app.frame();
+    app.scrollTo(find(app.tree(), "list"), 0, 600);
+    app.frame();
+    app.focus(find(app.tree(), "before"));
+    app.frame();
+    tab(app, 0);
+    assertEquals("r10-0", key(app.focused()), app.tree().dump());
   }
 
   private static void tab(App<?> app, int modifiers) {
