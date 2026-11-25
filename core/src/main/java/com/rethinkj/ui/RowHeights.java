@@ -2,6 +2,7 @@ package com.rethinkj.ui;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntFunction;
@@ -37,7 +38,7 @@ import java.util.function.IntToDoubleFunction;
 public final class RowHeights {
 
   /** The texts of a row's read-only fields by ordinal, as read at {@code version}. */
-  record RowTexts(Object version, String[] texts) {}
+  record RowTexts(Object version, List<String> texts) {}
 
   private final IntToDoubleFunction estimate;
   private final IntFunction<?> key;

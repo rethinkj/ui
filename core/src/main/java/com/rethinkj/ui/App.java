@@ -5610,11 +5610,11 @@ public final class App<S> {
               visitor.visit(row, ord, field, read[ord]);
             }
           }
-          texts = new RowHeights.RowTexts(version, read);
+          texts = new RowHeights.RowTexts(version, List.of(read));
         } else {
-          for (int ord = 0; ord < texts.texts().length; ord++) {
-            if (!texts.texts()[ord].isEmpty()) {
-              visitor.visit(row, ord, null, texts.texts()[ord]);
+          for (int ord = 0; ord < texts.texts().size(); ord++) {
+            if (!texts.texts().get(ord).isEmpty()) {
+              visitor.visit(row, ord, null, texts.texts().get(ord));
             }
           }
         }
