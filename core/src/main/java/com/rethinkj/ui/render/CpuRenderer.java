@@ -160,7 +160,7 @@ public final class CpuRenderer {
     }
     double[] fill = color(scene, i, Scene.FILL);
     double[] edge = color(scene, i, Scene.BORDER);
-    Stops stops = scene.getInt(i, Scene.KIND) == Scene.GRADIENT ? Stops.of(scene, i + 1) : null;
+    Stops stops = scene.getInt(i, Scene.KIND) == Scene.GRADIENT ? new Stops(scene, i + 1) : null;
     double[] gradient = scratch.gradient;
     // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
     // of 0, in the border, or 1.
@@ -242,26 +242,25 @@ public final class CpuRenderer {
   }
 
   /** The {@link Scene#STOPS} of a gradient, which give its fill at each point. */
-  private record Stops(
-      boolean radial,
-      double x1,
-      double y1,
-      double x2,
-      double y2,
-      double opacity,
-      double[] from,
-      double[] to) {
+  private static final class Stops {
+    private final boolean radial;
+    private final double x1;
+    private final double y1;
+    private final double x2;
+    private final double y2;
+    private final double opacity;
+    private final double[] from;
+    private final double[] to;
 
-    static Stops of(Scene scene, int i) {
-      return new Stops(
-          scene.getInt(i, Scene.GRADIENT_SHAPE) == Scene.RADIAL,
-          scene.get(i, Scene.X),
-          scene.get(i, Scene.Y),
-          scene.get(i, Scene.WIDTH),
-          scene.get(i, Scene.HEIGHT),
-          scene.get(i, Scene.GRADIENT_OPACITY),
-          color(scene, i, Scene.FILL),
-          color(scene, i, Scene.BORDER));
+    private Stops(Scene scene, int i) {
+      radial = scene.getInt(i, Scene.GRADIENT_SHAPE) == Scene.RADIAL;
+      x1 = scene.get(i, Scene.X);
+      y1 = scene.get(i, Scene.Y);
+      x2 = scene.get(i, Scene.WIDTH);
+      y2 = scene.get(i, Scene.HEIGHT);
+      opacity = scene.get(i, Scene.GRADIENT_OPACITY);
+      from = color(scene, i, Scene.FILL);
+      to = color(scene, i, Scene.BORDER);
     }
 
     /** The gradient over {@code fill} at {@code (x, y)}, into {@code out}. */
