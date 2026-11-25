@@ -2624,6 +2624,7 @@ public final class App<S> {
   private void wake() {
     if (focus.element() == null && focus.waits()) {
       Animator.InRow in = animator.inRow(focus.id());
+      reveal(in.list()); // a list that areas around it scrolled out of the window builds no rows
       keyRevealed(
           in.listId(), in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row())));
       fillRows();

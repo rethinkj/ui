@@ -754,10 +754,12 @@ class FieldTest {
           .multiline()
           .size(150, 30)
           .shrink(0);
-      return col().children(list, log);
+      El page =
+          col().scroll().size(150, 60).children(list.shrink(0), el().h(200).shrink(0));
+      return col().children(page, log);
     });
     app.textRendering(TextRendering.LINUX);
-    app.resize(200, 80, 1);
+    app.resize(200, 100, 1);
     app.frame();
     app.focus(app.tree().children().get(1));
     app.frame();
@@ -773,7 +775,7 @@ class FieldTest {
     assertEquals(0, app.focused().scrollY(), 0.01, "Up scrolls back, the selection stays");
     assertEquals(2, app.focused().editor().caret());
 
-    app.focus(app.tree().children().getFirst().children().getFirst());
+    app.focus(app.tree().children().getFirst().children().getFirst().children().getFirst());
     app.frame();
     key(app, "ArrowRight");
     assertEquals(0, app.focused().editor().caret(), "Right moves no caret, nothing scrolls so");
@@ -782,9 +784,13 @@ class FieldTest {
     }
     assertEquals(
         20 * line,
-        app.tree().children().getFirst().scrollY(),
+        app.tree().children().getFirst().children().getFirst().scrollY(),
         0.01,
         "Down scrolls the area around it, also once the focused row is out of range");
+    for (int i = 0; i < 60; i++) { // to the list's end, then the page's: the list leaves the window
+      key(app, "ArrowDown");
+    }
+    assertTrue(app.tree().children().getFirst().scrollY() > 60);
     key(app, "ArrowDown", SHIFT);
     assertEquals("row-0", app.focused().key(), "Shift brings the row back");
     assertEquals(0, app.focused().editor().anchor(), "to select from its hidden caret");
