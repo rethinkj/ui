@@ -512,6 +512,37 @@ class MarkdownTest {
     assertEquals(commentColor, paragraph(coloredDefinitions).text().color());
   }
 
+  /**
+   * A virtual fragment in a scroll area builds only the blocks in view, and its text and a
+   * selection reach the others.
+   */
+  @Test
+  void aVirtualFragmentBuildsTheBlocksInViewAndReachesTheRest() throws IOException {
+    StringBuilder source = new StringBuilder();
+    for (int i = 0; i < 300; i++) {
+      source.append("Paragraph ").append(i).append(" of the answer.\n\n");
+    }
+    MarkdownDocument document = Markdown.parse(source.toString());
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(col()
+                .key("area")
+                .scroll()
+                .grow(1)
+                .minSize(0, 0)
+                .child(Markdown.fragment(document, Markdown.options().virtual()).key("fragment"))));
+    String tree = run(app, "frame");
+    long built = tree.lines().filter(l -> l.contains("role=paragraph")).count();
+    assertTrue(built > 0 && built < 60, "built " + built + " of 300 blocks");
+    El fragment = CellEditorTest.find(app.tree(), "fragment");
+    String all = app.scopeText(fragment);
+    assertTrue(all.startsWith("Paragraph 0 of the answer.\nParagraph 1 "), all);
+    assertTrue(all.endsWith("Paragraph 299 of the answer."), all);
+  }
+
   @Test
   void oneDocumentShowsTheSameParagraphWithAndWithoutItsImages() throws IOException {
     MarkdownDocument document = Markdown.parse("Before ![Inline](inline.png) and [after](#after).");

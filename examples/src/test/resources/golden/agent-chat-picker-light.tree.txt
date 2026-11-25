@@ -109,8 +109,9 @@ el 0,0 1280x800
                           text "Inspect schema for orders" 306,94 540x16
                           text label="Done" "\u{F297}" 850,94 16x16
                           text label="chevron_down" "\u{F2A2}" 870,94 16x16
-                      el 277,125 618x34
-                        text role=paragraph "The orders table has indexes on id and customer_id, but nothing covering (status, created_at). Ask if you want me to inspect the repository query and draft a migration." 277,125 618x34 readonly lines 1-1/1
+                      el 277,125 618x34 rows 0-0/1
+                        el 277,125 618x34 pos=1/1
+                          text role=paragraph "The orders table has indexes on id and customer_id, but nothing covering (status, created_at). Ask if you want me to inspect the repository query and draft a migration." 277,125 618x34 readonly lines 1-1/1
                       el 277,167 62x24
                         el #copy role=button label="Copy message" 277,167 24x24
                           text label="copy" "\u{F32A}" 281,171 16x16
@@ -140,27 +141,31 @@ el 0,0 1280x800
                           text "Draft migrations/0042_orders_status_created.sql" 306,394 540x16
                           text label="Done" "\u{F297}" 850,394 16x16
                           text label="chevron_down" "\u{F2A2}" 870,394 16x16
-                      el 277,425 618x237
-                        text role=paragraph "PostgreSQL is doing a full sequential scan across 1.84M rows to return 1,840 open orders because no index starts with status." 277,425 618x34 readonly lines 1-1/1
-                        text role=paragraph "Recommended rollout:" 277,467 618x17 readonly lines 1-1/1
-                        el role=list 277,492 618x72
-                          el role=listitem 277,492 618x34 pos=1/3
-                            text "1." 277,492 13x34
-                            el 294,492 601x34
-                              text role=paragraph "Add a partial composite index on (status, created_at DESC) using CONCURRENTLY so writes stay unblocked." 294,492 601x34 readonly lines 1-1/1
-                          el role=listitem 277,528 618x17 pos=2/3
-                            text "2." 277,528 13x17
-                            el 294,528 601x17
-                              text role=paragraph "Run ANALYZE orders; immediately afterward so the planner adopts the index." 294,528 601x17 readonly lines 1-1/1
-                          el role=listitem 277,547 618x17 pos=3/3
-                            text "3." 277,547 13x17
-                            el 294,547 601x17
-                              text role=paragraph "Keep the partial predicate WHERE status = 'open' so the index stays under 2 MB." 294,547 601x17 readonly lines 1-1/1
-                        el role=group 277,572 618x90
-                          text role=code label="sql" "CREATE INDEX CONCURRENTLY IF NOT EXISTS orders_status_created_idx\n  ON orders (status, created_at DESC)\n  WHERE status = 'open';\n\nANALYZE orders;" 278,573 616x88 readonly lines 1-5/5
-                          el 866,577 24x24
-                            el #copy role=button label="Copy code" 866,577 24x24
-                              text label="copy" "\u{F32A}" 870,581 16x16
+                      el 277,425 618x237 rows 0-3/4
+                        el 277,425 618x42 pos=1/4
+                          text role=paragraph "PostgreSQL is doing a full sequential scan across 1.84M rows to return 1,840 open orders because no index starts with status." 277,425 618x34 readonly lines 1-1/1
+                        el 277,467 618x25 pos=2/4
+                          text role=paragraph "Recommended rollout:" 277,467 618x17 readonly lines 1-1/1
+                        el 277,492 618x80 pos=3/4
+                          el role=list 277,492 618x72
+                            el role=listitem 277,492 618x34 pos=1/3
+                              text "1." 277,492 13x34
+                              el 294,492 601x34
+                                text role=paragraph "Add a partial composite index on (status, created_at DESC) using CONCURRENTLY so writes stay unblocked." 294,492 601x34 readonly lines 1-1/1
+                            el role=listitem 277,528 618x17 pos=2/3
+                              text "2." 277,528 13x17
+                              el 294,528 601x17
+                                text role=paragraph "Run ANALYZE orders; immediately afterward so the planner adopts the index." 294,528 601x17 readonly lines 1-1/1
+                            el role=listitem 277,547 618x17 pos=3/3
+                              text "3." 277,547 13x17
+                              el 294,547 601x17
+                                text role=paragraph "Keep the partial predicate WHERE status = 'open' so the index stays under 2 MB." 294,547 601x17 readonly lines 1-1/1
+                        el 277,572 618x90 pos=4/4
+                          el role=group 277,572 618x90
+                            text role=code label="sql" "CREATE INDEX CONCURRENTLY IF NOT EXISTS orders_status_created_idx\n  ON orders (status, created_at DESC)\n  WHERE status = 'open';\n\nANALYZE orders;" 278,573 616x88 readonly lines 1-5/5
+                            el 866,577 24x24
+                              el #copy role=button label="Copy code" 866,577 24x24
+                                text label="copy" "\u{F32A}" 870,581 16x16
                       el 277,670 62x24
                         el #copy role=button label="Copy message" 277,670 24x24
                           text label="copy" "\u{F32A}" 281,674 16x16

@@ -1,0 +1,1 @@
+- `Markdown.Options.virtual()` makes `Markdown.fragment` a virtual list of its blocks that builds and lays out only the blocks in view, also inside a row of a chat transcript. Typing next to a 1,000-paragraph answer costs about 2 ms per key instead of 27 ms (1.4 ms with an empty transcript), and a streamed piece of it costs about as little. The AgentChat example uses it.

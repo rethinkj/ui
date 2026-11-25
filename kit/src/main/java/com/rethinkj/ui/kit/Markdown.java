@@ -125,8 +125,22 @@ public final class Markdown {
     private State state;
     private Function<String, com.rethinkj.ui.Image> images;
     private int textColor;
+    private boolean virtual;
 
     private Options() {}
+
+    /**
+     * Makes a {@link #fragment} a virtual list of its blocks ({@link El#rows(int, RowHeights,
+     * java.util.function.IntFunction)}) as high as they are, which builds and lays out only the
+     * blocks in view of the scroll area around it: for a long document in a scroll area, or in a
+     * row of a virtual list such as a chat transcript, where a rebuild then costs what is in view
+     * and not the whole document. Selecting, finding and copying reach the blocks out of view as
+     * well. Its container gives it its width, as for any virtual list.
+     */
+    public Options virtual() {
+      this.virtual = true;
+      return this;
+    }
 
     /**
      * The text color of the prose, as {@code 0xAARRGGBB} ({@link com.rethinkj.ui.Colors}), in place
@@ -277,7 +291,9 @@ public final class Markdown {
    * its content gives the fragment a width. Links, images, code-block highlighting and copying
    * follow {@code options} as in {@link #markdown}; a selection reaches across the fragment's
    * blocks (and across several fragments when their enclosing container is marked {@link
-   * El#selectionScope}), while Ctrl+A selects the text of one block, not the whole document.
+   * El#selectionScope}), while Ctrl+A selects the text of one block, not the whole document. With
+   * {@link Options#virtual} it is a virtual list of its blocks instead of a column, for a long
+   * document in a scroll area or in a row of a chat transcript.
    */
   public static El fragment(MarkdownDocument document, Options options) {
     Objects.requireNonNull(document, "document");
@@ -293,8 +309,16 @@ public final class Markdown {
   }
 
   private static El fragment(Theme theme, MarkdownDocument document, Options options, int color) {
-    Context c = new Context(theme, options, prepared(theme, document), color, 0, true);
+    Prepared prepared = prepared(theme, document);
+    Context c = new Context(theme, options, prepared, color, 0, true);
     El out = col().minSize(0, 0).selectionScope();
+    if (options.virtual) {
+      List<Block> blocks = document.blocks();
+      return out.rows( // each block with its space in a row, as the column has them
+          blocks.size(),
+          prepared.blockHeights,
+          i -> col().child(spaced(c, blocks, i, false, block(c, blocks.get(i)))));
+    }
     blocks(c, document.blocks(), false, out);
     return out;
   }
@@ -475,15 +499,24 @@ public final class Markdown {
     final Map<Float, Map<Object, Float>> columns = new HashMap<>();
     final List<Unit> units;
     final RowHeights heights;
+    final RowHeights blockHeights; // the rows of a virtual fragment: its blocks
     String text; // the whole document's, for Control+C after Control+A
 
     Prepared(MarkdownDocument document, Theme theme) {
-      this(document, theme, new double[0]);
+      this(document, theme, new double[0], new double[0]);
     }
 
     /** With the heights of the first rows as they were, the others estimated. */
-    Prepared(MarkdownDocument document, Theme theme, double[] kept) {
+    Prepared(MarkdownDocument document, Theme theme, double[] kept, double[] keptBlocks) {
       this.document = document;
+      List<Block> blocks = document.blocks();
+      // By index, each block its own version: a selection scope keeps what it read of a block.
+      this.blockHeights = new RowHeights(
+          i -> i < keptBlocks.length
+              ? keptBlocks[i]
+              : estimate(theme, blocks.get(i)) + theme.space().m(),
+          i -> i,
+          blocks::get);
       List<Unit> units = units(document);
       this.units = units;
       this.heights = new RowHeights(i -> {
@@ -630,7 +663,13 @@ public final class Markdown {
     for (int i = 0; i < rows; i++) {
       kept[i] = old.heights.height(i);
     }
-    Prepared p = new Prepared(document, theme, kept);
+    // Likewise the rows of a virtual fragment, one per block.
+    double[] keptBlocks =
+        new double[Math.min(reused, Math.min(oldBlocks.size() - 1, old.blockHeights.count()))];
+    for (int i = 0; i < keptBlocks.length; i++) {
+      keptBlocks[i] = old.blockHeights.height(i);
+    }
+    Prepared p = new Prepared(document, theme, kept, keptBlocks);
     for (int i = 0; i < reused; i++) {
       takeOver(blocks.get(i), old, p);
     }

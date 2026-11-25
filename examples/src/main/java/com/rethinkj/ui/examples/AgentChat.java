@@ -752,7 +752,8 @@ public final class AgentChat {
           Markdown.options()
               .copy(clipboard)
               .copied(message.copied)
-              .languages(AgentChat::highlighter)));
+              .languages(AgentChat::highlighter)
+              .virtual()));
     }
     if (message.working) {
       parts.add(Chat.working(message.workingText));
