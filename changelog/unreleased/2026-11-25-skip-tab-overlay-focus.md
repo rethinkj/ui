@@ -1,0 +1,1 @@
+- An overlay that is itself focusable and skips Tab opens on a skip-Tab element inside it rather than on itself.

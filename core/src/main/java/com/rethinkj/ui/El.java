@@ -4530,7 +4530,8 @@ public final class El {
    * Makes Tab and Shift+Tab pass this focusable element by, while a press and {@link App#focus}
    * still focus it: the paragraphs of a document, read-only fields for selecting and copying,
    * between the links that Tab reaches. An overlay that opens focuses it only where nothing in it
-   * that Tab reaches takes the focus, unless it is {@link #autofocus} or {@link #defaultFocus}.
+   * that Tab reaches takes the focus, unless it is {@link #autofocus} or {@link #defaultFocus}; of
+   * such elements, one inside the overlay comes before the overlay itself.
    */
   public El skipTab() {
     this.skipsTab = true;

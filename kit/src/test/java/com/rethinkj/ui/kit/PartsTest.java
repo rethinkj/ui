@@ -532,6 +532,39 @@ class PartsTest {
   }
 
   @Test
+  void aBlankPressInAPopoverWithOnlySkipTabContentKeepsTheFocus() throws IOException {
+    Popover.State state = new Popover.State();
+    App<Popover.State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(Popover.popover(
+                Button.button(Button.Variant.SECONDARY, "Details", s::toggle).key("details"),
+                s,
+                "Details",
+                TextField.textField("shop_admin", "Owner", null)
+                    .readOnly()
+                    .skipTab()
+                    .key("owner"))));
+    Script.run(
+        "size 400 200\nframe\nfocus #details\nkey Enter\nframe\nadvance 0.25\nframe\n", app, out);
+    assertEquals("owner", app.focused().key(), "opening focuses the read-only field");
+    String[] at = StructureTest.line(app.tree().dump(), "role=dialog")
+        .replaceAll(".* (\\d+),(\\d+) .*", "$1 $2")
+        .split(" ");
+    Script.run(
+        "press " + (Integer.parseInt(at[0]) + 4) + "," + (Integer.parseInt(at[1]) + 4)
+            + "\nframe\n",
+        app,
+        out);
+    assertEquals("popover", app.focused().key(), "a press on its padding keeps the focus in it");
+    Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
+    assertFalse(state.isOpen(), "Escape closes it");
+    assertEquals("details", app.focused().key(), "and gives the focus back");
+  }
+
+  @Test
   void theContentOfAFlushPopoverMeetsItsBorder() throws IOException {
     Theme theme = Theme.DARK;
     Popover.State state = new Popover.State();

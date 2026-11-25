@@ -937,21 +937,24 @@ final class Animator {
    * The identity of the element at or below {@code top} of a tree the view has just built that an
    * opening there focuses, the first in tree order that takes the focus and, of these, the first
    * that is {@link El#autofocus}, else {@link El#defaultFocus}, else one that Tab reaches (not
-   * {@link El#skipTab}), else any; without its overlays; null if none takes the focus. Elements
-   * at opacity 0 and with {@code display: none} hide what is below them.
+   * {@link El#skipTab}), else one inside {@code top}, else {@code top} itself; without its
+   * overlays; null if none takes the focus. Elements at opacity 0 and with {@code display: none}
+   * hide what is below them.
    */
   static Object firstFocusable(El top, Object topIdentity) {
+    Id id = (Id) topIdentity;
     for (Predicate<El> wanted : FIRST) {
-      Id found = first(top, (Id) topIdentity, wanted);
+      Id found = first(top, id, wanted);
       if (found != null) {
         return found;
       }
     }
-    return null;
+    Id inside = first(top, id, el -> el != top);
+    return inside != null ? inside : first(top, id, el -> true);
   }
 
-  private static final List<Predicate<El>> FIRST = List.of(
-      el -> el.autofocusKey() != null, El::isDefaultFocus, el -> !el.skipsTab(), el -> true);
+  private static final List<Predicate<El>> FIRST =
+      List.of(el -> el.autofocusKey() != null, El::isDefaultFocus, el -> !el.skipsTab());
 
   private static Id first(El top, Id id, Predicate<El> wanted) {
     // By the opacity the view set: an overlay of a row or part opens after motion began its fade.
