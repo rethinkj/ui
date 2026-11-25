@@ -1,0 +1,1 @@
+- `Spans#background(int, int, int, float, float)` adds horizontal room (moving the glyphs after it so the fill does not cover neighbors) and a corner radius to a text background span; `Markdown` uses it for inline code with `theme.space().xs()` and `theme.radius().small()`.

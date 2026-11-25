@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
@@ -564,5 +565,91 @@ class HighlightTest {
     int pixel = app.render().pixels().argb(14 + 100, 14 + 18 + 9);
     assertEquals(
         0xFFFFAE00, pixel, "half red over yellow, in linear light: " + Integer.toHexString(pixel));
+  }
+
+  @Test
+  void aBackgroundWithRoomMovesFollowingTextAndRoundsCorners() {
+    assertEquals(
+        "background 1-5 FF0000FF\n", new Spans(10).background(1, 5, BLUE).toString());
+    assertEquals(
+        "background 1-5 FF0000FF room 4 radius 3\n",
+        new Spans(10).background(1, 5, BLUE, 4, 3).toString());
+    assertThrows(IllegalArgumentException.class, () -> new Spans(10).background(1, 5, BLUE, -1, 0));
+    assertThrows(
+        IllegalArgumentException.class, () -> new Spans(10).background(1, 5, BLUE, Float.NaN, 0));
+    assertThrows(IllegalArgumentException.class, () -> new Spans(10).background(1, 5, BLUE, 0, -1));
+    assertThrows(
+        IllegalArgumentException.class, () -> new Spans(10).background(1, 5, BLUE, 0, Float.NaN));
+
+    // "ab cdef gh": "cdef" at 3..7 with room 4 and radius 3, and a range element over it.
+    App<Model> app = area(
+        "ab cdef gh",
+        f -> f.highlight(1, (line, state, out) -> {
+              out.background(3, 7, BLUE, 4, 3);
+              return null;
+            })
+            .child(El.el().key("link").range(3, 7)));
+    Text t = field(app).text();
+    assertEquals(24, t.x(3), "outer left edge of the room");
+    assertEquals(36, t.x(4), "first character sits after the left room");
+    assertEquals(64, t.x(7), "outer right edge moves by 2 * room");
+    assertEquals(88, t.x(10), "following text moves by 2 * room");
+    for (int i = 0; i <= 10; i++) {
+      assertEquals(i, t.nearest(t.x(i), 4), "caret hit testing at " + i);
+    }
+    assertEquals(3, t.nearest(31, 4), "a press on the left half of c lands before it");
+    assertEquals(3, t.nearest(26, 4), "a press in the room lands at the range's edge");
+    assertEquals(List.of(new Text.Mark(new Text.Box(24, 0, 40, 18), BLUE, false, 3)), t.marks());
+    Scene scene = app.scene();
+    boolean roundedMark = false;
+    for (int i = 0; i < scene.count(); i++) {
+      if (scene.getInt(i, Scene.KIND) == Scene.RECT
+          && scene.get(i, Scene.WIDTH) == 40
+          && scene.get(i, Scene.HEIGHT) == 18
+          && scene.get(i, Scene.RADIUS) == 3) {
+        roundedMark = true;
+      }
+    }
+    assertTrue(roundedMark, "the mark's rectangle carries the corner radius to the scene");
+    El link = field(app).children().getFirst();
+    assertEquals(List.of(new Text.Box(0, 0, 40, 18)), link.rangeBoxes(), "range box covers room");
+    app.select(field(app), 3, 7);
+    app.frame();
+    assertEquals(
+        List.of(new Text.Box(24, 0, 40, 18)),
+        field(app).text().selection(),
+        "selection covers room");
+
+    // Wrapped range: room only at the real start and end, and wrapping counts the added width.
+    App<Model> wrapped = area(
+        "aaaa bbbb cccc dddd eeee ffff",
+        f -> f.wrapText().highlight(1, (line, state, out) -> {
+          out.background(15, 29, BLUE, 4, 3);
+          return null;
+        }));
+    List<Text.Mark> wrappedMarks = field(wrapped).text().marks();
+    assertEquals(2, wrappedMarks.size(), wrappedMarks.toString());
+    assertEquals(
+        new Text.Mark(new Text.Box(15 * 8, 0, 5 * 8 + 4, 18), BLUE, false, 3),
+        wrappedMarks.get(0),
+        "first row gets only the start room, and wraps before eeee");
+    assertEquals(
+        new Text.Mark(new Text.Box(0, 18, 9 * 8 + 4, 18), BLUE, false, 3),
+        wrappedMarks.get(1),
+        "second row gets only the end room");
+
+    // Non-field text uses the same room and radius.
+    El label = El.text("ab cd ef")
+        .font(Font.mono())
+        .fontSize(14)
+        .highlight(1, (line, state, out) -> {
+          out.background(3, 5, BLUE, 4, 3);
+          return null;
+        });
+    Headless.render(El.row().child(label), 200, 50, 1);
+    assertEquals(8 * 8 + 8, label.width(), "width includes 2 * room");
+    assertEquals(
+        List.of(new Text.Mark(new Text.Box(24, 0, 24, 18), BLUE, false, 3)),
+        label.text().marks());
   }
 }

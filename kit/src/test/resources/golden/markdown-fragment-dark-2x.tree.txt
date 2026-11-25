@@ -3,7 +3,7 @@ el 0,0 480x250
     el #fragment 29,29 422x42
       text role=paragraph "Finds orders placed in a date range, newest first." 29,29 422x17 readonly lines 1-1/1
       text role=paragraph "Uses the orders_placed_at index; see indexes." 29,54 422x17 readonly lines 1-1/1
-        el #link-0 role=link label="indexes" 300.88,54 51x17 value="#indexes"
+        el #link-0 role=link label="indexes" 304.88,54 51x17 value="#indexes"
     el #definitions role=list 29,83 422x130
       el role=group label="Params:" 29,83 422x55
         el 29,83 49x17
