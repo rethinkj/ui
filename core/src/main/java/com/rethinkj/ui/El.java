@@ -466,6 +466,7 @@ public final class El {
     float rowHeight;
     RowHeights heights; // rows as high as their content; null for rows of rowHeight
     int heightsVersion; // heights.version() when this element was built
+    Object[] versions; // the rows' versions in heights when this element was built, or null
     RowBuilder rowBuilder;
     boolean spans; // the row function takes the part of the rows in view sideways
     float spanFrom; // the part rows are built for, in their coordinates
@@ -1431,6 +1432,7 @@ public final class El {
     rows.heights = Objects.requireNonNull(heights, "heights");
     heights.count(count);
     rows.heightsVersion = heights.version();
+    rows.versions = heights.versions(); // in this view's context, with its row function
     return this;
   }
 
@@ -1451,6 +1453,16 @@ public final class El {
     double moved = rows.heights.moved(Math.max(0, y - top));
     // Rows that come above a list scrolled into its top padding put its first row at the top.
     return y < top && moved == 0 ? y : top + moved;
+  }
+
+  /** The {@link RowHeights} of this virtual list, or null. */
+  RowHeights rowHeights() {
+    return rows == null ? null : rows.heights;
+  }
+
+  /** The versions of this list's rows in its {@link RowHeights} when it was built, or null. */
+  Object[] rowVersions() {
+    return rows == null ? null : rows.versions;
   }
 
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */

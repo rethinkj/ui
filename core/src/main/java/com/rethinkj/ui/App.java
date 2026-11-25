@@ -4649,7 +4649,10 @@ public final class App<S> {
    * The text of all read-only, unmasked fields inside a {@link El#selectionScope selection scope},
    * in tree order and joined with {@code "\n"}—the same text Control+C copies for a whole-scope
    * selection. For a scope that contains a {@link El#rows virtual list}, rows that are not built yet
-   * are built for this call without being kept.
+   * are built for this call without being kept, unless the list's {@link RowHeights} has a row
+   * version ({@link RowHeights#RowHeights(java.util.function.IntToDoubleFunction,
+   * java.util.function.IntFunction, java.util.function.IntFunction)}) that has not changed since the
+   * row was last read.
    *
    * @param scope an element marked with {@link El#selectionScope()}
    * @throws IllegalArgumentException if {@code scope} is null or not a selection scope
@@ -5586,21 +5589,45 @@ public final class App<S> {
       int first = unbuilt ? 0 : el.firstRow();
       int last =
           !shown ? first : unbuilt ? el.rowCount() : first + el.children().size();
+      // Rows not built keep their texts while their key and version stay; see RowHeights.
+      RowHeights heights = unbuilt && shown ? el.rowHeights() : null;
+      Object[] versions = heights == null ? null : el.rowVersions();
+      boolean keep = versions != null;
+      Map<Object, RowHeights.RowTexts> kept = keep ? HashMap.newHashMap(last - first) : null;
       List<El> rowFields = new ArrayList<>();
       for (int row = first; row < last; row++) {
-        El rowEl = unbuilt ? el.rowElement(row) : el.children().get(row - first);
-        if (rowEl == null) {
-          continue;
-        }
-        rowFields.clear();
-        collectRowFields(rowEl, true, rowFields);
-        for (int ord = 0; ord < rowFields.size(); ord++) {
-          El field = rowFields.get(ord);
-          String text = field == null ? "" : fieldText(field);
-          if (!text.isEmpty()) {
-            visitor.visit(row, ord, field, text);
+        Object key = keep ? heights.key(row) : null;
+        Object version = key == null ? null : versions[row];
+        RowHeights.RowTexts texts = key == null ? null : heights.rowTexts().get(key);
+        if (texts == null || el.hasRow(row) || !Objects.equals(texts.version(), version)) {
+          El rowEl = unbuilt ? el.rowElement(row) : el.children().get(row - first);
+          if (rowEl == null) {
+            continue;
+          }
+          rowFields.clear();
+          collectRowFields(rowEl, true, rowFields);
+          String[] read = new String[rowFields.size()];
+          for (int ord = 0; ord < read.length; ord++) {
+            El field = rowFields.get(ord);
+            read[ord] = field == null ? "" : fieldText(field);
+            if (!read[ord].isEmpty()) {
+              visitor.visit(row, ord, field, read[ord]);
+            }
+          }
+          texts = new RowHeights.RowTexts(version, List.of(read));
+        } else {
+          for (int ord = 0; ord < texts.texts().size(); ord++) {
+            if (!texts.texts().get(ord).isEmpty()) {
+              visitor.visit(row, ord, null, texts.texts().get(ord));
+            }
           }
         }
+        if (key != null) {
+          kept.put(key, texts);
+        }
+      }
+      if (keep) {
+        heights.rowTexts(kept); // drops the rows that are gone
       }
       pos[0] = ScopePosition.AFTER;
       pos[1] = 0;
