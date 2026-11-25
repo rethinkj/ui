@@ -9,6 +9,7 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -154,6 +155,7 @@ final class LinuxNotifications {
   private record Request(
       String appName,
       String appId,
+      String appIcon,
       String title,
       String body,
       Runnable clicked,
@@ -170,7 +172,9 @@ final class LinuxNotifications {
     if (name == null || name.isEmpty()) {
       name = window != null && window.title() != null ? window.title() : (id != null ? id : "");
     }
-    OUTGOING.add(new Request(name, id, title, body, clicked, failed));
+    Path icon = window != null ? SystemNotifications.iconFile(window, id) : null;
+    String appIcon = icon != null ? icon.toUri().toString() : "";
+    OUTGOING.add(new Request(name, id, appIcon, title, body, clicked, failed));
     synchronized (LOCK) {
       if (!started) {
         started = true;
@@ -312,7 +316,7 @@ final class LinuxNotifications {
     H.ITER_INIT_APPEND_H.invokeExact(msg, iter);
     if (!appendString(arena, iter, req.appName)
         || !appendInt(arena, iter, DBUS_TYPE_UINT32, 0) // replaces_id
-        || !appendString(arena, iter, "") // app_icon (desktop-entry hint supplies the app's icon)
+        || !appendString(arena, iter, req.appIcon) // a file URI, else the desktop entry's
         || !appendString(arena, iter, req.title)
         || !appendString(arena, iter, req.body)) {
       return false;

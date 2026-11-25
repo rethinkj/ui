@@ -59,7 +59,7 @@ Scripts never open OS dialogs. Instead, you pre-program their answers in order:
 | --- | --- |
 | `dialog "<path>" ["<path>" …] [filter <n>]` | Answers the next `App.fileDialog` with these file paths and optional filter index. |
 | `dialog cancel`, `dialog button "<text>"`, `dialog error "<text>"` | Cancels the next dialog, clicks a message box button, or simulates a dialog error. |
-| `notification click "<title>"` | Clicks a desktop notification the app showed with `App.notify`, raising its window and queuing its click handler for the next `frame`. Fails if no unclicked notification has that title. |
+| `notification click "<title>"` | Clicks a desktop notification the app showed with `App.notify`, raising its window. The click handler arrives as a posted task: `await` and `frame` after it show it. Fails if no unclicked notification has that title. |
 | `drop <target> "<path>" …`, `drop <target> text "<text>"` | Simulates dropping files or text from another application onto the target. |
 | `drop over <target>`, `drop leave` | Simulates hovering an external drag over the target or leaving the window. |
 

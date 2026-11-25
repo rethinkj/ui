@@ -2,6 +2,10 @@ package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Notifications;
+import com.rethinkj.ui.render.Png;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
@@ -12,6 +16,9 @@ import java.util.function.Consumer;
 final class SystemNotifications implements Notifications {
 
   private static final boolean WINDOWS = System.getProperty("os.name", "").startsWith("Windows");
+
+  private static WindowIcon writtenIcon; // the icon last written to its file, and that file
+  private static Path writtenFile;
 
   private final Window window;
   private final App<?> app;
@@ -37,5 +44,42 @@ final class SystemNotifications implements Notifications {
     } else {
       LinuxNotifications.show(window, title, body, onClick, failed);
     }
+  }
+
+  /**
+   * The window's icon as a PNG of 64 pixels in the user's cache ({@code %LOCALAPPDATA%} on
+   * Windows, {@code $XDG_CACHE_HOME} or {@code ~/.cache} on Linux), for the system to show beside
+   * a notification; written again only when the icon changes. Null if the window has no icon or
+   * the file cannot be written.
+   */
+  static synchronized Path iconFile(Window window, String id) {
+    WindowIcon icon = window.icon();
+    if (icon == null || id == null) {
+      return null;
+    }
+    if (icon == writtenIcon) {
+      return writtenFile;
+    }
+    String cache = WINDOWS ? System.getenv("LOCALAPPDATA") : System.getenv("XDG_CACHE_HOME");
+    Path folder = cache != null && !cache.isEmpty()
+        ? Path.of(cache)
+        : WINDOWS ? null : Path.of(System.getProperty("user.home"), ".cache");
+    if (folder == null) {
+      return null;
+    }
+    Path file = folder
+        .resolve("rethinkj-ui")
+        .resolve("icons")
+        .resolve(id.replaceAll("[^A-Za-z0-9._-]", "_") + ".png")
+        .toAbsolutePath();
+    try {
+      Files.createDirectories(file.getParent());
+      Files.write(file, Png.encode(icon.image(64)));
+    } catch (IOException _) {
+      return null;
+    }
+    writtenIcon = icon;
+    writtenFile = file;
+    return file;
   }
 }

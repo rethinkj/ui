@@ -5,8 +5,6 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import com.rethinkj.ui.render.Png;
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -14,10 +12,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,7 +41,9 @@ final class Win32Notifications {
   private static final int REG_SZ = 1;
   private static final int E_NOINTERFACE = 0x80004002;
   private static final int E_POINTER = 0x80004003;
-  private static final int TOAST_DISMISSAL_TIMED_OUT = 2;
+  private static final int TOAST_DISMISSAL_APPLICATION_HIDDEN = 1;
+  // The notification center keeps the last 20 toasts of an app; older ones cannot be clicked.
+  private static final int KEPT = 20;
 
   private static final String CLASS_XML_DOCUMENT = "Windows.Data.Xml.Dom.XmlDocument";
   private static final String CLASS_TOAST_MANAGER =
@@ -245,7 +243,7 @@ final class Win32Notifications {
   private record Request(
       String id,
       String name,
-      byte[] iconPng,
+      String iconUri,
       String title,
       String body,
       Runnable clicked,
@@ -290,13 +288,12 @@ final class Win32Notifications {
 
   private static final AtomicLong HANDLER_IDS = new AtomicLong();
   private static final ConcurrentHashMap<Long, ComHandler> HANDLERS = new ConcurrentHashMap<>();
-  private static final Set<ActiveToast> ACTIVE = ConcurrentHashMap.newKeySet();
+  private static final ConcurrentLinkedQueue<ActiveToast> ACTIVE = new ConcurrentLinkedQueue<>();
 
   private static final Object LOCK = new Object();
   private static final ConcurrentLinkedQueue<Request> OUTGOING = new ConcurrentLinkedQueue<>();
   private static final ConcurrentLinkedQueue<ActiveToast> RELEASES = new ConcurrentLinkedQueue<>();
   private static boolean started;
-  private static WindowIcon lastIcon;
   private static String registeredId;
   private static String registeredName;
   private static String registeredIconUri;
@@ -315,13 +312,9 @@ final class Win32Notifications {
           ? window.title()
           : id;
     }
-    byte[] iconPng = null;
-    WindowIcon icon = window != null ? window.icon() : null;
-    if (icon != null && icon != lastIcon) {
-      lastIcon = icon;
-      iconPng = Png.encode(icon.image(64));
-    }
-    OUTGOING.add(new Request(id, name, iconPng, title, body, clicked, failed));
+    Path icon = window != null ? SystemNotifications.iconFile(window, id) : null;
+    String iconUri = icon != null ? icon.toString() : null;
+    OUTGOING.add(new Request(id, name, iconUri, title, body, clicked, failed));
     synchronized (LOCK) {
       if (!started) {
         started = true;
@@ -381,7 +374,7 @@ final class Win32Notifications {
     MemorySegment notifier = MemorySegment.NULL;
     boolean kept = false;
     try (Arena arena = Arena.ofConfined()) {
-      registerAumid(arena, req.id, req.name, req.iconPng);
+      registerAumid(arena, req.id, req.name, req.iconUri);
 
       // 1. Activate XmlDocument and load ToastGeneric XML via IXmlDocumentIO::LoadXml (slot 6).
       xmlInspectable = activateInstance(arena, CLASS_XML_DOCUMENT);
@@ -410,8 +403,9 @@ final class Win32Notifications {
           });
       long dismissedToken = addEventHandler(
           arena, toast, VTBL_TOAST_ADD_DISMISSED, IID_DISMISSED_HANDLER, (_, args) -> {
-            // Keep the toast alive when the banner only timed out into the notification center.
-            if (dismissalReason(args) == TOAST_DISMISSAL_TIMED_OUT) {
+            // A banner that timed out or was closed with × stays clickable in the notification
+            // center, so only a toast the app hid lets go of its handlers here.
+            if (dismissalReason(args) != TOAST_DISMISSAL_APPLICATION_HIDDEN) {
               return;
             }
             ActiveToast entry = holder[0];
@@ -431,6 +425,12 @@ final class Win32Notifications {
       ActiveToast entry = new ActiveToast(toast, activatedToken, dismissedToken, failedToken);
       holder[0] = entry;
       ACTIVE.add(entry);
+      while (ACTIVE.size() > KEPT) {
+        ActiveToast oldest = ACTIVE.poll();
+        if (oldest != null && oldest.settled.compareAndSet(false, true)) {
+          releaseToast(oldest);
+        }
+      }
 
       // 4. Create notifier with AppUserModelID (slot 7) and show toast (slot 6).
       manager = activationFactory(arena, CLASS_TOAST_MANAGER, IID_ITOAST_MANAGER_STATICS);
@@ -465,11 +465,10 @@ final class Win32Notifications {
    * HKCU\Software\Classes\AppUserModelId\<id>} with {@code DisplayName} and, when an icon is
    * available, {@code IconUri}.
    */
-  private static void registerAumid(Arena arena, String id, String name, byte[] iconPng)
+  private static void registerAumid(Arena arena, String id, String name, String iconUri)
       throws Throwable {
-    String iconUri = registeredIconUri;
-    if (iconPng != null) {
-      iconUri = writeIcon(id, iconPng);
+    if (iconUri == null) {
+      iconUri = registeredIconUri;
     }
     if (id.equals(registeredId)
         && name.equals(registeredName)
@@ -510,22 +509,6 @@ final class Win32Notifications {
     MemorySegment data = Win32.wide(arena, value);
     int _ = (int) H.REG_SET_VALUE_EX_H.invokeExact(
         hKey, Win32.wide(arena, name), 0, REG_SZ, data, (int) data.byteSize());
-  }
-
-  private static String writeIcon(String id, byte[] png) {
-    String localAppData = System.getenv("LOCALAPPDATA");
-    if (localAppData == null || localAppData.isEmpty()) {
-      return null;
-    }
-    String safe = id.replaceAll("[^A-Za-z0-9._-]", "_");
-    Path file = Path.of(localAppData, "rethinkj-ui", "icons", safe + ".png");
-    try {
-      Files.createDirectories(file.getParent());
-      Files.write(file, png);
-      return file.toAbsolutePath().toString();
-    } catch (IOException _) {
-      return null;
-    }
   }
 
   /** Builds the {@code ToastGeneric} XML payload with XML-escaped title and body. */

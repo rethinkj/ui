@@ -110,7 +110,7 @@ Because native message boxes block all windows, prefer the kit's [Dialog](/docs/
 ```java snippet="notify"
 ```
 
-`app.notify(title, body, onClick, onError)` shows a system desktop notification. Clicking it while the app runs raises the window to the front and runs `onClick` on the app's thread as a posted task; failures go to `onError` the same way.
+`app.notify(title, body, onClick, onError)` shows a system desktop notification. Clicking it while the app runs asks for the window to come to the front (a Wayland compositor may refuse) and runs `onClick` on the app's thread as a posted task; failures go to `onError` the same way.
 
 - Set `Window.identity(id, name)` before opening the first window: Windows requires an identity to show WinRT toast notifications (and uses it together with `Window.Options#icon` for the app's name and icon), and Linux passes the name and `desktop-entry` hint over D-Bus (`org.freedesktop.Notifications`).
 - Notifications do not include action buttons, and clicks are delivered only while the app is running.

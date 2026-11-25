@@ -953,31 +953,26 @@ public final class Script {
 
     /** A notification an app showed, kept for {@code snap} and {@code notification click}. */
     private static final class Notice {
-      final App<?> app;
       final String title;
       final String body;
       final Runnable clicked;
       boolean clickedOnce;
 
-      Notice(App<?> app, String title, String body, Runnable clicked) {
-        this.app = app;
+      Notice(String title, String body, Runnable clicked) {
         this.title = title;
         this.body = body;
         this.clicked = clicked;
       }
     }
 
-    Notifications notificationsFor(App<?> app) {
-      return (title, body, clicked, failed) ->
-          notifications.add(new Notice(app, title, body, clicked));
-    }
+    final Notifications notifier =
+        (title, body, clicked, failed) -> notifications.add(new Notice(title, body, clicked));
 
     void clickNotification(Line line, String title) {
       for (Notice notice : notifications) {
         if (!notice.clickedOnce && notice.title.equals(title)) {
           notice.clickedOnce = true;
-          notice.clicked.run();
-          notice.app.scheduler.takePosted();
+          notice.clicked.run(); // posts the app's handler, as a click of the system's does
           return;
         }
       }
@@ -1067,7 +1062,7 @@ public final class Script {
       app.windows(this);
       app.dialogs(dialogs);
       app.browser(browser);
-      app.notifications(notificationsFor(app));
+      app.notifications(notifier);
     }
 
     Win current() {
@@ -1217,7 +1212,7 @@ public final class Script {
       app.windows(this);
       app.dialogs(dialogs);
       app.browser(browser);
-      app.notifications(notificationsFor(app));
+      app.notifications(notifier);
       w.resize(width, height, first.scale);
       int n = wins.size();
       if (options.isPositioned()) {
@@ -1348,7 +1343,8 @@ public final class Script {
                   + " `dialog error \"<text>\"` for a dialog that fails. Write it before the"
                   + " step that opens the dialog.";
             case "notification" ->
-              "`notification click \"<title>\"`, to click a desktop notification the app showed.";
+              "`notification click \"<title>\"`, to click a desktop notification the app showed. The"
+                  + " click arrives as a posted task: `await` and `frame` after it show it.";
             case "drop" ->
               "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
                   + " application drops there; `drop <target> text \"<text>\"` for text;"

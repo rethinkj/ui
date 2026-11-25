@@ -110,6 +110,7 @@ class NotificationsTest {
         frame
         snap shown
         notification click "Export finished"
+        await
         frame
         """, app, out);
     assertEquals(

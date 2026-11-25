@@ -2123,8 +2123,9 @@ public final class App<S> {
 
   /**
    * Shows a desktop notification of the system with {@code title} and {@code body}. When the user
-   * clicks it while the app runs, the app's window rises to the front and {@code onClick} runs as
-   * a {@link #post posted} task: on the app's thread, with a frame after it. If the system cannot
+   * clicks it while the app runs, the app asks for its window to come to the front, which a
+   * Wayland compositor may refuse, and {@code onClick} runs as a {@link #post posted} task: on the
+   * app's thread, with a frame after it. If the system cannot
    * show the notification, {@code onError} gets what went wrong as a posted task instead. Call it
    * on the app's thread, usually in a handler; it returns once it has handed the notification to
    * the system. Set the app's name and icon beforehand with {@link
