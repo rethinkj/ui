@@ -1414,7 +1414,8 @@ public final class Text implements Measure {
       return null;
     }
     double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
-    TreeMap<Integer, float[]> gaps = new TreeMap<>(); // position -> {before, after}
+    // For each position, the room before it and the room after it.
+    TreeMap<Integer, float[]> gaps = new TreeMap<>();
     for (int i = 0; i < spans.count; i++) {
       if (spans.kinds[i] != Spans.BACKGROUND || spans.rooms[i] <= 0) {
         continue;
