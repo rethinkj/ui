@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
@@ -331,6 +332,50 @@ class MarkdownTest {
     tree = run(app, "advance 2\nframe\nadvance 1\nframe");
     assertFalse(tree.contains("label=\"checkmark\""), "the copy icon back");
     assertFalse(tree.contains("label=\"Copied\""), tree);
+  }
+
+  @Test
+  void aCodeBlockInAChatMessageConfirmsItsCopyWithoutAState() throws IOException {
+    Button.Copied copied = new Button.Copied();
+    Clipboard clipboard = Clipboard.inMemory();
+    MarkdownDocument reply = Markdown.parse("```sql\nSELECT 42;\n```");
+    App<Object> app = new App<>(
+            new Object(),
+            ignored -> col()
+                .wFull()
+                .hFull()
+                .child(Chat.agent(reply, Chat.options().copy(clipboard).copied(copied))))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    String tree = run(app, """
+        frame
+        move role=code
+        frame
+        advance 1
+        frame
+        press label="Copy code"
+        frame
+        advance 0.25
+        frame""");
+    assertEquals("SELECT 42;", clipboard.read());
+    assertTrue(tree.contains("text label=\"checkmark\""), tree);
+    assertTrue(tree.contains("role=tooltip label=\"Copied\""), tree);
+    // The button lies on a fill of its own, so that a long first line does not show through.
+    El corner = holder(app.tree(), CellEditorTest.find(app, "copy"));
+    assertEquals(Theme.DARK.surface().raised(), corner.fill());
+    tree = run(app, "advance 2\nframe\nadvance 1\nframe");
+    assertFalse(tree.contains("label=\"Copied\""), tree);
+  }
+
+  /** The element that has {@code child} among its children, or null. */
+  private static El holder(El el, El child) {
+    for (El each : el.children()) {
+      El found = each == child ? el : holder(each, child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   @Test
