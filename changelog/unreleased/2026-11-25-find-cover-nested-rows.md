@@ -1,0 +1,1 @@
+- Find over a selection scope keeps the current match below the find bar also when the scope lies in a row of an outer virtual list, and when the match is in a short read-only multi-line field of a scope scrolled partly above the window. Scroll areas in rows a list builds later also get their scrollbar covers.

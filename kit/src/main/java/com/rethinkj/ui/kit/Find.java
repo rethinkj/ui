@@ -294,7 +294,7 @@ public final class Find {
       state.caret = Math.min(state.caret, text.length());
       state.anchor = Math.min(state.anchor, text.length());
     }
-    if (!scope) {
+    if (text != null) { // a scope's while the bar is open: core then reads its whole text
       El.SelectHandler ownSelect = field.onSelect();
       field.onSelect((caret, anchor) -> {
         state.caret = caret;

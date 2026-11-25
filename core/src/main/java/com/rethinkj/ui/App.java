@@ -10,6 +10,7 @@ import com.rethinkj.ui.window.Windows;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -260,6 +261,7 @@ public final class App<S> {
   private final Focus focus = new Focus(animator); // the keyboard focus
   private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
   private FieldState toldState; // and its field's FieldState, which keeps it when the field moves
+  private Object[] toldScope; // the scope, caret and anchor last told to its El#onSelect
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -4383,7 +4385,7 @@ public final class App<S> {
    * @return whether a handler was told, which the next input should find in the view
    */
   private boolean tellSelections() {
-    boolean told = false;
+    boolean told = tellScopeSelection();
     for (Map.Entry<Object, Editor> entry : List.copyOf(editors.entrySet())) {
       told |= inTree(entry) && entry.getValue().tell();
     }
@@ -4391,8 +4393,43 @@ public final class App<S> {
     return told;
   }
 
+  /** Tells a selection scope's {@link El#onSelect} handler where its selection is now. */
+  private boolean tellScopeSelection() {
+    Object[] at = scopeSelectionAt();
+    if (at == null || Arrays.equals(at, toldScope)) {
+      toldScope = at;
+      return false;
+    }
+    toldScope = at;
+    animator.liveElement(at[0]).onSelect().select((int) at[1], (int) at[2]);
+    return true;
+  }
+
+  /**
+   * The scope, caret and anchor that {@link #tellScopeSelection} tells, or null for a selection
+   * scope without a handler or one whose selection is not in its text.
+   */
+  private Object[] scopeSelectionAt() {
+    ScopeSelection s = scopeSelection;
+    El scope = s == null ? null : animator.liveElement(s.scopeId);
+    if (scope == null || scope.onSelect() == null) {
+      return null;
+    }
+    ScopeIndex index = scopeIndex(scope);
+    ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
+    int caret = index.offset(s.end);
+    int from = index.offset(anchor);
+    return caret < 0 || from < 0 ? null : new Object[] {s.scopeId, caret, from};
+  }
+
   /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
   private boolean untold() {
+    if (scopeSelection != null) {
+      Object[] at = scopeSelectionAt();
+      if (at != null && !Arrays.equals(at, toldScope)) {
+        return true;
+      }
+    }
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
       if (inTree(entry) && entry.getValue().untold()) {
         return true;
@@ -4774,6 +4811,37 @@ public final class App<S> {
       El target = caretPos.inRows()
           ? builtScopeRowField(list, caretPos.row(), caretPos.field())
           : caretField;
+      if (target == null
+          && list != null
+          && caretPos.inRows()
+          && list.spansRows()
+          && list.hasRow(caretPos.row())) { // its cell lies sideways out of the part built
+        El shown = list.children().get(caretPos.row() - list.firstRow());
+        El whole = list.rowElement(caretPos.row());
+        if (whole != null) {
+          List<El> rowFields = new ArrayList<>();
+          collectRowFields(whole, true, rowFields);
+          El wholeTarget = caretPos.field() >= 0 && caretPos.field() < rowFields.size()
+              ? rowFields.get(caretPos.field())
+              : null;
+          if (wholeTarget != null) {
+            list.layoutRowElement(whole, scale, systemFonts);
+            List<El> rowPath = new ArrayList<>();
+            if (pathTo(whole, wholeTarget, rowPath)) {
+              float rx = -(float) list.scrollX();
+              for (El step : rowPath) {
+                rx += step.x();
+              }
+              if (reveal(
+                  list, rx, shown.y(), wholeTarget.width(), shown.height(), false, null, 0)) {
+                scrolled = true;
+                fillRows();
+                target = builtScopeRowField(list, caretPos.row(), caretPos.field());
+              }
+            }
+          }
+        }
+      }
       if (target != null && target.editor() != null) {
         Editor editor = target.editor();
         int[] range =
@@ -4785,10 +4853,8 @@ public final class App<S> {
         }
         target.text().unfocused(false);
         reveal(target);
-        if (target.text().multiline()
-            && target.text().laidOut()
-            && target.text().viewStale()) {
-          target.text().layOut();
+        if (target.text().multiline() && target.text().laidOut()) {
+          editor.layOutLines(false);
         }
         float[] box = editor.caretBox();
         if (box != null) {
@@ -5677,6 +5743,12 @@ public final class App<S> {
       String field = text.substring(starts[i], end(i));
       int local = Math.clamp((long) offset - starts[i], 0, field.length());
       return new ScopePosition(rows[i], ordinals[i], Editor.snap(field, local));
+    }
+
+    /** {@code position} as an index into the text, or -1 for a field that is not in it. */
+    int offset(ScopePosition position) {
+      int i = indexOf(position.row(), position.field());
+      return i < 0 ? -1 : starts[i] + Math.min(position.offset(), end(i) - starts[i]);
     }
 
     /** The field at {@code (row, ordinal)}, or -1. */

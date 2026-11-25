@@ -11,6 +11,8 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Side;
+import com.rethinkj.ui.Text;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.Font;
@@ -1030,6 +1032,290 @@ class MarkdownTest {
     float[] bar = bounds(step, "#find role=search");
     float[] match = bounds(step, "\"A row on the right ends with needle\"");
     assertTrue(match[1] >= bar[1] + bar[3], step);
+  }
+
+  @Test
+  void findScrollsFirstLineOfScopeListInsideOuterVirtualRowBelowBar() throws IOException {
+    Find.State find = new Find.State();
+    List<String> innerRows = new ArrayList<>();
+    innerRows.add("Leading words on the first row ending with needle");
+    for (int i = 1; i < 30; i++) {
+      innerRows.add(i == 20 ? "Later row with needle here" : "Filler row " + i);
+    }
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El outer = col()
+              .key("outer")
+              .wFull()
+              .hFull()
+              .scrollbars(t.scrollbars())
+              .rows(5, 180, outerRow -> {
+                if (outerRow != 0) {
+                  return col().h(180).child(El.text("Outer row " + outerRow));
+                }
+                El inner = col()
+                    .key("inner")
+                    .wFull()
+                    .grow(1)
+                    .minSize(0, 0)
+                    .padding(t.space().m())
+                    .scrollbars(t.scrollbars())
+                    .rows(
+                        innerRows.size(),
+                        24,
+                        i -> col()
+                            .child(El.text(innerRows.get(i))
+                                .editable(null)
+                                .readOnly()
+                                .font(t.prose().body().font().get())
+                                .fontSize(t.prose().body().size())));
+                El scope = col().wFull().grow(1).minSize(0, 0).selectionScope().child(inner);
+                return col().wFull().h(180).child(Find.find(ref[0], scope, find));
+              });
+          return col().wFull().hFull().fill(t.surface().panel()).child(outer);
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Narrow window so the right-aligned bar sits directly over the right end of inner row 0.
+    Script.run("""
+        size 440 200 scale 2
+        frame
+        press text="Leading words on the first row ending with needle" at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        snap first""", app, out);
+    String first = Files.readString(out.resolve("first.tree.txt"));
+    float[] bar = bounds(first, "#find role=search");
+    float[] match = bounds(first, "\"Leading words on the first row ending with needle\"");
+    assertTrue(match[1] >= bar[1] + bar[3], first);
+
+    // Closing the bar removes coveredTop, clamping the inner list back to 0.
+    Script.run("""
+        key Escape
+        frame""", app, out);
+    assertEquals(0, CellEditorTest.find(app, "inner").scrollY());
+  }
+
+  @Test
+  void findInShortMultilineFieldInScrolledScopeKeepsMatchBelowBar() throws IOException {
+    Find.State find = new Find.State();
+    StringBuilder lines = new StringBuilder();
+    lines.append("another needle\n");
+    for (int i = 1; i < 15; i++) {
+      lines.append("Filler line ").append(i).append('\n');
+    }
+    lines.append("A line on the right ends with needle\n");
+    for (int i = 16; i < 25; i++) {
+      lines.append("Filler line ").append(i).append('\n');
+    }
+    String text = lines.toString();
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          // 56 px scope with a 56 px read-only multi-line field (46 px content inside 4 px
+          // padding and 1 px border): enough room below the bar for a line once the field scrolls.
+          El field = El.text(text)
+              .key("field")
+              .editable(null)
+              .readOnly()
+              .multiline()
+              .wFull()
+              .grow(1)
+              .minSize(0, 0)
+              .padding(4, 8, 4, 8)
+              .border(1, t.border().control())
+              .scrollbars(t.scrollbars())
+              .font(t.prose().body().font().get())
+              .fontSize(t.prose().body().size());
+          El scope = col().key("scope").wFull().h(56).shrink(0).selectionScope().child(field);
+          return col()
+              .key("outer")
+              .wFull()
+              .hFull()
+              .scroll()
+              .child(El.el().h(120).shrink(0))
+              .child(Find.find(ref[0], scope, find))
+              .child(El.el().h(300).shrink(0));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Scope sits 24 px above the window; stepping to the match on line 15 scrolls both the field
+    // and the outer area so the match lands below the bar.
+    Script.run("""
+        size 300 220 scale 2
+        frame
+        press #field at left+10,top+10
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        wheel #outer 0 144
+        frame
+        key Enter
+        frame
+        snap step""", app, out);
+    String step = Files.readString(out.resolve("step.tree.txt"));
+    float[] bar = bounds(step, "#find role=search");
+    float[] fieldBox = bounds(step, "#field ");
+    El field = CellEditorTest.find(app, "field");
+    assertFalse(field.text().selection().isEmpty(), step);
+    Text.Box sel = field.text().selection().getFirst();
+    float matchY = fieldBox[1]
+        + field.border(Side.TOP)
+        + field.padding(Side.TOP)
+        + sel.y() / field.text().scale();
+    assertTrue(
+        matchY >= bar[1] + bar[3], "matchY=" + matchY + " bar=" + (bar[1] + bar[3]) + "\n" + step);
+
+    // Stepping back up to the first line keeps that match below the bar too.
+    Script.run("""
+        wheel #outer 0 144
+        frame
+        key Enter shift
+        frame
+        snap back""", app, out);
+    String back = Files.readString(out.resolve("back.tree.txt"));
+    bar = bounds(back, "#find role=search");
+    fieldBox = bounds(back, "#field ");
+    field = CellEditorTest.find(app, "field");
+    assertFalse(field.text().selection().isEmpty(), back);
+    sel = field.text().selection().getFirst();
+    matchY = fieldBox[1]
+        + field.border(Side.TOP)
+        + field.padding(Side.TOP)
+        + sel.y() / field.text().scale();
+    assertTrue(
+        matchY >= bar[1] + bar[3], "matchY=" + matchY + " bar=" + (bar[1] + bar[3]) + "\n" + back);
+  }
+
+  @Test
+  void findScrollsSidewaysIntoOutOfViewSpansColumns() throws IOException {
+    int cols = 10;
+    float colWidth = 100;
+    float rowHeight = 24;
+    Find.State find = new Find.State();
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El area = El.row()
+              .key("area")
+              .scrollBoth()
+              .selectionScope()
+              .w(360)
+              .h(160)
+              .child(col()
+                  .w(cols * colWidth)
+                  .h(160)
+                  .child(col()
+                      .key("list")
+                      .grow(1)
+                      .minSize(0, 0)
+                      .rows(30, rowHeight, (i, from, to) -> {
+                        El r = El.row().key("row-" + i);
+                        int first = cols;
+                        int last = -1;
+                        for (int c = 0; c < cols; c++) {
+                          float left = c * colWidth;
+                          if (left + colWidth > from && left < to) {
+                            first = Math.min(first, c);
+                            last = c;
+                          }
+                        }
+                        if (first < cols) {
+                          r.padding(0, 0, 0, first * colWidth);
+                          for (int c = first; c <= last; c++) {
+                            String label = (i == 1 && c == 0) || (i == 20 && c == 8)
+                                ? "R" + i + "C" + c + " needle"
+                                : "R" + i + "C" + c + " filler";
+                            r.child(El.text(label)
+                                .editable(null)
+                                .readOnly()
+                                .multiline()
+                                .fitLines()
+                                .key("cell-" + i + "-" + c)
+                                .font(t.prose().body().font().get())
+                                .fontSize(t.prose().body().size())
+                                .w(colWidth)
+                                .h(rowHeight));
+                          }
+                        }
+                        return r;
+                      })));
+          return col()
+              .wFull()
+              .hFull()
+              .fill(t.surface().panel())
+              .child(Find.find(ref[0], area, find));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Match 1 is in view at row 1 col 0; match 2 is out of view vertically and sideways at row 20
+    // col 8. Both must be counted during the view build before layout, even on the first open.
+    Script.run("""
+        size 480 200 scale 2
+        frame
+        press #cell-1-0 at left+5
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        snap first""", app, out);
+    String first = Files.readString(out.resolve("first.tree.txt"));
+    assertTrue(countLine(first).contains("\"1 of 2\""), first);
+    assertEquals(null, CellEditorTest.find(app, "cell-20-8"), "row 20 col 8 is not built yet");
+
+    // Enter scrolls both vertically and sideways, builds row 20 col 8 and shows its selection.
+    Script.run("""
+        key Enter
+        frame
+        snap second""", app, out);
+    String second = Files.readString(out.resolve("second.tree.txt"));
+    assertTrue(countLine(second).contains("\"2 of 2\""), second);
+    El area = CellEditorTest.find(app, "area");
+    assertTrue(area.scrollX() > 0, "scrolled sideways: scrollX=" + area.scrollX());
+    El target = CellEditorTest.find(app, "cell-20-8");
+    assertNotNull(target, "row 20 col 8 is built");
+    assertFalse(target.text().selection().isEmpty(), "cell-20-8 shows its selection");
+    assertTrue(second.contains("underline 6-12"), second);
+    float[] areaBounds = bounds(second, "#area");
+    float[] cellBounds = bounds(second, "\"R20C8 needle\"");
+    assertTrue(
+        cellBounds[0] >= areaBounds[0]
+            && cellBounds[0] + cellBounds[2] <= areaBounds[0] + areaBounds[2],
+        second);
+
+    // Escape + Ctrl+C copies the match, and F3 wraps back left to the now-unbuilt row 1 col 0.
+    Script.run("""
+        key Escape
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    assertEquals("needle", app.clipboard().read());
+    assertEquals(null, CellEditorTest.find(app, "cell-1-0"), "row 1 col 0 left the built span");
+    Script.run("""
+        key F3
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    El back = CellEditorTest.find(app, "cell-1-0");
+    assertNotNull(back, "row 1 col 0 was scrolled back into view and built");
+    assertFalse(back.text().selection().isEmpty(), "cell-1-0 shows its selection");
+    assertEquals("needle", app.clipboard().read());
+    assertEquals(0, CellEditorTest.find(app, "area").scrollX(), 0.5);
   }
 
   private static String countLine(String tree) {

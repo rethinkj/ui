@@ -1872,6 +1872,47 @@ final class Editor {
       t.decorate(0, List.of(), null, null); // not placed: display: none
       return;
     }
+    layOutLines(focused);
+    float scale = t.scale();
+    int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
+    float caretWidth = caretWidth(scale);
+    float viewX = t.viewX();
+    boolean selecting = showSelection && composition.isEmpty() && caret != anchor;
+    List<Text.Box> selection =
+        selecting ? t.selectionBoxes(start(), end(), viewX + t.contentWidth()) : List.of();
+    List<Text.Box> blockSelection = selecting ? t.blockSelectionBoxes(start(), end()) : List.of();
+    float lineHeight = t.lineHeight();
+    Text.Box underline = null;
+    if (!composition.isEmpty()) {
+      float from = t.x(start());
+      float to = t.rowStart(start()) == t.rowStart(start() + composition.length())
+          ? t.x(start() + composition.length())
+          : t.x(t.rowEnd(start()));
+      float y = t.shownBaseline(start()) + Math.round(t.font().descent() * t.size() * scale / 2);
+      underline = new Text.Box(from - viewX, y, to - from, caretWidth);
+    }
+    Text.Box box = showsCaret(focused) && t.shownIndex().shownCount() > 0
+        ? new Text.Box(
+            t.x(shownCaret, stop()) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
+        : null;
+    t.decorate(viewX, selection, box, underline, blockSelection);
+    t.showCaret(caretOn);
+    el.placeRanges();
+    el.placeGutter(lines().line(Math.min(caret, text.length())));
+    el.placeLineEnds();
+    el.placeBlocks();
+    el.placeHints();
+  }
+
+  /**
+   * Scrolls a laid-out multi-line field to its pending caret or selection and lays out the rows in
+   * view, so that {@link #caretBox} reads where the caret will be drawn.
+   */
+  void layOutLines(boolean focused) {
+    Text t = el.text();
+    if (!t.laidOut()) {
+      return;
+    }
     float scale = t.scale();
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     float caretWidth = caretWidth(scale);
@@ -1944,32 +1985,6 @@ final class Editor {
       }
       moved = t.layOut();
     }
-    float viewX = t.viewX();
-    boolean selecting = showSelection && composition.isEmpty() && caret != anchor;
-    List<Text.Box> selection =
-        selecting ? t.selectionBoxes(start(), end(), viewX + t.contentWidth()) : List.of();
-    List<Text.Box> blockSelection = selecting ? t.blockSelectionBoxes(start(), end()) : List.of();
-    float lineHeight = t.lineHeight();
-    Text.Box underline = null;
-    if (!composition.isEmpty()) {
-      float from = t.x(start());
-      float to = t.rowStart(start()) == t.rowStart(start() + composition.length())
-          ? t.x(start() + composition.length())
-          : t.x(t.rowEnd(start()));
-      float y = t.shownBaseline(start()) + Math.round(t.font().descent() * t.size() * scale / 2);
-      underline = new Text.Box(from - viewX, y, to - from, caretWidth);
-    }
-    Text.Box box = showsCaret(focused) && t.shownIndex().shownCount() > 0
-        ? new Text.Box(
-            t.x(shownCaret, stop()) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
-        : null;
-    t.decorate(viewX, selection, box, underline, blockSelection);
-    t.showCaret(caretOn);
-    el.placeRanges();
-    el.placeGutter(lines().line(Math.min(caret, text.length())));
-    el.placeLineEnds();
-    el.placeBlocks();
-    el.placeHints();
   }
 
   /**
