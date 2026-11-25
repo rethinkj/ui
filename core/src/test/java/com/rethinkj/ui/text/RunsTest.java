@@ -1,9 +1,13 @@
 package com.rethinkj.ui.text;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.text.BreakIterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 /** How a text is split into runs of one font and one script; no native libraries needed. */
@@ -112,6 +116,21 @@ class RunsTest {
         List.of("0>I ", "1>❤\uFE0F", "0> SQL"),
         runs("I ❤\uFE0F SQL", LATIN, c -> c == 0x2764),
         "a variation selector stays with its base");
+  }
+
+  /** Text below U+0300 is split without a BreakIterator, which must find the same clusters. */
+  @Test
+  void plainTextHasTheClustersABreakIteratorFinds() {
+    StringBuilder text = new StringBuilder("a\r\nb\n\rc\r");
+    for (char c = 0; c < 0x300; c++) {
+      text.append(c).append('x').append(c);
+    }
+    BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+    chars.setText(text.toString());
+    int[] expected = IntStream.iterate(
+            chars.first(), b -> b != BreakIterator.DONE, b -> chars.next())
+        .toArray();
+    assertArrayEquals(expected, Runs.clusters(text.toString()));
   }
 
   @Test

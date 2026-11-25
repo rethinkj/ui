@@ -75,9 +75,9 @@ class SystemFontsTest {
     List<SystemFonts.Face> faces = SystemFonts.faces();
     assumeFalse(faces.isEmpty(), "Skipped: no fonts in " + SystemFonts.folders());
     for (String sample : SAMPLES) {
-      List<Integer> bounds = Runs.clusters(sample);
-      for (int k = 0; k + 1 < bounds.size(); k++) {
-        String cluster = sample.substring(bounds.get(k), bounds.get(k + 1));
+      int[] bounds = Runs.clusters(sample);
+      for (int k = 0; k + 1 < bounds.length; k++) {
+        String cluster = sample.substring(bounds[k], bounds[k + 1]);
         if (cluster.isBlank()) {
           continue;
         }

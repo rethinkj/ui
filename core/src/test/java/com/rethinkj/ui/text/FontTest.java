@@ -42,6 +42,31 @@ class FontTest {
     assertSame(run, Font.sans().shape("Hello", 14, 1), "the font keeps recent runs");
   }
 
+  /**
+   * A view that shapes more texts than the cache holds finds them again in its next frame, and
+   * they go once two frames have not used them.
+   */
+  @Test
+  void keepsTheRunsOfTheLastFrameBeyondTheCacheSize() {
+    TextLibraries.assumeLoaded();
+    Font font = Font.sans();
+    GlyphRun[] lines = new GlyphRun[2000];
+    for (int i = 0; i < lines.length; i++) {
+      lines[i] = font.shape("kept line " + i, 14, 1);
+    }
+    Font.nextFrame();
+    for (int i = 0; i < lines.length; i++) {
+      assertSame(lines[i], font.shape("kept line " + i, 14, 1), "line " + i);
+    }
+    for (int frame = 0; frame < 2; frame++) {
+      Font.nextFrame();
+      for (int i = 0; i < lines.length; i++) {
+        font.shape("other line " + frame + " " + i, 14, 1);
+      }
+    }
+    assertFalse(font.shaped("kept line"));
+  }
+
   @Test
   void kerningIsOnAndNarrowsAPairThatKerns() {
     TextLibraries.assumeLoaded();

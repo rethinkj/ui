@@ -20,11 +20,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A TrueType or OpenType font, shaped with HarfBuzz and rasterized with FreeType. The
@@ -59,10 +62,23 @@ public final class Font implements AutoCloseable {
   };
   private static final Font[] DEFAULT_FONTS = new Font[DEFAULT_FILES.length];
 
-  /** Shaped runs kept per font, the least recently used dropped first. */
-  // shortcut: a fixed number of runs per font; make it configurable when a view shows more
-  // distinct strings per frame than this.
+  /**
+   * Shaped runs kept per font, the least recently used dropped first, but none that the last two
+   * frames that shaped text used: a view that shapes more texts than this finds them again in its
+   * next rebuild. Runs are dropped when a new one is added.
+   */
   private static final int CACHED_RUNS = 1024;
+
+  /** Shaped runs kept per font at most, even of the last two frames: a bound on the memory. */
+  private static final int MAX_RUNS = 16_384;
+
+  /** The frame of the caches of shaped runs, counted from the first shape after each start. */
+  // shortcut: one count for every app, so another window that shapes text in two frames between
+  // two rebuilds of this one lets this one's runs go; count per app when several windows shape
+  // large views at once.
+  private static final AtomicLong FRAME = new AtomicLong();
+
+  private static final AtomicBoolean FRAME_STARTED = new AtomicBoolean();
 
   /** Applied before the caller's features, so that {@code +calt} turns contextual forms on. */
   private static final String DEFAULT_FEATURES = "-calt";
@@ -100,12 +116,7 @@ public final class Font implements AutoCloseable {
   private final float ascent;
   private final float descent;
   private final float lineGap;
-  private final Map<Key, GlyphRun> runs = new LinkedHashMap<>(16, 0.75f, true) {
-    @Override
-    protected boolean removeEldestEntry(Map.Entry<Key, GlyphRun> eldest) {
-      return size() > CACHED_RUNS;
-    }
-  };
+  private final Map<Key, Shaped> runs = new LinkedHashMap<>(16, 0.75f, true);
   private boolean closed;
   private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
   private int selectedStrike = -1; // the strike last selected on a bitmapColor face
@@ -124,6 +135,17 @@ public final class Font implements AutoCloseable {
   record Bitmap(int left, int top, int width, int height, byte[] pixels, boolean color) {}
 
   private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
+
+  /** A cached run and the frame it was last used in. */
+  private static final class Shaped {
+    final GlyphRun run;
+    long used;
+
+    Shaped(GlyphRun run, long used) {
+      this.run = run;
+      this.used = used;
+    }
+  }
 
   private Font(byte[] bytes, boolean shared, boolean icons) {
     this(copy(bytes), 0, shared, icons);
@@ -441,14 +463,44 @@ public final class Font implements AutoCloseable {
       throw new IllegalArgumentException("scale must be above 0, was " + scale);
     }
     Key key = new Key(text, size * scale, scale >= 1.5f && !icons, List.of(features));
+    long now = frame();
     synchronized (this) {
       checkOpen();
-      GlyphRun run = runs.get(key);
-      if (run == null) {
-        run = shape(key);
-        runs.put(key, run);
+      Shaped shaped = runs.get(key);
+      if (shaped == null) {
+        shaped = new Shaped(shape(key), now);
+        runs.put(key, shaped);
+        trim(now);
       }
-      return run;
+      shaped.used = now;
+      return shaped.run;
+    }
+  }
+
+  /**
+   * Starts a frame of the caches of shaped runs: runs not used since the frame before this one
+   * may be dropped from now on. {@link Atlas#nextFrame} calls this.
+   */
+  static void nextFrame() {
+    FRAME_STARTED.set(true);
+  }
+
+  /** The current frame, moved on by the first shape after {@link #nextFrame}, not by idle frames. */
+  private static long frame() {
+    return FRAME_STARTED.compareAndSet(true, false) ? FRAME.incrementAndGet() : FRAME.get();
+  }
+
+  /**
+   * Drops the least recently used runs beyond {@link #CACHED_RUNS}, but below {@link #MAX_RUNS}
+   * none used in this frame or the one before.
+   */
+  private void trim(long now) {
+    Iterator<Shaped> eldest = runs.values().iterator();
+    while (runs.size() > CACHED_RUNS) {
+      if (eldest.next().used >= now - 1 && runs.size() <= MAX_RUNS) {
+        return; // so is every run after it
+      }
+      eldest.remove();
     }
   }
 
@@ -459,8 +511,9 @@ public final class Font implements AutoCloseable {
 
   private GlyphRun shape(Key key) {
     String text = key.text;
-    List<Font> chain = chain(text);
-    List<Runs.Run> runs = Runs.of(text, chain.size(), coverage(chain));
+    int[] bounds = Runs.clusters(text);
+    List<Font> chain = chain(text, bounds);
+    List<Runs.Run> runs = Runs.of(text, bounds, chain.size(), coverage(chain));
     try (Arena call = Arena.ofConfined()) {
       int count = 1 + key.features.size();
       MemorySegment features = call.allocate(HarfBuzz.FEATURE, count);
@@ -485,7 +538,7 @@ public final class Font implements AutoCloseable {
   }
 
   /** This font and its fallbacks, then the system's fonts for clusters that none of them has. */
-  private List<Font> chain(String text) {
+  private List<Font> chain(String text, int[] bounds) {
     List<Font> chain = new ArrayList<>(1 + fallback.size());
     chain.add(base);
     chain.addAll(fallback);
@@ -493,17 +546,17 @@ public final class Font implements AutoCloseable {
       return chain;
     }
     Runs.Coverage coverage = coverage(chain);
-    List<Integer> bounds = Runs.clusters(text);
-    for (int k = 0; k + 1 < bounds.size(); k++) {
-      String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
+    for (int k = 0; k + 1 < bounds.length; k++) {
+      int from = bounds[k];
+      int to = bounds[k + 1];
       // An emoji looks further for a font with color glyphs than the ones that only have its
       // outline.
-      boolean emoji = Runs.emoji(cluster);
+      boolean emoji = Runs.emoji(text, from, to);
       boolean covered = false;
       for (int f = 0; f < chain.size() && !covered; f++) {
-        covered = (!emoji || chain.get(f).color) && Runs.covers(cluster, f, coverage);
+        covered = (!emoji || chain.get(f).color) && Runs.covers(text, from, to, f, coverage);
       }
-      Font found = covered ? null : SystemFonts.find(cluster, styleFlags);
+      Font found = covered ? null : SystemFonts.find(text.substring(from, to), styleFlags);
       if (found != null && !chain.contains(found)) {
         chain.add(found);
       }

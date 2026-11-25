@@ -4,6 +4,7 @@ import java.lang.Character.UnicodeScript;
 import java.text.BreakIterator;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.IntPredicate;
@@ -48,16 +49,22 @@ final class Runs {
   record Run(int from, int to, int font, boolean rtl) {}
 
   static List<Run> of(String text, int fonts, Coverage coverage) {
-    List<Integer> bounds = clusters(text);
-    int n = bounds.size() - 1;
+    return of(text, clusters(text), fonts, coverage);
+  }
+
+  /** The same, with the text's grapheme boundaries from {@link #clusters}. */
+  static List<Run> of(String text, int[] bounds, int fonts, Coverage coverage) {
+    int n = bounds.length - 1;
     int[] font = new int[n];
     boolean[] neutral = new boolean[n];
+    UnicodeScript[] own = new UnicodeScript[n];
     for (int k = 0; k < n; k++) {
-      String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
-      font[k] = own(cluster, fonts, coverage);
+      int from = bounds[k];
+      int to = bounds[k + 1];
+      font[k] = own(text, from, to, fonts, coverage);
+      own[k] = script(text, from, to);
       // An emoji the first font draws in color stays with it.
-      neutral[k] =
-          font[k] == 0 && script(cluster) == null && !(coverage.color(0) && emoji(cluster));
+      neutral[k] = font[k] == 0 && own[k] == null && !(coverage.color(0) && emoji(text, from, to));
     }
     // Neutrals between two clusters of one font stay with it.
     for (int i = 0; i < n; ) {
@@ -71,9 +78,11 @@ final class Runs {
       }
       if (i > 0 && j < n && font[i - 1] == font[j]) {
         for (int k = i; k < j; k++) {
-          String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
+          int from = bounds[k];
+          int to = bounds[k + 1];
           // Only an emoji joins a font that draws in color: other symbols stay text.
-          if (covers(cluster, font[j], coverage) && (emoji(cluster) || !coverage.color(font[j]))) {
+          if (covers(text, from, to, font[j], coverage)
+              && (emoji(text, from, to) || !coverage.color(font[j]))) {
             font[k] = font[j];
           }
         }
@@ -83,14 +92,11 @@ final class Runs {
     // Scripts and directions, as in a left-to-right paragraph: a neutral is right to left only
     // between two right-to-left letters, not next to a number; neutrals and numbers take the
     // left-to-right script beside them.
-    UnicodeScript[] own = new UnicodeScript[n];
     boolean[] ownRtl = new boolean[n];
     boolean[] isNumber = new boolean[n];
     for (int k = 0; k < n; k++) {
-      String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
-      own[k] = script(cluster);
-      ownRtl[k] = own[k] != null && rtl(cluster);
-      isNumber[k] = number(cluster.codePointAt(0));
+      ownRtl[k] = own[k] != null && rtl(text, bounds[k], bounds[k + 1]);
+      isNumber[k] = number(text.codePointAt(bounds[k]));
     }
     int[] strongBefore = nearest(n, k -> own[k] != null, false);
     int[] strongAfter = nearest(n, k -> own[k] != null, true);
@@ -115,15 +121,13 @@ final class Runs {
       }
     }
     List<Run> runs = new ArrayList<>();
-    for (int k = 0; k < n; k++) {
-      Run last = runs.isEmpty() ? null : runs.getLast();
-      if (last != null
-          && last.font == font[k]
-          && last.rtl == rtl[k]
-          && scripts[k] == scripts[k - 1]) {
-        runs.set(runs.size() - 1, new Run(last.from, bounds.get(k + 1), font[k], rtl[k]));
-      } else {
-        runs.add(new Run(bounds.get(k), bounds.get(k + 1), font[k], rtl[k]));
+    for (int k = 0, start = 0; k < n; k++) {
+      if (k + 1 == n
+          || font[k + 1] != font[k]
+          || rtl[k + 1] != rtl[k]
+          || scripts[k + 1] != scripts[k]) {
+        runs.add(new Run(bounds[start], bounds[k + 1], font[k], rtl[k]));
+        start = k + 1;
       }
     }
     return runs;
@@ -141,33 +145,49 @@ final class Runs {
   }
 
   /** The grapheme boundaries of the text, from 0 to its length. */
-  static List<Integer> clusters(String text) {
-    BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
-    chars.setText(text);
-    List<Integer> bounds = new ArrayList<>();
-    for (int b = chars.first(); b != BreakIterator.DONE; b = chars.next()) {
-      bounds.add(b);
+  static int[] clusters(String text) {
+    int[] bounds = new int[text.length() + 1];
+    int n = 0;
+    if (text.chars().allMatch(c -> c < 0x300)) {
+      // Below the first combining mark, every character is a cluster of its own but CR LF.
+      for (int i = 0; i <= text.length(); i++) {
+        if (i == 0 || i == text.length() || text.charAt(i - 1) != '\r' || text.charAt(i) != '\n') {
+          bounds[n++] = i;
+        }
+      }
+    } else {
+      BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+      chars.setText(text);
+      for (int b = chars.first(); b != BreakIterator.DONE; b = chars.next()) {
+        bounds[n++] = b;
+      }
     }
-    return bounds;
+    return n == bounds.length ? bounds : Arrays.copyOf(bounds, n);
   }
 
   /** The first font that has the cluster, else the first with its first character, else 0. */
-  private static int own(String cluster, int fonts, Coverage coverage) {
-    for (int f = 0; f < fonts && emoji(cluster); f++) {
-      if (coverage.color(f) && covers(cluster, f, coverage)) {
+  private static int own(String text, int from, int to, int fonts, Coverage coverage) {
+    for (int f = 0; f < fonts && emoji(text, from, to); f++) {
+      if (coverage.color(f) && covers(text, from, to, f, coverage)) {
         return f;
       }
     }
     for (int f = 0; f < fonts; f++) {
-      if (covers(cluster, f, coverage)) {
+      if (covers(text, from, to, f, coverage)) {
         return f;
       }
     }
-    int first = cluster.codePoints().filter(c -> !hidden(c)).findFirst().orElse(-1);
-    for (int f = 0; first >= 0 && f < fonts; f++) {
-      if (coverage.has(f, first)) {
-        return f;
+    for (int i = from; i < to; ) {
+      int c = text.codePointAt(i);
+      if (!hidden(c)) {
+        for (int f = 0; f < fonts; f++) {
+          if (coverage.has(f, c)) {
+            return f;
+          }
+        }
+        return 0;
       }
+      i += Character.charCount(c);
     }
     return 0;
   }
@@ -177,18 +197,39 @@ final class Runs {
    * be text with U+FE0E.
    */
   static boolean emoji(String cluster) {
-    return cluster.indexOf('\uFE0E') < 0
-        && (Character.isEmojiPresentation(cluster.codePointAt(0))
-            || cluster.indexOf('\uFE0F') >= 0);
+    return emoji(cluster, 0, cluster.length());
+  }
+
+  /** Whether characters {@code from} to {@code to} of the text, a cluster, are an emoji. */
+  static boolean emoji(String text, int from, int to) {
+    return text.indexOf('\uFE0E', from, to) < 0
+        && (Character.isEmojiPresentation(text.codePointAt(from))
+            || text.indexOf('\uFE0F', from, to) >= 0);
   }
 
   static boolean covers(String cluster, int font, Coverage coverage) {
-    if (cluster.codePoints().allMatch(c -> hidden(c) || coverage.has(font, c))) {
+    return covers(cluster, 0, cluster.length(), font, coverage);
+  }
+
+  /** Whether the font has characters {@code from} to {@code to} of the text, or their NFC form. */
+  static boolean covers(String text, int from, int to, int font, Coverage coverage) {
+    if (has(text, from, to, font, coverage)) {
       return true;
     }
+    String cluster = text.substring(from, to);
     String composed = Normalizer.normalize(cluster, Normalizer.Form.NFC);
-    return !composed.equals(cluster)
-        && composed.codePoints().allMatch(c -> hidden(c) || coverage.has(font, c));
+    return !composed.equals(cluster) && has(composed, 0, composed.length(), font, coverage);
+  }
+
+  private static boolean has(String text, int from, int to, int font, Coverage coverage) {
+    for (int i = from; i < to; ) {
+      int c = text.codePointAt(i);
+      if (!hidden(c) && !coverage.has(font, c)) {
+        return false;
+      }
+      i += Character.charCount(c);
+    }
+    return true;
   }
 
   /**
@@ -207,8 +248,12 @@ final class Runs {
 
   /** The script of the cluster's first character of a script of its own, or null for neutrals. */
   static UnicodeScript script(String cluster) {
-    for (int i = 0; i < cluster.length(); ) {
-      int c = cluster.codePointAt(i);
+    return script(cluster, 0, cluster.length());
+  }
+
+  private static UnicodeScript script(String text, int from, int to) {
+    for (int i = from; i < to; ) {
+      int c = text.codePointAt(i);
       UnicodeScript s = UnicodeScript.of(c);
       if (s != UnicodeScript.COMMON
           && s != UnicodeScript.INHERITED
@@ -221,9 +266,9 @@ final class Runs {
     return null;
   }
 
-  private static boolean rtl(String cluster) {
-    for (int i = 0; i < cluster.length(); ) {
-      int c = cluster.codePointAt(i);
+  private static boolean rtl(String text, int from, int to) {
+    for (int i = from; i < to; ) {
+      int c = text.codePointAt(i);
       byte d = Character.getDirectionality(c);
       if (d == Character.DIRECTIONALITY_RIGHT_TO_LEFT
           || d == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) {

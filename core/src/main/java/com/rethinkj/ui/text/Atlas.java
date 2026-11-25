@@ -286,10 +286,12 @@ public final class Atlas {
 
   /**
    * Starts a frame: glyphs used before may be evicted from now on, those used after this call not
-   * until the next one. A scene calls this when it is built.
+   * until the next one. A scene calls this when it is built. It also starts a frame of the fonts'
+   * caches of shaped runs, which keep the runs of the last two frames that shaped text.
    */
   public void nextFrame() {
     frame++;
+    Font.nextFrame();
   }
 
   /**
