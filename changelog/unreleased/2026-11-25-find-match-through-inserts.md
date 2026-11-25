@@ -1,0 +1,1 @@
+- Find over a selection scope keeps its current match across rows inserted above it even after a click in the find query field clears the scope's selection, so Enter still advances to the next match instead of selecting the same one again.
