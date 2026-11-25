@@ -5805,32 +5805,56 @@ public final class El {
    * Scrolls so that the thumb of a bar of the last frame starts at {@code start}, in window
    * coordinates along its axis: the offset is in proportion to where the thumb is between the ends
    * of its track, so that both ends reach the ends of the content exactly: for a field covered at
-   * the top, the start of the track is as far above its first row as it can scroll.
+   * the top, the start of the track is as far above its first row as it can scroll. The offset
+   * moves only the way the pointer does: rows measured on the way change where the thumb is.
    *
+   * @param direction how the pointer moved along the axis: 1 towards the end, -1, or 0
    * @return whether the offset changed
    */
-  boolean dragThumb(boolean vertical, float start) {
+  boolean dragThumb(boolean vertical, float start, float direction) {
     Scrollbars.Bar bar = vertical ? barY : barX;
     if (bar == null) {
       return false;
     }
     double free =
         vertical ? bar.trackHeight() - bar.thumbHeight() : bar.trackWidth() - bar.thumbWidth();
-    double share = free > 0
-        ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0)
-        : 0;
-    if (!vertical) {
-      return scrollTo(share * maxScrollX, scrollY);
+    double along = start - (vertical ? bar.trackY() : bar.trackX());
+    double share = free > 0 ? Math.clamp(along / free, 0.0, 1.0) : 0;
+    double min = vertical ? minScrollY() : 0;
+    double max = vertical ? maxScrollY : maxScrollX;
+    // Down to near the track's end, where a pointer at a fractional scale may stop: the end it asks
+    // for, while the list's last rows are estimated.
+    boolean end = vertical
+        && direction > 0
+        && free > 0
+        && orEnd(max) == Double.POSITIVE_INFINITY
+        && along >= free - Math.min(1, free / 4);
+    double to = end ? max : min + share * (max - min);
+    double from = vertical ? scrollY : scrollX;
+    if (direction == 0 || Math.signum(to - from) == -direction) {
+      return false;
     }
-    double min = minScrollY();
-    return scrollTo(scrollX, min + share * (maxScrollY - min));
+    if (!vertical) {
+      return scrollTo(to, scrollY);
+    }
+    return scrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
   boolean page(boolean vertical, int direction) {
     return vertical
-        ? scrollTo(scrollX, scrollY + direction * (double) height)
+        ? scrollTo(scrollX, orEnd(scrollY + direction * (double) height))
         : scrollTo(scrollX + direction * (double) width, scrollY);
+  }
+
+  /**
+   * A vertical offset the user moves to, as the end itself when it reaches the estimated end of a
+   * virtual list whose last row is not built yet: once measured, that row keeps the list at its
+   * end, as after End.
+   */
+  double orEnd(double y) {
+    boolean estimated = rows != null && rows.heights != null && !hasRow(rows.rowCount - 1);
+    return estimated && y >= maxScrollY ? Double.POSITIVE_INFINITY : y;
   }
 
   // Virtual lists, for App and Headless. A row's index times rowHeight is exact in a double: a
