@@ -1788,6 +1788,12 @@ public final class App<S> {
         Object stop = order.get(Math.floorMod(at + i * step, order.size()));
         if (stop instanceof El next) {
           el = enter(next, step);
+          Animator.InRow passed = el == null ? entered(animator.identity(next)) : null;
+          while (passed != null // nothing from the view on: on past the list
+              && i < order.size()
+              && inList(order.get(Math.floorMod(at + (i + 1) * step, order.size())), passed)) {
+            i++;
+          }
         } else if (stop instanceof Gap gap) {
           boolean[] made = {false};
           // Behind the travel, only where the focus was: Tab enters a list at the rows in view.
@@ -2669,11 +2675,11 @@ public final class App<S> {
 
   /**
    * Where Tab goes instead of {@code next} when that is in a virtual list and the focus is not: to
-   * the element that last had the focus in the list, else to the first focusable element of the
-   * first row in view, or the last one of the last row in view for Shift+Tab, rather than to the
-   * first row the list built. The row is built and scrolled into view if needed. A {@code step} of
-   * 0 focuses into the list as {@link #focus(El)} does: to the element of the row that {@link
-   * Focus#firstInside} picks.
+   * the element that last had the focus in the list, else to the first focusable element from the
+   * first row in view on, or the last one from the last row in view back for Shift+Tab, rather
+   * than to the first row the list built; null if there is none, and Tab passes the list. The row
+   * is built and scrolled into view if needed. A {@code step} of 0 focuses into the list as {@link
+   * #focus(El)} does: to the element of the row that {@link Focus#firstInside} picks.
    */
   private El enter(El next, int step) {
     Object nextId = animator.identity(next);
@@ -2681,12 +2687,7 @@ public final class App<S> {
     if (in == null || Animator.isBelow(focus.id(), in.listId())) {
       return next;
     }
-    Animator.InRow outer = in; // the outermost list that Tab enters
-    for (Animator.InRow up = animator.inRow(in.listId());
-        up != null && !Animator.isBelow(focus.id(), up.listId());
-        up = animator.inRow(up.listId())) {
-      outer = up;
-    }
+    Animator.InRow outer = entered(nextId);
     El found = rememberedIn(outer.listId(), step);
     // Else at the row in view of the innermost list that shows: one in a row of overscan does not.
     Animator.InRow showing = in;
@@ -2711,7 +2712,34 @@ public final class App<S> {
         row = up.row();
       }
     }
+    if (found == null && step != 0) {
+      return null; // nothing from the view on, which the caller passes by
+    }
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
+  }
+
+  /**
+   * The outermost virtual list around the element with identity {@code id} that the focus is not
+   * in, as the row of it that holds the element: the list that Tab enters there; null if none.
+   */
+  private Animator.InRow entered(Object id) {
+    Animator.InRow in = animator.inRow(id);
+    if (in == null || Animator.isBelow(focus.id(), in.listId())) {
+      return null;
+    }
+    for (Animator.InRow up = animator.inRow(in.listId());
+        up != null && !Animator.isBelow(focus.id(), up.listId());
+        up = animator.inRow(up.listId())) {
+      in = up;
+    }
+    return in;
+  }
+
+  /** Whether this stop of {@link #tabOrder} lies in the list that {@code in} is a row of. */
+  private boolean inList(Object stop, Animator.InRow in) {
+    El el = stop instanceof Gap gap ? gap.list() : (El) stop;
+    Object id = animator.identity(el);
+    return id == null || id.equals(in.listId()) || Animator.isBelow(id, in.listId());
   }
 
   /**

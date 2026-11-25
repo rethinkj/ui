@@ -203,13 +203,14 @@ class RowHeightsTest {
    * Tab into a list in a row goes to its first row in view of the outer list, and back into it to
    * the row that had the focus there, also when the outer list scrolled that row, or its own row
    * that holds the inner list, out of its view meanwhile; to the row in view once that row holds
-   * nothing to focus; past the inner list in its row once no row from there on holds anything.
+   * nothing to focus; past the inner list in its row once no row from there on holds anything, and
+   * past the outer list once nothing in it does.
    */
   @Test
   void tabReturnsToTheRowOfAListInARowThatTheOuterListScrolledAway() {
     RowHeights outer = new RowHeights(i -> 100);
     RowHeights inner = new RowHeights(j -> 20);
-    boolean[] gone = {false, false}; // row 16, rows from 20 on
+    boolean[] gone = {false, false, false}; // row 16, rows from 20 on, copy
     App<Object> app = new App<>(
         new Object(),
         s -> col()
@@ -234,8 +235,11 @@ class RowHeightsTest {
                                                 : el().key("row-" + j)
                                                     .focusable()
                                                     .h(20)),
-                                    el().key("copy").focusable().h(20))
-                            : el().h(100))));
+                                    gone[2]
+                                        ? el().h(20)
+                                        : el().key("copy").focusable().h(20))
+                            : el().h(100)),
+                el().key("after").focusable().h(20)));
     app.resize(200, 200, 1);
     app.frame();
     app.scrollTo(find(app.tree(), "list"), 0, 300);
@@ -267,6 +271,12 @@ class RowHeightsTest {
     app.frame();
     tab(app, 0);
     assertEquals("copy", key(app.focused()), app.tree().dump());
+    gone[2] = true;
+    app.focus(find(app.tree(), "before"));
+    app.scrollTo(find(app.tree(), "list"), 0, 400);
+    app.frame();
+    tab(app, 0);
+    assertEquals("after", key(app.focused()), app.tree().dump());
   }
 
   /**
