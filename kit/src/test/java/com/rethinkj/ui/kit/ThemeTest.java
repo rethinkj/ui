@@ -664,6 +664,44 @@ class ThemeTest {
     assertTrue(contrast(t.text().primary(), t.grid().selected()) >= 9);
   }
 
+  /**
+   * A title bar's project color glow keeps the title, inactive muted text, and caption button
+   * glyphs readable at its strongest point, including under hover and pressed fills, for the
+   * theme's hues and for app colors far lighter or darker than those.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aTitleBarGlowKeepsTextAndButtonsReadable(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    List<Integer> colors = new ArrayList<>(List.of(0xFFFDD835, 0xFFFFFFFF, 0xFF000000, 0xFF0D1B4B));
+    for (Theme.Hue hue : Theme.Hue.values()) {
+      colors.add(t.withAccent(hue).accent().color());
+    }
+    List<String> failures = new ArrayList<>();
+    for (int color : colors) {
+      int glow =
+          over(s.window(), Theme.CURRENT.with(t, () -> TitleBar.glow(color)).inner());
+      int hovered = over(glow, s.hover());
+      int pressed = over(glow, s.pressed());
+      String on = Colors.toHex(color) + " ";
+      check(
+          failures,
+          on + "primary text",
+          t.text().primary(),
+          Map.of("glow", glow, "glow hovered", hovered, "glow pressed", pressed),
+          4.5);
+      check(failures, on + "muted text", t.text().muted(), Map.of("glow", glow), 4.5);
+      check(
+          failures,
+          on + "muted button glyph",
+          t.text().muted(),
+          Map.of("glow hovered", hovered, "glow pressed", pressed),
+          3);
+    }
+    assertTrue(failures.isEmpty(), String.join("\n", failures));
+  }
+
   /** Hover darker than the accent, pressed darker than hover, by 2 L* or more each. */
   @ParameterizedTest
   @MethodSource("themesAndHues")
@@ -759,7 +797,24 @@ class ThemeTest {
           t.prose(),
           t.badge());
       assertEquals(t, older);
+      Theme shortest = new Theme(
+          t.surface(),
+          t.text(),
+          t.border(),
+          t.accent(),
+          t.status(),
+          t.space(),
+          t.radius(),
+          t.type(),
+          t.size(),
+          t.motion(),
+          t.grid(),
+          t.scrollbars(),
+          t.elevation());
+      assertEquals(t, shortest);
     }
+    assertEquals(Theme.Caption.DARK, Theme.DARK.caption());
+    assertEquals(Theme.Caption.LIGHT, Theme.LIGHT.caption());
     assertEquals(Theme.Danger.DARK, Theme.DARK.danger());
     assertEquals(Theme.Danger.LIGHT, Theme.LIGHT.danger());
     assertEquals(Theme.Diff.DARK, Theme.DARK.diff());

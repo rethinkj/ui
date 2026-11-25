@@ -1,0 +1,26 @@
+el 0,0 640x240
+  el window=drag 0,0 640x32
+    el 0,0 478x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{F0D7}" 11,11 10x10
+      text "shop — staging" 32,8 95x16
+    el 478,16 24x0
+    el role=button label="Minimize" window=minimize 502,0 46x32
+      text label="subtract" "\u{EBCE}" 519,10 12x12
+    el role=button label="Maximize" window=maximize 548,0 46x32
+      text label="maximize" "\u{F533}" 565,10 12x12
+    el role=button label="Close" window=close 594,0 46x32
+      text label="dismiss" "\u{F367}" 611,10 12x12
+  el 8,32 624x200
+    el #first 8,32 160x200
+      el 8,32 160x200
+        text "Schema" 25,49 126x16
+    el #rest 168,32 464x200
+      el #second 176,32 456x200
+        el 176,32 456x200
+          text "Query" 193,49 422x16
+      el #divider role=separator label="Resize" 168,32 8x200 value="first 160"
+        el 168,32 8x200
+          el 172,32 1x200

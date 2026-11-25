@@ -1,0 +1,1 @@
+- Added `TitleBar.glow(int color)` to tint a frameless window's title bar with a radial project color wash from above the app icon that fades seamlessly into the window surface, controlled by new `Theme.Caption.glow` and `Theme.Caption.glowRadius` tokens (with separate `Theme.Caption.DARK` and `Theme.Caption.LIGHT` defaults).

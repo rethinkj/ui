@@ -19,8 +19,36 @@ Javadoc: [`TitleBar`](/api/com/rethinkj/ui/kit/TitleBar.html).
 | `titleBar(icon, title, end...)` | Icon, title, and right-side actions |
 | `titleBar(icon, title, start, center, end)` | Full layout with left slot (e.g. `MenuBar`), centered slot (`null` if none), and right slot |
 | `search(placeholder, shortcut, onPress)` | Centered search button (e.g., to open a [CommandPalette](/docs/components/command-palette)) |
+| `glow(color)` | Soft radial project color wash for `.background(...)`, centered above the app icon |
 
 Use `AppIcon.appIcon(16, color, symbol)` to match your window icon. `TitleBar` reads `WindowState.CURRENT` automatically to toggle Maximize/Restore and dim when inactive. For custom title bar layouts, see `El.windowPart` in [Windows, icons and dialogs](/docs/concepts/platform).
+
+## Glow
+
+`TitleBar.glow(color)` returns a radial [`Background`](/api/com/rethinkj/ui/Background.html) that washes the bar with a project color from above the app icon and fades to transparent by the bar's bottom edge, leaving no seam. Its strength (`Theme.Caption.glow`) and horizontal reach (`Theme.Caption.glowRadius`) adapt to the theme, and the glow stays visible while the window is inactive. A color much lighter or darker than the theme's hues gets a weaker glow, so that the muted title of an inactive window keeps its contrast.
+
+<Shot src="examples/docs/title-bar-glow/view-{theme}" alt="A frameless window whose title bar carries a soft teal glow fading from the top-left app icon across the bar into the window surface above two cards" />
+
+```java snippet="title-bar-glow"
+```
+
+### Extending the tint across the title bar and rail
+
+To let the same tint continue down a [Rail](/docs/components/rail), give the window's root column the glow instead and clear the fills of the title bar and the rail with `.fill(Colors.TRANSPARENT)`. On the root, the glow reaches down the window's whole height:
+
+<Shot src="examples/docs/title-bar-rail/view-{theme}" alt="A frameless window with a soft radial project wash carried by the root column through both the title bar and the left icon rail beside two cards" />
+
+```java snippet="title-bar-rail"
+```
+
+### Soft wash over the whole window
+
+For a soft wash that shows through the title bar and the gaps between the cards, give the root column a radial background across the whole window and clear the title bar's fill:
+
+<Shot src="examples/docs/title-bar-wash/view-{theme}" alt="A frameless window washed with a soft teal from its top-left corner, showing through the title bar and the gaps around two cards" />
+
+```java snippet="title-bar-wash"
+```
 
 ## In a tree dump
 
