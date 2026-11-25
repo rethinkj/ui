@@ -111,13 +111,7 @@ public final class Badge {
   public static El badge(String text, Options options) {
     Theme theme = Theme.CURRENT.get();
     Theme.Badges b = theme.badge();
-    Theme.Tone tone = switch (options.kind) {
-      case NEUTRAL -> b.neutral();
-      case ACCENT -> b.accent();
-      case SUCCESS -> b.success();
-      case WARNING -> b.warning();
-      case DANGER -> b.danger();
-    };
+    Theme.Tone tone = tone(theme, options.kind);
     int fill = options.strong ? tone.strong() : tone.soft();
     int ink = options.strong ? tone.strongText() : tone.softText();
     float height = options.toolbar ? b.toolbar() : b.row();
@@ -177,6 +171,18 @@ public final class Badge {
   // laying the hover over it, which would need a second fill.
   static final double HOVER = 1.4;
   static final double PRESSED = 1.8;
+
+  /** The badge colors of {@code kind} in {@code theme}. */
+  static Theme.Tone tone(Theme theme, Kind kind) {
+    Theme.Badges b = theme.badge();
+    return switch (kind) {
+      case NEUTRAL -> b.neutral();
+      case ACCENT -> b.accent();
+      case SUCCESS -> b.success();
+      case WARNING -> b.warning();
+      case DANGER -> b.danger();
+    };
+  }
 
   /** A translucent color with its alpha times {@code factor}, at most opaque. */
   static int deeper(int argb, double factor) {

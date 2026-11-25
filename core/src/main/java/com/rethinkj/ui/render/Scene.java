@@ -1,8 +1,10 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.Background;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Shadow;
@@ -26,13 +28,13 @@ import java.util.Map;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of seven kinds,
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of nine kinds,
  * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
  * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2), an image ({@link #IMAGE}, 3), a line segment ({@link
- * #LINE}, 4), a squiggly underline ({@link #SQUIGGLE}, 5) or a color glyph ({@link #COLOR_GLYPH},
- * 6). All kinds share one ordered list, so boxes, text, shadows, images, lines and squiggles
- * overlap in the order of the tree. The byte offsets are the constants below. A rounded rectangle
- * with a fill and a border:
+ * #LINE}, 4), a squiggly underline ({@link #SQUIGGLE}, 5), a color glyph ({@link #COLOR_GLYPH}, 6),
+ * a rounded rectangle with a gradient ({@link #GRADIENT}, 7) or that gradient's stops ({@link
+ * #STOPS}, 8). All kinds share one ordered list, so boxes, text, shadows, images, lines and
+ * squiggles overlap in the order of the tree. The byte offsets are the constants below. A rounded rectangle with a fill and a border:
  *
  * <pre>
  *  0  x            f32   left edge of the rectangle
@@ -355,6 +357,36 @@ import java.util.Map;
  * and a physical pixel vertically and beyond {@code [x, x + width]} and a physical pixel
  * horizontally. Renderers draw it over that box.
  *
+ * <p>An element's background ({@link El#background(Background)}) is the gradient of a rounded
+ * rectangle, a {@link #GRADIENT}: one in the slots of a {@link #RECT}, drawn as one but for its
+ * fill, which shows the gradient over the fill. Its {@link #STOPS} come right after it and are not
+ * drawn by themselves; their positions are resolved on the element's padding box:
+ *
+ * <pre>
+ *  0  x1           f32   the start (linear) or the center (radial), in logical pixels
+ *  4  y1           f32
+ *  8  x2           f32   the end (linear), or the horizontal radius (radial), more than 0
+ * 12  y2           f32   the end (linear), or the vertical radius (radial), more than 0
+ * 16  shape        u32   LINEAR, 0, or RADIAL, 1
+ * 20  opacity      f32   the element's and its ancestors', which the rectangle's colors include
+ * 24  clip         u32   0
+ * 28  kind         u32   8, STOPS
+ * 32  from        f32 x 4   r, g, b, a at the start or the center, without the opacity
+ * 48  to          f32 x 4   r, g, b, a at the end or beyond the radii, without the opacity
+ * 64  unused      f32 x 8   0
+ * </pre>
+ *
+ * <p>For the center {@code p} of a pixel, in logical pixels, the gradient's fill is:
+ *
+ * <pre>
+ * linear: d = (x2 - x1, y2 - y1),
+ *         t = clamp(dot(p - (x1, y1), d) / dot(d, d), 0, 1), or 0 when dot(d, d) &lt;= 0
+ * radial: t = min(|((p.x - x1) / x2, (p.y - y1) / y2)|, 1)
+ * s       = t * t * (3 - 2 * t)
+ * g       = from + (to - from) * s
+ * fill    = g * opacity + rectangle's fill * (1 - g.a)
+ * </pre>
+ *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
@@ -493,6 +525,22 @@ public final class Scene {
   public static final int SQUIGGLE = 5;
   /** The {@link #KIND} of a color glyph. */
   public static final int COLOR_GLYPH = 6;
+  /**
+   * The {@link #KIND} of a rounded rectangle whose fill shows a gradient over it, which the
+   * {@link #STOPS} after it give.
+   */
+  public static final int GRADIENT = 7;
+  /** The {@link #KIND} of the gradient of the {@link #GRADIENT} before it; drawn by itself never. */
+  public static final int STOPS = 8;
+
+  /** The slot of the {@link #STOPS} that says whether their gradient is linear or radial. */
+  public static final int GRADIENT_SHAPE = 16;
+  /** The slot of the {@link #STOPS} with the opacity that the rectangle's colors include. */
+  public static final int GRADIENT_OPACITY = 20;
+  /** A linear gradient in {@link #GRADIENT_SHAPE}. */
+  public static final int LINEAR = 0;
+  /** An elliptical radial gradient in {@link #GRADIENT_SHAPE}. */
+  public static final int RADIAL = 1;
 
   // The slots of a squiggle that differ from a rectangle's.
   public static final int AMPLITUDE = 12;
@@ -773,9 +821,10 @@ public final class Scene {
         if (own >= 0) {
           rect(left, top, width, height, radii, sides, el.fill(), colors[side], opacity, own);
           arc(el);
+          stops(el, left, top, width, height, borders, opacity, free);
         }
       }
-    } else if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
+    } else if ((el.fill() >>> 24 != 0 || hasBorder || el.background() != null) && inside) {
       rect(
           left,
           top,
@@ -788,6 +837,7 @@ public final class Scene {
           opacity,
           clip);
       arc(el);
+      stops(el, left, top, width, height, borders, opacity, free);
     }
     if (el.image() != null && inside) {
       image(el, left, top, width, height, borders, radii, opacity, clip, free);
@@ -800,10 +850,13 @@ public final class Scene {
       for (Segment segment : el.segments()) {
         segment(segment, left, top, opacity, inner);
       }
-      // A fill cut to an arc lies behind none of the content, or behind a part not known here.
-      float content = el.arcSweep() == 1 || el.fill() >>> 24 == 0
-          ? over(el.fill(), opacity, behind)
-          : el.arcSweep() == 0 ? behind : Float.NaN;
+      // A fill cut to an arc lies behind none of the content, or behind a part not known here; a
+      // background changes from point to point.
+      float content = el.background() != null
+          ? Float.NaN
+          : el.arcSweep() == 1 || el.fill() >>> 24 == 0
+              ? over(el.fill(), opacity, behind)
+              : el.arcSweep() == 0 ? behind : Float.NaN;
       if (el.text() != null) {
         for (El child : el.children()) {
           if (child.rangeBoxes() != null) {
@@ -948,6 +1001,71 @@ public final class Scene {
   }
 
   /**
+   * Turns the rectangle just added into a {@link #GRADIENT} with the element's {@link
+   * El#background}, unless it has none, and adds its {@link #STOPS}: their positions resolved on
+   * the padding box, snapped to the pixel grid unless a spring moves the element.
+   */
+  private void stops(
+      El el,
+      float left,
+      float top,
+      float width,
+      float height,
+      float[] borders,
+      float opacity,
+      boolean free) {
+    float l = left + borders[3];
+    float t = top + borders[0];
+    float r = left + width - borders[1];
+    float b = top + height - borders[2];
+    if (!free) {
+      l = edge(l);
+      t = edge(t);
+      r = edge(r);
+      b = edge(b);
+    }
+    // Without a padding box there is nothing to resolve a percentage on, and no fill to show.
+    if (el.background() == null || !(r > l && b > t)) {
+      return;
+    }
+    float w = r - l;
+    float h = b - t;
+    data.set(ValueLayout.JAVA_INT, (long) (count - 1) * STRIDE + KIND, GRADIENT);
+    long offset = next();
+    switch (el.background()) {
+      case Background.Linear linear -> {
+        put(offset + X, l + resolve(linear.x1(), w));
+        put(offset + Y, t + resolve(linear.y1(), h));
+        put(offset + WIDTH, l + resolve(linear.x2(), w));
+        put(offset + HEIGHT, t + resolve(linear.y2(), h));
+        data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE, LINEAR);
+        color(offset + FILL, linear.from(), 1);
+        color(offset + BORDER, linear.to(), 1);
+      }
+      case Background.Radial radial -> {
+        put(offset + X, l + resolve(radial.x(), w));
+        put(offset + Y, t + resolve(radial.y(), h));
+        put(offset + WIDTH, resolve(radial.radiusX(), w));
+        put(offset + HEIGHT, resolve(radial.radiusY(), h));
+        data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE, RADIAL);
+        color(offset + FILL, radial.inner(), 1);
+        color(offset + BORDER, radial.outer(), 1);
+      }
+    }
+    put(offset + GRADIENT_OPACITY, opacity);
+    data.set(ValueLayout.JAVA_INT, offset + CLIP, 0);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, STOPS);
+    for (int slot = BORDER + 16; slot < STRIDE; slot += 4) {
+      put(offset + slot, 0);
+    }
+    count++;
+  }
+
+  private static float resolve(Len len, float extent) {
+    return len.kind() == Len.Kind.PERCENT ? len.value() * extent : len.value();
+  }
+
+  /**
    * An element's image in its content box: the rectangle that {@link El#fit} gives it, snapped to
    * the pixel grid unless a spring moves the element, within a clip of the content box with the
    * element's corners where the element is rounded or the image reaches beyond the box.
@@ -1012,10 +1130,10 @@ public final class Scene {
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     if (rounded || beyond) {
       float[] inner = {
-        Math.max(radii[0] - Math.max(insetLeft, insetTop), 0),
-        Math.max(radii[1] - Math.max(insetRight, insetTop), 0),
-        Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
-        Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)
+        innerRadius(radii[0], insetLeft, insetTop, Math.max(borders[3], borders[0])),
+        innerRadius(radii[1], insetRight, insetTop, Math.max(borders[1], borders[0])),
+        innerRadius(radii[2], insetRight, insetBottom, Math.max(borders[1], borders[2])),
+        innerRadius(radii[3], insetLeft, insetBottom, Math.max(borders[3], borders[2]))
       };
       own = clip(l, t, r, b, inner, clip);
       if (own < 0) {
@@ -1565,6 +1683,20 @@ public final class Scene {
   }
 
   /**
+   * The radius of a circle that keeps a content corner with insets {@code a} and {@code b} inside
+   * the border's inner corner: 0 once either inset clears the curve; {@code radius - max(a, b)}
+   * while both insets reach past the wider border, since the circle of radius {@code radius -
+   * border} lies inside that corner; else the longer half axis {@code radius - min(a, b)} of the
+   * content corner's ellipse, which contains the ellipse.
+   */
+  private static float innerRadius(float radius, float a, float b, float border) {
+    if (radius <= Math.max(a, b)) {
+      return 0;
+    }
+    return Math.min(a, b) >= border ? radius - Math.max(a, b) : radius - Math.min(a, b);
+  }
+
+  /**
    * The clip of the rounded rectangle from {@code l, t} to {@code r, b} with these radii (top
    * left, top right, bottom right, bottom left) inside the clip {@code outer}, as an entry of the
    * table; -1 when nothing of it is left.
@@ -1833,8 +1965,8 @@ public final class Scene {
 
   /**
    * One u32 slot of one instance: {@link #CLIP} or {@link #KIND}, of a glyph {@link #ATLAS},
-   * {@link #ATLAS_SIZE} or {@link #PAGE}, and of an image {@link #IMAGE_SIZE}, {@link #LEVELS}
-   * or {@link #IMAGE_INDEX}.
+   * {@link #ATLAS_SIZE} or {@link #PAGE}, of an image {@link #IMAGE_SIZE}, {@link #LEVELS}
+   * or {@link #IMAGE_INDEX}, and of stops {@link #GRADIENT_SHAPE}.
    */
   public int getInt(int instance, int field) {
     return data.get(ValueLayout.JAVA_INT, (long) instance * STRIDE + field);

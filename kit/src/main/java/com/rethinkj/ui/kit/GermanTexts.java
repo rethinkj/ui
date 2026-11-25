@@ -1016,6 +1016,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String transcript() {
+    return "Verlauf";
+  }
+
+  @Override
+  public String jumpToNewest() {
+    return "Zum Neuesten";
+  }
+
+  @Override
   public String composerPlaceholder() {
     return "Nachricht schreiben";
   }

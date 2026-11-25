@@ -320,4 +320,33 @@ class RowHeightsTest {
     app.frame();
     assertEquals(0, rowByKey(app.tree(), "item-110").y(), 0.001, app.tree().dump());
   }
+
+  @Test
+  void rowsInsertedAboveAListScrolledIntoItsPaddingKeepTheFirstRowInView() {
+    Transcript model = new Transcript();
+    for (int i = 0; i < 10; i++) {
+      model.items.add(new Item(100 + i, 30));
+    }
+    App<Transcript> app = new App<>(
+        model,
+        m -> col()
+            .key("list")
+            .w(100)
+            .h(100)
+            .padding(8, 0)
+            .rows(
+                m.items.size(),
+                m.stateHeights,
+                i -> el().key("item-" + m.items.get(i).id()).h(m.items.get(i).height()))
+            .scrollState(m.scroll));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals(0, model.scroll.y(), 0.001);
+    assertEquals(8, rowByKey(app.tree(), "item-100").y(), 0.001);
+
+    model.items.addAll(0, List.of(new Item(97, 45), new Item(98, 55), new Item(99, 35)));
+    app.invalidate();
+    app.frame();
+    assertEquals(0, rowByKey(app.tree(), "item-100").y(), 0.001, app.tree().dump());
+  }
 }

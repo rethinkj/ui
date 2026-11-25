@@ -1,0 +1,1 @@
+- Added `Chat.transcript` for virtual chat transcripts centered up to `Theme.Prose.measure()` that follow the newest message while at the bottom, hold their place and show a floating "Jump to newest" button (`Texts.jumpToNewest()`) while scrolled up, and optionally call `onLoadOlder` when the top comes into view.

@@ -59,10 +59,6 @@ final class Messages {
   // docs:start follow-end
   final ScrollState transcript = new ScrollState().followEnd();
 
-  void onScroll() {
-    // nothing to keep: the view is built again and shows the button when away from the end
-  }
-
   static El following(Messages state) {
     Theme theme = Theme.CURRENT.get();
     El list = col()
@@ -71,7 +67,6 @@ final class Messages {
         .grow(1)
         .scrollbars(theme.scrollbars())
         .scrollState(state.transcript)
-        .onUserScroll(state::onScroll)
         .rows(
             state.log.size(),
             state.heights,

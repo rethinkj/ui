@@ -47,6 +47,7 @@ class DocsExamplesTest {
   static final Map<String, List<String>> IMAGES = Map.ofEntries(
       Map.entry("lights", List.of("on")),
       Map.entry("layout", List.of("view")),
+      Map.entry("backgrounds", List.of("view")),
       Map.entry("lines", List.of("view")),
       Map.entry("text", List.of("view")),
       Map.entry("line-height", List.of("view")),
@@ -81,6 +82,7 @@ class DocsExamplesTest {
       Map.entry("details", List.of("view", "children", "hidden")),
       Map.entry("properties-elements", List.of("view")),
       Map.entry("toolbar", List.of("view", "more")),
+      Map.entry("rail", List.of("view")),
       Map.entry("tooltip", List.of("shown")),
       Map.entry("tooltip-content", List.of("shown")),
       Map.entry("tooltip-kind", List.of("shown")),
@@ -124,6 +126,7 @@ class DocsExamplesTest {
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("chat", List.of("view")),
+      Map.entry("chat-transcript", List.of("view")),
       Map.entry("chat-composer", List.of("view")),
       Map.entry("image", List.of("view")),
       Map.entry("canvas", List.of("view")),
@@ -185,6 +188,7 @@ class DocsExamplesTest {
     layouts(all, "details", Layouts::details, 520, 280);
     layouts(all, "properties-elements", Layouts::propertiesElements, 360, 150);
     layouts(all, "toolbar", Layouts::toolbar, 600, 100);
+    layouts(all, "rail", Layouts::rail, 560, 260);
     all.put("canvas", new Example(t -> new App<>(new Diagrams(), Diagrams::view), 560, 280));
     all.put(
         "canvas-arrange", new Example(t -> new App<>(new Arranging(), Arranging::view), 560, 300));
@@ -276,6 +280,7 @@ class DocsExamplesTest {
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "markdown-fragment", Editors::markdownFragment, 520, 196);
     editors(all, "chat", Editors::chat, 580, 416);
+    editors(all, "chat-transcript", Editors::chatTranscript, 680, 340);
     editors(all, "chat-composer", Editors::chatComposer, 580, 132);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
@@ -330,6 +335,7 @@ class DocsExamplesTest {
             440,
             150));
     concepts(all, "images", Concepts::images, 280, 120);
+    concepts(all, "backgrounds", state -> Concepts.backgrounds(), 352, 96);
     concepts(all, "lines", state -> Concepts.lines(), 244, 104);
     concepts(all, "theme", Concepts::theme, 200, 80);
     all.put(

@@ -71,6 +71,7 @@ public final class El {
   private int borderColor;
   private int[] borderColors; // null while every side has borderColor
   private List<Shadow> shadows = List.of();
+  private Background background;
   private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
@@ -1109,6 +1110,20 @@ public final class El {
   }
 
   /**
+   * Paints a background over this element's {@link #fill} (see {@link Background}): where the fill
+   * shows, within the inner edge of its border, and under its image, segments, text and children.
+   * Opacity and clips apply as for the fill. A background takes no room in the layout and no input,
+   * and it does not spring with {@link #motion}; a look that changes it changes it at once. An
+   * element over a {@link #range} of its parent's text draws only its fill.
+   *
+   * @param background the background, replacing the one set before, or null for none
+   */
+  public El background(Background background) {
+    this.background = background;
+    return this;
+  }
+
+  /**
    * Makes this element and everything below it translucent: 0 is invisible, 1 (the default) is
    * opaque. An element at 0 draws nothing and takes no presses. With {@link #motion} it springs
    * like the other values.
@@ -1428,7 +1443,9 @@ public final class El {
       return y;
     }
     double top = before.rowsTop(); // the offset in the rows' coordinates, the padding kept
-    return y < top ? y : top + rows.heights.moved(y - top);
+    double moved = rows.heights.moved(Math.max(0, y - top));
+    // Rows that come above a list scrolled into its top padding put its first row at the top.
+    return y < top && moved == 0 ? y : top + moved;
   }
 
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */
@@ -4682,6 +4699,11 @@ public final class El {
   /** The shadows under this element, the topmost first; empty for none. */
   public List<Shadow> shadows() {
     return shadows;
+  }
+
+  /** The background painted over this element's fill ({@link #background(Background)}), or null. */
+  public Background background() {
+    return background;
   }
 
   /** The border's color; of the top side when {@link #borderColors} gave the sides their own. */

@@ -3373,7 +3373,8 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
-      stale |= tellUnfolds()
+      stale |= endsMoved(root)
+          | tellUnfolds()
           | tellSelections() // of fields in those rows, which the rebuild shows
           | tellFocusIn()
           | tellRevealedScrolls()
@@ -3475,12 +3476,14 @@ public final class App<S> {
     resizeDue = false;
     try {
       build(false, true);
-      while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+      while (resizeRounds < RESIZE_ROUNDS && (!resized.isEmpty() || endsMoved(root))) {
         resizeRounds++;
         keyScroll = false; // what onResize handlers change is not the key's
         tellResized();
         build(false, true);
       }
+      // An answer of atEnd that the last round made wrong: the next frame builds the view again.
+      resizeDue |= resizeRounds >= RESIZE_ROUNDS && endsMoved(root);
     } finally {
       // What is left, of a view that has not settled or after a throw: the next frame's last
       // build tells it again, from its own tree.
@@ -5775,6 +5778,28 @@ public final class App<S> {
     }
     path.removeLast();
     return built;
+  }
+
+  /**
+   * Whether layout or scrolling made an answer of {@link ScrollState#atEnd} wrong that an area at or
+   * below {@code el} gave the view; forgets the answers of those, so that a view that does not ask
+   * again is not built again for them.
+   */
+  private static boolean endsMoved(El el) {
+    boolean moved = false;
+    ScrollState state = el.scrollState();
+    if (state != null && state.el == el && (state.atEnd ? state.toldAway : state.toldEnd)) {
+      state.toldEnd = false;
+      state.toldAway = false;
+      moved = true;
+    }
+    for (El child : el.children()) {
+      moved |= endsMoved(child);
+    }
+    for (El overlay : el.overlays()) {
+      moved |= endsMoved(overlay);
+    }
+    return moved;
   }
 
   /** Collects the {@link El#onResize} handlers below {@code el} whose element has a new size. */
