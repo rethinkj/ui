@@ -156,7 +156,15 @@ public final class App<S> {
    */
   public static final double TYPE_AHEAD = 1;
 
+  // Edge auto-scroll while a selection drag is held near or past a scrolling scope's top/bottom
+  // edge, in logical pixels and logical pixels per second.
+  private static final float EDGE_SCROLL_MARGIN = 24;
+  private static final float EDGE_SCROLL_MIN_SPEED = 120;
+  private static final float EDGE_SCROLL_MAX_SPEED = 1600;
+  private static final float EDGE_SCROLL_RAMP = 120;
+
   private boolean cycling; // whether the last frame showed an element with an El#cycle
+  private boolean edgeScrolling; // whether a held selection drag is auto-scrolling its scope's list
 
   /**
    * Where the focused element that takes text is, in logical pixels of the window, for the
@@ -435,7 +443,12 @@ public final class App<S> {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
     }
     return switch (capture) {
-      case Selecting s -> drag(s, x, y);
+      case Selecting s -> {
+        s.x = x;
+        s.y = y;
+        s.moved = true;
+        yield drag(s, x, y);
+      }
       case Grab(Object id, boolean vertical, float grip) -> {
         El area = animator.element(id);
         boolean moved = area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
@@ -577,34 +590,39 @@ public final class App<S> {
       El scope = scopeField(field) ? scopeOf(fieldPath) : null;
       Object scopeId = scope == null ? null : identityOn(fieldPath, scope);
       if (shift && scope != null && scopeId != null) {
-        Object anchorId = null;
-        int anchorFrom = 0;
-        int anchorTo = 0;
+        remapScopeSelection();
+        El list = scopeList(scope);
+        Object listId = list == null ? null : animator.identity(list);
+        int rowsVersion = list == null ? 0 : list.rowsVersion();
+        ScopePosition anchorPos = null;
+        Object anchorRowKey = null;
         if (scopeSelection != null && scopeSelection.scopeId.equals(scopeId)) {
-          El anchorEl = animator.liveElement(scopeSelection.anchorId);
-          if (anchorEl != null && scopeField(anchorEl)) {
-            anchorId = scopeSelection.anchorId;
-            anchorFrom = scopeSelection.anchorFrom;
-            anchorTo = scopeSelection.anchorTo;
+          anchorPos =
+              scopeSelection.forward() ? scopeSelection.anchorFrom : scopeSelection.anchorTo;
+          anchorRowKey = scopeSelection.anchorRowKey;
+        }
+        if (anchorPos == null) {
+          anchorPos = focusScopePosition(scope, scopeId, list, listId);
+          if (anchorPos != null && list != null && anchorPos.row() >= 0) {
+            anchorRowKey = list.rowKey(anchorPos.row());
           }
         }
-        if (anchorId == null && focus.element() != null && scopeField(focus.element())) {
-          List<El> focusPath = new ArrayList<>();
-          if (pathTo(root, focus.element(), focusPath) && scopeOf(focusPath) == scope) {
-            anchorId = focus.id();
-            anchorFrom = focus.element().editor().anchor();
-            anchorTo = anchorFrom;
+        if (anchorPos != null) {
+          ScopeField targetSf = scopeFieldOf(scope, field);
+          boolean different =
+              targetSf == null || anchorPos.compareField(targetSf.row, targetSf.ordinal) != 0;
+          if (different || (scopeSelection != null && scopeSelection.hasSelection())) {
+            Selecting next = new Selecting(
+                fieldId, scopeId, anchorPos, anchorPos, listId, rowsVersion, anchorRowKey, 1, x, y);
+            selectAcrossScope(scope, next, field, x, y);
+            capture = next;
+            if (field.onPointerDown() != null) {
+              double[] pos = content(field, x, y);
+              field.onPointerDown().press(clicks, modifiers, pos[0], pos[1]);
+              handled = true;
+            }
+            return true;
           }
-        }
-        if (anchorId != null && (!anchorId.equals(fieldId) || scopeSelection != null)) {
-          selectAcrossScope(scope, scopeId, anchorId, anchorFrom, anchorTo, 1, field, x, y);
-          capture = new Selecting(fieldId, scopeId, anchorId, anchorFrom, anchorTo, 1);
-          if (field.onPointerDown() != null) {
-            double[] pos = content(field, x, y);
-            field.onPointerDown().press(clicks, modifiers, pos[0], pos[1]);
-            handled = true;
-          }
-          return true;
         }
       }
       clearScopeSelection(null);
@@ -622,7 +640,22 @@ public final class App<S> {
         int unit = shift ? 1 : Math.clamp(clicks, 1, field.text().multiline() ? 4 : 3);
         int from = shift ? editor.anchor() : editor.start();
         int to = shift ? editor.anchor() : editor.end();
-        capture = new Selecting(fieldId, scopeId, fieldId, from, to, unit);
+        ScopeField sf = scopeFieldOf(scope, field);
+        if (sf != null) {
+          El list = scopeList(scope);
+          Object listId = list == null ? null : animator.identity(list);
+          int rowsVersion = list == null ? 0 : list.rowsVersion();
+          Object rowKey = list != null && sf.row >= 0 ? list.rowKey(sf.row) : null;
+          ScopePosition anchorFrom = new ScopePosition(sf.row, sf.ordinal, from);
+          ScopePosition anchorTo = new ScopePosition(sf.row, sf.ordinal, to);
+          ScopePosition end = new ScopePosition(sf.row, sf.ordinal, editor.caret());
+          scopeSelection = new ScopeSelection(
+              scopeId, anchorFrom, anchorTo, end, listId, rowsVersion, rowKey, rowKey);
+          capture = new Selecting(
+              fieldId, scopeId, anchorFrom, anchorTo, listId, rowsVersion, rowKey, unit, x, y);
+        } else {
+          capture = new Selecting(fieldId);
+        }
       } else {
         capture = new Selecting(fieldId);
       }
@@ -1126,36 +1159,167 @@ public final class App<S> {
 
   /**
    * A press selecting in a text field: the pressed field's identity, and when inside a {@link
-   * El#selectionScope}, the scope's identity, the anchor field's identity and initial range, and
-   * the selection unit (1 graphemes, 2 words, 3 lines/all, 4 all).
+   * El#selectionScope}, the scope's identity, the anchor's initial position range (and row key for
+   * a keyed virtual list), the selection unit (1 graphemes, 2 words, 3 lines/all, 4 all), and the
+   * last pointer position for edge auto-scroll.
    */
-  private record Selecting(
-      Object id, Object scopeId, Object anchorId, int anchorFrom, int anchorTo, int unit)
-      implements Capture {
-    Selecting(Object id) {
-      this(id, null, null, 0, 0, 1);
-    }
-  }
-
-  /** A selection spanning several read-only fields inside one {@link El#selectionScope}. */
-  private static final class ScopeSelection {
+  private static final class Selecting implements Capture {
+    final Object id;
     final Object scopeId;
-    final Object anchorId;
-    final int anchorFrom;
-    final int anchorTo;
-    final Set<Editor> editors = Collections.newSetFromMap(new IdentityHashMap<>());
+    ScopePosition anchorFrom;
+    ScopePosition anchorTo;
+    final Object listId;
+    int rowsVersion;
+    final Object anchorRowKey;
+    final int unit;
+    float x;
+    float y;
+    boolean moved;
+    double scrollTime = Double.NaN;
 
-    ScopeSelection(Object scopeId, Object anchorId, int anchorFrom, int anchorTo) {
+    Selecting(Object id) {
+      this(id, null, null, null, null, 0, null, 1, 0, 0);
+    }
+
+    Selecting(
+        Object id,
+        Object scopeId,
+        ScopePosition anchorFrom,
+        ScopePosition anchorTo,
+        Object listId,
+        int rowsVersion,
+        Object anchorRowKey,
+        int unit,
+        float x,
+        float y) {
+      this.id = id;
       this.scopeId = scopeId;
-      this.anchorId = anchorId;
       this.anchorFrom = anchorFrom;
       this.anchorTo = anchorTo;
+      this.listId = listId;
+      this.rowsVersion = rowsVersion;
+      this.anchorRowKey = anchorRowKey;
+      this.unit = unit;
+      this.x = x;
+      this.y = y;
+    }
+
+    Object id() {
+      return id;
+    }
+
+    Object scopeId() {
+      return scopeId;
     }
   }
 
-  /** One read-only field in a {@link El#selectionScope}, with its full and clipped window bounds. */
+  /**
+   * A selection inside one {@link El#selectionScope}, stored as {@link ScopePosition}s so it
+   * survives virtual list rows that leave and return.
+   */
+  private static final class ScopeSelection {
+    final Object scopeId;
+    ScopePosition anchorFrom;
+    ScopePosition anchorTo;
+    ScopePosition end;
+    final Object listId;
+    int rowsVersion;
+    final Object anchorRowKey;
+    final Object endRowKey;
+
+    ScopeSelection(
+        Object scopeId,
+        ScopePosition anchorFrom,
+        ScopePosition anchorTo,
+        ScopePosition end,
+        Object listId,
+        int rowsVersion,
+        Object anchorRowKey,
+        Object endRowKey) {
+      this.scopeId = scopeId;
+      this.anchorFrom = anchorFrom;
+      this.anchorTo = anchorTo;
+      this.end = end;
+      this.listId = listId;
+      this.rowsVersion = rowsVersion;
+      this.anchorRowKey = anchorRowKey;
+      this.endRowKey = endRowKey;
+    }
+
+    ScopePosition start() {
+      return end.compareTo(anchorFrom) < 0 ? end : anchorFrom;
+    }
+
+    ScopePosition finish() {
+      return end.compareTo(anchorTo) > 0 ? end : anchorTo;
+    }
+
+    boolean forward() {
+      return end.compareTo(anchorFrom) >= 0;
+    }
+
+    boolean hasSelection() {
+      return start().compareTo(finish()) < 0;
+    }
+
+    boolean covers(int row, int field) {
+      if (!hasSelection()) {
+        return false;
+      }
+      return start().compareField(row, field) >= 0 && finish().compareField(row, field) <= 0;
+    }
+
+    /** Returns {@code {anchor, caret}} for a field in this selection, or null when outside it. */
+    int[] editorRangeFor(int row, int field, int length) {
+      if (!hasSelection()) {
+        return null;
+      }
+      ScopePosition s = start();
+      ScopePosition f = finish();
+      int cmpStart = s.compareField(row, field);
+      int cmpFinish = f.compareField(row, field);
+      if (cmpStart < 0 || cmpFinish > 0) {
+        return null;
+      }
+      int from = cmpStart == 0 ? Math.clamp(s.offset(), 0, length) : 0;
+      int to = cmpFinish == 0 ? Math.clamp(f.offset(), 0, length) : length;
+      if (to < from) {
+        to = from;
+      }
+      return forward() ? new int[] {from, to} : new int[] {to, from};
+    }
+
+    /** Returns {@code {from, to}} ordered character offsets for copying, or null when outside. */
+    int[] sliceFor(int row, int field, int length) {
+      if (!hasSelection()) {
+        return null;
+      }
+      ScopePosition s = start();
+      ScopePosition f = finish();
+      int cmpStart = s.compareField(row, field);
+      int cmpFinish = f.compareField(row, field);
+      if (cmpStart < 0 || cmpFinish > 0) {
+        return null;
+      }
+      int from = cmpStart == 0 ? Math.clamp(s.offset(), 0, length) : 0;
+      int to = cmpFinish == 0 ? Math.clamp(f.offset(), 0, length) : length;
+      return to > from ? new int[] {from, to} : null;
+    }
+
+    boolean sameEndpoints(ScopeSelection other) {
+      return other != null
+          && scopeId.equals(other.scopeId)
+          && anchorFrom.equals(other.anchorFrom)
+          && anchorTo.equals(other.anchorTo)
+          && end.equals(other.end);
+    }
+  }
+
+  /** One read-only field in a {@link El#selectionScope}, with its position and window bounds. */
   private record ScopeField(
       El el,
+      int row,
+      int ordinal,
       float left,
       float top,
       float right,
@@ -1452,10 +1616,7 @@ public final class App<S> {
       return true;
     }
     // The focused field of a selection across a scope waits for its row, as after a scroll.
-    if (isCopy(key)
-        && focus.element() == null
-        && focus.waits()
-        && isScopeSelected(editors.get(focus.id()))) {
+    if (isCopy(key) && focus.element() == null && focus.waits() && isScopeSelectedId(focus.id())) {
       copyScopeSelection();
       handled = true;
       return true;
@@ -1973,6 +2134,7 @@ public final class App<S> {
         || focusMoved()
         || !firstEdits.isEmpty()
         || cycling
+        || edgeScrolling
         || rowsWanted
         || hasPendingHighlights()
         || bracketsDue()) {
@@ -2725,12 +2887,21 @@ public final class App<S> {
       El movedY = scroll(areas, false, deltaY, sideways);
       if (movedX != null || movedY != null) {
         scrolled = true;
+        boolean changed = false;
+        if (capture instanceof Selecting s && s.scopeId() != null) {
+          El scope = animator.liveElement(s.scopeId());
+          El area = scope == null ? null : scopeScrollArea(scope);
+          if (area != null && (movedY == area || movedX == area)) {
+            settle();
+            changed |= drag(s, s.x, s.y);
+          }
+        }
         int from = movedX == null
             ? areas.indexOf(movedY)
             : movedY == null
                 ? areas.indexOf(movedX)
                 : Math.min(areas.indexOf(movedX), areas.indexOf(movedY));
-        return tellUserScroll(areas.subList(from, areas.size()));
+        return changed | tellUserScroll(areas.subList(from, areas.size()));
       }
       return false;
     });
@@ -3168,6 +3339,9 @@ public final class App<S> {
     }
     long inputEnd = System.nanoTime();
     long inputBuild = buildNanos;
+    if (edgeScroll()) {
+      drawn = true;
+    }
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focus.id(), wasFocused) || focus.ring() != hadRing;
@@ -3270,6 +3444,7 @@ public final class App<S> {
       cycling = El.cycles(root, time, width, height, true);
       drawn |= cycling;
     }
+    edgeScrolling = updateEdgeScrollState();
     tellInView(); // the rows as the frame shows them, after everything that places elements
     long input = inputEnd - start - inputBuild;
     timing = new Timing(input, buildNanos, System.nanoTime() - start - input - buildNanos);
@@ -3373,6 +3548,7 @@ public final class App<S> {
       toldSizes = sizes;
     }
     animator.update(root, time, keyScroll ? revealedScrolls : null);
+    remapScopeSelection();
     untimed = true;
     stale = false;
     ran |= handled;
@@ -3566,7 +3742,8 @@ public final class App<S> {
       el.editor(editor);
       // El#ellipsis shortens it without the focus, but not while it shows a part of a scope's
       // selection, which Editor#place keeps in view.
-      el.text().unfocused(!id.equals(focus.id()) && !isScopeSelected(editor));
+      boolean inScopeSelection = applyScopeSelectionOnAttach(el, path, id, editor);
+      el.text().unfocused(!id.equals(focus.id()) && !inScopeSelection);
     }
     for (El child : el.children()) {
       attached |= attachEditors(child, path);
@@ -3597,6 +3774,9 @@ public final class App<S> {
     boolean partsBuilt = false;
     boolean needOverlays = caretOverlays;
     for (int round = 0; round < 4; round++) {
+      Set<Editor> scopeSelected = Collections.newSetFromMap(new IdentityHashMap<>());
+      Set<Editor> scopeChanged = Collections.newSetFromMap(new IdentityHashMap<>());
+      syncScopeSelection(scopeSelected, scopeChanged);
       List<Editor> shown = new ArrayList<>();
       collectEditors(root, shown);
       List<Editor> toPlace = new ArrayList<>();
@@ -3607,6 +3787,7 @@ public final class App<S> {
         boolean needs = force
             || !sweep
             || round > 0
+            || scopeChanged.contains(editor)
             || (blinkMoved && (editor == blinking || editor == prevBlinking))
             || (editor.element().text().multiline() && editor.element().text().viewStale());
         if (needs) {
@@ -3620,7 +3801,7 @@ public final class App<S> {
       for (Editor editor : toPlace) {
         boolean focused = editor == blinking
             && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
-        editor.place(focused, focused || isScopeSelected(editor), caretOn);
+        editor.place(focused, focused || scopeSelected.contains(editor), caretOn);
         placed.add(editor.element());
       }
       // A coupled field follows its leader again with what layout measured, a few times at most;
@@ -3637,7 +3818,7 @@ public final class App<S> {
           if (text.multiline() && text.viewStale()) { // a single-line field's flag stays set
             boolean focused = editor == blinking
                 && (sweep || Objects.equals(focus.id(), animator.identity(editor.element())));
-            editor.place(focused, focused || isScopeSelected(editor), caretOn);
+            editor.place(focused, focused || scopeSelected.contains(editor), caretOn);
             placed.add(editor.element());
             moved = true; // what it measured now, such as a long line's width, may let it follow on
           }
@@ -3742,9 +3923,6 @@ public final class App<S> {
               && !gone(animator.inRow(entry.getKey()).listId(), true))) {
         return false; // an edit's answer, or onSelect's hearing of it, waits for its row
       }
-      if (scopeSelection != null) {
-        scopeSelection.editors.remove(editor);
-      }
       if (state == null) {
         editor.drop(); // gone for good; its element may be fading out
       } else if (state.app == this) { // not taken by another app's tree meanwhile
@@ -3752,9 +3930,6 @@ public final class App<S> {
       }
       return true;
     });
-    if (scopeSelection != null && scopeSelection.editors.isEmpty()) {
-      scopeSelection = null;
-    }
   }
 
   /**
@@ -4329,10 +4504,11 @@ public final class App<S> {
       if (now == null || now.editor() == null) {
         return false;
       }
-      if (capture instanceof Selecting s && s.id().equals(id)) {
+      if (capture instanceof Selecting s
+          && (s.id().equals(id) || s.scopeId() != null && within(id, s.scopeId()))) {
         capture = IDLE;
       }
-      if (isScopeSelected(now.editor())) {
+      if (scopeSelection != null && within(id, scopeSelection.scopeId)) {
         clearScopeSelection(now.editor());
       }
       now.editor().select(caret, anchor);
@@ -4417,13 +4593,16 @@ public final class App<S> {
   /** The pointer moved while a press selects in a field, or across fields of a {@link El#selectionScope}. */
   private boolean drag(Selecting s, float x, float y) {
     if (s.scopeId() != null) {
+      remapScopeSelection();
+      if (capture != s) {
+        return false; // the keyed anchor row left the list
+      }
       El scope = animator.liveElement(s.scopeId());
       if (scope != null) {
         List<El> hit = hit(x, y);
         int under = fieldPressIndex(hit); // on the edge two fields share, the one hit tests find
         El target = under < 0 ? null : hit.get(under);
-        return selectAcrossScope(
-            scope, s.scopeId(), s.anchorId(), s.anchorFrom(), s.anchorTo(), s.unit(), target, x, y);
+        return selectAcrossScope(scope, s, target, x, y);
       }
     }
     El el = animator.element(s.id());
@@ -4438,12 +4617,22 @@ public final class App<S> {
   }
 
   /** Whether {@code el} is a read-only, unmasked text field that can join a selection scope. */
+  private static boolean isScopeFieldCandidate(El el) {
+    return el.isEditable() && el.isReadOnly() && el.text() != null && !el.text().masked();
+  }
+
+  /** Whether {@code el} is a built read-only, unmasked text field with an attached editor. */
   private static boolean scopeField(El el) {
-    return el.isEditable()
-        && el.isReadOnly()
-        && el.editor() != null
-        && el.text() != null
-        && !el.text().masked();
+    return isScopeFieldCandidate(el) && el.editor() != null;
+  }
+
+  /** The normalized text of a read-only field, matching what its {@link Editor} holds. */
+  private static String fieldText(El field) {
+    if (field.editor() != null) {
+      return field.editor().text();
+    }
+    Text t = field.text();
+    return t.multiline() ? Editor.multiLine(t.value()) : t.value();
   }
 
   /** The outermost {@link El#selectionScope} on {@code path} inside its overlay layer, or null. */
@@ -4463,12 +4652,250 @@ public final class App<S> {
     return index < 0 ? null : Animator.identities(layer.subList(0, index + 1)).getLast();
   }
 
-  /** Whether {@code editor} belongs to the active cross-field selection. */
-  private boolean isScopeSelected(Editor editor) {
-    return editor != null && scopeSelection != null && scopeSelection.editors.contains(editor);
+  /** The first virtual list in {@code scope} (or {@code scope} itself), or null if none. */
+  private static El scopeList(El el) {
+    if (el == null
+        || el.isExiting()
+        || el.opacity() == 0
+        || el.style().display == Style.Display.NONE
+        || el.isInert()) {
+      return null;
+    }
+    if (el.isVirtualList()) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = scopeList(child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
-  /** Collapses every field in the active cross-field selection except {@code keep}, and ends it. */
+  /** The vertical scroll area inside {@code scope} for edge auto-scroll, or null if none. */
+  private static El scopeScrollArea(El scope) {
+    El list = scopeList(scope);
+    if (list != null) {
+      return list;
+    }
+    return scope != null && scope.isScrollArea() && scope.style().overflowY == Style.Overflow.SCROLL
+        ? scope
+        : null;
+  }
+
+  /** Remaps keyed row indices on {@link #scopeSelection} and any scope {@link Selecting} capture. */
+  private void remapScopeSelection() {
+    if (scopeSelection != null && scopeSelection.listId != null) {
+      El scope = animator.liveElement(scopeSelection.scopeId);
+      El list = scope == null ? null : scopeList(scope);
+      if (scope != null) {
+        if (list == null) {
+          if (scopeSelection.anchorFrom.row() >= 0 || scopeSelection.end.row() >= 0) {
+            scopeSelection = null;
+          }
+        } else {
+          int version = list.rowsVersion();
+          if (version != scopeSelection.rowsVersion) {
+            int anchorRow =
+                remapRow(list, scopeSelection.anchorFrom.row(), scopeSelection.anchorRowKey);
+            int endRow = remapRow(list, scopeSelection.end.row(), scopeSelection.endRowKey);
+            if (anchorRow == Integer.MIN_VALUE || endRow == Integer.MIN_VALUE) {
+              scopeSelection = null;
+            } else {
+              scopeSelection.anchorFrom = scopeSelection.anchorFrom.inRow(anchorRow);
+              scopeSelection.anchorTo = scopeSelection.anchorTo.inRow(anchorRow);
+              scopeSelection.end = scopeSelection.end.inRow(endRow);
+              scopeSelection.rowsVersion = version;
+            }
+          }
+          if (scopeSelection != null
+              && (scopeSelection.anchorFrom.row() >= list.rowCount()
+                  || scopeSelection.end.row() >= list.rowCount())) {
+            scopeSelection = null;
+          }
+        }
+      }
+    }
+    if (capture instanceof Selecting s && s.scopeId() != null && s.listId != null) {
+      El scope = animator.liveElement(s.scopeId());
+      El list = scope == null ? null : scopeList(scope);
+      if (scope != null) {
+        if (list == null) {
+          if (s.anchorFrom.row() >= 0) {
+            capture = IDLE;
+          }
+        } else {
+          int version = list.rowsVersion();
+          if (version != s.rowsVersion) {
+            int anchorRow = remapRow(list, s.anchorFrom.row(), s.anchorRowKey);
+            if (anchorRow == Integer.MIN_VALUE) {
+              capture = IDLE;
+              return;
+            }
+            s.anchorFrom = s.anchorFrom.inRow(anchorRow);
+            s.anchorTo = s.anchorTo.inRow(anchorRow);
+            s.rowsVersion = version;
+          }
+          if (s.anchorFrom.row() >= list.rowCount()) {
+            capture = IDLE;
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Maps a stored row index after a keyed {@link RowHeights} update: returns the unchanged index
+   * for {@code -1} (outside rows) or an unkeyed list, the new row index when the key still exists,
+   * or {@link Integer#MIN_VALUE} when the keyed row was removed.
+   */
+  private static int remapRow(El list, int row, Object rowKey) {
+    if (row < 0 || rowKey == null) {
+      return row;
+    }
+    int moved = list.rowWithKey(rowKey);
+    return moved >= 0 ? moved : Integer.MIN_VALUE;
+  }
+
+  /**
+   * Applies the active {@link #scopeSelection} to a newly attached field before layout so that
+   * rebuilt virtual rows immediately keep their selection and suppress ellipsis.
+   */
+  private boolean applyScopeSelectionOnAttach(El el, List<El> path, Object id, Editor editor) {
+    if (scopeSelection == null
+        || !scopeSelection.hasSelection()
+        || !isScopeFieldCandidate(el)
+        || !within(id, scopeSelection.scopeId)) {
+      return false;
+    }
+    int row = scopeSelection.listId == null ? -1 : Animator.rowIn(id, scopeSelection.listId);
+    ScopePosition s = scopeSelection.start();
+    ScopePosition f = scopeSelection.finish();
+    if (row < s.row() || row > f.row()) {
+      return false;
+    }
+    int ordinal = 0;
+    if (row == s.row() || row == f.row()) {
+      El container = row >= 0 ? rowRootOn(path) : scopeOf(path);
+      if (container == null) {
+        return false;
+      }
+      ordinal = fieldOrdinalIn(container, el, row >= 0 ? null : scopeList(container), false);
+      if (ordinal < 0) {
+        return false;
+      }
+    }
+    int[] range = scopeSelection.editorRangeFor(row, ordinal, editor.text().length());
+    if (range == null) {
+      return false;
+    }
+    editor.setRange(range[0], range[1], false);
+    return true;
+  }
+
+  /** The row element on {@code path} directly below a virtual list, or null. */
+  private static El rowRootOn(List<El> path) {
+    for (int i = path.size() - 2; i >= 0; i--) {
+      if (path.get(i).isVirtualList()) {
+        return path.get(i + 1);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Derives every built field's range in the active {@link #scopeSelection} from its positions,
+   * recording which built editors are covered and which ones changed range.
+   */
+  private void syncScopeSelection(Set<Editor> selected, Set<Editor> changed) {
+    if (scopeSelection == null) {
+      return;
+    }
+    remapScopeSelection();
+    if (scopeSelection == null || !scopeSelection.hasSelection()) {
+      return;
+    }
+    El scope = animator.liveElement(scopeSelection.scopeId);
+    if (scope == null) {
+      return;
+    }
+    for (ScopeField sf : scopeFields(scope)) {
+      Editor editor = sf.el.editor();
+      int[] range =
+          scopeSelection.editorRangeFor(sf.row, sf.ordinal, editor.text().length());
+      if (range != null) {
+        selected.add(editor);
+        if (editor.setRange(range[0], range[1], false)) {
+          changed.add(editor);
+        }
+        sf.el.text().unfocused(false);
+      } else if (editor.collapse()) {
+        changed.add(editor);
+      }
+    }
+  }
+
+  /** Whether {@code editor} belongs to the active scope selection, derived from its positions. */
+  private boolean isScopeSelected(Editor editor) {
+    if (editor == null || scopeSelection == null || !scopeSelection.hasSelection()) {
+      return false;
+    }
+    El el = editor.element();
+    if (el == null || !isScopeFieldCandidate(el)) {
+      return false;
+    }
+    Object id = animator.identity(el);
+    if (id == null || !within(id, scopeSelection.scopeId)) {
+      return false;
+    }
+    remapScopeSelection();
+    if (scopeSelection == null || !scopeSelection.hasSelection()) {
+      return false;
+    }
+    int row = scopeSelection.listId == null ? -1 : Animator.rowIn(id, scopeSelection.listId);
+    ScopePosition s = scopeSelection.start();
+    ScopePosition f = scopeSelection.finish();
+    if (row < s.row() || row > f.row()) {
+      return false;
+    }
+    if (row > s.row() && row < f.row()) {
+      return true;
+    }
+    El scope = animator.liveElement(scopeSelection.scopeId);
+    if (scope == null) {
+      return false;
+    }
+    El container;
+    El skipList = null;
+    if (row >= 0) {
+      El list = scopeList(scope);
+      container =
+          list != null && list.hasRow(row) ? list.children().get(row - list.firstRow()) : null;
+    } else {
+      container = scope;
+      skipList = scopeList(scope);
+    }
+    if (container == null) {
+      return false;
+    }
+    int ordinal = fieldOrdinalIn(container, el, skipList, true);
+    return ordinal >= 0 && scopeSelection.covers(row, ordinal);
+  }
+
+  /** Whether a waiting focused identity belongs to an active non-empty scope selection. */
+  private boolean isScopeSelectedId(Object id) {
+    if (id == null || scopeSelection == null || !scopeSelection.hasSelection()) {
+      return false;
+    }
+    if (!within(id, scopeSelection.scopeId)) {
+      return false;
+    }
+    remapScopeSelection();
+    return scopeSelection != null && scopeSelection.hasSelection();
+  }
+
+  /** Collapses every built field in the active scope selection except {@code keep}, and ends it. */
   private boolean clearScopeSelection(Editor keep) {
     if (scopeSelection == null) {
       return false;
@@ -4476,12 +4903,22 @@ public final class App<S> {
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
     boolean changed = false;
-    for (Editor editor : old.editors) {
-      if (editor != keep) {
-        changed |= editor.collapse();
+    El scope = animator.liveElement(old.scopeId);
+    if (scope != null) {
+      for (ScopeField field : scopeFields(scope)) {
+        Editor editor = field.el.editor();
+        if (editor != keep) {
+          changed |= editor.collapse();
+        }
       }
     }
-    return changed || !old.editors.isEmpty();
+    if (focus.waits() && within(focus.id(), old.scopeId)) {
+      Editor waiting = editors.get(focus.id());
+      if (waiting != null && waiting != keep) {
+        changed |= waiting.collapse();
+      }
+    }
+    return changed || old.hasSelection();
   }
 
   /** Handles a key on the focused field; one that moves the caret ends a cross-field selection. */
@@ -4497,27 +4934,61 @@ public final class App<S> {
     return took;
   }
 
-  /** Copies the selected text of all scope-selected fields in tree order, joined with {@code "\n"}. */
+  /**
+   * Copies the selected text across the active {@link #scopeSelection} in tree order, including
+   * virtual list rows that are not currently built, joined with {@code "\n"}.
+   */
   private void copyScopeSelection() {
+    remapScopeSelection();
+    if (scopeSelection == null || !scopeSelection.hasSelection()) {
+      return;
+    }
     El scope = animator.liveElement(scopeSelection.scopeId);
     if (scope == null) {
       return;
     }
+    El list = scopeList(scope);
     StringBuilder out = new StringBuilder();
-    for (ScopeField field : scopeFields(scope)) {
-      Editor editor = field.el.editor();
-      if (scopeSelection.editors.contains(editor) && editor.hasSelection()) {
-        String part = editor.selectedText();
-        if (!part.isEmpty()) {
-          if (!out.isEmpty()) {
-            out.append('\n');
-          }
-          out.append(part);
+    if (scopeSelection.start().row() == -1) {
+      for (ScopeField field : scopeFields(scope)) {
+        if (field.row == -1) {
+          appendScopeSlice(out, fieldText(field.el), -1, field.ordinal);
+        }
+      }
+    }
+    if (list != null && scopeSelection.finish().row() >= 0 && list.rowCount() > 0) {
+      int fromRow = Math.max(0, scopeSelection.start().row());
+      int toRow = Math.min(list.rowCount() - 1, scopeSelection.finish().row());
+      List<El> rowFields = new ArrayList<>();
+      for (int row = fromRow; row <= toRow; row++) {
+        boolean built = list.hasRow(row);
+        El rowEl = list.rowElement(row);
+        if (rowEl == null) {
+          continue;
+        }
+        rowFields.clear();
+        collectRowFields(rowEl, built, rowFields);
+        for (int ord = 0; ord < rowFields.size(); ord++) {
+          appendScopeSlice(out, fieldText(rowFields.get(ord)), row, ord);
         }
       }
     }
     if (!out.isEmpty()) {
       clipboard.write(out.toString());
+    }
+  }
+
+  private void appendScopeSlice(StringBuilder out, String text, int row, int ordinal) {
+    int[] slice = scopeSelection.sliceFor(row, ordinal, text.length());
+    if (slice == null) {
+      return;
+    }
+    String part = text.substring(slice[0], slice[1]);
+    if (!part.isEmpty()) {
+      if (!out.isEmpty()) {
+        out.append('\n');
+      }
+      out.append(part);
     }
   }
 
@@ -4536,6 +5007,107 @@ public final class App<S> {
         true;
       default -> false;
     };
+  }
+
+  /**
+   * The anchor {@link ScopePosition} of the currently focused read-only field inside {@code scope}
+   * (also when its row scrolled out and {@link Focus#waits}), or null if focus is elsewhere.
+   */
+  private ScopePosition focusScopePosition(El scope, Object scopeId, El list, Object listId) {
+    if (focus.element() != null && scopeField(focus.element())) {
+      List<El> focusPath = new ArrayList<>();
+      if (pathTo(root, focus.element(), focusPath) && scopeOf(focusPath) == scope) {
+        ScopeField sf = scopeFieldOf(scope, focus.element());
+        if (sf != null) {
+          return new ScopePosition(sf.row, sf.ordinal, focus.element().editor().anchor());
+        }
+      }
+      return null;
+    }
+    if (focus.element() == null
+        && focus.waits()
+        && list != null
+        && listId != null
+        && within(focus.id(), scopeId)) {
+      Editor waiting = editors.get(focus.id());
+      if (waiting == null || !isScopeFieldCandidate(waiting.element())) {
+        return null;
+      }
+      int row = Animator.rowIn(focus.id(), listId);
+      if (row < 0 || row >= list.rowCount()) {
+        return null;
+      }
+      El rowEl = list.rowElement(row);
+      if (rowEl == null) {
+        return null;
+      }
+      El target = Animator.find(rowEl, Animator.row(listId, row), focus.id());
+      if (target == null) {
+        return null;
+      }
+      int ordinal = fieldOrdinalIn(rowEl, target, null, list.hasRow(row));
+      return ordinal < 0 ? null : new ScopePosition(row, ordinal, waiting.anchor());
+    }
+    return null;
+  }
+
+  /** Finds the {@link ScopeField} entry for a built field inside {@code scope}, or null. */
+  private ScopeField scopeFieldOf(El scope, El field) {
+    for (ScopeField sf : scopeFields(scope)) {
+      if (sf.el == field) {
+        return sf;
+      }
+    }
+    return null;
+  }
+
+  /** Collects the read-only, unmasked fields inside one virtual list row in tree order. */
+  private static void collectRowFields(El el, boolean built, List<El> out) {
+    if (built && !el.isPlaced()
+        || el.isExiting()
+        || el.opacity() == 0
+        || el.style().display == Style.Display.NONE
+        || el.isInert()) {
+      return;
+    }
+    if (built ? scopeField(el) : isScopeFieldCandidate(el)) {
+      out.add(el);
+    }
+    for (El child : el.children()) {
+      collectRowFields(child, built, out);
+    }
+  }
+
+  /**
+   * The ordinal of {@code target} among read-only unmasked fields in {@code container} (skipping
+   * {@code skipList} when non-null), or -1 if not found.
+   */
+  private static int fieldOrdinalIn(El container, El target, El skipList, boolean built) {
+    int[] count = {0};
+    return findOrdinal(container, target, skipList, built, count) ? count[0] : -1;
+  }
+
+  private static boolean findOrdinal(El el, El target, El skipList, boolean built, int[] count) {
+    if (el == skipList
+        || built && !el.isPlaced()
+        || el.isExiting()
+        || el.opacity() == 0
+        || el.style().display == Style.Display.NONE
+        || el.isInert()) {
+      return false;
+    }
+    if (el == target) {
+      return true;
+    }
+    if (built ? scopeField(el) : isScopeFieldCandidate(el)) {
+      count[0]++;
+    }
+    for (El child : el.children()) {
+      if (findOrdinal(child, target, skipList, built, count)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Collects the built read-only, unmasked fields inside {@code scope} in tree order. */
@@ -4565,12 +5137,17 @@ public final class App<S> {
       }
     }
     List<ScopeField> out = new ArrayList<>();
-    collectScopeFields(scope, originX, originY, clipL, clipT, clipR, clipB, out);
+    El list = scopeList(scope);
+    collectScopeFields(
+        scope, list, -1, new int[] {0}, originX, originY, clipL, clipT, clipR, clipB, out);
     return out;
   }
 
   private static void collectScopeFields(
       El el,
+      El list,
+      int row,
+      int[] ordinal,
       float parentX,
       float parentY,
       float clipL,
@@ -4589,18 +5166,6 @@ public final class App<S> {
     float top = parentY + el.y();
     float right = left + el.width();
     float bottom = top + el.height();
-    if (scopeField(el)) {
-      out.add(new ScopeField(
-          el,
-          left,
-          top,
-          right,
-          bottom,
-          Math.max(left, clipL),
-          Math.max(top, clipT),
-          Math.min(right, clipR),
-          Math.min(bottom, clipB)));
-    }
     float nextClipL = clipL;
     float nextClipT = clipT;
     float nextClipR = clipR;
@@ -4613,8 +5178,41 @@ public final class App<S> {
       nextClipT = Math.max(clipT, top);
       nextClipB = Math.min(clipB, bottom);
     }
+    if (el == list) {
+      List<El> children = el.children();
+      for (int i = 0; i < children.size(); i++) {
+        collectScopeFields(
+            children.get(i),
+            list,
+            el.firstRow() + i,
+            new int[] {0},
+            left,
+            top,
+            nextClipL,
+            nextClipT,
+            nextClipR,
+            nextClipB,
+            out);
+      }
+      return;
+    }
+    if (scopeField(el)) {
+      out.add(new ScopeField(
+          el,
+          row,
+          ordinal[0]++,
+          left,
+          top,
+          right,
+          bottom,
+          Math.max(left, clipL),
+          Math.max(top, clipT),
+          Math.min(right, clipR),
+          Math.min(bottom, clipB)));
+    }
     for (El child : el.children()) {
-      collectScopeFields(child, left, top, nextClipL, nextClipT, nextClipR, nextClipB, out);
+      collectScopeFields(
+          child, list, row, ordinal, left, top, nextClipL, nextClipT, nextClipR, nextClipB, out);
     }
   }
 
@@ -4652,34 +5250,18 @@ public final class App<S> {
   }
 
   /**
-   * Updates selections across {@code scope} from the anchor field to {@code targetField} (or the
-   * nearest field to {@code (x, y)} when null), collapsing all other fields of the scope.
+   * Updates selections across {@code scope} from the anchor position in {@code s} to {@code
+   * targetField} (or the nearest field to {@code (x, y)} when null), collapsing all other built
+   * fields of the scope.
    */
-  private boolean selectAcrossScope(
-      El scope,
-      Object scopeId,
-      Object anchorId,
-      int anchorFrom,
-      int anchorTo,
-      int unit,
-      El targetField,
-      float x,
-      float y) {
+  private boolean selectAcrossScope(El scope, Selecting s, El targetField, float x, float y) {
     List<ScopeField> fields = scopeFields(scope);
-    El anchorEl = animator.liveElement(anchorId);
-    int anchorIdx = -1;
     int targetIdx = -1;
     for (int i = 0; i < fields.size(); i++) {
-      El el = fields.get(i).el;
-      if (el == anchorEl) {
-        anchorIdx = i;
-      }
-      if (el == targetField) {
+      if (fields.get(i).el == targetField) {
         targetIdx = i;
+        break;
       }
-    }
-    if (anchorIdx < 0) {
-      return false;
     }
     if (targetIdx < 0) {
       targetIdx = nearestScopeField(fields, x, y);
@@ -4687,66 +5269,189 @@ public final class App<S> {
     if (targetIdx < 0) {
       return false;
     }
-    El target = fields.get(targetIdx).el;
+    ScopeField targetSf = fields.get(targetIdx);
+    El target = targetSf.el;
     float[] at = local(target, x, y);
     Editor targetEditor = target.editor();
     int boundary = targetEditor.fromShown(target.text().nearest(at[0], at[1]));
     int hit = targetEditor.fromShown(target.text().hit(at[0], at[1]));
+    int fieldCmp = s.anchorFrom.compareField(targetSf.row, targetSf.ordinal);
+    El list = scopeList(scope);
+    int rowsVersion = list == null ? 0 : list.rowsVersion();
+    Object endRowKey = list != null && targetSf.row >= 0 ? list.rowKey(targetSf.row) : null;
     boolean changed = false;
-    if (targetIdx == anchorIdx) {
-      changed |= clearScopeSelection(targetEditor);
+    if (fieldCmp == 0) {
+      changed |=
+          targetEditor.dragFrom(s.anchorFrom.offset(), s.anchorTo.offset(), s.unit, boundary, hit);
       for (int i = 0; i < fields.size(); i++) {
-        if (i != anchorIdx) {
+        if (i != targetIdx) {
           changed |= fields.get(i).el.editor().collapse();
         }
       }
-      changed |= targetEditor.dragFrom(anchorFrom, anchorTo, unit, boundary, hit);
+      ScopePosition endPos =
+          new ScopePosition(targetSf.row, targetSf.ordinal, targetEditor.caret());
+      ScopeSelection next = new ScopeSelection(
+          s.scopeId(),
+          s.anchorFrom,
+          s.anchorTo,
+          endPos,
+          s.listId,
+          rowsVersion,
+          s.anchorRowKey,
+          endRowKey);
+      changed |= !next.sameEndpoints(scopeSelection);
+      scopeSelection = next;
       changed |= focus.set(target, false, time);
       return changed;
     }
-    int fromIdx = Math.min(anchorIdx, targetIdx);
-    int toIdx = Math.max(anchorIdx, targetIdx);
-    boolean forward = targetIdx > anchorIdx;
-    Set<Editor> nextEditors = Collections.newSetFromMap(new IdentityHashMap<>());
-    for (int i = fromIdx; i <= toIdx; i++) {
-      nextEditors.add(fields.get(i).el.editor());
-    }
-    if (scopeSelection != null) {
-      for (Editor old : scopeSelection.editors) {
-        if (!nextEditors.contains(old)) {
-          changed |= old.collapse();
-        }
-      }
-    }
-    for (int i = 0; i < fields.size(); i++) {
-      Editor editor = fields.get(i).el.editor();
-      if (i < fromIdx || i > toIdx) {
-        changed |= editor.collapse();
-      } else if (i == anchorIdx) {
-        changed |= forward
-            ? editor.setRange(anchorFrom, editor.text().length(), false)
-            : editor.setRange(anchorTo, 0, false);
-      } else if (i == targetIdx) {
-        int end = editor.dragEnd(boundary, hit, unit, forward);
-        changed |= forward
-            ? editor.setRange(0, end, true)
-            : editor.setRange(editor.text().length(), end, true);
-      } else {
-        changed |= forward
-            ? editor.setRange(0, editor.text().length(), false)
-            : editor.setRange(editor.text().length(), 0, false);
-      }
-    }
-    boolean scopeChanged = scopeSelection == null
-        || !scopeSelection.scopeId.equals(scopeId)
-        || !scopeSelection.anchorId.equals(anchorId)
-        || !scopeSelection.editors.equals(nextEditors);
-    ScopeSelection next = new ScopeSelection(scopeId, anchorId, anchorFrom, anchorTo);
-    next.editors.addAll(nextEditors);
+    boolean forward = fieldCmp > 0;
+    int endOffset = targetEditor.dragEnd(boundary, hit, s.unit, forward);
+    ScopePosition endPos = new ScopePosition(targetSf.row, targetSf.ordinal, endOffset);
+    ScopeSelection next = new ScopeSelection(
+        s.scopeId(),
+        s.anchorFrom,
+        s.anchorTo,
+        endPos,
+        s.listId,
+        rowsVersion,
+        s.anchorRowKey,
+        endRowKey);
+    boolean scopeChanged = !next.sameEndpoints(scopeSelection);
     scopeSelection = next;
+    for (ScopeField sf : fields) {
+      Editor editor = sf.el.editor();
+      int[] range =
+          scopeSelection.editorRangeFor(sf.row, sf.ordinal, editor.text().length());
+      if (range != null) {
+        changed |= editor.setRange(range[0], range[1], sf.el == target);
+        sf.el.text().unfocused(false);
+      } else {
+        changed |= editor.collapse();
+      }
+    }
     changed |= scopeChanged;
     changed |= focus.set(target, false, time);
     return changed;
+  }
+
+  /**
+   * While a scope selection drag is held near or past the top or bottom edge of its scrolling
+   * list, scrolls the list by a speed growing with the distance and extends the selection.
+   */
+  private boolean edgeScroll() {
+    if (!(capture instanceof Selecting s)
+        || s.scopeId() == null
+        || !s.moved
+        || Double.isNaN(s.scrollTime)) {
+      return false;
+    }
+    double dt = time - s.scrollTime;
+    if (dt <= 0) {
+      return false;
+    }
+    settle();
+    El scope = animator.liveElement(s.scopeId());
+    El area = scope == null ? null : scopeScrollArea(scope);
+    float[] box = area == null ? null : visibleBounds(area);
+    if (box == null) {
+      s.scrollTime = Double.NaN;
+      return false;
+    }
+    float velocity = edgeScrollVelocity(box[1], box[3], s.y);
+    if (velocity == 0 || !area.canScroll(false, velocity)) {
+      s.scrollTime = Double.NaN;
+      return false;
+    }
+    s.scrollTime = time;
+    boolean moved = area.scrollTo(area.scrollX(), area.scrollY() + velocity * dt);
+    if (!moved) {
+      return false;
+    }
+    scrolled = true;
+    tellUserScroll(area);
+    settle();
+    stale |= drag(s, s.x, s.y);
+    return true;
+  }
+
+  /** Updates whether a held scope drag is currently in an active edge-scroll zone. */
+  private boolean updateEdgeScrollState() {
+    if (!(capture instanceof Selecting s) || s.scopeId() == null || !s.moved || root == null) {
+      if (capture instanceof Selecting s) {
+        s.scrollTime = Double.NaN;
+      }
+      return false;
+    }
+    El scope = animator.liveElement(s.scopeId());
+    El area = scope == null ? null : scopeScrollArea(scope);
+    float[] box = area == null ? null : visibleBounds(area);
+    float velocity = box == null ? 0 : edgeScrollVelocity(box[1], box[3], s.y);
+    if (velocity == 0 || !area.canScroll(false, velocity)) {
+      s.scrollTime = Double.NaN;
+      return false;
+    }
+    if (Double.isNaN(s.scrollTime)) {
+      s.scrollTime = time;
+    }
+    return true;
+  }
+
+  /** Signed vertical scroll velocity in logical px/s when {@code y} is in or past the edge margin. */
+  private static float edgeScrollVelocity(float top, float bottom, float y) {
+    float height = bottom - top;
+    if (height <= 0) {
+      return 0;
+    }
+    float margin = Math.min(EDGE_SCROLL_MARGIN, height / 4f);
+    float depth;
+    int dir;
+    if (y < top + margin) {
+      depth = (top + margin) - y;
+      dir = -1;
+    } else if (y > bottom - margin) {
+      depth = y - (bottom - margin);
+      dir = 1;
+    } else {
+      return 0;
+    }
+    float t = Math.min(1f, depth / EDGE_SCROLL_RAMP);
+    float speed = EDGE_SCROLL_MIN_SPEED + (EDGE_SCROLL_MAX_SPEED - EDGE_SCROLL_MIN_SPEED) * t;
+    return dir * speed;
+  }
+
+  /** The clipped window bounds {@code {left, top, right, bottom}} of {@code el}, or null if hidden. */
+  private float[] visibleBounds(El el) {
+    List<El> path = new ArrayList<>();
+    if (el == null || root == null || !pathTo(root, el, path)) {
+      return null;
+    }
+    List<El> layer = fromOverlay(path);
+    float left = 0;
+    float top = 0;
+    float clipL = 0;
+    float clipT = 0;
+    float clipR = width;
+    float clipB = height;
+    for (int i = 0; i < layer.size(); i++) {
+      El on = layer.get(i);
+      left += on.x();
+      top += on.y();
+      if (i < layer.size() - 1) {
+        if (on.style().overflowX != Style.Overflow.VISIBLE) {
+          clipL = Math.max(clipL, left);
+          clipR = Math.min(clipR, left + on.width());
+        }
+        if (on.style().overflowY != Style.Overflow.VISIBLE) {
+          clipT = Math.max(clipT, top);
+          clipB = Math.min(clipB, top + on.height());
+        }
+      }
+    }
+    float l = Math.max(left, clipL);
+    float t = Math.max(top, clipT);
+    float r = Math.min(left + el.width(), clipR);
+    float b = Math.min(top + el.height(), clipB);
+    return l < r && t < b ? new float[] {l, t, r, b} : null;
   }
 
   /**
@@ -4920,13 +5625,16 @@ public final class App<S> {
   private void endPresses(boolean rowsBuilt) {
     Object held = switch (capture) {
       case Press p -> p.id();
-      case Selecting s -> s.id();
+      case Selecting s -> s.scopeId() != null ? s.scopeId() : s.id();
       case Grab g -> g.id();
       case Idle _, ActiveDrag _ -> null;
     };
     if (gone(held, rowsBuilt)) {
       Dragging drag = startedDrag();
       capture = drag == null ? IDLE : new ActiveDrag(drag);
+    }
+    if (scopeSelection != null && gone(scopeSelection.scopeId, rowsBuilt)) {
+      scopeSelection = null;
     }
     if (gone(secondary, rowsBuilt)) {
       secondary = null;
@@ -5753,7 +6461,10 @@ public final class App<S> {
   /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */
   private Object held() {
     return switch (capture) {
-      case Selecting s -> s.id();
+      case Selecting s ->
+        s.scopeId() != null && animator.liveElement(s.id()) == null
+            ? (focus.element() != null ? focus.id() : s.scopeId())
+            : s.id();
       case Grab g -> g.id();
       case Press p -> p.drag() != null && p.drag().started ? p.drag().id : null;
       case ActiveDrag a -> a.drag().id;
@@ -5762,12 +6473,13 @@ public final class App<S> {
   }
 
   /**
-   * Whether something had not reached its target in the last frame, or the frame showed an
-   * element with an {@link El#cycle}, so that the next frame draws something new after {@link
-   * #advance} even without input. Once this is false the app is idle.
+   * Whether something had not reached its target in the last frame, the frame showed an element
+   * with an {@link El#cycle}, or a held selection drag is auto-scrolling its list, so that the
+   * next frame draws something new after {@link #advance} even without input. Once this is false
+   * the app is idle.
    */
   public boolean isMoving() {
-    return animator.isMoving() || cycling;
+    return animator.isMoving() || cycling || edgeScrolling;
   }
 
   /**

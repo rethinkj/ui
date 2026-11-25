@@ -530,6 +530,150 @@ class MarkdownTest {
     assertTrue(joined.contains("one text.\nMessage"), joined);
   }
 
+  @Test
+  void selectionSpansOutOfViewRowsCopiesAllAndEdgeScrolls() throws IOException {
+    StringBuilder source = new StringBuilder();
+    for (int i = 0; i < 200; i++) {
+      source.append("Paragraph ").append(i).append(" with sample words.\n\n");
+    }
+    App<Doc> app = app(source.toString());
+    app.textRendering(TextRendering.LINUX);
+
+    // Click in Paragraph 2, scroll far down so row 2 is dropped, Shift+click Paragraph 120.
+    Script.run("""
+        size 420 200 scale 2
+        frame
+        press text="Paragraph 2 with sample words." at left+56
+        frame
+        scroll role=document row 120
+        frame""", app, out);
+    assertFalse(app.tree().dump().contains("Paragraph 2 "), "row 2 is no longer built");
+
+    Script.run("""
+        press text="Paragraph 120 with sample words." at left+70 shift
+        frame
+        key C control
+        frame""", app, out);
+    String copied = app.clipboard().read();
+    List<String> lines = copied.lines().toList();
+    assertEquals(119, lines.size(), "paragraphs 2 through 120 inclusive: " + lines.size());
+    assertTrue(lines.getFirst().endsWith("with sample words."), lines.getFirst());
+    assertFalse(
+        lines.getFirst().startsWith("Paragraph "),
+        "starts inside paragraph 2: " + lines.getFirst());
+    assertEquals("Paragraph 3 with sample words.", lines.get(1));
+    assertEquals("Paragraph 60 with sample words.", lines.get(58), "unbuilt middle row copied");
+    assertEquals("Paragraph 119 with sample words.", lines.get(117));
+    assertTrue(lines.getLast().startsWith("Paragraph"), lines.getLast());
+    assertFalse(
+        lines.getLast().endsWith("words."), "ends inside paragraph 120: " + lines.getLast());
+
+    // Scrolling back up rebuilds early rows with their selection restored, and Ctrl+C still copies
+    // the full range while the focused row (120) is out of view.
+    Script.run("""
+        scroll role=document row 2
+        frame""", app, out);
+    El p2 = findParagraph(app.tree(), "Paragraph 2 with sample words.");
+    El p4 = findParagraph(app.tree(), "Paragraph 4 with sample words.");
+    assertTrue(
+        p2 != null && !p2.text().selection().isEmpty(), "rebuilt anchor row shows selection");
+    assertTrue(
+        p4 != null && !p4.text().selection().isEmpty(), "rebuilt middle row shows selection");
+    app.clipboard().write("stale");
+    Script.run("key C control\nframe", app, out);
+    assertEquals(copied, app.clipboard().read(), "Ctrl+C copies all rows while focus waits");
+
+    // A held drag survives wheel-scrolling until its start row is dropped.
+    Script.run("""
+        scroll role=document row 0
+        frame
+        down text="Paragraph 1 with sample words." at left+56
+        move text="Paragraph 2 with sample words." at left+56
+        frame
+        wheel role=document 0 1600
+        frame""", app, out);
+    assertFalse(app.tree().dump().contains("Paragraph 1 "), "start row dropped while dragging");
+    Script.run("""
+        up 100,100
+        frame
+        key C control
+        frame""", app, out);
+    String wheelDragged = app.clipboard().read();
+    List<String> wheelLines = wheelDragged.lines().toList();
+    assertTrue(wheelLines.size() > 25, "dragged across many rows: " + wheelLines.size());
+    assertTrue(wheelLines.getFirst().endsWith("with sample words."), wheelLines.getFirst());
+    assertEquals("Paragraph 2 with sample words.", wheelLines.get(1));
+    assertEquals("Paragraph 15 with sample words.", wheelLines.get(14));
+
+    // Holding a drag past the bottom edge auto-scrolls while the pointer stays still.
+    Script.run("""
+        scroll role=document row 0
+        frame
+        down text="Paragraph 0 with sample words." at left+20
+        move 100,230
+        frame""", app, out);
+    El docList = app.tree().children().getFirst();
+    double scrollBefore = docList.scrollY();
+    assertTrue(app.isMoving(), "edge scroll keeps frames coming");
+    assertEquals(app.time(), app.nextChange(), "nextChange asks for the next frame");
+    for (int i = 0; i < 6; i++) {
+      app.advance(0.1);
+      assertTrue(app.frame(), "frame " + i + " scrolled");
+    }
+    double scrollAfterDown = app.tree().children().getFirst().scrollY();
+    assertTrue(
+        scrollAfterDown > scrollBefore + 200,
+        "scrolled down with still pointer: " + scrollBefore + " -> " + scrollAfterDown);
+    Script.run("""
+        up 100,230
+        frame
+        key C control
+        frame""", app, out);
+    assertFalse(app.isMoving(), "idle once drag released");
+    List<String> autoLines = app.clipboard().read().lines().toList();
+    assertTrue(
+        autoLines.size() > 10, "edge scroll extended selection across rows: " + autoLines.size());
+    assertTrue(autoLines.getFirst().endsWith("with sample words."), autoLines.getFirst());
+    assertEquals("Paragraph 1 with sample words.", autoLines.get(1));
+
+    // Holding a drag past the top edge auto-scrolls upward and copies in tree order.
+    Script.run("""
+        down 100,120
+        move 100,-20
+        frame""", app, out);
+    double scrollBeforeUp = app.tree().children().getFirst().scrollY();
+    assertTrue(app.isMoving(), "upward edge scroll active");
+    for (int i = 0; i < 4; i++) {
+      app.advance(0.1);
+      app.frame();
+    }
+    double scrollAfterUp = app.tree().children().getFirst().scrollY();
+    assertTrue(
+        scrollAfterUp < scrollBeforeUp - 100,
+        "scrolled up with still pointer: " + scrollBeforeUp + " -> " + scrollAfterUp);
+    Script.run("""
+        up 100,-20
+        frame
+        key C control
+        frame""", app, out);
+    assertTrue(app.clipboard().read().lines().count() > 5, "upward drag copied multiple rows");
+  }
+
+  private static El findParagraph(El el, String value) {
+    if ("paragraph".equals(el.role())
+        && el.text() != null
+        && value.equals(el.text().string())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = findParagraph(child, value);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   private static El paragraph(El el) {
     if ("paragraph".equals(el.role())) {
       return el;
