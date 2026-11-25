@@ -21,6 +21,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Behavior of {@link Chat}: user bubble sizing, copy actions, tool call toggling and working. */
 class ChatTest {
@@ -758,8 +760,9 @@ class ChatTest {
         next);
   }
 
-  @Test
-  void findAdvancesPastCurrentMatchWhenRowReshapes() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void findAdvancesPastCurrentMatchWhenRowReshapes(boolean pressQuery) throws IOException {
     // Message 8 is a paragraph whose code span holds a pipe; it becomes a table while it streams,
     // which splits the code span into two cells. The match's old offsets then fall on the first
     // "x" in the row, while it is the second that is current.
@@ -768,8 +771,8 @@ class ChatTest {
     messages.set(9, new Entry(15, Markdown.parse("Message 15 has x.")));
     App<Object> app = findApp(messages);
 
-    // Open Find, go to the second match in message 8, then press into the query field without
-    // editing it, which clears the scope's selection.
+    // Open Find and go to the second match in message 8; with pressQuery, press into the query
+    // field without editing it, which ends the scope's selection.
     Script.run("""
         size 560 240 scale 2
         frame
@@ -782,9 +785,10 @@ class ChatTest {
         key Enter
         frame
         advance 1
-        frame
-        press #find-field at left+20
         frame""", app, out);
+    if (pressQuery) {
+      Script.run("press #find-field at left+20\nframe", app, out);
+    }
     String first = app.tree().dump();
     assertTrue(
         first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")), first);
