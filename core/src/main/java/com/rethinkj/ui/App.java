@@ -1617,7 +1617,8 @@ public final class App<S> {
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
    * previous one, around at the ends, and Page Up and Page Down without modifiers scroll the
    * innermost scroll area around the focused element that can still move that way by its height,
-   * as in a browser, or without one the first that can in the overlay around the focused element,
+   * as in a browser, and Home and End, alone or with Control, scroll it to its start or its end,
+   * or without one the first that can in the overlay around the focused element,
    * else in a {@link El#modal} overlay: a dialog's or a drawer's content while a button outside
    * it has the focus. Inside an overlay they never scroll the view it is attached to. Unlike in a browser, a press handler
    * on the focused element takes Enter and Space before its ancestors' key handlers see them. The
@@ -1771,8 +1772,13 @@ public final class App<S> {
         return focus.set(el, true, time);
       }
     }
-    if ((key.name().equals("PageUp") || key.name().equals("PageDown")) && key.modifiers() == 0) {
-      int direction = key.name().equals("PageUp") ? -1 : 1;
+    boolean byPage =
+        (key.name().equals("PageUp") || key.name().equals("PageDown")) && key.modifiers() == 0;
+    // Home and End, with or without Control, scroll to the start or the end, as in a browser.
+    boolean edge = (key.name().equals("Home") || key.name().equals("End"))
+        && (key.modifiers() & ~Key.CONTROL) == 0;
+    if (byPage || edge) {
+      int direction = key.name().equals("PageUp") || key.name().equals("Home") ? -1 : 1;
       El area = null;
       // An overlay is a page of its own, as a dialog or a drawer: not its anchor's view.
       List<El> page = fromOverlay(path);
@@ -1787,7 +1793,13 @@ public final class App<S> {
         area = overlay == null ? null : pageArea(overlay, direction);
       }
       if (area != null) {
-        boolean moved = area.page(true, direction);
+        boolean moved = byPage
+            ? area.page(true, direction)
+            : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
+        ScrollState state = area.scrollState();
+        if (edge && direction > 0 && state != null && state.el == area) {
+          state.toEnd = true; // rows measured on the way keep it at the end, as scrollToEnd does
+        }
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
@@ -2237,7 +2249,7 @@ public final class App<S> {
     if (resting(drag)) {
       next = Math.min(next, drag.at + Drop.REPEAT);
     }
-    if (blinking == null || !active) {
+    if (blinking == null || !active || !blinking.showsCaret(true)) {
       return next;
     }
     return Math.min(next, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
@@ -3547,7 +3559,10 @@ public final class App<S> {
     if (root != null && hasPendingHighlights()) {
       drawn |= catchUpHighlights();
     }
-    boolean on = active && blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
+    boolean on = active
+        && blinking != null
+        && blinking.showsCaret(true)
+        && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
     if (on != caretOn) {
       caretOn = on;
       if (blinking != null) {

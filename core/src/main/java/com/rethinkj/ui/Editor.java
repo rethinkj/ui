@@ -1026,6 +1026,9 @@ final class Editor {
         return true;
       }
       case "Home" -> {
+        if (!shift && !editable()) {
+          return false; // no caret to move: the app scrolls the field or its area, as a browser
+        }
         if (other != 0) {
           return null; // Control+Home: to the start of the text
         }
@@ -1043,6 +1046,9 @@ final class Editor {
         return true;
       }
       case "End" -> {
+        if (!shift && !editable()) {
+          return false;
+        }
         if (other != 0) {
           return null;
         }
@@ -1785,7 +1791,7 @@ final class Editor {
   // ---- Drawing
 
   /** A read-only field shows a caret only with a selection, so that it does not look editable. */
-  private boolean showsCaret(boolean focused) {
+  boolean showsCaret(boolean focused) {
     return focused && !(el.isReadOnly() && caret == anchor);
   }
 
