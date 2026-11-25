@@ -1314,6 +1314,10 @@ public final class Script {
         chosen = before;
         rest = target.subList(2, target.size());
       }
+      if (in.hidden) {
+        throw line.fail("The window " + TreeDumper.quote(in.title) + " is hidden, so " + consequence
+            + ". Show it first, as from its tray with `tray click`.");
+      }
       if (in.app.tree() == null) {
         throw line.fail(
             "No frame has run yet, so " + consequence + ". Add `frame` before this" + " line.");

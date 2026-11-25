@@ -22,7 +22,7 @@ It returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html)
 
 ## Handling window close
 
-- **`onCloseRequest(handler)`:** Runs when the user clicks the close button or presses Alt+F4. Your handler can close the window immediately, hide it to the system tray with `window.hide()`, show a confirmation dialog, or ignore the request. A hidden window stays open (keeping its state and tray icon) with no taskbar button and draws no frames until `window.show()` shows it again and brings it to the front. Without a handler, the window closes directly (or ends `WindowLoop` if it is the last open window).
+- **`onCloseRequest(handler)`:** Runs when the user clicks the close button or presses Alt+F4. Your handler can close the window immediately, hide it to the system tray with `window.hide()` (only while a tray icon can show it again; without one, close it), show a confirmation dialog, or ignore the request. A hidden window stays open (keeping its state and tray icon) with no taskbar button and draws no frames until `window.show()` shows it again and brings it to the front. Without a handler, the window closes directly (or ends `WindowLoop` if it is the last open window).
 - **`onClosed(handler)`:** Runs on the UI thread after a window closes (as long as at least one other window stays open). Use it to clean up per-window state:
 
 ```java snippet="window-closed"
