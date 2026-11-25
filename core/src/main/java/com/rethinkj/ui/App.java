@@ -6961,7 +6961,6 @@ public final class App<S> {
         return built;
       }
       built = true;
-      animator.rows(el, Animator.identities(path).getLast(), time); // where the rows are now
       int[] range = el.wantedRows(
           left, top, clipLeft, clipRight, wantedTop, wantedBottom, width, height, false);
       if (range.length != 0 // rows below the grown ones moved, others came into view
