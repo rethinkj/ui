@@ -133,4 +133,105 @@ class FilterListTest {
       f.release.countDown();
     }
   }
+
+  @Test
+  void filterListFiltersMovesChoosesKeepsFocusAndFocusesInPopover() throws IOException {
+    TextLibraries.assumeLoaded();
+    FilterList.State listState = new FilterList.State();
+    String[] chosen = {null};
+    int[] enters = {0}; // Enter keys that reach the root, as a dialog's default button hears them
+    FilterList.Entries entries = FilterList.Entries.of(List.of(
+        FilterList.entry("Claude Opus", () -> chosen[0] = "Claude Opus"),
+        FilterList.entry("Claude Sonnet", () -> chosen[0] = "Claude Sonnet"),
+        FilterList.entry("GPT-5", () -> chosen[0] = "GPT-5")));
+
+    App<FilterList.State> embedded = new App<>(
+        listState,
+        s -> col()
+            .onKey(k -> k.name().equals("Enter") && ++enters[0] > 0)
+            .child(FilterList.filterList(s, "Search models", entries).w(280)));
+    String tree = run(embedded, """
+        size 320 200
+        frame
+        press role=textbox label="Search models"
+        frame
+        type "cl"
+        frame
+        key ArrowDown
+        frame
+        key Enter""");
+    assertEquals("cl", listState.text());
+    assertEquals(List.of("Claude Opus", "Claude Sonnet"), ComboBoxTest.options(tree));
+    assertEquals("Claude Sonnet", chosen[0], tree);
+    assertTrue(StructureTest.line(tree, "role=textbox").contains(" focused"), tree);
+
+    tree = run(embedded, "press role=option label=\"Claude Opus\"");
+    assertEquals("Claude Opus", chosen[0], tree);
+    assertTrue(StructureTest.line(tree, "role=textbox").contains(" focused"), tree);
+
+    run(embedded, "type \"zzz\"\nframe\nkey Enter");
+    assertEquals(0, enters[0], "Enter without a match stays in the field");
+
+    Popover.State popover = new Popover.State();
+    FilterList.State popList = new FilterList.State();
+    App<Popover.State> inPopover = new App<>(
+        popover,
+        p -> col()
+            .child(Popover.popover(
+                Button.button(Button.Variant.SECONDARY, "Model", p::toggle),
+                p,
+                "Model",
+                FilterList.filterList(popList, "Search models", entries).w(280))));
+    tree = run(inPopover, "size 360 240\nframe\npress role=button label=\"Model\"");
+    assertTrue(popover.isOpen(), tree);
+    assertTrue(tree.contains("role=listbox label=\"Search models\""), tree);
+    assertTrue(StructureTest.line(tree, "role=textbox").contains(" focused"), tree);
+
+    run(inPopover, "key Escape");
+    assertFalse(popover.isOpen());
+  }
+
+  /** Entries found on another thread under a name, which tells one source from another. */
+  static final class Sources {
+    final FilterList.State list = new FilterList.State();
+    final List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    String name = "tables";
+    App<Sources> app;
+
+    List<FilterList.Entry> find(String text) {
+      String found = name + ":" + text;
+      asked.add(found);
+      return List.of(FilterList.entry(found, () -> {}));
+    }
+  }
+
+  @Test
+  void anotherSourceWithTheSameTextIsFilteredOrAskedAnew() throws IOException {
+    FilterList.State s = new FilterList.State();
+    s.typed("fi", true);
+    List<FilterList.Entry> files = List.of(FilterList.entry("File: Exit", () -> {}));
+    FilterList.Entries found =
+        FilterList.Entries.by(text -> List.of(FilterList.entry("Find", () -> {})));
+    assertEquals(
+        "File: Exit", FilterList.shown(s, FilterList.Entries.of(files)).entry(0).text());
+    assertEquals("Find", FilterList.shown(s, found).entry(0).text());
+    assertEquals(
+        "File: Exit", FilterList.shown(s, FilterList.Entries.of(files)).entry(0).text());
+
+    TextLibraries.assumeLoaded();
+    Sources sources = new Sources();
+    sources.list.typed("fi", true);
+    sources.app = new App<>(
+        sources,
+        x -> col()
+            .child(FilterList.filterList(
+                x.list, "Search", FilterList.Entries.background(x.app, x.name, x::find))));
+    String tree = run(sources.app, "size 320 200\nframe\nawait\nframe");
+    assertEquals(List.of("tables:fi"), ComboBoxTest.options(tree));
+    sources.name = "columns";
+    sources.app.invalidate();
+    tree = run(sources.app, "frame\nawait\nframe");
+    assertEquals(List.of("columns:fi"), ComboBoxTest.options(tree));
+    assertEquals(List.of("tables:fi", "columns:fi"), sources.asked, "each source asked once");
+  }
 }

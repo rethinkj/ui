@@ -43,6 +43,9 @@ final class Overlays {
   final Menu.State context = new Menu.State();
   final MenuBar.State bar = new MenuBar.State();
   final Popover.State filterPopover = new Popover.State();
+  final Popover.State modelPopover = new Popover.State();
+  final FilterList.State modelFilter = new FilterList.State();
+  String model = "Atlas mini";
   final CommandPalette.State palette = new CommandPalette.State();
   boolean autocommit = true;
   boolean renaming;
@@ -282,6 +285,11 @@ final class Overlays {
 
   void customers() {
     said = "customers";
+  }
+
+  void chooseModel(String chosen) {
+    model = chosen;
+    modelPopover.close();
   }
 
   static El menus(Overlays state) {
@@ -628,6 +636,36 @@ final class Overlays {
         .overlay(state.toasts.view());
     // docs:end toasts
     return root;
+  }
+
+  /** A model an app offers, as the filter list's example lists them. */
+  record Model(String name, String group, String context, Symbol symbol) {}
+
+  static final List<Model> MODELS = List.of(
+      new Model("Atlas", "Hosted", "200k", Symbol.LIGHTBULB),
+      new Model("Atlas mini", "Hosted", "200k", Symbol.FLASH),
+      new Model("Comet", "Hosted", "1M", Symbol.STAR),
+      new Model("Pine 8B", "On this computer", "32k", Symbol.FLASH));
+
+  static El filterList(Overlays state) {
+    // docs:start filter-list
+    List<FilterList.Entry> entries = new ArrayList<>();
+    for (Model model : MODELS) {
+      entries.add(FilterList.entry(model.name(), () -> state.chooseModel(model.name()))
+          .symbol(model.symbol())
+          .detail(model.context())
+          .group(model.group())
+          .checked(model.name().equals(state.model)));
+    }
+    El button = Button.button(SECONDARY, state.model, state.modelPopover::toggle);
+    El picker = Popover.popover(
+        button,
+        state.modelPopover,
+        "Choose a model",
+        FilterList.filterList(state.modelFilter, "Search models", FilterList.Entries.of(entries))
+            .w(280));
+    // docs:end filter-list
+    return Frame.of(picker);
   }
 
   static El palette(Overlays state) {

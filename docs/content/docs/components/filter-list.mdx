@@ -1,0 +1,53 @@
+---
+title: FilterList
+description: Embeddable search field above a fuzzy-filtered list of entries for popovers, cards, and side panels.
+---
+
+`FilterList.filterList` pairs a search field with a virtual, fuzzy-filtered list of `FilterList.Entry` items in one embeddable element. Use it inside a [Popover](/docs/components/popover), a [Card](/docs/components/card), or a side panel whenever users pick from a searchable list of entries with icons, details, shortcuts, check marks, or groups.
+
+For a floating top-of-window command launcher, use [CommandPalette](/docs/components/command-palette). For a form dropdown, use [ComboBox](/docs/components/combo-box).
+
+Javadoc: [`FilterList`](/api/com/rethinkj/ui/kit/FilterList.html), [`FilterList.State`](/api/com/rethinkj/ui/kit/FilterList.State.html), [`FilterList.Entry`](/api/com/rethinkj/ui/kit/FilterList.Entry.html), [`FilterList.Entries`](/api/com/rethinkj/ui/kit/FilterList.Entries.html).
+
+<Shot src="examples/docs/filter-list/open-{theme}" alt="A filter list inside a popover showing grouped models with icons, details, and a check mark on the current choice" />
+
+## Example
+
+```java snippet="filter-list"
+```
+
+- Store a `FilterList.State` in your app state (`state.modelFilter.text()` reads the typed query).
+- Choosing an entry runs its `onChoose` handler. Close a surrounding `Popover` inside that handler.
+- The element defaults to `size().palette()` width; override it with `.w(...)` or `.wFull()`.
+- The field does not take focus on its own: inside a `Popover` it receives focus automatically as the first focusable element; inside a `Card` or side panel it does not steal focus.
+
+<Shot src="examples/docs/filter-list/typed-{theme}" alt="The filter list narrowed by typing at, highlighting the matching characters" />
+
+## Entries and sources
+
+Build entries with `FilterList.entry(text, onChoose)` and chain `.symbol(...)`, `.image(...)`, `.leading(...)`, `.detail(...)`, `.shortcut(...)`, `.group(...)`, `.checked(...)`, or `.key(...)`. Passing `null` for `onChoose` disables an entry.
+
+Supply entries through `FilterList.Entries`:
+
+| Factory | Behavior |
+| --- | --- |
+| `Entries.of(list)` | Filters with `Fuzzy`, sorting best matches first (reuse the same list instance when unchanged to keep cached results) |
+| `Entries.inOrder(list)` | Same as `of`, preserving original order among equal-scoring matches |
+| `Entries.by(text -> list)` | Custom synchronous filter function |
+| `Entries.background(app, name, text -> list)` | Async background search showing `"Loading…"` while running and cancelling stale queries (sources that share one state need different names) |
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| Typing | Filter entries and highlight the best match |
+| Up, Down, Page Up, Page Down, Home, End | Move highlight while keeping focus in the field |
+| Enter, click on entry | Run the entry's `onChoose` while keeping focus in the field |
+| Escape | Handled by the parent (closes a surrounding `Popover`) |
+
+## In a tree dump
+
+The search field is `role=textbox` and the list is `role=listbox` (both labeled with `placeholder`), containing `role=group` headings and `role=option` rows (`selected` on the highlighted option):
+
+```text file="examples/src/test/resources/golden/docs/filter-list/typed.tree.txt" start="overlay" count="10"
+```

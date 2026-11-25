@@ -1,0 +1,39 @@
+el 0,0 400x300
+  el role=button label="Atlas mini" 12,12 85x24 expanded
+    text "Atlas mini" 25,16 59x16
+overlay bottom start gap 2 on role=button label="Atlas mini" 12,12 85x24
+  el #popover role=dialog label="Choose a model" 12,38 306x230
+    el 25,51 280x204
+      el 25,51 280x32
+        text #query role=textbox label="Search models" "" 25,51 280x32 focused caret 0
+        text label="search" "\u{EA7C}" 33,59 16x16
+      el #options role=listbox label="Search models" 25,87 280x168 rows 0-5/6
+        el #group-0 role=group label="Hosted" 25,87 280x28 pos=1/6
+          text "Hosted" 33,95 45x16
+        el #option-1 role=option label="Atlas" 25,115 280x28 selected pos=2/6
+          el 25,115 280x28
+            el 33,121 16x16
+              text label="lightbulb" "\u{F4D5}" 33,121 16x16
+            text "Atlas" 57,121 201x16
+            text "200k" 266,121 31x16
+        el #option-2 role=option label="Atlas mini" 25,143 280x28 pos=3/6
+          el 25,143 280x28
+            el 33,149 16x16
+              text label="flash" "\u{E617}" 33,149 16x16
+            text "Atlas mini" 57,149 177x16
+            text "200k" 242,149 31x16
+            text label="checkmark" "\u{E305}" 281,149 16x16
+        el #option-3 role=option label="Comet" 25,171 280x28 pos=4/6
+          el 25,171 280x28
+            el 33,177 16x16
+              text label="star" "\u{F70E}" 33,177 16x16
+            text "Comet" 57,177 215x16
+            text "1M" 280,177 17x16
+        el #group-4 role=group label="On this computer" 25,199 280x28 pos=5/6
+          text "On this computer" 33,207 107x16
+        el #option-5 role=option label="Pine 8B" 25,227 280x28 pos=6/6
+          el 25,227 280x28
+            el 33,233 16x16
+              text label="flash" "\u{E617}" 33,233 16x16
+            text "Pine 8B" 57,233 209x16
+            text "32k" 274,233 23x16

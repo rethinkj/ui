@@ -4785,10 +4785,8 @@ public final class App<S> {
         }
         target.text().unfocused(false);
         reveal(target);
-        if (target.text().multiline()
-            && target.text().laidOut()
-            && target.text().viewStale()) {
-          target.text().layOut();
+        if (target.text().multiline() && target.text().laidOut()) {
+          editor.layOutLines(false);
         }
         float[] box = editor.caretBox();
         if (box != null) {

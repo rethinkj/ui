@@ -3,7 +3,7 @@ title: Popover
 description: Non-modal floating panel anchored to a button or element, dismissed by Escape or clicking outside.
 ---
 
-`Popover.popover` displays floating content anchored to an element (such as a filter form or detail card) while `Popover.State` is open. Unlike [Dialog](/docs/components/dialog), it is non-modal and closes when the user presses **Escape** or clicks outside. Use `Popover.form` for a titled panel with action buttons.
+`Popover.popover` displays floating content anchored to an element (such as a filter form or detail card) while `Popover.State` is open. Unlike [Dialog](/docs/components/dialog), it is non-modal and closes when the user presses **Escape** or clicks outside. Use `Popover.flush` when dividers or section backgrounds need to reach the panel's edges without inner padding, and `Popover.form` for a titled panel with action buttons.
 
 For hover-only hints, use [Tooltip](/docs/components/tooltip).
 
@@ -22,6 +22,7 @@ Store a `Popover.State` in your app state (`isOpen()`, `open()`, `close()`, `tog
 | --- | --- |
 | `Popover.popover(anchor, popoverState, label, content)` | Floating panel below `anchor` |
 | `Popover.popover(anchor, popoverState, side, align, label, content)` | Custom side and alignment (`START`, `CENTER`, `END`, `STRETCH`) |
+| `Popover.flush(anchor, popoverState, side, align, label, content)` | Same as `popover`, without inner padding: the content fills the panel up to its border |
 | `Popover.form(anchor, popoverState, title, content, buttons)` | Panel with heading, scrollable body (if tall), and bottom-right buttons |
 | `Popover.panel(popoverState, label, content)` | Standalone overlay element to attach manually |
 
@@ -37,7 +38,7 @@ Opening moves focus to the first focusable element inside the popover; **Escape*
 
 ## In a tree dump
 
-Overlay on its anchor with `role=dialog` and its `label`:
+The anchor is `expanded` while open and `expanded=false` while closed. The panel is an overlay on its anchor with `role=dialog` and its `label`:
 
 ```text file="examples/src/test/resources/golden/docs/popover/open.tree.txt" start="overlay" count="4"
 ```

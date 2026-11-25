@@ -44,7 +44,7 @@ el 0,0 720x420
           el role=button label="Export" 523,57 87x24
             text label="arrow_export_ltr" "\u{E0C6}" 536,61 16x16
             text "Export" 556,61 41x16
-        el #filter role=button label="Filter" 614,57 77x24
+        el #filter role=button label="Filter" 614,57 77x24 expanded=false
           text label="filter" "\u{E60A}" 627,61 16x16
           text "Filter" 647,61 31x16
   el 12,110 696x298

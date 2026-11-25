@@ -23,19 +23,36 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
- * A list of entries filtered by a text that is typed, the part that a {@link ComboBox} and a
- * {@link CommandPalette} share: the entries that match the text {@link Fuzzy fuzzily}, best first,
- * with the characters that match in a heavier weight, or the entries the app finds for the text
- * itself, also on another thread ({@link Entries}). An entry has a text, an optional icon before
- * it, an optional muted detail and shortcut at its right, an optional group, under whose heading
- * it shows, and the handler that runs when it is chosen; without one it is disabled.
+ * A search field above a list of entries filtered by what is typed ({@link #filterList}), which an
+ * app can embed in a {@link Popover}, a {@link Card} or a side panel, and the filtered list that a
+ * {@link ComboBox} and a {@link CommandPalette} share. The entries match the typed text {@link
+ * Fuzzy fuzzily}, best first, with the characters that match in a heavier weight, or the app finds
+ * them for the text itself, also on another thread ({@link Entries}). An entry has a text, an
+ * optional icon or element before it, an optional muted detail, shortcut and check mark at its
+ * right, an optional group, under whose heading it shows, and the handler that runs when it is
+ * chosen; without one it is disabled.
  *
- * <p>The list is a virtual list ({@link El#rows}) of rows of one height, so that a
- * hundred thousand entries cost as much to show as twenty, and the filtering of a text that only
- * grows looks only at the entries the shorter text matched. In a tree dump it is {@code
- * role=listbox}, its entries {@code role=option} with their text as the label and the keys {@code
- * option-<row>}, the highlighted one {@code selected}, and the heading of each group a row {@code
- * role=group} with the group's name as its label, before the group's entries.
+ * <pre>{@code
+ * El trigger = Button.button(SECONDARY, state.model, state.modelPopover::toggle);
+ * Popover.popover(trigger, state.modelPopover, "Choose model",
+ *     FilterList.filterList(state.modelFilter, "Search models", FilterList.Entries.of(entries))
+ *         .w(280));
+ * }</pre>
+ *
+ * <p>While the field has the focus, Up and Down, Page Up and Page Down, Home and End move the
+ * highlight, and Enter or a press on an entry runs its handler while leaving the focus in the
+ * field. Escape is left to the parent (in a {@link Popover} it closes it). The element is {@code
+ * size().palette()} wide unless sized by the caller, its field {@code size().paletteField()} high
+ * and its list at most {@value CommandPalette#ROWS} rows of {@code size().paletteRow()}, then it
+ * scrolls.
+ *
+ * <p>The list is a virtual list ({@link El#rows}) of rows of one height, so that a hundred
+ * thousand entries cost as much to show as twenty, and the filtering of a text that only grows
+ * looks only at the entries the shorter text matched. In a tree dump the field is {@code
+ * role=textbox} and the list is {@code role=listbox}, its entries {@code role=option} with their
+ * text as the label and the keys {@code option-<row>}, the highlighted one {@code selected}, and
+ * the heading of each group a row {@code role=group} with the group's name as its label, before
+ * the group's entries.
  */
 public final class FilterList {
 
@@ -198,11 +215,15 @@ public final class FilterList {
     /**
      * The entries the app finds for the typed text on another thread ({@link App#background}),
      * shown in the order given once they arrive, meanwhile those found for the text before and a
-     * row "Loading…". A new text cancels the work for the one before, and so does closing what
-     * shows the list. {@code find} gets only the text: what it reads it takes in its closure, and
-     * nothing of the app's state that the app's thread changes.
+     * row "Loading…". A new text cancels the work for the one before, and so does closing a {@link
+     * ComboBox} or {@link CommandPalette} that shows the list; a {@link #filterList} has no close
+     * of its own, and its work runs to its end. {@code find} gets only the text: what it reads it
+     * takes in its closure, and nothing of the app's state that the app's thread changes.
      *
-     * @param name what the work is called, which {@link App#await} names
+     * @param name what the work is called, which {@link App#await} names and which tells one
+     *     background source from another on the same {@link State} (give two sources that share a
+     *     state different names, and pass the same name on every build of one source so work stays
+     *     in flight)
      */
     static Entries background(App<?> app, String name, Function<String, List<Entry>> find) {
       return new Found(find, Objects.requireNonNull(app, "app"), name);
@@ -215,9 +236,9 @@ public final class FilterList {
 
   /**
    * What a list keeps between builds: the text typed, the highlighted row and what was filtered
-   * for it. The component that shows the list holds one in its state.
+   * for it. The app keeps one in its state for {@link #filterList}.
    */
-  static final class State {
+  public static final class State {
     static final int BEST = -2; // highlight the first entry that can be chosen at the next build
     static final int KEEP = -3;
 
@@ -227,21 +248,29 @@ public final class FilterList {
     boolean none; // nothing highlighted until a key or the pointer does it (a free combo box)
     int current = -1; // the entry highlighted in place of the best while nothing is typed, or -1
     boolean picked; // the highlight is a key's, the pointer's or the app's, not the best entry
-    // What was filtered: of which list, for which text, the entries matched in no order.
+    // What was filtered: of which list, in which order, for which text, the entries matched.
     List<Entry> source;
+    boolean inOrder;
     String filtered;
     int[] matched; // the indexes of the entries the text matched, ascending
     String[] lowered; // the source's texts, as a query without capitals is compared with them
     int[] groupOf; // the source's group of each entry, from 1, or 0 for none
     boolean grouped;
     Shown shown;
-    // Of the app's work: the text asked for, the answer and the text it answered.
+    // Of the app's work: which source, the text asked for, the answer and any failure.
+    App<?> app;
+    String workName;
     Work work;
     String asked;
     List<Entry> answer = List.of();
     String failure;
 
     Consumer<Entry> onHighlight; // told of an entry the keys or the pointer highlight
+
+    /** The text typed in the field, which filters the list. */
+    public String text() {
+      return query;
+    }
 
     /** Highlights a row, and tells {@link #onHighlight} of a new entry. */
     void light(int row) {
@@ -273,15 +302,24 @@ public final class FilterList {
     /** Lets go of the entries, and of what their handlers hold, as the list closes. */
     void release() {
       reset(-1);
+      clearSource();
+      shown = null;
+      onHighlight = null;
+    }
+
+    /** Drops what was cached or asked for the source before. */
+    void clearSource() {
+      cancel();
+      app = null;
+      workName = null;
+      answer = List.of();
+      failure = null;
       source = null;
+      inOrder = false;
       filtered = null;
       matched = null;
       lowered = null;
       groupOf = null;
-      shown = null;
-      answer = List.of();
-      failure = null;
-      onHighlight = null;
     }
 
     /** Gives up the app's work on its way, as the list closes. */
@@ -292,6 +330,53 @@ public final class FilterList {
       }
       asked = null;
     }
+  }
+
+  /**
+   * A search field above a filtered list of {@code entries}, which an app can embed in a {@link
+   * Popover}, a {@link Card} or a side panel. Typing filters the list; Up and Down, Page Up and
+   * Page Down, Home and End move the highlight while the field keeps the focus; Enter or a press
+   * on an entry runs its {@link Entry#onChoose}. The field does not take focus on its own (inside
+   * a {@link Popover} it receives focus as the first focusable element), and Escape is left to the
+   * parent.
+   *
+   * <p>The element is {@code size().palette()} wide by default (override with {@code .w(...)} or
+   * {@code .wFull()}), its field {@code size().paletteField()} high, and its list at most {@value
+   * CommandPalette#ROWS} rows of {@code size().paletteRow()} before scrolling.
+   *
+   * @param state what the list keeps between builds
+   * @param placeholder shown while the field is empty, and used as the label of the field and list
+   * @param entries where the entries come from
+   */
+  public static El filterList(State state, String placeholder, Entries entries) {
+    Objects.requireNonNull(state, "state");
+    Objects.requireNonNull(entries, "entries");
+    Theme theme = Theme.CURRENT.get();
+    Consumer<Entry> choose = e -> e.onChoose().run();
+    El field = TextField.textField(state.query, placeholder, v -> state.typed(v, true))
+        .key("query")
+        .label(placeholder)
+        .wFull()
+        .h(theme.size().paletteField())
+        // Enter without an entry to choose stays here, not a dialog's default button.
+        .onKey(k -> key(k, state, CommandPalette.ROWS, choose)
+            || k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("NumpadEnter")));
+    Shown shown = shown(state, entries);
+    return col()
+        .w(theme.size().palette())
+        .gap(theme.space().s())
+        .minSize(0, 0)
+        .children(
+            TextField.withIcon(field, Symbol.SEARCH).wFull().shrink(0),
+            list(
+                    theme,
+                    state,
+                    shown,
+                    CommandPalette.ROWS,
+                    theme.size().paletteRow(),
+                    placeholder,
+                    choose)
+                .keepFocus());
   }
 
   /** What the list shows: its rows, each an entry's index or a group's heading. */
@@ -336,9 +421,22 @@ public final class FilterList {
     }
   }
 
+  /** Whether the state's cached filter or background work belongs to {@code entries}. */
+  private static boolean sameSource(State s, Entries entries) {
+    return switch (entries) {
+      case Fixed f -> s.source == f.all() && s.inOrder == f.inOrder();
+      case Found f when f.app() == null -> s.source == null && s.app == null;
+      case Found f -> s.app == f.app() && Objects.equals(s.workName, f.name());
+    };
+  }
+
   /** The rows to show for the state's text, filtering or asking where it has to. */
   static Shown shown(State s, Entries entries) {
     Shown before = s.shown;
+    boolean changed = !sameSource(s, entries);
+    if (changed) {
+      s.clearSource();
+    }
     Shown shown = switch (entries) {
       case Fixed f -> filter(s, f.all(), f.inOrder());
       case Found f
@@ -346,7 +444,9 @@ public final class FilterList {
       case Found f -> ask(s, f);
     };
     s.shown = shown;
-    if (s.want == State.KEEP && before != null && before.entries() != shown.entries()) {
+    if (s.want == State.KEEP
+        && before != null
+        && (changed || before.entries() != shown.entries())) {
       // Other entries under the same highlight: the entry again by what it is, not by its row,
       // where it was picked; the best of the entries before, or one highlighted while the list
       // was loading, gives way to the best of these.
@@ -379,6 +479,8 @@ public final class FilterList {
 
   private static Shown ask(State s, Found f) {
     String query = s.query;
+    s.app = f.app();
+    s.workName = f.name();
     if (!query.equals(s.asked)) {
       if (s.work != null) {
         s.work.cancel();
@@ -512,6 +614,7 @@ public final class FilterList {
       order[k] = (int) (keys[k] & ((1 << INDEX_BITS) - 1));
     }
     s.source = all;
+    s.inOrder = inOrder;
     s.filtered = query;
     s.matched = m.isEmpty() ? null : Arrays.copyOf(matched, count);
     return rows(all, order, query, false, null);

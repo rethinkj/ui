@@ -1,0 +1,1 @@
+- A `FilterList.State` given another `FilterList.Entries` while the typed text stays the same now shows and chooses that source's entries, not those of the source before. Background sources that share one state are told apart by their name, so give them different names.
