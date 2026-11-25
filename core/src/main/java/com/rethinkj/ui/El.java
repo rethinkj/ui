@@ -483,6 +483,7 @@ public final class El {
     float clipRight = Float.POSITIVE_INFINITY;
     float clipBottom = Float.POSITIVE_INFINITY;
     float coverBottom = Float.NEGATIVE_INFINITY;
+    float laidTotal = Float.NaN; // the height of the rows when layout last measured the list
   }
 
   /** The state of a text field, which {@link #editable} makes, beyond its {@link Text}. */
@@ -1439,8 +1440,10 @@ public final class El {
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
     // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
     // doubles and reach the last row anyway.
-    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) Math.min(rowsTotal(), LAYOUT_LIMIT));
+    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) -> {
+      list.laidTotal = laidRowsTotal();
+      return new Measure.Size(0, list.laidTotal);
+    };
     return this;
   }
 
@@ -6150,6 +6153,25 @@ public final class El {
   /** Whether this is a virtual list whose rows are as high as their content. */
   boolean measuresRows() {
     return rows.heights != null;
+  }
+
+  /**
+   * Whether this virtual list's rows came to another height than layout measured it at, as rows
+   * built and measured since make them: a list as high as its rows, in a row of another list, is
+   * then laid out again with that row. Counts the change once.
+   */
+  boolean rowsRegrown() {
+    if (rows == null || rows.heights == null || Float.isNaN(rows.laidTotal)) {
+      return false;
+    }
+    float total = laidRowsTotal();
+    boolean regrown = total != rows.laidTotal;
+    rows.laidTotal = total;
+    return regrown;
+  }
+
+  private float laidRowsTotal() {
+    return (float) Math.min(rowsTotal(), LAYOUT_LIMIT);
   }
 
   /** The left of the rows, the left of the content box. */

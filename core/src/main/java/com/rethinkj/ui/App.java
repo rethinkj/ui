@@ -6613,6 +6613,9 @@ public final class App<S> {
    *
    * @return whether a list built its rows
    */
+  // Whether a list in a row of another, as high as its rows, grew since layout: see fillRows.
+  private boolean regrown;
+
   private boolean fillRows() {
     if (root == null) {
       return false;
@@ -6626,6 +6629,7 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     rowsWanted = false;
     rowKeyHooks = false;
+    regrown = false;
     inViewLists.clear();
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
     if (!rowGoals.isEmpty() && followRowGoals()) {
@@ -6839,8 +6843,22 @@ public final class App<S> {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());
     }
-    for (El child : el.children()) {
-      built |= fillRows(child, path, left, top, clipLeft, clipRight, inRows || el.isVirtualList());
+    regrown |= inRows && el.rowsRegrown();
+    List<El> children = el.children();
+    for (int i = 0; i < children.size(); i++) {
+      boolean outer = regrown;
+      regrown = false;
+      built |= fillRows(
+          children.get(i), path, left, top, clipLeft, clipRight, inRows || el.isVirtualList());
+      // A list in this row grew with rows it measured: the row is laid out again, as high as they
+      // are, and its lists build the rows that are in view then; a few times at most.
+      for (int pass = 0; regrown && el.isVirtualList() && el.measuresRows() && pass < 3; pass++) {
+        regrown = false;
+        el.layoutRow(i, scale, systemFonts);
+        built = true;
+        built |= fillRows(children.get(i), path, left, top, clipLeft, clipRight, true);
+      }
+      regrown = outer || regrown && !el.isVirtualList(); // a list takes its rows' growth
     }
     float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates

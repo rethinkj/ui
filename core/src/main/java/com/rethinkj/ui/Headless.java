@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.TextRendering;
+import java.util.List;
 
 /**
  * Renders a view without a window or a GPU, and without native libraries unless the view has text,
@@ -60,8 +61,10 @@ public final class Headless {
   /**
    * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
    * measures how far each scroll area could scroll, for its bars.
+   *
+   * @return whether a list in a row of another, as high as its rows, grew with what they measured
    */
-  private static void fillRows(
+  private static boolean fillRows(
       El el,
       float parentX,
       float parentY,
@@ -71,7 +74,7 @@ public final class Headless {
       float windowHeight,
       float scale) {
     if (!el.isPlaced()) {
-      return;
+      return false;
     }
     el.measureScroll();
     float left = parentX + el.x();
@@ -89,8 +92,18 @@ public final class Headless {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());
     }
-    for (El child : el.children()) {
-      fillRows(child, left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
+    boolean regrown = el.rowsRegrown();
+    List<El> children = el.children();
+    for (int i = 0; i < children.size(); i++) {
+      boolean grew = fillRows(
+          children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
+      for (int pass = 0; grew && el.isVirtualList() && el.measuresRows() && pass < 3; pass++) {
+        el.layoutRow(i, scale, false); // as App does: the row as high as its list's rows now
+        grew = fillRows(
+            children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
+      }
+      regrown |= grew && !el.isVirtualList();
     }
+    return regrown;
   }
 }
