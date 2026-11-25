@@ -461,9 +461,11 @@ public final class App<S> {
         s.moved = true;
         yield drag(s, x, y);
       }
-      case Grab(Object id, boolean vertical, float grip) -> {
+      case Grab(Object id, boolean vertical, float grip, float last) -> {
         El area = animator.element(id);
-        boolean moved = area != null && area.dragThumb(vertical, (vertical ? y : x) - grip);
+        float start = (vertical ? y : x) - grip;
+        capture = new Grab(id, vertical, grip, start);
+        boolean moved = area != null && area.dragThumb(vertical, start, Math.signum(start - last));
         scrolled |= moved;
         yield moved && tellUserScroll(area);
       }
@@ -572,7 +574,7 @@ public final class App<S> {
       float along = vertical ? y : x;
       float start = vertical ? bar.thumbY() : bar.thumbX();
       if (onThumb(bar, vertical, x, y)) {
-        capture = new Grab(id, vertical, along - start);
+        capture = new Grab(id, vertical, along - start, start);
       } else {
         capture = IDLE;
         int mark = vertical ? area.tickAt(y) : -1;
@@ -1412,7 +1414,8 @@ public final class App<S> {
    * A press on the thumb of a scroll area's bar: the area's identity, which bar, and how far from
    * the thumb's start the pointer holds it along the bar.
    */
-  private record Grab(Object id, boolean vertical, float grip) implements Capture {}
+  /** A thumb held {@code grip} from its start, which the pointer put at {@code last}. */
+  private record Grab(Object id, boolean vertical, float grip, float last) implements Capture {}
 
   /** The drag the pointer holds, started or not, or null. */
   private Dragging dragging() {

@@ -5799,11 +5799,13 @@ public final class El {
    * Scrolls so that the thumb of a bar of the last frame starts at {@code start}, in window
    * coordinates along its axis: the offset is in proportion to where the thumb is between the ends
    * of its track, so that both ends reach the ends of the content exactly: for a field covered at
-   * the top, the start of the track is as far above its first row as it can scroll.
+   * the top, the start of the track is as far above its first row as it can scroll. The offset
+   * moves only the way the pointer does: rows measured on the way change where the thumb is.
    *
+   * @param direction how the pointer moved along the axis: 1 towards the end, -1, or 0
    * @return whether the offset changed
    */
-  boolean dragThumb(boolean vertical, float start) {
+  boolean dragThumb(boolean vertical, float start, float direction) {
     Scrollbars.Bar bar = vertical ? barY : barX;
     if (bar == null) {
       return false;
@@ -5812,16 +5814,19 @@ public final class El {
         vertical ? bar.trackHeight() - bar.thumbHeight() : bar.trackWidth() - bar.thumbWidth();
     double along = start - (vertical ? bar.trackY() : bar.trackX());
     double share = free > 0 ? Math.clamp(along / free, 0.0, 1.0) : 0;
-    if (!vertical) {
-      return scrollTo(share * maxScrollX, scrollY);
+    double min = vertical ? minScrollY() : 0;
+    double max = vertical ? maxScrollY : maxScrollX;
+    double to = min + share * (max - min);
+    double from = vertical ? scrollY : scrollX;
+    if (direction == 0 || Math.signum(to - from) == -direction) {
+      return false;
     }
-    double min = minScrollY();
-    // Within a pixel of the track's end, where a pointer at a fractional scale may stop: the end.
-    return scrollTo(
-        scrollX,
-        free > 0 && along >= free - 1
-            ? orEnd(maxScrollY)
-            : orEnd(min + share * (maxScrollY - min)));
+    if (!vertical) {
+      return scrollTo(to, scrollY);
+    }
+    // Near the track's end, where a pointer at a fractional scale may stop: the end it asks for.
+    boolean end = orEnd(max) == Double.POSITIVE_INFINITY && along >= free - Math.min(1, free / 4);
+    return scrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */

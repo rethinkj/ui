@@ -115,9 +115,12 @@ class ScrollbarTest {
     app.pointerDown(95, 3);
     app.pointerMove(95, end + 0.5f); // half a pixel short, as a pointer at 150% may stop
     app.frame();
-    app.pointerUp(95, end + 0.5f);
-    app.frame();
     assertEquals(300, app.tree().scrollY(), "the thumb at the end of the track");
+    app.pointerMove(95, end + 1); // on down, where the thumb that the measured rows shortened is
+    app.frame();
+    app.pointerUp(95, end + 1);
+    app.frame();
+    assertEquals(300, app.tree().scrollY(), "and stays there");
 
     app = underestimated();
     app.focus(app.tree().children().getFirst());
