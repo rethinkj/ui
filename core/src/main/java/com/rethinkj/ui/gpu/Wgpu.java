@@ -13,12 +13,12 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
-import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Raw bindings for the part of wgpu-native v29 ({@code webgpu.h} and {@code wgpu.h}) a 2D renderer
@@ -27,10 +27,12 @@ import java.util.Map;
  * returns raw handles. Struct layouts are in {@link Structs}. Nothing here checks anything; the
  * safe layer, {@link Instance} and the classes it hands out, is what the renderer uses.
  *
- * <p>The library is loaded by the nested holder of the method handles, on the first call of a
+ * <p>The library is loaded by the nested holders of the method handles, on the first call of a
  * function. {@link Instance#create} loads it through {@link Natives} before that, so a missing
  * library is an {@link UnsatisfiedLinkError} with an explanation rather than a failed class
- * initialization. Constants, layouts and descriptors need no library.
+ * initialization. Constants, layouts and descriptors need no library. Linking the handles takes
+ * about 50 ms, so only those up to the adapter request are linked first, and {@link #linkAhead}
+ * links the others on a thread of its own while wgpu looks for the adapter.
  *
  * <p>wgpu-native does not implement 35 functions of {@code webgpu.h}: calling one ends the
  * process. Among them are {@code wgpuInstanceWaitAny}, every {@code SetLabel} and {@code
@@ -317,17 +319,19 @@ final class Wgpu {
       "wgpuRenderPassEncoderEnd", VOID_HANDLE,
       "wgpuRenderPassEncoderRelease", VOID_HANDLE);
 
-  /** The method handles; initializing this class loads the library. */
-  private static final class Fn {
-    private static final SymbolLookup LIBRARY = Natives.lookup("wgpu_native");
-
+  /** The method handles up to the adapter request; initializing this class loads the library. */
+  private static final class Start {
     static final MethodHandle GET_VERSION = bind("wgpuGetVersion");
     static final MethodHandle SET_LOG_CALLBACK = bind("wgpuSetLogCallback");
     static final MethodHandle SET_LOG_LEVEL = bind("wgpuSetLogLevel");
     static final MethodHandle CREATE_INSTANCE = bind("wgpuCreateInstance");
-    static final MethodHandle INSTANCE_CREATE_SURFACE = bind("wgpuInstanceCreateSurface");
     static final MethodHandle INSTANCE_REQUEST_ADAPTER = bind("wgpuInstanceRequestAdapter");
     static final MethodHandle INSTANCE_RELEASE = bind("wgpuInstanceRelease");
+  }
+
+  /** The other method handles; initializing this class loads the library. */
+  private static final class Fn {
+    static final MethodHandle INSTANCE_CREATE_SURFACE = bind("wgpuInstanceCreateSurface");
     static final MethodHandle ADAPTER_GET_INFO = bind("wgpuAdapterGetInfo");
     static final MethodHandle ADAPTER_INFO_FREE_MEMBERS = bind("wgpuAdapterInfoFreeMembers");
     static final MethodHandle ADAPTER_GET_LIMITS = bind("wgpuAdapterGetLimits");
@@ -394,19 +398,38 @@ final class Wgpu {
     static final MethodHandle RENDER_PASS_DRAW = bind("wgpuRenderPassEncoderDraw");
     static final MethodHandle RENDER_PASS_END = bind("wgpuRenderPassEncoderEnd");
     static final MethodHandle RENDER_PASS_RELEASE = bind("wgpuRenderPassEncoderRelease");
+  }
 
-    private static MethodHandle bind(String name) {
-      FunctionDescriptor descriptor = FUNCTIONS.get(name);
-      if (descriptor == null) {
-        throw new IllegalStateException(name + " is not listed in Wgpu.FUNCTIONS");
-      }
-      MemorySegment symbol = LIBRARY
-          .find(name)
-          .orElseThrow(
-              () -> new UnsatisfiedLinkError("The wgpu_native library has no function " + name
-                  + ". The natives module does not" + " match this version of rethinkj-ui-core."));
-      return Linker.nativeLinker().downcallHandle(symbol, descriptor);
+  private static final AtomicBoolean LINKING = new AtomicBoolean();
+
+  /**
+   * Links the method handles beyond the adapter request and the callbacks the device needs, once,
+   * on a thread of its own, so that this overlaps with the adapter request that follows. What
+   * fails there is dropped: the thread that needs them then fails as well.
+   */
+  static void linkAhead() {
+    if (LINKING.compareAndSet(false, true)) {
+      Thread.ofPlatform().name("rethinkj-ui gpu link").daemon().start(() -> {
+        try {
+          MethodHandle _ = Fn.INSTANCE_CREATE_SURFACE;
+          MemorySegment _ = Callbacks.Devices.LOST;
+        } catch (RuntimeException | Error _) {
+          // Thrown again, wrapped, where the class is first used.
+        }
+      });
     }
+  }
+
+  private static MethodHandle bind(String name) {
+    FunctionDescriptor descriptor = FUNCTIONS.get(name);
+    if (descriptor == null) {
+      throw new IllegalStateException(name + " is not listed in Wgpu.FUNCTIONS");
+    }
+    MemorySegment symbol = Natives.lookup("wgpu_native")
+        .find(name)
+        .orElseThrow(() -> new UnsatisfiedLinkError("The wgpu_native library has no function "
+            + name + ". The natives module does not" + " match this version of rethinkj-ui-core."));
+    return Linker.nativeLinker().downcallHandle(symbol, descriptor);
   }
 
   // ---- global ------------------------------------------------------------------------------
@@ -414,7 +437,7 @@ final class Wgpu {
   /** The four parts of the release tag, one byte each: 0x1D000101 is v29.0.1.1. */
   static int getVersion() {
     try {
-      return (int) Fn.GET_VERSION.invokeExact();
+      return (int) Start.GET_VERSION.invokeExact();
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -422,7 +445,7 @@ final class Wgpu {
 
   static void setLogCallback(MemorySegment callback, MemorySegment userdata) {
     try {
-      Fn.SET_LOG_CALLBACK.invokeExact(callback, userdata);
+      Start.SET_LOG_CALLBACK.invokeExact(callback, userdata);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -430,7 +453,7 @@ final class Wgpu {
 
   static void setLogLevel(int level) {
     try {
-      Fn.SET_LOG_LEVEL.invokeExact(level);
+      Start.SET_LOG_LEVEL.invokeExact(level);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -440,7 +463,7 @@ final class Wgpu {
 
   static MemorySegment createInstance(MemorySegment descriptor) {
     try {
-      return (MemorySegment) Fn.CREATE_INSTANCE.invokeExact(descriptor);
+      return (MemorySegment) Start.CREATE_INSTANCE.invokeExact(descriptor);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -458,14 +481,14 @@ final class Wgpu {
       MemorySegment callbackInfo) {
     try {
       MemorySegment _ = (MemorySegment)
-          Fn.INSTANCE_REQUEST_ADAPTER.invokeExact(allocator, instance, options, callbackInfo);
+          Start.INSTANCE_REQUEST_ADAPTER.invokeExact(allocator, instance, options, callbackInfo);
     } catch (Throwable t) {
       throw rethrow(t);
     }
   }
 
   static void instanceRelease(MemorySegment instance) {
-    voidHandle(Fn.INSTANCE_RELEASE, instance);
+    voidHandle(Start.INSTANCE_RELEASE, instance);
   }
 
   // ---- adapter -----------------------------------------------------------------------------
