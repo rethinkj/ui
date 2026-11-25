@@ -230,9 +230,9 @@ class QuickDocumentationTest {
     assertEquals("Dokumentation", pop.label());
     assertEquals(0, doc.parentCtrlQ, "Control+Q consumed when provider is set");
 
-    // Moving caret with an arrow key closes the popover.
-    app.keyDown(new Key("ArrowRight", 0, false));
-    app.keyUp(new Key("ArrowRight", 0, false));
+    // Moving the caret closes the popover; a read-only editor moves it with Shift, as it selects.
+    app.keyDown(new Key("ArrowRight", Key.SHIFT, false));
+    app.keyUp(new Key("ArrowRight", Key.SHIFT, false));
     app.frame();
     app.advance(0.3);
     app.frame();

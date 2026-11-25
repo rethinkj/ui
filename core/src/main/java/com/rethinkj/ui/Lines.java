@@ -123,6 +123,9 @@ final class Lines {
   // Where the text of lines an outline (El#outline) covered lies, by line, as shaped with the
   // highlighting in outlineFor: kept while those lines scroll out of view, moved by each edit.
   private Object outlineFor;
+  // For Text: the lines it shaped and the sizes it measured, kept across trees while the string,
+  // and with it these lines, stays; an edit drops them.
+  Object shapedLines;
   private Map<Integer, Extent> outlineExtents = new HashMap<>();
 
   /**
@@ -246,6 +249,7 @@ final class Lines {
    * inserted}, which must not contain a carriage return.
    */
   void edit(int at, int removed, String inserted) {
+    shapedLines = null;
     int first = line(at);
     int last = line(at + removed);
     int added = 0;

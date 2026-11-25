@@ -3831,8 +3831,8 @@ public final class El {
   /**
    * Tells {@code handler} that the user moved the view of this scroll area or of a scroll area
    * inside it: by the wheel, by a scrollbar (dragging its thumb, pressing its track or a tick), by
-   * PageUp, PageDown, Home or End outside a text field, by Home or End without Shift in a read-only
-   * multi-line one, or by a key after which an area shows something else it keeps in view ({@link
+   * PageUp, PageDown, Home or End outside a text field, by Home, End or an arrow key without Shift in
+   * a read-only multi-line one, or by a key after which an area shows something else it keeps in view ({@link
    * #revealRow}, {@link #reveal}, the focus). A text field's own keys move its caret, which {@link
    * #onSelect} tells. Not when layout, a rebuild without such
    * input, {@link App#scrollTo}, {@link App#scrollToRow} or a {@link ScrollState} moves it, nor
@@ -6238,6 +6238,11 @@ public final class El {
   double offsetShowing(int index) {
     double top = rowsTop() + rowTop(index) - scrollY;
     return scrollY + ScrollState.nearest(top, rowSize(index), height - coverY);
+  }
+
+  /** Where this row lies in the border box at the current offset, as {@code {top, height}}. */
+  float[] rowBox(int index) {
+    return new float[] {(float) (rowsTop() + rowTop(index) - scrollY), (float) rowSize(index)};
   }
 
   /**
