@@ -179,9 +179,9 @@ public final class Find {
     }
 
     /**
-     * Keeps {@link #caret}, {@link #anchor} and {@link #origin} on the same match when text is
-     * inserted or removed before it in a selection scope (such as older rows prepended at the top
-     * of a transcript).
+     * Keeps {@link #caret}, {@link #anchor} and {@link #origin} on the same match when the text of
+     * a selection scope changes around it, such as older rows prepended at the top of a transcript
+     * while the last reply grows.
      */
     void syncScopeText(String text) {
       String previous = scopeText;
@@ -189,24 +189,27 @@ public final class Find {
       if (previous == null || previous.equals(text)) {
         return;
       }
-      int delta = text.length() - previous.length();
-      if (delta == 0 || (delta > 0 ? text.startsWith(previous) : previous.startsWith(text))) {
-        return;
-      }
       int s = Math.min(Math.min(caret, anchor), previous.length());
       int e = Math.min(Math.max(caret, anchor), previous.length());
-      if (s < e
-          && s + delta >= 0
-          && previous.regionMatches(s, text, s + delta, previous.length() - s)) {
-        caret = Math.min(caret, previous.length()) + delta;
-        anchor = Math.min(anchor, previous.length()) + delta;
-        if (origin >= 0
-            && origin <= previous.length()
-            && origin + delta >= 0
-            && previous.regionMatches(origin, text, origin + delta, previous.length() - origin)) {
-          origin += delta;
-        }
+      int from = previous.lastIndexOf('\n', s - 1) + 1;
+      int to = previous.indexOf('\n', e);
+      to = to < 0 ? previous.length() : to;
+      if (previous.regionMatches(0, text, 0, to)) {
+        return; // changed only after the match's lines
       }
+      // Those lines again, where they are nearest to the place the change in length puts them.
+      String lines = previous.substring(from, to);
+      int guess = Math.max(from + text.length() - previous.length(), 0);
+      int after = text.indexOf(lines, guess);
+      int before = text.lastIndexOf(lines, guess);
+      if (after < 0 && before < 0) {
+        return; // gone
+      }
+      int at = before < 0 || after >= 0 && after - guess <= guess - before ? after : before;
+      int delta = at - from;
+      caret = Math.min(caret, previous.length()) + delta;
+      anchor = Math.min(anchor, previous.length()) + delta;
+      origin = Math.clamp((long) origin + delta, 0, text.length());
     }
 
     void cancel() {

@@ -645,6 +645,8 @@ class ChatTest {
       older.add(new Entry(id, Markdown.parse(body)));
     }
     messages.addAll(0, older);
+    // The last reply grows in the same frame, as a streamed one does.
+    messages.set(messages.size() - 1, new Entry(19, Markdown.parse("Message 19 grew longer.")));
     app.invalidate();
     Script.run("frame", app, out);
     String afterInsert = app.tree().dump();
