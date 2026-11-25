@@ -564,6 +564,31 @@ class FieldTest {
   }
 
   @Test
+  void keysDoNotReachKeyHandlersWhileComposing() {
+    List<String> keys = new ArrayList<>();
+    App<Model> app = start(
+        "ab",
+        f -> f.onKey(k -> {
+          keys.add(k.name());
+          return k.name().equals("Enter");
+        }),
+        1);
+    focus(app);
+    app.textComposition("ni", -1);
+    app.frame();
+    key(app, "Enter");
+    key(app, "Escape");
+    assertEquals(
+        List.of(), keys, "the input method takes keys before key handlers while composing");
+
+    app.textInput("你");
+    app.textComposition("", -1);
+    app.frame();
+    key(app, "Enter");
+    assertEquals(List.of("Enter"), keys, "once composition ends, key handlers run again");
+  }
+
+  @Test
   void aFieldMadeReadOnlyEndsItsComposition() {
     boolean[] readOnly = {false};
     App<Model> app = start("ab", f -> readOnly[0] ? f.readOnly() : f, 1);

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
@@ -20,15 +22,15 @@ class RowHeightsTest {
   @Test
   void theTreeAgreesWithASumAfterRandomMeasurements() {
     Random random = new Random(3);
-    RowHeights heights = new RowHeights(i -> 10 + i % 7);
+    RowHeights heights = new RowHeights(i -> 10.1 + i % 7);
     heights.count(1000);
     double[] plain = new double[1000];
     for (int i = 0; i < plain.length; i++) {
-      plain[i] = 10 + i % 7;
+      plain[i] = 10.1 + i % 7;
     }
     for (int step = 0; step < 500; step++) {
       int row = random.nextInt(plain.length);
-      double h = 1 + random.nextInt(300);
+      double h = 1 + random.nextInt(3000) / 10.0;
       assertEquals(h - plain[row], heights.measured(row, h));
       plain[row] = h;
       if (step % 50 == 0) {
@@ -36,7 +38,7 @@ class RowHeightsTest {
         for (int i = 0; i <= plain.length; i++) {
           assertEquals(sum, heights.top(i), 1e-6, "top of " + i);
           if (i < plain.length) {
-            assertEquals(i, heights.at(sum), "the row that starts at " + sum);
+            assertEquals(i, heights.at(heights.top(i)), "the row that starts at " + sum);
             assertEquals(i, heights.at(sum + plain[i] - 0.5), "inside row " + i);
             sum += plain[i];
           }
@@ -165,5 +167,157 @@ class RowHeightsTest {
         list.children().get(9 - list.firstRow()).y(),
         "no jump back: " + app.tree().dump());
     assertTrue(Math.abs(list(app).scrollY() - left) < 200, "near where the wheel left it");
+  }
+
+  private record Item(int id, float height) {}
+
+  private static final class Transcript {
+    final List<Item> items = new ArrayList<>();
+    final RowHeights plainHeights = new RowHeights(i -> 20, i -> items.get(i).id());
+    final RowHeights stateHeights = new RowHeights(i -> 20, i -> items.get(i).id());
+    final RowHeights endHeights = new RowHeights(i -> 20, i -> items.get(i).id());
+    final ScrollState scroll = new ScrollState();
+    final ScrollState endScroll = new ScrollState().followEnd();
+  }
+
+  private static El rowByKey(El list, String key) {
+    for (El child : list.children()) {
+      if (key.equals(child.key())) {
+        return child;
+      }
+    }
+    throw new AssertionError("missing " + key + " in:\n" + list.dump());
+  }
+
+  @Test
+  void insertingAndRemovingRowsBeforeTheViewKeepsTheRowInView() {
+    Transcript model = new Transcript();
+    for (int i = 0; i < 20; i++) {
+      model.items.add(new Item(100 + i, 15 + (i % 5) * 12));
+    }
+    App<Transcript> app = new App<>(model, m -> {
+      El plain = col()
+          .key("plain")
+          .w(100)
+          .h(100)
+          .rows(
+              m.items.size(),
+              m.plainHeights,
+              i -> el().key("item-" + m.items.get(i).id()).h(m.items.get(i).height()));
+      El kept = col()
+          .key("kept")
+          .w(100)
+          .h(100)
+          .rows(
+              m.items.size(),
+              m.stateHeights,
+              i -> el().key("item-" + m.items.get(i).id()).h(m.items.get(i).height()))
+          .scrollState(m.scroll);
+      El tail = col()
+          .key("tail")
+          .w(100)
+          .h(100)
+          .rows(
+              m.items.size(),
+              m.endHeights,
+              i -> el().key("item-" + m.items.get(i).id()).h(m.items.get(i).height()))
+          .scrollState(m.endScroll);
+      return El.row().children(plain, kept, tail);
+    });
+    app.resize(300, 100, 1);
+    app.frame();
+    assertTrue(model.endScroll.atEnd(), "followEnd starts at the end");
+
+    // Scroll into the middle in two steps so rows above the view are measured, stopping mid-row.
+    for (int step = 0; step < 2; step++) {
+      app.wheel(50, 50, 0, 120);
+      app.wheel(150, 50, 0, 120);
+      app.frame();
+    }
+    El plain = app.tree().children().get(0);
+    El kept = app.tree().children().get(1);
+    assertEquals(15, model.plainHeights.height(0), "row 0 above the view was measured");
+    assertEquals(51, model.plainHeights.height(3), "row 3 above the view was measured");
+    assertEquals(63, model.plainHeights.height(4), "row 4 above the view was measured");
+    float anchorY = rowByKey(plain, "item-107").y();
+    float nextY = rowByKey(plain, "item-108").y();
+    assertTrue(anchorY < 0 && nextY > 0, "scrolled mid-row: " + anchorY + ", " + nextY);
+    assertEquals(anchorY, rowByKey(kept, "item-107").y(), 0.001);
+
+    // Insert five rows at the top (different heights from the 20px estimate).
+    List<Item> older = List.of(
+        new Item(95, 35), new Item(96, 55), new Item(97, 25), new Item(98, 45), new Item(99, 65));
+    model.items.addAll(0, older);
+    app.invalidate();
+    app.frame();
+
+    plain = app.tree().children().get(0);
+    kept = app.tree().children().get(1);
+    El tail = app.tree().children().get(2);
+    assertEquals(20, model.plainHeights.height(0), "new unbuilt row uses its estimate");
+    assertEquals(15, model.plainHeights.height(5), "measured height moved with item 100");
+    assertEquals(63, model.plainHeights.height(9), "measured height moved with item 104");
+    assertEquals(anchorY, rowByKey(plain, "item-107").y(), 0.001, "plain kept anchor row");
+    assertEquals(nextY, rowByKey(plain, "item-108").y(), 0.001, "plain kept next row");
+    assertEquals(anchorY, rowByKey(kept, "item-107").y(), 0.001, "ScrollState kept anchor row");
+    assertEquals(nextY, rowByKey(kept, "item-108").y(), 0.001, "ScrollState kept next row");
+    assertTrue(model.endScroll.atEnd(), "followEnd stayed at its end after prepend");
+    El last = tail.children().getLast();
+    assertEquals("item-119", last.key());
+    assertEquals(100, last.y() + last.height(), 0.001, "last row ends at the bottom");
+
+    // Remove eight rows from the top (the five prepended plus three measured rows).
+    model.items.subList(0, 8).clear();
+    app.invalidate();
+    app.frame();
+
+    plain = app.tree().children().get(0);
+    kept = app.tree().children().get(1);
+    tail = app.tree().children().get(2);
+    assertEquals(51, model.plainHeights.height(0), "measured height stayed with item 103");
+    assertEquals(63, model.plainHeights.height(1), "measured height stayed with item 104");
+    assertEquals(anchorY, rowByKey(plain, "item-107").y(), 0.001, "plain kept row after remove");
+    assertEquals(anchorY, rowByKey(kept, "item-107").y(), 0.001, "ScrollState kept row");
+    assertTrue(model.endScroll.atEnd(), "followEnd stayed at its end after remove");
+    last = tail.children().getLast();
+    assertEquals(100, last.y() + last.height(), 0.001);
+
+    // Removing the anchor row itself moves the next surviving row to the top of the view.
+    model.items.removeIf(item -> item.id() == 107);
+    app.invalidate();
+    app.frame();
+
+    plain = app.tree().children().get(0);
+    kept = app.tree().children().get(1);
+    assertEquals(0, rowByKey(plain, "item-108").y(), 0.001, "next surviving row at the top");
+    assertEquals(0, rowByKey(kept, "item-108").y(), 0.001, "next surviving row at the top");
+  }
+
+  @Test
+  void aRowScrolledToStaysTheGoalWhenRowsComeBeforeIt() {
+    Transcript model = new Transcript();
+    for (int i = 0; i < 40; i++) {
+      model.items.add(new Item(100 + i, 20 + (i % 3) * 10));
+    }
+    App<Transcript> app = new App<>(
+        model,
+        m -> col()
+            .key("list")
+            .w(100)
+            .h(100)
+            .rows(
+                m.items.size(),
+                m.plainHeights,
+                i -> el().key("item-" + m.items.get(i).id()).h(m.items.get(i).height())));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.scrollToRow(app.tree(), 10);
+    app.frame();
+    assertEquals(0, rowByKey(app.tree(), "item-110").y(), 0.001, app.tree().dump());
+
+    model.items.addAll(0, List.of(new Item(97, 45), new Item(98, 45), new Item(99, 45)));
+    app.invalidate();
+    app.frame();
+    assertEquals(0, rowByKey(app.tree(), "item-110").y(), 0.001, app.tree().dump());
   }
 }

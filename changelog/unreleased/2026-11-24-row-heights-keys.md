@@ -1,0 +1,1 @@
+- `RowHeights(estimate, key)` keeps measured row heights by each row's key instead of its index and adjusts a virtual list's scroll offset on the same frame when rows are inserted, removed, or reordered before the view, while lists following their end (`ScrollState.followEnd()`) stay at the end.
