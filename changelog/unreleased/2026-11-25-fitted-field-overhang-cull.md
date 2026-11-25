@@ -1,0 +1,1 @@
+- A wrapping multi-line field with `El.fitLines()` now keeps drawing overhanging glyphs (such as tall fallback descenders or marks above the first row) that still reach into an enclosing scroll area after the field's box has scrolled past its edge.

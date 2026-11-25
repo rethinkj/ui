@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
+import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
@@ -1159,5 +1160,82 @@ class TextAreaTest {
     wide.wheel(50, 30, 0, 5000);
     wide.frame();
     assertEquals(20 * 18 - 4 * 18, field(wide).scrollY(), "widened, it scrolls to its last row");
+  }
+
+  @Test
+  void aFittedFieldJustPastAScrollAreasEdgeStillDrawsItsOverhangingGlyphs() {
+    // Thai marks below the letters reach past the row, so past the box of a fitted field.
+    ScrollState scroll = new ScrollState();
+    App<Object> app = new App<>(new Object(), state -> {
+      El area = El.col().w(140).h(40).scroll().scrollState(scroll).fill(0xFFFFFFFF);
+      for (int padding : new int[] {0, 4}) {
+        area.child(El.text("ลูก ฎู")
+            .editable(value -> {})
+            .readOnly()
+            .multiline()
+            .wrapText()
+            .fitLines()
+            .padding(padding, 0)
+            .font(Examples.fallbackChain())
+            .fontSize(14)
+            .color(0xFF000000)
+            .selectionColor(0xFFFF0000));
+      }
+      return El.col()
+          .wFull()
+          .hFull()
+          .padding(20, 10)
+          .fill(0xFFFFFFFF)
+          .child(area.child(El.el().h(100)));
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(160, 80, 1);
+    app.frame();
+    El area = app.tree().children().getFirst();
+    float first = area.children().get(0).height();
+    float second = area.children().get(1).height();
+    app.pointerDown(20, 24);
+    app.pointerUp(20, 24);
+    app.frame();
+    key(app, "A", CONTROL); // a selection and a caret that must stay cut by the box
+
+    // The first field's box just above the top edge: nothing of it is left inside the area.
+    scroll.scrollTo(0, first);
+    app.invalidate();
+    app.frame();
+    Pixels pixels = app.render().pixels();
+    assertTrue(ink(pixels, 20, 25, 0xE0) > 0, "the descender reaching into the area is drawn");
+    assertEquals(0, ink(pixels, 0, 20, 0xFF), "nothing is drawn above the area");
+    assertEquals(0, red(pixels), "the selection stays cut by the box");
+
+    // The second field's content box just above the edge, its bottom padding still inside.
+    scroll.scrollTo(0, first + second - 4);
+    app.invalidate();
+    app.frame();
+    assertTrue(ink(app.render().pixels(), 20, 24, 0xE0) > 0, "drawn past the content box too");
+  }
+
+  /** The pixels between rows {@code from} and {@code to} with a channel darker than this. */
+  private static int ink(Pixels pixels, int from, int to, int below) {
+    int count = 0;
+    for (int y = from; y < to; y++) {
+      for (int x = 0; x < pixels.width(); x++) {
+        int argb = pixels.argb(x, y);
+        if (Math.min(argb & 0xFF, Math.min(argb >> 8 & 0xFF, argb >> 16 & 0xFF)) < below) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  private static int red(Pixels pixels) {
+    int count = 0;
+    for (int y = 0; y < pixels.height(); y++) {
+      for (int x = 0; x < pixels.width(); x++) {
+        count += pixels.argb(x, y) == 0xFFFF0000 ? 1 : 0;
+      }
+    }
+    return count;
   }
 }

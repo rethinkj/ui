@@ -903,13 +903,7 @@ public final class Scene {
       for (Segment segment : el.segments()) {
         segment(segment, left, top, opacity, inner);
       }
-      // A fill cut to an arc lies behind none of the content, or behind a part not known here; a
-      // background changes from point to point.
-      float content = el.background() != null
-          ? Float.NaN
-          : el.arcSweep() == 1 || el.fill() >>> 24 == 0
-              ? over(el.fill(), opacity, behind)
-              : el.arcSweep() == 0 ? behind : Float.NaN;
+      float content = contentBehind(el, opacity, behind);
       if (el.text() != null) {
         for (El child : el.children()) {
           if (child.rangeBoxes() != null) {
@@ -967,6 +961,9 @@ public final class Scene {
         ticks(el, opacity, inner, free);
         thumb(el.verticalBar(), true, el.scrollbars().radius(), opacity, inner, free);
       }
+    } else if (el.text() != null && near(el.text(), left, top, width, height, clip)) {
+      // Glyphs of a field that never scrolls can still overhang into the enclosing clip.
+      text(el, left, top, opacity, inner, clip, contentBehind(el, opacity, behind));
     }
     int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColor;
     if (ringed >>> 24 != 0) {
@@ -1509,6 +1506,18 @@ public final class Scene {
     }
   }
 
+  /**
+   * The luminance behind an element's content: its fill over what lies behind the element, or NaN
+   * where a background or partial arc makes it vary from point to point.
+   */
+  private static float contentBehind(El el, float opacity, float behind) {
+    return el.background() != null
+        ? Float.NaN
+        : el.arcSweep() == 1 || el.fill() >>> 24 == 0
+            ? over(el.fill(), opacity, behind)
+            : el.arcSweep() == 0 ? behind : Float.NaN;
+  }
+
   /** The luminance behind an element's content: its fill over what lies behind the element. */
   private static float over(int fill, float opacity, float behind) {
     float alpha = (fill >>> 24) / 255f * opacity;
@@ -1563,29 +1572,33 @@ public final class Scene {
     float background = text.background() != 0 ? luminance(text.background()) : behind;
     float share = lightShare(color, background);
     double scroll = 0;
+    boolean uncut = uncut(text);
     if (text.isField()) {
-      clip = fieldClip(el, x, y, clip);
-      if (clip < 0) {
+      clip = clip >= 0 ? fieldClip(el, x, y, clip) : -1;
+      if (clip < 0 && !uncut) {
         return; // clipped away
       }
       scroll = text.scroll();
-      double origin = (left - scroll) / scale;
-      for (Text.Mark mark : text.marks()) {
-        if (mark.squiggle()) {
-          squiggle(mark.box(), left, top, origin, text.size(), scale, mark.color(), opacity, clip);
-        } else {
-          box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+      if (clip >= 0) {
+        double origin = (left - scroll) / scale;
+        for (Text.Mark mark : text.marks()) {
+          if (mark.squiggle()) {
+            squiggle(
+                mark.box(), left, top, origin, text.size(), scale, mark.color(), opacity, clip);
+          } else {
+            box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+          }
         }
-      }
-      for (Text.Box box : text.selection()) {
-        box(box, left, top, scale, text.selectionColor(), opacity, clip);
+        for (Text.Box box : text.selection()) {
+          box(box, left, top, scale, text.selectionColor(), opacity, clip);
+        }
       }
     } else {
       for (Text.Mark mark : text.marks()) {
         box(mark.box(), left, top, scale, mark.color(), opacity, clip);
       }
     }
-    int glyphs = uncut(text) ? outer : clip; // a tall glyph of a field that never scrolls is uncut
+    int glyphs = uncut ? outer : clip; // a tall glyph of a field that never scrolls is uncut
     float clipX = clipGet(glyphs, X);
     float clipY = clipGet(glyphs, Y);
     float clipRight = clipX + clipGet(glyphs, WIDTH);
@@ -1626,11 +1639,13 @@ public final class Scene {
         }
       }
     }
-    if (text.composition() != null) {
-      box(text.composition(), left, top, scale, text.color(), opacity, clip);
-    }
-    if (text.caret() != null && !text.hasHints()) {
-      box(text.caret(), left, top, scale, text.caretColor(), opacity, clip);
+    if (clip >= 0) {
+      if (text.composition() != null) {
+        box(text.composition(), left, top, scale, text.color(), opacity, clip);
+      }
+      if (text.caret() != null && !text.hasHints()) {
+        box(text.caret(), left, top, scale, text.caretColor(), opacity, clip);
+      }
     }
   }
 
@@ -1640,6 +1655,21 @@ public final class Scene {
    */
   private static boolean uncut(Text text) {
     return text.isField() && text.wraps() && text.showsAllRows();
+  }
+
+  /**
+   * Whether an {@link #uncut} field whose box lies outside {@code clip} is close enough to it,
+   * within its font size, for an overhanging glyph to reach in; fields farther away are skipped.
+   */
+  private boolean near(Text text, float left, float top, float width, float height, int clip) {
+    float reach = text.size();
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    return left - reach < clipX + clipGet(clip, WIDTH)
+        && left + width + reach > clipX
+        && top - reach < clipY + clipGet(clip, HEIGHT)
+        && top + height + reach > clipY
+        && uncut(text);
   }
 
   /**
