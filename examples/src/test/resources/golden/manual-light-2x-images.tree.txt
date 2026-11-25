@@ -90,44 +90,44 @@ el 0,0 960x640
             el role=table 281,-94 293x131
               el role=row 282,-93 291x25
                 el role=columnheader 282,-93 86x25
-                  text role=textbox "Form" 290,-89 37x17 readonly lines 1-1/1
+                  text role=textbox "Form" 290,-89 70x17 readonly lines 1-1/1
                 el role=columnheader 368,-93 123x25
-                  text role=textbox "Written as" 394,-89 70x17 readonly lines 1-1/1
+                  text role=textbox "Written as" 376,-89 107x17 readonly lines 1-1/1
                 el role=columnheader 491,-93 82x25
                   text role=textbox "Shown as" 499,-89 66x17 readonly lines 1-1/1
               el role=separator 282,-68 291x1
               el role=row 282,-67 291x25
                 el role=cell 282,-67 86x25
-                  text role=textbox "Emphasis" 290,-63 66x17 readonly lines 1-1/1
+                  text role=textbox "Emphasis" 290,-63 70x17 readonly lines 1-1/1
                 el role=cell 368,-67 123x25
-                  text role=textbox "*a*" 413,-63 32x17 readonly lines 1-1/1
+                  text role=textbox "*a*" 376,-63 107x17 readonly lines 1-1/1
                 el role=cell 491,-67 82x25
-                  text role=textbox "a" 554,-63 11x17 readonly lines 1-1/1
+                  text role=textbox "a" 499,-63 66x17 readonly lines 1-1/1
               el role=separator 282,-42 291x1
               el role=row 282,-41 291x25
                 el role=cell 282,-41 86x25
-                  text role=textbox "Strong" 290,-37 46x17 readonly lines 1-1/1
+                  text role=textbox "Strong" 290,-37 70x17 readonly lines 1-1/1
                 el role=cell 368,-41 123x25
-                  text role=textbox "**a**" 405,-37 48x17 readonly lines 1-1/1
+                  text role=textbox "**a**" 376,-37 107x17 readonly lines 1-1/1
                 el role=cell 491,-41 82x25
-                  text role=textbox "a" 555,-37 10x17 readonly lines 1-1/1
+                  text role=textbox "a" 499,-37 66x17 readonly lines 1-1/1
               el role=separator 282,-16 291x1
               el role=row 282,-15 291x25
                 el role=cell 282,-15 86x25
                   text role=textbox "Struck out" 290,-11 70x17 readonly lines 1-1/1
                 el role=cell 368,-15 123x25
-                  text role=textbox "~~a~~" 405,-11 48x17 readonly lines 1-1/1
+                  text role=textbox "~~a~~" 376,-11 107x17 readonly lines 1-1/1
                 el role=cell 491,-15 82x25
-                  text role=textbox "a" 555,-11 10x17 readonly lines 1-1/1
+                  text role=textbox "a" 499,-11 66x17 readonly lines 1-1/1
               el role=separator 282,10 291x1
               el role=row 282,11 291x25
                 el role=cell 282,11 86x25
-                  text role=textbox "Link" 290,15 30x17 readonly lines 1-1/1
+                  text role=textbox "Link" 290,15 70x17 readonly lines 1-1/1
                 el role=cell 368,11 123x25
                   text role=textbox "[a](#tables)" 376,15 107x17 readonly lines 1-1/1
                 el role=cell 491,11 82x25
-                  text role=textbox "a" 555,15 10x17 readonly lines 1-1/1
-                    el #link-0 role=link label="a" 555,15 7.88x17 value="#tables"
+                  text role=textbox "a" 499,15 66x17 readonly lines 1-1/1
+                    el #link-0 role=link label="a" 556.63,15 7.88x17 value="#tables"
         el 281,57 646x61 pos=33/39
           el 281,81 646x29
             text #heading-images role=heading "Images" 281,81 646x28 readonly level=2 lines 1-1/1

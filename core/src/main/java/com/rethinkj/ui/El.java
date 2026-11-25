@@ -1876,7 +1876,11 @@ public final class El {
    * default), in the center or at the end, as CSS's {@code text-align} does, for a text of one
    * line and for one that {@link #wrapText wraps}, also where a line ends in an {@link #ellipsis}:
    * an empty state's centered message, a column of numbers aligned at the right. Each line on its
-   * own, on the grid of glyph positions. Text fields, which scroll their lines, start at the left.
+   * own, on the grid of glyph positions. A {@link #multiline} field that {@link #wrapText wraps}
+   * aligns each of its rows the same way, with its caret, selection, hit testing, marks and {@link
+   * #range range} elements at the aligned positions; other text fields, which scroll their lines
+   * sideways, start at the left. Its {@link #lineEnds line-end elements} follow the aligned end of
+   * a line, where a line at the end leaves them no room.
    *
    * @param align {@link Style.Align#START}, {@link Style.Align#CENTER} or {@link Style.Align#END}
    */

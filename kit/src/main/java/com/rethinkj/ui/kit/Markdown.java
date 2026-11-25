@@ -1354,7 +1354,6 @@ public final class Markdown {
       }
       cells.add(pieces);
     }
-    float[][] measured = new float[cells.size()][columns];
     for (int r = 0; r < cells.size(); r++) {
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
@@ -1370,7 +1369,6 @@ public final class Markdown {
               .fontSize(style.size())
               .highlight(piece, piece));
         }
-        measured[r][j] = width;
         widths[j] = Math.max(widths[j], Math.min(width + 2, theme.prose().measure() / 2));
       }
     }
@@ -1387,28 +1385,28 @@ public final class Markdown {
       }
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
-        Style.Content justify = switch (table.aligns().get(j)) {
-          case CENTER -> Style.Content.CENTER;
-          case RIGHT -> Style.Content.END;
-          default -> Style.Content.START;
-        };
         El cell;
         if (piece == null) {
           List<Inline> content =
               r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
+          Style.Content justify = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Content.CENTER;
+            case RIGHT -> Style.Content.END;
+            default -> Style.Content.START;
+          };
           cell = imageRow(c, imagesOnly(content)).justify(justify).w(widths[j]);
         } else {
-          cell = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]);
-          float preferred = measured[r][j] + 2;
-          if (preferred < widths[j]) {
-            cell.w((float) Math.ceil(preferred));
-          }
+          Style.Align align = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Align.CENTER;
+            case RIGHT -> Style.Align.END;
+            default -> Style.Align.START;
+          };
+          cell = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]).textAlign(align);
         }
         line.child(row()
             .role(r == 0 ? "columnheader" : "cell")
             .w(widths[j] + 2 * pad)
             .shrink(0)
-            .justify(justify)
             .padding(theme.space().s(), pad)
             .child(cell));
       }
