@@ -2742,12 +2742,12 @@ public final class App<S> {
       return false;
     }
     List<El> path = fromOverlay(full); // the areas around an overlay stay where they are
-    float coveredTo = Float.NEGATIVE_INFINITY;
+    int coverAt = -1;
     float coverY = 0;
     for (int j = 0; cover != null && covered > 0 && j < path.size(); j++) {
       coverY += path.get(j).y();
       if (path.get(j) == cover) {
-        coveredTo = Math.max(coverY, 0) + covered; // an overlay stays in the window
+        coverAt = j;
         break;
       }
     }
@@ -2757,6 +2757,10 @@ public final class App<S> {
       if (!area.isScrollArea()) {
         continue;
       }
+      // The bar lies at the cover's top, which the areas inside it leave in place; an area around
+      // it moves both, and the bar stops at the window's top, so it is to clear that.
+      float coveredTo =
+          coverAt < 0 ? Float.NEGATIVE_INFINITY : i >= coverAt ? coverY + covered : covered;
       float areaX = 0;
       float areaY = 0;
       for (int j = 0; j <= i; j++) {

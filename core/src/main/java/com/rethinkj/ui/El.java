@@ -120,10 +120,11 @@ public final class El {
   private double scrollY;
   private double maxScrollX;
   private double maxScrollY;
-  // How far the offsets reach past the content, for the bars that lie over its end; see
-  // measureScrolls.
+  // How far the offsets reach past the content, for bars over its end and a selection scope's
+  // coveredTop over its start; see measureScrolls.
   private float coverX;
   private float coverY;
+  private float coverTop;
   private float shiftX;
   private float shiftY;
   private Rows rows; // the state of a virtual list, null unless rows(...) made this element one
@@ -3224,11 +3225,11 @@ public final class El {
   }
 
   /**
-   * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
-   * such as a find bar: as far as that reaches into its content box, the field can scroll above
-   * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
-   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set. On a
-   * {@link #selectionScope}, only a selection the app makes in it scrolls into view below it.
+   * How far down from its top something lies over a {@link #multiline} field or a {@link
+   * #selectionScope}, in logical pixels, such as a find bar: as far as that reaches into its
+   * content box (or the content box of the scope's vertical scroll area), it can scroll above its
+   * first row, and a selection the app makes ({@link App#select}) scrolls into view below it. The
+   * thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set.
    */
   public El coveredTop(float height) {
     if (height < 0 || Float.isNaN(height)) {
@@ -3248,16 +3249,19 @@ public final class El {
     return scopeCoveredTop;
   }
 
-  /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */
+  /**
+   * How far a multi-line field or a covered selection scope's vertical scroll area can scroll
+   * above its first row; see {@link #coveredTop}.
+   */
   float coveredContent() {
-    if (field == null || field.coveredTop <= 0 || text == null || !text.multiline()) {
-      return 0;
+    if (field != null && field.coveredTop > 0 && text != null && text.multiline()) {
+      float covered = field.coveredTop - border(Side.TOP) - padding(Side.TOP);
+      return Math.max(covered > 0 ? covered : 0, coverTop); // 0 also for a NaN padding
     }
-    float covered = field.coveredTop - border(Side.TOP) - padding(Side.TOP);
-    return covered > 0 ? covered : 0; // 0 also for a NaN padding
+    return coverTop;
   }
 
-  /** The least vertical offset: 0, or less for a field that can scroll above its first row. */
+  /** The least vertical offset: 0, or less when this area can scroll above its first row. */
   private double minScrollY() {
     float covered = coveredContent();
     return covered > 0 ? -covered : 0; // never -0.0, which a test of the top would see
@@ -4263,7 +4267,9 @@ public final class El {
    * CENTER} or {@code END}, or {@code STRETCH} for {@code START} and at least as wide as the anchor
    * (as tall, beside it). Where it does not fit into the window there, it goes to the other side,
    * and along the side to the other end; where it fits neither way, it moves into the window as
-   * far as it needs. In a {@link #modal} overlay, such as a dialog, it keeps inside that overlay
+   * far as it needs. With a negative {@code gap}, placing the overlay inside its anchor, it does
+   * not flip to the other side when it does not fit, and moves into the window instead. In a {@link
+   * #modal} overlay, such as a dialog, it keeps inside that overlay
    * along the side as well: at {@code START} or {@code END} it takes the end that fits into it, else it moves into it as far as
    * the window lets it, over its middle where it is wider. The default is below the anchor at its
    * start, 0 away.
@@ -5258,8 +5264,8 @@ public final class El {
 
   /**
    * The vertical offset of this scroll area: how far its content is moved up, 0 at the top, less
-   * for a field scrolled above its first row ({@link #coveredTop}). It is a double, exact for the
-   * integers of a list of rows billions of pixels tall.
+   * for a field or covered scope scrolled above its first row ({@link #coveredTop}). It is a
+   * double, exact for the integers of a list of rows billions of pixels tall.
    */
   public double scrollY() {
     return scrollY;
@@ -5357,7 +5363,7 @@ public final class El {
    */
   static void measureScrolls(El root) {
     float far = Float.POSITIVE_INFINITY;
-    root.measureScrolls(0, 0, far, far, far, far);
+    root.measureScrolls(0, 0, far, far, far, far, Float.NEGATIVE_INFINITY);
   }
 
   /**
@@ -5367,6 +5373,8 @@ public final class El {
    * @param barTop likewise the top edge of the strips of horizontal bars
    * @param clipRight the right edge of the padding boxes those bars lie in
    * @param clipBottom the bottom edge of those padding boxes
+   * @param coverBottom the bottom edge of an enclosing selection scope's {@link #coveredTop}, in
+   *     layout coordinates from the root, or negative infinity for none
    */
   private void measureScrolls(
       float parentX,
@@ -5374,15 +5382,27 @@ public final class El {
       float barLeft,
       float barTop,
       float clipRight,
-      float clipBottom) {
+      float clipBottom,
+      float coverBottom) {
     coverX = 0;
     coverY = 0;
+    coverTop = 0;
     if (!placed) {
       return;
     }
     measureScroll();
     float x = parentX + this.x;
     float y = parentY + this.y;
+    if (selectionScope && scopeCoveredTop > 0) {
+      coverBottom = Math.max(coverBottom, y + scopeCoveredTop);
+    }
+    if (coverBottom > Float.NEGATIVE_INFINITY
+        && scrollArea
+        && style.overflowY == Style.Overflow.SCROLL) {
+      float covered = coverBottom - (y + border(Side.TOP) + padding(Side.TOP));
+      coverTop = covered > 0 ? covered : 0; // 0 also for a NaN padding
+      coverBottom = Float.NEGATIVE_INFINITY; // inner scroll areas move with this one's content
+    }
     float right = x + width - border(Side.RIGHT);
     float bottom = y + height - border(Side.BOTTOM);
     boolean wide = maxScrollX > 0;
@@ -5420,7 +5440,7 @@ public final class El {
       }
     }
     for (El child : children) {
-      child.measureScrolls(x, y, barLeft, barTop, clipRight, clipBottom);
+      child.measureScrolls(x, y, barLeft, barTop, clipRight, clipBottom, coverBottom);
     }
     if (overlays != null) { // each laid out as a root of its own, under no bar of this tree
       for (El overlay : overlays) {
