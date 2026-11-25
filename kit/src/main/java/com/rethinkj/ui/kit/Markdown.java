@@ -132,10 +132,11 @@ public final class Markdown {
     /**
      * Makes a {@link #fragment} a virtual list of its blocks ({@link El#rows(int, RowHeights,
      * java.util.function.IntFunction)}) as high as they are, which builds and lays out only the
-     * blocks in view of the scroll area around it: for a long document in a scroll area, or in a
-     * row of a virtual list such as a chat transcript, where a rebuild then costs what is in view
-     * and not the whole document. Selecting, finding and copying reach the blocks out of view as
-     * well. Its container gives it its width, as for any virtual list.
+     * blocks in view: for a long document in a row of a virtual list with {@link RowHeights}, such
+     * as a chat transcript, where a rebuild then costs what is in view and not the whole document.
+     * That list grows the row with the blocks it measures, and a selection scope around it reaches
+     * the blocks out of view for selecting, finding and copying. For a long document of its own,
+     * use {@link #markdown}. Its container gives it its width, as for any virtual list.
      */
     public Options virtual() {
       this.virtual = true;
@@ -664,8 +665,8 @@ public final class Markdown {
       kept[i] = old.heights.height(i);
     }
     // Likewise the rows of a virtual fragment, one per block.
-    double[] keptBlocks =
-        new double[Math.min(reused, Math.min(oldBlocks.size() - 1, old.blockHeights.count()))];
+    double[] keptBlocks = new double
+        [Math.max(0, Math.min(reused, Math.min(oldBlocks.size() - 1, old.blockHeights.count())))];
     for (int i = 0; i < keptBlocks.length; i++) {
       keptBlocks[i] = old.blockHeights.height(i);
     }
