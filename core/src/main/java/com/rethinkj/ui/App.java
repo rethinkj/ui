@@ -2900,19 +2900,18 @@ public final class App<S> {
     } else if (!scan) {
       return null;
     }
-    for (int row = step > 0 ? from : to - 1; row >= from && row < to; row += step) {
+    for (int row = step > 0 ? from : to - 1; row >= from && row < to && tabScan > 0; row += step) {
       int budget = tabScan;
       if (stopsTab(list.rowElement(row), step, true)) {
         built[0] = true;
+        int spent = budget - tabScan;
         tabScan = budget - 1; // the row is looked at again where it is built
         El found = inRow(listId, row, step);
         list = animator.element(listId);
         if (found != null || list == null) {
           return found;
         }
-      }
-      if (tabScan <= 0) {
-        break;
+        tabScan -= spent - 1; // in vain: the probe counts after all
       }
     }
     return null;
@@ -2962,11 +2961,11 @@ public final class App<S> {
     }
     if (!list.hasRow(row)) {
       boolean moved = list.scrollTo(list.scrollX(), list.offsetShowing(row));
-      // A list as high as its rows shows the row by the areas around it.
+      keyRevealed(listId, moved);
+      // A list as high as its rows shows the row by the areas around it, which reveal tells.
       float[] box = list.rowBox(row);
       moved |= reveal(list, 0, box[0], list.width(), box[1], false, null, 0);
       scrolled |= moved;
-      keyRevealed(listId, moved);
       fillRows();
       placeEditors(false, false); // the parts of its fields, which Tab may enter
       if (editFirst(true, false, toldSizes)) { // before Tab selects in the field: a tree anew

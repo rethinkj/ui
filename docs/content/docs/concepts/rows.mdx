@@ -33,7 +33,7 @@ description: Render lists of up to a million rows efficiently using virtual scro
 | `app.scrollToRow(list, row)` | Programmatically scrolls to a row from a handler |
 | `coverY()` | After layout, returns how much of the list's bottom a horizontal scrollbar covers |
 
-Give the list a height (or `grow(1)`) and give each row a key (such as `row-<index>`). In headless scripts, scroll to a row before clicking it (`scroll #rows row 765432`), since only built rows appear in the tree. **Tab** and **Shift+Tab** still reach the focusable elements of rows that are not built: the list builds the row that holds the next one and scrolls it into view. Tab into a list goes to the row that last had the focus there, else to the first row in view.
+Give the list a height (or `grow(1)`) and give each row a key (such as `row-<index>`). In headless scripts, scroll to a row before clicking it (`scroll #rows row 765432`), since only built rows appear in the tree. **Tab** and **Shift+Tab** still reach the focusable elements of rows that are not built: the list builds the row that holds the next one and scrolls it into view. Tab into a list goes to the row that last had the focus there, else to the first row in view. One press looks at up to 2,048 rows that are not built, so it passes a focusable element further away.
 
 ## Variable-height rows
 
