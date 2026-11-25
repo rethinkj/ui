@@ -92,13 +92,23 @@ final class Callbacks {
 
   static final MemorySegment REQUEST_ADAPTER =
       stub("requestAdapter", Wgpu.REQUEST_ADAPTER_CALLBACK);
-  static final MemorySegment REQUEST_DEVICE = stub("requestDevice", Wgpu.REQUEST_DEVICE_CALLBACK);
-  static final MemorySegment UNCAPTURED_ERROR =
-      stub("uncapturedError", Wgpu.UNCAPTURED_ERROR_CALLBACK);
-  static final MemorySegment DEVICE_LOST = stub("deviceLost", Wgpu.DEVICE_LOST_CALLBACK);
-  static final MemorySegment POP_ERROR_SCOPE = stub("popErrorScope", Wgpu.POP_ERROR_SCOPE_CALLBACK);
-  static final MemorySegment BUFFER_MAP = stub("bufferMap", Wgpu.BUFFER_MAP_CALLBACK);
   static final MemorySegment LOG = stub("log", Wgpu.LOG_CALLBACK);
+
+  /**
+   * The stubs for devices and their buffers, made after the adapter's: {@link Wgpu#linkAhead}
+   * makes them while wgpu looks for the adapter.
+   */
+  static final class Devices {
+    private Devices() {}
+
+    static final MemorySegment REQUEST = stub("requestDevice", Wgpu.REQUEST_DEVICE_CALLBACK);
+    static final MemorySegment UNCAPTURED_ERROR =
+        stub("uncapturedError", Wgpu.UNCAPTURED_ERROR_CALLBACK);
+    static final MemorySegment LOST = stub("deviceLost", Wgpu.DEVICE_LOST_CALLBACK);
+    static final MemorySegment POP_ERROR_SCOPE =
+        stub("popErrorScope", Wgpu.POP_ERROR_SCOPE_CALLBACK);
+    static final MemorySegment BUFFER_MAP = stub("bufferMap", Wgpu.BUFFER_MAP_CALLBACK);
+  }
 
   private static final System.Logger LOGGER = System.getLogger("com.rethinkj.ui.gpu");
 

@@ -106,7 +106,8 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
    * Starts making what the first presenter needs, the device and the pipeline, on a thread of its
    * own, so that it is ready when that presenter draws: {@link Window#open} calls this, and the
    * work then overlaps with opening the window. An app may call it sooner, as at the start of its
-   * {@code main}, to overlap it with its own start as well. Does nothing while that work runs or a
+   * {@code main}, to overlap it with its own start as well, unless {@code main} runs a script
+   * instead ({@link com.rethinkj.ui.Script#handle}), which would make a device it never uses. Does nothing while that work runs or a
    * presenter is open; never needed, and what fails there is thrown by the presenter instead.
    */
   public static void prepare() {

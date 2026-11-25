@@ -267,9 +267,9 @@ class CodeFoldingTest {
             size 480 240
             frame
             focus #code
-            key ArrowDown
-            key ArrowDown
-            key ArrowDown
+            key ArrowDown shift
+            key ArrowDown shift
+            key ArrowDown shift
             key [ control shift
             frame
             """, roApp, out);
