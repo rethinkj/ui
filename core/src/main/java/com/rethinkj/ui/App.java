@@ -3059,7 +3059,8 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
-      stale |= tellUnfolds()
+      stale |= endsMoved(root)
+          | tellUnfolds()
           | tellSelections() // of fields in those rows, which the rebuild shows
           | tellFocusIn()
           | tellRevealedScrolls()
@@ -3160,7 +3161,7 @@ public final class App<S> {
     resizeDue = false;
     try {
       build(false, true);
-      while (resizeRounds < RESIZE_ROUNDS && !resized.isEmpty()) {
+      while (resizeRounds < RESIZE_ROUNDS && (!resized.isEmpty() || endsMoved(root))) {
         resizeRounds++;
         keyScroll = false; // what onResize handlers change is not the key's
         tellResized();
@@ -4586,6 +4587,27 @@ public final class App<S> {
     }
     path.removeLast();
     return built;
+  }
+
+  /**
+   * Whether layout or scrolling changed what {@link ScrollState#atEnd} told the view of an area at
+   * or below {@code el}; forgets what it told those, so that a view that does not ask again is not
+   * built again for it.
+   */
+  private static boolean endsMoved(El el) {
+    boolean moved = false;
+    ScrollState state = el.scrollState();
+    if (state != null && state.el == el && state.told && state.atEnd != state.toldAtEnd) {
+      state.told = false;
+      moved = true;
+    }
+    for (El child : el.children()) {
+      moved |= endsMoved(child);
+    }
+    for (El overlay : el.overlays()) {
+      moved |= endsMoved(overlay);
+    }
+    return moved;
   }
 
   /** Collects the {@link El#onResize} handlers below {@code el} whose element has a new size. */

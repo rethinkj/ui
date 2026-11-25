@@ -393,10 +393,6 @@ public final class Chat {
         .padding(theme.space().m(), theme.space().xl())
         .scrollbars(theme.scrollbars())
         .scrollState(scroll)
-        // Both build the view again, so that the jump button follows atEnd(): one after the user
-        // scrolled, the other after a resize or a scroll by the app changed the rows in view.
-        .onUserScroll(() -> {})
-        .onRowsInView((first, last) -> {})
         .rows(count, heights, index -> {
           El at = Objects.requireNonNull(message.apply(index), "message").wFull();
           at.style().maxWidth = Len.px(measure);

@@ -332,10 +332,6 @@ class ChatTest {
         app.tree().dump());
     Golden.assertSnaps("chat-transcript-dark-2x-", scrolledFiles, "scrolled");
 
-    // The wheel over the button scrolls the transcript.
-    Script.run("wheel role=button label=\"Jump to newest\" 0 20\nframe", app, out);
-    assertEquals(stayedAt + 20, state.scroll.y(), 0.5);
-
     // Pressing the floating button jumps back to the end, hides the button, and resumes following.
     List<Path> bottomFiles = Script.run(
         "press role=button label=\"Jump to newest\"\nframe\nadvance 1\nframe\nsnap bottom",
@@ -345,6 +341,17 @@ class ChatTest {
     assertFalse(
         app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
     Golden.assertSnaps("chat-transcript-dark-2x-", bottomFiles, "bottom");
+
+    // The wheel over the button scrolls the transcript, and the button goes at the end.
+    Script.run("wheel role=log 0 -60\nframe\nadvance 1\nframe", app, out);
+    double away = state.scroll.y();
+    Script.run("wheel role=button label=\"Jump to newest\" 0 20\nframe", app, out);
+    assertEquals(away + 20, state.scroll.y(), 0.5);
+    Script.run(
+        "wheel role=button label=\"Jump to newest\" 0 2000\nframe\nadvance 1\nframe", app, out);
+    assertTrue(state.scroll.atEnd());
+    assertFalse(
+        app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
 
     // At the top it asks for older messages, and those that arrive keep the first one in view: it
     // moves up by the padding above it, which scrolls away.
