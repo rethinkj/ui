@@ -1286,6 +1286,14 @@ public final class App<S> {
     final Object endRowKey;
     final Object anchorFieldId;
     final Object endFieldId;
+    // The selected text, its occurrence in its row, the row's number of fields and the text of the
+    // field it starts in, recorded when first told (new endpoints make a new selection) so a row
+    // whose fields reshape (a paragraph becoming a table) still finds the same text; "" when
+    // skipped.
+    String text;
+    int occurrence;
+    int fields;
+    String field;
 
     ScopeSelection(
         Object scopeId,
@@ -4438,7 +4446,86 @@ public final class App<S> {
     }
     ScopeIndex index = scopeIndex(scope);
     ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
-    return new Object[] {s.scopeId, index.offset(s.end), index.offset(anchor), index.text()};
+    int caret = index.offset(s.end);
+    int from = index.offset(anchor);
+    int[] tracked = trackInRow(s, index, caret, from);
+    if (tracked != null) {
+      caret = tracked[0];
+      from = tracked[1];
+      stale |= s == scopeSelection; // its fields' ranges come from the next build
+    }
+    return new Object[] {s.scopeId, caret, from, index.text()};
+  }
+
+  /**
+   * Keeps a scope selection inside one keyed row on its text when the row's fields reshape: while
+   * the row has as many fields as it had or the field it starts in is as it was, records the
+   * selected text and its occurrence in the row; once both changed, moves {@code s} onto that
+   * occurrence. Returns {@code {caret, from}} when moved, else null. shortcut: a reshape is told by
+   * the row's number of fields and the field's text, so one that keeps either keeps the offsets;
+   * compare the field's identity within its row when that shows.
+   */
+  private static int[] trackInRow(ScopeSelection s, ScopeIndex index, int caret, int from) {
+    if (!s.anchorFrom.inRows() || s.anchorFrom.row() != s.end.row() || s.anchorRowKey == null) {
+      if (s.text == null) {
+        s.text = "";
+      }
+      return null;
+    }
+    if ("".equals(s.text)) {
+      return null;
+    }
+    int start = Math.min(from, caret);
+    int finish = Math.max(from, caret);
+    String text = index.text();
+    int[] span = index.rowSpan(s.anchorFrom.row());
+    if (span == null) {
+      return null;
+    }
+    String field = index.fieldText(s.start());
+    if (s.text == null || span[2] == s.fields || (field != null && field.equals(s.field))) {
+      if (s.text == null) {
+        if (start >= finish || start < span[0] || finish > span[1]) {
+          s.text = "";
+          return null;
+        }
+        s.text = text.substring(start, finish);
+      }
+      s.fields = span[2];
+      s.field = field;
+      s.occurrence = 0;
+      for (int i = text.indexOf(s.text, span[0]);
+          i >= 0 && i < start;
+          i = text.indexOf(s.text, i + 1)) {
+        s.occurrence++;
+      }
+      return null;
+    }
+    int found = -1;
+    int at = span[0];
+    for (int n = 0; n <= s.occurrence; n++) {
+      at = text.indexOf(s.text, at);
+      if (at < 0 || at + s.text.length() > span[1]) {
+        return null;
+      }
+      found = at;
+      at++;
+    }
+    int foundEnd = found + s.text.length();
+    ScopePosition startPos = index.position(index.fieldAt(found), found);
+    ScopePosition endPos = index.position(index.fieldAt(foundEnd), foundEnd);
+    s.fields = span[2];
+    s.field = index.fieldText(startPos);
+    if (s.forward()) {
+      s.anchorFrom = startPos;
+      s.anchorTo = startPos;
+      s.end = endPos;
+      return new int[] {index.offset(endPos), index.offset(startPos)};
+    }
+    s.anchorFrom = endPos;
+    s.anchorTo = endPos;
+    s.end = startPos;
+    return new int[] {index.offset(startPos), index.offset(endPos)};
   }
 
   /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
@@ -5803,6 +5890,31 @@ public final class App<S> {
     int indexOf(int row, int ordinal) {
       int i = slot(row, ordinal);
       return i >= 0 ? i : -1;
+    }
+
+    /** The text of the field {@code position} is in, or null if it is not in the index. */
+    String fieldText(ScopePosition position) {
+      int i = indexOf(position.row(), position.field());
+      return i < 0 ? null : text.substring(starts[i], end(i));
+    }
+
+    /**
+     * {@code {start, end, fields}} of row {@code row}: its text in {@link #text} and its number of
+     * fields, or null if it has none.
+     */
+    int[] rowSpan(int row) {
+      int first = slot(row, 0);
+      if (first < 0) {
+        first = ~first;
+      }
+      if (first >= starts.length || rows[first] != row) {
+        return null;
+      }
+      int after = slot(row + 1, 0);
+      if (after < 0) {
+        after = ~after;
+      }
+      return new int[] {starts[first], end(after - 1), after - first};
     }
 
     /** The field at {@code (row, ordinal)}, or {@code ~insertionPoint} if it is not in the index. */
