@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
@@ -301,8 +302,10 @@ public final class App<S> {
   // Cached field identity -> whole-width ordinal for rows of spans lists, cleared per build/frame.
   private final Map<El, Map<Integer, Map<Object, Integer>>> rowOrdinalCache =
       new IdentityHashMap<>();
-  // By list in a row of a scope's list and row: its fields; see fieldsInRow.
+  // By list in a row of a scope's list and row: its fields; see fieldsInRow. With a version, by
+  // the list's heights and the row's key: the count and the version it is for.
   private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new IdentityHashMap<>();
+  private final Map<RowHeights, Map<Object, Object[]>> keptFieldCounts = new WeakHashMap<>();
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -4962,7 +4965,7 @@ public final class App<S> {
         El whole = list.rowElement(caretPos.row());
         if (whole != null) {
           List<El> rowFields = new ArrayList<>();
-          collectRowFields(whole, true, rowFields);
+          collectRowFields(whole, true, rowFields, true);
           El wholeTarget = caretPos.field() >= 0 && caretPos.field() < rowFields.size()
               ? rowFields.get(caretPos.field())
               : null;
@@ -4986,10 +4989,16 @@ public final class App<S> {
       }
       // In a row not built of a list in the row, as high as its rows: that row scrolls into view,
       // and again once the rows above it are measured.
-      for (int pass = 0; target == null && list != null && caretPos.inRows() && pass < 3; pass++) {
-        Object[] inner = list.hasRow(caretPos.row())
-            ? unbuiltRowOf(list.children().get(caretPos.row() - list.firstRow()), caretPos.field())
-            : null;
+      for (int pass = 0; target == null && list != null && caretPos.inRows() && pass < 8; pass++) {
+        if (!list.hasRow(caretPos.row())) { // measured rows moved it out: back to it
+          list.scrollTo(list.scrollX(), list.offsetShowing(caretPos.row()));
+          scrolled = true;
+          fillRows();
+          target = builtScopeRowField(list, caretPos.row(), caretPos.field());
+          continue;
+        }
+        Object[] inner =
+            unbuiltRowOf(list.children().get(caretPos.row() - list.firstRow()), caretPos.field());
         if (inner == null) {
           break;
         }
@@ -5423,7 +5432,7 @@ public final class App<S> {
         if (list != null && list.spansRows()) {
           ordinal = rowFieldOrdinal(list, scopeSelection.listId, row, null, el, id);
         } else {
-          El container = rowRootOn(path);
+          El container = rowRootOn(path, scopeSelection.listId);
           if (container == null) {
             return false;
           }
@@ -5440,6 +5449,17 @@ public final class App<S> {
     }
     editor.setRange(range[0], range[1], false);
     return true;
+  }
+
+  /** The row element on {@code path} directly below the list with identity {@code listId}. */
+  private static El rowRootOn(List<El> path, Object listId) {
+    List<Object> ids = Animator.identities(path);
+    for (int i = 0; i + 1 < path.size(); i++) {
+      if (listId.equals(ids.get(i))) {
+        return path.get(i + 1);
+      }
+    }
+    return rowRootOn(path);
   }
 
   /** The row element on {@code path} directly below a virtual list, or null. */
@@ -5622,7 +5642,7 @@ public final class App<S> {
           continue;
         }
         rowFields.clear();
-        collectRowFields(rowEl, true, rowFields);
+        collectRowFields(rowEl, true, rowFields, true);
         for (int ord = 0; ord < rowFields.size(); ord++) {
           El field = rowFields.get(ord);
           if (field != null) {
@@ -5711,11 +5731,7 @@ public final class App<S> {
         if (rowEl == null) {
           return null;
         }
-        El target = Animator.find(rowEl, Animator.row(listId, row), focus.id());
-        if (target == null) {
-          return null;
-        }
-        ordinal = fieldOrdinalIn(rowEl, target);
+        ordinal = ordinalIn(rowEl, Animator.row(listId, row), focus.id(), new int[] {0});
       }
       return ordinal < 0 ? null : new ScopePosition(row, ordinal, waiting.anchor());
     }
@@ -5816,14 +5832,14 @@ public final class App<S> {
    * every row of its virtual list, building those that are not, else only the built rows, whose
    * ordinals in a list that builds the columns in view are those of the columns built.
    */
-  private static void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
+  private void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
     if (numbered(scope) && scope.opacity() != 0) {
       walkScope(
           scope, scopeList(scope), new int[] {ScopePosition.BEFORE, 0}, true, unbuilt, visitor);
     }
   }
 
-  private static void walkScope(
+  private void walkScope(
       El el, El list, int[] pos, boolean shown, boolean unbuilt, ScopeFieldVisitor visitor) {
     if (!numbered(el)) {
       return;
@@ -5849,7 +5865,7 @@ public final class App<S> {
             continue;
           }
           rowFields.clear();
-          collectRowFields(rowEl, true, rowFields);
+          collectRowFields(rowEl, true, rowFields, unbuilt);
           String[] read = new String[rowFields.size()];
           for (int ord = 0; ord < read.length; ord++) {
             El field = rowFields.get(ord);
@@ -5992,10 +6008,10 @@ public final class App<S> {
    * its rows with the same function, so the next match need not read every row again.
    */
   private ScopeIndex scopeIndex(El scope) {
-    return scopeIndexes.computeIfAbsent(scope, App::indexScope);
+    return scopeIndexes.computeIfAbsent(scope, this::indexScope);
   }
 
-  private static ScopeIndex indexScope(El scope) {
+  private ScopeIndex indexScope(El scope) {
     StringBuilder text = new StringBuilder();
     List<int[]> places = new ArrayList<>();
     List<El> fields = new ArrayList<>();
@@ -6030,7 +6046,7 @@ public final class App<S> {
     }
     El rowEl = list.children().get(row - list.firstRow());
     List<El> rowFields = new ArrayList<>();
-    collectRowFields(rowEl, true, rowFields);
+    collectRowFields(rowEl, true, rowFields, false);
     if (list.spansRows()) { // the ordinal counts the columns of the whole width
       Object listId = animator.identity(list);
       for (El field : rowFields) {
@@ -6135,7 +6151,12 @@ public final class App<S> {
    * Collects the read-only, unmasked fields inside one virtual list row in tree order, null for
    * one under {@code opacity(0)}, which keeps its ordinal but copies nothing.
    */
-  private static void collectRowFields(El el, boolean shown, List<El> out) {
+  /**
+   * Collects the read-only fields inside {@code el} in order, null for a hidden one. A list in a
+   * row adds the fields of all its rows: those not built as its row function builds them with
+   * {@code build}, else as nulls, as many as they have.
+   */
+  private void collectRowFields(El el, boolean shown, List<El> out, boolean build) {
     if (!numbered(el)) {
       return;
     }
@@ -6143,17 +6164,21 @@ public final class App<S> {
     if (isScopeFieldCandidate(el)) {
       out.add(shown ? el : null);
     }
-    if (el.isVirtualList()) { // a list in a row: all its rows, those not built as its function does
+    if (el.isVirtualList()) {
       for (int row = 0; row < el.rowCount(); row++) {
-        El rowEl = el.rowElement(row);
-        if (rowEl != null) {
-          collectRowFields(rowEl, shown, out);
+        if (build || el.hasRow(row)) {
+          El rowEl = el.rowElement(row);
+          if (rowEl != null) {
+            collectRowFields(rowEl, shown, out, build);
+          }
+        } else {
+          out.addAll(Collections.nCopies(fieldsInRow(el, row), null));
         }
       }
       return;
     }
     for (El child : el.children()) {
-      collectRowFields(child, shown, out);
+      collectRowFields(child, shown, out, build);
     }
   }
 
@@ -6200,19 +6225,74 @@ public final class App<S> {
    * list, as its row function builds it: counted once per tree.
    */
   private int fieldsInRow(El list, int row) {
-    Map<Integer, Integer> counts =
-        unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>());
-    Integer count = counts.get(row);
-    if (count == null) {
-      List<El> fields = new ArrayList<>();
-      El rowEl = list.rowElement(row);
-      if (rowEl != null) {
-        collectRowFields(rowEl, true, fields);
+    RowHeights heights = list.rowHeights();
+    Object[] versions = list.rowVersions();
+    if (heights != null && versions != null && row < versions.length) {
+      // Kept across trees while the row's key and version stay, as its texts are; see RowHeights.
+      Map<Object, Object[]> byKey = keptFieldCounts.computeIfAbsent(heights, h -> new HashMap<>());
+      Object key = heights.key(row);
+      Object[] kept = byKey.get(key);
+      if (kept == null || !Objects.equals(kept[0], versions[row])) {
+        kept = new Object[] {versions[row], countFields(list, row)};
+        byKey.put(key, kept);
       }
-      count = fields.size();
-      counts.put(row, count);
+      return (Integer) kept[1];
     }
-    return count;
+    return unbuiltFieldCounts
+        .computeIfAbsent(list, ignored -> new HashMap<>())
+        .computeIfAbsent(row, r -> countFields(list, r));
+  }
+
+  private int countFields(El list, int row) {
+    List<El> fields = new ArrayList<>();
+    El rowEl = list.rowElement(row);
+    if (rowEl != null) {
+      collectRowFields(rowEl, true, fields, true);
+    }
+    return fields.size();
+  }
+
+  /**
+   * The ordinal of the field with identity {@code target} among the read-only fields inside row
+   * element {@code el} with identity {@code id}, counting the rows not built of the lists in it,
+   * or -1 if it is not inside: also for a field in such a row.
+   */
+  private int ordinalIn(El el, Object id, Object target, int[] ordinal) {
+    if (!numbered(el)) {
+      return -1;
+    }
+    if (id.equals(target)) {
+      return ordinal[0];
+    }
+    if (isScopeFieldCandidate(el)) {
+      ordinal[0]++;
+    }
+    if (el.isVirtualList()) {
+      int in = Animator.rowIn(target, id);
+      for (int row = 0; row < el.rowCount(); row++) {
+        if (row == in) {
+          El rowEl = el.rowElement(row);
+          return rowEl == null ? -1 : ordinalIn(rowEl, Animator.row(id, row), target, ordinal);
+        }
+        ordinal[0] += el.hasRow(row) ? builtFields(el.rowElement(row)) : fieldsInRow(el, row);
+      }
+      return -1;
+    }
+    List<El> children = el.children();
+    Object[] childIds = Animator.childIds(el, id);
+    for (int i = 0; i < children.size(); i++) {
+      int found = ordinalIn(children.get(i), childIds[i], target, ordinal);
+      if (found >= 0) {
+        return found;
+      }
+    }
+    return -1;
+  }
+
+  private int builtFields(El rowEl) {
+    List<El> fields = new ArrayList<>();
+    collectRowFields(rowEl, true, fields, false);
+    return fields.size();
   }
 
   /**
