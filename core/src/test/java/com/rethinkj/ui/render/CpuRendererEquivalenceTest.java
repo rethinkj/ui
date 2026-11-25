@@ -331,6 +331,7 @@ class CpuRendererEquivalenceTest {
     put(data, at + Scene.WIDTH, radial ? length(random, width) : position(random, width));
     put(data, at + Scene.HEIGHT, radial ? length(random, height) : position(random, height));
     data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_SHAPE, radial ? Scene.RADIAL : Scene.LINEAR);
+    put(data, at + Scene.GRADIENT_OPACITY, random.nextBoolean() ? 1 : random.nextFloat());
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.STOPS);
     color(data, at + Scene.FILL, random);
     color(data, at + Scene.BORDER, random);

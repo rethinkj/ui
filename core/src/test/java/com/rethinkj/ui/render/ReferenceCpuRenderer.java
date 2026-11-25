@@ -771,7 +771,9 @@ final class ReferenceCpuRenderer {
     double fromA = scene.get(i, Scene.FILL + 12);
     double rest = 1 - (fromA + (scene.get(i, Scene.BORDER + 12) - fromA) * s);
     double from = scene.get(i, Scene.FILL + channel * 4);
-    return from + (scene.get(i, Scene.BORDER + channel * 4) - from) * s + fill * rest;
+    return (from + (scene.get(i, Scene.BORDER + channel * 4) - from) * s)
+            * scene.get(i, Scene.GRADIENT_OPACITY)
+        + fill * rest;
   }
 
   /** Signed distance to a rounded rectangle centered on the origin; negative inside. */

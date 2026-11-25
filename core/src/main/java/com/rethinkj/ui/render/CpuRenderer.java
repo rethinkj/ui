@@ -243,7 +243,14 @@ public final class CpuRenderer {
 
   /** The {@link Scene#STOPS} of a gradient, which give its fill at each point. */
   private record Stops(
-      boolean radial, double x1, double y1, double x2, double y2, double[] from, double[] to) {
+      boolean radial,
+      double x1,
+      double y1,
+      double x2,
+      double y2,
+      double opacity,
+      double[] from,
+      double[] to) {
 
     static Stops of(Scene scene, int i) {
       return new Stops(
@@ -252,6 +259,7 @@ public final class CpuRenderer {
           scene.get(i, Scene.Y),
           scene.get(i, Scene.WIDTH),
           scene.get(i, Scene.HEIGHT),
+          scene.get(i, Scene.GRADIENT_OPACITY),
           color(scene, i, Scene.FILL),
           color(scene, i, Scene.BORDER));
     }
@@ -272,7 +280,7 @@ public final class CpuRenderer {
       double s = t * t * (3 - 2 * t);
       double rest = 1 - (from[3] + (to[3] - from[3]) * s);
       for (int c = 0; c < 4; c++) {
-        out[c] = from[c] + (to[c] - from[c]) * s + fill[c] * rest;
+        out[c] = (from[c] + (to[c] - from[c]) * s) * opacity + fill[c] * rest;
       }
       return out;
     }

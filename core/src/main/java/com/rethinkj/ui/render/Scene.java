@@ -368,11 +368,11 @@ import java.util.Map;
  *  8  x2           f32   the end (linear), or the horizontal radius (radial), more than 0
  * 12  y2           f32   the end (linear), or the vertical radius (radial), more than 0
  * 16  shape        u32   LINEAR, 0, or RADIAL, 1
- * 20  unused       u32   0
+ * 20  opacity      f32   the element's and its ancestors', which the rectangle's colors include
  * 24  clip         u32   0
  * 28  kind         u32   8, STOPS
- * 32  from        f32 x 4   r, g, b, a at the start or the center, as a fill
- * 48  to          f32 x 4   r, g, b, a at the end or beyond the radii
+ * 32  from        f32 x 4   r, g, b, a at the start or the center, without the opacity
+ * 48  to          f32 x 4   r, g, b, a at the end or beyond the radii, without the opacity
  * 64  unused      f32 x 8   0
  * </pre>
  *
@@ -384,7 +384,7 @@ import java.util.Map;
  * radial: t = min(|((p.x - x1) / x2, (p.y - y1) / y2)|, 1)
  * s       = t * t * (3 - 2 * t)
  * g       = from + (to - from) * s
- * fill    = g + rectangle's fill * (1 - g.a)
+ * fill    = g * opacity + rectangle's fill * (1 - g.a)
  * </pre>
  *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
@@ -535,6 +535,8 @@ public final class Scene {
 
   /** The slot of the {@link #STOPS} that says whether their gradient is linear or radial. */
   public static final int GRADIENT_SHAPE = 16;
+  /** The slot of the {@link #STOPS} with the opacity that the rectangle's colors include. */
+  public static final int GRADIENT_OPACITY = 20;
   /** A linear gradient in {@link #GRADIENT_SHAPE}. */
   public static final int LINEAR = 0;
   /** An elliptical radial gradient in {@link #GRADIENT_SHAPE}. */
@@ -848,10 +850,13 @@ public final class Scene {
       for (Segment segment : el.segments()) {
         segment(segment, left, top, opacity, inner);
       }
-      // A fill cut to an arc lies behind none of the content, or behind a part not known here.
-      float content = el.arcSweep() == 1 || el.fill() >>> 24 == 0
-          ? over(el.fill(), opacity, behind)
-          : el.arcSweep() == 0 ? behind : Float.NaN;
+      // A fill cut to an arc lies behind none of the content, or behind a part not known here; a
+      // background changes from point to point.
+      float content = el.background() != null
+          ? Float.NaN
+          : el.arcSweep() == 1 || el.fill() >>> 24 == 0
+              ? over(el.fill(), opacity, behind)
+              : el.arcSweep() == 0 ? behind : Float.NaN;
       if (el.text() != null) {
         for (El child : el.children()) {
           if (child.rangeBoxes() != null) {
@@ -1034,8 +1039,8 @@ public final class Scene {
         put(offset + WIDTH, l + resolve(linear.x2(), w));
         put(offset + HEIGHT, t + resolve(linear.y2(), h));
         data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE, LINEAR);
-        color(offset + FILL, linear.from(), opacity);
-        color(offset + BORDER, linear.to(), opacity);
+        color(offset + FILL, linear.from(), 1);
+        color(offset + BORDER, linear.to(), 1);
       }
       case Background.Radial radial -> {
         put(offset + X, l + resolve(radial.x(), w));
@@ -1043,11 +1048,11 @@ public final class Scene {
         put(offset + WIDTH, resolve(radial.radiusX(), w));
         put(offset + HEIGHT, resolve(radial.radiusY(), h));
         data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE, RADIAL);
-        color(offset + FILL, radial.inner(), opacity);
-        color(offset + BORDER, radial.outer(), opacity);
+        color(offset + FILL, radial.inner(), 1);
+        color(offset + BORDER, radial.outer(), 1);
       }
     }
-    data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE + 4, 0);
+    put(offset + GRADIENT_OPACITY, opacity);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, 0);
     data.set(ValueLayout.JAVA_INT, offset + KIND, STOPS);
     for (int slot = BORDER + 16; slot < STRIDE; slot += 4) {

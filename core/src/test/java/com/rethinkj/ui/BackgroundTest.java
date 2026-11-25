@@ -162,6 +162,12 @@ class BackgroundTest {
         }
       }
     }
+    // An opaque background hides the fill also at half the opacity.
+    Pixels half = render(card().opacity(0.5f).fill(0xFFFFFFFF).background(white));
+    Pixels flat = render(card().opacity(0.5f).fill(0xFFFFFFFF));
+    assertEquals(flat.argb(30, 20), half.argb(30, 20));
+    Pixels base = render(card().opacity(0.5f).fill(0xFF000000).background(white));
+    assertEquals(flat.argb(30, 20), base.argb(30, 20), "the fill under it shows through");
   }
 
   private static Pixels render(El card) {
