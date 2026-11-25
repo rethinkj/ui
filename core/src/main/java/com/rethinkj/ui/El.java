@@ -5816,7 +5816,14 @@ public final class El {
     double share = free > 0 ? Math.clamp(along / free, 0.0, 1.0) : 0;
     double min = vertical ? minScrollY() : 0;
     double max = vertical ? maxScrollY : maxScrollX;
-    double to = min + share * (max - min);
+    // Down to near the track's end, where a pointer at a fractional scale may stop: the end it asks
+    // for, while the list's last rows are estimated.
+    boolean end = vertical
+        && direction > 0
+        && free > 0
+        && orEnd(max) == Double.POSITIVE_INFINITY
+        && along >= free - Math.min(1, free / 4);
+    double to = end ? max : min + share * (max - min);
     double from = vertical ? scrollY : scrollX;
     if (direction == 0 || Math.signum(to - from) == -direction) {
       return false;
@@ -5824,8 +5831,6 @@ public final class El {
     if (!vertical) {
       return scrollTo(to, scrollY);
     }
-    // Near the track's end, where a pointer at a fractional scale may stop: the end it asks for.
-    boolean end = orEnd(max) == Double.POSITIVE_INFINITY && along >= free - Math.min(1, free / 4);
     return scrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
   }
 
