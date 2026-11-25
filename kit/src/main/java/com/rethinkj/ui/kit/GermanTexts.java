@@ -1024,4 +1024,19 @@ public class GermanTexts implements Texts {
   public String jumpToNewest() {
     return "Zum Neuesten";
   }
+
+  @Override
+  public String composerPlaceholder() {
+    return "Nachricht schreiben";
+  }
+
+  @Override
+  public String send() {
+    return "Senden";
+  }
+
+  @Override
+  public String stop() {
+    return "Stoppen";
+  }
 }

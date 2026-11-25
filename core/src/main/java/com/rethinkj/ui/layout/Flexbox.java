@@ -563,6 +563,10 @@ final class Flexbox {
       float basis = or(
           resolve(item.s.basis, basisM) + item.boxM,
           item.s.basis.isAuto() ? item.sizeM : Float.NaN);
+      float styleMin = or(item.minM, item.scrollsMain ? 0 : Float.NaN);
+      float fittedC =
+          some(basis) && some(styleMin) ? Float.NaN : fittedCross(item, knownItemC, spaceC);
+      float measureC = or(knownItemC, fittedC);
       if (some(basis)) {
         item.basisIsDefinite = true;
       } else if (crossIsDefinite && some(item.ratio) && some(knownItemC)) {
@@ -573,7 +577,8 @@ final class Flexbox {
         // C and E: the size of the content.
         basis = measureMain(
             item,
-            knownItemC,
+            measureC,
+            !some(fittedC),
             Float.NaN,
             innerC,
             availableM == MIN_CONTENT ? MIN_CONTENT : MAX_CONTENT,
@@ -584,11 +589,11 @@ final class Flexbox {
       item.innerBasis = item.basis - item.edgesM;
 
       // 4.5: the automatic minimum size is the min-content size, unless the item scrolls.
-      float styleMin = or(item.minM, item.scrollsMain ? 0 : Float.NaN);
       if (some(styleMin)) {
         item.minimumM = styleMin;
       } else {
-        float minContent = measureMain(item, knownItemC, Float.NaN, innerC, MIN_CONTENT, spaceC);
+        float minContent =
+            measureMain(item, measureC, !some(fittedC), Float.NaN, innerC, MIN_CONTENT, spaceC);
         item.minimumM = Math.max(min(min(minContent, item.sizeM), item.ratioMaxM), item.edgesM);
       }
 
@@ -711,7 +716,9 @@ final class Flexbox {
             if (item.align == Align.STRETCH && !item.fitsCross && !some(knownItemC)) {
               knownItemC = pixels(spaceC);
             }
-            float measured = measureMain(item, knownItemC, innerM, innerC, availableM, spaceC);
+            float fittedC = fittedCross(item, knownItemC, spaceC);
+            float measured = measureMain(
+                item, or(knownItemC, fittedC), !some(fittedC), innerM, innerC, availableM, spaceC);
             inner = max(measured, mainFromCross(knownItemC, item.ratio));
           }
           contribution =
@@ -1337,14 +1344,48 @@ final class Flexbox {
         height(spaceM, spaceC)));
   }
 
+  /**
+   * The width a column item that neither stretches nor has a width of its own is placed at, when a
+   * minimum width may decide it, so that its height is measured at that width; NaN otherwise. A
+   * maximum width needs nothing here: it already narrows the space the item is measured in.
+   */
+  private float fittedCross(Item item, float knownC, float spaceC) {
+    if (isRow
+        || some(knownC)
+        || !some(item.ratioMinC)
+        || item.stretches()
+        || (in.axis() == HORIZONTAL && !isWrap)) {
+      return Float.NaN;
+    }
+    float crossSpace = definite(spaceC) ? Math.max(spaceC, item.edgesC) : spaceC;
+    Out out = child(
+        item,
+        false,
+        HORIZONTAL,
+        false,
+        Float.NaN,
+        Float.NaN,
+        Float.NaN,
+        innerC,
+        availableM == MIN_CONTENT ? MIN_CONTENT : MAX_CONTENT,
+        crossSpace);
+    return Math.max(clamp(out.width(), item.ratioMinC, item.ratioMaxC), item.edgesC);
+  }
+
   /** The main size of an item's content under the given constraints. */
   private float measureMain(
-      Item item, float knownC, float parentM, float parentC, float spaceM, float spaceC) {
+      Item item,
+      float knownC,
+      boolean definite,
+      float parentM,
+      float parentC,
+      float spaceM,
+      float spaceC) {
     Out out = child(
         item,
         false,
         isRow ? HORIZONTAL : VERTICAL,
-        true,
+        definite,
         Float.NaN,
         knownC,
         parentM,

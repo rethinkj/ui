@@ -3685,10 +3685,11 @@ public final class El {
   /**
    * Gives {@code handler} the keys that go down while this element or one below it has the focus,
    * repeats included, before its ancestors get them. The handler returns whether it handled the
-   * key; if it did, nobody else sees it. Without focus, keys go to the root element only. Enter
-   * and Space press a focused element with an {@link #onPress} handler after its own key handler
-   * and before its ancestors', and Tab and Shift+Tab that nobody handles move the focus. Handlers
-   * run in {@link App#frame}, like {@link #onPress}.
+   * key; if it did, nobody else sees it. Without focus, keys go to the root element only. While a
+   * focused field has an input method's composition in progress, the field takes every key except
+   * Tab before any key handler runs. Enter and Space press a focused element with an {@link
+   * #onPress} handler after its own key handler and before its ancestors', and Tab and Shift+Tab
+   * that nobody handles move the focus. Handlers run in {@link App#frame}, like {@link #onPress}.
    */
   public El onKey(Predicate<Key> handler) {
     handlers().onKey = handler;

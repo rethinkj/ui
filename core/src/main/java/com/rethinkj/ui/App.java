@@ -1345,6 +1345,14 @@ public final class App<S> {
       capture = IDLE;
       return changed;
     }
+    El focused = focus.element();
+    if (focused != null
+        && focused.editor() != null
+        && !focused.editor().composition().isEmpty() // the input method has the keys
+        && focused.editor().key(key, clipboard)) {
+      handled |= focused.editor().answerPending();
+      return true;
+    }
     List<El> path = focusPath();
     boolean called = false;
     for (El el : path.reversed()) {

@@ -1,0 +1,1 @@
+- A column item that neither stretches nor has a width, such as an editable field under `alignSelf(START)`, is now as high as its content at its minimum width when that minimum decides how wide it is, instead of at the wider width available to it.
