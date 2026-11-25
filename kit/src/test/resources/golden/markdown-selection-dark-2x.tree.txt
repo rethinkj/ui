@@ -1,0 +1,23 @@
+el 0,0 480x280
+  el #markdown role=document 0,0 480x280 rows 0-4/5
+    el 24,24 432x29 pos=1/5
+      text role=paragraph "First paragraph with words." 24,24 432x17 readonly lines 1-1/1
+    el 24,53 432x19 pos=2/5
+      el role=list 24,53 432x19
+        el role=listitem 24,53 432x17 pos=1/2
+          text "•" 24,53 12x17
+          el 40,53 416x17
+            text role=paragraph "list item one" 40,53 416x17 readonly lines 1-1/1
+    el 24,72 432x29 pos=3/5
+      el role=list 24,72 432x29
+        el role=listitem 24,72 432x17 pos=2/2
+          text "•" 24,72 12x17
+          el 40,72 416x17
+            text role=paragraph "list item two" 40,72 416x17 readonly lines 1-1/1
+    el 24,101 432x54 pos=4/5
+      el role=group 24,101 432x42
+        text role=code label="sql" "SELECT id FROM orders;" 25,102 430x40 readonly lines 1-1/1 hovered focused caret 9 (1:10) anchor 0
+        el #copy role=button label="Copy code" 427,106 24x24
+          text label="copy" "\u{F32A}" 431,110 16x16
+    el 24,155 432x17 pos=5/5
+      text role=paragraph "Trailing paragraph." 24,155 432x17 readonly lines 1-1/1
