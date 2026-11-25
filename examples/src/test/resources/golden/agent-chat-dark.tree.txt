@@ -1,0 +1,290 @@
+el 0,0 1280x800
+  el window=drag 0,0 1280x32
+    el 0,0 1052x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{F339}" 11,11 10x10
+      text "Agent Chat" 32,8 70x16
+    el 1052,16 24x0
+    el 1076,0 66x32
+      el 1076,4 50x24
+        el role=button label="Toggle sessions" 1076,4 24x24 checked
+          text label="panel_left" "\u{E8AF}" 1080,8 16x16
+        el role=button label="Dark theme" 1102,4 24x24 checked
+          text label="weather_moon" "\u{EE44}" 1106,8 16x16
+      el 1126,16 16x0
+    el role=button label="Minimize" window=minimize 1142,0 46x32
+      text label="subtract" "\u{EBCE}" 1159,10 12x12
+    el role=button label="Maximize" window=maximize 1188,0 46x32
+      text label="maximize" "\u{F533}" 1205,10 12x12
+    el role=button label="Close" window=close 1234,0 46x32
+      text label="dismiss" "\u{F367}" 1251,10 12x12
+  el 8,32 1264x760
+    el #first 8,32 244x760
+      el label="Sessions" 8,32 244x760
+        el 9,33 242x40
+          text role=heading "Sessions" 25,45 61x17 level=3
+          el 94,53 109x0
+          el role=button label="New session" 211,41 24x24
+            text label="add" "\u{F108}" 215,45 16x16
+        el role=separator 9,73 242x1
+        el 9,74 242x717
+          el role=listbox label="Sessions" 13,78 234x709
+            el 13,78 234x44
+              el #item-0 role=button label="storefront" 15,96 230x24 expanded
+                text label="chevron_down" "\u{F2A1}" 21,102 12x12
+                text "storefront" 37,101 191x14
+                text "2" 232,101 7x14
+            el #session-orders role=option label="Slow orders query" 13,122 234x44 selected pos=2/6
+              el 13,124 234x40
+                el 15,136 2x16
+                el 21,128 162x32
+                  text "Slow orders query" 21,128 162x16
+                  text "perf/orders-index" 21,146 162x14
+                el 187,137 24x14
+                  text "now" 187,137 24x14
+                el 215,132 24x24
+                  el role=button label="Unpin" 215,132 24x24 checked
+                    text label="pin" "\u{F600}" 219,136 16x16
+            el #session-webhooks role=option label="Retry failed webhooks" 13,166 234x44 pos=3/6
+              el 13,168 234x40
+                el 15,180 2x16
+                el 21,172 199x32
+                  text "Retry failed webhooks" 21,172 199x16
+                  text "feat/webhook-backoff" 21,190 199x14
+                el 224,181 15x14
+                  text "7h" 224,181 15x14
+                el
+                  el role=button label="Pin" checked=false
+                    text label="pin" "\u{F600}"
+            el 13,210 234x44
+              el #item-3 role=button label="analytics" 15,228 230x24 expanded
+                text label="chevron_down" "\u{F2A1}" 21,234 12x12
+                text "analytics" 37,233 193x14
+                text "1" 234,233 5x14
+            el #session-rollup role=option label="Daily revenue rollup" 13,254 234x44 pos=5/6
+              el 13,256 234x40
+                el 15,268 2x16
+                el 21,260 199x32
+                  text "Daily revenue rollup" 21,260 199x16
+                  text "main" 21,278 199x14
+                el 224,269 15x14
+                  text "1d" 224,269 15x14
+                el
+                  el role=button label="Pin" checked=false
+                    text label="pin" "\u{F600}"
+            el 13,298 234x44
+              el #item-5 role=button label="infra" 15,316 230x24 expanded=false
+                text label="chevron_right" "\u{F2AE}" 21,322 12x12
+                text "infra" 37,321 191x14
+                text "2" 232,321 7x14
+    el #rest 252,32 1020x760
+      el #second 260,32 1012x760
+        el 260,32 1012x760
+          el #first 260,32 652x760
+            el label="Chat" 260,32 652x760
+              el 261,33 650x40
+                text role=heading "Slow orders query" 277,45 124x17 level=3
+                text "perf/orders-index" 409,45 108x16
+                el 525,53 338x0
+                el role=button label="Toggle changes" 871,41 24x24 checked
+                  text label="panel_right" "\u{E8BC}" 875,45 16x16
+              el role=separator 261,73 650x1
+              el #transcript-orders 261,74 650x636
+                el #list role=log label="Transcript" 261,74 650x636 rows 0-3/4 scroll 0,105 thumb-y 903,165.55 6x542.45
+                  el 277,-23 618x94 pos=1/4
+                    el role=article label="User message" 277,-15 618x78
+                      el 401,-15 494x52
+                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,-6 468x34
+                      el 833,39 62x24
+                        el #copy role=button label="Copy message" 833,39 24x24
+                          text label="copy" "\u{F32A}" 837,43 16x16
+                        text "14:29" 861,44 34x14
+                  el 277,71 618x120 pos=2/4
+                    el role=article label="Agent message" 277,79 618x104
+                      el 277,79 618x30
+                        el role=button label="Inspect schema for orders" 278,80 616x28 expanded=false value="Done"
+                          text label="database" "\u{F0D7}" 286,86 16x16
+                          text "Inspect schema for orders" 306,86 540x16
+                          text label="Done" "\u{F297}" 850,86 16x16
+                          text label="chevron_down" "\u{F2A2}" 870,86 16x16
+                      el 277,117 618x34
+                        text role=paragraph "The orders table has indexes on id and customer_id, but nothing covering (status, created_at). Ask if you want me to inspect the repository query and draft a migration." 277,117 618x34 readonly lines 1-1/1
+                      el 277,159 62x24
+                        el #copy role=button label="Copy message" 277,159 24x24
+                          text label="copy" "\u{F32A}" 281,163 16x16
+                        text "14:31" 305,164 34x14
+                  el 277,191 618x77 pos=3/4
+                    el role=article label="User message" 277,199 618x61
+                      el 465,199 430x35
+                        text role=paragraph "Draft a concurrent index migration for the open orders query." 478,208 404x17
+                      el 833,236 62x24
+                        el #copy role=button label="Copy message" 833,236 24x24
+                          text label="copy" "\u{F32A}" 837,240 16x16
+                        text "14:35" 861,241 34x14
+                  el 277,268 618x434 pos=4/4
+                    el role=article label="Agent message" 277,276 618x418
+                      el 277,276 618x95
+                        el role=button label="Inspect EXPLAIN plan for open orders" 278,277 616x28 expanded value="Done"
+                          text label="search" "\u{EA7C}" 286,283 16x16
+                          text "Inspect EXPLAIN plan for open orders" 306,283 540x16
+                          text label="Done" "\u{F297}" 850,283 16x16
+                          text label="chevron_up" "\u{F2B5}" 870,283 16x16
+                        el role=separator 278,305 616x1
+                        el 278,306 616x64
+                          text "Seq Scan on orders  (cost=0.00..48210.00 rows=1840 width=48)\n  Filter: (status = 'open')\n  Rows Removed by Filter: 1842910" 286,314 600x48
+                      el 277,379 618x30
+                        el role=button label="Draft migrations/0042_orders_status_created.sql" 278,380 616x28 expanded=false value="Done"
+                          text label="code" "\u{F339}" 286,386 16x16
+                          text "Draft migrations/0042_orders_status_created.sql" 306,386 540x16
+                          text label="Done" "\u{F297}" 850,386 16x16
+                          text label="chevron_down" "\u{F2A2}" 870,386 16x16
+                      el 277,417 618x245
+                        text role=paragraph "PostgreSQL is doing a full sequential scan across 1.84M rows to return 1,840 open orders because no index starts with status." 277,417 618x34 readonly lines 1-1/1
+                        text role=paragraph "Recommended rollout:" 277,459 618x17 readonly lines 1-1/1
+                        el role=list 277,484 618x72
+                          el role=listitem 277,484 618x34 pos=1/3
+                            text "1." 277,484 13x34
+                            el 294,484 601x34
+                              text role=paragraph "Add a partial composite index on (status, created_at DESC) using CONCURRENTLY so writes stay unblocked." 294,484 601x34 readonly lines 1-1/1
+                          el role=listitem 277,520 618x17 pos=2/3
+                            text "2." 277,520 13x17
+                            el 294,520 601x17
+                              text role=paragraph "Run ANALYZE orders; immediately afterward so the planner adopts the index." 294,520 601x17 readonly lines 1-1/1
+                          el role=listitem 277,539 618x17 pos=3/3
+                            text "3." 277,539 13x17
+                            el 294,539 601x17
+                              text role=paragraph "Keep the partial predicate WHERE status = 'open' so the index stays under 2 MB." 294,539 601x17 readonly lines 1-1/1
+                        el role=group 277,564 618x98
+                          text role=code label="sql" "CREATE INDEX CONCURRENTLY IF NOT EXISTS orders_status_created_idx\n  ON orders (status, created_at DESC)\n  WHERE status = 'open';\n\nANALYZE orders;" 278,565 616x96 readonly lines 1-5/5
+                          el #copy role=button label="Copy code" 866,569 24x24
+                            text label="copy" "\u{F32A}" 870,573 16x16
+                      el 277,670 62x24
+                        el #copy role=button label="Copy message" 277,670 24x24
+                          text label="copy" "\u{F32A}" 281,674 16x16
+                        text "14:35" 305,675 34x14
+              el 261,710 650x81
+                el 277,714 618x65
+                  text #field role=textbox label="Ask about storefront…" "" 286,723 600x19 lines 1-1/1 focused caret 0 (1:1)
+                  el #bar 286,746 600x24
+                    el #start 286,746 440x24
+                      el role=button label="Attach file" 286,746 24x24
+                        text label="add" "\u{F108}" 290,750 16x16
+                    el #end 730,746 128x24
+                      el role=combobox label="Model" 730,746 128x24 expanded=false
+                        text "Balanced" 739,750 90x16
+                        text label="chevron_down" "\u{F2A2}" 833,750 16x16
+                    el #action role=button label="Send" 862,746 24x24 disabled
+                      text label="arrow_up" "\u{F1B4}" 866,750 16x16
+          el #rest 912,32 360x760
+            el #second 920,32 352x760
+              el label="Changes" 920,32 352x760
+                el 921,33 350x40
+                  text role=heading "Changes" 937,45 60x17 level=3
+                  text "2 files" 1005,45 37x16
+                  el 1050,53 173x0
+                  el role=button label="Close changes" 1231,41 24x24
+                    text label="dismiss" "\u{F368}" 1235,45 16x16
+                el role=separator 921,73 350x1
+                el 921,74 350x96
+                  el role=listbox label="Changed files" 925,78 342x88
+                    el #item-0 role=option label="0042_orders_status_created.sql" 925,78 342x44 selected pos=1/2
+                      el 925,80 342x40
+                        el 927,92 2x16
+                        text label="document" "\u{E4D7}" 933,92 16x16
+                        el 953,84 275x32
+                          text "0042_orders_status_created.sql" 953,84 275x16
+                          text "migrations" 953,102 275x14
+                        el 1232,91 27x18
+                          el label="+8" 1232,91 27x18
+                            text "+8" 1238,93 15x14
+                    el #item-1 role=option label="OrderRepository.java" 925,122 342x44 pos=2/2
+                      el 925,124 342x40
+                        el 927,136 2x16
+                        text label="document" "\u{E4D7}" 933,136 16x16
+                        el 953,128 248x32
+                          text "OrderRepository.java" 953,128 248x16
+                          text "src/main/java/com/storefront" 953,146 248x14
+                        el 1205,135 54x18
+                          el label="+3" 1205,135 27x18
+                            text "+3" 1211,137 15x14
+                          el label="-2" 1234,135 25x18
+                            text "-2" 1240,137 13x14
+                el role=separator 921,170 350x1
+                el 921,171 350x620
+                  text #diff-orders-migrations/0042_orders_status_created.sql role=textbox label="Modified" "-- Customer lookup index\nCREATE INDEX orders_customer_idx\n  ON orders (customer_id);\n\nCREATE INDEX C" … "ted_at DESC\n  )\n  WHERE status = 'open';" length 214 929,179 334x604 readonly lines 1-11/11
+                    el #rail 930,180 76x602
+                    el #gutter 930,184 75x586
+                      el #line-0 930,184 75x16
+                        el 936,192 12x0
+                        text "1" 952,184 8x16
+                        text "1" 964,184 15x16
+                        el 983,192 2x0
+                        el 989,192 12x0
+                      el #line-1 930,200 75x16
+                        el 936,208 12x0
+                        text "2" 952,200 8x16
+                        text "2" 964,200 15x16
+                        el 983,208 2x0
+                        el 989,208 12x0
+                      el #line-2 930,216 75x16
+                        el 936,224 12x0
+                        text "3" 952,216 8x16
+                        text "3" 964,216 15x16
+                        el 983,224 2x0
+                        el 989,224 12x0
+                      el #line-3 930,232 75x16
+                        el 936,240 12x0
+                        text "" 952,232 8x16
+                        text "4" 964,232 15x16
+                        el #change 983,232 2x16
+                        el 989,240 12x0
+                      el #line-4 930,248 75x16
+                        el 936,256 12x0
+                        text "" 952,248 8x16
+                        text "5" 964,248 15x16
+                        el #change 983,248 2x16
+                        el 989,256 12x0
+                      el #line-5 930,264 75x16
+                        el 936,272 12x0
+                        text "" 952,264 8x16
+                        text "6" 964,264 15x16
+                        el #change 983,264 2x16
+                        el 989,272 12x0
+                      el #line-6 930,280 75x16
+                        el 936,288 12x0
+                        text "" 952,280 8x16
+                        text "7" 964,280 15x16
+                        el #change 983,280 2x16
+                        el 989,288 12x0
+                      el #line-7 930,296 75x16
+                        el 936,304 12x0
+                        text "" 952,296 8x16
+                        text "8" 964,296 15x16
+                        el #change 983,296 2x16
+                        el 989,304 12x0
+                      el #line-8 930,312 75x16
+                        el 936,320 12x0
+                        text "" 952,312 8x16
+                        text "9" 964,312 15x16
+                        el #change 983,312 2x16
+                        el 989,320 12x0
+                      el #line-9 930,328 75x16
+                        el 936,336 12x0
+                        text "" 952,328 8x16
+                        text "10" 964,328 15x16
+                        el #change 983,328 2x16
+                        el 989,336 12x0
+                      el #line-10 930,344 75x16
+                        el 936,352 12x0
+                        text "" 952,344 8x16
+                        text "11" 964,344 15x16
+                        el #change 983,344 2x16
+                        el 989,352 12x0
+            el #divider role=separator label="Resize Chat" 912,32 8x760 value="second 352"
+              el 912,32 8x760
+                el 916,32 1x760
+      el #divider role=separator label="Resize Sessions" 252,32 8x760 value="first 244"
+        el 252,32 8x760
+          el 256,32 1x760
