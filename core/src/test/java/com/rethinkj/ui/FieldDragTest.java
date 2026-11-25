@@ -799,4 +799,104 @@ class FieldDragTest {
     app.frame();
     assertEquals("25 item", app.clipboard().read());
   }
+
+  @Test
+  void selectionScopeKeepsColumnsWhenSpansListScrollsSideways() {
+    int cols = 8;
+    float colWidth = 100;
+    float rowHeight = 24;
+    App<Object> app = new App<>(
+        new Object(),
+        state -> row()
+            .key("area")
+            .scrollBoth()
+            .selectionScope()
+            .w(220)
+            .h(120)
+            .child(col()
+                .w(cols * colWidth)
+                .h(120)
+                .child(col().key("list").grow(1).minSize(0, 0).rows(6, rowHeight, (i, from, to) -> {
+                  El r = row().key("row-" + i);
+                  int first = cols;
+                  int last = -1;
+                  for (int c = 0; c < cols; c++) {
+                    float left = c * colWidth;
+                    if (left + colWidth > from && left < to) {
+                      first = Math.min(first, c);
+                      last = c;
+                    }
+                  }
+                  if (first < cols) {
+                    r.padding(0, 0, 0, first * colWidth);
+                    for (int c = first; c <= last; c++) {
+                      r.child(El.text("R" + i + "C" + c + " text")
+                          .editable(v -> {})
+                          .readOnly()
+                          .key("cell-" + i + "-" + c)
+                          .w(colWidth)
+                          .h(rowHeight));
+                    }
+                  }
+                  return r;
+                }))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(220, 120, 1);
+    app.frame();
+
+    assertNull(byKey(app.tree(), "cell-1-4"), "trailing columns are outside the initial span");
+
+    // Drag from row 1 col 0 into row 2 col 1.
+    app.pointerDown(30, rowHeight + 12);
+    app.pointerMove(colWidth + 45, 2 * rowHeight + 12);
+    app.pointerUp(colWidth + 45, 2 * rowHeight + 12);
+    app.frame();
+    assertTrue(byKey(app.tree(), "cell-1-0").editor().hasSelection());
+    assertFalse(byKey(app.tree(), "cell-2-2").editor().hasSelection());
+
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    String expected = app.clipboard().read();
+    List<String> lines = expected.lines().toList();
+    assertEquals(10, lines.size(), "row 1 cols 0..7 + row 2 cols 0..1: " + lines);
+    assertEquals("R1C4 text", lines.get(4), "unbuilt column in row 1 copied");
+    assertEquals("R2C0 text", lines.get(8));
+
+    // Scroll sideways far enough that both anchor (col 0) and end (col 1) leave the built span.
+    app.wheel(100, 60, 480, 0);
+    app.frame();
+    assertNull(byKey(app.tree(), "cell-1-0"), "anchor column left the built span");
+    assertTrue(byKey(app.tree(), "cell-1-4").editor().hasSelection(), "row 1 stays highlighted");
+    assertFalse(byKey(app.tree(), "cell-2-3").editor().hasSelection(), "row 2 after the end");
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "Ctrl+C copies the same while scrolled");
+
+    // Scroll back: the anchor and end columns return with their highlight.
+    app.wheel(100, 60, -480, 0);
+    app.frame();
+    assertTrue(byKey(app.tree(), "cell-1-0").editor().hasSelection());
+    assertTrue(byKey(app.tree(), "cell-2-1").editor().hasSelection());
+    assertFalse(byKey(app.tree(), "cell-2-2").editor().hasSelection());
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "Ctrl+C is unchanged after scrolling back");
+
+    // Shift+click while scrolled sideways extends from the unbuilt anchor column.
+    app.wheel(100, 60, 480, 0);
+    app.frame();
+    app.pointerDown(5 * colWidth - 480 + 45, 2 * rowHeight + 12, 1, Key.SHIFT);
+    app.pointerUp(5 * colWidth - 480 + 45, 2 * rowHeight + 12);
+    app.frame();
+    assertTrue(byKey(app.tree(), "cell-2-5").editor().hasSelection(), "row 2 col 5 is the new end");
+    assertFalse(byKey(app.tree(), "cell-2-6").editor().hasSelection());
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    List<String> extended = app.clipboard().read().lines().toList();
+    assertEquals(14, extended.size(), "row 1 cols 0..7 + row 2 cols 0..5: " + extended);
+    assertEquals(lines.get(0), extended.get(0), "anchor offset in unbuilt col 0 preserved");
+  }
 }

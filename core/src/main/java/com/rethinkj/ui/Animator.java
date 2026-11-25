@@ -268,6 +268,11 @@ final class Animator {
     return ids.reversed();
   }
 
+  /** The identities of {@code el}'s children, given {@code el}'s own identity. */
+  static Object[] childIds(El el, Object id) {
+    return ids(el, (Id) id);
+  }
+
   /** The identity of the row with this index of the virtual list with identity {@code list}. */
   static Object row(Object list, int index) {
     return new Id((Id) list, index);
