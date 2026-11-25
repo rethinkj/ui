@@ -1,0 +1,1 @@
+- Find over a selection scope keeps its current match when that row's fields reshape (for example, a Markdown paragraph becoming a table while streaming), so Enter goes on to the next match instead of repeating the current one.
