@@ -1,0 +1,1 @@
+- A focus ring that a clip or the window's edge moves inside an element with a `focusRingGap`, such as a primary `Button` filling a scroll area, now has a strip in the color behind the element just inside it, so that it stands out from the element's fill as the ring outside does.
