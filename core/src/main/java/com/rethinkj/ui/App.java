@@ -2624,9 +2624,11 @@ public final class App<S> {
   private void wake() {
     if (focus.element() == null && focus.waits()) {
       Animator.InRow in = animator.inRow(focus.id());
-      reveal(in.list()); // a list that areas around it scrolled out of the window builds no rows
-      keyRevealed(
-          in.listId(), in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row())));
+      El list = in.list();
+      keyRevealed(in.listId(), list.scrollTo(list.scrollX(), list.offsetShowing(in.row())));
+      // A list that the areas around it scrolled out of the window builds no rows: show the row.
+      float[] row = list.rowBox(in.row());
+      reveal(list, 0, row[0], list.width(), row[1], false, null, 0);
       fillRows();
       placeEditors(false, false); // the parts of its fields, where the focus may be
       refocus();

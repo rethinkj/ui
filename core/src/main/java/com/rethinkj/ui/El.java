@@ -6240,6 +6240,11 @@ public final class El {
     return scrollY + ScrollState.nearest(top, rowSize(index), height - coverY);
   }
 
+  /** Where this row lies in the border box at the current offset, as {@code {top, height}}. */
+  float[] rowBox(int index) {
+    return new float[] {(float) (rowsTop() + rowTop(index) - scrollY), (float) rowSize(index)};
+  }
+
   /**
    * Scrolls this scroll area just far enough to show the child with this index whole, counting
    * the children that are not leaving and clear of the bars over the area's ends, or its start if
