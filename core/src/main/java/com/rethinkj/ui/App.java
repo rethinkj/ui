@@ -261,7 +261,7 @@ public final class App<S> {
   private final Focus focus = new Focus(animator); // the keyboard focus
   private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
   private FieldState toldState; // and its field's FieldState, which keeps it when the field moves
-  private int[] toldScope; // the scope selection last told to its scope's El#onSelect handler
+  private Object[] toldScope; // the scope, caret and anchor last told to its El#onSelect
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -4395,26 +4395,41 @@ public final class App<S> {
 
   /** Tells a selection scope's {@link El#onSelect} handler where its selection is now. */
   private boolean tellScopeSelection() {
-    ScopeSelection s = scopeSelection;
-    El scope = s == null ? null : animator.liveElement(s.scopeId);
-    El.SelectHandler handler = scope == null ? null : scope.onSelect();
-    if (handler == null) {
-      toldScope = null;
-      return false;
-    }
-    ScopeIndex index = scopeIndex(scope);
-    ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
-    int[] at = {index.offset(s.end), index.offset(anchor)};
-    if (at[0] < 0 || at[1] < 0 || Arrays.equals(at, toldScope)) {
+    Object[] at = scopeSelectionAt();
+    if (at == null || Arrays.equals(at, toldScope)) {
+      toldScope = at;
       return false;
     }
     toldScope = at;
-    handler.select(at[0], at[1]);
+    animator.liveElement(at[0]).onSelect().select((int) at[1], (int) at[2]);
     return true;
+  }
+
+  /**
+   * The scope, caret and anchor that {@link #tellScopeSelection} tells, or null for a selection
+   * scope without a handler or one whose selection is not in its text.
+   */
+  private Object[] scopeSelectionAt() {
+    ScopeSelection s = scopeSelection;
+    El scope = s == null ? null : animator.liveElement(s.scopeId);
+    if (scope == null || scope.onSelect() == null) {
+      return null;
+    }
+    ScopeIndex index = scopeIndex(scope);
+    ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
+    int caret = index.offset(s.end);
+    int from = index.offset(anchor);
+    return caret < 0 || from < 0 ? null : new Object[] {s.scopeId, caret, from};
   }
 
   /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
   private boolean untold() {
+    if (scopeSelection != null) {
+      Object[] at = scopeSelectionAt();
+      if (at != null && !Arrays.equals(at, toldScope)) {
+        return true;
+      }
+    }
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
       if (inTree(entry) && entry.getValue().untold()) {
         return true;
