@@ -69,6 +69,13 @@ When a document grows at its end while streaming, keep the `MarkdownDocument` in
 - **Blocks:** `Heading(level, content, id)`, `Paragraph(content)`, `CodeBlock(language, code)`, `Quote(blocks)`, `ListBlock(ordered, start, tight, items)`, `Table(aligns, header, rows)`, `ThematicBreak()`.
 - **Inlines:** `Text`, `Emphasis`, `Strong`, `Strike`, `Code`, `Link`, `Image`, `SoftBreak`, `HardBreak`.
 
+## Fonts
+
+Every font `Markdown` draws—body, headings, emphasis, strong, strong emphasis, strong text in headings, table headers, inline code, code blocks, and definition terms—comes from [`Theme.Prose`](/api/com/rethinkj/ui/kit/Theme.Prose.html). To replace them for part of a view only, derive a theme from the app's theme with `withProse`, keep it in the state until the app's theme changes, and scope it with `Theme.CURRENT.with`. A theme derived anew on each build would make `Markdown` measure its blocks again, since it keeps what it measured for the theme it was built with:
+
+```java snippet="prose-fonts"
+```
+
 ## State API
 
 Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`); a pointer press or **Escape** clears it.

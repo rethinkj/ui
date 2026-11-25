@@ -340,7 +340,7 @@ public final class Markdown {
     Objects.requireNonNull(sections, "sections");
     Objects.requireNonNull(options, "options");
     Theme theme = Theme.CURRENT.get();
-    Theme.TextStyle mono = theme.type().mono();
+    Theme.TextStyle mono = theme.prose().mono();
     float line = lineHeight(theme.prose().body());
     float column = labelColumn(sections);
     El out = col().role("list").gap(theme.space().m()).minSize(0, 0);
@@ -626,7 +626,7 @@ public final class Markdown {
       case MarkdownDocument.Paragraph p ->
         Math.ceil(MarkdownDocument.plainText(p.content()).length() / perLine) * line;
       case MarkdownDocument.CodeBlock code ->
-        code.code().lines().count() * theme.type().mono().size() * 1.35
+        code.code().lines().count() * theme.prose().mono().size() * 1.35
             + 2 * theme.space().l();
       case MarkdownDocument.Quote q ->
         q.blocks().stream().mapToDouble(b -> estimate(theme, b)).sum();
@@ -793,8 +793,8 @@ public final class Markdown {
         case MarkdownDocument.Code x -> {
           text.append(x.code());
           Font mono = heading || (style & STRONG) != 0
-              ? Font.monoBold()
-              : theme.type().mono().font().get();
+              ? theme.prose().monoStrong().get()
+              : theme.prose().mono().font().get();
           spans.add(new Span(FONT, from, text.length(), 0, mono));
           spans.add(new Span(
               BACKGROUND,
@@ -839,9 +839,12 @@ public final class Markdown {
       }
       if (to > from && !(part instanceof MarkdownDocument.Code)) {
         Font font = switch (style) {
-          case EM -> Font.sansItalic();
-          case STRONG -> heading ? Font.sansBold() : Font.sansSemibold();
-          case EM | STRONG -> Font.sansBoldItalic();
+          case EM -> theme.prose().emphasis().get();
+          case STRONG ->
+            heading
+                ? theme.prose().headingStrong().get()
+                : theme.prose().strong().get();
+          case EM | STRONG -> theme.prose().strongEmphasis().get();
           default -> null;
         };
         if (font != null) {
@@ -1272,7 +1275,7 @@ public final class Markdown {
         : block.code();
     String language = block.language();
     Highlighter highlighter = c.options.languages.apply(language);
-    Theme.TextStyle mono = theme.type().mono();
+    Theme.TextStyle mono = theme.prose().mono();
     El field = El.text(code)
         .editable(text -> {})
         .readOnly()
@@ -1452,7 +1455,7 @@ public final class Markdown {
   private static El table(Context c, MarkdownDocument.Table table) {
     Theme theme = c.theme;
     Theme.TextStyle body = theme.prose().body();
-    Theme.TextStyle head = new Theme.TextStyle(theme.type().strong().font(), body.size());
+    Theme.TextStyle head = new Theme.TextStyle(theme.prose().tableHeader(), body.size());
     int columns = table.aligns().size();
     float pad = theme.space().m();
     List<List<Piece>> cells = new ArrayList<>();

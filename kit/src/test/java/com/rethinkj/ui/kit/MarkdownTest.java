@@ -483,52 +483,94 @@ class MarkdownTest {
   }
 
   @Test
-  void inlineCodeUsesThemeMonoOrMonoBoldAndStruckLinkUsesLinkColor() {
-    Font customMono = Font.sansMedium();
-    Theme.Type base = Theme.DARK.type();
-    Theme theme = Theme.DARK.withType(new Theme.Type(
-        base.body(),
-        new Theme.TextStyle(() -> customMono, base.mono().size()),
-        base.heading(),
-        base.title(),
-        base.strong(),
-        base.dialog(),
-        base.small(),
-        base.section()));
+  void proseFontsApplyToEveryMarkdownElementAndStruckLinkUsesLinkColor() {
+    Font customBody = Font.sansMedium();
+    Font customHeading = Font.monoBold();
+    Font customEmphasis = Font.mono();
+    Font customStrong = Font.sansBold();
+    Font customStrongEmphasis = Font.sans();
+    Font customHeadingStrong = Font.sansItalic();
+    Font customTableHeader = customHeading;
+    Font customMono = Font.sansBoldItalic();
+    Font customMonoStrong = Font.sansSemibold();
+    float customMonoSize = 15;
+    Theme.Prose base = Theme.DARK.prose();
+    List<Theme.TextStyle> customHeadings = base.headings().stream()
+        .map(style -> new Theme.TextStyle(() -> customHeading, style.size()))
+        .toList();
+    Theme theme = Theme.DARK.withProse(new Theme.Prose(
+        new Theme.TextStyle(() -> customBody, base.body().size()),
+        customHeadings,
+        () -> customEmphasis,
+        () -> customStrong,
+        () -> customStrongEmphasis,
+        () -> customHeadingStrong,
+        () -> customTableHeader,
+        new Theme.TextStyle(() -> customMono, customMonoSize),
+        () -> customMonoStrong,
+        base.link(),
+        base.code(),
+        base.quote(),
+        base.measure()));
     MarkdownDocument doc = Markdown.parse("""
-        # Head `h`
+        # Head **hb** `hc`
 
-        Plain `p` and **`s`** and *`e`* and ~~[gone](https://example.com)~~ and ~~plain~~.
+        Plain *em* **st** ***se*** `p` and **`s`** and *`e`* and ~~[gone](https://example.com)~~ and ~~plain~~.
 
-        | `th` |
+        ```
+        code block
+        ```
+
+        | hdr `th` |
         | --- |
         | `td` |
         """);
+    List<Markdown.Section> sections = List.of(new Markdown.Section(
+        "Parameters", List.of(new Markdown.Definition("arg", Markdown.parse("A value.")))));
     App<Object> app = new App<>(
             new Object(),
             state -> col()
                 .wFull()
                 .hFull()
-                .child(Markdown.markdown(doc, Markdown.options()).grow(1)))
+                .children(
+                    Markdown.markdown(doc, Markdown.options()).grow(1),
+                    Markdown.definitions(sections, Markdown.options())))
         .provide(Theme.CURRENT, state -> theme);
-    app.resize(640, 320, 1);
+    app.resize(640, 480, 1);
     app.frame();
 
     El heading = role(app.tree(), "heading");
-    assertSame(
-        Font.monoBold(), heading.text().lines().getFirst().glyphs().font("Head h".indexOf('h')));
+    GlyphRun headingGlyphs = heading.text().lines().getFirst().glyphs();
+    String headingText = heading.text().string();
+    assertSame(customHeading, headingGlyphs.font(0));
+    assertSame(customHeadingStrong, headingGlyphs.font(headingText.indexOf("hb")));
+    assertSame(customMonoStrong, headingGlyphs.font(headingText.indexOf("hc")));
 
     El p = paragraph(app.tree());
     GlyphRun glyphs = p.text().lines().getFirst().glyphs();
     String line = p.text().string();
+    assertSame(customBody, glyphs.font(0));
+    assertSame(customEmphasis, glyphs.font(line.indexOf("em")));
+    assertSame(customStrong, glyphs.font(line.indexOf("st")));
+    assertSame(customStrongEmphasis, glyphs.font(line.indexOf("se")));
     assertSame(customMono, glyphs.font(line.indexOf(" p ") + 1));
-    assertSame(Font.monoBold(), glyphs.font(line.indexOf(" s ") + 1));
+    assertSame(customMonoStrong, glyphs.font(line.indexOf(" s ") + 1));
     assertSame(customMono, glyphs.font(line.indexOf(" e ") + 1));
 
+    El codeBlock = role(app.tree(), "code");
+    assertSame(customMono, codeBlock.text().font());
+    assertEquals(customMonoSize, codeBlock.text().size());
+
     El headerCell = role(app.tree(), "columnheader").children().getFirst();
-    assertSame(Font.monoBold(), headerCell.text().lines().getFirst().glyphs().font(0));
+    GlyphRun headerGlyphs = headerCell.text().lines().getFirst().glyphs();
+    assertSame(customTableHeader, headerGlyphs.font(0));
+    assertSame(customMonoStrong, headerGlyphs.font("hdr th".indexOf("th")));
     El bodyCell = role(app.tree(), "cell").children().getFirst();
     assertSame(customMono, bodyCell.text().lines().getFirst().glyphs().font(0));
+
+    El term = role(app.tree(), "listitem").children().getFirst().children().getFirst();
+    assertSame(customMono, term.text().font());
+    assertEquals(customMonoSize, term.text().size());
 
     List<Text.Mark> linkMarks =
         p.text().marks().stream().filter(m -> m.color() == theme.prose().link()).toList();

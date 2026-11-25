@@ -13,6 +13,7 @@ import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -690,21 +691,50 @@ public record Theme(
    * type, the colors of links, inline code and quotes, and how wide its text runs. Spaces between
    * blocks come from {@link Spacing}, code blocks from the raised surface and the subtle border.
    *
-   * @param body paragraphs, lists, quotes and tables
+   * @param body paragraphs, lists, quotes, tables and {@link com.rethinkj.ui.kit.Chat#composer}
    * @param headings the headings of levels 1 to 6, in this order
+   * @param emphasis emphasized ({@code *italic*}) text
+   * @param strong strong ({@code **bold**}) text in body copy
+   * @param strongEmphasis text that is both strong and emphasized ({@code ***bold italic***})
+   * @param headingStrong strong text inside a heading or the header row of a table
+   * @param tableHeader the header row of a table
+   * @param mono code blocks, definition terms and inline code (inline code keeps the surrounding
+   *     text's size and takes only this style's font)
+   * @param monoStrong inline code inside strong text, a heading or a table header
    * @param link the text of links, 4.5:1 on the panel and on {@code code}
    * @param code translucent, behind inline code, laid over the panel
    * @param quote the line along the left of a quote
    * @param measure the widest the column of blocks runs, for lines that stay easy to read
    */
   public record Prose(
-      TextStyle body, List<TextStyle> headings, int link, int code, int quote, float measure) {
+      TextStyle body,
+      List<TextStyle> headings,
+      Supplier<Font> emphasis,
+      Supplier<Font> strong,
+      Supplier<Font> strongEmphasis,
+      Supplier<Font> headingStrong,
+      Supplier<Font> tableHeader,
+      TextStyle mono,
+      Supplier<Font> monoStrong,
+      int link,
+      int code,
+      int quote,
+      float measure) {
 
     public Prose {
+      Objects.requireNonNull(body, "body");
+      Objects.requireNonNull(headings, "headings");
       if (headings.size() != 6) {
         throw new IllegalArgumentException("a style for each of the six levels of headings");
       }
       headings = List.copyOf(headings);
+      Objects.requireNonNull(emphasis, "emphasis");
+      Objects.requireNonNull(strong, "strong");
+      Objects.requireNonNull(strongEmphasis, "strongEmphasis");
+      Objects.requireNonNull(headingStrong, "headingStrong");
+      Objects.requireNonNull(tableHeader, "tableHeader");
+      Objects.requireNonNull(mono, "mono");
+      Objects.requireNonNull(monoStrong, "monoStrong");
     }
 
     private static final TextStyle BODY = new TextStyle(Font::sans, 14);
@@ -712,14 +742,39 @@ public record Theme(
         new TextStyle(Font::sansSemibold, 26), new TextStyle(Font::sansSemibold, 20),
         new TextStyle(Font::sansSemibold, 17), new TextStyle(Font::sansSemibold, 15),
         new TextStyle(Font::sansSemibold, 14), new TextStyle(Font::sansSemibold, 13));
+    private static final TextStyle MONO = new TextStyle(Font::mono, 12);
 
     /** For a dark panel. */
-    public static final Prose DARK =
-        new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f), GRAY_311, 720);
+    public static final Prose DARK = new Prose(
+        BODY,
+        HEADINGS,
+        Font::sansItalic,
+        Font::sansSemibold,
+        Font::sansBoldItalic,
+        Font::sansBold,
+        Font::sansMedium,
+        MONO,
+        Font::monoBold,
+        BLUE_694,
+        alpha(WHITE, 0.024f),
+        GRAY_311,
+        720);
 
     /** For a light panel. */
-    public static final Prose LIGHT =
-        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GRAY_805, 720);
+    public static final Prose LIGHT = new Prose(
+        BODY,
+        HEADINGS,
+        Font::sansItalic,
+        Font::sansSemibold,
+        Font::sansBoldItalic,
+        Font::sansBold,
+        Font::sansMedium,
+        MONO,
+        Font::monoBold,
+        BLUE_403,
+        alpha(BLACK, 0.08f),
+        GRAY_805,
+        720);
   }
 
   /**

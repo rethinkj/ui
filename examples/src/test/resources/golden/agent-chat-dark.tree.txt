@@ -91,88 +91,88 @@ el 0,0 1280x800
                 el role=button label="Toggle changes" 871,41 24x24 checked
                   text label="panel_right" "\u{E8BC}" 875,45 16x16
               el role=separator 261,73 650x1
-              el #transcript-orders 261,74 650x636
-                el #list role=log label="Transcript" 261,74 650x636 rows 0-3/4 scroll 0,97 thumb-y 903,159.63 6x548.37
-                  el 277,-15 618x94 pos=1/4
-                    el role=article label="User message" 277,-7 618x78
-                      el 401,-7 494x52
-                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,2 468x34 readonly lines 1-1/1
-                      el 833,47 62x24
-                        el #copy role=button label="Copy message" 833,47 24x24
-                          text label="copy" "\u{F32A}" 837,51 16x16
-                        text "14:29" 861,52 34x14
-                  el 277,79 618x120 pos=2/4
-                    el role=article label="Agent message" 277,87 618x104
-                      el 277,87 618x30
-                        el role=button label="Inspect schema for orders" 278,88 616x28 expanded=false value="Done"
-                          text label="database" "\u{F0D7}" 286,94 16x16
-                          text "Inspect schema for orders" 306,94 540x16
-                          text label="Done" "\u{F297}" 850,94 16x16
-                          text label="chevron_down" "\u{F2A2}" 870,94 16x16
-                      el 277,125 618x34 rows 0-0/1
-                        el 277,125 618x34 pos=1/1
-                          text role=paragraph "The orders table has indexes on id and customer_id, but nothing covering (status, created_at). Ask if you want me to inspect the repository query and draft a migration." 277,125 618x34 readonly lines 1-1/1
-                      el 277,167 62x24
-                        el #copy role=button label="Copy message" 277,167 24x24
-                          text label="copy" "\u{F32A}" 281,171 16x16
-                        text "14:31" 305,172 34x14
-                  el 277,199 618x77 pos=3/4
-                    el role=article label="User message" 277,207 618x61
-                      el 464,207 431x35
-                        text role=paragraph "Draft a concurrent index migration for the open orders query." 477,216 405x17 readonly lines 1-1/1
-                      el 833,244 62x24
-                        el #copy role=button label="Copy message" 833,244 24x24
-                          text label="copy" "\u{F32A}" 837,248 16x16
-                        text "14:35" 861,249 34x14
-                  el 277,276 618x426 pos=4/4
-                    el role=article label="Agent message" 277,284 618x410
-                      el 277,284 618x95
-                        el role=button label="Inspect EXPLAIN plan for open orders" 278,285 616x28 expanded value="Done"
-                          text label="search" "\u{EA7C}" 286,291 16x16
-                          text "Inspect EXPLAIN plan for open orders" 306,291 540x16
-                          text label="Done" "\u{F297}" 850,291 16x16
-                          text label="chevron_up" "\u{F2B5}" 870,291 16x16
-                        el role=separator 278,313 616x1
-                        el 278,314 616x64
-                          text "Seq Scan on orders  (cost=0.00..48210.00 rows=1840 width=48)\n  Filter: (status = 'open')\n  Rows Removed by Filter: 1842910" 286,322 600x48
-                      el 277,387 618x30
-                        el role=button label="Draft migrations/0042_orders_status_created.sql" 278,388 616x28 expanded=false value="Done"
-                          text label="code" "\u{F339}" 286,394 16x16
-                          text "Draft migrations/0042_orders_status_created.sql" 306,394 540x16
-                          text label="Done" "\u{F297}" 850,394 16x16
-                          text label="chevron_down" "\u{F2A2}" 870,394 16x16
-                      el 277,425 618x237 rows 0-3/4
-                        el 277,425 618x42 pos=1/4
-                          text role=paragraph "PostgreSQL is doing a full sequential scan across 1.84M rows to return 1,840 open orders because no index starts with status." 277,425 618x34 readonly lines 1-1/1
-                        el 277,467 618x25 pos=2/4
-                          text role=paragraph "Recommended rollout:" 277,467 618x17 readonly lines 1-1/1
-                        el 277,492 618x80 pos=3/4
-                          el role=list 277,492 618x72
-                            el role=listitem 277,492 618x34 pos=1/3
-                              text "1." 277,492 13x34
-                              el 294,492 601x34
-                                text role=paragraph "Add a partial composite index on (status, created_at DESC) using CONCURRENTLY so writes stay unblocked." 294,492 601x34 readonly lines 1-1/1
-                            el role=listitem 277,528 618x17 pos=2/3
-                              text "2." 277,528 13x17
-                              el 294,528 601x17
-                                text role=paragraph "Run ANALYZE orders; immediately afterward so the planner adopts the index." 294,528 601x17 readonly lines 1-1/1
-                            el role=listitem 277,547 618x17 pos=3/3
-                              text "3." 277,547 13x17
-                              el 294,547 601x17
-                                text role=paragraph "Keep the partial predicate WHERE status = 'open' so the index stays under 2 MB." 294,547 601x17 readonly lines 1-1/1
-                        el 277,572 618x90 pos=4/4
-                          el role=group 277,572 618x90
-                            text role=code label="sql" "CREATE INDEX CONCURRENTLY IF NOT EXISTS orders_status_created_idx\n  ON orders (status, created_at DESC)\n  WHERE status = 'open';\n\nANALYZE orders;" 278,573 616x88 readonly lines 1-5/5
-                            el 866,577 24x24
-                              el #copy role=button label="Copy code" 866,577 24x24
-                                text label="copy" "\u{F32A}" 870,581 16x16
-                      el 277,670 62x24
-                        el #copy role=button label="Copy message" 277,670 24x24
-                          text label="copy" "\u{F32A}" 281,674 16x16
-                        text "14:35" 305,675 34x14
-              el 261,710 650x81
-                el 277,714 618x65
-                  text #field role=textbox label="Ask about storefront…" "" 286,723 600x19 lines 1-1/1 focused caret 0 (1:1)
+              el #transcript-orders 261,74 650x634
+                el #list role=log label="Transcript" 261,74 650x634 rows 0-3/4 scroll 0,99 thumb-y 903,161.09 6x544.91
+                  el 277,-17 618x94 pos=1/4
+                    el role=article label="User message" 277,-9 618x78
+                      el 401,-9 494x52
+                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,0 468x34 readonly lines 1-1/1
+                      el 833,45 62x24
+                        el #copy role=button label="Copy message" 833,45 24x24
+                          text label="copy" "\u{F32A}" 837,49 16x16
+                        text "14:29" 861,50 34x14
+                  el 277,77 618x120 pos=2/4
+                    el role=article label="Agent message" 277,85 618x104
+                      el 277,85 618x30
+                        el role=button label="Inspect schema for orders" 278,86 616x28 expanded=false value="Done"
+                          text label="database" "\u{F0D7}" 286,92 16x16
+                          text "Inspect schema for orders" 306,92 540x16
+                          text label="Done" "\u{F297}" 850,92 16x16
+                          text label="chevron_down" "\u{F2A2}" 870,92 16x16
+                      el 277,123 618x34 rows 0-0/1
+                        el 277,123 618x34 pos=1/1
+                          text role=paragraph "The orders table has indexes on id and customer_id, but nothing covering (status, created_at). Ask if you want me to inspect the repository query and draft a migration." 277,123 618x34 readonly lines 1-1/1
+                      el 277,165 62x24
+                        el #copy role=button label="Copy message" 277,165 24x24
+                          text label="copy" "\u{F32A}" 281,169 16x16
+                        text "14:31" 305,170 34x14
+                  el 277,197 618x77 pos=3/4
+                    el role=article label="User message" 277,205 618x61
+                      el 464,205 431x35
+                        text role=paragraph "Draft a concurrent index migration for the open orders query." 477,214 405x17 readonly lines 1-1/1
+                      el 833,242 62x24
+                        el #copy role=button label="Copy message" 833,242 24x24
+                          text label="copy" "\u{F32A}" 837,246 16x16
+                        text "14:35" 861,247 34x14
+                  el 277,274 618x426 pos=4/4
+                    el role=article label="Agent message" 277,282 618x410
+                      el 277,282 618x95
+                        el role=button label="Inspect EXPLAIN plan for open orders" 278,283 616x28 expanded value="Done"
+                          text label="search" "\u{EA7C}" 286,289 16x16
+                          text "Inspect EXPLAIN plan for open orders" 306,289 540x16
+                          text label="Done" "\u{F297}" 850,289 16x16
+                          text label="chevron_up" "\u{F2B5}" 870,289 16x16
+                        el role=separator 278,311 616x1
+                        el 278,312 616x64
+                          text "Seq Scan on orders  (cost=0.00..48210.00 rows=1840 width=48)\n  Filter: (status = 'open')\n  Rows Removed by Filter: 1842910" 286,320 600x48
+                      el 277,385 618x30
+                        el role=button label="Draft migrations/0042_orders_status_created.sql" 278,386 616x28 expanded=false value="Done"
+                          text label="code" "\u{F339}" 286,392 16x16
+                          text "Draft migrations/0042_orders_status_created.sql" 306,392 540x16
+                          text label="Done" "\u{F297}" 850,392 16x16
+                          text label="chevron_down" "\u{F2A2}" 870,392 16x16
+                      el 277,423 618x237 rows 0-3/4
+                        el 277,423 618x42 pos=1/4
+                          text role=paragraph "PostgreSQL is doing a full sequential scan across 1.84M rows to return 1,840 open orders because no index starts with status." 277,423 618x34 readonly lines 1-1/1
+                        el 277,465 618x25 pos=2/4
+                          text role=paragraph "Recommended rollout:" 277,465 618x17 readonly lines 1-1/1
+                        el 277,490 618x80 pos=3/4
+                          el role=list 277,490 618x72
+                            el role=listitem 277,490 618x34 pos=1/3
+                              text "1." 277,490 13x34
+                              el 294,490 601x34
+                                text role=paragraph "Add a partial composite index on (status, created_at DESC) using CONCURRENTLY so writes stay unblocked." 294,490 601x34 readonly lines 1-1/1
+                            el role=listitem 277,526 618x17 pos=2/3
+                              text "2." 277,526 13x17
+                              el 294,526 601x17
+                                text role=paragraph "Run ANALYZE orders; immediately afterward so the planner adopts the index." 294,526 601x17 readonly lines 1-1/1
+                            el role=listitem 277,545 618x17 pos=3/3
+                              text "3." 277,545 13x17
+                              el 294,545 601x17
+                                text role=paragraph "Keep the partial predicate WHERE status = 'open' so the index stays under 2 MB." 294,545 601x17 readonly lines 1-1/1
+                        el 277,570 618x90 pos=4/4
+                          el role=group 277,570 618x90
+                            text role=code label="sql" "CREATE INDEX CONCURRENTLY IF NOT EXISTS orders_status_created_idx\n  ON orders (status, created_at DESC)\n  WHERE status = 'open';\n\nANALYZE orders;" 278,571 616x88 readonly lines 1-5/5
+                            el 866,575 24x24
+                              el #copy role=button label="Copy code" 866,575 24x24
+                                text label="copy" "\u{F32A}" 870,579 16x16
+                      el 277,668 62x24
+                        el #copy role=button label="Copy message" 277,668 24x24
+                          text label="copy" "\u{F32A}" 281,672 16x16
+                        text "14:35" 305,673 34x14
+              el 261,708 650x83
+                el 277,712 618x67
+                  text #field role=textbox label="Ask about storefront…" "" 286,721 600x21 lines 1-1/1 focused caret 0 (1:1)
                   el #bar 286,746 600x24
                     el #start 286,746 447x24
                       el role=button label="Attach file" 286,746 24x24

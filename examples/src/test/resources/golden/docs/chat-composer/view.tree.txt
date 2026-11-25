@@ -1,24 +1,24 @@
 el 0,0 580x132
-  el 12,12 556x108
-    text #field role=textbox label="Ask about your queries" "Explain the sequential scan on orders\nand suggest a composite index." 21,21 538x36 lines 1-2/2
-    el #attachments 21,61 538x22
-      el #attachment-0 label="orders.sql" 21,61 100x22
-        text label="document" "\u{E4D7}" 29,66 12x12
-        text "orders.sql" 43,65 56x15
-        el #remove role=button label="Remove orders.sql" 101,63 18x18
-          text label="dismiss" "\u{F367}" 104,66 12x12
-      el #attachment-1 label="explain.json" 123,61 112x22
-        text label="document" "\u{E4D7}" 131,66 12x12
-        text "explain.json" 145,65 68x15
-        el #remove role=button label="Remove explain.json" 215,63 18x18
-          text label="dismiss" "\u{F367}" 218,66 12x12
-    el #bar 21,87 538x24
-      el #start 21,87 386x24
-        el role=button label="Attach file" 21,87 24x24
-          text label="add" "\u{F108}" 25,91 16x16
-      el #end 411,87 120x24
-        el role=combobox label="Model" 411,87 120x24 expanded=false
-          text "Sonnet" 420,91 82x16
-          text label="chevron_down" "\u{F2A2}" 506,91 16x16
-      el #action role=button label="Send" 535,87 24x24
-        text label="arrow_up" "\u{F1B4}" 539,91 16x16
+  el 12,12 556x110
+    text #field role=textbox label="Ask about your queries" "Explain the sequential scan on orders\nand suggest a composite index." 21,21 538x38 lines 1-2/2
+    el #attachments 21,63 538x22
+      el #attachment-0 label="orders.sql" 21,63 100x22
+        text label="document" "\u{E4D7}" 29,68 12x12
+        text "orders.sql" 43,67 56x15
+        el #remove role=button label="Remove orders.sql" 101,65 18x18
+          text label="dismiss" "\u{F367}" 104,68 12x12
+      el #attachment-1 label="explain.json" 123,63 112x22
+        text label="document" "\u{E4D7}" 131,68 12x12
+        text "explain.json" 145,67 68x15
+        el #remove role=button label="Remove explain.json" 215,65 18x18
+          text label="dismiss" "\u{F367}" 218,68 12x12
+    el #bar 21,89 538x24
+      el #start 21,89 386x24
+        el role=button label="Attach file" 21,89 24x24
+          text label="add" "\u{F108}" 25,93 16x16
+      el #end 411,89 120x24
+        el role=combobox label="Model" 411,89 120x24 expanded=false
+          text "Sonnet" 420,93 82x16
+          text label="chevron_down" "\u{F2A2}" 506,93 16x16
+      el #action role=button label="Send" 535,89 24x24
+        text label="arrow_up" "\u{F1B4}" 539,93 16x16

@@ -564,9 +564,12 @@ public final class Chat {
         options.placeholder != null ? options.placeholder : texts.composerPlaceholder();
     boolean canSend = !options.working && onSend != null && !text.isBlank();
 
+    Theme.TextStyle body = theme.prose().body();
     El field = TextField.textArea(text, placeholder, onChange)
         .key("field")
         .wFull()
+        .font(body.font().get())
+        .fontSize(body.size())
         .lines(1)
         .maxLines(COMPOSER_MAX_LINES)
         .padding(theme.space().xs(), theme.space().s())

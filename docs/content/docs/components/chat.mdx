@@ -78,6 +78,11 @@ Configure the composer with `Chat.composerOptions()`:
 
 All built-in labels (`Transcript`, `Jump to newest`, `User message`, `Agent message`, `Copy message`, `Working…`, tool state names, `Write a message`, `Send`, `Stop`, and chip removal labels) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and max width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
 
+User bubbles, the composer field, and agent Markdown all read their fonts from [`Theme.Prose`](/api/com/rethinkj/ui/kit/Theme.Prose.html), so wrapping a chat (such as `Chat.transcript` and `Chat.composer`) in `Theme.CURRENT.with(theme.withProse(...), ...)` swaps every prose and code font for that part of the view only:
+
+```java snippet="prose-fonts"
+```
+
 ## In a tree dump
 
 `Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:

@@ -3,11 +3,13 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -189,6 +191,45 @@ class ChatComposerTest {
     assertEquals(1, model.stops);
     assertFalse(model.working);
     assertTrue(app.tree().dump().contains("label=\"Send\""), app.tree().dump());
+  }
+
+  @Test
+  void composerFieldUsesProseBodyStyleLikeUserBubble() throws IOException {
+    Font customBody = Font.sansMedium();
+    float customSize = 16;
+    Theme.Prose base = Theme.DARK.prose();
+    Theme.Prose custom = new Theme.Prose(
+        new Theme.TextStyle(() -> customBody, customSize),
+        base.headings(),
+        base.emphasis(),
+        base.strong(),
+        base.strongEmphasis(),
+        base.headingStrong(),
+        base.tableHeader(),
+        base.mono(),
+        base.monoStrong(),
+        base.link(),
+        base.code(),
+        base.quote(),
+        base.measure());
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme scoped = Theme.CURRENT.get().withProse(custom);
+          return Theme.CURRENT.with(
+              scoped,
+              () -> col()
+                  .wFull()
+                  .children(Chat.user("Sent text"), Chat.composer("", value -> {}, () -> {})));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 520 180 scale 2\nframe", app, out);
+
+    El userText = app.tree().children().get(0).children().get(0).children().get(0);
+    El composerField = app.tree().children().get(1).children().get(0);
+    assertSame(customBody, userText.text().font());
+    assertEquals(customSize, userText.text().size());
+    assertSame(customBody, composerField.text().font());
+    assertEquals(customSize, composerField.text().size());
   }
 
   private static El field(App<?> app) {
