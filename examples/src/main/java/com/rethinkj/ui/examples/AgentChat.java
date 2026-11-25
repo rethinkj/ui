@@ -969,6 +969,9 @@ public final class AgentChat {
   }
 
   public static void main(String[] args) throws IOException {
+    if (args.length == 0) { // a window opens, not a script
+      GpuPresenter.prepare(); // the GPU device and pipeline, while the app makes its state
+    }
     run(args, Clock.systemDefaultZone());
   }
 

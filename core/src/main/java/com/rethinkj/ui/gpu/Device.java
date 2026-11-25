@@ -78,7 +78,7 @@ public final class Device extends GpuObject {
     this.events = events;
     this.eventsId = eventsId;
     this.queue = new Queue(this, Wgpu.deviceGetQueue(handle));
-    this.popInfo = CallbackInfo.allocate(arena, Callbacks.POP_ERROR_SCOPE, eventsId);
+    this.popInfo = CallbackInfo.allocate(arena, Callbacks.Devices.POP_ERROR_SCOPE, eventsId);
     this.future = SegmentAllocator.prefixAllocator(arena.allocate(Structs.FUTURE));
     MemorySegment limits = arena.allocate(Structs.Limits.LAYOUT);
     if (Wgpu.deviceGetLimits(handle, limits) != Wgpu.STATUS_SUCCESS) {

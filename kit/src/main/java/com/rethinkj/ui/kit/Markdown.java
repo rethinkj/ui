@@ -47,10 +47,10 @@ import java.util.function.Function;
  * drag—or Shift+press—selects across blocks, including rows out of view, and Control+C copies the
  * selected text of all of them in order with a line break between blocks; Tab passes the fields by
  * ({@link El#skipTab}) and reaches the links. Control+A selects the whole document, which then
- * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere ends
- * that. {@link #fragment} marks its column as a selection scope too, and several fragments in one
- * container (such as a list of chat messages) join into one selection when the app marks the
- * container {@link El#selectionScope}.
+ * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere or
+ * Escape ends that. {@link #fragment} marks its column as a selection scope too, and several
+ * fragments in one container (such as a list of chat messages) join into one selection when the
+ * app marks the container {@link El#selectionScope}.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
  * its text as the label, in {@link Theme.Prose#link} and underlined, with the pointer's cursor and
@@ -451,7 +451,8 @@ public final class Markdown {
   /** The blocks of text of a document, made once per theme. */
   private static final class Prepared {
     final MarkdownDocument document;
-    final Map<Object, Piece> pieces = new IdentityHashMap<>();
+    // By the prose text color they were built for, then by the block or inline list they came from.
+    final Map<Integer, Map<Object, Piece>> pieces = new HashMap<>();
     // The widths of lists' markers, by the window's scale they were measured at.
     final Map<Float, Map<Object, Float>> columns = new HashMap<>();
     final List<Unit> units;
@@ -531,9 +532,14 @@ public final class Markdown {
   }
 
   private static void copyPiece(Object owner, Prepared old, Prepared target) {
-    Piece piece = old.pieces.get(owner);
-    if (piece != null) {
-      target.pieces.put(owner, piece);
+    for (var entry : old.pieces.entrySet()) {
+      Piece piece = entry.getValue().get(owner);
+      if (piece != null) {
+        target
+            .pieces
+            .computeIfAbsent(entry.getKey(), color -> new IdentityHashMap<>())
+            .put(owner, piece);
+      }
     }
   }
 
@@ -633,11 +639,9 @@ public final class Markdown {
     final String text;
     final List<Span> spans;
     final List<Link> links;
-    final int color; // of the text, which struck-out parts are struck in
 
-    Piece(String text, List<Span> spans, List<Link> links, int color) {
+    Piece(String text, List<Span> spans, List<Link> links) {
       this.text = text;
-      this.color = color;
       this.spans = List.copyOf(spans);
       this.links = List.copyOf(links);
     }
@@ -671,10 +675,12 @@ public final class Markdown {
 
   static int piecesBuilt; // for tests
 
-  /** Makes the piece of a run of inline parts, once per document and theme. */
+  /** Makes the piece of a run of inline parts, once per document, theme and text color. */
   private static Piece piece(Context c, Object owner, List<Inline> content, boolean heading) {
-    Piece kept = c.prepared.pieces.get(owner);
-    if (kept != null && kept.color == c.color) {
+    Map<Object, Piece> byOwner =
+        c.prepared.pieces.computeIfAbsent(c.color, color -> new IdentityHashMap<>());
+    Piece kept = byOwner.get(owner);
+    if (kept != null) {
       return kept;
     }
     piecesBuilt++;
@@ -682,8 +688,8 @@ public final class Markdown {
     List<Span> spans = new ArrayList<>();
     List<Link> links = new ArrayList<>();
     inline(c, content, 0, null, false, heading, text, spans, links);
-    Piece piece = new Piece(text.toString(), spans, links, c.color);
-    c.prepared.pieces.put(owner, piece);
+    Piece piece = new Piece(text.toString(), spans, links);
+    byOwner.put(owner, piece);
     return piece;
   }
 
@@ -879,10 +885,23 @@ public final class Markdown {
     return el;
   }
 
-  /** Control+A selects the document, Control+C after it copies the whole of it. */
+  /**
+   * Control+A selects the document, Control+C after it copies the whole of it, and Escape ends the
+   * selection.
+   */
   private static boolean keys(Context c, Key k) {
     State state = c.options.state;
-    if (state == null || k.modifiers() != Key.CONTROL) {
+    if (state == null) {
+      return false;
+    }
+    if (k.modifiers() == 0 && k.name().equals("Escape")) {
+      if (!state.all) {
+        return false;
+      }
+      state.all = false;
+      return true;
+    }
+    if (k.modifiers() != Key.CONTROL) {
       return false;
     }
     if (k.name().equals("A")) {
@@ -1397,7 +1416,11 @@ public final class Markdown {
               .append(MarkdownDocument.plainText(p.content()).replace("\n", "\n" + indent))
               .append("\n\n");
         case MarkdownDocument.CodeBlock code -> {
-          for (String line : code.code().split("\n", -1)) {
+          String raw = code.code();
+          if (raw.endsWith("\n")) {
+            raw = raw.substring(0, raw.length() - 1);
+          }
+          for (String line : raw.split("\n", -1)) {
             out.append(indent).append(line).append('\n');
           }
           out.append('\n');
