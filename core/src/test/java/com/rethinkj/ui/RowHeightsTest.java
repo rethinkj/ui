@@ -203,13 +203,13 @@ class RowHeightsTest {
    * Tab into a list in a row goes to its first row in view of the outer list, and back into it to
    * the row that had the focus there, also when the outer list scrolled that row, or its own row
    * that holds the inner list, out of its view meanwhile; to the row in view once that row holds
-   * nothing to focus.
+   * nothing to focus; past the inner list in its row once no row from there on holds anything.
    */
   @Test
   void tabReturnsToTheRowOfAListInARowThatTheOuterListScrolledAway() {
     RowHeights outer = new RowHeights(i -> 100);
     RowHeights inner = new RowHeights(j -> 20);
-    boolean[] gone = {false};
+    boolean[] gone = {false, false}; // row 16, rows from 20 on
     App<Object> app = new App<>(
         new Object(),
         s -> col()
@@ -223,13 +223,18 @@ class RowHeightsTest {
                         9,
                         outer,
                         i -> i == 0
-                            ? el().key("inner")
-                                .rows(
-                                    40,
-                                    inner,
-                                    j -> gone[0] && j == 16
-                                        ? el().key("row-" + j).h(20)
-                                        : el().key("row-" + j).focusable().h(20))
+                            ? col()
+                                .children(
+                                    el().key("inner")
+                                        .rows(
+                                            40,
+                                            inner,
+                                            j -> gone[0] && j == 16 || gone[1] && j >= 20
+                                                ? el().key("row-" + j).h(20)
+                                                : el().key("row-" + j)
+                                                    .focusable()
+                                                    .h(20)),
+                                    el().key("copy").focusable().h(20))
                             : el().h(100))));
     app.resize(200, 200, 1);
     app.frame();
@@ -257,6 +262,11 @@ class RowHeightsTest {
     app.frame();
     tab(app, 0);
     assertEquals("row-20", key(app.focused()), app.tree().dump());
+    gone[1] = true;
+    app.focus(find(app.tree(), "before"));
+    app.frame();
+    tab(app, 0);
+    assertEquals("copy", key(app.focused()), app.tree().dump());
   }
 
   /**

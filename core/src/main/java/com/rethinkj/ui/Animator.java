@@ -324,6 +324,16 @@ final class Animator {
     return false;
   }
 
+  /** The identity of the field that {@code identity} is a post-layout part of or in, or null. */
+  static Object fieldOf(Object identity) {
+    for (Id id = (Id) identity; id != null; id = id.parent()) {
+      if (id.part() instanceof El.FieldPart) {
+        return id.parent();
+      }
+    }
+    return null;
+  }
+
   /** Whether {@code identity} is a post-layout part of any field or inside one. */
   static boolean inFieldPart(Object identity) {
     for (Id id = (Id) identity; id != null; id = id.parent()) {

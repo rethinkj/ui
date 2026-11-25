@@ -2698,17 +2698,67 @@ public final class App<S> {
     if (inner != null) {
       int row = rowInView(inner, step < 0);
       found = inRow(listId, row, step);
-      // A row in view without a stop: on in the travel's direction, through rows not built too.
-      El list = step == 0 ? null : animator.element(listId);
-      for (row += step; found == null && list != null && list.hasRow(row); row += step) {
-        found = inRow(listId, row, step);
-        list = animator.element(listId);
-      }
-      if (found == null && list != null) {
-        found = throughGap(new Gap(list, step > 0), step, new boolean[1], true);
+      // A row in view without a stop: on in the travel's direction, through rows not built too,
+      // and past the end of the list to the rows after the one that holds it.
+      while (found == null && step != 0) {
+        found = onFrom(listId, row + step, step);
+        Animator.InRow up = listId.equals(outer.listId()) ? null : animator.inRow(listId);
+        if (found != null || up == null) {
+          break;
+        }
+        found = pastIn(up.listId(), up.row(), listId, step);
+        listId = up.listId();
+        row = up.row();
       }
     }
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
+  }
+
+  /**
+   * Where Tab goes in the rows of the list with identity {@code listId} from {@code row} on in the
+   * order of the {@code step}: the built ones, then those not built; null if none holds a stop.
+   */
+  private El onFrom(Object listId, int row, int step) {
+    El list = animator.element(listId);
+    El found = null;
+    for (; found == null && list != null && list.hasRow(row); row += step) {
+      found = inRow(listId, row, step);
+      list = animator.element(listId);
+    }
+    return found != null || list == null
+        ? found
+        : throughGap(new Gap(list, step > 0), step, new boolean[1], true);
+  }
+
+  /**
+   * Where Tab goes in built row {@code row} of the list with identity {@code listId} past the list
+   * with identity {@code innerId} in it, in the order of the {@code step}; null if nowhere.
+   */
+  private El pastIn(Object listId, int row, Object innerId, int step) {
+    El list = animator.element(listId);
+    El inner = animator.element(innerId);
+    if (list == null || inner == null || !list.hasRow(row)) {
+      return null;
+    }
+    Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+    collect(list.children().get(row - list.firstRow()), inside);
+    List<Object> order = tabOrder();
+    order.removeIf(stop -> stop instanceof El el && el.skipsTab());
+    boolean past = false;
+    for (Object stop : step > 0 ? order : order.reversed()) {
+      if (stop instanceof Gap gap && gap.list() == inner) {
+        past |= gap.after() == step > 0; // its far end
+      } else if (past && stop instanceof El el && inside.contains(el)) {
+        return el;
+      } else if (past && stop instanceof Gap gap && inside.contains(gap.list())) {
+        boolean[] built = {false};
+        El found = throughGap(gap, step, built, true);
+        if (built[0]) {
+          return found; // the order is stale
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -2725,11 +2775,14 @@ public final class App<S> {
     if (step != 0 && row >= 0 && !list.hasRow(row)) {
       tabScan--;
       El rowEl = list.rowElement(row);
-      El was = Animator.find(rowEl, Animator.row(listId, row), last, true);
-      // A field's part only exists after layout: then whether the row has a stop at all.
-      if (was == null
-          ? !stopsTab(rowEl, step, false)
-          : !was.isFocusable() || was.skipsTab() || !numbered(was) || was.opacity() == 0) {
+      Object rowId = Animator.row(listId, row);
+      El was = Animator.find(rowEl, rowId, last, true);
+      Object field = was == null ? Animator.fieldOf(last) : null;
+      El host = field == null ? null : Animator.find(rowEl, rowId, field, true);
+      boolean stop = was != null
+          ? was.isFocusable() && !was.skipsTab() && numbered(was) && was.opacity() != 0
+          : host != null && numbered(host) && host.opacity() != 0; // its parts come with layout
+      if (!stop) {
         return -1;
       }
     }
@@ -2771,8 +2824,8 @@ public final class App<S> {
   }
 
   /**
-   * Where a virtual list has rows it did not build, before the first it built or after the last:
-   * Tab looks there, in the order of the rows, for the next one that holds something to focus.
+   * Where a virtual list has rows it did not build, before the first it built or after the last,
+   * if any: Tab looks there, in the order of the rows, for the next one that holds a stop.
    */
   private record Gap(El list, boolean after) {}
 
@@ -3157,7 +3210,7 @@ public final class App<S> {
     return elements(tabOrder());
   }
 
-  /** The elements of {@link #focusables}, with a {@link Gap} where a virtual list has some. */
+  /** The elements of {@link #focusables}, with a {@link Gap} at each end of a virtual list. */
   private List<Object> tabOrder() {
     List<Object> found = new ArrayList<>();
     if (root != null) {
@@ -3221,8 +3274,8 @@ public final class App<S> {
       }
     }
     if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
-      boolean list = el.isVirtualList();
-      if (list && el.firstRow() > 0) {
+      boolean list = el.isVirtualList(); // a gap at each end, also of no rows, marks them
+      if (list) {
         found.add(new Gap(el, false));
       }
       for (El child : el.children()) {
@@ -3243,7 +3296,7 @@ public final class App<S> {
           focusables(child, left, top, l, clipTop, r, clipBottom, shown, found);
         }
       }
-      if (list && el.firstRow() + el.children().size() < el.rowCount()) {
+      if (list) {
         found.add(new Gap(el, true));
       }
     }
