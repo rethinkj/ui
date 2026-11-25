@@ -482,9 +482,7 @@ public final class AgentChat {
         reply.document = reply.document.next(reply.markdownSource);
         reply.workingText = append.workingText();
       }
-      case Step.AddFile add -> {
-        upsertFile(target, add.file());
-      }
+      case Step.AddFile add -> upsertFile(target, add.file());
     }
   }
   // docs:end agent-chat-stream
@@ -522,13 +520,10 @@ public final class AgentChat {
       return List.of(
           new Step.StartTool(
               Symbol.SEARCH, "Inspect EXPLAIN plan for open orders", true, "Running query plan…"),
-          new Step.FinishTool(
-              0,
-              Chat.ToolState.DONE,
-              "Seq Scan on orders  (cost=0.00..48210.00 rows=1840 width=48)\n"
-                  + "  Filter: (status = 'open')\n"
-                  + "  Rows Removed by Filter: 1842910",
-              "Checking migration files…"),
+          new Step.FinishTool(0, Chat.ToolState.DONE, """
+              Seq Scan on orders  (cost=0.00..48210.00 rows=1840 width=48)
+                Filter: (status = 'open')
+                Rows Removed by Filter: 1842910""", "Checking migration files…"),
           new Step.StartTool(
               Symbol.CODE,
               "Draft migrations/0042_orders_status_created.sql",
@@ -540,10 +535,11 @@ public final class AgentChat {
               Chat.ToolState.DONE,
               "Added partial composite index migration for open orders.",
               "Writing summary…"),
-          new Step.AppendMarkdown(
-              "PostgreSQL is doing a full sequential scan across **1.84M rows** to return 1,840"
-                  + " open orders because no index starts with `status`.\n\n",
-              "Streaming answer…"),
+          new Step.AppendMarkdown("""
+              PostgreSQL is doing a full sequential scan across **1.84M rows** to return 1,840 \
+              open orders because no index starts with `status`.
+
+              """, "Streaming answer…"),
           new Step.AppendMarkdown("""
               Recommended rollout:
 
