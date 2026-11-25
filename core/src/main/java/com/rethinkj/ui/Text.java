@@ -225,8 +225,7 @@ public final class Text implements Measure {
   private Lines composedLines;
   private String shown;
   private Lines shownLines;
-  private final Map<Integer, Para> shapedLines = new HashMap<>();
-  private long shapedLineCharacters; // of the lines in shapedLines
+  private Shaped shaped; // the shaped lines of shownLines, or null until asked for
   private float tabStop;
   private float advance; // of an average character, for the estimate of rows
   private float viewX;
@@ -240,6 +239,7 @@ public final class Text implements Measure {
   private List<El.Hint> hints = List.of();
   private HintMeasurer hintMeasurer;
   private static final SortedHint[] NO_HINTS = {};
+  private static final Object NO_HIGHLIGHTING = new Object();
   private SortedHint[] sortedHints; // sorted hints in bounds, lazily built when !hints.isEmpty()
   private List<Row> rows = List.of();
   private List<PlacedBlock> placedBlocks = List.of();
@@ -354,6 +354,72 @@ public final class Text implements Measure {
       List<String> features,
       int tabSize,
       boolean systemFonts) {}
+
+  /** What the shaped lines of a multi-line field depend on besides its string. */
+  private record Shaping(
+      Font font,
+      float size,
+      float scale,
+      List<String> features,
+      int tabSize,
+      boolean systemFonts,
+      boolean wraps,
+      float lineHeight,
+      int color,
+      Object highlighting,
+      Object hints) {}
+
+  /**
+   * The lines of a multi-line field shaped so far, by index, and the sizes measured from them by
+   * width: kept with the field's lines, so that the next tree finds them while the string and
+   * {@link Shaping} stay the same.
+   */
+  private static final class Shaped {
+    final Shaping shaping;
+    final Map<Integer, Para> paras = new HashMap<>();
+    final Map<Float, Size> fitted = new HashMap<>(); // emptied when a line is shaped anew
+    long characters; // of the lines in paras
+
+    Shaped(Shaping shaping) {
+      this.shaping = shaping;
+    }
+
+    /** Drops shaped line {@code line}, so that it is shaped anew. */
+    void drop(int line) {
+      Para dropped = paras.remove(line);
+      if (dropped != null) {
+        characters -= dropped.text.length();
+      }
+      fitted.clear();
+    }
+  }
+
+  /** The shaped lines of the shown string, from the lines when another tree shaped them alike. */
+  private Shaped shaped() {
+    Lines lines = shownLines();
+    if (shaped != null) {
+      return shaped;
+    }
+    Shaping shaping = new Shaping(
+        font(),
+        size,
+        scale,
+        List.of(features),
+        tabSize,
+        systemFonts,
+        wraps,
+        lineHeight,
+        viewColor,
+        highlighter == null || placeholderShown ? NO_HIGHLIGHTING : highlightKey,
+        hasHints() ? new Object() : null); // a hint's width follows the looks of its tree
+    if (lines.shapedLines instanceof Shaped kept && kept.shaping.equals(shaping)) {
+      shaped = kept;
+    } else {
+      shaped = new Shaped(shaping);
+      lines.shapedLines = shaped;
+    }
+    return shaped;
+  }
 
   Text(String string) {
     if (string == null) {
@@ -597,8 +663,7 @@ public final class Text implements Measure {
   private void invalidate() {
     prepared = false;
     paras = null;
-    shapedLines.clear();
-    shapedLineCharacters = 0;
+    shaped = null;
     sortedHints = null;
     viewStale = true;
     highlightPending = false;
@@ -2614,7 +2679,7 @@ public final class Text implements Measure {
                 if (width == slot.width) {
                   return false;
                 }
-                dropShaped(row.line);
+                shaped().drop(row.line);
                 viewStale = true;
                 return true;
               }
@@ -2631,7 +2696,7 @@ public final class Text implements Measure {
           if (width == slot.width) {
             return false;
           }
-          dropShaped(row.line);
+          shaped().drop(row.line);
           viewStale = true;
           return true;
         }
@@ -2689,25 +2754,19 @@ public final class Text implements Measure {
         Math.max(placedWidth / Math.max(advance, 1), 1));
   }
 
-  /** Drops shaped line {@code line}, so that the next {@link #para} shapes it anew. */
-  private void dropShaped(int line) {
-    Para dropped = shapedLines.remove(line);
-    if (dropped != null) {
-      shapedLineCharacters -= dropped.text.length();
-    }
-  }
-
   /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
   private Para para(int line) {
     Lines lines = shownLines();
-    Para para = shapedLines.get(line);
+    Shaped shaped = shaped();
+    Para para = shaped.paras.get(line);
     if (para == null) {
-      int kept = shapedLines.size();
+      int kept = shaped.paras.size();
       if (kept >= SHAPED_LINES
-          || kept >= SHAPED_LINES_ANY_LENGTH && shapedLineCharacters >= SHAPED_CHARACTERS) {
-        shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
-        shapedLineCharacters = 0;
+          || kept >= SHAPED_LINES_ANY_LENGTH && shaped.characters >= SHAPED_CHARACTERS) {
+        shaped.paras.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
+        shaped.characters = 0;
       }
+      shaped.fitted.clear();
       Spans spans = highlighter == null || placeholderShown
           ? null
           : lines.spans(line, shown, highlighter, highlightKey);
@@ -2722,8 +2781,8 @@ public final class Text implements Measure {
         para = shape(text, spans, 0, text.length(), segHints);
         lines.shapedCharacters += text.length();
       }
-      shapedLines.put(line, para);
-      shapedLineCharacters += lineEnd - lineStart;
+      shaped.paras.put(line, para);
+      shaped.characters += lineEnd - lineStart;
       lines.shaped++;
     }
     float limit = wraps && laidOut ? placedWidth + SLACK : Float.POSITIVE_INFINITY;
@@ -2747,6 +2806,13 @@ public final class Text implements Measure {
    */
   private Size fittedSize(float width) {
     Lines lines = shownLines();
+    // Kept by width while no line is shaped anew: the next tree measures an unchanged text free.
+    Map<Float, Size> fitted =
+        wraps && !lines.hasBlocks() && folds.isEmpty() ? shaped().fitted : null;
+    Size known = fitted == null ? null : fitted.get(width);
+    if (known != null) {
+      return known;
+    }
     float widest = 0;
     int rows;
     if (!wraps) {
@@ -2798,7 +2864,11 @@ public final class Text implements Measure {
       }
       height += lines.totalBlockPixels();
     }
-    return new Size(widest / scale, height / scale, firstBaseline / scale);
+    Size size = new Size(widest / scale, height / scale, firstBaseline / scale);
+    if (fitted != null) {
+      fitted.put(width, size);
+    }
+    return size;
   }
 
   /**
@@ -2821,7 +2891,7 @@ public final class Text implements Measure {
         line >= 0 && line < lines.count() && rows < maxRows;
         line = lines.nextVisible(line)) {
       para(line); // shaped, and its rows counted at the placed width once that is known
-      Para para = shapedLines.get(line);
+      Para para = shaped().paras.get(line);
       if (para != null) {
         float was = para.limit; // what para() counted the line's rows at, which stays
         para.breakInto(limit);
@@ -3187,7 +3257,7 @@ public final class Text implements Measure {
       }
       Spans spans = lines.spans(row.line, shown, highlighter, highlightKey);
       if (spans != null) {
-        dropShaped(row.line);
+        shaped().drop(row.line);
         gained = true;
       } else {
         stillPending = true;

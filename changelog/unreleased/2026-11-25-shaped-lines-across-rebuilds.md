@@ -1,0 +1,1 @@
+- A long text field whose string did not change is no longer shaped and measured again on every rebuild: it keeps its shaped lines and measured sizes with the lines its editor keeps across trees. Typing next to a sent 8,000-line message in a chat costs about 20 ms per key instead of about 50 ms.
