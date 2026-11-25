@@ -1108,7 +1108,7 @@ public final class Scene {
         color(offset + FILL, radial.inner(), 1);
         color(offset + BORDER, radial.outer(), 1);
       }
-      case Background.Picture ignored -> throw new AssertionError("unreachable");
+      case Background.Picture _ -> throw new AssertionError("unreachable");
     }
     put(offset + GRADIENT_OPACITY, opacity);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, 0);

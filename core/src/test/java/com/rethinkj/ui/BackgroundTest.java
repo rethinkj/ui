@@ -267,7 +267,7 @@ class BackgroundTest {
     // Text over an image background does not inherit the flat white fill as its luminance hint.
     try {
       Font.sans();
-    } catch (UnsatisfiedLinkError ignored) {
+    } catch (UnsatisfiedLinkError _) {
       return;
     }
     int midGray = 0xFFC0C0C0; // CIE L* ~ 78 -> unknown backdrop share > 0, on white share == 0
