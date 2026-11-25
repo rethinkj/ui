@@ -22,10 +22,12 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Find and replace in a multi-line text field, such as a code editor ({@code CodeEditor}), which has it from
- * the start, or a {@link TextField#textArea}: a bar along the top of the field with the text to
- * find, the number of matches, switches for case, whole words, regular expressions and the
- * selection, and below it the replacement; or a field for the line to go to.
+ * Find and replace in a multi-line text field or a {@link El#selectionScope selection scope}, such
+ * as a code editor ({@code CodeEditor}), which has it from the start, a {@link TextField#textArea},
+ * {@link Markdown#markdown}, or a virtual list of messages marked {@link El#selectionScope()}: a
+ * bar along the top of the field or scope with the text to find, the number of matches, switches
+ * for case, whole words, regular expressions and (in a field) the selection, and below it the
+ * replacement; or a field for the line to go to.
  *
  * <pre>{@code
  * El area = TextField.textArea(state.text, "Notes", value -> state.text = value)
@@ -46,7 +48,9 @@ import java.util.regex.PatternSyntaxException;
  * several lines the bar opened with. In the replacement Enter replaces the current match and goes
  * to the next; Control+Alt+Enter replaces all, as one step of the undo history; a regular
  * expression's replacement takes {@code $1} and {@code ${name}} for its groups. A read-only field
- * has no replacement.
+ * has no replacement; a selection scope is read-only and has no replacement, find-in-selection
+ * switch or go-to-line, and searches across all its read-only fields in order, including virtual
+ * list rows not built yet.
  *
  * <p>The matches are counted up to {@link #LIMIT}. A text of up to {@link #SYNC_CHARS}
  * characters is searched whole whenever the text or the query changes, which takes a few
@@ -156,13 +160,21 @@ public final class Find {
 
     /** Whether the search keeps to the selection the bar opened with. */
     public boolean inSelection() {
-      return inSelection && scopeTo > scopeFrom;
+      return !isScope() && inSelection && scopeTo > scopeFrom;
     }
 
-    /** Closes the bar; the field keeps its selection. */
+    /** Closes the bar; the field or scope keeps its selection. */
     public void close() {
       open = false;
       cancel();
+    }
+
+    private boolean isScope() {
+      return field != null && field.isSelectionScope();
+    }
+
+    private String text() {
+      return isScope() ? app.scopeText(field) : field.text().string();
     }
 
     void cancel() {
@@ -180,7 +192,7 @@ public final class Find {
     }
 
     private Search.Query search() {
-      String words = field == null ? "" : field.text().wordCharacters();
+      String words = field == null || isScope() ? "" : field.text().wordCharacters();
       return new Search.Query(query, matchCase, wholeWord, regex, words);
     }
 
@@ -234,53 +246,65 @@ public final class Find {
   }
 
   /**
-   * Gives a multi-line field its find bar: the bar while {@code state} is open, the marks of the
-   * matches and the keys that open it and go from match to match. The field's own handlers go on
-   * as before: its keys, decorator and selection handler run after the bar's.
+   * Gives a multi-line field or a {@link El#selectionScope selection scope} its find bar: the bar
+   * while {@code state} is open, the marks of the matches and the keys that open it and go from
+   * match to match. The element's own handlers go on as before: its keys, decorator and (for a
+   * field) selection handler run after the bar's.
    *
-   * @param app the app the field is in, which selects and replaces ({@link App#select}, {@link
-   *     App#edit})
-   * @param field a {@link El#multiline} field
-   * @return the field
+   * @param app the app the field or scope is in, which reads scope text, selects and replaces
+   *     ({@link App#scopeText}, {@link App#select}, {@link App#edit})
+   * @param field a {@link El#multiline} field or an element marked {@link El#selectionScope()}
+   * @return the field or scope
    */
   public static El find(App<?> app, El field, State state) {
     return find(app, field, state, k -> false);
   }
 
   /**
-   * Gives a multi-line field with commands of its own its find bar, as {@link #find(App, El,
-   * State)} does. A key with a modifier that {@code commands} takes, such as a code editor's
-   * Control+D, does nothing while the focus is in the bar, so that it does not act on the field's
-   * text out of sight.
+   * Gives a multi-line field or {@link El#selectionScope selection scope} with commands of its own
+   * its find bar, as {@link #find(App, El, State)} does. A key with a modifier that {@code
+   * commands} takes, such as a code editor's Control+D, does nothing while the focus is in the bar,
+   * so that it does not act on the text out of sight.
    *
-   * @param commands whether a key is one of the field's commands
+   * @param commands whether a key is one of the field's or scope's commands
    */
   public static El find(App<?> app, El field, State state, Predicate<Key> commands) {
     Theme theme = Theme.CURRENT.get();
-    String text = field.text().string();
+    boolean scope = field.isSelectionScope();
     state.commands = commands;
     // A view may make the field read-only after this call, as after a code editor's: the last
     // build's field says so too, and the bar only shows after a handler that ran on that build.
-    boolean editable = field.onEdit() != null
+    boolean editable = !scope
+        && field.onEdit() != null
         && !field.isReadOnly()
         && (state.field == null || !state.field.isReadOnly());
     if (!editable && state.mode == Mode.REPLACE) {
       state.mode = Mode.FIND;
     }
+    if (scope && state.mode == Mode.LINE) {
+      state.mode = Mode.FIND;
+    }
     state.field = field;
     state.app = app;
     state.texts = Texts.CURRENT.get();
-    state.caret = Math.min(state.caret, text.length());
-    state.anchor = Math.min(state.anchor, text.length());
-    El.SelectHandler ownSelect = field.onSelect();
-    field.onSelect((caret, anchor) -> {
-      state.caret = caret;
-      state.anchor = anchor;
-      if (ownSelect != null) {
-        ownSelect.select(caret, anchor);
-      }
-    });
-    if (state.jump != null && !text.equals(state.jumpText)) {
+    String text = scope && !state.open
+        ? null
+        : scope ? app.scopeText(field) : field.text().string();
+    if (text != null) {
+      state.caret = Math.min(state.caret, text.length());
+      state.anchor = Math.min(state.anchor, text.length());
+    }
+    if (!scope) {
+      El.SelectHandler ownSelect = field.onSelect();
+      field.onSelect((caret, anchor) -> {
+        state.caret = caret;
+        state.anchor = anchor;
+        if (ownSelect != null) {
+          ownSelect.select(caret, anchor);
+        }
+      });
+    }
+    if (state.jump != null && (text == null || !text.equals(state.jumpText))) {
       state.jump.cancel(); // its offsets are those of a text that is gone
       state.jump = null;
       state.jumpText = null;
@@ -289,7 +313,7 @@ public final class Find {
     Pattern pattern = state.open && state.mode != Mode.LINE ? state.pattern() : null;
     if (pattern != null) {
       search(app, state, pattern, text);
-      if (state.fresh(text) && state.matches.count() > 0) {
+      if (!scope && state.fresh(text) && state.matches.count() > 0) {
         Search.Matches found = state.matches;
         int count = found.count();
         int[] starts = found.starts();
@@ -316,8 +340,10 @@ public final class Find {
     // A match comes into view below the bar, also in the first line, a step xs clear of it.
     // shortcut: the whole width counts as covered, so a match left of the bar scrolls down too;
     // ask the bar's left edge when that should stay put.
-    field.coveredTop(barHeight(theme, state) + 2 * theme.space().xs());
-    return field.overlay(bar(theme, app, state, text, editable));
+    if (!scope) {
+      field.coveredTop(barHeight(theme, state) + 2 * theme.space().xs());
+    }
+    return field.overlay(bar(theme, app, state, text, editable, scope));
   }
 
   /** Opens the bar to find, with the selected text or the word at the caret. */
@@ -341,7 +367,7 @@ public final class Find {
    * the bar was last built for.
    */
   public static boolean goToLine(State state, String line) {
-    if (state.field == null || parseLine(line) == null) {
+    if (state.field == null || state.isScope() || parseLine(line) == null) {
       return false;
     }
     state.line = line;
@@ -364,40 +390,53 @@ public final class Find {
     if (field == null) {
       return;
     }
-    String text = field.text().string();
-    int s = Math.min(state.caret, state.anchor);
-    int e = Math.max(state.caret, state.anchor);
+    boolean scope = state.isScope();
+    if (scope && mode == Mode.LINE) {
+      return;
+    }
+    String text = state.text();
+    int caret = Math.min(state.caret, text.length());
+    int anchor = Math.min(state.anchor, text.length());
+    int s = Math.min(caret, anchor);
+    int e = Math.max(caret, anchor);
     boolean wasOpen = state.open;
-    int origin = s;
+    int origin = scope ? (s < e ? s : 0) : s;
     if (mode != Mode.LINE) {
-      int feed = text.indexOf('\n', s);
-      boolean oneLine = feed < 0 || feed >= e;
-      // A selection in a line is the text to find, unless it is a match the bar found; the word at
-      // the caret is, when the bar opens.
-      boolean found = wasOpen && state.fresh(text) && state.matches.indexOf(s, e) >= 0;
-      String chosen = null;
-      if (s < e && oneLine && !found) {
-        chosen = text.substring(s, e);
-      } else if (s == e && !wasOpen) {
-        int from = CodeWords.start(text, s, field.text().wordCharacters());
-        int to = CodeWords.end(text, s, field.text().wordCharacters());
-        chosen = from < to ? text.substring(from, to) : null;
-        origin = from;
-      }
-      if (chosen != null) {
-        state.query = state.regex ? quote(chosen) : chosen;
-      }
-      if (s < e && !oneLine) { // the lines a search in the selection keeps to
-        state.scopeFrom = s;
-        state.scopeTo = e;
-      } else if (!wasOpen) {
+      if (scope) {
         state.scopeFrom = state.scopeTo = 0;
         state.inSelection = false;
+      } else {
+        int feed = text.indexOf('\n', s);
+        boolean oneLine = feed < 0 || feed >= e;
+        // A selection in a line is the text to find, unless it is a match the bar found; the word
+        // at
+        // the caret is, when the bar opens.
+        boolean found = wasOpen && state.fresh(text) && state.matches.indexOf(s, e) >= 0;
+        String chosen = null;
+        if (s < e && oneLine && !found) {
+          chosen = text.substring(s, e);
+        } else if (s == e && !wasOpen) {
+          int from = CodeWords.start(text, s, field.text().wordCharacters());
+          int to = CodeWords.end(text, s, field.text().wordCharacters());
+          chosen = from < to ? text.substring(from, to) : null;
+          origin = from;
+        }
+        if (chosen != null) {
+          state.query = state.regex ? quote(chosen) : chosen;
+        }
+        if (s < e && !oneLine) { // the lines a search in the selection keeps to
+          state.scopeFrom = s;
+          state.scopeTo = e;
+        } else if (!wasOpen) {
+          state.scopeFrom = state.scopeTo = 0;
+          state.inSelection = false;
+        }
       }
     }
     state.origin = origin;
-    state.mode =
-        mode == Mode.REPLACE && (field.onEdit() == null || field.isReadOnly()) ? Mode.FIND : mode;
+    state.mode = mode == Mode.REPLACE && (scope || field.onEdit() == null || field.isReadOnly())
+        ? Mode.FIND
+        : mode;
     state.open = true;
     state.opened++;
     state.slow = false;
@@ -413,7 +452,7 @@ public final class Find {
     }
   }
 
-  /** The keys of the field the bar belongs to; whether one was the bar's. */
+  /** The keys of the field or scope the bar belongs to; whether one was the bar's. */
   private static boolean fieldKey(State state, Key k) {
     int mods = k.modifiers();
     switch (k.name()) {
@@ -430,7 +469,7 @@ public final class Find {
         open(state, Mode.REPLACE);
       }
       case "G" -> {
-        if (mods != Key.CONTROL) {
+        if (mods != Key.CONTROL || state.isScope()) {
           return false;
         }
         open(state, Mode.LINE);
@@ -464,6 +503,9 @@ public final class Find {
         case "W" -> state.wholeWord = !state.wholeWord;
         case "R" -> state.regex = !state.regex;
         case "L" -> {
+          if (state.isScope()) {
+            return false;
+          }
           if (state.scopeTo <= state.scopeFrom) {
             return true;
           }
@@ -552,11 +594,13 @@ public final class Find {
     if (pattern == null) {
       return;
     }
-    String text = field.text().string();
+    String text = state.text();
     For target = state.target(text.length());
-    int s = Math.min(state.caret, state.anchor);
-    int e = Math.max(state.caret, state.anchor);
-    int from = direction == 0 ? state.origin : direction > 0 ? e : s;
+    int caret = Math.min(state.caret, text.length());
+    int anchor = Math.min(state.anchor, text.length());
+    int s = Math.min(caret, anchor);
+    int e = Math.max(caret, anchor);
+    int from = direction == 0 ? Math.min(state.origin, text.length()) : direction > 0 ? e : s;
     int[] hit = null;
     int floor = target.from();
     if (state.fresh(text)) {
@@ -591,7 +635,7 @@ public final class Find {
               state.jumpText = null;
               if (found != null
                   && state.field != null
-                  && state.field.text().string().equals(text)
+                  && state.text().equals(text)
                   && target.equals(state.target(text.length()))) { // same query and words
                 select(state, found);
               }
@@ -630,7 +674,7 @@ public final class Find {
   static void replace(App<?> app, State state) {
     El field = state.field;
     Pattern pattern = state.pattern();
-    if (field == null || pattern == null) {
+    if (field == null || state.isScope() || pattern == null) {
       return;
     }
     String text = field.text().string();
@@ -687,7 +731,7 @@ public final class Find {
   static void replaceAll(App<?> app, State state) {
     El field = state.field;
     Pattern pattern = state.pattern();
-    if (field == null || pattern == null) {
+    if (field == null || state.isScope() || pattern == null) {
       return;
     }
     String text = field.text().string();
@@ -729,7 +773,7 @@ public final class Find {
   /** Goes to the line, and column, the line field holds, and closes the bar. */
   private static void jumpToLine(State state) {
     El field = state.field;
-    int[] at = field == null ? null : parseLine(state.line);
+    int[] at = field == null || state.isScope() ? null : parseLine(state.line);
     if (at == null) {
       return;
     }
@@ -912,7 +956,8 @@ public final class Find {
   }
 
   /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
-  private static El bar(Theme theme, App<?> app, State state, String text, boolean editable) {
+  private static El bar(
+      Theme theme, App<?> app, State state, String text, boolean editable, boolean scope) {
     Texts texts = state.texts;
     El panel = panel(theme);
     El bar = bar(
@@ -946,22 +991,23 @@ public final class Find {
     if (toggle != null) {
       findRow.child(toggle);
     }
+    findRow.child(query).child(count);
+    if (!scope) {
+      findRow.child(tool(
+              theme,
+              Symbol.SELECT_ALL_ON,
+              texts.findInSelection(),
+              texts.keys("Alt", "L"),
+              state.inSelection(),
+              state.scopeTo > state.scopeFrom
+                  ? () -> {
+                    state.inSelection = !state.inSelection;
+                    changed(state);
+                  }
+                  : null)
+          .key("in-selection"));
+    }
     findRow
-        .child(query)
-        .child(count)
-        .child(tool(
-                theme,
-                Symbol.SELECT_ALL_ON,
-                texts.findInSelection(),
-                texts.keys("Alt", "L"),
-                state.inSelection(),
-                state.scopeTo > state.scopeFrom
-                    ? () -> {
-                      state.inSelection = !state.inSelection;
-                      changed(state);
-                    }
-                    : null)
-            .key("in-selection"))
         .child(tool(
                 theme,
                 Symbol.ARROW_UP,

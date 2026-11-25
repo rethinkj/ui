@@ -5,7 +5,7 @@ description: Floating find-and-replace bar for multi-line text fields with case,
 
 `Find.find` attaches a floating find-and-replace bar to the top-right corner of a multi-line text field. It highlights matches, displays match counts, replaces text, and supports jumping to a line number.
 
-[CodeEditor](/docs/components/code-editor) already includes a find bar when given `app`; use `Find.find` for other multi-line fields such as [text areas](/docs/components/text-field#text-areas).
+[CodeEditor](/docs/components/code-editor) already includes a find bar when given `app`; use `Find.find` for other multi-line fields such as [text areas](/docs/components/text-field#text-areas), or for any [`El.selectionScope()`](/api/com/rethinkj/ui/El.html#selectionScope()) such as [`Markdown.markdown`](/docs/components/markdown) to search across all its read-only fields in order (without replacement, find in selection, or go to line).
 
 Javadoc: [`Find`](/api/com/rethinkj/ui/kit/Find.html), [`Find.State`](/api/com/rethinkj/ui/kit/Find.State.html).
 

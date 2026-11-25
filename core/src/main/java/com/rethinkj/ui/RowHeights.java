@@ -37,6 +37,7 @@ public final class RowHeights {
   private int previousCount;
   private double[] previousTree;
   private int[] movedTo; // movedTo[oldRow] = newRow, or -1 when oldRow was removed
+  private final Map<Object, String[]> texts = new HashMap<>(); // by key, else index; see texts
 
   /**
    * @param estimate the height of the row with this index, in logical pixels above 0, until it is
@@ -74,6 +75,7 @@ public final class RowHeights {
       heights = kept;
       count = rows;
       tree = buildTree(heights, rows);
+      texts.keySet().removeIf(row -> (Integer) row >= rows);
       return;
     }
     boolean same = rows == count;
@@ -117,6 +119,7 @@ public final class RowHeights {
     count = rows;
     tree = buildTree(heights, rows);
     version++;
+    texts.keySet().retainAll(Arrays.asList(nextKeys));
   }
 
   private static double[] buildTree(double[] heights, int rows) {
@@ -176,6 +179,18 @@ public final class RowHeights {
     return -1;
   }
 
+  /**
+   * The texts of a row's read-only fields as {@link App#scopeText} last read them while the row was
+   * not built, or null: kept as its height is, until the row is built and measured again.
+   */
+  String[] texts(int row) {
+    return texts.get(key == null ? (Object) row : keys[row]);
+  }
+
+  void texts(int row, String[] fields) {
+    texts.put(key == null ? (Object) row : keys[row], fields);
+  }
+
   /** The number of rows. */
   public int count() {
     return count;
@@ -192,6 +207,7 @@ public final class RowHeights {
    * @return how much higher it is than before, negative when lower
    */
   double measured(int row, double height) {
+    texts.remove(key == null ? (Object) row : keys[row]); // built: read from the row again
     double delta = height - heights[row];
     if (delta != 0) {
       heights[row] = height;

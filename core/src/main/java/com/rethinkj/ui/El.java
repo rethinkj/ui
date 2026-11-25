@@ -150,6 +150,7 @@ public final class El {
   private boolean inert; // see #inert
   private boolean holdsFocus; // see #holdFocus
   private boolean selectionScope; // see #selectionScope
+  private Decorator scopeDecorator; // see #decorate on a selection scope
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
   private boolean skipsTab; // see #skipTab
@@ -1453,6 +1454,11 @@ public final class El {
     return rows == null || rows.heights == null ? 0 : rows.heightsVersion;
   }
 
+  /** This list's {@link RowHeights}, or null. */
+  RowHeights rowHeights() {
+    return rows == null ? null : rows.heights;
+  }
+
   /** The key of a row of this list's keyed {@link RowHeights}, or null. */
   Object rowKey(int row) {
     return rows == null || rows.heights == null ? null : rows.heights.key(row);
@@ -1928,20 +1934,31 @@ public final class El {
   }
 
   /**
-   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
-   * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
-   * error. The decorator is asked about each line in view and a few around it whenever the field
-   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colors and
-   * fonts are ignored, which are a {@link #highlight highlighter}'s.
+   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field or a {@link
+   * #selectionScope selection scope} that are in view, before its selection: the line of the caret,
+   * matches of a search, a pair of brackets, an error. The decorator is asked about each line in
+   * view and a few around it whenever the field lays out its rows, keeps nothing, and so may read
+   * anything of the app's state; its colors and fonts are ignored, which are a {@link #highlight
+   * highlighter}'s.
+   *
+   * <p>On a {@link #selectionScope}, the decorator's line indices and character offsets are in the
+   * scope's combined text ({@link App#scopeText}): core passes each built read-only field (including
+   * virtual list rows built later on scroll) its part, translated to the field's own offsets and
+   * merged with the field's own decorator.
    *
    * @param decorator the function, or null for none
-   * @throws IllegalStateException if this is not a multi-line field
+   * @throws IllegalStateException if this is neither a multi-line field nor a selection scope
    */
   public El decorate(Decorator decorator) {
+    if (selectionScope) {
+      this.scopeDecorator = decorator;
+      return this;
+    }
     Text t = editableOnly("decorate");
     if (!t.multiline()) {
       throw new IllegalStateException(
-          "decorate is for multi-line fields: call it after multiline().");
+          "decorate is for multi-line fields or selection scopes: call it after multiline() or"
+              + " selectionScope().");
     }
     t.decorator(decorator);
     return this;
@@ -1949,20 +1966,20 @@ public final class El {
 
   /**
    * The decorator {@link #decorate} gave, or null; a component that adds its own marks calls it
-   * too, as a find bar does with an editor's.
+   * too, as a find bar does with an editor's or a selection scope's.
    */
   public Decorator decorator() {
-    return text == null ? null : text.decorator();
+    return selectionScope ? scopeDecorator : text == null ? null : text.decorator();
   }
 
   /**
-   * Adds a decorator to the one this field has, which marks its lines first: where marks of one
-   * kind overlap, the added one's win, as {@link Spans} says. A view that marks more in a component
-   * that decorates itself, such as a code editor, keeps the component's marks with it; {@link
-   * #decorate} replaces them.
+   * Adds a decorator to the one this field or {@link #selectionScope selection scope} has, which
+   * marks its lines first: where marks of one kind overlap, the added one's win, as {@link Spans}
+   * says. A view that marks more in a component that decorates itself, such as a code editor,
+   * keeps the component's marks with it; {@link #decorate} replaces them.
    *
    * @param decorator the function; not null
-   * @throws IllegalStateException if this is not a multi-line field
+   * @throws IllegalStateException if this is neither a multi-line field nor a selection scope
    */
   public El alsoDecorate(Decorator decorator) {
     Objects.requireNonNull(decorator, "decorator");
@@ -4497,6 +4514,10 @@ public final class El {
    * outermost one. In a {@link #rows virtual list}, the selection spans rows out of view as well,
    * survives rows that leave and return, copies every row it covers, and scrolls the list while a
    * drag is held near or past its top or bottom edge; a {@link #masked masked} field never joins.
+   *
+   * <p>A scope can also be treated as one text by {@link App#scopeText(El)}, {@link App#select(El,
+   * int, int)} and {@link #decorate(Decorator)}, for features such as finding across all its
+   * fields.
    */
   public El selectionScope() {
     this.selectionScope = true;
