@@ -512,13 +512,11 @@ public final class Button {
     }
     int color = subtitleColor(theme, variant, state, look);
     if (options.subtitleLayout == Subtitle.STACKED) {
-      El sub = text(theme, theme.type().small(), options.subtitle).color(color).ellipsis();
+      El sub = text(theme.type().small(), options.subtitle).color(color).ellipsis();
       return col().gap(theme.space().xs()).minSize(0, 0).children(title, sub);
     }
-    El sub = text(theme, theme.type().body(), options.subtitle)
-        .color(color)
-        .ellipsis()
-        .shrink(SUBTITLE_SHRINK);
+    El sub =
+        text(theme.type().body(), options.subtitle).color(color).ellipsis().shrink(SUBTITLE_SHRINK);
     return row()
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
@@ -535,12 +533,12 @@ public final class Button {
       return col()
           .gap(theme.space().xs())
           .minSize(0, 0)
-          .children(title, text(theme, theme.type().small(), options.subtitle));
+          .children(title, text(theme.type().small(), options.subtitle));
     }
     return row()
         .gap(theme.space().s())
         .minSize(0, 0)
-        .children(title, text(theme, theme.type().body(), options.subtitle));
+        .children(title, text(theme.type().body(), options.subtitle));
   }
 
   /**
@@ -558,10 +556,10 @@ public final class Button {
   }
 
   private static El text(Theme theme, String text) {
-    return text(theme, theme.type().strong(), text);
+    return text(theme.type().strong(), text);
   }
 
-  private static El text(Theme theme, Theme.TextStyle style, String text) {
+  private static El text(Theme.TextStyle style, String text) {
     return El.text(text).font(style.font().get()).fontSize(style.size()).minSize(0, 0);
   }
 
