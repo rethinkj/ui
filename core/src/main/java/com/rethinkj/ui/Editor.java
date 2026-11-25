@@ -1774,6 +1774,7 @@ final class Editor {
    */
   void center(int at) {
     centered = at;
+    el.toEnd(false); // the later request wins
   }
 
   /** A position of the string as a position of the shown string. */
@@ -1940,8 +1941,9 @@ final class Editor {
       byLast = scrollToCaret(t, shownCaret, covered, caretWidth, null);
     }
     boolean atRight = el.scrollX() > 0 && !el.canScroll(true, 1);
-    // Sent to its end, or at it past 0: a field opens at 0, which may be its estimated end.
-    boolean atBottom = el.toEnd() || el.scrollY() > 0 && !el.canScroll(false, 1);
+    // Sent to its end, or at it past 0 (a field opens at 0, which may be its estimated end) unless
+    // a scrollbar mark's line is to be centered.
+    boolean atBottom = el.toEnd() || centered < 0 && el.scrollY() > 0 && !el.canScroll(false, 1);
     el.toEnd(false); // done here: these rows are laid out now
     float shift = t.layOut();
     if (revealed) { // the rows laid out measured other heights: jump again, until nothing moves
