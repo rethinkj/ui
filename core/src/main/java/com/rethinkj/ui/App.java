@@ -2905,7 +2905,7 @@ public final class App<S> {
           El scope = animator.liveElement(s.scopeId());
           El area = scope == null ? null : scopeScrollArea(scope);
           if (area != null && (movedY == area || movedX == area)) {
-            settle();
+            changed = settle(); // it takes the scroll the frame would draw
             changed |= drag(s, s.x, s.y);
           }
         }
@@ -3352,7 +3352,7 @@ public final class App<S> {
     }
     long inputEnd = System.nanoTime();
     long inputBuild = buildNanos;
-    if (edgeScroll()) {
+    if (!handled && !changedOutside && edgeScroll()) { // a view to build first scrolls next frame
       drawn = true;
     }
     stale |= shownFor();
@@ -3730,7 +3730,8 @@ public final class App<S> {
         editor = state.editor;
         Editor was = editors.put(id, editor);
         if (was != editor) { // back in the tree, maybe where another field was
-          if (capture instanceof Selecting s && s.id().equals(id)) {
+          // A scope's drag holds positions, not this field.
+          if (capture instanceof Selecting s && s.id().equals(id) && s.scopeId() == null) {
             capture = IDLE;
           }
           if (was != null) {
@@ -4706,6 +4707,9 @@ public final class App<S> {
     if (scopeSelection != null && scopeSelection.listId != null) {
       El scope = animator.liveElement(scopeSelection.scopeId);
       El list = scope == null ? null : scopeList(scope);
+      if (list != null && !scopeSelection.listId.equals(animator.identity(list))) {
+        list = null; // another list took its place: its rows are not the selection's
+      }
       if (scope != null) {
         if (list == null) {
           if (scopeSelection.anchorFrom.row() >= 0 || scopeSelection.end.row() >= 0) {
@@ -4737,6 +4741,9 @@ public final class App<S> {
     if (capture instanceof Selecting s && s.scopeId() != null && s.listId != null) {
       El scope = animator.liveElement(s.scopeId());
       El list = scope == null ? null : scopeList(scope);
+      if (list != null && !s.listId.equals(animator.identity(list))) {
+        list = null;
+      }
       if (scope != null) {
         if (list == null) {
           if (s.anchorFrom.row() >= 0) {
@@ -4919,7 +4926,9 @@ public final class App<S> {
     }
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
-    boolean changed = false;
+    if (!old.hasSelection()) {
+      return false; // it gave no field a range, and others may have one of their own
+    }
     // Every editor of the scope, also of rows not built yet, whose editors a rebuild reuses.
     for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
       Editor editor = entry.getValue();
@@ -4928,10 +4937,10 @@ public final class App<S> {
           && el != null
           && isScopeFieldCandidate(el)
           && inScope(entry.getKey(), old.scopeId)) {
-        changed |= editor.collapse();
+        editor.collapse();
       }
     }
-    return changed || old.hasSelection();
+    return true;
   }
 
   /** Handles a key on the focused field; one that moves the caret ends a cross-field selection. */
@@ -4999,7 +5008,8 @@ public final class App<S> {
     if (slice == null) {
       return;
     }
-    String part = text.substring(slice[0], slice[1]);
+    // On the boundaries Editor#setRange snaps the highlight to.
+    String part = text.substring(Editor.snap(text, slice[0]), Editor.snap(text, slice[1]));
     if (!part.isEmpty()) {
       if (!out.isEmpty()) {
         out.append('\n');
