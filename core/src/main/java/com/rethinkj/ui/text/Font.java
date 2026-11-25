@@ -463,9 +463,9 @@ public final class Font implements AutoCloseable {
       throw new IllegalArgumentException("scale must be above 0, was " + scale);
     }
     Key key = new Key(text, size * scale, scale >= 1.5f && !icons, List.of(features));
-    long now = frame();
     synchronized (this) {
       checkOpen();
+      long now = frame(); // in the monitor, so that the runs' frames grow in their LRU order
       Shaped shaped = runs.get(key);
       if (shaped == null) {
         shaped = new Shaped(shape(key), now);
