@@ -92,6 +92,21 @@ class TextRenderTest {
     Golden.assertMatches("text-align-1x", frame.pixels(), frame.tree());
   }
 
+  /** See {@link Examples#alignedFields}. */
+  @Test
+  void wrappingFieldsAlignRowsSelectionMarksAndRanges() throws IOException {
+    App<Object> app = new App<>(new Object(), s -> Examples.alignedFields());
+    app.textRendering(PINNED);
+    Script.run("""
+        size 356 76 scale 2
+        frame
+        press #center clicks 2
+        move #end-link
+        frame""", app, Path.of("target/field-text-align"));
+    Headless.Frame frame = app.render();
+    Golden.assertMatches("field-text-align", frame.pixels(), frame.tree());
+  }
+
   /** See {@link Examples#ellipsisText}. */
   @Test
   void aLineTooWideForItsBoxEndsInAnEllipsis() {

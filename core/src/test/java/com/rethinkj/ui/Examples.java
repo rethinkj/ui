@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -975,6 +976,51 @@ public final class Examples {
         }
       }
       root.child(cells);
+    }
+    return root;
+  }
+
+  /**
+   * Wrapping read-only {@link El#fitLines} fields aligned at the start, in the center and at the
+   * end ({@link El#textAlign}), each with a highlighted range link and a background mark, for a
+   * window of 356 by 76: the stored image {@code field-text-align}.
+   */
+  public static El alignedFields() {
+    String text = "See the docs for aligned rows and links.";
+    int linkFrom = text.indexOf("docs");
+    int linkTo = linkFrom + 4;
+    int markFrom = text.indexOf("rows");
+    int markTo = markFrom + 4;
+    El root = row().padding(8).gap(8).fill(0xFFFFFFFF);
+    for (Style.Align align :
+        new Style.Align[] {Style.Align.START, Style.Align.CENTER, Style.Align.END}) {
+      String key = align.name().toLowerCase(Locale.ROOT);
+      root.child(el().w(108)
+          .padding(6)
+          .fill(0xFFF1F5F9)
+          .child(El.text(text)
+              .key(key)
+              .editable(v -> {})
+              .readOnly()
+              .multiline()
+              .wrapText()
+              .fitLines()
+              .fontSize(13)
+              .color(0xFF1A1A1A)
+              .selectionColor(0x553B82F6)
+              .textAlign(align)
+              .wFull()
+              .highlight("link", (line, state, out) -> {
+                out.color(linkFrom, linkTo, 0xFF2563EB);
+                out.underline(linkFrom, linkTo, 0xFF2563EB);
+                return null;
+              })
+              .decorate((line, start, content, out) -> out.background(markFrom, markTo, 0xFFFDE68A))
+              .child(el().key(key + "-link")
+                  .role("link")
+                  .label("docs")
+                  .range(linkFrom, linkTo)
+                  .whenHovered(l -> l.fill(0x222563EB)))));
     }
     return root;
   }

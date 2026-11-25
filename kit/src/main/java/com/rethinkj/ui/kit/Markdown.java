@@ -1153,7 +1153,6 @@ public final class Markdown {
       }
       cells.add(pieces);
     }
-    float[][] measured = new float[cells.size()][columns];
     for (int r = 0; r < cells.size(); r++) {
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
@@ -1162,7 +1161,6 @@ public final class Markdown {
             .font(style.font().get())
             .fontSize(style.size())
             .highlight(piece, piece));
-        measured[r][j] = width;
         widths[j] = Math.max(widths[j], Math.min(width + 2, theme.prose().measure() / 2));
       }
     }
@@ -1179,21 +1177,16 @@ public final class Markdown {
       }
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
-        El field = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]);
-        Style.Content justify = switch (table.aligns().get(j)) {
-          case CENTER -> Style.Content.CENTER;
-          case RIGHT -> Style.Content.END;
-          default -> Style.Content.START;
+        Style.Align align = switch (table.aligns().get(j)) {
+          case CENTER -> Style.Align.CENTER;
+          case RIGHT -> Style.Align.END;
+          default -> Style.Align.START;
         };
-        float preferred = measured[r][j] + 2;
-        if (preferred < widths[j]) {
-          field.w((float) Math.ceil(preferred));
-        }
+        El field = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]).textAlign(align);
         line.child(row()
             .role(r == 0 ? "columnheader" : "cell")
             .w(widths[j] + 2 * pad)
             .shrink(0)
-            .justify(justify)
             .padding(theme.space().s(), pad)
             .child(field));
       }
