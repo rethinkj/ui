@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
@@ -10,12 +11,14 @@ import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -382,6 +385,126 @@ class ButtonTest {
     assertTrue(
         StructureTest.line(dump, "role=menuitem label=\"Explain\"").contains(" disabled"),
         "off, a split button's entry opens no submenu: " + dump);
+  }
+
+  @Test
+  void aSubtitleJoinsTheLabelAndCutsBeforeTheTitleInANarrowView() throws IOException {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            Button.icon(GHOST, Symbol.FLASH, "Model", () -> {}, Button.options().subtitle("High")));
+
+    App<Clicks> app = app(c -> col()
+        .gap(4)
+        .children(
+            row()
+                .gap(4)
+                .children(
+                    button(
+                            SECONDARY,
+                            "Opus 5.5",
+                            c::press,
+                            Button.options().subtitle("High").shortcut(Key.CONTROL, "M"))
+                        .key("inline"),
+                    button(
+                            SECONDARY,
+                            "Opus 5.5",
+                            c::press,
+                            Button.options().subtitle("Extended thinking"))
+                        .key("narrow")
+                        .w(110),
+                    button(
+                            SECONDARY,
+                            "Opus 5.5",
+                            c::press,
+                            Button.options().subtitle("Extended thinking"))
+                        .key("tiny")
+                        .w(56)),
+            row()
+                .gap(4)
+                .align(Style.Align.START)
+                .children(
+                    button(
+                            PRIMARY,
+                            "Sonnet 4",
+                            c::press,
+                            Button.options().subtitle("Fast", Button.Subtitle.STACKED))
+                        .key("stacked"),
+                    button(
+                            PRIMARY,
+                            "Sonnet 4",
+                            c::press,
+                            Button.options()
+                                .subtitle("Fast", Button.Subtitle.STACKED)
+                                .state(Button.State.BUSY)
+                                .busyText("Saving…"))
+                        .key("stackedBusy"),
+                    button(SECONDARY, "Haiku", null, Button.options().subtitle("Off"))
+                        .key("off"),
+                    Button.split(
+                            SECONDARY,
+                            "Deploy",
+                            c::press,
+                            c.menu,
+                            List.of(Menu.item("Staging", c::press)),
+                            Button.options().subtitle("Prod deployment", Button.Subtitle.STACKED))
+                        .w(80),
+                    button(
+                            SECONDARY,
+                            "Build",
+                            c::press,
+                            Button.options().subtitle("Release").state(Button.State.BUSY))
+                        .key("busy"))));
+    run(app, "press role=button label=\"Opus 5.5 High\"\nmove #narrow\nframe\nadvance 1\nframe");
+    assertEquals(1, app.state().presses);
+    String dump = app.tree().dump();
+    assertTrue(
+        dumpLine(app, "inline").contains("label=\"Opus 5.5 High\""), dumpLine(app, "inline"));
+    assertTrue(
+        dumpLine(app, "stacked").contains("label=\"Sonnet 4 Fast\""), dumpLine(app, "stacked"));
+    assertTrue(
+        dump.contains("role=tooltip label=\"Opus 5.5 Extended thinking\""),
+        "shortened tooltip shows title and subtitle: " + dump);
+
+    List<El> narrowParts = find(app, "narrow").children().getFirst().children();
+    assertFalse(narrowParts.get(0).text().shortened(), "title stays whole while subtitle cuts");
+    assertTrue(narrowParts.get(1).text().shortened(), "subtitle cuts first");
+    List<El> tinyParts = find(app, "tiny").children().getFirst().children();
+    assertTrue(tinyParts.get(0).text().shortened(), "title cuts when no room remains");
+
+    assertEquals(T.text().muted(), narrowParts.get(1).text().color());
+    assertEquals(
+        T.text().onAccent(),
+        find(app, "stacked").children().getFirst().children().get(1).text().color());
+    assertEquals(
+        T.text().disabled(),
+        find(app, "off").children().getFirst().children().get(1).text().color());
+    assertEquals(
+        0f, find(app, "busy").children().getFirst().opacity(), "busy hides title and subtitle");
+    float stackedHeight = StructureTest.rect(dumpLine(app, "stacked"))[3];
+    assertTrue(stackedHeight > T.size().control(), "stacked grows taller: " + stackedHeight);
+    assertEquals(
+        stackedHeight,
+        StructureTest.rect(dumpLine(app, "stackedBusy"))[3],
+        "a busy text keeps a stacked button's height");
+    assertEquals(
+        StructureTest.rect(dumpLine(app, "main"))[3],
+        StructureTest.rect(dumpLine(app, "arrow"))[3],
+        "split chevron matches stacked main height");
+    float[] split = StructureTest.rect(dumpLine(app, "split"));
+    float[] arrow = StructureTest.rect(dumpLine(app, "arrow"));
+    assertEquals(split[0] + split[2], arrow[0] + arrow[2], "a narrow split keeps its chevron");
+
+    run(app, "down #stacked\nframe\nadvance 1\nframe");
+    assertEquals(
+        stackedHeight,
+        StructureTest.rect(dumpLine(app, "stacked"))[3],
+        "pressing a stacked button keeps its height");
+
+    run(app, "up #stacked\nmove #inline\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"Opus 5.5 High\""),
+        "shortcut tooltip shows title and subtitle: " + app.tree().dump());
   }
 
   private static Button.Options danger() {

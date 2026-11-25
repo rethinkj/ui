@@ -14,7 +14,7 @@ For an on/off setting, use [Toggle](/docs/components/toggle). For a row of actio
 
 Javadoc: [`Button`](/api/com/rethinkj/ui/kit/Button.html), [`Button.Options`](/api/com/rethinkj/ui/kit/Button.Options.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,success ghost,accent ghost,busy icon,progress icon,small,large,menu,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
+<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,busy text,ghost,danger,danger secondary,danger ghost,success ghost,accent ghost,busy icon,progress icon,small,large,menu,subtitle,subtitle stacked,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
 
 ## Example
 
@@ -31,11 +31,12 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 ```java snippet="button-options"
 ```
 
-<Shot src="examples/docs/button-options/menu-{theme}" alt="Danger, disabled, busy, progress-ring, menu, large, and split buttons, with the split button's menu open" />
+<Shot src="examples/docs/button-options/menu-{theme}" alt="Danger, disabled, busy, progress-ring, split, subtitle, menu, and large buttons, with the split button's menu open" />
 
 | Option | Description |
 | --- | --- |
 | `icon(icon)` | Shows an icon before the text (not used with `Button.icon`, which takes the icon directly) |
+| `subtitle(text)`, `subtitle(text, layout)` | Secondary text after the title (`Subtitle.INLINE`, default) in muted color (the title's color on `PRIMARY`) keeping the button's height, or smaller below it (`Subtitle.STACKED`) growing the button to fit both lines. Included in the tree-dump label and tooltips; cuts before the title in a narrow view. Not for `Button.icon` |
 | `state(READY)` | Normal clickable state (default) |
 | `state(BUSY)` | Shows a spinner while an action runs. Ignores clicks, Enter, and Space, keeps its width and focus, and works even with a `null` handler |
 | `state(DISABLED)` | Disables the button while keeping the handler in your view code (same behavior as a `null` handler) |
@@ -72,7 +73,7 @@ The returned value is an `El`, so you can chain `.key("save")`, `.w(...)`, or ot
 
 ## In a tree dump
 
-`role=button` with text (or icon label) as `label`. Includes `disabled`, `busy`, `checked` / `checked=false` (toggle buttons), and `expanded` / `expanded=false` (menu buttons and split button `#arrow`). Split buttons contain `#main` and `#arrow` (`label="More <text>"`).
+`role=button` with text (or icon label, or `"<title> <subtitle>"` when a subtitle is set) as `label`. Includes `disabled`, `busy`, `checked` / `checked=false` (toggle buttons), and `expanded` / `expanded=false` (menu buttons and split button `#arrow`). Split buttons contain `#main` and `#arrow` (`label="More <text>"`).
 
 ```text file="examples/src/test/resources/golden/docs/buttons/view.tree.txt" start="label=\"Format\"" count="7"
 ```

@@ -537,6 +537,71 @@ el 0,0 140x40
   el #c role=button label="Export" 27,8 86x24 disabled
     text "Export" 40,12 40x16
     text label="chevron_down" "\u{F2A2}" 84,12 16x16
+# subtitle, rest
+el 0,0 140x40
+  el #c role=button label="Opus 5.5 High" 13,8 114x24
+    el 26,12 88x16
+      text "Opus 5.5" 26,12 56x16
+      text "High" 86,12 28x16
+# subtitle, hover
+el 0,0 140x40
+  el #c role=button label="Opus 5.5 High" 13,8 114x24 hovered
+    el 26,12 88x16
+      text "Opus 5.5" 26,12 56x16
+      text "High" 86,12 28x16
+# subtitle, pressed
+el 0,0 140x40
+  el #c role=button label="Opus 5.5 High" 13,8 114x24 hovered
+    el 26,13 88x16
+      text "Opus 5.5" 26,13 56x16
+      text "High" 86,13 28x16
+# subtitle, focused
+el 0,0 140x40
+  el #c role=button label="Opus 5.5 High" 13,8 114x24 focused
+    el 26,12 88x16
+      text "Opus 5.5" 26,12 56x16
+      text "High" 86,12 28x16
+# subtitle, disabled
+el 0,0 140x40
+  el #c role=button label="Opus 5.5 High" 13,8 114x24 disabled
+    el 26,12 88x16
+      text "Opus 5.5" 26,12 56x16
+      text "High" 86,12 28x16
+# subtitle stacked, rest
+el 0,0 140x56
+  el #c role=button label="Opus 5.5 High" 19,7 102x42
+    text label="flash" "\u{E617}" 32,20 16x16
+    el 52,12 56x32
+      text "Opus 5.5" 52,12 56x16
+      text "High" 52,30 56x14
+# subtitle stacked, hover
+el 0,0 140x56
+  el #c role=button label="Opus 5.5 High" 19,7 102x42 hovered
+    text label="flash" "\u{E617}" 32,20 16x16
+    el 52,12 56x32
+      text "Opus 5.5" 52,12 56x16
+      text "High" 52,30 56x14
+# subtitle stacked, pressed
+el 0,0 140x56
+  el #c role=button label="Opus 5.5 High" 19,7 102x42 hovered
+    text label="flash" "\u{E617}" 32,21 16x16
+    el 52,13 56x32
+      text "Opus 5.5" 52,13 56x16
+      text "High" 52,31 56x14
+# subtitle stacked, focused
+el 0,0 140x56
+  el #c role=button label="Opus 5.5 High" 19,7 102x42 focused
+    text label="flash" "\u{E617}" 32,20 16x16
+    el 52,12 56x32
+      text "Opus 5.5" 52,12 56x16
+      text "High" 52,30 56x14
+# subtitle stacked, disabled
+el 0,0 140x56
+  el #c role=button label="Opus 5.5 High" 19,7 102x42 disabled
+    text label="flash" "\u{E617}" 32,20 16x16
+    el 52,12 56x32
+      text "Opus 5.5" 52,12 56x16
+      text "High" 52,30 56x14
 # toggle off, rest
 el 0,0 140x40
   el #c role=switch label="Autocommit" 11,10 118x20 checked=false
