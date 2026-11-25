@@ -433,7 +433,10 @@ public final class Chat {
    * A virtual list of {@code count} chat messages centered in a column up to {@link
    * Theme.Prose#measure()} wide that follows the newest message while at the bottom, keeps its
    * place when scrolled up, and shows a floating button over its bottom while away from the end to
-   * jump back. Give it a height, or let it {@link El#grow} in a column, as any scroll area.
+   * jump back. The list is a {@link El#selectionScope selection scope}, so a drag or Shift+click
+   * selects across the {@link Markdown#fragment Markdown} of messages, including ones scrolled out
+   * of view, and Control+C copies it in order. Give it a height, or let it {@link El#grow} in a
+   * column, as any scroll area.
    *
    * <p>The app keeps {@code scroll} and {@code heights} in its state and passes the same instances
    * on every build. {@code transcript} enables {@link ScrollState#followEnd()} on {@code scroll}.
@@ -480,6 +483,7 @@ public final class Chat {
         .key("list")
         .role("log")
         .label(texts.transcript())
+        .selectionScope()
         .wFull()
         .grow(1)
         .minSize(0, 0)

@@ -369,4 +369,64 @@ class ChatTest {
     assertFalse(
         app.tree().dump().contains("label=\"Jump to newest\""), app.tree().dump());
   }
+
+  @Test
+  void transcriptSelectionSpansMessagesAndOutOfViewRows() throws IOException {
+    List<MarkdownDocument> replies = new ArrayList<>();
+    for (int i = 0; i < 40; i++) {
+      replies.add(Markdown.parse("Reply " + i + " with sample words."));
+    }
+    ScrollState scroll = new ScrollState();
+    RowHeights heights = new RowHeights(index -> 64, index -> index);
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Chat.transcript(
+                        replies.size(),
+                        index ->
+                            Chat.agent(Markdown.fragment(replies.get(index), Markdown.options())),
+                        scroll,
+                        heights)
+                    .grow(1)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    // A drag from one message into another copies the messages between them in order.
+    Script.run("""
+        size 640 240 scale 2
+        frame
+        scroll role=log row 0
+        frame
+        down text="Reply 1 with sample words." at left+40
+        move text="Reply 3 with sample words." at left+40
+        up text="Reply 3 with sample words." at left+40
+        frame
+        key C control
+        frame""", app, out);
+    List<String> dragged = app.clipboard().read().lines().toList();
+    assertEquals(3, dragged.size(), app.clipboard().read());
+    assertEquals("Reply 2 with sample words.", dragged.get(1));
+
+    // Shift+press extends from an anchor whose message scrolled out of the built rows, and the
+    // copy holds every message it covers, also the ones never built.
+    Script.run("""
+        press text="Reply 1 with sample words." at left+40
+        frame
+        scroll role=log row 31
+        frame""", app, out);
+    assertFalse(app.tree().dump().contains("Reply 1 with"), app.tree().dump());
+    Script.run("""
+        press text="Reply 31 with sample words." at left+90 shift
+        frame
+        key C control
+        frame""", app, out);
+    List<String> spanned = app.clipboard().read().lines().toList();
+    assertEquals(31, spanned.size(), app.clipboard().read());
+    assertTrue(spanned.getFirst().endsWith(" with sample words."), spanned.getFirst());
+    assertEquals("Reply 15 with sample words.", spanned.get(14));
+    assertTrue(spanned.getLast().startsWith("Reply 31 "), spanned.getLast());
+  }
 }

@@ -691,7 +691,6 @@ public final class AgentChat {
             current.scroll,
             current.heights)
         .key("transcript-" + current.id)
-        .selectionScope()
         .grow(1);
     El composer = Chat.composer(
             current.draft,

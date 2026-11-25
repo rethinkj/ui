@@ -21,7 +21,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=AgentChat
 
 - Send a prompt from the composer (**Enter** sends, **Shift+Enter** adds a line) and watch tool calls run and Markdown stream into the transcript.
 - Press **Stop** while an answer is streaming, or click any tool call row to expand its output.
-- Drag across paragraphs in the transcript to select across messages (`selectionScope`).
+- Drag across paragraphs in the transcript to select across messages.
 - Collapse and expand project groups in the sidebar, pin a session on hover, start a **New session**, or toggle the **Changes** panel from the chat toolbar.
 
 ## How it works
@@ -35,7 +35,7 @@ The sidebar builds a [NavList](/docs/components/nav-list) from project headings 
 
 ### Transcript, tool calls, and composer
 
-The middle card pairs `Chat.transcript` (marked as a `selectionScope` so selection spans messages) with `Chat.composer`. Each agent message composes `Chat.tool` rows, a `Markdown.fragment` for the growing document, and `Chat.working` while active:
+The middle card pairs `Chat.transcript` with `Chat.composer`. Each agent message composes `Chat.tool` rows, a `Markdown.fragment` for the growing document, and `Chat.working` while active:
 
 ```java snippet="agent-chat-transcript"
 ```

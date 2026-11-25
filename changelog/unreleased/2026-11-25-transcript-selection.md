@@ -1,0 +1,1 @@
+- `Chat.transcript` marks its virtual list as an `El.selectionScope()`, so a drag or Shift+click selects across the Markdown of messages, including ones scrolled out of view, and Control+C copies it in order.
