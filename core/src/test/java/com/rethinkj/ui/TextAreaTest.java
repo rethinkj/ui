@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1225,6 +1226,47 @@ class TextAreaTest {
     app.invalidate();
     app.frame();
     assertTrue(ink(app.render().pixels(), 20, 24, 0xE0) > 0, "drawn past the content box too");
+  }
+
+  @Test
+  void aFitLinesFieldIsHigherByTheBarStripOnlyWhileALineIsTooWide() {
+    Scrollbars bars = new Scrollbars(6, 2, 3, 20, 0x80FFFFFF, 0xA0FFFFFF, 0xC0FFFFFF);
+    App<Object> app = new App<>(
+        new Object(),
+        state -> El.col()
+            .wFull()
+            .children(
+                El.text("a\nb")
+                    .editable(value -> {})
+                    .readOnly()
+                    .multiline()
+                    .fitLines()
+                    .scrollbars(bars)
+                    .font(Font.mono())
+                    .fontSize(14),
+                El.text("a\n" + "x".repeat(40))
+                    .editable(value -> {})
+                    .readOnly()
+                    .multiline()
+                    .fitLines()
+                    .scrollbars(bars)
+                    .font(Font.mono())
+                    .fontSize(14)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 400, 2);
+    app.frame();
+    El fits = app.tree().children().get(0);
+    El wide = app.tree().children().get(1);
+    float rows = fits.height();
+    assertNull(fits.horizontalBar());
+    assertEquals(rows + bars.strip(), wide.height(), 0.5f);
+    assertTrue(wide.horizontalBar().trackY() >= wide.y() + rows, "the bar below the last row");
+    // Once the line fits, the strip goes with the bar.
+    app.resize(500, 400, 2);
+    app.frame();
+    wide = app.tree().children().get(1);
+    assertEquals(rows, wide.height(), 0.5f);
+    assertNull(wide.horizontalBar());
   }
 
   /** The pixels between rows {@code from} and {@code to} with a channel darker than this. */

@@ -748,7 +748,11 @@ public final class AgentChat {
     }
     if (!message.markdownSource.isEmpty()) {
       parts.add(Markdown.fragment(
-          message.document, Markdown.options().copy(clipboard).languages(AgentChat::highlighter)));
+          message.document,
+          Markdown.options()
+              .copy(clipboard)
+              .copied(message.copied)
+              .languages(AgentChat::highlighter)));
     }
     if (message.working) {
       parts.add(Chat.working(message.workingText));

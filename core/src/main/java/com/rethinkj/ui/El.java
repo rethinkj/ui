@@ -1296,8 +1296,9 @@ public final class El {
    * look as {@code look} says. After layout, {@link App} places a bar along the right edge while
    * the content is taller than the area and one along the bottom while it is wider; an axis whose
    * content fits has none, and where both show, each stops short of the corner. A bar lies over
-   * the content and takes no room in the layout. It stays where it is while the area scrolls, at
-   * the edges of the part of the area that its ancestors' clips leave visible, short of the bars
+   * the content and takes no room in the layout, but for a {@link #fitLines} field that does not
+   * wrap: it is higher by the strip of the bar along its bottom while that bar shows, so that the
+   * bar covers no row. It stays where it is while the area scrolls, at the edges of the part of the area that its ancestors' clips leave visible, short of the bars
    * of scroll areas around it, and it is clipped like the area's children, to its rounded corners.
    *
    * <p>So that the last row and the last column can come out from under a bar that crosses them,
@@ -3246,8 +3247,9 @@ public final class El {
    * however many there are, so that it never scrolls up and down: a paragraph of a document that
    * a read-only field shows for selecting and copying. When the field also {@link #wrapText wraps},
    * layout measures it as wide as its widest row at the width it is given (with room for the
-   * caret), as plain text and a wrapping single-line field do; without wrapping it measures 0 wide.
-   * A field with room for all its rows draws its glyphs uncut by its box when it wraps, as text
+   * caret), as plain text and a wrapping single-line field do; without wrapping it measures 0 wide,
+   * and with {@link #scrollbars} it is higher by the bar's {@link Scrollbars#strip strip} while a
+   * line is wider than its content box, so that the bar along its bottom covers no row. A field with room for all its rows draws its glyphs uncut by its box when it wraps, as text
    * does, and a {@link #readOnly} one lets Page Up and Page Down without Shift go on to the scroll
    * area around it instead of moving the caret. Unlike {@link #lines} every row is
    * shaped and laid out, so it is for texts of a few screens at most; for a field that grows up to
@@ -5218,6 +5220,10 @@ public final class El {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
       el.text.lineHeight(resolved);
+      el.text.horizontalBarStrip(
+          el.scrollbars != null && el.style.overflowX == Style.Overflow.SCROLL
+              ? el.scrollbars.strip()
+              : 0);
       if (el.hasGutter()) {
         el.measureGutter();
       }
@@ -5339,9 +5345,9 @@ public final class El {
     if (text != null && text.multiline()) {
       // A field: its rows as far as they are known, in its content box as layout placed it.
       float scale = text.scale();
-      double room = Math.max(1, Math.round(scale)) + Editor.MARGIN * scale; // the caret at the end
       double extent = Math.max(
-          text.extentWidth((float) room), field == null || text.wraps() ? 0 : field.foldsExtent);
+          text.extentWidth(Text.caretRoom(scale)),
+          field == null || text.wraps() ? 0 : field.foldsExtent);
       double wide = extent - text.contentWidth() / scale;
       double tall = text.extentHeight() - text.contentHeight() / scale;
       maxScrollX = style.overflowX == Style.Overflow.SCROLL && wide > SLACK ? wide : 0;

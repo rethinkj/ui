@@ -171,6 +171,7 @@ public final class Text implements Measure {
   private int[] squiggled = {};
   private int visibleLines = 1;
   private int maxLines; // 0 for no limit, see El#maxLines
+  private float horizontalBarStrip; // logical strip of El#scrollbars when scrolling sideways
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
   private List<Box> selection = List.of();
@@ -741,6 +742,19 @@ public final class Text implements Measure {
 
   void visibleLines(int lines) {
     this.visibleLines = lines;
+  }
+
+  /**
+   * Logical height of a horizontal scrollbar's strip ({@link Scrollbars#strip}) when this element
+   * has scrollbars and scrolls sideways, or 0 otherwise; set by {@link El#scaleText}.
+   */
+  void horizontalBarStrip(float strip) {
+    this.horizontalBarStrip = strip;
+  }
+
+  /** Physical pixels kept past the widest line for the caret at its end. */
+  static float caretRoom(float scale) {
+    return Editor.caretWidth(scale) + Editor.MARGIN * scale;
   }
 
   /**
@@ -2743,14 +2757,30 @@ public final class Text implements Measure {
   /**
    * For {@link El#fitLines}: the width and height of every row and block at a content box this
    * wide, in logical pixels. When wrapping, the width is the widest row with room for the caret, as
-   * a wrapping single-line field measures; without wrapping it is 0.
+   * a wrapping single-line field measures; without wrapping it is 0, and when the field has
+   * scrollbars and scrolls sideways, the height adds {@link #horizontalBarStrip} whenever any
+   * visible line (plus {@link #caretRoom}) overflows {@code width} by more than {@link #SLACK}.
    */
   private Size fittedSize(float width) {
     Lines lines = shownLines();
     float widest = 0;
+    float extraHeight = 0;
     int rows;
     if (!wraps) {
       rows = lines.shownCount();
+      if (horizontalBarStrip > 0 && Float.isFinite(width)) {
+        float past = caretRoom(scale) - Math.max(0, width) * scale; // beyond the content box
+        for (int line = lines.firstVisible();
+            line >= 0 && line < lines.count();
+            line = lines.nextVisible(line)) {
+          float lineWidth = para(line).totalWidth();
+          lines.measured(line, lineWidth);
+          if ((lineWidth + past) / scale > SLACK) { // as El#measureScroll finds it wide
+            extraHeight = horizontalBarStrip;
+            break;
+          }
+        }
+      }
     } else {
       float limit;
       if (width == MAX_CONTENT || Float.isNaN(width)) {
@@ -2798,7 +2828,7 @@ public final class Text implements Measure {
       }
       height += lines.totalBlockPixels();
     }
-    return new Size(widest / scale, height / scale, firstBaseline / scale);
+    return new Size(widest / scale, height / scale + extraHeight, firstBaseline / scale);
   }
 
   /**

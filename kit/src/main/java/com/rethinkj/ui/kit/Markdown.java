@@ -117,6 +117,7 @@ public final class Markdown {
     private Consumer<String> onLink;
     private Function<String, Highlighter> languages = language -> null;
     private Clipboard clipboard;
+    private Button.Copied copied;
     private State state;
     private Function<String, com.rethinkj.ui.Image> images;
     private int textColor;
@@ -169,10 +170,23 @@ public final class Markdown {
       return this;
     }
 
+    /**
+     * State for a code block copy button's brief confirmation check mark and tooltip; when omitted,
+     * {@link #state}'s is used, or none without a {@link State}.
+     */
+    public Options copied(Button.Copied copied) {
+      this.copied = copied;
+      return this;
+    }
+
     /** Where Control+A keeps that the whole document is selected; without it, it selects none. */
     public Options state(State state) {
       this.state = state;
       return this;
+    }
+
+    private Button.Copied copied() {
+      return copied != null ? copied : state != null ? state.copied : null;
     }
   }
 
@@ -241,9 +255,12 @@ public final class Markdown {
     State state = options.state;
     if (state != null) {
       list.onAnyPointerDown(() -> state.all = false);
+    }
+    Button.Copied copied = options.copied();
+    if (copied != null) {
       // Overlays in the rows of a list keep their time only while their row exists: the
       // confirmation of a code block's copy button ends by one on the document.
-      list.overlay(Button.ending(theme, state.copied));
+      list.overlay(Button.ending(theme, copied));
     }
     list.onKey(k -> keys(c, k));
     return list;
@@ -264,8 +281,9 @@ public final class Markdown {
     Theme theme = Theme.CURRENT.get();
     int color = options.textColor != 0 ? options.textColor : theme.text().primary();
     El out = fragment(theme, document, options, color).wFull();
-    if (options.state != null) {
-      out.overlay(Button.ending(theme, options.state.copied));
+    Button.Copied copied = options.copied();
+    if (copied != null) {
+      out.overlay(Button.ending(theme, copied));
     }
     return out;
   }
@@ -348,9 +366,9 @@ public final class Markdown {
           .align(Style.Align.START)
           .children(label, entries));
     }
-    State state = options.state;
-    if (state != null) {
-      out.overlay(Button.ending(theme, state.copied));
+    Button.Copied copied = options.copied();
+    if (copied != null) {
+      out.overlay(Button.ending(theme, copied));
     }
     return out;
   }
@@ -1016,11 +1034,9 @@ public final class Markdown {
         .selectionColor(theme.accent().selection())
         .caretColor(theme.text().primary())
         .scrollbars(theme.scrollbars());
-    // Below the last line, the room of the bar along the bottom, which shows for a long line.
-    float bar = theme.scrollbars().thickness() + theme.scrollbars().margin();
     float padY = c.compact ? theme.space().s() : theme.space().m();
     float padX = c.compact ? theme.space().m() : theme.space().l();
-    field.padding(padY, padX, padY + bar, padX);
+    field.padding(padY, padX);
     if (highlighter != null) {
       field.highlight(highlighter, highlighter);
     }
@@ -1041,14 +1057,21 @@ public final class Markdown {
         .child(field);
     Clipboard clipboard = c.options.clipboard;
     if (clipboard != null) {
-      Button.Copied copied = c.options.state == null ? null : c.options.state.copied;
+      Button.Copied copied = c.options.copied();
       String label = Texts.CURRENT.get().copyCode();
       boolean shown = copied != null && copied.shows(label, code); // confirming: seen till it ends
-      El copy = Button.copy(clipboard, code, label, copied).key("copy").opacity(shown ? 1 : 0);
-      copy.style().position = Style.Position.ABSOLUTE;
-      copy.style().top = Len.px(theme.space().s());
-      copy.style().right = Len.px(theme.space().s());
-      box.child(copy).whenHovered(e -> copy.opacity(1)).whenFocusWithin(e -> copy.opacity(1));
+      El copy = Button.copy(clipboard, code, label, copied).key("copy");
+      El corner = el().fill(theme.surface().raised())
+          .radius(theme.radius().medium())
+          .opacity(shown ? 1 : 0)
+          .motion(theme.motion().feedback())
+          .child(copy);
+      corner.style().position = Style.Position.ABSOLUTE;
+      corner.style().top = Len.px(theme.space().s());
+      corner.style().right = Len.px(theme.space().s());
+      // A block of one short line is as high as the button, its line in the middle.
+      box.minSize(0, theme.size().control() + 2 * theme.space().s()).justify(Style.Content.CENTER);
+      box.child(corner).whenHovered(e -> corner.opacity(1)).whenFocusWithin(e -> corner.opacity(1));
     }
     return box;
   }

@@ -1,6 +1,6 @@
 el 0,0 820x320
   el #transcript 0,0 820x320
-    el #list role=log label="Transcript" 0,0 820x320 rows 0-7/8 thumb-y 812,2 6x204.28
+    el #list role=log label="Transcript" 0,0 820x320 rows 0-7/8 thumb-y 812,2 6x207.64
       el 16,8 788x51 pos=1/8
         el #msg-6 role=article label="User message" 50,16 720x35
           el 439,16 331x35
@@ -29,14 +29,14 @@ el 0,0 820x320
         el #msg-12 role=article label="User message" 50,319 720x35
           el 433,319 337x35
             text role=paragraph "Question 12: check query plan for orders table." 446,328 311x17 readonly lines 1-1/1
-      el 16,362 788x125 pos=8/8
-        el #msg-13 role=article label="Agent message" 50,370 720x109
-          el 50,370 720x109
+      el 16,362 788x117 pos=8/8
+        el #msg-13 role=article label="Agent message" 50,370 720x101
+          el 50,370 720x101
             text role=paragraph "Initial streaming summary for orders." 50,370 720x17 readonly lines 1-1/1
             text role=paragraph "Adding a composite index on (status, created_at) drops execution time from 4.2 s to 12 ms." 50,395 720x17 readonly lines 1-1/1
-            el role=group 50,420 720x34
-              text role=code label="sql" "CREATE INDEX CONCURRENTLY orders_status_created ON orders (status, created_at);" 51,421 718x32 readonly lines 1-1/1
-            text role=paragraph "Run ANALYZE orders; after creating the index so the planner uses it." 50,462 720x17 readonly lines 1-1/1
+            el role=group 50,420 720x26
+              text role=code label="sql" "CREATE INDEX CONCURRENTLY orders_status_created ON orders (status, created_at);" 51,421 718x24 readonly lines 1-1/1
+            text role=paragraph "Run ANALYZE orders; after creating the index so the planner uses it." 50,454 720x17 readonly lines 1-1/1
     el #jump-to-newest role=button label="Jump to newest" 338,284 144x24
       text label="arrow_down" "\u{F147}" 351,288 16x16
       text "Jump to newest" 371,288 98x16
