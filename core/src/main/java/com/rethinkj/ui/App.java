@@ -10,6 +10,7 @@ import com.rethinkj.ui.window.Windows;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -260,6 +261,7 @@ public final class App<S> {
   private final Focus focus = new Focus(animator); // the keyboard focus
   private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
   private FieldState toldState; // and its field's FieldState, which keeps it when the field moves
+  private int[] toldScope; // the scope selection last told to its scope's El#onSelect handler
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -4383,12 +4385,32 @@ public final class App<S> {
    * @return whether a handler was told, which the next input should find in the view
    */
   private boolean tellSelections() {
-    boolean told = false;
+    boolean told = tellScopeSelection();
     for (Map.Entry<Object, Editor> entry : List.copyOf(editors.entrySet())) {
       told |= inTree(entry) && entry.getValue().tell();
     }
     handled |= told;
     return told;
+  }
+
+  /** Tells a selection scope's {@link El#onSelect} handler where its selection is now. */
+  private boolean tellScopeSelection() {
+    ScopeSelection s = scopeSelection;
+    El scope = s == null ? null : animator.liveElement(s.scopeId);
+    El.SelectHandler handler = scope == null ? null : scope.onSelect();
+    if (handler == null) {
+      toldScope = null;
+      return false;
+    }
+    ScopeIndex index = scopeIndex(scope);
+    ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
+    int[] at = {index.offset(s.end), index.offset(anchor)};
+    if (at[0] < 0 || at[1] < 0 || Arrays.equals(at, toldScope)) {
+      return false;
+    }
+    toldScope = at;
+    handler.select(at[0], at[1]);
+    return true;
   }
 
   /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
@@ -5708,6 +5730,12 @@ public final class App<S> {
       String field = text.substring(starts[i], end(i));
       int local = Math.clamp((long) offset - starts[i], 0, field.length());
       return new ScopePosition(rows[i], ordinals[i], Editor.snap(field, local));
+    }
+
+    /** {@code position} as an index into the text, or -1 for a field that is not in it. */
+    int offset(ScopePosition position) {
+      int i = indexOf(position.row(), position.field());
+      return i < 0 ? -1 : starts[i] + Math.min(position.offset(), end(i) - starts[i]);
     }
 
     /** The field at {@code (row, ordinal)}, or -1. */

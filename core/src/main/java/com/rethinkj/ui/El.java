@@ -3326,9 +3326,15 @@ public final class El {
    * a row of a virtual list that layout left out of the tree is not told; it is told once its row
    * is back, also when scrolling brought it. For the caret's rectangle, place an overlay {@link
    * #atCaret}.
+   *
+   * <p>On a {@link #selectionScope} it is told the scope's selection as indexes into {@link
+   * App#scopeText}, as {@link App#select} takes them, whenever they change: by presses, {@link
+   * App#select}, and rows inserted or removed above it, which it follows by their keys.
    */
   public El onSelect(SelectHandler handler) {
-    editableOnly("onSelect");
+    if (!selectionScope) {
+      editableOnly("onSelect");
+    }
     handlers().onSelect = handler;
     return this;
   }
