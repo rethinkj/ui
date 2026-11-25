@@ -238,7 +238,11 @@ public final class App<S> {
   private final Map<Object, RowGoal> rowGoals = new HashMap<>();
 
   /** A row {@link #scrollToRow} sent a list to, with the version and key of its keyed rows. */
-  private record RowGoal(int row, int version, Object key) {}
+  private record RowGoal(int row, int version, Object key, int field) {
+    RowGoal(int row, int version, Object key) {
+      this(row, version, key, -1);
+    }
+  }
 
   private boolean untimed; // the tree was built and timeOverlays has not looked at it yet
   private final Animator animator = new Animator();
@@ -304,8 +308,9 @@ public final class App<S> {
       new IdentityHashMap<>();
   // By list in a row of a scope's list and row: its fields; see fieldsInRow. With a version, by
   // the list's heights and the row's key: the count and the version it is for.
-  private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new IdentityHashMap<>();
+  private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new WeakHashMap<>();
   private final Map<RowHeights, Map<Object, Object[]>> keptFieldCounts = new WeakHashMap<>();
+  private final Map<El, Boolean> prunedCounts = new WeakHashMap<>(); // lists whose gone keys went
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -3161,17 +3166,45 @@ public final class App<S> {
       Map.Entry<Object, RowGoal> goal = i.next();
       El el = animator.element(goal.getKey());
       int row = el == null || !el.isVirtualList() ? -1 : goal.getValue().row();
+      int field = goal.getValue().field();
       if (row >= 0 && el.rowsVersion() != goal.getValue().version()) { // rows came or went
         row = el.rowWithKey(goal.getValue().key());
-        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key()));
+        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key(), field));
       }
       if (row < 0 || row > el.rowCount()) {
         i.remove(); // the list or the row is gone: one that comes back is not followed
+      } else if (field >= 0) {
+        moved |= revealField(el, row, field);
       } else {
         moved |= el.scrollTo(el.scrollX(), el.rowOffset(row));
       }
     }
     return moved;
+  }
+
+  /**
+   * Scrolls {@code list} so that the field with ordinal {@code field} in row {@code row} shows: the
+   * row, the row of a list in it that holds the field, or the field once it is built.
+   *
+   * @return whether that scrolled
+   */
+  private boolean revealField(El list, int row, int field) {
+    double y = list.scrollY();
+    if (!list.hasRow(row)) {
+      list.scrollTo(list.scrollX(), list.offsetShowing(row));
+    } else {
+      El target = builtScopeRowField(list, row, field);
+      Object[] inner =
+          target != null ? null : unbuiltRowOf(list.children().get(row - list.firstRow()), field);
+      if (target != null) {
+        reveal(target, 0, 0, target.width(), target.height(), false, null, 0);
+      } else if (inner != null) {
+        El nested = (El) inner[0];
+        double[] span = nested.rowSpan((Integer) inner[1]);
+        reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
+      }
+    }
+    return list.scrollY() != y;
   }
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
@@ -3460,7 +3493,6 @@ public final class App<S> {
     resizeRounds = 0;
     highlightBudget.reset();
     rowOrdinalCache.clear();
-    unbuiltFieldCounts.clear();
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -3626,7 +3658,6 @@ public final class App<S> {
     edgeScrolling = updateEdgeScrollState();
     tellInView(); // the rows as the frame shows them, after everything that places elements
     rowOrdinalCache.clear();
-    unbuiltFieldCounts.clear();
     long input = inputEnd - start - inputBuild;
     timing = new Timing(input, buildNanos, System.nanoTime() - start - input - buildNanos);
     return drawn;
@@ -3709,7 +3740,6 @@ public final class App<S> {
 
   private void buildTree(boolean between, boolean last) {
     rowOrdinalCache.clear();
-    unbuiltFieldCounts.clear();
     List<Object> ids = Animator.identities(pointed());
     long start = System.nanoTime();
     scopeIndexes.clear(); // the view's rows may say something else now
@@ -4989,25 +5019,24 @@ public final class App<S> {
       }
       // In a row not built of a list in the row, as high as its rows: that row scrolls into view,
       // and again once the rows above it are measured.
+      boolean nested = false;
       for (int pass = 0; target == null && list != null && caretPos.inRows() && pass < 8; pass++) {
-        if (!list.hasRow(caretPos.row())) { // measured rows moved it out: back to it
-          list.scrollTo(list.scrollX(), list.offsetShowing(caretPos.row()));
-          scrolled = true;
-          fillRows();
-          target = builtScopeRowField(list, caretPos.row(), caretPos.field());
-          continue;
-        }
-        Object[] inner =
-            unbuiltRowOf(list.children().get(caretPos.row() - list.firstRow()), caretPos.field());
-        if (inner == null) {
+        if (list.hasRow(caretPos.row())
+            && unbuiltRowOf(list.children().get(caretPos.row() - list.firstRow()), caretPos.field())
+                == null) {
           break;
         }
-        El nested = (El) inner[0];
-        double[] span = nested.rowSpan((Integer) inner[1]);
-        reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
+        nested = true;
+        revealField(list, caretPos.row(), caretPos.field());
         scrolled = true;
         fillRows();
         target = builtScopeRowField(list, caretPos.row(), caretPos.field());
+      }
+      if (nested && listId != null) { // the rows measured from now on move it: it is followed
+        rowGoals.put(
+            listId,
+            new RowGoal(
+                caretPos.row(), list.rowsVersion(), list.rowKey(caretPos.row()), caretPos.field()));
       }
       if (target != null && target.editor() != null) {
         Editor editor = target.editor();
@@ -6168,8 +6197,12 @@ public final class App<S> {
       for (int row = 0; row < el.rowCount(); row++) {
         if (build || el.hasRow(row)) {
           El rowEl = el.rowElement(row);
+          int before = out.size();
           if (rowEl != null) {
             collectRowFields(rowEl, shown, out, build);
+          }
+          if (!el.hasRow(row)) {
+            keepCount(el, row, out.size() - before); // for fieldsInRow, which then builds none
           }
         } else {
           out.addAll(Collections.nCopies(fieldsInRow(el, row), null));
@@ -6225,22 +6258,52 @@ public final class App<S> {
    * list, as its row function builds it: counted once per tree.
    */
   private int fieldsInRow(El list, int row) {
+    Integer kept = keptCount(list, row);
+    if (kept != null) {
+      return kept;
+    }
+    int count = countFields(list, row);
+    keepCount(list, row, count);
+    return count;
+  }
+
+  /** The fields of a row as counted before, or null. */
+  private Integer keptCount(El list, int row) {
     RowHeights heights = list.rowHeights();
     Object[] versions = list.rowVersions();
     if (heights != null && versions != null && row < versions.length) {
-      // Kept across trees while the row's key and version stay, as its texts are; see RowHeights.
-      Map<Object, Object[]> byKey = keptFieldCounts.computeIfAbsent(heights, h -> new HashMap<>());
-      Object key = heights.key(row);
-      Object[] kept = byKey.get(key);
-      if (kept == null || !Objects.equals(kept[0], versions[row])) {
-        kept = new Object[] {versions[row], countFields(list, row)};
-        byKey.put(key, kept);
-      }
-      return (Integer) kept[1];
+      Object[] kept = keptByKey(list, heights).get(heights.key(row));
+      return kept != null && Objects.equals(kept[0], versions[row]) ? (Integer) kept[1] : null;
     }
-    return unbuiltFieldCounts
-        .computeIfAbsent(list, ignored -> new HashMap<>())
-        .computeIfAbsent(row, r -> countFields(list, r));
+    Map<Integer, Integer> counts = unbuiltFieldCounts.get(list);
+    return counts == null ? null : counts.get(row);
+  }
+
+  /**
+   * Keeps the fields of a row: across trees while the row's key and version stay, as its texts
+   * are (see {@link RowHeights}), else for the life of the list's element.
+   */
+  private void keepCount(El list, int row, int count) {
+    RowHeights heights = list.rowHeights();
+    Object[] versions = list.rowVersions();
+    if (heights != null && versions != null && row < versions.length) {
+      keptByKey(list, heights).put(heights.key(row), new Object[] {versions[row], count});
+    } else {
+      unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>()).put(row, count);
+    }
+  }
+
+  /** The counts by key of a list's heights, without the keys of rows gone, once per element. */
+  private Map<Object, Object[]> keptByKey(El list, RowHeights heights) {
+    Map<Object, Object[]> byKey = keptFieldCounts.computeIfAbsent(heights, h -> new HashMap<>());
+    if (prunedCounts.put(list, Boolean.TRUE) == null && !byKey.isEmpty()) {
+      Set<Object> keys = new HashSet<>();
+      for (int row = 0; row < list.rowCount(); row++) {
+        keys.add(heights.key(row));
+      }
+      byKey.keySet().retainAll(keys);
+    }
+    return byKey;
   }
 
   private int countFields(El list, int row) {
