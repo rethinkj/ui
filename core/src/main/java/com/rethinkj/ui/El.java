@@ -86,6 +86,9 @@ public final class El {
   private ScrollState scrollState;
   // Sent to its vertical end until its last rows are measured, as ScrollState.toEnd without one.
   private boolean toEnd;
+  // While sent to its end by the user: the rows it had then, which rows appended since stay below.
+  private int endRows = -1;
+  private Object endKey; // the key of the last of them, with a keyed RowHeights
   boolean focused;
   private Spring motion;
   private float opacity = 1;
@@ -483,6 +486,7 @@ public final class El {
     float clipRight = Float.POSITIVE_INFINITY;
     float clipBottom = Float.POSITIVE_INFINITY;
     float coverBottom = Float.NEGATIVE_INFINITY;
+    float laidTotal = Float.NaN; // the height of the rows when layout last measured the list
   }
 
   /** The state of a text field, which {@link #editable} makes, beyond its {@link Text}. */
@@ -1275,6 +1279,32 @@ public final class El {
     return scrollState == null ? toEnd : scrollState.el == this && scrollState.toEnd;
   }
 
+  /** Carries the rows a user's move to the end was for over a rebuild; none for the app's own. */
+  void endRows(El before, boolean placed) {
+    endRows = before == null || placed ? -1 : before.endRows;
+    endKey = before == null || placed ? null : before.endKey;
+  }
+
+  /**
+   * The last row that a pending end is for: of the rows a user's move to the end found, else (or
+   * when that row is gone, or the area follows its end) the last row.
+   */
+  int endRow() {
+    boolean all = endRows < 0 || scrollState != null && scrollState.followEnd;
+    int count = all ? rows.rowCount : endKey != null ? rowWithKey(endKey) + 1 : endRows;
+    return (count <= 0 ? rows.rowCount : Math.min(count, rows.rowCount)) - 1;
+  }
+
+  /** The offset at which the end that {@link #toEnd()} asks for shows. */
+  double endY() {
+    int last = rows == null ? -1 : endRow();
+    if (last < 0 || last == rows.rowCount - 1) {
+      return maxScrollY;
+    }
+    double bottom = rowsTop() + rowTop(last + 1) + padding(Side.BOTTOM) + border(Side.BOTTOM);
+    return Math.clamp(bottom + coverY - height, minScrollY(), maxScrollY);
+  }
+
   /** Sets what {@link #toEnd()} says, as long as this area has its state, if it has one. */
   void toEnd(boolean end) {
     if (scrollState == null) {
@@ -1440,8 +1470,10 @@ public final class El {
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
     // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
     // doubles and reach the last row anyway.
-    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) Math.min(rowsTotal(), LAYOUT_LIMIT));
+    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) -> {
+      list.laidTotal = laidRowsTotal();
+      return new Measure.Size(0, list.laidTotal);
+    };
     return this;
   }
 
@@ -1539,6 +1571,11 @@ public final class El {
 
   private double rowsTotal() {
     return rows.heights == null ? rows.rowCount * (double) rows.rowHeight : rows.heights.total();
+  }
+
+  /** The top of the row with this index in this list's border box, as it scrolls, and its height. */
+  double[] rowSpan(int index) {
+    return new double[] {rowsTop() + rowTop(index) - scrollY, rowSize(index)};
   }
 
   /** For {@link App#scrollToRow}: the offset that puts this row at the top of the list. */
@@ -5360,9 +5397,18 @@ public final class El {
     }
     if (rows != null) {
       maxScrollX = 0;
-      maxScrollY = Math.max(
-          rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM) + coverY - height,
-          0);
+      double content = rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM);
+      double over = content + coverY - height;
+      // A list as high as its rows does not scroll by what layout rounded off its edges.
+      double rounded = content - height;
+      boolean asHigh = Len.AUTO.equals(style.height)
+          && Len.AUTO.equals(style.maxHeight)
+          && style.grow == 0
+          && rows.laidTotal == laidRowsTotal();
+      if (asHigh && rounded > 0 && rounded < 1) {
+        over -= rounded;
+      }
+      maxScrollY = Math.max(over, 0);
       return;
     }
     boolean scrolls =
@@ -5586,6 +5632,20 @@ public final class El {
     }
     if (changed && y == Double.POSITIVE_INFINITY) {
       toEnd(true); // rows measured on the way keep it at the end, as ScrollState.scrollToEnd does
+      endRows = -1;
+    }
+    return changed;
+  }
+
+  /**
+   * Scrolls as {@link #scrollTo} does, for the user's input: an end it reaches is the end of the
+   * rows the list has now, which rows the app appends meanwhile do not move.
+   */
+  boolean userScrollTo(double x, double y) {
+    boolean changed = scrollTo(x, y);
+    if (changed && y == Double.POSITIVE_INFINITY && rows != null) {
+      endRows = rows.rowCount;
+      endKey = rowKey(rows.rowCount - 1);
     }
     return changed;
   }
@@ -5605,9 +5665,10 @@ public final class El {
       scrollState.x = newX;
       scrollState.y = newY;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
-      scrollState.toEnd &= scrollState.atEnd; // scrolled away before its rows were measured
+      // Scrolled away, either way, before its rows were measured.
+      scrollState.toEnd = scrollState.toEnd && Math.abs(newY - endY()) <= SLACK;
     } else if (scrollState == null) {
-      toEnd &= newY >= maxScrollY - SLACK;
+      toEnd = toEnd && Math.abs(newY - endY()) <= SLACK;
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
@@ -5841,13 +5902,13 @@ public final class El {
     if (!vertical) {
       return scrollTo(to, scrollY);
     }
-    return scrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
+    return userScrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
   boolean page(boolean vertical, int direction) {
     return vertical
-        ? scrollTo(scrollX, orEnd(scrollY + direction * (double) height))
+        ? userScrollTo(scrollX, orEnd(scrollY + direction * (double) height))
         : scrollTo(scrollX + direction * (double) width, scrollY);
   }
 
@@ -5917,12 +5978,33 @@ public final class El {
       float windowWidth,
       float windowHeight,
       boolean anew) {
+    float far = Float.POSITIVE_INFINITY;
+    return wantedRows(left, top, clipLeft, clipRight, -far, far, windowWidth, windowHeight, anew);
+  }
+
+  /**
+   * Like {@link #wantedRows(float, float, float, float, float, float, boolean)}, with the vertical
+   * clip of the list's ancestors too, from {@code clipTop} to {@code clipBottom} in window
+   * coordinates: a list as high as its rows in a row of another list builds the rows in view of
+   * that one.
+   */
+  int[] wantedRows(
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom,
+      float windowWidth,
+      float windowHeight,
+      boolean anew) {
     if (rows == null) {
       return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
-    double from = Math.max(top, 0);
-    double to = Math.max(Math.min(top + height, windowHeight), from);
+    double from = Math.max(Math.max(top, clipTop), 0);
+    double bottom = Math.min(Math.min(top + height, clipBottom), windowHeight);
+    double to = Math.max(bottom, from); // none, where the list is out of view
     int first = Math.clamp(rowAt(from - row0), 0, rows.rowCount);
     int end = Math.clamp(rowAfter(to - row0), first, rows.rowCount);
     float shown = 0;
@@ -6151,8 +6233,7 @@ public final class El {
     return scrollState == null
         ? toEnd
         : scrollState.el == this
-            && (scrollState.followEnd || scrollState.toEnd)
-            && scrollState.atEnd;
+            && (scrollState.followEnd && scrollState.atEnd || scrollState.toEnd);
   }
 
   /**
@@ -6176,7 +6257,7 @@ public final class El {
     }
     if (rows.heights != null) {
       measureScroll();
-      scrollY = follow ? maxScrollY : scrollY + rowTop(anchor) - before; // clamped below
+      scrollY = follow ? endY() : scrollY + rowTop(anchor) - before; // clamped below
     }
     setScroll(scrollX, scrollY); // shifts the new rows
   }
@@ -6184,6 +6265,39 @@ public final class El {
   /** Whether this is a virtual list whose rows are as high as their content. */
   boolean measuresRows() {
     return rows.heights != null;
+  }
+
+  /**
+   * Whether this virtual list's rows came to another height than layout measured it at, as rows
+   * built and measured since make them: a list as high as its rows, in a row of another list, has
+   * that row laid out again, and then {@link #rowsSettled}.
+   */
+  boolean rowsRegrown() {
+    return rows != null
+        && rows.heights != null
+        && !Float.isNaN(rows.laidTotal)
+        && laidRowsTotal() != rows.laidTotal;
+  }
+
+  /**
+   * Takes the height of the rows as measured, also where layout did not ask, as for a list of a
+   * height of its own.
+   */
+  void rowsSettled() {
+    rows.laidTotal = laidRowsTotal();
+  }
+
+  /**
+   * Measures how far the areas in this list's rows scroll after the row with this index was laid
+   * out again, and keeps the offsets of that row's areas within it.
+   */
+  void remeasureRow(int index) {
+    measureRowScrolls();
+    children.get(index).clampScrolls();
+  }
+
+  private float laidRowsTotal() {
+    return (float) Math.min(rowsTotal(), LAYOUT_LIMIT);
   }
 
   /** The left of the rows, the left of the content box. */
@@ -6214,7 +6328,7 @@ public final class El {
     double before = rows.heights == null ? 0 : rowTop(anchor);
     if (placeRow(index, scale, systemFonts)) {
       measureScroll();
-      setScroll(scrollX, follow ? maxScrollY : scrollY + rowTop(anchor) - before);
+      setScroll(scrollX, follow ? endY() : scrollY + rowTop(anchor) - before);
     }
   }
 

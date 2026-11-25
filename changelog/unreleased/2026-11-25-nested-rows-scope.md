@@ -1,0 +1,1 @@
+- In an `El.selectionScope()`, the text, a selection, `App.select` (as `Find` uses it) and copying now reach the rows that are not built of a virtual list inside a row of the scope's list. Selecting in such a row scrolls it into view.

@@ -706,6 +706,63 @@ class FieldDragTest {
     assertEquals(expected, app.clipboard().read(), "Ctrl+C copies the same fields after insert");
   }
 
+  /**
+   * A virtual list in a row of the scope's list, as high as its rows: its rows count in the scope's
+   * text whether they are built or not, and selecting in one that is not built scrolls it in.
+   */
+  @Test
+  void scopeTextAndSelectReachTheRowsOfAListInARow() {
+    RowHeights outer = new RowHeights(i -> 30);
+    RowHeights inner = new RowHeights(i -> 30);
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(col()
+                .key("scope")
+                .selectionScope()
+                .grow(1)
+                .minSize(0, 0)
+                .child(col()
+                    .key("list")
+                    .grow(1)
+                    .minSize(0, 0)
+                    .rows(
+                        3,
+                        outer,
+                        i -> i == 1
+                            ? col()
+                                .children(
+                                    readOnly("head", "head"),
+                                    col().rows(200, inner, j -> readOnly("line " + j, "l" + j)))
+                            : readOnly("message " + i, "m" + i)))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(220, 160, 1);
+    app.frame();
+
+    El scope = byKey(app.tree(), "scope");
+    String all = app.scopeText(scope);
+    assertTrue(all.startsWith("message 0\nhead\nline 0\nline 1\n"), all);
+    assertTrue(all.endsWith("\nline 199\nmessage 2"), all);
+
+    int at = all.indexOf("line 150");
+    assertNull(byKey(app.tree(), "l150"), "row 150 is not built yet");
+    app.select(scope, at + 8, at + 5); // "150"
+    app.frame();
+    El field = byKey(app.tree(), "l150");
+    assertNotNull(field, "row 150 scrolled into view and built");
+    assertEquals("150", field.editor().selectedText());
+
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals("150", app.clipboard().read());
+  }
+
+  private static El readOnly(String text, String key) {
+    return El.text(text).editable(v -> {}).readOnly().key(key).w(180).h(24);
+  }
+
   @Test
   void scopeTextSelectAndDecorateSpanFieldsAndVirtualRows() {
     int[] mark = {0, 0};

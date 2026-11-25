@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
@@ -237,7 +238,11 @@ public final class App<S> {
   private final Map<Object, RowGoal> rowGoals = new HashMap<>();
 
   /** A row {@link #scrollToRow} sent a list to, with the version and key of its keyed rows. */
-  private record RowGoal(int row, int version, Object key) {}
+  private record RowGoal(int row, int version, Object key, int field) {
+    RowGoal(int row, int version, Object key) {
+      this(row, version, key, -1);
+    }
+  }
 
   private boolean untimed; // the tree was built and timeOverlays has not looked at it yet
   private final Animator animator = new Animator();
@@ -301,6 +306,10 @@ public final class App<S> {
   // Cached field identity -> whole-width ordinal for rows of spans lists, cleared per build/frame.
   private final Map<El, Map<Integer, Map<Object, Integer>>> rowOrdinalCache =
       new IdentityHashMap<>();
+  // By list in a row of a scope's list and row: its fields; see fieldsInRow. With a version, the
+  // list's RowHeights keeps them by key.
+  private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new WeakHashMap<>();
+  private final Map<RowHeights, Map<Integer, Integer>> buildFieldCounts = new IdentityHashMap<>();
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -1825,7 +1834,7 @@ public final class App<S> {
                 : area.scrollTo(area.scrollX(), area.scrollY() + line)
             : byPage
                 ? area.page(true, direction)
-                : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
+                : area.userScrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
@@ -3076,7 +3085,7 @@ public final class App<S> {
       if (area.canScroll(horizontal, delta)) {
         boolean moved = horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
-            : area.scrollTo(area.scrollX(), area.orEnd(area.scrollY() + delta));
+            : area.userScrollTo(area.scrollX(), area.orEnd(area.scrollY() + delta));
         return moved ? area : null;
       }
       if (sideways && scrollsSideways(area, delta)) {
@@ -3156,17 +3165,76 @@ public final class App<S> {
       Map.Entry<Object, RowGoal> goal = i.next();
       El el = animator.element(goal.getKey());
       int row = el == null || !el.isVirtualList() ? -1 : goal.getValue().row();
+      int field = goal.getValue().field();
       if (row >= 0 && el.rowsVersion() != goal.getValue().version()) { // rows came or went
         row = el.rowWithKey(goal.getValue().key());
-        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key()));
+        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key(), field));
       }
       if (row < 0 || row > el.rowCount()) {
         i.remove(); // the list or the row is gone: one that comes back is not followed
+      } else if (field >= 0) {
+        moved |= revealField(el, row, field);
       } else {
         moved |= el.scrollTo(el.scrollX(), el.rowOffset(row));
       }
     }
     return moved;
+  }
+
+  /** Whether {@code field} lies in a row of a list inside built row {@code row} of {@code list}. */
+  private static boolean inListInRow(El list, int row, El field) {
+    if (!list.hasRow(row)) {
+      return false;
+    }
+    List<El> path = new ArrayList<>();
+    pathTo(list.children().get(row - list.firstRow()), field, path);
+    return path.stream().anyMatch(El::isVirtualList);
+  }
+
+  /**
+   * Scrolls {@code list} so that the field with ordinal {@code field} in row {@code row} shows: the
+   * row, the row of a list in it that holds the field, or the field once it is built.
+   *
+   * @return whether that scrolled
+   */
+  private boolean revealField(El list, int row, int field) {
+    double y = list.scrollY();
+    if (!list.hasRow(row)) {
+      list.scrollTo(list.scrollX(), list.offsetShowing(row));
+    } else {
+      El target = builtScopeRowField(list, row, field);
+      Object[] inner =
+          target != null ? null : unbuiltRowOf(list.children().get(row - list.firstRow()), field);
+      float[] caret =
+          target == null || target.editor() == null ? null : target.editor().caretBox();
+      if (caret != null) { // where the selection's caret is, below a find bar over the scope
+        List<El> path = new ArrayList<>();
+        El scope = root != null && pathTo(root, target, path) ? scopeOf(path) : null;
+        return reveal(
+                target,
+                caret[0],
+                caret[1],
+                caret[2],
+                caret[3],
+                false,
+                scope,
+                scope == null ? 0 : scope.scopeCoveredTop())
+            || list.scrollY() != y;
+      } else if (target != null) {
+        return reveal(target, 0, 0, target.width(), target.height(), false, null, 0)
+            || list.scrollY() != y;
+      } else if (inner != null) {
+        El nested = (El) inner[0];
+        int innerRow = (Integer) inner[1];
+        // A list of a height of its own scrolls to the row first, then the areas around it.
+        boolean moved = nested.scrollTo(nested.scrollX(), nested.offsetShowing(innerRow));
+        double[] span = nested.rowSpan(innerRow);
+        moved |=
+            reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
+        return moved || list.scrollY() != y;
+      }
+    }
+    return list.scrollY() != y;
   }
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
@@ -3702,6 +3770,7 @@ public final class App<S> {
 
   private void buildTree(boolean between, boolean last) {
     rowOrdinalCache.clear();
+    buildFieldCounts.clear(); // before the view, which may read a scope's text (Find does)
     List<Object> ids = Animator.identities(pointed());
     long start = System.nanoTime();
     scopeIndexes.clear(); // the view's rows may say something else now
@@ -4914,6 +4983,9 @@ public final class App<S> {
       Object endFieldId =
           caretPos.inRows() ? null : fieldKey(caretField, animator.identity(caretField));
       clearScopeSelection(null);
+      if (listId != null) {
+        rowGoals.remove(listId); // the selection it followed is replaced
+      }
       ScopeSelection next = new ScopeSelection(
           scopeId,
           anchorPos,
@@ -4957,7 +5029,7 @@ public final class App<S> {
         El whole = list.rowElement(caretPos.row());
         if (whole != null) {
           List<El> rowFields = new ArrayList<>();
-          collectRowFields(whole, true, rowFields);
+          collectRowFields(whole, true, rowFields, true);
           El wholeTarget = caretPos.field() >= 0 && caretPos.field() < rowFields.size()
               ? rowFields.get(caretPos.field())
               : null;
@@ -4978,6 +5050,31 @@ public final class App<S> {
             }
           }
         }
+      }
+      // In a row not built of a list in the row, as high as its rows: that row scrolls into view,
+      // and again once the rows above it are measured.
+      boolean nested = false;
+      for (int pass = 0; target == null && list != null && caretPos.inRows() && pass < 8; pass++) {
+        if (list.hasRow(caretPos.row())
+            && unbuiltRowOf(list.children().get(caretPos.row() - list.firstRow()), caretPos.field())
+                == null) {
+          break;
+        }
+        nested = true;
+        revealField(list, caretPos.row(), caretPos.field());
+        scrolled = true;
+        fillRows();
+        target = builtScopeRowField(list, caretPos.row(), caretPos.field());
+      }
+      nested |= target != null
+          && list != null
+          && caretPos.inRows()
+          && inListInRow(list, caretPos.row(), target);
+      if (nested && listId != null) { // the rows measured from now on move it: it is followed
+        rowGoals.put(
+            listId,
+            new RowGoal(
+                caretPos.row(), list.rowsVersion(), list.rowKey(caretPos.row()), caretPos.field()));
       }
       if (target != null && target.editor() != null) {
         Editor editor = target.editor();
@@ -5402,7 +5499,7 @@ public final class App<S> {
         if (list != null && list.spansRows()) {
           ordinal = rowFieldOrdinal(list, scopeSelection.listId, row, null, el, id);
         } else {
-          El container = rowRootOn(path);
+          El container = rowRootOn(path, scopeSelection.listId);
           if (container == null) {
             return false;
           }
@@ -5419,6 +5516,17 @@ public final class App<S> {
     }
     editor.setRange(range[0], range[1], false);
     return true;
+  }
+
+  /** The row element on {@code path} directly below the list with identity {@code listId}. */
+  private static El rowRootOn(List<El> path, Object listId) {
+    List<Object> ids = Animator.identities(path);
+    for (int i = 0; i + 1 < path.size(); i++) {
+      if (listId.equals(ids.get(i))) {
+        return path.get(i + 1);
+      }
+    }
+    return rowRootOn(path);
   }
 
   /** The row element on {@code path} directly below a virtual list, or null. */
@@ -5527,6 +5635,7 @@ public final class App<S> {
     }
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
+    rowGoals.values().removeIf(goal -> goal.field() >= 0); // no selection to follow any more
     keptScope = old; // a remap that ended it drops this too
     if (!old.hasSelection()) {
       return false; // it gave no field a range, and others may have one of their own
@@ -5601,7 +5710,7 @@ public final class App<S> {
           continue;
         }
         rowFields.clear();
-        collectRowFields(rowEl, true, rowFields);
+        collectRowFields(rowEl, true, rowFields, true);
         for (int ord = 0; ord < rowFields.size(); ord++) {
           El field = rowFields.get(ord);
           if (field != null) {
@@ -5690,11 +5799,7 @@ public final class App<S> {
         if (rowEl == null) {
           return null;
         }
-        El target = Animator.find(rowEl, Animator.row(listId, row), focus.id());
-        if (target == null) {
-          return null;
-        }
-        ordinal = fieldOrdinalIn(rowEl, target);
+        ordinal = ordinalIn(rowEl, Animator.row(listId, row), focus.id(), new int[] {0});
       }
       return ordinal < 0 ? null : new ScopePosition(row, ordinal, waiting.anchor());
     }
@@ -5795,14 +5900,14 @@ public final class App<S> {
    * every row of its virtual list, building those that are not, else only the built rows, whose
    * ordinals in a list that builds the columns in view are those of the columns built.
    */
-  private static void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
+  private void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
     if (numbered(scope) && scope.opacity() != 0) {
       walkScope(
           scope, scopeList(scope), new int[] {ScopePosition.BEFORE, 0}, true, unbuilt, visitor);
     }
   }
 
-  private static void walkScope(
+  private void walkScope(
       El el, El list, int[] pos, boolean shown, boolean unbuilt, ScopeFieldVisitor visitor) {
     if (!numbered(el)) {
       return;
@@ -5828,7 +5933,7 @@ public final class App<S> {
             continue;
           }
           rowFields.clear();
-          collectRowFields(rowEl, true, rowFields);
+          collectRowFields(rowEl, true, rowFields, unbuilt);
           String[] read = new String[rowFields.size()];
           for (int ord = 0; ord < read.length; ord++) {
             El field = rowFields.get(ord);
@@ -5971,10 +6076,10 @@ public final class App<S> {
    * its rows with the same function, so the next match need not read every row again.
    */
   private ScopeIndex scopeIndex(El scope) {
-    return scopeIndexes.computeIfAbsent(scope, App::indexScope);
+    return scopeIndexes.computeIfAbsent(scope, this::indexScope);
   }
 
-  private static ScopeIndex indexScope(El scope) {
+  private ScopeIndex indexScope(El scope) {
     StringBuilder text = new StringBuilder();
     List<int[]> places = new ArrayList<>();
     List<El> fields = new ArrayList<>();
@@ -6009,7 +6114,7 @@ public final class App<S> {
     }
     El rowEl = list.children().get(row - list.firstRow());
     List<El> rowFields = new ArrayList<>();
-    collectRowFields(rowEl, true, rowFields);
+    collectRowFields(rowEl, true, rowFields, false);
     if (list.spansRows()) { // the ordinal counts the columns of the whole width
       Object listId = animator.identity(list);
       for (El field : rowFields) {
@@ -6021,7 +6126,49 @@ public final class App<S> {
       }
       return null;
     }
-    return ordinal >= 0 && ordinal < rowFields.size() ? rowFields.get(ordinal) : null;
+    El field = ordinal >= 0 && ordinal < rowFields.size() ? rowFields.get(ordinal) : null;
+    return field != null && field.editor() != null ? field : null; // not one of a row not built
+  }
+
+  /**
+   * The virtual list inside built row {@code rowEl} of a scope's list and its row not built that
+   * hold the field with ordinal {@code ordinal}, or null when that field is not in such a row.
+   */
+  private Object[] unbuiltRowOf(El rowEl, int ordinal) {
+    return unbuiltRowOf(rowEl, new int[] {ordinal});
+  }
+
+  private Object[] unbuiltRowOf(El el, int[] ordinal) {
+    if (!numbered(el)) {
+      return null;
+    }
+    if (isScopeFieldCandidate(el) && ordinal[0]-- == 0) {
+      return null; // a field built with the row
+    }
+    if (!el.isVirtualList()) {
+      for (El child : el.children()) {
+        Object[] found = ordinal[0] < 0 ? null : unbuiltRowOf(child, ordinal);
+        if (found != null || ordinal[0] < 0) {
+          return found;
+        }
+      }
+      return null;
+    }
+    for (int row = 0; row < el.rowCount() && ordinal[0] >= 0; row++) {
+      if (el.hasRow(row)) {
+        Object[] found = unbuiltRowOf(el.rowElement(row), ordinal);
+        if (found != null || ordinal[0] < 0) {
+          return found;
+        }
+        continue;
+      }
+      int count = fieldsInRow(el, row);
+      if (ordinal[0] < count) {
+        return new Object[] {el, row};
+      }
+      ordinal[0] -= count;
+    }
+    return null;
   }
 
   /** Translates a scope decorator's line and character offsets to one built field of the scope. */
@@ -6072,7 +6219,12 @@ public final class App<S> {
    * Collects the read-only, unmasked fields inside one virtual list row in tree order, null for
    * one under {@code opacity(0)}, which keeps its ordinal but copies nothing.
    */
-  private static void collectRowFields(El el, boolean shown, List<El> out) {
+  /**
+   * Collects the read-only fields inside {@code el} in order, null for a hidden one. A list in a
+   * row adds the fields of all its rows: those not built as its row function builds them with
+   * {@code build}, else as nulls, as many as they have.
+   */
+  private void collectRowFields(El el, boolean shown, List<El> out, boolean build) {
     if (!numbered(el)) {
       return;
     }
@@ -6080,15 +6232,177 @@ public final class App<S> {
     if (isScopeFieldCandidate(el)) {
       out.add(shown ? el : null);
     }
+    if (el.isVirtualList()) {
+      for (int row = 0; row < el.rowCount(); row++) {
+        if (build || el.hasRow(row)) {
+          El rowEl = el.rowElement(row);
+          int before = out.size();
+          if (rowEl != null) {
+            collectRowFields(rowEl, shown, out, build);
+          }
+          if (!el.hasRow(row)) {
+            keepCount(el, row, out.size() - before); // for fieldsInRow, which then builds none
+          }
+        } else {
+          out.addAll(Collections.nCopies(fieldsInRow(el, row), null));
+        }
+      }
+      return;
+    }
     for (El child : el.children()) {
-      collectRowFields(child, shown, out);
+      collectRowFields(child, shown, out, build);
     }
   }
 
   /** The ordinal of {@code target} among read-only unmasked fields in {@code rowEl}, or -1. */
-  private static int fieldOrdinalIn(El rowEl, El target) {
-    int[] pos = outsidePositionIn(rowEl, target, null);
-    return pos == null ? -1 : pos[1];
+  private int fieldOrdinalIn(El rowEl, El target) {
+    int[] pos = {ScopePosition.BEFORE, 0};
+    return findInRow(rowEl, target, pos) ? pos[1] : -1;
+  }
+
+  /**
+   * As {@link #findOutsidePosition} inside a row of a scope's list, where a virtual list counts
+   * the fields of all its rows, those not built as its row function builds them.
+   */
+  private boolean findInRow(El el, El target, int[] pos) {
+    if (!numbered(el)) {
+      return false;
+    }
+    if (el == target) {
+      return true;
+    }
+    if (isScopeFieldCandidate(el)) {
+      pos[1]++;
+    }
+    if (!el.isVirtualList()) {
+      for (El child : el.children()) {
+        if (findInRow(child, target, pos)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    for (int row = 0; row < el.rowCount(); row++) {
+      if (!el.hasRow(row)) {
+        pos[1] += fieldsInRow(el, row);
+      } else if (findInRow(el.rowElement(row), target, pos)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * The number of read-only fields in row {@code row} of a virtual list inside a row of a scope's
+   * list, as its row function builds it: counted once per tree.
+   */
+  private int fieldsInRow(El list, int row) {
+    Integer kept = keptCount(list, row);
+    if (kept != null) {
+      return kept;
+    }
+    int count = countFields(list, row);
+    keepCount(list, row, count);
+    return count;
+  }
+
+  /** The fields of a row as counted before, or null. */
+  private Integer keptCount(El list, int row) {
+    RowHeights heights = list.rowHeights();
+    Object[] versions = list.rowVersions();
+    if (heights != null && versions != null && row < versions.length) {
+      Object[] kept = keptByKey(list, heights).get(heights.key(row));
+      return kept != null && Objects.equals(kept[0], versions[row]) ? (Integer) kept[1] : null;
+    }
+    Map<Integer, Integer> counts = unversionedCounts(list, false);
+    return counts == null ? null : counts.get(row);
+  }
+
+  /**
+   * The counts of a list without versions: by its heights until the view is built again, which a
+   * list built anew for reading shares with the one in the tree, else by its element.
+   */
+  private Map<Integer, Integer> unversionedCounts(El list, boolean make) {
+    RowHeights heights = list.rowHeights();
+    if (heights == null) {
+      return make
+          ? unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>())
+          : unbuiltFieldCounts.get(list);
+    }
+    return make
+        ? buildFieldCounts.computeIfAbsent(heights, ignored -> new HashMap<>())
+        : buildFieldCounts.get(heights);
+  }
+
+  /**
+   * Keeps the fields of a row: across trees while the row's key and version stay, as its texts
+   * are (see {@link RowHeights}), else for the life of the list's element.
+   */
+  private void keepCount(El list, int row, int count) {
+    RowHeights heights = list.rowHeights();
+    Object[] versions = list.rowVersions();
+    if (heights != null && versions != null && row < versions.length) {
+      keptByKey(list, heights).put(heights.key(row), new Object[] {versions[row], count});
+    } else {
+      unversionedCounts(list, true).put(row, count);
+    }
+  }
+
+  /** The counts by key of a list's heights, which drop the keys of rows gone with them. */
+  private static Map<Object, Object[]> keptByKey(El list, RowHeights heights) {
+    return heights.fieldCounts();
+  }
+
+  private int countFields(El list, int row) {
+    List<El> fields = new ArrayList<>();
+    El rowEl = list.rowElement(row);
+    if (rowEl != null) {
+      collectRowFields(rowEl, true, fields, true);
+    }
+    return fields.size();
+  }
+
+  /**
+   * The ordinal of the field with identity {@code target} among the read-only fields inside row
+   * element {@code el} with identity {@code id}, counting the rows not built of the lists in it,
+   * or -1 if it is not inside: also for a field in such a row.
+   */
+  private int ordinalIn(El el, Object id, Object target, int[] ordinal) {
+    if (!numbered(el)) {
+      return -1;
+    }
+    if (id.equals(target)) {
+      return ordinal[0];
+    }
+    if (isScopeFieldCandidate(el)) {
+      ordinal[0]++;
+    }
+    if (el.isVirtualList()) {
+      int in = Animator.rowIn(target, id);
+      for (int row = 0; row < el.rowCount(); row++) {
+        if (row == in) {
+          El rowEl = el.rowElement(row);
+          return rowEl == null ? -1 : ordinalIn(rowEl, Animator.row(id, row), target, ordinal);
+        }
+        ordinal[0] += el.hasRow(row) ? builtFields(el.rowElement(row)) : fieldsInRow(el, row);
+      }
+      return -1;
+    }
+    List<El> children = el.children();
+    Object[] childIds = Animator.childIds(el, id);
+    for (int i = 0; i < children.size(); i++) {
+      int found = ordinalIn(children.get(i), childIds[i], target, ordinal);
+      if (found >= 0) {
+        return found;
+      }
+    }
+    return -1;
+  }
+
+  private int builtFields(El rowEl) {
+    List<El> fields = new ArrayList<>();
+    collectRowFields(rowEl, true, fields, false);
+    return fields.size();
   }
 
   /**
@@ -6260,6 +6574,11 @@ public final class App<S> {
       }
     }
     List<El> children = el.children();
+    // A list in a row: the fields of its rows not built count too, as its row function builds them.
+    boolean nested = el.isVirtualList() && ScopePosition.inRows(pos[0]);
+    for (int row = 0; nested && row < el.firstRow(); row++) {
+      pos[1] += fieldsInRow(el, row);
+    }
     Object[] childIds = elId == null ? null : Animator.childIds(el, elId);
     for (int i = 0; i < children.size(); i++) {
       collectScopeFields(
@@ -6278,6 +6597,9 @@ public final class App<S> {
           nextClipR,
           nextClipB,
           out);
+    }
+    for (int row = el.firstRow() + children.size(); nested && row < el.rowCount(); row++) {
+      pos[1] += fieldsInRow(el, row);
     }
   }
 
@@ -6616,6 +6938,13 @@ public final class App<S> {
    *
    * @return whether a list built its rows
    */
+  // Lists in rows of another, as high as their rows, that grew since layout, for the row around
+  // them to lay out again (fillChildren); and how often that, or the rows it showed, waited for
+  // the next frame.
+  private final List<El> regrownLists = new ArrayList<>();
+
+  private int rowsDeferred;
+
   private boolean fillRows() {
     if (root == null) {
       return false;
@@ -6629,11 +6958,13 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     rowsWanted = false;
     rowKeyHooks = false;
+    regrownLists.clear();
     inViewLists.clear();
-    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
+    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, -far, far, false);
     if (!rowGoals.isEmpty() && followRowGoals()) {
       inViewLists.clear();
-      built |= fillRows(root, new ArrayList<>(), 0, 0, -far, far, false); // the rows there
+      built |=
+          fillRows(root, new ArrayList<>(), 0, 0, -far, far, -far, far, false); // the rows there
     }
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
@@ -6765,6 +7096,8 @@ public final class App<S> {
       float parentY,
       float clipLeft,
       float clipRight,
+      float clipTop,
+      float clipBottom,
       boolean inRows) {
     if (!el.isPlaced() || el.isExiting()) {
       return false;
@@ -6776,7 +7109,8 @@ public final class App<S> {
     boolean relook = !relooking.isEmpty()
         && el.isVirtualList()
         && relooking.contains(Animator.identities(path).getLast());
-    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height, relook);
+    int[] range =
+        el.wantedRows(left, top, clipLeft, clipRight, clipTop, clipBottom, width, height, relook);
     boolean built = range.length != 0;
     if (el.onRowsBuilt() != null) {
       rowLists.add(Animator.identities(path).getLast());
@@ -6784,6 +7118,72 @@ public final class App<S> {
     if (el.onRowsInView() != null) {
       inViewLists.put(Animator.identities(path).getLast(), el);
     }
+    range = buildRows(el, path, range, left, top, clipLeft, clipRight, clipTop, clipBottom);
+    float wantedTop = clipTop;
+    float wantedBottom = clipBottom;
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
+    }
+    if (el.style().overflowY != Style.Overflow.VISIBLE) {
+      clipTop = Math.max(clipTop, top);
+      clipBottom = Math.min(clipBottom, top + el.height());
+    }
+    int pending = rowsDeferred;
+    built |= fillChildren(
+        el,
+        path,
+        left,
+        top,
+        clipLeft,
+        clipRight,
+        clipTop,
+        clipBottom,
+        wantedTop,
+        wantedBottom,
+        inRows);
+    if (rowsDeferred != pending) {
+      range = el.wantedRows(
+          left, top, clipLeft, clipRight, wantedTop, wantedBottom, width, height, false);
+    }
+    if (inRows && el.rowsRegrown()) { // after its rows, whose lists may have grown them
+      regrownLists.add(el);
+    }
+    rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
+    boolean tail = !el.isVirtualList()
+        || !el.measuresRows()
+        || el.rowCount() == 0
+        || el.hasRow(el.toEnd() ? el.endRow() : el.rowCount() - 1);
+    // A field's editor lays out its rows after this and ends it then.
+    if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
+      rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
+      // done once its last rows are measured, with the lists in them
+      el.toEnd(range.length != 0 || !tail || rowsDeferred != pending);
+    }
+    float far = Float.POSITIVE_INFINITY;
+    for (El overlay : el.overlays()) { // in window coordinates
+      built |= fillRows(overlay, path, 0, 0, -far, far, -far, far, inRows);
+    }
+    path.removeLast();
+    return built;
+  }
+
+  /**
+   * Builds and lays out the rows {@code range} of virtual list {@code el}, then those that the
+   * heights they measured show, a few times at most.
+   *
+   * @return the rows still wanted after those passes, which the next frame builds
+   */
+  private int[] buildRows(
+      El el,
+      List<El> path,
+      int[] range,
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom) {
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
     for (int pass = 0; range.length != 0 && pass < 3; pass++) {
@@ -6825,32 +7225,76 @@ public final class App<S> {
       }
       animator.rows(el, id, time);
       range = el.measuresRows()
-          ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
+          ? el.wantedRows(left, top, clipLeft, clipRight, clipTop, clipBottom, width, height, false)
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
-    boolean tail = !el.isVirtualList()
-        || !el.measuresRows()
-        || el.rowCount() == 0
-        || el.hasRow(el.rowCount() - 1);
-    // A field's editor lays out its rows after this and ends it then.
-    if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
-      rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
-      el.toEnd(range.length != 0 || !tail); // done once its last rows are measured
+    return range;
+  }
+
+  /**
+   * Fills the rows of the lists below {@code el}. In a virtual list as high as its rows' content,
+   * a row whose own lists, as high as their rows, grew with rows they measured is laid out again:
+   * the rows below it move, and the list builds the rows that come into view then and fills them,
+   * a few times at most; what is left waits for the next frame.
+   */
+  private boolean fillChildren(
+      El el,
+      List<El> path,
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom,
+      float wantedTop,
+      float wantedBottom,
+      boolean inRows) {
+    boolean built = false;
+    boolean list = el.isVirtualList();
+    for (int round = 0; ; round++) {
+      boolean relaid = false;
+      List<El> children = el.children();
+      for (int i = 0; i < children.size(); i++) {
+        int mark = regrownLists.size();
+        built |= fillRows(
+            children.get(i),
+            path,
+            left,
+            top,
+            clipLeft,
+            clipRight,
+            clipTop,
+            clipBottom,
+            inRows || list);
+        if (!list || regrownLists.size() == mark) {
+          continue;
+        }
+        List<El> grown = regrownLists.subList(mark, regrownLists.size());
+        if (el.measuresRows() && round < 3) {
+          el.layoutRow(i, scale, systemFonts); // which measures its lists again
+          el.remeasureRow(i);
+          grown.forEach(El::rowsSettled);
+          relaid = true;
+        } else {
+          rowsDeferred++; // still to lay out: the lists stay grown for the next frame
+          rowsWanted |= el.measuresRows();
+        }
+        grown.clear(); // a list takes its rows' growth
+      }
+      if (!relaid) {
+        return built;
+      }
+      built = true;
+      int[] range = el.wantedRows(
+          left, top, clipLeft, clipRight, wantedTop, wantedBottom, width, height, false);
+      if (range.length != 0 // rows below the grown ones moved, others came into view
+          && buildRows(el, path, range, left, top, clipLeft, clipRight, wantedTop, wantedBottom)
+                  .length
+              != 0) {
+        rowsDeferred++; // the next frame goes on
+      }
     }
-    if (el.style().overflowX != Style.Overflow.VISIBLE) {
-      clipLeft = Math.max(clipLeft, left);
-      clipRight = Math.min(clipRight, left + el.width());
-    }
-    for (El child : el.children()) {
-      built |= fillRows(child, path, left, top, clipLeft, clipRight, inRows || el.isVirtualList());
-    }
-    float far = Float.POSITIVE_INFINITY;
-    for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0, 0, -far, far, inRows);
-    }
-    path.removeLast();
-    return built;
   }
 
   /**
