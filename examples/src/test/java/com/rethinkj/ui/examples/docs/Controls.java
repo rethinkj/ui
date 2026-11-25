@@ -233,10 +233,13 @@ final class Controls {
         "New connection",
         state::save,
         Button.options().icon(Symbol.ADD).size(Button.Size.LARGE));
+    // A secondary detail after the title, or stacked below it with Button.Subtitle.STACKED.
+    El model = Button.button(
+        SECONDARY, "Opus 5.5", state::run, Button.options().icon(Symbol.FLASH).subtitle("High"));
     // docs:end button-options
     return Frame.of(
         row().gap(theme.space().s()).children(drop, discard, delete),
-        row().gap(theme.space().s()).children(save, refresh, download, run),
+        row().gap(theme.space().s()).children(save, refresh, download, run, model),
         row().gap(theme.space().s()).align(Style.Align.CENTER).children(commit, export, connect));
   }
 

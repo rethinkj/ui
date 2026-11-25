@@ -1,0 +1,1 @@
+- `Popover.flush` shows a popover without inner padding, so that dividers and section backgrounds reach its border. `Popover.popover`, `Popover.flush` and `Popover.form` mark their anchor `expanded` while open and `expanded=false` while closed.

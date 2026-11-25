@@ -1,5 +1,5 @@
 el 0,0 420x260
-  el role=button label="Filter" 12,12 77x24
+  el role=button label="Filter" 12,12 77x24 expanded
     text label="filter" "\u{E60A}" 25,16 16x16
     text "Filter" 45,16 31x16
 overlay bottom start gap 2 on role=button label="Filter" 12,12 77x24

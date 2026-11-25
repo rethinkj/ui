@@ -6,7 +6,7 @@ el 0,0 420x170
       text "Discard" 118,16 47x16
     el role=button label="Delete row" 182,12 24x24
       text label="delete" "\u{E47B}" 186,16 16x16
-  el 12,44 209x24
+  el 12,44 348x24
     el role=button label="Save" 12,44 56x24 disabled
       text "Save" 25,48 30x16
     el role=button label="Refresh" 72,44 24x24 busy
@@ -32,6 +32,11 @@ el 0,0 420x170
       el 198,44 1x24
       el #arrow role=button label="More Run" 199,44 22x24 expanded=false
         text label="chevron_down" "\u{F2A2}" 202,48 16x16
+    el role=button label="Opus 5.5 High" 225,44 135x24
+      text label="flash" "\u{E617}" 238,48 16x16
+      el 258,48 89x16
+        text "Opus 5.5" 258,48 56x16
+        text "High" 318,48 29x16
   el 12,76 380x32
     el role=button label="Commit" 12,80 130x24 busy
       el 25,84 104x16
