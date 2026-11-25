@@ -1573,6 +1573,11 @@ public final class El {
     return rows.heights == null ? rows.rowCount * (double) rows.rowHeight : rows.heights.total();
   }
 
+  /** The top of the row with this index in this list's border box, as it scrolls, and its height. */
+  double[] rowSpan(int index) {
+    return new double[] {rowsTop() + rowTop(index) - scrollY, rowSize(index)};
+  }
+
   /** For {@link App#scrollToRow}: the offset that puts this row at the top of the list. */
   double rowOffset(int index) {
     return rows == null ? 0 : rowTop(index);
