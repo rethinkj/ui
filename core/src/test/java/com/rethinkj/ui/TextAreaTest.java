@@ -7,6 +7,7 @@ import static com.rethinkj.ui.Fields.show;
 import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1229,6 +1230,172 @@ class TextAreaTest {
     app.invalidate();
     app.frame();
     assertTrue(ink(app.render().pixels(), 20, 24, 0xE0) > 0, "drawn past the content box too");
+  }
+
+  @Test
+  void aFitLinesFieldIsHigherByTheBarStripOnlyWhileALineIsTooWide() {
+    Scrollbars bars = new Scrollbars(6, 2, 3, 20, 0x80FFFFFF, 0xA0FFFFFF, 0xC0FFFFFF);
+    App<Object> app = new App<>(
+        new Object(),
+        state -> El.col()
+            .wFull()
+            .children(
+                El.text("a\nb")
+                    .editable(value -> {})
+                    .readOnly()
+                    .multiline()
+                    .fitLines()
+                    .scrollbars(bars)
+                    .font(Font.mono())
+                    .fontSize(14),
+                El.text("a\n" + "x".repeat(40))
+                    .editable(value -> {})
+                    .readOnly()
+                    .multiline()
+                    .fitLines()
+                    .scrollbars(bars)
+                    .font(Font.mono())
+                    .fontSize(14)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 400, 2);
+    app.frame();
+    El fits = app.tree().children().get(0);
+    El wide = app.tree().children().get(1);
+    float rows = fits.height();
+    assertNull(fits.horizontalBar());
+    assertEquals(rows + bars.strip(), wide.height(), 0.5f);
+    assertTrue(wide.horizontalBar().trackY() >= wide.y() + rows, "the bar below the last row");
+    // Once the line fits, the strip goes with the bar.
+    app.resize(500, 400, 2);
+    app.frame();
+    wide = app.tree().children().get(1);
+    assertEquals(rows, wide.height(), 0.5f);
+    assertNull(wide.horizontalBar());
+  }
+
+  @Test
+  void aWrappingFieldAlignsItsRowsWithCaretSelectionClicksAndRanges() {
+    // JetBrains Mono at 14: 8 px per character, 18 px per row; width 160 less 1 for the caret.
+    // Row 0: "hello " (5 visible chars = 40 px) -> CENTER x = 59, END x = 119.
+    // Row 1: "link here " (the last row counts its trailing space: 80 px) -> CENTER x = 39, END x =
+    // 79.
+    String text = "hello\nlink here \nabcdefghijklmnopqr   xyz";
+    List<String> pressed = new ArrayList<>();
+    for (Style.Align align : new Style.Align[] {Style.Align.CENTER, Style.Align.END}) {
+      pressed.clear();
+      float expectedRow0 = align == Style.Align.CENTER ? 59 : 119;
+      float expectedRow1 = align == Style.Align.CENTER ? 39 : 79;
+      App<Object> app = new App<>(
+          new Object(),
+          s -> El.col()
+              .padding(10)
+              .child(El.text(text)
+                  .key("f")
+                  .editable(v -> {})
+                  .readOnly()
+                  .multiline()
+                  .wrapText()
+                  .fitLines()
+                  .textAlign(align)
+                  .font(Font.mono())
+                  .fontSize(14)
+                  .w(160)
+                  .child(El.el()
+                      .key("link")
+                      .role("link")
+                      .range(6, 10)
+                      .onPress(() -> pressed.add("link")))));
+      app.textRendering(TextRendering.LINUX);
+      app.resize(220, 120, 1);
+      app.frame();
+
+      El f = app.tree().children().getFirst();
+      Text t = f.text();
+      assertEquals(4, t.lines().size());
+      assertEquals(expectedRow0, t.lines().get(0).x(), "row 0 x for " + align);
+      assertEquals(expectedRow1, t.lines().get(1).x(), "row 1 x for " + align);
+
+      // Click on 'l' (index 2, 16 px into row 0) places the caret on the drawn glyph.
+      float char2X = 10 + expectedRow0 + 2 * 8;
+      app.pointerDown(char2X + 1, 10 + 9, 1, 0);
+      app.pointerUp(char2X + 1, 10 + 9);
+      app.frame();
+      f = app.tree().children().getFirst();
+      t = f.text();
+      assertEquals(2, f.editor().caret(), "click landed on character 2 for " + align);
+      assertEquals(expectedRow0 + 16, t.x(2), "caret x matches drawn glyph for " + align);
+
+      // Select "ell" (1..4): caret and selection box align with the drawn glyphs.
+      app.select(f, 4, 1);
+      app.frame();
+      f = app.tree().children().getFirst();
+      t = f.text();
+      assertEquals(expectedRow0 + 32, t.caret().x(), "drawn caret x for " + align);
+      assertEquals(1, t.selection().size());
+      assertEquals(expectedRow0 + 8, t.selection().getFirst().x(), "selection x for " + align);
+      assertEquals(24, t.selection().getFirst().width(), "selection width for " + align);
+
+      // textPositionAt returns -1 in the empty margin left of the aligned row, and the char inside.
+      assertEquals(-1, f.textPositionAt(expectedRow0 - 4, 9), "left margin is outside text");
+      assertEquals(2, f.textPositionAt(expectedRow0 + 2 * 8 + 2, 9), "char 2 inside text");
+
+      // Range element ("link", chars 6..10 on row 1) sits at expectedRow1 and receives presses.
+      El link = f.children().getFirst();
+      assertEquals(expectedRow1, link.x(), "range x for " + align);
+      assertEquals(18, link.y(), "range y for " + align);
+      assertEquals(32, link.width(), "range width for " + align);
+      app.pointerDown(10 + expectedRow1 - 8, 10 + 18 + 9, 1, 0); // left of aligned link
+      app.pointerUp(10 + expectedRow1 - 8, 10 + 18 + 9);
+      app.frame();
+      assertEquals(List.of(), pressed, "click left of aligned link misses");
+      app.pointerDown(10 + expectedRow1 + 12, 10 + 18 + 9, 1, 0);
+      app.pointerUp(10 + expectedRow1 + 12, 10 + 18 + 9);
+      app.frame();
+      assertEquals(List.of("link"), pressed, "click on aligned link activates it");
+
+      // The caret after the last row's trailing space stays inside the content box.
+      Text shown = app.tree().children().getFirst().text();
+      float end = shown.x(text.indexOf('\n', 6));
+      assertEquals(expectedRow1 + 80, end, "end caret for " + align);
+      assertTrue(end + 1 <= 160, "end caret inside for " + align);
+      // In the spaces that hang past a soft wrap, the caret stays at the edge.
+      assertEquals(159, shown.x(text.indexOf("   ") + 2), "hanging caret for " + align);
+    }
+  }
+
+  @Test
+  void theCaretInSpacesHangingPastAnAlignedRowIsDrawnAtAFractionalScale() {
+    for (Style.Align align : new Style.Align[] {Style.Align.CENTER, Style.Align.END}) {
+      App<Object> app = new App<>(
+          new Object(),
+          s -> El.col()
+              .padding(10)
+              .fill(0xFFFFFFFF)
+              .child(El.text("hello   longerword")
+                  .key("f")
+                  .editable(v -> {})
+                  .readOnly()
+                  .multiline()
+                  .wrapText()
+                  .fitLines()
+                  .textAlign(align)
+                  .font(Font.mono())
+                  .fontSize(14)
+                  .color(0xFF000000)
+                  .caretColor(0xFFFF0000)
+                  .selectionColor(0x330000FF)
+                  .w(54)));
+      app.textRendering(TextRendering.LINUX);
+      app.resize(80, 60, 1.25f);
+      app.frame();
+      app.pointerDown(20, 15);
+      app.pointerUp(20, 15);
+      app.frame();
+      // a read-only field draws its caret with a selection: Shift+End into the hanging spaces
+      app.select(app.tree().children().getFirst(), 7, 0);
+      app.frame();
+      assertTrue(red(app.render().pixels()) > 0, "caret drawn for " + align);
+    }
   }
 
   /** The pixels between rows {@code from} and {@code to} with a channel darker than this. */

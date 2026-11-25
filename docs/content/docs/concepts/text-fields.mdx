@@ -44,6 +44,7 @@ To let two multi-line fields scroll together, give each a `ScrollState` and call
 | --- | --- |
 | `multiline()`, `lines(n)`, `maxLines(n)`, `fitLines()` | Multi-line mode; fixed height of `n` lines; growing height between `lines` and `maxLines` before scrolling; or auto-height to fit all lines |
 | `wrapText()` | Wraps long lines to the field width instead of horizontal scrolling. A single-line field without a set width grows to fit its text, up to the space its layout allows |
+| `textAlign(Style.Align)` | Aligns each wrapped row (`START`, `CENTER`, `END`) in a wrapping multi-line field, with caret, selection, hit testing, marks, and range elements at the aligned positions |
 | `readOnly()`, `editable(null)` | Read-only (selectable/copyable) vs. disabled |
 | `maxLength(n)` | Maximum length in Unicode code points |
 | `masked()` | Password field (displays `•`) |

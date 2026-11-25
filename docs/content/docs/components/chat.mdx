@@ -33,7 +33,7 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 | `time(text)` | Muted timestamp shown in tabular figures under the message |
 | `copy(clipboard)` | Adds a quiet copy button that writes the message text (or `Markdown.text(document)`) to `clipboard` |
 | `copy(clipboard, text)` | Adds a quiet copy button that writes explicit `text` to `clipboard` (for composed `agent(options, parts…)` messages) |
-| `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on the copy button; keep one `Button.Copied` per message |
+| `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on the copy button (and on code blocks in `agent(document, options)` when `markdown(...)` is omitted); keep one `Button.Copied` per message |
 | `actions(El…)` | Adds extra quiet actions (such as ghost icon buttons) to the message footer |
 | `markdown(Markdown.Options)` | Forwards custom `Markdown.Options` to `Markdown.fragment` in `agent(document, options)` |
 

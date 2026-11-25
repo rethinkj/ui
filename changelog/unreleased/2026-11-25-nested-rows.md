@@ -1,0 +1,1 @@
+- A virtual list with `RowHeights` and no height of its own, inside a row of another virtual list, now makes that row as high as its rows measure. Before, the row kept the height of the estimates, so content below it overlapped or left a gap. Such a list builds only the rows in view of the outer list as it scrolls.

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
@@ -229,6 +230,50 @@ class MarkdownTest {
     tree = run(app, "advance 2\nframe\nadvance 1\nframe");
     assertFalse(tree.contains("label=\"checkmark\""), "the copy icon back");
     assertFalse(tree.contains("label=\"Copied\""), tree);
+  }
+
+  @Test
+  void aCodeBlockInAChatMessageConfirmsItsCopyWithoutAState() throws IOException {
+    Button.Copied copied = new Button.Copied();
+    Clipboard clipboard = Clipboard.inMemory();
+    MarkdownDocument reply = Markdown.parse("```sql\nSELECT 42;\n```");
+    App<Object> app = new App<>(
+            new Object(),
+            ignored -> col()
+                .wFull()
+                .hFull()
+                .child(Chat.agent(reply, Chat.options().copy(clipboard).copied(copied))))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    String tree = run(app, """
+        frame
+        move role=code
+        frame
+        advance 1
+        frame
+        press label="Copy code"
+        frame
+        advance 0.25
+        frame""");
+    assertEquals("SELECT 42;", clipboard.read());
+    assertTrue(tree.contains("text label=\"checkmark\""), tree);
+    assertTrue(tree.contains("role=tooltip label=\"Copied\""), tree);
+    // The button lies on a fill of its own, so that a long first line does not show through.
+    El corner = holder(app.tree(), CellEditorTest.find(app, "copy"));
+    assertEquals(Theme.DARK.surface().raised(), corner.fill());
+    tree = run(app, "advance 2\nframe\nadvance 1\nframe");
+    assertFalse(tree.contains("label=\"Copied\""), tree);
+  }
+
+  /** The element that has {@code child} among its children, or null. */
+  private static El holder(El el, El child) {
+    for (El each : el.children()) {
+      El found = each == child ? el : holder(each, child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   @Test
@@ -1649,6 +1694,62 @@ class MarkdownTest {
     assertTrue(countLine(next).contains("\"1 of 2\""), next);
     assertFalse(CellEditorTest.find(app, "f1").text().selection().isEmpty(), next);
     assertTrue(CellEditorTest.find(app, "f2").text().selection().isEmpty(), next);
+  }
+
+  @Test
+  void aTableAlignsWrappedAndSingleLineCellsInCenterAndRightColumns() throws IOException {
+    String source = """
+        | Left | Center | Right |
+        | :--- | :---: | ---: |
+        | a | short | 42 |
+        | note | a longer centered cell with a [guide](#guide) that wraps across lines | a longer right aligned cell with enough words to wrap across multiple lines |
+        """;
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 800 320 scale 2\nframe\npress role=link label=\"guide\"\nframe", app, out);
+    assertEquals(
+        List.of("#guide"), app.state().links, "link in centered wrapped cell is clickable");
+
+    List<El> cells = new ArrayList<>();
+    collectTableCells(app.tree(), cells);
+    assertEquals(9, cells.size(), "3 header + 6 body cells");
+    // Row 1 (short single-line cells): Left x == 0, Center x > 0, Right x > 0 near right edge.
+    Text shortLeft = cells.get(3).text();
+    Text shortCenter = cells.get(4).text();
+    Text shortRight = cells.get(5).text();
+    assertEquals(0, shortLeft.lines().getFirst().x());
+    assertTrue(shortCenter.lines().getFirst().x() > 0, "single-line centered cell");
+    assertTrue(shortRight.lines().getFirst().x() > 0, "single-line right cell");
+    assertTrue(
+        Math.abs(shortRight.lines().getFirst().x()
+                + shortRight.lines().getFirst().width()
+                - shortRight.scale() * cells.get(5).width())
+            <= shortRight.scale() + 1, // the room a field keeps for its caret
+        "right-aligned cell ends at the column's right edge");
+
+    // Row 2 (wrapped cells): every wrapped row in Center and Right is aligned.
+    Text wrappedCenter = cells.get(7).text();
+    Text wrappedRight = cells.get(8).text();
+    assertTrue(wrappedCenter.lines().size() >= 2, "center cell wrapped");
+    assertTrue(wrappedRight.lines().size() >= 2, "right cell wrapped");
+    for (Text.Line line : wrappedCenter.lines()) {
+      assertTrue(line.x() > 0, "wrapped center row is indented: " + line);
+    }
+    for (Text.Line line : wrappedRight.lines()) {
+      assertTrue(line.x() > 0, "wrapped right row is indented: " + line);
+    }
+  }
+
+  private static void collectTableCells(El el, List<El> into) {
+    if (("columnheader".equals(el.role()) || "cell".equals(el.role()))
+        && !el.children().isEmpty()
+        && el.children().getFirst().text() != null) {
+      into.add(el.children().getFirst());
+      return;
+    }
+    for (El child : el.children()) {
+      collectTableCells(child, into);
+    }
   }
 
   private static String countLine(String tree) {

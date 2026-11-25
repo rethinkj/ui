@@ -57,6 +57,8 @@ For items with different heights (like log entries, wrapping text, or Markdown b
 - Pass a key function (`new RowHeights(estimate, key)`) returning a unique, stable key per row (such as a message ID) when rows can be inserted, removed, or reordered before the view: measured heights stay with their row and the scroll position moves on the same frame so the row in view does not jump. Without a key, heights stay by index (appending at the end is fine; otherwise create a new `RowHeights`).
 - Pass a version function too (`new RowHeights(estimate, key, version)`) when the list sits in an `El.selectionScope()` wrapped with [`Find.find`](/docs/components/find): return a value that changes (by `equals`) whenever anything the row shows as text changes—such as a `MarkdownDocument` or a revision counter—so unchanged out-of-view rows keep their indexed text across builds instead of being rebuilt on every frame.
 
+- A list with `RowHeights` and no height of its own can sit in a row of another virtual list, such as the blocks of a long message in a transcript. It is as high as its rows and builds only those in view of the outer list as that scrolls; the outer row grows or shrinks with what they measure.
+
 See [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html) for helper methods to query row heights and offsets.
 
 ## Following the end

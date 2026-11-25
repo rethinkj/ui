@@ -486,6 +486,7 @@ public final class El {
     float clipRight = Float.POSITIVE_INFINITY;
     float clipBottom = Float.POSITIVE_INFINITY;
     float coverBottom = Float.NEGATIVE_INFINITY;
+    float laidTotal = Float.NaN; // the height of the rows when layout last measured the list
   }
 
   /** The state of a text field, which {@link #editable} makes, beyond its {@link Text}. */
@@ -1325,8 +1326,9 @@ public final class El {
    * look as {@code look} says. After layout, {@link App} places a bar along the right edge while
    * the content is taller than the area and one along the bottom while it is wider; an axis whose
    * content fits has none, and where both show, each stops short of the corner. A bar lies over
-   * the content and takes no room in the layout. It stays where it is while the area scrolls, at
-   * the edges of the part of the area that its ancestors' clips leave visible, short of the bars
+   * the content and takes no room in the layout, but for a {@link #fitLines} field that does not
+   * wrap: it is higher by the strip of the bar along its bottom while that bar shows, so that the
+   * bar covers no row. It stays where it is while the area scrolls, at the edges of the part of the area that its ancestors' clips leave visible, short of the bars
    * of scroll areas around it, and it is clipped like the area's children, to its rounded corners.
    *
    * <p>So that the last row and the last column can come out from under a bar that crosses them,
@@ -1468,8 +1470,10 @@ public final class El {
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
     // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
     // doubles and reach the last row anyway.
-    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) Math.min(rowsTotal(), LAYOUT_LIMIT));
+    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) -> {
+      list.laidTotal = laidRowsTotal();
+      return new Measure.Size(0, list.laidTotal);
+    };
     return this;
   }
 
@@ -1902,7 +1906,11 @@ public final class El {
    * default), in the center or at the end, as CSS's {@code text-align} does, for a text of one
    * line and for one that {@link #wrapText wraps}, also where a line ends in an {@link #ellipsis}:
    * an empty state's centered message, a column of numbers aligned at the right. Each line on its
-   * own, on the grid of glyph positions. Text fields, which scroll their lines, start at the left.
+   * own, on the grid of glyph positions. A {@link #multiline} field that {@link #wrapText wraps}
+   * aligns each of its rows the same way, with its caret, selection, hit testing, marks and {@link
+   * #range range} elements at the aligned positions; other text fields, which scroll their lines
+   * sideways, start at the left. Its {@link #lineEnds line-end elements} follow the aligned end of
+   * a line, where a line at the end leaves them no room.
    *
    * @param align {@link Style.Align#START}, {@link Style.Align#CENTER} or {@link Style.Align#END}
    */
@@ -3275,8 +3283,9 @@ public final class El {
    * however many there are, so that it never scrolls up and down: a paragraph of a document that
    * a read-only field shows for selecting and copying. When the field also {@link #wrapText wraps},
    * layout measures it as wide as its widest row at the width it is given (with room for the
-   * caret), as plain text and a wrapping single-line field do; without wrapping it measures 0 wide.
-   * A field with room for all its rows draws its glyphs uncut by its box when it wraps, as text
+   * caret), as plain text and a wrapping single-line field do; without wrapping it measures 0 wide,
+   * and with {@link #scrollbars} it is higher by the bar's {@link Scrollbars#strip strip} while a
+   * line is wider than its content box, so that the bar along its bottom covers no row. A field with room for all its rows draws its glyphs uncut by its box when it wraps, as text
    * does, and a {@link #readOnly} one lets Page Up and Page Down without Shift go on to the scroll
    * area around it instead of moving the caret. Unlike {@link #lines} every row is
    * shaped and laid out, so it is for texts of a few screens at most; for a field that grows up to
@@ -5247,6 +5256,10 @@ public final class El {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
       el.text.lineHeight(resolved);
+      el.text.horizontalBarStrip(
+          el.scrollbars != null && el.style.overflowX == Style.Overflow.SCROLL
+              ? el.scrollbars.strip()
+              : 0);
       if (el.hasGutter()) {
         el.measureGutter();
       }
@@ -5368,9 +5381,9 @@ public final class El {
     if (text != null && text.multiline()) {
       // A field: its rows as far as they are known, in its content box as layout placed it.
       float scale = text.scale();
-      double room = Math.max(1, Math.round(scale)) + Editor.MARGIN * scale; // the caret at the end
       double extent = Math.max(
-          text.extentWidth((float) room), field == null || text.wraps() ? 0 : field.foldsExtent);
+          text.extentWidth(Text.caretRoom(scale)),
+          field == null || text.wraps() ? 0 : field.foldsExtent);
       double wide = extent - text.contentWidth() / scale;
       double tall = text.extentHeight() - text.contentHeight() / scale;
       maxScrollX = style.overflowX == Style.Overflow.SCROLL && wide > SLACK ? wide : 0;
@@ -5379,9 +5392,18 @@ public final class El {
     }
     if (rows != null) {
       maxScrollX = 0;
-      maxScrollY = Math.max(
-          rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM) + coverY - height,
-          0);
+      double content = rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM);
+      double over = content + coverY - height;
+      // A list as high as its rows does not scroll by what layout rounded off its edges.
+      double rounded = content - height;
+      boolean asHigh = Len.AUTO.equals(style.height)
+          && Len.AUTO.equals(style.maxHeight)
+          && style.grow == 0
+          && rows.laidTotal == laidRowsTotal();
+      if (asHigh && rounded > 0 && rounded < 1) {
+        over -= rounded;
+      }
+      maxScrollY = Math.max(over, 0);
       return;
     }
     boolean scrolls =
@@ -5951,12 +5973,33 @@ public final class El {
       float windowWidth,
       float windowHeight,
       boolean anew) {
+    float far = Float.POSITIVE_INFINITY;
+    return wantedRows(left, top, clipLeft, clipRight, -far, far, windowWidth, windowHeight, anew);
+  }
+
+  /**
+   * Like {@link #wantedRows(float, float, float, float, float, float, boolean)}, with the vertical
+   * clip of the list's ancestors too, from {@code clipTop} to {@code clipBottom} in window
+   * coordinates: a list as high as its rows in a row of another list builds the rows in view of
+   * that one.
+   */
+  int[] wantedRows(
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom,
+      float windowWidth,
+      float windowHeight,
+      boolean anew) {
     if (rows == null) {
       return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
-    double from = Math.max(top, 0);
-    double to = Math.max(Math.min(top + height, windowHeight), from);
+    double from = Math.max(Math.max(top, clipTop), 0);
+    double bottom = Math.min(Math.min(top + height, clipBottom), windowHeight);
+    double to = Math.max(bottom, from); // none, where the list is out of view
     int first = Math.clamp(rowAt(from - row0), 0, rows.rowCount);
     int end = Math.clamp(rowAfter(to - row0), first, rows.rowCount);
     float shown = 0;
@@ -6217,6 +6260,39 @@ public final class El {
   /** Whether this is a virtual list whose rows are as high as their content. */
   boolean measuresRows() {
     return rows.heights != null;
+  }
+
+  /**
+   * Whether this virtual list's rows came to another height than layout measured it at, as rows
+   * built and measured since make them: a list as high as its rows, in a row of another list, has
+   * that row laid out again, and then {@link #rowsSettled}.
+   */
+  boolean rowsRegrown() {
+    return rows != null
+        && rows.heights != null
+        && !Float.isNaN(rows.laidTotal)
+        && laidRowsTotal() != rows.laidTotal;
+  }
+
+  /**
+   * Takes the height of the rows as measured, also where layout did not ask, as for a list of a
+   * height of its own.
+   */
+  void rowsSettled() {
+    rows.laidTotal = laidRowsTotal();
+  }
+
+  /**
+   * Measures how far the areas in this list's rows scroll after the row with this index was laid
+   * out again, and keeps the offsets of that row's areas within it.
+   */
+  void remeasureRow(int index) {
+    measureRowScrolls();
+    children.get(index).clampScrolls();
+  }
+
+  private float laidRowsTotal() {
+    return (float) Math.min(rowsTotal(), LAYOUT_LIMIT);
   }
 
   /** The left of the rows, the left of the content box. */

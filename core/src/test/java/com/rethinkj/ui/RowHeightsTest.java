@@ -112,6 +112,46 @@ class RowHeightsTest {
     assertTrue(list.firstRow() <= 400 && list.firstRow() + list.children().size() > 400);
   }
 
+  /**
+   * A list in a row of another, as high as its rows, builds only the rows in view of the outer
+   * one, and the row grows with what they measure, as it scrolls too.
+   */
+  @Test
+  void aListInARowBuildsTheRowsInViewAndItsRowFollowsTheirHeights() {
+    RowHeights outer = new RowHeights(i -> 50);
+    RowHeights inner = new RowHeights(i -> 10);
+    App<RowHeights> app = new App<>(
+        outer,
+        h -> col()
+            .wFull()
+            .hFull()
+            .child(el().key("list")
+                .h(200)
+                .rows(
+                    3,
+                    h,
+                    i -> i == 1
+                        ? col()
+                            .children(
+                                el().h(10),
+                                el().key("inner").rows(1000, inner, j -> el().h(20 + 10 * (j % 2))))
+                        : el().h(50))));
+    app.resize(200, 200, 1);
+    app.frame();
+    for (int frame = 0; frame < 3; frame++) {
+      El list = list(app);
+      El row = list.children().get(1 - list.firstRow());
+      El nested = row.children().getLast();
+      assertTrue(nested.children().size() < 40, "built " + nested.children().size());
+      assertEquals(10 + inner.total(), row.height(), 0.001, app.tree().dump());
+      assertEquals(row.height(), outer.height(1), 0.001);
+      El above = list.children().getFirst();
+      assertEquals(above.y() + 50, row.y(), 0.001, "row 0 is built above it");
+      app.wheel(100, 100, 0, 300);
+      app.frame();
+    }
+  }
+
   @Test
   void rowsEstimatedTooHighFillTheListInTheFramesAfterAndThenTheAppIsIdle() {
     RowHeights heights = new RowHeights(i -> 100);

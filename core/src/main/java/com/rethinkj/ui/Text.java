@@ -179,6 +179,7 @@ public final class Text implements Measure {
   private int[] squiggled = {};
   private int visibleLines = 1;
   private int maxLines; // 0 for no limit, see El#maxLines
+  private float horizontalBarStrip; // logical strip of El#scrollbars when scrolling sideways
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
   private List<Box> selection = List.of();
@@ -835,7 +836,10 @@ public final class Text implements Measure {
   }
 
   void align(Style.Align align) {
-    this.align = align;
+    if (this.align != align) {
+      this.align = align;
+      viewStale = true;
+    }
   }
 
   /** How lines are aligned in the content box; see {@link El#textAlign}. */
@@ -867,6 +871,19 @@ public final class Text implements Measure {
 
   void visibleLines(int lines) {
     this.visibleLines = lines;
+  }
+
+  /**
+   * Logical height of a horizontal scrollbar's strip ({@link Scrollbars#strip}) when this element
+   * has scrollbars and scrolls sideways, or 0 otherwise; set by {@link El#scaleText}.
+   */
+  void horizontalBarStrip(float strip) {
+    this.horizontalBarStrip = strip;
+  }
+
+  /** Physical pixels kept past the widest line for the caret at its end. */
+  static float caretRoom(float scale) {
+    return Editor.caretWidth(scale) + Editor.MARGIN * scale;
   }
 
   /**
@@ -1168,7 +1185,7 @@ public final class Text implements Measure {
 
   /**
    * Where a line this wide starts in the content box as the alignment puts it, on the grid of
-   * glyph positions; 0 in a field, which scrolls instead.
+   * glyph positions; 0 in a field that scrolls sideways.
    */
   private float aligned(float width) {
     float share = switch (align) {
@@ -1176,11 +1193,33 @@ public final class Text implements Measure {
       case END, FLEX_END -> 1;
       default -> 0;
     };
-    if (share == 0 || field) {
+    if (share == 0 || field && !(multiline && wraps)) {
       return 0;
     }
+    float room = field ? caretRoom() : placedWidth;
     double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
-    return (float) (Math.floor(Math.max(placedWidth - width, 0) * share * grid) / grid);
+    return (float) (Math.floor(Math.max(room - width, 0) * share * grid) / grid);
+  }
+
+  /**
+   * How far a field's caret may stand and stay inside the content box: a field keeps room for it
+   * at a line's end, as its measure does, on a whole pixel, since the box may end inside one.
+   */
+  private float caretRoom() {
+    return (float) Math.floor(placedWidth - Editor.caretWidth(scale));
+  }
+
+  /** Where row {@code row} of {@code para} starts in the content box, after {@link #align}. */
+  private float rowX(Para para, int row) {
+    if (!multiline || !wraps || para.chunks != null) {
+      return 0;
+    }
+    if (row + 1 < para.rowCount()) {
+      return aligned(para.rowWidths[row]); // spaces at a soft wrap hang, as in CSS
+    }
+    // the last row's caret can stand after its trailing spaces, so they count
+    int end = para.text.length();
+    return aligned(para.pen(end) + para.afterGap(end) - para.pen(para.rowStart(row)));
   }
 
   void underline(int from, int to) {
@@ -2410,7 +2449,9 @@ public final class Text implements Measure {
   /** Like {@link #x(int)}, at the given visual {@link HintStop} when inline hints sit at it. */
   float x(int index, HintStop stop) {
     if (multiline) {
-      return caretX(index, stop);
+      float x = caretX(index, stop);
+      // spaces at a soft wrap hang past an aligned row's end; the caret in them stays at the edge
+      return wraps && align != Style.Align.START ? Math.min(x, caretRoom()) : x;
     }
     return glyphX(toGlyphs(index));
   }
@@ -2526,8 +2567,9 @@ public final class Text implements Measure {
     List<Integer> bounds = rowBounds(para, row);
     int found = bounds.getFirst();
     float left = para.pen(para.rowStart(row));
+    float localX = x - rowX(para, row);
     for (int i = 0; i < bounds.size() - 1; i++) {
-      if (para.pen(bounds.get(i)) - left <= x) {
+      if (para.pen(bounds.get(i)) - left <= localX) {
         found = bounds.get(i);
       }
     }
@@ -2599,9 +2641,13 @@ public final class Text implements Measure {
     if (rowStart >= rowEnd) {
       return -1;
     }
+    float localX = x - rowX(para, row);
+    if (localX < 0) {
+      return -1;
+    }
     float left = para.pen(rowStart);
     float right = para.pen(rowEnd) - left;
-    if (x >= right) {
+    if (localX >= right) {
       return -1;
     }
     List<Integer> bounds = para.boundaries(rowStart, rowEnd);
@@ -2611,10 +2657,10 @@ public final class Text implements Measure {
         int b1 = bounds.get(i + 1);
         float g0 = para.pen(b0) + para.afterGap(b0) - left;
         float g1 = para.pen(b1) - para.beforeGap(b1) - left;
-        if (x < g0) {
+        if (localX < g0) {
           return -1;
         }
-        if (x < g1) {
+        if (localX < g1) {
           return start + b0;
         }
       }
@@ -2622,7 +2668,7 @@ public final class Text implements Measure {
     }
     int found = -1;
     for (int i = 0; i < bounds.size() - 1; i++) {
-      if (para.pen(bounds.get(i)) - left <= x) {
+      if (para.pen(bounds.get(i)) - left <= localX) {
         found = bounds.get(i);
       } else {
         break;
@@ -3003,7 +3049,9 @@ public final class Text implements Measure {
   /**
    * For {@link El#fitLines}: the width and height of every row and block at a content box this
    * wide, in logical pixels. When wrapping, the width is the widest row with room for the caret, as
-   * a wrapping single-line field measures; without wrapping it is 0.
+   * a wrapping single-line field measures; without wrapping it is 0, and when the field has
+   * scrollbars and scrolls sideways, the height adds {@link #horizontalBarStrip} whenever any
+   * visible line (plus {@link #caretRoom}) overflows {@code width} by more than {@link #SLACK}.
    */
   private Size fittedSize(float width) {
     Lines lines = shownLines();
@@ -3014,9 +3062,23 @@ public final class Text implements Measure {
       return known;
     }
     float widest = 0;
+    float extraHeight = 0;
     int rows;
     if (!wraps) {
       rows = lines.shownCount();
+      if (horizontalBarStrip > 0 && Float.isFinite(width)) {
+        float past = caretRoom(scale) - Math.max(0, width) * scale; // beyond the content box
+        for (int line = lines.firstVisible();
+            line >= 0 && line < lines.count();
+            line = lines.nextVisible(line)) {
+          float lineWidth = para(line).totalWidth();
+          lines.measured(line, lineWidth);
+          if ((lineWidth + past) / scale > SLACK) { // as El#measureScroll finds it wide
+            extraHeight = horizontalBarStrip;
+            break;
+          }
+        }
+      }
     } else {
       float limit;
       if (width == MAX_CONTENT || Float.isNaN(width)) {
@@ -3064,7 +3126,7 @@ public final class Text implements Measure {
       }
       height += lines.totalBlockPixels();
     }
-    Size size = new Size(widest / scale, height / scale, firstBaseline / scale);
+    Size size = new Size(widest / scale, height / scale + extraHeight, firstBaseline / scale);
     if (fitted != null && !provisional) { // not with a line its spans may make wider
       if (fitted.size() >= FITTED_WIDTHS) {
         fitted.clear(); // a field resized again and again
@@ -3397,7 +3459,7 @@ public final class Text implements Measure {
           para.rowWidths[r],
           (float) (top - viewY + firstBaseline),
           para.colors(para.rowStart(r), para.rowEnd(r)),
-          0));
+          rowX(para, r)));
       placed.add(new Row(line, r, para, top));
       if (top < viewY + placedHeight && top + lh > viewY) {
         firstInView = firstInView < 0 ? line : firstInView;
@@ -3514,6 +3576,7 @@ public final class Text implements Measure {
       }
       float top = (float) (row.top - viewY);
       float left = para.pen(para.rowStart(row.row));
+      float rowX = rowX(para, row.row);
       int from = para.rowStart(row.row);
       int to = para.rowEnd(row.row);
       Chunks chunks = para.chunks;
@@ -3555,10 +3618,10 @@ public final class Text implements Measure {
           }
           float x0 = chunks != null && a < visFrom
               ? (float) (chunks.xs[visFirstChunk] - viewX)
-              : para.pen(a) + (kind == Spans.GUIDE ? 0 : para.afterGap(a)) - left - viewX;
+              : rowX + para.pen(a) + (kind == Spans.GUIDE ? 0 : para.afterGap(a)) - left - viewX;
           float x1 = chunks != null && b > visTo
               ? (float) (chunks.xs[visLastChunk + 1] - viewX)
-              : para.pen(b) - (kind == Spans.GUIDE ? 0 : para.beforeGap(b)) - left - viewX;
+              : rowX + para.pen(b) - (kind == Spans.GUIDE ? 0 : para.beforeGap(b)) - left - viewX;
           switch (kind) {
             case Spans.BACKGROUND ->
               ranges.add(new Mark(
@@ -3571,8 +3634,8 @@ public final class Text implements Measure {
               // two waves do not mix their colors. From the underline to the row's bottom: the
               // room the wave may take.
               for (int[] piece : uncovered(spans, i, a, b, spans == decor ? null : decor)) {
-                float p0 = para.pen(piece[0]) + para.afterGap(piece[0]) - left - viewX;
-                float p1 = para.pen(piece[1]) - para.beforeGap(piece[1]) - left - viewX;
+                float p0 = rowX + para.pen(piece[0]) + para.afterGap(piece[0]) - left - viewX;
+                float p1 = rowX + para.pen(piece[1]) - para.beforeGap(piece[1]) - left - viewX;
                 if (p1 > p0) {
                   unders.add(new Mark(
                       new Box(p0, top + under, p1 - p0, lineHeight - under),
@@ -3871,7 +3934,8 @@ public final class Text implements Measure {
       Para para = row.para;
       float endX = (para.chunks != null
               ? para.totalWidth()
-              : para.pen(para.text.length())
+              : rowX(para, row.row)
+                  + para.pen(para.text.length())
                   + para.afterGap(para.text.length())
                   - para.pen(para.rowStart(row.row)))
           - viewX;
@@ -3906,6 +3970,7 @@ public final class Text implements Measure {
       int rowStart = para.rowStart(row.row);
       int rowEnd = para.rowEnd(row.row);
       float left = para.pen(rowStart);
+      float rowX = rowX(para, row.row);
       for (HintSlot slot : para.hints.slots) {
         int pos = slot.resolvedAt;
         boolean onRow;
@@ -3921,7 +3986,7 @@ public final class Text implements Measure {
         if (!onRow) {
           continue;
         }
-        float hx = para.pen(pos) + slot.relX - left - viewX;
+        float hx = rowX + para.pen(pos) + slot.relX - left - viewX;
         if (hx + slot.width <= 0 || hx >= placedWidth) {
           continue;
         }
@@ -4036,7 +4101,7 @@ public final class Text implements Measure {
       if (visible >= 0) {
         Para para = para(visible);
         int last = para.rowCount() - 1;
-        return para.pen(para.text.length()) - para.pen(para.rowStart(last));
+        return rowX(para, last) + para.pen(para.text.length()) - para.pen(para.rowStart(last));
       }
       return 0;
     }
@@ -4045,21 +4110,21 @@ public final class Text implements Measure {
       return 0;
     }
     Para para = para(at[0]);
+    int row = at[1];
+    float rowX = rowX(para, row);
     int offset = clamped - lines.start(at[0]);
-    if (stop == HintStop.LEFT
-        && para.hasHints()
-        && !(at[1] > 0 && offset == para.rowStart(at[1]))) {
+    if (stop == HintStop.LEFT && para.hasHints() && !(row > 0 && offset == para.rowStart(row))) {
       float before = para.beforeGap(offset);
       if (before > 0) {
-        return para.pen(offset) - before - para.pen(para.rowStart(at[1]));
+        return rowX + para.pen(offset) - before - para.pen(para.rowStart(row));
       }
     } else if (stop == HintStop.RIGHT && para.hasHints()) {
       float after = para.afterGap(offset);
       if (after > 0) {
-        return para.pen(offset) + after - para.pen(para.rowStart(at[1]));
+        return rowX + para.pen(offset) + after - para.pen(para.rowStart(row));
       }
     }
-    return para.pen(offset) - para.pen(para.rowStart(at[1]));
+    return rowX + para.pen(offset) - para.pen(para.rowStart(row));
   }
 
   /** The top of the row a position is on, in physical pixels from the top of the text. */
@@ -4127,6 +4192,7 @@ public final class Text implements Measure {
     int rowStart = para.rowStart(row);
     int rowEnd = para.rowEnd(row);
     float left = para.pen(rowStart);
+    float localX = x - rowX(para, row);
     int best = rowStart;
     HintStop bestStop = HintStop.DEFAULT;
     float distance = Float.POSITIVE_INFINITY;
@@ -4142,21 +4208,21 @@ public final class Text implements Measure {
       float roomBefore = para.roomBefore(b);
       float roomAfter = para.roomAfter(b);
       if (before > 0) {
-        float d = outside(x, cx - before - roomBefore, cx - before);
+        float d = outside(localX, cx - before - roomBefore, cx - before);
         if (d < distance) {
           distance = d;
           best = b;
           bestStop = HintStop.LEFT;
         }
       }
-      float d = outside(x, before > 0 ? cx : cx - roomBefore, after > 0 ? cx : cx + roomAfter);
+      float d = outside(localX, before > 0 ? cx : cx - roomBefore, after > 0 ? cx : cx + roomAfter);
       if (d < distance) {
         distance = d;
         best = b;
         bestStop = HintStop.DEFAULT;
       }
       if (after > 0) {
-        float da = outside(x, cx + after, cx + after + roomAfter);
+        float da = outside(localX, cx + after, cx + after + roomAfter);
         if (da < distance) {
           distance = da;
           best = b;
@@ -4340,19 +4406,22 @@ public final class Text implements Measure {
       }
       boolean endSelected = lastRow ? end > to : end >= to;
       float left = para.pen(para.rowStart(row.row));
+      float rowX = rowX(para, row.row);
       int localStart = Math.max(start, from) - lineStart;
-      float x0 = para.pen(localStart) + (start >= from ? para.afterGap(localStart) : 0) - left;
+      float x0 =
+          rowX + para.pen(localStart) + (start >= from ? para.afterGap(localStart) : 0) - left;
       float x1;
       if (endSelected && !(!lastRow && end == to && para.beforeGap(to - lineStart) > 0)) {
         x1 = Math.max(
             edge,
-            (para.chunks != null
+            rowX
+                + (para.chunks != null
                     ? para.totalWidth()
                     : para.pen(to - lineStart) + (lastRow ? para.afterGap(to - lineStart) : 0))
                 - left);
       } else {
         int localEnd = Math.min(end, to) - lineStart;
-        x1 = para.pen(localEnd) - para.beforeGap(localEnd) - left;
+        x1 = rowX + para.pen(localEnd) - para.beforeGap(localEnd) - left;
       }
       if (x1 > x0) {
         boxes.add(new Box(x0 - viewX, (float) (row.top - viewY), x1 - x0, lineHeight));
