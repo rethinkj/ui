@@ -1,0 +1,1 @@
+- A selection across an `El.selectionScope()` stays on its columns when a virtual list built with `El.rows(int, float, RowBuilder)` scrolls sideways, and Control+C copies columns outside the built span too, when the column cells have keys.
