@@ -311,6 +311,8 @@ public final class App<S> {
   private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new WeakHashMap<>();
   private final Map<RowHeights, Map<Object, Object[]>> keptFieldCounts = new WeakHashMap<>();
   private final Map<El, Boolean> prunedCounts = new WeakHashMap<>(); // lists whose gone keys went
+  private final Map<RowHeights, Map<Integer, Integer>> buildFieldCounts = new IdentityHashMap<>();
+  private long countsBuild = -1; // the build buildFieldCounts are for
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -3196,7 +3198,21 @@ public final class App<S> {
       El target = builtScopeRowField(list, row, field);
       Object[] inner =
           target != null ? null : unbuiltRowOf(list.children().get(row - list.firstRow()), field);
-      if (target != null) {
+      float[] caret =
+          target == null || target.editor() == null ? null : target.editor().caretBox();
+      if (caret != null) { // where the selection's caret is, below a find bar over the scope
+        List<El> path = new ArrayList<>();
+        El scope = root != null && pathTo(root, target, path) ? scopeOf(path) : null;
+        reveal(
+            target,
+            caret[0],
+            caret[1],
+            caret[2],
+            caret[3],
+            false,
+            scope,
+            scope == null ? 0 : scope.scopeCoveredTop());
+      } else if (target != null) {
         reveal(target, 0, 0, target.width(), target.height(), false, null, 0);
       } else if (inner != null) {
         El nested = (El) inner[0];
@@ -6275,8 +6291,28 @@ public final class App<S> {
       Object[] kept = keptByKey(list, heights).get(heights.key(row));
       return kept != null && Objects.equals(kept[0], versions[row]) ? (Integer) kept[1] : null;
     }
-    Map<Integer, Integer> counts = unbuiltFieldCounts.get(list);
+    Map<Integer, Integer> counts = unversionedCounts(list, false);
     return counts == null ? null : counts.get(row);
+  }
+
+  /**
+   * The counts of a list without versions: by its heights for the view's build, which a list built
+   * again for reading shares with the one in the tree, else by its element.
+   */
+  private Map<Integer, Integer> unversionedCounts(El list, boolean make) {
+    RowHeights heights = list.rowHeights();
+    if (heights == null) {
+      return make
+          ? unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>())
+          : unbuiltFieldCounts.get(list);
+    }
+    if (countsBuild != builds) {
+      buildFieldCounts.clear();
+      countsBuild = builds;
+    }
+    return make
+        ? buildFieldCounts.computeIfAbsent(heights, ignored -> new HashMap<>())
+        : buildFieldCounts.get(heights);
   }
 
   /**
@@ -6289,7 +6325,7 @@ public final class App<S> {
     if (heights != null && versions != null && row < versions.length) {
       keptByKey(list, heights).put(heights.key(row), new Object[] {versions[row], count});
     } else {
-      unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>()).put(row, count);
+      unversionedCounts(list, true).put(row, count);
     }
   }
 
