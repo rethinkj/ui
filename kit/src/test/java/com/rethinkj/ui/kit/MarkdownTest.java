@@ -853,6 +853,185 @@ class MarkdownTest {
         .contains("Paragraph 2 contains needle here."));
   }
 
+  @Test
+  void findScrollsFirstLineOfScopeListBelowBar() throws IOException {
+    Find.State find = new Find.State();
+    List<String> rows = new ArrayList<>();
+    rows.add("Leading words on the first row ending with needle");
+    for (int i = 1; i < 30; i++) {
+      rows.add(i == 20 ? "Later row with needle here" : "Filler row " + i);
+    }
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El list = col()
+              .key("list")
+              .wFull()
+              .grow(1)
+              .minSize(0, 0)
+              .padding(t.space().m())
+              .scrollbars(t.scrollbars())
+              .rows(
+                  rows.size(),
+                  24,
+                  i -> col()
+                      .child(El.text(rows.get(i))
+                          .editable(null)
+                          .readOnly()
+                          .font(t.prose().body().font().get())
+                          .fontSize(t.prose().body().size())));
+          El scope = col().wFull().grow(1).minSize(0, 0).selectionScope().child(list);
+          return col()
+              .wFull()
+              .hFull()
+              .fill(t.surface().panel())
+              .child(Find.find(ref[0], scope, find));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Narrow window so the right-aligned bar sits directly over the right end of row 0.
+    Script.run("""
+        size 440 200 scale 2
+        frame
+        press text="Leading words on the first row ending with needle" at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        snap first""", app, out);
+    String first = Files.readString(out.resolve("first.tree.txt"));
+    float[] bar = bounds(first, "#find role=search");
+    float[] match = bounds(first, "\"Leading words on the first row ending with needle\"");
+    assertTrue(match[1] >= bar[1] + bar[3], first);
+
+    // Closing the bar removes coveredTop, clamping the list back to 0.
+    Script.run("""
+        key Escape
+        frame""", app, out);
+    assertEquals(0, CellEditorTest.find(app, "list").scrollY());
+  }
+
+  @Test
+  void findInShortScrolledScopeKeepsMatchBelowBar() throws IOException {
+    StringBuilder source = new StringBuilder();
+    for (int i = 0; i < 12; i++) {
+      if (i == 4 || i == 5) {
+        source.append("Paragraph ").append(i).append(" contains needle here.\n\n");
+      } else {
+        source.append("Paragraph ").append(i).append(" filler words.\n\n");
+      }
+    }
+    Doc doc = new Doc(source.toString());
+    Theme t = Theme.DARK;
+    App<Doc> app = new App<>(
+        doc,
+        d -> col()
+            .key("outer")
+            .wFull()
+            .hFull()
+            .scroll()
+            .fill(t.surface().panel())
+            .child(El.el().h(120).shrink(0))
+            .child(Find.find(
+                d.app,
+                Markdown.markdown(d.document, Markdown.options().state(d.selection))
+                    .h(140)
+                    .shrink(0),
+                d.find))
+            .child(El.el().h(300).shrink(0)));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Scroll the outer area so the 140 px scope sits 80 px above the window top (y = -80..60),
+    // and scroll the scope's list down so Paragraph 4 starts in the visible band near the top.
+    Script.run("""
+        size 560 220 scale 2
+        frame
+        wheel #markdown 0 60
+        frame
+        wheel #outer 0 200
+        frame
+        press text="Paragraph 4 contains needle here." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        key Enter
+        frame
+        key Enter shift
+        frame
+        snap back""", app, out);
+    String back = Files.readString(out.resolve("back.tree.txt"));
+    float[] bar = bounds(back, "#find role=search");
+    float[] match = bounds(back, "\"Paragraph 4 contains needle here.\"");
+    assertTrue(match[1] >= bar[1] + bar[3], back);
+  }
+
+  @Test
+  void findInTinyScrolledScopeKeepsMatchBelowBarAsTheOuterAreaMovesIt() throws IOException {
+    Find.State find = new Find.State();
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El list = col()
+              .key("list")
+              .wFull()
+              .h(54)
+              .shrink(0)
+              .scrollbars(t.scrollbars())
+              .selectionScope()
+              .rows(
+                  30,
+                  24,
+                  i -> col()
+                      .child(El.text(
+                              i == 0
+                                  ? "another needle"
+                                  : i == 1 ? "A row on the right ends with needle" : "Filler " + i)
+                          .key("row" + i)
+                          .editable(null)
+                          .readOnly()
+                          .font(t.prose().body().font().get())
+                          .fontSize(t.prose().body().size())));
+          return col()
+              .key("outer")
+              .wFull()
+              .hFull()
+              .scroll()
+              .child(El.el().h(120).shrink(0))
+              .child(Find.find(ref[0], list, find))
+              .child(El.el().h(300).shrink(0));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // The 54 px scope sits 24 px above the window; stepping to row 1 moves the outer area, and
+    // with it the bar, which then has to clear the match where it ends up.
+    Script.run("""
+        size 300 220 scale 2
+        frame
+        press #row0 at left+5
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        wheel #outer 0 144
+        frame
+        key Enter
+        frame
+        snap step""", app, out);
+    String step = Files.readString(out.resolve("step.tree.txt"));
+    float[] bar = bounds(step, "#find role=search");
+    float[] match = bounds(step, "\"A row on the right ends with needle\"");
+    assertTrue(match[1] >= bar[1] + bar[3], step);
+  }
+
   private static String countLine(String tree) {
     return tree.lines().filter(l -> l.contains("#count ")).findFirst().orElse("");
   }
