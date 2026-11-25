@@ -417,7 +417,12 @@ public final class Chat {
               scroll::scrollToEnd,
               Button.options().icon(Symbol.ARROW_DOWN))
           .key("jump-to-newest")
-          .alignSelf(Style.Align.CENTER);
+          .alignSelf(Style.Align.CENTER)
+          // The button lies over the list, not in it: the wheel over it scrolls the list.
+          .onWheel((deltaX, deltaY, modifiers, x, y) -> {
+            scroll.scrollTo(scroll.x(), scroll.y() + deltaY);
+            return deltaY != 0;
+          });
       Style at = jump.style();
       at.position = Style.Position.ABSOLUTE;
       at.bottom = Len.px(theme.space().l());

@@ -332,6 +332,10 @@ class ChatTest {
         app.tree().dump());
     Golden.assertSnaps("chat-transcript-dark-2x-", scrolledFiles, "scrolled");
 
+    // The wheel over the button scrolls the transcript.
+    Script.run("wheel role=button label=\"Jump to newest\" 0 20\nframe", app, out);
+    assertEquals(stayedAt + 20, state.scroll.y(), 0.5);
+
     // Pressing the floating button jumps back to the end, hides the button, and resumes following.
     List<Path> bottomFiles = Script.run(
         "press role=button label=\"Jump to newest\"\nframe\nadvance 1\nframe\nsnap bottom",
