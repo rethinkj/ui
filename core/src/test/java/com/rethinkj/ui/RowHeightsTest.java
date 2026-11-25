@@ -252,10 +252,10 @@ class RowHeightsTest {
     }
     gone[0] = true;
     app.focus(find(app.tree(), "before"));
-    app.scrollTo(find(app.tree(), "list"), 0, 0);
+    app.scrollTo(find(app.tree(), "list"), 0, 400);
     app.frame();
     tab(app, 0);
-    assertEquals("row-0", key(app.focused()), app.tree().dump());
+    assertEquals("row-20", key(app.focused()), app.tree().dump());
   }
 
   private static void tab(App<?> app, int modifiers) {

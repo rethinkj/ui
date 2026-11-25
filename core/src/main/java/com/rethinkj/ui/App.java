@@ -2687,10 +2687,11 @@ public final class App<S> {
         up = animator.inRow(up.listId())) {
       outer = up;
     }
-    int row = lastRow(outer.list(), outer.listId(), step);
-    El found = row >= 0
-        ? inRow(outer.listId(), row, step)
-        : inRow(in.listId(), rowInView(in.list(), step < 0), step);
+    El found = rememberedIn(outer.listId(), step);
+    El inner = found == null ? animator.element(in.listId()) : null;
+    if (inner != null) {
+      found = inRow(in.listId(), rowInView(inner, step < 0), step);
+    }
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
   }
 
@@ -2844,34 +2845,20 @@ public final class App<S> {
         return null;
       }
     }
+    El back = rememberedInRow(listId, row, step);
+    if (back != null) {
+      return back;
+    }
+    list = animator.element(listId); // a try to go back may have built rows
+    if (list == null || !list.hasRow(row)) {
+      return null;
+    }
     El rowEl = list.children().get(row - list.firstRow());
     Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
     collect(rowEl, inside);
     List<Object> order = tabOrder();
     if (step != 0) {
       order.removeIf(stop -> stop instanceof El el && el.skipsTab()); // the focus is not in it
-    }
-    Object last = focus.lastInList(listId);
-    El again = last == null ? null : animator.element(last);
-    if (again != null && inside.contains(again) && order.contains(again)) {
-      return again;
-    }
-    El nested = null; // the innermost list in the row that holds the one that had the focus
-    if (last != null && Animator.rowIn(last, listId) == row) {
-      for (El el : inside) {
-        if (el.isVirtualList()
-            && Animator.isBelow(last, animator.identity(el))
-            && (nested == null
-                || Animator.isBelow(animator.identity(el), animator.identity(nested)))) {
-          nested = el;
-        }
-      }
-    }
-    if (nested != null) {
-      int at = lastRow(nested, animator.identity(nested), step);
-      if (at >= 0) {
-        return inRow(animator.identity(nested), at, step);
-      }
     }
     if (step == 0) {
       return Focus.firstInside(rowEl, elements(order));
@@ -2889,6 +2876,49 @@ public final class App<S> {
       }
     }
     return null;
+  }
+
+  /**
+   * Where the element that last had the focus in the list with identity {@code listId} is, for
+   * Tab with this {@code step}: in whichever row holds it, which is built and shown first if it is
+   * not; see {@link #rememberedInRow}. Null if the element can take the focus no more.
+   */
+  private El rememberedIn(Object listId, int step) {
+    El list = animator.element(listId);
+    int row = list == null ? -1 : lastRow(list, listId, step);
+    if (row < 0) {
+      return null;
+    }
+    return list.hasRow(row) ? rememberedInRow(listId, row, step) : inRow(listId, row, step);
+  }
+
+  /**
+   * The element that last had the focus in the list with identity {@code listId}, if built row
+   * {@code row} holds it and Tab with this {@code step} can go there, also where a list in the row
+   * holds it in a row that it builds and shows for that; null if not, and then nothing is built.
+   */
+  private El rememberedInRow(Object listId, int row, int step) {
+    Object last = focus.lastInList(listId);
+    El list = animator.element(listId);
+    if (last == null || list == null || !list.hasRow(row) || Animator.rowIn(last, listId) != row) {
+      return null;
+    }
+    El again = animator.element(last);
+    if (again != null) {
+      return focusables().contains(again) && (step == 0 || !again.skipsTab()) ? again : null;
+    }
+    Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+    collect(list.children().get(row - list.firstRow()), inside);
+    El nested = null; // the innermost list in the row that holds it
+    for (El el : inside) {
+      if (el.isVirtualList()
+          && Animator.isBelow(last, animator.identity(el))
+          && (nested == null
+              || Animator.isBelow(animator.identity(el), animator.identity(nested)))) {
+        nested = el;
+      }
+    }
+    return nested == null ? null : rememberedIn(animator.identity(nested), step);
   }
 
   private static void collect(El el, Set<El> into) {
