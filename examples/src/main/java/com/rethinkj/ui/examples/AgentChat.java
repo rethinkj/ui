@@ -105,6 +105,7 @@ public final class AgentChat {
   static final class Message {
     final int id;
     final boolean fromUser;
+    int revision;
     String time;
     final Button.Copied copied = new Button.Copied();
     final String userText;
@@ -150,7 +151,8 @@ public final class AgentChat {
     boolean pinned;
     final List<Message> messages = new ArrayList<>();
     final ScrollState scroll = new ScrollState().followEnd();
-    final RowHeights heights = new RowHeights(index -> 96, index -> messages.get(index).id);
+    final RowHeights heights = new RowHeights(
+        index -> 96, index -> messages.get(index).id, index -> messages.get(index).revision);
     final List<String> attachments = new ArrayList<>();
     final List<ChangedFile> files = new ArrayList<>();
     final DiffView.State diffState = new DiffView.State();
@@ -400,8 +402,9 @@ public final class AgentChat {
     }
   }
 
-  void toggleTool(ToolCall tool) {
+  void toggleTool(Message message, ToolCall tool) {
     tool.open = !tool.open;
+    message.revision++;
   }
 
   // docs:start agent-chat-stream
@@ -443,6 +446,7 @@ public final class AgentChat {
           tool.detail = "Stopped before the tool finished.";
         }
       }
+      last.revision++;
     }
   }
 
@@ -459,6 +463,7 @@ public final class AgentChat {
         reply.working = false;
         reply.workingText = null;
         reply.time = formatTime(clock.instant());
+        reply.revision++;
         target.updatedAt = clock.instant();
       }
     });
@@ -470,17 +475,20 @@ public final class AgentChat {
         reply.tools.add(
             new ToolCall(start.icon(), start.title(), Chat.ToolState.RUNNING, null, start.mono()));
         reply.workingText = start.workingText();
+        reply.revision++;
       }
       case Step.FinishTool finish -> {
         ToolCall tool = reply.tools.get(finish.index());
         tool.state = finish.state();
         tool.detail = finish.detail();
         reply.workingText = finish.workingText();
+        reply.revision++;
       }
       case Step.AppendMarkdown append -> {
         reply.markdownSource += append.chunk();
         reply.document = reply.document.next(reply.markdownSource);
         reply.workingText = append.workingText();
+        reply.revision++;
       }
       case Step.AddFile add -> upsertFile(target, add.file());
     }
@@ -665,8 +673,8 @@ public final class AgentChat {
           ? null
           : Label.label(tool.mono ? Label.Variant.MONO : Label.Variant.MUTED, tool.detail)
               .wrapText();
-      parts.add(
-          Chat.tool(tool.icon, tool.title, tool.state, tool.open, () -> toggleTool(tool), detail));
+      parts.add(Chat.tool(
+          tool.icon, tool.title, tool.state, tool.open, () -> toggleTool(message, tool), detail));
     }
     if (!message.markdownSource.isEmpty()) {
       parts.add(Markdown.fragment(

@@ -24,15 +24,29 @@ import java.util.function.IntToDoubleFunction;
  * key function ({@link #RowHeights(IntToDoubleFunction, IntFunction)}) when rows can be inserted,
  * removed or reordered before the view: each measured height stays with its row's key, and the
  * list's scroll offset moves on the frame of the change so the row in view stays in place.
+ *
+ * <p>When a virtual list sits inside a {@link El#selectionScope selection scope} with a find bar,
+ * {@link App#scopeText} reads every row, including rows that are not built. Pass a version function
+ * ({@link #RowHeights(IntToDoubleFunction, IntFunction, IntFunction)}) returning a value that
+ * changes (is not {@link Object#equals equal}) whenever anything the row shows as text changes:
+ * core keeps each row's texts across builds while its key and version stay equal, instead of
+ * building out-of-view rows on every build. A {@code MarkdownDocument} works for a row that only
+ * shows one (each {@code next} returns a new object equal only to itself); a revision counter works
+ * otherwise.
  */
 public final class RowHeights {
 
+  /** The texts of a row's read-only fields by ordinal, as read at {@code version}. */
+  record RowTexts(Object version, String[] texts) {}
+
   private final IntToDoubleFunction estimate;
   private final IntFunction<?> key;
+  private final IntFunction<?> rowVersion;
   private int count;
   private double[] heights = new double[0];
   private double[] tree = new double[1]; // tree[i] holds a range of heights ending at row i - 1
   private Object[] keys = new Object[0]; // only used when key != null
+  private Map<Object, RowTexts> rowTexts = Map.of(); // by key, only with a rowVersion
   private int version;
   private int previousCount;
   private double[] previousTree;
@@ -45,6 +59,7 @@ public final class RowHeights {
   public RowHeights(IntToDoubleFunction estimate) {
     this.estimate = Objects.requireNonNull(estimate, "estimate");
     this.key = null;
+    this.rowVersion = null;
   }
 
   /**
@@ -59,6 +74,27 @@ public final class RowHeights {
   public RowHeights(IntToDoubleFunction estimate, IntFunction<?> key) {
     this.estimate = Objects.requireNonNull(estimate, "estimate");
     this.key = Objects.requireNonNull(key, "key");
+    this.rowVersion = null;
+  }
+
+  /**
+   * Keeps measured heights by each row's key as {@link #RowHeights(IntToDoubleFunction,
+   * IntFunction)} does, and also keeps the text of rows that are not built across view builds while
+   * their version stays equal, so finding across a {@link El#selectionScope selection scope} does
+   * not rebuild unchanged out-of-view rows on every build.
+   *
+   * @param estimate the height of the row with this index, in logical pixels above 0, until it is
+   *     built: from the length of its text, say
+   * @param key a unique, stable key identifying the row with this index, such as a message id;
+   *     must not return {@code null}
+   * @param version a value for the row with this index that changes (is not {@link Object#equals
+   *     equal}) whenever anything the row shows as text changes: a {@code MarkdownDocument} for a
+   *     row that only shows one, or a revision counter the app increments otherwise
+   */
+  public RowHeights(IntToDoubleFunction estimate, IntFunction<?> key, IntFunction<?> version) {
+    this.estimate = Objects.requireNonNull(estimate, "estimate");
+    this.key = Objects.requireNonNull(key, "key");
+    this.rowVersion = Objects.requireNonNull(version, "version");
   }
 
   /** As many rows as the list has; keeps the heights of the rows that stay. */
@@ -116,6 +152,14 @@ public final class RowHeights {
     keys = nextKeys;
     count = rows;
     tree = buildTree(heights, rows);
+    Map<Object, RowTexts> keptTexts = HashMap.newHashMap(rowTexts.size());
+    for (Object rowKey : nextKeys) {
+      RowTexts texts = rowTexts.get(rowKey);
+      if (texts != null) {
+        keptTexts.put(rowKey, texts);
+      }
+    }
+    rowTexts = keptTexts; // without the rows that are gone, whose keys may come back as other rows
     version++;
   }
 
@@ -164,6 +208,28 @@ public final class RowHeights {
   /** The key of a row, or null without a key function or outside the rows. */
   Object key(int row) {
     return key == null || row < 0 || row >= count ? null : keys[row];
+  }
+
+  /** The version of each row, or null without a version function. */
+  Object[] versions() {
+    if (rowVersion == null) {
+      return null;
+    }
+    Object[] versions = new Object[count];
+    for (int i = 0; i < count; i++) {
+      versions[i] = rowVersion.apply(i);
+    }
+    return versions;
+  }
+
+  /** The texts of the rows a scope's index last read, by key. */
+  Map<Object, RowTexts> rowTexts() {
+    return rowTexts;
+  }
+
+  /** Keeps the texts a scope's index read. */
+  void rowTexts(Map<Object, RowTexts> rowTexts) {
+    this.rowTexts = rowTexts;
   }
 
   /** The index of the row with this key, or -1. */

@@ -15,7 +15,9 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -490,5 +492,100 @@ class ChatTest {
     assertTrue(scroll.y() > 0, "PageDown scrolled transcript: " + scroll.y());
     Script.run("key PageUp\nframe", app, out);
     assertEquals(0, scroll.y(), 0.5);
+  }
+
+  @Test
+  void findReusesUnchangedOutOfViewRowsAndFindsChangedOnes() throws IOException {
+    final class Entry {
+      final int id;
+      MarkdownDocument doc;
+      int revision;
+
+      Entry(int id, String markdown) {
+        this.id = id;
+        this.doc = Markdown.parse(markdown);
+      }
+
+      void update(String markdown) {
+        this.doc = doc.next(markdown);
+        this.revision++;
+      }
+    }
+
+    List<Entry> messages = new ArrayList<>();
+    for (int i = 0; i < 60; i++) {
+      messages.add(new Entry(
+          i, i == 5 || i == 57 ? "Message " + i + " has needle." : "Message " + i + " filler."));
+    }
+    ScrollState scroll = new ScrollState();
+    RowHeights heights = new RowHeights(
+        index -> 64, index -> messages.get(index).id, index -> messages.get(index).revision);
+    Find.State find = new Find.State();
+    Set<Integer> builtRows = new HashSet<>();
+    App<?>[] holder = new App<?>[1];
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Find.find(
+                        holder[0],
+                        Chat.transcript(
+                                messages.size(),
+                                index -> {
+                                  builtRows.add(index);
+                                  return Chat.agent(messages.get(index).doc);
+                                },
+                                scroll,
+                                heights)
+                            .grow(1),
+                        find)
+                    .grow(1)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    holder[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Open the find bar over the transcript; typing "needle" jumps to row 5, leaving row 45 out of
+    // view.
+    Script.run("""
+        size 560 220 scale 2
+        frame
+        press text="Message 57 has needle." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame""", app, out);
+    String opened = app.tree().dump();
+    assertTrue(
+        opened.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), opened);
+    assertFalse(opened.contains("Message 45 filler."), "row 45 is out of view");
+
+    // A plain view build with nothing changed builds only the rows in view, not out-of-view rows.
+    builtRows.clear();
+    app.invalidate();
+    Script.run("frame", app, out);
+    El list = findByKey(app.tree(), "list");
+    int first = list.firstRow();
+    int last = first + list.children().size();
+    assertTrue(last < 30 && list.children().size() < messages.size(), "most rows are unbuilt");
+    for (int row : builtRows) {
+      assertTrue(
+          row >= first && row < last,
+          "rebuilt out-of-view row " + row + " outside [" + first + ", " + last + ")");
+    }
+
+    // Changing an out-of-view message and its version rebuilds it and updates the match count.
+    messages.get(45).update("Message 45 now contains needle.");
+    builtRows.clear();
+    app.invalidate();
+    Script.run("frame", app, out);
+    String updated = app.tree().dump();
+    assertTrue(
+        updated.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 3\"")), updated);
+    assertTrue(builtRows.contains(45), "changed out-of-view row was rebuilt");
+    assertFalse(builtRows.contains(44), "unchanged out-of-view row stayed cached");
+    assertFalse(builtRows.contains(57), "unchanged out-of-view row stayed cached");
   }
 }
