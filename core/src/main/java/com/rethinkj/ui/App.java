@@ -2436,6 +2436,16 @@ public final class App<S> {
   }
 
   /**
+   * The time on the app's clock at which it has work to run without input: now while handlers
+   * wait, else when the next action of {@link #after} is due; positive infinity when none is.
+   * Unlike {@link #nextChange} it leaves out what only shows, such as a caret's blink or an {@link
+   * El#cycle}, for a runner whose window is hidden.
+   */
+  public double nextAction() {
+    return scheduler.waiting() ? time : scheduler.nextDue();
+  }
+
+  /**
    * Runs {@code action} once the app's clock has moved on by {@code seconds}, for what happens
    * later without input, such as a delay or a timeout. It is not work on another thread ({@link
    * #background}): nothing runs meanwhile, and the clock alone decides when.

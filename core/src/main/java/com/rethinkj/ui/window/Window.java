@@ -1787,13 +1787,17 @@ public final class Window implements AutoCloseable {
     }
   }
 
-  /** Shows a hidden window again. Does nothing if the window is already shown. */
+  /**
+   * Shows a hidden window again and {@link #raise raises} it, also when it was not hidden, as a
+   * tray's entry that shows the window wants.
+   */
   public void show() {
     checkOpen();
     if (isHidden()) {
       Sdl.showWindow(sdl);
       rethrow();
     }
+    raise();
   }
 
   /**

@@ -151,11 +151,8 @@ final class Desktop {
             Tray.separator(),
             Tray.button("Quit", () -> closeAll(app))),
         error -> noTray(app, error));
-  }
-
-  static void hideOnClose(App<Lights> app) {
     Windows.Handle window = app.windows().of(app);
-    window.onCloseRequest(window::hide);
+    window.onCloseRequest(window::hide); // closing hides the window to the tray
   }
 
   static void showMain(App<Lights> app) {
@@ -172,6 +169,7 @@ final class Desktop {
   }
 
   static void noTray(App<Lights> app, String error) {
+    app.windows().of(app).onCloseRequest(null); // without a tray, closing closes the window
     app.messageBox(MessageBox.error("No system tray", error), button -> {}, ignored -> {});
   }
   // docs:end tray

@@ -300,12 +300,15 @@ public final class WindowLoop {
 
     @Override
     public void show() {
-      if (isOpen() && window.isHidden()) {
-        window.show();
+      if (!isOpen()) {
+        return;
+      }
+      if (window.isHidden()) {
         redraw = true;
         Window.wake();
       }
-      raise();
+      window.show();
+      toFront(this);
     }
 
     @Override
@@ -670,7 +673,8 @@ public final class WindowLoop {
           } else if (!e.isHidden() && (e.app.isMoving() || e.presenter.pending())) {
             wait = Math.max(0, (e.frameNanos - (System.nanoTime() - e.presented)) / 1_000_000);
           } else {
-            double change = e.app.nextChange() - e.app.time();
+            // A hidden window wakes for its app's work alone, not for what only shows (El#cycle).
+            double change = (e.isHidden() ? e.app.nextAction() : e.app.nextChange()) - e.app.time();
             wait = change < Double.POSITIVE_INFINITY
                 ? Math.max(1, (long) Math.ceil(change * 1000))
                 : -1;
