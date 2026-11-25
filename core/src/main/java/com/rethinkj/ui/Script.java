@@ -56,16 +56,19 @@ import java.util.regex.Pattern;
  * await                              # waits for the work the app started on other threads
  * await progress                     # waits for a report of that work, not for its end
  * await "save"                       # waits for the work named save alone, not for the rest
+ * tray click "Theme" "Dark"          # clicks an entry of the window's tray menu
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
  * when there is any, {@code <name>.opened.txt} with the addresses the app opened so far ({@link
- * App#openUri}), one per line, when there are any, and {@code <name>.notifications.txt} with the
+ * App#openUri}), one per line, when there are any, {@code <name>.notifications.txt} with the
  * notifications the app showed so far ({@link App#notify(String, String, Runnable, Consumer)}),
- * one per line as quoted title and body, when there are any; a script opens no browser and shows
- * no desktop notification, and {@code notification click "<title>"} clicks one. A {@code press}
- * and a {@code wheel} act at their target's position without moving the pointer: what looks
- * hovered stays where {@code move} left it.
+ * one per line as quoted title and body, when there are any, and {@code <name>.tray.txt} with the
+ * window's tray tooltip and menu ({@link App#tray}), when it has one; a script opens no browser,
+ * shows no desktop notification and no system tray icon, {@code notification click "<title>"}
+ * clicks a notification and {@code tray click "<label>" ["<label>"...]} a tray entry. A {@code
+ * press} and a {@code wheel} act at their target's position without moving the pointer: what
+ * looks hovered stays where {@code move} left it.
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does
@@ -486,6 +489,19 @@ public final class Script {
           }
           desk.clickNotification(line, unescape(strip(args.getLast())));
         }
+        case "tray" -> {
+          if (args.size() < 2 || !args.getFirst().equals("click")) {
+            throw line.usage(step);
+          }
+          List<String> path = new ArrayList<>();
+          for (String word : args.subList(1, args.size())) {
+            if (!quoted(word)) {
+              throw line.usage(step);
+            }
+            path.add(unescape(strip(word)));
+          }
+          desk.clickTray(line, win, path);
+        }
         case "drop" -> {
           if (args.size() == 1 && args.getFirst().equals("leave")) {
             (desk.dropping == null ? win : desk.dropping).app.fileDragLeave();
@@ -603,6 +619,11 @@ public final class Script {
                           .toList()));
               written.add(notified);
             }
+            if (each.tray != null) {
+              Path trayFile = folder.resolve(name + ".tray.txt").normalize();
+              Files.writeString(trayFile, describeTray(each.tray));
+              written.add(trayFile);
+            }
             // The open windows front first: the title as `window` takes it, and the files' prefix.
             if (each == open.getFirst() && open.size() > 1) {
               Path windows = folder.resolve(name + ".windows.txt").normalize();
@@ -620,8 +641,8 @@ public final class Script {
         default ->
           throw line.fail("There is no step " + step
               + ". The steps are size, window, close, press, down, up, move, leave,"
-              + " wheel, scroll, key, type, compose, clipboard, dialog, notification, drop, focus,"
-              + " advance, await, frame and snap.");
+              + " wheel, scroll, key, type, compose, clipboard, dialog, notification, tray, drop,"
+              + " focus, advance, await, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -800,6 +821,7 @@ public final class Script {
     Runnable onClose;
     Runnable onClosed;
     Runnable onShown;
+    Tray tray;
 
     Win(Desk desk, App<?> app, String title) {
       this.desk = desk;
@@ -845,6 +867,7 @@ public final class Script {
         return;
       }
       open = false;
+      tray = null;
       desk.front.remove(this);
       if (onClosed != null) {
         desk.told.add(new Told(desk, onClosed, app.state()));
@@ -1063,6 +1086,148 @@ public final class Script {
       app.dialogs(dialogs);
       app.browser(browser);
       app.notifications(notifier);
+      app.trays(traysOf(first));
+    }
+
+    private static Trays traysOf(Win win) {
+      return new Trays() {
+        @Override
+        public void show(Tray tray, Consumer<String> failed) {
+          if (!win.open) {
+            failed.accept("The window of this tray icon has closed.");
+            return;
+          }
+          win.tray = tray;
+        }
+
+        @Override
+        public void remove() {
+          win.tray = null;
+        }
+      };
+    }
+
+    void clickTray(Line line, Win win, List<String> path) {
+      if (win.tray == null) {
+        throw line.fail("This window has no tray icon, so there is nothing to click. Set one with"
+            + " App.tray before this step.");
+      }
+      List<Tray.Entry> entries = win.tray.entries();
+      String where = "The tray menu";
+      for (int depth = 0; depth < path.size(); depth++) {
+        String label = path.get(depth);
+        Tray.Entry match = findTrayEntry(entries, label);
+        if (match == null) {
+          List<String> labels = trayLabels(entries);
+          throw line.fail(where + " has no entry " + TreeDumper.quote(label) + ". "
+              + (labels.isEmpty()
+                  ? "It has no entries."
+                  : "Its entries are " + String.join(", ", labels) + "."));
+        }
+        if (depth < path.size() - 1) {
+          if (!(match instanceof Tray.Submenu sub)) {
+            throw line.fail(TreeDumper.quote(label) + " is not a submenu, so it has no entry "
+                + TreeDumper.quote(path.get(depth + 1)) + ".");
+          }
+          if (!sub.enabled()) {
+            throw line.fail(
+                "Submenu " + TreeDumper.quote(label) + " is disabled and cannot be opened.");
+          }
+          entries = sub.entries();
+          where = "Submenu " + TreeDumper.quote(sub.label());
+        } else {
+          switch (match) {
+            case Tray.Button b -> {
+              if (!b.enabled()) {
+                throw line.fail(
+                    "Entry " + TreeDumper.quote(b.label()) + " is disabled and cannot be clicked.");
+              }
+              b.onClick().run();
+            }
+            case Tray.Checkbox c -> {
+              if (!c.enabled()) {
+                throw line.fail(
+                    "Entry " + TreeDumper.quote(c.label()) + " is disabled and cannot be clicked.");
+              }
+              boolean next = !c.checked();
+              win.tray = new Tray(
+                  win.tray.icon(),
+                  win.tray.tooltip(),
+                  toggleTrayCheckbox(win.tray.entries(), path, 0, next));
+              c.onToggle().accept(next);
+            }
+            case Tray.Submenu s -> {
+              if (!s.enabled()) {
+                throw line.fail("Submenu " + TreeDumper.quote(s.label())
+                    + " is disabled and cannot be" + " clicked.");
+              }
+              List<String> labels = trayLabels(s.entries());
+              String prefix =
+                  String.join(" ", path.stream().map(TreeDumper::quote).toList());
+              throw line.fail(TreeDumper.quote(s.label()) + " is a submenu. Name an entry inside it"
+                  + (labels.isEmpty()
+                      ? " (it is empty)."
+                      : ", such as `tray click " + prefix + " " + labels.getFirst()
+                          + "`. Its entries are " + String.join(", ", labels) + "."));
+            }
+            case Tray.Separator _ -> throw new AssertionError();
+          }
+        }
+      }
+    }
+
+    private static Tray.Entry findTrayEntry(List<Tray.Entry> entries, String label) {
+      for (Tray.Entry entry : entries) {
+        String entryLabel = switch (entry) {
+          case Tray.Button b -> b.label();
+          case Tray.Checkbox c -> c.label();
+          case Tray.Submenu s -> s.label();
+          case Tray.Separator _ -> null;
+        };
+        if (label.equals(entryLabel)) {
+          return entry;
+        }
+      }
+      return null;
+    }
+
+    private static List<String> trayLabels(List<Tray.Entry> entries) {
+      List<String> labels = new ArrayList<>();
+      for (Tray.Entry entry : entries) {
+        switch (entry) {
+          case Tray.Button b -> labels.add(TreeDumper.quote(b.label()));
+          case Tray.Checkbox c -> labels.add(TreeDumper.quote(c.label()));
+          case Tray.Submenu s -> labels.add(TreeDumper.quote(s.label()));
+          case Tray.Separator _ -> {}
+        }
+      }
+      return labels;
+    }
+
+    private static List<Tray.Entry> toggleTrayCheckbox(
+        List<Tray.Entry> entries, List<String> path, int depth, boolean checked) {
+      String target = path.get(depth);
+      List<Tray.Entry> updated = new ArrayList<>(entries.size());
+      boolean changed = false;
+      for (Tray.Entry entry : entries) {
+        if (!changed
+            && depth == path.size() - 1
+            && entry instanceof Tray.Checkbox c
+            && c.label().equals(target)) {
+          updated.add(new Tray.Checkbox(c.label(), checked, c.onToggle(), c.enabled()));
+          changed = true;
+        } else if (!changed
+            && depth < path.size() - 1
+            && entry instanceof Tray.Submenu s
+            && s.label().equals(target)) {
+          updated.add(new Tray.Submenu(
+              s.label(), toggleTrayCheckbox(s.entries(), path, depth + 1, checked), s.enabled()));
+          changed = true;
+        } else {
+          updated.add(entry);
+        }
+      }
+      return updated;
     }
 
     Win current() {
@@ -1213,6 +1378,7 @@ public final class Script {
       app.dialogs(dialogs);
       app.browser(browser);
       app.notifications(notifier);
+      app.trays(traysOf(w));
       w.resize(width, height, first.scale);
       int n = wins.size();
       if (options.isPositioned()) {
@@ -1344,6 +1510,10 @@ public final class Script {
                   + " step that opens the dialog.";
             case "notification" ->
               "`notification click \"<title>\"`, to click a desktop notification the app showed. The"
+                  + " click arrives as a posted task: `await` and `frame` after it show it.";
+            case "tray" ->
+              "`tray click \"<label>\"`, or with submenu labels before it as in `tray click"
+                  + " \"Theme\" \"Dark\"`, to click an entry of the window's tray menu. The"
                   + " click arrives as a posted task: `await` and `frame` after it show it.";
             case "drop" ->
               "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
@@ -1729,6 +1899,49 @@ public final class Script {
 
   private static String listing(Set<String> words) {
     return words.isEmpty() ? "none" : String.join(" ", words);
+  }
+
+  private static String describeTray(Tray tray) {
+    StringBuilder out = new StringBuilder();
+    if (tray.tooltip() != null && !tray.tooltip().isEmpty()) {
+      out.append("tooltip ").append(TreeDumper.quote(tray.tooltip())).append('\n');
+    }
+    describeTrayEntries(out, tray.entries(), 0);
+    return out.toString();
+  }
+
+  private static void describeTrayEntries(StringBuilder out, List<Tray.Entry> entries, int depth) {
+    String indent = "  ".repeat(depth);
+    for (Tray.Entry entry : entries) {
+      out.append(indent);
+      switch (entry) {
+        case Tray.Button b -> {
+          out.append("button ").append(TreeDumper.quote(b.label()));
+          if (!b.enabled()) {
+            out.append(" disabled");
+          }
+          out.append('\n');
+        }
+        case Tray.Checkbox c -> {
+          out.append("checkbox ")
+              .append(TreeDumper.quote(c.label()))
+              .append(c.checked() ? " checked" : " checked=false");
+          if (!c.enabled()) {
+            out.append(" disabled");
+          }
+          out.append('\n');
+        }
+        case Tray.Separator _ -> out.append("separator\n");
+        case Tray.Submenu s -> {
+          out.append("submenu ").append(TreeDumper.quote(s.label()));
+          if (!s.enabled()) {
+            out.append(" disabled");
+          }
+          out.append('\n');
+          describeTrayEntries(out, s.entries(), depth + 1);
+        }
+      }
+    }
   }
 
   /** A character as {@link TreeDumper#quote} writes one of a private use area: <code>&#92;u{E0EB}</code>. */

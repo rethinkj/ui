@@ -3,6 +3,7 @@ package com.rethinkj.ui.examples.docs;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.MessageBox;
+import com.rethinkj.ui.Tray;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -132,4 +133,40 @@ final class Desktop {
         MessageBox.error("Cannot show the notification", error), button -> {}, ignored -> {});
   }
   // docs:end notify
+
+  // docs:start tray
+  static void setUpTray(App<Lights> app, WindowIcon icon) {
+    app.tray(
+        Tray.of(
+            icon,
+            "Lights",
+            Tray.button("Show window", () -> raiseMain(app)),
+            Tray.checkbox("Lights on", app.state().on, checked -> setLights(app, icon, checked)),
+            Tray.separator(),
+            Tray.submenu(
+                "Preset",
+                Tray.button("Bright", () -> setLights(app, icon, true)),
+                Tray.button("Off", () -> setLights(app, icon, false))),
+            Tray.separator(),
+            Tray.button("Quit", () -> closeAll(app))),
+        error -> noTray(app, error));
+  }
+
+  static void raiseMain(App<Lights> app) {
+    app.windows().of(app).raise();
+  }
+
+  static void setLights(App<Lights> app, WindowIcon icon, boolean on) {
+    app.state().on = on;
+    setUpTray(app, icon); // the same menu again, with its checkbox as the state is now
+  }
+
+  static void closeAll(App<Lights> app) {
+    app.windows().all().forEach(window -> window.close());
+  }
+
+  static void noTray(App<Lights> app, String error) {
+    app.messageBox(MessageBox.error("No system tray", error), button -> {}, ignored -> {});
+  }
+  // docs:end tray
 }

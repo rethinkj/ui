@@ -182,6 +182,13 @@ final class Sdl {
   static final long MESSAGEBOX_BUTTONS = 40;
   static final long MESSAGEBOX_COLOR_SCHEME = 48;
 
+  // SDL_TrayEntryFlags
+  static final int TRAYENTRY_BUTTON = 0x00000001;
+  static final int TRAYENTRY_CHECKBOX = 0x00000002;
+  static final int TRAYENTRY_SUBMENU = 0x00000004;
+  static final int TRAYENTRY_DISABLED = 0x80000000;
+  static final int TRAYENTRY_CHECKED = 0x40000000;
+
   static final String PROP_APP_METADATA_NAME_STRING = "SDL.app.metadata.name";
   static final String PROP_APP_METADATA_IDENTIFIER_STRING = "SDL.app.metadata.identifier";
 
@@ -256,6 +263,9 @@ final class Sdl {
    */
   static final FunctionDescriptor DIALOG_FILE_CALLBACK =
       FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT);
+
+  /** {@code void (*SDL_TrayCallback)(void *userdata, SDL_TrayEntry *entry)} */
+  static final FunctionDescriptor TRAY_CALLBACK = FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
 
   // ---- functions
 
@@ -431,6 +441,32 @@ final class Sdl {
   static final FunctionDescriptor SDL_GET_APP_METADATA_PROPERTY =
       FunctionDescriptor.of(ADDRESS, ADDRESS);
 
+  // System tray (SDL_tray.h)
+  static final FunctionDescriptor SDL_CREATE_TRAY =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_TRAY_ICON = FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_TRAY_TOOLTIP =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_CREATE_TRAY_MENU = FunctionDescriptor.of(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_CREATE_TRAY_SUBMENU = FunctionDescriptor.of(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_GET_TRAY_ENTRIES =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_REMOVE_TRAY_ENTRY = FunctionDescriptor.ofVoid(ADDRESS);
+  static final FunctionDescriptor SDL_INSERT_TRAY_ENTRY_AT =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
+  static final FunctionDescriptor SDL_SET_TRAY_ENTRY_CALLBACK =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_GET_TRAY_ENTRY_CHECKED =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  static final FunctionDescriptor SDL_GET_TRAY_SUBMENU = FunctionDescriptor.of(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_TRAY_ENTRY_LABEL =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_TRAY_ENTRY_CHECKED =
+      FunctionDescriptor.ofVoid(ADDRESS, JAVA_BOOLEAN);
+  static final FunctionDescriptor SDL_SET_TRAY_ENTRY_ENABLED =
+      FunctionDescriptor.ofVoid(ADDRESS, JAVA_BOOLEAN);
+  static final FunctionDescriptor SDL_DESTROY_TRAY = FunctionDescriptor.ofVoid(ADDRESS);
+
   /**
    * The handles that opening a window and drawing its first frame need. The others wait in the
    * holders below, so that an app binds only what it calls.
@@ -582,6 +618,33 @@ final class Sdl {
     static final MethodHandle ADD_SURFACE_ALTERNATE_IMAGE =
         bind("SDL_AddSurfaceAlternateImage", SDL_ADD_SURFACE_ALTERNATE_IMAGE);
     static final MethodHandle SET_WINDOW_ICON = bind("SDL_SetWindowIcon", SDL_SET_WINDOW_ICON);
+  }
+
+  /** System tray icon and context menu; bound only when an app shows a tray icon. */
+  private static final class Tray {
+    static final MethodHandle CREATE_TRAY = bind("SDL_CreateTray", SDL_CREATE_TRAY);
+    static final MethodHandle SET_TRAY_ICON = bind("SDL_SetTrayIcon", SDL_SET_TRAY_ICON);
+    static final MethodHandle SET_TRAY_TOOLTIP = bind("SDL_SetTrayTooltip", SDL_SET_TRAY_TOOLTIP);
+    static final MethodHandle CREATE_TRAY_MENU = bind("SDL_CreateTrayMenu", SDL_CREATE_TRAY_MENU);
+    static final MethodHandle CREATE_TRAY_SUBMENU =
+        bind("SDL_CreateTraySubmenu", SDL_CREATE_TRAY_SUBMENU);
+    static final MethodHandle GET_TRAY_ENTRIES = bind("SDL_GetTrayEntries", SDL_GET_TRAY_ENTRIES);
+    static final MethodHandle REMOVE_TRAY_ENTRY =
+        bind("SDL_RemoveTrayEntry", SDL_REMOVE_TRAY_ENTRY);
+    static final MethodHandle INSERT_TRAY_ENTRY_AT =
+        bind("SDL_InsertTrayEntryAt", SDL_INSERT_TRAY_ENTRY_AT);
+    static final MethodHandle SET_TRAY_ENTRY_CALLBACK =
+        bind("SDL_SetTrayEntryCallback", SDL_SET_TRAY_ENTRY_CALLBACK);
+    static final MethodHandle GET_TRAY_ENTRY_CHECKED =
+        bind("SDL_GetTrayEntryChecked", SDL_GET_TRAY_ENTRY_CHECKED);
+    static final MethodHandle GET_TRAY_SUBMENU = bind("SDL_GetTraySubmenu", SDL_GET_TRAY_SUBMENU);
+    static final MethodHandle SET_TRAY_ENTRY_LABEL =
+        bind("SDL_SetTrayEntryLabel", SDL_SET_TRAY_ENTRY_LABEL);
+    static final MethodHandle SET_TRAY_ENTRY_CHECKED =
+        bind("SDL_SetTrayEntryChecked", SDL_SET_TRAY_ENTRY_CHECKED);
+    static final MethodHandle SET_TRAY_ENTRY_ENABLED =
+        bind("SDL_SetTrayEntryEnabled", SDL_SET_TRAY_ENTRY_ENABLED);
+    static final MethodHandle DESTROY_TRAY = bind("SDL_DestroyTray", SDL_DESTROY_TRAY);
   }
 
   private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
@@ -1361,6 +1424,149 @@ final class Sdl {
     try (Arena arena = Arena.ofConfined()) {
       return string(
           (MemorySegment) Desktop.GET_APP_METADATA_PROPERTY.invokeExact(arena.allocateFrom(name)));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * Creates a system tray icon; on Linux this loads AppIndicator and GTK 3. Passes an empty string
+   * for a null tooltip because SDL's Windows implementation passes the pointer straight to UTF-8
+   * conversion in {@code SDL_CreateTray}.
+   */
+  static MemorySegment createTray(MemorySegment surface, String tooltip) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment tip = arena.allocateFrom(tooltip == null ? "" : tooltip);
+      return (MemorySegment) Tray.CREATE_TRAY.invokeExact(surface, tip);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayIcon(MemorySegment tray, MemorySegment surface) {
+    try {
+      Tray.SET_TRAY_ICON.invokeExact(tray, surface);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayTooltip(MemorySegment tray, String tooltip) {
+    try (Arena arena = Arena.ofConfined()) {
+      // a local, not a conditional in the call: invokeExact would see that as an Object
+      MemorySegment tip = tooltip == null ? MemorySegment.NULL : arena.allocateFrom(tooltip);
+      Tray.SET_TRAY_TOOLTIP.invokeExact(tray, tip);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static MemorySegment createTrayMenu(MemorySegment tray) {
+    try {
+      return (MemorySegment) Tray.CREATE_TRAY_MENU.invokeExact(tray);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static MemorySegment createTraySubmenu(MemorySegment entry) {
+    try {
+      return (MemorySegment) Tray.CREATE_TRAY_SUBMENU.invokeExact(entry);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Returns a copy of the menu's entry handles, safe to iterate while removing entries. */
+  static MemorySegment[] getTrayEntries(MemorySegment menu) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment count = arena.allocate(JAVA_INT);
+      MemorySegment list = (MemorySegment) Tray.GET_TRAY_ENTRIES.invokeExact(menu, count);
+      int n = count.get(JAVA_INT, 0);
+      if (list.equals(MemorySegment.NULL) || n <= 0) {
+        return new MemorySegment[0];
+      }
+      MemorySegment array = list.reinterpret(ADDRESS.byteSize() * n);
+      MemorySegment[] entries = new MemorySegment[n];
+      for (int i = 0; i < n; i++) {
+        entries[i] = array.getAtIndex(ADDRESS, i);
+      }
+      return entries;
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void removeTrayEntry(MemorySegment entry) {
+    try {
+      Tray.REMOVE_TRAY_ENTRY.invokeExact(entry);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Inserts an entry at {@code pos} (-1 to append); null {@code label} inserts a separator. */
+  static MemorySegment insertTrayEntryAt(MemorySegment menu, int pos, String label, int flags) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment text = label == null ? MemorySegment.NULL : arena.allocateFrom(label);
+      return (MemorySegment) Tray.INSERT_TRAY_ENTRY_AT.invokeExact(menu, pos, text, flags);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayEntryCallback(
+      MemorySegment entry, MemorySegment callback, MemorySegment userdata) {
+    try {
+      Tray.SET_TRAY_ENTRY_CALLBACK.invokeExact(entry, callback, userdata);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean getTrayEntryChecked(MemorySegment entry) {
+    try {
+      return (boolean) Tray.GET_TRAY_ENTRY_CHECKED.invokeExact(entry);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static MemorySegment getTraySubmenu(MemorySegment entry) {
+    try {
+      return (MemorySegment) Tray.GET_TRAY_SUBMENU.invokeExact(entry);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayEntryLabel(MemorySegment entry, String label) {
+    try (Arena arena = Arena.ofConfined()) {
+      Tray.SET_TRAY_ENTRY_LABEL.invokeExact(entry, arena.allocateFrom(label));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayEntryChecked(MemorySegment entry, boolean checked) {
+    try {
+      Tray.SET_TRAY_ENTRY_CHECKED.invokeExact(entry, checked);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void setTrayEntryEnabled(MemorySegment entry, boolean enabled) {
+    try {
+      Tray.SET_TRAY_ENTRY_ENABLED.invokeExact(entry, enabled);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void destroyTray(MemorySegment tray) {
+    try {
+      Tray.DESTROY_TRAY.invokeExact(tray);
     } catch (Throwable t) {
       throw failed(t);
     }

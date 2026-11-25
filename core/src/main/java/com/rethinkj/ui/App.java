@@ -296,6 +296,7 @@ public final class App<S> {
   private Dialogs dialogs = Dialogs.NONE;
   private Browser browser = Browser.NONE;
   private Notifications notifications = Notifications.NONE;
+  private Trays trays = Trays.NONE;
   private Object fileOver; // the identity of the element the system's drag is over, or null
   private Consumer<Drop> fileOverHandler; // its onFileDrop, which gets the LEAVE
   private Windows windows = Windows.NONE;
@@ -2106,6 +2107,66 @@ public final class App<S> {
       return;
     }
     browser.open(uri, failed);
+  }
+
+  /** What shows the system tray icon: the runner's ({@link Trays}), {@link Trays#NONE} at first. */
+  public Trays trays() {
+    return trays;
+  }
+
+  /** Sets what shows the system tray icon, as a runner does for its windows and a test may. */
+  public void trays(Trays trays) {
+    this.trays = Objects.requireNonNull(trays, "trays");
+  }
+
+  /**
+   * Shows a system tray icon with a tooltip and context menu, or updates the one this app already
+   * shows without recreating it. Clicking an entry runs its handler as a {@link #post posted}
+   * task: on the app's thread, with a frame after it; a failure goes to {@code onError} the same
+   * way. Call it on the app's thread; the tray icon goes away when the app's window closes or its
+   * {@link com.rethinkj.ui.window.WindowLoop} ends, or sooner with {@link #removeTray}. Under a
+   * {@link Script} no OS tray icon opens: a {@code snap} writes {@code <name>.tray.txt} and {@code
+   * tray click "<label>"} clicks an entry.
+   */
+  public void tray(Tray tray, Consumer<String> onError) {
+    Objects.requireNonNull(tray, "tray");
+    Objects.requireNonNull(onError, "onError");
+    AtomicBoolean reported = new AtomicBoolean();
+    Consumer<String> failed = error -> {
+      if (reported.compareAndSet(false, true)) {
+        post(() -> onError.accept(error));
+      }
+    };
+    trays.show(postTrayHandlers(tray), failed);
+  }
+
+  /** Removes the app's system tray icon, if one is shown. */
+  public void removeTray() {
+    trays.remove();
+  }
+
+  private Tray postTrayHandlers(Tray tray) {
+    return new Tray(tray.icon(), tray.tooltip(), postTrayEntries(tray.entries()));
+  }
+
+  private List<Tray.Entry> postTrayEntries(List<Tray.Entry> entries) {
+    List<Tray.Entry> wrapped = new ArrayList<>(entries.size());
+    for (Tray.Entry entry : entries) {
+      wrapped.add(
+          switch (entry) {
+            case Tray.Button b -> new Tray.Button(b.label(), () -> post(b.onClick()), b.enabled());
+            case Tray.Checkbox c ->
+              new Tray.Checkbox(
+                  c.label(),
+                  c.checked(),
+                  checked -> post(() -> c.onToggle().accept(checked)),
+                  c.enabled());
+            case Tray.Separator s -> s;
+            case Tray.Submenu s ->
+              new Tray.Submenu(s.label(), postTrayEntries(s.entries()), s.enabled());
+          });
+    }
+    return wrapped;
   }
 
   /**

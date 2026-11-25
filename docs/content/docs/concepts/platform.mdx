@@ -1,6 +1,6 @@
 ---
 title: Windows, icons and dialogs
-description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and use native file dialogs, web addresses, and desktop notifications.
+description: Configure frameless windows, save window placement, set icons, taskbar status and tray icons, detect dark/light mode, and use native file dialogs, web addresses, and desktop notifications.
 ---
 
 `Window` creates desktop windows on Windows and Linux, and `WindowLoop` runs your app inside them. For the full API, see [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
@@ -115,9 +115,19 @@ Because native message boxes block all windows, prefer the kit's [Dialog](/docs/
 - Set `Window.identity(id, name)` before opening the first window: Windows requires an identity to show WinRT toast notifications (and uses it together with `Window.Options#icon` for the app's name and icon), and Linux passes the name and `desktop-entry` hint over D-Bus (`org.freedesktop.Notifications`).
 - Notifications do not include action buttons, and clicks are delivered only while the app is running.
 
+## Tray icon
+
+```java snippet="tray"
+```
+
+`app.tray(tray, onError)` shows a system tray icon ([`Tray`](/api/com/rethinkj/ui/Tray.html)) with a tooltip and a context menu of buttons, checkboxes, separators, submenus, and disabled entries (`.disabled()`). Calling `app.tray(...)` again updates the icon, tooltip, and menu in place without recreating the tray; `app.removeTray()` removes it. Entry handlers (checkboxes receive their new checked state) and `onError` run on the app's thread as posted tasks. The tray icon is removed automatically when the window closes or `WindowLoop` ends.
+
+- On Windows 11, the icon and hover tooltip appear in the notification area, and a left or right click opens the menu.
+- On Linux, SDL creates a StatusNotifierItem through AppIndicator: it loads `libayatana-appindicator3` (or `libappindicator3`) and GTK 3 at run time when a tray is created. GNOME requires the AppIndicator extension, and AppIndicator does not display a tooltip. If the libraries are missing, `onError` receives SDL's error message.
+
 ## Headless scripts
 
-In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, click shown notifications with `notification click "<title>"`, and simulate file drops with `drop`. They do not open a browser or show OS notifications; instead, `snap` writes out the addresses opened and the notifications shown. See [Scripts](/docs/testing/scripts).
+In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, click shown notifications with `notification click "<title>"` and tray entries with `tray click "<label>"`, and simulate file drops with `drop`. They do not open a browser, show OS notifications, or a system tray icon; instead, `snap` writes out the addresses opened, the notifications shown, and each window's tray menu. See [Scripts](/docs/testing/scripts).
 
 ## Clipboard
 

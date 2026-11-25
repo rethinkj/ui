@@ -2,6 +2,7 @@ package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Trays;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
@@ -75,7 +76,7 @@ import java.util.function.ToDoubleFunction;
  * for nothing. Input or a task after a pause of a refresh or more is drawn at once.
  *
  * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}), its browser
- * ({@link App#browser}) and its fonts for
+ * ({@link App#browser}), its system tray ({@link App#trays}) and its fonts for
  * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
  * that off), turns the window's text input on while the focused element takes text and tells it
  * where ({@link App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of
@@ -206,6 +207,7 @@ public final class WindowLoop {
     final App<?> app;
     final Presenter presenter;
     final boolean owned; // opened by the loop, which closes it
+    SystemTrays trays;
     Runnable onClose;
     Runnable onClosed;
     Runnable onShown;
@@ -676,6 +678,10 @@ public final class WindowLoop {
       for (Entry entry : List.copyOf(entries)) {
         try {
           entry.app.onPost(null);
+          entry.app.trays(Trays.NONE);
+          if (entry.trays != null) {
+            entry.trays.close();
+          }
           if (entry.owned) {
             entry.close();
           } else if (entry.window.isOpen()) {
@@ -886,6 +892,8 @@ public final class WindowLoop {
       }
     });
     app.notifications(new SystemNotifications(e.window, app));
+    e.trays = new SystemTrays(e.window);
+    app.trays(e.trays);
     app.systemFonts(systemFonts);
     app.windows(windows);
     app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore
@@ -991,6 +999,14 @@ public final class WindowLoop {
       focusAfterRelease = true;
     }
     e.app.onPost(null);
+    e.app.trays(Trays.NONE);
+    if (e.trays != null) {
+      try {
+        e.trays.close();
+      } catch (RuntimeException | Error ex) {
+        to.add(ex);
+      }
+    }
     if (e.window.isOpen()) {
       e.window.listener(null);
       e.window.parts(null);
@@ -1092,6 +1108,9 @@ public final class WindowLoop {
       case ScaleChanged _ -> {
         resize(e);
         refreshRate(e);
+        if (e.trays != null) {
+          e.trays.scaleChanged();
+        }
       }
       case DisplayChanged _ -> refreshRate(e); // another display, or another mode of it
       // In a pass, the frame comes anyway.
