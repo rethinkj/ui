@@ -1789,9 +1789,9 @@ public final class App<S> {
         if (stop instanceof El next) {
           el = enter(next, step);
           Animator.InRow passed = el == null ? entered(animator.identity(next)) : null;
-          while (passed != null // nothing from the view on: on past the list
+          while (passed != null // nothing from the view on: on past the list's end
               && i < order.size()
-              && inList(order.get(Math.floorMod(at + (i + 1) * step, order.size())), passed)) {
+              && !isEnd(order.get(Math.floorMod(at + i * step, order.size())), passed, step)) {
             i++;
           }
         } else if (stop instanceof Gap gap) {
@@ -2684,7 +2684,9 @@ public final class App<S> {
   private El enter(El next, int step) {
     Object nextId = animator.identity(next);
     Animator.InRow in = animator.inRow(nextId);
-    if (in == null || Animator.isBelow(focus.id(), in.listId())) {
+    if (in == null
+        || Animator.isBelow(focus.id(), in.listId())
+        || !Animator.isBelowInLayer(nextId, in.listId())) { // in an overlay of a row: as it is
       return next;
     }
     Animator.InRow outer = entered(nextId);
@@ -2735,11 +2737,11 @@ public final class App<S> {
     return in;
   }
 
-  /** Whether this stop of {@link #tabOrder} lies in the list that {@code in} is a row of. */
-  private boolean inList(Object stop, Animator.InRow in) {
-    El el = stop instanceof Gap gap ? gap.list() : (El) stop;
-    Object id = animator.identity(el);
-    return id == null || id.equals(in.listId()) || Animator.isBelow(id, in.listId());
+  /** Whether this stop of {@link #tabOrder} is the end of the list {@code in} is a row of. */
+  private boolean isEnd(Object stop, Animator.InRow in, int step) {
+    return stop instanceof Gap gap
+        && gap.after() == step > 0
+        && (gap.list() == in.list() || in.listId().equals(animator.identity(gap.list())));
   }
 
   /**
