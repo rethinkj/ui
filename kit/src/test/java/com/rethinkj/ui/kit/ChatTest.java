@@ -673,23 +673,24 @@ class ChatTest {
         first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), first);
     assertTrue(first.contains("\"Message 8 has needle.\""), first);
 
-    // Prepend keyed rows without a match above the current match: the count stays on message 8
-    // (1 of 2) and Enter advances to message 15 (2 of 2) rather than selecting message 8 again.
+    // Prepend keyed rows that begin as the text up to the current match does, with a match of
+    // their own: the count stays on message 8 (2 of 3), and Enter advances to message 15 (3 of 3)
+    // rather than selecting message 8 again.
     List<Entry> older = new ArrayList<>();
-    for (int id = 1; id <= 5; id++) {
-      older.add(new Entry(id, Markdown.parse("Message " + id + " older.")));
+    for (String body : List.of("Message 6.", "Message 7.", "Message 8 has needle too.")) {
+      older.add(new Entry(older.size() + 1, Markdown.parse(body)));
     }
     messages.addAll(0, older);
     app.invalidate();
     Script.run("frame", app, out);
     String afterInsert = app.tree().dump();
     assertTrue(
-        afterInsert.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")),
+        afterInsert.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")),
         afterInsert);
 
     Script.run("key Enter\nframe", app, out);
     String next = app.tree().dump();
-    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 2\"")), next);
+    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"3 of 3\"")), next);
     assertTrue(
         next.lines()
             .anyMatch(l -> l.contains("\"Message 15 has needle.\"") && l.contains("underline")),

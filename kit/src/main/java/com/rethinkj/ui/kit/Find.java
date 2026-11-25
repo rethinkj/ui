@@ -690,30 +690,33 @@ public final class Find {
     if (prev == null || prev.equals(text)) {
       return;
     }
-    int oldLength = prev.length();
-    int newLength = text.length();
-    int caret = Math.min(state.caret, oldLength);
-    int anchor = Math.min(state.anchor, oldLength);
-    int origin = Math.min(state.origin, oldLength);
+    int caret = Math.min(state.caret, prev.length());
+    int anchor = Math.min(state.anchor, prev.length());
     int s = Math.min(caret, anchor);
     int e = Math.max(caret, anchor);
-    int prefix = commonPrefix(prev, text, e);
-    if (prefix == e) {
-      state.caret = caret;
-      state.anchor = anchor;
-      state.origin = Math.min(origin, newLength);
-      return;
+    int at = moved(prev, text, s, e);
+    if (at < 0) {
+      state.caret = state.anchor = commonPrefix(prev, text, e);
+    } else {
+      state.caret = caret - s + at;
+      state.anchor = anchor - s + at;
     }
-    int delta = newLength - oldLength;
-    if (s + delta >= 0 && prev.regionMatches(s, text, s + delta, oldLength - s)) {
-      state.caret = caret + delta;
-      state.anchor = anchor + delta;
-      state.origin = Math.clamp(origin + delta, 0, newLength);
-      return;
+    int origin = Math.min(state.origin, prev.length());
+    int from = moved(prev, text, origin, origin);
+    state.origin = from < 0 ? commonPrefix(prev, text, origin) : from;
+  }
+
+  /**
+   * Where {@code from..to} of {@code prev} starts in {@code text}, or -1: moved along when the text
+   * from it on is unchanged, else in place when the text up to its end is. The move comes first: a
+   * row inserted above may begin as the text before the match does.
+   */
+  private static int moved(String prev, String text, int from, int to) {
+    int delta = text.length() - prev.length();
+    if (from + delta >= 0 && prev.regionMatches(from, text, from + delta, prev.length() - from)) {
+      return from + delta;
     }
-    state.caret = prefix;
-    state.anchor = prefix;
-    state.origin = Math.min(origin, prefix);
+    return prev.regionMatches(0, text, 0, to) ? from : -1;
   }
 
   /** Length of the common prefix of {@code a} and {@code b}, up to {@code limit}. */
