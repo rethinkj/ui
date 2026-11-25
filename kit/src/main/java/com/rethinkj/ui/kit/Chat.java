@@ -452,8 +452,8 @@ public final class Chat {
 
   /**
    * A virtual chat transcript like {@link #transcript(int, IntFunction, ScrollState, RowHeights)}
-   * that also calls {@code onLoadOlder} when the top of the list comes into view (when row {@code
-   * 0} is built). One look at the top can call it more than once: the app ignores the calls while a
+   * that also calls {@code onLoadOlder} when the top of the list comes near the view (when row
+   * {@code 0} is built, which is also the case for a first message taller than the view). One look at the top can call it more than once: the app ignores the calls while a
    * page loads, and passes {@code null} once no older messages remain. Construct {@code heights} with a stable key per message so inserting older messages at
    * index {@code 0} keeps what is in view at the same place.
    *

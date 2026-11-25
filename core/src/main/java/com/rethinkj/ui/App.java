@@ -3175,6 +3175,8 @@ public final class App<S> {
         tellResized();
         build(false, true);
       }
+      // An answer of atEnd that the last round made wrong: the next frame builds the view again.
+      resizeDue |= resizeRounds >= RESIZE_ROUNDS && endsMoved(root);
     } finally {
       // What is left, of a view that has not settled or after a throw: the next frame's last
       // build tells it again, from its own tree.
