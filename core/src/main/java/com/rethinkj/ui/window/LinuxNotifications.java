@@ -97,6 +97,8 @@ final class LinuxNotifications {
   static final FunctionDescriptor MESSAGE_ITER_GET_BASIC =
       FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
   static final FunctionDescriptor MESSAGE_ITER_NEXT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  static final FunctionDescriptor MESSAGE_ITER_RECURSE =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
 
   /** Loaded lazily on the first notification, never from the headless path. */
   private static final class H {
@@ -140,6 +142,8 @@ final class LinuxNotifications {
     static final MethodHandle ITER_GET_BASIC_H =
         bind("dbus_message_iter_get_basic", MESSAGE_ITER_GET_BASIC);
     static final MethodHandle ITER_NEXT_H = bind("dbus_message_iter_next", MESSAGE_ITER_NEXT);
+    static final MethodHandle ITER_RECURSE_H =
+        bind("dbus_message_iter_recurse", MESSAGE_ITER_RECURSE);
 
     static {
       try {
@@ -170,6 +174,8 @@ final class LinuxNotifications {
   private static boolean started;
   // The unique bus name that answered Notify: only its signals click or close, as with libnotify.
   private static String service; // on the listener thread
+  // Whether the daemon reads the body as markup (GetCapabilities), so it is escaped; null: unasked.
+  private static Boolean markup; // on the listener thread
 
   static void show(
       Window window, String title, String body, Runnable clicked, Consumer<String> failed) {
@@ -231,6 +237,7 @@ final class LinuxNotifications {
           close(conn);
           conn = MemorySegment.NULL;
           handlers.clear();
+          markup = null;
         }
       }
     }
@@ -276,6 +283,9 @@ final class LinuxNotifications {
 
   private static void send(MemorySegment conn, Request req, Map<Integer, Runnable> handlers) {
     try (Arena arena = Arena.ofConfined()) {
+      if (markup == null) {
+        markup = bodyMarkup(arena, conn);
+      }
       MemorySegment msg = (MemorySegment) H.NEW_METHOD_CALL_H.invokeExact(
           arena.allocateFrom(BUS_NAME),
           arena.allocateFrom(OBJECT_PATH),
@@ -325,12 +335,12 @@ final class LinuxNotifications {
         || !appendInt(arena, iter, DBUS_TYPE_UINT32, 0) // replaces_id
         || !appendString(arena, iter, req.appIcon) // a file URI, else the desktop entry's
         || !appendString(arena, iter, req.title)
-        // shortcut: escapes for daemons with body-markup, which are nearly all (GNOME, KDE, dunst,
-        // mako, Xfce); ask GetCapabilities if one without it shows the entities.
         || !appendString(
             arena,
             iter,
-            req.body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))) {
+            markup
+                ? req.body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                : req.body)) {
       return false;
     }
     // actions: ["default", ""] so clicking the notification emits ActionInvoked(id, "default").
@@ -462,6 +472,52 @@ final class LinuxNotifications {
     return name.equals(MemorySegment.NULL)
         ? null
         : name.reinterpret(Long.MAX_VALUE).getString(0);
+  }
+
+  /** Whether the daemon lists {@code body-markup} in its capabilities; true if it does not say. */
+  private static boolean bodyMarkup(Arena arena, MemorySegment conn) throws Throwable {
+    MemorySegment msg = (MemorySegment) H.NEW_METHOD_CALL_H.invokeExact(
+        arena.allocateFrom(BUS_NAME),
+        arena.allocateFrom(OBJECT_PATH),
+        arena.allocateFrom(INTERFACE),
+        arena.allocateFrom("GetCapabilities"));
+    if (msg.equals(MemorySegment.NULL)) {
+      return true;
+    }
+    MemorySegment error = arena.allocate(DBUS_ERROR_SIZE, 8);
+    H.ERROR_INIT_H.invokeExact(error);
+    try {
+      MemorySegment reply = (MemorySegment)
+          H.SEND_WITH_REPLY_AND_BLOCK_H.invokeExact(conn, msg, NOTIFY_TIMEOUT_MS, error);
+      if (reply.equals(MemorySegment.NULL)) {
+        return true;
+      }
+      try {
+        MemorySegment iter = arena.allocate(DBUS_MESSAGE_ITER_SIZE, 8);
+        if ((int) H.ITER_INIT_H.invokeExact(reply, iter) == 0
+            || (int) H.ITER_GET_ARG_TYPE_H.invokeExact(iter) != DBUS_TYPE_ARRAY) {
+          return true;
+        }
+        MemorySegment each = arena.allocate(DBUS_MESSAGE_ITER_SIZE, 8);
+        H.ITER_RECURSE_H.invokeExact(iter, each);
+        MemorySegment out = arena.allocate(ADDRESS);
+        while ((int) H.ITER_GET_ARG_TYPE_H.invokeExact(each) == DBUS_TYPE_STRING) {
+          H.ITER_GET_BASIC_H.invokeExact(each, out);
+          if (out.get(ADDRESS, 0).reinterpret(Long.MAX_VALUE).getString(0).equals("body-markup")) {
+            return true;
+          }
+          if ((int) H.ITER_NEXT_H.invokeExact(each) == 0) {
+            break;
+          }
+        }
+        return false;
+      } finally {
+        H.MESSAGE_UNREF_H.invokeExact(reply);
+      }
+    } finally {
+      H.ERROR_FREE_H.invokeExact(error);
+      H.MESSAGE_UNREF_H.invokeExact(msg);
+    }
   }
 
   private static int readUint32(Arena arena, MemorySegment msg) throws Throwable {

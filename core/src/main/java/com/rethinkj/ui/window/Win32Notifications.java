@@ -439,6 +439,9 @@ final class Win32Notifications {
       kept = true;
       // Kept only once shown, so a toast that failed to show evicts none still clickable.
       ACTIVE.add(entry);
+      if (entry.settled.get()) {
+        ACTIVE.remove(entry); // Failed came before the add, so its removal found nothing
+      }
       while (ACTIVE.size() > KEPT) {
         ActiveToast oldest = ACTIVE.poll();
         if (oldest != null && oldest.settled.compareAndSet(false, true)) {
