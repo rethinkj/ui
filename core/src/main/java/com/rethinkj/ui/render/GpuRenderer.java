@@ -97,7 +97,7 @@ public final class GpuRenderer implements AutoCloseable {
         unused: f32,
       }
 
-      // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
+      // The layouts of Scene's Javadoc: 96 bytes per instance, 64 per clip. An instance is a
       // rounded rectangle, a glyph, a shadow, an image, a line (whose ends are in rect and width
       // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
       // shape, phase in more.x), a color glyph (a glyph whose page lies in color_atlas and whose
@@ -137,10 +137,12 @@ public final class GpuRenderer implements AutoCloseable {
 
       struct Clip {
         rect: vec4f,
-        // Top left, top right, bottom right, bottom left.
+        // Top left, top right, bottom right, bottom left, across.
         radii: vec4f,
         // The entry whose coverage this one's is taken with, an earlier one, or 0.
         parent: u32,
+        // Top left, top right, bottom right, bottom left, from top to bottom.
+        radii_y: vec4f,
       }
 
       @group(0) @binding(0) var<uniform> globals: Globals;
@@ -378,8 +380,11 @@ public final class GpuRenderer implements AutoCloseable {
         let clip = clips[index];
         let half_size = clip.rect.zw / 2.0;
         let p = point - (clip.rect.xy + half_size);
-        let radius = clamp(clip.radii[corner(p)], 0.0, min(half_size.x, half_size.y));
-        return coverage(distance(p, half_size, radius));
+        let c = corner(p);
+        let r = vec2f(
+            clamp(clip.radii[c], 0.0, half_size.x),
+            clamp(clip.radii_y[c], 0.0, half_size.y));
+        return coverage(distance_elliptic(p, half_size, r));
       }
 
       // The error function as Abramowitz and Stegun's 7.1.28 has it, within 3e-7: arithmetic

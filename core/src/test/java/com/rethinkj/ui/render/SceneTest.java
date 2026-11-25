@@ -264,6 +264,7 @@ class SceneTest {
     assertEquals(height, scene.clipGet(clip, Scene.HEIGHT));
     for (int c = 0; c < 4; c++) {
       assertEquals(radii[c], scene.clipGet(clip, Scene.RADIUS + 4 * c), "corner " + c);
+      assertEquals(radii[c], scene.clipGet(clip, Scene.CLIP_RADII_Y + 4 * c), "corner y " + c);
     }
   }
 

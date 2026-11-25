@@ -253,8 +253,9 @@ import java.util.Map;
  * it: red, green and blue decoded from sRGB, alpha divided by 255. The image is drawn where the
  * rectangle and its clip are, with the coverage of the rectangle with square corners and of its
  * clip, as a rectangle's: {@code output = sample * color * coverage}, blended as a fill. A
- * rounded element gets a clip entry of its own for that, its content box with its corners, and so
- * does one whose image, {@link Image.Fit#COVER covering} it, reaches beyond its content box.
+ * rounded element gets a clip entry of where its rectangle shows its fill, with the border's inner
+ * elliptic corners, and one whose image, {@link Image.Fit#COVER covering} it, reaches beyond its
+ * content box gets a clip of its content box with square corners inside that.
  *
  * <p>The sample at a pixel, with {@code (px, py)} its center in physical pixels, {@code s} the
  * scale, {@code (w0, h0)} level 0's size and {@code (W, H) = (width s, height s)} the rectangle's
@@ -400,16 +401,21 @@ import java.util.Map;
  *  4  y        f32
  *  8  width    f32   0 or more; 0 clips everything away
  * 12  height   f32
- * 16  radii    f32 x 4   top left, top right, bottom right, bottom left, clamped like an
- *                        instance's
+ * 16  radii    f32 x 4   top left, top right, bottom right, bottom left, across
  * 32  parent   u32   the entry whose coverage this one's is taken with, an earlier one, or 0
  * 36  unused   u32 x 3   0
+ * 48  radiiY   f32 x 4   top left, top right, bottom right, bottom left, from top to bottom
  * </pre>
  *
  * <p>As WGSL: {@code array<Clip>} with {@code struct Clip { rect: vec4f, radii: vec4f, parent:
- * u32 }}, which WGSL pads to 48 bytes. The entry was 32 bytes, with no slot free, until it got its
- * parent. The table always has an entry 0, which stands for no clip: a rectangle from -1e9 to 1e9
- * on both axes with radius 0 and no parent, so that applying it changes nothing and a renderer may
+ * u32, radii_y: vec4f }}, 64 bytes (WGSL aligns {@code radii_y} to offset 48). Each corner has a
+ * radius across ({@code radii}) and one from top to bottom ({@code radiiY}); a corner whose two
+ * differ is a quarter of an ellipse, measured by the same first-order distance as a rectangle's
+ * inner fill. The scene scales each corner's pair down together to fit within half the clip's
+ * width and height (making a corner with either radius 0 or less square), so a circular radius
+ * becomes {@code min(r, width / 2, height / 2)}, and renderers clamp each axis to half the clip's
+ * side. The table always has an entry 0, which stands for no clip: a rectangle from -1e9 to 1e9 on
+ * both axes with radius 0 and no parent, so that applying it changes nothing and a renderer may
  * skip it or not.
  *
  * <p>A renderer computes how much of a pixel a rectangle covers, from 0 to 1, as the signed
@@ -572,13 +578,20 @@ public final class Scene {
 
   /**
    * Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}, the other
-   * corners' radii at {@code RADIUS + 4}, {@code + 8} and {@code + 12}, and the parent at {@link
-   * #CLIP_PARENT}.
+   * corners' radii across at {@code RADIUS + 4}, {@code + 8} and {@code + 12}, the parent at {@link
+   * #CLIP_PARENT}, and the corners' radii from top to bottom at {@link #CLIP_RADII_Y} to {@code
+   * CLIP_RADII_Y + 12}.
    */
-  public static final int CLIP_STRIDE = 12 * Float.BYTES;
+  public static final int CLIP_STRIDE = 16 * Float.BYTES;
 
   /** The slot of a clip entry that holds the index of its parent, a u32. */
   public static final int CLIP_PARENT = 32;
+
+  /**
+   * The first of four slots of a clip entry that hold the corners' radii from top to bottom (top
+   * left, top right, bottom right, bottom left).
+   */
+  public static final int CLIP_RADII_Y = 48;
 
   /** The width of the focus ring in logical pixels. */
   public static final float RING = 2;
@@ -633,7 +646,7 @@ public final class Scene {
   }
 
   private void noClip() {
-    entry(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, SQUARE, 0);
+    entry(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, SQUARE, SQUARE, 0);
   }
 
   /**
@@ -790,6 +803,7 @@ public final class Scene {
       shadow(shadows.get(i), left, top, width, height, radii, opacity, clip);
     }
     int[] colors = el.borderColors();
+    float[] shown = hasBorder ? borders : NO_BORDER; // the borders the rectangle draws
     // A transparent side is no border, as one transparent color is, and all of them none at all.
     if (colors != null && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0 && inside) {
       // The whole rectangle once per side, each clipped to its part, so that every pixel is drawn
@@ -800,6 +814,7 @@ public final class Scene {
       for (int side = 0; side < 4; side++) {
         sides[side] = colors[side] >>> 24 != 0 ? sides[side] : 0;
       }
+      shown = sides;
       float bottom = top + height;
       float split = Math.min(top + sides[0], bottom);
       float end = Math.max(bottom - sides[2], split);
@@ -840,7 +855,7 @@ public final class Scene {
       stops(el, left, top, width, height, borders, opacity, free);
     }
     if (el.image() != null && inside) {
-      image(el, left, top, width, height, borders, radii, opacity, clip, free);
+      image(el, left, top, width, height, borders, shown, radii, opacity, clip, free);
     }
     int inner = clip;
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
@@ -1067,8 +1082,9 @@ public final class Scene {
 
   /**
    * An element's image in its content box: the rectangle that {@link El#fit} gives it, snapped to
-   * the pixel grid unless a spring moves the element, within a clip of the content box with the
-   * element's corners where the element is rounded or the image reaches beyond the box.
+   * the pixel grid unless a spring moves the element, clipped to where its rectangle with the
+   * borders it draws ({@code shown}, a transparent side's 0) shows its fill when the element is
+   * rounded, and to the content box when the image reaches beyond it.
    */
   private void image(
       El el,
@@ -1077,6 +1093,7 @@ public final class Scene {
       float width,
       float height,
       float[] borders,
+      float[] shown,
       float[] radii,
       float opacity,
       int clip,
@@ -1124,26 +1141,23 @@ public final class Scene {
     boolean rounded = radii[0] > 0 || radii[1] > 0 || radii[2] > 0 || radii[3] > 0;
     boolean beyond = x < l || y < t || x + w > r || y + h > b;
     int own = clip;
-    float clipX = clipGet(clip, X);
-    float clipY = clipGet(clip, Y);
-    float clipRight = clipX + clipGet(clip, WIDTH);
-    float clipBottom = clipY + clipGet(clip, HEIGHT);
-    if (rounded || beyond) {
-      float[] inner = {
-        innerRadius(radii[0], insetLeft, insetTop, Math.max(borders[3], borders[0])),
-        innerRadius(radii[1], insetRight, insetTop, Math.max(borders[1], borders[0])),
-        innerRadius(radii[2], insetRight, insetBottom, Math.max(borders[1], borders[2])),
-        innerRadius(radii[3], insetLeft, insetBottom, Math.max(borders[3], borders[2]))
-      };
-      own = clip(l, t, r, b, inner, clip);
+    if (rounded) {
+      own = paddingClip(left, top, width, height, shown, radii, clip);
       if (own < 0) {
         return;
       }
-      clipX = clipGet(own, X);
-      clipY = clipGet(own, Y);
-      clipRight = clipX + clipGet(own, WIDTH);
-      clipBottom = clipY + clipGet(own, HEIGHT);
     }
+    // Square as well where rounded: outside its bounds the elliptic distance is only a lower bound.
+    if (beyond) {
+      own = clip(l, t, r, b, SQUARE, own);
+      if (own < 0) {
+        return;
+      }
+    }
+    float clipX = clipGet(own, X);
+    float clipY = clipGet(own, Y);
+    float clipRight = clipX + clipGet(own, WIDTH);
+    float clipBottom = clipY + clipGet(own, HEIGHT);
     if (!(x < clipRight && x + w > clipX && y < clipBottom && y + h > clipY)) {
       return;
     }
@@ -1168,6 +1182,54 @@ public final class Scene {
       put(offset + slot, 0);
     }
     count++;
+  }
+
+  /**
+   * A clip of where the element's rectangle shows its fill, as the renderers find it (see {@link
+   * Scene}): its border box moved in by each border, or out by a physical pixel on a side without
+   * one, with the border's inner elliptic corners, inside {@code outer}; -1 when nothing is left
+   * of it. Where that outset or clamping moves an ellipse off the outer corner's center, the
+   * border box with its corners comes first, as the rectangle's own coverage does.
+   */
+  private int paddingClip(
+      float left, float top, float width, float height, float[] borders, float[] radii, int outer) {
+    boolean bordered = borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0;
+    // shortcut: without a scale the renderers' outset is unknown, so none: the image then never
+    // covers the border, but can leave a sliver of the fill along a corner by a side without one.
+    float pixel = scale > 0 ? 1 / scale : 0;
+    float[] in = new float[4];
+    boolean moved = false;
+    for (int side = 0; side < 4; side++) {
+      in[side] = borders[side] > 0 || !bordered ? borders[side] : -pixel;
+      moved |= in[side] < 0;
+    }
+    float l = left + in[3];
+    float t = top + in[0];
+    float r = left + width - in[1];
+    float b = top + height - in[2];
+    if (!(r > l && b > t)) {
+      return -1;
+    }
+    float most = Math.min(width, height) / 2;
+    float halfW = (r - l) / 2;
+    float halfH = (b - t) / 2;
+    float[] rx = new float[4];
+    float[] ry = new float[4];
+    for (int c = 0; c < 4; c++) {
+      float radius = Math.clamp(radii[c], 0, most);
+      float across = radius - borders[c == 0 || c == 3 ? 3 : 1];
+      float down = radius - borders[c < 2 ? 0 : 2];
+      rx[c] = Math.clamp(across, 0, halfW);
+      ry[c] = Math.clamp(down, 0, halfH);
+      moved |= rx[c] > 0 && ry[c] > 0 && (across > halfW || down > halfH);
+    }
+    if (moved) {
+      outer = clip(left, top, left + width, top + height, radii, outer);
+      if (outer < 0) {
+        return -1;
+      }
+    }
+    return clip(l, t, r, b, rx, ry, outer);
   }
 
   /**
@@ -1683,35 +1745,30 @@ public final class Scene {
   }
 
   /**
-   * The radius of a circle that keeps a content corner with insets {@code a} and {@code b} inside
-   * the border's inner corner: 0 once either inset clears the curve; {@code radius - max(a, b)}
-   * while both insets reach past the wider border, since the circle of radius {@code radius -
-   * border} lies inside that corner; else the longer half axis {@code radius - min(a, b)} of the
-   * content corner's ellipse, which contains the ellipse.
+   * The clip of the rounded rectangle from {@code l, t} to {@code r, b} with circular corner radii
+   * {@code radii} (top left, top right, bottom right, bottom left) inside {@code outer}, as an
+   * entry of the table; -1 when nothing of it is left.
    */
-  private static float innerRadius(float radius, float a, float b, float border) {
-    if (radius <= Math.max(a, b)) {
-      return 0;
-    }
-    return Math.min(a, b) >= border ? radius - Math.max(a, b) : radius - Math.min(a, b);
+  private int clip(float l, float t, float r, float b, float[] radii, int outer) {
+    return clip(l, t, r, b, radii, radii, outer);
   }
 
   /**
-   * The clip of the rounded rectangle from {@code l, t} to {@code r, b} with these radii (top
-   * left, top right, bottom right, bottom left) inside the clip {@code outer}, as an entry of the
-   * table; -1 when nothing of it is left.
+   * The clip of the rounded rectangle from {@code l, t} to {@code r, b} with corner radii {@code
+   * rx} across and {@code ry} from top to bottom (top left, top right, bottom right, bottom left)
+   * inside the clip {@code outer}, as an entry of the table; -1 when nothing of it is left.
    *
    * <p>The entry's rectangle is the intersection of the two boxes. Where the rectangle lies
    * inside the outer box, the entry keeps its radii; a corner that the outer box cuts off gets
    * none, and where that leaves out some of a rounded corner of the rectangle, or the radii would
-   * be clamped otherwise in the smaller box, an entry of the whole rectangle with its radii comes
+   * be scaled otherwise in the smaller box, an entry of the whole rectangle with its radii comes
    * first, as the entry's parent. The parent after that is the first clip out along {@code
    * outer}'s chain whose rounded corners reach into the box: the box lies inside every one of
    * them, so their straight edges cut nothing it does not cut, and the others add nothing. So an
    * entry needs no parent unless rounded corners around it cut it, and nesting costs nothing where
    * they do not.
    */
-  private int clip(float l, float t, float r, float b, float[] radii, int outer) {
+  private int clip(float l, float t, float r, float b, float[] rx, float[] ry, int outer) {
     float outerX = clipGet(outer, X);
     float outerY = clipGet(outer, Y);
     float outerRight = outerX + clipGet(outer, WIDTH);
@@ -1731,28 +1788,43 @@ public final class Scene {
     boolean cutRight = r > outerRight;
     boolean cutBottom = b > outerBottom;
     if (!(cutLeft || cutTop || cutRight || cutBottom)) {
-      return entry(x, y, width, height, radii, parent);
+      return entry(x, y, width, height, rx, ry, parent);
     }
     boolean[] cut = {
       cutLeft || cutTop, cutTop || cutRight, cutRight || cutBottom, cutBottom || cutLeft
     };
-    float[] kept = new float[4];
+    float[] keptX = new float[4];
+    float[] keptY = new float[4];
     boolean whole = true; // whether the box with the kept radii is the rectangle within it
-    float most = Math.min(r - l, b - t) / 2;
-    float mostKept = Math.min(width, height) / 2;
+    float halfW = (r - l) / 2;
+    float halfH = (b - t) / 2;
+    float keptHalfW = width / 2;
+    float keptHalfH = height / 2;
     for (int c = 0; c < 4; c++) {
-      float radius = Math.clamp(radii[c], 0, most);
+      float crx = fitRadius(rx[c], ry[c], halfW, halfH);
+      float cry = fitRadius(ry[c], rx[c], halfH, halfW);
+      if (!(crx > 0 && cry > 0)) {
+        crx = 0;
+        cry = 0;
+      }
       if (cut[c]) {
-        whole &= !(radius != 0 && corner(l, t, r, b, c, radius, x, y, right, bottom));
+        whole &= !(crx != 0 && corner(l, t, r, b, c, crx, cry, x, y, right, bottom));
       } else {
-        kept[c] = radii[c];
-        whole &= Math.clamp(radii[c], 0, mostKept) == radius;
+        keptX[c] = rx[c];
+        keptY[c] = ry[c];
+        float krx = fitRadius(rx[c], ry[c], keptHalfW, keptHalfH);
+        float kry = fitRadius(ry[c], rx[c], keptHalfH, keptHalfW);
+        if (!(krx > 0 && kry > 0)) {
+          krx = 0;
+          kry = 0;
+        }
+        whole &= krx == crx && kry == cry;
       }
     }
     if (whole) {
-      return entry(x, y, width, height, kept, parent);
+      return entry(x, y, width, height, keptX, keptY, parent);
     }
-    return entry(x, y, width, height, SQUARE, entry(l, t, r - l, b - t, radii, parent));
+    return entry(x, y, width, height, SQUARE, SQUARE, entry(l, t, r - l, b - t, rx, ry, parent));
   }
 
   /**
@@ -1765,10 +1837,10 @@ public final class Scene {
       float y = clipGet(c, Y);
       float right = x + clipGet(c, WIDTH);
       float bottom = y + clipGet(c, HEIGHT);
-      float most = Math.min(clipGet(c, WIDTH), clipGet(c, HEIGHT)) / 2;
       for (int k = 0; k < 4; k++) {
-        float radius = Math.clamp(clipGet(c, RADIUS + 4 * k), 0, most);
-        if (radius != 0 && corner(x, y, right, bottom, k, radius, l, t, r, b)) {
+        float rx = clipGet(c, RADIUS + 4 * k);
+        float ry = clipGet(c, CLIP_RADII_Y + 4 * k);
+        if (rx > 0 && ry > 0 && corner(x, y, right, bottom, k, rx, ry, l, t, r, b)) {
           return c;
         }
       }
@@ -1778,10 +1850,11 @@ public final class Scene {
 
   /**
    * Whether corner {@code c} (top left, top right, bottom right, bottom left) of the rectangle
-   * from {@code x0, y0} to {@code x1, y1}, the square of side {@code radius} where its rounded
-   * corner lies, reaches into the box from {@code l, t} to {@code r, b} or within a physical pixel
-   * of it: the box's own smoothed edge covers some of a pixel up to half a pixel beyond it. A scene
-   * without a scale takes a logical pixel, which is enough at scales of 0.5 and more.
+   * from {@code x0, y0} to {@code x1, y1}, the {@code rx} by {@code ry} rectangle where its
+   * rounded corner lies, reaches into the box from {@code l, t} to {@code r, b} or within a
+   * physical pixel of it: the box's own smoothed edge covers some of a pixel up to half a pixel
+   * beyond it. A scene without a scale takes a logical pixel, which is enough at scales of 0.5 and
+   * more.
    */
   private boolean corner(
       float x0,
@@ -1789,22 +1862,41 @@ public final class Scene {
       float x1,
       float y1,
       int c,
-      float radius,
+      float rx,
+      float ry,
       float l,
       float t,
       float r,
       float b) {
     float reach = scale > 0 ? 1 / scale : 1;
-    float left = c == 0 || c == 3 ? x0 : x1 - radius;
-    float top = c < 2 ? y0 : y1 - radius;
-    return left < r + reach
-        && left + radius > l - reach
-        && top < b + reach
-        && top + radius > t - reach;
+    float left = c == 0 || c == 3 ? x0 : x1 - rx;
+    float top = c < 2 ? y0 : y1 - ry;
+    return left < r + reach && left + rx > l - reach && top < b + reach && top + ry > t - reach;
   }
 
-  /** Appends an entry to the clip table and returns its index. */
-  private int entry(float x, float y, float width, float height, float[] radii, int parent) {
+  /**
+   * One half axis {@code a} of a corner whose other half axis is {@code b}, scaled down together
+   * with {@code b} so that they fit within {@code halfA} and {@code halfB}; 0 when either is 0 or
+   * less.
+   */
+  private static float fitRadius(float a, float b, float halfA, float halfB) {
+    if (!(a > 0 && b > 0 && halfA > 0 && halfB > 0)) {
+      return 0;
+    }
+    if (a == b) {
+      return Math.min(a, Math.min(halfA, halfB));
+    }
+    if (a <= halfA && b <= halfB) {
+      return a;
+    }
+    double ka = halfA / (double) a;
+    double kb = halfB / (double) b;
+    return ka <= kb ? halfA : Math.min(halfA, (float) (a * kb));
+  }
+
+  /** Appends an entry to the clip table, scaling each corner's radii to fit, and returns its index. */
+  private int entry(
+      float x, float y, float width, float height, float[] rx, float[] ry, int parent) {
     long offset = (long) clipCount * CLIP_STRIDE;
     if (offset == clips.byteSize()) {
       clips = grow(clips);
@@ -1813,11 +1905,20 @@ public final class Scene {
     clips.set(ValueLayout.JAVA_FLOAT, offset + Y, y);
     clips.set(ValueLayout.JAVA_FLOAT, offset + WIDTH, width);
     clips.set(ValueLayout.JAVA_FLOAT, offset + HEIGHT, height);
+    float halfW = width / 2;
+    float halfH = height / 2;
     for (int c = 0; c < 4; c++) {
-      clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS + 4 * c, radii[c]);
+      float fx = fitRadius(rx[c], ry[c], halfW, halfH);
+      float fy = fitRadius(ry[c], rx[c], halfH, halfW);
+      if (!(fx > 0 && fy > 0)) {
+        fx = 0;
+        fy = 0;
+      }
+      clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS + 4 * c, fx);
+      clips.set(ValueLayout.JAVA_FLOAT, offset + CLIP_RADII_Y + 4 * c, fy);
     }
     clips.set(ValueLayout.JAVA_INT, offset + CLIP_PARENT, parent);
-    for (long at = CLIP_PARENT + 4L; at < CLIP_STRIDE; at += 4) {
+    for (long at = CLIP_PARENT + 4L; at < CLIP_RADII_Y; at += 4) {
       clips.set(ValueLayout.JAVA_INT, offset + at, 0);
     }
     return clipCount++;
@@ -2021,7 +2122,10 @@ public final class Scene {
     return clips.asSlice(0, (long) clipCount * CLIP_STRIDE);
   }
 
-  /** One float of one clip; {@code field} is one of {@link #X} to {@link #RADIUS}. */
+  /**
+   * One float of one clip; {@code field} is one of {@link #X} to {@code RADIUS + 12}, or {@link
+   * #CLIP_RADII_Y} to {@code CLIP_RADII_Y + 12}.
+   */
   public float clipGet(int clip, int field) {
     return clips.get(ValueLayout.JAVA_FLOAT, (long) clip * CLIP_STRIDE + field);
   }

@@ -692,9 +692,10 @@ final class ReferenceCpuRenderer {
     double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
     double dx = x - (scene.clipGet(clip, Scene.X) + halfW);
     double dy = y - (scene.clipGet(clip, Scene.Y) + halfH);
-    double radius = Math.clamp(
-        scene.clipGet(clip, Scene.RADIUS + 4 * corner(dx, dy)), 0, Math.min(halfW, halfH));
-    return coverage(distance(dx, dy, halfW, halfH, radius, radius), scale);
+    int c = corner(dx, dy);
+    double rx = Math.clamp(scene.clipGet(clip, Scene.RADIUS + 4 * c), 0, halfW);
+    double ry = Math.clamp(scene.clipGet(clip, Scene.CLIP_RADII_Y + 4 * c), 0, halfH);
+    return coverage(distance(dx, dy, halfW, halfH, rx, ry), scale);
   }
 
   /** The radii of the corners, top left, top right, bottom right, bottom left, clamped. */

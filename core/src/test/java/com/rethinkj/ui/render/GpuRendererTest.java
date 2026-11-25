@@ -214,6 +214,7 @@ class GpuRendererTest {
         "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
     // Images: one to one, magnified, made smaller, with alpha, clipped, at half opacity.
     cases.add(text("images", Examples.images(s), 320, 220, s));
+    cases.add(view("image-elliptic-clip", imageEllipticClip(), 160, 64, 1.25f));
     // Fallback fonts: glyphs of four fonts on one line and in a field selected across them.
     cases.add(text("fallback", Examples.fallbackText(), 360, 128, s));
     cases.add(scripted(
@@ -1373,6 +1374,39 @@ class GpuRendererTest {
     scene.rect(4, 80, 100, 0.5f, 0, 0, 0xFF22C55E, 0);
     scene.rect(4, 90.3f, 100, 6, 3, 1, 0x00000000, 0xFFFACC15);
     return scene;
+  }
+
+  /**
+   * Images inside rounded elements with uneven borders (elliptic inner corners): tight content box,
+   * padded content box, and COVER clipped to both.
+   */
+  private static El imageEllipticClip() {
+    Image photo = Examples.image("elliptic", Examples.photo(40, 24), 1);
+    return el().size(160, 64)
+        .fill(BACKGROUND)
+        .children(
+            El.image(photo)
+                .absolute(6, 12)
+                .size(40, 40)
+                .radius(20)
+                .border(12, 2, 12, 2, 0xFF38BDF8)
+                .fit(Image.Fit.FILL),
+            El.image(photo)
+                .absolute(54, 8)
+                .size(48, 48)
+                .radius(16)
+                .border(10, 2, 2, 2, 0xFFFACC15)
+                .padding(4)
+                .fill(0xFF1E293B)
+                .fit(Image.Fit.FILL),
+            El.image(photo)
+                .absolute(110, 8)
+                .size(44, 48)
+                .radius(18, 4, 14, 10)
+                .border(10, 2, 4, 2, 0xFFF472B6)
+                .padding(3)
+                .fill(0xFF1E293B)
+                .fit(Image.Fit.COVER));
   }
 
   /**
