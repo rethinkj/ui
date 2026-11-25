@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.IntStream;
 
 /**
@@ -95,12 +96,18 @@ public final class Text implements Measure {
    *     underline to the bottom of its row
    * @param color as 0xAARRGGBB
    * @param squiggle whether the mark is drawn as a wavy line rather than a rectangle
+   * @param radius corner radius of a rectangle mark in logical pixels, 0 for square corners
    */
-  public record Mark(Box box, int color, boolean squiggle) {
+  public record Mark(Box box, int color, boolean squiggle, float radius) {
 
-    /** A rectangle mark. */
+    /** A rectangle mark with square corners. */
     public Mark(Box box, int color) {
-      this(box, color, false);
+      this(box, color, false, 0);
+    }
+
+    /** A rectangle mark with square corners, or a squiggly underline. */
+    public Mark(Box box, int color, boolean squiggle) {
+      this(box, color, squiggle, 0);
     }
   }
 
@@ -330,6 +337,29 @@ public final class Text implements Measure {
       this.after = after;
       this.slots = slots;
       this.emptyWidth = emptyWidth;
+    }
+
+    float beforeGap(int at) {
+      int i = Arrays.binarySearch(positions, at);
+      return i >= 0 ? before[i] : 0;
+    }
+
+    float afterGap(int at) {
+      int i = Arrays.binarySearch(positions, at);
+      return i >= 0 ? after[i] : 0;
+    }
+  }
+
+  /** Background-room gaps resolved to cluster boundaries for one shaped paragraph or chunk. */
+  private static final class RoomGaps {
+    final int[] positions;
+    final float[] before;
+    final float[] after;
+
+    RoomGaps(int[] positions, float[] before, float[] after) {
+      this.positions = positions;
+      this.before = before;
+      this.after = after;
     }
 
     float beforeGap(int at) {
@@ -1131,7 +1161,8 @@ public final class Text implements Measure {
           if (out == null) {
             out = new ArrayList<>();
           }
-          out.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), sp.colors[i]));
+          out.add(
+              new Mark(new Box(x0, top, x1 - x0, lineHeight), sp.colors[i], false, sp.radii[i]));
         }
       }
     }
@@ -1339,6 +1370,13 @@ public final class Text implements Measure {
       // Apply hints before tabs so tab stops stay on the grid after a hint.
       run = run.withGaps(text.length(), lineHints.positions, lineHints.before, lineHints.after);
     }
+    // Room only where range backgrounds are drawn: not in a single-line field.
+    RoomGaps roomGaps = spans != null && spans.hasRoom() && (multiline || !field)
+        ? resolveRoomGaps(text, run, spans, offset, limit)
+        : null;
+    if (roomGaps != null) {
+      run = run.withGaps(text.length(), roomGaps.positions, roomGaps.before, roomGaps.after);
+    }
     if (tabbed) {
       int[] tabs = new int[text.length()];
       int n = 0;
@@ -1346,14 +1384,16 @@ public final class Text implements Measure {
         tabs[n++] = i;
       }
       int[] trimmed = Arrays.copyOf(tabs, n);
-      if (lineHints == null) {
+      if (lineHints == null && roomGaps == null) {
         run = run.tabbed(trimmed, tabStop);
       } else {
         float[] leading = new float[n];
         float[] trailing = new float[n];
         for (int i = 0; i < n; i++) {
-          leading[i] = lineHints.afterGap(trimmed[i]);
-          trailing[i] = lineHints.beforeGap(trimmed[i] + 1);
+          leading[i] = (lineHints == null ? 0 : lineHints.afterGap(trimmed[i]))
+              + (roomGaps == null ? 0 : roomGaps.afterGap(trimmed[i]));
+          trailing[i] = (lineHints == null ? 0 : lineHints.beforeGap(trimmed[i] + 1))
+              + (roomGaps == null ? 0 : roomGaps.beforeGap(trimmed[i] + 1));
         }
         run = run.tabbed(trimmed, tabStop, leading, trailing);
       }
@@ -1389,7 +1429,77 @@ public final class Text implements Measure {
       }
       breaks = found.stream().mapToInt(Integer::intValue).toArray();
     }
-    return new Para(text, run, breaks, colors, spans, offset, lineHints);
+    return new Para(text, run, breaks, colors, spans, offset, lineHints, roomGaps);
+  }
+
+  /** Resolves background-room ranges in {@code [offset, offset + limit)} onto cluster boundaries. */
+  private RoomGaps resolveRoomGaps(String text, GlyphRun run, Spans spans, int offset, int limit) {
+    int len = text.length();
+    if (len == 0 || run.count() == 0) {
+      return null;
+    }
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    // For each position, the room before it and the room after it.
+    TreeMap<Integer, float[]> gaps = new TreeMap<>();
+    for (int i = 0; i < spans.count; i++) {
+      if (spans.kinds[i] != Spans.BACKGROUND || spans.rooms[i] <= 0) {
+        continue;
+      }
+      float room = (float) (Math.round(spans.rooms[i] * scale * grid) / grid);
+      if (room <= 0) {
+        continue;
+      }
+      if (spans.froms[i] >= offset && spans.froms[i] < offset + limit) {
+        int at = resolveCluster(run, len, spans.froms[i] - offset);
+        float[] gap = gaps.computeIfAbsent(at, k -> new float[2]);
+        int side = at == len ? 0 : 1;
+        gap[side] = Math.max(gap[side], room); // ranges of one kind overlap: not added up
+      }
+      if (spans.tos[i] > offset && spans.tos[i] <= offset + limit) {
+        int at = resolveCluster(run, len, spans.tos[i] - offset);
+        float[] gap = gaps.computeIfAbsent(at, k -> new float[2]);
+        int side = at != 0 ? 0 : 1;
+        gap[side] = Math.max(gap[side], room);
+      }
+    }
+    if (gaps.isEmpty()) {
+      return null;
+    }
+    int[] positions = new int[gaps.size()];
+    float[] before = new float[gaps.size()];
+    float[] after = new float[gaps.size()];
+    int k = 0;
+    for (Map.Entry<Integer, float[]> gap : gaps.entrySet()) {
+      positions[k] = gap.getKey();
+      before[k] = gap.getValue()[0];
+      after[k++] = gap.getValue()[1];
+    }
+    return new RoomGaps(positions, before, after);
+  }
+
+  /** Cluster start for {@code pos} in {@code run}, matching {@link GlyphRun#withGaps}. */
+  private static int resolveCluster(GlyphRun run, int len, int pos) {
+    if (pos <= 0) {
+      return 0;
+    }
+    if (pos >= len) {
+      return len;
+    }
+    int n = run.count();
+    int lo = 0;
+    int hi = n;
+    while (lo < hi) {
+      int mid = (lo + hi) >>> 1;
+      if (run.cluster(mid) < pos) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo < n && run.cluster(lo) == pos) {
+      return pos;
+    }
+    return lo == 0 ? 0 : run.cluster(lo - 1);
   }
 
   /**
@@ -1864,32 +1974,31 @@ public final class Text implements Measure {
       float distance = Float.POSITIVE_INFINITY;
       for (int b : p.boundaries(0, p.text.length())) {
         float cx = p.pen(b);
-        if (stops && p.hints != null) {
-          float before = p.beforeGap(b);
-          if (before > 0) {
-            float d = Math.abs(cx - before - localX);
-            if (d < distance) {
-              distance = d;
-              best = b;
-              bestStop = HintStop.LEFT;
-            }
+        float before = stops && p.hints != null ? p.beforeGap(b) : 0;
+        float after = stops && p.hints != null ? p.afterGap(b) : 0;
+        float roomBefore = p.roomBefore(b);
+        float roomAfter = p.roomAfter(b);
+        if (before > 0) {
+          float d = outside(localX, cx - before - roomBefore, cx - before);
+          if (d < distance) {
+            distance = d;
+            best = b;
+            bestStop = HintStop.LEFT;
           }
         }
-        float d = Math.abs(cx - localX);
+        float d =
+            outside(localX, before > 0 ? cx : cx - roomBefore, after > 0 ? cx : cx + roomAfter);
         if (d < distance) {
           distance = d;
           best = b;
           bestStop = HintStop.DEFAULT;
         }
-        if (stops && p.hints != null) {
-          float after = p.afterGap(b);
-          if (after > 0) {
-            float da = Math.abs(cx + after - localX);
-            if (da < distance) {
-              distance = da;
-              best = b;
-              bestStop = HintStop.RIGHT;
-            }
+        if (after > 0) {
+          float da = outside(localX, cx + after, cx + after + roomAfter);
+          if (da < distance) {
+            distance = da;
+            best = b;
+            bestStop = HintStop.RIGHT;
           }
         }
       }
@@ -1962,6 +2071,7 @@ public final class Text implements Measure {
     final int[] breaks; // null without wrapping
     final Chunks chunks; // non-null only for a long non-wrapping line of a multi-line field
     final LineHints hints; // non-null only when this paragraph has inline hints
+    final RoomGaps roomGaps; // non-null only when this paragraph has background room
     float limit = Float.NaN; // the width rowStarts are for
     int[] rowStarts = {0};
     float[] rowWidths;
@@ -1973,7 +2083,8 @@ public final class Text implements Measure {
         int[] colors,
         Spans spans,
         int offset,
-        LineHints hints) {
+        LineHints hints,
+        RoomGaps roomGaps) {
       this.text = text;
       this.run = run;
       this.colors = colors;
@@ -1981,6 +2092,7 @@ public final class Text implements Measure {
       this.offset = offset;
       this.chunks = null;
       this.hints = hints;
+      this.roomGaps = roomGaps;
       // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
@@ -2011,6 +2123,7 @@ public final class Text implements Measure {
       this.breaks = of.breaks;
       this.chunks = of.chunks;
       this.hints = of.hints;
+      this.roomGaps = of.roomGaps;
       this.limit = of.limit;
       this.rowStarts = of.rowStarts;
       this.rowWidths = of.rowWidths;
@@ -2026,6 +2139,7 @@ public final class Text implements Measure {
       this.breaks = null;
       this.chunks = chunks;
       this.hints = null;
+      this.roomGaps = null;
       this.rowWidths = new float[] {chunks.totalWidth()};
     }
 
@@ -2045,6 +2159,14 @@ public final class Text implements Measure {
         return chunks.afterGap(at);
       }
       return hints == null ? 0 : hints.afterGap(at);
+    }
+
+    private float roomBefore(int at) {
+      return roomGaps == null ? 0 : roomGaps.beforeGap(at);
+    }
+
+    private float roomAfter(int at) {
+      return roomGaps == null ? 0 : roomGaps.afterGap(at);
     }
 
     float totalWidth() {
@@ -2162,7 +2284,8 @@ public final class Text implements Measure {
       }
       while (to > from
           && Character.isWhitespace(text.charAt(to - 1))
-          && (hints == null || hints.beforeGap(to) == 0 && hints.afterGap(to - 1) == 0)) {
+          && (hints == null || hints.beforeGap(to) == 0 && hints.afterGap(to - 1) == 0)
+          && (roomGaps == null || roomGaps.beforeGap(to) == 0 && roomGaps.afterGap(to - 1) == 0)) {
         to--;
       }
       return run.pen(glyphAt[to]) - run.pen(glyphAt[from]);
@@ -2185,8 +2308,8 @@ public final class Text implements Measure {
       int first = glyphAt[start];
       int end = g < run.count() ? run.cluster(g) : text.length();
       int graphemes = graphemes(text, start, end);
-      float from = run.pen(first) + afterGap(start);
-      float to = run.pen(g) - beforeGap(end);
+      float from = run.pen(first) + afterGap(start) + roomAfter(start);
+      float to = run.pen(g) - beforeGap(end) - roomBefore(end);
       return graphemes == 0 ? from : from + (to - from) * graphemes(text, start, at) / graphemes;
     }
 
@@ -3471,7 +3594,8 @@ public final class Text implements Measure {
               : rowX + para.pen(b) - (kind == Spans.GUIDE ? 0 : para.beforeGap(b)) - left - viewX;
           switch (kind) {
             case Spans.BACKGROUND ->
-              ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
+              ranges.add(new Mark(
+                  new Box(x0, top, x1 - x0, lineHeight), spans.colors[i], false, spans.radii[i]));
             case Spans.GUIDE ->
               ranges.add(
                   new Mark(new Box(Math.round(x0), top, thick, lineHeight), spans.colors[i]));
@@ -4019,6 +4143,11 @@ public final class Text implements Measure {
     return nearestCaretOnRow(line, row, x, false).index();
   }
 
+  /** How far {@code x} lies outside {@code lo} to {@code hi}, 0 inside. */
+  private static float outside(float x, float lo, float hi) {
+    return x < lo ? lo - x : x > hi ? x - hi : 0;
+  }
+
   /**
    * The position nearest to {@code x} on a row, with its stop; among the default stops only unless
    * {@code stops}, for moves that land on the default stop.
@@ -4041,32 +4170,33 @@ public final class Text implements Measure {
     boolean wrapped = row + 1 < para.rowCount();
     for (int b : bounds) {
       float cx = para.pen(b) - left;
-      if (stops && para.hints != null && !(row > 0 && b == rowStart)) {
-        float before = para.beforeGap(b);
-        if (before > 0) {
-          float d = Math.abs(cx - before - localX);
-          if (d < distance) {
-            distance = d;
-            best = b;
-            bestStop = HintStop.LEFT;
-          }
+      boolean hinted = stops && para.hints != null;
+      float before = hinted && !(row > 0 && b == rowStart) ? para.beforeGap(b) : 0;
+      float after = hinted && !(wrapped && b == rowEnd) ? para.afterGap(b) : 0;
+      // A background's room lies between its glyphs and a hint: a press on it, or on the nearer
+      // half of its glyph, lands on the stop the room touches.
+      float roomBefore = para.roomBefore(b);
+      float roomAfter = para.roomAfter(b);
+      if (before > 0) {
+        float d = outside(localX, cx - before - roomBefore, cx - before);
+        if (d < distance) {
+          distance = d;
+          best = b;
+          bestStop = HintStop.LEFT;
         }
       }
-      float d = Math.abs(cx - localX);
+      float d = outside(localX, before > 0 ? cx : cx - roomBefore, after > 0 ? cx : cx + roomAfter);
       if (d < distance) {
         distance = d;
         best = b;
         bestStop = HintStop.DEFAULT;
       }
-      if (stops && para.hints != null && !(wrapped && b == rowEnd)) {
-        float after = para.afterGap(b);
-        if (after > 0) {
-          float da = Math.abs(cx + after - localX);
-          if (da < distance) {
-            distance = da;
-            best = b;
-            bestStop = HintStop.RIGHT;
-          }
+      if (after > 0) {
+        float da = outside(localX, cx + after, cx + after + roomAfter);
+        if (da < distance) {
+          distance = da;
+          best = b;
+          bestStop = HintStop.RIGHT;
         }
       }
     }

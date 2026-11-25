@@ -1673,7 +1673,7 @@ public final class Scene {
             squiggle(
                 mark.box(), left, top, origin, text.size(), scale, mark.color(), opacity, clip);
           } else {
-            box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+            box(mark.box(), left, top, scale, mark.color(), mark.radius(), opacity, clip);
           }
         }
         for (Text.Box box : text.selection()) {
@@ -1682,7 +1682,7 @@ public final class Scene {
       }
     } else {
       for (Text.Mark mark : text.marks()) {
-        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+        box(mark.box(), left, top, scale, mark.color(), mark.radius(), opacity, clip);
       }
     }
     int glyphs = uncut ? outer : clip; // a tall glyph of a field that never scrolls is uncut
@@ -1782,6 +1782,18 @@ public final class Scene {
    */
   private void box(
       Text.Box box, double left, double top, double scale, int argb, float opacity, int clip) {
+    box(box, left, top, scale, argb, 0, opacity, clip);
+  }
+
+  private void box(
+      Text.Box box,
+      double left,
+      double top,
+      double scale,
+      int argb,
+      float radius,
+      float opacity,
+      int clip) {
     if (argb >>> 24 == 0 || !(box.width() > 0 && box.height() > 0)) {
       return;
     }
@@ -1799,7 +1811,7 @@ public final class Scene {
         && x + width > clipX
         && y < clipY + clipGet(clip, HEIGHT)
         && y + height > clipY) {
-      rect(x, y, width, height, 0, 0, argb, 0, opacity, clip);
+      rect(x, y, width, height, radius, 0, argb, 0, opacity, clip);
     }
   }
 

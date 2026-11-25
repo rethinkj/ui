@@ -15,9 +15,10 @@ import java.util.Objects;
  * <p>Colors ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
  * its own, so carets, selection and wrapping follow its wider glyphs. Range backgrounds ({@link
- * #background}) are drawn behind glyphs in multi-line fields and other text; underlines,
- * squiggles, the line's background, struck-out ranges and guides are drawn in a {@link
- * El#multiline multi-line} field only, before its selection and glyphs.
+ * #background}) are drawn behind glyphs in multi-line fields and other text, and may take
+ * horizontal room (which moves the glyphs) and a corner radius; underlines, squiggles, the line's
+ * background, struck-out ranges and guides are drawn in a {@link El#multiline multi-line} field
+ * only, before its selection and glyphs.
  */
 public final class Spans {
 
@@ -37,11 +38,14 @@ public final class Spans {
   int[] tos = new int[4];
   int[] colors = new int[4];
   Font[] fonts = new Font[4];
+  float[] rooms = new float[4];
+  float[] radii = new float[4];
   int[] lineBackgrounds = new int[0]; // from the bottom up
   int[] brackets = new int[0]; // the positions of brackets of the code, sorted once read
   int bracketCount;
   private boolean bracketsSorted = true;
-  private boolean styled; // a color or a font, which the glyphs need
+  private boolean styled; // a color, a font or background room, which the glyphs need
+  private boolean roomed; // a background with horizontal room
 
   // For Lines: the state the line was highlighted from and the one it ended in.
   Object startState;
@@ -83,10 +87,20 @@ public final class Spans {
           .append(
               kinds[i] == FONT
                   ? fonts[i].toString()
-                  : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT))
-          .append('\n');
+                  : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT));
+      if (rooms[i] > 0) {
+        out.append(" room ").append(number(rooms[i]));
+      }
+      if (radii[i] > 0) {
+        out.append(" radius ").append(number(radii[i]));
+      }
+      out.append('\n');
     }
     return out.toString();
+  }
+
+  private static String number(float value) {
+    return value == Math.rint(value) ? Long.toString((long) value) : Float.toString(value);
   }
 
   /** The text of the range in color {@code argb}, as 0xAARRGGBB, instead of the text's own. */
@@ -108,7 +122,27 @@ public final class Spans {
    * search or a matching bracket; a range that ends at the end of the line ends there.
    */
   public Spans background(int from, int to, int argb) {
-    return add(BACKGROUND, from, to, argb, null);
+    return background(from, to, argb, 0, 0);
+  }
+
+  /**
+   * A rectangle of color {@code argb} behind the range, a line high, with {@code room} logical
+   * pixels of horizontal space on each side and corner {@code radius} in logical pixels, as behind
+   * inline code. The room moves the range's glyphs right and the text after it by twice as much so
+   * the fill does not cover its neighbors; a decorator's room is ignored. A range that wraps over
+   * several rows gets its room only at its real start and end, with each row's rectangle rounded on
+   * its own.
+   *
+   * @throws IllegalArgumentException if {@code room} or {@code radius} is negative, NaN or infinite
+   */
+  public Spans background(int from, int to, int argb, float room, float radius) {
+    if (!(room >= 0 && Float.isFinite(room))) {
+      throw new IllegalArgumentException("background room must be 0 or more, was " + room);
+    }
+    if (!(radius >= 0 && Float.isFinite(radius))) {
+      throw new IllegalArgumentException("background radius must be 0 or more, was " + radius);
+    }
+    return add(BACKGROUND, from, to, argb, null, room == 0 ? 0 : room, radius == 0 ? 0 : radius);
   }
 
   /**
@@ -186,6 +220,10 @@ public final class Spans {
   }
 
   private Spans add(int kind, int from, int to, int argb, Font font) {
+    return add(kind, from, to, argb, font, 0, 0);
+  }
+
+  private Spans add(int kind, int from, int to, int argb, Font font, float room, float radius) {
     from = Math.clamp(from, 0, length);
     to = Math.clamp(to, 0, length);
     if (discard || to <= from) {
@@ -198,20 +236,31 @@ public final class Spans {
       tos = Arrays.copyOf(tos, size);
       colors = Arrays.copyOf(colors, size);
       fonts = Arrays.copyOf(fonts, size);
+      rooms = Arrays.copyOf(rooms, size);
+      radii = Arrays.copyOf(radii, size);
     }
     kinds[count] = kind;
     froms[count] = from;
     tos[count] = to;
     colors[count] = argb;
     fonts[count] = font;
+    rooms[count] = room;
+    radii[count] = radius;
     count++;
-    styled |= kind == COLOR || kind == FONT;
+    boolean hasRoom = kind == BACKGROUND && room > 0;
+    styled |= kind == COLOR || kind == FONT || hasRoom;
+    roomed |= hasRoom;
     return this;
   }
 
-  /** Whether a color or a font is set on a range: the glyphs depend on it. */
+  /** Whether a color, a font or background room is set on a range: the glyphs depend on it. */
   boolean styled() {
     return styled;
+  }
+
+  /** Whether a background range has horizontal room. */
+  boolean hasRoom() {
+    return roomed;
   }
 
   /** Whether a range of this kind is set. */

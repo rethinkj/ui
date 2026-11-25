@@ -620,7 +620,11 @@ public final class Markdown {
   }
 
   /** A range of a piece's text that a highlighter gives: a font, a color or a line. */
-  private record Span(int kind, int from, int to, int color, Font font) {}
+  private record Span(int kind, int from, int to, int color, Font font, float room, float radius) {
+    Span(int kind, int from, int to, int color, Font font) {
+      this(kind, from, to, color, font, 0, 0);
+    }
+  }
 
   private static final int COLOR = 0;
   private static final int FONT = 1;
@@ -659,7 +663,7 @@ public final class Markdown {
         switch (s.kind) {
           case COLOR -> out.color(from, to, s.color);
           case FONT -> out.font(from, to, s.font);
-          case BACKGROUND -> out.background(from, to, s.color);
+          case BACKGROUND -> out.background(from, to, s.color, s.room, s.radius);
           case UNDERLINE -> out.underline(from, to, s.color);
           default -> out.strike(from, to, s.color);
         }
@@ -716,7 +720,14 @@ public final class Markdown {
               ? Font.monoBold()
               : theme.type().mono().font().get();
           spans.add(new Span(FONT, from, text.length(), 0, mono));
-          spans.add(new Span(BACKGROUND, from, text.length(), theme.prose().code(), null));
+          spans.add(new Span(
+              BACKGROUND,
+              from,
+              text.length(),
+              theme.prose().code(),
+              null,
+              theme.space().xs(),
+              theme.radius().small()));
         }
         case MarkdownDocument.Emphasis x ->
           inline(c, x.content(), style | EM, link, strike, heading, text, spans, links);
