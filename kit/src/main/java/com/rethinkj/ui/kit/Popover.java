@@ -149,7 +149,9 @@ public final class Popover {
    * The popover's panel, an overlay to attach to an element with {@link El#overlay} and place, as
    * {@link #popover} does; a press outside it, Escape and Tab out of it call {@link State#close}. Where nothing
    * in the content takes the focus ({@link El#hasFocusable}: disabled, invisible and fields
-   * without an edit handler do not), the panel takes it, so that Escape reaches it.
+   * without an edit handler do not), the panel takes it, so that Escape reaches it; where Tab
+   * reaches something in it, a press on its blank space focuses the panel, so Escape closes it
+   * then too.
    */
   public static El panel(State state, String label, El content) {
     return panel(state, label, content, false);
@@ -185,7 +187,10 @@ public final class Popover {
     } else {
       panel.padding(theme.space().l()).child(content);
     }
-    if (!content.hasFocusable()) {
+    if (content.hasTabStop()) {
+      // a press on its blank space keeps the focus in it, so Escape still closes it
+      panel.focusable().skipTab();
+    } else if (!content.hasFocusable()) {
       panel.focusable().focusRing(theme.accent().edge());
     }
     return panel;

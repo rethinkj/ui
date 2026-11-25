@@ -32,6 +32,89 @@ class AgentChatTest {
     assertTrue(
         Snaps.line("agent-chat", "agent-chat-dark", "label=\"0042_orders_status_created.sql\"")
             .contains("role=option"));
+    String closedButton = Snaps.line("agent-chat", "agent-chat-dark", "#model-picker ");
+    assertTrue(closedButton.contains("label=\"Atlas 3 High\""), closedButton);
+    assertTrue(closedButton.contains("expanded=false"), closedButton);
+    String openButton = Snaps.line("agent-chat", "agent-chat-picker-dark", "#model-picker ");
+    assertTrue(
+        openButton.contains("expanded") && !openButton.contains("expanded=false"), openButton);
+    assertTrue(Snaps.line("agent-chat", "agent-chat-picker-dark", "label=\"Choose a model\"")
+        .contains("role=dialog"));
+  }
+
+  /**
+   * The model picker opens above its button, filters by provider and search text, updates
+   * reasoning and speed while staying open, closes on model choice, Escape or outside press, and
+   * returns focus to its button.
+   */
+  @Test
+  void modelPickerUpdatesSelectionAndRestoresFocus(@TempDir Path out) throws IOException {
+    Snaps.assumeText();
+    AgentChat state = new AgentChat(CLOCK);
+    state.app = new App<>(state, AgentChat::view).provide(Theme.CURRENT, AgentChat::theme);
+    Script.run("""
+        size 1280 800 scale 2
+        frame
+        focus #model-picker
+        key Enter
+        frame
+        advance 0.25
+        frame
+        """, state.app, out);
+    assertTrue(state.modelPopover.isOpen());
+
+    Script.run("key Escape\nframe\nadvance 0.25\nframe\n", state.app, out);
+    assertFalse(state.modelPopover.isOpen());
+    assertEquals("model-picker", state.app.focused().key());
+
+    Script.run("""
+        press #model-picker
+        frame
+        advance 0.25
+        frame
+        press role=button label="Solstice"
+        frame
+        """, state.app, out);
+    assertTrue(state.modelPopover.isOpen());
+    String filteredByProvider = state.app.tree().dump();
+    assertTrue(filteredByProvider.contains("role=option label=\"Comet Pro\""), filteredByProvider);
+    assertFalse(filteredByProvider.contains("role=option label=\"Atlas 3\""), filteredByProvider);
+
+    Script.run("""
+        press role=option label="Medium"
+        frame
+        press role=radio label="Fast"
+        frame
+        """, state.app, out);
+    assertTrue(state.modelPopover.isOpen());
+    assertEquals("Medium", state.level);
+    assertEquals(1, state.speed);
+    assertTrue(state.app.tree().dump().contains("label=\"Atlas 3 Medium\""));
+
+    Script.run("""
+        press role=textbox label="Search models"
+        type "flash"
+        frame
+        key Enter
+        frame
+        advance 0.25
+        frame
+        """, state.app, out);
+    assertFalse(state.modelPopover.isOpen());
+    assertEquals("Comet Flash", state.model.name());
+    assertTrue(state.app.tree().dump().contains("label=\"Comet Flash Medium\""));
+
+    Script.run("""
+        press #model-picker
+        frame
+        advance 0.25
+        frame
+        press 100,100
+        frame
+        advance 0.25
+        frame
+        """, state.app, out);
+    assertFalse(state.modelPopover.isOpen());
   }
 
   /** Streaming starts with a running tool call and working indicator, and stop cancels it. */

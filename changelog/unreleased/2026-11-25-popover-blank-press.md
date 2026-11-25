@@ -1,0 +1,1 @@
+- A press on the blank space of a `Popover` keeps the focus in it, so Escape still closes it.

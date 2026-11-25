@@ -1,0 +1,4 @@
+el 0,0 200x64
+  el 12,12 176x24
+    el role=button label="Save" 12,12 176x24 focused
+      text "Save" 85,16 30x16

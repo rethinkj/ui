@@ -37,9 +37,29 @@ advance 1
 frame
 snap agent-chat-dark
 
+# Open the model picker popover above the composer button in dark theme.
+press #model-picker
+frame
+leave
+advance 1
+frame
+snap agent-chat-picker-dark
+
+# Close it with Escape, switch to light theme, and snap both closed and open.
+key Escape
+frame
+advance 1
+frame
 press role=button label="Dark theme"
 frame
 leave
 advance 1
 frame
 snap agent-chat-light
+
+press #model-picker
+frame
+leave
+advance 1
+frame
+snap agent-chat-picker-light

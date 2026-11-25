@@ -13,6 +13,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.ScrollState;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
@@ -23,14 +24,16 @@ import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Chat;
 import com.rethinkj.ui.kit.Divider;
+import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.MarkdownDocument;
-import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.NavList;
+import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Progress;
-import com.rethinkj.ui.kit.Select;
+import com.rethinkj.ui.kit.Rail;
+import com.rethinkj.ui.kit.Segmented;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -59,7 +62,24 @@ import java.util.Set;
  */
 public final class AgentChat {
 
-  private static final List<String> MODELS = List.of("Balanced", "Thorough", "Fast");
+  record Provider(String name, Symbol symbol) {}
+
+  record Model(Provider provider, String name, String context, String shortcut) {}
+
+  private static final List<String> LEVELS = List.of("Low", "Medium", "High", "Max");
+  private static final List<String> SPEEDS = List.of("Standard", "Fast");
+
+  private static final Provider NORTHSTAR = new Provider("Northstar", Symbol.STAR);
+  private static final Provider SOLSTICE = new Provider("Solstice", Symbol.LIGHTBULB);
+  private static final Provider TIMBER = new Provider("Timber", Symbol.CUBE);
+  private static final List<Provider> PROVIDERS = List.of(NORTHSTAR, SOLSTICE, TIMBER);
+  private static final List<Model> MODELS = List.of(
+      new Model(NORTHSTAR, "Atlas 3", "200k", "Alt+1"),
+      new Model(NORTHSTAR, "Atlas 3 Mini", "200k", "Alt+2"),
+      new Model(SOLSTICE, "Comet Pro", "1M", "Alt+3"),
+      new Model(SOLSTICE, "Comet Flash", "1M", null),
+      new Model(TIMBER, "Pine 32B", "64k", "Alt+4"),
+      new Model(TIMBER, "Pine 8B", "32k", null));
   private static final List<String> SAMPLE_ATTACHMENTS =
       List.of("orders_explain.json", "OrderRepository.java", "schema.sql");
   private static final double STEP_SECONDS = 0.2;
@@ -184,9 +204,15 @@ public final class AgentChat {
   final Clock clock;
   final List<Project> projects = new ArrayList<>();
   final Set<String> closedProjects = new HashSet<>();
-  final Menu.State modelMenu = new Menu.State();
+  final Popover.State modelPopover = new Popover.State();
+  final Rail.State providerRail = new Rail.State();
+  FilterList.State modelFilter = new FilterList.State();
+  List<FilterList.Entry> modelEntries;
   Session session;
-  int model;
+  int provider;
+  Model model = MODELS.getFirst();
+  String level = "High";
+  int speed;
   int nextMessageId = 1;
   int nextSessionNumber = 1;
   int nextAttachment;
@@ -370,8 +396,52 @@ public final class AgentChat {
     session.draft = text;
   }
 
-  void selectModel(int index) {
-    model = index;
+  void toggleModelPicker() {
+    if (!modelPopover.isOpen()) {
+      modelFilter = new FilterList.State();
+    }
+    modelPopover.toggle();
+  }
+
+  void selectProvider(int index) {
+    if (index >= 0) { // -1: the open item pressed again
+      provider = index;
+      modelEntries = null;
+    }
+  }
+
+  void selectModel(Model chosen) {
+    model = chosen;
+    modelEntries = null;
+    modelPopover.close();
+  }
+
+  void selectLevel(String chosen) {
+    level = chosen;
+  }
+
+  void selectSpeed(int index) {
+    speed = index;
+  }
+
+  List<FilterList.Entry> modelEntries() {
+    if (modelEntries == null) {
+      Provider filter = provider > 0 ? PROVIDERS.get(provider - 1) : null;
+      List<FilterList.Entry> entries = new ArrayList<>();
+      for (Model option : MODELS) {
+        if (filter != null && option.provider() != filter) {
+          continue;
+        }
+        entries.add(FilterList.entry(option.name(), () -> selectModel(option))
+            .symbol(option.provider().symbol())
+            .detail(option.context())
+            .shortcut(option.shortcut())
+            .group(option.provider().name())
+            .checked(option == model));
+      }
+      modelEntries = List.copyOf(entries);
+    }
+    return modelEntries;
   }
 
   void attachSampleFile() {
@@ -709,9 +779,7 @@ public final class AgentChat {
                 .working(current.streaming, state::stop)
                 .attachments(current.attachments, state::removeAttachment)
                 .start(Button.icon(GHOST, Symbol.ADD, "Attach file", state::attachSampleFile))
-                .end(Select.select(MODELS, state.model, state.modelMenu, state::selectModel)
-                    .label("Model")
-                    .w(128))
+                .end(modelPicker(state))
                 .onFiles(state::addFiles))
         .wFull();
     composer.style().maxWidth = Len.px(theme.prose().measure());
@@ -737,6 +805,74 @@ public final class AgentChat {
     return Card.flush(toolbar, Divider.divider(), transcript, composerArea).label("Chat");
   }
   // docs:end agent-chat-transcript
+
+  // docs:start agent-chat-model-picker
+  static El modelPicker(AgentChat state) {
+    Theme theme = Theme.CURRENT.get();
+    El trigger = Button.button(
+            Button.Variant.SECONDARY,
+            state.model.name(),
+            state::toggleModelPicker,
+            Button.options().icon(state.model.provider().symbol()).subtitle(state.level))
+        .key("model-picker");
+    return Popover.flush(
+        trigger,
+        state.modelPopover,
+        Side.TOP,
+        Style.Align.END,
+        "Choose a model",
+        modelPickerContent(state, theme));
+  }
+
+  private static El modelPickerContent(AgentChat state, Theme theme) {
+    List<Rail.Entry> railEntries = new ArrayList<>();
+    railEntries.add(Rail.item(Symbol.SHAPES, "All providers"));
+    railEntries.add(Rail.separator());
+    for (Provider item : PROVIDERS) {
+      railEntries.add(Rail.item(item.symbol(), item.name()));
+    }
+    El providers = Rail.rail(
+        state.providerRail,
+        "Providers",
+        Side.LEFT,
+        railEntries,
+        List.of(),
+        state.provider,
+        state::selectProvider);
+
+    El models = col()
+        .padding(theme.space().m())
+        .child(FilterList.filterList(
+                state.modelFilter, "Search models", FilterList.Entries.of(state.modelEntries()))
+            .w(260));
+
+    El levels = col()
+        .w(128)
+        .shrink(0)
+        .padding(theme.space().m())
+        .gap(theme.space().s())
+        .children(
+            Label.label(Label.Variant.SMALL, "Reasoning")
+                .padding(0, theme.space().s()),
+            NavList.navList(LEVELS, state.level, NavList::item, state::selectLevel)
+                .label("Reasoning"));
+
+    El speed = row()
+        .wFull()
+        .padding(theme.space().m())
+        .gap(theme.space().m())
+        .align(Style.Align.CENTER)
+        .children(
+            Label.label(Label.Variant.SMALL, "Speed").grow(1),
+            Segmented.segmented(SPEEDS, state.speed, state::selectSpeed).label("Speed"));
+
+    return col()
+        .children(
+            row().children(providers, models, Divider.vertical(), levels),
+            Divider.divider(),
+            speed);
+  }
+  // docs:end agent-chat-model-picker
 
   static El inspectorPane(AgentChat state) {
     Theme theme = Theme.CURRENT.get();
