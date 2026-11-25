@@ -651,7 +651,14 @@ class FieldTest {
             .key("p" + i)
             .shrink(0));
       }
-      return col().child(area);
+      El log = El.text("a\nb\nc\nd\ne\nf")
+          .editable(e -> {})
+          .readOnly()
+          .multiline()
+          .key("log")
+          .size(150, 30)
+          .shrink(0);
+      return col().children(area, log); // a read-only field that scrolls itself, as a diff does
     });
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 80, 1);
@@ -660,7 +667,8 @@ class FieldTest {
     app.focus(paragraph);
     app.frame();
     assertEquals("p1", app.focused().key());
-    assertNull(app.focused().text().caret(), "a read-only field shows no caret without a selection");
+    assertNull(
+        app.focused().text().caret(), "a read-only field shows no caret without a selection");
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "and blinks none");
     for (int i = 0; i < 4; i++) {
       app.advance(App.BLINK);
@@ -680,6 +688,12 @@ class FieldTest {
     assertEquals(app.time() + App.BLINK, app.nextChange(), "which blinks");
     app.advance(App.BLINK);
     assertTrue(app.frame());
+    assertNull(app.focused().text().caret());
+
+    app.focus(app.tree().children().get(1));
+    app.frame();
+    key(app, "End");
+    assertTrue(app.focused().scrollY() > 0, "End scrolls a field that scrolls itself to its end");
     assertNull(app.focused().text().caret());
   }
 

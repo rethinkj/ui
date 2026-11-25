@@ -985,6 +985,17 @@ final class Editor {
   }
 
   /**
+   * Home or End without Shift in a read-only multi-line field, which shows no caret to move along
+   * a row: as with PageUp, a field whose rows all show and that cannot scroll sideways leaves the
+   * key to the area around it (false); any other goes to the start or end of its text, as with
+   * Control (null).
+   */
+  private Boolean readOnlyEdge(Text t) {
+    boolean scrollsSideways = el.canScroll(true, -1) || el.canScroll(true, 1);
+    return t.showsAllRows() && !scrollsSideways ? Boolean.FALSE : null;
+  }
+
+  /**
    * The keys of a multi-line field that a single-line one does not have, or has otherwise; null
    * for the others.
    */
@@ -1026,8 +1037,8 @@ final class Editor {
         return true;
       }
       case "Home" -> {
-        if (!shift && !editable() && t.showsAllRows()) {
-          return false; // as with PageUp: the area around a read-only fitLines field scrolls
+        if (!shift && !editable()) {
+          return readOnlyEdge(t);
         }
         if (other != 0) {
           return null; // Control+Home: to the start of the text
@@ -1046,8 +1057,8 @@ final class Editor {
         return true;
       }
       case "End" -> {
-        if (!shift && !editable() && t.showsAllRows()) {
-          return false;
+        if (!shift && !editable()) {
+          return readOnlyEdge(t);
         }
         if (other != 0) {
           return null;

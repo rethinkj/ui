@@ -1788,6 +1788,10 @@ public final class App<S> {
         boolean moved = byPage
             ? area.page(true, direction)
             : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
+        ScrollState state = area.scrollState();
+        if (edge && direction > 0 && state != null && state.el == area) {
+          state.toEnd = true; // rows measured on the way keep it at the end, as scrollToEnd does
+        }
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
