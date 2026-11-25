@@ -13,6 +13,7 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -404,19 +405,29 @@ final class Wgpu {
 
   /**
    * Links the method handles beyond the adapter request and the callbacks the device needs, once,
-   * on a thread of its own, so that this overlaps with the adapter request that follows. What
-   * fails there is dropped: the thread that needs them then fails as well.
+   * on a thread of its own, so that this overlaps with the adapter request that follows.
+   *
+   * @throws UnsatisfiedLinkError if the library lacks a function, as linking it would
    */
   static void linkAhead() {
+    if (LINKING.get()) {
+      return;
+    }
+    SymbolLookup library = Natives.lookup("wgpu_native");
+    FUNCTIONS.keySet().forEach(name -> symbol(library, name)); // until it passes, on every call
     if (LINKING.compareAndSet(false, true)) {
-      Thread.ofPlatform().name("rethinkj-ui gpu link").daemon().start(() -> {
-        try {
-          MethodHandle _ = Fn.INSTANCE_CREATE_SURFACE;
-          MemorySegment _ = Callbacks.Devices.LOST;
-        } catch (RuntimeException | Error _) {
-          // Thrown again, wrapped, where the class is first used.
-        }
-      });
+      Thread.ofPlatform()
+          .name("rethinkj-ui gpu link")
+          .daemon()
+          .inheritInheritableThreadLocals(false)
+          .start(() -> {
+            try {
+              MethodHandle _ = Fn.INSTANCE_CREATE_SURFACE;
+              MemorySegment _ = Callbacks.Devices.LOST;
+            } catch (RuntimeException | Error _) {
+              // Thrown again, wrapped, where the class is first used.
+            }
+          });
     }
   }
 
@@ -425,11 +436,15 @@ final class Wgpu {
     if (descriptor == null) {
       throw new IllegalStateException(name + " is not listed in Wgpu.FUNCTIONS");
     }
-    MemorySegment symbol = Natives.lookup("wgpu_native")
+    return Linker.nativeLinker()
+        .downcallHandle(symbol(Natives.lookup("wgpu_native"), name), descriptor);
+  }
+
+  private static MemorySegment symbol(SymbolLookup library, String name) {
+    return library
         .find(name)
         .orElseThrow(() -> new UnsatisfiedLinkError("The wgpu_native library has no function "
             + name + ". The natives module does not" + " match this version of rethinkj-ui-core."));
-    return Linker.nativeLinker().downcallHandle(symbol, descriptor);
   }
 
   // ---- global ------------------------------------------------------------------------------
