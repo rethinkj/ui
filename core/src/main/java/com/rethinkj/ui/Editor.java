@@ -1026,8 +1026,8 @@ final class Editor {
         return true;
       }
       case "Home" -> {
-        if (!shift && !editable() && !el.canScroll(true, -1)) {
-          return false; // read-only text has no caret to move: the app scrolls it or its area
+        if (!shift && !editable()) {
+          return false; // no caret to move: the app scrolls the field or its area, as a browser
         }
         if (other != 0) {
           return null; // Control+Home: to the start of the text
@@ -1046,7 +1046,7 @@ final class Editor {
         return true;
       }
       case "End" -> {
-        if (!shift && !editable() && !el.canScroll(true, 1)) {
+        if (!shift && !editable()) {
           return false;
         }
         if (other != 0) {
