@@ -110,10 +110,12 @@ class ScrollbarTest {
   @Test
   void theThumbPageDownAndTheWheelAtTheEstimatedEndShowTheBottomOfTheLastRow() {
     App<Object> app = underestimated();
-    app.pointerDown(95, 10);
-    app.pointerMove(95, 500); // to the end of the track
+    String line = app.tree().dump().lines().findFirst().orElseThrow(); // ... thumb-y 92,2 6x<long>
+    float end = 2 + 96 - Float.parseFloat(line.substring(line.lastIndexOf('x') + 1));
+    app.pointerDown(95, 3);
+    app.pointerMove(95, end + 0.5f); // half a pixel short, as a pointer at 150% may stop
     app.frame();
-    app.pointerUp(95, 500);
+    app.pointerUp(95, end + 0.5f);
     app.frame();
     assertEquals(300, app.tree().scrollY(), "the thumb at the end of the track");
 

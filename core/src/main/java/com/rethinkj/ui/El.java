@@ -5810,14 +5810,18 @@ public final class El {
     }
     double free =
         vertical ? bar.trackHeight() - bar.thumbHeight() : bar.trackWidth() - bar.thumbWidth();
-    double share = free > 0
-        ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0)
-        : 0;
+    double along = start - (vertical ? bar.trackY() : bar.trackX());
+    double share = free > 0 ? Math.clamp(along / free, 0.0, 1.0) : 0;
     if (!vertical) {
       return scrollTo(share * maxScrollX, scrollY);
     }
     double min = minScrollY();
-    return scrollTo(scrollX, orEnd(min + share * (maxScrollY - min)));
+    // Within a pixel of the track's end, where a pointer at a fractional scale may stop: the end.
+    return scrollTo(
+        scrollX,
+        free > 0 && along >= free - 1
+            ? orEnd(maxScrollY)
+            : orEnd(min + share * (maxScrollY - min)));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
@@ -5828,11 +5832,13 @@ public final class El {
   }
 
   /**
-   * A vertical offset the user moves to, as the end itself once it reaches the end: rows measured
-   * on the way keep the area there, as after End.
+   * A vertical offset the user moves to, as the end itself when it reaches the estimated end of a
+   * virtual list whose last row is not built yet: once measured, that row keeps the list at its
+   * end, as after End.
    */
   double orEnd(double y) {
-    return y >= maxScrollY ? Double.POSITIVE_INFINITY : y;
+    boolean estimated = rows != null && rows.heights != null && !hasRow(rows.rowCount - 1);
+    return estimated && y >= maxScrollY ? Double.POSITIVE_INFINITY : y;
   }
 
   // Virtual lists, for App and Headless. A row's index times rowHeight is exact in a double: a
