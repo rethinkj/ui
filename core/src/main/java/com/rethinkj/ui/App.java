@@ -4590,15 +4590,16 @@ public final class App<S> {
   }
 
   /**
-   * Whether layout or scrolling changed what {@link ScrollState#atEnd} told the view of an area at
-   * or below {@code el}; forgets what it told those, so that a view that does not ask again is not
-   * built again for it.
+   * Whether layout or scrolling made an answer of {@link ScrollState#atEnd} wrong that an area at or
+   * below {@code el} gave the view; forgets the answers of those, so that a view that does not ask
+   * again is not built again for them.
    */
   private static boolean endsMoved(El el) {
     boolean moved = false;
     ScrollState state = el.scrollState();
-    if (state != null && state.el == el && state.told && state.atEnd != state.toldAtEnd) {
-      state.told = false;
+    if (state != null && state.el == el && (state.atEnd ? state.toldAway : state.toldEnd)) {
+      state.toldEnd = false;
+      state.toldAway = false;
       moved = true;
     }
     for (El child : el.children()) {

@@ -49,10 +49,10 @@ public final class ScrollState {
   double y;
   boolean followEnd;
   boolean atEnd = true;
-  // What atEnd() last told, while it has not been told again: a frame in which layout or
-  // scrolling changes it builds the view again.
-  boolean told;
-  boolean toldAtEnd;
+  // The answers atEnd() gave since the view was last built again for them: a frame in which
+  // layout or scrolling makes one of them wrong builds the view again.
+  boolean toldEnd;
+  boolean toldAway;
   // Asked for its end by scrollToEnd until its rows are measured: those rows keep it there.
   boolean toEnd;
   // The element that has it now, the only one whose scrolling writes here: not the one of an
@@ -122,8 +122,8 @@ public final class ScrollState {
    * while the area is away from its end.
    */
   public boolean atEnd() {
-    told = true;
-    toldAtEnd = atEnd;
+    toldEnd |= atEnd;
+    toldAway |= !atEnd;
     return atEnd;
   }
 
