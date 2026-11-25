@@ -471,8 +471,11 @@ import java.util.Map;
  * like the element; the gap is the ring's transparent fill. Where the clips around the element or
  * the edges of the window (the root's box) would cut that ring, as around a grid that fills a
  * pane, the ring lies just inside the border box instead, with the element's radius, so that it
- * shows whole wherever the element does. It is still clipped: an element scrolled half out of its
- * area shows half a ring, never one over what lies beside the area.
+ * shows whole wherever the element does; when the element has a {@link El#focusRingGap} and the
+ * color behind the element (the fills of its ancestors, as for text) is known, a strip of that
+ * width in that color lies just inside the ring and under the element's content, as far as that
+ * content leaves room on each side, so the ring stands out from a fill close to its own color. It is still clipped: an element
+ * scrolled half out of its area shows half a ring, never one over what lies beside the area.
  *
  * <p>An element's shadows come right before its own rectangle, the last of them first, so that the
  * first lies on top, as in CSS; with the element's clip and opacity.
@@ -609,6 +612,10 @@ public final class Scene {
   // How far beyond the root a squiggle is drawn: within it a float holds a position to 1/500 px.
   private static final float FAR = 16384;
   private static final float[] NO_BORDER = new float[4];
+
+  /** The sides in the order of a rectangle's borders. */
+  private static final Side[] SIDES = {Side.TOP, Side.RIGHT, Side.BOTTOM, Side.LEFT};
+
   private static final float[] SQUARE = new float[4];
 
   private static final float[] SRGB_TO_LINEAR = new float[256];
@@ -730,7 +737,7 @@ public final class Scene {
     windowWidth = root.x() + root.width();
     windowHeight = root.y() + root.height();
     atlas.nextFrame();
-    add(root, 0, 0, 1, 0, Float.NaN, false, null);
+    add(root, 0, 0, 1, 0, Float.NaN, 0, false, null);
     for (El overlay : root.shownOverlays()) {
       if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
         rect(
@@ -745,13 +752,14 @@ public final class Scene {
             overlay.opacity(),
             0);
       }
-      add(overlay, 0, 0, 1, 0, Float.NaN, false, null);
+      add(overlay, 0, 0, 1, 0, Float.NaN, 0, false, null);
     }
     return this;
   }
 
   /**
    * @param behind the luminance of what lies behind the element, NaN where it is not known
+   * @param behindColor the opaque ARGB color behind the element, or 0 where it is not known
    * @param moving whether a spring moves an ancestor's box, so that this one is not snapped
    * @param box the parent's content box as layout put it and as drawn, null for a parent
    *     without a border, whose content box needs no mapping of its own
@@ -763,6 +771,7 @@ public final class Scene {
       float parentOpacity,
       int clip,
       float behind,
+      int behindColor,
       boolean moving,
       ContentBox box) {
     // shortcut: opacity is multiplied into each instance, so overlapping descendants of a
@@ -877,6 +886,61 @@ public final class Scene {
           clip,
           free);
     }
+    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColor;
+    float ringWidth = stroke(RING);
+    float gap = stroke(el.focusRingGap());
+    float out = ringWidth + gap;
+    // A clip or the window would cut the ring outside, as a pane does around a grid in it.
+    boolean inset = ringed >>> 24 != 0
+        && (left - out < Math.max(clipX, 0)
+            || top - out < Math.max(clipY, 0)
+            || left + width + out > Math.min(clipRight, windowWidth)
+            || top + height + out > Math.min(clipBottom, windowHeight));
+    if (inset
+        && gap > 0
+        && behindColor >>> 24 != 0
+        && inside
+        && width > 2 * ringWidth
+        && height > 2 * ringWidth) {
+      // The inner ring's gap, under the element's image and content, and on each side only as
+      // far as that content leaves room.
+      float[] room = new float[4];
+      for (int c = 0; c < 4; c++) {
+        room[c] = el.text() != null || el.image() != null
+            ? borders[c] + el.padding(SIDES[c])
+            : c % 2 == 0 ? height : width;
+      }
+      for (El child : el.children()) {
+        if (child.isPlaced()) {
+          room[0] = Math.min(room[0], child.y());
+          room[1] = Math.min(room[1], el.width() - child.x() - child.width());
+          room[2] = Math.min(room[2], el.height() - child.y() - child.height());
+          room[3] = Math.min(room[3], child.x());
+        }
+      }
+      float[] stripRadii = new float[4];
+      float[] strip = new float[4];
+      for (int c = 0; c < 4; c++) {
+        stripRadii[c] = Math.max(0, radii[c] - ringWidth);
+        // Whole physical pixels, rounded down, and one short of the content, whose glyphs can
+        // reach a pixel beyond their line box, as the dots of an Ü do.
+        float fit = Float.isNaN(scale)
+            ? room[c] - ringWidth - 1
+            : (float) ((Math.floor((room[c] - ringWidth) * (double) scale + 1e-3) - 1) / scale);
+        strip[c] = Math.max(0, Math.min(gap, fit));
+      }
+      rect(
+          left + ringWidth,
+          top + ringWidth,
+          width - 2 * ringWidth,
+          height - 2 * ringWidth,
+          stripRadii,
+          strip,
+          0,
+          behindColor,
+          opacity,
+          clip);
+    }
     if (el.image() != null && inside) {
       image(
           el.image(),
@@ -904,6 +968,7 @@ public final class Scene {
         segment(segment, left, top, opacity, inner);
       }
       float content = contentBehind(el, opacity, behind);
+      int contentColor = contentBehindColor(el, opacity, behindColor);
       if (el.text() != null) {
         for (El child : el.children()) {
           if (child.rangeBoxes() != null) {
@@ -927,7 +992,7 @@ public final class Scene {
             }
             childClip = blockClip;
           }
-          add(child, x, y, opacity, childClip, content, free, own);
+          add(child, x, y, opacity, childClip, content, contentColor, free, own);
         }
       }
       if (fieldText != null && (!fieldText.blockSelection().isEmpty() || fieldText.hasHints())) {
@@ -965,10 +1030,7 @@ public final class Scene {
       // Glyphs of a field that never scrolls can still overhang into the enclosing clip.
       text(el, left, top, opacity, inner, clip, contentBehind(el, opacity, behind));
     }
-    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColor;
     if (ringed >>> 24 != 0) {
-      float ringWidth = stroke(RING);
-      float out = ringWidth + stroke(el.focusRingGap());
       float l = left - out;
       float t = top - out;
       float r = left + width + out;
@@ -977,11 +1039,7 @@ public final class Scene {
       for (int c = 0; c < 4; c++) {
         ringRadii[c] = radii[c] > 0 ? radii[c] + out : 0;
       }
-      if (l < Math.max(clipX, 0)
-          || t < Math.max(clipY, 0)
-          || r > Math.min(clipRight, windowWidth)
-          || b > Math.min(clipBottom, windowHeight)) {
-        // A clip or the window would cut the ring outside, as a pane does around a grid in it.
+      if (inset) {
         l = left;
         t = top;
         r = left + width;
@@ -1529,6 +1587,35 @@ public final class Scene {
     // further up, or none. Paint the scene into a coarse grid of colors when that shows.
     float luminance = luminance(fill);
     return alpha == 1 ? luminance : luminance * alpha + behind * (1 - alpha);
+  }
+
+  /**
+   * The opaque color behind an element's content: its fill over what lies behind the element, or 0
+   * where it is not known, as when a background or partial arc makes it vary from point to point.
+   */
+  private static int contentBehindColor(El el, float opacity, int behind) {
+    return el.background() != null
+        ? 0
+        : el.arcSweep() == 1 || el.fill() >>> 24 == 0
+            ? overColor(el.fill(), opacity, behind)
+            : el.arcSweep() == 0 ? behind : 0;
+  }
+
+  /**
+   * The opaque color of {@code fill} at {@code opacity} over {@code behind}, or 0 when unknown.
+   */
+  private static int overColor(int fill, float opacity, int behind) {
+    float alpha = (fill >>> 24) / 255f * opacity;
+    if (alpha == 0) {
+      return behind;
+    }
+    if (alpha == 1) {
+      return fill;
+    }
+    if (behind == 0) {
+      return 0;
+    }
+    return Colors.over(behind, opacity == 1 ? fill : Colors.alpha(fill, alpha));
   }
 
   /** Relative luminance of an sRGB color, ignoring its alpha: 0 for black, 1 for white. */

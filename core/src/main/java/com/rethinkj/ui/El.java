@@ -3740,7 +3740,8 @@ public final class El {
    * Draws the focus ring this many pixels away from the border box, so that what lies behind the
    * element shows between the two: a ring in the accent beside a button filled with the accent.
    * The default is 0, the ring against the box. Where a clip or the window's edge would cut the
-   * ring, it lies inside the box without a gap, as without one.
+   * ring, it lies inside the box instead, with a strip this wide in the color behind the element
+   * just inside the ring, where the element's content leaves room and that color is known.
    */
   public El focusRingGap(float pixels) {
     this.focusRingGap = pixels;

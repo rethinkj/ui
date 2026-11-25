@@ -13,16 +13,27 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Button.Variant;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Every focusable component draws its focus ring in its own theme, whatever the app's is. */
 class FocusRingTest {
+
+  @TempDir
+  Path out;
 
   /** The focusable components of the kit in one theme, on that theme's window color. */
   private static El panel(Theme t) {
@@ -72,6 +83,34 @@ class FocusRingTest {
           hex(pixels.argb(x, y)),
           "the ring of " + focused.role() + " in the " + (i < 5 ? "dark" : "light") + " theme");
     }
+  }
+
+  /** A primary button that fills a clip has its ring inside, apart from its fill by the surface. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aClippedPrimaryButtonShowsItsInnerRingClearly(String name) throws IOException {
+    TextLibraries.assumeLoaded();
+    Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+    App<Object> app = new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(t.space().l())
+                .fill(t.surface().window())
+                .child(col()
+                    .wFull()
+                    .clip()
+                    .fill(t.surface().window())
+                    .child(button(Variant.PRIMARY, "Save", () -> {}).wFull())))
+        .provide(Theme.CURRENT, s -> t);
+    app.textRendering(TextRendering.LINUX);
+    String image = "focus-ring-clipped-" + name + "-2x";
+    Script.run("size 200 64 scale 2\nframe\nkey Tab\nframe\nsnap " + image, app, out);
+    Golden.assertMatches(
+        image,
+        Png.decode(Files.readAllBytes(out.resolve(image + ".png"))),
+        Files.readString(out.resolve(image + ".tree.txt")));
   }
 
   /** The window position of {@code target}'s top left corner, or null if it is not below. */
