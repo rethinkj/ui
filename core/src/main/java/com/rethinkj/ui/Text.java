@@ -2098,6 +2098,7 @@ public final class Text implements Measure {
       this.breaks = of.breaks;
       this.chunks = of.chunks;
       this.hints = of.hints;
+      this.roomGaps = of.roomGaps;
       this.limit = of.limit;
       this.rowStarts = of.rowStarts;
       this.rowWidths = of.rowWidths;
