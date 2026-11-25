@@ -815,9 +815,13 @@ public final class AgentChat {
             state::toggleModelPicker,
             Button.options().icon(state.model.provider().symbol()).subtitle(state.level))
         .key("model-picker");
-    El content = state.modelPopover.isOpen() ? modelPickerContent(state, theme) : null;
     return Popover.flush(
-        trigger, state.modelPopover, Side.TOP, Style.Align.END, "Choose a model", content);
+        trigger,
+        state.modelPopover,
+        Side.TOP,
+        Style.Align.END,
+        "Choose a model",
+        modelPickerContent(state, theme));
   }
 
   private static El modelPickerContent(AgentChat state, Theme theme) {
