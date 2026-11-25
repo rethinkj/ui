@@ -2364,8 +2364,8 @@ public final class App<S> {
       this.active = active;
       blinkStart = time;
       if (!active) { // its key comes up elsewhere, if at all
-        if (capture instanceof Selecting s) {
-          s.moved = false; // no edge scroll until the pointer moves again
+        if (capture instanceof Selecting) {
+          capture = IDLE; // its release may come up elsewhere; an edge scroll would go on
         }
         keyPressed = null;
         keyPressKey = null;
@@ -4907,19 +4907,15 @@ public final class App<S> {
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
     boolean changed = false;
-    El scope = animator.liveElement(old.scopeId);
-    if (scope != null) {
-      for (ScopeField field : scopeFields(scope)) {
-        Editor editor = field.el.editor();
-        if (editor != keep) {
-          changed |= editor.collapse();
-        }
-      }
-    }
-    if (focus.waits() && within(focus.id(), old.scopeId)) {
-      Editor waiting = editors.get(focus.id());
-      if (waiting != null && waiting != keep) {
-        changed |= waiting.collapse();
+    // Every editor of the scope, also of rows not built yet, whose editors a rebuild reuses.
+    for (Map.Entry<Object, Editor> entry : editors.entrySet()) {
+      Editor editor = entry.getValue();
+      El el = editor.element();
+      if (editor != keep
+          && el != null
+          && isScopeFieldCandidate(el)
+          && within(entry.getKey(), old.scopeId)) {
+        changed |= editor.collapse();
       }
     }
     return changed || old.hasSelection();
@@ -4928,7 +4924,7 @@ public final class App<S> {
   /** Handles a key on the focused field; one that moves the caret ends a cross-field selection. */
   private boolean handleFieldKey(El el, Key key) {
     // By the scope, not the field: the focus stays at its row index when keyed rows move.
-    if (isCopy(key) && isScopeSelectedId(animator.identity(el))) {
+    if (isCopy(key) && isScopeFieldCandidate(el) && isScopeSelectedId(animator.identity(el))) {
       copyScopeSelection();
       return true;
     }
@@ -4971,9 +4967,12 @@ public final class App<S> {
           continue;
         }
         rowFields.clear();
-        collectRowFields(rowEl, rowFields);
+        collectRowFields(rowEl, true, rowFields);
         for (int ord = 0; ord < rowFields.size(); ord++) {
-          appendScopeSlice(out, fieldText(rowFields.get(ord)), row, ord);
+          El field = rowFields.get(ord);
+          if (field != null) {
+            appendScopeSlice(out, fieldText(field), row, ord);
+          }
         }
       }
     }
@@ -5074,16 +5073,20 @@ public final class App<S> {
     return !el.isExiting() && el.style().display != Style.Display.NONE && !el.isInert();
   }
 
-  /** Collects the read-only, unmasked fields inside one virtual list row in tree order. */
-  private static void collectRowFields(El el, List<El> out) {
+  /**
+   * Collects the read-only, unmasked fields inside one virtual list row in tree order, null for
+   * one under {@code opacity(0)}, which keeps its ordinal but copies nothing.
+   */
+  private static void collectRowFields(El el, boolean shown, List<El> out) {
     if (!numbered(el)) {
       return;
     }
+    shown &= el.opacity() != 0;
     if (isScopeFieldCandidate(el)) {
-      out.add(el);
+      out.add(shown ? el : null);
     }
     for (El child : el.children()) {
-      collectRowFields(child, out);
+      collectRowFields(child, shown, out);
     }
   }
 
