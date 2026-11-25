@@ -639,6 +639,51 @@ class FieldTest {
   }
 
   @Test
+  void focusedReadOnlyTextBlinksOnlyWithASelectionAndHomeAndEndScrollTheAreaAroundIt() {
+    App<Object> app = new App<>(new Object(), s -> {
+      El area = col().key("area").scroll().size(150, 60);
+      for (int i = 0; i < 10; i++) {
+        area.child(El.text("line " + i)
+            .editable(e -> {})
+            .readOnly()
+            .multiline()
+            .fitLines()
+            .key("p" + i)
+            .shrink(0));
+      }
+      return col().child(area);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 80, 1);
+    app.frame();
+    El paragraph = app.tree().children().getFirst().children().get(1);
+    app.focus(paragraph);
+    app.frame();
+    assertEquals("p1", app.focused().key());
+    assertNull(app.focused().text().caret(), "a read-only field shows no caret without a selection");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "and blinks none");
+    for (int i = 0; i < 4; i++) {
+      app.advance(App.BLINK);
+      assertFalse(app.frame(), "an idle app draws nothing");
+    }
+
+    key(app, "End", CONTROL);
+    El area = app.tree().children().getFirst();
+    assertTrue(area.scrollY() > 0, "Control+End scrolls the area to its end");
+    assertFalse(area.canScroll(false, 1));
+    key(app, "Home");
+    assertEquals(0, app.tree().children().getFirst().scrollY(), "Home to its start");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "the caret moved nowhere to show");
+
+    key(app, "End", SHIFT); // a selection, with its caret
+    assertNotNull(app.focused().text().caret());
+    assertEquals(app.time() + App.BLINK, app.nextChange(), "which blinks");
+    app.advance(App.BLINK);
+    assertTrue(app.frame());
+    assertNull(app.focused().text().caret());
+  }
+
+  @Test
   void anInactiveWindowShowsNoCaretAndDrawsNothingUntilItIsActiveAgain() {
     App<Model> app = start("abc");
     focus(app);

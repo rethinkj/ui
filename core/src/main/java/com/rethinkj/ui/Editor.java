@@ -1026,6 +1026,9 @@ final class Editor {
         return true;
       }
       case "Home" -> {
+        if (!shift && !editable() && t.showsAllRows()) {
+          return false; // as with PageUp: the area around a read-only fitLines field scrolls
+        }
         if (other != 0) {
           return null; // Control+Home: to the start of the text
         }
@@ -1043,6 +1046,9 @@ final class Editor {
         return true;
       }
       case "End" -> {
+        if (!shift && !editable() && t.showsAllRows()) {
+          return false;
+        }
         if (other != 0) {
           return null;
         }
@@ -1785,7 +1791,7 @@ final class Editor {
   // ---- Drawing
 
   /** A read-only field shows a caret only with a selection, so that it does not look editable. */
-  private boolean showsCaret(boolean focused) {
+  boolean showsCaret(boolean focused) {
     return focused && !(el.isReadOnly() && caret == anchor);
   }
 
