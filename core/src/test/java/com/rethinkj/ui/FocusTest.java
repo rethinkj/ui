@@ -306,6 +306,74 @@ class FocusTest {
   }
 
   @Test
+  void aFocusedFieldWithAFieldStateKeepsItsCompositionAndUndoRunWhenDisplaced() {
+    TextLibraries.assumeLoaded();
+    FieldState target = new FieldState();
+    record Entry(String[] text, FieldState state) {}
+    List<Entry> entries = new ArrayList<>(List.of(new Entry(new String[] {"hi"}, target)));
+    App<List<Entry>> app = new App<>(entries, list -> {
+      El root = col().wFull().hFull().gap(4);
+      for (Entry entry : list) {
+        root.child(El.text(entry.text()[0])
+            .editable(v -> entry.text()[0] = v)
+            .fieldState(entry.state())
+            .w(120)
+            .h(24));
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    start(app, 200, 120);
+
+    app.focus(app.tree().children().getFirst());
+    app.frame();
+
+    // Typing before and after an inserted FieldState sibling merges into one undo step.
+    app.textInput("a");
+    app.frame();
+    entries.add(0, new Entry(new String[] {"before"}, new FieldState()));
+    app.invalidate();
+    app.frame();
+    assertSame(target, app.focused().fieldState());
+    app.textInput("b");
+    app.frame();
+    assertEquals("hiab", entries.get(1).text()[0]);
+    key(app, "Z", Key.CONTROL);
+    assertEquals("hi", entries.get(1).text()[0], "typing across the insert stays one undo step");
+
+    // An input-method composition in progress survives a FieldState sibling inserted before it.
+    app.textComposition("ni", -1);
+    app.frame();
+    assertNotNull(app.focused().text().composition());
+    assertTrue(app.tree().dump().contains("composing \"ni\""), app.tree().dump());
+
+    entries.add(1, new Entry(new String[] {"mid"}, new FieldState()));
+    app.invalidate();
+    app.frame();
+    assertSame(target, app.focused().fieldState());
+    assertSame(app.tree().children().get(2), app.focused());
+    assertNotNull(app.focused().text().composition(), "composition survives displacement");
+    assertTrue(app.tree().dump().contains("composing \"ni\""), app.tree().dump());
+
+    app.textInput("你");
+    app.textComposition("", -1);
+    app.frame();
+    assertEquals("hi你", entries.get(2).text()[0]);
+    assertNull(app.focused().text().composition());
+
+    // When the displaced field actually leaves the tree, leave() still drops its composition.
+    app.textComposition("ko", -1);
+    app.frame();
+    El leaving = app.focused();
+    assertNotNull(leaving.text().composition());
+    entries.set(2, new Entry(new String[] {"replacement"}, new FieldState()));
+    app.invalidate();
+    app.frame();
+    assertNull(leaving.text().composition(), "removed displaced field is left");
+    assertNull(leaving.text().caret(), "removed displaced field clears its caret");
+  }
+
+  @Test
   void aRootSelectionScopeCopiesAfterASiblingIsAddedBeforeAFocusedFieldState() {
     TextLibraries.assumeLoaded();
     FieldState beta = new FieldState();

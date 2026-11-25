@@ -281,6 +281,9 @@ public final class App<S> {
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
+  // Editors with a FieldState displaced from their identity during attachEditors; sweepEditors
+  // leaves the ones whose field did not re-attach under another identity.
+  private final Set<Editor> displaced = Collections.newSetFromMap(new IdentityHashMap<>());
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
   private Browser browser = Browser.NONE;
@@ -3499,6 +3502,9 @@ public final class App<S> {
         El field = blinking.element();
         if (field.takePartsBuilt()) { // a block a look took was built anew
           finishBuiltParts(field, animator.identity(field), asking);
+          if (!displaced.isEmpty()) {
+            sweepEditors(); // a part's field took another's identity after the frame's sweep
+          }
         }
       }
       drawn = true;
@@ -3768,6 +3774,9 @@ public final class App<S> {
         if (capture instanceof Selecting s && s.id().equals(id) && s.scopeId() == null) {
           capture = IDLE; // a press on a field that moved on, which the new editor never had
         }
+        if (editor != null) {
+          displaced.add(editor);
+        }
         editor = new Editor(el); // not the editor of a field with a FieldState that moved on
         editors.put(id, editor);
       }
@@ -3789,6 +3798,7 @@ public final class App<S> {
           state.editor = new Editor(el, state.document);
         }
         editor = state.editor;
+        displaced.remove(editor);
         Editor was = editors.put(id, editor);
         if (was != editor) { // back in the tree, maybe where another field was
           // A scope's drag holds positions, not this field.
@@ -3799,7 +3809,7 @@ public final class App<S> {
             if (was.element().fieldState() == null) {
               was.drop();
             } else {
-              was.leave();
+              displaced.add(was);
             }
           }
           editor.returned();
@@ -4021,6 +4031,14 @@ public final class App<S> {
       }
       return true;
     });
+    for (Editor editor : displaced) {
+      if (editor != waiting
+          && !kept.contains(editor)
+          && editor.element().fieldState().app == this) {
+        editor.leave(); // its field left the tree, not moved to another identity
+      }
+    }
+    displaced.clear();
   }
 
   /**
