@@ -129,6 +129,11 @@ public final class Text implements Measure {
   private static final int CHUNK_SIZE = 2048;
   private static final int CHUNK_WINDOW = 128;
 
+  // The shaped lines a text keeps in one tree, and their characters: measuring and laying out each
+  // walk every line of a long wrapping text, so a text within both finds its lines shaped once.
+  private static final int SHAPED_LINES = 16_384;
+  private static final int SHAPED_CHARACTERS = 1 << 20;
+
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
@@ -218,6 +223,7 @@ public final class Text implements Measure {
   private String shown;
   private Lines shownLines;
   private final Map<Integer, Para> shapedLines = new HashMap<>();
+  private long shapedLineCharacters; // put into shapedLines since it was last emptied
   private float tabStop;
   private float advance; // of an average character, for the estimate of rows
   private float viewX;
@@ -589,6 +595,7 @@ public final class Text implements Measure {
     prepared = false;
     paras = null;
     shapedLines.clear();
+    shapedLineCharacters = 0;
     sortedHints = null;
     viewStale = true;
     highlightPending = false;
@@ -2684,8 +2691,9 @@ public final class Text implements Measure {
     Lines lines = shownLines();
     Para para = shapedLines.get(line);
     if (para == null) {
-      if (shapedLines.size() >= 4096) {
+      if (shapedLines.size() >= SHAPED_LINES || shapedLineCharacters >= SHAPED_CHARACTERS) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
+        shapedLineCharacters = 0;
       }
       Spans spans = highlighter == null || placeholderShown
           ? null
@@ -2702,6 +2710,7 @@ public final class Text implements Measure {
         lines.shapedCharacters += text.length();
       }
       shapedLines.put(line, para);
+      shapedLineCharacters += lineEnd - lineStart;
       lines.shaped++;
     }
     float limit = wraps && laidOut ? placedWidth + SLACK : Float.POSITIVE_INFINITY;

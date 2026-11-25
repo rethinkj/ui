@@ -336,6 +336,18 @@ class TextAreaTest {
     }
   }
 
+  /** A field as high as its rows is measured and laid out in full, and keeps every line shaped. */
+  @Test
+  void aRebuildShapesEachLineOfATallFieldOnce() {
+    App<Model> app = Areas.start(
+        "word\n".repeat(5000), field -> field.readOnly().wrapText().fitLines(), 1, El::scroll);
+    Lines lines = field(app).editor().lineIndex();
+    int before = lines.shaped;
+    app.post(() -> {});
+    app.frame();
+    assertTrue(lines.shaped - before <= 5001, "a rebuild shaped " + (lines.shaped - before));
+  }
+
   @Test
   void aFrameShapesOnlyTheLinesInViewOfALongText() {
     App<Model> app = focused("SELECT c FROM t WHERE id = 1;\n".repeat(5000));
