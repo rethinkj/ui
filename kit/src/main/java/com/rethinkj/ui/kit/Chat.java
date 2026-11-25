@@ -120,7 +120,8 @@ public final class Chat {
     }
 
     /**
-     * State for the copy button's brief confirmation check mark and tooltip; null for no
+     * State for the copy button's brief confirmation check mark and tooltip (and for code blocks
+     * in {@link #agent(MarkdownDocument, Options)} when {@link #markdown} is omitted); null for no
      * confirmation.
      */
     public Options copied(Button.Copied copied) {
@@ -136,8 +137,8 @@ public final class Chat {
 
     /**
      * Options forwarded to {@link Markdown#fragment} by {@link #agent(MarkdownDocument, Options)}.
-     * When omitted, {@link Markdown#options()} is used (with {@link #copy(Clipboard)} forwarded to
-     * code blocks if set).
+     * When omitted, {@link Markdown#options()} is used (with {@link #copy(Clipboard)} and {@link
+     * #copied(Button.Copied)} forwarded to code blocks if set).
      */
     public Options markdown(Markdown.Options options) {
       this.markdown = options;
@@ -299,7 +300,7 @@ public final class Chat {
     Markdown.Options md = options.markdown != null
         ? options.markdown
         : options.clipboard != null
-            ? Markdown.options().copy(options.clipboard)
+            ? Markdown.options().copy(options.clipboard).copied(options.copied)
             : Markdown.options();
     String copyText = options.copyText != null
         ? options.copyText

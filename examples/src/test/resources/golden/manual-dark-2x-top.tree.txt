@@ -73,7 +73,7 @@ el 0,0 960x640
                 el 15,354 2x16
                 text "Images" 21,354 214x15
     el 256,32 696x600
-      el #doc-0 role=document 257,33 694x598 rows 0-12/39 thumb-y 943,35 6x165.68
+      el #doc-0 role=document 257,33 694x598 rows 0-12/39 thumb-y 943,35 6x166.14
         el 281,57 646x45 pos=1/39
           el 281,57 646x37
             text #heading-writing-documents role=heading "Writing documents" 281,57 646x36 readonly level=1 lines 1-1/1

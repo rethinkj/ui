@@ -981,7 +981,11 @@ final class Editors {
         inspect,
         check,
         Markdown.fragment(
-            state.chatReply, Markdown.options().copy(clipboard).languages(Editors::highlighter)));
+            state.chatReply,
+            Markdown.options()
+                .copy(clipboard)
+                .copied(state.answerCopied)
+                .languages(Editors::highlighter)));
     El followUp = Chat.agent(
         Chat.tool(
             Symbol.PLAY,
