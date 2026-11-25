@@ -1,0 +1,45 @@
+# AgentChat: send a message, let the simulated agent stream tool calls and Markdown with a list
+# and SQL code block, expand a tool call, and snap both themes at scale 2.
+size 1280 800 scale 2
+frame
+
+press role=textbox label="Ask about storefront…"
+type "Draft a concurrent index migration for the open orders query."
+frame
+key Enter
+frame
+
+# Drive the simulated agent step by step through tool calls and streaming Markdown chunks.
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+advance 0.25
+frame
+
+# Expand the query plan tool call so the snap shows its output alongside the streamed answer.
+press role=button label="Inspect EXPLAIN plan for open orders"
+frame
+leave
+advance 1
+frame
+snap agent-chat-dark
+
+press role=button label="Dark theme"
+frame
+leave
+advance 1
+frame
+snap agent-chat-light
