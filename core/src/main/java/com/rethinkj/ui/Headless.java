@@ -102,7 +102,7 @@ public final class Headless {
       for (int i = 0; i < children.size(); i++) {
         boolean grew = fillRows(
             children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
-        if (grew && el.isVirtualList() && el.measuresRows() && round < 3) {
+        if (grew && el.isVirtualList() && el.measuresRows() && round < 64) {
           el.layoutRow(i, scale, false);
           el.remeasureRow(i);
           settle(children.get(i));

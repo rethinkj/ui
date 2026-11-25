@@ -5357,7 +5357,11 @@ public final class El {
       double over = content + coverY - height;
       // A list as high as its rows does not scroll by what layout rounded off its edges.
       double rounded = content - height;
-      if (rows.laidTotal == laidRowsTotal() && rounded > 0 && rounded < 1) {
+      boolean asHigh = Len.AUTO.equals(style.height)
+          && Len.AUTO.equals(style.maxHeight)
+          && style.grow == 0
+          && rows.laidTotal == laidRowsTotal();
+      if (asHigh && rounded > 0 && rounded < 1) {
         over -= rounded;
       }
       maxScrollY = Math.max(over, 0);
