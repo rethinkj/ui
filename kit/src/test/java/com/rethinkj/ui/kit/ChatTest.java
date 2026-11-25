@@ -21,6 +21,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Behavior of {@link Chat}: user bubble sizing, copy actions, tool call toggling and working. */
 class ChatTest {
@@ -755,6 +757,66 @@ class ChatTest {
     assertTrue(
         next.lines()
             .anyMatch(l -> l.contains("\"Message 15 has needle.\"") && l.contains("underline")),
+        next);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void findAdvancesPastCurrentMatchWhenRowReshapes(boolean pressQuery) throws IOException {
+    // Message 8 is a paragraph whose code span holds a pipe; it becomes a table while it streams,
+    // which splits the code span into two cells. The match's old offsets then fall on the first
+    // "x" in the row, while it is the second that is current.
+    List<Entry> messages = needleMessages();
+    messages.set(2, new Entry(8, Markdown.parse("| ````x x|y```` |")));
+    messages.set(9, new Entry(15, Markdown.parse("Message 15 has x.")));
+    App<Object> app = findApp(messages);
+
+    // Open Find and go to the second match in message 8; with pressQuery, press into the query
+    // field without editing it, which ends the scope's selection.
+    Script.run("""
+        size 560 240 scale 2
+        frame
+        press text="Message 19." at left+20
+        frame
+        key F control
+        frame
+        type "x"
+        frame
+        key Enter
+        frame
+        advance 1
+        frame""", app, out);
+    if (pressQuery) {
+      Script.run("press #find-field at left+20\nframe", app, out);
+    }
+    String first = app.tree().dump();
+    assertTrue(
+        first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")), first);
+
+    // In one build, prepend older messages (with a match) and make message 8 a table: the count
+    // stays on its second match (3 of 4), and Enter goes on to message 15 (4 of 4).
+    List<Entry> older = new ArrayList<>();
+    for (int id = 1; id <= 3; id++) {
+      String body = id == 2 ? "Message 2 has x." : "Message " + id + " older.";
+      older.add(new Entry(id, Markdown.parse(body)));
+    }
+    messages.addAll(0, older);
+    messages.set(5, new Entry(8, Markdown.parse("""
+                | ````x x|y```` |
+                | --- | --- |
+                | A | value |""")));
+    app.invalidate();
+    Script.run("frame", app, out);
+    String afterReshape = app.tree().dump();
+    assertTrue(
+        afterReshape.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"3 of 4\"")),
+        afterReshape);
+
+    Script.run("key Enter\nframe", app, out);
+    String next = app.tree().dump();
+    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"4 of 4\"")), next);
+    assertTrue(
+        next.lines().anyMatch(l -> l.contains("\"Message 15 has x.\"") && l.contains("underline")),
         next);
   }
 

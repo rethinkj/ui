@@ -129,6 +129,14 @@ public final class Text implements Measure {
   private static final int CHUNK_SIZE = 2048;
   private static final int CHUNK_WINDOW = 128;
 
+  // The shaped lines a text keeps in one tree: measuring and laying out each walk every line of a
+  // long wrapping text, so a text within both finds its lines shaped once. Beyond 4,096 lines,
+  // their
+  // characters are bounded too.
+  private static final int SHAPED_LINES = 16_384;
+  private static final int SHAPED_LINES_ANY_LENGTH = 4096;
+  private static final int SHAPED_CHARACTERS = 1 << 20;
+
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
@@ -218,6 +226,7 @@ public final class Text implements Measure {
   private String shown;
   private Lines shownLines;
   private final Map<Integer, Para> shapedLines = new HashMap<>();
+  private long shapedLineCharacters; // of the lines in shapedLines
   private float tabStop;
   private float advance; // of an average character, for the estimate of rows
   private float viewX;
@@ -589,6 +598,7 @@ public final class Text implements Measure {
     prepared = false;
     paras = null;
     shapedLines.clear();
+    shapedLineCharacters = 0;
     sortedHints = null;
     viewStale = true;
     highlightPending = false;
@@ -2604,7 +2614,7 @@ public final class Text implements Measure {
                 if (width == slot.width) {
                   return false;
                 }
-                shapedLines.remove(row.line);
+                dropShaped(row.line);
                 viewStale = true;
                 return true;
               }
@@ -2621,7 +2631,7 @@ public final class Text implements Measure {
           if (width == slot.width) {
             return false;
           }
-          shapedLines.remove(row.line);
+          dropShaped(row.line);
           viewStale = true;
           return true;
         }
@@ -2679,13 +2689,24 @@ public final class Text implements Measure {
         Math.max(placedWidth / Math.max(advance, 1), 1));
   }
 
+  /** Drops shaped line {@code line}, so that the next {@link #para} shapes it anew. */
+  private void dropShaped(int line) {
+    Para dropped = shapedLines.remove(line);
+    if (dropped != null) {
+      shapedLineCharacters -= dropped.text.length();
+    }
+  }
+
   /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
   private Para para(int line) {
     Lines lines = shownLines();
     Para para = shapedLines.get(line);
     if (para == null) {
-      if (shapedLines.size() >= 4096) {
+      int kept = shapedLines.size();
+      if (kept >= SHAPED_LINES
+          || kept >= SHAPED_LINES_ANY_LENGTH && shapedLineCharacters >= SHAPED_CHARACTERS) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
+        shapedLineCharacters = 0;
       }
       Spans spans = highlighter == null || placeholderShown
           ? null
@@ -2702,6 +2723,7 @@ public final class Text implements Measure {
         lines.shapedCharacters += text.length();
       }
       shapedLines.put(line, para);
+      shapedLineCharacters += lineEnd - lineStart;
       lines.shaped++;
     }
     float limit = wraps && laidOut ? placedWidth + SLACK : Float.POSITIVE_INFINITY;
@@ -3165,7 +3187,7 @@ public final class Text implements Measure {
       }
       Spans spans = lines.spans(row.line, shown, highlighter, highlightKey);
       if (spans != null) {
-        shapedLines.remove(row.line);
+        dropShaped(row.line);
         gained = true;
       } else {
         stillPending = true;
