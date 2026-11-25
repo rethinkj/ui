@@ -299,8 +299,8 @@ public record Theme(
 
   /**
    * A theme whose colors for code are {@link Code#DARK} on a dark raised surface and {@link
-   * Code#LIGHT} on a light one, with the default {@link Caption}, and whose documents look as
-   * {@link Prose#DARK} or {@link Prose#LIGHT} by the same rule.
+   * Code#LIGHT} on a light one, with {@link Caption#DARK} or {@link Caption#LIGHT} and {@link
+   * Prose#DARK} or {@link Prose#LIGHT} by the same rule.
    */
   public Theme(
       Surfaces surface,
@@ -331,10 +331,10 @@ public record Theme(
         scrollbars,
         elevation,
         lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT,
-        CAPTION);
+        lightness(surface.raised()) < 0.5 ? Caption.DARK : Caption.LIGHT);
   }
 
-  /** A theme with the default {@link Caption} and the {@link Prose} of its lightness, as above. */
+  /** A theme with the {@link Caption} and {@link Prose} of its lightness, as above. */
   public Theme(
       Surfaces surface,
       TextColors text,
@@ -365,7 +365,7 @@ public record Theme(
         scrollbars,
         elevation,
         code,
-        CAPTION);
+        lightness(surface.raised()) < 0.5 ? Caption.DARK : Caption.LIGHT);
   }
 
   /** A theme whose documents look as {@link Prose#DARK} or {@link Prose#LIGHT}, as above. */
@@ -1765,6 +1765,9 @@ public record Theme(
    * @param tall the height of a bar with a field in its middle, such as a search
    * @param button the width of a minimize, maximize or close button, 46 as Windows 11's
    * @param glyph the size of the buttons' glyphs, whose drawing of the icon font is made for it
+   * @param glow the most alpha, from 0 to 1, of {@link TitleBar#glow} at its strongest point near
+   *     the app icon, less for a color that would leave muted text below 4.5:1 over it
+   * @param glowRadius the horizontal reach of {@link TitleBar#glow} in logical pixels
    */
   public record Caption(
       int closeHover,
@@ -1773,7 +1776,38 @@ public record Theme(
       float height,
       float tall,
       float button,
-      float glyph) {
+      float glyph,
+      float glow,
+      float glowRadius) {
+
+    /** The dark theme's title bar. */
+    public static final Caption DARK =
+        new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12, 0.16f, 480);
+
+    /** The light theme's title bar. */
+    public static final Caption LIGHT =
+        new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12, 0.20f, 480);
+
+    /** A caption with the default glow ({@link #DARK}'s strength and reach). */
+    public Caption(
+        int closeHover,
+        int onClose,
+        int closePressed,
+        float height,
+        float tall,
+        float button,
+        float glyph) {
+      this(
+          closeHover,
+          onClose,
+          closePressed,
+          height,
+          tall,
+          button,
+          glyph,
+          DARK.glow,
+          DARK.glowRadius);
+    }
 
     /** A caption of Windows 11's sizes whose close button is pressed in a lighter red. */
     public Caption(int closeHover, int onClose) {
@@ -1796,7 +1830,6 @@ public record Theme(
       24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320, 360, 120);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
-  private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485, 32, 40, 46, 12);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
@@ -1841,7 +1874,9 @@ public record Theme(
    * a CSS shadow has, as the renderer mixes in linear light.
    *
    * Caption. The close button of a window's own title bar turns the red of Windows 11's under the
-   * pointer, in both themes, with a white cross at 4.5:1 or more.
+   * pointer, in both themes, with a white cross at 4.5:1 or more. The optional project color glow
+   * keeps primary and muted text and the caption buttons' glyphs readable at its strongest point
+   * for every hue.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
    * cards; card titles 14, section and dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
@@ -1892,7 +1927,7 @@ public record Theme(
               new Shadow(0, 1, 3, 0, alpha(BLACK, 0.6f)),
               new Shadow(0, 2, 6, 0, alpha(BLACK, 0.35f)))),
       Code.DARK,
-      CAPTION);
+      Caption.DARK);
 
   /** Neutral grays with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
@@ -1932,7 +1967,7 @@ public record Theme(
               new Shadow(0, 1, 3, 0, alpha(GRAY_084, 0.24f)),
               new Shadow(0, 2, 5, 0, alpha(GRAY_084, 0.12f)))),
       Code.LIGHT,
-      CAPTION);
+      Caption.LIGHT);
 
   /**
    * The theme the kit's components read, {@link #DARK} unless the app gives another: {@code

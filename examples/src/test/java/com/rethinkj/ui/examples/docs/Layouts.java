@@ -8,10 +8,13 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 
+import com.rethinkj.ui.Background;
 import com.rethinkj.ui.Clipboard;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.AppIcon;
@@ -634,6 +637,116 @@ final class Layouts {
         .child(title)
         .child(el().grow(1))
         .child(status);
+  }
+
+  static El titleBarGlow(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start title-bar-glow
+    int project = theme.withAccent(Theme.Hue.TEAL).accent().color();
+    El icon = AppIcon.appIcon(16, project, Symbol.DATABASE);
+    El bar = TitleBar.titleBar(
+            icon,
+            "shop — staging",
+            List.of(),
+            TitleBar.search("Search commands", "Ctrl+Shift+P", state::search),
+            List.of(Button.icon(GHOST, Symbol.WEATHER_MOON, "Dark theme", state::toggleDark)
+                .checked(state.dark)))
+        .background(TitleBar.glow(project));
+    // docs:end title-bar-glow
+    float gap = theme.space().m();
+    El pane = Card.card(Label.label("Schema")).grow(1);
+    El editor = Card.card(Label.label("Query")).grow(1);
+    El cards = Split.cards(
+            Split.Direction.ROW,
+            state.sidebar,
+            Split.Position.first(160),
+            state::sidebar,
+            pane,
+            120,
+            editor,
+            200)
+        .grow(1)
+        .margin(0, gap, gap, gap);
+    return col().wFull().hFull().fill(theme.surface().window()).children(bar, cards);
+  }
+
+  static El titleBarRail(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    El pane = Card.flush(
+        Card.toolbar("Explorer", null),
+        col().padding(theme.space().l()).grow(1).child(Label.label("Explorer content")));
+    El editor = Card.flush(
+        Card.toolbar("orders.sql", null),
+        col()
+            .padding(theme.space().l())
+            .grow(1)
+            .child(Label.label(Label.Variant.MONO, "select * from orders where total > 100")));
+    El content = Split.cards(
+            Split.Direction.ROW,
+            state.toolPane,
+            Split.Position.first(180).collapse(Split.Part.FIRST),
+            state::toolPane,
+            pane,
+            120,
+            editor,
+            200)
+        .grow(1)
+        .margin(0, theme.space().m(), theme.space().m(), theme.space().m());
+    // docs:start title-bar-rail
+    int project = theme.accent().color();
+    El icon = AppIcon.appIcon(16, project, Symbol.DATABASE);
+    El bar = TitleBar.titleBar(icon, "shop — staging").fill(Colors.TRANSPARENT);
+    El rail = Rail.rail(
+            state.rail,
+            "Tool windows",
+            Side.LEFT,
+            List.of(
+                Rail.item(Symbol.FOLDER, "Explorer").shortcut(Key.CONTROL, "1"),
+                Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
+                Rail.separator(),
+                Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
+            List.of(Rail.item(Symbol.SETTINGS, "Settings")),
+            state.tool,
+            state::tool)
+        .fill(Colors.TRANSPARENT);
+    El window = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .background(TitleBar.glow(project)) // reaches down the whole window's height
+        .child(bar)
+        .child(row().grow(1).minSize(0, 0).children(rail, content));
+    // docs:end title-bar-rail
+    return window;
+  }
+
+  static El titleBarWash(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    El cards = Split.cards(
+            Split.Direction.ROW,
+            state.sidebar,
+            Split.Position.first(160),
+            state::sidebar,
+            Card.card(Label.label("Schema")).grow(1),
+            120,
+            Card.card(Label.label("Query")).grow(1),
+            200)
+        .grow(1)
+        .margin(0, theme.space().m(), theme.space().m(), theme.space().m());
+    // docs:start title-bar-wash
+    int project = theme.withAccent(Theme.Hue.TEAL).accent().color();
+    El icon = AppIcon.appIcon(16, project, Symbol.DATABASE);
+    Background.Radial glow = TitleBar.glow(project); // its colors, spread over the window
+    El window = col()
+        .wFull()
+        .hFull()
+        .fill(theme.surface().window())
+        .background(Background.radial(
+            Len.ZERO, Len.ZERO, Len.percent(1), Len.percent(1), glow.inner(), glow.outer()))
+        .child(TitleBar.titleBar(icon, "shop — staging").fill(Colors.TRANSPARENT))
+        .child(cards);
+    // docs:end title-bar-wash
+    return window;
   }
 
   static El toolbar(Layouts state) {

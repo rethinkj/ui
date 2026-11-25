@@ -1,86 +1,86 @@
 el 0,0 680x310
   el #details label="Compare" 12,12 656x286
-    el 13,13 654x38
-      text role=heading "Compare" 29,24 62x17 level=3
-      el label="4 commits" 99,21 76x22
-        text "4 commits" 107,25 60x14
-      el 183,32 468x0
-    el role=separator 13,51 654x1
-    el #body-2f9b8d4..9d2e6b1 13,52 654x245
-      el #properties 29,68 622x82
-        el role=list 38,73 604x72
-          el role=listitem label="From" 38,73 604x24 value="2f9b8d4"
-            el 42,73 49x24
-              text "From" 42,77 49x16
-            el 97,71 543x28
-              el 99,75 149x20
-                el #from role=button label="commit 2f9b8d4" 99,75 81x20
-                  el 108,82 6x6
-                  text "2f9b8d4" 120,77 51x16
-                text "yesterday" 188,77 60x16
-          el role=listitem label="To" 38,97 604x24 value="9d2e6b1"
-            el 42,97 49x24
-              text "To" 42,101 49x16
-            el 97,95 543x28
-              el 99,99 135x20
-                el #to role=button label="commit 9d2e6b1" 99,99 81x20
-                  el 108,106 6x6
-                  text "9d2e6b1" 120,101 51x16
-                text "2 h ago" 188,101 46x16
-          el role=listitem label="Authors" 38,121 604x24 value="3 authors"
-            el 42,121 49x24
-              text "Authors" 42,125 49x16
-            el 97,119 543x28
-              el 99,123 130x20
-                el 99,123 64x20
-                  el role=img label="Jonas Weber" 99,123 20x20
-                    text "JW" 103,128 12x10
-                  el role=img label="Priya Raman" 121,123 20x20
-                    text "PR" 126,128 10x10
-                  el role=img label="Aiko Tanaka" 143,123 20x20
-                    text "AT" 148,128 10x10
-                text "3 authors" 171,125 58x16
-      el #actions 29,162 622x24
-        el role=button label="Open comparison" 29,162 157x24
-          text label="open" "\u{F581}" 42,166 16x16
-          text "Open comparison" 62,166 111x16
-        el role=button label="Copy range" 194,162 118x24
-          text label="copy" "\u{F32A}" 207,166 16x16
-          text "Copy range" 227,166 72x16
-      el 29,198 622x80
-        el 29,198 622x18
-          text role=heading "Changes" 29,199 55x16 level=4
-          el label="2 files" 92,198 47x18
-            text "2 files" 98,200 35x14
-          el 147,207 452x0
-          text "+72" 607,199 22x16
-          text "−9" 637,199 14x16
-        el #files role=list label="Changes" 29,220 622x58
-          el #file-0 role=listitem label="modified console/src/main/java/com/example/console/Cells.java, +24 −9" 29,220 622x28
-            el label="M" 37,225 18x18
-              text "M" 41,227 11x14
-            text "Cells.java" 63,226 60x16
-            text "console/…/example/console" 131,227 432x14
-            el 571,226 72x16
-              text "+24" 571,226 22x16
-              text "−9" 597,226 14x16
-              el 615,230 28x8
-                el 615,230 4x8
-                el 621,230 4x8
-                el 627,230 4x8
-                el 633,230 4x8
-                el 639,230 4x8
-          el #file-1 role=listitem label="added console/src/test/java/com/example/console/CellsTest.java, +48 −0" 29,250 622x28
-            el label="A" 37,255 18x18
-              text "A" 42,257 8x14
-            text "CellsTest.java" 63,256 85x16
-            text "console/…/example/console" 156,257 407x14
-            el 571,256 72x16
-              text "+48" 571,256 22x16
-              text "−0" 597,256 14x16
-              el 615,260 28x8
-                el 615,260 4x8
-                el 621,260 4x8
-                el 627,260 4x8
-                el 633,260 4x8
-                el 639,260 4x8
+    el 13,13 654x40
+      text role=heading "Compare" 29,25 62x17 level=3
+      el label="4 commits" 99,22 76x22
+        text "4 commits" 107,26 60x14
+      el 183,33 468x0
+    el role=separator 13,53 654x1
+    el #body-2f9b8d4..9d2e6b1 13,54 654x243
+      el #properties 29,70 622x82
+        el role=list 38,75 604x72
+          el role=listitem label="From" 38,75 604x24 value="2f9b8d4"
+            el 42,75 49x24
+              text "From" 42,79 49x16
+            el 97,73 543x28
+              el 99,77 149x20
+                el #from role=button label="commit 2f9b8d4" 99,77 81x20
+                  el 108,84 6x6
+                  text "2f9b8d4" 120,79 51x16
+                text "yesterday" 188,79 60x16
+          el role=listitem label="To" 38,99 604x24 value="9d2e6b1"
+            el 42,99 49x24
+              text "To" 42,103 49x16
+            el 97,97 543x28
+              el 99,101 135x20
+                el #to role=button label="commit 9d2e6b1" 99,101 81x20
+                  el 108,108 6x6
+                  text "9d2e6b1" 120,103 51x16
+                text "2 h ago" 188,103 46x16
+          el role=listitem label="Authors" 38,123 604x24 value="3 authors"
+            el 42,123 49x24
+              text "Authors" 42,127 49x16
+            el 97,121 543x28
+              el 99,125 130x20
+                el 99,125 64x20
+                  el role=img label="Jonas Weber" 99,125 20x20
+                    text "JW" 103,130 12x10
+                  el role=img label="Priya Raman" 121,125 20x20
+                    text "PR" 126,130 10x10
+                  el role=img label="Aiko Tanaka" 143,125 20x20
+                    text "AT" 148,130 10x10
+                text "3 authors" 171,127 58x16
+      el #actions 29,164 622x24
+        el role=button label="Open comparison" 29,164 157x24
+          text label="open" "\u{F581}" 42,168 16x16
+          text "Open comparison" 62,168 111x16
+        el role=button label="Copy range" 194,164 118x24
+          text label="copy" "\u{F32A}" 207,168 16x16
+          text "Copy range" 227,168 72x16
+      el 29,200 622x80
+        el 29,200 622x18
+          text role=heading "Changes" 29,201 55x16 level=4
+          el label="2 files" 92,200 47x18
+            text "2 files" 98,202 35x14
+          el 147,209 452x0
+          text "+72" 607,201 22x16
+          text "−9" 637,201 14x16
+        el #files role=list label="Changes" 29,222 622x58
+          el #file-0 role=listitem label="modified console/src/main/java/com/example/console/Cells.java, +24 −9" 29,222 622x28
+            el label="M" 37,227 18x18
+              text "M" 41,229 11x14
+            text "Cells.java" 63,228 60x16
+            text "console/…/example/console" 131,229 432x14
+            el 571,228 72x16
+              text "+24" 571,228 22x16
+              text "−9" 597,228 14x16
+              el 615,232 28x8
+                el 615,232 4x8
+                el 621,232 4x8
+                el 627,232 4x8
+                el 633,232 4x8
+                el 639,232 4x8
+          el #file-1 role=listitem label="added console/src/test/java/com/example/console/CellsTest.java, +48 −0" 29,252 622x28
+            el label="A" 37,257 18x18
+              text "A" 42,259 8x14
+            text "CellsTest.java" 63,258 85x16
+            text "console/…/example/console" 156,259 407x14
+            el 571,258 72x16
+              text "+48" 571,258 22x16
+              text "−0" 597,258 14x16
+              el 615,262 28x8
+                el 615,262 4x8
+                el 621,262 4x8
+                el 627,262 4x8
+                el 633,262 4x8
+                el 639,262 4x8

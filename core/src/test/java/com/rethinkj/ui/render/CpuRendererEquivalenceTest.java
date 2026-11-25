@@ -72,7 +72,11 @@ class CpuRendererEquivalenceTest {
                       .size(size, size / 2)
                       .fit(Image.Fit.CONTAIN)
                       .opacity(0.6f),
-                  El.image(disk).absolute(at + 100, at).size(size / 2, size).radius(5));
+                  El.image(disk)
+                      .absolute(at + 100, at)
+                      .size(size / 2, size)
+                      .radius(5)
+                      .border(4, 1, 2, 1, 0xFF334455));
           Flex.layout(root, 140, 60);
           assertSame(
               "images " + size + " at " + at + " @" + scale,
@@ -250,7 +254,12 @@ class CpuRendererEquivalenceTest {
         .child(rounded)
         .child(square)
         .child(El.image(BASE_IMAGES[0]).absolute(1, 1).size(3, 2))
-        .child(El.image(BASE_IMAGES[1]).absolute(2, 3).size(4, 4));
+        .child(El.image(BASE_IMAGES[1])
+            .absolute(2, 3)
+            .size(Math.max(4, width * 0.6f), Math.max(4, height * 0.5f))
+            .radius(height / 3)
+            .border(height / 6, 1, height / 6, 1, 0xFF223344)
+            .fit(Image.Fit.FILL));
     if (text) {
       rounded.child(El.text("Ag é").fontSize(9).color(0xFF101010).absolute(0.3f, 0.6f));
       rounded.child(El.text("😀👍").font(Examples.emoji()).fontSize(10).absolute(1.5f, 1.5f));

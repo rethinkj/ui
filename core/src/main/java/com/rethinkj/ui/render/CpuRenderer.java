@@ -173,9 +173,10 @@ public final class CpuRenderer {
     double[] coverages = scratch.coverage;
     double[] fillShares = scratch.fillShare;
 
-    // Elliptic corners of the fill are measured at every pixel: Box's argument is for circles.
-    // So is an arc, which leaves out pixels the shape covers whole.
-    boolean runs = (inner == null || inner.circular()) && arc == null;
+    // Elliptic corners of the fill or the clip are measured at every pixel: Box's argument is for
+    // circles. So is an arc, which leaves out pixels the shape covers whole.
+    boolean runs =
+        (inner == null || inner.circular()) && (clip == null || clip.circular()) && arc == null;
     for (int py = bounds.top; py < bounds.bottom; py++) {
       double y = (py + 0.5) / scale;
       // A row that the fill reaches nowhere, as along a border at the top or the bottom, has
@@ -581,23 +582,26 @@ public final class CpuRenderer {
     double[] coverages = scratch.coverage;
     double[] fillShares = scratch.fillShare;
     double[] sample = scratch.sample;
+    // Elliptic corners of the clip are measured at every pixel: Box's argument is for circles.
+    boolean runs = clip == null || clip.circular();
     for (int py = bounds.top; py < bounds.bottom; py++) {
       double y = (py + 0.5) / scale;
       int first = bounds.left;
       while (first < bounds.right
-          && !measure(
-              first,
-              y,
-              scale,
-              shape,
-              false,
-              null,
-              clip,
-              bounds.clipWhole,
-              null,
-              coverages,
-              fillShares,
-              1)) {
+          && (!measure(
+                  first,
+                  y,
+                  scale,
+                  shape,
+                  false,
+                  null,
+                  clip,
+                  bounds.clipWhole,
+                  null,
+                  coverages,
+                  fillShares,
+                  1)
+              || !runs)) {
         first++;
       }
       int last = bounds.right - 1;
@@ -1200,8 +1204,8 @@ public final class CpuRenderer {
    * A rounded rectangle, an instance's shape or a clip, by its center, half size and the radii of
    * its corners in logical pixels, top left, top right, bottom right, bottom left, across ({@code
    * rx}) and from top to bottom ({@code ry}); the corner on a point's side of the center ({@code x
-   * > 0} right, {@code y > 0} below) gives its distance. Only the fill of a border whose sides
-   * differ has corners whose two radii differ.
+   * > 0} right, {@code y > 0} below) gives its distance. A clip or the fill of a border whose
+   * sides differ may have corners whose two radii differ.
    *
    * <p>The pixels it covers whole, with a coverage of exactly 1, can be found without computing
    * the coverage of each: in a row of pixels they are one run without gaps, and a box of pixels
@@ -1220,8 +1224,8 @@ public final class CpuRenderer {
    * product of coverages, each from 0 to 1, is 1 only where each is, so the pixels that several
    * boxes all cover whole are a run too. A value that is not a number makes the coverage NaN, which
    * is never 1, and a scale of 0 or less is taken for no shortcut. This is shown for circular
-   * corners only ({@link #circular}); a rectangle whose fill has elliptic ones is measured at every
-   * pixel.
+   * corners only ({@link #circular}); an instance whose fill or clip has elliptic ones is measured
+   * at every pixel.
    *
    * <p>A clip whose entry has a parent covers a pixel as the smaller of its own coverage and its
    * parents' ({@link #outer}), as {@link Scene} says; the minimum of values from 0 to 1 is 1 only
@@ -1252,25 +1256,29 @@ public final class CpuRenderer {
       int parent = scene.clipParent(clip);
       double halfW = scene.clipGet(clip, Scene.WIDTH) / 2;
       double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
-      double[] radii = new double[4];
+      double[] rx = new double[4];
+      double[] ry = new double[4];
       for (int c = 0; c < 4; c++) {
-        radii[c] = Math.clamp(scene.clipGet(clip, Scene.RADIUS + 4 * c), 0, Math.min(halfW, halfH));
+        rx[c] = Math.clamp(scene.clipGet(clip, Scene.RADIUS + 4 * c), 0, halfW);
+        ry[c] = Math.clamp(scene.clipGet(clip, Scene.CLIP_RADII_Y + 4 * c), 0, halfH);
       }
       return new Box(
           scene.clipGet(clip, Scene.X) + halfW,
           scene.clipGet(clip, Scene.Y) + halfH,
           halfW,
           halfH,
-          radii,
-          radii,
+          rx,
+          ry,
           parent > 0 && parent < clip ? clip(scene, parent) : null);
     }
 
-    /** Whether each corner is a quarter of a circle. */
+    /** Whether each corner of this box and its parents is a quarter of a circle. */
     boolean circular() {
-      for (int c = 0; c < 4; c++) {
-        if (rx[c] != ry[c]) {
-          return false;
+      for (Box box = this; box != null; box = box.outer) {
+        for (int c = 0; c < 4; c++) {
+          if (box.rx[c] != box.ry[c]) {
+            return false;
+          }
         }
       }
       return true;
@@ -1302,6 +1310,9 @@ public final class CpuRenderer {
      * on either side (see above), which are among the four around where the center falls.
      */
     boolean missesRow(double y, int left, int right, double scale) {
+      if (!circular()) {
+        return false;
+      }
       // Clamped before the cast, so that a center far outside cannot overflow the loop below.
       int middle = (int) Math.clamp(Math.floor(centerX * scale - 0.5), left - 1.0, right);
       for (int px = middle - 1; px <= middle + 2; px++) {
@@ -1315,6 +1326,7 @@ public final class CpuRenderer {
     /** Whether it covers every pixel from {@code left, top} to {@code right, bottom} whole. */
     boolean coversWhole(int left, int top, int right, int bottom, double scale) {
       return scale > 0
+          && circular()
           && left <= right
           && top <= bottom
           && whole(left, top, scale)

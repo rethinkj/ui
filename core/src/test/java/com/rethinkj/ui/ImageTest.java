@@ -169,42 +169,126 @@ class ImageTest {
   void anImageDoesNotCoverAnUnevenRoundedBorder() {
     int border = 0xFF0000FF;
     int red = 0xFFFF0000;
-    Image fill = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
-    float scale = 1.25f;
-    int size = Math.round(40 * scale);
-    El plain = el().size(40, 40).child(el().size(40, 40).radius(12).border(10, 2, 2, 2, border));
-    El withImage = el().size(40, 40)
-        .child(
-            El.image(fill).size(40, 40).radius(12).border(10, 2, 2, 2, border).fit(Image.Fit.FILL));
-    Flex.layout(plain, 40, 40);
-    Flex.layout(withImage, 40, 40);
+    int green = 0xFF00FF00;
+    Image square = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
+    byte[] wide = new byte[16];
+    for (int i = 0; i < 16; i += 4) {
+      wide[i] = (byte) 255;
+      wide[i + 3] = (byte) 255;
+    }
+    Image banner = Image.of(new Pixels(4, 1, wide));
+    // Radius, borders top, right, bottom, left, padding, scale, and whether the image covers.
+    float[][] cases = {
+      {12, 10, 2, 2, 2, 0, 1.25f, 0},
+      {20, 12, 2, 12, 2, 0, 1, 0},
+      {20, 12, 2, 12, 2, 0, 1.25f, 0},
+      {20, 19, 1, 2, 1, 2, 1, 0},
+      {13, 12, 2, 12, 2, 0, 1, 1}
+    };
+    for (float[] c : cases) {
+      float scale = c[6];
+      int size = Math.round(40 * scale);
+      El plain = el().size(40, 40)
+          .child(el().size(40, 40)
+              .radius(c[0])
+              .border(c[1], c[2], c[3], c[4], border)
+              .fill(green));
+      El withImage = el().size(40, 40)
+          .child(El.image(c[7] > 0 ? banner : square)
+              .size(40, 40)
+              .radius(c[0])
+              .border(c[1], c[2], c[3], c[4], border)
+              .padding(c[5])
+              .fill(green)
+              .fit(c[7] > 0 ? Image.Fit.COVER : Image.Fit.FILL));
+      Flex.layout(plain, 40, 40);
+      Flex.layout(withImage, 40, 40);
 
-    Pixels borderOnly = CpuRenderer.render(Scene.of(plain, scale), size, size, scale);
-    Pixels drawn = CpuRenderer.render(Scene.of(withImage, scale), size, size, scale);
+      Pixels borderOnly = CpuRenderer.render(Scene.of(plain, scale), size, size, scale);
+      Pixels drawn = CpuRenderer.render(Scene.of(withImage, scale), size, size, scale);
 
-    int borderPixels = 0;
-    for (int y = 0; y < size; y++) {
-      for (int x = 0; x < size; x++) {
-        if (borderOnly.argb(x, y) == border) {
-          borderPixels++;
-          assertEquals(border, drawn.argb(x, y), "border pixel at " + x + "," + y);
+      // Outside the content box, on pure border and outside the element the image adds nothing.
+      float left = (c[4] + c[5]) * scale;
+      float top = (c[1] + c[5]) * scale;
+      float right = size - (c[2] + c[5]) * scale;
+      float bottom = size - (c[3] + c[5]) * scale;
+      int borderPixels = 0;
+      for (int y = 0; y < size; y++) {
+        for (int x = 0; x < size; x++) {
+          int expected = borderOnly.argb(x, y);
+          borderPixels += expected == border ? 1 : 0;
+          boolean outside = x + 1 <= left || x >= right || y + 1 <= top || y >= bottom;
+          if (outside || expected == border || expected == 0) {
+            assertEquals(expected, drawn.argb(x, y), "pixel " + x + "," + y + " of " + c[0]);
+          }
         }
       }
+      assertTrue(borderPixels > 0);
+      assertEquals(
+          red, drawn.argb((int) (left + right) / 2, (int) (top + bottom) / 2), "image interior");
     }
-    assertTrue(borderPixels > 0);
-    assertEquals(red, drawn.argb(size / 2, size / 2), "image interior");
   }
 
   @Test
-  void paddingInsideAnEvenBorderKeepsTheImageCornerAsRoundAsBefore() {
+  void anImageFollowsTheFillOfTheBorderTheRectangleDraws() {
+    int border = 0xFF0000FF;
     Image fill = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
-    El image = El.image(fill)
+    // Transparent sides are no border to the rectangle, nor to the image's clip.
+    El colors =
+        el().size(40, 40).radius(20).border(4, 4, 0, 4, border).borderColors(0, border, 0, border);
+    El colorsImage = El.image(fill)
+        .size(40, 40)
+        .radius(20)
+        .border(4, 4, 0, 4, border)
+        .borderColors(0, border, 0, border)
+        .fit(Image.Fit.FILL);
+    Flex.layout(colors, 40, 40);
+    Flex.layout(colorsImage, 40, 40);
+    assertEquals(
+        CpuRenderer.render(Scene.of(colors, 1), 40, 40, 1).argb(7, 34),
+        CpuRenderer.render(Scene.of(colorsImage, 1), 40, 40, 1).argb(7, 34));
+    // A scene without a scale does not know the renderer's outset by a side without a border.
+    El open = el().size(80, 80).radius(40).border(4, 15, 0, 15, border);
+    El openImage =
+        El.image(fill).size(80, 80).radius(40).border(4, 15, 0, 15, border).fit(Image.Fit.FILL);
+    Flex.layout(open, 80, 80);
+    Flex.layout(openImage, 80, 80);
+    assertEquals(
+        CpuRenderer.render(Scene.of(open), 160, 160, 2).argb(57, 153),
+        CpuRenderer.render(Scene.of(openImage), 160, 160, 2).argb(57, 153));
+  }
+
+  @Test
+  void paddingInsideARoundedBorderKeepsCornersClearOfTheBorder() {
+    Image fill = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
+    El even = El.image(fill)
         .size(40, 40)
         .radius(16)
         .border(2, 0xFF0000FF)
         .padding(12, 8)
         .fit(Image.Fit.FILL);
-    Flex.layout(image, 40, 40);
-    assertEquals(0xFFFF0000, CpuRenderer.render(Scene.of(image, 1), 40, 40, 1).argb(12, 14));
+    Flex.layout(even, 40, 40);
+    assertEquals(0xFFFF0000, CpuRenderer.render(Scene.of(even, 1), 40, 40, 1).argb(12, 14));
+
+    // Uneven border with padding: top-left content corner (6, 14) lies inside the border's inner
+    // ellipse (half axes 14 and 6 from (2, 10)), so the image keeps it.
+    El uneven = El.image(fill)
+        .size(48, 48)
+        .radius(16)
+        .border(10, 2, 2, 2, 0xFF0000FF)
+        .padding(4)
+        .fit(Image.Fit.FILL);
+    Flex.layout(uneven, 48, 48);
+    assertEquals(0xFFFF0000, CpuRenderer.render(Scene.of(uneven, 1), 48, 48, 1).argb(6, 14));
+
+    // Where a side has no border, the fill reaches a pixel beyond it, and so does the image.
+    El open = El.image(fill)
+        .size(80, 80)
+        .radius(40)
+        .border(4, 15, 0, 15, 0xFF0000FF)
+        .fill(0xFF00FF00)
+        .fit(Image.Fit.FILL);
+    Flex.layout(open, 80, 80);
+    assertEquals(0xFFFF0000, CpuRenderer.render(Scene.of(open, 1), 80, 80, 1).argb(30, 77));
   }
 }

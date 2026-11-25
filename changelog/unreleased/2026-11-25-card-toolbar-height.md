@@ -1,0 +1,1 @@
+- `Card.toolbar` is as high without actions as with a control-height button, so the headers of cards side by side line up.

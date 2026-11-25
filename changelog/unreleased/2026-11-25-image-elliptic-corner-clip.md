@@ -1,0 +1,1 @@
+- An image in a rounded element whose border sides differ in width now follows the border's inner corners exactly: it no longer covers the border when its content box is small, and keeps the corner pixels that padding already clears. A `Scene` clip entry is now 64 bytes, with each corner's radius from top to bottom at `Scene.CLIP_RADII_Y`.

@@ -912,11 +912,14 @@ final class Sections {
         .key("bench-schema")
         .label("Schema")
         .grow(1);
-    // Its title in a band as high as the tab bar beside it, so that the two read as one row.
+    // Its title in a band as high as the tab bar beside it, so that the two read as one row; the
+    // minimum replaces the toolbar's own, which is higher.
+    float band = theme.size().control() + theme.space().m() + stroke;
     El side = col()
         .label("Database")
         .child(Card.toolbar("Database", null)
-            .h(theme.size().control() + theme.space().m() + stroke)
+            .h(band)
+            .minSize(0, band)
             .shrink(0)
             .fill(theme.surface().band())
             .border(0, 0, stroke, 0, line))

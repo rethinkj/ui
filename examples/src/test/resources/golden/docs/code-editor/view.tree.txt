@@ -1,28 +1,28 @@
 el 0,0 520x260
-  el 12,12 496x180
-    el 13,13 494x33
-      text role=heading "orders.sql" 29,21 70x17 level=3
-      el 107,30 384x0
-    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,46 494x145 lines 1-3/3 squiggle 22-28
-      el #rail 13,47 72x144
-      el #gutter 13,51 71x128
-        el #line-0 13,51 71x16
-          el 19,59 12x0
-          el #marker-1 role=button label="Run statement" 35,53 12x12
-            text label="play" "\u{E98F}" 35,53 12x12
-          text "1" 51,51 7x16
-          el 62,59 2x0
-          el 68,59 12x0
-        el #line-1 13,67 71x16
-          el #marker role=img label="Error" 19,69 12x12 error="relation \"orders\" does not exist"
-            text label="dismiss" "\u{F367}" 19,69 12x12
-          el 35,75 12x0
-          text "2" 51,67 7x16
-          el 62,75 2x0
-          el 68,75 12x0
-        el #line-2 13,83 71x16
-          el 19,91 12x0
-          el 35,91 12x0
-          text "3" 51,83 7x16
-          el 62,91 2x0
-          el 68,91 12x0
+  el 12,12 496x187
+    el 13,13 494x40
+      text role=heading "orders.sql" 29,25 70x17 level=3
+      el 107,33 384x0
+    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,53 494x145 lines 1-3/3 squiggle 22-28
+      el #rail 13,54 72x144
+      el #gutter 13,58 71x128
+        el #line-0 13,58 71x16
+          el 19,66 12x0
+          el #marker-1 role=button label="Run statement" 35,60 12x12
+            text label="play" "\u{E98F}" 35,60 12x12
+          text "1" 51,58 7x16
+          el 62,66 2x0
+          el 68,66 12x0
+        el #line-1 13,74 71x16
+          el #marker role=img label="Error" 19,76 12x12 error="relation \"orders\" does not exist"
+            text label="dismiss" "\u{F367}" 19,76 12x12
+          el 35,82 12x0
+          text "2" 51,74 7x16
+          el 62,82 2x0
+          el 68,82 12x0
+        el #line-2 13,90 71x16
+          el 19,98 12x0
+          el 35,98 12x0
+          text "3" 51,90 7x16
+          el 62,98 2x0
+          el 68,98 12x0

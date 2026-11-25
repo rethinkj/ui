@@ -1,0 +1,47 @@
+el 0,0 640x240
+  el window=drag 0,0 640x32
+    el 0,0 478x32
+      el 8,8 16x16
+        el 8,8 16x16
+          el 9,9 14x14
+            text "\u{F0D7}" 11,11 10x10
+      text "shop — staging" 32,8 95x16
+    el 478,16 24x0
+    el role=button label="Minimize" window=minimize 502,0 46x32
+      text label="subtract" "\u{EBCE}" 519,10 12x12
+    el role=button label="Maximize" window=maximize 548,0 46x32
+      text label="maximize" "\u{F533}" 565,10 12x12
+    el role=button label="Close" window=close 594,0 46x32
+      text label="dismiss" "\u{F367}" 611,10 12x12
+  el 0,32 640x208
+    el role=toolbar label="Tool windows" 0,32 41x208
+      el #item 0 role=button label="Explorer" 4,36 32x32 checked
+        text label="folder" "\u{E643}" 12,44 16x16
+      el #item 1 role=button label="Search" 4,72 32x32 checked=false
+        text label="search" "\u{EA7C}" 12,80 16x16
+      el role=separator 8,110 24x1
+      el #item 2 role=button label="Problems" 4,117 32x32 checked=false value="3 errors"
+        text label="warning" "\u{F868}" 12,125 16x16
+        el 23,122 8x8
+      el 20,153 0x47
+      el #item 3 role=button label="Settings" 4,204 32x32 checked=false
+        text label="settings" "\u{F6A8}" 12,212 16x16
+    el 49,32 583x200
+      el #first 49,32 180x200
+        el 49,32 180x200
+          el 50,33 178x40
+            text role=heading "Explorer" 66,45 57x17 level=3
+            el 131,53 81x0
+          el 50,73 178x158
+            text "Explorer content" 62,85 154x16
+      el #rest 229,32 403x200
+        el #second 237,32 395x200
+          el 237,32 395x200
+            el 238,33 393x40
+              text role=heading "orders.sql" 254,45 70x17 level=3
+              el 332,53 283x0
+            el 238,73 393x158
+              text "select * from orders where total > 100" 250,85 369x16
+        el #divider role=separator label="Resize" 229,32 8x200 value="first 180"
+          el 229,32 8x200
+            el 233,32 1x200
