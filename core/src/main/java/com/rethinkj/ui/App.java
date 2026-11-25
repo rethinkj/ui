@@ -1057,6 +1057,11 @@ public final class App<S> {
     return id != null && (id.equals(scope) || Animator.isBelow(id, scope));
   }
 
+  /** Whether {@code id} is {@code scope} or inside it, in the scope's own overlay layer. */
+  private static boolean inScope(Object id, Object scope) {
+    return id != null && (id.equals(scope) || Animator.isBelowInLayer(id, scope));
+  }
+
   /** The topmost modal overlay that is open and not leaving, or null. */
   private El modal() {
     if (root != null) {
@@ -1616,7 +1621,12 @@ public final class App<S> {
       return true;
     }
     // The focused field of a selection across a scope waits for its row, as after a scroll.
-    if (isCopy(key) && focus.element() == null && focus.waits() && isScopeSelectedId(focus.id())) {
+    Editor waiting = focus.element() == null && focus.waits() ? editors.get(focus.id()) : null;
+    if (isCopy(key)
+        && waiting != null
+        && waiting.element() != null
+        && isScopeFieldCandidate(waiting.element())
+        && isScopeSelectedId(focus.id())) {
       copyScopeSelection();
       handled = true;
       return true;
@@ -4508,10 +4518,10 @@ public final class App<S> {
         return false;
       }
       if (capture instanceof Selecting s
-          && (s.id().equals(id) || s.scopeId() != null && within(id, s.scopeId()))) {
+          && (s.id().equals(id) || s.scopeId() != null && inScope(id, s.scopeId()))) {
         capture = IDLE;
       }
-      if (scopeSelection != null && within(id, scopeSelection.scopeId)) {
+      if (scopeSelection != null && inScope(id, scopeSelection.scopeId)) {
         clearScopeSelection(now.editor());
       }
       now.editor().select(caret, anchor);
@@ -4770,7 +4780,7 @@ public final class App<S> {
     if (scopeSelection == null
         || !scopeSelection.hasSelection()
         || !isScopeFieldCandidate(el)
-        || !within(id, scopeSelection.scopeId)) {
+        || !inScope(id, scopeSelection.scopeId)) {
       return false;
     }
     int row = scopeSelection.listId == null ? -1 : Animator.rowIn(id, scopeSelection.listId);
@@ -4850,7 +4860,7 @@ public final class App<S> {
       return false;
     }
     Object id = animator.identity(el);
-    if (id == null || !within(id, scopeSelection.scopeId)) {
+    if (id == null || !inScope(id, scopeSelection.scopeId)) {
       return false;
     }
     remapScopeSelection();
@@ -4892,7 +4902,7 @@ public final class App<S> {
     if (id == null || scopeSelection == null || !scopeSelection.hasSelection()) {
       return false;
     }
-    if (!within(id, scopeSelection.scopeId)) {
+    if (!inScope(id, scopeSelection.scopeId)) {
       return false;
     }
     remapScopeSelection();
@@ -4914,7 +4924,7 @@ public final class App<S> {
       if (editor != keep
           && el != null
           && isScopeFieldCandidate(el)
-          && within(entry.getKey(), old.scopeId)) {
+          && inScope(entry.getKey(), old.scopeId)) {
         changed |= editor.collapse();
       }
     }
@@ -5031,7 +5041,7 @@ public final class App<S> {
         && focus.waits()
         && list != null
         && listId != null
-        && within(focus.id(), scopeId)) {
+        && inScope(focus.id(), scopeId)) {
       Editor waiting = editors.get(focus.id());
       if (waiting == null || !isScopeFieldCandidate(waiting.element())) {
         return null;

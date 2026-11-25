@@ -296,6 +296,19 @@ final class Animator {
     return false;
   }
 
+  /** Like {@link #isBelow}, but false when an overlay lies between them. */
+  static boolean isBelowInLayer(Object identity, Object ancestor) {
+    for (Id id = (Id) identity; id != null && id.parent() != null; id = id.parent()) {
+      if (id.part() instanceof Layer) {
+        return false;
+      }
+      if (id.parent().equals(ancestor)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Whether {@code identity} is a post-layout part of {@code field} or inside one. */
   static boolean isInFieldPart(Object identity, Object field) {
     for (Id id = (Id) identity; id != null && id.parent() != null; id = id.parent()) {
