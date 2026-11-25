@@ -1,0 +1,25 @@
+el 0,0 400x300
+  el role=button label="Atlas mini" 12,12 85x24 expanded
+    text "Atlas mini" 25,16 59x16
+overlay bottom start gap 2 on role=button label="Atlas mini" 12,12 85x24
+  el #popover role=dialog label="Choose a model" 12,38 306x146
+    el 25,51 280x120
+      el 25,51 280x32
+        text #query role=textbox label="Search models" "at" 25,51 280x32 focused caret 2
+        text label="search" "\u{EA7C}" 33,59 16x16
+      el #options role=listbox label="Search models" 25,87 280x84 rows 0-2/3
+        el #group-0 role=group label="Hosted" 25,87 280x28 pos=1/3
+          text "Hosted" 33,95 45x16
+        el #option-1 role=option label="Atlas" 25,115 280x28 selected pos=2/3
+          el 25,115 280x28
+            el 33,121 16x16
+              text label="lightbulb" "\u{F4D5}" 33,121 16x16
+            text "Atlas" 57,121 201x16
+            text "200k" 266,121 31x16
+        el #option-2 role=option label="Atlas mini" 25,143 280x28 pos=3/3
+          el 25,143 280x28
+            el 33,149 16x16
+              text label="flash" "\u{E617}" 33,149 16x16
+            text "Atlas mini" 57,149 177x16
+            text "200k" 242,149 31x16
+            text label="checkmark" "\u{E305}" 281,149 16x16
