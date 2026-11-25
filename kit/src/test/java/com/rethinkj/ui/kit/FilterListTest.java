@@ -190,4 +190,48 @@ class FilterListTest {
     run(inPopover, "key Escape");
     assertFalse(popover.isOpen());
   }
+
+  /** Entries found on another thread under a name, which tells one source from another. */
+  static final class Sources {
+    final FilterList.State list = new FilterList.State();
+    final List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    String name = "tables";
+    App<Sources> app;
+
+    List<FilterList.Entry> find(String text) {
+      String found = name + ":" + text;
+      asked.add(found);
+      return List.of(FilterList.entry(found, () -> {}));
+    }
+  }
+
+  @Test
+  void anotherSourceWithTheSameTextIsFilteredOrAskedAnew() throws IOException {
+    FilterList.State s = new FilterList.State();
+    s.typed("fi", true);
+    List<FilterList.Entry> files = List.of(FilterList.entry("File: Exit", () -> {}));
+    FilterList.Entries found =
+        FilterList.Entries.by(text -> List.of(FilterList.entry("Find", () -> {})));
+    assertEquals(
+        "File: Exit", FilterList.shown(s, FilterList.Entries.of(files)).entry(0).text());
+    assertEquals("Find", FilterList.shown(s, found).entry(0).text());
+    assertEquals(
+        "File: Exit", FilterList.shown(s, FilterList.Entries.of(files)).entry(0).text());
+
+    TextLibraries.assumeLoaded();
+    Sources sources = new Sources();
+    sources.list.typed("fi", true);
+    sources.app = new App<>(
+        sources,
+        x -> col()
+            .child(FilterList.filterList(
+                x.list, "Search", FilterList.Entries.background(x.app, x.name, x::find))));
+    String tree = run(sources.app, "size 320 200\nframe\nawait\nframe");
+    assertEquals(List.of("tables:fi"), ComboBoxTest.options(tree));
+    sources.name = "columns";
+    sources.app.invalidate();
+    tree = run(sources.app, "frame\nawait\nframe");
+    assertEquals(List.of("columns:fi"), ComboBoxTest.options(tree));
+    assertEquals(List.of("tables:fi", "columns:fi"), sources.asked, "each source asked once");
+  }
 }
