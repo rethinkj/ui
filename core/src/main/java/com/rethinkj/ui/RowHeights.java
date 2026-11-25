@@ -2,6 +2,7 @@ package com.rethinkj.ui;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +49,9 @@ public final class RowHeights {
   private double[] tree = new double[1]; // tree[i] holds a range of heights ending at row i - 1
   private Object[] keys = new Object[0]; // only used when key != null
   private Map<Object, RowTexts> rowTexts = Map.of(); // by key, only with a rowVersion
+  // By key, only with a rowVersion: how many read-only fields a row has, at a version, for a
+  // selection scope around a list of these rows in a row of its own list.
+  private Map<Object, Object[]> fieldCounts = new HashMap<>();
   private int version;
   private int previousCount;
   private double[] previousTree;
@@ -161,6 +165,7 @@ public final class RowHeights {
       }
     }
     rowTexts = keptTexts; // without the rows that are gone, whose keys may come back as other rows
+    fieldCounts.keySet().retainAll(new HashSet<>(Arrays.asList(nextKeys)));
     version++;
   }
 
@@ -224,6 +229,11 @@ public final class RowHeights {
   }
 
   /** The texts of the rows a scope's index last read, by key. */
+  /** The field counts by key, which a key that is gone drops; see {@link App}. */
+  Map<Object, Object[]> fieldCounts() {
+    return fieldCounts;
+  }
+
   Map<Object, RowTexts> rowTexts() {
     return rowTexts;
   }

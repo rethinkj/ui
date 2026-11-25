@@ -306,13 +306,10 @@ public final class App<S> {
   // Cached field identity -> whole-width ordinal for rows of spans lists, cleared per build/frame.
   private final Map<El, Map<Integer, Map<Object, Integer>>> rowOrdinalCache =
       new IdentityHashMap<>();
-  // By list in a row of a scope's list and row: its fields; see fieldsInRow. With a version, by
-  // the list's heights and the row's key: the count and the version it is for.
+  // By list in a row of a scope's list and row: its fields; see fieldsInRow. With a version, the
+  // list's RowHeights keeps them by key.
   private final Map<El, Map<Integer, Integer>> unbuiltFieldCounts = new WeakHashMap<>();
-  private final Map<RowHeights, Map<Object, Object[]>> keptFieldCounts = new WeakHashMap<>();
-  private final Map<El, Boolean> prunedCounts = new WeakHashMap<>(); // lists whose gone keys went
   private final Map<RowHeights, Map<Integer, Integer>> buildFieldCounts = new IdentityHashMap<>();
-  private long countsBuild = -1; // the build buildFieldCounts are for
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -3756,6 +3753,7 @@ public final class App<S> {
 
   private void buildTree(boolean between, boolean last) {
     rowOrdinalCache.clear();
+    buildFieldCounts.clear(); // before the view, which may read a scope's text (Find does)
     List<Object> ids = Animator.identities(pointed());
     long start = System.nanoTime();
     scopeIndexes.clear(); // the view's rows may say something else now
@@ -4968,6 +4966,9 @@ public final class App<S> {
       Object endFieldId =
           caretPos.inRows() ? null : fieldKey(caretField, animator.identity(caretField));
       clearScopeSelection(null);
+      if (listId != null) {
+        rowGoals.remove(listId); // the selection it followed is replaced
+      }
       ScopeSelection next = new ScopeSelection(
           scopeId,
           anchorPos,
@@ -6296,8 +6297,8 @@ public final class App<S> {
   }
 
   /**
-   * The counts of a list without versions: by its heights for the view's build, which a list built
-   * again for reading shares with the one in the tree, else by its element.
+   * The counts of a list without versions: by its heights until the view is built again, which a
+   * list built anew for reading shares with the one in the tree, else by its element.
    */
   private Map<Integer, Integer> unversionedCounts(El list, boolean make) {
     RowHeights heights = list.rowHeights();
@@ -6305,10 +6306,6 @@ public final class App<S> {
       return make
           ? unbuiltFieldCounts.computeIfAbsent(list, ignored -> new HashMap<>())
           : unbuiltFieldCounts.get(list);
-    }
-    if (countsBuild != builds) {
-      buildFieldCounts.clear();
-      countsBuild = builds;
     }
     return make
         ? buildFieldCounts.computeIfAbsent(heights, ignored -> new HashMap<>())
@@ -6329,17 +6326,9 @@ public final class App<S> {
     }
   }
 
-  /** The counts by key of a list's heights, without the keys of rows gone, once per element. */
-  private Map<Object, Object[]> keptByKey(El list, RowHeights heights) {
-    Map<Object, Object[]> byKey = keptFieldCounts.computeIfAbsent(heights, h -> new HashMap<>());
-    if (prunedCounts.put(list, Boolean.TRUE) == null && !byKey.isEmpty()) {
-      Set<Object> keys = new HashSet<>();
-      for (int row = 0; row < list.rowCount(); row++) {
-        keys.add(heights.key(row));
-      }
-      byKey.keySet().retainAll(keys);
-    }
-    return byKey;
+  /** The counts by key of a list's heights, which drop the keys of rows gone with them. */
+  private static Map<Object, Object[]> keptByKey(El list, RowHeights heights) {
+    return heights.fieldCounts();
   }
 
   private int countFields(El list, int row) {
