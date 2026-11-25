@@ -1796,10 +1796,6 @@ public final class App<S> {
         boolean moved = byPage
             ? area.page(true, direction)
             : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
-        ScrollState state = area.scrollState();
-        if (edge && direction > 0 && state != null && state.el == area) {
-          state.toEnd = true; // rows measured on the way keep it at the end, as scrollToEnd does
-        }
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
@@ -3109,9 +3105,7 @@ public final class App<S> {
       El el = id == null ? null : animator.element(id);
       scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
       if (el != null) {
-        if (el.scrollState() != null) {
-          el.scrollState().toEnd = false; // the later row wins over a pending scrollToEnd
-        }
+        el.toEnd(false); // the later row wins over a pending end
         rowGoals.put(id, new RowGoal(row, el.rowsVersion(), el.rowKey(row)));
       }
       return false;
@@ -4900,9 +4894,7 @@ public final class App<S> {
         if (listId != null) {
           rowGoals.remove(listId);
         }
-        if (list.scrollState() != null) {
-          list.scrollState().toEnd = false;
-        }
+        list.toEnd(false);
         int row = caretPos.row();
         for (int pass = 0; pass < 3; pass++) {
           if (!list.scrollTo(list.scrollX(), list.offsetShowing(row))) {
@@ -6800,14 +6792,14 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
-    ScrollState kept = el.scrollState();
     boolean tail = !el.isVirtualList()
         || !el.measuresRows()
         || el.rowCount() == 0
         || el.hasRow(el.rowCount() - 1);
-    if (kept != null && kept.el == el && kept.toEnd) {
-      rowGoals.remove(Animator.identities(path).getLast()); // the later scrollToEnd wins
-      kept.toEnd = range.length != 0 || !tail; // done once its last rows are measured
+    // A field's editor lays out its rows after this and ends it then.
+    if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
+      rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
+      el.toEnd(range.length != 0 || !tail); // done once its last rows are measured
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);

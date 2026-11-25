@@ -698,6 +698,43 @@ class FieldTest {
   }
 
   @Test
+  void endShowsTheBottomOfRowsAndWrappedLinesThatMeasureTallerThanEstimated() {
+    RowHeights heights = new RowHeights(row -> 20); // half of what the rows measure
+    String words = "a bbbbbbbbbbbb cc dddddddddddd e ffffffffffff ".repeat(4);
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .children(
+                col()
+                    .key("list")
+                    .size(100, 100)
+                    .rows(50, heights, row -> el().key("row-" + row).h(40).focusable()),
+                El.text((words + "\n").repeat(40))
+                    .editable(e -> {})
+                    .readOnly()
+                    .multiline()
+                    .wrapText()
+                    .key("doc")
+                    .size(100, 60)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(120, 200, 1);
+    app.frame();
+    El list = app.tree().children().getFirst();
+    app.focus(list.children().getFirst());
+    app.frame();
+    key(app, "End");
+    list = app.tree().children().getFirst();
+    assertTrue(list.scrollY() > 0);
+    assertFalse(list.canScroll(false, 1), "a list without a ScrollState at its measured end");
+
+    app.focus(app.tree().children().get(1));
+    app.frame();
+    key(app, "End");
+    assertTrue(app.focused().scrollY() > 0);
+    assertFalse(app.focused().canScroll(false, 1), "a wrapped field at its laid-out end");
+  }
+
+  @Test
   void anInactiveWindowShowsNoCaretAndDrawsNothingUntilItIsActiveAgain() {
     App<Model> app = start("abc");
     focus(app);
