@@ -2690,12 +2690,23 @@ public final class App<S> {
     El found = rememberedIn(outer.listId(), step);
     // Else at the row in view of the innermost list that shows: one in a row of overscan does not.
     Animator.InRow showing = in;
-    while (showing != outer && shown(showing.list()) == null) {
-      showing = animator.inRow(showing.listId());
+    while (!showing.listId().equals(outer.listId()) && shown(showing.list()) == null) {
+      showing = Objects.requireNonNullElse(animator.inRow(showing.listId()), outer);
     }
-    El inner = found == null ? animator.element(showing.listId()) : null;
+    Object listId = showing.listId();
+    El inner = found == null ? animator.element(listId) : null;
     if (inner != null) {
-      found = inRow(showing.listId(), rowInView(inner, step < 0), step);
+      int row = rowInView(inner, step < 0);
+      found = inRow(listId, row, step);
+      // A row in view without a stop: on in the travel's direction, through rows not built too.
+      El list = step == 0 ? null : animator.element(listId);
+      for (row += step; found == null && list != null && list.hasRow(row); row += step) {
+        found = inRow(listId, row, step);
+        list = animator.element(listId);
+      }
+      if (found == null && list != null) {
+        found = throughGap(new Gap(list, step > 0), step, new boolean[1], true);
+      }
     }
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
   }
@@ -2713,8 +2724,12 @@ public final class App<S> {
     }
     if (step != 0 && row >= 0 && !list.hasRow(row)) {
       tabScan--;
-      El was = Animator.find(list.rowElement(row), Animator.row(listId, row), last, true);
-      if (was == null || !was.isFocusable() || was.skipsTab() || !numbered(was)) {
+      El rowEl = list.rowElement(row);
+      El was = Animator.find(rowEl, Animator.row(listId, row), last, true);
+      // A field's part only exists after layout: then whether the row has a stop at all.
+      if (was == null
+          ? !stopsTab(rowEl, step, false)
+          : !was.isFocusable() || was.skipsTab() || !numbered(was) || was.opacity() == 0) {
         return -1;
       }
     }

@@ -259,7 +259,10 @@ class RowHeightsTest {
     assertEquals("row-20", key(app.focused()), app.tree().dump());
   }
 
-  /** Tab into a list goes to its row in view, not into a list in a row built above the view. */
+  /**
+   * Tab into a list goes to its row in view, not into a list in a row built above the view; on to
+   * the next row when the one in view has nothing to focus.
+   */
   @Test
   void tabEntersTheOuterRowInViewNotAListInARowAboveIt() {
     RowHeights outer = new RowHeights(i -> 60);
@@ -281,7 +284,9 @@ class RowHeightsTest {
                             .rows(
                                 3,
                                 inner[i],
-                                j -> el().key("r" + i + "-" + j).focusable().h(20)))));
+                                j -> i == 10
+                                    ? el().key("r" + i + "-" + j).h(20)
+                                    : el().key("r" + i + "-" + j).focusable().h(20)))));
     app.resize(200, 200, 1);
     app.frame();
     app.scrollTo(find(app.tree(), "list"), 0, 600);
@@ -289,7 +294,7 @@ class RowHeightsTest {
     app.focus(find(app.tree(), "before"));
     app.frame();
     tab(app, 0);
-    assertEquals("r10-0", key(app.focused()), app.tree().dump());
+    assertEquals("r11-0", key(app.focused()), app.tree().dump());
   }
 
   private static void tab(App<?> app, int modifiers) {
