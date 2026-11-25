@@ -1007,6 +1007,9 @@ final class Editor {
           return false;
         }
         boolean page = name.startsWith("Page");
+        if (!page && !shift && !editable()) {
+          return false; // no caret to move: the app scrolls by a line, as a browser
+        }
         if (page && !shift && !editable() && t.showsAllRows()) {
           return false; // a read-only fitLines field never scrolls: the area around it pages
         }
@@ -1024,6 +1027,9 @@ final class Editor {
         moveTo(to, shift);
         goal = x;
         return true;
+      }
+      case "ArrowLeft", "ArrowRight" -> {
+        return modifiers == 0 && !editable() ? Boolean.FALSE : null; // as Up and Down
       }
       case "Home" -> {
         if (!shift && !editable()) {

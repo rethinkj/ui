@@ -735,6 +735,69 @@ class FieldTest {
   }
 
   @Test
+  void arrowKeysInFocusedReadOnlyTextScrollByALineAndShiftSelectsFromTheHiddenCaret() {
+    App<Object> app = new App<>(new Object(), s -> {
+      El list = col()
+          .size(150, 40)
+          .rows(
+              40,
+              20,
+              row -> El.text("line " + row)
+                  .editable(e -> {})
+                  .readOnly()
+                  .multiline()
+                  .fitLines()
+                  .key("row-" + row));
+      El log = El.text("a\nb\nc\nd\ne\nf")
+          .editable(e -> {})
+          .readOnly()
+          .multiline()
+          .size(150, 30)
+          .shrink(0);
+      El page =
+          col().scroll().size(150, 60).children(list.shrink(0), el().h(200).shrink(0));
+      return col().children(page, log);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 100, 1);
+    app.frame();
+    app.focus(app.tree().children().get(1));
+    app.frame();
+    El log = app.focused();
+    double line = log.text().lineHeight() / log.text().scale();
+    key(app, "ArrowDown");
+    assertEquals(line, app.focused().scrollY(), 0.01, "Down scrolls a field that scrolls itself");
+    assertNull(app.focused().text().caret(), "and moves no caret");
+    key(app, "ArrowDown", SHIFT);
+    assertEquals(0, app.focused().editor().anchor(), "Shift+Down selects from the hidden caret");
+    assertEquals(2, app.focused().editor().caret());
+    key(app, "ArrowUp");
+    assertEquals(0, app.focused().scrollY(), 0.01, "Up scrolls back, the selection stays");
+    assertEquals(2, app.focused().editor().caret());
+
+    app.focus(app.tree().children().getFirst().children().getFirst().children().getFirst());
+    app.frame();
+    key(app, "ArrowRight");
+    assertEquals(0, app.focused().editor().caret(), "Right moves no caret, nothing scrolls so");
+    for (int i = 0; i < 20; i++) {
+      key(app, "ArrowDown");
+    }
+    assertEquals(
+        20 * line,
+        app.tree().children().getFirst().children().getFirst().scrollY(),
+        0.01,
+        "Down scrolls the area around it, also once the focused row is out of range");
+    for (int i = 0; i < 60; i++) { // to the list's end, then the page's: the list leaves the window
+      key(app, "ArrowDown");
+    }
+    assertTrue(app.tree().children().getFirst().scrollY() > 60);
+    key(app, "ArrowDown", SHIFT);
+    assertEquals("row-0", app.focused().key(), "Shift brings the row back");
+    assertEquals(0, app.focused().editor().anchor(), "to select from its hidden caret");
+    assertTrue(app.focused().editor().caret() > 0);
+  }
+
+  @Test
   void anInactiveWindowShowsNoCaretAndDrawsNothingUntilItIsActiveAgain() {
     App<Model> app = start("abc");
     focus(app);
