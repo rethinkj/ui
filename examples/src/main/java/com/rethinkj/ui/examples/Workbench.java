@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static com.rethinkj.ui.kit.Button.Tone.DANGER;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
@@ -16,6 +17,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.kit.AppIcon;
@@ -42,6 +44,7 @@ import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Progress;
+import com.rethinkj.ui.kit.Rail;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Part;
@@ -281,6 +284,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       .onCloseTab(this::closeTab);
   // docs:end workbench-groups
   Position sidebar = SIDEBAR;
+  final Rail.State rail = new Rail.State();
   boolean dark = true;
   String message; // in the status line for a while, or null
   int messages; // told so far
@@ -534,6 +538,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   /** Collapses the sidebar, or restores it at its last width. */
   void toggleSidebar() {
     sidebar = sidebar.isCollapsed() ? sidebar.restore() : sidebar.collapse(Part.FIRST);
+  }
+
+  /** Opens the catalog sidebar from the rail, or collapses it for {@code -1}. */
+  void rail(int index) {
+    sidebar = index < 0 ? sidebar.collapse(Part.FIRST) : sidebar.restore();
+  }
+
+  void sidebar(Position position) {
+    sidebar = position;
+  }
+
+  void toggleTheme() {
+    dark = !dark;
   }
 
   /** The tables open in tabs, in every window. */
@@ -1218,6 +1235,36 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                 () -> state.tell("Adding a connection is not part of this example"))),
         Card.inset(Menu.contextMenu(tree, state.menu, state.menuItems())));
     List<Menu.Item> menus = state.menus(state.groups.main());
+    // docs:start workbench-rail
+    El titleBar = titleBar(
+            AppIcon.appIcon(16, MARK, Symbol.DATABASE),
+            "Workbench",
+            List.of(MenuBar.menuBar(state.bar, menus)),
+            TitleBar.search(
+                "Search commands", "Ctrl+Shift+P", state.palette(state.groups.main())::open),
+            List.of(Button.icon(GHOST, Symbol.WEATHER_MOON, "Dark theme", state::toggleTheme)
+                .checked(state.dark)))
+        .background(TitleBar.glow(MARK));
+    El rail = Rail.rail(
+        state.rail,
+        "Tool windows",
+        Side.LEFT,
+        List.of(Rail.item(Symbol.DATABASE, "Connections").shortcut(Key.CONTROL, "B")),
+        List.of(),
+        state.sidebar.isCollapsed() ? -1 : 0,
+        state::rail);
+    El content = Split.cards(
+            Direction.ROW,
+            state.sidebar,
+            SIDEBAR.collapse(Part.FIRST),
+            state::sidebar,
+            catalog,
+            160,
+            right.key("tabs"),
+            320)
+        .grow(1)
+        .margin(0, theme.space().m(), theme.space().m(), theme.space().m());
+    // docs:end workbench-rail
     El root = col()
         .wFull()
         .hFull()
@@ -1229,26 +1276,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             right.onKey()))
         .onKeyUp(MenuBar.keysUp(state.bar, menus))
         .overlay(state.commandPalette(state.groups.main()))
-        .child(titleBar(
-            AppIcon.appIcon(16, MARK, Symbol.DATABASE),
-            "Workbench",
-            List.of(MenuBar.menuBar(state.bar, menus)),
-            TitleBar.search(
-                "Search commands", "Ctrl+Shift+P", state.palette(state.groups.main())::open),
-            List.of(Button.icon(
-                    GHOST, Symbol.WEATHER_MOON, "Dark theme", () -> state.dark = !state.dark)
-                .checked(state.dark))))
-        .child(Split.cards(
-                Direction.ROW,
-                state.sidebar,
-                SIDEBAR.collapse(Part.FIRST),
-                position -> state.sidebar = position,
-                catalog,
-                160,
-                right.key("tabs"),
-                320)
-            .grow(1)
-            .margin(0, theme.space().m(), theme.space().m(), theme.space().m()))
+        .child(titleBar)
+        .child(row().grow(1).minSize(0, 0).children(rail, content))
         .child(state.statusBar());
     if (state.dropping != null) {
       String name = state.dropping.name;
@@ -1417,8 +1446,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .overlay(question(frame))
         .overlay(preview(frame))
         .child(titleBar(
-            AppIcon.appIcon(16, MARK, Symbol.DATABASE),
-            active == null ? "Workbench" : active.title()))
+                AppIcon.appIcon(16, MARK, Symbol.DATABASE),
+                active == null ? "Workbench" : active.title())
+            .background(TitleBar.glow(MARK)))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
         .child(col()
             .grow(1)

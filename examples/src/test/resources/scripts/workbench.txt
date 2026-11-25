@@ -166,9 +166,9 @@ snap workbench-torn                        # the first window on Start; orders w
 down #tab-0                                # its only tab drags the window along
 move screen 600,300
 frame
-move screen 440,148                        # over the first window's bar, after Start
+move screen 481,148                        # over the first window's bar, after Start
 frame
-up screen 440,148
+up screen 481,148
 frame                                      # orders back in the first window, its window gone
 
 window main
