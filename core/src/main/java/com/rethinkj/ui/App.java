@@ -4413,6 +4413,9 @@ public final class App<S> {
    * of the text tells the offsets again, also when they stay the same.
    */
   private Object[] scopeSelectionAt() {
+    if (scopeSelection == null && keptScope != null && !remap(keptScope, true)) {
+      keptScope = null; // remapped here too: its scope may have been out of the tree at the remap
+    }
     ScopeSelection s = scopeSelection != null ? scopeSelection : keptScope;
     El scope = s == null ? null : animator.liveElement(s.scopeId);
     if (scope == null || scope.onSelect() == null) {
