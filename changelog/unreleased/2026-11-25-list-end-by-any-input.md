@@ -1,0 +1,1 @@
+- Page Down, the wheel and dragging the scrollbar thumb to the end of its track now reach the real bottom of a virtual list whose last rows measure taller than estimated, as End does: when they reach the end, the list stays there while those rows are measured, instead of stopping short until a second input.
