@@ -1012,10 +1012,10 @@ public final class Scene {
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     if (rounded || beyond) {
       float[] inner = {
-        Math.max(radii[0] - Math.max(insetLeft, insetTop), 0),
-        Math.max(radii[1] - Math.max(insetRight, insetTop), 0),
-        Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
-        Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)
+        innerRadius(radii[0], insetLeft, insetTop, Math.max(borders[3], borders[0])),
+        innerRadius(radii[1], insetRight, insetTop, Math.max(borders[1], borders[0])),
+        innerRadius(radii[2], insetRight, insetBottom, Math.max(borders[1], borders[2])),
+        innerRadius(radii[3], insetLeft, insetBottom, Math.max(borders[3], borders[2]))
       };
       own = clip(l, t, r, b, inner, clip);
       if (own < 0) {
@@ -1562,6 +1562,20 @@ public final class Scene {
       data = grow(data);
     }
     return offset;
+  }
+
+  /**
+   * The radius of a circle that keeps a content corner with insets {@code a} and {@code b} inside
+   * the border's inner corner: 0 once either inset clears the curve; {@code radius - max(a, b)}
+   * while both insets reach past the wider border, since the circle of radius {@code radius -
+   * border} lies inside that corner; else the longer half axis {@code radius - min(a, b)} of the
+   * content corner's ellipse, which contains the ellipse.
+   */
+  private static float innerRadius(float radius, float a, float b, float border) {
+    if (radius <= Math.max(a, b)) {
+      return 0;
+    }
+    return Math.min(a, b) >= border ? radius - Math.max(a, b) : radius - Math.min(a, b);
   }
 
   /**

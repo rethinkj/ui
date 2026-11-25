@@ -164,4 +164,47 @@ class ImageTest {
       }
     }
   }
+
+  @Test
+  void anImageDoesNotCoverAnUnevenRoundedBorder() {
+    int border = 0xFF0000FF;
+    int red = 0xFFFF0000;
+    Image fill = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
+    float scale = 1.25f;
+    int size = Math.round(40 * scale);
+    El plain = el().size(40, 40).child(el().size(40, 40).radius(12).border(10, 2, 2, 2, border));
+    El withImage = el().size(40, 40)
+        .child(
+            El.image(fill).size(40, 40).radius(12).border(10, 2, 2, 2, border).fit(Image.Fit.FILL));
+    Flex.layout(plain, 40, 40);
+    Flex.layout(withImage, 40, 40);
+
+    Pixels borderOnly = CpuRenderer.render(Scene.of(plain, scale), size, size, scale);
+    Pixels drawn = CpuRenderer.render(Scene.of(withImage, scale), size, size, scale);
+
+    int borderPixels = 0;
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        if (borderOnly.argb(x, y) == border) {
+          borderPixels++;
+          assertEquals(border, drawn.argb(x, y), "border pixel at " + x + "," + y);
+        }
+      }
+    }
+    assertTrue(borderPixels > 0);
+    assertEquals(red, drawn.argb(size / 2, size / 2), "image interior");
+  }
+
+  @Test
+  void paddingInsideAnEvenBorderKeepsTheImageCornerAsRoundAsBefore() {
+    Image fill = Image.of(new Pixels(1, 1, new byte[] {(byte) 255, 0, 0, (byte) 255}));
+    El image = El.image(fill)
+        .size(40, 40)
+        .radius(16)
+        .border(2, 0xFF0000FF)
+        .padding(12, 8)
+        .fit(Image.Fit.FILL);
+    Flex.layout(image, 40, 40);
+    assertEquals(0xFFFF0000, CpuRenderer.render(Scene.of(image, 1), 40, 40, 1).argb(12, 14));
+  }
 }
