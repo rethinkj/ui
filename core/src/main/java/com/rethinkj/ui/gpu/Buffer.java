@@ -83,7 +83,7 @@ public final class Buffer extends GpuObject {
     boolean requested = false;
     try {
       try (Arena arena = Arena.ofConfined()) {
-        MemorySegment info = CallbackInfo.allocate(arena, Callbacks.BUFFER_MAP, id);
+        MemorySegment info = CallbackInfo.allocate(arena, Callbacks.Devices.BUFFER_MAP, id);
         device.run(
             "mapping buffer",
             label(),

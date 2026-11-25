@@ -214,7 +214,7 @@ class DeviceTest {
       // Calls the uncaptured-error upcall as wgpu would, with a message too long for a Java
       // string: the upcall throws inside, which would end the JVM if it got out.
       MethodHandle upcall = Linker.nativeLinker()
-          .downcallHandle(Callbacks.UNCAPTURED_ERROR, Wgpu.UNCAPTURED_ERROR_CALLBACK);
+          .downcallHandle(Callbacks.Devices.UNCAPTURED_ERROR, Wgpu.UNCAPTURED_ERROR_CALLBACK);
       MemorySegment message = arena.allocate(Structs.STRING_VIEW);
       message.set(ADDRESS, 0, arena.allocate(8));
       message.set(JAVA_LONG, 8, Long.MAX_VALUE / 2);
