@@ -182,7 +182,7 @@ If your app runs heavy initialization before opening its first window, you can a
 
 ## Optional: Pre-extract native libraries
 
-By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`. Close the app first, because Windows cannot delete files while the app is running:
+By default, the app extracts native libraries into a per-user cache on first launch. To avoid extraction at runtime, you can unpack them into the app image during packaging and set `rethinkj.ui.natives.dir`. That saves the extraction, about 0.3 s on Windows, but not Microsoft Defender's check of DLLs it has not seen before, which can hold their first load for several seconds. Close the app first, because Windows cannot delete files while the app is running:
 
 <Tabs groupId="shell" persist items={['Linux', 'PowerShell', 'cmd']}>
 <Tab value="Linux">

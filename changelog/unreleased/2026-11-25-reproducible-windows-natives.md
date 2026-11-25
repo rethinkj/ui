@@ -1,0 +1,1 @@
+- Building from source on Windows links FreeType and HarfBuzz without time stamps, so every build makes the same DLLs. A new checkout reuses the libraries an earlier one extracted and skips Microsoft Defender's cloud check of new DLLs, which could delay the first start by several seconds.
