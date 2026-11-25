@@ -2719,19 +2719,30 @@ public final class App<S> {
    * larger; with its focus ring as far as an area's padding has room for it.
    */
   private void reveal(El el) {
-    reveal(el, 0, 0, el.width(), el.height(), true);
+    reveal(el, 0, 0, el.width(), el.height(), true, null, 0);
   }
 
   /**
    * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show the
-   * rectangle {@code (rx, ry, rw, rh)} relative to {@code el}'s border box whole inside theirs.
+   * rectangle {@code (rx, ry, rw, rh)} relative to {@code el}'s border box whole inside theirs,
+   * below the top {@code covered} of {@code cover} on the path where that lies over an area.
    */
-  private boolean reveal(El el, float rx, float ry, float rw, float rh, boolean withRing) {
+  private boolean reveal(
+      El el, float rx, float ry, float rw, float rh, boolean withRing, El cover, float covered) {
     List<El> full = new ArrayList<>();
     if (root == null || !pathTo(root, el, full)) {
       return false;
     }
     List<El> path = fromOverlay(full); // the areas around an overlay stay where they are
+    float coveredTo = Float.NEGATIVE_INFINITY;
+    float coverY = 0;
+    for (int j = 0; cover != null && covered > 0 && j < path.size(); j++) {
+      coverY += path.get(j).y();
+      if (path.get(j) == cover) {
+        coveredTo = coverY + covered;
+        break;
+      }
+    }
     boolean moved = false;
     for (int i = path.size() - 2; i >= 0; i--) {
       El area = path.get(i);
@@ -2773,7 +2784,9 @@ public final class App<S> {
         double nextX = area.isFieldPart(next)
             ? area.scrollX() + revealDelta(x, rw, viewX, viewW)
             : area.scrollX();
-        if (area.scrollTo(nextX, area.scrollY() + revealDelta(y, rh, viewY, viewH))) {
+        float shown = coveredTo > viewY && coveredTo < viewY + viewH ? coveredTo - viewY : 0;
+        if (area.scrollTo(
+            nextX, area.scrollY() + revealDelta(y, rh, viewY + shown, viewH - shown))) {
           moved = true;
           if ((keyScroll || focusByKey) && animator.wasSeen(area)) {
             revealedScrolls.add(animator.identity(area));
@@ -2788,11 +2801,12 @@ public final class App<S> {
       float right = Math.min(ring, area.padding(Side.RIGHT));
       float up = Math.min(ring, area.padding(Side.TOP));
       float down = Math.min(ring, area.padding(Side.BOTTOM));
+      float viewH = area.height() - area.coverY();
+      float shown = coveredTo > areaY && coveredTo < areaY + viewH ? coveredTo - areaY : 0;
       if (area.scrollTo(
           area.scrollX()
               + revealDelta(x - left, rw + left + right, areaX, area.width() - area.coverX()),
-          area.scrollY()
-              + revealDelta(y - up, rh + up + down, areaY, area.height() - area.coverY()))) {
+          area.scrollY() + revealDelta(y - up, rh + up + down, areaY + shown, viewH - shown))) {
         moved = true;
         if ((keyScroll || focusByKey) && animator.wasSeen(area)) {
           revealedScrolls.add(animator.identity(area));
@@ -4744,9 +4758,8 @@ public final class App<S> {
           target.text().layOut();
         }
         float[] box = editor.caretBox();
-        float covered = now.scopeCoveredTop();
         if (box != null) {
-          reveal(target, box[0], box[1] - covered, box[2], box[3] + covered, false);
+          reveal(target, box[0], box[1], box[2], box[3], false, now, now.scopeCoveredTop());
         }
       }
       scrolled = true;
