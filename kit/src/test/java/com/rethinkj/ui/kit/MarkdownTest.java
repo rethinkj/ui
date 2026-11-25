@@ -157,7 +157,7 @@ class MarkdownTest {
     // A link with a title shows it as a tooltip; one without shows none.
     tree = run(app, "move role=link label=\"spec\"\nframe\nadvance 1\nframe");
     assertTrue(line(tree, "role=tooltip").contains("label=\"CommonMark\""), tree);
-    tree = run(app, "move role=link label=\"notes\"\nframe\nadvance 1\nframe");
+    tree = run(app, "key Tab\nmove role=link label=\"notes\"\nframe\nadvance 1\nframe");
     assertFalse(tree.contains("role=tooltip"), tree);
   }
 
