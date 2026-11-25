@@ -2687,18 +2687,28 @@ public final class App<S> {
         up = animator.inRow(up.listId())) {
       outer = up;
     }
-    int row = lastRow(outer.list(), outer.listId());
+    int row = lastRow(outer.list(), outer.listId(), step);
     El found = row >= 0
         ? inRow(outer.listId(), row, step)
         : inRow(in.listId(), rowInView(in.list(), step < 0), step);
     return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
   }
 
-  /** The row of this list that holds the element that last had the focus in it, or -1. */
-  private int lastRow(El list, Object listId) {
+  /**
+   * The row of this list that holds the element that last had the focus in it, or -1; for Tab, -1
+   * too where that row is not built and holds nothing Tab stops at now.
+   */
+  private int lastRow(El list, Object listId, int step) {
     Object last = focus.lastInList(listId);
     int row = last == null ? -1 : Animator.rowIn(last, listId);
-    return row < list.rowCount() ? row : -1;
+    if (row >= list.rowCount()
+        || step != 0
+            && row >= 0
+            && !list.hasRow(row)
+            && !stopsTab(list.rowElement(row), step, true)) {
+      return -1;
+    }
+    return row;
   }
 
   /**
@@ -2713,7 +2723,7 @@ public final class App<S> {
     path = fromOverlay(path); // an overlay lies over the areas around its anchor
     float top = 0;
     float clipTop = 0; // the window's
-    float clipBottom = root.height();
+    float clipBottom = height;
     for (El el : path) {
       top += el.y();
       if (el != list && el.style().overflowY != Style.Overflow.VISIBLE) {
@@ -2744,7 +2754,7 @@ public final class App<S> {
   private El throughGap(Gap gap, int step, boolean[] built, boolean scan) {
     El list = gap.list();
     Object listId = animator.identity(list);
-    int last = Animator.isBelow(focus.id(), listId) ? -1 : lastRow(list, listId);
+    int last = Animator.isBelow(focus.id(), listId) ? -1 : lastRow(list, listId, step);
     int from = gap.after() ? list.firstRow() + list.children().size() : 0;
     int to = gap.after() ? list.rowCount() : list.firstRow();
     if (last >= 0 && !list.hasRow(last)) {
@@ -2796,7 +2806,7 @@ public final class App<S> {
       }
       return false;
     }
-    for (El child : el.children()) {
+    for (El child : step > 0 ? el.children() : el.children().reversed()) {
       if (stopsTab(child, step, false)) {
         return true;
       }
@@ -2858,9 +2868,9 @@ public final class App<S> {
       }
     }
     if (nested != null) {
-      El found = inRow(animator.identity(nested), lastRow(nested, animator.identity(nested)), step);
-      if (found != null) {
-        return found;
+      int at = lastRow(nested, animator.identity(nested), step);
+      if (at >= 0) {
+        return inRow(animator.identity(nested), at, step);
       }
     }
     if (step == 0) {

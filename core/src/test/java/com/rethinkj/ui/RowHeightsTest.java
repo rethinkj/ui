@@ -201,12 +201,14 @@ class RowHeightsTest {
   /**
    * Tab into a list in a row goes to its first row in view of the outer list, and back into it to
    * the row that had the focus there, also when the outer list scrolled that row, or its own row
-   * that holds the inner list, out of its view meanwhile.
+   * that holds the inner list, out of its view meanwhile; to the row in view once that row holds
+   * nothing to focus.
    */
   @Test
   void tabReturnsToTheRowOfAListInARowThatTheOuterListScrolledAway() {
     RowHeights outer = new RowHeights(i -> 100);
     RowHeights inner = new RowHeights(j -> 20);
+    boolean[] gone = {false};
     App<Object> app = new App<>(
         new Object(),
         s -> col()
@@ -224,7 +226,9 @@ class RowHeightsTest {
                                 .rows(
                                     40,
                                     inner,
-                                    j -> el().key("row-" + j).focusable().h(20))
+                                    j -> gone[0] && j == 16
+                                        ? el().key("row-" + j).h(20)
+                                        : el().key("row-" + j).focusable().h(20))
                             : el().h(100))));
     app.resize(200, 200, 1);
     app.frame();
@@ -246,6 +250,12 @@ class RowHeightsTest {
       assertEquals("row-16", key(app.focused()), app.tree().dump());
       assertInView(app);
     }
+    gone[0] = true;
+    app.focus(find(app.tree(), "before"));
+    app.scrollTo(find(app.tree(), "list"), 0, 0);
+    app.frame();
+    tab(app, 0);
+    assertEquals("row-0", key(app.focused()), app.tree().dump());
   }
 
   private static void tab(App<?> app, int modifiers) {
