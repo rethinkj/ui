@@ -30,7 +30,7 @@ On first run, native libraries are extracted to a per-user cache folder:
 - **Windows:** `%LOCALAPPDATA%\rethinkj-ui\natives\`
 - **Linux:** `$XDG_CACHE_HOME/rethinkj-ui/natives/` (defaults to `~/.cache/rethinkj-ui/natives/`)
 
-Each set of libraries is extracted once, into a folder named after their hashes, and later starts load them from there. On Windows, the first load of a DLL that Microsoft Defender has not seen before can take several seconds, because Defender checks it with its cloud service. A build from source makes the same DLLs each time, so a new checkout does not pay this again.
+Each set of libraries is extracted once, into a folder named after their hashes, and later starts load them from there. On Windows, the first load of a DLL that Microsoft Defender has not seen before can take several seconds, because Defender checks it with its cloud service. A build from source makes the same DLLs each time with the same sources and Visual Studio version, so a new checkout reuses the libraries an earlier one extracted.
 
 System properties:
 - `rethinkj.ui.natives.cache` — Extract native libraries to a custom cache folder.
