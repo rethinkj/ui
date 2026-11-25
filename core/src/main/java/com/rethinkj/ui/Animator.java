@@ -666,9 +666,7 @@ final class Animator {
       el.toEnd(before != null && before.toEnd());
       el.setScroll(
           before == null ? 0 : before.scrollX(),
-          before == null
-              ? 0
-              : el.toEnd() ? Double.POSITIVE_INFINITY : el.movedScrollY(before, before.scrollY()));
+          before == null ? 0 : el.toEnd() ? el.endY() : el.movedScrollY(before, before.scrollY()));
     } else {
       if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
         throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
@@ -687,7 +685,7 @@ final class Animator {
       kept.seen = true;
       boolean end = kept.toEnd || kept.followEnd && kept.atEnd;
       double y = end
-          ? Double.POSITIVE_INFINITY
+          ? kept.toEnd ? el.endY() : Double.POSITIVE_INFINITY
           : kept.placed || !carried ? kept.y : el.movedScrollY(before, kept.y);
       kept.placed = false;
       el.setScroll(kept.x, y);

@@ -1286,15 +1286,16 @@ public final class El {
 
   /**
    * The last row that a pending end is for: of the rows a user's move to the end found, else (or
-   * when that row is gone) the last row.
+   * when that row is gone, or the area follows its end) the last row.
    */
   int endRow() {
-    int count = endRows < 0 ? rows.rowCount : endKey != null ? rowWithKey(endKey) + 1 : endRows;
+    boolean all = endRows < 0 || scrollState != null && scrollState.followEnd;
+    int count = all ? rows.rowCount : endKey != null ? rowWithKey(endKey) + 1 : endRows;
     return (count <= 0 ? rows.rowCount : Math.min(count, rows.rowCount)) - 1;
   }
 
   /** The offset at which the end that {@link #toEnd()} asks for shows. */
-  private double endY() {
+  double endY() {
     int last = rows == null ? -1 : endRow();
     if (last < 0 || last == rows.rowCount - 1) {
       return maxScrollY;
@@ -5637,9 +5638,10 @@ public final class El {
       scrollState.x = newX;
       scrollState.y = newY;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
-      scrollState.toEnd &= newY >= endY() - SLACK; // scrolled away before its rows were measured
+      // Scrolled away, either way, before its rows were measured.
+      scrollState.toEnd &= Math.abs(newY - endY()) <= SLACK;
     } else if (scrollState == null) {
-      toEnd &= newY >= endY() - SLACK;
+      toEnd &= Math.abs(newY - endY()) <= SLACK;
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
