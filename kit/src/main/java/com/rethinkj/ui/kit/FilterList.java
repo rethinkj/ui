@@ -220,7 +220,10 @@ public final class FilterList {
      * of its own, and its work runs to its end. {@code find} gets only the text: what it reads it
      * takes in its closure, and nothing of the app's state that the app's thread changes.
      *
-     * @param name what the work is called, which {@link App#await} names
+     * @param name what the work is called, which {@link App#await} names and which tells one
+     *     background source from another on the same {@link State} (give two sources that share a
+     *     state different names, and pass the same name on every build of one source so work stays
+     *     in flight)
      */
     static Entries background(App<?> app, String name, Function<String, List<Entry>> find) {
       return new Found(find, Objects.requireNonNull(app, "app"), name);
@@ -245,15 +248,18 @@ public final class FilterList {
     boolean none; // nothing highlighted until a key or the pointer does it (a free combo box)
     int current = -1; // the entry highlighted in place of the best while nothing is typed, or -1
     boolean picked; // the highlight is a key's, the pointer's or the app's, not the best entry
-    // What was filtered: of which list, for which text, the entries matched in no order.
+    // What was filtered: of which list, in which order, for which text, the entries matched.
     List<Entry> source;
+    boolean inOrder;
     String filtered;
     int[] matched; // the indexes of the entries the text matched, ascending
     String[] lowered; // the source's texts, as a query without capitals is compared with them
     int[] groupOf; // the source's group of each entry, from 1, or 0 for none
     boolean grouped;
     Shown shown;
-    // Of the app's work: the text asked for, the answer and the text it answered.
+    // Of the app's work: which source, the text asked for, the answer and any failure.
+    App<?> app;
+    String workName;
     Work work;
     String asked;
     List<Entry> answer = List.of();
@@ -296,15 +302,24 @@ public final class FilterList {
     /** Lets go of the entries, and of what their handlers hold, as the list closes. */
     void release() {
       reset(-1);
+      clearSource();
+      shown = null;
+      onHighlight = null;
+    }
+
+    /** Drops what was cached or asked for the source before. */
+    void clearSource() {
+      cancel();
+      app = null;
+      workName = null;
+      answer = List.of();
+      failure = null;
       source = null;
+      inOrder = false;
       filtered = null;
       matched = null;
       lowered = null;
       groupOf = null;
-      shown = null;
-      answer = List.of();
-      failure = null;
-      onHighlight = null;
     }
 
     /** Gives up the app's work on its way, as the list closes. */
@@ -406,9 +421,22 @@ public final class FilterList {
     }
   }
 
+  /** Whether the state's cached filter or background work belongs to {@code entries}. */
+  private static boolean sameSource(State s, Entries entries) {
+    return switch (entries) {
+      case Fixed f -> s.source == f.all() && s.inOrder == f.inOrder();
+      case Found f when f.app() == null -> s.source == null && s.app == null;
+      case Found f -> s.app == f.app() && Objects.equals(s.workName, f.name());
+    };
+  }
+
   /** The rows to show for the state's text, filtering or asking where it has to. */
   static Shown shown(State s, Entries entries) {
     Shown before = s.shown;
+    boolean changed = !sameSource(s, entries);
+    if (changed) {
+      s.clearSource();
+    }
     Shown shown = switch (entries) {
       case Fixed f -> filter(s, f.all(), f.inOrder());
       case Found f
@@ -416,7 +444,9 @@ public final class FilterList {
       case Found f -> ask(s, f);
     };
     s.shown = shown;
-    if (s.want == State.KEEP && before != null && before.entries() != shown.entries()) {
+    if (s.want == State.KEEP
+        && before != null
+        && (changed || before.entries() != shown.entries())) {
       // Other entries under the same highlight: the entry again by what it is, not by its row,
       // where it was picked; the best of the entries before, or one highlighted while the list
       // was loading, gives way to the best of these.
@@ -449,6 +479,8 @@ public final class FilterList {
 
   private static Shown ask(State s, Found f) {
     String query = s.query;
+    s.app = f.app();
+    s.workName = f.name();
     if (!query.equals(s.asked)) {
       if (s.work != null) {
         s.work.cancel();
@@ -582,6 +614,7 @@ public final class FilterList {
       order[k] = (int) (keys[k] & ((1 << INDEX_BITS) - 1));
     }
     s.source = all;
+    s.inOrder = inOrder;
     s.filtered = query;
     s.matched = m.isEmpty() ? null : Arrays.copyOf(matched, count);
     return rows(all, order, query, false, null);

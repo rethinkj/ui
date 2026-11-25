@@ -34,7 +34,7 @@ Supply entries through `FilterList.Entries`:
 | `Entries.of(list)` | Filters with `Fuzzy`, sorting best matches first (reuse the same list instance when unchanged to keep cached results) |
 | `Entries.inOrder(list)` | Same as `of`, preserving original order among equal-scoring matches |
 | `Entries.by(text -> list)` | Custom synchronous filter function |
-| `Entries.background(app, name, text -> list)` | Async background search showing `"Loading…"` while running and cancelling stale queries |
+| `Entries.background(app, name, text -> list)` | Async background search showing `"Loading…"` while running and cancelling stale queries (sources that share one state need different names) |
 
 ## Keyboard
 
