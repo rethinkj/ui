@@ -60,12 +60,14 @@ final class SystemNotifications implements Notifications {
     if (icon == writtenIcon) {
       return writtenFile;
     }
-    String cache = WINDOWS ? System.getenv("LOCALAPPDATA") : System.getenv("XDG_CACHE_HOME");
-    Path folder = cache != null && !cache.isEmpty()
-        ? Path.of(cache)
-        : WINDOWS ? null : Path.of(System.getProperty("user.home"), ".cache");
-    if (folder == null) {
+    String cache = System.getenv(WINDOWS ? "LOCALAPPDATA" : "XDG_CACHE_HOME");
+    Path folder;
+    if (cache != null && !cache.isEmpty()) {
+      folder = Path.of(cache);
+    } else if (WINDOWS) {
       return null;
+    } else {
+      folder = Path.of(System.getProperty("user.home"), ".cache");
     }
     Path file = folder
         .resolve("rethinkj-ui")

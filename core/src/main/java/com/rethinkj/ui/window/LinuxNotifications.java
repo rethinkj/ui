@@ -470,7 +470,7 @@ final class LinuxNotifications {
         : name.reinterpret(Long.MAX_VALUE).getString(0);
   }
 
-  /** Whether the daemon lists {@code body-markup} in its capabilities; true if it does not say. */
+  /** Whether the daemon lists {@code body-markup} in its capabilities; false if it does not say. */
   private static boolean bodyMarkup(Arena arena, MemorySegment conn) throws Throwable {
     MemorySegment msg = (MemorySegment) H.NEW_METHOD_CALL_H.invokeExact(
         arena.allocateFrom(BUS_NAME),
@@ -478,7 +478,7 @@ final class LinuxNotifications {
         arena.allocateFrom(INTERFACE),
         arena.allocateFrom("GetCapabilities"));
     if (msg.equals(MemorySegment.NULL)) {
-      return true;
+      return false;
     }
     MemorySegment error = arena.allocate(DBUS_ERROR_SIZE, 8);
     H.ERROR_INIT_H.invokeExact(error);
@@ -486,13 +486,13 @@ final class LinuxNotifications {
       MemorySegment reply = (MemorySegment)
           H.SEND_WITH_REPLY_AND_BLOCK_H.invokeExact(conn, msg, NOTIFY_TIMEOUT_MS, error);
       if (reply.equals(MemorySegment.NULL)) {
-        return true;
+        return false;
       }
       try {
         MemorySegment iter = arena.allocate(DBUS_MESSAGE_ITER_SIZE, 8);
         if ((int) H.ITER_INIT_H.invokeExact(reply, iter) == 0
             || (int) H.ITER_GET_ARG_TYPE_H.invokeExact(iter) != DBUS_TYPE_ARRAY) {
-          return true;
+          return false;
         }
         MemorySegment each = arena.allocate(DBUS_MESSAGE_ITER_SIZE, 8);
         H.ITER_RECURSE_H.invokeExact(iter, each);

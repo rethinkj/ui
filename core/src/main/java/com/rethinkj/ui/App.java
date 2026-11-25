@@ -2125,10 +2125,10 @@ public final class App<S> {
    * Shows a desktop notification of the system with {@code title} and {@code body}. When the user
    * clicks it while the app runs, the app asks for its window to come to the front, which a
    * Wayland compositor may refuse, and {@code onClick} runs as a {@link #post posted} task: on the
-   * app's thread, with a frame after it. If the system cannot
-   * show the notification, {@code onError} gets what went wrong as a posted task instead. Call it
-   * on the app's thread, usually in a handler; it returns once it has handed the notification to
-   * the system. Set the app's name and icon beforehand with {@link
+   * app's thread, with a frame after it. If the system cannot show the notification, {@code
+   * onError} gets what went wrong as a posted task instead. Call it on the app's thread, usually in
+   * a handler; it does not wait for the system, as a window's runner hands the notification
+   * over on a thread of its own. Set the app's name and icon beforehand with {@link
    * com.rethinkj.ui.window.Window#identity} and {@link com.rethinkj.ui.window.Window.Options#icon}.
    * Under a {@link Script} nothing shows on the desktop: a {@code snap} writes the notifications
    * shown so far, and {@code notification click "<title>"} clicks one.

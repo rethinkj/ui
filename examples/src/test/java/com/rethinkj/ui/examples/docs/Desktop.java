@@ -119,11 +119,11 @@ final class Desktop {
     app.notify(
         "Export finished",
         "orders.csv is ready.",
-        () -> showExport(app),
+        Desktop::showExport,
         error -> notNotified(app, error));
   }
 
-  static void showExport(App<?> app) {
+  static void showExport() {
     // runs on the app's thread after the window rises to the front
   }
 

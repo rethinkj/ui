@@ -470,7 +470,7 @@ final class Win32Notifications {
    */
   private static void registerAumid(Arena arena, String id, String name, String iconUri)
       throws Throwable {
-    if (iconUri == null) {
+    if (iconUri == null && id.equals(registeredId)) {
       iconUri = registeredIconUri;
     }
     if (id.equals(registeredId)
