@@ -358,10 +358,13 @@ import java.util.Map;
  * and a physical pixel vertically and beyond {@code [x, x + width]} and a physical pixel
  * horizontally. Renderers draw it over that box.
  *
- * <p>An element's background ({@link El#background(Background)}) is the gradient of a rounded
- * rectangle, a {@link #GRADIENT}: one in the slots of a {@link #RECT}, drawn as one but for its
- * fill, which shows the gradient over the fill. Its {@link #STOPS} come right after it and are not
- * drawn by themselves; their positions are resolved on the element's padding box:
+ * <p>A gradient background ({@link Background.Linear} or {@link Background.Radial} on {@link
+ * El#background(Background)}) is drawn as the fill of a rounded rectangle, a {@link #GRADIENT}: one
+ * in the slots of a {@link #RECT}, drawn as one but for its fill, which shows the gradient over the
+ * fill. Its {@link #STOPS} come right after it and are not drawn by themselves; their positions are
+ * resolved on the element's padding box. An image background ({@link Background.Picture}) is an
+ * ordinary {@link #IMAGE} instance emitted right after the element's rectangle(s) and before its
+ * {@link El#image}, fitted in the padding box and clipped to its inner corners:
  *
  * <pre>
  *  0  x1           f32   the start (linear) or the center (radial), in logical pixels
@@ -804,6 +807,8 @@ public final class Scene {
     }
     int[] colors = el.borderColors();
     float[] shown = hasBorder ? borders : NO_BORDER; // the borders the rectangle draws
+    boolean hasGradient = el.background() instanceof Background.Linear
+        || el.background() instanceof Background.Radial;
     // A transparent side is no border, as one transparent color is, and all of them none at all.
     if (colors != null && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0 && inside) {
       // The whole rectangle once per side, each clipped to its part, so that every pixel is drawn
@@ -839,7 +844,7 @@ public final class Scene {
           stops(el, left, top, width, height, borders, opacity, free);
         }
       }
-    } else if ((el.fill() >>> 24 != 0 || hasBorder || el.background() != null) && inside) {
+    } else if ((el.fill() >>> 24 != 0 || hasBorder || hasGradient) && inside) {
       rect(
           left,
           top,
@@ -854,8 +859,41 @@ public final class Scene {
       arc(el);
       stops(el, left, top, width, height, borders, opacity, free);
     }
+    if (el.background() instanceof Background.Picture picture && inside) {
+      image(
+          picture.image(),
+          picture.fit(),
+          left,
+          top,
+          width,
+          height,
+          borders[0],
+          borders[1],
+          borders[2],
+          borders[3],
+          shown,
+          radii,
+          opacity,
+          clip,
+          free);
+    }
     if (el.image() != null && inside) {
-      image(el, left, top, width, height, borders, shown, radii, opacity, clip, free);
+      image(
+          el.image(),
+          el.fit(),
+          left,
+          top,
+          width,
+          height,
+          borders[0] + el.padding(Side.TOP),
+          borders[1] + el.padding(Side.RIGHT),
+          borders[2] + el.padding(Side.BOTTOM),
+          borders[3] + el.padding(Side.LEFT),
+          shown,
+          radii,
+          opacity,
+          clip,
+          free);
     }
     int inner = clip;
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
@@ -1016,7 +1054,7 @@ public final class Scene {
   }
 
   /**
-   * Turns the rectangle just added into a {@link #GRADIENT} with the element's {@link
+   * Turns the rectangle just added into a {@link #GRADIENT} with the element's gradient {@link
    * El#background}, unless it has none, and adds its {@link #STOPS}: their positions resolved on
    * the padding box, snapped to the pixel grid unless a spring moves the element.
    */
@@ -1029,6 +1067,10 @@ public final class Scene {
       float[] borders,
       float opacity,
       boolean free) {
+    Background background = el.background();
+    if (background == null || background instanceof Background.Picture) {
+      return;
+    }
     float l = left + borders[3];
     float t = top + borders[0];
     float r = left + width - borders[1];
@@ -1040,14 +1082,14 @@ public final class Scene {
       b = edge(b);
     }
     // Without a padding box there is nothing to resolve a percentage on, and no fill to show.
-    if (el.background() == null || !(r > l && b > t)) {
+    if (!(r > l && b > t)) {
       return;
     }
     float w = r - l;
     float h = b - t;
     data.set(ValueLayout.JAVA_INT, (long) (count - 1) * STRIDE + KIND, GRADIENT);
     long offset = next();
-    switch (el.background()) {
+    switch (background) {
       case Background.Linear linear -> {
         put(offset + X, l + resolve(linear.x1(), w));
         put(offset + Y, t + resolve(linear.y1(), h));
@@ -1066,6 +1108,7 @@ public final class Scene {
         color(offset + FILL, radial.inner(), 1);
         color(offset + BORDER, radial.outer(), 1);
       }
+      case Background.Picture ignored -> throw new AssertionError("unreachable");
     }
     put(offset + GRADIENT_OPACITY, opacity);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, 0);
@@ -1081,28 +1124,28 @@ public final class Scene {
   }
 
   /**
-   * An element's image in its content box: the rectangle that {@link El#fit} gives it, snapped to
-   * the pixel grid unless a spring moves the element, clipped to where its rectangle with the
-   * borders it draws ({@code shown}, a transparent side's 0) shows its fill when the element is
-   * rounded, and to the content box when the image reaches beyond it.
+   * An image in a box inset from the element's border box (the padding box for a {@link
+   * Background.Picture}, the content box for {@link El#image}): the rectangle that {@code fit}
+   * gives it, snapped to the pixel grid unless a spring moves the element, clipped to where the
+   * element's rectangle with the borders it draws ({@code shown}, a transparent side's 0) shows its
+   * fill when the element is rounded, and to the inset box when the image reaches beyond it.
    */
   private void image(
-      El el,
+      Image image,
+      Image.Fit fit,
       float left,
       float top,
       float width,
       float height,
-      float[] borders,
+      float insetTop,
+      float insetRight,
+      float insetBottom,
+      float insetLeft,
       float[] shown,
       float[] radii,
       float opacity,
       int clip,
       boolean free) {
-    Image image = el.image();
-    float insetLeft = borders[3] + el.padding(Side.LEFT);
-    float insetTop = borders[0] + el.padding(Side.TOP);
-    float insetRight = borders[1] + el.padding(Side.RIGHT);
-    float insetBottom = borders[2] + el.padding(Side.BOTTOM);
     float l = left + insetLeft;
     float t = top + insetTop;
     float r = left + width - insetRight;
@@ -1121,8 +1164,8 @@ public final class Scene {
     float y = t;
     float w = r - l;
     float h = b - t;
-    if (el.fit() != Image.Fit.FILL) {
-      float k = el.fit() == Image.Fit.CONTAIN
+    if (fit != Image.Fit.FILL) {
+      float k = fit == Image.Fit.CONTAIN
           ? Math.min(w / image.width(), h / image.height())
           : Math.max(w / image.width(), h / image.height());
       float fitW = image.width() * k;

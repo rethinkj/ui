@@ -1,0 +1,1 @@
+- Added `Background.image(Image, Image.Fit)` in `core` to paint an image behind an element's content via `El.background(Background)`, centered and fitted in the padding box, clipped to the border's inner corners, with no effect on layout or hit testing.

@@ -155,6 +155,7 @@ class GpuRendererTest {
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
     cases.add(view("backgrounds", backgrounds(), 240, 140, 1.25f));
+    cases.add(view("image-backgrounds", imageBackgrounds(), 200, 80, 1.25f));
     cases.add(view("lines", Examples.lines(), 240, 120, s));
     // A line from a billion pixels out, as an edge of a diagram zoomed far in.
     cases.add(view(
@@ -1459,5 +1460,33 @@ class GpuRendererTest {
                         Len.percent(0.9f),
                         0xB322C55E,
                         0x33F97316))));
+  }
+
+  /**
+   * Image backgrounds in rounded elements with uneven borders at a fractional scale: COVER clipped
+   * to elliptic inner corners and padding box, CONTAIN with transparent disk over fill, and a child
+   * painted over it.
+   */
+  private static El imageBackgrounds() {
+    Image photo = Examples.image("bg-photo", Examples.photo(48, 24), 1);
+    Image disk = Examples.image("bg-disk", Examples.disk(32), 1);
+    return el().size(200, 80)
+        .fill(BACKGROUND)
+        .children(
+            el().absolute(8.25f, 8.5f)
+                .size(88, 60)
+                .padding(6)
+                .radius(16, 6, 14, 10)
+                .fill(0xFF1E293B)
+                .border(10, 2, 4, 2, 0xFF38BDF8)
+                .background(Background.image(photo, Image.Fit.COVER))
+                .child(el().size(24, 12).radius(4).fill(0xCC0F172A)),
+            el().absolute(106.5f, 8.5f)
+                .size(84, 60)
+                .radius(14)
+                .fill(0xFF1E293B)
+                .border(2, 6, 2, 6, 0xFFFACC15)
+                .opacity(0.85f)
+                .background(Background.image(disk, Image.Fit.CONTAIN)));
   }
 }

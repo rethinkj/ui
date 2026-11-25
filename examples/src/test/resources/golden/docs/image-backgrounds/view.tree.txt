@@ -1,0 +1,6 @@
+el 0,0 352x96
+  el 12,12 328x72
+    el #cover 12,12 160x72
+      text "Cover" 25,55 134x16
+    el #contain 180,12 160x72
+      text "Contain" 193,55 134x16

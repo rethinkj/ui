@@ -27,6 +27,19 @@ Decoding large images can take noticeable time. Always decode inside `app.backgr
 
 By default, an image renders at its logical size, shrinking proportionally if the container is narrower. Setting one dimension scales proportionally. Setting both width and height uses `.fit(...)` (`Image.Fit.FILL`, `CONTAIN`, or `COVER`, just like CSS `object-fit`). Corner radius, borders, shadows, opacity, and motion work on images just like any other element.
 
+## Image backgrounds
+
+To paint an image behind an element's content without giving it an intrinsic size, pass [`Background.image(image, fit)`](/api/com/rethinkj/ui/Background.html) to `El.background(...)`:
+
+```java snippet="image-backgrounds"
+```
+
+<Shot src="examples/docs/image-backgrounds/view-{theme}" alt="Two rounded bordered cards side by side with a geometric pattern painted behind their labels: Cover fills the card edge to edge, Contain centers the square image with the card's fill visible on both sides" />
+
+- Painted over `fill`, inside the border and clipped to its inner rounded corners, under the element's `El.image`, lines, text, and children.
+- Centered in the padding box and fitted with `Image.Fit.FILL`, `CONTAIN`, or `COVER`; transparent pixels and uncovered parts show `fill`.
+- Has no intrinsic size and no effect on layout or hit testing. Text over it gets the glyph correction for an unknown backdrop unless `textBackground(...)` names one.
+
 ## GPU memory limit
 
 `app.imageMemory(bytes)` sets the GPU texture cache limit (default: 256 MB). When full, least-recently-used images are evicted and re-uploaded if displayed again. Images visible in the current frame are never evicted.

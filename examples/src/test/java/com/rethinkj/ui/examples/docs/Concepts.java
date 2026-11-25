@@ -30,6 +30,7 @@ import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.window.Window;
 import java.nio.file.Files;
@@ -61,6 +62,7 @@ final class Concepts {
   String rows = "";
   String message = "";
   Image photo;
+  final Image backdrop = Image.of(backdropPixels());
   String opened = "";
 
   static El layout(Concepts state) {
@@ -653,6 +655,58 @@ final class Concepts {
         : El.image(state.photo).label("The chosen image").radius(theme.radius().medium());
     // docs:end images
     return Frame.of(open, photo);
+  }
+
+  static El imageBackgrounds(Concepts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start image-backgrounds
+    El cover = col()
+        .key("cover")
+        .size(160, 72)
+        .padding(12)
+        .justify(Style.Content.END)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().panel())
+        .border(1, theme.border().subtle())
+        .background(Background.image(state.backdrop, Image.Fit.COVER))
+        .child(Label.label("Cover"));
+    El contain = col()
+        .key("contain")
+        .size(160, 72)
+        .padding(12)
+        .justify(Style.Content.END)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().panel())
+        .border(1, theme.border().subtle())
+        .background(Background.image(state.backdrop, Image.Fit.CONTAIN))
+        .child(Label.label("Contain"));
+    El cards = row().gap(theme.space().m()).children(cover, contain);
+    // docs:end image-backgrounds
+    return Frame.of(cards);
+  }
+
+  /** A square 64 by 64 translucent geometric gradient for the image-background example. */
+  private static Pixels backdropPixels() {
+    int size = 64;
+    byte[] rgba = new byte[size * size * 4];
+    for (int row = 0; row < size; row++) {
+      for (int column = 0; column < size; column++) {
+        int index = (row * size + column) * 4;
+        double across = (double) column / (size - 1);
+        double down = (double) row / (size - 1);
+        boolean edge = row < 2 || column < 2 || row >= size - 2 || column >= size - 2;
+        boolean band = ((row + column) / 8) % 2 == 0;
+        int red = (int) (45 + 35 * across + (band ? 18 : 0));
+        int green = (int) (115 + 75 * down + (band ? 14 : 0));
+        int blue = (int) (235 - 50 * down);
+        int alpha = edge ? 150 : band ? 115 : 85;
+        rgba[index] = (byte) Math.min(red, 255);
+        rgba[index + 1] = (byte) Math.min(green, 255);
+        rgba[index + 2] = (byte) Math.min(blue, 255);
+        rgba[index + 3] = (byte) alpha;
+      }
+    }
+    return new Pixels(size, size, rgba);
   }
 
   // docs:start images-handlers

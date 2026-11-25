@@ -48,6 +48,7 @@ class DocsExamplesTest {
       Map.entry("lights", List.of("on")),
       Map.entry("layout", List.of("view")),
       Map.entry("backgrounds", List.of("view")),
+      Map.entry("image-backgrounds", List.of("view")),
       Map.entry("lines", List.of("view")),
       Map.entry("text", List.of("view")),
       Map.entry("line-height", List.of("view")),
@@ -341,6 +342,7 @@ class DocsExamplesTest {
             440,
             150));
     concepts(all, "images", Concepts::images, 280, 120);
+    concepts(all, "image-backgrounds", Concepts::imageBackgrounds, 352, 96);
     concepts(all, "backgrounds", state -> Concepts.backgrounds(), 352, 96);
     concepts(all, "lines", state -> Concepts.lines(), 244, 104);
     concepts(all, "theme", Concepts::theme, 200, 80);

@@ -7,13 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.Font;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 /**
- * Gradient backgrounds ({@link Background}, {@link El#background(Background)}): the linear and
- * radial formulas, premultiplied mixing in linear light, and layering inside borders and under
- * children. The docs example's stored images cover how both look.
+ * Gradient and image backgrounds ({@link Background}, {@link El#background(Background)}): linear
+ * and radial formulas, premultiplied mixing in linear light, image fitting, and layering inside
+ * borders and under children. The docs examples' stored images cover how they look.
  */
 class BackgroundTest {
 
@@ -168,6 +169,134 @@ class BackgroundTest {
     assertEquals(flat.argb(30, 20), half.argb(30, 20));
     Pixels base = render(card().opacity(0.5f).fill(0xFF000000).background(white));
     assertEquals(flat.argb(30, 20), base.argb(30, 20), "the fill under it shows through");
+  }
+
+  @Test
+  void imageBackgroundFitsCoverAndContainInsideBorderUnderChildrenWithNoLayoutEffect() {
+    // 20x10 image: left half opaque red, right half transparent (so fill shows through).
+    byte[] rgba = new byte[20 * 10 * 4];
+    for (int y = 0; y < 10; y++) {
+      for (int x = 0; x < 10; x++) {
+        int at = (y * 20 + x) * 4;
+        rgba[at] = (byte) 0xFF;
+        rgba[at + 3] = (byte) 0xFF;
+      }
+    }
+    Image halfRed = Image.of(new Pixels(20, 10, rgba));
+
+    int canvas = 0xFF101014;
+    int fill = 0xFF1E293B;
+    int border = 0xFF22C55E;
+    int childFill = 0xFFF59E0B;
+    int red = 0xFFFF0000;
+    AtomicInteger clicks = new AtomicInteger();
+
+    // Two rounded, bordered, padded cards: COVER on the left, CONTAIN on the right, plus an
+    // unsized element to confirm Background.image adds no intrinsic size.
+    App<Object> app = new App<>(
+        new Object(),
+        s -> el().size(180, 60)
+            .fill(canvas)
+            .child(el().key("cover")
+                .absolute(10, 10)
+                .size(70, 40)
+                .padding(8)
+                .radius(12)
+                .fill(fill)
+                .border(3, border)
+                .background(Background.image(halfRed, Image.Fit.COVER))
+                .onPress(clicks::incrementAndGet)
+                .child(el().absolute(25, 12).size(14, 14).fill(childFill)))
+            .child(el().key("contain")
+                .absolute(94, 10)
+                .size(70, 40)
+                .padding(8)
+                .radius(12)
+                .fill(fill)
+                .border(3, border)
+                .borderColors(border, 0xFF38BDF8, border, 0xFF38BDF8)
+                .background(Background.image(halfRed, Image.Fit.CONTAIN)))
+            .child(el().key("unsized")
+                .alignSelf(Style.Align.START)
+                .background(Background.image(halfRed, Image.Fit.COVER))));
+    app.resize(180, 60, 1);
+    app.frame();
+
+    Pixels pixels = app.render().pixels();
+    // COVER card: border stays visible, outside rounded corner is canvas, padding area is covered
+    // by the red left half, right half is transparent so fill shows, child paints over it.
+    assertEquals(border, pixels.argb(45, 11), "cover top border stays visible");
+    assertEquals(border, pixels.argb(45, 48), "cover bottom border stays visible");
+    assertEquals(canvas, pixels.argb(11, 11), "cover clipped to rounded corner");
+    assertEquals(red, pixels.argb(16, 30), "cover fills padding area with opaque image half");
+    assertEquals(fill, pixels.argb(72, 30), "transparent image pixels show fill");
+    assertEquals(childFill, pixels.argb(40, 28), "child paints over image background");
+
+    // CONTAIN card: padding box is 64x34, 20x10 image fits to 64x32 centered at y=14..46.
+    // Top/bottom uncovered strip (y=13) shows fill; left middle shows red; right middle shows fill.
+    assertEquals(border, pixels.argb(129, 11), "contain top border stays visible");
+    assertEquals(0xFF38BDF8, pixels.argb(95, 30), "contain left per-side border stays visible");
+    assertEquals(fill, pixels.argb(110, 13), "uncovered top strip shows fill");
+    assertEquals(red, pixels.argb(110, 30), "contained left half shows red");
+    assertEquals(fill, pixels.argb(148, 30), "contained transparent right half shows fill");
+
+    // Per-side borderColors emits only one IMAGE instance for the contain card (two total, since
+    // the unsized element has an empty box).
+    Scene scene = app.scene();
+    int images = 0;
+    for (int i = 0; i < scene.count(); i++) {
+      if (scene.getInt(i, Scene.KIND) == Scene.IMAGE) {
+        images++;
+      }
+    }
+    assertEquals(2, images, "one IMAGE per visible image background, even with borderColors");
+
+    // No intrinsic size from Background.image, and hit testing works normally.
+    El unsized = app.tree().children().get(2);
+    assertEquals(0, unsized.width());
+    assertEquals(0, unsized.height());
+    app.pointerDown(20, 30);
+    app.pointerUp(20, 30);
+    app.frame();
+    assertEquals(1, clicks.get(), "click hits the element normally");
+  }
+
+  @Test
+  void textOverAnImageBackgroundGetsTheCorrectionForAnUnknownBackdrop() {
+    Image banner = Image.of(new Pixels(4, 1, new byte[16]));
+    // Text over an image background does not inherit the flat white fill as its luminance hint.
+    try {
+      Font.sans();
+    } catch (UnsatisfiedLinkError ignored) {
+      return;
+    }
+    int midGray = 0xFFC0C0C0; // CIE L* ~ 78 -> unknown backdrop share > 0, on white share == 0
+    App<Object> withWhite = new App<>(
+        new Object(),
+        s -> el().size(80, 30).fill(0xFFFFFFFF).child(El.text("Hi").color(midGray)));
+    withWhite.resize(80, 30, 1);
+    withWhite.frame();
+    App<Object> withImage = new App<>(
+        new Object(),
+        s -> el().size(80, 30)
+            .fill(0xFFFFFFFF)
+            .background(Background.image(banner, Image.Fit.COVER))
+            .child(El.text("Hi").color(midGray)));
+    withImage.resize(80, 30, 1);
+    withImage.frame();
+    float flatShare = firstGlyphLightShare(withWhite.scene());
+    float imageShare = firstGlyphLightShare(withImage.scene());
+    assertEquals(0f, flatShare, "on flat white, gray text is dark");
+    assertTrue(imageShare > 0.5f, "over image background, gray text uses unknown-backdrop share");
+  }
+
+  private static float firstGlyphLightShare(Scene scene) {
+    for (int i = 0; i < scene.count(); i++) {
+      if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
+        return scene.get(i, Scene.LIGHT_SHARE);
+      }
+    }
+    throw new AssertionError("no glyph in scene");
   }
 
   private static Pixels render(El card) {
