@@ -1,0 +1,1 @@
+- `Markdown.markdown` clears a Control+A whole-document selection on Escape (passing Escape on to the parent when nothing is all-selected), `Markdown.text` leaves one empty line instead of two after code blocks, and showing one `MarkdownDocument` in two views with different `Options#textColor` caches text pieces per color instead of rebuilding them on every frame.
