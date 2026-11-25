@@ -483,4 +483,225 @@ class FieldDragTest {
     assertTrue(byKey(movedRow, "body").editor().hasSelection(), "remapped anchor body is selected");
     assertFalse(byKey(movedRow, "body").text().selection().isEmpty());
   }
+
+  @Test
+  void selectionScopeOrdersFieldsAfterVirtualListAfterItsRows() {
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .selectionScope()
+            .child(El.text("Header text")
+                .editable(v -> {})
+                .readOnly()
+                .key("header")
+                .w(200)
+                .h(24))
+            .child(col()
+                .key("list")
+                .grow(1)
+                .minSize(0, 0)
+                .rows(
+                    20,
+                    32,
+                    i -> El.text("Row " + i + " text")
+                        .editable(v -> {})
+                        .readOnly()
+                        .key("row")
+                        .w(200)
+                        .h(32)))
+            .child(El.text("Footer one")
+                .editable(v -> {})
+                .readOnly()
+                .key("footer1")
+                .w(200)
+                .h(24))
+            .child(El.text("Footer two")
+                .editable(v -> {})
+                .readOnly()
+                .key("footer2")
+                .w(200)
+                .h(24)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(240, 220, 1);
+    app.frame();
+
+    // Anchor inside row 2, scroll to the end so row 2 leaves the built rows, then Shift+click
+    // footer1: rows 2..19 and footer1 are selected, header and rows 0..1 are not, and footer copies
+    // last.
+    El listEl = byKey(app.tree(), "list");
+    El row2 = listEl.children().get(2);
+    float r2x = listEl.x() + row2.x() + 28;
+    float r2y = listEl.y() + row2.y() + 12;
+    app.pointerDown(r2x, r2y);
+    app.pointerUp(r2x, r2y);
+    app.frame();
+
+    app.scrollToRow(byKey(app.tree(), "list"), 19);
+    app.frame();
+    listEl = byKey(app.tree(), "list");
+    assertTrue(listEl.firstRow() > 2, "row 2 is no longer built");
+    El footer1 = byKey(app.tree(), "footer1");
+    float f1x = footer1.x() + 36;
+    float f1y = footer1.y() + 12;
+    app.pointerDown(f1x, f1y, 1, Key.SHIFT);
+    app.pointerUp(f1x, f1y);
+    app.frame();
+
+    assertFalse(byKey(app.tree(), "header").editor().hasSelection(), "header stays unselected");
+    El row19 = byKey(app.tree(), "list").children().getLast();
+    assertTrue(row19.editor().hasSelection(), "last row before footer is selected");
+    assertFalse(row19.text().selection().isEmpty());
+    assertTrue(byKey(app.tree(), "footer1").editor().hasSelection(), "footer1 is selected");
+    assertFalse(byKey(app.tree(), "footer2").editor().hasSelection(), "footer2 stays unselected");
+
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    List<String> downLines = app.clipboard().read().lines().toList();
+    assertEquals(19, downLines.size(), "rows 2..19 plus footer1: " + downLines);
+    assertTrue(downLines.getFirst().endsWith("2 text"), downLines.getFirst());
+    assertEquals("Row 3 text", downLines.get(1));
+    assertEquals("Row 19 text", downLines.get(17));
+    assertTrue(downLines.getLast().startsWith("Foo"), "footer copied last: " + downLines.getLast());
+
+    // Scrolling back up shows row 2 selected and rows before it unselected.
+    app.scrollToRow(byKey(app.tree(), "list"), 0);
+    app.frame();
+    listEl = byKey(app.tree(), "list");
+    assertFalse(listEl.children().get(1).editor().hasSelection(), "row 1 before anchor unselected");
+    assertTrue(listEl.children().get(2).editor().hasSelection(), "rebuilt row 2 stays selected");
+    assertFalse(listEl.children().get(2).text().selection().isEmpty());
+
+    // Dragging upward from footer2 into row 19 copies in tree order: row 19, footer1, footer2.
+    app.scrollToRow(byKey(app.tree(), "list"), 19);
+    app.frame();
+    listEl = byKey(app.tree(), "list");
+    row19 = listEl.children().getLast();
+    El footer2 = byKey(app.tree(), "footer2");
+    app.pointerDown(footer2.x() + 36, footer2.y() + 12);
+    app.pointerMove(listEl.x() + row19.x() + 28, listEl.y() + row19.y() + 12);
+    app.pointerUp(listEl.x() + row19.x() + 28, listEl.y() + row19.y() + 12);
+    app.frame();
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    List<String> upLines = app.clipboard().read().lines().toList();
+    assertEquals(3, upLines.size(), "row 19, footer1, footer2: " + upLines);
+    assertTrue(upLines.get(0).endsWith("19 text"), upLines.get(0));
+    assertEquals("Footer one", upLines.get(1));
+    assertTrue(upLines.get(2).startsWith("Foo"), upLines.get(2));
+  }
+
+  @Test
+  void selectionScopeWithoutVirtualListFollowsItsFieldsAcrossInsertAndRemove() {
+    // "b" has no key, only a FieldState, which the selection follows as well.
+    FieldState beta = new FieldState();
+    record Item(String key, String text) {}
+    List<Item> items = new ArrayList<>(List.of(
+        new Item("a", "Alpha one"), new Item("b", "Beta two"), new Item("c", "Gamma three")));
+    App<List<Item>> app = new App<>(items, list -> {
+      El scope = col().key("scope").selectionScope().gap(8);
+      for (Item item : list) {
+        El field =
+            El.text(item.text()).editable(v -> {}).readOnly().w(180).h(24).padding(0, 4);
+        scope.child(item.key().equals("b") ? field.fieldState(beta) : field.key(item.key()));
+      }
+      return col().wFull().hFull().padding(10).child(scope);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(220, 200, 1);
+    app.frame();
+
+    // Drag across "a" (y 10..34) into "b" (y 42..66).
+    app.pointerDown(42, 22);
+    app.pointerMove(46, 54);
+    app.pointerUp(46, 54);
+    app.frame();
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    String expected = app.clipboard().read();
+    assertTrue(expected.contains("\n"), "cross-field selection copied: " + expected);
+
+    // Insert a keyed field before the selection: the selection stays on "a" and "b".
+    items.add(0, new Item("pre", "Inserted zero"));
+    app.invalidate();
+    app.frame();
+    assertFalse(byKey(app.tree(), "pre").editor().hasSelection(), "inserted field is not selected");
+    assertTrue(byKey(app.tree(), "pre").text().selection().isEmpty());
+    assertTrue(byKey(app.tree(), "a").editor().hasSelection(), "anchor field stays selected");
+    assertFalse(byKey(app.tree(), "a").text().selection().isEmpty());
+    assertTrue(beta.editor.hasSelection(), "end field stays selected");
+    assertFalse(byKey(app.tree(), "c").editor().hasSelection(), "trailing field stays unselected");
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "Ctrl+C copies the same fields after insert");
+
+    // Remove the inserted field before the selection: the selection stays on "a" and "b".
+    items.remove(0);
+    app.invalidate();
+    app.frame();
+    assertTrue(byKey(app.tree(), "a").editor().hasSelection());
+    assertTrue(beta.editor.hasSelection());
+    assertFalse(byKey(app.tree(), "c").editor().hasSelection());
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "Ctrl+C copies the same fields after remove");
+
+    // Remove a selected endpoint field: the selection clears cleanly.
+    items.remove(0);
+    app.invalidate();
+    app.frame();
+    assertFalse(beta.editor.hasSelection(), "selection ends when anchor leaves");
+    assertTrue(beta.editor.element().text().selection().isEmpty());
+  }
+
+  @Test
+  void selectionScopeInsideVirtualRowFollowsItsFieldsAcrossInsert() {
+    List<String> keys = new ArrayList<>(List.of("a", "b"));
+    App<List<String>> app = new App<>(
+        keys,
+        list -> col()
+            .wFull()
+            .hFull()
+            .child(col().key("list").grow(1).minSize(0, 0).rows(3, 100, i -> {
+              El scope = col().selectionScope().gap(8);
+              for (String key : list) {
+                scope.child(El.text("Field " + key)
+                    .editable(v -> {})
+                    .readOnly()
+                    .key(key)
+                    .w(180)
+                    .h(24));
+              }
+              return scope;
+            })));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(220, 300, 1);
+    app.frame();
+    El list = byKey(app.tree(), "list");
+    El row0 = list.children().getFirst();
+    float ox = list.x() + row0.x();
+    float oy = list.y() + row0.y();
+    El a = byKey(app.tree(), "a");
+    El b = byKey(app.tree(), "b");
+    app.pointerDown(ox + a.x() + 20, oy + a.y() + 12);
+    app.pointerMove(ox + b.x() + 30, oy + b.y() + 12);
+    app.pointerUp(ox + b.x() + 30, oy + b.y() + 12);
+    app.frame();
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    String expected = app.clipboard().read();
+    assertTrue(expected.contains("\n"), expected);
+    keys.add(0, "pre");
+    app.invalidate();
+    app.frame();
+    assertFalse(byKey(app.tree(), "pre").editor().hasSelection(), "inserted field is not selected");
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "Ctrl+C copies the same fields after insert");
+  }
 }
