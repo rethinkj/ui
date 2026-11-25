@@ -885,6 +885,7 @@ public final class WindowLoop {
         failed.accept(Sdl.getError());
       }
     });
+    app.notifications(new SystemNotifications(e.window, app));
     app.systemFonts(systemFonts);
     app.windows(windows);
     app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore

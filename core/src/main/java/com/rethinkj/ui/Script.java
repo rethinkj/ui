@@ -59,9 +59,13 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
- * when there is any, and {@code <name>.opened.txt} with the addresses the app opened so far
- * ({@link App#openUri}), one per line, when there are any; a script opens no browser. A {@code press} and a {@code wheel} act at their target's position without
- * moving the pointer: what looks hovered stays where {@code move} left it.
+ * when there is any, {@code <name>.opened.txt} with the addresses the app opened so far ({@link
+ * App#openUri}), one per line, when there are any, and {@code <name>.notifications.txt} with the
+ * notifications the app showed so far ({@link App#notify(String, String, Runnable, Consumer)}),
+ * one per line as quoted title and body, when there are any; a script opens no browser and shows
+ * no desktop notification, and {@code notification click "<title>"} clicks one. A {@code press}
+ * and a {@code wheel} act at their target's position without moving the pointer: what looks
+ * hovered stays where {@code move} left it.
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does
@@ -476,6 +480,12 @@ public final class Script {
           }
         }
         case "dialog" -> desk.answers.add(answer(line, args));
+        case "notification" -> {
+          if (args.size() != 2 || !args.getFirst().equals("click") || !quoted(args.getLast())) {
+            throw line.usage(step);
+          }
+          desk.clickNotification(line, unescape(strip(args.getLast())));
+        }
         case "drop" -> {
           if (args.size() == 1 && args.getFirst().equals("leave")) {
             (desk.dropping == null ? win : desk.dropping).app.fileDragLeave();
@@ -581,6 +591,18 @@ public final class Script {
               Files.writeString(browsed, String.join("\n", desk.opened) + "\n");
               written.add(browsed);
             }
+            if (each == open.getFirst() && !desk.notifications.isEmpty()) {
+              Path notified = folder.resolve(name + ".notifications.txt").normalize();
+              Files.writeString(
+                  notified,
+                  String.join(
+                      "",
+                      desk.notifications.stream()
+                          .map(n ->
+                              TreeDumper.quote(n.title) + " " + TreeDumper.quote(n.body) + "\n")
+                          .toList()));
+              written.add(notified);
+            }
             // The open windows front first: the title as `window` takes it, and the files' prefix.
             if (each == open.getFirst() && open.size() > 1) {
               Path windows = folder.resolve(name + ".windows.txt").normalize();
@@ -598,8 +620,8 @@ public final class Script {
         default ->
           throw line.fail("There is no step " + step
               + ". The steps are size, window, close, press, down, up, move, leave,"
-              + " wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,"
-              + " await, frame and snap.");
+              + " wheel, scroll, key, type, compose, clipboard, dialog, notification, drop, focus,"
+              + " advance, await, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -927,6 +949,54 @@ public final class Script {
     String wrong; // what was wrong with an answer, for the frame step to say
     final List<String> opened = new ArrayList<>(); // the addresses the app opened, in order
     final Browser browser = (uri, failed) -> opened.add(uri.toString());
+    final List<Notice> notifications = new ArrayList<>(); // notifications the app showed, in order
+
+    /** A notification an app showed, kept for {@code snap} and {@code notification click}. */
+    private static final class Notice {
+      final App<?> app;
+      final String title;
+      final String body;
+      final Runnable clicked;
+      boolean clickedOnce;
+
+      Notice(App<?> app, String title, String body, Runnable clicked) {
+        this.app = app;
+        this.title = title;
+        this.body = body;
+        this.clicked = clicked;
+      }
+    }
+
+    Notifications notificationsFor(App<?> app) {
+      return (title, body, clicked, failed) ->
+          notifications.add(new Notice(app, title, body, clicked));
+    }
+
+    void clickNotification(Line line, String title) {
+      for (Notice notice : notifications) {
+        if (!notice.clickedOnce && notice.title.equals(title)) {
+          notice.clickedOnce = true;
+          notice.clicked.run();
+          notice.app.scheduler.takePosted();
+          return;
+        }
+      }
+      if (notifications.isEmpty()) {
+        throw line.fail("No notification has been shown yet, so there is nothing to click.");
+      }
+      if (notifications.stream().anyMatch(n -> n.clickedOnce && n.title.equals(title))) {
+        throw line.fail("The notification " + TreeDumper.quote(title) + " was already clicked.");
+      }
+      List<String> titles = notifications.stream()
+          .filter(n -> !n.clickedOnce)
+          .map(n -> TreeDumper.quote(n.title))
+          .distinct()
+          .toList();
+      throw line.fail("No notification is titled " + TreeDumper.quote(title) + ". "
+          + (titles.isEmpty()
+              ? "All shown notifications were already clicked."
+              : "The shown notifications are " + String.join(", ", titles) + "."));
+    }
 
     /** The dialogs of the script's windows: each takes the next answer of a `dialog` step. */
     final Dialogs dialogs = new Dialogs() {
@@ -997,6 +1067,7 @@ public final class Script {
       app.windows(this);
       app.dialogs(dialogs);
       app.browser(browser);
+      app.notifications(notificationsFor(app));
     }
 
     Win current() {
@@ -1146,6 +1217,7 @@ public final class Script {
       app.windows(this);
       app.dialogs(dialogs);
       app.browser(browser);
+      app.notifications(notificationsFor(app));
       w.resize(width, height, first.scale);
       int n = wins.size();
       if (options.isPositioned()) {
@@ -1275,6 +1347,8 @@ public final class Script {
                   + " box; `dialog button \"<text>\"` to press a message box's button;"
                   + " `dialog error \"<text>\"` for a dialog that fails. Write it before the"
                   + " step that opens the dialog.";
+            case "notification" ->
+              "`notification click \"<title>\"`, to click a desktop notification the app showed.";
             case "drop" ->
               "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
                   + " application drops there; `drop <target> text \"<text>\"` for text;"

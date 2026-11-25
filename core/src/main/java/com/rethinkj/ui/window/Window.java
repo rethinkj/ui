@@ -2017,6 +2017,20 @@ public final class Window implements AutoCloseable {
     }
   }
 
+  /** The app id {@link #identity} set, or null. */
+  static String appId() {
+    synchronized (LOCK) {
+      return appId;
+    }
+  }
+
+  /** The app name {@link #identity} set, or null. */
+  static String appName() {
+    synchronized (LOCK) {
+      return appName;
+    }
+  }
+
   /**
    * How the system looks now: light or dark ({@code SDL_GetSystemTheme}), and on Windows the
    * accent color (the {@code AccentColor} of {@code HKCU\Software\Microsoft\Windows\DWM}, which

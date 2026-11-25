@@ -191,7 +191,7 @@ final class Scheduler {
   }
 
   /** Moves what other threads posted into the queue; on the app's thread. */
-  private void takePosted() {
+  void takePosted() {
     woken.set(false); // before the tasks are taken: one posted after them wakes again
     reportsTaken = reports.get(); // before: a report made during the take counts as not taken
     joined.incrementAndGet(); // what is taken keeps its value: a later report is posted anew

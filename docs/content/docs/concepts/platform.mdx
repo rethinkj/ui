@@ -1,6 +1,6 @@
 ---
 title: Windows, icons and dialogs
-description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and open native file dialogs and web addresses.
+description: Configure frameless windows, save window placement, set icons and taskbar status, detect dark/light mode, and use native file dialogs, web addresses, and desktop notifications.
 ---
 
 `Window` creates desktop windows on Windows and Linux, and `WindowLoop` runs your app inside them. For the full API, see [`Window`](/api/com/rethinkj/ui/window/Window.html) and [`WindowLoop`](/api/com/rethinkj/ui/window/WindowLoop.html).
@@ -105,9 +105,19 @@ Because native message boxes block all windows, prefer the kit's [Dialog](/docs/
 
 `app.openUri(uri, onError)` opens an `http` or `https` address in the system's default browser. It passes the address to the OS and returns right away. If the OS reports a failure, `onError` runs later as a posted task. Any other scheme, such as a `file:` or `mailto:` link, also goes to `onError` as a posted task, and nothing opens. Getting no error does not guarantee that a browser started or that the page loaded.
 
+## Desktop notifications
+
+```java snippet="notify"
+```
+
+`app.notify(title, body, onClick, onError)` shows a system desktop notification. Clicking it while the app runs raises the window to the front and runs `onClick` on the app's thread as a posted task; failures go to `onError` the same way.
+
+- Set `Window.identity(id, name)` before opening the first window: Windows requires an identity to show WinRT toast notifications (and uses it together with `Window.Options#icon` for the app's name and icon), and Linux passes the name and `desktop-entry` hint over D-Bus (`org.freedesktop.Notifications`).
+- Notifications do not include action buttons, and clicks are delivered only while the app is running.
+
 ## Headless scripts
 
-In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, and simulate file drops with `drop`. They do not open a browser. Instead, `snap` writes out the addresses the app opened. See [Scripts](/docs/testing/scripts).
+In headless mode, scripts answer dialogs automatically with `dialog "<path>"`, `dialog cancel`, and `dialog button "<text>"`, click shown notifications with `notification click "<title>"`, and simulate file drops with `drop`. They do not open a browser or show OS notifications; instead, `snap` writes out the addresses opened and the notifications shown. See [Scripts](/docs/testing/scripts).
 
 ## Clipboard
 

@@ -113,4 +113,23 @@ final class Desktop {
     app.messageBox(MessageBox.error("Cannot open the website", error), button -> {}, ignored -> {});
   }
   // docs:end open-uri
+
+  // docs:start notify
+  static void finished(App<?> app) {
+    app.notify(
+        "Export finished",
+        "orders.csv is ready.",
+        () -> showExport(app),
+        error -> notNotified(app, error));
+  }
+
+  static void showExport(App<?> app) {
+    // runs on the app's thread after the window rises to the front
+  }
+
+  static void notNotified(App<?> app, String error) {
+    app.messageBox(
+        MessageBox.error("Cannot show the notification", error), button -> {}, ignored -> {});
+  }
+  // docs:end notify
 }

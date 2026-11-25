@@ -295,6 +295,7 @@ public final class App<S> {
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
   private Browser browser = Browser.NONE;
+  private Notifications notifications = Notifications.NONE;
   private Object fileOver; // the identity of the element the system's drag is over, or null
   private Consumer<Drop> fileOverHandler; // its onFileDrop, which gets the LEAVE
   private Windows windows = Windows.NONE;
@@ -2105,6 +2106,61 @@ public final class App<S> {
       return;
     }
     browser.open(uri, failed);
+  }
+
+  /**
+   * What shows desktop notifications: the runner's ({@link Notifications}), {@link
+   * Notifications#NONE} at first.
+   */
+  public Notifications notifications() {
+    return notifications;
+  }
+
+  /** Sets what shows desktop notifications, as a runner does for its windows and a test may. */
+  public void notifications(Notifications notifications) {
+    this.notifications = Objects.requireNonNull(notifications, "notifications");
+  }
+
+  /**
+   * Shows a desktop notification of the system with {@code title} and {@code body}. When the user
+   * clicks it while the app runs, the app's window rises to the front and {@code onClick} runs as
+   * a {@link #post posted} task: on the app's thread, with a frame after it. If the system cannot
+   * show the notification, {@code onError} gets what went wrong as a posted task instead. Call it
+   * on the app's thread, usually in a handler; it returns once it has handed the notification to
+   * the system. Set the app's name and icon beforehand with {@link
+   * com.rethinkj.ui.window.Window#identity} and {@link com.rethinkj.ui.window.Window.Options#icon}.
+   * Under a {@link Script} nothing shows on the desktop: a {@code snap} writes the notifications
+   * shown so far, and {@code notification click "<title>"} clicks one.
+   *
+   * <pre>{@code
+   * app.notify("Export finished", "orders.csv is ready.", () -> openExport(), error -> status = error);
+   * }</pre>
+   */
+  public void notify(String title, String body, Runnable onClick, Consumer<String> onError) {
+    Objects.requireNonNull(title, "title");
+    Objects.requireNonNull(body, "body");
+    Objects.requireNonNull(onClick, "onClick");
+    Objects.requireNonNull(onError, "onError");
+    AtomicBoolean done = new AtomicBoolean();
+    notifications.show(
+        title,
+        body,
+        () -> {
+          if (done.compareAndSet(false, true)) {
+            post(() -> {
+              Windows.Handle handle = windows.of(this);
+              if (handle != null) {
+                handle.raise();
+              }
+              onClick.run();
+            });
+          }
+        },
+        error -> {
+          if (done.compareAndSet(false, true)) {
+            post(() -> onError.accept(error));
+          }
+        });
   }
 
   /**
