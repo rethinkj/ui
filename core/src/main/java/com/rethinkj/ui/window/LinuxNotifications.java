@@ -12,6 +12,7 @@ import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
@@ -80,6 +81,7 @@ final class LinuxNotifications {
   static final FunctionDescriptor MESSAGE_UNREF = FunctionDescriptor.ofVoid(ADDRESS);
   static final FunctionDescriptor MESSAGE_IS_SIGNAL =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor MESSAGE_GET_SENDER = FunctionDescriptor.of(ADDRESS, ADDRESS);
   static final FunctionDescriptor MESSAGE_ITER_INIT =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor MESSAGE_ITER_INIT_APPEND =
@@ -122,6 +124,8 @@ final class LinuxNotifications {
     static final MethodHandle MESSAGE_UNREF_H = bind("dbus_message_unref", MESSAGE_UNREF);
     static final MethodHandle MESSAGE_IS_SIGNAL_H =
         bind("dbus_message_is_signal", MESSAGE_IS_SIGNAL);
+    static final MethodHandle MESSAGE_GET_SENDER_H =
+        bind("dbus_message_get_sender", MESSAGE_GET_SENDER);
     static final MethodHandle ITER_INIT_H = bind("dbus_message_iter_init", MESSAGE_ITER_INIT);
     static final MethodHandle ITER_INIT_APPEND_H =
         bind("dbus_message_iter_init_append", MESSAGE_ITER_INIT_APPEND);
@@ -164,6 +168,8 @@ final class LinuxNotifications {
   private static final Object LOCK = new Object();
   private static final ConcurrentLinkedQueue<Request> OUTGOING = new ConcurrentLinkedQueue<>();
   private static boolean started;
+  // The unique bus name that answered Notify: only its signals click or close, as with libnotify.
+  private static String service; // on the listener thread
 
   static void show(
       Window window, String title, String body, Runnable clicked, Consumer<String> failed) {
@@ -293,6 +299,7 @@ final class LinuxNotifications {
           return;
         }
         try {
+          service = sender(reply);
           int id = readUint32(arena, reply);
           if (id != 0) {
             handlers.put(id, req.clicked);
@@ -318,7 +325,12 @@ final class LinuxNotifications {
         || !appendInt(arena, iter, DBUS_TYPE_UINT32, 0) // replaces_id
         || !appendString(arena, iter, req.appIcon) // a file URI, else the desktop entry's
         || !appendString(arena, iter, req.title)
-        || !appendString(arena, iter, req.body)) {
+        // shortcut: escapes for daemons with body-markup, which are nearly all (GNOME, KDE, dunst,
+        // mako, Xfce); ask GetCapabilities if one without it shows the entities.
+        || !appendString(
+            arena,
+            iter,
+            req.body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))) {
       return false;
     }
     // actions: ["default", ""] so clicking the notification emits ActionInvoked(id, "default").
@@ -395,6 +407,9 @@ final class LinuxNotifications {
           return;
         }
         try {
+          if (!Objects.equals(sender(msg), service)) {
+            continue; // another peer of the session bus
+          }
           if ((int) H.MESSAGE_IS_SIGNAL_H.invokeExact(msg, iface, actionInvoked) != 0) {
             handleAction(arena, msg, handlers);
           } else if ((int) H.MESSAGE_IS_SIGNAL_H.invokeExact(msg, iface, notificationClosed) != 0) {
@@ -440,6 +455,13 @@ final class LinuxNotifications {
         }
       }
     }
+  }
+
+  private static String sender(MemorySegment msg) throws Throwable {
+    MemorySegment name = (MemorySegment) H.MESSAGE_GET_SENDER_H.invokeExact(msg);
+    return name.equals(MemorySegment.NULL)
+        ? null
+        : name.reinterpret(Long.MAX_VALUE).getString(0);
   }
 
   private static int readUint32(Arena arena, MemorySegment msg) throws Throwable {

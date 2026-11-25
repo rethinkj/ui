@@ -424,13 +424,6 @@ final class Win32Notifications {
           });
       ActiveToast entry = new ActiveToast(toast, activatedToken, dismissedToken, failedToken);
       holder[0] = entry;
-      ACTIVE.add(entry);
-      while (ACTIVE.size() > KEPT) {
-        ActiveToast oldest = ACTIVE.poll();
-        if (oldest != null && oldest.settled.compareAndSet(false, true)) {
-          releaseToast(oldest);
-        }
-      }
 
       // 4. Create notifier with AppUserModelID (slot 7) and show toast (slot 6).
       manager = activationFactory(arena, CLASS_TOAST_MANAGER, IID_ITOAST_MANAGER_STATICS);
@@ -438,13 +431,20 @@ final class Win32Notifications {
       int hr = (int)
           H.COM_THIS_PTR_H.invokeExact(Win32.method(notifier, VTBL_NOTIFIER_SHOW), notifier, toast);
       if (hr < 0) {
-        ACTIVE.remove(entry);
         kept = true; // releaseToast releases toast; avoid a second Release in finally
         releaseToast(entry);
         fail(req, "IToastNotifier::Show failed: " + hex(hr));
         return;
       }
       kept = true;
+      // Kept only once shown, so a toast that failed to show evicts none still clickable.
+      ACTIVE.add(entry);
+      while (ACTIVE.size() > KEPT) {
+        ActiveToast oldest = ACTIVE.poll();
+        if (oldest != null && oldest.settled.compareAndSet(false, true)) {
+          releaseToast(oldest);
+        }
+      }
     } catch (Throwable t) {
       fail(req, "Could not show Windows notification: " + t.getMessage());
     } finally {
