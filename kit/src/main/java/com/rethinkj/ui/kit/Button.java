@@ -124,6 +124,24 @@ public final class Button {
     LARGE
   }
 
+  /** How a button's {@link Options#subtitle} sits beside or below its title. */
+  public enum Subtitle {
+    /**
+     * After the title on the same line, in {@link Theme.Type#body} and muted text, keeping the
+     * button's height: the default. On a primary button, whose fill the muted color does not
+     * stand out from, and on one that is off, it takes the title's color.
+     */
+    INLINE,
+    /**
+     * Below the title in {@link Theme.Type#small}, aligned to the start and growing the button to
+     * fit both lines.
+     */
+    STACKED
+  }
+
+  /** The shrink weight of an inline subtitle so it ellipsizes before the title starts to shrink. */
+  private static final float SUBTITLE_SHRINK = 1e9f;
+
   /** The colors and shadows of a button: at rest, hovered and pressed, its edge, text and ring. */
   record Look(
       int fill,
@@ -140,6 +158,8 @@ public final class Button {
   /** What a button is beyond its variant, text and handler; {@link #options()} is a plain one. */
   public static final class Options {
     private Icon icon;
+    private String subtitle;
+    private Subtitle subtitleLayout = Subtitle.INLINE;
     private State state = State.READY;
     private String busyText;
     private double progress = Double.NaN;
@@ -159,6 +179,27 @@ public final class Button {
      */
     public Options icon(Icon icon) {
       this.icon = icon;
+      return this;
+    }
+
+    /**
+     * Secondary text shown after the title on the same line ({@link Subtitle#INLINE}), such as a
+     * model's reasoning level; null or empty for none. Included in the tree-dump label and
+     * tooltips. Not for {@link #icon(Variant, Icon, String, Runnable, Options)}, which shows no
+     * text.
+     */
+    public Options subtitle(String text) {
+      return subtitle(text, Subtitle.INLINE);
+    }
+
+    /**
+     * Secondary text shown after or below the title; null or empty for none. Included in the
+     * tree-dump label and tooltips. Not for {@link #icon(Variant, Icon, String, Runnable,
+     * Options)}, which shows no text.
+     */
+    public Options subtitle(String text, Subtitle layout) {
+      this.subtitleLayout = Objects.requireNonNull(layout, "layout");
+      this.subtitle = text;
       return this;
     }
 
@@ -237,6 +278,8 @@ public final class Button {
     Options copy() {
       Options copy = new Options();
       copy.icon = icon;
+      copy.subtitle = subtitle;
+      copy.subtitleLayout = subtitleLayout;
       copy.state = state;
       copy.busyText = busyText;
       copy.progress = progress;
@@ -246,6 +289,16 @@ public final class Button {
       copy.tipSide = tipSide;
       copy.tipDescription = tipDescription;
       return copy;
+    }
+
+    /** Whether the options carry a non-empty subtitle. */
+    boolean hasSubtitle() {
+      return subtitle != null && !subtitle.isEmpty();
+    }
+
+    /** Whether the options stack a subtitle below the title. */
+    boolean isStacked() {
+      return hasSubtitle() && subtitleLayout == Subtitle.STACKED;
     }
 
     /** Whether the options turn a button off. */
@@ -292,20 +345,37 @@ public final class Button {
   /**
    * A button with its options.
    *
-   * @param text what the button says, also its label
+   * @param text what the button says, also its label (joined with its subtitle, if any)
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
-   * @param options its icon, state, busy text, progress, tone, size and shortcut
+   * @param options its icon, subtitle, state, busy text, progress, tone, size and shortcut
    */
   public static El button(Variant variant, String text, Runnable onPress, Options options) {
     Theme theme = Theme.CURRENT.get();
     State state = state(options, onPress);
     Look look = look(theme, variant, options.tone, state != State.DISABLED);
-    El button = frame(theme, look, options.size, text, state == State.DISABLED)
-        .padding(theme.size().stroke(), padding(theme, options.size))
+    boolean hasSubtitle = options.hasSubtitle();
+    boolean stacked = options.isStacked();
+    String fullLabel =
+        hasSubtitle ? (text.isEmpty() ? options.subtitle : text + " " + options.subtitle) : text;
+    float vPad = stacked
+        ? Math.max(theme.size().stroke(), verticalPadding(theme, options.size))
+        : theme.size().stroke();
+    El button = frame(theme, look, options.size, fullLabel, state == State.DISABLED, stacked)
+        .padding(vPad, padding(theme, options.size))
         .gap(theme.space().s());
     boolean busy = state == State.BUSY;
-    String shown = busy && options.busyText != null ? options.busyText : text;
-    El label = label(theme, look, shown);
+    boolean showBusyText = busy && options.busyText != null;
+    String shown = showBusyText ? options.busyText : fullLabel;
+    El label = showBusyText
+        ? label(theme, look, options.busyText)
+        : content(theme, variant, state, look, text, options);
+    if (showBusyText && stacked) {
+      // Unseen and without width, the stacked lines keep the button's height while it is busy.
+      label = row()
+          .center()
+          .minSize(0, 0)
+          .children(label, plainContent(theme, text, options).w(0).opacity(0));
+    }
     // The spinner stands in the icon's place.
     El lead = busy
         ? spinner(theme, variant, look, options.progress)
@@ -326,7 +396,7 @@ public final class Button {
         other.child(icon(theme, variant, options.tone, state, look, options.icon));
       }
       // Without an ellipsis: cut short by a narrow view, it would show the tooltip of a cut text.
-      other.child(text(theme, busy ? text : options.busyText));
+      other.child(busy ? plainContent(theme, text, options) : text(theme, options.busyText));
       button.child(col().minSize(0, 0).child(now.child(label)).child(other));
     } else if (busy && options.icon == null) {
       // Over the middle of the text, which keeps its place unseen: the width stays. Out of the
@@ -347,7 +417,7 @@ public final class Button {
     // shows whole in a tooltip, which a shortcut always shows.
     return options.shortcut == null
         ? Tooltip.whenShortened(tipped, shown)
-        : Tooltip.tooltip(tipped, text, options.tip());
+        : Tooltip.tooltip(tipped, fullLabel, options.tip());
   }
 
   /**
@@ -371,7 +441,7 @@ public final class Button {
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
    * @param options its state, progress, tone, size and shortcut; no icon, which is {@code
-   *     icon}; a busy text does not show
+   *     icon}, and no subtitle; a busy text does not show
    */
   public static El icon(
       Variant variant, Icon icon, String label, Runnable onPress, Options options) {
@@ -379,6 +449,10 @@ public final class Button {
     if (options.icon != null) {
       throw new IllegalArgumentException(
           "an icon button's icon is its parameter, not an option: " + options.icon);
+    }
+    if (options.hasSubtitle()) {
+      throw new IllegalArgumentException(
+          "an icon button shows no text and takes no subtitle: " + options.subtitle);
     }
     State state = state(options, onPress);
     Look look = look(theme, variant, options.tone, state != State.DISABLED);
@@ -418,8 +492,63 @@ public final class Button {
     };
   }
 
+  private static float verticalPadding(Theme theme, Size size) {
+    return switch (size) {
+      case SMALL -> theme.space().xs();
+      case REGULAR -> theme.space().s();
+      case LARGE -> theme.space().m();
+    };
+  }
+
   private static float radius(Theme theme, Size size) {
     return size == Size.SMALL ? theme.radius().small() : theme.radius().medium();
+  }
+
+  private static El content(
+      Theme theme, Variant variant, State state, Look look, String text, Options options) {
+    El title = label(theme, look, text);
+    if (!options.hasSubtitle()) {
+      return title;
+    }
+    int color = subtitleColor(theme, variant, state, look);
+    if (options.subtitleLayout == Subtitle.STACKED) {
+      El sub = text(theme.type().small(), options.subtitle).color(color).ellipsis();
+      return col().gap(theme.space().xs()).minSize(0, 0).children(title, sub);
+    }
+    El sub =
+        text(theme.type().body(), options.subtitle).color(color).ellipsis().shrink(SUBTITLE_SHRINK);
+    return row()
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .minSize(0, 0)
+        .children(title, sub);
+  }
+
+  private static El plainContent(Theme theme, String text, Options options) {
+    El title = text(theme, text);
+    if (!options.hasSubtitle()) {
+      return title;
+    }
+    if (options.subtitleLayout == Subtitle.STACKED) {
+      return col()
+          .gap(theme.space().xs())
+          .minSize(0, 0)
+          .children(title, text(theme.type().small(), options.subtitle));
+    }
+    return row()
+        .gap(theme.space().s())
+        .minSize(0, 0)
+        .children(title, text(theme.type().body(), options.subtitle));
+  }
+
+  /**
+   * Muted on secondary and ghost buttons; on primary and disabled buttons the look's text color,
+   * where muted text would lose contrast on the accent fill or look enabled when off.
+   */
+  private static int subtitleColor(Theme theme, Variant variant, State state, Look look) {
+    return variant == Variant.PRIMARY || state == State.DISABLED
+        ? look.text()
+        : theme.text().muted();
   }
 
   private static El label(Theme theme, Look look, String text) {
@@ -427,7 +556,10 @@ public final class Button {
   }
 
   private static El text(Theme theme, String text) {
-    Theme.TextStyle style = theme.type().strong();
+    return text(theme.type().strong(), text);
+  }
+
+  private static El text(Theme.TextStyle style, String text) {
     return El.text(text).font(style.font().get()).fontSize(style.size()).minSize(0, 0);
   }
 
@@ -627,8 +759,8 @@ public final class Button {
    * ({@link State#DISABLED}), both halves are off and there is no menu: one that was open closes.
    * The tone and the size apply to both halves, the shortcut to the main one.
    *
-   * @param options the main half's icon, state, busy text, progress and shortcut, and the tone
-   *     and size of both
+   * @param options the main half's icon, subtitle, state, busy text, progress and shortcut, and the
+   *     tone and size of both
    */
   public static El split(
       Variant variant,
@@ -640,11 +772,14 @@ public final class Button {
     Theme theme = Theme.CURRENT.get();
     boolean off = options.state == State.DISABLED;
     boolean any = !off && items.stream().anyMatch(Menu.Item::isEnabled);
+    boolean stacked = options.isStacked();
     float radius = radius(theme, options.size);
     El main = button(variant, text, onPress, options).key("main").radius(radius, 0, 0, radius);
+    // A view that makes the split narrower cuts the main half's text, not the chevron off.
+    main.shrink(1).style().minWidth = Len.ZERO;
     Look look = look(theme, variant, options.tone, any);
     Runnable toggle = any ? state::toggle : null;
-    El more = frame(theme, look, options.size, Texts.CURRENT.get().moreOf(text), !any)
+    El more = frame(theme, look, options.size, Texts.CURRENT.get().moreOf(text), !any, stacked)
         .key("arrow")
         .w(height(theme, options.size) - theme.space().xs())
         .radius(0, radius, radius, 0)
@@ -693,7 +828,7 @@ public final class Button {
    * A menu button with its options. Busy or off, it opens nothing, and a menu that was open
    * closes.
    *
-   * @param options its icon, state, busy text, progress, tone, size and shortcut
+   * @param options its icon, subtitle, state, busy text, progress, tone, size and shortcut
    */
   public static El menu(
       Variant variant, String text, Menu.State state, List<Menu.Item> items, Options options) {
@@ -749,14 +884,19 @@ public final class Button {
 
   /** A button's box: role, label, height, corners, fill, edge and shadow. */
   private static El frame(Theme theme, Look look, Size size, String label, boolean off) {
-    return row()
+    return frame(theme, look, size, label, off, false);
+  }
+
+  /** A button's box; a stacked button grows to fit both lines with the size's height as minimum. */
+  private static El frame(
+      Theme theme, Look look, Size size, String label, boolean off, boolean stacked) {
+    El box = row()
         .role("button")
         .label(label)
         .disabled(off)
         // A press leaves the focus in the editor or grid the button acts on, also on one that is
         // off, which would else pass the press to an ancestor that takes the focus.
         .keepFocus()
-        .h(height(theme, size))
         .shrink(0)
         .center()
         // Room for the content to move down while pressed, in the same box.
@@ -766,6 +906,12 @@ public final class Button {
         .border(theme.size().stroke(), look.edge())
         .shadow(look.rest())
         .motion(theme.motion().feedback());
+    if (stacked) {
+      box.style().minHeight = Len.px(height(theme, size));
+    } else {
+      box.h(height(theme, size));
+    }
+    return box;
   }
 
   /** Focusable by the keyboard, with its ring apart from it. */
@@ -797,8 +943,12 @@ public final class Button {
     float[] corners = button.radii();
     float small = theme.radius().small();
     float stroke = theme.size().stroke();
-    button.style().paddingTop = Len.px(2 * stroke);
-    button.style().paddingBottom = Len.ZERO;
+    // Top + bottom stays twice the rest padding, so re-applying pressed (as in held) is idempotent.
+    float rest =
+        (button.style().paddingTop.pixelsOrZero() + button.style().paddingBottom.pixelsOrZero())
+            / 2;
+    button.style().paddingTop = Len.px(rest + stroke);
+    button.style().paddingBottom = Len.px(Math.max(0, rest - stroke));
     return button
         .shadow()
         .radius(

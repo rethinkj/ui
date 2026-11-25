@@ -44,6 +44,7 @@ final class Gallery {
 
   static final int WIDTH = 140;
   static final int HEIGHT = 40;
+  static final int STACKED = 56; // the row of a stacked-subtitle button, two lines high
   static final int AREA = 72; // the rows of text areas, three lines high
   static final int PROGRESS = 4; // the rows of progress forms, which have no states
 
@@ -172,6 +173,18 @@ final class Gallery {
               "Export",
               new Menu.State(),
               List.of(Menu.item("CSV", h), Menu.item("JSON", h)))),
+      new Row(
+          "subtitle",
+          h -> button(Variant.SECONDARY, "Opus 5.5", h, Button.options().subtitle("High"))),
+      new Row(
+          "subtitle stacked",
+          h -> button(
+              Variant.SECONDARY,
+              "Opus 5.5",
+              h,
+              Button.options().icon(Symbol.FLASH).subtitle("High", Button.Subtitle.STACKED)),
+          "",
+          STACKED),
       new Row("toggle off", h -> toggle(false, "Autocommit", h)),
       new Row("toggle on", h -> toggle(true, "Autocommit", h)),
       new Row("checkbox off", h -> checkbox(false, "Read only", h)),

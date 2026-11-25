@@ -1,5 +1,5 @@
 el 0,0 400x300
-  el role=button label="Atlas mini" 12,12 85x24
+  el role=button label="Atlas mini" 12,12 85x24 expanded
     text "Atlas mini" 25,16 59x16
 overlay bottom start gap 2 on role=button label="Atlas mini" 12,12 85x24
   el #popover role=dialog label="Choose a model" 12,38 306x146
