@@ -1110,8 +1110,8 @@ public final class El {
   }
 
   /**
-   * Paints a background over this element's {@link #fill} (see {@link Background}): inside its
-   * border, clipped to its inner corner radii, and under its image, segments, text and children.
+   * Paints a background over this element's {@link #fill} (see {@link Background}): where the fill
+   * shows, within the inner edge of its border, and under its image, segments, text and children.
    * Opacity and clips apply as for the fill. A background takes no room in the layout and no input,
    * and it does not spring with {@link #motion}; a look that changes it changes it at once. An
    * element over a {@link #range} of its parent's text draws only its fill.

@@ -130,7 +130,7 @@ class CpuRendererEquivalenceTest {
   }
 
   /**
-   * Hundreds of small scenes of random instances: rectangles, shadows, images and, where the
+   * Hundreds of small scenes of random instances: rectangles, some with gradients, shadows, images and, where the
    * text libraries load, glyphs, at fractional and whole positions and sizes, with radii from below 0
    * to beyond half the size, alike or each corner its own, borders up to beyond it, alike or each
    * side its own, translucent and opaque colors, the clips of
@@ -173,7 +173,6 @@ class CpuRendererEquivalenceTest {
       if (n % 2 == 1) {
         addSquiggle(scene, random, width, height);
       }
-      addGradient(scene, random, width, height);
       assertSame(
           "random scene " + n, scene, Math.round(width * scale), Math.round(height * scale), scale);
     }
@@ -315,35 +314,26 @@ class CpuRendererEquivalenceTest {
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
   }
 
-  /** A linear or radial gradient instance at random box, geometry, clip and colors. */
-  private static void addGradient(Scene scene, Random random, float width, float height) {
+  /** Stops after the instance last added, which they make a gradient: linear or radial. */
+  private static void addStops(Scene scene, Random random, float width, float height) {
+    scene
+        .data()
+        .set(
+            ValueLayout.JAVA_INT,
+            (long) (scene.count() - 1) * Scene.STRIDE + Scene.KIND,
+            Scene.GRADIENT);
     scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
-    long at = (long) (scene.count() - 1) * Scene.STRIDE;
     MemorySegment data = scene.data();
+    long at = (long) (scene.count() - 1) * Scene.STRIDE;
+    boolean radial = random.nextBoolean();
     put(data, at + Scene.X, position(random, width));
     put(data, at + Scene.Y, position(random, height));
-    put(data, at + Scene.WIDTH, length(random, width));
-    put(data, at + Scene.HEIGHT, length(random, height));
-    int gradientKind = random.nextBoolean() ? Scene.GRADIENT_LINEAR : Scene.GRADIENT_RADIAL;
-    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_KIND, gradientKind);
-    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_KIND + 4, 0);
-    data.set(
-        ValueLayout.JAVA_INT,
-        at + Scene.CLIP,
-        random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
-    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.GRADIENT);
-    color(data, at + Scene.GRADIENT_FROM, random);
-    color(data, at + Scene.GRADIENT_TO, random);
-    color(data, at + Scene.GRADIENT_UNDER, random);
-    put(data, at + Scene.GRADIENT_X1, position(random, width));
-    put(data, at + Scene.GRADIENT_Y1, position(random, height));
-    if (gradientKind == Scene.GRADIENT_RADIAL) {
-      put(data, at + Scene.GRADIENT_X2, length(random, width));
-      put(data, at + Scene.GRADIENT_Y2, length(random, height));
-    } else {
-      put(data, at + Scene.GRADIENT_X2, position(random, width));
-      put(data, at + Scene.GRADIENT_Y2, position(random, height));
-    }
+    put(data, at + Scene.WIDTH, radial ? length(random, width) : position(random, width));
+    put(data, at + Scene.HEIGHT, radial ? length(random, height) : position(random, height));
+    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_SHAPE, radial ? Scene.RADIAL : Scene.LINEAR);
+    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.STOPS);
+    color(data, at + Scene.FILL, random);
+    color(data, at + Scene.BORDER, random);
   }
 
   /** A squiggle instance at random coordinates, amplitude, wavelength, stroke and phase. */
@@ -454,6 +444,9 @@ class CpuRendererEquivalenceTest {
       put(data, at + field, alike ? border : border(random, half));
     }
     color(data, at + Scene.BORDER, random);
+    if (random.nextInt(3) == 0) {
+      addStops(scene, random, width, height);
+    }
   }
 
   /** A corner's radius: 0, half the shorter side, beyond it, below 0 or between. */

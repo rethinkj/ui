@@ -69,7 +69,7 @@ public final class CpuRenderer {
         case Scene.IMAGE -> image(scene, i, frame, width, height, scale, blends, scratch);
         case Scene.LINE -> line(scene, i, frame, width, height, scale, blends);
         case Scene.SQUIGGLE -> squiggle(scene, i, frame, width, height, scale, blends, scratch);
-        case Scene.GRADIENT -> gradient(scene, i, frame, width, height, scale, blends, scratch);
+        case Scene.STOPS -> {} // drawn with the gradient before them
         default -> rect(scene, i, frame, width, height, scale, blends, scratch);
       }
     }
@@ -86,6 +86,7 @@ public final class CpuRenderer {
     final double[][] squareX;
     final double[] sample = new double[4];
     final double[] level = new double[4];
+    final double[] gradient = new double[4];
     final Map<Correction, double[]> corrections = new HashMap<>();
 
     Scratch(int width) {
@@ -159,6 +160,8 @@ public final class CpuRenderer {
     }
     double[] fill = color(scene, i, Scene.FILL);
     double[] edge = color(scene, i, Scene.BORDER);
+    Stops stops = scene.getInt(i, Scene.KIND) == Scene.GRADIENT ? Stops.of(scene, i + 1) : null;
+    double[] gradient = scratch.gradient;
     // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
     // of 0, in the border, or 1.
     double[][] whole = new double[2][4];
@@ -219,15 +222,59 @@ public final class CpuRenderer {
       }
       int row = py * width;
       for (int px = bounds.left; px < first; px++) {
-        blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
+        double[] color = stops == null ? fill : stops.over(fill, (px + 0.5) / scale, y, gradient);
+        blend(frame, (row + px) * 4, color, edge, coverages[px], fillShares[px], blends);
       }
       double[] source = whole[share];
       for (int px = first; px <= last; px++) {
-        blend(frame, (row + px) * 4, source[0], source[1], source[2], source[3], blends);
+        if (stops == null) {
+          blend(frame, (row + px) * 4, source[0], source[1], source[2], source[3], blends);
+        } else {
+          double[] color = stops.over(fill, (px + 0.5) / scale, y, gradient);
+          blend(frame, (row + px) * 4, color, edge, 1, share, blends);
+        }
       }
       for (int px = Math.max(last + 1, first); px < bounds.right; px++) {
-        blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
+        double[] color = stops == null ? fill : stops.over(fill, (px + 0.5) / scale, y, gradient);
+        blend(frame, (row + px) * 4, color, edge, coverages[px], fillShares[px], blends);
       }
+    }
+  }
+
+  /** The {@link Scene#STOPS} of a gradient, which give its fill at each point. */
+  private record Stops(
+      boolean radial, double x1, double y1, double x2, double y2, double[] from, double[] to) {
+
+    static Stops of(Scene scene, int i) {
+      return new Stops(
+          scene.getInt(i, Scene.GRADIENT_SHAPE) == Scene.RADIAL,
+          scene.get(i, Scene.X),
+          scene.get(i, Scene.Y),
+          scene.get(i, Scene.WIDTH),
+          scene.get(i, Scene.HEIGHT),
+          color(scene, i, Scene.FILL),
+          color(scene, i, Scene.BORDER));
+    }
+
+    /** The gradient over {@code fill} at {@code (x, y)}, into {@code out}. */
+    double[] over(double[] fill, double x, double y, double[] out) {
+      double t;
+      if (radial) {
+        double ux = (x - x1) / x2;
+        double uy = (y - y1) / y2;
+        t = Math.min(StrictMath.sqrt(ux * ux + uy * uy), 1);
+      } else {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double span = dx * dx + dy * dy;
+        t = span > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / span, 0, 1) : 0;
+      }
+      double s = t * t * (3 - 2 * t);
+      double rest = 1 - (from[3] + (to[3] - from[3]) * s);
+      for (int c = 0; c < 4; c++) {
+        out[c] = from[c] + (to[c] - from[c]) * s + fill[c] * rest;
+      }
+      return out;
     }
   }
 
@@ -488,118 +535,6 @@ public final class CpuRenderer {
     double dark = 1 - StrictMath.pow(1 - a, darkGamma);
     double light = StrictMath.pow(a, lightGamma);
     return dark + (light - dark) * share;
-  }
-
-  /**
-   * Draws a gradient background: linear or elliptical radial, eased with smoothstep and mixed
-   * premultiplied in linear light, with the coverage of its square rectangle and of its clip.
-   */
-  private static void gradient(
-      Scene scene,
-      int i,
-      float[] frame,
-      int width,
-      int height,
-      double scale,
-      Blends blends,
-      Scratch scratch) {
-    double w = scene.get(i, Scene.WIDTH);
-    double h = scene.get(i, Scene.HEIGHT);
-    if (!(w > 0 && h > 0)) {
-      return;
-    }
-    double halfW = w / 2;
-    double halfH = h / 2;
-    double centerX = scene.get(i, Scene.X) + halfW;
-    double centerY = scene.get(i, Scene.Y) + halfH;
-    double[] square = new double[4];
-    Box shape = new Box(centerX, centerY, halfW, halfH, square, square, null);
-    Box clip = Box.clip(scene, scene.clipOf(i));
-    Bounds bounds = bounds(shape, clip, scale, width, height);
-    if (bounds == null) {
-      return;
-    }
-    int kind = scene.getInt(i, Scene.GRADIENT_KIND);
-    double[] from = color(scene, i, Scene.GRADIENT_FROM);
-    double[] to = color(scene, i, Scene.GRADIENT_TO);
-    double[] under = color(scene, i, Scene.GRADIENT_UNDER);
-    double x1 = scene.get(i, Scene.GRADIENT_X1);
-    double y1 = scene.get(i, Scene.GRADIENT_Y1);
-    double x2 = scene.get(i, Scene.GRADIENT_X2);
-    double y2 = scene.get(i, Scene.GRADIENT_Y2);
-    double dx = x2 - x1;
-    double dy = y2 - y1;
-    double length = dx * dx + dy * dy;
-    double[] coverages = scratch.coverage;
-    double[] fillShares = scratch.fillShare;
-    for (int py = bounds.top; py < bounds.bottom; py++) {
-      double y = (py + 0.5) / scale;
-      int first = bounds.left;
-      while (first < bounds.right
-          && !measure(
-              first,
-              y,
-              scale,
-              shape,
-              false,
-              null,
-              clip,
-              bounds.clipWhole,
-              null,
-              coverages,
-              fillShares,
-              1)) {
-        first++;
-      }
-      int last = bounds.right - 1;
-      while (last > first
-          && !measure(
-              last,
-              y,
-              scale,
-              shape,
-              false,
-              null,
-              clip,
-              bounds.clipWhole,
-              null,
-              coverages,
-              fillShares,
-              1)) {
-        last--;
-      }
-      int row = py * width;
-      for (int px = bounds.left; px < bounds.right; px++) {
-        double coverage = px >= first && px <= last ? 1 : coverages[px];
-        if (coverage <= 0) {
-          continue;
-        }
-        double x = (px + 0.5) / scale;
-        double t;
-        if (kind == Scene.GRADIENT_RADIAL) {
-          if (x2 > 0 && y2 > 0) {
-            double ux = (x - x1) / x2;
-            double uy = (y - y1) / y2;
-            t = Math.clamp(StrictMath.sqrt(ux * ux + uy * uy), 0, 1);
-          } else {
-            t = 1;
-          }
-        } else {
-          t = length > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / length, 0, 1) : 0;
-        }
-        double s = t * t * (3 - 2 * t);
-        double a = from[3] + (to[3] - from[3]) * s;
-        double rest = 1 - a;
-        blend(
-            frame,
-            (row + px) * 4,
-            (from[0] + (to[0] - from[0]) * s + under[0] * rest) * coverage,
-            (from[1] + (to[1] - from[1]) * s + under[1] * rest) * coverage,
-            (from[2] + (to[2] - from[2]) * s + under[2] * rest) * coverage,
-            (a + under[3] * rest) * coverage,
-            blends);
-      }
-    }
   }
 
   /**

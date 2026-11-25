@@ -101,8 +101,8 @@ public final class GpuRenderer implements AutoCloseable {
       // rounded rectangle, a glyph, a shadow, an image, a line (whose ends are in rect and width
       // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
       // shape, phase in more.x), a color glyph (a glyph whose page lies in color_atlas and whose
-      // fill holds its opacity) or a gradient (gradient kind in shape.x, from in fill, to in more,
-      // geometry in radii, the fill under it in borders). The slots in which they differ are declared as u32
+      // fill holds its opacity), a rectangle with a gradient, or that gradient's stops (the ends
+      // in rect, linear or radial in shape.x, from in fill and to in more). The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -131,7 +131,8 @@ public final class GpuRenderer implements AutoCloseable {
       const SQUIGGLE: u32 = 5u;
       const COLOR_GLYPH: u32 = 6u;
       const GRADIENT: u32 = 7u;
-      const GRADIENT_RADIAL: u32 = 1u;
+      const STOPS: u32 = 8u;
+      const RADIAL: u32 = 1u;
 
       struct Clip {
         rect: vec4f,
@@ -198,7 +199,7 @@ public final class GpuRenderer implements AutoCloseable {
           let rect = instance.rect;
           var start = rect.xy;
           var end = rect.xy + rect.zw;
-          empty = !(rect.z > 0.0 && rect.w > 0.0);
+          empty = !(rect.z > 0.0 && rect.w > 0.0) || instance.kind == STOPS;
           if instance.kind == SHADOW {
             let reach = 3.0 * deviation(instance);
             start -= reach;
@@ -314,6 +315,26 @@ public final class GpuRenderer implements AutoCloseable {
         let near = select(-r, -q.x * h.y + q.y * h.x, q.x * h.x + q.y * h.y >= 0.0);
         let far = select(r, q.x * h.y + q.y * h.x, q.y * h.y - q.x * h.x >= 0.0);
         return max(coverage(-near) + coverage(-far) - 1.0, 0.0);
+      }
+
+      // The color of a gradient's stops at a point, before the fill under it: t along the line,
+      // or the elliptical distance from the center, eased with smoothstep.
+      fn gradient(stops: Instance, point: vec2f) -> vec4f {
+        let a = stops.rect.xy;
+        let b = stops.rect.zw;
+        var t = 0.0;
+        if stops.shape.x == RADIAL {
+          let u = (point - a) / b;
+          t = min(sqrt(dot(u, u)), 1.0);
+        } else {
+          let d = b - a;
+          let span = dot(d, d);
+          if span > 0.0 {
+            t = clamp(dot(point - a, d) / span, 0.0, 1.0);
+          }
+        }
+        let s = t * t * (3.0 - 2.0 * t);
+        return stops.fill + (bitcast<vec4f>(stops.more) - stops.fill) * s;
       }
 
       // How much of the pixel at p from a rectangle's center its arc lets through.
@@ -560,38 +581,6 @@ public final class GpuRenderer implements AutoCloseable {
           }
           return image_sample(instance, in.position.xy) * instance.fill * image_cover;
         }
-        if instance.kind == GRADIENT {
-          let half_size = instance.rect.zw / 2.0;
-          var grad_cover = coverage(distance(point - (instance.rect.xy + half_size), half_size,
-              0.0));
-          if instance.clip != 0u {
-            grad_cover *= clip_coverage(instance.clip, point);
-          }
-          if grad_cover <= 0.0 {
-            discard;
-          }
-          let a = instance.radii.xy;
-          let b = instance.radii.zw;
-          var t = 0.0;
-          if instance.shape.x == GRADIENT_RADIAL {
-            if b.x > 0.0 && b.y > 0.0 {
-              let u = (point - a) / b;
-              t = clamp(sqrt(u.x * u.x + u.y * u.y), 0.0, 1.0);
-            } else {
-              t = 1.0;
-            }
-          } else {
-            let d = b - a;
-            let len2 = dot(d, d);
-            if len2 > 0.0 {
-              t = clamp(dot(point - a, d) / len2, 0.0, 1.0);
-            }
-          }
-          let s = t * t * (3.0 - 2.0 * t);
-          let to = bitcast<vec4f>(instance.more);
-          let g = instance.fill + (to - instance.fill) * s;
-          return (g + instance.borders * (1.0 - g.a)) * grad_cover;
-        }
         if instance.kind == LINE {
           let a = instance.rect.xy;
           let b = instance.rect.zw - a;
@@ -687,9 +676,14 @@ public final class GpuRenderer implements AutoCloseable {
             fill_share = coverage(distance_elliptic(q, inner, r));
           }
         }
+        var fill = instance.fill;
+        if instance.kind == GRADIENT {
+          let g = gradient(instances[in.index + 1u], point);
+          fill = g + fill * (1.0 - g.a);
+        }
         // Premultiplied: the blend state adds the destination times one minus this alpha.
         let edge = bitcast<vec4f>(instance.more);
-        return (edge + (instance.fill - edge) * fill_share) * cover;
+        return (edge + (fill - edge) * fill_share) * cover;
       }
       """;
 

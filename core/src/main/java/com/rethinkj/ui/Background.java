@@ -4,8 +4,8 @@ import java.util.Objects;
 
 /**
  * A background painted over an element's {@link El#fill} ({@link El#background(Background)}): a
- * two-color linear or elliptical radial gradient inside the element's border, clipped to its inner
- * corner radii and drawn under its image, segments, text and children.
+ * two-color linear or elliptical radial gradient where the fill shows, within the inner edge of the
+ * element's border and its rounded corners, under its image, segments, text and children.
  *
  * <p>Positions and radii are {@link Len#px} in logical pixels or {@link Len#percent} of the
  * element's padding box (inside its border), where {@code 0} is the top-left corner and {@code
