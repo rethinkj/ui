@@ -2745,7 +2745,7 @@ public final class App<S> {
 
   /** Whether this stop of {@link #tabOrder} is in an overlay of a row of the list of {@code in}. */
   private boolean overlaid(Object stop, Animator.InRow in) {
-    Object id = stop instanceof El el ? animator.identity(el) : null;
+    Object id = animator.identity(stop instanceof Gap gap ? gap.list() : (El) stop);
     return id != null
         && Animator.isBelow(id, in.listId())
         && !Animator.isBelowInLayer(id, in.listId());
