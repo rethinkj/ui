@@ -5920,7 +5920,8 @@ public final class El {
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(Math.max(top, clipTop), 0);
-    double to = Math.max(Math.min(Math.min(top + height, clipBottom), windowHeight), from);
+    double bottom = Math.min(Math.min(top + height, clipBottom), windowHeight);
+    double to = Math.max(bottom, from); // none, where the list is out of view
     int first = Math.clamp(rowAt(from - row0), 0, rows.rowCount);
     int end = Math.clamp(rowAfter(to - row0), first, rows.rowCount);
     float shown = 0;
