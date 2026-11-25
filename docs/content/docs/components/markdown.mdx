@@ -30,7 +30,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 | `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
 
-Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text.
+Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. A link with a title shows its title as a tooltip. Raw HTML in Markdown is rendered safely as plain text.
 
 Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tables, and code blocks)—including blocks scrolled out of view—and press Ctrl+C to copy the selected text with line breaks between blocks. Dragging near or past the top or bottom edge scrolls the document while extending the selection.
 
