@@ -843,7 +843,10 @@ public final class AgentChat {
     El models = col()
         .padding(theme.space().m())
         .child(FilterList.filterList(
-                state.modelFilter, "Search models", FilterList.Entries.of(state.modelEntries()))
+                state.modelFilter,
+                "Search models",
+                FilterList.Entries.of(state.modelEntries()),
+                true)
             .w(260));
 
     El levels = col()

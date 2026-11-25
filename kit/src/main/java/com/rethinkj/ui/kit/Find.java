@@ -108,6 +108,7 @@ public final class Find {
     int caret;
     int anchor;
     int origin; // where typing in the field searches from
+    private String scopeText; // the selection scope's text that caret, anchor and origin index into
     int opened; // counts the openings, so that each takes the focus
     boolean selectQuery; // the field selects its text once it is there
     String error; // the pattern's, or a replacement's
@@ -291,6 +292,9 @@ public final class Find {
         ? null
         : scope ? app.scopeText(field) : field.text().string();
     if (text != null) {
+      if (scope) {
+        remapScope(state, text);
+      }
       state.caret = Math.min(state.caret, text.length());
       state.anchor = Math.min(state.anchor, text.length());
     }
@@ -393,6 +397,9 @@ public final class Find {
       return;
     }
     String text = state.text();
+    if (scope) {
+      remapScope(state, text);
+    }
     int caret = Math.min(state.caret, text.length());
     int anchor = Math.min(state.anchor, text.length());
     int s = Math.min(caret, anchor);
@@ -593,6 +600,9 @@ public final class Find {
       return;
     }
     String text = state.text();
+    if (state.isScope()) {
+      remapScope(state, text);
+    }
     For target = state.target(text.length());
     int caret = Math.min(state.caret, text.length());
     int anchor = Math.min(state.anchor, text.length());
@@ -666,6 +676,57 @@ public final class Find {
     state.app.select(state.field, match[1], match[0]);
     state.caret = match[1];
     state.anchor = match[0];
+  }
+
+  /**
+   * Moves a selection scope's offsets along when its text changes, also while the scope has no
+   * selection that core moves by row keys and tells: after a press in the query, for one.
+   * shortcut: a change above or below the match moves it along, changes both above and below it
+   * in one build put it where the text first differs; compare rows when that shows.
+   */
+  private static void remapScope(State state, String text) {
+    String prev = state.scopeText;
+    state.scopeText = text;
+    if (prev == null || prev.equals(text)) {
+      return;
+    }
+    int caret = Math.min(state.caret, prev.length());
+    int anchor = Math.min(state.anchor, prev.length());
+    int s = Math.min(caret, anchor);
+    int e = Math.max(caret, anchor);
+    int at = moved(prev, text, s, e);
+    if (at < 0) {
+      state.caret = state.anchor = commonPrefix(prev, text, e);
+    } else {
+      state.caret = caret - s + at;
+      state.anchor = anchor - s + at;
+    }
+    int origin = Math.min(state.origin, prev.length());
+    int from = moved(prev, text, origin, origin);
+    state.origin = from < 0 ? commonPrefix(prev, text, origin) : from;
+  }
+
+  /**
+   * Where {@code from..to} of {@code prev} starts in {@code text}, or -1: moved along when the text
+   * from it on is unchanged, else in place when the text up to its end is. The move comes first: a
+   * row inserted above may begin as the text before the match does.
+   */
+  private static int moved(String prev, String text, int from, int to) {
+    int delta = text.length() - prev.length();
+    if (from + delta >= 0 && prev.regionMatches(from, text, from + delta, prev.length() - from)) {
+      return from + delta;
+    }
+    return prev.regionMatches(0, text, 0, to) ? from : -1;
+  }
+
+  /** Length of the common prefix of {@code a} and {@code b}, up to {@code limit}. */
+  private static int commonPrefix(String a, String b, int limit) {
+    int n = Math.min(limit, Math.min(a.length(), b.length()));
+    int i = 0;
+    while (i < n && a.charAt(i) == b.charAt(i)) {
+      i++;
+    }
+    return i;
   }
 
   /** Replaces the selection if it is a match and goes to the next match. */

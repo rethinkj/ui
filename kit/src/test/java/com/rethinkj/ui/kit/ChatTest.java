@@ -591,36 +591,8 @@ class ChatTest {
 
   @Test
   void findAdvancesPastCurrentMatchAfterRowsInsertedAtTop() throws IOException {
-    record Entry(int id, MarkdownDocument doc) {}
-    List<Entry> messages = new ArrayList<>();
-    for (int id = 6; id <= 19; id++) {
-      String body = id == 8 || id == 15 ? "Message " + id + " has needle." : "Message " + id + ".";
-      messages.add(new Entry(id, Markdown.parse(body)));
-    }
-    ScrollState scroll = new ScrollState();
-    RowHeights heights =
-        new RowHeights(index -> 64, index -> messages.get(index).id());
-    Find.State find = new Find.State();
-    App<?>[] holder = new App<?>[1];
-    App<Object> app = new App<>(
-            new Object(),
-            state -> col()
-                .wFull()
-                .hFull()
-                .fill(Theme.DARK.surface().panel())
-                .child(Find.find(
-                        holder[0],
-                        Chat.transcript(
-                                messages.size(),
-                                index -> Chat.agent(messages.get(index).doc()),
-                                scroll,
-                                heights)
-                            .grow(1),
-                        find)
-                    .grow(1)))
-        .provide(Theme.CURRENT, state -> Theme.DARK);
-    holder[0] = app;
-    app.textRendering(TextRendering.LINUX);
+    List<Entry> messages = needleMessages();
+    App<Object> app = findApp(messages);
 
     // Open Find and land on the first match (message 8).
     Script.run("""
@@ -674,5 +646,95 @@ class ChatTest {
     assertTrue(
         afterAppend.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 4\"")),
         afterAppend);
+  }
+
+  @Test
+  void findAdvancesPastCurrentMatchAfterQueryPressAndInserts() throws IOException {
+    List<Entry> messages = needleMessages();
+    App<Object> app = findApp(messages);
+
+    // Open Find, land on the first of two matches (message 8), then press into the query field
+    // without editing it, which clears the scope's selection.
+    Script.run("""
+        size 560 240 scale 2
+        frame
+        press text="Message 19." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        advance 1
+        frame
+        press #find-field at left+20
+        frame""", app, out);
+    String first = app.tree().dump();
+    assertTrue(
+        first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), first);
+    assertTrue(first.contains("\"Message 8 has needle.\""), first);
+
+    // Prepend keyed rows that begin as the text up to the current match does, with a match of
+    // their own: the count stays on message 8 (2 of 3), and Enter advances to message 15 (3 of 3)
+    // rather than selecting message 8 again.
+    List<Entry> older = new ArrayList<>();
+    for (String body : List.of("Message 6.", "Message 7.", "Message 8 has needle too.")) {
+      older.add(new Entry(older.size() + 1, Markdown.parse(body)));
+    }
+    messages.addAll(0, older);
+    app.invalidate();
+    Script.run("frame", app, out);
+    String afterInsert = app.tree().dump();
+    assertTrue(
+        afterInsert.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")),
+        afterInsert);
+
+    Script.run("key Enter\nframe", app, out);
+    String next = app.tree().dump();
+    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"3 of 3\"")), next);
+    assertTrue(
+        next.lines()
+            .anyMatch(l -> l.contains("\"Message 15 has needle.\"") && l.contains("underline")),
+        next);
+  }
+
+  private record Entry(int id, MarkdownDocument doc) {}
+
+  /** Messages 6 to 19, of which 8 and 15 have a match for "needle". */
+  private static List<Entry> needleMessages() {
+    List<Entry> messages = new ArrayList<>();
+    for (int id = 6; id <= 19; id++) {
+      String body = id == 8 || id == 15 ? "Message " + id + " has needle." : "Message " + id + ".";
+      messages.add(new Entry(id, Markdown.parse(body)));
+    }
+    return messages;
+  }
+
+  /** A transcript of {@code messages}, keyed by their ids, with a find bar. */
+  private static App<Object> findApp(List<Entry> messages) {
+    ScrollState scroll = new ScrollState();
+    RowHeights heights =
+        new RowHeights(index -> 64, index -> messages.get(index).id());
+    Find.State find = new Find.State();
+    App<?>[] holder = new App<?>[1];
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Find.find(
+                        holder[0],
+                        Chat.transcript(
+                                messages.size(),
+                                index -> Chat.agent(messages.get(index).doc()),
+                                scroll,
+                                heights)
+                            .grow(1),
+                        find)
+                    .grow(1)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    holder[0] = app;
+    app.textRendering(TextRendering.LINUX);
+    return app;
   }
 }
