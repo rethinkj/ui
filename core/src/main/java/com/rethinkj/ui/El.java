@@ -5895,12 +5895,32 @@ public final class El {
       float windowWidth,
       float windowHeight,
       boolean anew) {
+    float far = Float.POSITIVE_INFINITY;
+    return wantedRows(left, top, clipLeft, clipRight, -far, far, windowWidth, windowHeight, anew);
+  }
+
+  /**
+   * Like {@link #wantedRows(float, float, float, float, float, float, boolean)}, with the vertical
+   * clip of the list's ancestors too, from {@code clipTop} to {@code clipBottom} in window
+   * coordinates: a list as high as its rows in a row of another list builds the rows in view of
+   * that one.
+   */
+  int[] wantedRows(
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom,
+      float windowWidth,
+      float windowHeight,
+      boolean anew) {
     if (rows == null) {
       return NO_ROWS;
     }
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
-    double from = Math.max(top, 0);
-    double to = Math.max(Math.min(top + height, windowHeight), from);
+    double from = Math.max(Math.max(top, clipTop), 0);
+    double to = Math.max(Math.min(Math.min(top + height, clipBottom), windowHeight), from);
     int first = Math.clamp(rowAt(from - row0), 0, rows.rowCount);
     int end = Math.clamp(rowAfter(to - row0), first, rows.rowCount);
     float shown = 0;

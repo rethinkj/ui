@@ -6635,10 +6635,11 @@ public final class App<S> {
     rowKeyHooks = false;
     regrownLists.clear();
     inViewLists.clear();
-    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
+    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, -far, far, false);
     if (!rowGoals.isEmpty() && followRowGoals()) {
       inViewLists.clear();
-      built |= fillRows(root, new ArrayList<>(), 0, 0, -far, far, false); // the rows there
+      built |=
+          fillRows(root, new ArrayList<>(), 0, 0, -far, far, -far, far, false); // the rows there
     }
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
@@ -6770,6 +6771,8 @@ public final class App<S> {
       float parentY,
       float clipLeft,
       float clipRight,
+      float clipTop,
+      float clipBottom,
       boolean inRows) {
     if (!el.isPlaced() || el.isExiting()) {
       return false;
@@ -6781,7 +6784,8 @@ public final class App<S> {
     boolean relook = !relooking.isEmpty()
         && el.isVirtualList()
         && relooking.contains(Animator.identities(path).getLast());
-    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height, relook);
+    int[] range =
+        el.wantedRows(left, top, clipLeft, clipRight, clipTop, clipBottom, width, height, relook);
     boolean built = range.length != 0;
     if (el.onRowsBuilt() != null) {
       rowLists.add(Animator.identities(path).getLast());
@@ -6789,18 +6793,36 @@ public final class App<S> {
     if (el.onRowsInView() != null) {
       inViewLists.put(Animator.identities(path).getLast(), el);
     }
-    range = buildRows(el, path, range, left, top, clipLeft, clipRight);
+    range = buildRows(el, path, range, left, top, clipLeft, clipRight, clipTop, clipBottom);
+    float wantedTop = clipTop;
+    float wantedBottom = clipBottom;
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());
     }
-    if (inRows && el.rowsRegrown()) {
-      regrownLists.add(el);
+    if (el.style().overflowY != Style.Overflow.VISIBLE) {
+      clipTop = Math.max(clipTop, top);
+      clipBottom = Math.min(clipBottom, top + el.height());
     }
     int pending = rowsDeferred;
-    built |= fillChildren(el, path, left, top, clipLeft, clipRight, inRows);
+    built |= fillChildren(
+        el,
+        path,
+        left,
+        top,
+        clipLeft,
+        clipRight,
+        clipTop,
+        clipBottom,
+        wantedTop,
+        wantedBottom,
+        inRows);
     if (rowsDeferred != pending) {
-      range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+      range = el.wantedRows(
+          left, top, clipLeft, clipRight, wantedTop, wantedBottom, width, height, false);
+    }
+    if (inRows && el.rowsRegrown()) { // after its rows, whose lists may have grown them
+      regrownLists.add(el);
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
     boolean tail = !el.isVirtualList()
@@ -6815,7 +6837,7 @@ public final class App<S> {
     }
     float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0, 0, -far, far, inRows);
+      built |= fillRows(overlay, path, 0, 0, -far, far, -far, far, inRows);
     }
     path.removeLast();
     return built;
@@ -6828,7 +6850,15 @@ public final class App<S> {
    * @return the rows still wanted after those passes, which the next frame builds
    */
   private int[] buildRows(
-      El el, List<El> path, int[] range, float left, float top, float clipLeft, float clipRight) {
+      El el,
+      List<El> path,
+      int[] range,
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float clipTop,
+      float clipBottom) {
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
     for (int pass = 0; range.length != 0 && pass < 3; pass++) {
@@ -6870,7 +6900,7 @@ public final class App<S> {
       }
       animator.rows(el, id, time);
       range = el.measuresRows()
-          ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
+          ? el.wantedRows(left, top, clipLeft, clipRight, clipTop, clipBottom, width, height, false)
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
@@ -6890,6 +6920,10 @@ public final class App<S> {
       float top,
       float clipLeft,
       float clipRight,
+      float clipTop,
+      float clipBottom,
+      float wantedTop,
+      float wantedBottom,
       boolean inRows) {
     boolean built = false;
     boolean list = el.isVirtualList();
@@ -6898,7 +6932,16 @@ public final class App<S> {
       List<El> children = el.children();
       for (int i = 0; i < children.size(); i++) {
         int mark = regrownLists.size();
-        built |= fillRows(children.get(i), path, left, top, clipLeft, clipRight, inRows || list);
+        built |= fillRows(
+            children.get(i),
+            path,
+            left,
+            top,
+            clipLeft,
+            clipRight,
+            clipTop,
+            clipBottom,
+            inRows || list);
         if (!list || regrownLists.size() == mark) {
           continue;
         }
@@ -6918,9 +6961,12 @@ public final class App<S> {
         return built;
       }
       built = true;
-      int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+      int[] range = el.wantedRows(
+          left, top, clipLeft, clipRight, wantedTop, wantedBottom, width, height, false);
       if (range.length != 0 // rows below the grown ones moved, others came into view
-          && buildRows(el, path, range, left, top, clipLeft, clipRight).length != 0) {
+          && buildRows(el, path, range, left, top, clipLeft, clipRight, wantedTop, wantedBottom)
+                  .length
+              != 0) {
         rowsDeferred++; // the next frame goes on
       }
     }

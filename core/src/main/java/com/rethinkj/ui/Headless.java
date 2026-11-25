@@ -17,6 +17,9 @@ import java.util.List;
  */
 public final class Headless {
 
+  // How often a snapshot lays out rows again or builds more, at most: rows that keep changing.
+  private static final int MAX_PASSES = 1024;
+
   /**
    * @param pixels the rendered image
    * @param tree the laid-out tree as text, see {@link El#dump}
@@ -46,10 +49,11 @@ public final class Headless {
     Overlays.layout(root, width, height);
     El.measureScrolls(root);
     float far = Float.POSITIVE_INFINITY;
-    fillRows(root, 0, 0, -far, far, width, height, scale);
+    float[] clip = {-far, far, -far, far};
+    fillRows(root, 0, 0, clip, width, height, scale);
     Overlays.place(root, width, height);
     for (El overlay : root.shownOverlays()) {
-      fillRows(overlay, 0, 0, -far, far, width, height, scale);
+      fillRows(overlay, 0, 0, clip, width, height, scale);
     }
     El.placeBars(root);
     El.cycles(root, 0, width, height, false); // phase 0, as nothing has a clock here
@@ -70,8 +74,7 @@ public final class Headless {
       El el,
       float parentX,
       float parentY,
-      float clipLeft,
-      float clipRight,
+      float[] clip,
       float windowWidth,
       float windowHeight,
       float scale) {
@@ -81,28 +84,25 @@ public final class Headless {
     el.measureScroll();
     float left = parentX + el.x();
     float top = parentY + el.y();
-    buildRows(
-        el,
-        el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
-        left,
-        top,
-        clipLeft,
-        clipRight,
-        windowWidth,
-        windowHeight,
-        scale);
+    float[] wanted = clip; // left, right, top and bottom, of the ancestors
+    buildRows(el, left, top, wanted, windowWidth, windowHeight, scale);
+    clip = clip.clone();
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
-      clipLeft = Math.max(clipLeft, left);
-      clipRight = Math.min(clipRight, left + el.width());
+      clip[0] = Math.max(clip[0], left);
+      clip[1] = Math.min(clip[1], left + el.width());
     }
-    boolean regrown = el.rowsRegrown();
+    if (el.style().overflowY != Style.Overflow.VISIBLE) {
+      clip[2] = Math.max(clip[2], top);
+      clip[3] = Math.min(clip[3], top + el.height());
+    }
+    boolean regrown = false;
+    // A snapshot has no next frame: rows laid out again go on until nothing grows.
     for (int round = 0; ; round++) {
       boolean relaid = false;
       List<El> children = el.children();
       for (int i = 0; i < children.size(); i++) {
-        boolean grew = fillRows(
-            children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
-        if (grew && el.isVirtualList() && el.measuresRows() && round < 64) {
+        boolean grew = fillRows(children.get(i), left, top, clip, windowWidth, windowHeight, scale);
+        if (grew && el.isVirtualList() && el.measuresRows() && round < MAX_PASSES) {
           el.layoutRow(i, scale, false);
           el.remeasureRow(i);
           settle(children.get(i));
@@ -111,37 +111,31 @@ public final class Headless {
         regrown |= grew && !el.isVirtualList();
       }
       if (!relaid) {
-        return regrown;
+        return regrown || el.rowsRegrown(); // after its rows, whose lists may have grown them
       }
-      buildRows( // rows below the grown ones moved, others came into view
-          el,
-          el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
-          left,
-          top,
-          clipLeft,
-          clipRight,
-          windowWidth,
-          windowHeight,
-          scale);
+      // Rows below the grown ones moved, others came into view.
+      buildRows(el, left, top, wanted, windowWidth, windowHeight, scale);
     }
   }
 
   /**
-   * Builds these rows, then those that the heights they measured show, as long as that shows other
-   * rows: a snapshot has no next frame to go on in.
+   * Builds the rows of a list in view, then those that the heights they measured show, as long as
+   * that shows other rows: a snapshot has no next frame to go on in.
    */
   private static void buildRows(
       El el,
-      int[] range,
       float left,
       float top,
-      float clipLeft,
-      float clipRight,
+      float[] clip,
       float windowWidth,
       float windowHeight,
       float scale) {
+    int[] range = el.wantedRows(
+        left, top, clip[0], clip[1], clip[2], clip[3], windowWidth, windowHeight, false);
     int[] last = El.NO_ROWS;
-    for (int pass = 0; range.length != 0 && !Arrays.equals(range, last) && pass < 64; pass++) {
+    for (int pass = 0;
+        range.length != 0 && !Arrays.equals(range, last) && pass < MAX_PASSES;
+        pass++) {
       last = range;
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
       el.layoutRows(scale, false);
@@ -150,7 +144,8 @@ public final class Headless {
       }
       el.measureRowScrolls();
       range = el.measuresRows()
-          ? el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight)
+          ? el.wantedRows(
+              left, top, clip[0], clip[1], clip[2], clip[3], windowWidth, windowHeight, false)
           : El.NO_ROWS;
     }
   }
