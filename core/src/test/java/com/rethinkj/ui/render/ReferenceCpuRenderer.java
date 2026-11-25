@@ -65,6 +65,8 @@ final class ReferenceCpuRenderer {
         line(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.SQUIGGLE) {
         squiggle(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.GRADIENT) {
+        gradient(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -267,6 +269,83 @@ final class ReferenceCpuRenderer {
         }
         for (int c = 0; c < 4; c++) {
           double source = scene.get(i, Scene.COLOR + c * 4) * sample[c] * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /** Draws a gradient background: plain loop over its pixels. */
+  private static void gradient(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
+    double w = scene.get(i, Scene.WIDTH);
+    double h = scene.get(i, Scene.HEIGHT);
+    if (!(w > 0 && h > 0)) {
+      return;
+    }
+    double halfW = w / 2;
+    double halfH = h / 2;
+    double centerX = scene.get(i, Scene.X) + halfW;
+    double centerY = scene.get(i, Scene.Y) + halfH;
+    int left = first(centerX - halfW, scale, width);
+    int top = first(centerY - halfH, scale, height);
+    int right = end(centerX + halfW, scale, width);
+    int bottom = end(centerY + halfH, scale, height);
+    int clip = scene.clipOf(i);
+    if (clip != 0) {
+      double clipHalfW = scene.clipGet(clip, Scene.WIDTH) / 2;
+      double clipHalfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
+      double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
+      double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
+      left = Math.max(left, first(clipX - clipHalfW, scale, width));
+      top = Math.max(top, first(clipY - clipHalfH, scale, height));
+      right = Math.min(right, end(clipX + clipHalfW, scale, width));
+      bottom = Math.min(bottom, end(clipY + clipHalfH, scale, height));
+    }
+    int kind = scene.getInt(i, Scene.GRADIENT_KIND);
+    double x1 = scene.get(i, Scene.GRADIENT_X1);
+    double y1 = scene.get(i, Scene.GRADIENT_Y1);
+    double x2 = scene.get(i, Scene.GRADIENT_X2);
+    double y2 = scene.get(i, Scene.GRADIENT_Y2);
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double length = dx * dx + dy * dy;
+    for (int py = top; py < bottom; py++) {
+      for (int px = left; px < right; px++) {
+        double pxX = (px + 0.5) / scale;
+        double pxY = (py + 0.5) / scale;
+        double coverage =
+            coverage(distance(pxX - centerX, pxY - centerY, halfW, halfH, 0, 0), scale);
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, pxX, pxY, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        double t;
+        if (kind == Scene.GRADIENT_RADIAL) {
+          if (x2 > 0 && y2 > 0) {
+            double ux = (pxX - x1) / x2;
+            double uy = (pxY - y1) / y2;
+            t = Math.clamp(StrictMath.sqrt(ux * ux + uy * uy), 0, 1);
+          } else {
+            t = 1;
+          }
+        } else {
+          t = length > 0 ? Math.clamp(((pxX - x1) * dx + (pxY - y1) * dy) / length, 0, 1) : 0;
+        }
+        double s = t * t * (3 - 2 * t);
+        int at = (py * width + px) * 4;
+        double fromA = scene.get(i, Scene.GRADIENT_FROM + 12);
+        double toA = scene.get(i, Scene.GRADIENT_TO + 12);
+        double alpha = (fromA + (toA - fromA) * s) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double from = scene.get(i, Scene.GRADIENT_FROM + c * 4);
+          double to = scene.get(i, Scene.GRADIENT_TO + c * 4);
+          double source = (from + (to - from) * s) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
         }
       }

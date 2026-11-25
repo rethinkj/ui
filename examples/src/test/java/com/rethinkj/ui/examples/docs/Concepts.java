@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Background;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
@@ -19,6 +20,7 @@ import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Lane;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Segment;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
@@ -599,6 +601,47 @@ final class Concepts {
         .segments(segments);
     // docs:end lines
     return Frame.of(chart);
+  }
+
+  static El backgrounds() {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start backgrounds
+    int accent = theme.accent().color();
+    El linear = col()
+        .key("linear")
+        .size(160, 72)
+        .padding(12)
+        .justify(Style.Content.END)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().panel())
+        .border(1, theme.border().subtle())
+        .background(Background.linear(
+            Len.percent(0),
+            Len.percent(0),
+            Len.percent(1),
+            Len.percent(1),
+            Colors.alpha(accent, 0.28f),
+            Colors.TRANSPARENT))
+        .child(Label.label("Linear"));
+    El radial = col()
+        .key("radial")
+        .size(160, 72)
+        .padding(12)
+        .justify(Style.Content.END)
+        .radius(theme.radius().medium())
+        .fill(theme.surface().panel())
+        .border(1, theme.border().subtle())
+        .background(Background.radial(
+            Len.percent(0.72f),
+            Len.percent(0.3f),
+            Len.percent(0.65f),
+            Len.percent(0.85f),
+            Colors.alpha(accent, 0.38f),
+            Colors.TRANSPARENT))
+        .child(Label.label("Radial"));
+    El cards = row().gap(theme.space().m()).children(linear, radial);
+    // docs:end backgrounds
+    return Frame.of(cards);
   }
 
   static El images(Concepts state) {

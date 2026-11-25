@@ -69,6 +69,7 @@ public final class CpuRenderer {
         case Scene.IMAGE -> image(scene, i, frame, width, height, scale, blends, scratch);
         case Scene.LINE -> line(scene, i, frame, width, height, scale, blends);
         case Scene.SQUIGGLE -> squiggle(scene, i, frame, width, height, scale, blends, scratch);
+        case Scene.GRADIENT -> gradient(scene, i, frame, width, height, scale, blends, scratch);
         default -> rect(scene, i, frame, width, height, scale, blends, scratch);
       }
     }
@@ -487,6 +488,115 @@ public final class CpuRenderer {
     double dark = 1 - StrictMath.pow(1 - a, darkGamma);
     double light = StrictMath.pow(a, lightGamma);
     return dark + (light - dark) * share;
+  }
+
+  /**
+   * Draws a gradient background: linear or elliptical radial, eased with smoothstep and mixed
+   * premultiplied in linear light, with the coverage of its square rectangle and of its clip.
+   */
+  private static void gradient(
+      Scene scene,
+      int i,
+      float[] frame,
+      int width,
+      int height,
+      double scale,
+      Blends blends,
+      Scratch scratch) {
+    double w = scene.get(i, Scene.WIDTH);
+    double h = scene.get(i, Scene.HEIGHT);
+    if (!(w > 0 && h > 0)) {
+      return;
+    }
+    double halfW = w / 2;
+    double halfH = h / 2;
+    double centerX = scene.get(i, Scene.X) + halfW;
+    double centerY = scene.get(i, Scene.Y) + halfH;
+    double[] square = new double[4];
+    Box shape = new Box(centerX, centerY, halfW, halfH, square, square, null);
+    Box clip = Box.clip(scene, scene.clipOf(i));
+    Bounds bounds = bounds(shape, clip, scale, width, height);
+    if (bounds == null) {
+      return;
+    }
+    int kind = scene.getInt(i, Scene.GRADIENT_KIND);
+    double[] from = color(scene, i, Scene.GRADIENT_FROM);
+    double[] to = color(scene, i, Scene.GRADIENT_TO);
+    double x1 = scene.get(i, Scene.GRADIENT_X1);
+    double y1 = scene.get(i, Scene.GRADIENT_Y1);
+    double x2 = scene.get(i, Scene.GRADIENT_X2);
+    double y2 = scene.get(i, Scene.GRADIENT_Y2);
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double length = dx * dx + dy * dy;
+    double[] coverages = scratch.coverage;
+    double[] fillShares = scratch.fillShare;
+    for (int py = bounds.top; py < bounds.bottom; py++) {
+      double y = (py + 0.5) / scale;
+      int first = bounds.left;
+      while (first < bounds.right
+          && !measure(
+              first,
+              y,
+              scale,
+              shape,
+              false,
+              null,
+              clip,
+              bounds.clipWhole,
+              null,
+              coverages,
+              fillShares,
+              1)) {
+        first++;
+      }
+      int last = bounds.right - 1;
+      while (last > first
+          && !measure(
+              last,
+              y,
+              scale,
+              shape,
+              false,
+              null,
+              clip,
+              bounds.clipWhole,
+              null,
+              coverages,
+              fillShares,
+              1)) {
+        last--;
+      }
+      int row = py * width;
+      for (int px = bounds.left; px < bounds.right; px++) {
+        double coverage = px >= first && px <= last ? 1 : coverages[px];
+        if (coverage <= 0) {
+          continue;
+        }
+        double x = (px + 0.5) / scale;
+        double t;
+        if (kind == Scene.GRADIENT_RADIAL) {
+          if (x2 > 0 && y2 > 0) {
+            double ux = (x - x1) / x2;
+            double uy = (y - y1) / y2;
+            t = Math.clamp(StrictMath.sqrt(ux * ux + uy * uy), 0, 1);
+          } else {
+            t = 1;
+          }
+        } else {
+          t = length > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / length, 0, 1) : 0;
+        }
+        double s = t * t * (3 - 2 * t);
+        blend(
+            frame,
+            (row + px) * 4,
+            (from[0] + (to[0] - from[0]) * s) * coverage,
+            (from[1] + (to[1] - from[1]) * s) * coverage,
+            (from[2] + (to[2] - from[2]) * s) * coverage,
+            (from[3] + (to[3] - from[3]) * s) * coverage,
+            blends);
+      }
+    }
   }
 
   /**

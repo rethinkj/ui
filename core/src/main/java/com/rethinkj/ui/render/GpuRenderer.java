@@ -100,8 +100,9 @@ public final class GpuRenderer implements AutoCloseable {
       // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
       // rounded rectangle, a glyph, a shadow, an image, a line (whose ends are in rect and width
       // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
-      // shape, phase in more.x) or a color glyph (a glyph whose page lies in color_atlas and whose
-      // fill holds its opacity). The slots in which they differ are declared as u32
+      // shape, phase in more.x), a color glyph (a glyph whose page lies in color_atlas and whose
+      // fill holds its opacity) or a gradient (gradient kind in shape.x, from in fill, to in more,
+      // geometry in radii). The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -129,6 +130,8 @@ public final class GpuRenderer implements AutoCloseable {
       const LINE: u32 = 4u;
       const SQUIGGLE: u32 = 5u;
       const COLOR_GLYPH: u32 = 6u;
+      const GRADIENT: u32 = 7u;
+      const GRADIENT_RADIAL: u32 = 1u;
 
       struct Clip {
         rect: vec4f,
@@ -556,6 +559,37 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return image_sample(instance, in.position.xy) * instance.fill * image_cover;
+        }
+        if instance.kind == GRADIENT {
+          let half_size = instance.rect.zw / 2.0;
+          var grad_cover = coverage(distance(point - (instance.rect.xy + half_size), half_size,
+              0.0));
+          if instance.clip != 0u {
+            grad_cover *= clip_coverage(instance.clip, point);
+          }
+          if grad_cover <= 0.0 {
+            discard;
+          }
+          let a = instance.radii.xy;
+          let b = instance.radii.zw;
+          var t = 0.0;
+          if instance.shape.x == GRADIENT_RADIAL {
+            if b.x > 0.0 && b.y > 0.0 {
+              let u = (point - a) / b;
+              t = clamp(sqrt(u.x * u.x + u.y * u.y), 0.0, 1.0);
+            } else {
+              t = 1.0;
+            }
+          } else {
+            let d = b - a;
+            let len2 = dot(d, d);
+            if len2 > 0.0 {
+              t = clamp(dot(point - a, d) / len2, 0.0, 1.0);
+            }
+          }
+          let s = t * t * (3.0 - 2.0 * t);
+          let to = bitcast<vec4f>(instance.more);
+          return (instance.fill + (to - instance.fill) * s) * grad_cover;
         }
         if instance.kind == LINE {
           let a = instance.rect.xy;

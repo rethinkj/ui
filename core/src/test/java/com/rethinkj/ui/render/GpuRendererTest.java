@@ -9,10 +9,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Background;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Segment;
@@ -152,6 +154,7 @@ class GpuRendererTest {
     cases.add(view("clips", clips(), 160, 100, s));
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
+    cases.add(view("backgrounds", backgrounds(), 240, 140, 1.25f));
     cases.add(view("lines", Examples.lines(), 240, 120, s));
     // A line from a billion pixels out, as an edge of a diagram zoomed far in.
     cases.add(view(
@@ -1370,5 +1373,57 @@ class GpuRendererTest {
     scene.rect(4, 80, 100, 0.5f, 0, 0, 0xFF22C55E, 0);
     scene.rect(4, 90.3f, 100, 6, 3, 1, 0x00000000, 0xFFFACC15);
     return scene;
+  }
+
+  /**
+   * Rounded, bordered, translucent elements with linear and elliptical radial backgrounds at a
+   * fractional scale, plus a gradient clipped by a rounded ancestor.
+   */
+  private static El backgrounds() {
+    return el().size(240, 140)
+        .fill(BACKGROUND)
+        .children(
+            el().absolute(10.25f, 12.5f)
+                .size(100, 56)
+                .radius(12)
+                .fill(0xCC1E293B)
+                .border(2, 0xCC94A3B8)
+                .opacity(0.85f)
+                .background(Background.linear(
+                    Len.percent(0),
+                    Len.percent(0),
+                    Len.percent(1),
+                    Len.percent(1),
+                    0xD93B82F6,
+                    0x40EC4899)),
+            el().absolute(124.5f, 12.5f)
+                .size(104, 56)
+                .radius(16, 6, 14, 4)
+                .fill(0xCC1E293B)
+                .border(2, 0xCC94A3B8)
+                .opacity(0.8f)
+                .background(Background.radial(
+                    Len.percent(0.3f),
+                    Len.px(16),
+                    Len.percent(0.85f),
+                    Len.px(44),
+                    0xE638BDF8,
+                    Colors.TRANSPARENT)),
+            el().absolute(12, 80.25f)
+                .size(216, 48)
+                .radius(10)
+                .clip()
+                .fill(0xFF181920)
+                .child(el().absolute(-12, -8)
+                    .size(240, 64)
+                    .radius(14)
+                    .border(1.5f, 0x80F8FAFC)
+                    .background(Background.radial(
+                        Len.percent(0.5f),
+                        Len.percent(0.5f),
+                        Len.percent(0.6f),
+                        Len.percent(0.9f),
+                        0xB322C55E,
+                        0x33F97316))));
   }
 }

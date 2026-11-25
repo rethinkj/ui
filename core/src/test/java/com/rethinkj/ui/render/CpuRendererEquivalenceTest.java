@@ -173,6 +173,7 @@ class CpuRendererEquivalenceTest {
       if (n % 2 == 1) {
         addSquiggle(scene, random, width, height);
       }
+      addGradient(scene, random, width, height);
       assertSame(
           "random scene " + n, scene, Math.round(width * scale), Math.round(height * scale), scale);
     }
@@ -312,6 +313,36 @@ class CpuRendererEquivalenceTest {
       put(data, at + Scene.FILL + c * 4, opacity);
     }
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
+  }
+
+  /** A linear or radial gradient instance at random box, geometry, clip and colors. */
+  private static void addGradient(Scene scene, Random random, float width, float height) {
+    scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
+    long at = (long) (scene.count() - 1) * Scene.STRIDE;
+    MemorySegment data = scene.data();
+    put(data, at + Scene.X, position(random, width));
+    put(data, at + Scene.Y, position(random, height));
+    put(data, at + Scene.WIDTH, length(random, width));
+    put(data, at + Scene.HEIGHT, length(random, height));
+    int gradientKind = random.nextBoolean() ? Scene.GRADIENT_LINEAR : Scene.GRADIENT_RADIAL;
+    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_KIND, gradientKind);
+    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_KIND + 4, 0);
+    data.set(
+        ValueLayout.JAVA_INT,
+        at + Scene.CLIP,
+        random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
+    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.GRADIENT);
+    color(data, at + Scene.GRADIENT_FROM, random);
+    color(data, at + Scene.GRADIENT_TO, random);
+    put(data, at + Scene.GRADIENT_X1, position(random, width));
+    put(data, at + Scene.GRADIENT_Y1, position(random, height));
+    if (gradientKind == Scene.GRADIENT_RADIAL) {
+      put(data, at + Scene.GRADIENT_X2, length(random, width));
+      put(data, at + Scene.GRADIENT_Y2, length(random, height));
+    } else {
+      put(data, at + Scene.GRADIENT_X2, position(random, width));
+      put(data, at + Scene.GRADIENT_Y2, position(random, height));
+    }
   }
 
   /** A squiggle instance at random coordinates, amplitude, wavelength, stroke and phase. */

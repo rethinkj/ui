@@ -1,0 +1,6 @@
+el 0,0 352x96
+  el 12,12 328x72
+    el #linear 12,12 160x72
+      text "Linear" 25,55 134x16
+    el #radial 180,12 160x72
+      text "Radial" 193,55 134x16
