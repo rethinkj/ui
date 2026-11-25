@@ -714,6 +714,10 @@ public final class App<S> {
     if (!keepsFocus(hit(x, y))) {
       Target focus = target(x, y, El::isFocusable);
       this.focus.set(focus == null ? null : focus.el, false, time);
+      // A press on a field of a selection across a scope keeps it, for that field's menu.
+      if (focus == null || !isScopeSelected(focus.el.editor())) {
+        any |= clearScopeSelection(null);
+      }
     }
     return any;
   }

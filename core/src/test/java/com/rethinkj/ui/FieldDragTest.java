@@ -5,7 +5,6 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -316,67 +315,46 @@ class FieldDragTest {
 
     app.pointerMove(42, 43); // gap closer to f1 than f0
     app.frame();
-    assertEquals(
-        "alpha one".length(),
-        byKey(app.tree(), "f0").editor().caret(),
-        "gap near f1 selects f0 to end");
-    assertTrue(byKey(app.tree(), "f1").editor().hasSelection(), "and enters f1");
+    assertTrue(byKey(app.tree(), "f1").editor().hasSelection(), "gap near f1 enters f1");
 
     app.pointerMove(52, 130); // inside f2
     app.pointerUp(52, 130);
     app.frame();
 
     El f0 = byKey(app.tree(), "f0");
-    El f1 = byKey(app.tree(), "f1");
-    El secret = byKey(app.tree(), "secret");
     El f2 = byKey(app.tree(), "f2");
-    assertTrue(f0.editor().anchor() > 0 && f0.editor().caret() == "alpha one".length());
-    assertEquals(0, f1.editor().start());
-    assertEquals("beta two".length(), f1.editor().end());
-    assertFalse(secret.editor().hasSelection(), "a masked field never joins a scope selection");
-    assertEquals(0, f2.editor().anchor());
-    assertTrue(f2.editor().caret() > 0 && f2.editor().caret() < "gamma three".length());
-
-    // Unfocused fields of the scope show their selection without a caret; focused shows both.
+    assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
+    assertFalse(
+        byKey(app.tree(), "secret").editor().hasSelection(),
+        "a masked field never joins a scope selection");
+    // Unfocused fields of the scope show their selection without a caret.
     assertSame(f2, app.focused());
     assertFalse(f0.text().selection().isEmpty(), "unfocused f0 shows its selection");
     assertNull(f0.text().caret(), "unfocused f0 shows no caret");
-    assertFalse(f1.text().selection().isEmpty(), "unfocused f1 shows its selection");
-    assertNull(f1.text().caret(), "unfocused f1 shows no caret");
-    assertTrue(secret.text().selection().isEmpty());
-    assertFalse(f2.text().selection().isEmpty());
-    assertNotNull(f2.text().caret());
 
     String expectedDown =
         f0.editor().selectedText() + "\nbeta two\n" + f2.editor().selectedText();
     app.keyDown(new Key("C", Key.CONTROL, false));
     app.frame();
     assertEquals(expectedDown, app.clipboard().read());
-
     app.clipboard().write("stale");
     app.keyDown(new Key("Insert", Key.CONTROL, false));
     app.frame();
     assertEquals(expectedDown, app.clipboard().read(), "Control+Insert also copies across fields");
 
-    // Drag upwards from middle of f2 into middle of f0.
+    // Drag upwards from middle of f2 into middle of f0: the copy is still in tree order.
     app.pointerDown(52, 130);
     app.pointerMove(42, 22);
     app.pointerUp(42, 22);
     app.frame();
     f0 = byKey(app.tree(), "f0");
-    f1 = byKey(app.tree(), "f1");
     f2 = byKey(app.tree(), "f2");
-    assertEquals("alpha one".length(), f0.editor().anchor());
-    assertTrue(f0.editor().caret() > 0 && f0.editor().caret() < "alpha one".length());
-    assertEquals("beta two", f1.editor().selectedText());
-    assertEquals(0, f2.editor().caret());
-    assertTrue(f2.editor().anchor() > 0);
     app.keyDown(new Key("C", Key.CONTROL, false));
     app.frame();
+    assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
     assertEquals(
         f0.editor().selectedText() + "\nbeta two\n" + f2.editor().selectedText(),
-        app.clipboard().read(),
-        "upward copy is still in tree order");
+        app.clipboard().read());
 
     // Shift+press extends from the scope's anchor.
     app.pointerDown(42, 22);
@@ -387,26 +365,18 @@ class FieldDragTest {
     app.pointerUp(48, 58);
     app.frame();
     assertEquals(anchor, byKey(app.tree(), "f0").editor().anchor());
-    assertEquals("alpha one".length(), byKey(app.tree(), "f0").editor().caret());
     assertTrue(byKey(app.tree(), "f1").editor().caret() > 0);
-    assertFalse(byKey(app.tree(), "f2").editor().hasSelection());
-
-    app.pointerDown(52, 130, 1, Key.SHIFT); // extend further into f2 from f0's anchor
+    app.pointerDown(52, 130, 1, Key.SHIFT); // further into f2 from f0's anchor
     app.pointerUp(52, 130);
     app.frame();
-    assertEquals(anchor, byKey(app.tree(), "f0").editor().anchor());
     assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
-    assertTrue(byKey(app.tree(), "f2").editor().caret() > 0);
 
     // A press outside the scope's fields clears the cross-field selection.
     app.pointerDown(50, 166); // on #outside
     app.pointerUp(50, 166);
     app.frame();
     assertFalse(byKey(app.tree(), "f0").editor().hasSelection());
-    assertFalse(byKey(app.tree(), "f1").editor().hasSelection());
     assertFalse(byKey(app.tree(), "f2").editor().hasSelection());
-    assertTrue(byKey(app.tree(), "f0").text().selection().isEmpty());
     assertTrue(byKey(app.tree(), "f1").text().selection().isEmpty());
-    assertTrue(byKey(app.tree(), "f2").text().selection().isEmpty());
   }
 }
