@@ -379,4 +379,108 @@ class FieldDragTest {
     assertFalse(byKey(app.tree(), "f2").editor().hasSelection());
     assertTrue(byKey(app.tree(), "f1").text().selection().isEmpty());
   }
+
+  @Test
+  void selectionScopeInVirtualListTracksKeyedRowsAndMultipleFieldsPerRow() {
+    record Item(int id, String title, String body) {}
+    List<Item> items = new ArrayList<>();
+    for (int i = 0; i < 60; i++) {
+      items.add(new Item(i, "Title " + i, "Body " + i + " text"));
+    }
+    RowHeights heights = new RowHeights(i -> 48, i -> items.get(i).id());
+    App<List<Item>> app = new App<>(
+        items,
+        list -> col()
+            .wFull()
+            .hFull()
+            .selectionScope()
+            .child(col()
+                .key("list")
+                .grow(1)
+                .minSize(0, 0)
+                .rows(
+                    list.size(),
+                    heights,
+                    i -> col()
+                        .padding(4)
+                        .child(El.text(list.get(i).title())
+                            .editable(v -> {})
+                            .readOnly()
+                            .key("title")
+                            .w(200)
+                            .h(20))
+                        .child(El.text("hidden")
+                            .editable(v -> {})
+                            .readOnly()
+                            .masked()
+                            .key("secret")
+                            .w(200)
+                            .h(1))
+                        .child(El.text(list.get(i).body())
+                            .editable(v -> {})
+                            .readOnly()
+                            .key("body")
+                            .w(200)
+                            .h(20)))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(240, 160, 1);
+    app.frame();
+
+    // Click inside row 1's body (row 0 is ~0..49, row 1 is ~49..98; body is lower half of row 1).
+    El listEl = byKey(app.tree(), "list");
+    El row1Body = byKey(listEl.children().get(1), "body");
+    float r1x = listEl.x() + listEl.children().get(1).x() + row1Body.x() + 28;
+    float r1y = listEl.y() + listEl.children().get(1).y() + row1Body.y() + 10;
+    app.pointerDown(r1x, r1y);
+    app.pointerUp(r1x, r1y);
+    app.frame();
+
+    // Scroll to row 40 so row 1 leaves the built rows, then Shift+click row 40's title.
+    app.scrollToRow(byKey(app.tree(), "list"), 40);
+    app.frame();
+    listEl = byKey(app.tree(), "list");
+    assertTrue(listEl.firstRow() > 1, "row 1 is no longer built");
+    El row40 = listEl.children().get(40 - listEl.firstRow());
+    El row40Title = byKey(row40, "title");
+    float r40x = listEl.x() + row40.x() + row40Title.x() + 30;
+    float r40y = listEl.y() + row40.y() + row40Title.y() + 10;
+    app.pointerDown(r40x, r40y, 1, Key.SHIFT);
+    app.pointerUp(r40x, r40y);
+    app.frame();
+
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    String expected = app.clipboard().read();
+    List<String> lines = expected.lines().toList();
+    // Row 1 body + 38 full rows (2..39, 2 fields each = 76) + Row 40 title = 78 lines.
+    assertEquals(78, lines.size(), "all unmasked fields across rows 1..40: " + lines.size());
+    assertTrue(lines.getFirst().endsWith("1 text"), lines.getFirst());
+    assertEquals("Title 2", lines.get(1));
+    assertEquals("Body 2 text", lines.get(2));
+    assertEquals("Title 20", lines.get(37));
+    assertEquals("Body 39 text", lines.get(76));
+    assertTrue(lines.getLast().startsWith("Tit"), lines.getLast());
+    assertFalse(expected.contains("hidden"), "masked fields are excluded");
+
+    // Prepend 3 items above the selection: keyed RowHeights remaps anchor and end to rows 4..43.
+    items.add(0, new Item(-3, "New -3", "New body -3"));
+    items.add(1, new Item(-2, "New -2", "New body -2"));
+    items.add(2, new Item(-1, "New -1", "New body -1"));
+    app.invalidate();
+    app.frame();
+    app.clipboard().write("stale");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expected, app.clipboard().read(), "selection follows keyed rows after prepend");
+
+    // Scroll back to the remapped anchor row (now row 4) and verify it shows its selection again.
+    app.scrollToRow(byKey(app.tree(), "list"), 4);
+    app.frame();
+    listEl = byKey(app.tree(), "list");
+    El movedRow = listEl.children().get(4 - listEl.firstRow());
+    assertFalse(
+        byKey(movedRow, "title").editor().hasSelection(), "title before anchor is unselected");
+    assertTrue(byKey(movedRow, "body").editor().hasSelection(), "remapped anchor body is selected");
+    assertFalse(byKey(movedRow, "body").text().selection().isEmpty());
+  }
 }

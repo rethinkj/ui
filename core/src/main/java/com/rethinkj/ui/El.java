@@ -4494,8 +4494,9 @@ public final class El {
    * tree order: dragging from one field into another selects across them, Shift+press extends from
    * the anchor across fields, Control+C copies the selected text of all of them in order with a
    * line break between fields, and a press elsewhere clears it. Nested scopes count as the
-   * outermost one. In a {@link #rows virtual list}, only rows that are built take part; a {@link
-   * #masked masked} field never joins.
+   * outermost one. In a {@link #rows virtual list}, the selection spans rows out of view as well,
+   * survives rows that leave and return, copies every row it covers, and scrolls the list while a
+   * drag is held near or past its top or bottom edge; a {@link #masked masked} field never joins.
    */
   public El selectionScope() {
     this.selectionScope = true;
@@ -5843,6 +5844,20 @@ public final class El {
   /** Whether this row of a virtual list was kept by the list's last {@link #makeRows} as it was. */
   boolean isKept() {
     return kept;
+  }
+
+  /**
+   * Returns the built row with this index if it exists, or builds it with the row function without
+   * keeping it, for reading text across rows that are out of view.
+   */
+  El rowElement(int index) {
+    if (rows == null || index < 0 || index >= rows.rowCount) {
+      return null;
+    }
+    if (hasRow(index)) {
+      return children.get(index - rows.firstRow);
+    }
+    return rows.rowBuilder.row(index, rows.spanFrom, rows.spanTo);
   }
 
   /**
