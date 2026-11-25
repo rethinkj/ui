@@ -448,11 +448,11 @@ public final class Markdown {
 
   // ---- What is kept with the document
 
-  /**
-   * The widest natural and longest-word text widths of a table's columns at one scale, measured
-   * with or without the images of its cells.
-   */
-  private record TableWidths(float[] natural, float[] min, boolean images) {}
+  /** The widest natural and longest-word text widths of a table's columns. */
+  private record TableWidths(float[] natural, float[] min) {}
+
+  /** What table widths were measured for: the scale, and whether cells showed their images. */
+  private record Measured(float scale, boolean images) {}
 
   /** The blocks of text of a document, made once per theme. */
   private static final class Prepared {
@@ -461,8 +461,8 @@ public final class Markdown {
     final Map<Integer, Map<Object, Piece>> pieces = new HashMap<>();
     // The widths of lists' markers, by the window's scale they were measured at.
     final Map<Float, Map<Object, Float>> columns = new HashMap<>();
-    // The natural and longest-word column widths of tables, by the window's scale.
-    final Map<Float, Map<MarkdownDocument.Table, TableWidths>> tables = new HashMap<>();
+    // The natural and longest-word column widths of tables, by what they were measured for.
+    final Map<Measured, Map<MarkdownDocument.Table, TableWidths>> tables = new HashMap<>();
     final List<Unit> units;
     final RowHeights heights;
     String text; // the whole document's, for Control+C after Control+A
@@ -1335,7 +1335,7 @@ public final class Markdown {
 
   /**
    * The natural and widest-word column widths of a table's text, measured once per scale and
-   * again where a view shows the images of cells that the last one measured as text, or back.
+   * whether the view shows images, whose cells it does not measure.
    */
   private static TableWidths tableWidths(
       Context c,
@@ -1343,23 +1343,16 @@ public final class Markdown {
       List<List<Piece>> cells,
       Theme.TextStyle head,
       Theme.TextStyle body) {
-    Map<MarkdownDocument.Table, TableWidths> measured = c.prepared.tables.computeIfAbsent(
-        WindowState.CURRENT.get().scale(), s -> new IdentityHashMap<>());
-    boolean images = c.options.images != null;
-    TableWidths widths = measured.get(table);
-    if (widths == null || widths.images() != images) {
-      widths = measureTable(cells, table.aligns().size(), head, body, images);
-      measured.put(table, widths);
-    }
-    return widths;
+    return c.prepared
+        .tables
+        .computeIfAbsent(
+            new Measured(WindowState.CURRENT.get().scale(), c.options.images != null),
+            m -> new IdentityHashMap<>())
+        .computeIfAbsent(table, t -> measureTable(cells, table.aligns().size(), head, body));
   }
 
   private static TableWidths measureTable(
-      List<List<Piece>> cells,
-      int columns,
-      Theme.TextStyle head,
-      Theme.TextStyle body,
-      boolean images) {
+      List<List<Piece>> cells, int columns, Theme.TextStyle head, Theme.TextStyle body) {
     tablesMeasured++;
     float[] natural = new float[columns];
     float[] min = new float[columns];
@@ -1379,7 +1372,7 @@ public final class Markdown {
         min[j] = Math.max(min[j], TextSizing.minimum(sample));
       }
     }
-    return new TableWidths(natural, min, images);
+    return new TableWidths(natural, min);
   }
 
   private static El table(Context c, MarkdownDocument.Table table) {
@@ -1411,13 +1404,21 @@ public final class Markdown {
     }
     TableWidths widths = tableWidths(c, table, cells, head, body);
     float[] natural = widths.natural().clone();
-    // Images are measured on every build: their width changes when they arrive.
+    float[] least = widths.min().clone();
+    // Images are measured on every build: their width changes when they arrive. A picture scales
+    // down with its column; a placeholder does not, and counts as a word.
     for (int r = 0; r < cells.size(); r++) {
       for (int j = 0; j < columns; j++) {
         if (cells.get(r).get(j) == null) {
           List<Inline> content =
               r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
-          natural[j] = Math.max(natural[j], imageRowWidth(c, imagesOnly(content)));
+          List<Picture> pictures = imagesOnly(content);
+          natural[j] = Math.max(natural[j], imageRowWidth(c, pictures));
+          for (Picture picture : pictures) {
+            if (c.options.images.apply(picture.image().source()) == null) {
+              least[j] = Math.max(least[j], imageRowWidth(c, List.of(picture)));
+            }
+          }
         }
       }
     }
@@ -1427,7 +1428,7 @@ public final class Markdown {
     float totalMin = 2 * theme.size().stroke();
     for (int j = 0; j < columns; j++) {
       basis[j] = natural[j] + 2 + 2 * pad;
-      min[j] = Math.min(basis[j], widths.min()[j] + 2 + 2 * pad);
+      min[j] = Math.min(basis[j], least[j] + 2 + 2 * pad);
       totalBasis += basis[j];
       totalMin += min[j];
     }
@@ -1456,7 +1457,7 @@ public final class Markdown {
         if (piece == null) {
           List<Inline> content =
               r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
-          cell = imageRow(c, imagesOnly(content)).justify(justify);
+          cell = imageRow(c, imagesOnly(content)).justify(justify).minSize(0, 0);
         } else {
           cell = field(c, piece, r == 0 ? head : body, c.color);
         }

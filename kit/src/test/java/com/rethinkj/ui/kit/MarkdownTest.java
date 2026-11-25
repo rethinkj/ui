@@ -679,6 +679,14 @@ class MarkdownTest {
         tree);
     assertTrue(tree.contains("\"See Tip\""), tree);
     assertFalse(tree.contains("label=\"Tip\""), tree);
+    // Narrow, the image in a cell scales down with its column and stays inside its cell.
+    Script.run("size 150 480 scale 2\nframe\nsnap cells\n", app, out);
+    String cells = Files.readString(out.resolve("cells.tree.txt"));
+    float[] badge = bounds(cells, "image role=img label=\"Badge\"");
+    float[] cell = bounds(cells, "role=cell");
+    assertTrue(badge[0] >= cell[0] && badge[0] + badge[2] <= cell[0] + cell[2], cells);
+    Script.run("size 800 600 scale 2\nframe", app, out);
+
     // A linked image's title is its tooltip.
     tree = run(app, "move role=link label=\"Logo\"\nframe\nadvance 1\nframe");
     assertTrue(line(tree, "role=tooltip").contains("label=\"Project logo\""), tree);
