@@ -661,7 +661,8 @@ final class Animator {
     boolean seen = before != null;
     int revealed = before == null ? -1 : before.revealRow();
     Object revealedKey = before == null ? null : before.revealKey();
-    el.endRows(before, kept != null && kept.placed);
+    // From the element the state was on, for a list that comes back elsewhere in the tree.
+    el.endRows(before != null || kept == null ? before : kept.el, kept != null && kept.placed);
     if (kept == null) {
       el.toEnd(before != null && before.toEnd());
       el.setScroll(

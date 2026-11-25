@@ -6829,8 +6829,10 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
-    boolean tail =
-        !el.isVirtualList() || !el.measuresRows() || el.rowCount() == 0 || el.hasRow(el.endRow());
+    boolean tail = !el.isVirtualList()
+        || !el.measuresRows()
+        || el.rowCount() == 0
+        || el.hasRow(el.toEnd() ? el.endRow() : el.rowCount() - 1);
     // A field's editor lays out its rows after this and ends it then.
     if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
       rowGoals.remove(Animator.identities(path).getLast()); // the later end wins

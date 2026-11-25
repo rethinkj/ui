@@ -5639,9 +5639,9 @@ public final class El {
       scrollState.y = newY;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
       // Scrolled away, either way, before its rows were measured.
-      scrollState.toEnd &= Math.abs(newY - endY()) <= SLACK;
+      scrollState.toEnd = scrollState.toEnd && Math.abs(newY - endY()) <= SLACK;
     } else if (scrollState == null) {
-      toEnd &= Math.abs(newY - endY()) <= SLACK;
+      toEnd = toEnd && Math.abs(newY - endY()) <= SLACK;
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
