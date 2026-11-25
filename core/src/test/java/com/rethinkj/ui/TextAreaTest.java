@@ -937,13 +937,15 @@ class TextAreaTest {
             .wFull()
             .hFull()
             .align(Style.Align.START)
-            .child(column.apply(El.col(), El::fitLines)),
+            .child(column.apply(El.col().maxSize(120, Float.POSITIVE_INFINITY), El::fitLines)),
         El.col()
             .wFull()
             .hFull()
             .align(Style.Align.START)
             .child(column.apply(El.col(), field -> field.lines(1).maxLines(4))),
-        El.col().hFull().child(column.apply(El.col().wFull(), El::fitLines)));
+        El.col()
+            .hFull()
+            .child(column.apply(El.col().wFull(), field -> field.lines(1).maxLines(4))));
     for (El tree : trees) {
       App<Object> app = new App<>(new Object(), state -> tree);
       app.textRendering(TextRendering.LINUX);
@@ -966,7 +968,8 @@ class TextAreaTest {
           .editable(value -> {})
           .multiline()
           .wrapText()
-          .fitLines()
+          .lines(1)
+          .maxLines(10)
           .font(Font.mono())
           .fontSize(14)
           .alignSelf(Style.Align.START);
@@ -989,6 +992,111 @@ class TextAreaTest {
       assertEquals(7 * 18, inner.children().getFirst().height(), app.tree().dump());
       assertEquals(7 * 18 + 10, inner.height(), app.tree().dump());
     }
+  }
+
+  @Test
+  void aWrappingFitLinesFieldMeasuresAsWideAsItsWidestRowAndShrinksToWrap() {
+    // Mono 14 advances 8px per character and 18px per row. In a row sized to content:
+    // short text stays as wide as its widest line (plus caret room); long text caps at maxWidth
+    // and wraps to its rows; non-wrapping fitLines still measures 0 wide.
+    for (float scale : new float[] {1f, 2f}) {
+      El shortRow = El.row()
+          .child(El.text("hi\nlonger line")
+              .editable(value -> {})
+              .readOnly()
+              .multiline()
+              .wrapText()
+              .fitLines()
+              .font(Font.mono())
+              .fontSize(14)
+              .shrink(1));
+      shortRow.children().getFirst().style().minWidth = Len.ZERO;
+      shortRow.style().maxWidth = Len.px(200);
+
+      El longRow = El.row()
+          .child(El.text("aaaa bbbb cccc dddd eeee ffff gggg")
+              .editable(value -> {})
+              .readOnly()
+              .multiline()
+              .wrapText()
+              .fitLines()
+              .font(Font.mono())
+              .fontSize(14)
+              .shrink(1));
+      longRow.children().getFirst().style().minWidth = Len.ZERO;
+      longRow.style().maxWidth = Len.px(120);
+
+      El noWrapRow = El.row()
+          .child(El.text("a long non-wrapping line")
+              .editable(value -> {})
+              .readOnly()
+              .multiline()
+              .fitLines()
+              .font(Font.mono())
+              .fontSize(14));
+
+      El plainRow =
+          El.row().child(El.text("hi\nlonger line").wrapText().font(Font.mono()).fontSize(14));
+
+      App<Object> app = new App<>(
+          new Object(),
+          state -> El.col()
+              .wFull()
+              .hFull()
+              .align(Style.Align.START)
+              .children(shortRow, longRow, noWrapRow, plainRow));
+      app.textRendering(TextRendering.LINUX);
+      app.resize(400, 300, scale);
+      app.frame();
+
+      El s = app.tree().children().get(0);
+      El l = app.tree().children().get(1);
+      El n = app.tree().children().get(2);
+      El p = app.tree().children().get(3);
+      assertEquals(p.width() + 1f, s.width(), 1.5f, app.tree().dump());
+      assertEquals(p.height(), s.height(), 0.5f, app.tree().dump());
+      assertEquals(120f, l.width(), 0.5f, app.tree().dump());
+      assertEquals(3 * (p.height() / 2), l.height(), 0.5f, app.tree().dump());
+      assertEquals(0f, n.width(), 0.5f, app.tree().dump());
+    }
+  }
+
+  @Test
+  void pageUpAndPageDownInAReadOnlyFitLinesFieldScrollTheEnclosingArea() {
+    App<Object> app = new App<>(new Object(), state -> {
+      El area = El.col().key("area").w(200).h(100).scroll();
+      for (int i = 0; i < 20; i++) {
+        area.child(El.text("Paragraph " + i + " with selectable text.")
+            .key("p-" + i)
+            .editable(value -> {})
+            .readOnly()
+            .multiline()
+            .fitLines()
+            .font(Font.mono())
+            .fontSize(14));
+      }
+      return area;
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 100, 1);
+    app.frame();
+
+    // Click inside the first field, which does not wrap, as a code block of Markdown.
+    app.pointerDown(20, 9, 1, 0);
+    app.pointerUp(20, 9);
+    app.frame();
+    assertEquals("p-0", app.focused().key());
+    assertEquals(0, app.tree().scrollY());
+
+    // PageDown scrolls the enclosing scroll area; PageUp scrolls it back.
+    app.keyDown(new Key("PageDown"));
+    app.frame();
+    double scrolled = app.tree().scrollY();
+    assertTrue(scrolled > 0, "PageDown scrolled the enclosing area: " + scrolled);
+
+    app.keyDown(new Key("PageUp"));
+    app.frame();
+    assertEquals(0, app.tree().scrollY(), 0.5);
   }
 
   @Test

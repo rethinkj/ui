@@ -725,6 +725,18 @@ public final class Text implements Measure {
     this.visibleLines = lines;
   }
 
+  /**
+   * Whether this is a multi-line field as high as all its rows ({@link El#fitLines}) whose content
+   * box has room for all of them as layout placed it, so that it never scrolls up and down.
+   */
+  public boolean showsAllRows() {
+    if (!multiline || visibleLines != 0) {
+      return false;
+    }
+    lines(); // lays out the rows in view, so that they are counted, not estimated
+    return shownLines().totalHeight(lineHeight) <= placedHeight + scale / 64; // El's scroll slack
+  }
+
   void maxLines(int lines) {
     this.maxLines = lines;
   }
@@ -878,7 +890,7 @@ public final class Text implements Measure {
       prepare();
       if (multiline && visibleLines == 0) { // El#fitLines: every row at the width
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
-        return new Size(0, fittedHeight(width) / scale, firstBaseline / scale);
+        return fittedSize(width);
       }
       if (multiline && maxLines > visibleLines) { // El#maxLines: grows between lines and maxLines
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
@@ -2699,31 +2711,64 @@ public final class Text implements Measure {
   }
 
   /**
-   * For {@link El#fitLines}: the height of every row and block at a content box this wide, in
-   * physical pixels.
+   * For {@link El#fitLines}: the width and height of every row and block at a content box this
+   * wide, in logical pixels. When wrapping, the width is the widest row with room for the caret, as
+   * a wrapping single-line field measures; without wrapping it is 0.
    */
-  private float fittedHeight(float width) {
+  private Size fittedSize(float width) {
     Lines lines = shownLines();
-    float rowsHeight = fittedRows(width, Integer.MAX_VALUE) * lineHeight;
-    if (!lines.hasBlocks()) {
-      return rowsHeight;
+    float widest = 0;
+    int rows;
+    if (!wraps) {
+      rows = lines.shownCount();
+    } else {
+      float limit;
+      if (width == MAX_CONTENT || Float.isNaN(width)) {
+        limit = Float.POSITIVE_INFINITY;
+      } else if (width == MIN_CONTENT) {
+        limit = 0;
+      } else {
+        limit = Math.max(0, width) * scale + SLACK;
+      }
+      rows = 0;
+      for (int line = lines.firstVisible();
+          line >= 0 && line < lines.count();
+          line = lines.nextVisible(line)) {
+        Para para = para(line);
+        float was = para.limit;
+        if (limit != was) {
+          para.breakInto(limit);
+        }
+        rows += para.rowCount();
+        for (float rowWidth : para.rowWidths) {
+          widest = Math.max(widest, rowWidth);
+        }
+        if (limit != was) {
+          para.breakInto(was);
+        }
+      }
+      widest += Editor.caretWidth(scale) + SLACK; // layout gives back a hair less at some scales
     }
-    if (blockMeasurer != null && width > 0 && width != MAX_CONTENT && Float.isFinite(width)) {
-      for (int slot = lines.nextBlockSlot(-1); slot >= 0; slot = lines.nextBlockSlot(slot)) {
-        int si = lines.blockSlotIndex(slot);
-        int start = lines.blockSlotStart(si);
-        int end = lines.blockSlotEnd(si);
-        for (int bi = start; bi < end; bi++) {
-          El.Block b = lines.activeBlock(bi);
-          if (b.lines() == 0) {
-            El built = blockMeasurer.measure(b, bi - start, width, scale, lineHeight);
-            lines.blockHeight(
-                bi, Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4))));
+    float height = rows * lineHeight;
+    if (lines.hasBlocks()) {
+      if (blockMeasurer != null && width > 0 && width != MAX_CONTENT && Float.isFinite(width)) {
+        for (int slot = lines.nextBlockSlot(-1); slot >= 0; slot = lines.nextBlockSlot(slot)) {
+          int si = lines.blockSlotIndex(slot);
+          int start = lines.blockSlotStart(si);
+          int end = lines.blockSlotEnd(si);
+          for (int bi = start; bi < end; bi++) {
+            El.Block b = lines.activeBlock(bi);
+            if (b.lines() == 0) {
+              El built = blockMeasurer.measure(b, bi - start, width, scale, lineHeight);
+              lines.blockHeight(
+                  bi, Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4))));
+            }
           }
         }
       }
+      height += lines.totalBlockPixels();
     }
-    return rowsHeight + lines.totalBlockPixels();
+    return new Size(widest / scale, height / scale, firstBaseline / scale);
   }
 
   /**

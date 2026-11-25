@@ -1,8 +1,8 @@
 el 0,0 580x416
   el 12,12 556x390
     el role=article label="User message" 29,29 522x61
-      el 277,29 274x35
-        text role=paragraph "Why did the orders query slow down?" 290,38 248x17
+      el 276,29 275x35
+        text role=paragraph "Why did the orders query slow down?" 289,38 249x17 readonly lines 1-1/1
       el 488,66 63x24
         el #copy role=button label="Copy message" 488,66 24x24
           text label="copy" "\u{F32A}" 492,70 16x16

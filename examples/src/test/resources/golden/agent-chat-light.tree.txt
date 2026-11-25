@@ -96,7 +96,7 @@ el 0,0 1280x800
                   el 277,-23 618x94 pos=1/4
                     el role=article label="User message" 277,-15 618x78
                       el 401,-15 494x52
-                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,-6 468x34
+                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,-6 468x34 readonly lines 1-1/1
                       el 833,39 62x24
                         el #copy role=button label="Copy message" 833,39 24x24
                           text label="copy" "\u{F32A}" 837,43 16x16
@@ -117,8 +117,8 @@ el 0,0 1280x800
                         text "14:31" 305,164 34x14
                   el 277,191 618x77 pos=3/4
                     el role=article label="User message" 277,199 618x61
-                      el 465,199 430x35
-                        text role=paragraph "Draft a concurrent index migration for the open orders query." 478,208 404x17
+                      el 464,199 431x35
+                        text role=paragraph "Draft a concurrent index migration for the open orders query." 477,208 405x17 readonly lines 1-1/1
                       el 833,236 62x24
                         el #copy role=button label="Copy message" 833,236 24x24
                           text label="copy" "\u{F32A}" 837,240 16x16

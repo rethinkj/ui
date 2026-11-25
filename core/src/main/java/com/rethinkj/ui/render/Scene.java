@@ -916,7 +916,7 @@ public final class Scene {
             range(child, x, y, opacity, inner, clip, free);
           }
         }
-        text(el, left, top, opacity, inner, content);
+        text(el, left, top, opacity, inner, clip, content);
       }
       ContentBox own = free ? null : contentBox(el, x, y, left, top, width, height);
       Text fieldText = el.text() != null && el.text().isField() ? el.text() : null;
@@ -1548,7 +1548,7 @@ public final class Scene {
    * Appends the glyphs of a text element, with the top left of its content box snapped to the grid
    * of its glyph positions.
    */
-  private void text(El el, float x, float y, float opacity, int clip, float behind) {
+  private void text(El el, float x, float y, float opacity, int clip, int outer, float behind) {
     Text text = el.text();
     int color = text.isField() && text.placeholderShown() ? text.placeholderColor() : text.color();
     if (color >>> 24 == 0 && !text.isField() && !text.highlighted()) {
@@ -1585,10 +1585,11 @@ public final class Scene {
         box(mark.box(), left, top, scale, mark.color(), opacity, clip);
       }
     }
-    float clipX = clipGet(clip, X);
-    float clipY = clipGet(clip, Y);
-    float clipRight = clipX + clipGet(clip, WIDTH);
-    float clipBottom = clipY + clipGet(clip, HEIGHT);
+    int glyphs = uncut(text) ? outer : clip; // a tall glyph of a field that never scrolls is uncut
+    float clipX = clipGet(glyphs, X);
+    float clipY = clipGet(glyphs, Y);
+    float clipRight = clipX + clipGet(glyphs, WIDTH);
+    float clipBottom = clipY + clipGet(glyphs, HEIGHT);
     boolean drawn = color >>> 24 != 0 || text.highlighted();
     int shareOf = color; // the color `share` is for: a highlighter colors glyphs one by one
     for (Text.Line line : drawn ? text.lines() : List.<Text.Line>of()) {
@@ -1621,7 +1622,7 @@ public final class Scene {
             && glyphX + width > clipX
             && glyphY < clipBottom
             && glyphY + height > clipY) {
-          glyph(glyphX, glyphY, width, height, slot, glyphColor, opacity, clip, share);
+          glyph(glyphX, glyphY, width, height, slot, glyphColor, opacity, glyphs, share);
         }
       }
     }
@@ -1631,6 +1632,14 @@ public final class Scene {
     if (text.caret() != null && !text.hasHints()) {
       box(text.caret(), left, top, scale, text.caretColor(), opacity, clip);
     }
+  }
+
+  /**
+   * Whether a field shows all its rows and never scrolls, so that it draws as text does, uncut by
+   * its box: a tall fallback glyph keeps the pixels that reach past its lines.
+   */
+  private static boolean uncut(Text text) {
+    return text.isField() && text.wraps() && text.showsAllRows();
   }
 
   /**

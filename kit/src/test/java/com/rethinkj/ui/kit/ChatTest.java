@@ -429,4 +429,66 @@ class ChatTest {
     assertEquals("Reply 15 with sample words.", spanned.get(14));
     assertTrue(spanned.getLast().startsWith("Reply 31 "), spanned.getLast());
   }
+
+  @Test
+  void transcriptSelectionIncludesUserMessagesAndPagingScrollsAfterClick() throws IOException {
+    List<TranscriptMessage> messages = new ArrayList<>();
+    for (int i = 0; i < 16; i++) {
+      if (i % 2 == 0) {
+        messages.add(new TranscriptMessage(i, true, "Prompt " + i + " about orders.", null));
+      } else {
+        messages.add(new TranscriptMessage(
+            i, false, null, Markdown.parse("Answer " + i + " about the index.")));
+      }
+    }
+    ScrollState scroll = new ScrollState();
+    RowHeights heights = new RowHeights(index -> 64, index -> index);
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Chat.transcript(
+                        messages.size(),
+                        index -> {
+                          TranscriptMessage entry = messages.get(index);
+                          return entry.fromUser()
+                              ? Chat.user(entry.text())
+                              : Chat.agent(entry.doc());
+                        },
+                        scroll,
+                        heights)
+                    .grow(1)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    // Drag across a user prompt, an agent answer and the next user prompt: copied in order.
+    Script.run("""
+        size 640 240 scale 2
+        frame
+        scroll role=log row 0
+        frame
+        down text="Prompt 0 about orders." at left+20
+        move text="Prompt 2 about orders." at left+60
+        up text="Prompt 2 about orders." at left+60
+        frame
+        key C control
+        frame""", app, out);
+    List<String> copied = app.clipboard().read().lines().toList();
+    assertEquals(3, copied.size(), app.clipboard().read());
+    assertTrue(copied.get(0).endsWith("about orders."), copied.get(0));
+    assertEquals("Answer 1 about the index.", copied.get(1));
+    assertTrue(copied.get(2).startsWith("Prompt 2"), copied.get(2));
+
+    // Clicking inside a user message and pressing PageDown/PageUp still scrolls the transcript.
+    Script.run("""
+        press text="Prompt 0 about orders." at left+20
+        frame
+        key PageDown
+        frame""", app, out);
+    assertTrue(scroll.y() > 0, "PageDown scrolled transcript: " + scroll.y());
+    Script.run("key PageUp\nframe", app, out);
+    assertEquals(0, scroll.y(), 0.5);
+  }
 }

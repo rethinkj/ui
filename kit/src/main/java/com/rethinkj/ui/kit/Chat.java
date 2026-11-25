@@ -243,16 +243,19 @@ public final class Chat {
     Theme theme = Theme.CURRENT.get();
     Texts texts = Texts.CURRENT.get();
     Theme.TextStyle style = theme.prose().body();
-    // Plain text breaks lines at \n only and has no tab stops; the copy action keeps the original.
-    // shortcut: a tab shows as four spaces, not aligned to stops; use a field's tab stops if
-    // needed.
-    String shown = text.replace("\r\n", "\n").replace('\r', '\n').replace("\t", "    ");
-    El body = El.text(shown)
+    El body = El.text(text)
+        .editable(ignored -> {})
+        .readOnly()
+        .multiline()
         .wrapText()
+        .fitLines()
+        .skipTab()
         .role("paragraph")
         .font(style.font().get())
         .fontSize(style.size())
         .color(theme.text().primary())
+        .selectionColor(theme.accent().selection())
+        .caretColor(theme.text().primary())
         .shrink(1);
     body.style().minWidth = Len.ZERO;
     El bubble = row()
@@ -434,9 +437,9 @@ public final class Chat {
    * Theme.Prose#measure()} wide that follows the newest message while at the bottom, keeps its
    * place when scrolled up, and shows a floating button over its bottom while away from the end to
    * jump back. The list is a {@link El#selectionScope selection scope}, so a drag or Shift+click
-   * selects across the {@link Markdown#fragment Markdown} of messages, including ones scrolled out
-   * of view, and Control+C copies it in order. Give it a height, or let it {@link El#grow} in a
-   * column, as any scroll area.
+   * selects across {@link #user user} messages and the {@link Markdown#fragment Markdown} of agent
+   * messages, including ones scrolled out of view, and Control+C copies them in order. Give it a
+   * height, or let it {@link El#grow} in a column, as any scroll area.
    *
    * <p>The app keeps {@code scroll} and {@code heights} in its state and passes the same instances
    * on every build. {@code transcript} enables {@link ScrollState#followEnd()} on {@code scroll}.

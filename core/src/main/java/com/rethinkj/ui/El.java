@@ -2049,20 +2049,23 @@ public final class El {
    * with {@link #wrapText}, or not, and then scrolling sideways too, with bars if it has {@link
    * #scrollbars}. The wheel scrolls it while it can, and its ancestors beyond. Layout measures it
    * 0 wide and {@link #lines} lines high (or between {@link #lines} and {@link #maxLines} when
-   * {@link #maxLines} is set, or as high as all its rows with {@link #fitLines}), as a single-line
-   * field is one line high; the style usually gives it its size.
+   * {@link #maxLines} is set; with {@link #fitLines} it is as high as all its rows, and with
+   * {@link #wrapText} as well as wide as its widest row), as a single-line field is one line high;
+   * the style usually gives it its size.
    *
    * <p>The keys of a single-line field work across lines, and these besides: Enter breaks the
    * line (the field takes it, so an ancestor's Enter does not run; Control+Enter goes on to the
    * {@link #onKey} handlers, so that an app can run a query with it); Up and Down move by a row on
-   * screen and Page Up and Page Down by the rows in view, keeping the caret's x from where they
-   * began; Home goes to the start of the row, and a second Home to the first character of the line
-   * that is not a space or a tab and back; End to the end of the row; Control+Home and Control+End
-   * to the ends of the text; all with Shift to select. A third press selects the line with its line
-   * feed, a fourth the whole text. Tab moves the focus, unless {@link #tabIndents} says otherwise.
-   * Carriage returns, with or without a line feed after them, and the separators U+2028 and U+2029
-   * become line feeds, in typed and pasted text and in the app's string, which the field shows and
-   * edits so, handing the app the string with line feeds at the first edit.
+   * screen and Page Up and Page Down by the rows in view (in a {@link #readOnly} field that shows
+   * all its rows with {@link #fitLines} they go on without Shift, so that the scroll area around
+   * it pages), keeping the caret's x from where they began; Home goes to the start of the row, and
+   * a second Home to the first character of the line that is not a space or a tab and back; End to
+   * the end of the row; Control+Home and Control+End to the ends of the text; all with Shift to
+   * select. A third press selects the line with its line feed, a fourth the whole text. Tab moves
+   * the focus, unless {@link #tabIndents} says otherwise. Carriage returns, with or without a line
+   * feed after them, and the separators U+2028 and U+2029 become line feeds, in typed and pasted
+   * text and in the app's string, which the field shows and edits so, handing the app the string
+   * with line feeds at the first edit.
    *
    * <p>Only the rows in view are laid out and only their lines shaped, and the field keeps where
    * its lines start across rebuilds and edits, so that a frame costs the same for a text of 100 000
@@ -3185,9 +3188,14 @@ public final class El {
   /**
    * Makes a {@link #multiline} field exactly as high as all its rows at the width layout gives it,
    * however many there are, so that it never scrolls up and down: a paragraph of a document that
-   * a read-only field shows for selecting and copying. Unlike {@link #lines} every row is shaped
-   * and laid out, so it is for texts of a few screens at most; for a field that grows up to a
-   * limit and then scrolls, use {@link #lines} with {@link #maxLines}. {@code fitLines} wins over
+   * a read-only field shows for selecting and copying. When the field also {@link #wrapText wraps},
+   * layout measures it as wide as its widest row at the width it is given (with room for the
+   * caret), as plain text and a wrapping single-line field do; without wrapping it measures 0 wide.
+   * A field with room for all its rows draws its glyphs uncut by its box when it wraps, as text
+   * does, and a {@link #readOnly} one lets Page Up and Page Down without Shift go on to the scroll
+   * area around it instead of moving the caret. Unlike {@link #lines} every row is
+   * shaped and laid out, so it is for texts of a few screens at most; for a field that grows up to
+   * a limit and then scrolls, use {@link #lines} with {@link #maxLines}. {@code fitLines} wins over
    * {@link #maxLines} until {@link #lines} sets a count again.
    */
   public El fitLines() {

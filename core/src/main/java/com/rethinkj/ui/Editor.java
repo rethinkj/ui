@@ -1007,6 +1007,9 @@ final class Editor {
           return false;
         }
         boolean page = name.startsWith("Page");
+        if (page && !shift && !editable() && t.showsAllRows()) {
+          return false; // a read-only fitLines field never scrolls: the area around it pages
+        }
         int direction = name.endsWith("Up") ? -1 : 1;
         int rows = page ? t.visibleRows() : 1;
         float x = Float.isNaN(goal) ? t.x(caret, stop()) : goal;
