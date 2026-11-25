@@ -136,6 +136,7 @@ public final class Text implements Measure {
   private static final int SHAPED_LINES = 16_384;
   private static final int SHAPED_LINES_ANY_LENGTH = 4096;
   private static final int SHAPED_CHARACTERS = 1 << 20;
+  private static final int FITTED_WIDTHS = 16; // the sizes of an unchanged text kept by width
 
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
@@ -949,6 +950,11 @@ public final class Text implements Measure {
 
   void color(int argb) {
     this.color = argb;
+    if (argb != viewColor && kept != null) { // lines with spans were shaped in the old color
+      shapedLines.clear();
+      shapedLineCharacters = 0;
+      kept = null;
+    }
     this.viewColor = argb;
   }
 
@@ -2937,6 +2943,9 @@ public final class Text implements Measure {
     }
     Size size = new Size(widest / scale, height / scale, firstBaseline / scale);
     if (fitted != null && !provisional) { // not with a line its spans may make wider
+      if (fitted.size() >= FITTED_WIDTHS) {
+        fitted.clear(); // a field resized again and again
+      }
       fitted.put(width, size);
     }
     return size;
