@@ -1,0 +1,1 @@
+- Added `Background.linear(...)`, `Background.radial(...)`, and `El.background(Background)` in `core` to paint any element with a smoothstep two-color linear or elliptical radial gradient over its fill and inside its border, mixed premultiplied in linear light on both CPU and GPU.

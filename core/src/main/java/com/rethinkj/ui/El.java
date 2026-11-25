@@ -71,6 +71,7 @@ public final class El {
   private int borderColor;
   private int[] borderColors; // null while every side has borderColor
   private List<Shadow> shadows = List.of();
+  private Background background;
   private List<Segment> segments = List.of();
   private Measure measure;
   private Text text;
@@ -1105,6 +1106,20 @@ public final class El {
   /** As {@link #shadow(Shadow...)}, from a list such as a theme's. */
   public El shadow(List<Shadow> shadows) {
     this.shadows = List.copyOf(shadows);
+    return this;
+  }
+
+  /**
+   * Paints a background over this element's {@link #fill} (see {@link Background}): where the fill
+   * shows, within the inner edge of its border, and under its image, segments, text and children.
+   * Opacity and clips apply as for the fill. A background takes no room in the layout and no input,
+   * and it does not spring with {@link #motion}; a look that changes it changes it at once. An
+   * element over a {@link #range} of its parent's text draws only its fill.
+   *
+   * @param background the background, replacing the one set before, or null for none
+   */
+  public El background(Background background) {
+    this.background = background;
     return this;
   }
 
@@ -4683,6 +4698,11 @@ public final class El {
   /** The shadows under this element, the topmost first; empty for none. */
   public List<Shadow> shadows() {
     return shadows;
+  }
+
+  /** The background painted over this element's fill ({@link #background(Background)}), or null. */
+  public Background background() {
+    return background;
   }
 
   /** The border's color; of the top side when {@link #borderColors} gave the sides their own. */

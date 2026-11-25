@@ -40,6 +40,7 @@ Note: `Len.pixelsOrZero()` returns a fixed pixel value, or `0` for percentages, 
 | Method | Description |
 | --- | --- |
 | `fill(argb)` | Background color (`0xAARRGGBB`) |
+| `background(Background)` | Soft linear or radial gradient painted over `fill`, inside the border (see [Backgrounds](#backgrounds)) |
 | `radius(px)`, `radius(tl, tr, br, bl)` | Rounded corner radius |
 | `border(width, argb)`, `border(top, right, bottom, left, argb)` | Border width and color |
 | `borderColors(top, right, bottom, left)` | Sets a separate color for each border side (call after `border(...)`) |
@@ -52,6 +53,19 @@ Note: `Len.pixelsOrZero()` returns a fixed pixel value, or `0` for percentages, 
 | `fixedX()` | Freezes an element horizontally inside a horizontal scroll area (for frozen table columns). Place it after scrolled elements and give it an opaque fill |
 
 Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw hex colors (see [Themes](/docs/concepts/themes)).
+
+## Backgrounds
+
+`background(...)` paints a soft two-color gradient over an element's `fill` using [`Background`](/api/com/rethinkj/ui/Background.html)`.linear(...)` or `Background.radial(...)`. Positions and radii accept pixels (`Len.px`) or percentages (`Len.percent`) of the element's padding box, eased with smoothstep and mixed premultiplied in linear light:
+
+```java snippet="backgrounds"
+```
+
+<Shot src="examples/docs/backgrounds/view-{theme}" alt="Two rounded bordered cards side by side: the left tinted with a diagonal linear gradient labeled Linear, the right with a soft radial glow labeled Radial" />
+
+- Painted over `fill` where the fill shows: inside the border and its rounded corners, under the element's image, lines, text, and children.
+- Opacity and ancestor clips apply as for `fill`; pass `null` to clear it.
+- Takes no room in layout, does not affect hit testing, and does not animate with `motion`.
 
 ## Drawing lines
 

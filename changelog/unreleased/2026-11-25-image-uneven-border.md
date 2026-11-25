@@ -1,0 +1,1 @@
+- An image in an element with a rounded border whose sides differ in width no longer covers part of the border at the corners where those sides meet.

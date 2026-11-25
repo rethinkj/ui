@@ -130,7 +130,7 @@ class CpuRendererEquivalenceTest {
   }
 
   /**
-   * Hundreds of small scenes of random instances: rectangles, shadows, images and, where the
+   * Hundreds of small scenes of random instances: rectangles, some with gradients, shadows, images and, where the
    * text libraries load, glyphs, at fractional and whole positions and sizes, with radii from below 0
    * to beyond half the size, alike or each corner its own, borders up to beyond it, alike or each
    * side its own, translucent and opaque colors, the clips of
@@ -314,6 +314,29 @@ class CpuRendererEquivalenceTest {
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
   }
 
+  /** Stops after the instance last added, which they make a gradient: linear or radial. */
+  private static void addStops(Scene scene, Random random, float width, float height) {
+    scene
+        .data()
+        .set(
+            ValueLayout.JAVA_INT,
+            (long) (scene.count() - 1) * Scene.STRIDE + Scene.KIND,
+            Scene.GRADIENT);
+    scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
+    MemorySegment data = scene.data();
+    long at = (long) (scene.count() - 1) * Scene.STRIDE;
+    boolean radial = random.nextBoolean();
+    put(data, at + Scene.X, position(random, width));
+    put(data, at + Scene.Y, position(random, height));
+    put(data, at + Scene.WIDTH, radial ? length(random, width) : position(random, width));
+    put(data, at + Scene.HEIGHT, radial ? length(random, height) : position(random, height));
+    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_SHAPE, radial ? Scene.RADIAL : Scene.LINEAR);
+    put(data, at + Scene.GRADIENT_OPACITY, random.nextBoolean() ? 1 : random.nextFloat());
+    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.STOPS);
+    color(data, at + Scene.FILL, random);
+    color(data, at + Scene.BORDER, random);
+  }
+
   /** A squiggle instance at random coordinates, amplitude, wavelength, stroke and phase. */
   private static void addSquiggle(Scene scene, Random random, float width, float height) {
     scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
@@ -422,6 +445,9 @@ class CpuRendererEquivalenceTest {
       put(data, at + field, alike ? border : border(random, half));
     }
     color(data, at + Scene.BORDER, random);
+    if (random.nextInt(3) == 0) {
+      addStops(scene, random, width, height);
+    }
   }
 
   /** A corner's radius: 0, half the shorter side, beyond it, below 0 or between. */
