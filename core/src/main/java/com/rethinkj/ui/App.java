@@ -715,12 +715,13 @@ public final class App<S> {
     }
     Target target = target(x, y, this::opensMenu);
     secondary = target == null ? null : target.id();
-    Target focus = target(x, y, El::isFocusable);
-    if (!keepsFocus(hit(x, y))) {
+    List<El> hit = hit(x, y);
+    if (!keepsFocus(hit)) {
+      Target focus = target(x, y, El::isFocusable);
       this.focus.set(focus == null ? null : focus.el, false, time);
     }
-    // A press on a field of a selection across a scope keeps it, for that field's menu.
-    if (focus == null || !isScopeSelected(focus.el.editor())) {
+    // A press on or in a field of a selection across a scope keeps it, for that field's menu.
+    if (hit.stream().noneMatch(e -> isScopeSelected(e.editor()))) {
       any |= clearScopeSelection(null);
     }
     return any;
