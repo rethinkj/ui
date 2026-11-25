@@ -108,6 +108,7 @@ public final class Find {
     int caret;
     int anchor;
     int origin; // where typing in the field searches from
+    String scopeText; // the scope text caret, anchor and origin refer to
     int opened; // counts the openings, so that each takes the focus
     boolean selectQuery; // the field selects its text once it is there
     String error; // the pattern's, or a replacement's
@@ -175,6 +176,37 @@ public final class Find {
 
     private String text() {
       return isScope() ? app.scopeText(field) : field.text().string();
+    }
+
+    /**
+     * Keeps {@link #caret}, {@link #anchor} and {@link #origin} on the same match when text is
+     * inserted or removed before it in a selection scope (such as older rows prepended at the top
+     * of a transcript).
+     */
+    void syncScopeText(String text) {
+      String previous = scopeText;
+      scopeText = text;
+      if (previous == null || previous.equals(text)) {
+        return;
+      }
+      int delta = text.length() - previous.length();
+      if (delta == 0 || (delta > 0 ? text.startsWith(previous) : previous.startsWith(text))) {
+        return;
+      }
+      int s = Math.min(Math.min(caret, anchor), previous.length());
+      int e = Math.min(Math.max(caret, anchor), previous.length());
+      if (s < e
+          && s + delta >= 0
+          && previous.regionMatches(s, text, s + delta, previous.length() - s)) {
+        caret = Math.min(caret, previous.length()) + delta;
+        anchor = Math.min(anchor, previous.length()) + delta;
+        if (origin >= 0
+            && origin <= previous.length()
+            && origin + delta >= 0
+            && previous.regionMatches(origin, text, origin + delta, previous.length() - origin)) {
+          origin += delta;
+        }
+      }
     }
 
     void cancel() {
@@ -291,10 +323,14 @@ public final class Find {
         ? null
         : scope ? app.scopeText(field) : field.text().string();
     if (text != null) {
+      if (scope) {
+        state.syncScopeText(text);
+      }
       state.caret = Math.min(state.caret, text.length());
       state.anchor = Math.min(state.anchor, text.length());
     }
     if (!scope) {
+      state.scopeText = null;
       El.SelectHandler ownSelect = field.onSelect();
       field.onSelect((caret, anchor) -> {
         state.caret = caret;
@@ -393,6 +429,9 @@ public final class Find {
       return;
     }
     String text = state.text();
+    if (scope) {
+      state.syncScopeText(text);
+    }
     int caret = Math.min(state.caret, text.length());
     int anchor = Math.min(state.anchor, text.length());
     int s = Math.min(caret, anchor);
@@ -593,6 +632,9 @@ public final class Find {
       return;
     }
     String text = state.text();
+    if (state.isScope()) {
+      state.syncScopeText(text);
+    }
     For target = state.target(text.length());
     int caret = Math.min(state.caret, text.length());
     int anchor = Math.min(state.anchor, text.length());

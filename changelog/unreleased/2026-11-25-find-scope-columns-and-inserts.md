@@ -1,0 +1,1 @@
+- Find over a selection scope scrolls a list that builds only the columns in view sideways to a match in a column out of view and shows it, and after rows are inserted above the current match, Enter goes on to the next match instead of selecting the same one again.

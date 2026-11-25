@@ -4774,6 +4774,37 @@ public final class App<S> {
       El target = caretPos.inRows()
           ? builtScopeRowField(list, caretPos.row(), caretPos.field())
           : caretField;
+      if (target == null
+          && list != null
+          && caretPos.inRows()
+          && list.spansRows()
+          && list.hasRow(caretPos.row())) { // its cell lies sideways out of the part built
+        El shown = list.children().get(caretPos.row() - list.firstRow());
+        El whole = list.rowElement(caretPos.row());
+        if (whole != null) {
+          List<El> rowFields = new ArrayList<>();
+          collectRowFields(whole, true, rowFields);
+          El wholeTarget = caretPos.field() >= 0 && caretPos.field() < rowFields.size()
+              ? rowFields.get(caretPos.field())
+              : null;
+          if (wholeTarget != null) {
+            list.layoutRowElement(whole, scale, systemFonts);
+            List<El> rowPath = new ArrayList<>();
+            if (pathTo(whole, wholeTarget, rowPath)) {
+              float rx = -(float) list.scrollX();
+              for (El step : rowPath) {
+                rx += step.x();
+              }
+              if (reveal(
+                  list, rx, shown.y(), wholeTarget.width(), shown.height(), false, null, 0)) {
+                scrolled = true;
+                fillRows();
+                target = builtScopeRowField(list, caretPos.row(), caretPos.field());
+              }
+            }
+          }
+        }
+      }
       if (target != null && target.editor() != null) {
         Editor editor = target.editor();
         int[] range =
