@@ -3223,8 +3223,12 @@ public final class App<S> {
         reveal(target, 0, 0, target.width(), target.height(), false, null, 0);
       } else if (inner != null) {
         El nested = (El) inner[0];
-        double[] span = nested.rowSpan((Integer) inner[1]);
+        int innerRow = (Integer) inner[1];
+        // A list of a height of its own scrolls to the row first, then the areas around it.
+        boolean moved = nested.scrollTo(nested.scrollX(), nested.offsetShowing(innerRow));
+        double[] span = nested.rowSpan(innerRow);
         reveal(nested, 0, (float) span[0], nested.width(), (float) span[1], false, null, 0);
+        return moved || list.scrollY() != y;
       }
     }
     return list.scrollY() != y;
