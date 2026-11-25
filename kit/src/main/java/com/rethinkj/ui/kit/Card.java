@@ -144,7 +144,9 @@ public final class Card {
    * With {@link #spacer()} among the actions, what comes before it sits at the start, right after
    * the title and secondary text, and what comes after it sits at the end; without a spacer, all
    * actions sit at the end. Where the bar is too narrow for all of it, the title is shortened with
-   * an ellipsis first, and what follows it moves along; the actions keep their size.
+   * an ellipsis first, and what follows it moves along; the actions keep their size. Its minimum
+   * height fits a control-height action inside its vertical padding, so toolbars with and without
+   * buttons align.
    *
    * @param title the heading at the start; null for none
    * @param secondary beside the title; null for none
@@ -156,6 +158,7 @@ public final class Card {
         .padding(theme.space().m(), theme.space().xl())
         .gap(theme.space().m())
         .align(Style.Align.CENTER);
+    bar.style().minHeight = Len.px(theme.size().control() + 2 * theme.space().m());
     if (title != null) {
       Theme.TextStyle style = theme.type().heading();
       bar.child(El.text(title)
