@@ -737,22 +737,24 @@ class FieldTest {
   @Test
   void arrowKeysInFocusedReadOnlyTextScrollByALineAndShiftSelectsFromTheHiddenCaret() {
     App<Object> app = new App<>(new Object(), s -> {
-      El area = col().key("area").scroll().size(150, 40);
-      for (int i = 0; i < 6; i++) {
-        area.child(El.text("line " + i)
-            .editable(e -> {})
-            .readOnly()
-            .multiline()
-            .fitLines()
-            .shrink(0));
-      }
+      El list = col()
+          .size(150, 40)
+          .rows(
+              40,
+              20,
+              row -> El.text("line " + row)
+                  .editable(e -> {})
+                  .readOnly()
+                  .multiline()
+                  .fitLines()
+                  .key("row-" + row));
       El log = El.text("a\nb\nc\nd\ne\nf")
           .editable(e -> {})
           .readOnly()
           .multiline()
           .size(150, 30)
           .shrink(0);
-      return col().children(area, log);
+      return col().children(list, log);
     });
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 80, 1);
@@ -773,11 +775,20 @@ class FieldTest {
 
     app.focus(app.tree().children().getFirst().children().getFirst());
     app.frame();
-    key(app, "ArrowDown");
-    assertEquals(line, app.tree().children().getFirst().scrollY(), 0.01, "or the area around it");
     key(app, "ArrowRight");
-    assertEquals(0, app.tree().children().getFirst().scrollX(), "nothing scrolls sideways");
-    assertEquals(0, app.focused().editor().caret(), "and no caret moves");
+    assertEquals(0, app.focused().editor().caret(), "Right moves no caret, nothing scrolls so");
+    for (int i = 0; i < 20; i++) {
+      key(app, "ArrowDown");
+    }
+    assertEquals(
+        20 * line,
+        app.tree().children().getFirst().scrollY(),
+        0.01,
+        "Down scrolls the area around it, also once the focused row is out of range");
+    key(app, "ArrowDown", SHIFT);
+    assertEquals("row-0", app.focused().key(), "Shift brings the row back");
+    assertEquals(0, app.focused().editor().anchor(), "to select from its hidden caret");
+    assertTrue(app.focused().editor().caret() > 0);
   }
 
   @Test

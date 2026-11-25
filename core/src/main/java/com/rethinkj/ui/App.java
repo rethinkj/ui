@@ -1651,6 +1651,12 @@ public final class App<S> {
       rowGoals.clear();
       if (edits(key)) {
         wakeField();
+      } else if (key.name().startsWith("Arrow")
+          && (key.modifiers() & Key.SHIFT) != 0
+          && focus.element() == null
+          && focusedEditor() != null) {
+        rowGoals.clear();
+        wake(); // the selection starts at the caret its row kept
       }
       if (key.name().equals("Escape")) {
         focus.clearTypeAhead();
@@ -1778,14 +1784,15 @@ public final class App<S> {
     // Home and End, with or without Control, scroll to the start or the end, as in a browser.
     boolean edge = (key.name().equals("Home") || key.name().equals("End"))
         && (key.modifiers() & ~Key.CONTROL) == 0;
-    // The arrow keys that a read-only multi-line field leaves (it shows no caret) scroll by a line.
-    El field = focus.element();
+    // The arrow keys that a read-only multi-line field leaves (it shows no caret) scroll by a line,
+    // also while its row is out of range.
+    Editor reader = focusedEditor();
+    Text text = reader == null ? null : reader.element().text();
     boolean byLine = key.name().startsWith("Arrow")
         && key.modifiers() == 0
-        && field != null
-        && field.editor() != null
-        && !field.editor().editable()
-        && field.text().multiline();
+        && reader != null
+        && !reader.editable()
+        && text.multiline();
     boolean horizontal = key.name().equals("ArrowLeft") || key.name().equals("ArrowRight");
     if (byPage || edge || byLine) {
       int direction = switch (key.name()) {
@@ -1801,13 +1808,12 @@ public final class App<S> {
           break;
         }
       }
-      if (area == null) {
+      if (area == null && !byLine) { // a line is the focus's own: not another area's
         El overlay = page != path ? page.getFirst() : modal();
-        area = overlay == null ? null : pageArea(overlay, byLine && horizontal, direction);
+        area = overlay == null ? null : pageArea(overlay, direction);
       }
       if (area != null) {
-        double line =
-            byLine ? direction * field.text().lineHeight() / field.text().scale() : 0;
+        double line = byLine ? direction * text.lineHeight() / text.scale() : 0;
         boolean moved = byLine
             ? horizontal
                 ? area.scrollTo(area.scrollX() + line, area.scrollY())
@@ -2578,11 +2584,15 @@ public final class App<S> {
 
   /** Whether the focus {@link Focus#waits} on an editable text field, whose editor stays. */
   private boolean fieldWaits() {
-    if (focus.element() != null || !focus.waits()) {
-      return false;
-    }
-    Editor editor = editors.get(focus.id());
-    return editor != null && editor.editable();
+    Editor editor = focusedEditor();
+    return editor != null && focus.element() == null && editor.editable();
+  }
+
+  /** The focused field's editor, also while its row {@link Focus#waits}; null without one. */
+  private Editor focusedEditor() {
+    return focus.element() != null
+        ? focus.element().editor()
+        : focus.waits() ? editors.get(focus.id()) : null;
   }
 
   /**
@@ -2706,13 +2716,13 @@ public final class App<S> {
     }
   }
 
-  /** The first scroll area in tree order inside {@code el} that can move so along an axis. */
-  private static El pageArea(El el, boolean horizontal, int direction) {
-    if (el.isScrollArea() && el.canScroll(horizontal, direction)) {
+  /** The first scroll area in tree order inside {@code el} that can move up or down so. */
+  private static El pageArea(El el, int direction) {
+    if (el.isScrollArea() && el.canScroll(false, direction)) {
       return el;
     }
     for (El child : el.children()) {
-      El found = pageArea(child, horizontal, direction);
+      El found = pageArea(child, direction);
       if (found != null) {
         return found;
       }
