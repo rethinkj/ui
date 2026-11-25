@@ -84,6 +84,8 @@ public final class El {
   private Integer focusRing;
   private float focusRingGap;
   private ScrollState scrollState;
+  // Sent to its vertical end until its last rows are measured, as ScrollState.toEnd without one.
+  private boolean toEnd;
   boolean focused;
   private Spring motion;
   private float opacity = 1;
@@ -1262,6 +1264,24 @@ public final class El {
 
   ScrollState scrollState() {
     return scrollState;
+  }
+
+  /**
+   * Whether this area was sent to its vertical end, with {@link #scrollTo} to {@link
+   * Double#POSITIVE_INFINITY}, until its last rows are measured: its {@link ScrollState}'s while
+   * it has the state, else its own, which a rebuild carries over.
+   */
+  boolean toEnd() {
+    return scrollState == null ? toEnd : scrollState.el == this && scrollState.toEnd;
+  }
+
+  /** Sets what {@link #toEnd()} says, as long as this area has its state, if it has one. */
+  void toEnd(boolean end) {
+    if (scrollState == null) {
+      toEnd = end;
+    } else if (scrollState.el == this) {
+      scrollState.toEnd = end;
+    }
   }
 
   /** Makes this element a scroll area like {@link #scroll}, along both axes. */
@@ -5554,6 +5574,9 @@ public final class El {
     if (changed && scrollState != null && scrollState.el == this) {
       scrollState.follow(this, scrollX != oldX, scrollY != oldY);
     }
+    if (changed && y == Double.POSITIVE_INFINITY) {
+      toEnd(true); // rows measured on the way keep it at the end, as ScrollState.scrollToEnd does
+    }
     return changed;
   }
 
@@ -5573,6 +5596,8 @@ public final class El {
       scrollState.y = newY;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
       scrollState.toEnd &= scrollState.atEnd; // scrolled away before its rows were measured
+    } else if (scrollState == null) {
+      toEnd &= newY >= maxScrollY - SLACK;
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
@@ -6089,10 +6114,11 @@ public final class El {
    * it before the current layout.
    */
   private boolean followsEnd() {
-    return scrollState != null
-        && scrollState.el == this
-        && (scrollState.followEnd || scrollState.toEnd)
-        && scrollState.atEnd;
+    return scrollState == null
+        ? toEnd
+        : scrollState.el == this
+            && (scrollState.followEnd || scrollState.toEnd)
+            && scrollState.atEnd;
   }
 
   /**

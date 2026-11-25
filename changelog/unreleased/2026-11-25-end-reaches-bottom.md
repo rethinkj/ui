@@ -1,0 +1,1 @@
+- End now reaches the real bottom when the last rows measure taller than estimated: a virtual list without a `ScrollState` (such as a long kit `Markdown` document) stays at its end while its last rows are measured, as `app.scrollTo(list, x, Double.POSITIVE_INFINITY)` now does too, and a wrapped multi-line field at its end stays there while the rows it shows are laid out.

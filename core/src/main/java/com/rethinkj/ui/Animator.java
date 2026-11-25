@@ -662,9 +662,12 @@ final class Animator {
     int revealed = before == null ? -1 : before.revealRow();
     Object revealedKey = before == null ? null : before.revealKey();
     if (kept == null) {
+      el.toEnd(before != null && before.toEnd());
       el.setScroll(
           before == null ? 0 : before.scrollX(),
-          before == null ? 0 : el.movedScrollY(before, before.scrollY()));
+          before == null
+              ? 0
+              : el.toEnd() ? Double.POSITIVE_INFINITY : el.movedScrollY(before, before.scrollY()));
     } else {
       if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
         throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
