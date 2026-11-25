@@ -1652,9 +1652,11 @@ public final class App<S> {
       if (edits(key)) {
         wakeField();
       } else if (key.name().startsWith("Arrow")
-          && (key.modifiers() & Key.SHIFT) != 0
+          && key.modifiers() == Key.SHIFT
           && focus.element() == null
-          && focusedEditor() != null) {
+          && focusedEditor() != null
+          && !focusedEditor().editable()
+          && focusedEditor().element().text().multiline()) {
         rowGoals.clear();
         wake(); // the selection starts at the caret its row kept
       }
