@@ -71,6 +71,7 @@ class MarkdownTest {
     final Find.State find = new Find.State();
     final List<String> links = new ArrayList<>();
     final Map<String, com.rethinkj.ui.Image> images = new HashMap<>();
+    int parentEscapes;
     App<Doc> app;
 
     Doc(String source) {
@@ -87,6 +88,13 @@ class MarkdownTest {
             .wFull()
             .hFull()
             .fill(t.surface().panel())
+            .onKey(k -> {
+              if (k.modifiers() == 0 && k.name().equals("Escape")) {
+                d.parentEscapes++;
+                return true;
+              }
+              return false;
+            })
             .child(Markdown.markdown(
                     d.document,
                     Markdown.options()
@@ -168,13 +176,38 @@ class MarkdownTest {
     run(app, "key A control\nframe\nkey C control\nframe");
     assertTrue(app.state().selection.allSelected());
     String all = app.clipboard().read();
-    assertTrue(all.startsWith("Guide\n\nRead the spec and the notes, now.\n\nSELECT 1;\n"), all);
+    assertTrue(
+        all.startsWith("Guide\n\nRead the spec and the notes, now.\n\nSELECT 1;\n\n- [x] done"),
+        all);
     assertTrue(all.contains("- [x] done\n- [ ] open\n"), all);
     assertTrue(all.contains("a\tb\n1\t2\n"), all);
     assertTrue(all.endsWith("1. one\n2. two"), all);
     // A press anywhere ends it.
     run(app, "press text=\"Guide\"\nframe");
-    assertTrue(!app.state().selection.allSelected());
+    assertFalse(app.state().selection.allSelected());
+    // Escape ends it too, without reaching the parent; with nothing selected it goes on.
+    run(app, "key A control\nframe");
+    assertTrue(app.state().selection.allSelected());
+    run(app, "key Escape\nframe");
+    assertFalse(app.state().selection.allSelected());
+    assertEquals(0, app.state().parentEscapes);
+    run(app, "key Escape\nframe");
+    assertEquals(1, app.state().parentEscapes);
+  }
+
+  @Test
+  void textLeavesOneEmptyLineAfterACodeBlock() {
+    assertEquals("int a;\n\nafter", Markdown.text(Markdown.parse("```java\nint a;\n```\n\nafter")));
+    assertEquals(
+        "- int a;\n\n  after",
+        Markdown.text(Markdown.parse("- ```java\n  int a;\n  ```\n\n  after")));
+    assertEquals(
+        "int a;\n\nafter", Markdown.text(Markdown.parse("> ```java\n> int a;\n> ```\n>\n> after")));
+    assertEquals(
+        "int a;\n\nafter",
+        Markdown.text(new MarkdownDocument(List.of(
+            new MarkdownDocument.CodeBlock("java", "int a;"),
+            new MarkdownDocument.Paragraph(List.of(new MarkdownDocument.Text("after")))))));
   }
 
   @Test
@@ -516,6 +549,37 @@ class MarkdownTest {
               .child(show.apply(Markdown.parse(step3))));
       assertEquals(run(whole, "frame"), streamed);
     }
+  }
+
+  @Test
+  void twoViewsWithDifferentTextColorsBuildPiecesOnce() throws IOException {
+    String step1 = "# Title\n\nA ~~struck~~ paragraph.";
+    String step2 = step1 + "\n\nSecond paragraph.";
+    MarkdownDocument[] current = {Markdown.parse(step1)};
+    Markdown.Options primary = Markdown.options();
+    Markdown.Options muted = Markdown.options().textColor(Theme.DARK.code().comment());
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .fill(Theme.DARK.surface().panel())
+            .child(Markdown.fragment(current[0], primary))
+            .child(Markdown.fragment(current[0], muted)));
+    Markdown.piecesBuilt = 0;
+    run(app, "frame");
+    assertEquals(4, Markdown.piecesBuilt, "two blocks built once per text color");
+
+    Markdown.piecesBuilt = 0;
+    app.invalidate();
+    run(app, "frame");
+    assertEquals(0, Markdown.piecesBuilt, "rebuild reuses pieces for both colors");
+
+    current[0] = current[0].next(step2);
+    Markdown.piecesBuilt = 0;
+    app.invalidate();
+    run(app, "frame");
+    assertEquals(2, Markdown.piecesBuilt, "takeOver keeps both colors; only the new block builds");
   }
 
   @Test
