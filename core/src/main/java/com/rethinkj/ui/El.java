@@ -5817,14 +5817,22 @@ public final class El {
       return scrollTo(share * maxScrollX, scrollY);
     }
     double min = minScrollY();
-    return scrollTo(scrollX, min + share * (maxScrollY - min));
+    return scrollTo(scrollX, orEnd(min + share * (maxScrollY - min)));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
   boolean page(boolean vertical, int direction) {
     return vertical
-        ? scrollTo(scrollX, scrollY + direction * (double) height)
+        ? scrollTo(scrollX, orEnd(scrollY + direction * (double) height))
         : scrollTo(scrollX + direction * (double) width, scrollY);
+  }
+
+  /**
+   * A vertical offset the user moves to, as the end itself once it reaches the end: rows measured
+   * on the way keep the area there, as after End.
+   */
+  double orEnd(double y) {
+    return y >= maxScrollY ? Double.POSITIVE_INFINITY : y;
   }
 
   // Virtual lists, for App and Headless. A row's index times rowHeight is exact in a double: a

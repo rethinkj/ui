@@ -3073,7 +3073,7 @@ public final class App<S> {
       if (area.canScroll(horizontal, delta)) {
         boolean moved = horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
-            : area.scrollTo(area.scrollX(), area.scrollY() + delta);
+            : area.scrollTo(area.scrollX(), area.orEnd(area.scrollY() + delta));
         return moved ? area : null;
       }
       if (sideways && scrollsSideways(area, delta)) {
