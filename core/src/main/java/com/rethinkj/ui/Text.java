@@ -1949,32 +1949,31 @@ public final class Text implements Measure {
       float distance = Float.POSITIVE_INFINITY;
       for (int b : p.boundaries(0, p.text.length())) {
         float cx = p.pen(b);
-        if (stops && p.hints != null) {
-          float before = p.beforeGap(b);
-          if (before > 0) {
-            float d = Math.abs(cx - before - localX);
-            if (d < distance) {
-              distance = d;
-              best = b;
-              bestStop = HintStop.LEFT;
-            }
+        float before = stops && p.hints != null ? p.beforeGap(b) : 0;
+        float after = stops && p.hints != null ? p.afterGap(b) : 0;
+        float roomBefore = p.roomBefore(b);
+        float roomAfter = p.roomAfter(b);
+        if (before > 0) {
+          float d = outside(localX, cx - before - roomBefore, cx - before);
+          if (d < distance) {
+            distance = d;
+            best = b;
+            bestStop = HintStop.LEFT;
           }
         }
-        float d = Math.abs(cx - localX);
+        float d =
+            outside(localX, before > 0 ? cx : cx - roomBefore, after > 0 ? cx : cx + roomAfter);
         if (d < distance) {
           distance = d;
           best = b;
           bestStop = HintStop.DEFAULT;
         }
-        if (stops && p.hints != null) {
-          float after = p.afterGap(b);
-          if (after > 0) {
-            float da = Math.abs(cx + after - localX);
-            if (da < distance) {
-              distance = da;
-              best = b;
-              bestStop = HintStop.RIGHT;
-            }
+        if (after > 0) {
+          float da = outside(localX, cx + after, cx + after + roomAfter);
+          if (da < distance) {
+            distance = da;
+            best = b;
+            bestStop = HintStop.RIGHT;
           }
         }
       }
