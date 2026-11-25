@@ -293,11 +293,6 @@ final class Focus {
       }
       state = null; // an autofocus element took the focus at this identity
     }
-    if (el == null && waits()) {
-      element = null; // kept by its identity until the row exists again
-      reveal = false;
-      return null;
-    }
     List<El> order = focusables.get();
     if (state != null && (el == null || el.fieldState() != state || !order.contains(el))) {
       for (El candidate : order) {
@@ -311,6 +306,11 @@ final class Focus {
           break;
         }
       }
+    }
+    if (el == null && waits()) {
+      element = null; // kept by its identity until the row exists again
+      reveal = false;
+      return null;
     }
     if (el == null || !order.contains(el)) {
       el = recover(id, order);

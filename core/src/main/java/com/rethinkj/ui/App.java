@@ -3765,6 +3765,9 @@ public final class App<S> {
       FieldState state = el.fieldState();
       Editor editor = state == null ? editors.get(id) : null;
       if (state == null && (editor == null || editor.element().fieldState() != null)) {
+        if (capture instanceof Selecting s && s.id().equals(id) && s.scopeId() == null) {
+          capture = IDLE; // a press on a field that moved on, which the new editor never had
+        }
         editor = new Editor(el); // not the editor of a field with a FieldState that moved on
         editors.put(id, editor);
       }
