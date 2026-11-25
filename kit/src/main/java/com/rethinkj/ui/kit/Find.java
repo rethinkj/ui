@@ -679,10 +679,10 @@ public final class Find {
   }
 
   /**
-   * Moves a selection scope's offsets along when its text changes, also while the scope has no
-   * selection that core moves by row keys and tells: after a press in the query, for one.
-   * shortcut: a change above or below the match moves it along, changes both above and below it
-   * in one build put it where the text first differs; compare rows when that shows.
+   * Moves a selection scope's offsets along when its text changes. Core tells the match's new
+   * offsets by its row after the build, which wins; this covers what core cannot tell: the origin,
+   * a bar that was closed, rows without keys and a match whose row is gone. shortcut: there, changes
+   * both above and below the match in one build put it where the text first differs.
    */
   private static void remapScope(State state, String text) {
     String prev = state.scopeText;

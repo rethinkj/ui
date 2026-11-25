@@ -261,7 +261,7 @@ public final class App<S> {
   private final Focus focus = new Focus(animator); // the keyboard focus
   private Object toldFocus; // the focus identity last told to El#onFocusIn handlers
   private FieldState toldState; // and its field's FieldState, which keeps it when the field moves
-  private Object[] toldScope; // the scope, caret and anchor last told to its El#onSelect
+  private Object[] toldScope; // the scope, caret, anchor and text last told to its El#onSelect
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -296,6 +296,7 @@ public final class App<S> {
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Editor blinking; // the editor of the focused field
   private ScopeSelection scopeSelection; // active selection across read-only fields in a scope
+  private ScopeSelection keptScope; // the scope's last selection once it ended; onSelect follows it
   private final Map<El, ScopeIndex> scopeIndexes = new IdentityHashMap<>(); // see scopeIndex
   // Cached field identity -> whole-width ordinal for rows of spans lists, cleared per build/frame.
   private final Map<El, Map<Integer, Map<Object, Integer>>> rowOrdinalCache =
@@ -689,6 +690,7 @@ public final class App<S> {
               rowKey,
               outsideId,
               outsideId);
+          keptScope = null;
           capture = new Selecting(
               fieldId,
               scopeId,
@@ -4406,25 +4408,24 @@ public final class App<S> {
   }
 
   /**
-   * The scope, caret and anchor that {@link #tellScopeSelection} tells, or null for a selection
-   * scope without a handler or one whose selection is not in its text.
+   * The scope, caret, anchor and scope text that {@link #tellScopeSelection} tells, or null for a
+   * selection scope without a handler or no tracked selection. The text is there so that a change
+   * of the text tells the offsets again, also when they stay the same.
    */
   private Object[] scopeSelectionAt() {
-    ScopeSelection s = scopeSelection;
+    ScopeSelection s = scopeSelection != null ? scopeSelection : keptScope;
     El scope = s == null ? null : animator.liveElement(s.scopeId);
     if (scope == null || scope.onSelect() == null) {
       return null;
     }
     ScopeIndex index = scopeIndex(scope);
     ScopePosition anchor = s.end.compareTo(s.anchorFrom) < 0 ? s.anchorTo : s.anchorFrom;
-    int caret = index.offset(s.end);
-    int from = index.offset(anchor);
-    return caret < 0 || from < 0 ? null : new Object[] {s.scopeId, caret, from};
+    return new Object[] {s.scopeId, index.offset(s.end), index.offset(anchor), index.text()};
   }
 
   /** Whether a field of the tree has a selection that {@link #tellSelections} would tell. */
   private boolean untold() {
-    if (scopeSelection != null) {
+    if (scopeSelection != null || keptScope != null) {
       Object[] at = scopeSelectionAt();
       if (at != null && !Arrays.equals(at, toldScope)) {
         return true;
@@ -4757,6 +4758,7 @@ public final class App<S> {
       ScopeIndex index = scopeIndex(now);
       if (index.starts().length == 0) {
         clearScopeSelection(null);
+        keptScope = null;
         return false;
       }
       int anchorAt = index.fieldAt(anchor);
@@ -4788,6 +4790,7 @@ public final class App<S> {
           anchorFieldId,
           endFieldId);
       scopeSelection = next;
+      keptScope = null;
       if (list != null && caretPos.inRows()) {
         if (listId != null) {
           rowGoals.remove(listId);
@@ -5034,25 +5037,16 @@ public final class App<S> {
   }
 
   /**
-   * Moves the endpoints of {@link #scopeSelection} and of a scope {@link Selecting} that lie
-   * outside the list's rows to where their fields are in a freshly built tree, before {@link
-   * #attachEditors} hands out ranges; one whose field is gone ends the selection.
+   * Moves the endpoints of {@link #scopeSelection}, {@link #keptScope} and of a scope {@link
+   * Selecting} that lie outside the list's rows to where their fields are in a freshly built tree,
+   * before {@link #attachEditors} hands out ranges; one whose field is gone ends the selection.
    */
   private void remapScopeOutsideFields(El tree) {
-    if (scopeSelection != null) {
-      Object scopeId = scopeSelection.scopeId;
-      ScopePosition from =
-          follow(tree, scopeId, scopeSelection.anchorFieldId, scopeSelection.anchorFrom);
-      ScopePosition to =
-          follow(tree, scopeId, scopeSelection.anchorFieldId, scopeSelection.anchorTo);
-      ScopePosition end = follow(tree, scopeId, scopeSelection.endFieldId, scopeSelection.end);
-      if (from == null || to == null || end == null) {
-        clearScopeSelection(null);
-      } else {
-        scopeSelection.anchorFrom = from;
-        scopeSelection.anchorTo = to;
-        scopeSelection.end = end;
-      }
+    if (scopeSelection != null && !remapOutsideFields(tree, scopeSelection)) {
+      clearScopeSelection(null);
+    }
+    if (keptScope != null && !remapOutsideFields(tree, keptScope)) {
+      keptScope = null;
     }
     if (capture instanceof Selecting s && s.scopeId() != null) {
       ScopePosition from = follow(tree, s.scopeId(), s.anchorFieldId, s.anchorFrom);
@@ -5064,6 +5058,21 @@ public final class App<S> {
         s.anchorTo = to;
       }
     }
+  }
+
+  /** Moves outside-row endpoints on {@code s} to where their fields are in {@code tree}. */
+  private static boolean remapOutsideFields(El tree, ScopeSelection s) {
+    Object scopeId = s.scopeId;
+    ScopePosition from = follow(tree, scopeId, s.anchorFieldId, s.anchorFrom);
+    ScopePosition to = follow(tree, scopeId, s.anchorFieldId, s.anchorTo);
+    ScopePosition end = follow(tree, scopeId, s.endFieldId, s.end);
+    if (from == null || to == null || end == null) {
+      return false;
+    }
+    s.anchorFrom = from;
+    s.anchorTo = to;
+    s.end = end;
+    return true;
   }
 
   /**
@@ -5112,51 +5121,15 @@ public final class App<S> {
   }
 
   /**
-   * Remaps keyed row indices on {@link #scopeSelection} and any scope {@link Selecting} capture.
+   * Remaps keyed row indices on {@link #scopeSelection}, {@link #keptScope} and any scope {@link
+   * Selecting} capture.
    */
   private void remapScopeSelection() {
-    if (scopeSelection != null) {
-      El scope = animator.liveElement(scopeSelection.scopeId);
-      if (scope != null) {
-        El currentList = scopeList(scope);
-        Object currentListId = currentList == null ? null : animator.identity(currentList);
-        if (scopeSelection.listId != null) {
-          El list = scopeSelection.listId.equals(currentListId) ? currentList : null;
-          if (list == null) {
-            if (scopeSelection.anchorFrom.inRows() || scopeSelection.end.inRows()) {
-              clearScopeSelection(null); // its ranges go with it
-            } else {
-              scopeSelection.listId = currentListId;
-              scopeSelection.rowsVersion = currentList == null ? 0 : currentList.rowsVersion();
-            }
-          } else {
-            int version = list.rowsVersion();
-            if (version != scopeSelection.rowsVersion) {
-              int anchorRow =
-                  remapRow(list, scopeSelection.anchorFrom.row(), scopeSelection.anchorRowKey);
-              int endRow = remapRow(list, scopeSelection.end.row(), scopeSelection.endRowKey);
-              if (anchorRow == Integer.MIN_VALUE || endRow == Integer.MIN_VALUE) {
-                clearScopeSelection(null); // its ranges go with it
-              } else {
-                scopeSelection.anchorFrom = scopeSelection.anchorFrom.inRow(anchorRow);
-                scopeSelection.anchorTo = scopeSelection.anchorTo.inRow(anchorRow);
-                scopeSelection.end = scopeSelection.end.inRow(endRow);
-                scopeSelection.rowsVersion = version;
-              }
-            }
-            if (scopeSelection != null
-                && ((scopeSelection.anchorFrom.inRows()
-                        && scopeSelection.anchorFrom.row() >= list.rowCount())
-                    || (scopeSelection.end.inRows()
-                        && scopeSelection.end.row() >= list.rowCount()))) {
-              clearScopeSelection(null); // its ranges go with it
-            }
-          }
-        } else if (currentListId != null) {
-          scopeSelection.listId = currentListId;
-          scopeSelection.rowsVersion = currentList.rowsVersion();
-        }
-      }
+    if (scopeSelection != null && !remap(scopeSelection, false)) {
+      clearScopeSelection(null); // its ranges go with it
+    }
+    if (keptScope != null && !remap(keptScope, true)) {
+      keptScope = null;
     }
     if (capture instanceof Selecting s && s.scopeId() != null) {
       El scope = animator.liveElement(s.scopeId());
@@ -5196,6 +5169,55 @@ public final class App<S> {
         }
       }
     }
+  }
+
+  /**
+   * Remaps keyed row indices on {@code s}; returns whether {@code s} survives. With {@code byKeys},
+   * one in rows without keys ends: an index would follow the wrong row when rows come and go.
+   */
+  private boolean remap(ScopeSelection s, boolean byKeys) {
+    if (byKeys
+        && ((s.anchorFrom.inRows() && s.anchorRowKey == null)
+            || (s.end.inRows() && s.endRowKey == null))) {
+      return false;
+    }
+    El scope = animator.liveElement(s.scopeId);
+    if (scope == null) {
+      return true;
+    }
+    El currentList = scopeList(scope);
+    Object currentListId = currentList == null ? null : animator.identity(currentList);
+    if (s.listId != null) {
+      El list = s.listId.equals(currentListId) ? currentList : null;
+      if (list == null) {
+        if (s.anchorFrom.inRows() || s.end.inRows()) {
+          return false;
+        }
+        s.listId = currentListId;
+        s.rowsVersion = currentList == null ? 0 : currentList.rowsVersion();
+      } else {
+        int version = list.rowsVersion();
+        if (version != s.rowsVersion) {
+          int anchorRow = remapRow(list, s.anchorFrom.row(), s.anchorRowKey);
+          int endRow = remapRow(list, s.end.row(), s.endRowKey);
+          if (anchorRow == Integer.MIN_VALUE || endRow == Integer.MIN_VALUE) {
+            return false;
+          }
+          s.anchorFrom = s.anchorFrom.inRow(anchorRow);
+          s.anchorTo = s.anchorTo.inRow(anchorRow);
+          s.end = s.end.inRow(endRow);
+          s.rowsVersion = version;
+        }
+        if ((s.anchorFrom.inRows() && s.anchorFrom.row() >= list.rowCount())
+            || (s.end.inRows() && s.end.row() >= list.rowCount())) {
+          return false;
+        }
+      }
+    } else if (currentListId != null) {
+      s.listId = currentListId;
+      s.rowsVersion = currentList.rowsVersion();
+    }
+    return true;
   }
 
   /**
@@ -5371,6 +5393,7 @@ public final class App<S> {
     }
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
+    keptScope = old; // a remap that ended it drops this too
     if (!old.hasSelection()) {
       return false; // it gave no field a range, and others may have one of their own
     }
@@ -5745,14 +5768,27 @@ public final class App<S> {
       return new ScopePosition(rows[i], ordinals[i], Editor.snap(field, local));
     }
 
-    /** {@code position} as an index into the text, or -1 for a field that is not in it. */
+    /**
+     * {@code position} as an index into the text, or where its field would sit if it is empty or
+     * gone from its row.
+     */
     int offset(ScopePosition position) {
-      int i = indexOf(position.row(), position.field());
-      return i < 0 ? -1 : starts[i] + Math.min(position.offset(), end(i) - starts[i]);
+      int i = slot(position.row(), position.field());
+      if (i >= 0) {
+        return starts[i] + Math.min(position.offset(), end(i) - starts[i]);
+      }
+      int at = ~i;
+      return at < starts.length ? starts[at] : text.length();
     }
 
     /** The field at {@code (row, ordinal)}, or -1. */
     int indexOf(int row, int ordinal) {
+      int i = slot(row, ordinal);
+      return i >= 0 ? i : -1;
+    }
+
+    /** The field at {@code (row, ordinal)}, or {@code ~insertionPoint} if it is not in the index. */
+    private int slot(int row, int ordinal) {
       int lo = 0;
       int hi = starts.length - 1;
       while (lo <= hi) {
@@ -5767,7 +5803,7 @@ public final class App<S> {
           hi = mid - 1;
         }
       }
-      return -1;
+      return ~lo;
     }
   }
 
@@ -6184,6 +6220,7 @@ public final class App<S> {
           endFieldId);
       changed |= !next.sameEndpoints(scopeSelection);
       scopeSelection = next;
+      keptScope = null;
       changed |= focus.set(target, false, time);
       return changed;
     }
@@ -6203,6 +6240,7 @@ public final class App<S> {
         endFieldId);
     boolean scopeChanged = !next.sameEndpoints(scopeSelection);
     scopeSelection = next;
+    keptScope = null;
     ScopePosition start = scopeSelection.start();
     ScopePosition finish = scopeSelection.finish();
     for (ScopeField sf : fields) {
@@ -6530,6 +6568,9 @@ public final class App<S> {
     }
     if (scopeSelection != null && gone(scopeSelection.scopeId, rowsBuilt)) {
       scopeSelection = null;
+    }
+    if (keptScope != null && gone(keptScope.scopeId, rowsBuilt)) {
+      keptScope = null;
     }
     if (gone(secondary, rowsBuilt)) {
       secondary = null;

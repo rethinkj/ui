@@ -3335,7 +3335,9 @@ public final class El {
    *
    * <p>On a {@link #selectionScope} it is told the scope's selection as indexes into {@link
    * App#scopeText}, as {@link App#select} takes them, whenever they change: by presses, {@link
-   * App#select}, and rows inserted or removed above it, which it follows by their keys.
+   * App#select}, and rows inserted or removed above it, which it follows by their keys. After a
+   * press elsewhere ends the selection, it still follows where the selection was until another
+   * selection starts or its row or field is gone, in rows only by their keys.
    */
   public El onSelect(SelectHandler handler) {
     if (!selectionScope) {

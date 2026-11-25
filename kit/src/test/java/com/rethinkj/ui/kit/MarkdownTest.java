@@ -1318,6 +1318,66 @@ class MarkdownTest {
     assertEquals(0, CellEditorTest.find(app, "area").scrollX(), 0.5);
   }
 
+  @Test
+  void findInScopeDoesNotSkipMatchAfterSelectedFieldEmpties() throws IOException {
+    List<String> fields = new ArrayList<>(List.of("needle", "needle", "needle"));
+    Find.State find = new Find.State();
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El scope = col().key("scope").wFull().grow(1).minSize(0, 0).gap(4).selectionScope();
+          for (int i = 0; i < fields.size(); i++) {
+            scope.child(El.text(fields.get(i))
+                .key("f" + i)
+                .editable(null)
+                .readOnly()
+                .font(t.prose().body().font().get())
+                .fontSize(t.prose().body().size()));
+          }
+          return col()
+              .wFull()
+              .hFull()
+              .fill(t.surface().panel())
+              .child(Find.find(ref[0], scope, find));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Select the first of three identical fields, then press into the query field to clear the
+    // scope's selection.
+    Script.run("""
+        size 480 200 scale 2
+        frame
+        press #f0 at left+5
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        advance 1
+        frame
+        press #find-field at left+20
+        frame""", app, out);
+    String first = app.tree().dump();
+    assertTrue(countLine(first).contains("\"1 of 3\""), first);
+    assertTrue(CellEditorTest.find(app, "f0").text().selection().isEmpty());
+
+    // Empty the first field: the kept position collapses before the second field (which now starts
+    // at 0), so Enter selects the second field (1 of 2) instead of skipping to the third.
+    fields.set(0, "");
+    app.invalidate();
+    Script.run("frame", app, out);
+    String emptied = app.tree().dump();
+    assertTrue(countLine(emptied).contains("\"2 results\""), emptied);
+
+    Script.run("key Enter\nframe", app, out);
+    String next = app.tree().dump();
+    assertTrue(countLine(next).contains("\"1 of 2\""), next);
+    assertFalse(CellEditorTest.find(app, "f1").text().selection().isEmpty(), next);
+    assertTrue(CellEditorTest.find(app, "f2").text().selection().isEmpty(), next);
+  }
+
   private static String countLine(String tree) {
     return tree.lines().filter(l -> l.contains("#count ")).findFirst().orElse("");
   }

@@ -1,0 +1,1 @@
+- Find over a selection scope keeps its current match by row after a press in the query, also when rows change above and below the match at once or the match's field is emptied, so Enter goes on to the next match. A scope's `El#onSelect` now goes on following where its selection was after a press elsewhere ends it.

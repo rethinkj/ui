@@ -697,6 +697,67 @@ class ChatTest {
         next);
   }
 
+  @Test
+  void findAdvancesPastCurrentMatchAfterQueryPressAndChangesAboveAndBelow() throws IOException {
+    List<Entry> messages = needleMessages();
+    App<Object> app = findApp(messages);
+
+    // Open Find, land on the first match (message 8), then press into the query field without
+    // editing it, which clears the scope's selection.
+    Script.run("""
+        size 560 240 scale 2
+        frame
+        press text="Message 19." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        advance 1
+        frame
+        press #find-field at left+20
+        frame""", app, out);
+    String first = app.tree().dump();
+    assertTrue(
+        first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), first);
+    assertTrue(first.contains("\"Message 8 has needle.\""), first);
+
+    // Edit a message above and the last reply below in one build, the one above keeping its
+    // length: the match's offsets stay as they were, and it is still the current one.
+    messages.set(0, new Entry(6, Markdown.parse("Message 6!")));
+    messages.set(messages.size() - 1, new Entry(19, Markdown.parse("Message 19 streams.")));
+    app.invalidate();
+    Script.run("frame", app, out);
+    String edited = app.tree().dump();
+    assertTrue(
+        edited.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), edited);
+
+    // In one build, prepend older messages (with a match) above message 8 and grow the last reply
+    // below it: the kept position still follows message 8 by row key (2 of 3), and Enter advances
+    // straight to message 15 (3 of 3).
+    List<Entry> older = new ArrayList<>();
+    for (int id = 1; id <= 3; id++) {
+      String body = id == 2 ? "Message 2 has needle." : "Message " + id + " older.";
+      older.add(new Entry(id, Markdown.parse(body)));
+    }
+    messages.addAll(0, older);
+    messages.set(messages.size() - 1, new Entry(19, Markdown.parse("Message 19 grew longer.")));
+    app.invalidate();
+    Script.run("frame", app, out);
+    String afterChange = app.tree().dump();
+    assertTrue(
+        afterChange.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")),
+        afterChange);
+
+    Script.run("key Enter\nframe", app, out);
+    String next = app.tree().dump();
+    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"3 of 3\"")), next);
+    assertTrue(
+        next.lines()
+            .anyMatch(l -> l.contains("\"Message 15 has needle.\"") && l.contains("underline")),
+        next);
+  }
+
   private record Entry(int id, MarkdownDocument doc) {}
 
   /** Messages 6 to 19, of which 8 and 15 have a match for "needle". */
