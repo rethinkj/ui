@@ -1,0 +1,10 @@
+size 400 300
+frame
+press role=button label="Atlas mini"
+frame
+advance 0.3
+frame
+snap open
+type "at"
+frame
+snap typed
