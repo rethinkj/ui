@@ -26,7 +26,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -76,9 +75,8 @@ public final class Font implements AutoCloseable {
   // shortcut: one count for every app, so another window that shapes text in two frames between
   // two rebuilds of this one lets this one's runs go; count per app when several windows shape
   // large views at once.
+  // Twice the frame, plus 1 once a frame has started: one value, so that both change at once.
   private static final AtomicLong FRAME = new AtomicLong();
-
-  private static final AtomicBoolean FRAME_STARTED = new AtomicBoolean();
 
   /** Applied before the caller's features, so that {@code +calt} turns contextual forms on. */
   private static final String DEFAULT_FEATURES = "-calt";
@@ -482,12 +480,12 @@ public final class Font implements AutoCloseable {
    * may be dropped from now on. {@link Atlas#nextFrame} calls this.
    */
   static void nextFrame() {
-    FRAME_STARTED.set(true);
+    FRAME.getAndUpdate(frame -> frame | 1);
   }
 
   /** The current frame, moved on by the first shape after {@link #nextFrame}, not by idle frames. */
   private static long frame() {
-    return FRAME_STARTED.compareAndSet(true, false) ? FRAME.incrementAndGet() : FRAME.get();
+    return FRAME.updateAndGet(frame -> frame + (frame & 1)) >> 1;
   }
 
   /**
