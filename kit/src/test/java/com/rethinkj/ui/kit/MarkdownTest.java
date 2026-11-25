@@ -1197,6 +1197,127 @@ class MarkdownTest {
         matchY >= bar[1] + bar[3], "matchY=" + matchY + " bar=" + (bar[1] + bar[3]) + "\n" + back);
   }
 
+  @Test
+  void findScrollsSidewaysIntoOutOfViewSpansColumns() throws IOException {
+    int cols = 10;
+    float colWidth = 100;
+    float rowHeight = 24;
+    Find.State find = new Find.State();
+    App<?>[] ref = new App<?>[1];
+    App<Object> app = new App<>(new Object(), state -> {
+          Theme t = Theme.CURRENT.get();
+          El area = El.row()
+              .key("area")
+              .scrollBoth()
+              .selectionScope()
+              .w(360)
+              .h(160)
+              .child(col()
+                  .w(cols * colWidth)
+                  .h(160)
+                  .child(col()
+                      .key("list")
+                      .grow(1)
+                      .minSize(0, 0)
+                      .rows(30, rowHeight, (i, from, to) -> {
+                        El r = El.row().key("row-" + i);
+                        int first = cols;
+                        int last = -1;
+                        for (int c = 0; c < cols; c++) {
+                          float left = c * colWidth;
+                          if (left + colWidth > from && left < to) {
+                            first = Math.min(first, c);
+                            last = c;
+                          }
+                        }
+                        if (first < cols) {
+                          r.padding(0, 0, 0, first * colWidth);
+                          for (int c = first; c <= last; c++) {
+                            String label = (i == 1 && c == 0) || (i == 20 && c == 8)
+                                ? "R" + i + "C" + c + " needle"
+                                : "R" + i + "C" + c + " filler";
+                            r.child(El.text(label)
+                                .editable(null)
+                                .readOnly()
+                                .multiline()
+                                .fitLines()
+                                .key("cell-" + i + "-" + c)
+                                .font(t.prose().body().font().get())
+                                .fontSize(t.prose().body().size())
+                                .w(colWidth)
+                                .h(rowHeight));
+                          }
+                        }
+                        return r;
+                      })));
+          return col()
+              .wFull()
+              .hFull()
+              .fill(t.surface().panel())
+              .child(Find.find(ref[0], area, find));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    ref[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Match 1 is in view at row 1 col 0; match 2 is out of view vertically and sideways at row 20
+    // col 8. Both must be counted during the view build before layout, even on the first open.
+    Script.run("""
+        size 480 200 scale 2
+        frame
+        press #cell-1-0 at left+5
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        snap first""", app, out);
+    String first = Files.readString(out.resolve("first.tree.txt"));
+    assertTrue(countLine(first).contains("\"1 of 2\""), first);
+    assertEquals(null, CellEditorTest.find(app, "cell-20-8"), "row 20 col 8 is not built yet");
+
+    // Enter scrolls both vertically and sideways, builds row 20 col 8 and shows its selection.
+    Script.run("""
+        key Enter
+        frame
+        snap second""", app, out);
+    String second = Files.readString(out.resolve("second.tree.txt"));
+    assertTrue(countLine(second).contains("\"2 of 2\""), second);
+    El area = CellEditorTest.find(app, "area");
+    assertTrue(area.scrollX() > 0, "scrolled sideways: scrollX=" + area.scrollX());
+    El target = CellEditorTest.find(app, "cell-20-8");
+    assertNotNull(target, "row 20 col 8 is built");
+    assertFalse(target.text().selection().isEmpty(), "cell-20-8 shows its selection");
+    assertTrue(second.contains("underline 6-12"), second);
+    float[] areaBounds = bounds(second, "#area");
+    float[] cellBounds = bounds(second, "\"R20C8 needle\"");
+    assertTrue(
+        cellBounds[0] >= areaBounds[0]
+            && cellBounds[0] + cellBounds[2] <= areaBounds[0] + areaBounds[2],
+        second);
+
+    // Escape + Ctrl+C copies the match, and F3 wraps back left to the now-unbuilt row 1 col 0.
+    Script.run("""
+        key Escape
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    assertEquals("needle", app.clipboard().read());
+    assertEquals(null, CellEditorTest.find(app, "cell-1-0"), "row 1 col 0 left the built span");
+    Script.run("""
+        key F3
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    El back = CellEditorTest.find(app, "cell-1-0");
+    assertNotNull(back, "row 1 col 0 was scrolled back into view and built");
+    assertFalse(back.text().selection().isEmpty(), "cell-1-0 shows its selection");
+    assertEquals("needle", app.clipboard().read());
+    assertEquals(0, CellEditorTest.find(app, "area").scrollX(), 0.5);
+  }
+
   private static String countLine(String tree) {
     return tree.lines().filter(l -> l.contains("#count ")).findFirst().orElse("");
   }

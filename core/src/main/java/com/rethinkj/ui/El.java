@@ -1389,7 +1389,9 @@ public final class El {
    * are built for the part of them in view sideways too, as a table builds only the cells of the
    * columns in view. The row function gets that part, widened by half its width on each side, in
    * the coordinates of the list's content box; the list is clipped by a scroll area around it that
-   * scrolls sideways, or by the window. When scrolling sideways shows a part beyond it, {@link
+   * scrolls sideways, or by the window. To read the text of every column, as {@link
+   * App#scopeText} does, it gets the part from 0 to {@link Float#POSITIVE_INFINITY}: build only
+   * the columns there are. When scrolling sideways shows a part beyond it, {@link
    * App} builds the rows anew, without running the view, as it does when scrolling shows a row
    * that does not exist yet. Give each column's cell, and each element that holds cells, a {@link
    * #key} so a selection across a {@link #selectionScope} stays on its columns as the list scrolls
@@ -3330,9 +3332,15 @@ public final class El {
    * a row of a virtual list that layout left out of the tree is not told; it is told once its row
    * is back, also when scrolling brought it. For the caret's rectangle, place an overlay {@link
    * #atCaret}.
+   *
+   * <p>On a {@link #selectionScope} it is told the scope's selection as indexes into {@link
+   * App#scopeText}, as {@link App#select} takes them, whenever they change: by presses, {@link
+   * App#select}, and rows inserted or removed above it, which it follows by their keys.
    */
   public El onSelect(SelectHandler handler) {
-    editableOnly("onSelect");
+    if (!selectionScope) {
+      editableOnly("onSelect");
+    }
     handlers().onSelect = handler;
     return this;
   }
@@ -5967,15 +5975,15 @@ public final class El {
   /**
    * Returns the built row with this index if it exists, or builds it with the row function without
    * keeping it, for reading text across rows that are out of view. When this list builds only the
-   * columns in view sideways, builds the row for the whole width of the list's content box so
-   * every column is present.
+   * columns in view sideways, builds the row without a horizontal span limit so every column is
+   * present, also before the list's first layout.
    */
   El rowElement(int index) {
     if (rows == null || index < 0 || index >= rows.rowCount) {
       return null;
     }
     if (rows.spans) {
-      return rows.rowBuilder.row(index, 0, rowWidth());
+      return rows.rowBuilder.row(index, 0, Float.POSITIVE_INFINITY);
     }
     if (hasRow(index)) {
       return children.get(index - rows.firstRow);
@@ -6144,6 +6152,16 @@ public final class El {
       measureScroll();
       setScroll(scrollX, follow ? maxScrollY : scrollY + rowTop(anchor) - before);
     }
+  }
+
+  /** Lays out a temporary row element as {@link #placeRow} does, without adding it to the list. */
+  void layoutRowElement(El row, float scale, boolean systemFonts) {
+    float inner = rowWidth();
+    row.style.width = Len.px(inner);
+    row.style.height = Len.px(rows.rowHeight);
+    scaleText(row, scale, systemFonts, resolvedLineHeight);
+    Flex.layout(row, inner, rows.rowHeight);
+    row.place(rowsLeft(), 0, inner, row.height);
   }
 
   /**

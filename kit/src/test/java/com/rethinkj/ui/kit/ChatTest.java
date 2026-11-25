@@ -588,4 +588,91 @@ class ChatTest {
     assertFalse(builtRows.contains(44), "unchanged out-of-view row stayed cached");
     assertFalse(builtRows.contains(57), "unchanged out-of-view row stayed cached");
   }
+
+  @Test
+  void findAdvancesPastCurrentMatchAfterRowsInsertedAtTop() throws IOException {
+    record Entry(int id, MarkdownDocument doc) {}
+    List<Entry> messages = new ArrayList<>();
+    for (int id = 6; id <= 19; id++) {
+      String body = id == 8 || id == 15 ? "Message " + id + " has needle." : "Message " + id + ".";
+      messages.add(new Entry(id, Markdown.parse(body)));
+    }
+    ScrollState scroll = new ScrollState();
+    RowHeights heights =
+        new RowHeights(index -> 64, index -> messages.get(index).id());
+    Find.State find = new Find.State();
+    App<?>[] holder = new App<?>[1];
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .fill(Theme.DARK.surface().panel())
+                .child(Find.find(
+                        holder[0],
+                        Chat.transcript(
+                                messages.size(),
+                                index -> Chat.agent(messages.get(index).doc()),
+                                scroll,
+                                heights)
+                            .grow(1),
+                        find)
+                    .grow(1)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    holder[0] = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // Open Find and land on the first match (message 8).
+    Script.run("""
+        size 560 240 scale 2
+        frame
+        press text="Message 19." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame""", app, out);
+    String first = app.tree().dump();
+    assertTrue(
+        first.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 2\"")), first);
+    assertTrue(first.contains("\"Message 8 has needle.\""), first);
+
+    // Prepend older messages (including one with a match) above the current match: the count
+    // stays on message 8 as 2 of 3, and Enter advances straight to message 15 (3 of 3).
+    List<Entry> older = new ArrayList<>();
+    for (int id = 1; id <= 5; id++) {
+      String body = id == 2 ? "Message 2 has needle." : "Message " + id + " older.";
+      older.add(new Entry(id, Markdown.parse(body)));
+    }
+    messages.addAll(0, older);
+    // The last reply grows in the same frame, as a streamed one does.
+    messages.set(messages.size() - 1, new Entry(19, Markdown.parse("Message 19 grew longer.")));
+    app.invalidate();
+    Script.run("frame", app, out);
+    String afterInsert = app.tree().dump();
+    assertTrue(
+        afterInsert.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"2 of 3\"")),
+        afterInsert);
+
+    Script.run("key Enter\nframe", app, out);
+    String next = app.tree().dump();
+    assertTrue(next.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"3 of 3\"")), next);
+    assertTrue(next.contains("\"Message 15 has needle.\""), next);
+
+    // Shift+Enter steps back through message 8 to the newly inserted message 2.
+    Script.run("key Enter shift\nframe\nkey Enter shift\nframe", app, out);
+    String earlier = app.tree().dump();
+    assertTrue(
+        earlier.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 3\"")), earlier);
+    assertTrue(earlier.contains("\"Message 2 has needle.\""), earlier);
+
+    // Appending a message at the bottom leaves the current match on message 2.
+    messages.add(new Entry(20, Markdown.parse("Message 20 has needle.")));
+    app.invalidate();
+    Script.run("frame", app, out);
+    String afterAppend = app.tree().dump();
+    assertTrue(
+        afterAppend.lines().anyMatch(l -> l.contains("#count ") && l.contains("\"1 of 4\"")),
+        afterAppend);
+  }
 }
