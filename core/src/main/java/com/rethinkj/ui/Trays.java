@@ -23,7 +23,9 @@ public interface Trays {
     }
 
     @Override
-    public void remove() {}
+    public void remove() {
+      // nothing was shown, so there is nothing to remove
+    }
   };
 
   /**

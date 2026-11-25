@@ -104,7 +104,10 @@ final class SystemTrays implements Trays {
         for (int i = existing.length - 1; i >= 0; i--) {
           Sdl.removeTrayEntry(existing[i]);
         }
-        populate(sdlMenu, tray.entries());
+        if (!populate(sdlMenu, tray.entries())) {
+          // the next show builds the menu again: update finds SDL's entries short
+          failed.accept(errorMessage("The system could not add every entry to the tray menu."));
+        }
       }
       currentEntries = tray.entries();
     } finally {
@@ -238,38 +241,48 @@ final class SystemTrays implements Trays {
     return surface.equals(MemorySegment.NULL) ? null : surface;
   }
 
-  private void populate(MemorySegment menu, List<Tray.Entry> entries) {
+  /** Inserts the entries into SDL's menu; false if SDL failed to insert one of them. */
+  private boolean populate(MemorySegment menu, List<Tray.Entry> entries) {
+    boolean complete = true;
     for (Tray.Entry entry : entries) {
-      switch (entry) {
+      MemorySegment handle = switch (entry) {
         case Tray.Separator _ -> Sdl.insertTrayEntryAt(menu, -1, null, 0);
-        case Tray.Button b -> {
-          int flags = Sdl.TRAYENTRY_BUTTON | (b.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED);
-          MemorySegment handle = Sdl.insertTrayEntryAt(menu, -1, b.label(), flags);
-          if (!handle.equals(MemorySegment.NULL)) {
-            register(handle, new Action(this, b.onClick(), null));
-          }
-        }
-        case Tray.Checkbox c -> {
-          int flags = Sdl.TRAYENTRY_CHECKBOX
-              | (c.checked() ? Sdl.TRAYENTRY_CHECKED : 0)
-              | (c.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED);
-          MemorySegment handle = Sdl.insertTrayEntryAt(menu, -1, c.label(), flags);
-          if (!handle.equals(MemorySegment.NULL)) {
-            register(handle, new Action(this, null, c.onToggle()));
-          }
-        }
+        case Tray.Button b ->
+          Sdl.insertTrayEntryAt(
+              menu,
+              -1,
+              b.label(),
+              Sdl.TRAYENTRY_BUTTON | (b.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED));
+        case Tray.Checkbox c ->
+          Sdl.insertTrayEntryAt(
+              menu,
+              -1,
+              c.label(),
+              Sdl.TRAYENTRY_CHECKBOX
+                  | (c.checked() ? Sdl.TRAYENTRY_CHECKED : 0)
+                  | (c.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED));
+        case Tray.Submenu s ->
+          Sdl.insertTrayEntryAt(
+              menu,
+              -1,
+              s.label(),
+              Sdl.TRAYENTRY_SUBMENU | (s.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED));
+      };
+      if (handle.equals(MemorySegment.NULL)) {
+        complete = false;
+        continue;
+      }
+      switch (entry) {
+        case Tray.Button b -> register(handle, new Action(this, b.onClick(), null));
+        case Tray.Checkbox c -> register(handle, new Action(this, null, c.onToggle()));
         case Tray.Submenu s -> {
-          int flags = Sdl.TRAYENTRY_SUBMENU | (s.enabled() ? 0 : Sdl.TRAYENTRY_DISABLED);
-          MemorySegment handle = Sdl.insertTrayEntryAt(menu, -1, s.label(), flags);
-          if (!handle.equals(MemorySegment.NULL)) {
-            MemorySegment sub = Sdl.createTraySubmenu(handle);
-            if (!sub.equals(MemorySegment.NULL)) {
-              populate(sub, s.entries());
-            }
-          }
+          MemorySegment sub = Sdl.createTraySubmenu(handle);
+          complete &= !sub.equals(MemorySegment.NULL) && populate(sub, s.entries());
         }
+        case Tray.Separator _ -> {}
       }
     }
+    return complete;
   }
 
   private void register(MemorySegment entry, Action action) {
