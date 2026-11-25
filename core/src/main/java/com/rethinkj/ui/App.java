@@ -1173,7 +1173,7 @@ public final class App<S> {
     final Object scopeId;
     ScopePosition anchorFrom;
     ScopePosition anchorTo;
-    final Object listId;
+    Object listId; // rebound to a new list while the anchor is outside the rows
     int rowsVersion;
     final Object anchorRowKey;
     final int unit;
@@ -3352,7 +3352,11 @@ public final class App<S> {
     }
     long inputEnd = System.nanoTime();
     long inputBuild = buildNanos;
-    if (!handled && !changedOutside && edgeScroll()) { // a view to build first scrolls next frame
+    if (edgeScrolling && (handled || changedOutside)) {
+      build(handled, false); // the edge scroll goes on in the view built from the state now
+      drawn = true;
+    }
+    if (edgeScroll()) {
       drawn = true;
     }
     stale |= shownFor();
@@ -4742,7 +4746,12 @@ public final class App<S> {
       El scope = animator.liveElement(s.scopeId());
       El list = scope == null ? null : scopeList(scope);
       if (list != null && !s.listId.equals(animator.identity(list))) {
-        list = null;
+        if (s.anchorFrom.row() < 0) { // an anchor outside the rows extends into the new list
+          s.listId = animator.identity(list);
+          s.rowsVersion = list.rowsVersion();
+        } else {
+          list = null;
+        }
       }
       if (scope != null) {
         if (list == null) {
@@ -5401,9 +5410,9 @@ public final class App<S> {
       return false;
     }
     scrolled = true;
-    tellUserScroll(area);
-    settle();
+    settle(); // before onUserScroll, which may change what the row function reads
     stale |= drag(s, s.x, s.y);
+    stale |= tellUserScroll(area);
     return true;
   }
 
