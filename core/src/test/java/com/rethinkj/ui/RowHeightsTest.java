@@ -152,6 +152,146 @@ class RowHeightsTest {
     }
   }
 
+  /**
+   * Tab goes to a focusable row of a list in a row that isn't built, several screens down, and
+   * shows it; on to a row of the outer list that isn't built either; Shift+Tab goes back.
+   */
+  @Test
+  void tabReachesFocusableRowsThatAreNotBuiltAndShowsThem() {
+    RowHeights outer = new RowHeights(i -> 50);
+    RowHeights inner = new RowHeights(i -> 20);
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .children(
+                el().key("list")
+                    .h(100)
+                    .rows(
+                        2,
+                        outer,
+                        i -> i == 0
+                            ? el().key("inner")
+                                .rows(
+                                    200,
+                                    inner,
+                                    j -> j == 0 || j == 150
+                                        ? el().key("link-" + j).focusable().h(20)
+                                        : el().h(20))
+                            : el().key("end").focusable().h(20)),
+                el().key("after").focusable().h(20)));
+    app.resize(200, 200, 1);
+    app.frame();
+    app.focus(find(app.tree(), "link-0"));
+    app.frame();
+    for (String expected : List.of("link-150", "end", "after")) {
+      tab(app, 0);
+      assertEquals(expected, key(app.focused()), app.tree().dump());
+      assertInView(app);
+    }
+    for (String expected : List.of("end", "link-150", "link-0")) {
+      tab(app, Key.SHIFT);
+      assertEquals(expected, key(app.focused()), app.tree().dump());
+      assertInView(app);
+    }
+  }
+
+  /**
+   * Tab back into a list in a row goes to the row that had the focus there, also when the outer
+   * list scrolled it out of its view meanwhile.
+   */
+  @Test
+  void tabReturnsToTheRowOfAListInARowThatTheOuterListScrolledAway() {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .children(
+                el().key("before").focusable().h(20),
+                el().key("list")
+                    .h(100)
+                    .rows(
+                        1,
+                        new RowHeights(i -> 800),
+                        i -> el().key("inner")
+                            .rows(
+                                40,
+                                new RowHeights(j -> 20),
+                                j -> el().key("row-" + j).focusable().h(20)))));
+    app.resize(200, 200, 1);
+    app.frame();
+    app.scrollTo(find(app.tree(), "list"), 0, 300);
+    app.frame();
+    app.focus(find(app.tree(), "row-16"));
+    app.frame();
+    app.focus(find(app.tree(), "before"));
+    app.scrollTo(find(app.tree(), "list"), 0, 0);
+    app.frame();
+    assertEquals(null, find(app.tree(), "row-16"), "out of the outer list's view");
+    tab(app, 0);
+    assertEquals("row-16", key(app.focused()), app.tree().dump());
+    assertInView(app);
+  }
+
+  private static void tab(App<?> app, int modifiers) {
+    app.keyDown(new Key("Tab", modifiers, false));
+    app.frame();
+  }
+
+  private static String key(El el) {
+    return el == null ? null : el.key();
+  }
+
+  private static El find(El el, String key) {
+    if (key.equals(el.key())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = find(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  /** The focused element lies inside the window, and inside the list "list" if it is in it. */
+  private static void assertInView(App<?> app) {
+    List<El> path = new ArrayList<>();
+    assertTrue(pathTo(app.tree(), app.focused(), path));
+    float top = 0;
+    float listTop = Float.NEGATIVE_INFINITY;
+    float listBottom = Float.POSITIVE_INFINITY;
+    for (El el : path) {
+      top += el.y();
+      if ("list".equals(el.key())) {
+        listTop = top;
+        listBottom = top + el.height();
+      }
+    }
+    float bottom = top + app.focused().height();
+    assertTrue(
+        top >= Math.max(listTop, 0) && bottom <= Math.min(listBottom, 200),
+        top + " to " + bottom + " in " + listTop + " to " + listBottom + "\n"
+            + app.tree().dump());
+  }
+
+  private static boolean pathTo(El el, El target, List<El> path) {
+    path.add(el);
+    if (el == target) {
+      return true;
+    }
+    for (El child : el.children()) {
+      if (pathTo(child, target, path)) {
+        return true;
+      }
+    }
+    path.removeLast();
+    return false;
+  }
+
   @Test
   void rowsEstimatedTooHighFillTheListInTheFramesAfterAndThenTheAppIsIdle() {
     RowHeights heights = new RowHeights(i -> 100);

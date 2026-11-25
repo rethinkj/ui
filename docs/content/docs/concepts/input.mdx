@@ -57,7 +57,7 @@ A [`Drag`](/api/com/rethinkj/ui/Drag.html) provides `phase` (`START`, `MOVE`, `E
 3. **Enter** or **Space** (without modifiers) triggers `onPress` on the focused element.
 4. Ancestors' `onKey` handlers, from innermost to outermost.
 5. **Menu** key or **Shift+F10** triggers `onSecondaryPress` on the focused element or its nearest ancestor.
-6. **Tab** / **Shift+Tab** moves focus in tree order. **Page Up** / **Page Down** scrolls the nearest scroll container by a page (or the first scroll container inside a modal dialog), and **Home** / **End** scroll it to its start or end.
+6. **Tab** / **Shift+Tab** moves focus in tree order, also to rows of a virtual list that are not built: it builds the row that holds the next focusable element and scrolls it into view. **Page Up** / **Page Down** scrolls the nearest scroll container by a page (or the first scroll container inside a modal dialog), and **Home** / **End** scroll it to its start or end.
 
 [`Key`](/api/com/rethinkj/ui/Key.html) uses standard web key names (`"Enter"`, `"ArrowDown"`, `"A"`) and modifier flags (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 

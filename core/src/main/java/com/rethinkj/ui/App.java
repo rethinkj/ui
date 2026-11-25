@@ -1627,7 +1627,8 @@ public final class App<S> {
    * the root's handler sees it. If none does, Enter and Space without modifiers press the focused
    * element if it has an {@link El#onPress} handler, which takes their repeats without pressing
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
-   * previous one, around at the ends, and Page Up and Page Down without modifiers scroll the
+   * previous one, around at the ends, also in rows of a virtual list that are not built, building
+   * and showing the row, and Page Up and Page Down without modifiers scroll the
    * innermost scroll area around the focused element that can still move that way by its height,
    * as in a browser, and Home and End, alone or with Control, scroll it to its start or its end,
    * and in a read-only multi-line text field the arrow keys without modifiers scroll by a line,
@@ -1775,13 +1776,27 @@ public final class App<S> {
       settle();
       wake();
       Object from = focus.id(); // by identity: entering a list may build rows anew
-      List<El> order = focusables();
-      order.removeIf(el -> el.skipsTab() && el != focus.element());
-      if (!order.isEmpty()) {
-        int step = key.modifiers() == Key.SHIFT ? -1 : 1;
-        int at = order.indexOf(focus.element());
-        int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
-        El el = enter(order.get(Math.floorMod(next, order.size())), step);
+      List<Object> order = tabOrder();
+      order.removeIf(stop -> stop instanceof El el && el.skipsTab() && el != focus.element());
+      int step = key.modifiers() == Key.SHIFT ? -1 : 1;
+      int at = order.indexOf(focus.element());
+      at = at >= 0 ? at : step > 0 ? -1 : order.size();
+      El el = null;
+      boolean built = false; // a row was built for a gap: the order is stale
+      for (int i = 1; i <= order.size() && el == null && !built; i++) {
+        Object stop = order.get(Math.floorMod(at + i * step, order.size()));
+        if (stop instanceof El next) {
+          el = enter(next, step);
+        } else if (stop instanceof Gap gap && gap.after() == step > 0) {
+          int row = gapRow(gap, step);
+          built = row >= 0;
+          el = built ? inGap(gap, row, step) : null;
+        }
+      }
+      if (built && el == null) {
+        return true; // the layout clipped away what the row function made focusable
+      }
+      if (el != null) {
         if (animator.identity(el) == null) {
           return true; // an edit that went in on the way removed it: the focus stays
         }
@@ -2665,48 +2680,138 @@ public final class App<S> {
       return next;
     }
     El list = in.list();
-    Object last = focus.lastInList(in.listId());
+    int row = lastRow(list, in.listId());
+    El found = inRow(in.listId(), row >= 0 ? row : list.rowInView(step < 0), step);
+    return found != null ? found : Objects.requireNonNullElse(animator.element(nextId), next);
+  }
+
+  /** The row of the element that last had the focus in this list, or -1. */
+  private int lastRow(El list, Object listId) {
+    Object last = focus.lastInList(listId);
     Animator.InRow was = last == null ? null : animator.inRow(last);
-    int row = was != null && was.listId().equals(in.listId()) && was.row() < list.rowCount()
+    return was != null && was.listId().equals(listId) && was.row() < list.rowCount()
         ? was.row()
-        : list.rowInView(step < 0);
+        : -1;
+  }
+
+  /**
+   * Where a virtual list has rows it did not build, before the first it built or after the last:
+   * Tab looks there, in the order of the rows, for the next one that holds something to focus.
+   */
+  private record Gap(El list, boolean after) {}
+
+  /**
+   * The row of {@code gap} that Tab goes to: the next one in the {@code step}'s direction that
+   * holds an element Tab stops at, as the row function builds it; the row that last had the
+   * focus in the list when Tab enters it from outside and that row is not built. -1 if none.
+   */
+  private int gapRow(Gap gap, int step) {
+    El list = gap.list();
+    Object listId = animator.identity(list);
+    int last = Animator.isBelow(focus.id(), listId) ? -1 : lastRow(list, listId);
+    if (last >= 0 && !list.hasRow(last)) {
+      return last;
+    }
+    int end = step > 0 ? list.rowCount() : -1;
+    for (int row = step > 0 ? list.firstRow() + list.children().size() : list.firstRow() - 1;
+        row != end;
+        row += step) {
+      if (stopsTab(list.rowElement(row))) {
+        return row;
+      }
+    }
+    return -1;
+  }
+
+  /** Where Tab goes in row {@code row} of {@code gap}'s list, from {@link #gapRow}. */
+  private El inGap(Gap gap, int row, int step) {
+    return inRow(animator.identity(gap.list()), row, step);
+  }
+
+  /**
+   * Whether Tab stops at {@code el} or at an element inside it, as a row function built it and
+   * before its layout: in the rows of the virtual lists in it too, which this builds.
+   */
+  private static boolean stopsTab(El el) {
+    if (el == null || !numbered(el) || el.opacity() == 0) {
+      return false;
+    }
+    if (el.isFocusable() && !el.skipsTab()) {
+      return true;
+    }
+    if (el.isVirtualList()) {
+      for (int row = 0; row < el.rowCount(); row++) {
+        if (stopsTab(el.rowElement(row))) {
+          return true;
+        }
+      }
+      return false;
+    }
+    for (El child : el.children()) {
+      if (stopsTab(child)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Builds row {@code row} of the list with identity {@code listId} and scrolls it into view,
+   * through the scroll areas around the list too, if it is not built, and returns where Tab goes
+   * in it: to the element that last had the focus in the list if it is in the row, else to its
+   * first element Tab stops at, its last for a negative {@code step}, also in the rows not built
+   * of a list in it; for a {@code step} of 0 to the one {@link Focus#firstInside} picks. Null if
+   * there is none.
+   */
+  private El inRow(Object listId, int row, int step) {
+    El list = animator.element(listId);
+    if (list == null) {
+      return null;
+    }
     if (!list.hasRow(row)) {
       boolean moved = list.scrollTo(list.scrollX(), list.offsetShowing(row));
+      // A list as high as its rows shows the row by the areas around it.
+      float[] box = list.rowBox(row);
+      moved |= reveal(list, 0, box[0], list.width(), box[1], false, null, 0);
       scrolled |= moved;
-      keyRevealed(in.listId(), moved);
+      keyRevealed(listId, moved);
       fillRows();
       placeEditors(false, false); // the parts of its fields, which Tab may enter
       if (editFirst(true, false, toldSizes)) { // before Tab selects in the field: a tree anew
         handled = true;
-        list = animator.element(in.listId());
-        next = Objects.requireNonNullElse(animator.element(nextId), next);
       }
+      list = animator.element(listId);
       if (list == null || !list.hasRow(row)) {
-        return next;
+        return null;
       }
     }
     El rowEl = list.children().get(row - list.firstRow());
     Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
     collect(rowEl, inside);
-    List<El> order = focusables();
+    List<Object> order = tabOrder();
     if (step != 0) {
-      order.removeIf(El::skipsTab); // as for the order outside: the focus is not in the list
+      order.removeIf(stop -> stop instanceof El el && el.skipsTab()); // the focus is not in it
     }
+    Object last = focus.lastInList(listId);
     El again = last == null ? null : animator.element(last);
     if (again != null && inside.contains(again) && order.contains(again)) {
       return again;
     }
     if (step == 0) {
-      El chosen = Focus.firstInside(rowEl, order);
-      return chosen != null ? chosen : next;
+      return Focus.firstInside(rowEl, elements(order));
     }
-    El found = null;
-    for (El el : order) {
-      if (inside.contains(el) && (found == null || step < 0)) {
-        found = el;
+    for (Object stop : step > 0 ? order : order.reversed()) {
+      if (stop instanceof El el && inside.contains(el)) {
+        return el;
+      }
+      if (stop instanceof Gap gap && gap.after() == step > 0 && inside.contains(gap.list())) {
+        int inner = gapRow(gap, step);
+        if (inner >= 0) {
+          return inGap(gap, inner, step);
+        }
       }
     }
-    return found != null ? found : next;
+    return null;
   }
 
   private static void collect(El el, Set<El> into) {
@@ -2907,7 +3012,12 @@ public final class App<S> {
    * scrolls it into view.
    */
   List<El> focusables() {
-    List<El> found = new ArrayList<>();
+    return elements(tabOrder());
+  }
+
+  /** The elements of {@link #focusables}, with a {@link Gap} where a virtual list has some. */
+  private List<Object> tabOrder() {
+    List<Object> found = new ArrayList<>();
     if (root != null) {
       float far = Float.POSITIVE_INFINITY;
       El modal = modal(); // the focus stays inside it
@@ -2915,6 +3025,16 @@ public final class App<S> {
           modal != null ? modal : root, 0, 0, -far, -far, far, far, root.shownOverlays(), found);
     }
     return found;
+  }
+
+  private static List<El> elements(List<Object> order) {
+    List<El> elements = new ArrayList<>(order.size());
+    for (Object stop : order) {
+      if (stop instanceof El el) {
+        elements.add(el);
+      }
+    }
+    return elements;
   }
 
   /** The overlays shown come right after their anchor and what is inside it. */
@@ -2927,7 +3047,7 @@ public final class App<S> {
       float clipRight,
       float clipBottom,
       List<El> shown,
-      List<El> found) {
+      List<Object> found) {
     if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting() || el.isInert()) {
       return;
     }
@@ -2959,6 +3079,10 @@ public final class App<S> {
       }
     }
     if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
+      boolean list = el.isVirtualList();
+      if (list && el.firstRow() > 0) {
+        found.add(new Gap(el, false));
+      }
       for (El child : el.children()) {
         float l = clipLeft;
         float r = clipRight;
@@ -2976,6 +3100,9 @@ public final class App<S> {
         if (r > l) {
           focusables(child, left, top, l, clipTop, r, clipBottom, shown, found);
         }
+      }
+      if (list && el.firstRow() + el.children().size() < el.rowCount()) {
+        found.add(new Gap(el, true));
       }
     }
     float far = Float.POSITIVE_INFINITY;

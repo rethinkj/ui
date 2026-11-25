@@ -1,0 +1,1 @@
+- Tab and Shift+Tab now reach focusable elements in rows of a virtual list that are not built, such as the links of a long answer shown with `Markdown.Options.virtual()`, and build and show the row that holds them. Tab back into a list in a row of another list returns to the row that last had the focus there, also when the outer list scrolled it out of view.
