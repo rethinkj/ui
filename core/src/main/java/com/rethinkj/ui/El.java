@@ -1381,7 +1381,9 @@ public final class El {
    * the coordinates of the list's content box; the list is clipped by a scroll area around it that
    * scrolls sideways, or by the window. When scrolling sideways shows a part beyond it, {@link
    * App} builds the rows anew, without running the view, as it does when scrolling shows a row
-   * that does not exist yet.
+   * that does not exist yet. Give each column's cell, and each element that holds cells, a {@link
+   * #key} so a selection across a {@link #selectionScope} stays on its columns as the list scrolls
+   * sideways.
    */
   public El rows(int count, float rowHeight, RowBuilder row) {
     if (count < 0) {
@@ -5181,6 +5183,11 @@ public final class El {
     return rows != null;
   }
 
+  /** Whether this virtual list builds its rows for the part of them in view sideways. */
+  boolean spansRows() {
+    return rows != null && rows.spans;
+  }
+
   /** The number of rows of a {@link #rows virtual list}, 0 for any other element. */
   public int rowCount() {
     return rows == null ? 0 : rows.rowCount;
@@ -5848,11 +5855,16 @@ public final class El {
 
   /**
    * Returns the built row with this index if it exists, or builds it with the row function without
-   * keeping it, for reading text across rows that are out of view.
+   * keeping it, for reading text across rows that are out of view. When this list builds only the
+   * columns in view sideways, builds the row for the whole width of the list's content box so
+   * every column is present.
    */
   El rowElement(int index) {
     if (rows == null || index < 0 || index >= rows.rowCount) {
       return null;
+    }
+    if (rows.spans) {
+      return rows.rowBuilder.row(index, 0, rowWidth());
     }
     if (hasRow(index)) {
       return children.get(index - rows.firstRow);
