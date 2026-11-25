@@ -436,6 +436,7 @@ final class Animator {
         move(old.el, rowId, before);
       }
     }
+    list.measureRowScrolls(); // before visit clamps the offsets of the areas in the rows
     Map<Id, Entry> current = entries;
     entries = before; // where visit finds the previous version of each row
     visiting = true;

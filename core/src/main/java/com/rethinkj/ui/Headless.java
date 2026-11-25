@@ -83,6 +83,7 @@ public final class Headless {
       for (El row : el.children()) {
         Overlays.layout(row, windowWidth, windowHeight);
       }
+      el.measureRowScrolls();
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
