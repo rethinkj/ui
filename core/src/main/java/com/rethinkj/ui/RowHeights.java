@@ -51,7 +51,7 @@ public final class RowHeights {
   private Map<Object, RowTexts> rowTexts = Map.of(); // by key, only with a rowVersion
   // By key, only with a rowVersion: how many read-only fields a row has, at a version, for a
   // selection scope around a list of these rows in a row of its own list.
-  private Map<Object, Object[]> fieldCounts = new HashMap<>();
+  private final Map<Object, Object[]> fieldCounts = new HashMap<>();
   private int version;
   private int previousCount;
   private double[] previousTree;
@@ -228,12 +228,12 @@ public final class RowHeights {
     return versions;
   }
 
-  /** The texts of the rows a scope's index last read, by key. */
   /** The field counts by key, which a key that is gone drops; see {@link App}. */
   Map<Object, Object[]> fieldCounts() {
     return fieldCounts;
   }
 
+  /** The texts of the rows a scope's index last read, by key. */
   Map<Object, RowTexts> rowTexts() {
     return rowTexts;
   }
