@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -559,8 +560,8 @@ class PartsTest {
     int accent = theme.accent().color();
     assertEquals(accent, image.argb(left + 1, top + 15), "the fill meets the left border");
     assertEquals(accent, image.argb(left + 30, top + 1), "the fill meets the top border");
-    assertFalse(image.argb(left + 30, top) == accent, "the top border stays visible");
-    assertFalse(image.argb(left + 2, top + 1) == accent, "the rounded corner stays visible");
+    assertNotEquals(accent, image.argb(left + 30, top), "the top border stays visible");
+    assertNotEquals(accent, image.argb(left + 2, top + 1), "the rounded corner stays visible");
     int divider = Math.round(sep[1] * 1.5f);
     assertEquals(
         image.argb(left + 30, divider), image.argb(left + 1, divider), "the divider meets it");
