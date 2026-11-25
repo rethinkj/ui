@@ -1789,10 +1789,14 @@ public final class App<S> {
         if (stop instanceof El next) {
           el = enter(next, step);
           Animator.InRow passed = el == null ? entered(animator.identity(next)) : null;
-          while (passed != null // nothing from the view on: on past the list's end
+          // Nothing from the view on: on past the list's end, but not past an overlay of a row.
+          while (passed != null
               && i < order.size()
-              && !isEnd(order.get(Math.floorMod(at + i * step, order.size())), passed, step)) {
+              && !overlaid(order.get(Math.floorMod(at + (i + 1) * step, order.size())), passed)) {
             i++;
+            if (isEnd(order.get(Math.floorMod(at + i * step, order.size())), passed, step)) {
+              break;
+            }
           }
         } else if (stop instanceof Gap gap) {
           boolean[] made = {false};
@@ -2730,11 +2734,21 @@ public final class App<S> {
       return null;
     }
     for (Animator.InRow up = animator.inRow(in.listId());
-        up != null && !Animator.isBelow(focus.id(), up.listId());
+        up != null
+            && !Animator.isBelow(focus.id(), up.listId())
+            && Animator.isBelowInLayer(in.listId(), up.listId()); // not out of an overlay
         up = animator.inRow(up.listId())) {
       in = up;
     }
     return in;
+  }
+
+  /** Whether this stop of {@link #tabOrder} is in an overlay of a row of the list of {@code in}. */
+  private boolean overlaid(Object stop, Animator.InRow in) {
+    Object id = stop instanceof El el ? animator.identity(el) : null;
+    return id != null
+        && Animator.isBelow(id, in.listId())
+        && !Animator.isBelowInLayer(id, in.listId());
   }
 
   /** Whether this stop of {@link #tabOrder} is the end of the list {@code in} is a row of. */
@@ -3043,6 +3057,9 @@ public final class App<S> {
     into.add(el);
     for (El child : el.children()) {
       collect(child, into);
+    }
+    for (El overlay : el.overlays()) { // which Tab reaches with what they are anchored to
+      collect(overlay, into);
     }
   }
 
