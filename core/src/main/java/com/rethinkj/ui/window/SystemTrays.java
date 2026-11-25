@@ -96,6 +96,7 @@ final class SystemTrays implements Trays {
       }
     }
     clearCallbacks();
+    boolean complete = true;
     populating = true;
     try {
       if (!sameShape(currentEntries, tray.entries()) || !update(sdlMenu, tray.entries())) {
@@ -104,14 +105,14 @@ final class SystemTrays implements Trays {
         for (int i = existing.length - 1; i >= 0; i--) {
           Sdl.removeTrayEntry(existing[i]);
         }
-        if (!populate(sdlMenu, tray.entries())) {
-          // the next show builds the menu again: update finds SDL's entries short
-          failed.accept(errorMessage("The system could not add every entry to the tray menu."));
-        }
+        complete = populate(sdlMenu, tray.entries());
       }
       currentEntries = tray.entries();
     } finally {
       populating = false;
+    }
+    if (!complete) { // the next show builds the menu again: update finds SDL's entries short
+      failed.accept(errorMessage("The system could not add every entry to the tray menu."));
     }
   }
 
@@ -143,8 +144,10 @@ final class SystemTrays implements Trays {
    * SDL's menu lacks some, because inserting them failed, and it needs building again.
    */
   private boolean update(MemorySegment menu, List<Tray.Entry> entries) {
-    MemorySegment[] handles =
-        menu.equals(MemorySegment.NULL) ? new MemorySegment[0] : Sdl.getTrayEntries(menu);
+    if (menu.equals(MemorySegment.NULL)) {
+      return false; // a submenu SDL failed to create
+    }
+    MemorySegment[] handles = Sdl.getTrayEntries(menu);
     if (handles.length != entries.size()) {
       return false;
     }
